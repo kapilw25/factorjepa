@@ -61,6 +61,27 @@ def apply_style():
     sns.set_palette("husl")
 
 
+def save_figure(fig: plt.Figure, filepath: Path, close: bool = True) -> str:
+    """
+    Save figure in both PDF and PNG formats.
+
+    Args:
+        fig: matplotlib Figure object
+        filepath: Path object (extension will be replaced)
+        close: If True, close figure after saving
+
+    Returns:
+        str: Path to PDF file (primary format)
+    """
+    filepath = Path(filepath)
+    fig.tight_layout()
+    fig.savefig(filepath.with_suffix('.pdf'), format='pdf')
+    fig.savefig(filepath.with_suffix('.png'), format='png')
+    if close:
+        plt.close(fig)
+    return str(filepath.with_suffix('.pdf'))
+
+
 # ─────────────────────────────────────────────────────────────────
 # EVALUATION VISUALIZER CLASS
 # ─────────────────────────────────────────────────────────────────
@@ -138,11 +159,8 @@ class EvaluationVisualizer:
                     fontweight='bold', color='black')
         ax.tick_params(colors='black')
 
-        filepath = self.plots_dir / 'radar_metrics_by_level.pdf'
-        fig.savefig(filepath, format='pdf')
-        fig.savefig(filepath.with_suffix('.png'), format='png')
-        plt.close(fig)
-        return str(filepath)
+        filepath = self.plots_dir / 'radar_metrics_by_level'
+        return save_figure(fig, filepath)
 
     def plot_grouped_bar(self, df: pd.DataFrame) -> str:
         """Grouped bar chart of average scores per metric and level."""
@@ -183,12 +201,8 @@ class EvaluationVisualizer:
                 ax.bar_label(container, fmt='%.2f', fontsize=9, padding=2,
                             fontweight='bold', color='black')
 
-        filepath = self.plots_dir / 'bar_avg_scores.pdf'
-        fig.tight_layout()
-        fig.savefig(filepath, format='pdf')
-        fig.savefig(filepath.with_suffix('.png'), format='png')
-        plt.close(fig)
-        return str(filepath)
+        filepath = self.plots_dir / 'bar_avg_scores'
+        return save_figure(fig, filepath)
 
     def plot_heatmap(self, df: pd.DataFrame) -> str:
         """Heatmap of scene × metric scores (averaged across levels)."""
@@ -224,12 +238,8 @@ class EvaluationVisualizer:
             label.set_fontweight('bold')
             label.set_color('black')
 
-        filepath = self.plots_dir / 'heatmap_scene_metrics.pdf'
-        fig.tight_layout()
-        fig.savefig(filepath, format='pdf')
-        fig.savefig(filepath.with_suffix('.png'), format='png')
-        plt.close(fig)
-        return str(filepath)
+        filepath = self.plots_dir / 'heatmap_scene_metrics'
+        return save_figure(fig, filepath)
 
     def plot_box_distributions(self, df: pd.DataFrame) -> str:
         """Box plots showing score distributions per metric."""
@@ -269,12 +279,8 @@ class EvaluationVisualizer:
         fig.suptitle('Score Distributions by Metric and Difficulty Level',
                      fontsize=14, y=1.02, fontweight='bold', color='black')
 
-        filepath = self.plots_dir / 'box_distributions.pdf'
-        fig.tight_layout()
-        fig.savefig(filepath, format='pdf')
-        fig.savefig(filepath.with_suffix('.png'), format='png')
-        plt.close(fig)
-        return str(filepath)
+        filepath = self.plots_dir / 'box_distributions'
+        return save_figure(fig, filepath)
 
     def plot_summary_dashboard(self, df: pd.DataFrame) -> str:
         """Summary dashboard with key statistics."""
@@ -427,8 +433,5 @@ Judge Model: GPT-4o
         fig.suptitle('VLM-as-Judge Evaluation Dashboard', fontsize=16,
                      fontweight='bold', color='black', y=0.98)
 
-        filepath = self.plots_dir / 'summary_dashboard.pdf'
-        fig.savefig(filepath, format='pdf')
-        fig.savefig(filepath.with_suffix('.png'), format='png')
-        plt.close(fig)
-        return str(filepath)
+        filepath = self.plots_dir / 'summary_dashboard'
+        return save_figure(fig, filepath)

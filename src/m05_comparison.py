@@ -18,7 +18,7 @@ from typing import Dict, List, Tuple
 
 # Add src to path for imports
 sys.path.insert(0, str(Path(__file__).parent))
-from utils.plotting import apply_style, METRICS, METRIC_LABELS, LEVEL_COLORS
+from utils.plotting import apply_style, save_figure, METRICS, METRIC_LABELS, LEVEL_COLORS
 
 # ─────────────────────────────────────────────────────────────────
 # CONFIG
@@ -217,12 +217,8 @@ class PipelineComparison:
         ax.legend(loc='upper right', fontsize=10)
         ax.yaxis.grid(True, linestyle='--', alpha=0.7)
 
-        filepath = self.plots_dir / 'comparison_by_metric.pdf'
-        fig.tight_layout()
-        fig.savefig(filepath, format='pdf')
-        fig.savefig(filepath.with_suffix('.png'), format='png')
-        plt.close(fig)
-        return str(filepath)
+        filepath = self.plots_dir / 'comparison_by_metric'
+        return save_figure(fig, filepath)
 
     def plot_comparison_by_level(self, baseline: pd.DataFrame, proposed: pd.DataFrame, stats: Dict) -> str:
         """Bar chart comparing scores by difficulty level."""
@@ -281,12 +277,8 @@ class PipelineComparison:
         ax.legend(loc='upper right')
         ax.yaxis.grid(True, linestyle='--', alpha=0.7)
 
-        filepath = self.plots_dir / 'comparison_by_level.pdf'
-        fig.tight_layout()
-        fig.savefig(filepath, format='pdf')
-        fig.savefig(filepath.with_suffix('.png'), format='png')
-        plt.close(fig)
-        return str(filepath)
+        filepath = self.plots_dir / 'comparison_by_level'
+        return save_figure(fig, filepath)
 
     def plot_improvement_heatmap(self, baseline: pd.DataFrame, proposed: pd.DataFrame) -> str:
         """Heatmap showing improvement percentage by scene and metric."""
@@ -349,12 +341,8 @@ class PipelineComparison:
         cbar = fig.colorbar(im, ax=ax, shrink=0.8)
         cbar.set_label('Improvement (%)')
 
-        filepath = self.plots_dir / 'improvement_heatmap.pdf'
-        fig.tight_layout()
-        fig.savefig(filepath, format='pdf')
-        fig.savefig(filepath.with_suffix('.png'), format='png')
-        plt.close(fig)
-        return str(filepath)
+        filepath = self.plots_dir / 'improvement_heatmap'
+        return save_figure(fig, filepath)
 
     def plot_summary_dashboard(self, baseline: pd.DataFrame, proposed: pd.DataFrame, stats: Dict) -> str:
         """Summary dashboard with key comparison statistics."""
@@ -471,11 +459,8 @@ Pipeline Comparison:
         fig.suptitle('Baseline vs Proposed Pipeline Comparison Dashboard',
                     fontsize=16, fontweight='bold', y=0.98)
 
-        filepath = self.plots_dir / 'comparison_dashboard.pdf'
-        fig.savefig(filepath, format='pdf')
-        fig.savefig(filepath.with_suffix('.png'), format='png')
-        plt.close(fig)
-        return str(filepath)
+        filepath = self.plots_dir / 'comparison_dashboard'
+        return save_figure(fig, filepath)
 
     def generate_all_comparisons(self) -> List[str]:
         """Generate all comparison plots."""

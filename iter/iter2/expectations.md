@@ -5,12 +5,51 @@
 # 1. Setup environment
 ./setup_env.sh --gpu
 
-# 2. Run full pipeline (sequential model loading)
-python -u src/m04_pipeline_orchestrator.py --full --input_dir data/images 2>&1 | tee logs/m04_full.log
+# 2. Sanity test each module (FIRST TIME ONLY - see below)
 
-# 3. Compare with baseline (after proposed pipeline completes)
+# 3. Run full pipeline (after sanity tests pass)
+python -u src/m04_pipeline_orchestrator.py --full --input_dir Literature/Prev_work2/dataset/3DReasoningProject_images 2>&1 | tee logs/m04_full.log
+
+# 4. Compare with baseline
 python -u src/m05_comparison.py --compare 2>&1 | tee logs/m05_compare.log
 ```
+
+---
+
+## First-Time Sanity Testing (Sequential)
+
+Run each module with `--sanity` before full pipeline. Debug failures at each step.
+
+```bash
+# Step 1: Test VLM object detection (Qwen2.5-VL-32B)
+python -u src/m01_scene_understanding.py --sanity --input_dir Literature/Prev_work2/dataset/3DReasoningProject_images 2>&1 | tee logs/m01_sanity.log
+# Expected: outputs/m01_scenes/<scene_id>.json with objects list
+
+# Step 2: Test LLM instruction generation (Llama-3.1-70B)
+python -u src/m02_instruction_generator.py --sanity 2>&1 | tee logs/m02_sanity.log
+# Expected: outputs/m02_instructions/<scene_id>.json with level_1/2/3 instructions
+
+# Step 3: Test GPT-4o evaluation (already tested for baseline - SKIP if needed)
+python -u src/m03_evaluator.py --sanity 2>&1 | tee logs/m03_sanity.log
+# Expected: outputs/m03_evaluations/<scene_id>.json + metrics.csv
+
+# Step 4: Test full orchestrator (runs m01→m02→m03 sequentially)
+python -u src/m04_pipeline_orchestrator.py --sanity --input_dir Literature/Prev_work2/dataset/3DReasoningProject_images 2>&1 | tee logs/m04_sanity.log
+# Expected: All outputs from steps 1-3
+
+# Step 5: Test comparison (requires both baseline + proposed metrics.csv)
+python -u src/m05_comparison.py --compare 2>&1 | tee logs/m05_sanity.log
+# Expected: outputs_comparison/*.pdf plots
+```
+
+### Sanity Test Checklist
+| Module | GPU | Dependency | Success Criteria |
+|--------|-----|------------|------------------|
+| m01 | ~40GB | None | `outputs/m01_scenes/*.json` exists with `objects` list |
+| m02 | ~70GB | m01 output | `outputs/m02_instructions/*.json` with L1/L2/L3 |
+| m03 | API only | m01+m02 output | `outputs/metrics.csv` + 5 plots |
+| m04 | Sequential | Images + .env | All m01/m02/m03 outputs generated |
+| m05 | CPU only | Two metrics.csv | `outputs_comparison/*.pdf` plots |
 
 ---
 

@@ -19,3 +19,4 @@ read current versions and then update
 @setup_env.sh , 
 @requirements.txt [covering non GPU libraries e.g - numpy, matplotlib, etc], 
 @requirements_gpu.txt [covering Nvidia GPU libraries only, e.g - torch, transformers, etc]
+8) for each @outputs/plots - both [.png & .pdf] versions should be generated  >> build (src/utils/plotting.py) accordingly
