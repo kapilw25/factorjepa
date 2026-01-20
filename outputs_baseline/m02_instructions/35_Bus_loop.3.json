@@ -1,0 +1,85 @@
+{
+  "scene_id": "35_Bus_loop.3",
+  "level_1": [
+    {
+      "task": "Move towards the bus stop",
+      "start": "Near unknown",
+      "end": "Near unknown",
+      "interact": []
+    },
+    {
+      "task": "Approach the train station",
+      "start": "Near unknown",
+      "end": "Near unknown",
+      "interact": []
+    },
+    {
+      "task": "Walk towards the bus",
+      "start": "Near unknown",
+      "end": "Near unknown",
+      "interact": []
+    }
+  ],
+  "level_2": [
+    {
+      "task": "Move to the bus stop and the train station",
+      "start": "Near unknown",
+      "end": "Near unknown",
+      "interact": [
+        "unknown",
+        "unknown"
+      ]
+    },
+    {
+      "task": "Approach the bus and the train",
+      "start": "Near unknown",
+      "end": "Near unknown",
+      "interact": [
+        "unknown",
+        "unknown"
+      ]
+    },
+    {
+      "task": "Move to the bus stop and the train",
+      "start": "Near unknown",
+      "end": "Near unknown",
+      "interact": [
+        "unknown",
+        "unknown"
+      ]
+    }
+  ],
+  "level_3": [
+    {
+      "task": "Move to the bus stop and the train station and the bus",
+      "start": "Near unknown",
+      "end": "Near unknown",
+      "interact": [
+        "unknown",
+        "unknown",
+        "unknown"
+      ]
+    },
+    {
+      "task": "Approach the bus and the train and the bus stop",
+      "start": "Near unknown",
+      "end": "Near unknown",
+      "interact": [
+        "unknown",
+        "unknown",
+        "unknown"
+      ]
+    },
+    {
+      "task": "Move to the train and the bus stop and the train station",
+      "start": "Near unknown",
+      "end": "Near unknown",
+      "interact": [
+        "unknown",
+        "unknown",
+        "unknown"
+      ]
+    }
+  ],
+  "timestamp": "2026-01-19T22:55:13.859618"
+}

@@ -1,0 +1,85 @@
+{
+  "scene_id": "34_Pedestrian_mall.4",
+  "level_1": [
+    {
+      "task": "Move to the bench",
+      "start": "Near table",
+      "end": "Near chair",
+      "interact": []
+    },
+    {
+      "task": "Walk to the person",
+      "start": "Near building",
+      "end": "Near tree",
+      "interact": []
+    },
+    {
+      "task": "Go to the umbrella",
+      "start": "Near potted plant",
+      "end": "Near bench",
+      "interact": []
+    }
+  ],
+  "level_2": [
+    {
+      "task": "Approach the person and the table",
+      "start": "Near chair",
+      "end": "Near umbrella",
+      "interact": [
+        "person",
+        "table"
+      ]
+    },
+    {
+      "task": "Move near the building and the potted plant",
+      "start": "Near tree",
+      "end": "Near table",
+      "interact": [
+        "building",
+        "potted plant"
+      ]
+    },
+    {
+      "task": "Walk near the bench and the chair",
+      "start": "Near building",
+      "end": "Near person",
+      "interact": [
+        "bench",
+        "chair"
+      ]
+    }
+  ],
+  "level_3": [
+    {
+      "task": "Approach the person, the table, and the umbrella",
+      "start": "Near chair",
+      "end": "Near tree",
+      "interact": [
+        "person",
+        "table",
+        "umbrella"
+      ]
+    },
+    {
+      "task": "Move near the building, the potted plant, and the bench",
+      "start": "Near table",
+      "end": "Near person",
+      "interact": [
+        "building",
+        "potted plant",
+        "bench"
+      ]
+    },
+    {
+      "task": "Walk near the chair, the umbrella, and the building",
+      "start": "Near tree",
+      "end": "Near bench",
+      "interact": [
+        "chair",
+        "umbrella",
+        "building"
+      ]
+    }
+  ],
+  "timestamp": "2026-01-19T22:55:13.860818"
+}

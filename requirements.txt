@@ -1,9 +1,28 @@
-# Phase 0 + Phase 1 (M1 Mac / CPU): API-based LLM/VLM
-# Install with: pip install -r requirements.txt
+# =============================================================================
+# Base Requirements (M1 Mac / CPU / API-based operations)
+# =============================================================================
+# Install: pip install -r requirements.txt
+#
+# Modules covered:
+#   - src/m03_evaluator.py (OpenAI API)
+#   - src/utils/io_handler.py
+#   - src/utils/image_utils.py
+#   - src/utils/plotting.py
+# =============================================================================
 
+# Environment & Config
 python-dotenv>=1.0.0
+
+# HTTP & API
 requests>=2.31.0
+openai>=1.0.0
+
+# Image Processing
 Pillow>=10.0.0
 
-# Phase 1+ (GPU Server only): AI2-THOR requires GPU + X11
-# Install with: pip install -r requirements_gpu.txt
+# Data & Plotting (for research-grade visualization)
+numpy>=1.24.0
+pandas>=2.0.0
+matplotlib>=3.7.0
+seaborn>=0.12.0
+scipy>=1.10.0

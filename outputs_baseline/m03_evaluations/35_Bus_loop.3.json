@@ -1,0 +1,190 @@
+{
+  "scene_id": "35_Bus_loop.3",
+  "level_1": [
+    {
+      "object_accuracy": 2.0,
+      "spatial_coherence": 3.0,
+      "task_clarity": 2.0,
+      "difficulty_alignment": 4.0,
+      "executability": 2.0,
+      "reasoning": "The instruction uses 'near unknown' for start and end, making object accuracy and executability low. The path is possible but vague, lacking clear waypoints. Task clarity is low due to ambiguous positioning. The task is mostly aligned with Level 1 difficulty, but lacks detail for execution.",
+      "instruction": {
+        "task": "Move towards the bus stop",
+        "start": "Near unknown",
+        "end": "Near unknown",
+        "interact": [],
+        "level": 1
+      }
+    },
+    {
+      "object_accuracy": 1,
+      "spatial_coherence": 1,
+      "task_clarity": 2.0,
+      "difficulty_alignment": 1,
+      "executability": 1,
+      "reasoning": "The instruction mentions 'train station,' which is not present in the scene; only a bus station is apparent. With 'near unknown' for start and end, the path is nonsensical and the task is ambiguous for a robot. The complexity does not align with a Level 1 challenge as the task lacks even basic clear direction. Execution is impossible due to unspecified positions and objects.",
+      "instruction": {
+        "task": "Approach the train station",
+        "start": "Near unknown",
+        "end": "Near unknown",
+        "interact": [],
+        "level": 1
+      }
+    },
+    {
+      "object_accuracy": 2.0,
+      "spatial_coherence": 3.0,
+      "task_clarity": 2.0,
+      "difficulty_alignment": 4.0,
+      "executability": 2.0,
+      "reasoning": "Object accuracy is low due to 'Near unknown' positions that are not identifiable. Spatial path is possible but the start and end points are not clear, leading to inefficiency. Task clarity is ambiguous with 'Walk towards the bus' not specifying which bus or from where. Difficulty alignment is slightly misaligned but mostly matches a Level 1 task. Executability is low because the instruction lacks specific starting and endpoint coordinates.",
+      "instruction": {
+        "task": "Walk towards the bus",
+        "start": "Near unknown",
+        "end": "Near unknown",
+        "interact": [],
+        "level": 1
+      }
+    }
+  ],
+  "level_2": [
+    {
+      "object_accuracy": 2.0,
+      "spatial_coherence": 2.0,
+      "task_clarity": 2.0,
+      "difficulty_alignment": 3.0,
+      "executability": 2.0,
+      "reasoning": "The instruction lacks clarity as both start and end positions are labeled 'Near unknown'. This ambiguity affects object accuracy and executability, making it difficult for a robot to execute. Although it requires navigating two objects, matching Level 2 complexity, the path and task clarity suffer from vague directions and potential multiple interpretations.",
+      "instruction": {
+        "task": "Move to the bus stop and the train station",
+        "start": "Near unknown",
+        "end": "Near unknown",
+        "interact": [
+          "unknown",
+          "unknown"
+        ],
+        "level": 2
+      }
+    },
+    {
+      "object_accuracy": 1,
+      "spatial_coherence": 1,
+      "task_clarity": 1,
+      "difficulty_alignment": 2.0,
+      "executability": 1,
+      "reasoning": "The instruction lacks clear identification of objects and positions. The task implies interaction with both a bus and a train, but a train is not present in the scene. 'Near unknown' positions make spatial coherence impossible to evaluate. The task is ambiguous and not executable by a robot due to vague positions and unspecified interactions, misaligning with Level 2 complexity.",
+      "instruction": {
+        "task": "Approach the bus and the train",
+        "start": "Near unknown",
+        "end": "Near unknown",
+        "interact": [
+          "unknown",
+          "unknown"
+        ],
+        "level": 2
+      }
+    },
+    {
+      "object_accuracy": 2.0,
+      "spatial_coherence": 2.0,
+      "task_clarity": 2.0,
+      "difficulty_alignment": 3.0,
+      "executability": 2.0,
+      "reasoning": "The instruction mentions a bus stop and train, but the train is not visible in the scene. The start and end positions are undefined ('Near unknown'), making spatial coherence poor. Task clarity is low due to ambiguous wording and lack of specific actions. The complexity somewhat aligns with Level 2 by mentioning two objects, but lacks clarity. Execution is hard due to unspecified start and end positions.",
+      "instruction": {
+        "task": "Move to the bus stop and the train",
+        "start": "Near unknown",
+        "end": "Near unknown",
+        "interact": [
+          "unknown",
+          "unknown"
+        ],
+        "level": 2
+      }
+    }
+  ],
+  "level_3": [
+    {
+      "object_accuracy": 2.0,
+      "spatial_coherence": 2.0,
+      "task_clarity": 2.0,
+      "difficulty_alignment": 4.0,
+      "executability": 2.0,
+      "reasoning": "The instruction does not specify clear start and end points, nor are the interaction steps well defined, resulting in low object accuracy and task clarity. Spatial coherence is limited due to ambiguity in navigation paths. The task complexity aligns with Level 3, but the vague positions hinder executability.",
+      "instruction": {
+        "task": "Move to the bus stop and the train station and the bus",
+        "start": "Near unknown",
+        "end": "Near unknown",
+        "interact": [
+          "unknown",
+          "unknown",
+          "unknown"
+        ],
+        "level": 3
+      }
+    },
+    {
+      "object_accuracy": 2.0,
+      "spatial_coherence": 2.0,
+      "task_clarity": 2.0,
+      "difficulty_alignment": 4.0,
+      "executability": 2.0,
+      "reasoning": "The instruction mentions a bus, a train, and a bus stop. Only bus and bus stop are clearly visible; train is missing. Paths are unclear due to 'near unknown' points. Task is ambiguous, needing a human-level understanding. Complexity is suitable but lacks clarity. Execution is difficult without defined start/end/interact locations.",
+      "instruction": {
+        "task": "Approach the bus and the train and the bus stop",
+        "start": "Near unknown",
+        "end": "Near unknown",
+        "interact": [
+          "unknown",
+          "unknown",
+          "unknown"
+        ],
+        "level": 3
+      }
+    },
+    {
+      "object_accuracy": 1,
+      "spatial_coherence": 1,
+      "task_clarity": 1,
+      "difficulty_alignment": 2.0,
+      "executability": 1,
+      "reasoning": "The instruction references a 'train' and a 'train station,' neither of which are present in the images. Only two buses and a bus stop are visible. 'Near unknown' does not offer any clear starting or ending points, making the path and tasks ambiguous. Level 3 complexity requires three objects, but this is not demonstrated. The task cannot be executed due to vague and incorrect object references.",
+      "instruction": {
+        "task": "Move to the train and the bus stop and the train station",
+        "start": "Near unknown",
+        "end": "Near unknown",
+        "interact": [
+          "unknown",
+          "unknown",
+          "unknown"
+        ],
+        "level": 3
+      }
+    }
+  ],
+  "level_1_avg": {
+    "object_accuracy": 1.6666666666666667,
+    "spatial_coherence": 2.3333333333333335,
+    "task_clarity": 2.0,
+    "difficulty_alignment": 3.0,
+    "executability": 1.6666666666666667
+  },
+  "level_1_count": 3,
+  "level_2_avg": {
+    "object_accuracy": 1.6666666666666667,
+    "spatial_coherence": 1.6666666666666667,
+    "task_clarity": 1.6666666666666667,
+    "difficulty_alignment": 2.6666666666666665,
+    "executability": 1.6666666666666667
+  },
+  "level_2_count": 3,
+  "level_3_avg": {
+    "object_accuracy": 1.6666666666666667,
+    "spatial_coherence": 1.6666666666666667,
+    "task_clarity": 1.6666666666666667,
+    "difficulty_alignment": 3.3333333333333335,
+    "executability": 1.6666666666666667
+  },
+  "level_3_count": 3,
+  "timestamp": "2026-01-19T23:36:53.039791"
+}

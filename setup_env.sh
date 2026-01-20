@@ -74,9 +74,11 @@ if [ "$1" = "--mac" ]; then
     echo "To activate environment:"
     echo "  source venv_3Denv/bin/activate"
     echo ""
-    echo "Run tests:"
-    echo "  python src/m01_shortest_path.py --test"
-    echo "  python src/m02_hybrid_judge.py --test"
+    echo "Available modules (API-based):"
+    echo "  python src/m03_evaluator.py --help        # VLM-as-Judge (OpenAI API)"
+    echo "  python src/m03_evaluator.py --plot_only   # Generate plots from metrics.csv"
+    echo ""
+    echo "Note: m01, m02, m04 require GPU (run on A100 server)"
     echo ""
     exit 0
 fi
@@ -168,8 +170,15 @@ print(f'AI2-THOR: {ai2thor.__version__}')
     echo "GPU Setup Complete!"
     echo "============================================"
     echo ""
-    echo "To capture AI2-THOR images:"
-    echo "  python src/m03_ai2thor_capture.py --scenes 5"
+    echo "Available modules:"
+    echo "  # Full pipeline (sequential model loading)"
+    echo "  python -u src/m04_pipeline_orchestrator.py --sanity 2>&1 | tee logs/m04_sanity.log"
+    echo "  python -u src/m04_pipeline_orchestrator.py --full 2>&1 | tee logs/m04_full.log"
+    echo ""
+    echo "  # Individual modules"
+    echo "  python -u src/m01_scene_understanding.py --sanity    # Qwen2.5-VL-32B (~40GB)"
+    echo "  python -u src/m02_instruction_generator.py --sanity  # Llama-3.1-70B (~70GB)"
+    echo "  python -u src/m03_evaluator.py --sanity              # GPT-4o API"
     echo ""
     exit 0
 fi

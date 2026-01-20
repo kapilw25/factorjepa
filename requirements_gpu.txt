@@ -1,19 +1,39 @@
-# Phase 1+ (GPU Server only): AI2-THOR + Local LLM/VLM
-# Install with: pip install -r requirements_gpu.txt
+# =============================================================================
+# GPU Requirements (Linux + Nvidia GPU)
+# =============================================================================
+# Install: pip install -r requirements_gpu.txt
 #
-# Requirements:
-#   - Linux (Ubuntu 14.04+)
-#   - Nvidia GPU with OpenGL support
-#   - X server with GLX module enabled
-#   - ~500MB disk space for AI2-THOR assets (auto-downloaded to ~/.ai2thor)
+# Prerequisites:
+#   - Linux (Ubuntu 20.04+)
+#   - Nvidia GPU (A100-80GB recommended)
+#   - CUDA 12.x
+#   - PyTorch 2.5.1+cu124 (install separately via setup_env.sh --gpu)
 #
-# For headless servers, start X server before running:
+# Modules covered:
+#   - src/m01_scene_understanding.py (Qwen2.5-VL-32B)
+#   - src/m02_instruction_generator.py (Llama-3.1-70B)
+#   - src/m04_pipeline_orchestrator.py
+#
+# For headless servers (AI2-THOR), start X server:
 #   sudo apt install xvfb
 #   Xvfb :99 -screen 0 1024x768x24 &
 #   export DISPLAY=:99
+# =============================================================================
 
-# Base requirements
+# Base requirements (includes dotenv, openai, numpy, pandas, matplotlib, etc.)
 -r requirements.txt
 
-# AI2-THOR (3D simulation)
+# =============================================================================
+# Transformers & Quantization
+# =============================================================================
+transformers>=4.45.0
+accelerate>=0.25.0
+bitsandbytes>=0.41.0
+
+# Qwen-VL specific
+qwen-vl-utils>=0.0.2
+
+# =============================================================================
+# AI2-THOR (3D simulation - optional)
+# =============================================================================
 ai2thor>=5.0.0

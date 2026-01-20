@@ -1,0 +1,85 @@
+{
+  "scene_id": "37_Fortress_yard.4",
+  "level_1": [
+    {
+      "task": "Approach the village",
+      "start": "Near castle",
+      "end": "Near village",
+      "interact": []
+    },
+    {
+      "task": "Navigate to the well",
+      "start": "Near village",
+      "end": "Near well",
+      "interact": []
+    },
+    {
+      "task": "Reach the barrel",
+      "start": "Near well",
+      "end": "Near barrel",
+      "interact": []
+    }
+  ],
+  "level_2": [
+    {
+      "task": "Move from the castle to the village",
+      "start": "Near castle",
+      "end": "Near village",
+      "interact": [
+        "castle",
+        "village"
+      ]
+    },
+    {
+      "task": "Approach the well from the village",
+      "start": "Near village",
+      "end": "Near well",
+      "interact": [
+        "village",
+        "well"
+      ]
+    },
+    {
+      "task": "Get to the barrel from the well",
+      "start": "Near well",
+      "end": "Near barrel",
+      "interact": [
+        "well",
+        "barrel"
+      ]
+    }
+  ],
+  "level_3": [
+    {
+      "task": "Move from the castle to the well",
+      "start": "Near castle",
+      "end": "Near well",
+      "interact": [
+        "castle",
+        "village",
+        "well"
+      ]
+    },
+    {
+      "task": "Approach the barrel from the village and the well",
+      "start": "Near well",
+      "end": "Near barrel",
+      "interact": [
+        "village",
+        "well",
+        "barrel"
+      ]
+    },
+    {
+      "task": "Navigate from the castle to the barrel",
+      "start": "Near castle",
+      "end": "Near barrel",
+      "interact": [
+        "castle",
+        "village",
+        "barrel"
+      ]
+    }
+  ],
+  "timestamp": "2026-01-19T22:55:13.859039"
+}

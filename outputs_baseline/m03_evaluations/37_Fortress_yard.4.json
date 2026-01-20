@@ -1,0 +1,190 @@
+{
+  "scene_id": "37_Fortress_yard.4",
+  "level_1": [
+    {
+      "object_accuracy": 1,
+      "spatial_coherence": 1,
+      "task_clarity": 2.0,
+      "difficulty_alignment": 2.0,
+      "executability": 2.0,
+      "reasoning": "The instruction lacks clarity and specificity. 'The village' is not represented in the scene, as instead it displays a castle courtyard. The start and end points 'near castle' and 'near village' are ambiguous and unidentifiable. The navigation task is overly simplistic and vague to fulfill Level 1 requirements with no clear path or specified actions for a robot. Overall, the instruction is generic and not executable based on the provided images.",
+      "instruction": {
+        "task": "Approach the village",
+        "start": "Near castle",
+        "end": "Near village",
+        "interact": [],
+        "level": 1
+      }
+    },
+    {
+      "object_accuracy": 1,
+      "spatial_coherence": 1,
+      "task_clarity": 1,
+      "difficulty_alignment": 1,
+      "executability": 1,
+      "reasoning": "The instruction references a 'well' which is not present in any view, making object accuracy invalid. The spatial coherence is affected as the path to a non-existent object is impossible. Task clarity is very low since mentions of the well create ambiguity. The complexity doesn't align with Level 1 as clarity and object identification fails. Executability is not feasible as targets can't be identified correctly.",
+      "instruction": {
+        "task": "Navigate to the well",
+        "start": "Near village",
+        "end": "Near well",
+        "interact": [],
+        "level": 1
+      }
+    },
+    {
+      "object_accuracy": 3.0,
+      "spatial_coherence": 3.0,
+      "task_clarity": 3.0,
+      "difficulty_alignment": 4.0,
+      "executability": 3.0,
+      "reasoning": "The start position 'Near well' is unclear as no well is visible, although the end position 'Near barrel' is clear. The path is logical but lacks specific references, which may lead to ambiguity. The task is straightforward and matches Level 1 complexity, but could be clearer for robotic execution.",
+      "instruction": {
+        "task": "Reach the barrel",
+        "start": "Near well",
+        "end": "Near barrel",
+        "interact": [],
+        "level": 1
+      }
+    }
+  ],
+  "level_2": [
+    {
+      "object_accuracy": 1,
+      "spatial_coherence": 2.0,
+      "task_clarity": 2.0,
+      "difficulty_alignment": 3.0,
+      "executability": 2.0,
+      "reasoning": "The instruction lacks specific details: Both 'castle' and 'village' are not clearly identifiable in the images. The path from 'castle' to 'village' lacks clear waypoints and spatial references, causing ambiguity. The task is somewhat understandable but requires human reasoning due to vague terms. The complexity is somewhat aligned with Level 2 but remains vague. Execution by a robot is difficult without more specific positional information and actions.",
+      "instruction": {
+        "task": "Move from the castle to the village",
+        "start": "Near castle",
+        "end": "Near village",
+        "interact": [
+          "castle",
+          "village"
+        ],
+        "level": 2
+      }
+    },
+    {
+      "object_accuracy": 1,
+      "spatial_coherence": 1,
+      "task_clarity": 2.0,
+      "difficulty_alignment": 2.0,
+      "executability": 1,
+      "reasoning": "The objects 'village' and 'well' do not exist in the scene, making object accuracy poor. The path is impossible as the mentioned objects are not identifiable, leading to poor spatial coherence. The task is ambiguous, with undefined starting and ending positions, leading to low clarity. The complexity does not match Level 2 as it assumes interaction with non-existent objects. Execution is impossible as the objects are not present in the scene.",
+      "instruction": {
+        "task": "Approach the well from the village",
+        "start": "Near village",
+        "end": "Near well",
+        "interact": [
+          "village",
+          "well"
+        ],
+        "level": 2
+      }
+    },
+    {
+      "object_accuracy": 2.0,
+      "spatial_coherence": 2.0,
+      "task_clarity": 2.0,
+      "difficulty_alignment": 4.0,
+      "executability": 2.0,
+      "reasoning": "Objects named 'well' and 'barrel' are not clearly identifiable as the image does not show a well. The path from an undefined well to barrels is spatially unclear and lacks efficiency. Instructions are ambiguous and not easily parseable by a robot. Complexity matches Level 2 only in terms of having two objects, but overall execution is difficult due to vague instructions and starting positions.",
+      "instruction": {
+        "task": "Get to the barrel from the well",
+        "start": "Near well",
+        "end": "Near barrel",
+        "interact": [
+          "well",
+          "barrel"
+        ],
+        "level": 2
+      }
+    }
+  ],
+  "level_3": [
+    {
+      "object_accuracy": 1,
+      "spatial_coherence": 1,
+      "task_clarity": 2.0,
+      "difficulty_alignment": 2.0,
+      "executability": 1,
+      "reasoning": "The instruction includes objects that are not visible in the scene, such as a 'village' and a 'well'. Spatial coherence fails as there is no visible path or point for 'well'. The task is somewhat ambiguous due to unspecified interactions. The difficulty and executability are poorly matched to a Level 3 task, as the tasks involve impossible navigation due to missing elements. The overall instruction is vague and largely non-executable.",
+      "instruction": {
+        "task": "Move from the castle to the well",
+        "start": "Near castle",
+        "end": "Near well",
+        "interact": [
+          "castle",
+          "village",
+          "well"
+        ],
+        "level": 3
+      }
+    },
+    {
+      "object_accuracy": 2.0,
+      "spatial_coherence": 2.0,
+      "task_clarity": 2.0,
+      "difficulty_alignment": 4.0,
+      "executability": 2.0,
+      "reasoning": "The objects 'village' and 'well' are not clearly identifiable in the images; only barrels are visible. The path from 'village' to 'well' lacks spatial coherence. Instructions are vague and ambiguous, failing to specify interactions or directions clearly. While the level complexity involves multi-step reasoning appropriate for Level 3, the task is difficult for a robot to execute due to unclear start/end positions and object recognition issues.",
+      "instruction": {
+        "task": "Approach the barrel from the village and the well",
+        "start": "Near well",
+        "end": "Near barrel",
+        "interact": [
+          "village",
+          "well",
+          "barrel"
+        ],
+        "level": 3
+      }
+    },
+    {
+      "object_accuracy": 4.0,
+      "spatial_coherence": 3.0,
+      "task_clarity": 3.0,
+      "difficulty_alignment": 4.0,
+      "executability": 3.0,
+      "reasoning": "Objects like the castle and barrels are clearly identifiable. However, 'village' is not visible, reducing object accuracy slightly. The path is straightforward but could be more clearly defined. The instruction is somewhat clear but lacks specificity for machine parsing. The complexity seems appropriate for Level 3, given the multi-step nature involving multiple interactions. Execution is feasible but relies on general assumptions about position and path, needing more detail for precise action.",
+      "instruction": {
+        "task": "Navigate from the castle to the barrel",
+        "start": "Near castle",
+        "end": "Near barrel",
+        "interact": [
+          "castle",
+          "village",
+          "barrel"
+        ],
+        "level": 3
+      }
+    }
+  ],
+  "level_1_avg": {
+    "object_accuracy": 1.6666666666666667,
+    "spatial_coherence": 1.6666666666666667,
+    "task_clarity": 2.0,
+    "difficulty_alignment": 2.3333333333333335,
+    "executability": 2.0
+  },
+  "level_1_count": 3,
+  "level_2_avg": {
+    "object_accuracy": 1.3333333333333333,
+    "spatial_coherence": 1.6666666666666667,
+    "task_clarity": 2.0,
+    "difficulty_alignment": 3.0,
+    "executability": 1.6666666666666667
+  },
+  "level_2_count": 3,
+  "level_3_avg": {
+    "object_accuracy": 2.3333333333333335,
+    "spatial_coherence": 2.0,
+    "task_clarity": 2.3333333333333335,
+    "difficulty_alignment": 3.3333333333333335,
+    "executability": 2.0
+  },
+  "level_3_count": 3,
+  "timestamp": "2026-01-19T23:39:47.745517"
+}

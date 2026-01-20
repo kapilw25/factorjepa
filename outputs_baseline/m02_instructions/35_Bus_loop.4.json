@@ -1,0 +1,85 @@
+{
+  "scene_id": "35_Bus_loop.4",
+  "level_1": [
+    {
+      "task": "Walk to the bus stop",
+      "start": "Near bus stop",
+      "end": "Near bus",
+      "interact": []
+    },
+    {
+      "task": "Move to the parking lot",
+      "start": "Near parking lot",
+      "end": "Near parking meter",
+      "interact": []
+    },
+    {
+      "task": "Walk to the restaurant",
+      "start": "Near restaurant",
+      "end": "Near store",
+      "interact": []
+    }
+  ],
+  "level_2": [
+    {
+      "task": "Walk to the bus and get near the bus stop",
+      "start": "Near bus stop",
+      "end": "Near bus",
+      "interact": [
+        "bus stop",
+        "bus"
+      ]
+    },
+    {
+      "task": "Move to the parking meter and get near the parking lot",
+      "start": "Near parking lot",
+      "end": "Near parking meter",
+      "interact": [
+        "parking lot",
+        "parking meter"
+      ]
+    },
+    {
+      "task": "Walk to the store and get near the restaurant",
+      "start": "Near restaurant",
+      "end": "Near store",
+      "interact": [
+        "restaurant",
+        "store"
+      ]
+    }
+  ],
+  "level_3": [
+    {
+      "task": "Walk to the bus and get near the bus stop and interact with the parking meter",
+      "start": "Near bus stop",
+      "end": "Near bus",
+      "interact": [
+        "bus stop",
+        "bus",
+        "parking meter"
+      ]
+    },
+    {
+      "task": "Move to the parking meter and get near the parking lot and interact with the chair",
+      "start": "Near parking lot",
+      "end": "Near parking meter",
+      "interact": [
+        "parking lot",
+        "parking meter",
+        "chair"
+      ]
+    },
+    {
+      "task": "Walk to the store and get near the restaurant and interact with the umbrella",
+      "start": "Near restaurant",
+      "end": "Near store",
+      "interact": [
+        "restaurant",
+        "store",
+        "umbrella"
+      ]
+    }
+  ],
+  "timestamp": "2026-01-19T22:55:13.860108"
+}

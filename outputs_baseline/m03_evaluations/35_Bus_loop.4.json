@@ -1,0 +1,190 @@
+{
+  "scene_id": "35_Bus_loop.4",
+  "level_1": [
+    {
+      "object_accuracy": 3.0,
+      "spatial_coherence": 3.0,
+      "task_clarity": 3.0,
+      "difficulty_alignment": 4.0,
+      "executability": 3.0,
+      "reasoning": "The bus stop and bus are visible, but 'near' is vague. Path is possible but lacks details on starting point and obstacles. Instruction understandable but not precise for a robot. Complexity aligns with Level 1, assuming single action. Execution requires additional context for precise positions.",
+      "instruction": {
+        "task": "Walk to the bus stop",
+        "start": "Near bus stop",
+        "end": "Near bus",
+        "interact": [],
+        "level": 1
+      }
+    },
+    {
+      "object_accuracy": 2.0,
+      "spatial_coherence": 3.0,
+      "task_clarity": 3.0,
+      "difficulty_alignment": 2.0,
+      "executability": 2.0,
+      "reasoning": "The instruction mentions 'parking lot' and 'parking meter', but their exact locations are vague. The spatial path seems possible but is not well-defined. The task may require human reasoning due to ambiguous object placements. Complexity is misaligned with Level 1 as it requires multiple object recognition. Execution is difficult due to unclear start/end locations and lack of detailed guidance.",
+      "instruction": {
+        "task": "Move to the parking lot",
+        "start": "Near parking lot",
+        "end": "Near parking meter",
+        "interact": [],
+        "level": 1
+      }
+    },
+    {
+      "object_accuracy": 1,
+      "spatial_coherence": 1,
+      "task_clarity": 2.0,
+      "difficulty_alignment": 3.0,
+      "executability": 2.0,
+      "reasoning": "Objects like the restaurant and store are not visible or identifiable in the scene, reducing object accuracy. The path from 'near restaurant' to 'near store' is nonsensical as these locations are undefined, leading to poor spatial coherence. The instruction is ambiguous since it lacks actionable details, making task clarity low. The complexity suggests a Level 1 task, but without clear objects, it is misaligned. Executability is low as a robot can't determine start or end positions without identifiable objects.",
+      "instruction": {
+        "task": "Walk to the restaurant",
+        "start": "Near restaurant",
+        "end": "Near store",
+        "interact": [],
+        "level": 1
+      }
+    }
+  ],
+  "level_2": [
+    {
+      "object_accuracy": 4.0,
+      "spatial_coherence": 4.0,
+      "task_clarity": 3.0,
+      "difficulty_alignment": 4.0,
+      "executability": 4.0,
+      "reasoning": "Most objects are clearly identifiable as both the bus and bus stop are visible in the images, though the starting point is slightly generic. The path is logical with minor ambiguity regarding precise navigation points. The instruction is clear but requires some interpretation, particularly the term 'near'. Difficulty aligns well for Level 2, involving intermediate reasoning with two objects. It's executable with some assumptions needed about distances defined by 'near'.",
+      "instruction": {
+        "task": "Walk to the bus and get near the bus stop",
+        "start": "Near bus stop",
+        "end": "Near bus",
+        "interact": [
+          "bus stop",
+          "bus"
+        ],
+        "level": 2
+      }
+    },
+    {
+      "object_accuracy": 3.0,
+      "spatial_coherence": 3.0,
+      "task_clarity": 4.0,
+      "difficulty_alignment": 4.0,
+      "executability": 3.0,
+      "reasoning": "The objects 'parking meter' and 'parking lot' are somewhat identifiable, but their precise locations are unclear due to vague phrasing. The path is possible but not clearly optimal, and minor assumptions about object positions are necessary. The instruction is clear for robot understanding but might need slight human insight. The complexity mostly aligns with Level 2 tasks, involving intermediate reasoning. Overall, the execution needs additional context about object positions.",
+      "instruction": {
+        "task": "Move to the parking meter and get near the parking lot",
+        "start": "Near parking lot",
+        "end": "Near parking meter",
+        "interact": [
+          "parking lot",
+          "parking meter"
+        ],
+        "level": 2
+      }
+    },
+    {
+      "object_accuracy": 3.0,
+      "spatial_coherence": 3.0,
+      "task_clarity": 3.0,
+      "difficulty_alignment": 4.0,
+      "executability": 3.0,
+      "reasoning": "The objects 'store' and 'restaurant' are not clearly identifiable in either view, leading to ambiguity. The path is possible but lacks specificity. The task is understandable but requires human-level clarification of the objects 'store' and 'restaurant'. The complexity seems suitable for Level 2 with intermediate reasoning. Execution is feasible, yet additional context for object identification is needed.",
+      "instruction": {
+        "task": "Walk to the store and get near the restaurant",
+        "start": "Near restaurant",
+        "end": "Near store",
+        "interact": [
+          "restaurant",
+          "store"
+        ],
+        "level": 2
+      }
+    }
+  ],
+  "level_3": [
+    {
+      "object_accuracy": 4.0,
+      "spatial_coherence": 3.0,
+      "task_clarity": 3.0,
+      "difficulty_alignment": 4.0,
+      "executability": 3.0,
+      "reasoning": "All mentioned objects are identifiable, but bus stop could be more precisely defined. Path is logical from start to end but not explicitly detailed. Instructions are clear but require human-level reasoning for interaction details. Task complexity aligns well with Level 3, involving multiple interactions. Executability is partially dependent on sensor interpretation of 'get near' and 'interact'.",
+      "instruction": {
+        "task": "Walk to the bus and get near the bus stop and interact with the parking meter",
+        "start": "Near bus stop",
+        "end": "Near bus",
+        "interact": [
+          "bus stop",
+          "bus",
+          "parking meter"
+        ],
+        "level": 3
+      }
+    },
+    {
+      "object_accuracy": 2.0,
+      "spatial_coherence": 2.0,
+      "task_clarity": 2.0,
+      "difficulty_alignment": 4.0,
+      "executability": 2.0,
+      "reasoning": "The objects 'parking meter' and 'chair' are difficult to identify clearly in the scene. The instruction suggests an interaction path that lacks clarity on what 'interact with the chair' entails, making execution challenging. The path from 'near parking lot' to 'near parking meter' is spatially possible but lacks detailed waypoints, reducing spatial coherence. Task description is ambiguous, hence requiring human interpretation. Complexity is suitable for Level 3 due to the involvement of multiple objects, but significant improvements are needed for a real robot to execute the instructions effectively.",
+      "instruction": {
+        "task": "Move to the parking meter and get near the parking lot and interact with the chair",
+        "start": "Near parking lot",
+        "end": "Near parking meter",
+        "interact": [
+          "parking lot",
+          "parking meter",
+          "chair"
+        ],
+        "level": 3
+      }
+    },
+    {
+      "object_accuracy": 1,
+      "spatial_coherence": 1,
+      "task_clarity": 2.0,
+      "difficulty_alignment": 2.0,
+      "executability": 1,
+      "reasoning": "The scene does not contain a 'store' or 'restaurant', making the objects unidentifiable. Therefore, the path cannot be determined, and the interaction tasks are unclear. The instruction is ambiguous and not suitable for Level 3 complexity, and it's not executable by a robot due to missing references.",
+      "instruction": {
+        "task": "Walk to the store and get near the restaurant and interact with the umbrella",
+        "start": "Near restaurant",
+        "end": "Near store",
+        "interact": [
+          "restaurant",
+          "store",
+          "umbrella"
+        ],
+        "level": 3
+      }
+    }
+  ],
+  "level_1_avg": {
+    "object_accuracy": 2.0,
+    "spatial_coherence": 2.3333333333333335,
+    "task_clarity": 2.6666666666666665,
+    "difficulty_alignment": 3.0,
+    "executability": 2.3333333333333335
+  },
+  "level_1_count": 3,
+  "level_2_avg": {
+    "object_accuracy": 3.3333333333333335,
+    "spatial_coherence": 3.3333333333333335,
+    "task_clarity": 3.3333333333333335,
+    "difficulty_alignment": 4.0,
+    "executability": 3.3333333333333335
+  },
+  "level_2_count": 3,
+  "level_3_avg": {
+    "object_accuracy": 2.3333333333333335,
+    "spatial_coherence": 2.0,
+    "task_clarity": 2.3333333333333335,
+    "difficulty_alignment": 3.3333333333333335,
+    "executability": 2.0
+  },
+  "level_3_count": 3,
+  "timestamp": "2026-01-19T23:38:48.317051"
+}

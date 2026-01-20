@@ -1,0 +1,9 @@
+{
+  "scene_id": "34_Pedestrian_mall.4",
+  "isometric_path": "Literature/Prev_work2/dataset/3DReasoningProject_images/Others/34_Pedestrian_mall.4_isometric.png",
+  "topdown_path": "Literature/Prev_work2/dataset/3DReasoningProject_images/Others/34_Pedestrian_mall.4_topdown.png",
+  "objects": [],
+  "scene_type": "outdoor",
+  "layout_description": "Scene from existing dataset",
+  "timestamp": "2026-01-19T22:55:13.860505"
+}

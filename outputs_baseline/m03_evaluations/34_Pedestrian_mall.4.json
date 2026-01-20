@@ -1,0 +1,190 @@
+{
+  "scene_id": "34_Pedestrian_mall.4",
+  "level_1": [
+    {
+      "object_accuracy": 2.0,
+      "spatial_coherence": 2.0,
+      "task_clarity": 3.0,
+      "difficulty_alignment": 4.0,
+      "executability": 2.0,
+      "reasoning": "Objects like 'table' and 'chair' are not clearly identifiable, leading to vague instructions. The path from a generic start to a vague end point lacks spatial logic. Task is somewhat clear but requires interpretation due to vague start and end locations. Complexity mostly matches Level 1 for having basic navigation, but executability is hindered due to unclear object references.",
+      "instruction": {
+        "task": "Move to the bench",
+        "start": "Near table",
+        "end": "Near chair",
+        "interact": [],
+        "level": 1
+      }
+    },
+    {
+      "object_accuracy": 3.0,
+      "spatial_coherence": 3.0,
+      "task_clarity": 3.0,
+      "difficulty_alignment": 4.0,
+      "executability": 3.0,
+      "reasoning": "Object accuracy is hindered by the vague 'near tree' description since multiple trees are visible. Spatial coherence is possible but lacks clarity on which path to take. Task clarity is moderate; the robot might struggle to determine which person is intended. The difficulty is somewhat aligned, single object but overly simplistic. Executability relies on assuming which tree or person, leading to potential confusion.",
+      "instruction": {
+        "task": "Walk to the person",
+        "start": "Near building",
+        "end": "Near tree",
+        "interact": [],
+        "level": 1
+      }
+    },
+    {
+      "object_accuracy": 2.0,
+      "spatial_coherence": 2.0,
+      "task_clarity": 2.0,
+      "difficulty_alignment": 2.0,
+      "executability": 2.0,
+      "reasoning": "The instruction lacks clarity as the named 'umbrella' is not evident in the images, making navigation vague. Starting 'near potted plant' is too generic since there are multiple potted plants, which impacts spatial coherence. Task clarity is poor; 'Go to the umbrella' is ambiguous. The difficulty does not align with Level 1 due to unclear object definition. The task is difficult to execute because of the vague start and end references.",
+      "instruction": {
+        "task": "Go to the umbrella",
+        "start": "Near potted plant",
+        "end": "Near bench",
+        "interact": [],
+        "level": 1
+      }
+    }
+  ],
+  "level_2": [
+    {
+      "object_accuracy": 2.0,
+      "spatial_coherence": 3.0,
+      "task_clarity": 2.0,
+      "difficulty_alignment": 4.0,
+      "executability": 2.0,
+      "reasoning": "The instruction mentions 'chair' and 'umbrella' as start and end points, which are not clearly identified in the images. While benches are visible, an 'umbrella' isn't apparent. The path is possible but ambiguous. Instruction lacks specificity for machine parsing and requires human interpretation. Complexity is mostly aligned with Level 2, but executability is hindered by unclear start/end references and actions.",
+      "instruction": {
+        "task": "Approach the person and the table",
+        "start": "Near chair",
+        "end": "Near umbrella",
+        "interact": [
+          "person",
+          "table"
+        ],
+        "level": 2
+      }
+    },
+    {
+      "object_accuracy": 3.0,
+      "spatial_coherence": 3.0,
+      "task_clarity": 3.0,
+      "difficulty_alignment": 4.0,
+      "executability": 3.0,
+      "reasoning": "The objects 'near tree,' 'near table,' 'building,' and 'potted plant' are somewhat identifiable but need specificity. The path is feasible but lacks detailed instructions, causing potential inefficiency. The task is understandable yet requires detailed parsing to interpret, matching Level 2 complexity fairly well. The task is partially executable but needs clearer start/end positions.",
+      "instruction": {
+        "task": "Move near the building and the potted plant",
+        "start": "Near tree",
+        "end": "Near table",
+        "interact": [
+          "building",
+          "potted plant"
+        ],
+        "level": 2
+      }
+    },
+    {
+      "object_accuracy": 3.0,
+      "spatial_coherence": 3.0,
+      "task_clarity": 2.0,
+      "difficulty_alignment": 3.0,
+      "executability": 3.0,
+      "reasoning": "The objects (bench, chair, building, person) are mostly identifiable but the chair is not visible in the images, leading to some ambiguity in object accuracy. The path is possible but unclear, as 'near the bench and the chair' is not specific enough in the context. The task has ambiguity due to unclear spatial references and lacks specific instructions for interaction. Complexity is somewhat aligned with Level 2 but could be clearer. Executability is hindered by vague instructions that could confuse a robot.",
+      "instruction": {
+        "task": "Walk near the bench and the chair",
+        "start": "Near building",
+        "end": "Near person",
+        "interact": [
+          "bench",
+          "chair"
+        ],
+        "level": 2
+      }
+    }
+  ],
+  "level_3": [
+    {
+      "object_accuracy": 2.0,
+      "spatial_coherence": 2.0,
+      "task_clarity": 2.0,
+      "difficulty_alignment": 3.0,
+      "executability": 2.0,
+      "reasoning": "The instruction is vague and lacks clarity. The objects 'person,' 'table,' and 'umbrella' require more specificity, as they are not clearly defined with respect to the layout. The spatial instruction 'START: Near chair' is ambiguous due to multiple chairs. The path is not optimal or well-defined. The task is somewhat aligned with Level 3 but lacks clear multi-step reasoning. Overall, the instructions are difficult for a robot to execute without additional context.",
+      "instruction": {
+        "task": "Approach the person, the table, and the umbrella",
+        "start": "Near chair",
+        "end": "Near tree",
+        "interact": [
+          "person",
+          "table",
+          "umbrella"
+        ],
+        "level": 3
+      }
+    },
+    {
+      "object_accuracy": 3.0,
+      "spatial_coherence": 3.0,
+      "task_clarity": 3.0,
+      "difficulty_alignment": 4.0,
+      "executability": 3.0,
+      "reasoning": "The instruction involves identifiable objects, though 'table' is unclear. The path seems possible but inefficient and lacks specific waypoints. Instruction is generally understandable but lacks precision for robotic parsing. The task complexity matches Level 3, involving multiple objects, but the instructions are not perfectly aligned. The execution requires additional context, such as precise start and end locations.",
+      "instruction": {
+        "task": "Move near the building, the potted plant, and the bench",
+        "start": "Near table",
+        "end": "Near person",
+        "interact": [
+          "building",
+          "potted plant",
+          "bench"
+        ],
+        "level": 3
+      }
+    },
+    {
+      "object_accuracy": 3.0,
+      "spatial_coherence": 3.0,
+      "task_clarity": 3.0,
+      "difficulty_alignment": 4.0,
+      "executability": 3.0,
+      "reasoning": "Most objects are visible but the umbrella is vague as it's not clearly identifiable. The path is plausible but lacks precision in terms of specific directions. The task is understandable but requires human-level reasoning to interpret 'near' without explicit distance. Complexity aligns mostly with Level 3, as it involves multiple objects. Executability is average since more context on positioning is needed for precise navigation.",
+      "instruction": {
+        "task": "Walk near the chair, the umbrella, and the building",
+        "start": "Near tree",
+        "end": "Near bench",
+        "interact": [
+          "chair",
+          "umbrella",
+          "building"
+        ],
+        "level": 3
+      }
+    }
+  ],
+  "level_1_avg": {
+    "object_accuracy": 2.3333333333333335,
+    "spatial_coherence": 2.3333333333333335,
+    "task_clarity": 2.6666666666666665,
+    "difficulty_alignment": 3.3333333333333335,
+    "executability": 2.3333333333333335
+  },
+  "level_1_count": 3,
+  "level_2_avg": {
+    "object_accuracy": 2.6666666666666665,
+    "spatial_coherence": 3.0,
+    "task_clarity": 2.3333333333333335,
+    "difficulty_alignment": 3.6666666666666665,
+    "executability": 2.6666666666666665
+  },
+  "level_2_count": 3,
+  "level_3_avg": {
+    "object_accuracy": 2.6666666666666665,
+    "spatial_coherence": 2.6666666666666665,
+    "task_clarity": 2.6666666666666665,
+    "difficulty_alignment": 3.6666666666666665,
+    "executability": 2.6666666666666665
+  },
+  "level_3_count": 3,
+  "timestamp": "2026-01-19T23:37:52.334459"
+}

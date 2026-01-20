@@ -347,6 +347,125 @@ recall = len(detected ∩ GT) / len(GT)
 └─────────────────────────────────────────────────────────────────┘
 ```
 
+### 🔍 How OpenAI API (VLM-as-Judge) Works
+
+**Input to GPT-4o API:**
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                    VLM-as-Judge INPUT                           │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                 │
+│  IMAGE 1: 34_Pedestrian_mall.4_isometric.png  ◄── Scene view    │
+│  IMAGE 2: 34_Pedestrian_mall.4_topdown.png    ◄── Layout view   │
+│                                                                 │
+│  TEXT: Generated instruction from 34_Pedestrian_mall.4.txt      │
+│  ┌─────────────────────────────────────────────────────────┐   │
+│  │ LEVEL_1 | TASK: Navigate from near the bench to near    │   │
+│  │         | the kiosk | START: Near bench | END: Near     │   │
+│  │         | kiosk | INTERACT: none                        │   │
+│  └─────────────────────────────────────────────────────────┘   │
+│                                                                 │
+│  PROMPT: "Rate this robot navigation instruction..."            │
+│                                                                 │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+**API Call Structure:**
+
+```python
+from openai import OpenAI
+import base64
+
+client = OpenAI()
+
+# Encode images
+img_iso = base64.b64encode(open("34_Pedestrian_mall.4_isometric.png", "rb").read())
+img_top = base64.b64encode(open("34_Pedestrian_mall.4_topdown.png", "rb").read())
+
+# Read generated instruction
+instruction = open("instructions/34_Pedestrian_mall.4.txt").read()
+
+response = client.chat.completions.create(
+    model="gpt-4o",
+    messages=[{
+        "role": "user",
+        "content": [
+            {"type": "image_url", "image_url": {"url": f"data:image/png;base64,{img_iso}"}},
+            {"type": "image_url", "image_url": {"url": f"data:image/png;base64,{img_top}"}},
+            {"type": "text", "text": f'''
+You are evaluating robot navigation instructions for the scene shown in these images.
+
+INSTRUCTION TO EVALUATE:
+{instruction}
+
+Rate each criterion from 1-5:
+1. Object Accuracy: Are "bench" and "kiosk" visible in the images?
+2. Spatial Coherence: Does the path from bench to kiosk make sense?
+3. Task Clarity: Is the instruction unambiguous?
+4. Difficulty Alignment: Is this appropriate for Level 1 (navigation only)?
+5. Executability: Could a robot actually perform this task?
+
+Output JSON: {{"object_accuracy": X, "spatial_coherence": X, "task_clarity": X, "difficulty_alignment": X, "executability": X, "reasoning": "..."}}
+'''}
+        ]
+    }],
+    max_tokens=500
+)
+```
+
+**Evaluation Flow:**
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│              EVALUATION PIPELINE FLOW                           │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                 │
+│  FOR EACH scene_id in dataset:                                  │
+│                                                                 │
+│  ┌─────────────┐    ┌─────────────┐    ┌─────────────┐         │
+│  │ _isometric  │    │  _topdown   │    │ .txt file   │         │
+│  │    .png     │    │    .png     │    │(instructions)│        │
+│  └──────┬──────┘    └──────┬──────┘    └──────┬──────┘         │
+│         │                  │                  │                 │
+│         └─────────────┬────┴──────────────────┘                 │
+│                       ▼                                         │
+│         ┌─────────────────────────────┐                         │
+│         │      GPT-4o API Call        │                         │
+│         │  (images + instruction)     │                         │
+│         └─────────────┬───────────────┘                         │
+│                       ▼                                         │
+│         ┌─────────────────────────────┐                         │
+│         │   JSON Response             │                         │
+│         │   {scores + reasoning}      │                         │
+│         └─────────────┬───────────────┘                         │
+│                       ▼                                         │
+│         ┌─────────────────────────────┐                         │
+│         │  Store in evaluation_results│                         │
+│         │  .json / centralized.db     │                         │
+│         └─────────────────────────────┘                         │
+│                                                                 │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+**Example Evaluation for Your Dataset:**
+
+| Scene | Images | Instruction File | Judge Input |
+|-------|--------|------------------|-------------|
+| 34_Pedestrian_mall.4 | `_isometric.png` + `_topdown.png` | `34_Pedestrian_mall.4.txt` | 2 images + 9 instructions |
+| 35_Bus_loop.3 | `_isometric.png` + `_topdown.png` | `35_Bus_loop.3.txt` | 2 images + 9 instructions |
+| 35_Bus_loop.4 | `_isometric.png` + `_topdown.png` | `35_Bus_loop.4.txt` | 2 images + 9 instructions |
+| 37_Fortress_yard.4 | `_isometric.png` + `_topdown.png` | `37_Fortress_yard.4.txt` | 2 images + 9 instructions |
+
+**What the Judge Checks:**
+
+| Check | Good Example ✅ | Bad Example ❌ |
+|-------|-----------------|----------------|
+| Objects exist | "bench" visible in image | "unknown" not visible |
+| Path makes sense | bench → kiosk (clear path) | "left side" → "right side" |
+| Matches level | Level 1 = navigation only | Level 1 with interactions |
+| Executable | "Go to bench" | "Teleport to bench" |
+
 ### Output Format
 
 ```json
