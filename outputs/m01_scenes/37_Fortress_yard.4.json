@@ -1,0 +1,30 @@
+{
+  "scene_id": "37_Fortress_yard.4",
+  "isometric_path": "Literature/Prev_work2/dataset/3DReasoningProject_images/Others/37_Fortress_yard.4_isometric.png",
+  "topdown_path": "Literature/Prev_work2/dataset/3DReasoningProject_images/Others/37_Fortress_yard.4_topdown.png",
+  "objects": [
+    {
+      "name": "castle_tower",
+      "confidence": 0.95
+    },
+    {
+      "name": "castle_wall",
+      "confidence": 0.95
+    },
+    {
+      "name": "barrels",
+      "confidence": 0.9
+    },
+    {
+      "name": "tent",
+      "confidence": 0.95
+    },
+    {
+      "name": "flag",
+      "confidence": 0.9
+    }
+  ],
+  "scene_type": "outdoor_medieval_camp",
+  "layout_description": "Enclosed area with castle-like structures, barrels, and tents, suitable for medieval-themed navigation tasks.",
+  "timestamp": "2026-01-20T11:19:17.532790"
+}

@@ -1,0 +1,18 @@
+{
+  "scene_id": "9_Meeting_room.4",
+  "isometric_path": "Literature/Prev_work2/dataset/3DReasoningProject_images/Office_Workplace/9_Meeting_room.4_isometric.png",
+  "topdown_path": "Literature/Prev_work2/dataset/3DReasoningProject_images/Office_Workplace/9_Meeting_room.4_topdown.png",
+  "objects": [
+    {
+      "name": "table",
+      "confidence": 0.98
+    },
+    {
+      "name": "chair",
+      "confidence": 0.97
+    }
+  ],
+  "scene_type": "office",
+  "layout_description": "Central rectangular table surrounded by six chairs arranged symmetrically, suitable for meetings or discussions.",
+  "timestamp": "2026-01-20T11:17:20.642180"
+}

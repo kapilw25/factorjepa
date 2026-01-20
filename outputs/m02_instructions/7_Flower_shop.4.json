@@ -1,0 +1,101 @@
+{
+  "scene_id": "7_Flower_shop.4",
+  "level_1": [
+    {
+      "task": "Walk from the archway to the table area",
+      "start": "Near archway",
+      "end": "Near table",
+      "start_object": "archway",
+      "end_object": "table",
+      "interact": []
+    },
+    {
+      "task": "Navigate from the wall lamp to the shelf section",
+      "start": "Near wall lamp",
+      "end": "Near shelf",
+      "start_object": "wall lamp",
+      "end_object": "shelf",
+      "interact": []
+    },
+    {
+      "task": "Approach the planter display from the bench area",
+      "start": "Near bench",
+      "end": "Near planters",
+      "start_object": "bench",
+      "end_object": "planters",
+      "interact": []
+    }
+  ],
+  "level_2": [
+    {
+      "task": "Inspect the items on the shelf and report to the archway",
+      "start": "Near shelf",
+      "end": "Near archway",
+      "start_object": "shelf",
+      "end_object": "archway",
+      "interact": [
+        "shelf"
+      ]
+    },
+    {
+      "task": "Pick up a roll_of_paper from the table and deliver it to the wall lamp",
+      "start": "Near table",
+      "end": "Near wall lamp",
+      "start_object": "table",
+      "end_object": "wall lamp",
+      "interact": [
+        "roll_of_paper",
+        "table"
+      ]
+    },
+    {
+      "task": "Check the wall_art and meet at the bench",
+      "start": "Near wall_art",
+      "end": "Near bench",
+      "start_object": "wall_art",
+      "end_object": "bench",
+      "interact": [
+        "wall_art"
+      ]
+    }
+  ],
+  "level_3": [
+    {
+      "task": "Collect items from the shelf, check the display on the wall_art, and deliver to the counter near the archway",
+      "start": "Near shelf",
+      "end": "Near archway",
+      "start_object": "shelf",
+      "end_object": "archway",
+      "interact": [
+        "shelf",
+        "wall_art",
+        "counter"
+      ]
+    },
+    {
+      "task": "Inspect the planters near the bench, pick up a package from the table, and deliver to the shelf section",
+      "start": "Near bench",
+      "end": "Near shelf",
+      "start_object": "bench",
+      "end_object": "shelf",
+      "interact": [
+        "planters",
+        "package",
+        "table"
+      ]
+    },
+    {
+      "task": "Meet at the archway, collect a roll_of_paper from the table, and deliver it to the wall lamp near the shelf",
+      "start": "Near archway",
+      "end": "Near wall lamp",
+      "start_object": "archway",
+      "end_object": "wall lamp",
+      "interact": [
+        "archway",
+        "roll_of_paper",
+        "shelf"
+      ]
+    }
+  ],
+  "timestamp": "2026-01-20T11:36:45.314892"
+}

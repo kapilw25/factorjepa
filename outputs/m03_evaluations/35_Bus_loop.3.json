@@ -1,0 +1,182 @@
+{
+  "scene_id": "35_Bus_loop.3",
+  "level_1": [
+    {
+      "object_accuracy": 4.0,
+      "spatial_coherence": 4.0,
+      "task_clarity": 3.0,
+      "difficulty_alignment": 4.0,
+      "executability": 4.0,
+      "reasoning": "All objects (bus stop, bench) are identifiable in both views with minor naming variations. The path from the bus stop to the bench is logical with some spatial ambiguity, such as exact bench location. Instructions are clear but require slight human reasoning to parse. Complexity matches Level 1 due to simplicity, though some assumptions about pathfinding are needed. Overall, task is executable with minor adjustments.",
+      "instruction": {
+        "task": "Walk from the bus stop to the nearby bench",
+        "start": "Near bus_stop",
+        "end": "Near bench",
+        "start_object": "bus_stop",
+        "end_object": "bench",
+        "interact": [],
+        "level": 1
+      }
+    },
+    {
+      "object_accuracy": 3.0,
+      "spatial_coherence": 3.0,
+      "task_clarity": 3.0,
+      "difficulty_alignment": 4.0,
+      "executability": 3.0,
+      "reasoning": "The objects 'bench' and 'bus stop' are generally recognizable, but their exact positions are vague, particularly from a top-down view. The path from the bench area to the bus stop is logical but lacks specific waypoints, making spatial coherence average. Task clarity is reasonable but not easily machine-parseable, and it requires some human interpretation. Difficulty aligns well with Level 1 as it involves navigating between two objects. Executability is possible but needs more precision in start/end positions.",
+      "instruction": {
+        "task": "Navigate from the bench area to the bus stop",
+        "start": "Near bench",
+        "end": "Near bus_stop",
+        "start_object": "bench",
+        "end_object": "bus_stop",
+        "interact": [],
+        "level": 1
+      }
+    },
+    {
+      "object_accuracy": 2.0,
+      "spatial_coherence": 2.0,
+      "task_clarity": 2.0,
+      "difficulty_alignment": 2.0,
+      "executability": 2.0,
+      "reasoning": "The objects 'bus stop' are generic and could refer to either the structure or the area where buses are located, making object identification vague. The instruction provides no specific start or end point, and no path guidance is offered, leading to incoherence in spatial directions. The task is ambiguous due to unclear starting and ending points, thus making it difficult for a robot to interpret and execute. The complexity is overly simple for a Level 1 task, as it provides no clear navigation challenge. Executability is hindered by the lack of specific positions or actions required for the robot to follow.",
+      "instruction": {
+        "task": "Go from the bus stop to another bus stop",
+        "start": "Near bus_stop",
+        "end": "Near bus_stop",
+        "start_object": "bus_stop",
+        "end_object": "bus_stop",
+        "interact": [],
+        "level": 1
+      }
+    }
+  ],
+  "level_2": [
+    {
+      "object_accuracy": 3.0,
+      "spatial_coherence": 3.0,
+      "task_clarity": 3.0,
+      "difficulty_alignment": 4.0,
+      "executability": 3.0,
+      "reasoning": "The bus stop and bench are visible, but their identification might not be straightforward due to the generic terms used. The path from the bus stop to the bench is logical, but lacks precision and could be inefficient. The instruction is understandable but requires human-level reasoning for execution. The task complexity aligns with Level 2, as it involves two objects and intermediate reasoning. However, the execution needs additional context for precise robot navigation, such as spatial references and clear actions.",
+      "instruction": {
+        "task": "Wait at the bus stop and then sit on the nearby bench",
+        "start": "Near bus_stop",
+        "end": "Near bench",
+        "start_object": "bus_stop",
+        "end_object": "bench",
+        "interact": [
+          "bus_stop"
+        ],
+        "level": 2
+      }
+    },
+    {
+      "object_accuracy": 4.0,
+      "spatial_coherence": 3.0,
+      "task_clarity": 3.0,
+      "difficulty_alignment": 4.0,
+      "executability": 3.0,
+      "reasoning": "Objects are mostly clear, but the 'bench' positioning is vague. The path is logical, from the bus stop to the bench, but the specificity of 'near' could lead to inefficiencies. Task clarity is decent, but 'inspect the bus stop schedule' is slightly ambiguous. The task complexity is appropriate for Level 2, as it involves interaction and moving between objects. However, the execution could be challenging without precise position details.",
+      "instruction": {
+        "task": "Inspect the bus stop schedule and then head to the bench",
+        "start": "Near bus_stop",
+        "end": "Near bench",
+        "start_object": "bus_stop",
+        "end_object": "bench",
+        "interact": [
+          "bus_stop"
+        ],
+        "level": 2
+      }
+    },
+    {
+      "object_accuracy": 4.0,
+      "spatial_coherence": 4.0,
+      "task_clarity": 4.0,
+      "difficulty_alignment": 4.0,
+      "executability": 4.0,
+      "reasoning": "All mentioned objects (bench, bus stop) are identifiable, though minor naming variations exist. The path from near the bench to the bus stop is logical with minimal ambiguity. The instruction is clear, with specific actions and positions, requiring minor interpretation. Complexity aligns well with Level 2, involving intermediate reasoning with two objects. The task is executable with standard sensors, assuming minor contextual understanding of positions.",
+      "instruction": {
+        "task": "Stand near the bench and observe the bus stop area",
+        "start": "Near bench",
+        "end": "Near bus_stop",
+        "start_object": "bench",
+        "end_object": "bus_stop",
+        "interact": [
+          "bench"
+        ],
+        "level": 2
+      }
+    }
+  ],
+  "level_3": [
+    {
+      "object_accuracy": 4.0,
+      "spatial_coherence": 3.0,
+      "task_clarity": 4.0,
+      "difficulty_alignment": 4.0,
+      "executability": 3.0,
+      "reasoning": "All mentioned objects (bus stop, bench) are visible and correctly identified, but the bench isn't explicitly labeled, which affects object accuracy slightly. The spatial path seems possible but lacks precise waypoints or clear instructions on distances, leading to inefficiencies. The task is fairly clear and suitable for machines with minor adjustments needed. The level complexity is mostly appropriate for Level 3 as it involves multiple steps and objects. However, a real robot may struggle without additional context on exact start/end points and appropriate detection of interacting actions, slightly lowering executability.",
+      "instruction": {
+        "task": "Check the bus schedule at the bus stop, walk to the nearby bench, and then return to the bus stop",
+        "start": "Near bus_stop",
+        "end": "Near bus_stop",
+        "start_object": "bus_stop",
+        "end_object": "bus_stop",
+        "interact": [
+          "bus_stop",
+          "bench"
+        ],
+        "level": 3
+      }
+    },
+    {
+      "object_accuracy": 4.0,
+      "spatial_coherence": 4.0,
+      "task_clarity": 4.0,
+      "difficulty_alignment": 5,
+      "executability": 4.0,
+      "reasoning": "All objects are visible and clearly identifiable as a bench and bus stop. The path is logical with the bench and bus stop correctly referenced. Instructions are clear but require slight interpretation. The task complexity matches Level 3, involving multi-step reasoning. Executability is high with clear starting and ending points, though minor assumptions about sensor capabilities are needed.",
+      "instruction": {
+        "task": "Start at the bench, go to the bus stop to ask for directions, and then return to the bench",
+        "start": "Near bench",
+        "end": "Near bench",
+        "start_object": "bench",
+        "end_object": "bench",
+        "interact": [
+          "bus_stop",
+          "bench"
+        ],
+        "level": 3
+      }
+    }
+  ],
+  "level_1_avg": {
+    "object_accuracy": 3.0,
+    "spatial_coherence": 3.0,
+    "task_clarity": 2.6666666666666665,
+    "difficulty_alignment": 3.3333333333333335,
+    "executability": 3.0
+  },
+  "level_1_count": 3,
+  "level_2_avg": {
+    "object_accuracy": 3.6666666666666665,
+    "spatial_coherence": 3.3333333333333335,
+    "task_clarity": 3.3333333333333335,
+    "difficulty_alignment": 4.0,
+    "executability": 3.3333333333333335
+  },
+  "level_2_count": 3,
+  "level_3_avg": {
+    "object_accuracy": 4.0,
+    "spatial_coherence": 3.5,
+    "task_clarity": 4.0,
+    "difficulty_alignment": 4.5,
+    "executability": 3.5
+  },
+  "level_3_count": 2,
+  "timestamp": "2026-01-20T11:40:29.566088"
+}

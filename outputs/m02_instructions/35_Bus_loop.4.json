@@ -1,0 +1,97 @@
+{
+  "scene_id": "35_Bus_loop.4",
+  "level_1": [
+    {
+      "task": "Walk from the bus stop to the traffic light",
+      "start": "Near bus_stop_shelter",
+      "end": "Near traffic_light",
+      "start_object": "bus_stop_shelter",
+      "end_object": "traffic_light",
+      "interact": []
+    },
+    {
+      "task": "Navigate from the bollard to the parking meter",
+      "start": "Near bollard",
+      "end": "Near parking_meter",
+      "start_object": "bollard",
+      "end_object": "parking_meter",
+      "interact": []
+    },
+    {
+      "task": "Go from the street lamp to the bus stop area",
+      "start": "Near street_lamp",
+      "end": "Near bus_stop_shelter",
+      "start_object": "street_lamp",
+      "end_object": "bus_stop_shelter",
+      "interact": []
+    }
+  ],
+  "level_2": [
+    {
+      "task": "Inspect the bollard and then go to the bus stop",
+      "start": "Near bollard",
+      "end": "Near bus_stop_shelter",
+      "start_object": "bollard",
+      "end_object": "bus_stop_shelter",
+      "interact": [
+        "bollard"
+      ]
+    },
+    {
+      "task": "Check the parking meter and then head to the traffic light",
+      "start": "Near parking_meter",
+      "end": "Near traffic_light",
+      "start_object": "parking_meter",
+      "end_object": "traffic_light",
+      "interact": [
+        "parking_meter"
+      ]
+    },
+    {
+      "task": "Wait at the bus stop and then walk to the street lamp",
+      "start": "Near bus_stop_shelter",
+      "end": "Near street_lamp",
+      "start_object": "bus_stop_shelter",
+      "end_object": "street_lamp",
+      "interact": [
+        "bus"
+      ]
+    }
+  ],
+  "level_3": [
+    {
+      "task": "Start at the traffic light, go to the parking meter to pay, then head to the bus stop to catch the bus",
+      "start": "Near traffic_light",
+      "end": "Near bus_stop_shelter",
+      "start_object": "traffic_light",
+      "end_object": "bus_stop_shelter",
+      "interact": [
+        "parking_meter",
+        "bus"
+      ]
+    },
+    {
+      "task": "Begin at the bus stop shelter and go to the bollard to read the sign, then go to the street lamp to check the time",
+      "start": "Near bus_stop_shelter",
+      "end": "Near street_lamp",
+      "start_object": "bus_stop_shelter",
+      "end_object": "street_lamp",
+      "interact": [
+        "bollard",
+        "street_lamp"
+      ]
+    },
+    {
+      "task": "Go from the street lamp to the parking meter to check the fare, then head to the bus stop to wait for the bus",
+      "start": "Near street_lamp",
+      "end": "Near bus_stop_shelter",
+      "start_object": "street_lamp",
+      "end_object": "bus_stop_shelter",
+      "interact": [
+        "parking_meter",
+        "bus"
+      ]
+    }
+  ],
+  "timestamp": "2026-01-20T11:30:31.289845"
+}

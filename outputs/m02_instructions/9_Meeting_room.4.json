@@ -1,0 +1,103 @@
+{
+  "scene_id": "9_Meeting_room.4",
+  "level_1": [
+    {
+      "task": "Navigate from the chair area to the table",
+      "start": "Near chair",
+      "end": "Near table",
+      "start_object": "chair",
+      "end_object": "table",
+      "interact": []
+    },
+    {
+      "task": "Move from the table to the chair on the opposite side",
+      "start": "Near table",
+      "end": "Near chair",
+      "start_object": "table",
+      "end_object": "chair",
+      "interact": []
+    },
+    {
+      "task": "Go around the table and reach the chair next to the entrance",
+      "start": "Near table",
+      "end": "Near chair",
+      "start_object": "table",
+      "end_object": "chair",
+      "interact": []
+    }
+  ],
+  "level_2": [
+    {
+      "task": "Take notes from the table and place them on the chair",
+      "start": "Near table",
+      "end": "Near chair",
+      "start_object": "table",
+      "end_object": "chair",
+      "interact": [
+        "notes",
+        "table"
+      ]
+    },
+    {
+      "task": "Inspect the papers on the chair and then move to the table",
+      "start": "Near chair",
+      "end": "Near table",
+      "start_object": "chair",
+      "end_object": "table",
+      "interact": [
+        "papers",
+        "chair"
+      ]
+    },
+    {
+      "task": "Pick up the pen from the table and hand it over to the person sitting on the chair",
+      "start": "Near table",
+      "end": "Near chair",
+      "start_object": "table",
+      "end_object": "chair",
+      "interact": [
+        "pen",
+        "table"
+      ]
+    }
+  ],
+  "level_3": [
+    {
+      "task": "Collect all the documents from the chairs, organize them on the table, and then distribute to the people sitting on the chairs",
+      "start": "Near chair",
+      "end": "Near table",
+      "start_object": "chair",
+      "end_object": "table",
+      "interact": [
+        "documents",
+        "chairs",
+        "table"
+      ]
+    },
+    {
+      "task": "Move the chair to create more space around the table, then arrange the papers on the table in order, and finally sit on the chair",
+      "start": "Near chair",
+      "end": "Near table",
+      "start_object": "chair",
+      "end_object": "table",
+      "interact": [
+        "chair",
+        "papers",
+        "table"
+      ]
+    },
+    {
+      "task": "Find the missing page of the report under the chairs or on the table, then complete the report on the table, and finally submit it to the person sitting on the chair",
+      "start": "Near table",
+      "end": "Near chair",
+      "start_object": "table",
+      "end_object": "chair",
+      "interact": [
+        "report",
+        "chairs",
+        "table"
+      ]
+    }
+  ],
+  "timestamp": "2026-01-20T11:25:54.528667"
+}

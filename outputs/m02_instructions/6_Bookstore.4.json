@@ -1,0 +1,96 @@
+{
+  "scene_id": "6_Bookstore.4",
+  "level_1": [
+    {
+      "task": "Find a place to read near the chair",
+      "start": "Near desk",
+      "end": "Near chair",
+      "start_object": "desk",
+      "end_object": "chair",
+      "interact": []
+    },
+    {
+      "task": "Locate the ladder to reach high shelves",
+      "start": "Near plant",
+      "end": "Near ladder",
+      "start_object": "plant",
+      "end_object": "ladder",
+      "interact": []
+    },
+    {
+      "task": "Approach the counter to ask for assistance",
+      "start": "Near bookshelf",
+      "end": "Near desk",
+      "start_object": "bookshelf",
+      "end_object": "desk",
+      "interact": []
+    }
+  ],
+  "level_2": [
+    {
+      "task": "Inspect a book on the bookshelf and then sit near the chair",
+      "start": "Near bookshelf",
+      "end": "Near chair",
+      "start_object": "bookshelf",
+      "end_object": "chair",
+      "interact": [
+        "bookshelf"
+      ]
+    },
+    {
+      "task": "Use the computer at the desk to look up a book",
+      "start": "Near plant",
+      "end": "Near desk",
+      "start_object": "plant",
+      "end_object": "desk",
+      "interact": [
+        "desk"
+      ]
+    },
+    {
+      "task": "Climb the ladder to pick a book from the high shelf",
+      "start": "Near ladder",
+      "end": "Near bookshelf",
+      "start_object": "ladder",
+      "end_object": "bookshelf",
+      "interact": [
+        "ladder"
+      ]
+    }
+  ],
+  "level_3": [
+    {
+      "task": "Find a book on the bookshelf, check its price on the computer at the desk, and then purchase it at the counter",
+      "start": "Near bookshelf",
+      "end": "Near desk",
+      "start_object": "bookshelf",
+      "end_object": "desk",
+      "interact": [
+        "bookshelf",
+        "desk"
+      ]
+    },
+    {
+      "task": "Collect books from the stacked_books pile near the chair and organize them on the bookshelf",
+      "start": "Near chair",
+      "end": "Near bookshelf",
+      "start_object": "chair",
+      "end_object": "bookshelf",
+      "interact": [
+        "stacked_books",
+        "bookshelf"
+      ]
+    },
+    {
+      "task": "Move the plant near the counter to a new location near the sign and then ask for directions at the desk",
+      "start": "Near plant",
+      "end": "Near desk",
+      "start_object": "plant",
+      "end_object": "desk",
+      "interact": [
+        "plant"
+      ]
+    }
+  ],
+  "timestamp": "2026-01-20T11:35:13.254622"
+}

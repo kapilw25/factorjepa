@@ -59,7 +59,8 @@ class InstructionGenerator:
             model_name,
             quantization_config=quantization_config,
             device_map="auto",
-            torch_dtype=torch.bfloat16
+            torch_dtype=torch.bfloat16,
+            max_memory={0: "75GiB", "cpu": "0GiB"}  # Force GPU-only, no CPU offload
         )
 
         print(f"[m02] Model loaded. VRAM: {torch.cuda.memory_allocated() / 1e9:.1f} GB")

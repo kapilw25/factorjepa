@@ -1,0 +1,38 @@
+{
+  "scene_id": "35_Bus_loop.4",
+  "isometric_path": "Literature/Prev_work2/dataset/3DReasoningProject_images/Others/35_Bus_loop.4_isometric.png",
+  "topdown_path": "Literature/Prev_work2/dataset/3DReasoningProject_images/Others/35_Bus_loop.4_topdown.png",
+  "objects": [
+    {
+      "name": "bus_stop_shelter",
+      "confidence": 0.95
+    },
+    {
+      "name": "bus",
+      "confidence": 0.95
+    },
+    {
+      "name": "traffic_light",
+      "confidence": 0.9
+    },
+    {
+      "name": "street_lamp",
+      "confidence": 0.85
+    },
+    {
+      "name": "bollard",
+      "confidence": 0.8
+    },
+    {
+      "name": "parking_meter",
+      "confidence": 0.75
+    },
+    {
+      "name": "curb",
+      "confidence": 0.7
+    }
+  ],
+  "scene_type": "outdoor_mall",
+  "layout_description": "Bus stop area with shelter, bus, traffic light, and bollards, surrounded by a paved plaza with parking meters and street lamps.",
+  "timestamp": "2026-01-20T11:18:48.567425"
+}

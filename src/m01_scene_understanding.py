@@ -65,8 +65,9 @@ class SceneUnderstanding:
         )
 
         # Load model with quantization
-        from transformers import Qwen2VLForConditionalGeneration
-        self.model = Qwen2VLForConditionalGeneration.from_pretrained(
+        # Use Qwen2_5_VL (not Qwen2VL) for Qwen2.5-VL models
+        from transformers import Qwen2_5_VLForConditionalGeneration
+        self.model = Qwen2_5_VLForConditionalGeneration.from_pretrained(
             model_name,
             quantization_config=quantization_config,
             device_map="auto",

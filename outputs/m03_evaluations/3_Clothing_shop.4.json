@@ -1,0 +1,209 @@
+{
+  "scene_id": "3_Clothing_shop.4",
+  "level_1": [
+    {
+      "object_accuracy": 4.0,
+      "spatial_coherence": 4.0,
+      "task_clarity": 4.0,
+      "difficulty_alignment": 5,
+      "executability": 4.0,
+      "reasoning": "All objects are visible and correctly named, with minor naming variations. The path from the mannequin to the clothing rack is logical, but minor spatial ambiguity exists. Instruction is clear for a robot to parse with minimal interpretation. The task's complexity matches Level 1 requirements. It is executable with minor assumptions about specific start and end positioning near the objects.",
+      "instruction": {
+        "task": "Navigate from the mannequin area to the clothing rack",
+        "start": "Near mannequin",
+        "end": "Near clothing_rack",
+        "start_object": "mannequin",
+        "end_object": "clothing_rack",
+        "interact": [],
+        "level": 1
+      }
+    },
+    {
+      "object_accuracy": 4.0,
+      "spatial_coherence": 4.0,
+      "task_clarity": 4.0,
+      "difficulty_alignment": 5,
+      "executability": 4.0,
+      "reasoning": "The objects, a shelf and hanging clothes section, are identifiable and reasonably named. The path is logical, starting from the visible shelf to the visible hanging clothes. The instruction is clear with minor interpretation needed for precise execution. It matches Level 1 complexity, focusing on a simple navigation task. Execution is feasible with slight assumptions about precise positions.",
+      "instruction": {
+        "task": "Move from the shelf to the hanging clothes section",
+        "start": "Near shelf",
+        "end": "Near hanging_clothes",
+        "start_object": "shelf",
+        "end_object": "hanging_clothes",
+        "interact": [],
+        "level": 1
+      }
+    },
+    {
+      "object_accuracy": 3.0,
+      "spatial_coherence": 3.0,
+      "task_clarity": 3.0,
+      "difficulty_alignment": 4.0,
+      "executability": 3.0,
+      "reasoning": "The stacked clothes display is visible, but the 'light fixture' is generic given multiple lights. The path is possible but lacks precision in referencing which light. The instruction is understandable but requires some reasoning. Complexity is mostly appropriate for Level 1. Execution needs more specific start/end points, and object identification clarity.",
+      "instruction": {
+        "task": "Walk from the stacked clothes display to the light fixture",
+        "start": "Near stacked_clothes",
+        "end": "Near light_fixture",
+        "start_object": "stacked_clothes",
+        "end_object": "light_fixture",
+        "interact": [],
+        "level": 1
+      }
+    }
+  ],
+  "level_2": [
+    {
+      "object_accuracy": 4.0,
+      "spatial_coherence": 4.0,
+      "task_clarity": 4.0,
+      "difficulty_alignment": 5,
+      "executability": 4.0,
+      "reasoning": "All mentioned objects are visible and correctly named, with both the mannequin and shelf identifiable in both views. The path is logical, starting at the mannequin and moving to the shelf, but spatial references could be more precise. The instruction is mostly clear, but minor interpretation is needed regarding 'nearby' items. This task is appropriately complex for Level 2, involving two objects and intermediate reasoning. Executable with minor assumptions about precise positions.",
+      "instruction": {
+        "task": "Inspect the mannequin and then pick up a nearby item from the shelf",
+        "start": "Near mannequin",
+        "end": "Near shelf",
+        "start_object": "mannequin",
+        "end_object": "shelf",
+        "interact": [
+          "mannequin",
+          "shelf"
+        ],
+        "level": 2
+      }
+    },
+    {
+      "object_accuracy": 4.0,
+      "spatial_coherence": 4.0,
+      "task_clarity": 4.0,
+      "difficulty_alignment": 5,
+      "executability": 4.0,
+      "reasoning": "All objects (clothing rack, mannequin) are visible and correctly named in both views. The spatial path from clothing rack to mannequin is logical, with minor ambiguity in exact positioning. The task instructions are clear, possibly requiring minor interpretation for precision. The complexity aligns well with Level 2, as it involves two objects with intermediate reasoning. A real robot could execute this with minor assumptions about paths and spatial alignment.",
+      "instruction": {
+        "task": "Pick up an outfit from the clothing rack and deliver it to the mannequin",
+        "start": "Near clothing_rack",
+        "end": "Near mannequin",
+        "start_object": "clothing_rack",
+        "end_object": "mannequin",
+        "interact": [
+          "clothing_rack",
+          "mannequin"
+        ],
+        "level": 2
+      }
+    },
+    {
+      "object_accuracy": 4.0,
+      "spatial_coherence": 3.0,
+      "task_clarity": 4.0,
+      "difficulty_alignment": 5,
+      "executability": 4.0,
+      "reasoning": "All mentioned objects such as 'hanging_clothes' and 'clothing_rack' are visible, though slight variations in naming could occur. The path is logical but lacks explicit waypoints, making the navigation somewhat inefficient. The task verb 'take' and 'hang' are clear, so the instruction is mostly unambiguous for a robot. The task complexity aligns well with Level 2, requiring interaction with two objects. The task is executable, with some assumptions about precise start and end positions.",
+      "instruction": {
+        "task": "Take a garment from the hanging clothes and hang it on the clothing rack",
+        "start": "Near hanging_clothes",
+        "end": "Near clothing_rack",
+        "start_object": "hanging_clothes",
+        "end_object": "clothing_rack",
+        "interact": [
+          "hanging_clothes",
+          "clothing_rack"
+        ],
+        "level": 2
+      }
+    }
+  ],
+  "level_3": [
+    {
+      "object_accuracy": 4.0,
+      "spatial_coherence": 4.0,
+      "task_clarity": 4.0,
+      "difficulty_alignment": 5,
+      "executability": 4.0,
+      "reasoning": "All objects are identifiable as the shelves, hanging clothes, and mannequin are clearly visible, though minor names could be more specific. The navigation path is logical, requiring movement between accessible areas. The task is mostly clear for a robot, with specific actions mentioned, though some simplification might aid parsing. Complexity aligns well with Level 3 as it involves multiple steps and interactions. Execution is feasible with the described start and end positions and actions, though it requires minor assumptions about the robot's capabilities.",
+      "instruction": {
+        "task": "Collect items from the shelf, inspect the hanging clothes, and then deliver the selected items to the mannequin",
+        "start": "Near shelf",
+        "end": "Near mannequin",
+        "start_object": "shelf",
+        "end_object": "mannequin",
+        "interact": [
+          "shelf",
+          "hanging_clothes",
+          "mannequin"
+        ],
+        "level": 3
+      }
+    },
+    {
+      "object_accuracy": 4.0,
+      "spatial_coherence": 4.0,
+      "task_clarity": 4.0,
+      "difficulty_alignment": 5,
+      "executability": 4.0,
+      "reasoning": "All objects are visible, though naming could be more precise. The path is logical with minor spatial ambiguities, like exact positions. The task is clear with some interpretation needed. Complexity matches Level 3 with multiple steps. Executable with minor assumptions on object positions and interactions.",
+      "instruction": {
+        "task": "Pick up an outfit from the clothing rack, check the stacked clothes for matching accessories, and then deliver the entire set to the counter",
+        "start": "Near clothing_rack",
+        "end": "Near counter",
+        "start_object": "clothing_rack",
+        "end_object": "counter",
+        "interact": [
+          "clothing_rack",
+          "stacked_clothes",
+          "counter"
+        ],
+        "level": 3
+      }
+    },
+    {
+      "object_accuracy": 4.0,
+      "spatial_coherence": 4.0,
+      "task_clarity": 4.0,
+      "difficulty_alignment": 5,
+      "executability": 4.0,
+      "reasoning": "The instruction accurately identifies all the required objects, though minor assumption is needed that specific terms like 'hanging_clothes' refer to visible garments, and 'shelf' is adequately specified. Spatial instructions are mostly clear; navigating from the light fixture to mannequin is logical. Task clarity is high but requires minimal interpretation (moving a light fixture, picking clothes, arranging a mannequin). The level of difficulty matches Level 3, with multi-step reasoning involving interaction with several objects. Execution is feasible with standard robotics, assuming functions for manipulating the light fixture and mannequin, though real-world precision adjustment could complicate execution slightly.",
+      "instruction": {
+        "task": "Move the light fixture to highlight a new display on the shelf, then pick up an item from the hanging clothes to add to the display, and finally arrange the mannequin to showcase the new outfit",
+        "start": "Near light_fixture",
+        "end": "Near mannequin",
+        "start_object": "light_fixture",
+        "end_object": "mannequin",
+        "interact": [
+          "light_fixture",
+          "shelf",
+          "hanging_clothes",
+          "mannequin"
+        ],
+        "level": 3
+      }
+    }
+  ],
+  "level_1_avg": {
+    "object_accuracy": 3.6666666666666665,
+    "spatial_coherence": 3.6666666666666665,
+    "task_clarity": 3.6666666666666665,
+    "difficulty_alignment": 4.666666666666667,
+    "executability": 3.6666666666666665
+  },
+  "level_1_count": 3,
+  "level_2_avg": {
+    "object_accuracy": 4.0,
+    "spatial_coherence": 3.6666666666666665,
+    "task_clarity": 4.0,
+    "difficulty_alignment": 5.0,
+    "executability": 4.0
+  },
+  "level_2_count": 3,
+  "level_3_avg": {
+    "object_accuracy": 4.0,
+    "spatial_coherence": 4.0,
+    "task_clarity": 4.0,
+    "difficulty_alignment": 5.0,
+    "executability": 4.0
+  },
+  "level_3_count": 3,
+  "timestamp": "2026-01-20T11:43:24.777621"
+}

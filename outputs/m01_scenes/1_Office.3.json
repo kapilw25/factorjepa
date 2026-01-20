@@ -1,0 +1,34 @@
+{
+  "scene_id": "1_Office.3",
+  "isometric_path": "Literature/Prev_work2/dataset/3DReasoningProject_images/Office_Workplace/1_Office.3_isometric.png",
+  "topdown_path": "Literature/Prev_work2/dataset/3DReasoningProject_images/Office_Workplace/1_Office.3_topdown.png",
+  "objects": [
+    {
+      "name": "desk",
+      "confidence": 0.95
+    },
+    {
+      "name": "chair",
+      "confidence": 0.95
+    },
+    {
+      "name": "monitors",
+      "confidence": 0.95
+    },
+    {
+      "name": "keyboard",
+      "confidence": 0.9
+    },
+    {
+      "name": "mouse",
+      "confidence": 0.85
+    },
+    {
+      "name": "side_table",
+      "confidence": 0.9
+    }
+  ],
+  "scene_type": "office",
+  "layout_description": "Workstation setup with desk, chair, dual monitors, keyboard, mouse, and a side table. The desk is centrally located with the chair facing it.",
+  "timestamp": "2026-01-20T11:17:03.800557"
+}

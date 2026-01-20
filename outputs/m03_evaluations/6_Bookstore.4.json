@@ -1,0 +1,201 @@
+{
+  "scene_id": "6_Bookstore.4",
+  "level_1": [
+    {
+      "object_accuracy": 4.0,
+      "spatial_coherence": 4.0,
+      "task_clarity": 4.0,
+      "difficulty_alignment": 5,
+      "executability": 4.0,
+      "reasoning": "The objects 'desk' and 'chair' are clearly identifiable in both views. The path from the desk to the chair is logical, with minor ambiguity regarding precise spatial references but generally coherent. The task is clear with minor interpretation needed, as it only involves navigation to a general area for reading. The task matches Level 1 complexity, involving simple navigation to a single object. The instruction is mostly executable, assuming minor context about where 'near the desk' and 'near the chair' specifically mean.",
+      "instruction": {
+        "task": "Find a place to read near the chair",
+        "start": "Near desk",
+        "end": "Near chair",
+        "start_object": "desk",
+        "end_object": "chair",
+        "interact": [],
+        "level": 1
+      }
+    },
+    {
+      "object_accuracy": 5,
+      "spatial_coherence": 4.0,
+      "task_clarity": 4.0,
+      "difficulty_alignment": 4.0,
+      "executability": 4.0,
+      "reasoning": "All objects, including the plant and ladder, are clearly identifiable in both views. The path is logical and achievable, moving directly from the plant to the ladder. The task is clear but slightly simplified, requiring minimal human-level reasoning. Aligned well with Level 1, only requiring movement to a single target. Executable for a robot with assumptions on precise positioning and no interaction needed.",
+      "instruction": {
+        "task": "Locate the ladder to reach high shelves",
+        "start": "Near plant",
+        "end": "Near ladder",
+        "start_object": "plant",
+        "end_object": "ladder",
+        "interact": [],
+        "level": 1
+      }
+    },
+    {
+      "object_accuracy": 4.0,
+      "spatial_coherence": 4.0,
+      "task_clarity": 3.0,
+      "difficulty_alignment": 4.0,
+      "executability": 3.0,
+      "reasoning": "The objects 'bookshelf' and 'desk' are clearly identifiable in both views, but the path involves moving from 'near bookshelf' to 'near desk,' which is straightforward but lacks detailed spatial guidance. The task is clear but not machine-parseable without assumptions, matching Level 1 complexity well. Execution needs further clarification on exact start and end positions.",
+      "instruction": {
+        "task": "Approach the counter to ask for assistance",
+        "start": "Near bookshelf",
+        "end": "Near desk",
+        "start_object": "bookshelf",
+        "end_object": "desk",
+        "interact": [],
+        "level": 1
+      }
+    }
+  ],
+  "level_2": [
+    {
+      "object_accuracy": 4.0,
+      "spatial_coherence": 4.0,
+      "task_clarity": 3.0,
+      "difficulty_alignment": 5,
+      "executability": 4.0,
+      "reasoning": "All mentioned objects (bookshelf and chair) are visible and correctly named with slight naming variations. The path from the bookshelf to the chair is logical, with minor spatial ambiguity. The instruction is understandable but requires human-level reasoning to interpret 'inspect' accurately. The complexity aligns with Level 2 as it involves two objects and intermediate reasoning. A robot can likely execute the task with standard sensors, although minor assumptions are needed.",
+      "instruction": {
+        "task": "Inspect a book on the bookshelf and then sit near the chair",
+        "start": "Near bookshelf",
+        "end": "Near chair",
+        "start_object": "bookshelf",
+        "end_object": "chair",
+        "interact": [
+          "bookshelf"
+        ],
+        "level": 2
+      }
+    },
+    {
+      "object_accuracy": 4.0,
+      "spatial_coherence": 4.0,
+      "task_clarity": 4.0,
+      "difficulty_alignment": 4.0,
+      "executability": 4.0,
+      "reasoning": "All necessary objects are visible and correctly named; the plant and desk are clear. The path from the plant to the desk is logical with minor spatial ambiguity. The instruction is mostly clear for a robot, requiring small interpretation. The task complexity aligns with Level 2 as there are two objects, suitable for intermediate reasoning. Executable with minor assumptions about precise starting and ending positions.",
+      "instruction": {
+        "task": "Use the computer at the desk to look up a book",
+        "start": "Near plant",
+        "end": "Near desk",
+        "start_object": "plant",
+        "end_object": "desk",
+        "interact": [
+          "desk"
+        ],
+        "level": 2
+      }
+    },
+    {
+      "object_accuracy": 4.0,
+      "spatial_coherence": 3.0,
+      "task_clarity": 3.0,
+      "difficulty_alignment": 4.0,
+      "executability": 3.0,
+      "reasoning": "Most objects are identifiable (ladder, bookshelf). The ladder is visible, supporting 'climb' action. Spatial coherence is somewhat unclear without specifying which high shelf, potentially inefficient. Clarity requires interpretation for the 'pick a book' action. Difficulty matches Level 2 but could be clearer on action specifics. Executability questionable due to needing precise positioning data.",
+      "instruction": {
+        "task": "Climb the ladder to pick a book from the high shelf",
+        "start": "Near ladder",
+        "end": "Near bookshelf",
+        "start_object": "ladder",
+        "end_object": "bookshelf",
+        "interact": [
+          "ladder"
+        ],
+        "level": 2
+      }
+    }
+  ],
+  "level_3": [
+    {
+      "object_accuracy": 4.0,
+      "spatial_coherence": 3.0,
+      "task_clarity": 3.0,
+      "difficulty_alignment": 4.0,
+      "executability": 3.0,
+      "reasoning": "All objects (bookshelf, desk) are visible and identified, but the naming is not precise for the 'counter' which is more of a desk. The path is logical but not explicitly detailed. Instructions are clear but need human reasoning for specifics like identifying a book. The complexity aligns with Level 3, though the task would benefit from more precision for robotic execution. Assumptions about interaction steps are required.",
+      "instruction": {
+        "task": "Find a book on the bookshelf, check its price on the computer at the desk, and then purchase it at the counter",
+        "start": "Near bookshelf",
+        "end": "Near desk",
+        "start_object": "bookshelf",
+        "end_object": "desk",
+        "interact": [
+          "bookshelf",
+          "desk"
+        ],
+        "level": 3
+      }
+    },
+    {
+      "object_accuracy": 4.0,
+      "spatial_coherence": 4.0,
+      "task_clarity": 3.0,
+      "difficulty_alignment": 3.0,
+      "executability": 4.0,
+      "reasoning": "All objects are visible and identified, though 'stacked_books' and 'bookshelf' could be specified more clearly. The navigation path is logical but lacks precision in spatial references. Instructions are understandable but might require human reasoning. The task complexity mostly aligns with a Level 3 task but isn't very challenging. Execution is feasible with assumptions about specific object interactions, but clarity on how to organize the books is needed.",
+      "instruction": {
+        "task": "Collect books from the stacked_books pile near the chair and organize them on the bookshelf",
+        "start": "Near chair",
+        "end": "Near bookshelf",
+        "start_object": "chair",
+        "end_object": "bookshelf",
+        "interact": [
+          "stacked_books",
+          "bookshelf"
+        ],
+        "level": 3
+      }
+    },
+    {
+      "object_accuracy": 4.0,
+      "spatial_coherence": 4.0,
+      "task_clarity": 3.0,
+      "difficulty_alignment": 5,
+      "executability": 4.0,
+      "reasoning": "All objects are identifiable and correctly named, though there might be minor ambiguities in naming. The path is logical but specifics of moving the plant are not described in detail, which could lead to inefficiency. The task is somewhat clear but may require human-level interpretation for specific movements. Complexity is appropriate for Level 3, as it involves multiple objects and steps. Executability is mostly straightforward, but the lack of exact waypoint details requires assumptions.",
+      "instruction": {
+        "task": "Move the plant near the counter to a new location near the sign and then ask for directions at the desk",
+        "start": "Near plant",
+        "end": "Near desk",
+        "start_object": "plant",
+        "end_object": "desk",
+        "interact": [
+          "plant"
+        ],
+        "level": 3
+      }
+    }
+  ],
+  "level_1_avg": {
+    "object_accuracy": 4.333333333333333,
+    "spatial_coherence": 4.0,
+    "task_clarity": 3.6666666666666665,
+    "difficulty_alignment": 4.333333333333333,
+    "executability": 3.6666666666666665
+  },
+  "level_1_count": 3,
+  "level_2_avg": {
+    "object_accuracy": 4.0,
+    "spatial_coherence": 3.6666666666666665,
+    "task_clarity": 3.3333333333333335,
+    "difficulty_alignment": 4.333333333333333,
+    "executability": 3.6666666666666665
+  },
+  "level_2_count": 3,
+  "level_3_avg": {
+    "object_accuracy": 4.0,
+    "spatial_coherence": 3.6666666666666665,
+    "task_clarity": 3.0,
+    "difficulty_alignment": 4.0,
+    "executability": 3.6666666666666665
+  },
+  "level_3_count": 3,
+  "timestamp": "2026-01-20T11:44:24.723224"
+}

@@ -1,0 +1,96 @@
+{
+  "scene_id": "37_Fortress_yard.4",
+  "level_1": [
+    {
+      "task": "Navigate from the castle wall to the nearby barrels",
+      "start": "Near castle_wall",
+      "end": "Near barrels",
+      "start_object": "castle_wall",
+      "end_object": "barrels",
+      "interact": []
+    },
+    {
+      "task": "Find the shortest path from the flag to the tent",
+      "start": "Near flag",
+      "end": "Near tent",
+      "start_object": "flag",
+      "end_object": "tent",
+      "interact": []
+    },
+    {
+      "task": "Walk around the castle tower and reach the castle wall",
+      "start": "Near castle_tower",
+      "end": "Near castle_wall",
+      "start_object": "castle_tower",
+      "end_object": "castle_wall",
+      "interact": []
+    }
+  ],
+  "level_2": [
+    {
+      "task": "Inspect the barrels near the castle wall and then head to the nearby tent",
+      "start": "Near castle_wall",
+      "end": "Near tent",
+      "start_object": "castle_wall",
+      "end_object": "tent",
+      "interact": [
+        "barrels"
+      ]
+    },
+    {
+      "task": "Pick up a nearby flag and plant it near the castle tower",
+      "start": "Near barrels",
+      "end": "Near castle_tower",
+      "start_object": "barrels",
+      "end_object": "castle_tower",
+      "interact": [
+        "flag"
+      ]
+    },
+    {
+      "task": "Check the tent and then proceed to the castle wall",
+      "start": "Near tent",
+      "end": "Near castle_wall",
+      "start_object": "tent",
+      "end_object": "castle_wall",
+      "interact": [
+        "tent"
+      ]
+    }
+  ],
+  "level_3": [
+    {
+      "task": "Collect items from the barrels, inspect the castle wall for any damage, and then report to the castle tower",
+      "start": "Near barrels",
+      "end": "Near castle_tower",
+      "start_object": "barrels",
+      "end_object": "castle_tower",
+      "interact": [
+        "barrels",
+        "castle_wall"
+      ]
+    },
+    {
+      "task": "Find the shortest path from the tent to the flag, pick up the flag, and then plant it near the castle wall",
+      "start": "Near tent",
+      "end": "Near castle_wall",
+      "start_object": "tent",
+      "end_object": "castle_wall",
+      "interact": [
+        "flag"
+      ]
+    },
+    {
+      "task": "Inspect the castle tower from a distance, then head to the nearby barrels to collect items, and finally proceed to the tent",
+      "start": "Near castle_wall",
+      "end": "Near tent",
+      "start_object": "castle_wall",
+      "end_object": "tent",
+      "interact": [
+        "castle_tower",
+        "barrels"
+      ]
+    }
+  ],
+  "timestamp": "2026-01-20T11:31:59.742992"
+}

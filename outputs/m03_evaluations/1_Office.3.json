@@ -1,0 +1,202 @@
+{
+  "scene_id": "1_Office.3",
+  "level_1": [
+    {
+      "object_accuracy": 5,
+      "spatial_coherence": 4.0,
+      "task_clarity": 4.0,
+      "difficulty_alignment": 5,
+      "executability": 4.0,
+      "reasoning": "All objects (side table and desk) are clearly visible and correctly named in both views. The path is logical, though minor spatial detail could enhance the instruction. Task clarity is good, with clear wording that requires only minor interpretation. The complexity is appropriate for Level 1, involving straightforward movement between two objects. The instruction is mostly executable with standard sensors, assuming minor adjustments for precise positioning.",
+      "instruction": {
+        "task": "Move from the side table to the desk",
+        "start": "Near side table",
+        "end": "Near desk",
+        "start_object": "side table",
+        "end_object": "desk",
+        "interact": [],
+        "level": 1
+      }
+    },
+    {
+      "object_accuracy": 5,
+      "spatial_coherence": 4.0,
+      "task_clarity": 4.0,
+      "difficulty_alignment": 5,
+      "executability": 4.0,
+      "reasoning": "All objects are correctly named and visible in both views. The path from chair to monitors is logical with minor spatial ambiguity. The instruction is clear with minimal interpretation needed. Complexity is appropriate for Level 1 as it involves simple navigation. Executable with minor assumptions about starting position near the chair.",
+      "instruction": {
+        "task": "Navigate from the chair to the monitors",
+        "start": "Near chair",
+        "end": "Near monitors",
+        "start_object": "chair",
+        "end_object": "monitors",
+        "interact": [],
+        "level": 1
+      }
+    },
+    {
+      "object_accuracy": 4.0,
+      "spatial_coherence": 4.0,
+      "task_clarity": 3.0,
+      "difficulty_alignment": 5,
+      "executability": 4.0,
+      "reasoning": "All objects are clearly visible and correctly named. The path from keyboard to mouse is logical and involves a direct route on the desk surface. The instruction is understandable but requires human-level reasoning about 'walking' without specifying how a robot should interpret this. The task matches the complexity level as it's a simple, single-step navigation. The execution is feasible with slight assumptions about the starting and ending precision.",
+      "instruction": {
+        "task": "Walk from the keyboard to the mouse",
+        "start": "Near keyboard",
+        "end": "Near mouse",
+        "start_object": "keyboard",
+        "end_object": "mouse",
+        "interact": [],
+        "level": 1
+      }
+    }
+  ],
+  "level_2": [
+    {
+      "object_accuracy": 3.0,
+      "spatial_coherence": 3.0,
+      "task_clarity": 3.0,
+      "difficulty_alignment": 4.0,
+      "executability": 3.0,
+      "reasoning": "Objects like the desk and side table are identifiable, but the papers are missing. The path from the desk to the side table is logical but lacks precision. Instruction is understandable but requires human reasoning to infer missing details. Complexity aligns with Level 2, but lack of specificity in object interaction impacts performability. Overall, the task could be executed with some assumptions about the missing items.",
+      "instruction": {
+        "task": "Pick up the papers from the desk and place them on the side table",
+        "start": "Near desk",
+        "end": "Near side table",
+        "start_object": "desk",
+        "end_object": "side table",
+        "interact": [
+          "papers",
+          "desk"
+        ],
+        "level": 2
+      }
+    },
+    {
+      "object_accuracy": 5,
+      "spatial_coherence": 4.0,
+      "task_clarity": 4.0,
+      "difficulty_alignment": 4.0,
+      "executability": 4.0,
+      "reasoning": "All objects are clearly identifiable in the scene: monitors and chair are visible. The path from monitors to chair is logical with minor spatial ambiguity. The instruction is clear but requires minor interpretation regarding 'inspect' action. Complexity aligns with Level 2, involving interaction with monitors and moving to chair. Task is executable for a robot with standard sensors.",
+      "instruction": {
+        "task": "Inspect the monitors and then sit on the chair",
+        "start": "Near monitors",
+        "end": "Near chair",
+        "start_object": "monitors",
+        "end_object": "chair",
+        "interact": [
+          "monitors"
+        ],
+        "level": 2
+      }
+    },
+    {
+      "object_accuracy": 4.0,
+      "spatial_coherence": 4.0,
+      "task_clarity": 4.0,
+      "difficulty_alignment": 4.0,
+      "executability": 4.0,
+      "reasoning": "All mentioned objects are clearly identifiable and visible in both views. The path from near the keyboard to the mouse is logical, but there are minor spatial ambiguities. The instruction is mostly clear with some potential need for interpretation. The task complexity fits Level 2 with two objects and intermediate reasoning required. The task is executable with minor assumptions regarding precise starting and ending positions.",
+      "instruction": {
+        "task": "Type on the keyboard and then move the mouse",
+        "start": "Near keyboard",
+        "end": "Near mouse",
+        "start_object": "keyboard",
+        "end_object": "mouse",
+        "interact": [
+          "keyboard"
+        ],
+        "level": 2
+      }
+    }
+  ],
+  "level_3": [
+    {
+      "object_accuracy": 3.0,
+      "spatial_coherence": 3.0,
+      "task_clarity": 3.0,
+      "difficulty_alignment": 3.0,
+      "executability": 3.0,
+      "reasoning": "The instruction's objects are partially identifiable: the desk and monitors are clear, but 'file' and 'keyboard' are vague given the provided views. The spatial path is possible but lacks detail for precise navigation. Task clarity suffers from ambiguity in 'reading on monitors' and 'taking notes' which imply unstated actions. Complexity fits Level 3 but with insufficient detail. Executability needs additional context, specifically around interacting with files and taking notes.",
+      "instruction": {
+        "task": "Retrieve a file from the desk, read it on the monitors, and then take notes on the keyboard",
+        "start": "Near desk",
+        "end": "Near keyboard",
+        "start_object": "desk",
+        "end_object": "keyboard",
+        "interact": [
+          "file",
+          "monitors"
+        ],
+        "level": 3
+      }
+    },
+    {
+      "object_accuracy": 3.0,
+      "spatial_coherence": 3.0,
+      "task_clarity": 3.0,
+      "difficulty_alignment": 4.0,
+      "executability": 3.0,
+      "reasoning": "Object accuracy is hindered by lack of clear identification of 'papers' and 'side table,' which could be confused with the desk. The spatial path is possible but inefficient, as moving the mouse and picking up papers involve unclear positioning. Task Clarity requires interpretation due to vague object references. The task aligns well with Level 3 complexity. Executability is limited by unclear object positions and requires context for precise actions.",
+      "instruction": {
+        "task": "Move the mouse to the side table, pick up the papers from the desk, and then place them on the chair",
+        "start": "Near mouse",
+        "end": "Near chair",
+        "start_object": "mouse",
+        "end_object": "chair",
+        "interact": [
+          "mouse",
+          "papers"
+        ],
+        "level": 3
+      }
+    },
+    {
+      "object_accuracy": 4.0,
+      "spatial_coherence": 4.0,
+      "task_clarity": 4.0,
+      "difficulty_alignment": 4.0,
+      "executability": 4.0,
+      "reasoning": "All objects (chair, keyboard, monitors) are clearly identifiable. The path from the chair to the keyboard and then to the monitors is logical. Instructions are clear but require minor interpretation of the sequence of actions. The task complexity is appropriate for Level 3 since it involves multiple objects and steps. It is generally executable with standard robot sensors, though some assumptions about task execution, like checking updates on monitors, are necessary.",
+      "instruction": {
+        "task": "Sit on the chair, work on the keyboard for a while, and then check the monitors for updates",
+        "start": "Near chair",
+        "end": "Near monitors",
+        "start_object": "chair",
+        "end_object": "monitors",
+        "interact": [
+          "keyboard"
+        ],
+        "level": 3
+      }
+    }
+  ],
+  "level_1_avg": {
+    "object_accuracy": 4.666666666666667,
+    "spatial_coherence": 4.0,
+    "task_clarity": 3.6666666666666665,
+    "difficulty_alignment": 5.0,
+    "executability": 4.0
+  },
+  "level_1_count": 3,
+  "level_2_avg": {
+    "object_accuracy": 4.0,
+    "spatial_coherence": 3.6666666666666665,
+    "task_clarity": 3.6666666666666665,
+    "difficulty_alignment": 4.0,
+    "executability": 3.6666666666666665
+  },
+  "level_2_count": 3,
+  "level_3_avg": {
+    "object_accuracy": 3.3333333333333335,
+    "spatial_coherence": 3.3333333333333335,
+    "task_clarity": 3.3333333333333335,
+    "difficulty_alignment": 3.6666666666666665,
+    "executability": 3.3333333333333335
+  },
+  "level_3_count": 3,
+  "timestamp": "2026-01-20T11:37:43.299276"
+}

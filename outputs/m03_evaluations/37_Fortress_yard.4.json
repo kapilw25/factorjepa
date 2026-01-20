@@ -1,0 +1,201 @@
+{
+  "scene_id": "37_Fortress_yard.4",
+  "level_1": [
+    {
+      "object_accuracy": 4.0,
+      "spatial_coherence": 4.0,
+      "task_clarity": 4.0,
+      "difficulty_alignment": 5,
+      "executability": 4.0,
+      "reasoning": "All mentioned objects like the castle wall and barrels are visible and correctly identified. The path is logical with minor ambiguity since it's straightforward from wall to barrels. The instruction is clear but could use slight interpretation adjustments. The task complexity is aligned as Level 1, being a simple one-step navigation task. It's mostly executable with standard sensors, requiring minor assumptions about exact start and end proximity.",
+      "instruction": {
+        "task": "Navigate from the castle wall to the nearby barrels",
+        "start": "Near castle_wall",
+        "end": "Near barrels",
+        "start_object": "castle_wall",
+        "end_object": "barrels",
+        "interact": [],
+        "level": 1
+      }
+    },
+    {
+      "object_accuracy": 4.0,
+      "spatial_coherence": 4.0,
+      "task_clarity": 3.0,
+      "difficulty_alignment": 5,
+      "executability": 4.0,
+      "reasoning": "The flag and tent are clearly identifiable, though details about 'near' starting positions could be more precise (hence object accuracy of 4). The navigation path is logical with minor spatial ambiguity (spatial coherence of 4). The instruction is understandable, but uses broad terms like 'near,' requiring human reasoning (task clarity of 3). The task complexity matches Level 1 since it involves simple navigation between two objects (difficulty alignment of 5). The path is executable with minor assumptions about exact starting/ending spots (executability of 4).",
+      "instruction": {
+        "task": "Find the shortest path from the flag to the tent",
+        "start": "Near flag",
+        "end": "Near tent",
+        "start_object": "flag",
+        "end_object": "tent",
+        "interact": [],
+        "level": 1
+      }
+    },
+    {
+      "object_accuracy": 4.0,
+      "spatial_coherence": 3.0,
+      "task_clarity": 3.0,
+      "difficulty_alignment": 4.0,
+      "executability": 3.0,
+      "reasoning": "The instruction refers to a 'castle tower' and 'castle wall,' both of which are visible and identifiable, though the specific section of the wall isn't detailed, justifying a score of 4 for object accuracy. The path to 'walk around the castle tower' is physically possible, but the term 'around' is vague, hence a score of 3 for spatial coherence. The task is understandable but requires some interpretation, notably what 'walk around' specifically means; hence, a score of 3 for task clarity. The task is well-suited for Level 1, involving simple navigation between two objects, scoring 4 for difficulty alignment. Lastly, 'start' and 'end' positions are stated but not specific, making execution challenging but possible, scoring 3 for executability.",
+      "instruction": {
+        "task": "Walk around the castle tower and reach the castle wall",
+        "start": "Near castle_tower",
+        "end": "Near castle_wall",
+        "start_object": "castle_tower",
+        "end_object": "castle_wall",
+        "interact": [],
+        "level": 1
+      }
+    }
+  ],
+  "level_2": [
+    {
+      "object_accuracy": 4.0,
+      "spatial_coherence": 4.0,
+      "task_clarity": 4.0,
+      "difficulty_alignment": 5,
+      "executability": 4.0,
+      "reasoning": "Objects like barrels and tents are identifiable, though barrels are slightly general. The path between barrels and the tent is logical. Instructions are clear but require minor interpretation. Complexity matches Level 2 well with appropriate reasoning. Executability is high with clear interaction and navigation steps.",
+      "instruction": {
+        "task": "Inspect the barrels near the castle wall and then head to the nearby tent",
+        "start": "Near castle_wall",
+        "end": "Near tent",
+        "start_object": "castle_wall",
+        "end_object": "tent",
+        "interact": [
+          "barrels"
+        ],
+        "level": 2
+      }
+    },
+    {
+      "object_accuracy": 2.0,
+      "spatial_coherence": 3.0,
+      "task_clarity": 3.0,
+      "difficulty_alignment": 4.0,
+      "executability": 3.0,
+      "reasoning": "The 'flag' object is not visible in the scene, reducing object accuracy. The path from barrels to tower is possible but lacks specificity. Instructions are understandable but require interpretation, affecting task clarity. The task complexity fits Level 2, moving between objects with intermediate reasoning. Executability is hindered by the absence of the flag and vague start and end positions.",
+      "instruction": {
+        "task": "Pick up a nearby flag and plant it near the castle tower",
+        "start": "Near barrels",
+        "end": "Near castle_tower",
+        "start_object": "barrels",
+        "end_object": "castle_tower",
+        "interact": [
+          "flag"
+        ],
+        "level": 2
+      }
+    },
+    {
+      "object_accuracy": 4.0,
+      "spatial_coherence": 3.0,
+      "task_clarity": 4.0,
+      "difficulty_alignment": 4.0,
+      "executability": 4.0,
+      "reasoning": "Objects are mostly identifiable with minor naming variations. The path is logical but could be more specific about proximity to the castle wall. Instruction is clear with minimal interpretation needed. The complexity matches Level 2 as it involves two objects and interaction. The task is executable with slight assumptions about starting and ending positions.",
+      "instruction": {
+        "task": "Check the tent and then proceed to the castle wall",
+        "start": "Near tent",
+        "end": "Near castle_wall",
+        "start_object": "tent",
+        "end_object": "castle_wall",
+        "interact": [
+          "tent"
+        ],
+        "level": 2
+      }
+    }
+  ],
+  "level_3": [
+    {
+      "object_accuracy": 4.0,
+      "spatial_coherence": 3.0,
+      "task_clarity": 3.0,
+      "difficulty_alignment": 4.0,
+      "executability": 3.0,
+      "reasoning": "All objects like barrels and castle tower are identifiable, but 'castle wall' is a bit vague. The path from barrels to the tower is logical, but the sequence of actions might confuse a robot without detailed instructions. The task suits Level 3 with multi-step actions but requires additional clarity for perfect executability.",
+      "instruction": {
+        "task": "Collect items from the barrels, inspect the castle wall for any damage, and then report to the castle tower",
+        "start": "Near barrels",
+        "end": "Near castle_tower",
+        "start_object": "barrels",
+        "end_object": "castle_tower",
+        "interact": [
+          "barrels",
+          "castle_wall"
+        ],
+        "level": 3
+      }
+    },
+    {
+      "object_accuracy": 3.0,
+      "spatial_coherence": 4.0,
+      "task_clarity": 3.0,
+      "difficulty_alignment": 4.0,
+      "executability": 3.0,
+      "reasoning": "The tent and castle wall are identifiable, but the flag's location is slightly ambiguous. The path to the flag is logical, but the instruction to plant it is vague. The task requires understanding the scene, suitable for Level 3, but lacks detailed execution steps. Overall, some additional context and clarity are needed for robot execution.",
+      "instruction": {
+        "task": "Find the shortest path from the tent to the flag, pick up the flag, and then plant it near the castle wall",
+        "start": "Near tent",
+        "end": "Near castle_wall",
+        "start_object": "tent",
+        "end_object": "castle_wall",
+        "interact": [
+          "flag"
+        ],
+        "level": 3
+      }
+    },
+    {
+      "object_accuracy": 4.0,
+      "spatial_coherence": 4.0,
+      "task_clarity": 3.0,
+      "difficulty_alignment": 5,
+      "executability": 4.0,
+      "reasoning": "All mentioned objects are visible and correctly named, but minor interpretations are needed for 'near'. The path is logical with minor ambiguities regarding distances and exact waypoints. The instruction requires a degree of human-level reasoning, especially to understand 'inspect from a distance', hence it scores lower on task clarity. The complexity matches Level 3 criteria with three objects and multi-step reasoning required. The task is executable but assumes the robot can recognize all objects and navigate the scene efficiently.",
+      "instruction": {
+        "task": "Inspect the castle tower from a distance, then head to the nearby barrels to collect items, and finally proceed to the tent",
+        "start": "Near castle_wall",
+        "end": "Near tent",
+        "start_object": "castle_wall",
+        "end_object": "tent",
+        "interact": [
+          "castle_tower",
+          "barrels"
+        ],
+        "level": 3
+      }
+    }
+  ],
+  "level_1_avg": {
+    "object_accuracy": 4.0,
+    "spatial_coherence": 3.6666666666666665,
+    "task_clarity": 3.3333333333333335,
+    "difficulty_alignment": 4.666666666666667,
+    "executability": 3.6666666666666665
+  },
+  "level_1_count": 3,
+  "level_2_avg": {
+    "object_accuracy": 3.3333333333333335,
+    "spatial_coherence": 3.3333333333333335,
+    "task_clarity": 3.6666666666666665,
+    "difficulty_alignment": 4.333333333333333,
+    "executability": 3.6666666666666665
+  },
+  "level_2_count": 3,
+  "level_3_avg": {
+    "object_accuracy": 3.6666666666666665,
+    "spatial_coherence": 3.6666666666666665,
+    "task_clarity": 3.0,
+    "difficulty_alignment": 4.333333333333333,
+    "executability": 3.3333333333333335
+  },
+  "level_3_count": 3,
+  "timestamp": "2026-01-20T11:42:18.276762"
+}

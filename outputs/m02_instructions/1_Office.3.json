@@ -1,0 +1,97 @@
+{
+  "scene_id": "1_Office.3",
+  "level_1": [
+    {
+      "task": "Move from the side table to the desk",
+      "start": "Near side table",
+      "end": "Near desk",
+      "start_object": "side table",
+      "end_object": "desk",
+      "interact": []
+    },
+    {
+      "task": "Navigate from the chair to the monitors",
+      "start": "Near chair",
+      "end": "Near monitors",
+      "start_object": "chair",
+      "end_object": "monitors",
+      "interact": []
+    },
+    {
+      "task": "Walk from the keyboard to the mouse",
+      "start": "Near keyboard",
+      "end": "Near mouse",
+      "start_object": "keyboard",
+      "end_object": "mouse",
+      "interact": []
+    }
+  ],
+  "level_2": [
+    {
+      "task": "Pick up the papers from the desk and place them on the side table",
+      "start": "Near desk",
+      "end": "Near side table",
+      "start_object": "desk",
+      "end_object": "side table",
+      "interact": [
+        "papers",
+        "desk"
+      ]
+    },
+    {
+      "task": "Inspect the monitors and then sit on the chair",
+      "start": "Near monitors",
+      "end": "Near chair",
+      "start_object": "monitors",
+      "end_object": "chair",
+      "interact": [
+        "monitors"
+      ]
+    },
+    {
+      "task": "Type on the keyboard and then move the mouse",
+      "start": "Near keyboard",
+      "end": "Near mouse",
+      "start_object": "keyboard",
+      "end_object": "mouse",
+      "interact": [
+        "keyboard"
+      ]
+    }
+  ],
+  "level_3": [
+    {
+      "task": "Retrieve a file from the desk, read it on the monitors, and then take notes on the keyboard",
+      "start": "Near desk",
+      "end": "Near keyboard",
+      "start_object": "desk",
+      "end_object": "keyboard",
+      "interact": [
+        "file",
+        "monitors"
+      ]
+    },
+    {
+      "task": "Move the mouse to the side table, pick up the papers from the desk, and then place them on the chair",
+      "start": "Near mouse",
+      "end": "Near chair",
+      "start_object": "mouse",
+      "end_object": "chair",
+      "interact": [
+        "mouse",
+        "papers"
+      ]
+    },
+    {
+      "task": "Sit on the chair, work on the keyboard for a while, and then check the monitors for updates",
+      "start": "Near chair",
+      "end": "Near monitors",
+      "start_object": "chair",
+      "end_object": "monitors",
+      "interact": [
+        "keyboard"
+      ]
+    }
+  ],
+  "timestamp": "2026-01-20T11:24:21.134354"
+}

@@ -1,0 +1,203 @@
+{
+  "scene_id": "34_Pedestrian_mall.4",
+  "level_1": [
+    {
+      "object_accuracy": 3.0,
+      "spatial_coherence": 4.0,
+      "task_clarity": 4.0,
+      "difficulty_alignment": 5,
+      "executability": 4.0,
+      "reasoning": "The start (kiosk) and end (nearest bench) locations are mostly identifiable. The path is logical and possible but could be ambiguous on the exact bench. Instructions are clear with slight interpretation needed for 'nearest.' Complexity matches Level 1, but executability assumes basic navigation sensors capable of 'nearest' detection.",
+      "instruction": {
+        "task": "Walk from the kiosk to the nearest bench",
+        "start": "Near kiosk",
+        "end": "Near bench",
+        "start_object": "kiosk",
+        "end_object": "bench",
+        "interact": [],
+        "level": 1
+      }
+    },
+    {
+      "object_accuracy": 4.0,
+      "spatial_coherence": 3.0,
+      "task_clarity": 3.0,
+      "difficulty_alignment": 4.0,
+      "executability": 3.0,
+      "reasoning": "All objects are visible and correctly named, but 'tree area' and 'building' are somewhat generic. The path seems logical but lacks detail on route specifics. Instructions are understandable but not fully machine-parseable, assuming basic reasoning. Difficulty matches Level 1 as it involves simple navigation between two points with no interaction. Execution is possible but requires assumptions about the start and end positions.",
+      "instruction": {
+        "task": "Navigate to the building from the tree area",
+        "start": "Near tree",
+        "end": "Near building",
+        "start_object": "tree",
+        "end_object": "building",
+        "interact": [],
+        "level": 1
+      }
+    },
+    {
+      "object_accuracy": 3.0,
+      "spatial_coherence": 3.0,
+      "task_clarity": 3.0,
+      "difficulty_alignment": 4.0,
+      "executability": 3.0,
+      "reasoning": "The objects 'potted plant' and 'bench' are visible but the instruction lacks precision as there are multiple options. The path to navigate is possible but lacks clear directions. Task clarity is moderate; it requires assumptions on which plant and bench to choose. The task level seems appropriate for Level 1 if a clear choice were given. Executability is affected by vague start and end positions.",
+      "instruction": {
+        "task": "Go from the potted plant to the farthest bench",
+        "start": "Near potted_plant",
+        "end": "Near bench",
+        "start_object": "potted_plant",
+        "end_object": "bench",
+        "interact": [],
+        "level": 1
+      }
+    }
+  ],
+  "level_2": [
+    {
+      "object_accuracy": 4.0,
+      "spatial_coherence": 4.0,
+      "task_clarity": 4.0,
+      "difficulty_alignment": 5,
+      "executability": 4.0,
+      "reasoning": "The kiosk and benches are clearly visible and correctly named. The navigation path from the kiosk to the nearest bench is logical and coherent, with only minor spatial ambiguity. The task is clear and suitable for level 2, involving two main objects with intermediate reasoning. It is executable with standard sensors, though some assumptions about proximity to initial and destination points are needed.",
+      "instruction": {
+        "task": "Inspect the display at the kiosk and then head to the nearest bench",
+        "start": "Near kiosk",
+        "end": "Near bench",
+        "start_object": "kiosk",
+        "end_object": "bench",
+        "interact": [
+          "kiosk"
+        ],
+        "level": 2
+      }
+    },
+    {
+      "object_accuracy": 3.0,
+      "spatial_coherence": 3.0,
+      "task_clarity": 3.0,
+      "difficulty_alignment": 4.0,
+      "executability": 3.0,
+      "reasoning": "The objects (building, kiosk, and brochure) are identifiable but not clearly specified in both views. The spatial path is possible but lacks clear instructions on the brochure's exact location. The task is understandable but lacks precise language for machine parsing. The complexity aligns with Level 2 given two objects, but execution assumes prior context for brochure identification and exact positioning.",
+      "instruction": {
+        "task": "Pick up a brochure near the building and deliver it to the kiosk",
+        "start": "Near building",
+        "end": "Near kiosk",
+        "start_object": "building",
+        "end_object": "kiosk",
+        "interact": [
+          "building",
+          "brochure"
+        ],
+        "level": 2
+      }
+    },
+    {
+      "object_accuracy": 4.0,
+      "spatial_coherence": 3.0,
+      "task_clarity": 3.0,
+      "difficulty_alignment": 4.0,
+      "executability": 3.0,
+      "reasoning": "All mentioned objects (tree, bench) are visible, but 'nearest' is subjective. The navigation path from tree to bench is possible, but waypoints are unclear. Instruction understandable but needs interpretative reasoning. Task complexity aligns with Level 2. Execution possible with assumptions on specific bench choice.",
+      "instruction": {
+        "task": "Take a photo of the tree and then sit on the nearest bench",
+        "start": "Near tree",
+        "end": "Near bench",
+        "start_object": "tree",
+        "end_object": "bench",
+        "interact": [
+          "tree"
+        ],
+        "level": 2
+      }
+    }
+  ],
+  "level_3": [
+    {
+      "object_accuracy": 4.0,
+      "spatial_coherence": 3.0,
+      "task_clarity": 3.0,
+      "difficulty_alignment": 4.0,
+      "executability": 3.0,
+      "reasoning": "All objects (potted plants, building, kiosk) are visible and identifiable, though some naming could be more specific. The path is possible but lacks clear waypoints for collecting each plant. Instructions are clear but require human-level interpretation, especially for collecting multiple plants. The complexity matches a Level 3 task with multiple steps, but the execution might be challenging without detailed path guidance or specific start/end location markers.",
+      "instruction": {
+        "task": "Collect three potted plants, inspect the display at the kiosk, and deliver the plants to the building",
+        "start": "Near potted_plant",
+        "end": "Near building",
+        "start_object": "potted_plant",
+        "end_object": "building",
+        "interact": [
+          "potted_plant",
+          "kiosk"
+        ],
+        "level": 3
+      }
+    },
+    {
+      "object_accuracy": 3.0,
+      "spatial_coherence": 4.0,
+      "task_clarity": 3.0,
+      "difficulty_alignment": 4.0,
+      "executability": 3.0,
+      "reasoning": "Object names like 'bench,' 'tree,' and 'kiosk' are recognizable, but 'package' is not clearly visible. The spatial path makes sense, though it assumes correct object identification. Instructions are somewhat clear but need human reasoning to fully understand 'pick up a package.' Complexity aligns with Level 3, involving multiple objects. Execution is feasible with assumptions about object interactions and the package's precise location.",
+      "instruction": {
+        "task": "Meet a person at the bench, pick up a package near the tree, and deliver it to the kiosk",
+        "start": "Near bench",
+        "end": "Near kiosk",
+        "start_object": "bench",
+        "end_object": "kiosk",
+        "interact": [
+          "bench",
+          "tree"
+        ],
+        "level": 3
+      }
+    },
+    {
+      "object_accuracy": 4.0,
+      "spatial_coherence": 3.0,
+      "task_clarity": 3.0,
+      "difficulty_alignment": 4.0,
+      "executability": 3.0,
+      "reasoning": "All objects are visible, but naming can slightly vary (e.g., 'building' could be more specific). The path is logical but lacks clear waypoints; sitting on the 'nearest' bench is subjective. The task requires human reasoning for 'nearest' and 'collect a brochure'. Complexity matches Level 3, but execution might require additional context for object interaction.",
+      "instruction": {
+        "task": "Take a photo of the building, collect a brochure near the kiosk, and then sit on the nearest bench",
+        "start": "Near building",
+        "end": "Near bench",
+        "start_object": "building",
+        "end_object": "bench",
+        "interact": [
+          "building",
+          "kiosk"
+        ],
+        "level": 3
+      }
+    }
+  ],
+  "level_1_avg": {
+    "object_accuracy": 3.3333333333333335,
+    "spatial_coherence": 3.3333333333333335,
+    "task_clarity": 3.3333333333333335,
+    "difficulty_alignment": 4.333333333333333,
+    "executability": 3.3333333333333335
+  },
+  "level_1_count": 3,
+  "level_2_avg": {
+    "object_accuracy": 3.6666666666666665,
+    "spatial_coherence": 3.3333333333333335,
+    "task_clarity": 3.3333333333333335,
+    "difficulty_alignment": 4.333333333333333,
+    "executability": 3.3333333333333335
+  },
+  "level_2_count": 3,
+  "level_3_avg": {
+    "object_accuracy": 3.6666666666666665,
+    "spatial_coherence": 3.3333333333333335,
+    "task_clarity": 3.0,
+    "difficulty_alignment": 4.0,
+    "executability": 3.0
+  },
+  "level_3_count": 3,
+  "timestamp": "2026-01-20T11:39:36.729172"
+}

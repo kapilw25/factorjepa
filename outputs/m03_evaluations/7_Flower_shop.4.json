@@ -1,0 +1,206 @@
+{
+  "scene_id": "7_Flower_shop.4",
+  "level_1": [
+    {
+      "object_accuracy": 4.0,
+      "spatial_coherence": 4.0,
+      "task_clarity": 4.0,
+      "difficulty_alignment": 4.0,
+      "executability": 4.0,
+      "reasoning": "Object names like archway and table are clear and identifiable in both views, but 'near table' is somewhat generic. The spatial path is logical, moving directly from the archway to the table area without obstacles. The task is mostly clear for a robot to parse, but 'near' introduces slight ambiguity. Complexity is appropriate for Level 1, involving simple navigation. Executable with standard sensors, but exact positions could use more detail.",
+      "instruction": {
+        "task": "Walk from the archway to the table area",
+        "start": "Near archway",
+        "end": "Near table",
+        "start_object": "archway",
+        "end_object": "table",
+        "interact": [],
+        "level": 1
+      }
+    },
+    {
+      "object_accuracy": 3.0,
+      "spatial_coherence": 3.0,
+      "task_clarity": 3.0,
+      "difficulty_alignment": 4.0,
+      "executability": 3.0,
+      "reasoning": "The objects 'wall lamp' and 'shelf section' are mostly identifiable, but there are multiple lamps, leading to potential confusion. The path is feasible but not optimal, lacking clear waypoints. Instructions require some human reasoning and are somewhat clear but lack precision. The complexity matches Level 1, though it's slightly more challenging than described due to ambiguity. A robot could follow the instruction with some assumptions, but clarity issues remain.",
+      "instruction": {
+        "task": "Navigate from the wall lamp to the shelf section",
+        "start": "Near wall lamp",
+        "end": "Near shelf",
+        "start_object": "wall lamp",
+        "end_object": "shelf",
+        "interact": [],
+        "level": 1
+      }
+    },
+    {
+      "object_accuracy": 4.0,
+      "spatial_coherence": 4.0,
+      "task_clarity": 4.0,
+      "difficulty_alignment": 5,
+      "executability": 4.0,
+      "reasoning": "All objects are identifiable, but naming is slightly vague ('planter display' is not labeled but recognizable). Path from bench to planters is logical but not described in detail. The task is clear for a Level 1 complexity and understandable with minimal assumptions. Execution is feasible with minor assumptions about the exact positions.",
+      "instruction": {
+        "task": "Approach the planter display from the bench area",
+        "start": "Near bench",
+        "end": "Near planters",
+        "start_object": "bench",
+        "end_object": "planters",
+        "interact": [],
+        "level": 1
+      }
+    }
+  ],
+  "level_2": [
+    {
+      "object_accuracy": 4.0,
+      "spatial_coherence": 4.0,
+      "task_clarity": 3.0,
+      "difficulty_alignment": 4.0,
+      "executability": 4.0,
+      "reasoning": "Objects such as the 'shelf' and 'archway' are correctly identifiable in both views, though slight naming variations on other items occur. The path from the shelf to the archway is logical with minor spatial ambiguity. Instructions are clear but require some human-level parsing. The task fits Level 2 complexity with some intermediate reasoning involved. Overall, the task is executable but needs minor assumptions on robotic interactions with the environment.",
+      "instruction": {
+        "task": "Inspect the items on the shelf and report to the archway",
+        "start": "Near shelf",
+        "end": "Near archway",
+        "start_object": "shelf",
+        "end_object": "archway",
+        "interact": [
+          "shelf"
+        ],
+        "level": 2
+      }
+    },
+    {
+      "object_accuracy": 4.0,
+      "spatial_coherence": 4.0,
+      "task_clarity": 3.0,
+      "difficulty_alignment": 4.0,
+      "executability": 4.0,
+      "reasoning": "All objects, including the table, lamp, and roll of paper, are visible and identifiable. The path from the table to the wall lamp is clear, although minor spatial details could be more precise. Instructions are mostly clear, but require some human-level reasoning for the robot. The difficulty aligns well with Level 2, with two objects involved. Executability is mostly achievable with standard robot sensors, but a few assumptions on positions are needed.",
+      "instruction": {
+        "task": "Pick up a roll_of_paper from the table and deliver it to the wall lamp",
+        "start": "Near table",
+        "end": "Near wall lamp",
+        "start_object": "table",
+        "end_object": "wall lamp",
+        "interact": [
+          "roll_of_paper",
+          "table"
+        ],
+        "level": 2
+      }
+    },
+    {
+      "object_accuracy": 3.0,
+      "spatial_coherence": 3.0,
+      "task_clarity": 3.0,
+      "difficulty_alignment": 4.0,
+      "executability": 3.0,
+      "reasoning": "The 'wall_art' and 'bench' are somewhat identifiable, though the bench could be confused with a table. The path seems possible but lacks clear waypoints for optimal navigation. Instruction is understandable but might require human-level reasoning to interpret actions precisely. Difficulty is suited to Level 2, involving intermediate complexity. Execution might face challenges due to vague starting and ending positions.",
+      "instruction": {
+        "task": "Check the wall_art and meet at the bench",
+        "start": "Near wall_art",
+        "end": "Near bench",
+        "start_object": "wall_art",
+        "end_object": "bench",
+        "interact": [
+          "wall_art"
+        ],
+        "level": 2
+      }
+    }
+  ],
+  "level_3": [
+    {
+      "object_accuracy": 4.0,
+      "spatial_coherence": 4.0,
+      "task_clarity": 3.0,
+      "difficulty_alignment": 4.0,
+      "executability": 4.0,
+      "reasoning": "The objects are mostly clear and identifiable with minor ambiguity. The path is logical with slight spatial ambiguity as the precise locations aren't specified. The task clarity is good, but requires some human interpretation, especially in how to 'check' the wall art. The complexity matches Level 3 well as it involves multiple objects and tasks. Execution is feasible with standard sensors, though exact actions may need minor assumptions.",
+      "instruction": {
+        "task": "Collect items from the shelf, check the display on the wall_art, and deliver to the counter near the archway",
+        "start": "Near shelf",
+        "end": "Near archway",
+        "start_object": "shelf",
+        "end_object": "archway",
+        "interact": [
+          "shelf",
+          "wall_art",
+          "counter"
+        ],
+        "level": 3
+      }
+    },
+    {
+      "object_accuracy": 3.0,
+      "spatial_coherence": 3.0,
+      "task_clarity": 3.0,
+      "difficulty_alignment": 4.0,
+      "executability": 3.0,
+      "reasoning": "The objects like planters, table, and shelf section are mostly visible, but 'bench' is somewhat ambiguous without clear identification. The path is feasible but lacks specific waypoints or clear start and end points. Instructions are somewhat clear but require interpretation, especially regarding object specifics. The complexity is mostly suitable for Level 3, involving multiple steps. Executability is moderate but lacks precision in positioning and actions.",
+      "instruction": {
+        "task": "Inspect the planters near the bench, pick up a package from the table, and deliver to the shelf section",
+        "start": "Near bench",
+        "end": "Near shelf",
+        "start_object": "bench",
+        "end_object": "shelf",
+        "interact": [
+          "planters",
+          "package",
+          "table"
+        ],
+        "level": 3
+      }
+    },
+    {
+      "object_accuracy": 4.0,
+      "spatial_coherence": 4.0,
+      "task_clarity": 3.0,
+      "difficulty_alignment": 4.0,
+      "executability": 4.0,
+      "reasoning": "All objects are identifiable though not all precisely named (e.g., 'table' could refer to several surfaces). The path is logical, though steps are not perfectly precise. Instructions are mostly clear but require slight interpretation. Complexity mostly aligns with Level 3. The task is executable but assumes some context about object interaction.",
+      "instruction": {
+        "task": "Meet at the archway, collect a roll_of_paper from the table, and deliver it to the wall lamp near the shelf",
+        "start": "Near archway",
+        "end": "Near wall lamp",
+        "start_object": "archway",
+        "end_object": "wall lamp",
+        "interact": [
+          "archway",
+          "roll_of_paper",
+          "shelf"
+        ],
+        "level": 3
+      }
+    }
+  ],
+  "level_1_avg": {
+    "object_accuracy": 3.6666666666666665,
+    "spatial_coherence": 3.6666666666666665,
+    "task_clarity": 3.6666666666666665,
+    "difficulty_alignment": 4.333333333333333,
+    "executability": 3.6666666666666665
+  },
+  "level_1_count": 3,
+  "level_2_avg": {
+    "object_accuracy": 3.6666666666666665,
+    "spatial_coherence": 3.6666666666666665,
+    "task_clarity": 3.0,
+    "difficulty_alignment": 4.0,
+    "executability": 3.6666666666666665
+  },
+  "level_2_count": 3,
+  "level_3_avg": {
+    "object_accuracy": 3.6666666666666665,
+    "spatial_coherence": 3.6666666666666665,
+    "task_clarity": 3.0,
+    "difficulty_alignment": 4.0,
+    "executability": 3.6666666666666665
+  },
+  "level_3_count": 3,
+  "timestamp": "2026-01-20T11:45:26.388535"
+}

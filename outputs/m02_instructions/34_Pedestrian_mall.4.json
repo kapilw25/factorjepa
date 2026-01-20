@@ -1,0 +1,98 @@
+{
+  "scene_id": "34_Pedestrian_mall.4",
+  "level_1": [
+    {
+      "task": "Walk from the kiosk to the nearest bench",
+      "start": "Near kiosk",
+      "end": "Near bench",
+      "start_object": "kiosk",
+      "end_object": "bench",
+      "interact": []
+    },
+    {
+      "task": "Navigate to the building from the tree area",
+      "start": "Near tree",
+      "end": "Near building",
+      "start_object": "tree",
+      "end_object": "building",
+      "interact": []
+    },
+    {
+      "task": "Go from the potted plant to the farthest bench",
+      "start": "Near potted_plant",
+      "end": "Near bench",
+      "start_object": "potted_plant",
+      "end_object": "bench",
+      "interact": []
+    }
+  ],
+  "level_2": [
+    {
+      "task": "Inspect the display at the kiosk and then head to the nearest bench",
+      "start": "Near kiosk",
+      "end": "Near bench",
+      "start_object": "kiosk",
+      "end_object": "bench",
+      "interact": [
+        "kiosk"
+      ]
+    },
+    {
+      "task": "Pick up a brochure near the building and deliver it to the kiosk",
+      "start": "Near building",
+      "end": "Near kiosk",
+      "start_object": "building",
+      "end_object": "kiosk",
+      "interact": [
+        "building",
+        "brochure"
+      ]
+    },
+    {
+      "task": "Take a photo of the tree and then sit on the nearest bench",
+      "start": "Near tree",
+      "end": "Near bench",
+      "start_object": "tree",
+      "end_object": "bench",
+      "interact": [
+        "tree"
+      ]
+    }
+  ],
+  "level_3": [
+    {
+      "task": "Collect three potted plants, inspect the display at the kiosk, and deliver the plants to the building",
+      "start": "Near potted_plant",
+      "end": "Near building",
+      "start_object": "potted_plant",
+      "end_object": "building",
+      "interact": [
+        "potted_plant",
+        "kiosk"
+      ]
+    },
+    {
+      "task": "Meet a person at the bench, pick up a package near the tree, and deliver it to the kiosk",
+      "start": "Near bench",
+      "end": "Near kiosk",
+      "start_object": "bench",
+      "end_object": "kiosk",
+      "interact": [
+        "bench",
+        "tree"
+      ]
+    },
+    {
+      "task": "Take a photo of the building, collect a brochure near the kiosk, and then sit on the nearest bench",
+      "start": "Near building",
+      "end": "Near bench",
+      "start_object": "building",
+      "end_object": "bench",
+      "interact": [
+        "building",
+        "kiosk"
+      ]
+    }
+  ],
+  "timestamp": "2026-01-20T11:27:24.587762"
+}

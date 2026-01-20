@@ -1,0 +1,202 @@
+{
+  "scene_id": "35_Bus_loop.4",
+  "level_1": [
+    {
+      "object_accuracy": 3.0,
+      "spatial_coherence": 3.0,
+      "task_clarity": 3.0,
+      "difficulty_alignment": 4.0,
+      "executability": 3.0,
+      "reasoning": "The bus stop and traffic light are visible, but the traffic light is not clearly distinguishable or specifically labeled in the images, affecting object accuracy and executability. The path from the bus stop to the traffic light is possible but lacks clear waypoints, leading to inefficiency and ambiguity in spatial coherence and task clarity. The task complexity aligns with Level 1 since it involves moving between two points, but clarity issues lower execution feasibility for a robot.",
+      "instruction": {
+        "task": "Walk from the bus stop to the traffic light",
+        "start": "Near bus_stop_shelter",
+        "end": "Near traffic_light",
+        "start_object": "bus_stop_shelter",
+        "end_object": "traffic_light",
+        "interact": [],
+        "level": 1
+      }
+    },
+    {
+      "object_accuracy": 3.0,
+      "spatial_coherence": 3.0,
+      "task_clarity": 3.0,
+      "difficulty_alignment": 4.0,
+      "executability": 3.0,
+      "reasoning": "The instruction mentions a 'bollard' and 'parking meter', which are not distinctly identifiable in the images. The navigational path is feasible but lacks specific waypoints or descriptions. The task is somewhat clear but requires better-defined actions for a robot. The complexity matches Level 1, involving a straightforward movement, but more detail is needed for improved executability.",
+      "instruction": {
+        "task": "Navigate from the bollard to the parking meter",
+        "start": "Near bollard",
+        "end": "Near parking_meter",
+        "start_object": "bollard",
+        "end_object": "parking_meter",
+        "interact": [],
+        "level": 1
+      }
+    },
+    {
+      "object_accuracy": 4.0,
+      "spatial_coherence": 3.0,
+      "task_clarity": 4.0,
+      "difficulty_alignment": 5,
+      "executability": 3.0,
+      "reasoning": "Most objects are clearly identifiable (street lamp and bus stop shelter), though specific location markers such as 'near' might need more specificity. The path is possible but lacks explicit waypoints. Instructions are generally clear for Level 1, though not perfectly machine-parseable. Task difficulty aligns with a Level 1 task, but executability could be improved with more defined positions.",
+      "instruction": {
+        "task": "Go from the street lamp to the bus stop area",
+        "start": "Near street_lamp",
+        "end": "Near bus_stop_shelter",
+        "start_object": "street_lamp",
+        "end_object": "bus_stop_shelter",
+        "interact": [],
+        "level": 1
+      }
+    }
+  ],
+  "level_2": [
+    {
+      "object_accuracy": 3.0,
+      "spatial_coherence": 4.0,
+      "task_clarity": 3.0,
+      "difficulty_alignment": 4.0,
+      "executability": 3.0,
+      "reasoning": "Object accuracy is rated 3 because 'bollard' and 'bus stop' are somewhat clear, but requires clarification on specific bollard. Spatial coherence is rated 4 as the path seems logical but lacks precision in start and end positions. Task clarity is rated 3 due to the need for human reasoning to interpret 'inspect' and 'go to' actions. Difficulty alignment is rated 4 because it matches Level 2 complexity with multiple steps but isn't perfectly aligned. Executability is rated 3; while feasible, it requires additional context on positions and specific actions.",
+      "instruction": {
+        "task": "Inspect the bollard and then go to the bus stop",
+        "start": "Near bollard",
+        "end": "Near bus_stop_shelter",
+        "start_object": "bollard",
+        "end_object": "bus_stop_shelter",
+        "interact": [
+          "bollard"
+        ],
+        "level": 2
+      }
+    },
+    {
+      "object_accuracy": 2.0,
+      "spatial_coherence": 2.0,
+      "task_clarity": 3.0,
+      "difficulty_alignment": 4.0,
+      "executability": 3.0,
+      "reasoning": "The parking meter is not clearly identifiable in either view, reducing object accuracy. The traffic light is not visible in the scene, making spatial coherence and executability problematic. The task clarity is moderate, as the instruction is understandable but missing precise location details. The difficulty aligns with Level 2 reasonably well, involving intermediate reasoning. Overall execution would need real-world context to address missing objects.",
+      "instruction": {
+        "task": "Check the parking meter and then head to the traffic light",
+        "start": "Near parking_meter",
+        "end": "Near traffic_light",
+        "start_object": "parking_meter",
+        "end_object": "traffic_light",
+        "interact": [
+          "parking_meter"
+        ],
+        "level": 2
+      }
+    },
+    {
+      "object_accuracy": 4.0,
+      "spatial_coherence": 4.0,
+      "task_clarity": 3.0,
+      "difficulty_alignment": 4.0,
+      "executability": 4.0,
+      "reasoning": "All objects except the bus are clearly identifiable in both views, though minor naming variations exist. The path is logical but involves an intermediate stop (bus stop), which should be clarified. Task is understandable but requires human reasoning to interpret actions involving bus interaction. Complexity is appropriate for level 2 with two main objects involved. Executable with minor assumptions about the bus interaction step.",
+      "instruction": {
+        "task": "Wait at the bus stop and then walk to the street lamp",
+        "start": "Near bus_stop_shelter",
+        "end": "Near street_lamp",
+        "start_object": "bus_stop_shelter",
+        "end_object": "street_lamp",
+        "interact": [
+          "bus"
+        ],
+        "level": 2
+      }
+    }
+  ],
+  "level_3": [
+    {
+      "object_accuracy": 3.0,
+      "spatial_coherence": 3.0,
+      "task_clarity": 4.0,
+      "difficulty_alignment": 4.0,
+      "executability": 3.0,
+      "reasoning": "The objects 'traffic light,' 'parking meter,' and 'bus stop shelter' are visible but not perfectly identifiable in both views. The path is possible but lacks precision and may be inefficient. Instructions are mostly clear but require some human-level reasoning. The task aligns well with Level 3 complexity, involving multiple objects and actions. Execution is partially feasible, needing clearer position and action details for accuracy.",
+      "instruction": {
+        "task": "Start at the traffic light, go to the parking meter to pay, then head to the bus stop to catch the bus",
+        "start": "Near traffic_light",
+        "end": "Near bus_stop_shelter",
+        "start_object": "traffic_light",
+        "end_object": "bus_stop_shelter",
+        "interact": [
+          "parking_meter",
+          "bus"
+        ],
+        "level": 3
+      }
+    },
+    {
+      "object_accuracy": 2.0,
+      "spatial_coherence": 2.0,
+      "task_clarity": 3.0,
+      "difficulty_alignment": 4.0,
+      "executability": 2.0,
+      "reasoning": "The bus stop shelter, bollard, and street lamp are vague or partially visible. The instruction path lacks clear, precise waypoints making it spatially flawed. Task clarity is intermediate, relying on human reasoning to fill gaps. Complexity matches Level 3 due to multi-step reasoning. However, execution is difficult due to vague positioning and potential object misidentification.",
+      "instruction": {
+        "task": "Begin at the bus stop shelter and go to the bollard to read the sign, then go to the street lamp to check the time",
+        "start": "Near bus_stop_shelter",
+        "end": "Near street_lamp",
+        "start_object": "bus_stop_shelter",
+        "end_object": "street_lamp",
+        "interact": [
+          "bollard",
+          "street_lamp"
+        ],
+        "level": 3
+      }
+    },
+    {
+      "object_accuracy": 4.0,
+      "spatial_coherence": 4.0,
+      "task_clarity": 4.0,
+      "difficulty_alignment": 5,
+      "executability": 4.0,
+      "reasoning": "All objects (street lamp, parking meter, and bus stop) are clearly visible and identifiable in the images. The path from the street lamp to the parking meter and then to the bus stop is logical with minor spatial ambiguities due to potential occlusion. The instruction is clear with specific tasks, though minor interpretation might be needed for exact distances. Complexity aligns well with Level 3, involving multiple objects and steps. The task is executable with standard sensors, assuming the robot can detect these objects clearly in real-time.",
+      "instruction": {
+        "task": "Go from the street lamp to the parking meter to check the fare, then head to the bus stop to wait for the bus",
+        "start": "Near street_lamp",
+        "end": "Near bus_stop_shelter",
+        "start_object": "street_lamp",
+        "end_object": "bus_stop_shelter",
+        "interact": [
+          "parking_meter",
+          "bus"
+        ],
+        "level": 3
+      }
+    }
+  ],
+  "level_1_avg": {
+    "object_accuracy": 3.3333333333333335,
+    "spatial_coherence": 3.0,
+    "task_clarity": 3.3333333333333335,
+    "difficulty_alignment": 4.333333333333333,
+    "executability": 3.0
+  },
+  "level_1_count": 3,
+  "level_2_avg": {
+    "object_accuracy": 3.0,
+    "spatial_coherence": 3.3333333333333335,
+    "task_clarity": 3.0,
+    "difficulty_alignment": 4.0,
+    "executability": 3.3333333333333335
+  },
+  "level_2_count": 3,
+  "level_3_avg": {
+    "object_accuracy": 3.0,
+    "spatial_coherence": 3.0,
+    "task_clarity": 3.6666666666666665,
+    "difficulty_alignment": 4.333333333333333,
+    "executability": 3.0
+  },
+  "level_3_count": 3,
+  "timestamp": "2026-01-20T11:41:17.362335"
+}

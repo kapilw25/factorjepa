@@ -1,0 +1,34 @@
+{
+  "scene_id": "3_Clothing_shop.4",
+  "isometric_path": "Literature/Prev_work2/dataset/3DReasoningProject_images/Retail/3_Clothing_shop.4_isometric.png",
+  "topdown_path": "Literature/Prev_work2/dataset/3DReasoningProject_images/Retail/3_Clothing_shop.4_topdown.png",
+  "objects": [
+    {
+      "name": "mannequin",
+      "confidence": 0.95
+    },
+    {
+      "name": "clothing_rack",
+      "confidence": 0.95
+    },
+    {
+      "name": "shelf",
+      "confidence": 0.95
+    },
+    {
+      "name": "hanging_clothes",
+      "confidence": 0.95
+    },
+    {
+      "name": "stacked_clothes",
+      "confidence": 0.95
+    },
+    {
+      "name": "light_fixture",
+      "confidence": 0.9
+    }
+  ],
+  "scene_type": "retail",
+  "layout_description": "Small retail space with clothing racks, shelves, mannequins, and hanging clothes. Layout includes vertical shelving units and a central display area.",
+  "timestamp": "2026-01-20T11:19:52.966785"
+}

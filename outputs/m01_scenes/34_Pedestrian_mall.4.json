@@ -1,0 +1,30 @@
+{
+  "scene_id": "34_Pedestrian_mall.4",
+  "isometric_path": "Literature/Prev_work2/dataset/3DReasoningProject_images/Others/34_Pedestrian_mall.4_isometric.png",
+  "topdown_path": "Literature/Prev_work2/dataset/3DReasoningProject_images/Others/34_Pedestrian_mall.4_topdown.png",
+  "objects": [
+    {
+      "name": "bench",
+      "confidence": 0.95
+    },
+    {
+      "name": "tree",
+      "confidence": 0.92
+    },
+    {
+      "name": "kiosk",
+      "confidence": 0.9
+    },
+    {
+      "name": "potted_plant",
+      "confidence": 0.88
+    },
+    {
+      "name": "building",
+      "confidence": 0.95
+    }
+  ],
+  "scene_type": "outdoor_mall",
+  "layout_description": "An open plaza with benches, potted plants, and trees along pathways, featuring a central kiosk and surrounding buildings.",
+  "timestamp": "2026-01-20T11:17:50.288309"
+}

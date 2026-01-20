@@ -1,0 +1,38 @@
+{
+  "scene_id": "7_Flower_shop.4",
+  "isometric_path": "Literature/Prev_work2/dataset/3DReasoningProject_images/Retail/7_Flower_shop.4_isometric.png",
+  "topdown_path": "Literature/Prev_work2/dataset/3DReasoningProject_images/Retail/7_Flower_shop.4_topdown.png",
+  "objects": [
+    {
+      "name": "table",
+      "confidence": 0.95
+    },
+    {
+      "name": "shelf",
+      "confidence": 0.95
+    },
+    {
+      "name": "lamp",
+      "confidence": 0.95
+    },
+    {
+      "name": "planters",
+      "confidence": 0.95
+    },
+    {
+      "name": "archway",
+      "confidence": 0.95
+    },
+    {
+      "name": "wall_art",
+      "confidence": 0.95
+    },
+    {
+      "name": "roll_of_paper",
+      "confidence": 0.95
+    }
+  ],
+  "scene_type": "retail",
+  "layout_description": "Small retail space with tables, shelves, and planters arranged around an archway, illuminated by wall lamps.",
+  "timestamp": "2026-01-20T11:21:07.333849"
+}

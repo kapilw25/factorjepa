@@ -1,0 +1,42 @@
+{
+  "scene_id": "6_Bookstore.4",
+  "isometric_path": "Literature/Prev_work2/dataset/3DReasoningProject_images/Retail/6_Bookstore.4_isometric.png",
+  "topdown_path": "Literature/Prev_work2/dataset/3DReasoningProject_images/Retail/6_Bookstore.4_topdown.png",
+  "objects": [
+    {
+      "name": "bookshelf",
+      "confidence": 0.95
+    },
+    {
+      "name": "chair",
+      "confidence": 0.95
+    },
+    {
+      "name": "desk",
+      "confidence": 0.95
+    },
+    {
+      "name": "ladder",
+      "confidence": 0.95
+    },
+    {
+      "name": "lamp",
+      "confidence": 0.95
+    },
+    {
+      "name": "plant",
+      "confidence": 0.95
+    },
+    {
+      "name": "sign",
+      "confidence": 0.95
+    },
+    {
+      "name": "stacked_books",
+      "confidence": 0.95
+    }
+  ],
+  "scene_type": "retail",
+  "layout_description": "Small bookstore with bookshelves along walls, central seating area, desk with computer, ladder near shelves, and plant near counter.",
+  "timestamp": "2026-01-20T11:20:32.334405"
+}

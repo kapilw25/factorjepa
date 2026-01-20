@@ -1,0 +1,208 @@
+{
+  "scene_id": "9_Meeting_room.4",
+  "level_1": [
+    {
+      "object_accuracy": 3.0,
+      "spatial_coherence": 4.0,
+      "task_clarity": 3.0,
+      "difficulty_alignment": 4.0,
+      "executability": 3.0,
+      "reasoning": "The objects 'chair area' and 'table' are identifiable but could be more specific. The path from chair to table is logical, though slightly generic, lacking intermediate details. The task is understandable but lacks specific action verbs for machine parsing. The complexity is mostly aligned for Level 1. The instruction is executable but assumes implicit understanding of 'near' without specifics.",
+      "instruction": {
+        "task": "Navigate from the chair area to the table",
+        "start": "Near chair",
+        "end": "Near table",
+        "start_object": "chair",
+        "end_object": "table",
+        "interact": [],
+        "level": 1
+      }
+    },
+    {
+      "object_accuracy": 4.0,
+      "spatial_coherence": 4.0,
+      "task_clarity": 3.0,
+      "difficulty_alignment": 4.0,
+      "executability": 4.0,
+      "reasoning": "Objects (table and chair) are identifiable in both views. Path is logical with minor ambiguity about which chair is intended. Instruction is somewhat clear but requires interpreting which chair is 'opposite.' Complexity aligns with Level 1. Executable with minor assumptions about chair positioning.",
+      "instruction": {
+        "task": "Move from the table to the chair on the opposite side",
+        "start": "Near table",
+        "end": "Near chair",
+        "start_object": "table",
+        "end_object": "chair",
+        "interact": [],
+        "level": 1
+      }
+    },
+    {
+      "object_accuracy": 3.0,
+      "spatial_coherence": 3.0,
+      "task_clarity": 3.0,
+      "difficulty_alignment": 2.0,
+      "executability": 3.0,
+      "reasoning": "The objects 'table' and 'chair' are identifiable, but 'chair next to the entrance' is vague without a clear entrance visible in the images. The path to 'go around the table' is physically possible, yet lacks precision on which side to go around. The instruction is understandable but requires human interpretation for identifying the 'entrance' chair. The task complexity is moderate but mislabeled as Level 1 since it involves more reasoning than a simple task. The robot can execute the task, though more context is needed regarding which chair is next to the entrance.",
+      "instruction": {
+        "task": "Go around the table and reach the chair next to the entrance",
+        "start": "Near table",
+        "end": "Near chair",
+        "start_object": "table",
+        "end_object": "chair",
+        "interact": [],
+        "level": 1
+      }
+    }
+  ],
+  "level_2": [
+    {
+      "object_accuracy": 3.0,
+      "spatial_coherence": 3.0,
+      "task_clarity": 3.0,
+      "difficulty_alignment": 4.0,
+      "executability": 3.0,
+      "reasoning": "The objects 'notes', 'table', and 'chair' are mentioned; however, 'notes' are not visible in the images, creating some ambiguity. The path from table to chair seems logical, but without clear guidance on specific starting and ending positions, it could be more efficient. The instruction is understandable but lacks specific action cues for machine parsing. The complexity is mostly aligned with Level 2, given two objects are involved, but the vague references make execution challenging.",
+      "instruction": {
+        "task": "Take notes from the table and place them on the chair",
+        "start": "Near table",
+        "end": "Near chair",
+        "start_object": "table",
+        "end_object": "chair",
+        "interact": [
+          "notes",
+          "table"
+        ],
+        "level": 2
+      }
+    },
+    {
+      "object_accuracy": 1,
+      "spatial_coherence": 2.0,
+      "task_clarity": 2.0,
+      "difficulty_alignment": 3.0,
+      "executability": 2.0,
+      "reasoning": "The object 'papers' does not exist in the images, and 'chair' is not specific as there are multiple chairs. The path from a generic chair to the table is physically possible but unclear which chair to start from. The task is ambiguous due to object inaccuracy and vague action (interact with non-existent papers). The instruction does not clearly fit Level 2 complexity since it assumes non-existent objects. Executability is low due to ambiguous start and unclear actions.",
+      "instruction": {
+        "task": "Inspect the papers on the chair and then move to the table",
+        "start": "Near chair",
+        "end": "Near table",
+        "start_object": "chair",
+        "end_object": "table",
+        "interact": [
+          "papers",
+          "chair"
+        ],
+        "level": 2
+      }
+    },
+    {
+      "object_accuracy": 2.0,
+      "spatial_coherence": 2.0,
+      "task_clarity": 3.0,
+      "difficulty_alignment": 4.0,
+      "executability": 2.0,
+      "reasoning": "The pen is not visible in the images, reducing object accuracy. Spatial coherence is low due to missing 'pen' and potential confusion over which chair the instruction refers to. Task clarity is somewhat understandable but lacks specifics for robotic implementation. Difficulty alignment is appropriate for Level 2, with two core tasks. Executability is low due to unspecified start and end positions and the missing pen object.",
+      "instruction": {
+        "task": "Pick up the pen from the table and hand it over to the person sitting on the chair",
+        "start": "Near table",
+        "end": "Near chair",
+        "start_object": "table",
+        "end_object": "chair",
+        "interact": [
+          "pen",
+          "table"
+        ],
+        "level": 2
+      }
+    }
+  ],
+  "level_3": [
+    {
+      "object_accuracy": 3.0,
+      "spatial_coherence": 3.0,
+      "task_clarity": 3.0,
+      "difficulty_alignment": 4.0,
+      "executability": 3.0,
+      "reasoning": "Object accuracy is rated 3 because while chairs and table are clearly visible, documents are not. Spatial coherence is 3 due to a possible path but unclear starting/ending points. Task clarity is 3 since 'all the documents' implies unseen objects, leading to parsing ambiguity. Difficulty alignment is 4 as it involves multiple steps but is mostly aligned for Level 3. Executability is 3; a robot can perform the task with assumptions about document locations.",
+      "instruction": {
+        "task": "Collect all the documents from the chairs, organize them on the table, and then distribute to the people sitting on the chairs",
+        "start": "Near chair",
+        "end": "Near table",
+        "start_object": "chair",
+        "end_object": "table",
+        "interact": [
+          "documents",
+          "chairs",
+          "table"
+        ],
+        "level": 3
+      }
+    },
+    {
+      "object_accuracy": 3.0,
+      "spatial_coherence": 3.0,
+      "task_clarity": 3.0,
+      "difficulty_alignment": 4.0,
+      "executability": 3.0,
+      "reasoning": "The objects (chair, papers, table) are mostly identifiable, but 'papers' are not visible in the images. The path is possible but lacks precision, especially concerning where to create space around the table. Task clarity requires some interpretation, particularly on moving the chair and arranging papers. The task complexity aligns well with Level 3. Execution would need assumptions about papers, and it might require further context on 'creating more space.'",
+      "instruction": {
+        "task": "Move the chair to create more space around the table, then arrange the papers on the table in order, and finally sit on the chair",
+        "start": "Near chair",
+        "end": "Near table",
+        "start_object": "chair",
+        "end_object": "table",
+        "interact": [
+          "chair",
+          "papers",
+          "table"
+        ],
+        "level": 3
+      }
+    },
+    {
+      "object_accuracy": 4.0,
+      "spatial_coherence": 3.0,
+      "task_clarity": 3.0,
+      "difficulty_alignment": 4.0,
+      "executability": 3.0,
+      "reasoning": "The objects (table, chairs, report) are mostly identifiable, albeit with minor ambiguity on the report's exact location. The navigation path is logical, but lacks clear waypoints from 'start' to 'end'. Task clarity is decent but requires human-level reasoning for 'completing' and 'submitting' the report. The complexity aligns well with Level 3, given the multi-step task. Execution is feasible, though vague start/end positions and actions may challenge a robot.",
+      "instruction": {
+        "task": "Find the missing page of the report under the chairs or on the table, then complete the report on the table, and finally submit it to the person sitting on the chair",
+        "start": "Near table",
+        "end": "Near chair",
+        "start_object": "table",
+        "end_object": "chair",
+        "interact": [
+          "report",
+          "chairs",
+          "table"
+        ],
+        "level": 3
+      }
+    }
+  ],
+  "level_1_avg": {
+    "object_accuracy": 3.3333333333333335,
+    "spatial_coherence": 3.6666666666666665,
+    "task_clarity": 3.0,
+    "difficulty_alignment": 3.3333333333333335,
+    "executability": 3.3333333333333335
+  },
+  "level_1_count": 3,
+  "level_2_avg": {
+    "object_accuracy": 2.0,
+    "spatial_coherence": 2.3333333333333335,
+    "task_clarity": 2.6666666666666665,
+    "difficulty_alignment": 3.6666666666666665,
+    "executability": 2.3333333333333335
+  },
+  "level_2_count": 3,
+  "level_3_avg": {
+    "object_accuracy": 3.3333333333333335,
+    "spatial_coherence": 3.0,
+    "task_clarity": 3.0,
+    "difficulty_alignment": 4.0,
+    "executability": 3.0
+  },
+  "level_3_count": 3,
+  "timestamp": "2026-01-20T11:38:47.032194"
+}

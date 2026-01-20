@@ -1,0 +1,104 @@
+{
+  "scene_id": "3_Clothing_shop.4",
+  "level_1": [
+    {
+      "task": "Navigate from the mannequin area to the clothing rack",
+      "start": "Near mannequin",
+      "end": "Near clothing_rack",
+      "start_object": "mannequin",
+      "end_object": "clothing_rack",
+      "interact": []
+    },
+    {
+      "task": "Move from the shelf to the hanging clothes section",
+      "start": "Near shelf",
+      "end": "Near hanging_clothes",
+      "start_object": "shelf",
+      "end_object": "hanging_clothes",
+      "interact": []
+    },
+    {
+      "task": "Walk from the stacked clothes display to the light fixture",
+      "start": "Near stacked_clothes",
+      "end": "Near light_fixture",
+      "start_object": "stacked_clothes",
+      "end_object": "light_fixture",
+      "interact": []
+    }
+  ],
+  "level_2": [
+    {
+      "task": "Inspect the mannequin and then pick up a nearby item from the shelf",
+      "start": "Near mannequin",
+      "end": "Near shelf",
+      "start_object": "mannequin",
+      "end_object": "shelf",
+      "interact": [
+        "mannequin",
+        "shelf"
+      ]
+    },
+    {
+      "task": "Pick up an outfit from the clothing rack and deliver it to the mannequin",
+      "start": "Near clothing_rack",
+      "end": "Near mannequin",
+      "start_object": "clothing_rack",
+      "end_object": "mannequin",
+      "interact": [
+        "clothing_rack",
+        "mannequin"
+      ]
+    },
+    {
+      "task": "Take a garment from the hanging clothes and hang it on the clothing rack",
+      "start": "Near hanging_clothes",
+      "end": "Near clothing_rack",
+      "start_object": "hanging_clothes",
+      "end_object": "clothing_rack",
+      "interact": [
+        "hanging_clothes",
+        "clothing_rack"
+      ]
+    }
+  ],
+  "level_3": [
+    {
+      "task": "Collect items from the shelf, inspect the hanging clothes, and then deliver the selected items to the mannequin",
+      "start": "Near shelf",
+      "end": "Near mannequin",
+      "start_object": "shelf",
+      "end_object": "mannequin",
+      "interact": [
+        "shelf",
+        "hanging_clothes",
+        "mannequin"
+      ]
+    },
+    {
+      "task": "Pick up an outfit from the clothing rack, check the stacked clothes for matching accessories, and then deliver the entire set to the counter",
+      "start": "Near clothing_rack",
+      "end": "Near counter",
+      "start_object": "clothing_rack",
+      "end_object": "counter",
+      "interact": [
+        "clothing_rack",
+        "stacked_clothes",
+        "counter"
+      ]
+    },
+    {
+      "task": "Move the light fixture to highlight a new display on the shelf, then pick up an item from the hanging clothes to add to the display, and finally arrange the mannequin to showcase the new outfit",
+      "start": "Near light_fixture",
+      "end": "Near mannequin",
+      "start_object": "light_fixture",
+      "end_object": "mannequin",
+      "interact": [
+        "light_fixture",
+        "shelf",
+        "hanging_clothes",
+        "mannequin"
+      ]
+    }
+  ],
+  "timestamp": "2026-01-20T11:33:49.968627"
+}

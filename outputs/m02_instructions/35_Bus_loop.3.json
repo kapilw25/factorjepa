@@ -1,0 +1,86 @@
+{
+  "scene_id": "35_Bus_loop.3",
+  "level_1": [
+    {
+      "task": "Walk from the bus stop to the nearby bench",
+      "start": "Near bus_stop",
+      "end": "Near bench",
+      "start_object": "bus_stop",
+      "end_object": "bench",
+      "interact": []
+    },
+    {
+      "task": "Navigate from the bench area to the bus stop",
+      "start": "Near bench",
+      "end": "Near bus_stop",
+      "start_object": "bench",
+      "end_object": "bus_stop",
+      "interact": []
+    },
+    {
+      "task": "Go from the bus stop to another bus stop",
+      "start": "Near bus_stop",
+      "end": "Near bus_stop",
+      "start_object": "bus_stop",
+      "end_object": "bus_stop",
+      "interact": []
+    }
+  ],
+  "level_2": [
+    {
+      "task": "Wait at the bus stop and then sit on the nearby bench",
+      "start": "Near bus_stop",
+      "end": "Near bench",
+      "start_object": "bus_stop",
+      "end_object": "bench",
+      "interact": [
+        "bus_stop"
+      ]
+    },
+    {
+      "task": "Inspect the bus stop schedule and then head to the bench",
+      "start": "Near bus_stop",
+      "end": "Near bench",
+      "start_object": "bus_stop",
+      "end_object": "bench",
+      "interact": [
+        "bus_stop"
+      ]
+    },
+    {
+      "task": "Stand near the bench and observe the bus stop area",
+      "start": "Near bench",
+      "end": "Near bus_stop",
+      "start_object": "bench",
+      "end_object": "bus_stop",
+      "interact": [
+        "bench"
+      ]
+    }
+  ],
+  "level_3": [
+    {
+      "task": "Check the bus schedule at the bus stop, walk to the nearby bench, and then return to the bus stop",
+      "start": "Near bus_stop",
+      "end": "Near bus_stop",
+      "start_object": "bus_stop",
+      "end_object": "bus_stop",
+      "interact": [
+        "bus_stop",
+        "bench"
+      ]
+    },
+    {
+      "task": "Start at the bench, go to the bus stop to ask for directions, and then return to the bench",
+      "start": "Near bench",
+      "end": "Near bench",
+      "start_object": "bench",
+      "end_object": "bench",
+      "interact": [
+        "bus_stop",
+        "bench"
+      ]
+    }
+  ],
+  "timestamp": "2026-01-20T11:28:51.889533"
+}
