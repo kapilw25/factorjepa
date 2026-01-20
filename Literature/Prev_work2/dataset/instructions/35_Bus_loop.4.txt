@@ -1,0 +1,11 @@
+LEVEL_1 | TASK: Walk to the bus stop | START: Near bus stop | END: Near bus | INTERACT: none
+LEVEL_1 | TASK: Move to the parking lot | START: Near parking lot | END: Near parking meter | INTERACT: none
+LEVEL_1 | TASK: Walk to the restaurant | START: Near restaurant | END: Near store | INTERACT: none
+
+LEVEL_2 | TASK: Walk to the bus and get near the bus stop | START: Near bus stop | END: Near bus | INTERACT: bus stop, bus
+LEVEL_2 | TASK: Move to the parking meter and get near the parking lot | START: Near parking lot | END: Near parking meter | INTERACT: parking lot, parking meter
+LEVEL_2 | TASK: Walk to the store and get near the restaurant | START: Near restaurant | END: Near store | INTERACT: restaurant, store
+
+LEVEL_3 | TASK: Walk to the bus and get near the bus stop and interact with the parking meter | START: Near bus stop | END: Near bus | INTERACT: bus stop, bus, parking meter
+LEVEL_3 | TASK: Move to the parking meter and get near the parking lot and interact with the chair | START: Near parking lot | END: Near parking meter | INTERACT: parking lot, parking meter, chair
+LEVEL_3 | TASK: Walk to the store and get near the restaurant and interact with the umbrella | START: Near restaurant | END: Near store | INTERACT: restaurant, store, umbrella

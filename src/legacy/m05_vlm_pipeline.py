@@ -2,8 +2,8 @@
 VLM End-to-End Pipeline (Top-Down Only - first-person removed, unsuitable for VLM navigation)
 
 Usage:
-    python src/m05_vlm_pipeline.py --scene FloorPlan301 --task "bed to lamp"
-    python src/m05_vlm_pipeline.py --scene FloorPlan301 --task "bed to lamp" --llm
+    python src/m05_vlm_pipeline.py --scene FloorPlan301 --task "bed to desk"
+    python src/m05_vlm_pipeline.py --scene FloorPlan301 --task "bed to desk" --llm
     python src/m05_vlm_pipeline.py --demo
 """
 

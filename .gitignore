@@ -1,6 +1,6 @@
 # Secrets & Scripts
 .env
-git_push.sh
+git_push*
 
 # Directories
 trash

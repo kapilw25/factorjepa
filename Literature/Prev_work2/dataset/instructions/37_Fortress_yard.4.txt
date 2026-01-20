@@ -1,0 +1,11 @@
+LEVEL_1 | TASK: Approach the village | START: Near castle | END: Near village | INTERACT: none
+LEVEL_1 | TASK: Navigate to the well | START: Near village | END: Near well | INTERACT: none
+LEVEL_1 | TASK: Reach the barrel | START: Near well | END: Near barrel | INTERACT: none
+
+LEVEL_2 | TASK: Move from the castle to the village | START: Near castle | END: Near village | INTERACT: castle, village
+LEVEL_2 | TASK: Approach the well from the village | START: Near village | END: Near well | INTERACT: village, well
+LEVEL_2 | TASK: Get to the barrel from the well | START: Near well | END: Near barrel | INTERACT: well, barrel
+
+LEVEL_3 | TASK: Move from the castle to the well | START: Near castle | END: Near well | INTERACT: castle, village, well
+LEVEL_3 | TASK: Approach the barrel from the village and the well | START: Near well | END: Near barrel | INTERACT: village, well, barrel
+LEVEL_3 | TASK: Navigate from the castle to the barrel | START: Near castle | END: Near barrel | INTERACT: castle, village, barrel

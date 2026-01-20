@@ -1,0 +1,11 @@
+LEVEL_1 | TASK: Move towards the oven. | START: Near stove | END: Near oven | INTERACT: none
+LEVEL_1 | TASK: Go near the refrigerator. | START: Near oven | END: Near refrigerator | INTERACT: none
+LEVEL_1 | TASK: Walk towards the microwave. | START: Near refrigerator | END: Near microwave | INTERACT: none
+
+LEVEL_2 | TASK: Move the bread near the oven. | START: Near microwave | END: Near oven | INTERACT: bread, oven
+LEVEL_2 | TASK: Place the bowls on the stove. | START: Near oven | END: Near stove | INTERACT: bowls, stove
+LEVEL_2 | TASK: Put the knives in the refrigerator. | START: Near stove | END: Near refrigerator | INTERACT: knives, refrigerator
+
+LEVEL_3 | TASK: Move the bread near the oven and then the bowls near the stove. | START: Near refrigerator | END: Near stove | INTERACT: bread, oven, bowls, stove
+LEVEL_3 | TASK: Put the knives in the refrigerator and then the spoons in the oven. | START: Near stove | END: Near oven | INTERACT: knives, refrigerator, spoons, oven
+LEVEL_3 | TASK: Place the bottles near the microwave and then the pans on the stove. | START: Near oven | END: Near stove | INTERACT: bottles, microwave, pans, stove

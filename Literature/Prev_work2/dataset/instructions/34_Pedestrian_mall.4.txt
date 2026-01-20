@@ -1,0 +1,11 @@
+LEVEL_1 | TASK: Move to the bench | START: Near table | END: Near chair | INTERACT: none
+LEVEL_1 | TASK: Walk to the person | START: Near building | END: Near tree | INTERACT: none
+LEVEL_1 | TASK: Go to the umbrella | START: Near potted plant | END: Near bench | INTERACT: none
+
+LEVEL_2 | TASK: Approach the person and the table | START: Near chair | END: Near umbrella | INTERACT: person, table
+LEVEL_2 | TASK: Move near the building and the potted plant | START: Near tree | END: Near table | INTERACT: building, potted plant
+LEVEL_2 | TASK: Walk near the bench and the chair | START: Near building | END: Near person | INTERACT: bench, chair
+
+LEVEL_3 | TASK: Approach the person, the table, and the umbrella | START: Near chair | END: Near tree | INTERACT: person, table, umbrella
+LEVEL_3 | TASK: Move near the building, the potted plant, and the bench | START: Near table | END: Near person | INTERACT: building, potted plant, bench
+LEVEL_3 | TASK: Walk near the chair, the umbrella, and the building | START: Near tree | END: Near bench | INTERACT: chair, umbrella, building

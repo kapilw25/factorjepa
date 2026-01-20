@@ -1,0 +1,11 @@
+LEVEL_1 | TASK: Move towards the bus stop | START: Near unknown | END: Near unknown | INTERACT: none
+LEVEL_1 | TASK: Approach the train station | START: Near unknown | END: Near unknown | INTERACT: none
+LEVEL_1 | TASK: Walk towards the bus | START: Near unknown | END: Near unknown | INTERACT: none
+
+LEVEL_2 | TASK: Move to the bus stop and the train station | START: Near unknown | END: Near unknown | INTERACT: unknown, unknown
+LEVEL_2 | TASK: Approach the bus and the train | START: Near unknown | END: Near unknown | INTERACT: unknown, unknown
+LEVEL_2 | TASK: Move to the bus stop and the train | START: Near unknown | END: Near unknown | INTERACT: unknown, unknown
+
+LEVEL_3 | TASK: Move to the bus stop and the train station and the bus | START: Near unknown | END: Near unknown | INTERACT: unknown, unknown, unknown
+LEVEL_3 | TASK: Approach the bus and the train and the bus stop | START: Near unknown | END: Near unknown | INTERACT: unknown, unknown, unknown
+LEVEL_3 | TASK: Move to the train and the bus stop and the train station | START: Near unknown | END: Near unknown | INTERACT: unknown, unknown, unknown
