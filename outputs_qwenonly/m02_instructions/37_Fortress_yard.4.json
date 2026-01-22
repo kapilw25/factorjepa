@@ -1,0 +1,85 @@
+{
+  "scene_id": "37_Fortress_yard.4",
+  "level_1": [
+    {
+      "task": "Walk to the tower",
+      "start": "Near the barrels",
+      "end": "Near the tower",
+      "interact": []
+    },
+    {
+      "task": "Walk to the tents",
+      "start": "Near the tower",
+      "end": "Near the tents",
+      "interact": []
+    },
+    {
+      "task": "Walk to the clothesline",
+      "start": "Near the tents",
+      "end": "Near the clothesline",
+      "interact": []
+    }
+  ],
+  "level_2": [
+    {
+      "task": "Move from the tower to the tents",
+      "start": "Near the tower",
+      "end": "Near the tents",
+      "interact": [
+        "tower",
+        "tents"
+      ]
+    },
+    {
+      "task": "Move from the barrels to the clothesline",
+      "start": "Near the barrels",
+      "end": "Near the clothesline",
+      "interact": [
+        "barrels",
+        "clothesline"
+      ]
+    },
+    {
+      "task": "Move from the flag to the barrels",
+      "start": "Near the flag",
+      "end": "Near the barrels",
+      "interact": [
+        "flag",
+        "barrels"
+      ]
+    }
+  ],
+  "level_3": [
+    {
+      "task": "Go from the flag to the clothesline, then to the barrels",
+      "start": "Near the flag",
+      "end": "Near the barrels",
+      "interact": [
+        "flag",
+        "clothesline",
+        "barrels"
+      ]
+    },
+    {
+      "task": "Go from the tower to the tents, then to the clothesline",
+      "start": "Near the tower",
+      "end": "Near the clothesline",
+      "interact": [
+        "tower",
+        "tents",
+        "clothesline"
+      ]
+    },
+    {
+      "task": "Go from the barrels to the tents, then to the tower",
+      "start": "Near the barrels",
+      "end": "Near the tower",
+      "interact": [
+        "barrels",
+        "tents",
+        "tower']"
+      ]
+    }
+  ],
+  "timestamp": "2026-01-20T04:29:01.570414"
+}

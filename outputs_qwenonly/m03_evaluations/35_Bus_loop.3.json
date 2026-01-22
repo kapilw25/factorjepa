@@ -1,0 +1,190 @@
+{
+  "scene_id": "35_Bus_loop.3",
+  "level_1": [
+    {
+      "object_accuracy": 4.0,
+      "spatial_coherence": 4.0,
+      "task_clarity": 3.0,
+      "difficulty_alignment": 4.0,
+      "executability": 4.0,
+      "reasoning": "The objects (bus shelter, station building) are clearly visible and correctly named but lack specific locational detail. The navigation path is logical but could be more precise. The task is generally clear but requires minor human interpretation. The complexity is slightly oversimplified, as Level 1 suggests single object interactions. Execution is likely with minor assumptions about positioning.",
+      "instruction": {
+        "task": "Move from the bus shelter to the station building",
+        "start": "Near bus shelter",
+        "end": "Near station building",
+        "interact": [],
+        "level": 1
+      }
+    },
+    {
+      "object_accuracy": 2.0,
+      "spatial_coherence": 3.0,
+      "task_clarity": 3.0,
+      "difficulty_alignment": 4.0,
+      "executability": 3.0,
+      "reasoning": "The instruction lacks clarity on which bus is number 19, as no numbers are visible. Spatially, a path is possible but not efficient or clearly defined. The task is somewhat clear but requires human interpretation. The complexity is mostly aligned with Level 1 as a simple navigation task, but executability is hindered by unclear start and end positions.",
+      "instruction": {
+        "task": "Move from one bus to the other bus",
+        "start": "Near bus with route number 19",
+        "end": "Near other bus",
+        "interact": [],
+        "level": 1
+      }
+    },
+    {
+      "object_accuracy": 4.0,
+      "spatial_coherence": 4.0,
+      "task_clarity": 4.0,
+      "difficulty_alignment": 5,
+      "executability": 4.0,
+      "reasoning": "All objects (bench and bus shelter) are visible and correctly named. The path from bench to bus shelter is logical, though minor ambiguity in exact start and end points exists. Instructions are clear but require slight parsing. The complexity matches Level 1, involving simple navigation between two objects. Executable with minor assumptions about precise positions.",
+      "instruction": {
+        "task": "Move from the bench to the bus shelter",
+        "start": "Near bench",
+        "end": "Near bus shelter",
+        "interact": [],
+        "level": 1
+      }
+    }
+  ],
+  "level_2": [
+    {
+      "object_accuracy": 4.0,
+      "spatial_coherence": 4.0,
+      "task_clarity": 3.0,
+      "difficulty_alignment": 4.0,
+      "executability": 4.0,
+      "reasoning": "The bus shelter and bench are identifiable, though the bench could be clearer. The path from the bus shelter to the bench is logical, though not explicitly defined. The task is moderately clear but assumes human-level reasoning without explicit spatial instructions. The complexity matches Level 2, involving two objects and intermediate reasoning. The instruction is executable with minor assumptions about locations.",
+      "instruction": {
+        "task": "Walk from the bus shelter to the bench",
+        "start": "Near bus shelter",
+        "end": "Near bench",
+        "interact": [
+          "bus shelter",
+          "bench"
+        ],
+        "level": 2
+      }
+    },
+    {
+      "object_accuracy": 3.0,
+      "spatial_coherence": 3.0,
+      "task_clarity": 3.0,
+      "difficulty_alignment": 4.0,
+      "executability": 3.0,
+      "reasoning": "The station building and buses are identifiable, but the specific bus with route number 19 isn't explicitly marked in the images, leading to some ambiguity. Spatially, the path from the station building to a bus is possible but lacks clear waypoints or precise directions, reducing efficiency. Task clarity is moderate; the robot must interpret some parts to identify the correct bus. Complexity is mostly aligned with Level 2. However, execution depends on assumptions like correctly identifying the bus's route number from unmarked visuals.",
+      "instruction": {
+        "task": "Move from the station building to the bus with route number 19",
+        "start": "Near station building",
+        "end": "Near bus with route number 19",
+        "interact": [
+          "station building",
+          "bus with route number 19"
+        ],
+        "level": 2
+      }
+    },
+    {
+      "object_accuracy": 5,
+      "spatial_coherence": 4.0,
+      "task_clarity": 4.0,
+      "difficulty_alignment": 5,
+      "executability": 4.0,
+      "reasoning": "All objects (other bus, bench) are identifiable and correctly named in both views. The path is logical, but the instruction lacks specific waypoints for perfect coherence. The instruction is clear but slightly generic, requiring interpretation to define precise movements. Complexity aligns well with Level 2, involving navigation between two clearly stated objects. Executable with standard sensors, though minor assumptions about path specifics are needed.",
+      "instruction": {
+        "task": "Move from the other bus to the bench",
+        "start": "Near other bus",
+        "end": "Near bench",
+        "interact": [
+          "other bus",
+          "bench"
+        ],
+        "level": 2
+      }
+    }
+  ],
+  "level_3": [
+    {
+      "object_accuracy": 4.0,
+      "spatial_coherence": 3.0,
+      "task_clarity": 3.0,
+      "difficulty_alignment": 4.0,
+      "executability": 3.0,
+      "reasoning": "All objects (bus shelter, bench, bus with route number 19) are identifiable but might not be distinct enough to avoid errors (object names could be clearer). The navigation path from the bus shelter to the bench, then to the bus, is plausible but could be clearer; it assumes spatial reasoning. Instruction clarity is moderate; it lacks specificity for machine parsing without ambiguity. Difficulty matches a Level 3 task but with slight under-complexity. Executability is decent but requires additional context or sensors to ensure no errors in object distinction.",
+      "instruction": {
+        "task": "Go from the bus shelter to the bench, then to the bus with route number 19",
+        "start": "Near bus shelter",
+        "end": "Near bus with route number 19",
+        "interact": [
+          "bus shelter",
+          "bench",
+          "bus with route number 19"
+        ],
+        "level": 3
+      }
+    },
+    {
+      "object_accuracy": 4.0,
+      "spatial_coherence": 4.0,
+      "task_clarity": 3.0,
+      "difficulty_alignment": 4.0,
+      "executability": 4.0,
+      "reasoning": "All objects (other bus, bench, station building) are visible and correctly named, though 'other bus' could be slightly ambiguous without context. The path from the bus to the bench and then to the station building is logical, with potential minor ambiguities in exact waypoint details. Instructions are generally clear but require some interpretation by a robot due to vague spatial language ('near'), which affects clarity slightly. Task complexity is appropriate for Level 3, involving multi-step reasoning. The task is executable with standard sensors but requires assumptions about 'near' proximity.",
+      "instruction": {
+        "task": "Go from the other bus to the bench, then to the station building",
+        "start": "Near other bus",
+        "end": "Near station building",
+        "interact": [
+          "other bus",
+          "bench",
+          "station building"
+        ],
+        "level": 3
+      }
+    },
+    {
+      "object_accuracy": 4.0,
+      "spatial_coherence": 4.0,
+      "task_clarity": 3.0,
+      "difficulty_alignment": 5,
+      "executability": 4.0,
+      "reasoning": "All objects (station building, bus shelter, other bus) are visible but station building identification could be clearer. The navigation path is logical but lacks precise waypoint instructions. Instructions are clear but somewhat depend on human reasoning. The task matches Level 3 complexity with multiple steps. The task is executable with minor assumptions about start and end positions.",
+      "instruction": {
+        "task": "Go from the station building to the bus shelter, then to the other bus",
+        "start": "Near station building",
+        "end": "Near other bus",
+        "interact": [
+          "station building",
+          "bus shelter",
+          "other bus"
+        ],
+        "level": 3
+      }
+    }
+  ],
+  "level_1_avg": {
+    "object_accuracy": 3.3333333333333335,
+    "spatial_coherence": 3.6666666666666665,
+    "task_clarity": 3.3333333333333335,
+    "difficulty_alignment": 4.333333333333333,
+    "executability": 3.6666666666666665
+  },
+  "level_1_count": 3,
+  "level_2_avg": {
+    "object_accuracy": 4.0,
+    "spatial_coherence": 3.6666666666666665,
+    "task_clarity": 3.3333333333333335,
+    "difficulty_alignment": 4.333333333333333,
+    "executability": 3.6666666666666665
+  },
+  "level_2_count": 3,
+  "level_3_avg": {
+    "object_accuracy": 4.0,
+    "spatial_coherence": 3.6666666666666665,
+    "task_clarity": 3.0,
+    "difficulty_alignment": 4.333333333333333,
+    "executability": 3.6666666666666665
+  },
+  "level_3_count": 3,
+  "timestamp": "2026-01-20T04:30:14.918783"
+}

@@ -1,0 +1,11 @@
+LEVEL_1 | TASK: Walk to the tower | START: Near the barrels | END: Near the tower | INTERACT: none
+LEVEL_1 | TASK: Walk to the tents | START: Near the tower | END: Near the tents | INTERACT: none
+LEVEL_1 | TASK: Walk to the clothesline | START: Near the tents | END: Near the clothesline | INTERACT: none
+
+LEVEL_2 | TASK: Move from the tower to the tents | START: Near the tower | END: Near the tents | INTERACT: tower, tents
+LEVEL_2 | TASK: Move from the barrels to the clothesline | START: Near the barrels | END: Near the clothesline | INTERACT: barrels, clothesline
+LEVEL_2 | TASK: Move from the flag to the barrels | START: Near the flag | END: Near the barrels | INTERACT: flag, barrels
+
+LEVEL_3 | TASK: Go from the flag to the clothesline, then to the barrels | START: Near the flag | END: Near the barrels | INTERACT: flag, clothesline, barrels
+LEVEL_3 | TASK: Go from the tower to the tents, then to the clothesline | START: Near the tower | END: Near the clothesline | INTERACT: tower, tents, clothesline
+LEVEL_3 | TASK: Go from the barrels to the tents, then to the tower | START: Near the barrels | END: Near the tower | INTERACT: barrels, tents, tower']

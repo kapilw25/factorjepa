@@ -1,0 +1,11 @@
+LEVEL_1 | TASK: Walk from the ticket booth to the kiosk | START: Near ticket booth | END: Near kiosk | INTERACT: none
+LEVEL_1 | TASK: Walk from the kiosk to the bench under the tree | START: Near kiosk | END: Near bench | INTERACT: none
+LEVEL_1 | TASK: Walk from the bench to the building entrance | START: Near bench | END: Near building entrance | INTERACT: none
+
+LEVEL_2 | TASK: Go to the bench and sit down | START: Near bench | END: Near bench | INTERACT: bench
+LEVEL_2 | TASK: Walk to the ticket booth and look inside | START: Near kiosk | END: Near ticket booth | INTERACT: ticket booth
+LEVEL_2 | TASK: Walk to the potted tree and touch it | START: Near bench | END: Near potted tree | INTERACT: potted tree
+
+LEVEL_3 | TASK: Go to the kiosk, take something from it, then go to the bench and sit down | START: Near ticket booth | END: Near bench | INTERACT: kiosk, bench
+LEVEL_3 | TASK: Walk to the building entrance, open the door, and enter | START: Near building entrance | END: Near building entrance | INTERACT: building entrance
+LEVEL_3 | TASK: Go to the ticket booth, look inside, then go to the potted tree and touch it | START: Near kiosk | END: Near potted tree | INTERACT: ticket booth, potted tree']

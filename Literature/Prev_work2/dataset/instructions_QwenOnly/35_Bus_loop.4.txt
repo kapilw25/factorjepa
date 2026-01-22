@@ -1,0 +1,11 @@
+LEVEL_1 | TASK: Walk from the fuel pump to the bus | START: Near fuel pump | END: Near bus | INTERACT: none
+LEVEL_1 | TASK: Walk from the bus to the main station building | START: Near bus | END: Near main station building | INTERACT: none
+LEVEL_1 | TASK: Walk from the small shelter to the bus stop sign | START: Near small shelter | END: Near bus stop sign | INTERACT: none
+
+LEVEL_2 | TASK: Move from the fuel pump to the bus stop sign | START: Near fuel pump | END: Near bus stop sign | INTERACT: fuel pump, bus stop sign
+LEVEL_2 | TASK: Move from the small shelter to the main station building | START: Near small shelter | END: Near main station building | INTERACT: small shelter, main station building
+LEVEL_2 | TASK: Move from the bus to the fuel pump | START: Near bus | END: Near fuel pump | INTERACT: bus, fuel pump
+
+LEVEL_3 | TASK: Go from the small shelter to the bus, then to the fuel pump | START: Near small shelter | END: Near fuel pump | INTERACT: small shelter, bus, fuel pump
+LEVEL_3 | TASK: Go from the bus stop sign to the main station building, then to the small shelter | START: Near bus stop sign | END: Near small shelter | INTERACT: bus stop sign, main station building, small shelter
+LEVEL_3 | TASK: Go from the fuel pump to the bus, then to the main station building | START: Near fuel pump | END: Near main station building | INTERACT: fuel pump, bus, main station building

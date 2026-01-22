@@ -1,0 +1,11 @@
+LEVEL_1 | TASK: Move from the bus shelter to the station building | START: Near bus shelter | END: Near station building | INTERACT: none
+LEVEL_1 | TASK: Move from one bus to the other bus | START: Near bus with route number 19 | END: Near other bus | INTERACT: none
+LEVEL_1 | TASK: Move from the bench to the bus shelter | START: Near bench | END: Near bus shelter | INTERACT: none
+
+LEVEL_2 | TASK: Walk from the bus shelter to the bench | START: Near bus shelter | END: Near bench | INTERACT: bus shelter, bench
+LEVEL_2 | TASK: Move from the station building to the bus with route number 19 | START: Near station building | END: Near bus with route number 19 | INTERACT: station building, bus with route number 19
+LEVEL_2 | TASK: Move from the other bus to the bench | START: Near other bus | END: Near bench | INTERACT: other bus, bench
+
+LEVEL_3 | TASK: Go from the bus shelter to the bench, then to the bus with route number 19 | START: Near bus shelter | END: Near bus with route number 19 | INTERACT: bus shelter, bench, bus with route number 19
+LEVEL_3 | TASK: Go from the other bus to the bench, then to the station building | START: Near other bus | END: Near station building | INTERACT: other bus, bench, station building
+LEVEL_3 | TASK: Go from the station building to the bus shelter, then to the other bus | START: Near station building | END: Near other bus | INTERACT: station building, bus shelter, other bus

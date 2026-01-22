@@ -1,0 +1,190 @@
+{
+  "scene_id": "35_Bus_loop.4",
+  "level_1": [
+    {
+      "object_accuracy": 4.0,
+      "spatial_coherence": 4.0,
+      "task_clarity": 4.0,
+      "difficulty_alignment": 5,
+      "executability": 4.0,
+      "reasoning": "All objects are visible and correctly named, although the fuel pump is not explicitly mentioned, it's implied by the starting location. The path is logical and feasible, with slight room for ambiguity in defining the exact spots 'near' the objects. Task clarity is mostly clear but interprets 'walk' which may require simple direction parsing. The level 1 complexity is well aligned with a simple navigation task involving two points. Execution assumes basic navigational capabilities to identify and move towards visible landmarks.",
+      "instruction": {
+        "task": "Walk from the fuel pump to the bus",
+        "start": "Near fuel pump",
+        "end": "Near bus",
+        "interact": [],
+        "level": 1
+      }
+    },
+    {
+      "object_accuracy": 4.0,
+      "spatial_coherence": 3.0,
+      "task_clarity": 3.0,
+      "difficulty_alignment": 4.0,
+      "executability": 3.0,
+      "reasoning": "All objects are visible and named correctly with minor variations. The path is logical but lacks clear waypoints, making it potentially inefficient. The task is generally clear, though it requires some human-level reasoning to interpret 'near'. Complexity matches Level 1 with a single straightforward task. While executable, the instruction needs more context regarding precise locations.",
+      "instruction": {
+        "task": "Walk from the bus to the main station building",
+        "start": "Near bus",
+        "end": "Near main station building",
+        "interact": [],
+        "level": 1
+      }
+    },
+    {
+      "object_accuracy": 2.0,
+      "spatial_coherence": 3.0,
+      "task_clarity": 3.0,
+      "difficulty_alignment": 4.0,
+      "executability": 3.0,
+      "reasoning": "The small shelter is identifiable, but the 'bus stop sign' is vague or unclear. The path is logical but not optimally clear. The task is understandable but requires reasoning to determine the 'bus stop sign'. Difficulty aligns with Level 1 but execution requires assumptions about the endpoint.",
+      "instruction": {
+        "task": "Walk from the small shelter to the bus stop sign",
+        "start": "Near small shelter",
+        "end": "Near bus stop sign",
+        "interact": [],
+        "level": 1
+      }
+    }
+  ],
+  "level_2": [
+    {
+      "object_accuracy": 2.0,
+      "spatial_coherence": 2.0,
+      "task_clarity": 3.0,
+      "difficulty_alignment": 4.0,
+      "executability": 2.0,
+      "reasoning": "The 'fuel pump' and 'bus stop sign' are not clearly identified or distinct in any of the views, leading to confusion. The path is not well-defined, potentially leading to inefficient navigation. The task is moderately clear but relies on assumptions about object locations. Complexity is suitable for Level 2, involving two objects. However, the vague start/end points and object references make execution challenging for a robot.",
+      "instruction": {
+        "task": "Move from the fuel pump to the bus stop sign",
+        "start": "Near fuel pump",
+        "end": "Near bus stop sign",
+        "interact": [
+          "fuel pump",
+          "bus stop sign"
+        ],
+        "level": 2
+      }
+    },
+    {
+      "object_accuracy": 4.0,
+      "spatial_coherence": 4.0,
+      "task_clarity": 3.0,
+      "difficulty_alignment": 4.0,
+      "executability": 4.0,
+      "reasoning": "Objects such as the small shelter and main station building are visible and named correctly, though slight naming variation exists (e.g., specifying 'small shelter'). The path from the shelter to the main building is logical and direct. Instructions are understandable but not robot-parseable without some human-level reasoning. The level of complexity is appropriate for Level 2, involving start and end locations and interaction. Execution is feasible with standard sensors, assuming accurate object detection.",
+      "instruction": {
+        "task": "Move from the small shelter to the main station building",
+        "start": "Near small shelter",
+        "end": "Near main station building",
+        "interact": [
+          "small shelter",
+          "main station building"
+        ],
+        "level": 2
+      }
+    },
+    {
+      "object_accuracy": 3.0,
+      "spatial_coherence": 3.0,
+      "task_clarity": 3.0,
+      "difficulty_alignment": 4.0,
+      "executability": 3.0,
+      "reasoning": "The bus is clearly visible, but the 'fuel pump' is not easily identifiable. The path is logical but lacks specific spatial references. The instruction is somewhat clear but needs human reasoning to interpret. The task matches Level 2 complexity but could be clearer. Execution is possible but requires additional context regarding object locations.",
+      "instruction": {
+        "task": "Move from the bus to the fuel pump",
+        "start": "Near bus",
+        "end": "Near fuel pump",
+        "interact": [
+          "bus",
+          "fuel pump"
+        ],
+        "level": 2
+      }
+    }
+  ],
+  "level_3": [
+    {
+      "object_accuracy": 4.0,
+      "spatial_coherence": 4.0,
+      "task_clarity": 3.0,
+      "difficulty_alignment": 5,
+      "executability": 4.0,
+      "reasoning": "All objects are visible and reasonably named, though 'small shelter' could be less obvious. The path is logical from shelter to bus to fuel pump, with minor spatial ambiguity. Instructions are generally clear but require some human-level reasoning. The task complexity is appropriate for Level 3. Executable with minor assumptions about exact positions.",
+      "instruction": {
+        "task": "Go from the small shelter to the bus, then to the fuel pump",
+        "start": "Near small shelter",
+        "end": "Near fuel pump",
+        "interact": [
+          "small shelter",
+          "bus",
+          "fuel pump"
+        ],
+        "level": 3
+      }
+    },
+    {
+      "object_accuracy": 4.0,
+      "spatial_coherence": 4.0,
+      "task_clarity": 4.0,
+      "difficulty_alignment": 5,
+      "executability": 4.0,
+      "reasoning": "All objects are identifiable with slight naming ambiguity (e.g., 'small shelter'). The path is logical but could have more precise waypoints. Instructions are clear but require slight interpretation. The complexity matches Level 3, involving multiple interactions. Execution is feasible with minor assumptions.",
+      "instruction": {
+        "task": "Go from the bus stop sign to the main station building, then to the small shelter",
+        "start": "Near bus stop sign",
+        "end": "Near small shelter",
+        "interact": [
+          "bus stop sign",
+          "main station building",
+          "small shelter"
+        ],
+        "level": 3
+      }
+    },
+    {
+      "object_accuracy": 4.0,
+      "spatial_coherence": 4.0,
+      "task_clarity": 3.0,
+      "difficulty_alignment": 5,
+      "executability": 4.0,
+      "reasoning": "All objects are visible and correctly named with minor room for interpretation at the bus stop. The path is logical, moving from the fuel pump to the bus, and then to the main station building. The task requires multi-step reasoning fitting Level 3 complexity, but task clarity could be improved with more specific verbs for interaction. Execution is mostly clear, though it relies on a common understanding of 'interaction' steps.",
+      "instruction": {
+        "task": "Go from the fuel pump to the bus, then to the main station building",
+        "start": "Near fuel pump",
+        "end": "Near main station building",
+        "interact": [
+          "fuel pump",
+          "bus",
+          "main station building"
+        ],
+        "level": 3
+      }
+    }
+  ],
+  "level_1_avg": {
+    "object_accuracy": 3.3333333333333335,
+    "spatial_coherence": 3.3333333333333335,
+    "task_clarity": 3.3333333333333335,
+    "difficulty_alignment": 4.333333333333333,
+    "executability": 3.3333333333333335
+  },
+  "level_1_count": 3,
+  "level_2_avg": {
+    "object_accuracy": 3.0,
+    "spatial_coherence": 3.0,
+    "task_clarity": 3.0,
+    "difficulty_alignment": 4.0,
+    "executability": 3.0
+  },
+  "level_2_count": 3,
+  "level_3_avg": {
+    "object_accuracy": 4.0,
+    "spatial_coherence": 4.0,
+    "task_clarity": 3.3333333333333335,
+    "difficulty_alignment": 5.0,
+    "executability": 4.0
+  },
+  "level_3_count": 3,
+  "timestamp": "2026-01-20T04:32:06.036065"
+}

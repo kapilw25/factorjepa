@@ -1,0 +1,78 @@
+{
+  "scene_id": "34_Pedestrian_mall.4",
+  "level_1": [
+    {
+      "task": "Walk from the ticket booth to the kiosk",
+      "start": "Near ticket booth",
+      "end": "Near kiosk",
+      "interact": []
+    },
+    {
+      "task": "Walk from the kiosk to the bench under the tree",
+      "start": "Near kiosk",
+      "end": "Near bench",
+      "interact": []
+    },
+    {
+      "task": "Walk from the bench to the building entrance",
+      "start": "Near bench",
+      "end": "Near building entrance",
+      "interact": []
+    }
+  ],
+  "level_2": [
+    {
+      "task": "Go to the bench and sit down",
+      "start": "Near bench",
+      "end": "Near bench",
+      "interact": [
+        "bench"
+      ]
+    },
+    {
+      "task": "Walk to the ticket booth and look inside",
+      "start": "Near kiosk",
+      "end": "Near ticket booth",
+      "interact": [
+        "ticket booth"
+      ]
+    },
+    {
+      "task": "Walk to the potted tree and touch it",
+      "start": "Near bench",
+      "end": "Near potted tree",
+      "interact": [
+        "potted tree"
+      ]
+    }
+  ],
+  "level_3": [
+    {
+      "task": "Go to the kiosk, take something from it, then go to the bench and sit down",
+      "start": "Near ticket booth",
+      "end": "Near bench",
+      "interact": [
+        "kiosk",
+        "bench"
+      ]
+    },
+    {
+      "task": "Walk to the building entrance, open the door, and enter",
+      "start": "Near building entrance",
+      "end": "Near building entrance",
+      "interact": [
+        "building entrance"
+      ]
+    },
+    {
+      "task": "Go to the ticket booth, look inside, then go to the potted tree and touch it",
+      "start": "Near kiosk",
+      "end": "Near potted tree",
+      "interact": [
+        "ticket booth",
+        "potted tree']"
+      ]
+    }
+  ],
+  "timestamp": "2026-01-20T04:29:01.573491"
+}

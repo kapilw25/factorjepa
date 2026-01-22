@@ -1,0 +1,183 @@
+{
+  "scene_id": "34_Pedestrian_mall.4",
+  "level_1": [
+    {
+      "object_accuracy": 4.0,
+      "spatial_coherence": 3.0,
+      "task_clarity": 3.0,
+      "difficulty_alignment": 4.0,
+      "executability": 3.0,
+      "reasoning": "The ticket booth and kiosk are identifiable, but slight ambiguity exists. The path is logical but lacks detail on direction. Instructions are clear but require some interpretation. Complexity aligns with Level 1, as it involves two objects and simple navigation. However, the execution could be challenging without specifics on the starting and ending positions.",
+      "instruction": {
+        "task": "Walk from the ticket booth to the kiosk",
+        "start": "Near ticket booth",
+        "end": "Near kiosk",
+        "interact": [],
+        "level": 1
+      }
+    },
+    {
+      "object_accuracy": 4.0,
+      "spatial_coherence": 4.0,
+      "task_clarity": 4.0,
+      "difficulty_alignment": 5,
+      "executability": 4.0,
+      "reasoning": "The instruction mentions a kiosk and a bench under a tree, both of which are identifiable in the scene. The path between them is logical with minor ambiguity. The task's simplicity aligns well with Level 1 complexity. The robot should be able to execute the task with minor assumptions about the exact positions.",
+      "instruction": {
+        "task": "Walk from the kiosk to the bench under the tree",
+        "start": "Near kiosk",
+        "end": "Near bench",
+        "interact": [],
+        "level": 1
+      }
+    },
+    {
+      "object_accuracy": 4.0,
+      "spatial_coherence": 4.0,
+      "task_clarity": 3.0,
+      "difficulty_alignment": 5,
+      "executability": 4.0,
+      "reasoning": "All objects are visible, but the building entrance is not explicitly marked. The path is logical, but lacks specific waypoints. The instruction is clear but needs human interpretation. The complexity matches Level 1. The task is executable with some assumptions about object positions.",
+      "instruction": {
+        "task": "Walk from the bench to the building entrance",
+        "start": "Near bench",
+        "end": "Near building entrance",
+        "interact": [],
+        "level": 1
+      }
+    }
+  ],
+  "level_2": [
+    {
+      "object_accuracy": 5,
+      "spatial_coherence": 4.0,
+      "task_clarity": 4.0,
+      "difficulty_alignment": 2.0,
+      "executability": 4.0,
+      "reasoning": "All benches are clearly identifiable in both views. The path is logical but lacks precise specificity. The instruction is clear but requires minor interpretation. The task is too simple for Level 2, misaligning with difficulty expectations. It is executable with standard sensors and assumptions.",
+      "instruction": {
+        "task": "Go to the bench and sit down",
+        "start": "Near bench",
+        "end": "Near bench",
+        "interact": [
+          "bench"
+        ],
+        "level": 2
+      }
+    },
+    {
+      "object_accuracy": 4.0,
+      "spatial_coherence": 2.0,
+      "task_clarity": 3.0,
+      "difficulty_alignment": 4.0,
+      "executability": 3.0,
+      "reasoning": "The objects 'ticket booth' and 'kiosk' are visible, but their identification relies on assumed context. The path has spatial issues with no explicit path to the ticket booth. The task is clear but could be misinterpreted without detailed parsing. The complexity is mostly appropriate for Level 2. Execution is ambiguous as the start and end positions need assumptions.",
+      "instruction": {
+        "task": "Walk to the ticket booth and look inside",
+        "start": "Near kiosk",
+        "end": "Near ticket booth",
+        "interact": [
+          "ticket booth"
+        ],
+        "level": 2
+      }
+    },
+    {
+      "object_accuracy": 4.0,
+      "spatial_coherence": 4.0,
+      "task_clarity": 4.0,
+      "difficulty_alignment": 5,
+      "executability": 4.0,
+      "reasoning": "The objects are mostly accurately identified, with a clear start near the bench and end at the potted tree. The path is logical, though lacking precise waypoints. Instructions are clear but not machine-perfect. Task complexity well matches Level 2. Executable with minor assumptions about proximity to objects.",
+      "instruction": {
+        "task": "Walk to the potted tree and touch it",
+        "start": "Near bench",
+        "end": "Near potted tree",
+        "interact": [
+          "potted tree"
+        ],
+        "level": 2
+      }
+    }
+  ],
+  "level_3": [
+    {
+      "object_accuracy": 4.0,
+      "spatial_coherence": 4.0,
+      "task_clarity": 4.0,
+      "difficulty_alignment": 4.0,
+      "executability": 4.0,
+      "reasoning": "Objects like the kiosk and bench are clearly identifiable, but 'near ticket booth' could be slightly clearer. The path is logical but assumes the robot's ability to interact with objects like a human. Instructions are mostly clear with minor interpretation needed. Complexity is appropriate for Level 3 with multi-step reasoning. Executable with minor assumptions about interaction capabilities.",
+      "instruction": {
+        "task": "Go to the kiosk, take something from it, then go to the bench and sit down",
+        "start": "Near ticket booth",
+        "end": "Near bench",
+        "interact": [
+          "kiosk",
+          "bench"
+        ],
+        "level": 3
+      }
+    },
+    {
+      "object_accuracy": 3.0,
+      "spatial_coherence": 3.0,
+      "task_clarity": 3.0,
+      "difficulty_alignment": 4.0,
+      "executability": 3.0,
+      "reasoning": "The building entrance is identifiable, but the exact start and end positions are vague. The path is possible but lacks specific spatial directions. Instructions are somewhat clear but require human reasoning. Complexity matches Level 3 broadly, but more detail is needed for robot execution.",
+      "instruction": {
+        "task": "Walk to the building entrance, open the door, and enter",
+        "start": "Near building entrance",
+        "end": "Near building entrance",
+        "interact": [
+          "building entrance"
+        ],
+        "level": 3
+      }
+    },
+    {
+      "object_accuracy": 4.0,
+      "spatial_coherence": 4.0,
+      "task_clarity": 4.0,
+      "difficulty_alignment": 4.0,
+      "executability": 4.0,
+      "reasoning": "The instruction includes identifiable objects like the ticket booth and potted tree. The spatial path makes sense though not optimal, and the instruction is mostly clear but requires minor interpretation. The task complexity matches Level 3, involving multiple steps and interactions. It's mostly executable with some assumptions about 'looking inside' and 'touching'.",
+      "instruction": {
+        "task": "Go to the ticket booth, look inside, then go to the potted tree and touch it",
+        "start": "Near kiosk",
+        "end": "Near potted tree",
+        "interact": [
+          "ticket booth",
+          "potted tree']"
+        ],
+        "level": 3
+      }
+    }
+  ],
+  "level_1_avg": {
+    "object_accuracy": 4.0,
+    "spatial_coherence": 3.6666666666666665,
+    "task_clarity": 3.3333333333333335,
+    "difficulty_alignment": 4.666666666666667,
+    "executability": 3.6666666666666665
+  },
+  "level_1_count": 3,
+  "level_2_avg": {
+    "object_accuracy": 4.333333333333333,
+    "spatial_coherence": 3.3333333333333335,
+    "task_clarity": 3.6666666666666665,
+    "difficulty_alignment": 3.6666666666666665,
+    "executability": 3.6666666666666665
+  },
+  "level_2_count": 3,
+  "level_3_avg": {
+    "object_accuracy": 3.6666666666666665,
+    "spatial_coherence": 3.6666666666666665,
+    "task_clarity": 3.6666666666666665,
+    "difficulty_alignment": 4.0,
+    "executability": 3.6666666666666665
+  },
+  "level_3_count": 3,
+  "timestamp": "2026-01-20T04:31:09.141952"
+}

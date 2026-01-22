@@ -1,0 +1,85 @@
+{
+  "scene_id": "35_Bus_loop.4",
+  "level_1": [
+    {
+      "task": "Walk from the fuel pump to the bus",
+      "start": "Near fuel pump",
+      "end": "Near bus",
+      "interact": []
+    },
+    {
+      "task": "Walk from the bus to the main station building",
+      "start": "Near bus",
+      "end": "Near main station building",
+      "interact": []
+    },
+    {
+      "task": "Walk from the small shelter to the bus stop sign",
+      "start": "Near small shelter",
+      "end": "Near bus stop sign",
+      "interact": []
+    }
+  ],
+  "level_2": [
+    {
+      "task": "Move from the fuel pump to the bus stop sign",
+      "start": "Near fuel pump",
+      "end": "Near bus stop sign",
+      "interact": [
+        "fuel pump",
+        "bus stop sign"
+      ]
+    },
+    {
+      "task": "Move from the small shelter to the main station building",
+      "start": "Near small shelter",
+      "end": "Near main station building",
+      "interact": [
+        "small shelter",
+        "main station building"
+      ]
+    },
+    {
+      "task": "Move from the bus to the fuel pump",
+      "start": "Near bus",
+      "end": "Near fuel pump",
+      "interact": [
+        "bus",
+        "fuel pump"
+      ]
+    }
+  ],
+  "level_3": [
+    {
+      "task": "Go from the small shelter to the bus, then to the fuel pump",
+      "start": "Near small shelter",
+      "end": "Near fuel pump",
+      "interact": [
+        "small shelter",
+        "bus",
+        "fuel pump"
+      ]
+    },
+    {
+      "task": "Go from the bus stop sign to the main station building, then to the small shelter",
+      "start": "Near bus stop sign",
+      "end": "Near small shelter",
+      "interact": [
+        "bus stop sign",
+        "main station building",
+        "small shelter"
+      ]
+    },
+    {
+      "task": "Go from the fuel pump to the bus, then to the main station building",
+      "start": "Near fuel pump",
+      "end": "Near main station building",
+      "interact": [
+        "fuel pump",
+        "bus",
+        "main station building"
+      ]
+    }
+  ],
+  "timestamp": "2026-01-20T04:29:01.571420"
+}

@@ -1,0 +1,190 @@
+{
+  "scene_id": "37_Fortress_yard.4",
+  "level_1": [
+    {
+      "object_accuracy": 5,
+      "spatial_coherence": 4.0,
+      "task_clarity": 4.0,
+      "difficulty_alignment": 5,
+      "executability": 4.0,
+      "reasoning": "The objects 'barrels' and 'tower' are clearly visible and correctly named in both views. The path is logical but lacks specific waypoints. The instruction is clear but could benefit from more precise language. Difficulty aligns well with Level 1. Executable, though some spatial interpretation is needed.",
+      "instruction": {
+        "task": "Walk to the tower",
+        "start": "Near the barrels",
+        "end": "Near the tower",
+        "interact": [],
+        "level": 1
+      }
+    },
+    {
+      "object_accuracy": 4.0,
+      "spatial_coherence": 4.0,
+      "task_clarity": 4.0,
+      "difficulty_alignment": 5,
+      "executability": 4.0,
+      "reasoning": "All objects are visible and identifiable with minor naming differences (e.g., 'near the tower', 'near the tents'). The path from the tower to the tents is logical and physically possible with no major ambiguities. Instructions are clear with specific actions, though slight interpretation is needed, such as defining 'near'. The task matches Level 1 complexity with simple navigation between two points. The task is executable by a robot with standard sensors, provided it interprets 'near' correctly.",
+      "instruction": {
+        "task": "Walk to the tents",
+        "start": "Near the tower",
+        "end": "Near the tents",
+        "interact": [],
+        "level": 1
+      }
+    },
+    {
+      "object_accuracy": 4.0,
+      "spatial_coherence": 4.0,
+      "task_clarity": 4.0,
+      "difficulty_alignment": 5,
+      "executability": 4.0,
+      "reasoning": "All objects (clothesline, tents) are visible and identifiable. The path from tents to the clothesline is logical and clear. The instruction 'Walk to the clothesline' is simple and unambiguous, suitable for level 1 complexity. Starting and ending positions are defined well enough for execution, though minor assumptions about exact positions may be needed.",
+      "instruction": {
+        "task": "Walk to the clothesline",
+        "start": "Near the tents",
+        "end": "Near the clothesline",
+        "interact": [],
+        "level": 1
+      }
+    }
+  ],
+  "level_2": [
+    {
+      "object_accuracy": 4.0,
+      "spatial_coherence": 4.0,
+      "task_clarity": 4.0,
+      "difficulty_alignment": 5,
+      "executability": 4.0,
+      "reasoning": "All objects are clearly visible and named correctly, except minor naming variations may apply. The path from the tower to the tents is logical with minor spatial ambiguity. The task instructions are clear and mostly unambiguous, needing slight interpretation. The task is well-matched for level 2 complexity as it involves two objects and intermediate reasoning. Executability is high, with minor assumptions needed about start/end positions.",
+      "instruction": {
+        "task": "Move from the tower to the tents",
+        "start": "Near the tower",
+        "end": "Near the tents",
+        "interact": [
+          "tower",
+          "tents"
+        ],
+        "level": 2
+      }
+    },
+    {
+      "object_accuracy": 5,
+      "spatial_coherence": 4.0,
+      "task_clarity": 4.0,
+      "difficulty_alignment": 4.0,
+      "executability": 4.0,
+      "reasoning": "All mentioned objects (barrels, clothesline) are clearly identifiable in both views. The path from the barrels to the clothesline is logical with minor ambiguity due to open space and object proximity. The instruction is clear with slight interpretation needed regarding interaction expectations. The complexity matches Level 2, as it involves two objects with intermediate reasoning. The task is executable with minor assumptions about starting and ending near specific objects.",
+      "instruction": {
+        "task": "Move from the barrels to the clothesline",
+        "start": "Near the barrels",
+        "end": "Near the clothesline",
+        "interact": [
+          "barrels",
+          "clothesline"
+        ],
+        "level": 2
+      }
+    },
+    {
+      "object_accuracy": 5,
+      "spatial_coherence": 4.0,
+      "task_clarity": 4.0,
+      "difficulty_alignment": 5,
+      "executability": 4.0,
+      "reasoning": "All objects (flag, barrels) are clearly visible and correctly named in both views. The path is logical with minor ambiguity in the exact path due to unspecified obstacles. The instruction is mostly clear, though assumes the robot's ability to detect proximity. The task fits Level 2 complexity, involving two objects and simple navigation. The task is executable with minor assumptions about position detection.",
+      "instruction": {
+        "task": "Move from the flag to the barrels",
+        "start": "Near the flag",
+        "end": "Near the barrels",
+        "interact": [
+          "flag",
+          "barrels"
+        ],
+        "level": 2
+      }
+    }
+  ],
+  "level_3": [
+    {
+      "object_accuracy": 4.0,
+      "spatial_coherence": 4.0,
+      "task_clarity": 4.0,
+      "difficulty_alignment": 4.0,
+      "executability": 4.0,
+      "reasoning": "The objects are mostly well-identified: the flag, clothesline, and barrels are clearly visible. The path from the flag to the clothesline and then to the barrels is logical, although minor spatial details could be clearer. Instructions are generally clear, but specific actions at each waypoint could be more detailed. The task complexity fits Level 3, involving multiple objects, though not exceedingly challenging. The robot could execute the task assuming basic spatial awareness and object recognition capabilities.",
+      "instruction": {
+        "task": "Go from the flag to the clothesline, then to the barrels",
+        "start": "Near the flag",
+        "end": "Near the barrels",
+        "interact": [
+          "flag",
+          "clothesline",
+          "barrels"
+        ],
+        "level": 3
+      }
+    },
+    {
+      "object_accuracy": 5,
+      "spatial_coherence": 4.0,
+      "task_clarity": 3.0,
+      "difficulty_alignment": 5,
+      "executability": 4.0,
+      "reasoning": "All objects (tower, tents, clothesline) are clearly identifiable in both views. The path is logical but lacks specific spatial instructions, leading to minor ambiguity. Instructions require some human reasoning to interpret the sequence of interactions. The task complexity matches Level 3 with multiple steps involved. Instructions are executable but may need minor assumptions regarding path optimizations.",
+      "instruction": {
+        "task": "Go from the tower to the tents, then to the clothesline",
+        "start": "Near the tower",
+        "end": "Near the clothesline",
+        "interact": [
+          "tower",
+          "tents",
+          "clothesline"
+        ],
+        "level": 3
+      }
+    },
+    {
+      "object_accuracy": 4.0,
+      "spatial_coherence": 4.0,
+      "task_clarity": 3.0,
+      "difficulty_alignment": 5,
+      "executability": 4.0,
+      "reasoning": "All objects (barrels, tents, tower) are clearly identifiable in both views. The path from barrels to tents to tower is logical with minor ambiguities in precise positions. The task is understandable but requires some interpretation, particularly regarding interacting with the objects. The difficulty aligns well with a Level 3 task, requiring multi-step reasoning. The task is mostly executable with minor assumptions about interaction details and position definitions.",
+      "instruction": {
+        "task": "Go from the barrels to the tents, then to the tower",
+        "start": "Near the barrels",
+        "end": "Near the tower",
+        "interact": [
+          "barrels",
+          "tents",
+          "tower']"
+        ],
+        "level": 3
+      }
+    }
+  ],
+  "level_1_avg": {
+    "object_accuracy": 4.333333333333333,
+    "spatial_coherence": 4.0,
+    "task_clarity": 4.0,
+    "difficulty_alignment": 5.0,
+    "executability": 4.0
+  },
+  "level_1_count": 3,
+  "level_2_avg": {
+    "object_accuracy": 4.666666666666667,
+    "spatial_coherence": 4.0,
+    "task_clarity": 4.0,
+    "difficulty_alignment": 4.666666666666667,
+    "executability": 4.0
+  },
+  "level_2_count": 3,
+  "level_3_avg": {
+    "object_accuracy": 4.333333333333333,
+    "spatial_coherence": 4.0,
+    "task_clarity": 3.3333333333333335,
+    "difficulty_alignment": 4.666666666666667,
+    "executability": 4.0
+  },
+  "level_3_count": 3,
+  "timestamp": "2026-01-20T04:33:06.639111"
+}

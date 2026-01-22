@@ -1,0 +1,85 @@
+{
+  "scene_id": "35_Bus_loop.3",
+  "level_1": [
+    {
+      "task": "Move from the bus shelter to the station building",
+      "start": "Near bus shelter",
+      "end": "Near station building",
+      "interact": []
+    },
+    {
+      "task": "Move from one bus to the other bus",
+      "start": "Near bus with route number 19",
+      "end": "Near other bus",
+      "interact": []
+    },
+    {
+      "task": "Move from the bench to the bus shelter",
+      "start": "Near bench",
+      "end": "Near bus shelter",
+      "interact": []
+    }
+  ],
+  "level_2": [
+    {
+      "task": "Walk from the bus shelter to the bench",
+      "start": "Near bus shelter",
+      "end": "Near bench",
+      "interact": [
+        "bus shelter",
+        "bench"
+      ]
+    },
+    {
+      "task": "Move from the station building to the bus with route number 19",
+      "start": "Near station building",
+      "end": "Near bus with route number 19",
+      "interact": [
+        "station building",
+        "bus with route number 19"
+      ]
+    },
+    {
+      "task": "Move from the other bus to the bench",
+      "start": "Near other bus",
+      "end": "Near bench",
+      "interact": [
+        "other bus",
+        "bench"
+      ]
+    }
+  ],
+  "level_3": [
+    {
+      "task": "Go from the bus shelter to the bench, then to the bus with route number 19",
+      "start": "Near bus shelter",
+      "end": "Near bus with route number 19",
+      "interact": [
+        "bus shelter",
+        "bench",
+        "bus with route number 19"
+      ]
+    },
+    {
+      "task": "Go from the other bus to the bench, then to the station building",
+      "start": "Near other bus",
+      "end": "Near station building",
+      "interact": [
+        "other bus",
+        "bench",
+        "station building"
+      ]
+    },
+    {
+      "task": "Go from the station building to the bus shelter, then to the other bus",
+      "start": "Near station building",
+      "end": "Near other bus",
+      "interact": [
+        "station building",
+        "bus shelter",
+        "other bus"
+      ]
+    }
+  ],
+  "timestamp": "2026-01-20T04:29:01.570894"
+}
