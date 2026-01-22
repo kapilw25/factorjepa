@@ -34,7 +34,7 @@ PROMPT = """You are given a top-down image and a frontal image of a scene. Your 
           """
 
 print("prompt:", PROMPT)
-client = genai.Client(api_key='AIzaSyBBVox9Qx03FoNV6ZVx-0Fm9HrxeEChTCQ')
+client = genai.Client(api_key='gemini_api_key')
 
 glb_path = 'Others/34_Pedestrian mall with.4'
 
