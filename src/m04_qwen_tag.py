@@ -13,7 +13,7 @@ from pathlib import Path
 
 # Add src to path for utils import
 sys.path.insert(0, str(Path(__file__).parent))
-from utils.config import CLIPS_DIR, TAGS_FILE, QWEN_MODEL_ID
+from utils.config import CLIPS_DIR, TAGS_FILE, QWEN_MODEL_ID, ensure_clips_exist, get_all_clips
 
 try:
     import torch
@@ -170,12 +170,13 @@ def main():
         print("\nERROR: Specify --SANITY or --FULL")
         sys.exit(1)
 
-    # Find all clips
-    clip_dirs = [d for d in CLIPS_DIR.iterdir() if d.is_dir()]
-    all_clips = []
-    for clip_dir in clip_dirs:
-        all_clips.extend(list(clip_dir.glob("*.mp4")))
+    # Ensure clips exist (auto-download from HuggingFace if needed)
+    if not ensure_clips_exist():
+        print(f"ERROR: No clips available. Run m02_scene_detect.py or check HuggingFace access.")
+        sys.exit(1)
 
+    # Find all clips
+    all_clips = get_all_clips()
     if not all_clips:
         print(f"ERROR: No clips found in {CLIPS_DIR}")
         sys.exit(1)

@@ -17,7 +17,8 @@ import numpy as np
 sys.path.insert(0, str(Path(__file__).parent))
 from utils.config import (
     EMBEDDINGS_FILE, TAGS_FILE, METRICS_FILE,
-    FAISS_K_NEIGHBORS, VJEPA_EMBEDDING_DIM
+    FAISS_K_NEIGHBORS, VJEPA_EMBEDDING_DIM,
+    check_gpu, load_embeddings_and_tags
 )
 
 try:
@@ -27,17 +28,6 @@ except ImportError as e:
     print(f"ERROR: Missing dependency: {e}")
     print("Install with: pip install torch faiss-gpu")
     sys.exit(1)
-
-
-def check_gpu():
-    """Check if CUDA GPU is available. Exit if not."""
-    if not torch.cuda.is_available():
-        print("ERROR: CUDA GPU not available.")
-        print("This script requires Nvidia GPU. No CPU fallback.")
-        print(f"torch.cuda.is_available(): {torch.cuda.is_available()}")
-        sys.exit(1)
-    print(f"GPU: {torch.cuda.get_device_name(0)}")
-    print(f"CUDA version: {torch.version.cuda}")
 
 
 def build_faiss_index_gpu(embeddings: np.ndarray) -> faiss.Index:
@@ -140,31 +130,8 @@ def main():
     # GPU check - exit if no CUDA
     check_gpu()
 
-    # Load embeddings
-    if not EMBEDDINGS_FILE.exists():
-        print(f"ERROR: Embeddings not found: {EMBEDDINGS_FILE}")
-        print("Run m03_vjepa_embed.py first")
-        sys.exit(1)
-
-    embeddings = np.load(EMBEDDINGS_FILE).astype(np.float32)
-    print(f"Loaded embeddings: {embeddings.shape}")
-
-    # Load tags
-    if not TAGS_FILE.exists():
-        print(f"ERROR: Tags not found: {TAGS_FILE}")
-        print("Run m04_qwen_tag.py first")
-        sys.exit(1)
-
-    with open(TAGS_FILE, 'r') as f:
-        tags = json.load(f)
-    print(f"Loaded tags: {len(tags)} clips")
-
-    # Verify alignment
-    if len(tags) != embeddings.shape[0]:
-        print(f"WARNING: Mismatch - {embeddings.shape[0]} embeddings vs {len(tags)} tags")
-        min_len = min(len(tags), embeddings.shape[0])
-        embeddings = embeddings[:min_len]
-        tags = tags[:min_len]
+    # Load embeddings and tags
+    embeddings, tags = load_embeddings_and_tags()
 
     # Build FAISS GPU index
     k = args.k

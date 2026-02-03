@@ -1,5 +1,5 @@
 """
-Generate V-JEPA 2 embeddings for video clips.
+Generate V-JEPA 2 embeddings for video clips + deduplicate near-identical clips.
 GPU-only script (Nvidia CUDA required).
 
 USAGE:
@@ -16,7 +16,8 @@ import numpy as np
 sys.path.insert(0, str(Path(__file__).parent))
 from utils.config import (
     CLIPS_DIR, EMBEDDINGS_FILE, VJEPA_MODEL_ID,
-    VJEPA_FRAMES_PER_CLIP, VJEPA_EMBEDDING_DIM
+    VJEPA_FRAMES_PER_CLIP, VJEPA_EMBEDDING_DIM,
+    ensure_clips_exist, check_gpu, get_all_clips
 )
 
 try:
@@ -28,15 +29,8 @@ except ImportError as e:
     print("Install with: pip install torch transformers av")
     sys.exit(1)
 
-
-def check_gpu():
-    """Check if CUDA GPU is available."""
-    if not torch.cuda.is_available():
-        print("ERROR: CUDA GPU not available. This script requires Nvidia GPU.")
-        print(f"torch.cuda.is_available(): {torch.cuda.is_available()}")
-        sys.exit(1)
-    print(f"GPU: {torch.cuda.get_device_name(0)}")
-    print(f"CUDA version: {torch.version.cuda}")
+# Deduplication threshold (cosine similarity)
+DEDUPE_THRESHOLD = 0.95
 
 
 def load_video_frames(video_path: Path, num_frames: int = 64) -> np.ndarray:
@@ -110,11 +104,76 @@ def get_embedding(model, processor, video_path: Path, device: str) -> np.ndarray
     return embedding
 
 
+def deduplicate_embeddings(embeddings: np.ndarray, clip_paths: list, threshold: float = 0.95) -> tuple:
+    """
+    Remove near-duplicate clips based on cosine similarity.
+
+    Args:
+        embeddings: numpy array of shape (n_samples, embedding_dim)
+        clip_paths: List of clip paths
+        threshold: Cosine similarity threshold for duplicates
+
+    Returns:
+        Tuple of (deduplicated_embeddings, deduplicated_paths, num_removed)
+    """
+    print(f"\n=== Deduplicating clips (cosine sim > {threshold}) ===")
+    n = len(embeddings)
+
+    # Normalize embeddings for cosine similarity
+    norms = np.linalg.norm(embeddings, axis=1, keepdims=True)
+    norms[norms == 0] = 1  # Avoid division by zero
+    normalized = embeddings / norms
+
+    # Compute cosine similarity matrix (on GPU if available)
+    if torch.cuda.is_available():
+        normalized_tensor = torch.from_numpy(normalized).cuda()
+        similarity_matrix = torch.mm(normalized_tensor, normalized_tensor.T).cpu().numpy()
+    else:
+        similarity_matrix = normalized @ normalized.T
+
+    # Find duplicates using greedy approach
+    # Keep track of which indices to keep
+    keep_mask = np.ones(n, dtype=bool)
+
+    for i in range(n):
+        if not keep_mask[i]:
+            continue
+        # Find all clips similar to clip i (excluding self)
+        similar = np.where((similarity_matrix[i] > threshold) & (np.arange(n) > i))[0]
+        # Mark similar clips for removal
+        keep_mask[similar] = False
+
+    # Filter embeddings and paths
+    keep_indices = np.where(keep_mask)[0]
+    deduped_embeddings = embeddings[keep_indices]
+    deduped_paths = [clip_paths[i] for i in keep_indices]
+    num_removed = n - len(keep_indices)
+
+    print(f"Original clips: {n}")
+    print(f"Removed duplicates: {num_removed}")
+    print(f"Remaining clips: {len(deduped_paths)}")
+
+    # Show some examples of removed duplicates
+    if num_removed > 0:
+        removed_indices = np.where(~keep_mask)[0][:5]  # Show first 5
+        print(f"\nExample removed clips (similar to earlier clips):")
+        for idx in removed_indices:
+            # Find which clip it's similar to
+            similar_to = np.where((similarity_matrix[idx] > threshold) & (np.arange(n) < idx) & keep_mask)[0]
+            if len(similar_to) > 0:
+                sim_val = similarity_matrix[idx, similar_to[0]]
+                print(f"  {Path(clip_paths[idx]).name} (sim={sim_val:.3f} to {Path(clip_paths[similar_to[0]]).name})")
+
+    return deduped_embeddings, deduped_paths, num_removed
+
+
 def main():
-    parser = argparse.ArgumentParser(description="Generate V-JEPA embeddings for video clips")
+    parser = argparse.ArgumentParser(description="Generate V-JEPA embeddings + deduplicate")
     parser.add_argument("--SANITY", action="store_true", help="Process 5 clips only")
     parser.add_argument("--FULL", action="store_true", help="Process all clips")
     parser.add_argument("--model", type=str, default=VJEPA_MODEL_ID, help="Model ID")
+    parser.add_argument("--no-dedupe", action="store_true", help="Skip deduplication")
+    parser.add_argument("--threshold", type=float, default=DEDUPE_THRESHOLD, help="Dedupe threshold")
     args = parser.parse_args()
 
     if not (args.SANITY or args.FULL):
@@ -125,12 +184,13 @@ def main():
     check_gpu()
     device = "cuda"
 
-    # Find all clips
-    clip_dirs = [d for d in CLIPS_DIR.iterdir() if d.is_dir()]
-    all_clips = []
-    for clip_dir in clip_dirs:
-        all_clips.extend(list(clip_dir.glob("*.mp4")))
+    # Ensure clips exist (auto-download from HuggingFace if needed)
+    if not ensure_clips_exist():
+        print(f"ERROR: No clips available. Run m02_scene_detect.py or check HuggingFace access.")
+        sys.exit(1)
 
+    # Find all clips
+    all_clips = get_all_clips()
     if not all_clips:
         print(f"ERROR: No clips found in {CLIPS_DIR}")
         sys.exit(1)
@@ -154,6 +214,11 @@ def main():
         # Generate dummy embeddings for testing
         embeddings = np.random.randn(len(all_clips), VJEPA_EMBEDDING_DIM).astype(np.float32)
         clip_paths = [str(c) for c in all_clips]
+
+        # Still deduplicate dummy embeddings
+        if not args.no_dedupe:
+            embeddings, clip_paths, _ = deduplicate_embeddings(embeddings, clip_paths, args.threshold)
+
         np.save(EMBEDDINGS_FILE, embeddings)
         np.save(EMBEDDINGS_FILE.with_suffix('.paths.npy'), clip_paths)
         print(f"Saved dummy embeddings: {EMBEDDINGS_FILE}")
@@ -173,14 +238,24 @@ def main():
             print(f"  ERROR: {e}")
             continue
 
-    # Save embeddings
+    # Stack embeddings
     embeddings = np.stack(embeddings).astype(np.float32)
+    print(f"\nGenerated embeddings: {embeddings.shape}")
+
+    # Deduplicate
+    if not args.no_dedupe:
+        embeddings, clip_paths, num_removed = deduplicate_embeddings(
+            embeddings, clip_paths, args.threshold
+        )
+
+    # Save embeddings
     np.save(EMBEDDINGS_FILE, embeddings)
     np.save(EMBEDDINGS_FILE.with_suffix('.paths.npy'), clip_paths)
 
-    print(f"\nSaved embeddings: {EMBEDDINGS_FILE}")
+    print(f"\n=== EMBEDDING COMPLETE ===")
+    print(f"Saved: {EMBEDDINGS_FILE}")
     print(f"Shape: {embeddings.shape}")
-    print(f"Clips processed: {len(clip_paths)}")
+    print(f"Unique clips: {len(clip_paths)}")
 
 
 if __name__ == "__main__":

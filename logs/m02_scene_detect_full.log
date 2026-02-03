@@ -1,0 +1,99 @@
+=== FULL MODE: Process all videos ===
+Processing: metro.mp4
+Detected 9 scenes (threshold=27.0)
+  0%|          | 0/35966 [00:00<?, ?frame/s]  1%|▏         | 528/35966 [00:04<04:50, 122.06frame/s] 24%|██▍       | 8559/35966 [01:01<03:16, 139.42frame/s] 30%|███       | 10802/35966 [01:18<03:02, 137.87frame/s] 35%|███▌      | 12767/35966 [01:33<02:51, 135.53frame/s] 38%|███▊      | 13693/35966 [01:40<02:46, 134.15frame/s] 42%|████▏     | 14949/35966 [01:49<02:35, 135.46frame/s] 57%|█████▋    | 20584/35966 [02:31<01:54, 134.59frame/s] 80%|████████  | 28813/35966 [03:28<00:51, 140.04frame/s]100%|██████████| 35966/35966 [04:20<00:00, 139.27frame/s]100%|██████████| 35966/35966 [04:20<00:00, 138.11frame/s]
+Created 9 clips in /Users/kapilwanaskar/Downloads/research_projects/LLM_asAgent_3D_SR/src/data/clips/metro
+Processing: hilltown.mp4
+Detected 2 scenes (threshold=27.0)
+  0%|          | 0/36001 [00:00<?, ?frame/s] 15%|█▍        | 5280/36001 [00:39<03:49, 133.80frame/s]100%|██████████| 36001/36001 [05:06<00:00, 116.66frame/s]100%|██████████| 36001/36001 [05:06<00:00, 117.32frame/s]
+Created 2 clips in /Users/kapilwanaskar/Downloads/research_projects/LLM_asAgent_3D_SR/src/data/clips/hilltown
+Processing: temple.mp4
+Detected 10 scenes (threshold=27.0)
+  0%|          | 0/35966 [00:00<?, ?frame/s] 12%|█▏        | 4290/35966 [00:48<05:58, 88.34frame/s] 14%|█▍        | 4950/35966 [00:59<06:23, 80.86frame/s] 15%|█▍        | 5280/35966 [01:06<06:45, 75.77frame/s] 21%|██        | 7460/35966 [01:32<05:55, 80.18frame/s] 32%|███▏      | 11656/35966 [02:12<04:23, 92.43frame/s] 47%|████▋     | 17079/35966 [02:58<03:01, 103.82frame/s] 66%|██████▌   | 23760/35966 [04:00<01:54, 106.37frame/s] 70%|███████   | 25194/35966 [04:12<01:40, 107.10frame/s] 71%|███████   | 25559/35966 [04:16<01:37, 106.53frame/s]100%|██████████| 35966/35966 [06:05<00:00, 98.99frame/s] 100%|██████████| 35966/35966 [06:05<00:00, 98.31frame/s]
+Created 10 clips in /Users/kapilwanaskar/Downloads/research_projects/LLM_asAgent_3D_SR/src/data/clips/temple
+
+Scene detection: 21 clips from 3 videos
+
+=== Intelligent re-splitting (clips > 5.0s) ===
+Strategy: ContentDetector(15.0) → AdaptiveDetector(2.0) → Fixed split
+
+Processing: metro/
+  Intelligent re-split: metro-Scene-009.mp4 (119.3s)
+    Pass 1: ContentDetector(threshold=15.0)
+    → Found 6 scenes
+  Intelligent re-split: metro-Scene-008.mp4 (137.3s)
+    Pass 1: ContentDetector(threshold=15.0)
+    → Found 4 scenes
+  Intelligent re-split: metro-Scene-003.mp4 (37.4s)
+    Pass 1: ContentDetector(threshold=15.0)
+    → Found 4 scenes
+  Intelligent re-split: metro-Scene-002.mp4 (134.0s)
+    Pass 1: ContentDetector(threshold=15.0)
+    → Found 7 scenes
+  Intelligent re-split: metro-Scene-001.mp4 (8.8s)
+    Pass 1: ContentDetector(threshold=15.0)
+    → Found 2 scenes
+  Intelligent re-split: metro-Scene-005.mp4 (15.4s)
+    Pass 1: ContentDetector(threshold=15.0)
+    → Found 2 scenes
+  Intelligent re-split: metro-Scene-004.mp4 (32.8s)
+    Pass 1: ContentDetector(threshold=15.0)
+    → Found 3 scenes
+  Intelligent re-split: metro-Scene-006.mp4 (21.0s)
+    Pass 1: ContentDetector(threshold=15.0)
+    → Found 2 scenes
+  Intelligent re-split: metro-Scene-007.mp4 (94.0s)
+    Pass 1: ContentDetector(threshold=15.0)
+    → Found 10 scenes
+
+Processing: hilltown/
+  Intelligent re-split: hilltown-Scene-001.mp4 (88.0s)
+    Pass 1: ContentDetector(threshold=15.0)
+    → Found 4 scenes
+  Intelligent re-split: hilltown-Scene-002.mp4 (512.0s)
+    Pass 1: ContentDetector(threshold=15.0)
+    → Found 19 scenes
+
+Processing: temple/
+  Intelligent re-split: temple-Scene-002.mp4 (11.0s)
+    Pass 1: ContentDetector(threshold=15.0)
+    Pass 2: AdaptiveDetector(threshold=2.0)
+    Pass 3: Fixed 5.0s split (fallback)
+    → Created 2 chunks
+  Intelligent re-split: temple-Scene-003.mp4 (5.5s)
+    Pass 1: ContentDetector(threshold=15.0)
+    Pass 2: AdaptiveDetector(threshold=2.0)
+    Pass 3: Fixed 5.0s split (fallback)
+    → Created 1 chunks
+  Intelligent re-split: temple-Scene-001.mp4 (71.6s)
+    Pass 1: ContentDetector(threshold=15.0)
+    → Found 8 scenes
+  Intelligent re-split: temple-Scene-010.mp4 (173.6s)
+    Pass 1: ContentDetector(threshold=15.0)
+    → Found 6 scenes
+  Intelligent re-split: temple-Scene-004.mp4 (36.4s)
+    Pass 1: ContentDetector(threshold=15.0)
+    → Found 3 scenes
+  Intelligent re-split: temple-Scene-005.mp4 (70.0s)
+    Pass 1: ContentDetector(threshold=15.0)
+    → Found 8 scenes
+  Intelligent re-split: temple-Scene-007.mp4 (111.5s)
+    Pass 1: ContentDetector(threshold=15.0)
+    → Found 4 scenes
+  Intelligent re-split: temple-Scene-006.mp4 (90.5s)
+    Pass 1: ContentDetector(threshold=15.0)
+    → Found 7 scenes
+  Intelligent re-split: temple-Scene-008.mp4 (23.9s)
+    Pass 1: ContentDetector(threshold=15.0)
+    → Found 2 scenes
+  Intelligent re-split: temple-Scene-009.mp4 (6.1s)
+    Pass 1: ContentDetector(threshold=15.0)
+    Pass 2: AdaptiveDetector(threshold=2.0)
+    Pass 3: Fixed 5.0s split (fallback)
+    → Created 1 chunks
+
+=== Re-split Summary ===
+Long clips processed: 21
+Total clips: 337
+
+FULL COMPLETE: 337 clips (4-5s each)

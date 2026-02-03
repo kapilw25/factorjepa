@@ -2,11 +2,98 @@
 
 ---
 
+## Progress Status
+
+| Module | Status | Location |
+|--------|--------|----------|
+| `m01_download.py` | ✅ DONE | M1 Mac |
+| `m02_scene_detect.py` | ✅ DONE | M1 Mac |
+| `m02b_upload_hf.py` | ✅ DONE | M1 Mac |
+| `m03_vjepa_embed.py` | ⏳ PENDING | GPU Server |
+| `m04_qwen_tag.py` | ⏳ PENDING | GPU Server |
+| `m05_faiss_metrics.py` | ⏳ PENDING | GPU Server |
+| `m06_umap_plot.py` | ⏳ PENDING | M1 Mac (after GPU) |
+
+**Dataset**: https://huggingface.co/datasets/anonymousML123/walkindia-50-clips (337 clips uploaded)
+
+---
+
+## Pipeline Diagram
+
+```
+════════════════════════════════════════ WalkIndia-200K Pipeline ════════════════════════════════════════
+
+M1 MAC (CPU)                          │ GPU SERVER (Nvidia CUDA)                    │ M1 MAC (CPU)
+──────────────────────────────────────┼─────────────────────────────────────────────┼──────────────────
+                                      │                                             │
+[m01]─►[m02]─►[m02b]─►HuggingFace────►│─►clips(337)─┬─►[m03]─►embeddings.npy──┬────►│─►[m06]─►umap.png
+YouTube  scene  upload                │             │   VJEPA    (N×768)      │     │   UMAP   umap.pdf
+  (3)    detect                       │             │                         ▼     │
+   │       │                          │             │                    [m05]──────│
+   ▼       ▼                          │             │                    FAISS      │
+videos  clips                         │             │                       │       │
+ (3)    (337)                         │             └─►[m04]─►tags.json─────┤       │
+                                      │                Qwen3VL              │       │
+                                      │                                     ▼       │
+                                      │            ◄───PARALLEL───►    metrics.json │
+                                      │                                             │
+
+EXECUTION: m01 → m02 → m02b → [m03 ∥ m04] → m05 → m06
+```
+
+## Module I/O Details
+
+| Module | Input | Output | Notes |
+|--------|-------|--------|-------|
+| `m01_download` | YouTube URLs (3) | `data/videos/*.mp4` (3 videos, 10min ea) | yt-dlp, CPU |
+| `m02_scene_detect` | `data/videos/*.mp4` | `data/clips/**/*.mp4` (337 clips, 4-5s ea) | PySceneDetect, CPU |
+| `m02b_upload_hf` | `data/clips/**/*.mp4` | HuggingFace Dataset | huggingface_hub, CPU |
+| `m03_vjepa_embed` | `data/clips/**/*.mp4` | `data/embeddings.npy` (N×768), `data/embeddings.paths.npy` | V-JEPA 2, dedupe, **GPU** |
+| `m04_qwen_tag` | `data/clips/**/*.mp4` | `data/tags.json` | Qwen3-VL-8B, **GPU** |
+| `m05_faiss_metrics` | `embeddings.npy` + `tags.json` | `outputs/metrics.json` | FAISS kNN, **GPU** |
+| `m06_umap_plot` | `embeddings.npy` + `tags.json` + `metrics.json` | `outputs/poc_umap.png`, `outputs/poc_umap.pdf` | UMAP 2D, CPU |
+
+### Output File Formats
+
+**embeddings.npy** (m03)
+```
+shape: (N, 768)  # N = unique clips after deduplication
+dtype: float32
+```
+
+**tags.json** (m04)
+```json
+[
+  {
+    "clip_path": "data/clips/temple/clip001.mp4",
+    "scene_type": "temple|market|junction|lane|highway|residential|commercial",
+    "crowd_density": "low|med|high",
+    "traffic_density": "low|med|high",
+    "time_of_day": "morning|afternoon|evening|night",
+    "weather": "clear|cloudy|rain|fog",
+    "notable_objects": ["pedestrian", "vehicle", ...]
+  }
+]
+```
+
+**metrics.json** (m05)
+```json
+{
+  "self_consistency": 72.5,
+  "cluster_purity": 65.3,
+  "k_neighbors": 6,
+  "num_clips": 337,
+  "pass": true
+}
+```
+
+---
+
 # PART 1: EXECUTION PLAN
 
 ## Terminal Commands
 
-### Step 1: M1 Macbook (CPU/API) - Data Preparation
+### Step 1: M1 Macbook (CPU/API) - Data Preparation ✅
 ```bash
 # Download 3 videos from @walkinginindia YouTube
 python -u src/m01_download.py --SANITY 2>&1 | tee logs/m01_download_sanity.log
@@ -15,9 +102,13 @@ python -u src/m01_download.py --FULL 2>&1 | tee logs/m01_download_full.log
 # Split videos into 4-5s clips using PySceneDetect
 python -u src/m02_scene_detect.py --SANITY 2>&1 | tee logs/m02_scene_detect_sanity.log
 python -u src/m02_scene_detect.py --FULL 2>&1 | tee logs/m02_scene_detect_full.log
+
+# Upload clips to HuggingFace (for GPU server access)
+python -u src/m02b_upload_hf.py --SANITY 2>&1 | tee logs/m02b_upload_hf_sanity.log
+python -u src/m02b_upload_hf.py --FULL 2>&1 | tee logs/m02b_upload_hf_full.log
 ```
 
-### Step 2: Nvidia GPU Server - Inference
+### Step 2: Nvidia GPU Server - Inference ⏳
 ```bash
 # Generate V-JEPA embeddings (requires CUDA)
 python -u src/m03_vjepa_embed.py --SANITY 2>&1 | tee logs/m03_vjepa_embed_sanity.log
@@ -32,7 +123,7 @@ python -u src/m05_faiss_metrics.py --SANITY 2>&1 | tee logs/m05_faiss_metrics_sa
 python -u src/m05_faiss_metrics.py --FULL 2>&1 | tee logs/m05_faiss_metrics_full.log
 ```
 
-### Step 3: M1 Macbook (CPU) - Visualization
+### Step 3: M1 Macbook (CPU) - Visualization ⏳
 ```bash
 # Generate UMAP plot
 python -u src/m06_umap_plot.py --SANITY 2>&1 | tee logs/m06_umap_plot_sanity.log
@@ -43,14 +134,15 @@ python -u src/m06_umap_plot.py --FULL 2>&1 | tee logs/m06_umap_plot_full.log
 
 ## Module Summary
 
-| Module | Purpose | GPU Requirement |
-|--------|---------|-----------------|
-| `m01_download.py` | yt-dlp download | CPU/API (M1 OK) |
-| `m02_scene_detect.py` | PySceneDetect split | CPU (M1 OK) |
-| `m03_vjepa_embed.py` | V-JEPA embeddings | **Nvidia GPU only** |
-| `m04_qwen_tag.py` | Qwen3-VL tagging | **Nvidia GPU only** |
-| `m05_faiss_metrics.py` | FAISS + metrics | **Nvidia GPU only** |
-| `m06_umap_plot.py` | UMAP visualization | CPU (M1 OK) |
+| Module | Purpose | GPU Requirement | Status |
+|--------|---------|-----------------|--------|
+| `m01_download.py` | yt-dlp download | CPU/API (M1 OK) | ✅ |
+| `m02_scene_detect.py` | PySceneDetect split | CPU (M1 OK) | ✅ |
+| `m02b_upload_hf.py` | HuggingFace upload | CPU/API (M1 OK) | ✅ |
+| `m03_vjepa_embed.py` | V-JEPA embeddings | **Nvidia GPU only** | ⏳ |
+| `m04_qwen_tag.py` | Qwen3-VL tagging | **Nvidia GPU only** | ⏳ |
+| `m05_faiss_metrics.py` | FAISS + metrics | **Nvidia GPU only** | ⏳ |
+| `m06_umap_plot.py` | UMAP visualization | CPU (M1 OK) | ⏳ |
 
 ---
 
@@ -58,20 +150,21 @@ python -u src/m06_umap_plot.py --FULL 2>&1 | tee logs/m06_umap_plot_full.log
 
 ```
 src/
-├── m01_download.py
-├── m02_scene_detect.py
-├── m03_vjepa_embed.py
-├── m04_qwen_tag.py
-├── m05_faiss_metrics.py
-├── m06_umap_plot.py
+├── m01_download.py      # ✅
+├── m02_scene_detect.py  # ✅
+├── m02b_upload_hf.py    # ✅
+├── m03_vjepa_embed.py   # ⏳
+├── m04_qwen_tag.py      # ⏳
+├── m05_faiss_metrics.py # ⏳
+├── m06_umap_plot.py     # ⏳
 ├── utils/
 │   ├── __init__.py
-│   └── config.py
+│   └── config.py        # shared utilities
 ├── data/
 │   ├── videos/          # 3 downloaded videos
-│   ├── clips/           # ~50 clips (4-5s each)
-│   ├── embeddings.npy   # 50 x 768
-│   └── tags.json        # Qwen3-VL structured tags
+│   ├── clips/           # 337 clips (4-5s each)
+│   ├── embeddings.npy   # 337 x 768 (pending)
+│   └── tags.json        # Qwen3-VL structured tags (pending)
 └── outputs/
     ├── poc_umap.png     # UMAP visualization
     ├── poc_umap.pdf     # UMAP visualization (PDF)

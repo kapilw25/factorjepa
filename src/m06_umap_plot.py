@@ -17,7 +17,7 @@ import numpy as np
 sys.path.insert(0, str(Path(__file__).parent))
 from utils.config import (
     EMBEDDINGS_FILE, TAGS_FILE, METRICS_FILE,
-    UMAP_PLOT_PNG, UMAP_PLOT_PDF
+    UMAP_PLOT_PNG, UMAP_PLOT_PDF, load_embeddings_and_tags
 )
 
 try:
@@ -144,31 +144,8 @@ def main():
         print("\nERROR: Specify --SANITY or --FULL")
         sys.exit(1)
 
-    # Load embeddings
-    if not EMBEDDINGS_FILE.exists():
-        print(f"ERROR: Embeddings not found: {EMBEDDINGS_FILE}")
-        print("Run m03_vjepa_embed.py first")
-        sys.exit(1)
-
-    embeddings = np.load(EMBEDDINGS_FILE).astype(np.float32)
-    print(f"Loaded embeddings: {embeddings.shape}")
-
-    # Load tags
-    if not TAGS_FILE.exists():
-        print(f"ERROR: Tags not found: {TAGS_FILE}")
-        print("Run m04_qwen_tag.py first")
-        sys.exit(1)
-
-    with open(TAGS_FILE, 'r') as f:
-        tags = json.load(f)
-    print(f"Loaded tags: {len(tags)} clips")
-
-    # Verify alignment
-    if len(tags) != embeddings.shape[0]:
-        print(f"WARNING: Mismatch - {embeddings.shape[0]} embeddings vs {len(tags)} tags")
-        min_len = min(len(tags), embeddings.shape[0])
-        embeddings = embeddings[:min_len]
-        tags = tags[:min_len]
+    # Load embeddings and tags
+    embeddings, tags = load_embeddings_and_tags()
 
     # Adjust UMAP parameters for small datasets
     n_neighbors = min(args.n_neighbors, len(tags) - 1)

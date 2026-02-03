@@ -6,6 +6,7 @@
 # Modules covered:
 #   - src/m01_download.py (yt-dlp)
 #   - src/m02_scene_detect.py (PySceneDetect)
+#   - src/m02b_upload_hf.py (HuggingFace upload)
 #   - src/m06_umap_plot.py (UMAP visualization)
 #   - src/utils/config.py
 # =============================================================================
@@ -16,6 +17,7 @@ python-dotenv>=1.0.0
 # HTTP & API
 requests>=2.31.0
 openai>=1.0.0
+huggingface_hub>=0.20.0
 
 # Video Download
 yt-dlp>=2024.1.0
