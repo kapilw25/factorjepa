@@ -88,7 +88,7 @@ CLIP_MAX_DURATION = 5.0  # seconds
 # V-JEPA config
 VJEPA_MODEL_ID = "facebook/vjepa2-vitl-fpc64-256"
 VJEPA_FRAMES_PER_CLIP = 64
-VJEPA_EMBEDDING_DIM = 768
+VJEPA_EMBEDDING_DIM = 1024  # ViT-L hidden dimension
 
 # Qwen3-VL config
 QWEN_MODEL_ID = "Qwen/Qwen3-VL-8B-Instruct"
@@ -99,9 +99,9 @@ FAISS_K_NEIGHBORS = 6  # includes self
 # Output files
 EMBEDDINGS_FILE = DATA_DIR / "embeddings.npy"
 TAGS_FILE = DATA_DIR / "tags.json"
-UMAP_PLOT_PNG = OUTPUTS_DIR / "poc_umap.png"
-UMAP_PLOT_PDF = OUTPUTS_DIR / "poc_umap.pdf"
-METRICS_FILE = OUTPUTS_DIR / "metrics.json"
+UMAP_PLOT_PNG = OUTPUTS_DIR / "m06_umap.png"
+UMAP_PLOT_PDF = OUTPUTS_DIR / "m06_umap.pdf"
+METRICS_FILE = OUTPUTS_DIR / "m05_metrics.json"
 
 
 # =============================================================================
@@ -198,3 +198,182 @@ def load_embeddings_and_tags() -> tuple:
         tags = tags[:min_len]
 
     return embeddings, tags
+
+
+# =============================================================================
+# BATCH PROCESSING CONFIG (optimized for A100-40GB)
+# =============================================================================
+DEFAULT_BATCH_SIZE = 16
+DEFAULT_NUM_WORKERS = 8
+RAM_CACHE_DIR = Path("/dev/shm/video_clips_cache")
+
+
+def setup_ram_cache(clip_paths: list, use_cache: bool = True, cache_subdir: str = "clips") -> tuple:
+    """
+    Copy clips to RAM (/dev/shm) for faster I/O.
+
+    Args:
+        clip_paths: List of clip paths
+        use_cache: Whether to use RAM cache
+        cache_subdir: Subdirectory name in /dev/shm
+
+    Returns:
+        Tuple of (cached_paths, cache_enabled)
+    """
+    import shutil
+    from tqdm import tqdm
+
+    cache_dir = Path(f"/dev/shm/{cache_subdir}_cache")
+
+    if not use_cache:
+        return clip_paths, False
+
+    # Check available RAM in /dev/shm
+    try:
+        shm_stat = os.statvfs("/dev/shm")
+        available_gb = (shm_stat.f_bavail * shm_stat.f_frsize) / (1024**3)
+
+        # Estimate clip size (assume ~2MB per clip average)
+        estimated_size_gb = len(clip_paths) * 2 / 1024
+
+        if available_gb < estimated_size_gb + 2:  # Keep 2GB buffer
+            print(f"RAM cache: Skipping (need {estimated_size_gb:.1f}GB, have {available_gb:.1f}GB)")
+            return clip_paths, False
+
+    except Exception as e:
+        print(f"RAM cache: Skipping ({e})")
+        return clip_paths, False
+
+    print(f"\n=== Setting up RAM cache ===")
+    print(f"Copying {len(clip_paths)} clips to /dev/shm (~{estimated_size_gb:.1f}GB)")
+
+    # Clean up old cache
+    if cache_dir.exists():
+        shutil.rmtree(cache_dir)
+    cache_dir.mkdir(parents=True, exist_ok=True)
+
+    cached_paths = []
+    for src_path in tqdm(clip_paths, desc="Caching to RAM", unit="clip"):
+        src_path = Path(src_path)
+        cache_name = f"{src_path.parent.name}__{src_path.name}"
+        dst_path = cache_dir / cache_name
+        shutil.copy2(src_path, dst_path)
+        cached_paths.append(dst_path)
+
+    print(f"RAM cache ready: {cache_dir}")
+    return cached_paths, True
+
+
+def cleanup_ram_cache(cache_subdir: str = "clips"):
+    """Remove RAM cache after processing."""
+    import shutil
+    cache_dir = Path(f"/dev/shm/{cache_subdir}_cache")
+    if cache_dir.exists():
+        shutil.rmtree(cache_dir)
+        print("RAM cache cleaned up")
+
+
+def get_deduplicated_clips() -> list:
+    """
+    Get clip paths from m03's deduplicated output (embeddings.paths.npy).
+    Falls back to all clips if embeddings not available.
+
+    Returns:
+        List of Path objects for clips
+    """
+    import numpy as np
+
+    paths_file = EMBEDDINGS_FILE.with_suffix('.paths.npy')
+
+    if paths_file.exists():
+        clip_paths = np.load(paths_file, allow_pickle=True).tolist()
+        print(f"Loaded {len(clip_paths)} deduplicated clips from {paths_file.name}")
+        return [Path(p) for p in clip_paths]
+    else:
+        print(f"WARNING: {paths_file.name} not found. Run m03_vjepa_embed.py first.")
+        print("Falling back to all clips (may cause misalignment with embeddings)")
+        return get_all_clips()
+
+
+def restore_original_path(cache_path: Path, clips_dir: Path = None) -> str:
+    """Convert RAM cache path back to original path."""
+    if clips_dir is None:
+        clips_dir = CLIPS_DIR
+    cache_name = cache_path.name
+    parts = cache_name.split("__", 1)
+    if len(parts) == 2:
+        return str(clips_dir / parts[0] / parts[1])
+    return str(cache_path)
+
+
+def check_output_exists(output_paths: list, description: str = "output") -> bool:
+    """
+    Check if output files exist and prompt user for action.
+
+    Args:
+        output_paths: List of Path objects to check
+        description: Description of the output for display
+
+    Returns:
+        True if should process (delete and re-run)
+        False if should skip (use cached files)
+    """
+    import shutil
+
+    # Convert to Path objects and check existence
+    existing = []
+    for p in output_paths:
+        p = Path(p)
+        if p.exists():
+            existing.append(p)
+        elif p.is_dir() or (p.parent.exists() and any(p.parent.iterdir())):
+            # Check if it's a directory pattern
+            if p.is_dir():
+                existing.append(p)
+
+    if not existing:
+        return True  # No existing files, proceed with processing
+
+    # Display existing files
+    print(f"\n{'='*50}")
+    print(f"Found existing {description}:")
+    for p in existing[:5]:  # Show max 5
+        if p.is_dir():
+            count = sum(1 for _ in p.rglob("*") if _.is_file())
+            print(f"  {p}/ ({count} files)")
+        else:
+            print(f"  {p}")
+    if len(existing) > 5:
+        print(f"  ... and {len(existing) - 5} more")
+    print(f"{'='*50}")
+
+    # Prompt user
+    print("\nOptions:")
+    print("  [1] Delete existing and re-run")
+    print("  [2] Use cached files (skip processing)")
+
+    while True:
+        try:
+            choice = input("\nEnter choice (1 or 2): ").strip()
+            if choice == "1":
+                # Delete existing files
+                for p in existing:
+                    if p.is_dir():
+                        shutil.rmtree(p)
+                        print(f"Deleted: {p}/")
+                    else:
+                        p.unlink()
+                        print(f"Deleted: {p}")
+                return True  # Proceed with processing
+            elif choice == "2":
+                print("Using cached files, skipping processing.")
+                return False  # Skip processing
+            else:
+                print("Invalid choice. Enter 1 or 2.")
+        except KeyboardInterrupt:
+            print("\nAborted.")
+            sys.exit(1)
+        except EOFError:
+            # Non-interactive mode - default to using cache
+            print("Non-interactive mode: using cached files.")
+            return False

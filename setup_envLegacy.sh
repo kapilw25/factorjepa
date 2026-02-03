@@ -37,10 +37,40 @@ setup_base() {
     echo "Detected OS: $OS"
     echo ""
 
-    # Create virtual environment
+    # Install system dependencies (tree, Python 3.12)
+    if [ "$OS" = "Linux" ]; then
+        NEED_APT_UPDATE=false
+        APT_PACKAGES=""
+
+        if ! command -v tree &> /dev/null; then
+            APT_PACKAGES="$APT_PACKAGES tree"
+            NEED_APT_UPDATE=true
+        fi
+
+        if ! command -v python3.12 &> /dev/null; then
+            echo "Adding deadsnakes PPA for Python 3.12..."
+            apt-get update
+            apt-get install -y software-properties-common
+            add-apt-repository -y ppa:deadsnakes/ppa
+            APT_PACKAGES="$APT_PACKAGES python3.12 python3.12-venv python3.12-dev"
+            NEED_APT_UPDATE=true
+        fi
+
+        if [ "$NEED_APT_UPDATE" = true ]; then
+            echo "Installing: $APT_PACKAGES"
+            apt-get update
+            apt-get install -y $APT_PACKAGES
+        fi
+    elif [ "$OS" = "Darwin" ]; then
+        command -v tree &> /dev/null || brew install tree
+        command -v python3.12 &> /dev/null || brew install python@3.12
+    fi
+    echo "Python 3.12: $(python3.12 --version)"
+
+    # Create virtual environment with Python 3.12
     if [ ! -d "venv_walkindia" ]; then
-        echo "Creating virtual environment..."
-        python3 -m venv venv_walkindia
+        echo "Creating virtual environment (Python 3.12)..."
+        python3.12 -m venv venv_walkindia
     else
         echo "Virtual environment already exists"
     fi
@@ -105,12 +135,12 @@ if [ "$1" = "--gpu" ]; then
 
     # 1. Install PyTorch 2.5.1 with CUDA 12.4
     echo ""
-    echo "[1/4] Installing PyTorch 2.5.1+cu124..."
+    echo "[1/5] Installing PyTorch 2.5.1+cu124..."
     pip install torch==2.5.1 torchvision==0.20.1 --index-url https://download.pytorch.org/whl/cu124
 
     # 2. Verify PyTorch + CUDA
     echo ""
-    echo "[2/4] Verifying PyTorch + CUDA..."
+    echo "[2/5] Verifying PyTorch + CUDA..."
     python -c "
 import torch
 if not torch.cuda.is_available():
@@ -121,13 +151,31 @@ print(f'PyTorch: {torch.__version__}, CUDA: {torch.version.cuda}, GPU: {torch.cu
 
     # 3. Install GPU requirements
     echo ""
-    echo "[3/4] Installing GPU requirements..."
+    echo "[3/5] Installing GPU requirements..."
     pip install -r requirements_gpu.txt
 
-    # 4. Install FAISS-GPU (Nvidia ONLY)
+    # 4. Install Flash-Attention 2.8.3 (pre-built wheel for CUDA 12 + PyTorch 2.5)
     echo ""
-    echo "[4/4] Installing FAISS-GPU (Nvidia ONLY)..."
-    pip install faiss-gpu
+    echo "[4/5] Installing Flash-Attention 2.8.3..."
+    WHEEL_NAME="flash_attn-2.8.3+cu12torch2.5cxx11abiFALSE-cp312-cp312-linux_x86_64.whl"
+    WHEEL_URL="https://github.com/Dao-AILab/flash-attention/releases/download/v2.8.3/flash_attn-2.8.3%2Bcu12torch2.5cxx11abiFALSE-cp312-cp312-linux_x86_64.whl"
+
+    # Clean any existing/partial wheel files before download
+    rm -f flash_attn*.whl
+    # Use aria2 with 16 parallel connections to bypass GitHub CDN throttling
+    if command -v aria2c &> /dev/null; then
+        aria2c -x 16 -s 16 -o "$WHEEL_NAME" "$WHEEL_URL"
+    else
+        echo "aria2c not found, using wget..."
+        wget -O "$WHEEL_NAME" "$WHEEL_URL"
+    fi
+    pip install "$WHEEL_NAME"
+    rm -f "$WHEEL_NAME"
+
+    # 5. Install FAISS-GPU (CUDA 12)
+    echo ""
+    echo "[5/5] Installing FAISS-GPU (CUDA 12)..."
+    pip install faiss-gpu-cu12
 
     # Final verification
     echo ""
@@ -135,6 +183,7 @@ print(f'PyTorch: {torch.__version__}, CUDA: {torch.version.cuda}, GPU: {torch.cu
     python -c "
 import torch
 import faiss
+import flash_attn
 
 if not torch.cuda.is_available():
     print('ERROR: CUDA not available')
@@ -144,10 +193,11 @@ if faiss.get_num_gpus() == 0:
     print('ERROR: FAISS GPU not available')
     exit(1)
 
-print(f'PyTorch:   {torch.__version__}')
-print(f'CUDA:      {torch.version.cuda}')
-print(f'GPU:       {torch.cuda.get_device_name(0)}')
-print(f'FAISS GPU: {faiss.get_num_gpus()} GPU(s) available')
+print(f'PyTorch:      {torch.__version__}')
+print(f'CUDA:         {torch.version.cuda}')
+print(f'GPU:          {torch.cuda.get_device_name(0)}')
+print(f'FAISS GPU:    {faiss.get_num_gpus()} GPU(s) available')
+print(f'Flash-Attn:   {flash_attn.__version__}')
 print('')
 print('SUCCESS: All GPU components verified')
 "

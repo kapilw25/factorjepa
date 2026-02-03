@@ -31,4 +31,55 @@ step3: we will do object segmentation using SAM3 - https://www.youtube.com/watch
 step4: V-JEPA 2: A frontier video understanding model developed by FAIR, Meta, which extends the pretraining objectives of VJEPA, resulting in state-of-the-art video understanding capabilities, leveraging data and model sizes at scale. The code is released in this repository.
 -------------------------------------------------------------
 
+*Date: Tue Feb 3, 2026*
+scene detect: min length 4 sec, max 10 sec
+
+INDIA WORLD MODEL TAXONOMY (for stratification + slice reporting ONLY; NOT supervision)
+=============================================================================
+
+tags
+├── scene_type [single]
+│ ├── market
+│ ├── junction
+│ ├── residential_lane
+│ ├── promenade
+│ ├── transit
+│ ├── temple_tourist
+│ ├── highway
+│ └── alley
+│
+├── time_of_day [single]
+│ ├── morning
+│ ├── afternoon
+│ ├── evening
+│ └── night
+│
+├── weather [single]
+│ ├── clear
+│ ├── rain
+│ └── fog
+│
+├── crowd_density [single]
+│ ├── low
+│ ├── med
+│ └── high
+│
+├── notable_objects [multi]
+│ ├── bus
+│ ├── auto_rickshaw
+│ ├── bike
+│ ├── street_vendor
+│ ├── police
+│ ├── signage
+│ └── animals
+│
+└── road_layout [multi]
+├── intersection
+├── narrow_lane
+├── wide_road
+├── sidewalk_present
+└── median
+
+
+
 *do not modify these notes, keep them raw*

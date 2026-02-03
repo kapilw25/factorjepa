@@ -21,7 +21,8 @@
 # =============================================================================
 # Transformers & Model Loading
 # =============================================================================
-transformers>=4.45.0
+# V-JEPA 2 requires transformers>=4.52.0, Qwen3-VL requires >=4.57.0
+transformers>=4.57.0
 accelerate>=0.25.0
 bitsandbytes>=0.41.0
 
@@ -34,6 +35,8 @@ qwen-vl-utils>=0.0.2
 # Video Processing
 # =============================================================================
 av>=12.0.0
+# torchcodec: faster video decoding (2-3x vs av) - optional, requires system FFmpeg
+# Install manually if needed: pip install torchcodec
 
 # =============================================================================
 # FAISS GPU (Similarity Search) - Nvidia GPU ONLY

@@ -15,7 +15,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent))
 from utils.config import (
     VIDEOS_DIR, CLIPS_DIR, CLIP_MIN_DURATION, CLIP_MAX_DURATION,
-    get_all_videos, get_video_duration
+    get_all_videos, get_video_duration, check_output_exists
 )
 
 try:
@@ -393,6 +393,14 @@ def main():
         sys.exit(1)
 
     CLIPS_DIR.mkdir(parents=True, exist_ok=True)
+
+    # Check if clips already exist (skip for resplit-only mode)
+    if not args.resplit_only:
+        clip_dirs = [d for d in CLIPS_DIR.iterdir() if d.is_dir()] if CLIPS_DIR.exists() else []
+        if clip_dirs:
+            if not check_output_exists(clip_dirs, "clips"):
+                print("Using cached clips.")
+                return
 
     # Re-split only mode
     if args.resplit_only:

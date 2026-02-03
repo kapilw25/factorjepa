@@ -1,10 +1,10 @@
 """
 Build FAISS index and compute evaluation metrics (Self-Consistency, Cluster Purity).
-Nvidia GPU required (faiss-gpu).
+Uses CPU FAISS for small datasets (<1000 vectors). Requires embeddings.npy and tags.json.
 
 USAGE:
-    python -u src/m05_faiss_metrics.py --SANITY 2>&1 | tee logs/m05_faiss_metrics_sanity.log
-    python -u src/m05_faiss_metrics.py --FULL 2>&1 | tee logs/m05_faiss_metrics_full.log
+    python -u src/m05_faiss_metrics.py 2>&1 | tee logs/m05_faiss_metrics.log
+    python -u src/m05_faiss_metrics.py --cpu 2>&1 | tee logs/m05_faiss_metrics_cpu.log
 """
 import argparse
 import json
@@ -16,9 +16,9 @@ import numpy as np
 # Add src to path for utils import
 sys.path.insert(0, str(Path(__file__).parent))
 from utils.config import (
-    EMBEDDINGS_FILE, TAGS_FILE, METRICS_FILE,
+    EMBEDDINGS_FILE, TAGS_FILE, METRICS_FILE, OUTPUTS_DIR,
     FAISS_K_NEIGHBORS, VJEPA_EMBEDDING_DIM,
-    check_gpu, load_embeddings_and_tags
+    check_gpu, load_embeddings_and_tags, check_output_exists
 )
 
 try:
@@ -28,6 +28,34 @@ except ImportError as e:
     print(f"ERROR: Missing dependency: {e}")
     print("Install with: pip install torch faiss-gpu")
     sys.exit(1)
+
+
+def build_faiss_index_cpu(embeddings: np.ndarray) -> faiss.Index:
+    """
+    Build FAISS index on CPU (fast enough for <10K vectors).
+
+    Args:
+        embeddings: numpy array of shape (n_samples, embedding_dim)
+
+    Returns:
+        FAISS CPU index
+    """
+    d = embeddings.shape[1]
+    print(f"Building FAISS CPU index: {embeddings.shape[0]} vectors, dim={d}")
+
+    # For small datasets (<1000), use exact search (IndexFlatL2)
+    if embeddings.shape[0] < 1000:
+        index = faiss.IndexFlatL2(d)
+    else:
+        # IVF index for larger datasets
+        nlist = min(100, embeddings.shape[0] // 10)
+        quantizer = faiss.IndexFlatL2(d)
+        index = faiss.IndexIVFFlat(quantizer, d, nlist)
+        index.train(embeddings)
+
+    index.add(embeddings)
+    print(f"FAISS CPU index built with {index.ntotal} vectors")
+    return index
 
 
 def build_faiss_index_gpu(embeddings: np.ndarray) -> faiss.Index:
@@ -42,6 +70,11 @@ def build_faiss_index_gpu(embeddings: np.ndarray) -> faiss.Index:
     """
     d = embeddings.shape[1]
     print(f"Building FAISS GPU index: {embeddings.shape[0]} vectors, dim={d}")
+
+    # Check if FAISS GPU is available
+    if faiss.get_num_gpus() == 0:
+        print("WARNING: No FAISS GPU available, falling back to CPU")
+        return build_faiss_index_cpu(embeddings)
 
     # Create GPU resources
     res = faiss.StandardGpuResources()
@@ -115,27 +148,145 @@ def compute_cluster_purity(indices: np.ndarray, tags: list, k: int = 5) -> float
     return (correct / total) * 100 if total > 0 else 0
 
 
+def compute_per_scene_purity(indices: np.ndarray, tags: list, k: int = 5) -> dict:
+    """Compute cluster purity for each scene type."""
+    scene_stats = {}
+
+    for i, neighbors in enumerate(indices):
+        my_type = tags[i].get("scene_type", "unknown")
+        if my_type not in scene_stats:
+            scene_stats[my_type] = {"correct": 0, "total": 0}
+
+        for j in neighbors[1:k+1]:
+            neighbor_type = tags[j].get("scene_type", "unknown")
+            if neighbor_type == my_type:
+                scene_stats[my_type]["correct"] += 1
+            scene_stats[my_type]["total"] += 1
+
+    # Compute percentages
+    result = {}
+    for scene, stats in scene_stats.items():
+        if stats["total"] > 0:
+            result[scene] = {
+                "purity": round(stats["correct"] / stats["total"] * 100, 2),
+                "count": stats["total"] // k  # number of clips
+            }
+    return result
+
+
+def generate_plots(distances: np.ndarray, indices: np.ndarray, tags: list, k: int, output_dir: Path,
+                   self_consistency: float = None, cluster_purity: float = None):
+    """Generate diagnostic plots for FAISS metrics."""
+    import matplotlib.pyplot as plt
+
+    output_dir.mkdir(parents=True, exist_ok=True)
+    total_clips = len(tags)
+
+    # Plot 1: Per-scene purity breakdown
+    per_scene = compute_per_scene_purity(indices, tags, k=k-1)
+
+    fig, ax = plt.subplots(figsize=(10, 6))
+    scenes = sorted(per_scene.keys(), key=lambda x: per_scene[x]["purity"], reverse=True)
+    purities = [per_scene[s]["purity"] for s in scenes]
+    counts = [per_scene[s]["count"] for s in scenes]
+
+    bars = ax.bar(scenes, purities, color=['#4CAF50' if p > 50 else '#F44336' for p in purities])
+
+    # Add count labels above bars - all black and bold
+    for bar, count in zip(bars, counts):
+        ax.text(bar.get_x() + bar.get_width()/2, bar.get_height() + 1,
+                f'n={count}', ha='center', va='bottom', fontsize=9, color='black', fontweight='bold')
+
+    ax.axhline(y=50, color='orange', linestyle='--', linewidth=1.5)
+    ax.set_xlabel('Scene Type', fontsize=11)
+    ax.set_ylabel('Cluster Purity (%)', fontsize=11)
+    ax.set_title(f'V-JEPA kNN Retrieval Purity by Scene Type (k={k-1}, n={total_clips})', fontsize=12)
+
+    # Add overall metrics text box (top-right, bars decrease left-to-right)
+    if self_consistency is not None and cluster_purity is not None:
+        sc_status = "PASS" if self_consistency > 60 else "FAIL"
+        cp_status = "PASS" if cluster_purity > 50 else "FAIL"
+        overall = "PASS" if (self_consistency > 60 and cluster_purity > 50) else "FAIL"
+        metrics_text = (
+            f"Self-Consistency: {self_consistency:.1f}% {sc_status}\n"
+            f"Cluster Purity:   {cluster_purity:.1f}% {cp_status}\n"
+            f"{'─'*28}\n"
+            f"Overall: {overall}"
+        )
+        bbox_color = '#d4edda' if overall == "PASS" else '#f8d7da'
+        ax.text(0.98, 0.98, metrics_text, transform=ax.transAxes, fontsize=10,
+                verticalalignment='top', horizontalalignment='right', fontfamily='monospace',
+                color='black', fontweight='bold',
+                bbox=dict(boxstyle='round,pad=0.5', facecolor=bbox_color, edgecolor='gray', alpha=0.95))
+
+    ax.set_ylim(0, 110)
+    ax.set_yticks([0, 20, 40, 50, 60, 80, 100])
+    plt.xticks(rotation=45, ha='right')
+    plt.tight_layout()
+
+    plot_path_png = output_dir / "m05_purity_by_scene.png"
+    plot_path_pdf = output_dir / "m05_purity_by_scene.pdf"
+    plt.savefig(plot_path_png, dpi=300)
+    plt.savefig(plot_path_pdf)
+    plt.close()
+    print(f"Saved: {plot_path_png}")
+
+    # Plot 2: kNN distance distribution
+    fig, ax = plt.subplots(figsize=(10, 6))
+    # distances[:, 0] is self (always 0), use [:, 1:] for actual neighbors
+    neighbor_distances = distances[:, 1:].flatten()
+
+    ax.hist(neighbor_distances, bins=50, color='steelblue', alpha=0.7, edgecolor='white')
+    ax.axvline(x=np.median(neighbor_distances), color='red', linestyle='--',
+               label=f'Median: {np.median(neighbor_distances):.2f}')
+    ax.set_xlabel('L2 Distance to Neighbor')
+    ax.set_ylabel('Count')
+    ax.set_title(f'kNN Distance Distribution (k={k-1})')
+    ax.legend()
+    plt.tight_layout()
+
+    plot_path_png = output_dir / "m05_distance_hist.png"
+    plot_path_pdf = output_dir / "m05_distance_hist.pdf"
+    plt.savefig(plot_path_png, dpi=150)
+    plt.savefig(plot_path_pdf)
+    plt.close()
+    print(f"Saved: {plot_path_png}")
+
+
 def main():
     parser = argparse.ArgumentParser(description="Build FAISS index and compute metrics")
-    parser.add_argument("--SANITY", action="store_true", help="Quick test with existing data")
-    parser.add_argument("--FULL", action="store_true", help="Full computation")
     parser.add_argument("--k", type=int, default=FAISS_K_NEIGHBORS, help="Number of neighbors")
+    parser.add_argument("--cpu", action="store_true", help="Use CPU FAISS (faster for small datasets, avoids GPU issues)")
     args = parser.parse_args()
 
-    if not (args.SANITY or args.FULL):
-        parser.print_help()
-        print("\nERROR: Specify --SANITY or --FULL")
-        sys.exit(1)
+    # Check if metrics already exist
+    output_files = [
+        METRICS_FILE,
+        OUTPUTS_DIR / "m05_purity_by_scene.png",
+        OUTPUTS_DIR / "m05_distance_hist.png"
+    ]
+    existing = [f for f in output_files if f.exists()]
+    if existing:
+        if not check_output_exists(existing, "metrics/plots"):
+            print("Using cached metrics.")
+            return
 
-    # GPU check - exit if no CUDA
-    check_gpu()
+    # GPU check - exit if no CUDA (unless --cpu)
+    if not args.cpu:
+        check_gpu()
 
     # Load embeddings and tags
     embeddings, tags = load_embeddings_and_tags()
 
-    # Build FAISS GPU index
+    # Build FAISS index (CPU or GPU)
     k = args.k
-    index = build_faiss_index_gpu(embeddings)
+    if args.cpu or embeddings.shape[0] < 1000:
+        # CPU is faster for small datasets, avoids faiss-gpu compatibility issues
+        if embeddings.shape[0] < 1000:
+            print(f"Small dataset ({embeddings.shape[0]} vectors) - using CPU FAISS")
+        index = build_faiss_index_cpu(embeddings)
+    else:
+        index = build_faiss_index_gpu(embeddings)
 
     # Search for k nearest neighbors
     print(f"Searching for k={k} nearest neighbors on GPU...")
@@ -168,6 +319,10 @@ def main():
         json.dump(metrics, f, indent=2)
 
     print(f"\nSaved metrics: {METRICS_FILE}")
+
+    # Generate diagnostic plots
+    print("\n=== GENERATING PLOTS ===")
+    generate_plots(D, I, tags, k, OUTPUTS_DIR, self_consistency, cluster_purity)
 
     # Summary
     print("\n=== POC STATUS ===")

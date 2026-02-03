@@ -1,0 +1,3715 @@
+[
+  {
+    "scene_type": "lane",
+    "crowd_density": "med",
+    "traffic_density": "low",
+    "time_of_day": "afternoon",
+    "weather": "clear",
+    "notable_objects": [
+      "motorcycles",
+      "shops",
+      "signboards",
+      "people",
+      "buildings"
+    ],
+    "clip_path": "/workspace/LLM_asAgent_3D_SR/src/data/clips/hilltown/hilltown-Scene-001-scene002-chunk000.mp4"
+  },
+  {
+    "scene_type": "lane",
+    "crowd_density": "low",
+    "traffic_density": "med",
+    "time_of_day": "morning",
+    "weather": "clear",
+    "notable_objects": [
+      "car",
+      "scooters",
+      "shops",
+      "signboards",
+      "buildings"
+    ],
+    "clip_path": "/workspace/LLM_asAgent_3D_SR/src/data/clips/hilltown/hilltown-Scene-001-scene002-chunk004.mp4"
+  },
+  {
+    "scene_type": "lane",
+    "crowd_density": "med",
+    "traffic_density": "med",
+    "time_of_day": "morning",
+    "weather": "clear",
+    "notable_objects": [
+      "motorcycles",
+      "shops",
+      "signboards",
+      "buildings",
+      "people"
+    ],
+    "clip_path": "/workspace/LLM_asAgent_3D_SR/src/data/clips/hilltown/hilltown-Scene-001-scene003-chunk000.mp4"
+  },
+  {
+    "scene_type": "commercial",
+    "crowd_density": "low",
+    "traffic_density": "low",
+    "time_of_day": "morning",
+    "weather": "clear",
+    "notable_objects": [
+      "SANDOZZ store",
+      "motorcycles",
+      "shoppers",
+      "shelves with goods",
+      "street signs"
+    ],
+    "clip_path": "/workspace/LLM_asAgent_3D_SR/src/data/clips/hilltown/hilltown-Scene-001-scene000.mp4"
+  },
+  {
+    "scene_type": "lane",
+    "crowd_density": "low",
+    "traffic_density": "low",
+    "time_of_day": "morning",
+    "weather": "clear",
+    "notable_objects": [
+      "motorcycles",
+      "shops",
+      "shutters",
+      "signboards",
+      "buildings"
+    ],
+    "clip_path": "/workspace/LLM_asAgent_3D_SR/src/data/clips/hilltown/hilltown-Scene-001-scene002-chunk002.mp4"
+  },
+  {
+    "scene_type": "commercial",
+    "crowd_density": "high",
+    "traffic_density": "med",
+    "time_of_day": "afternoon",
+    "weather": "clear",
+    "notable_objects": [
+      "shops",
+      "motorcycles",
+      "signboards",
+      "pedestrians",
+      "street food stalls"
+    ],
+    "clip_path": "/workspace/LLM_asAgent_3D_SR/src/data/clips/hilltown/hilltown-Scene-001-scene001-chunk000.mp4"
+  },
+  {
+    "scene_type": "commercial",
+    "crowd_density": "low",
+    "traffic_density": "low",
+    "time_of_day": "morning",
+    "weather": "clear",
+    "notable_objects": [
+      "hotel",
+      "motorcycle",
+      "car",
+      "signage",
+      "pedestrians"
+    ],
+    "clip_path": "/workspace/LLM_asAgent_3D_SR/src/data/clips/hilltown/hilltown-Scene-001-scene003-chunk004.mp4"
+  },
+  {
+    "scene_type": "commercial",
+    "crowd_density": "med",
+    "traffic_density": "med",
+    "time_of_day": "morning",
+    "weather": "clear",
+    "notable_objects": [
+      "motorcycles",
+      "hotel signs",
+      "buildings",
+      "people",
+      "street"
+    ],
+    "clip_path": "/workspace/LLM_asAgent_3D_SR/src/data/clips/hilltown/hilltown-Scene-001-scene003-chunk001.mp4"
+  },
+  {
+    "scene_type": "lane",
+    "crowd_density": "low",
+    "traffic_density": "low",
+    "time_of_day": "afternoon",
+    "weather": "clear",
+    "notable_objects": [
+      "van",
+      "motorcycle",
+      "hotel",
+      "restaurant",
+      "pedestrian",
+      "signboard"
+    ],
+    "clip_path": "/workspace/LLM_asAgent_3D_SR/src/data/clips/hilltown/hilltown-Scene-001-scene003-chunk005.mp4"
+  },
+  {
+    "scene_type": "commercial",
+    "crowd_density": "med",
+    "traffic_density": "med",
+    "time_of_day": "afternoon",
+    "weather": "clear",
+    "notable_objects": [
+      "motorcycles",
+      "cars",
+      "shops",
+      "signboards",
+      "pedestrians",
+      "buildings"
+    ],
+    "clip_path": "/workspace/LLM_asAgent_3D_SR/src/data/clips/hilltown/hilltown-Scene-001-scene003-chunk003.mp4"
+  },
+  {
+    "scene_type": "lane",
+    "crowd_density": "med",
+    "traffic_density": "med",
+    "time_of_day": "afternoon",
+    "weather": "clear",
+    "notable_objects": [
+      "New Punjab Restaurant",
+      "Hotel",
+      "motorcycle",
+      "car",
+      "pedestrians",
+      "shop signs",
+      "shuttered shops"
+    ],
+    "clip_path": "/workspace/LLM_asAgent_3D_SR/src/data/clips/hilltown/hilltown-Scene-001-scene003-chunk008.mp4"
+  },
+  {
+    "scene_type": "commercial",
+    "crowd_density": "low",
+    "traffic_density": "low",
+    "time_of_day": "afternoon",
+    "weather": "clear",
+    "notable_objects": [
+      "hotel signs",
+      "motorcycles",
+      "cars",
+      "shop shutters",
+      "street signs"
+    ],
+    "clip_path": "/workspace/LLM_asAgent_3D_SR/src/data/clips/hilltown/hilltown-Scene-001-scene003-chunk009.mp4"
+  },
+  {
+    "scene_type": "lane",
+    "crowd_density": "low",
+    "traffic_density": "low",
+    "time_of_day": "afternoon",
+    "weather": "clear",
+    "notable_objects": [
+      "cars",
+      "minaret",
+      "buildings",
+      "Coca-Cola sign",
+      "street signs"
+    ],
+    "clip_path": "/workspace/LLM_asAgent_3D_SR/src/data/clips/hilltown/hilltown-Scene-002-scene000-chunk005.mp4"
+  },
+  {
+    "scene_type": "lane",
+    "crowd_density": "low",
+    "traffic_density": "low",
+    "time_of_day": "afternoon",
+    "weather": "clear",
+    "notable_objects": [
+      "Doon Chicken Point sign",
+      "motorcycle",
+      "car",
+      "buildings",
+      "man holding cricket bat",
+      "man on phone"
+    ],
+    "clip_path": "/workspace/LLM_asAgent_3D_SR/src/data/clips/hilltown/hilltown-Scene-002-scene000-chunk000.mp4"
+  },
+  {
+    "scene_type": "lane",
+    "crowd_density": "low",
+    "traffic_density": "low",
+    "time_of_day": "morning",
+    "weather": "clear",
+    "notable_objects": [
+      "cars",
+      "motorcycles",
+      "shops",
+      "buildings",
+      "signs",
+      "person walking"
+    ],
+    "clip_path": "/workspace/LLM_asAgent_3D_SR/src/data/clips/hilltown/hilltown-Scene-002-scene000-chunk002.mp4"
+  },
+  {
+    "scene_type": "hilltown",
+    "crowd_density": "low",
+    "traffic_density": "low",
+    "time_of_day": "morning",
+    "weather": "clear",
+    "notable_objects": [
+      "buildings",
+      "power lines",
+      "trees",
+      "hillside",
+      "minaret"
+    ],
+    "clip_path": "/workspace/LLM_asAgent_3D_SR/src/data/clips/hilltown/hilltown-Scene-002-scene000-chunk008.mp4"
+  },
+  {
+    "scene_type": "lane",
+    "crowd_density": "low",
+    "traffic_density": "low",
+    "time_of_day": "afternoon",
+    "weather": "clear",
+    "notable_objects": [
+      "minaret",
+      "cars",
+      "buildings",
+      "mountain"
+    ],
+    "clip_path": "/workspace/LLM_asAgent_3D_SR/src/data/clips/hilltown/hilltown-Scene-002-scene000-chunk006.mp4"
+  },
+  {
+    "scene_type": "hilltown",
+    "crowd_density": "low",
+    "traffic_density": "low",
+    "time_of_day": "morning",
+    "weather": "clear",
+    "notable_objects": [
+      "minarets",
+      "vehicles",
+      "buildings",
+      "power lines",
+      "hillside"
+    ],
+    "clip_path": "/workspace/LLM_asAgent_3D_SR/src/data/clips/hilltown/hilltown-Scene-002-scene000-chunk007.mp4"
+  },
+  {
+    "scene_type": "lane",
+    "crowd_density": "med",
+    "traffic_density": "low",
+    "time_of_day": "afternoon",
+    "weather": "clear",
+    "notable_objects": [
+      "cars",
+      "motorcycles",
+      "buildings",
+      "people",
+      "signs"
+    ],
+    "clip_path": "/workspace/LLM_asAgent_3D_SR/src/data/clips/hilltown/hilltown-Scene-002-scene000-chunk001.mp4"
+  },
+  {
+    "scene_type": "lane",
+    "crowd_density": "low",
+    "traffic_density": "low",
+    "time_of_day": "morning",
+    "weather": "clear",
+    "notable_objects": [
+      "minaret",
+      "buildings",
+      "power lines",
+      "signboards",
+      "people"
+    ],
+    "clip_path": "/workspace/LLM_asAgent_3D_SR/src/data/clips/hilltown/hilltown-Scene-002-scene001-chunk000.mp4"
+  },
+  {
+    "scene_type": "commercial",
+    "crowd_density": "med",
+    "traffic_density": "low",
+    "time_of_day": "morning",
+    "weather": "clear",
+    "notable_objects": [
+      "Royal Blush Laundry",
+      "motorcycles",
+      "cars",
+      "buildings",
+      "people"
+    ],
+    "clip_path": "/workspace/LLM_asAgent_3D_SR/src/data/clips/hilltown/hilltown-Scene-002-scene001-chunk001.mp4"
+  },
+  {
+    "scene_type": "residential",
+    "crowd_density": "low",
+    "traffic_density": "low",
+    "time_of_day": "morning",
+    "weather": "clear",
+    "notable_objects": [
+      "hotel sign",
+      "motorcycles",
+      "trees",
+      "buildings",
+      "signboards",
+      "fence",
+      "car"
+    ],
+    "clip_path": "/workspace/LLM_asAgent_3D_SR/src/data/clips/hilltown/hilltown-Scene-002-scene002-chunk000.mp4"
+  },
+  {
+    "scene_type": "hilltown",
+    "crowd_density": "low",
+    "traffic_density": "low",
+    "time_of_day": "morning",
+    "weather": "clear",
+    "notable_objects": [
+      "hotel sign",
+      "power lines",
+      "trees",
+      "mountains",
+      "buildings"
+    ],
+    "clip_path": "/workspace/LLM_asAgent_3D_SR/src/data/clips/hilltown/hilltown-Scene-002-scene003-chunk000.mp4"
+  },
+  {
+    "scene_type": "hilltown",
+    "crowd_density": "low",
+    "traffic_density": "low",
+    "time_of_day": "morning",
+    "weather": "clear",
+    "notable_objects": [
+      "signboard",
+      "trees",
+      "mountains",
+      "buildings",
+      "power lines"
+    ],
+    "clip_path": "/workspace/LLM_asAgent_3D_SR/src/data/clips/hilltown/hilltown-Scene-002-scene003-chunk001.mp4"
+  },
+  {
+    "scene_type": "hilltown",
+    "crowd_density": "low",
+    "traffic_density": "low",
+    "time_of_day": "morning",
+    "weather": "clear",
+    "notable_objects": [
+      "cars",
+      "buildings",
+      "hillside",
+      "railings",
+      "power lines"
+    ],
+    "clip_path": "/workspace/LLM_asAgent_3D_SR/src/data/clips/hilltown/hilltown-Scene-002-scene004-chunk000.mp4"
+  },
+  {
+    "scene_type": "hilltown",
+    "crowd_density": "low",
+    "traffic_density": "low",
+    "time_of_day": "morning",
+    "weather": "clear",
+    "notable_objects": [
+      "mountains",
+      "trees",
+      "power lines",
+      "buildings"
+    ],
+    "clip_path": "/workspace/LLM_asAgent_3D_SR/src/data/clips/hilltown/hilltown-Scene-002-scene004-chunk001.mp4"
+  },
+  {
+    "scene_type": "hilltown",
+    "crowd_density": "low",
+    "traffic_density": "low",
+    "time_of_day": "morning",
+    "weather": "clear",
+    "notable_objects": [
+      "mountains",
+      "houses",
+      "fences",
+      "power lines",
+      "trees"
+    ],
+    "clip_path": "/workspace/LLM_asAgent_3D_SR/src/data/clips/hilltown/hilltown-Scene-002-scene004-chunk003.mp4"
+  },
+  {
+    "scene_type": "hilltown",
+    "crowd_density": "low",
+    "traffic_density": "low",
+    "time_of_day": "morning",
+    "weather": "clear",
+    "notable_objects": [
+      "mountains",
+      "trees",
+      "buildings",
+      "power lines",
+      "fence",
+      "signboard"
+    ],
+    "clip_path": "/workspace/LLM_asAgent_3D_SR/src/data/clips/hilltown/hilltown-Scene-002-scene004-chunk004.mp4"
+  },
+  {
+    "scene_type": "lane",
+    "crowd_density": "low",
+    "traffic_density": "low",
+    "time_of_day": "morning",
+    "weather": "clear",
+    "notable_objects": [
+      "cars",
+      "buildings",
+      "trees",
+      "fence",
+      "power lines"
+    ],
+    "clip_path": "/workspace/LLM_asAgent_3D_SR/src/data/clips/hilltown/hilltown-Scene-002-scene005-chunk000.mp4"
+  },
+  {
+    "scene_type": "hilltown",
+    "crowd_density": "low",
+    "traffic_density": "low",
+    "time_of_day": "morning",
+    "weather": "clear",
+    "notable_objects": [
+      "mountains",
+      "trees",
+      "buildings",
+      "power lines"
+    ],
+    "clip_path": "/workspace/LLM_asAgent_3D_SR/src/data/clips/hilltown/hilltown-Scene-002-scene004-chunk002.mp4"
+  },
+  {
+    "scene_type": "lane",
+    "crowd_density": "low",
+    "traffic_density": "low",
+    "time_of_day": "afternoon",
+    "weather": "clear",
+    "notable_objects": [
+      "cars",
+      "buildings",
+      "tree",
+      "person",
+      "railings"
+    ],
+    "clip_path": "/workspace/LLM_asAgent_3D_SR/src/data/clips/hilltown/hilltown-Scene-002-scene005-chunk001.mp4"
+  },
+  {
+    "scene_type": "lane",
+    "crowd_density": "low",
+    "traffic_density": "low",
+    "time_of_day": "afternoon",
+    "weather": "clear",
+    "notable_objects": [
+      "cars",
+      "stone wall",
+      "buildings",
+      "power lines",
+      "person walking"
+    ],
+    "clip_path": "/workspace/LLM_asAgent_3D_SR/src/data/clips/hilltown/hilltown-Scene-002-scene006-chunk000.mp4"
+  },
+  {
+    "scene_type": "hilltown",
+    "crowd_density": "low",
+    "traffic_density": "med",
+    "time_of_day": "afternoon",
+    "weather": "clear",
+    "notable_objects": [
+      "hotel",
+      "cars",
+      "motorcycles",
+      "stone wall",
+      "signs",
+      "power lines"
+    ],
+    "clip_path": "/workspace/LLM_asAgent_3D_SR/src/data/clips/hilltown/hilltown-Scene-002-scene005-chunk003.mp4"
+  },
+  {
+    "scene_type": "hilltown",
+    "crowd_density": "low",
+    "traffic_density": "low",
+    "time_of_day": "afternoon",
+    "weather": "clear",
+    "notable_objects": [
+      "Hotel Deep",
+      "cars",
+      "motorcycles",
+      "stone wall",
+      "power lines",
+      "buildings"
+    ],
+    "clip_path": "/workspace/LLM_asAgent_3D_SR/src/data/clips/hilltown/hilltown-Scene-002-scene005-chunk004.mp4"
+  },
+  {
+    "scene_type": "hilltown",
+    "crowd_density": "low",
+    "traffic_density": "med",
+    "time_of_day": "afternoon",
+    "weather": "clear",
+    "notable_objects": [
+      "Hotel Deep",
+      "motorcycles",
+      "van",
+      "trees",
+      "graffiti",
+      "stairs",
+      "buildings"
+    ],
+    "clip_path": "/workspace/LLM_asAgent_3D_SR/src/data/clips/hilltown/hilltown-Scene-002-scene005-chunk002.mp4"
+  },
+  {
+    "scene_type": "lane",
+    "crowd_density": "low",
+    "traffic_density": "med",
+    "time_of_day": "morning",
+    "weather": "clear",
+    "notable_objects": [
+      "cars",
+      "motorcycle",
+      "electric pole",
+      "buildings",
+      "mountains"
+    ],
+    "clip_path": "/workspace/LLM_asAgent_3D_SR/src/data/clips/hilltown/hilltown-Scene-002-scene006-chunk001.mp4"
+  },
+  {
+    "scene_type": "hilltown",
+    "crowd_density": "low",
+    "traffic_density": "low",
+    "time_of_day": "afternoon",
+    "weather": "clear",
+    "notable_objects": [
+      "mountains",
+      "trees",
+      "buildings",
+      "power lines",
+      "motorcycles",
+      "signage"
+    ],
+    "clip_path": "/workspace/LLM_asAgent_3D_SR/src/data/clips/hilltown/hilltown-Scene-002-scene006-chunk004.mp4"
+  },
+  {
+    "scene_type": "hilltown",
+    "crowd_density": "low",
+    "traffic_density": "low",
+    "time_of_day": "morning",
+    "weather": "clear",
+    "notable_objects": [
+      "cars",
+      "motorcycle",
+      "buildings",
+      "mountains",
+      "power lines",
+      "signage"
+    ],
+    "clip_path": "/workspace/LLM_asAgent_3D_SR/src/data/clips/hilltown/hilltown-Scene-002-scene006-chunk002.mp4"
+  },
+  {
+    "scene_type": "hilltown",
+    "crowd_density": "low",
+    "traffic_density": "low",
+    "time_of_day": "morning",
+    "weather": "clear",
+    "notable_objects": [
+      "cars",
+      "motorcycles",
+      "power lines",
+      "mountains",
+      "buildings",
+      "trees"
+    ],
+    "clip_path": "/workspace/LLM_asAgent_3D_SR/src/data/clips/hilltown/hilltown-Scene-002-scene006-chunk003.mp4"
+  },
+  {
+    "scene_type": "hilltown",
+    "crowd_density": "low",
+    "traffic_density": "low",
+    "time_of_day": "morning",
+    "weather": "clear",
+    "notable_objects": [
+      "mountains",
+      "trees",
+      "buildings",
+      "power lines",
+      "motorcycle"
+    ],
+    "clip_path": "/workspace/LLM_asAgent_3D_SR/src/data/clips/hilltown/hilltown-Scene-002-scene006-chunk006.mp4"
+  },
+  {
+    "scene_type": "hilltown",
+    "crowd_density": "low",
+    "traffic_density": "low",
+    "time_of_day": "morning",
+    "weather": "clear",
+    "notable_objects": [
+      "mountains",
+      "trees",
+      "buildings",
+      "signboard",
+      "power lines"
+    ],
+    "clip_path": "/workspace/LLM_asAgent_3D_SR/src/data/clips/hilltown/hilltown-Scene-002-scene006-chunk007.mp4"
+  },
+  {
+    "scene_type": "hilltown",
+    "crowd_density": "low",
+    "traffic_density": "low",
+    "time_of_day": "morning",
+    "weather": "clear",
+    "notable_objects": [
+      "mountains",
+      "trees",
+      "buildings",
+      "signboard",
+      "power lines",
+      "road",
+      "fence"
+    ],
+    "clip_path": "/workspace/LLM_asAgent_3D_SR/src/data/clips/hilltown/hilltown-Scene-002-scene006-chunk008.mp4"
+  },
+  {
+    "scene_type": "lane",
+    "crowd_density": "low",
+    "traffic_density": "low",
+    "time_of_day": "evening",
+    "weather": "clear",
+    "notable_objects": [
+      "cars",
+      "dogs",
+      "trees",
+      "power lines",
+      "buildings"
+    ],
+    "clip_path": "/workspace/LLM_asAgent_3D_SR/src/data/clips/hilltown/hilltown-Scene-002-scene006-chunk009.mp4"
+  },
+  {
+    "scene_type": "lane",
+    "crowd_density": "low",
+    "traffic_density": "low",
+    "time_of_day": "afternoon",
+    "weather": "clear",
+    "notable_objects": [
+      "car",
+      "tree",
+      "fence",
+      "wall",
+      "sign"
+    ],
+    "clip_path": "/workspace/LLM_asAgent_3D_SR/src/data/clips/hilltown/hilltown-Scene-002-scene006-chunk010.mp4"
+  },
+  {
+    "scene_type": "lane",
+    "crowd_density": "low",
+    "traffic_density": "low",
+    "time_of_day": "evening",
+    "weather": "clear",
+    "notable_objects": [
+      "cars",
+      "fence",
+      "stairs",
+      "trees",
+      "power lines",
+      "buildings"
+    ],
+    "clip_path": "/workspace/LLM_asAgent_3D_SR/src/data/clips/hilltown/hilltown-Scene-002-scene006-chunk012.mp4"
+  },
+  {
+    "scene_type": "lane",
+    "crowd_density": "low",
+    "traffic_density": "low",
+    "time_of_day": "evening",
+    "weather": "clear",
+    "notable_objects": [
+      "car",
+      "streetlight",
+      "fence",
+      "trees",
+      "buildings",
+      "power lines"
+    ],
+    "clip_path": "/workspace/LLM_asAgent_3D_SR/src/data/clips/hilltown/hilltown-Scene-002-scene006-chunk013.mp4"
+  },
+  {
+    "scene_type": "hilltown",
+    "crowd_density": "low",
+    "traffic_density": "low",
+    "time_of_day": "morning",
+    "weather": "clear",
+    "notable_objects": [
+      "mountains",
+      "trees",
+      "power pole",
+      "wires"
+    ],
+    "clip_path": "/workspace/LLM_asAgent_3D_SR/src/data/clips/hilltown/hilltown-Scene-002-scene007-chunk000.mp4"
+  },
+  {
+    "scene_type": "hilltown",
+    "crowd_density": "low",
+    "traffic_density": "low",
+    "time_of_day": "afternoon",
+    "weather": "clear",
+    "notable_objects": [
+      "cars",
+      "buildings",
+      "trees",
+      "fence",
+      "sign"
+    ],
+    "clip_path": "/workspace/LLM_asAgent_3D_SR/src/data/clips/hilltown/hilltown-Scene-002-scene007-chunk002.mp4"
+  },
+  {
+    "scene_type": "hilltown",
+    "crowd_density": "low",
+    "traffic_density": "low",
+    "time_of_day": "morning",
+    "weather": "clear",
+    "notable_objects": [
+      "mountains",
+      "trees",
+      "buildings",
+      "sky"
+    ],
+    "clip_path": "/workspace/LLM_asAgent_3D_SR/src/data/clips/hilltown/hilltown-Scene-002-scene007-chunk001.mp4"
+  },
+  {
+    "scene_type": "hilltown",
+    "crowd_density": "low",
+    "traffic_density": "low",
+    "time_of_day": "morning",
+    "weather": "clear",
+    "notable_objects": [
+      "stairs",
+      "buildings",
+      "car",
+      "signboard",
+      "trees",
+      "power lines"
+    ],
+    "clip_path": "/workspace/LLM_asAgent_3D_SR/src/data/clips/hilltown/hilltown-Scene-002-scene008-chunk000.mp4"
+  },
+  {
+    "scene_type": "lane",
+    "crowd_density": "low",
+    "traffic_density": "low",
+    "time_of_day": "evening",
+    "weather": "clear",
+    "notable_objects": [
+      "cars",
+      "trees",
+      "fence",
+      "wall",
+      "streetlight"
+    ],
+    "clip_path": "/workspace/LLM_asAgent_3D_SR/src/data/clips/hilltown/hilltown-Scene-002-scene009-chunk000.mp4"
+  },
+  {
+    "scene_type": "lane",
+    "crowd_density": "low",
+    "traffic_density": "low",
+    "time_of_day": "evening",
+    "weather": "clear",
+    "notable_objects": [
+      "car",
+      "wall",
+      "tree",
+      "fire hydrant",
+      "street sign"
+    ],
+    "clip_path": "/workspace/LLM_asAgent_3D_SR/src/data/clips/hilltown/hilltown-Scene-002-scene009-chunk001.mp4"
+  },
+  {
+    "scene_type": "lane",
+    "crowd_density": "low",
+    "traffic_density": "low",
+    "time_of_day": "afternoon",
+    "weather": "clear",
+    "notable_objects": [
+      "cars",
+      "stone wall",
+      "trees",
+      "street sign",
+      "fence",
+      "power lines"
+    ],
+    "clip_path": "/workspace/LLM_asAgent_3D_SR/src/data/clips/hilltown/hilltown-Scene-002-scene009-chunk002.mp4"
+  },
+  {
+    "scene_type": "lane",
+    "crowd_density": "low",
+    "traffic_density": "low",
+    "time_of_day": "evening",
+    "weather": "clear",
+    "notable_objects": [
+      "cars",
+      "power lines",
+      "trees",
+      "stone wall",
+      "railings",
+      "mountains"
+    ],
+    "clip_path": "/workspace/LLM_asAgent_3D_SR/src/data/clips/hilltown/hilltown-Scene-002-scene009-chunk004.mp4"
+  },
+  {
+    "scene_type": "lane",
+    "crowd_density": "low",
+    "traffic_density": "low",
+    "time_of_day": "afternoon",
+    "weather": "clear",
+    "notable_objects": [
+      "cars",
+      "stone wall",
+      "power lines",
+      "trees",
+      "railings"
+    ],
+    "clip_path": "/workspace/LLM_asAgent_3D_SR/src/data/clips/hilltown/hilltown-Scene-002-scene009-chunk003.mp4"
+  },
+  {
+    "scene_type": "lane",
+    "crowd_density": "low",
+    "traffic_density": "low",
+    "time_of_day": "evening",
+    "weather": "clear",
+    "notable_objects": [
+      "cars",
+      "stone wall",
+      "power lines",
+      "trees",
+      "hill"
+    ],
+    "clip_path": "/workspace/LLM_asAgent_3D_SR/src/data/clips/hilltown/hilltown-Scene-002-scene009-chunk005.mp4"
+  },
+  {
+    "scene_type": "commercial",
+    "crowd_density": "low",
+    "traffic_density": "low",
+    "time_of_day": "morning",
+    "weather": "clear",
+    "notable_objects": [
+      "Hotel Pilgrree",
+      "beach chairs",
+      "lamps",
+      "mountain",
+      "sea"
+    ],
+    "clip_path": "/workspace/LLM_asAgent_3D_SR/src/data/clips/hilltown/hilltown-Scene-002-scene009-chunk007.mp4"
+  },
+  {
+    "scene_type": "commercial",
+    "crowd_density": "low",
+    "traffic_density": "low",
+    "time_of_day": "morning",
+    "weather": "clear",
+    "notable_objects": [
+      "bridge",
+      "hotel",
+      "fence",
+      "streetlights",
+      "mountains",
+      "flags"
+    ],
+    "clip_path": "/workspace/LLM_asAgent_3D_SR/src/data/clips/hilltown/hilltown-Scene-002-scene009-chunk008.mp4"
+  },
+  {
+    "scene_type": "residential",
+    "crowd_density": "low",
+    "traffic_density": "low",
+    "time_of_day": "morning",
+    "weather": "clear",
+    "notable_objects": [
+      "cars",
+      "power lines",
+      "trees",
+      "hill",
+      "fence",
+      "stairs"
+    ],
+    "clip_path": "/workspace/LLM_asAgent_3D_SR/src/data/clips/hilltown/hilltown-Scene-002-scene009-chunk009.mp4"
+  },
+  {
+    "scene_type": "hilltown",
+    "crowd_density": "low",
+    "traffic_density": "low",
+    "time_of_day": "morning",
+    "weather": "clear",
+    "notable_objects": [
+      "mountains",
+      "furniture",
+      "potted plants",
+      "railings",
+      "street lamps"
+    ],
+    "clip_path": "/workspace/LLM_asAgent_3D_SR/src/data/clips/hilltown/hilltown-Scene-002-scene010-chunk000.mp4"
+  },
+  {
+    "scene_type": "residential",
+    "crowd_density": "low",
+    "traffic_density": "low",
+    "time_of_day": "morning",
+    "weather": "clear",
+    "notable_objects": [
+      "ferris wheel",
+      "stairs",
+      "railings",
+      "trees",
+      "buildings",
+      "street lamps"
+    ],
+    "clip_path": "/workspace/LLM_asAgent_3D_SR/src/data/clips/hilltown/hilltown-Scene-002-scene009-chunk010.mp4"
+  },
+  {
+    "scene_type": "hilltown",
+    "crowd_density": "low",
+    "traffic_density": "low",
+    "time_of_day": "morning",
+    "weather": "clear",
+    "notable_objects": [
+      "mountains",
+      "fences",
+      "potted plants",
+      "street lamps",
+      "pergola"
+    ],
+    "clip_path": "/workspace/LLM_asAgent_3D_SR/src/data/clips/hilltown/hilltown-Scene-002-scene010-chunk001.mp4"
+  },
+  {
+    "scene_type": "hilltown",
+    "crowd_density": "low",
+    "traffic_density": "low",
+    "time_of_day": "morning",
+    "weather": "clear",
+    "notable_objects": [
+      "mountains",
+      "fence",
+      "streetlight",
+      "potted plants"
+    ],
+    "clip_path": "/workspace/LLM_asAgent_3D_SR/src/data/clips/hilltown/hilltown-Scene-002-scene010-chunk002.mp4"
+  },
+  {
+    "scene_type": "hilltown",
+    "crowd_density": "low",
+    "traffic_density": "low",
+    "time_of_day": "morning",
+    "weather": "clear",
+    "notable_objects": [
+      "mountains",
+      "trees",
+      "houses",
+      "pole"
+    ],
+    "clip_path": "/workspace/LLM_asAgent_3D_SR/src/data/clips/hilltown/hilltown-Scene-002-scene010-chunk003.mp4"
+  },
+  {
+    "scene_type": "hilltown",
+    "crowd_density": "low",
+    "traffic_density": "low",
+    "time_of_day": "morning",
+    "weather": "clear",
+    "notable_objects": [
+      "mountain",
+      "houses",
+      "trees",
+      "streetlights",
+      "outdoor furniture"
+    ],
+    "clip_path": "/workspace/LLM_asAgent_3D_SR/src/data/clips/hilltown/hilltown-Scene-002-scene010-chunk004.mp4"
+  },
+  {
+    "scene_type": "hilltown",
+    "crowd_density": "low",
+    "traffic_density": "low",
+    "time_of_day": "morning",
+    "weather": "clear",
+    "notable_objects": [
+      "mountains",
+      "trees",
+      "buildings",
+      "sky"
+    ],
+    "clip_path": "/workspace/LLM_asAgent_3D_SR/src/data/clips/hilltown/hilltown-Scene-002-scene010-chunk005.mp4"
+  },
+  {
+    "scene_type": "hilltown",
+    "crowd_density": "low",
+    "traffic_density": "low",
+    "time_of_day": "morning",
+    "weather": "clear",
+    "notable_objects": [
+      "mountains",
+      "trees",
+      "buildings",
+      "red roofs"
+    ],
+    "clip_path": "/workspace/LLM_asAgent_3D_SR/src/data/clips/hilltown/hilltown-Scene-002-scene010-chunk006.mp4"
+  },
+  {
+    "scene_type": "hilltown",
+    "crowd_density": "low",
+    "traffic_density": "low",
+    "time_of_day": "morning",
+    "weather": "clear",
+    "notable_objects": [
+      "mountains",
+      "buildings",
+      "trees",
+      "fence",
+      "streetlight",
+      "rooftop"
+    ],
+    "clip_path": "/workspace/LLM_asAgent_3D_SR/src/data/clips/hilltown/hilltown-Scene-002-scene011-chunk000.mp4"
+  },
+  {
+    "scene_type": "hilltown",
+    "crowd_density": "low",
+    "traffic_density": "low",
+    "time_of_day": "morning",
+    "weather": "clear",
+    "notable_objects": [
+      "mountains",
+      "trees",
+      "building",
+      "pole"
+    ],
+    "clip_path": "/workspace/LLM_asAgent_3D_SR/src/data/clips/hilltown/hilltown-Scene-002-scene010-chunk007.mp4"
+  },
+  {
+    "scene_type": "hilltown",
+    "crowd_density": "low",
+    "traffic_density": "low",
+    "time_of_day": "morning",
+    "weather": "clear",
+    "notable_objects": [
+      "cars",
+      "people",
+      "fence",
+      "trees",
+      "buildings",
+      "power lines"
+    ],
+    "clip_path": "/workspace/LLM_asAgent_3D_SR/src/data/clips/hilltown/hilltown-Scene-002-scene013-chunk003.mp4"
+  },
+  {
+    "scene_type": "lane",
+    "crowd_density": "low",
+    "traffic_density": "low",
+    "time_of_day": "morning",
+    "weather": "clear",
+    "notable_objects": [
+      "cars",
+      "gate",
+      "wall",
+      "signboard",
+      "trees"
+    ],
+    "clip_path": "/workspace/LLM_asAgent_3D_SR/src/data/clips/hilltown/hilltown-Scene-002-scene012-chunk000.mp4"
+  },
+  {
+    "scene_type": "lane",
+    "crowd_density": "low",
+    "traffic_density": "low",
+    "time_of_day": "morning",
+    "weather": "clear",
+    "notable_objects": [
+      "cars",
+      "motorcycles",
+      "stone wall",
+      "signboard",
+      "trees"
+    ],
+    "clip_path": "/workspace/LLM_asAgent_3D_SR/src/data/clips/hilltown/hilltown-Scene-002-scene013-chunk000.mp4"
+  },
+  {
+    "scene_type": "lane",
+    "crowd_density": "low",
+    "traffic_density": "low",
+    "time_of_day": "morning",
+    "weather": "clear",
+    "notable_objects": [
+      "cars",
+      "motorcycles",
+      "wall",
+      "fence",
+      "trees",
+      "buildings"
+    ],
+    "clip_path": "/workspace/LLM_asAgent_3D_SR/src/data/clips/hilltown/hilltown-Scene-002-scene013-chunk002.mp4"
+  },
+  {
+    "scene_type": "lane",
+    "crowd_density": "low",
+    "traffic_density": "low",
+    "time_of_day": "afternoon",
+    "weather": "clear",
+    "notable_objects": [
+      "cars",
+      "motorcycles",
+      "stone wall",
+      "banners",
+      "trees"
+    ],
+    "clip_path": "/workspace/LLM_asAgent_3D_SR/src/data/clips/hilltown/hilltown-Scene-002-scene013-chunk005.mp4"
+  },
+  {
+    "scene_type": "lane",
+    "crowd_density": "low",
+    "traffic_density": "low",
+    "time_of_day": "afternoon",
+    "weather": "clear",
+    "notable_objects": [
+      "concrete wall",
+      "trees",
+      "fence",
+      "car",
+      "street lamp"
+    ],
+    "clip_path": "/workspace/LLM_asAgent_3D_SR/src/data/clips/hilltown/hilltown-Scene-002-scene014-chunk001.mp4"
+  },
+  {
+    "scene_type": "lane",
+    "crowd_density": "low",
+    "traffic_density": "low",
+    "time_of_day": "afternoon",
+    "weather": "clear",
+    "notable_objects": [
+      "motorcycles",
+      "archway",
+      "stone wall",
+      "trees",
+      "sign"
+    ],
+    "clip_path": "/workspace/LLM_asAgent_3D_SR/src/data/clips/hilltown/hilltown-Scene-002-scene013-chunk006.mp4"
+  },
+  {
+    "scene_type": "lane",
+    "crowd_density": "low",
+    "traffic_density": "low",
+    "time_of_day": "morning",
+    "weather": "clear",
+    "notable_objects": [
+      "Central Command Headquarters sign",
+      "stone wall",
+      "tree",
+      "person walking",
+      "railings",
+      "utility pole"
+    ],
+    "clip_path": "/workspace/LLM_asAgent_3D_SR/src/data/clips/hilltown/hilltown-Scene-002-scene013-chunk007.mp4"
+  },
+  {
+    "scene_type": "market",
+    "crowd_density": "low",
+    "traffic_density": "low",
+    "time_of_day": "morning",
+    "weather": "clear",
+    "notable_objects": [
+      "Central Command Road Station sign",
+      "trees",
+      "fence",
+      "buildings",
+      "streetlights",
+      "car"
+    ],
+    "clip_path": "/workspace/LLM_asAgent_3D_SR/src/data/clips/hilltown/hilltown-Scene-002-scene014-chunk000.mp4"
+  },
+  {
+    "scene_type": "lane",
+    "crowd_density": "low",
+    "traffic_density": "low",
+    "time_of_day": "afternoon",
+    "weather": "clear",
+    "notable_objects": [
+      "car",
+      "wall",
+      "trees",
+      "power lines",
+      "railings"
+    ],
+    "clip_path": "/workspace/LLM_asAgent_3D_SR/src/data/clips/hilltown/hilltown-Scene-002-scene014-chunk002.mp4"
+  },
+  {
+    "scene_type": "hilltown",
+    "crowd_density": "low",
+    "traffic_density": "low",
+    "time_of_day": "afternoon",
+    "weather": "clear",
+    "notable_objects": [
+      "car",
+      "street lamp",
+      "cart",
+      "mountain",
+      "buildings"
+    ],
+    "clip_path": "/workspace/LLM_asAgent_3D_SR/src/data/clips/hilltown/hilltown-Scene-002-scene015.mp4"
+  },
+  {
+    "scene_type": "lane",
+    "crowd_density": "low",
+    "traffic_density": "low",
+    "time_of_day": "afternoon",
+    "weather": "clear",
+    "notable_objects": [
+      "person walking",
+      "car",
+      "truck",
+      "power lines",
+      "trees",
+      "signboards",
+      "rocky hillside"
+    ],
+    "clip_path": "/workspace/LLM_asAgent_3D_SR/src/data/clips/hilltown/hilltown-Scene-002-scene014-chunk003.mp4"
+  },
+  {
+    "scene_type": "residential",
+    "crowd_density": "low",
+    "traffic_density": "low",
+    "time_of_day": "afternoon",
+    "weather": "clear",
+    "notable_objects": [
+      "cars",
+      "power lines",
+      "trees",
+      "signage",
+      "hill"
+    ],
+    "clip_path": "/workspace/LLM_asAgent_3D_SR/src/data/clips/hilltown/hilltown-Scene-002-scene014-chunk004.mp4"
+  },
+  {
+    "scene_type": "hilltown",
+    "crowd_density": "low",
+    "traffic_density": "low",
+    "time_of_day": "morning",
+    "weather": "clear",
+    "notable_objects": [
+      "mountain",
+      "houses",
+      "trees",
+      "power lines",
+      "street light"
+    ],
+    "clip_path": "/workspace/LLM_asAgent_3D_SR/src/data/clips/hilltown/hilltown-Scene-002-scene017-chunk000.mp4"
+  },
+  {
+    "scene_type": "hilltown",
+    "crowd_density": "low",
+    "traffic_density": "low",
+    "time_of_day": "morning",
+    "weather": "clear",
+    "notable_objects": [
+      "houses",
+      "mountain",
+      "power lines",
+      "trees",
+      "bridge"
+    ],
+    "clip_path": "/workspace/LLM_asAgent_3D_SR/src/data/clips/hilltown/hilltown-Scene-002-scene017-chunk001.mp4"
+  },
+  {
+    "scene_type": "lane",
+    "crowd_density": "low",
+    "traffic_density": "low",
+    "time_of_day": "afternoon",
+    "weather": "clear",
+    "notable_objects": [
+      "car",
+      "fence",
+      "sign",
+      "trees",
+      "building"
+    ],
+    "clip_path": "/workspace/LLM_asAgent_3D_SR/src/data/clips/hilltown/hilltown-Scene-002-scene018-chunk001.mp4"
+  },
+  {
+    "scene_type": "lane",
+    "crowd_density": "low",
+    "traffic_density": "low",
+    "time_of_day": "morning",
+    "weather": "clear",
+    "notable_objects": [
+      "stone wall",
+      "car",
+      "signboard",
+      "fence",
+      "trees"
+    ],
+    "clip_path": "/workspace/LLM_asAgent_3D_SR/src/data/clips/hilltown/hilltown-Scene-002-scene018-chunk000.mp4"
+  },
+  {
+    "scene_type": "lane",
+    "crowd_density": "low",
+    "traffic_density": "low",
+    "time_of_day": "morning",
+    "weather": "clear",
+    "notable_objects": [
+      "stairs",
+      "wall",
+      "fence",
+      "cars",
+      "trees",
+      "sign"
+    ],
+    "clip_path": "/workspace/LLM_asAgent_3D_SR/src/data/clips/hilltown/hilltown-Scene-002-scene017-chunk002.mp4"
+  },
+  {
+    "scene_type": "junction",
+    "crowd_density": "low",
+    "traffic_density": "low",
+    "time_of_day": "afternoon",
+    "weather": "clear",
+    "notable_objects": [
+      "car",
+      "sign",
+      "trees",
+      "buildings",
+      "power lines",
+      "railway track",
+      "yellow object"
+    ],
+    "clip_path": "/workspace/LLM_asAgent_3D_SR/src/data/clips/hilltown/hilltown-Scene-002-scene018-chunk002.mp4"
+  },
+  {
+    "scene_type": "hilltown",
+    "crowd_density": "low",
+    "traffic_density": "low",
+    "time_of_day": "morning",
+    "weather": "clear",
+    "notable_objects": [
+      "car",
+      "hill",
+      "trees",
+      "buildings",
+      "power lines",
+      "flag"
+    ],
+    "clip_path": "/workspace/LLM_asAgent_3D_SR/src/data/clips/hilltown/hilltown-Scene-002-scene018-chunk003.mp4"
+  },
+  {
+    "scene_type": "hilltown",
+    "crowd_density": "med",
+    "traffic_density": "med",
+    "time_of_day": "morning",
+    "weather": "clear",
+    "notable_objects": [
+      "cars",
+      "motorcycles",
+      "dogs",
+      "Indian flag",
+      "mountains",
+      "street lamps",
+      "buildings"
+    ],
+    "clip_path": "/workspace/LLM_asAgent_3D_SR/src/data/clips/hilltown/hilltown-Scene-002-scene018-chunk005.mp4"
+  },
+  {
+    "scene_type": "hilltown",
+    "crowd_density": "low",
+    "traffic_density": "low",
+    "time_of_day": "morning",
+    "weather": "clear",
+    "notable_objects": [
+      "dog",
+      "cars",
+      "gazebo",
+      "hill",
+      "buildings"
+    ],
+    "clip_path": "/workspace/LLM_asAgent_3D_SR/src/data/clips/hilltown/hilltown-Scene-002-scene018-chunk006.mp4"
+  },
+  {
+    "scene_type": "hilltown",
+    "crowd_density": "low",
+    "traffic_density": "low",
+    "time_of_day": "morning",
+    "weather": "clear",
+    "notable_objects": [
+      "mountain",
+      "vehicles",
+      "motorcycle",
+      "Indian flag",
+      "power lines",
+      "buildings"
+    ],
+    "clip_path": "/workspace/LLM_asAgent_3D_SR/src/data/clips/hilltown/hilltown-Scene-002-scene018-chunk004.mp4"
+  },
+  {
+    "scene_type": "hilltown",
+    "crowd_density": "low",
+    "traffic_density": "low",
+    "time_of_day": "morning",
+    "weather": "clear",
+    "notable_objects": [
+      "cars",
+      "dogs",
+      "street lamps",
+      "buildings",
+      "signboard"
+    ],
+    "clip_path": "/workspace/LLM_asAgent_3D_SR/src/data/clips/hilltown/hilltown-Scene-002-scene018-chunk007.mp4"
+  },
+  {
+    "scene_type": "hilltown",
+    "crowd_density": "low",
+    "traffic_density": "low",
+    "time_of_day": "morning",
+    "weather": "clear",
+    "notable_objects": [
+      "car",
+      "sign",
+      "hotel",
+      "hillside",
+      "buildings"
+    ],
+    "clip_path": "/workspace/LLM_asAgent_3D_SR/src/data/clips/hilltown/hilltown-Scene-002-scene018-chunk008.mp4"
+  },
+  {
+    "scene_type": "residential",
+    "crowd_density": "low",
+    "traffic_density": "low",
+    "time_of_day": "morning",
+    "weather": "clear",
+    "notable_objects": [
+      "van",
+      "building",
+      "fence",
+      "garage",
+      "streetlight",
+      "utility pole",
+      "garbage",
+      "clothesline"
+    ],
+    "clip_path": "/workspace/LLM_asAgent_3D_SR/src/data/clips/hilltown/hilltown-Scene-002-scene018-chunk013.mp4"
+  },
+  {
+    "scene_type": "lane",
+    "crowd_density": "low",
+    "traffic_density": "low",
+    "time_of_day": "morning",
+    "weather": "clear",
+    "notable_objects": [
+      "buildings",
+      "streetlights",
+      "railings",
+      "signage",
+      "vegetation",
+      "trash"
+    ],
+    "clip_path": "/workspace/LLM_asAgent_3D_SR/src/data/clips/hilltown/hilltown-Scene-002-scene018-chunk009.mp4"
+  },
+  {
+    "scene_type": "hilltown",
+    "crowd_density": "low",
+    "traffic_density": "low",
+    "time_of_day": "morning",
+    "weather": "clear",
+    "notable_objects": [
+      "building",
+      "road",
+      "fence",
+      "car",
+      "stairs",
+      "trees"
+    ],
+    "clip_path": "/workspace/LLM_asAgent_3D_SR/src/data/clips/hilltown/hilltown-Scene-002-scene018-chunk011.mp4"
+  },
+  {
+    "scene_type": "residential",
+    "crowd_density": "low",
+    "traffic_density": "low",
+    "time_of_day": "morning",
+    "weather": "clear",
+    "notable_objects": [
+      "building",
+      "cars",
+      "fence",
+      "power lines",
+      "trees"
+    ],
+    "clip_path": "/workspace/LLM_asAgent_3D_SR/src/data/clips/hilltown/hilltown-Scene-002-scene018-chunk012.mp4"
+  },
+  {
+    "scene_type": "residential",
+    "crowd_density": "low",
+    "traffic_density": "low",
+    "time_of_day": "morning",
+    "weather": "clear",
+    "notable_objects": [
+      "building",
+      "van",
+      "stairs",
+      "sign",
+      "graffiti",
+      "hillside"
+    ],
+    "clip_path": "/workspace/LLM_asAgent_3D_SR/src/data/clips/hilltown/hilltown-Scene-002-scene018-chunk014.mp4"
+  },
+  {
+    "scene_type": "metro",
+    "crowd_density": "high",
+    "traffic_density": "low",
+    "time_of_day": "afternoon",
+    "weather": "clear",
+    "notable_objects": [
+      "luggage",
+      "signage",
+      "ceiling lights",
+      "people",
+      "walls"
+    ],
+    "clip_path": "/workspace/LLM_asAgent_3D_SR/src/data/clips/metro/metro-Scene-002-scene000-chunk000.mp4"
+  },
+  {
+    "scene_type": "metro",
+    "crowd_density": "high",
+    "traffic_density": "low",
+    "time_of_day": "evening",
+    "weather": "clear",
+    "notable_objects": [
+      "people",
+      "vending machine",
+      "signage",
+      "ceiling lights",
+      "handbags",
+      "backpacks"
+    ],
+    "clip_path": "/workspace/LLM_asAgent_3D_SR/src/data/clips/metro/metro-Scene-002-scene000-chunk001.mp4"
+  },
+  {
+    "scene_type": "metro",
+    "crowd_density": "high",
+    "traffic_density": "low",
+    "time_of_day": "afternoon",
+    "weather": "clear",
+    "notable_objects": [
+      "signs",
+      "clock",
+      "people",
+      "backpacks",
+      "exit signs"
+    ],
+    "clip_path": "/workspace/LLM_asAgent_3D_SR/src/data/clips/metro/metro-Scene-001-scene001.mp4"
+  },
+  {
+    "scene_type": "metro",
+    "crowd_density": "high",
+    "traffic_density": "low",
+    "time_of_day": "afternoon",
+    "weather": "clear",
+    "notable_objects": [
+      "vending machine",
+      "signage",
+      "people",
+      "ceiling lights",
+      "floor markings"
+    ],
+    "clip_path": "/workspace/LLM_asAgent_3D_SR/src/data/clips/metro/metro-Scene-002-scene000-chunk002.mp4"
+  },
+  {
+    "scene_type": "metro",
+    "crowd_density": "high",
+    "traffic_density": "low",
+    "time_of_day": "afternoon",
+    "weather": "clear",
+    "notable_objects": [
+      "signage",
+      "backpacks",
+      "bottles",
+      "maps",
+      "people"
+    ],
+    "clip_path": "/workspace/LLM_asAgent_3D_SR/src/data/clips/metro/metro-Scene-002-scene000-chunk003.mp4"
+  },
+  {
+    "scene_type": "metro",
+    "crowd_density": "high",
+    "traffic_density": "low",
+    "time_of_day": "afternoon",
+    "weather": "clear",
+    "notable_objects": [
+      "people",
+      "backpacks",
+      "luggage",
+      "signage",
+      "ceiling lights"
+    ],
+    "clip_path": "/workspace/LLM_asAgent_3D_SR/src/data/clips/metro/metro-Scene-002-scene001-chunk001.mp4"
+  },
+  {
+    "scene_type": "metro",
+    "crowd_density": "high",
+    "traffic_density": "low",
+    "time_of_day": "afternoon",
+    "weather": "clear",
+    "notable_objects": [
+      "people",
+      "backpacks",
+      "signage",
+      "ceiling lights",
+      "walls"
+    ],
+    "clip_path": "/workspace/LLM_asAgent_3D_SR/src/data/clips/metro/metro-Scene-002-scene001-chunk000.mp4"
+  },
+  {
+    "scene_type": "metro",
+    "crowd_density": "high",
+    "traffic_density": "low",
+    "time_of_day": "afternoon",
+    "weather": "clear",
+    "notable_objects": [
+      "people",
+      "backpack",
+      "signage",
+      "ceiling lights",
+      "vending machine",
+      "food stall"
+    ],
+    "clip_path": "/workspace/LLM_asAgent_3D_SR/src/data/clips/metro/metro-Scene-002-scene001-chunk004.mp4"
+  },
+  {
+    "scene_type": "metro",
+    "crowd_density": "high",
+    "traffic_density": "low",
+    "time_of_day": "afternoon",
+    "weather": "clear",
+    "notable_objects": [
+      "signs",
+      "backpacks",
+      "luggage",
+      "ceilings",
+      "lights"
+    ],
+    "clip_path": "/workspace/LLM_asAgent_3D_SR/src/data/clips/metro/metro-Scene-002-scene001-chunk005.mp4"
+  },
+  {
+    "scene_type": "metro",
+    "crowd_density": "high",
+    "traffic_density": "low",
+    "time_of_day": "afternoon",
+    "weather": "clear",
+    "notable_objects": [
+      "signs",
+      "columns",
+      "people",
+      "luggage"
+    ],
+    "clip_path": "/workspace/LLM_asAgent_3D_SR/src/data/clips/metro/metro-Scene-002-scene001-chunk008.mp4"
+  },
+  {
+    "scene_type": "metro",
+    "crowd_density": "high",
+    "traffic_density": "low",
+    "time_of_day": "evening",
+    "weather": "clear",
+    "notable_objects": [
+      "SUB 91 sign",
+      "food stalls",
+      "people walking",
+      "ceiling lights",
+      "backpacks"
+    ],
+    "clip_path": "/workspace/LLM_asAgent_3D_SR/src/data/clips/metro/metro-Scene-002-scene001-chunk009.mp4"
+  },
+  {
+    "scene_type": "metro",
+    "crowd_density": "high",
+    "traffic_density": "low",
+    "time_of_day": "afternoon",
+    "weather": "clear",
+    "notable_objects": [
+      "people",
+      "shops",
+      "signage",
+      "ceiling lights",
+      "floor markings"
+    ],
+    "clip_path": "/workspace/LLM_asAgent_3D_SR/src/data/clips/metro/metro-Scene-002-scene002.mp4"
+  },
+  {
+    "scene_type": "metro",
+    "crowd_density": "high",
+    "traffic_density": "low",
+    "time_of_day": "afternoon",
+    "weather": "clear",
+    "notable_objects": [
+      "signs",
+      "people",
+      "luggage",
+      "ceiling lights",
+      "pillars"
+    ],
+    "clip_path": "/workspace/LLM_asAgent_3D_SR/src/data/clips/metro/metro-Scene-002-scene001-chunk007.mp4"
+  },
+  {
+    "scene_type": "metro",
+    "crowd_density": "high",
+    "traffic_density": "low",
+    "time_of_day": "afternoon",
+    "weather": "clear",
+    "notable_objects": [
+      "people",
+      "signage",
+      "vending machine",
+      "ceiling lights",
+      "floor tiles"
+    ],
+    "clip_path": "/workspace/LLM_asAgent_3D_SR/src/data/clips/metro/metro-Scene-002-scene003-chunk000.mp4"
+  },
+  {
+    "scene_type": "commercial",
+    "crowd_density": "high",
+    "traffic_density": "low",
+    "time_of_day": "afternoon",
+    "weather": "clear",
+    "notable_objects": [
+      "CASHEY store",
+      "people walking",
+      "shop stalls",
+      "signage",
+      "ceiling lights"
+    ],
+    "clip_path": "/workspace/LLM_asAgent_3D_SR/src/data/clips/metro/metro-Scene-002-scene003-chunk001.mp4"
+  },
+  {
+    "scene_type": "metro",
+    "crowd_density": "med",
+    "traffic_density": "low",
+    "time_of_day": "afternoon",
+    "weather": "clear",
+    "notable_objects": [
+      "signage",
+      "monitors",
+      "ceiling lights",
+      "security cameras",
+      "people",
+      "backpacks"
+    ],
+    "clip_path": "/workspace/LLM_asAgent_3D_SR/src/data/clips/metro/metro-Scene-002-scene004-chunk001.mp4"
+  },
+  {
+    "scene_type": "metro",
+    "crowd_density": "high",
+    "traffic_density": "low",
+    "time_of_day": "afternoon",
+    "weather": "clear",
+    "notable_objects": [
+      "signs",
+      "people",
+      "ceilings",
+      "light fixtures",
+      "columns"
+    ],
+    "clip_path": "/workspace/LLM_asAgent_3D_SR/src/data/clips/metro/metro-Scene-002-scene004-chunk000.mp4"
+  },
+  {
+    "scene_type": "metro",
+    "crowd_density": "med",
+    "traffic_density": "low",
+    "time_of_day": "afternoon",
+    "weather": "clear",
+    "notable_objects": [
+      "people",
+      "signage",
+      "elevators",
+      "ceiling lights",
+      "floor",
+      "wall"
+    ],
+    "clip_path": "/workspace/LLM_asAgent_3D_SR/src/data/clips/metro/metro-Scene-002-scene004-chunk002.mp4"
+  },
+  {
+    "scene_type": "metro",
+    "crowd_density": "high",
+    "traffic_density": "low",
+    "time_of_day": "afternoon",
+    "weather": "clear",
+    "notable_objects": [
+      "signage",
+      "escalator",
+      "ceiling",
+      "map",
+      "people"
+    ],
+    "clip_path": "/workspace/LLM_asAgent_3D_SR/src/data/clips/metro/metro-Scene-002-scene004-chunk004.mp4"
+  },
+  {
+    "scene_type": "metro",
+    "crowd_density": "med",
+    "traffic_density": "low",
+    "time_of_day": "afternoon",
+    "weather": "clear",
+    "notable_objects": [
+      "escalators",
+      "VANS advertisement",
+      "signage",
+      "people"
+    ],
+    "clip_path": "/workspace/LLM_asAgent_3D_SR/src/data/clips/metro/metro-Scene-002-scene006-chunk000.mp4"
+  },
+  {
+    "scene_type": "metro",
+    "crowd_density": "med",
+    "traffic_density": "low",
+    "time_of_day": "afternoon",
+    "weather": "clear",
+    "notable_objects": [
+      "escalator",
+      "signage",
+      "people",
+      "ceiling lights",
+      "wall posters"
+    ],
+    "clip_path": "/workspace/LLM_asAgent_3D_SR/src/data/clips/metro/metro-Scene-003-scene000-chunk000.mp4"
+  },
+  {
+    "scene_type": "metro",
+    "crowd_density": "high",
+    "traffic_density": "low",
+    "time_of_day": "afternoon",
+    "weather": "clear",
+    "notable_objects": [
+      "escalators",
+      "signage",
+      "people",
+      "ceiling lights",
+      "floor markings"
+    ],
+    "clip_path": "/workspace/LLM_asAgent_3D_SR/src/data/clips/metro/metro-Scene-003-scene001.mp4"
+  },
+  {
+    "scene_type": "metro",
+    "crowd_density": "med",
+    "traffic_density": "low",
+    "time_of_day": "afternoon",
+    "weather": "clear",
+    "notable_objects": [
+      "escalators",
+      "signage",
+      "people",
+      "platform",
+      "ceiling lights"
+    ],
+    "clip_path": "/workspace/LLM_asAgent_3D_SR/src/data/clips/metro/metro-Scene-002-scene005.mp4"
+  },
+  {
+    "scene_type": "metro",
+    "crowd_density": "high",
+    "traffic_density": "low",
+    "time_of_day": "afternoon",
+    "weather": "clear",
+    "notable_objects": [
+      "escalators",
+      "stairs",
+      "signage",
+      "people"
+    ],
+    "clip_path": "/workspace/LLM_asAgent_3D_SR/src/data/clips/metro/metro-Scene-003-scene002-chunk000.mp4"
+  },
+  {
+    "scene_type": "metro",
+    "crowd_density": "high",
+    "traffic_density": "low",
+    "time_of_day": "afternoon",
+    "weather": "clear",
+    "notable_objects": [
+      "escalators",
+      "stairs",
+      "signboard",
+      "people"
+    ],
+    "clip_path": "/workspace/LLM_asAgent_3D_SR/src/data/clips/metro/metro-Scene-003-scene002-chunk001.mp4"
+  },
+  {
+    "scene_type": "metro",
+    "crowd_density": "high",
+    "traffic_density": "low",
+    "time_of_day": "afternoon",
+    "weather": "clear",
+    "notable_objects": [
+      "escalators",
+      "stairs",
+      "signboard",
+      "people"
+    ],
+    "clip_path": "/workspace/LLM_asAgent_3D_SR/src/data/clips/metro/metro-Scene-003-scene002-chunk002.mp4"
+  },
+  {
+    "scene_type": "metro",
+    "crowd_density": "med",
+    "traffic_density": "low",
+    "time_of_day": "afternoon",
+    "weather": "clear",
+    "notable_objects": [
+      "escalator",
+      "wall mural",
+      "people",
+      "ceiling lights"
+    ],
+    "clip_path": "/workspace/LLM_asAgent_3D_SR/src/data/clips/metro/metro-Scene-002-scene006-chunk001.mp4"
+  },
+  {
+    "scene_type": "metro",
+    "crowd_density": "med",
+    "traffic_density": "low",
+    "time_of_day": "evening",
+    "weather": "clear",
+    "notable_objects": [
+      "people",
+      "signage",
+      "ceiling pipes",
+      "wall mural",
+      "backpack",
+      "phone"
+    ],
+    "clip_path": "/workspace/LLM_asAgent_3D_SR/src/data/clips/metro/metro-Scene-004-scene000-chunk000.mp4"
+  },
+  {
+    "scene_type": "metro",
+    "crowd_density": "high",
+    "traffic_density": "low",
+    "time_of_day": "evening",
+    "weather": "clear",
+    "notable_objects": [
+      "signs",
+      "people",
+      "ceiling beams",
+      "vending stall"
+    ],
+    "clip_path": "/workspace/LLM_asAgent_3D_SR/src/data/clips/metro/metro-Scene-003-scene003-chunk000.mp4"
+  },
+  {
+    "scene_type": "metro",
+    "crowd_density": "high",
+    "traffic_density": "low",
+    "time_of_day": "evening",
+    "weather": "clear",
+    "notable_objects": [
+      "escalator",
+      "stairs",
+      "signage",
+      "people",
+      "backpacks"
+    ],
+    "clip_path": "/workspace/LLM_asAgent_3D_SR/src/data/clips/metro/metro-Scene-004-scene000-chunk001.mp4"
+  },
+  {
+    "scene_type": "metro",
+    "crowd_density": "high",
+    "traffic_density": "low",
+    "time_of_day": "evening",
+    "weather": "clear",
+    "notable_objects": [
+      "escalator",
+      "stairs",
+      "people",
+      "handrails",
+      "signage"
+    ],
+    "clip_path": "/workspace/LLM_asAgent_3D_SR/src/data/clips/metro/metro-Scene-004-scene000-chunk002.mp4"
+  },
+  {
+    "scene_type": "metro",
+    "crowd_density": "high",
+    "traffic_density": "low",
+    "time_of_day": "evening",
+    "weather": "clear",
+    "notable_objects": [
+      "escalator",
+      "stairs",
+      "signboard",
+      "people"
+    ],
+    "clip_path": "/workspace/LLM_asAgent_3D_SR/src/data/clips/metro/metro-Scene-004-scene000-chunk003.mp4"
+  },
+  {
+    "scene_type": "metro",
+    "crowd_density": "high",
+    "traffic_density": "low",
+    "time_of_day": "afternoon",
+    "weather": "clear",
+    "notable_objects": [
+      "escalators",
+      "backpacks",
+      "signage",
+      "people"
+    ],
+    "clip_path": "/workspace/LLM_asAgent_3D_SR/src/data/clips/metro/metro-Scene-004-scene001-chunk000.mp4"
+  },
+  {
+    "scene_type": "metro",
+    "crowd_density": "high",
+    "traffic_density": "low",
+    "time_of_day": "afternoon",
+    "weather": "clear",
+    "notable_objects": [
+      "elevators",
+      "signboards",
+      "people",
+      "escalators",
+      "backpacks",
+      "handbags"
+    ],
+    "clip_path": "/workspace/LLM_asAgent_3D_SR/src/data/clips/metro/metro-Scene-005-scene000-chunk000.mp4"
+  },
+  {
+    "scene_type": "metro",
+    "crowd_density": "low",
+    "traffic_density": "low",
+    "time_of_day": "evening",
+    "weather": "clear",
+    "notable_objects": [
+      "elevators",
+      "signage",
+      "people",
+      "walls",
+      "floor"
+    ],
+    "clip_path": "/workspace/LLM_asAgent_3D_SR/src/data/clips/metro/metro-Scene-005-scene000-chunk002.mp4"
+  },
+  {
+    "scene_type": "metro",
+    "crowd_density": "high",
+    "traffic_density": "low",
+    "time_of_day": "evening",
+    "weather": "clear",
+    "notable_objects": [
+      "elevators",
+      "signage",
+      "people",
+      "bags",
+      "backpacks"
+    ],
+    "clip_path": "/workspace/LLM_asAgent_3D_SR/src/data/clips/metro/metro-Scene-005-scene000-chunk001.mp4"
+  },
+  {
+    "scene_type": "metro",
+    "crowd_density": "high",
+    "traffic_density": "low",
+    "time_of_day": "afternoon",
+    "weather": "clear",
+    "notable_objects": [
+      "escalator",
+      "backpacks",
+      "people"
+    ],
+    "clip_path": "/workspace/LLM_asAgent_3D_SR/src/data/clips/metro/metro-Scene-004-scene002-chunk000.mp4"
+  },
+  {
+    "scene_type": "metro",
+    "crowd_density": "high",
+    "traffic_density": "low",
+    "time_of_day": "afternoon",
+    "weather": "clear",
+    "notable_objects": [
+      "escalator",
+      "signboard",
+      "people",
+      "bags",
+      "railway tracks"
+    ],
+    "clip_path": "/workspace/LLM_asAgent_3D_SR/src/data/clips/metro/metro-Scene-006-scene000-chunk000.mp4"
+  },
+  {
+    "scene_type": "metro",
+    "crowd_density": "high",
+    "traffic_density": "low",
+    "time_of_day": "afternoon",
+    "weather": "clear",
+    "notable_objects": [
+      "escalators",
+      "signage",
+      "people",
+      "luggage",
+      "ceiling lights"
+    ],
+    "clip_path": "/workspace/LLM_asAgent_3D_SR/src/data/clips/metro/metro-Scene-006-scene000-chunk001.mp4"
+  },
+  {
+    "scene_type": "metro",
+    "crowd_density": "high",
+    "traffic_density": "low",
+    "time_of_day": "evening",
+    "weather": "clear",
+    "notable_objects": [
+      "train",
+      "platform",
+      "signage",
+      "people",
+      "backpacks"
+    ],
+    "clip_path": "/workspace/LLM_asAgent_3D_SR/src/data/clips/metro/metro-Scene-007-scene000-chunk000.mp4"
+  },
+  {
+    "scene_type": "metro",
+    "crowd_density": "high",
+    "traffic_density": "low",
+    "time_of_day": "afternoon",
+    "weather": "clear",
+    "notable_objects": [
+      "signage",
+      "platform",
+      "people",
+      "train"
+    ],
+    "clip_path": "/workspace/LLM_asAgent_3D_SR/src/data/clips/metro/metro-Scene-007-scene000-chunk001.mp4"
+  },
+  {
+    "scene_type": "metro",
+    "crowd_density": "high",
+    "traffic_density": "med",
+    "time_of_day": "afternoon",
+    "weather": "clear",
+    "notable_objects": [
+      "train",
+      "platform",
+      "signage",
+      "people",
+      "bags"
+    ],
+    "clip_path": "/workspace/LLM_asAgent_3D_SR/src/data/clips/metro/metro-Scene-007-scene003-chunk001.mp4"
+  },
+  {
+    "scene_type": "metro",
+    "crowd_density": "high",
+    "traffic_density": "low",
+    "time_of_day": "afternoon",
+    "weather": "clear",
+    "notable_objects": [
+      "platform",
+      "train",
+      "signage",
+      "people",
+      "backpacks",
+      "masks"
+    ],
+    "clip_path": "/workspace/LLM_asAgent_3D_SR/src/data/clips/metro/metro-Scene-007-scene002.mp4"
+  },
+  {
+    "scene_type": "metro",
+    "crowd_density": "high",
+    "traffic_density": "med",
+    "time_of_day": "afternoon",
+    "weather": "clear",
+    "notable_objects": [
+      "train",
+      "platform",
+      "signage",
+      "people",
+      "lights"
+    ],
+    "clip_path": "/workspace/LLM_asAgent_3D_SR/src/data/clips/metro/metro-Scene-007-scene003-chunk000.mp4"
+  },
+  {
+    "scene_type": "metro",
+    "crowd_density": "high",
+    "traffic_density": "med",
+    "time_of_day": "morning",
+    "weather": "clear",
+    "notable_objects": [
+      "train",
+      "platform",
+      "signage",
+      "people",
+      "bench"
+    ],
+    "clip_path": "/workspace/LLM_asAgent_3D_SR/src/data/clips/metro/metro-Scene-007-scene003-chunk002.mp4"
+  },
+  {
+    "scene_type": "metro",
+    "crowd_density": "high",
+    "traffic_density": "low",
+    "time_of_day": "evening",
+    "weather": "clear",
+    "notable_objects": [
+      "people",
+      "backpacks",
+      "platform",
+      "signage",
+      "train",
+      "ceiling lights"
+    ],
+    "clip_path": "/workspace/LLM_asAgent_3D_SR/src/data/clips/metro/metro-Scene-007-scene001.mp4"
+  },
+  {
+    "scene_type": "metro",
+    "crowd_density": "high",
+    "traffic_density": "low",
+    "time_of_day": "afternoon",
+    "weather": "clear",
+    "notable_objects": [
+      "train",
+      "platform",
+      "signage",
+      "benches",
+      "passengers"
+    ],
+    "clip_path": "/workspace/LLM_asAgent_3D_SR/src/data/clips/metro/metro-Scene-007-scene009-chunk000.mp4"
+  },
+  {
+    "scene_type": "metro",
+    "crowd_density": "high",
+    "traffic_density": "med",
+    "time_of_day": "afternoon",
+    "weather": "clear",
+    "notable_objects": [
+      "train",
+      "platform",
+      "signage",
+      "people",
+      "luggage"
+    ],
+    "clip_path": "/workspace/LLM_asAgent_3D_SR/src/data/clips/metro/metro-Scene-007-scene006-chunk000.mp4"
+  },
+  {
+    "scene_type": "metro",
+    "crowd_density": "high",
+    "traffic_density": "low",
+    "time_of_day": "afternoon",
+    "weather": "clear",
+    "notable_objects": [
+      "subway train",
+      "platform",
+      "signboard",
+      "passengers",
+      "digital display"
+    ],
+    "clip_path": "/workspace/LLM_asAgent_3D_SR/src/data/clips/metro/metro-Scene-007-scene007-chunk000.mp4"
+  },
+  {
+    "scene_type": "metro",
+    "crowd_density": "high",
+    "traffic_density": "med",
+    "time_of_day": "afternoon",
+    "weather": "clear",
+    "notable_objects": [
+      "subway train",
+      "platform",
+      "signage",
+      "passengers",
+      "handbags",
+      "luggage"
+    ],
+    "clip_path": "/workspace/LLM_asAgent_3D_SR/src/data/clips/metro/metro-Scene-007-scene009-chunk001.mp4"
+  },
+  {
+    "scene_type": "metro",
+    "crowd_density": "high",
+    "traffic_density": "low",
+    "time_of_day": "afternoon",
+    "weather": "clear",
+    "notable_objects": [
+      "people",
+      "train",
+      "platform",
+      "signage",
+      "ticket gates"
+    ],
+    "clip_path": "/workspace/LLM_asAgent_3D_SR/src/data/clips/metro/metro-Scene-007-scene009-chunk002.mp4"
+  },
+  {
+    "scene_type": "metro",
+    "crowd_density": "med",
+    "traffic_density": "low",
+    "time_of_day": "afternoon",
+    "weather": "clear",
+    "notable_objects": [
+      "people",
+      "benches",
+      "signage",
+      "platform",
+      "doors",
+      "ceiling lights"
+    ],
+    "clip_path": "/workspace/LLM_asAgent_3D_SR/src/data/clips/metro/metro-Scene-008-scene000-chunk000.mp4"
+  },
+  {
+    "scene_type": "metro",
+    "crowd_density": "high",
+    "traffic_density": "low",
+    "time_of_day": "afternoon",
+    "weather": "clear",
+    "notable_objects": [
+      "people",
+      "train",
+      "platform",
+      "signage",
+      "lights",
+      "columns",
+      "advertisements"
+    ],
+    "clip_path": "/workspace/LLM_asAgent_3D_SR/src/data/clips/metro/metro-Scene-008-scene000-chunk004.mp4"
+  },
+  {
+    "scene_type": "metro",
+    "crowd_density": "med",
+    "traffic_density": "low",
+    "time_of_day": "evening",
+    "weather": "clear",
+    "notable_objects": [
+      "escalator",
+      "platform",
+      "advertisements",
+      "people",
+      "train doors"
+    ],
+    "clip_path": "/workspace/LLM_asAgent_3D_SR/src/data/clips/metro/metro-Scene-008-scene000-chunk002.mp4"
+  },
+  {
+    "scene_type": "metro",
+    "crowd_density": "high",
+    "traffic_density": "low",
+    "time_of_day": "afternoon",
+    "weather": "clear",
+    "notable_objects": [
+      "escalator",
+      "signage",
+      "people",
+      "ticket counter"
+    ],
+    "clip_path": "/workspace/LLM_asAgent_3D_SR/src/data/clips/metro/metro-Scene-008-scene001-chunk000.mp4"
+  },
+  {
+    "scene_type": "metro",
+    "crowd_density": "med",
+    "traffic_density": "low",
+    "time_of_day": "afternoon",
+    "weather": "clear",
+    "notable_objects": [
+      "escalator",
+      "stairs",
+      "signage",
+      "people"
+    ],
+    "clip_path": "/workspace/LLM_asAgent_3D_SR/src/data/clips/metro/metro-Scene-008-scene001-chunk001.mp4"
+  },
+  {
+    "scene_type": "metro",
+    "crowd_density": "med",
+    "traffic_density": "low",
+    "time_of_day": "afternoon",
+    "weather": "clear",
+    "notable_objects": [
+      "clock",
+      "platform",
+      "people",
+      "signage",
+      "train",
+      "barriers"
+    ],
+    "clip_path": "/workspace/LLM_asAgent_3D_SR/src/data/clips/metro/metro-Scene-008-scene002-chunk000.mp4"
+  },
+  {
+    "scene_type": "metro",
+    "crowd_density": "med",
+    "traffic_density": "low",
+    "time_of_day": "afternoon",
+    "weather": "clear",
+    "notable_objects": [
+      "people",
+      "platform",
+      "advertisements",
+      "signage",
+      "ticket counter",
+      "train tracks"
+    ],
+    "clip_path": "/workspace/LLM_asAgent_3D_SR/src/data/clips/metro/metro-Scene-008-scene002-chunk003.mp4"
+  },
+  {
+    "scene_type": "metro",
+    "crowd_density": "med",
+    "traffic_density": "low",
+    "time_of_day": "afternoon",
+    "weather": "clear",
+    "notable_objects": [
+      "signs",
+      "seating",
+      "people",
+      "platform",
+      "emergency panel",
+      "advertisements"
+    ],
+    "clip_path": "/workspace/LLM_asAgent_3D_SR/src/data/clips/metro/metro-Scene-008-scene002-chunk004.mp4"
+  },
+  {
+    "scene_type": "metro",
+    "crowd_density": "med",
+    "traffic_density": "low",
+    "time_of_day": "afternoon",
+    "weather": "clear",
+    "notable_objects": [
+      "people",
+      "seats",
+      "platform",
+      "train",
+      "signage",
+      "ceiling",
+      "columns"
+    ],
+    "clip_path": "/workspace/LLM_asAgent_3D_SR/src/data/clips/metro/metro-Scene-008-scene002-chunk006.mp4"
+  },
+  {
+    "scene_type": "metro",
+    "crowd_density": "med",
+    "traffic_density": "low",
+    "time_of_day": "afternoon",
+    "weather": "clear",
+    "notable_objects": [
+      "people",
+      "platform",
+      "train doors",
+      "signage",
+      "ceiling lights",
+      "columns"
+    ],
+    "clip_path": "/workspace/LLM_asAgent_3D_SR/src/data/clips/metro/metro-Scene-008-scene002-chunk008.mp4"
+  },
+  {
+    "scene_type": "metro",
+    "crowd_density": "low",
+    "traffic_density": "low",
+    "time_of_day": "evening",
+    "weather": "clear",
+    "notable_objects": [
+      "escalator",
+      "train",
+      "signage",
+      "person",
+      "ceiling lights",
+      "platform"
+    ],
+    "clip_path": "/workspace/LLM_asAgent_3D_SR/src/data/clips/metro/metro-Scene-008-scene002-chunk013.mp4"
+  },
+  {
+    "scene_type": "metro",
+    "crowd_density": "med",
+    "traffic_density": "low",
+    "time_of_day": "evening",
+    "weather": "clear",
+    "notable_objects": [
+      "advertisements",
+      "platform",
+      "escalator",
+      "people",
+      "signage"
+    ],
+    "clip_path": "/workspace/LLM_asAgent_3D_SR/src/data/clips/metro/metro-Scene-008-scene002-chunk011.mp4"
+  },
+  {
+    "scene_type": "metro",
+    "crowd_density": "low",
+    "traffic_density": "low",
+    "time_of_day": "evening",
+    "weather": "clear",
+    "notable_objects": [
+      "escalator",
+      "digital clock",
+      "metal railing",
+      "ceiling panels",
+      "signage"
+    ],
+    "clip_path": "/workspace/LLM_asAgent_3D_SR/src/data/clips/metro/metro-Scene-008-scene002-chunk014.mp4"
+  },
+  {
+    "scene_type": "metro",
+    "crowd_density": "med",
+    "traffic_density": "low",
+    "time_of_day": "afternoon",
+    "weather": "clear",
+    "notable_objects": [
+      "platform",
+      "train doors",
+      "advertisements",
+      "people",
+      "signage",
+      "tiles"
+    ],
+    "clip_path": "/workspace/LLM_asAgent_3D_SR/src/data/clips/metro/metro-Scene-008-scene003-chunk000.mp4"
+  },
+  {
+    "scene_type": "metro",
+    "crowd_density": "med",
+    "traffic_density": "low",
+    "time_of_day": "afternoon",
+    "weather": "clear",
+    "notable_objects": [
+      "subway train",
+      "platform",
+      "marble wall",
+      "advertisements",
+      "people",
+      "seats"
+    ],
+    "clip_path": "/workspace/LLM_asAgent_3D_SR/src/data/clips/metro/metro-Scene-008-scene003-chunk001.mp4"
+  },
+  {
+    "scene_type": "metro",
+    "crowd_density": "med",
+    "traffic_density": "low",
+    "time_of_day": "afternoon",
+    "weather": "clear",
+    "notable_objects": [
+      "people",
+      "platform",
+      "marble wall",
+      "signage",
+      "lights",
+      "train doors"
+    ],
+    "clip_path": "/workspace/LLM_asAgent_3D_SR/src/data/clips/metro/metro-Scene-008-scene003-chunk002.mp4"
+  },
+  {
+    "scene_type": "metro",
+    "crowd_density": "high",
+    "traffic_density": "low",
+    "time_of_day": "afternoon",
+    "weather": "clear",
+    "notable_objects": [
+      "people",
+      "train",
+      "platform",
+      "signage",
+      "backpacks",
+      "handbags"
+    ],
+    "clip_path": "/workspace/LLM_asAgent_3D_SR/src/data/clips/metro/metro-Scene-009-scene000-chunk000.mp4"
+  },
+  {
+    "scene_type": "metro",
+    "crowd_density": "high",
+    "traffic_density": "low",
+    "time_of_day": "afternoon",
+    "weather": "clear",
+    "notable_objects": [
+      "train",
+      "platform",
+      "people",
+      "signage",
+      "railings"
+    ],
+    "clip_path": "/workspace/LLM_asAgent_3D_SR/src/data/clips/metro/metro-Scene-009-scene000-chunk001.mp4"
+  },
+  {
+    "scene_type": "metro",
+    "crowd_density": "high",
+    "traffic_density": "low",
+    "time_of_day": "afternoon",
+    "weather": "clear",
+    "notable_objects": [
+      "train",
+      "platform",
+      "people",
+      "signage",
+      "lights"
+    ],
+    "clip_path": "/workspace/LLM_asAgent_3D_SR/src/data/clips/metro/metro-Scene-009-scene000-chunk002.mp4"
+  },
+  {
+    "scene_type": "metro",
+    "crowd_density": "high",
+    "traffic_density": "low",
+    "time_of_day": "afternoon",
+    "weather": "clear",
+    "notable_objects": [
+      "people",
+      "train",
+      "platform",
+      "signage",
+      "doors"
+    ],
+    "clip_path": "/workspace/LLM_asAgent_3D_SR/src/data/clips/metro/metro-Scene-009-scene000-chunk003.mp4"
+  },
+  {
+    "scene_type": "metro",
+    "crowd_density": "high",
+    "traffic_density": "med",
+    "time_of_day": "afternoon",
+    "weather": "clear",
+    "notable_objects": [
+      "subway train",
+      "platform",
+      "signage",
+      "passengers",
+      "ceiling lights"
+    ],
+    "clip_path": "/workspace/LLM_asAgent_3D_SR/src/data/clips/metro/metro-Scene-009-scene002-chunk000.mp4"
+  },
+  {
+    "scene_type": "metro",
+    "crowd_density": "med",
+    "traffic_density": "low",
+    "time_of_day": "afternoon",
+    "weather": "clear",
+    "notable_objects": [
+      "train",
+      "platform",
+      "signage",
+      "advertisements",
+      "passengers"
+    ],
+    "clip_path": "/workspace/LLM_asAgent_3D_SR/src/data/clips/metro/metro-Scene-009-scene002-chunk003.mp4"
+  },
+  {
+    "scene_type": "metro",
+    "crowd_density": "high",
+    "traffic_density": "low",
+    "time_of_day": "afternoon",
+    "weather": "clear",
+    "notable_objects": [
+      "train",
+      "platform",
+      "signage",
+      "passengers",
+      "advertisements"
+    ],
+    "clip_path": "/workspace/LLM_asAgent_3D_SR/src/data/clips/metro/metro-Scene-009-scene001-chunk000.mp4"
+  },
+  {
+    "scene_type": "metro",
+    "crowd_density": "high",
+    "traffic_density": "low",
+    "time_of_day": "afternoon",
+    "weather": "clear",
+    "notable_objects": [
+      "subway train",
+      "platform",
+      "signage",
+      "people",
+      "benches",
+      "columns"
+    ],
+    "clip_path": "/workspace/LLM_asAgent_3D_SR/src/data/clips/metro/metro-Scene-009-scene002-chunk002.mp4"
+  },
+  {
+    "scene_type": "metro",
+    "crowd_density": "med",
+    "traffic_density": "low",
+    "time_of_day": "afternoon",
+    "weather": "clear",
+    "notable_objects": [
+      "subway train",
+      "platform",
+      "signage",
+      "passengers",
+      "glass barrier"
+    ],
+    "clip_path": "/workspace/LLM_asAgent_3D_SR/src/data/clips/metro/metro-Scene-009-scene003-chunk000.mp4"
+  },
+  {
+    "scene_type": "metro",
+    "crowd_density": "med",
+    "traffic_density": "low",
+    "time_of_day": "afternoon",
+    "weather": "clear",
+    "notable_objects": [
+      "subway train",
+      "platform",
+      "people",
+      "signage",
+      "bench",
+      "ceiling lights"
+    ],
+    "clip_path": "/workspace/LLM_asAgent_3D_SR/src/data/clips/metro/metro-Scene-009-scene003-chunk001.mp4"
+  },
+  {
+    "scene_type": "metro",
+    "crowd_density": "med",
+    "traffic_density": "low",
+    "time_of_day": "afternoon",
+    "weather": "clear",
+    "notable_objects": [
+      "signage",
+      "ticket counter",
+      "platform",
+      "train doors",
+      "backpack",
+      "people"
+    ],
+    "clip_path": "/workspace/LLM_asAgent_3D_SR/src/data/clips/metro/metro-Scene-009-scene004-chunk001.mp4"
+  },
+  {
+    "scene_type": "metro",
+    "crowd_density": "med",
+    "traffic_density": "low",
+    "time_of_day": "afternoon",
+    "weather": "clear",
+    "notable_objects": [
+      "escalators",
+      "platform",
+      "signage",
+      "train doors",
+      "people",
+      "clock"
+    ],
+    "clip_path": "/workspace/LLM_asAgent_3D_SR/src/data/clips/metro/metro-Scene-009-scene004-chunk005.mp4"
+  },
+  {
+    "scene_type": "metro",
+    "crowd_density": "med",
+    "traffic_density": "low",
+    "time_of_day": "afternoon",
+    "weather": "clear",
+    "notable_objects": [
+      "people",
+      "escalator",
+      "signage",
+      "columns",
+      "platform"
+    ],
+    "clip_path": "/workspace/LLM_asAgent_3D_SR/src/data/clips/metro/metro-Scene-009-scene005-chunk000.mp4"
+  },
+  {
+    "scene_type": "market",
+    "crowd_density": "med",
+    "traffic_density": "low",
+    "time_of_day": "afternoon",
+    "weather": "clear",
+    "notable_objects": [
+      "motorcycle",
+      "bicycle",
+      "shop",
+      "fabrics",
+      "air conditioner",
+      "streetlights",
+      "signs"
+    ],
+    "clip_path": "/workspace/LLM_asAgent_3D_SR/src/data/clips/temple/temple-Scene-001-scene000-chunk000.mp4"
+  },
+  {
+    "scene_type": "market",
+    "crowd_density": "high",
+    "traffic_density": "low",
+    "time_of_day": "afternoon",
+    "weather": "clear",
+    "notable_objects": [
+      "shops",
+      "fabric",
+      "people",
+      "street",
+      "awning",
+      "decorations"
+    ],
+    "clip_path": "/workspace/LLM_asAgent_3D_SR/src/data/clips/temple/temple-Scene-001-scene000-chunk001.mp4"
+  },
+  {
+    "scene_type": "market",
+    "crowd_density": "med",
+    "traffic_density": "low",
+    "time_of_day": "afternoon",
+    "weather": "clear",
+    "notable_objects": [
+      "shops",
+      "stalls",
+      "people",
+      "fabric",
+      "awning",
+      "tables",
+      "signs"
+    ],
+    "clip_path": "/workspace/LLM_asAgent_3D_SR/src/data/clips/temple/temple-Scene-001-scene000-chunk002.mp4"
+  },
+  {
+    "scene_type": "market",
+    "crowd_density": "high",
+    "traffic_density": "low",
+    "time_of_day": "afternoon",
+    "weather": "clear",
+    "notable_objects": [
+      "shops",
+      "signboards",
+      "people",
+      "street vendors",
+      "clothing",
+      "banners"
+    ],
+    "clip_path": "/workspace/LLM_asAgent_3D_SR/src/data/clips/temple/temple-Scene-001-scene001-chunk000.mp4"
+  },
+  {
+    "scene_type": "lane",
+    "crowd_density": "high",
+    "traffic_density": "med",
+    "time_of_day": "afternoon",
+    "weather": "clear",
+    "notable_objects": [
+      "shops",
+      "motorcycles",
+      "signs",
+      "wires",
+      "people",
+      "scarves",
+      "street vendors"
+    ],
+    "clip_path": "/workspace/LLM_asAgent_3D_SR/src/data/clips/temple/temple-Scene-001-scene001-chunk001.mp4"
+  },
+  {
+    "scene_type": "lane",
+    "crowd_density": "med",
+    "traffic_density": "low",
+    "time_of_day": "afternoon",
+    "weather": "clear",
+    "notable_objects": [
+      "market stalls",
+      "green canopy",
+      "people",
+      "signs",
+      "baskets",
+      "banners"
+    ],
+    "clip_path": "/workspace/LLM_asAgent_3D_SR/src/data/clips/temple/temple-Scene-001-scene001-chunk003.mp4"
+  },
+  {
+    "scene_type": "market",
+    "crowd_density": "high",
+    "traffic_density": "low",
+    "time_of_day": "afternoon",
+    "weather": "clear",
+    "notable_objects": [
+      "shops",
+      "stalls",
+      "people",
+      "signs",
+      "canopies",
+      "goods"
+    ],
+    "clip_path": "/workspace/LLM_asAgent_3D_SR/src/data/clips/temple/temple-Scene-001-scene002-chunk000.mp4"
+  },
+  {
+    "scene_type": "market",
+    "crowd_density": "high",
+    "traffic_density": "low",
+    "time_of_day": "afternoon",
+    "weather": "clear",
+    "notable_objects": [
+      "shops",
+      "signboards",
+      "stalls",
+      "people",
+      "street",
+      "goods"
+    ],
+    "clip_path": "/workspace/LLM_asAgent_3D_SR/src/data/clips/temple/temple-Scene-001-scene004.mp4"
+  },
+  {
+    "scene_type": "market",
+    "crowd_density": "high",
+    "traffic_density": "med",
+    "time_of_day": "afternoon",
+    "weather": "clear",
+    "notable_objects": [
+      "bicycles",
+      "stalls",
+      "colorful fabrics",
+      "shoppers",
+      "signboards"
+    ],
+    "clip_path": "/workspace/LLM_asAgent_3D_SR/src/data/clips/temple/temple-Scene-001-scene003-chunk000.mp4"
+  },
+  {
+    "scene_type": "market",
+    "crowd_density": "high",
+    "traffic_density": "low",
+    "time_of_day": "afternoon",
+    "weather": "clear",
+    "notable_objects": [
+      "shops",
+      "signs",
+      "people",
+      "clothing racks",
+      "food stalls",
+      "banners"
+    ],
+    "clip_path": "/workspace/LLM_asAgent_3D_SR/src/data/clips/temple/temple-Scene-001-scene005-chunk000.mp4"
+  },
+  {
+    "scene_type": "market",
+    "crowd_density": "high",
+    "traffic_density": "med",
+    "time_of_day": "afternoon",
+    "weather": "clear",
+    "notable_objects": [
+      "stalls",
+      "signs",
+      "bicycles",
+      "goods",
+      "people",
+      "overhead wires"
+    ],
+    "clip_path": "/workspace/LLM_asAgent_3D_SR/src/data/clips/temple/temple-Scene-002-chunk000.mp4"
+  },
+  {
+    "scene_type": "market",
+    "crowd_density": "high",
+    "traffic_density": "low",
+    "time_of_day": "afternoon",
+    "weather": "clear",
+    "notable_objects": [
+      "shoes",
+      "scarves",
+      "bags",
+      "sale sign",
+      "market stalls",
+      "people"
+    ],
+    "clip_path": "/workspace/LLM_asAgent_3D_SR/src/data/clips/temple/temple-Scene-001-scene007.mp4"
+  },
+  {
+    "scene_type": "market",
+    "crowd_density": "high",
+    "traffic_density": "low",
+    "time_of_day": "afternoon",
+    "weather": "clear",
+    "notable_objects": [
+      "shops",
+      "signs",
+      "people",
+      "goods",
+      "awning"
+    ],
+    "clip_path": "/workspace/LLM_asAgent_3D_SR/src/data/clips/temple/temple-Scene-004-scene000-chunk000.mp4"
+  },
+  {
+    "scene_type": "market",
+    "crowd_density": "high",
+    "traffic_density": "low",
+    "time_of_day": "afternoon",
+    "weather": "clear",
+    "notable_objects": [
+      "shops",
+      "stalls",
+      "people",
+      "flags",
+      "signs",
+      "tattoo booth"
+    ],
+    "clip_path": "/workspace/LLM_asAgent_3D_SR/src/data/clips/temple/temple-Scene-002-chunk001.mp4"
+  },
+  {
+    "scene_type": "market",
+    "crowd_density": "high",
+    "traffic_density": "med",
+    "time_of_day": "afternoon",
+    "weather": "clear",
+    "notable_objects": [
+      "shops",
+      "fabric",
+      "signs",
+      "people",
+      "motorcycle"
+    ],
+    "clip_path": "/workspace/LLM_asAgent_3D_SR/src/data/clips/temple/temple-Scene-004-scene002-chunk002.mp4"
+  },
+  {
+    "scene_type": "market",
+    "crowd_density": "high",
+    "traffic_density": "low",
+    "time_of_day": "afternoon",
+    "weather": "clear",
+    "notable_objects": [
+      "shoes",
+      "fabrics",
+      "mannequins",
+      "shoppers",
+      "shop stalls"
+    ],
+    "clip_path": "/workspace/LLM_asAgent_3D_SR/src/data/clips/temple/temple-Scene-003-chunk000.mp4"
+  },
+  {
+    "scene_type": "market",
+    "crowd_density": "high",
+    "traffic_density": "low",
+    "time_of_day": "afternoon",
+    "weather": "clear",
+    "notable_objects": [
+      "stalls",
+      "colorful fabrics",
+      "people walking",
+      "archway",
+      "tents"
+    ],
+    "clip_path": "/workspace/LLM_asAgent_3D_SR/src/data/clips/temple/temple-Scene-005-scene000-chunk000.mp4"
+  },
+  {
+    "scene_type": "market",
+    "crowd_density": "high",
+    "traffic_density": "med",
+    "time_of_day": "afternoon",
+    "weather": "clear",
+    "notable_objects": [
+      "archway",
+      "motorcycles",
+      "stalls",
+      "people",
+      "signs"
+    ],
+    "clip_path": "/workspace/LLM_asAgent_3D_SR/src/data/clips/temple/temple-Scene-005-scene000-chunk001.mp4"
+  },
+  {
+    "scene_type": "market",
+    "crowd_density": "high",
+    "traffic_density": "med",
+    "time_of_day": "afternoon",
+    "weather": "clear",
+    "notable_objects": [
+      "archway",
+      "motorcycles",
+      "market stalls",
+      "people",
+      "clothing"
+    ],
+    "clip_path": "/workspace/LLM_asAgent_3D_SR/src/data/clips/temple/temple-Scene-005-scene000-chunk002.mp4"
+  },
+  {
+    "scene_type": "lane",
+    "crowd_density": "low",
+    "traffic_density": "low",
+    "time_of_day": "afternoon",
+    "weather": "clear",
+    "notable_objects": [
+      "archway",
+      "strings",
+      "buildings",
+      "sky"
+    ],
+    "clip_path": "/workspace/LLM_asAgent_3D_SR/src/data/clips/temple/temple-Scene-005-scene001.mp4"
+  },
+  {
+    "scene_type": "market",
+    "crowd_density": "high",
+    "traffic_density": "med",
+    "time_of_day": "afternoon",
+    "weather": "clear",
+    "notable_objects": [
+      "motorcycles",
+      "buildings",
+      "arches",
+      "people",
+      "strings of leaves"
+    ],
+    "clip_path": "/workspace/LLM_asAgent_3D_SR/src/data/clips/temple/temple-Scene-005-scene002-chunk000.mp4"
+  },
+  {
+    "scene_type": "market",
+    "crowd_density": "high",
+    "traffic_density": "med",
+    "time_of_day": "afternoon",
+    "weather": "clear",
+    "notable_objects": [
+      "buildings",
+      "motorcycles",
+      "umbrellas",
+      "signs",
+      "people"
+    ],
+    "clip_path": "/workspace/LLM_asAgent_3D_SR/src/data/clips/temple/temple-Scene-005-scene002-chunk001.mp4"
+  },
+  {
+    "scene_type": "market",
+    "crowd_density": "high",
+    "traffic_density": "med",
+    "time_of_day": "afternoon",
+    "weather": "clear",
+    "notable_objects": [
+      "buildings",
+      "signboards",
+      "motorcycles",
+      "people",
+      "street vendors"
+    ],
+    "clip_path": "/workspace/LLM_asAgent_3D_SR/src/data/clips/temple/temple-Scene-005-scene003-chunk000.mp4"
+  },
+  {
+    "scene_type": "market",
+    "crowd_density": "high",
+    "traffic_density": "low",
+    "time_of_day": "afternoon",
+    "weather": "clear",
+    "notable_objects": [
+      "buildings",
+      "shops",
+      "signs",
+      "people",
+      "street",
+      "sky"
+    ],
+    "clip_path": "/workspace/LLM_asAgent_3D_SR/src/data/clips/temple/temple-Scene-005-scene003-chunk001.mp4"
+  },
+  {
+    "scene_type": "market",
+    "crowd_density": "high",
+    "traffic_density": "low",
+    "time_of_day": "afternoon",
+    "weather": "clear",
+    "notable_objects": [
+      "billboard",
+      "street vendors",
+      "shopping stalls",
+      "pedestrians",
+      "buildings"
+    ],
+    "clip_path": "/workspace/LLM_asAgent_3D_SR/src/data/clips/temple/temple-Scene-005-scene004.mp4"
+  },
+  {
+    "scene_type": "market",
+    "crowd_density": "high",
+    "traffic_density": "low",
+    "time_of_day": "afternoon",
+    "weather": "clear",
+    "notable_objects": [
+      "people",
+      "buildings",
+      "signs",
+      "street lamps",
+      "pink building",
+      "archway"
+    ],
+    "clip_path": "/workspace/LLM_asAgent_3D_SR/src/data/clips/temple/temple-Scene-005-scene005-chunk001.mp4"
+  },
+  {
+    "scene_type": "lane",
+    "crowd_density": "high",
+    "traffic_density": "med",
+    "time_of_day": "afternoon",
+    "weather": "clear",
+    "notable_objects": [
+      "Chinatown archway",
+      "shop signs",
+      "pedestrians",
+      "motorcycles",
+      "banners"
+    ],
+    "clip_path": "/workspace/LLM_asAgent_3D_SR/src/data/clips/temple/temple-Scene-005-scene007.mp4"
+  },
+  {
+    "scene_type": "market",
+    "crowd_density": "high",
+    "traffic_density": "low",
+    "time_of_day": "afternoon",
+    "weather": "clear",
+    "notable_objects": [
+      "archway",
+      "shops",
+      "balloons",
+      "signs",
+      "people"
+    ],
+    "clip_path": "/workspace/LLM_asAgent_3D_SR/src/data/clips/temple/temple-Scene-005-scene006-chunk000.mp4"
+  },
+  {
+    "scene_type": "commercial",
+    "crowd_density": "high",
+    "traffic_density": "low",
+    "time_of_day": "afternoon",
+    "weather": "clear",
+    "notable_objects": [
+      "buildings",
+      "people",
+      "streetlights",
+      "food cart",
+      "signage"
+    ],
+    "clip_path": "/workspace/LLM_asAgent_3D_SR/src/data/clips/temple/temple-Scene-006-scene000-chunk000.mp4"
+  },
+  {
+    "scene_type": "market",
+    "crowd_density": "high",
+    "traffic_density": "low",
+    "time_of_day": "afternoon",
+    "weather": "clear",
+    "notable_objects": [
+      "buildings",
+      "people",
+      "shops",
+      "street",
+      "sky"
+    ],
+    "clip_path": "/workspace/LLM_asAgent_3D_SR/src/data/clips/temple/temple-Scene-006-scene000-chunk001.mp4"
+  },
+  {
+    "scene_type": "market",
+    "crowd_density": "high",
+    "traffic_density": "low",
+    "time_of_day": "morning",
+    "weather": "clear",
+    "notable_objects": [
+      "buildings",
+      "people",
+      "street",
+      "sunset"
+    ],
+    "clip_path": "/workspace/LLM_asAgent_3D_SR/src/data/clips/temple/temple-Scene-006-scene000-chunk002.mp4"
+  },
+  {
+    "scene_type": "market",
+    "crowd_density": "high",
+    "traffic_density": "med",
+    "time_of_day": "afternoon",
+    "weather": "clear",
+    "notable_objects": [
+      "buildings",
+      "people",
+      "umbrellas",
+      "street vendors",
+      "signboards"
+    ],
+    "clip_path": "/workspace/LLM_asAgent_3D_SR/src/data/clips/temple/temple-Scene-006-scene001-chunk000.mp4"
+  },
+  {
+    "scene_type": "market",
+    "crowd_density": "high",
+    "traffic_density": "low",
+    "time_of_day": "afternoon",
+    "weather": "clear",
+    "notable_objects": [
+      "buildings",
+      "people",
+      "shops",
+      "streetlights"
+    ],
+    "clip_path": "/workspace/LLM_asAgent_3D_SR/src/data/clips/temple/temple-Scene-006-scene000-chunk004.mp4"
+  },
+  {
+    "scene_type": "market",
+    "crowd_density": "high",
+    "traffic_density": "med",
+    "time_of_day": "morning",
+    "weather": "clear",
+    "notable_objects": [
+      "buildings",
+      "pedestrians",
+      "motorcycles",
+      "shops",
+      "street vendors"
+    ],
+    "clip_path": "/workspace/LLM_asAgent_3D_SR/src/data/clips/temple/temple-Scene-006-scene002-chunk001.mp4"
+  },
+  {
+    "scene_type": "commercial",
+    "crowd_density": "high",
+    "traffic_density": "low",
+    "time_of_day": "morning",
+    "weather": "clear",
+    "notable_objects": [
+      "buildings",
+      "shops",
+      "people",
+      "street",
+      "signage"
+    ],
+    "clip_path": "/workspace/LLM_asAgent_3D_SR/src/data/clips/temple/temple-Scene-006-scene002-chunk002.mp4"
+  },
+  {
+    "scene_type": "market",
+    "crowd_density": "high",
+    "traffic_density": "low",
+    "time_of_day": "afternoon",
+    "weather": "clear",
+    "notable_objects": [
+      "shops",
+      "people",
+      "signs",
+      "potted plants",
+      "awning",
+      "balconies"
+    ],
+    "clip_path": "/workspace/LLM_asAgent_3D_SR/src/data/clips/temple/temple-Scene-006-scene006-chunk000.mp4"
+  },
+  {
+    "scene_type": "market",
+    "crowd_density": "high",
+    "traffic_density": "low",
+    "time_of_day": "afternoon",
+    "weather": "clear",
+    "notable_objects": [
+      "clothing stalls",
+      "awning",
+      "people",
+      "bags",
+      "lights"
+    ],
+    "clip_path": "/workspace/LLM_asAgent_3D_SR/src/data/clips/temple/temple-Scene-007-scene000.mp4"
+  },
+  {
+    "scene_type": "market",
+    "crowd_density": "high",
+    "traffic_density": "low",
+    "time_of_day": "afternoon",
+    "weather": "clear",
+    "notable_objects": [
+      "shelves",
+      "tents",
+      "bags",
+      "people",
+      "boxes"
+    ],
+    "clip_path": "/workspace/LLM_asAgent_3D_SR/src/data/clips/temple/temple-Scene-006-scene006-chunk001.mp4"
+  },
+  {
+    "scene_type": "market",
+    "crowd_density": "high",
+    "traffic_density": "med",
+    "time_of_day": "afternoon",
+    "weather": "clear",
+    "notable_objects": [
+      "shops",
+      "signboards",
+      "pedestrians",
+      "food stalls",
+      "awning",
+      "street lights"
+    ],
+    "clip_path": "/workspace/LLM_asAgent_3D_SR/src/data/clips/temple/temple-Scene-007-scene001-chunk002.mp4"
+  },
+  {
+    "scene_type": "lane",
+    "crowd_density": "high",
+    "traffic_density": "med",
+    "time_of_day": "afternoon",
+    "weather": "clear",
+    "notable_objects": [
+      "food stalls",
+      "signboards",
+      "motorcycles",
+      "pedestrians",
+      "buildings",
+      "cooking utensils",
+      "food items"
+    ],
+    "clip_path": "/workspace/LLM_asAgent_3D_SR/src/data/clips/temple/temple-Scene-007-scene001-chunk003.mp4"
+  },
+  {
+    "scene_type": "lane",
+    "crowd_density": "med",
+    "traffic_density": "med",
+    "time_of_day": "afternoon",
+    "weather": "clear",
+    "notable_objects": [
+      "motorcycles",
+      "food stalls",
+      "shop signs",
+      "pedestrians",
+      "buildings"
+    ],
+    "clip_path": "/workspace/LLM_asAgent_3D_SR/src/data/clips/temple/temple-Scene-007-scene001-chunk004.mp4"
+  },
+  {
+    "scene_type": "lane",
+    "crowd_density": "med",
+    "traffic_density": "med",
+    "time_of_day": "afternoon",
+    "weather": "clear",
+    "notable_objects": [
+      "motorcycles",
+      "shop signs",
+      "pedestrians",
+      "buildings",
+      "streetlights"
+    ],
+    "clip_path": "/workspace/LLM_asAgent_3D_SR/src/data/clips/temple/temple-Scene-007-scene002-chunk000.mp4"
+  },
+  {
+    "scene_type": "lane",
+    "crowd_density": "high",
+    "traffic_density": "med",
+    "time_of_day": "afternoon",
+    "weather": "clear",
+    "notable_objects": [
+      "shops",
+      "signboards",
+      "motorcycles",
+      "pedestrians",
+      "banners"
+    ],
+    "clip_path": "/workspace/LLM_asAgent_3D_SR/src/data/clips/temple/temple-Scene-007-scene003-chunk001.mp4"
+  },
+  {
+    "scene_type": "lane",
+    "crowd_density": "med",
+    "traffic_density": "med",
+    "time_of_day": "afternoon",
+    "weather": "clear",
+    "notable_objects": [
+      "motorcycles",
+      "street vendors",
+      "banners",
+      "buildings",
+      "pedestrians"
+    ],
+    "clip_path": "/workspace/LLM_asAgent_3D_SR/src/data/clips/temple/temple-Scene-007-scene003-chunk010.mp4"
+  },
+  {
+    "scene_type": "market",
+    "crowd_density": "high",
+    "traffic_density": "med",
+    "time_of_day": "afternoon",
+    "weather": "clear",
+    "notable_objects": [
+      "banners",
+      "street vendors",
+      "motorcycles",
+      "buildings",
+      "water bottles",
+      "signs"
+    ],
+    "clip_path": "/workspace/LLM_asAgent_3D_SR/src/data/clips/temple/temple-Scene-007-scene003-chunk011.mp4"
+  },
+  {
+    "scene_type": "junction",
+    "crowd_density": "high",
+    "traffic_density": "high",
+    "time_of_day": "afternoon",
+    "weather": "clear",
+    "notable_objects": [
+      "Indian Bank",
+      "motorcycles",
+      "bicycles",
+      "pedestrians",
+      "electric wires",
+      "shop signs",
+      "banners"
+    ],
+    "clip_path": "/workspace/LLM_asAgent_3D_SR/src/data/clips/temple/temple-Scene-008-scene000-chunk001.mp4"
+  },
+  {
+    "scene_type": "market",
+    "crowd_density": "high",
+    "traffic_density": "high",
+    "time_of_day": "afternoon",
+    "weather": "clear",
+    "notable_objects": [
+      "motorcycles",
+      "pedestrians",
+      "banners",
+      "buildings",
+      "shops"
+    ],
+    "clip_path": "/workspace/LLM_asAgent_3D_SR/src/data/clips/temple/temple-Scene-008-scene000-chunk000.mp4"
+  },
+  {
+    "scene_type": "lane",
+    "crowd_density": "med",
+    "traffic_density": "med",
+    "time_of_day": "afternoon",
+    "weather": "clear",
+    "notable_objects": [
+      "scooters",
+      "shop signs",
+      "decorative flags",
+      "pedestrians",
+      "shuttered shop",
+      "street vendor"
+    ],
+    "clip_path": "/workspace/LLM_asAgent_3D_SR/src/data/clips/temple/temple-Scene-008-scene001-chunk001.mp4"
+  },
+  {
+    "scene_type": "market",
+    "crowd_density": "high",
+    "traffic_density": "med",
+    "time_of_day": "morning",
+    "weather": "clear",
+    "notable_objects": [
+      "food stall",
+      "vegetables",
+      "shop sign",
+      "motorcycle",
+      "people",
+      "trolley"
+    ],
+    "clip_path": "/workspace/LLM_asAgent_3D_SR/src/data/clips/temple/temple-Scene-009-chunk000.mp4"
+  },
+  {
+    "scene_type": "market",
+    "crowd_density": "high",
+    "traffic_density": "high",
+    "time_of_day": "afternoon",
+    "weather": "clear",
+    "notable_objects": [
+      "motorcycles",
+      "shops",
+      "signboards",
+      "people",
+      "buildings",
+      "banners"
+    ],
+    "clip_path": "/workspace/LLM_asAgent_3D_SR/src/data/clips/temple/temple-Scene-008-scene001-chunk000.mp4"
+  },
+  {
+    "scene_type": "lane",
+    "crowd_density": "med",
+    "traffic_density": "med",
+    "time_of_day": "afternoon",
+    "weather": "clear",
+    "notable_objects": [
+      "Indian Bank",
+      "motorcycles",
+      "banners",
+      "street vendors",
+      "buildings",
+      "power lines"
+    ],
+    "clip_path": "/workspace/LLM_asAgent_3D_SR/src/data/clips/temple/temple-Scene-010-scene000-chunk000.mp4"
+  },
+  {
+    "scene_type": "lane",
+    "crowd_density": "low",
+    "traffic_density": "low",
+    "time_of_day": "afternoon",
+    "weather": "clear",
+    "notable_objects": [
+      "rickshaw",
+      "motorcycles",
+      "shop signs",
+      "clothing",
+      "buildings"
+    ],
+    "clip_path": "/workspace/LLM_asAgent_3D_SR/src/data/clips/temple/temple-Scene-010-scene001-chunk001.mp4"
+  },
+  {
+    "scene_type": "lane",
+    "crowd_density": "med",
+    "traffic_density": "med",
+    "time_of_day": "afternoon",
+    "weather": "clear",
+    "notable_objects": [
+      "motorcycles",
+      "scooters",
+      "shops",
+      "signboards",
+      "people",
+      "electric wires"
+    ],
+    "clip_path": "/workspace/LLM_asAgent_3D_SR/src/data/clips/temple/temple-Scene-010-scene002-chunk002.mp4"
+  },
+  {
+    "scene_type": "lane",
+    "crowd_density": "med",
+    "traffic_density": "med",
+    "time_of_day": "morning",
+    "weather": "clear",
+    "notable_objects": [
+      "motorcycles",
+      "rickshaws",
+      "hotel signs",
+      "buildings",
+      "pedestrians",
+      "banners"
+    ],
+    "clip_path": "/workspace/LLM_asAgent_3D_SR/src/data/clips/temple/temple-Scene-010-scene002-chunk008.mp4"
+  },
+  {
+    "scene_type": "lane",
+    "crowd_density": "high",
+    "traffic_density": "med",
+    "time_of_day": "afternoon",
+    "weather": "clear",
+    "notable_objects": [
+      "motorcycles",
+      "bicycles",
+      "tricycle",
+      "shops",
+      "signboards",
+      "people"
+    ],
+    "clip_path": "/workspace/LLM_asAgent_3D_SR/src/data/clips/temple/temple-Scene-010-scene002-chunk009.mp4"
+  },
+  {
+    "scene_type": "lane",
+    "crowd_density": "med",
+    "traffic_density": "med",
+    "time_of_day": "morning",
+    "weather": "clear",
+    "notable_objects": [
+      "motorcycle",
+      "auto rickshaw",
+      "signboards",
+      "trash",
+      "buildings",
+      "electric wires"
+    ],
+    "clip_path": "/workspace/LLM_asAgent_3D_SR/src/data/clips/temple/temple-Scene-010-scene003-chunk001.mp4"
+  },
+  {
+    "scene_type": "lane",
+    "crowd_density": "high",
+    "traffic_density": "med",
+    "time_of_day": "afternoon",
+    "weather": "clear",
+    "notable_objects": [
+      "motorcycle",
+      "scooter",
+      "tricycle",
+      "buildings",
+      "people",
+      "banners",
+      "wires"
+    ],
+    "clip_path": "/workspace/LLM_asAgent_3D_SR/src/data/clips/temple/temple-Scene-010-scene004.mp4"
+  },
+  {
+    "scene_type": "lane",
+    "crowd_density": "med",
+    "traffic_density": "med",
+    "time_of_day": "afternoon",
+    "weather": "clear",
+    "notable_objects": [
+      "motorcycles",
+      "street vendors",
+      "shops",
+      "signs",
+      "pedestrians"
+    ],
+    "clip_path": "/workspace/LLM_asAgent_3D_SR/src/data/clips/temple/temple-Scene-010-scene005-chunk000.mp4"
+  },
+  {
+    "scene_type": "lane",
+    "crowd_density": "high",
+    "traffic_density": "high",
+    "time_of_day": "afternoon",
+    "weather": "clear",
+    "notable_objects": [
+      "rickshaw",
+      "motorcycles",
+      "bicycles",
+      "buildings",
+      "signs",
+      "people"
+    ],
+    "clip_path": "/workspace/LLM_asAgent_3D_SR/src/data/clips/temple/temple-Scene-010-scene005-chunk006.mp4"
+  },
+  {
+    "scene_type": "lane",
+    "crowd_density": "high",
+    "traffic_density": "med",
+    "time_of_day": "afternoon",
+    "weather": "clear",
+    "notable_objects": [
+      "motorcycles",
+      "sacks",
+      "air conditioner",
+      "shop sign",
+      "wires"
+    ],
+    "clip_path": "/workspace/LLM_asAgent_3D_SR/src/data/clips/temple/temple-Scene-010-scene005-chunk010.mp4"
+  },
+  {
+    "scene_type": "lane",
+    "crowd_density": "high",
+    "traffic_density": "high",
+    "time_of_day": "afternoon",
+    "weather": "clear",
+    "notable_objects": [
+      "motorcycles",
+      "bicycles",
+      "buildings",
+      "signboards",
+      "wires",
+      "people"
+    ],
+    "clip_path": "/workspace/LLM_asAgent_3D_SR/src/data/clips/temple/temple-Scene-010-scene005-chunk009.mp4"
+  },
+  {
+    "scene_type": "lane",
+    "crowd_density": "low",
+    "traffic_density": "low",
+    "time_of_day": "afternoon",
+    "weather": "clear",
+    "notable_objects": [
+      "motorcycles",
+      "shops",
+      "signboards",
+      "person walking",
+      "bicycles",
+      "wires"
+    ],
+    "clip_path": "/workspace/LLM_asAgent_3D_SR/src/data/clips/temple/temple-Scene-010-scene005-chunk012.mp4"
+  },
+  {
+    "scene_type": "lane",
+    "crowd_density": "high",
+    "traffic_density": "high",
+    "time_of_day": "afternoon",
+    "weather": "clear",
+    "notable_objects": [
+      "motorcycles",
+      "buildings",
+      "green curtain",
+      "bicycles",
+      "people"
+    ],
+    "clip_path": "/workspace/LLM_asAgent_3D_SR/src/data/clips/temple/temple-Scene-010-scene005-chunk014.mp4"
+  }
+]

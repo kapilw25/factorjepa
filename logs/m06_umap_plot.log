@@ -1,0 +1,53 @@
+
+==================================================
+Found existing plots:
+  /workspace/LLM_asAgent_3D_SR/src/outputs/m06_umap.png
+  /workspace/LLM_asAgent_3D_SR/src/outputs/m06_confusion_matrix.png
+==================================================
+
+Options:
+  [1] Delete existing and re-run
+  [2] Use cached files (skip processing)
+
+Enter choice (1 or 2): Deleted: /workspace/LLM_asAgent_3D_SR/src/outputs/m06_umap.png
+Deleted: /workspace/LLM_asAgent_3D_SR/src/outputs/m06_confusion_matrix.png
+Loaded embeddings: (242, 1024)
+Loaded tags: 242 clips
+Computing UMAP projection (n_neighbors=15, min_dist=0.1)...
+/workspace/LLM_asAgent_3D_SR/venv_walkindia/lib/python3.12/site-packages/umap/umap_.py:1952: UserWarning: n_jobs value 1 overridden to 1 by setting random_state. Use no seed for parallelism.
+  warn(
+UMAP(n_jobs=1, random_state=42, verbose=True)
+Tue Feb  3 19:34:01 2026 Construct fuzzy simplicial set
+Tue Feb  3 19:34:02 2026 Finding Nearest Neighbors
+Tue Feb  3 19:34:05 2026 Finished Nearest Neighbor Search
+Tue Feb  3 19:34:07 2026 Construct embedding
+Epochs completed:   0%|            0/500 [00:00]	completed  0  /  500 epochs
+Epochs completed:   0%|            1/500 [00:00]	completed  50  /  500 epochs
+Epochs completed:  18%| █▊         90/500 [00:00]	completed  100  /  500 epochs
+	completed  150  /  500 epochs
+Epochs completed:  36%| ███▌       179/500 [00:00]	completed  200  /  500 epochs
+	completed  250  /  500 epochs
+Epochs completed:  51%| █████      255/500 [00:00]	completed  300  /  500 epochs
+Epochs completed:  69%| ██████▉    344/500 [00:00]	completed  350  /  500 epochs
+	completed  400  /  500 epochs
+Epochs completed:  84%| ████████▍  422/500 [00:00]	completed  450  /  500 epochs
+Epochs completed: 100%| ██████████ 500/500 [00:01]
+Tue Feb  3 19:34:08 2026 Finished embedding
+UMAP projection shape: (242, 2)
+Saved: /workspace/LLM_asAgent_3D_SR/src/outputs/m06_umap.png
+Saved: /workspace/LLM_asAgent_3D_SR/src/outputs/m06_umap.pdf
+Building FAISS index for confusion matrix (k=5)...
+Saved: /workspace/LLM_asAgent_3D_SR/src/outputs/m06_confusion_matrix.png
+
+Per-class retrieval accuracy:
+  commercial: 18.3%
+  hilltown: 60.5%
+  junction: 0.0%
+  lane: 70.6%
+  market: 64.7%
+  metro: 98.0%
+  residential: 14.3%
+
+=== VISUALIZATION COMPLETE ===
+PNG: /workspace/LLM_asAgent_3D_SR/src/outputs/m06_umap.png
+PDF: /workspace/LLM_asAgent_3D_SR/src/outputs/m06_umap.pdf
