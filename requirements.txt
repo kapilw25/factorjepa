@@ -4,10 +4,10 @@
 # Install: pip install -r requirements.txt
 #
 # Modules covered:
-#   - src/m03_evaluator.py (OpenAI API)
-#   - src/utils/io_handler.py
-#   - src/utils/image_utils.py
-#   - src/utils/plotting.py
+#   - src/m01_download.py (yt-dlp)
+#   - src/m02_scene_detect.py (PySceneDetect)
+#   - src/m06_umap_plot.py (UMAP visualization)
+#   - src/utils/config.py
 # =============================================================================
 
 # Environment & Config
@@ -17,12 +17,21 @@ python-dotenv>=1.0.0
 requests>=2.31.0
 openai>=1.0.0
 
+# Video Download
+yt-dlp>=2024.1.0
+
+# Scene Detection
+scenedetect[opencv]>=0.6.0
+
 # Image Processing
 Pillow>=10.0.0
 
-# Data & Plotting (for research-grade visualization)
+# Data & Plotting
 numpy>=1.24.0
 pandas>=2.0.0
 matplotlib>=3.7.0
 seaborn>=0.12.0
 scipy>=1.10.0
+
+# UMAP Visualization
+umap-learn>=0.5.0

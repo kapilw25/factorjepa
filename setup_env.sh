@@ -1,14 +1,14 @@
 #!/bin/bash
 # ============================================================================
-# Environment Setup Script
+# Environment Setup Script - WalkIndia-50 POC
 # ============================================================================
 # Usage:
 #   chmod +x setup_env.sh
 #
-#   # M1 Mac (API-based LLM/VLM)
+#   # M1 Mac (CPU-based: download, scene detect, UMAP)
 #   ./setup_env.sh --mac
 #
-#   # GPU Server (AI2-THOR + PyTorch + Flash-Attention)
+#   # GPU Server (V-JEPA, Qwen-VL, FAISS) - Nvidia GPU ONLY
 #   ./setup_env.sh --gpu
 # ============================================================================
 
@@ -19,8 +19,8 @@ if [ -z "$1" ]; then
     echo "Error: No flag provided"
     echo ""
     echo "Usage:"
-    echo "  ./setup_env.sh --mac   # M1 Mac (API-based)"
-    echo "  ./setup_env.sh --gpu   # GPU Server (AI2-THOR + PyTorch)"
+    echo "  ./setup_env.sh --mac   # M1 Mac (CPU-based)"
+    echo "  ./setup_env.sh --gpu   # GPU Server (Nvidia ONLY)"
     exit 1
 fi
 
@@ -32,21 +32,21 @@ OS="$(uname -s)"
 # ============================================================================
 setup_base() {
     echo "============================================"
-    echo "Environment Setup"
+    echo "WalkIndia-50 POC Environment Setup"
     echo "============================================"
     echo "Detected OS: $OS"
     echo ""
 
     # Create virtual environment
-    if [ ! -d "venv_3Denv" ]; then
+    if [ ! -d "venv_walkindia" ]; then
         echo "Creating virtual environment..."
-        python3 -m venv venv_3Denv
+        python3 -m venv venv_walkindia
     else
         echo "Virtual environment already exists"
     fi
 
     # Activate virtual environment
-    source venv_3Denv/bin/activate
+    source venv_walkindia/bin/activate
 
     # Upgrade pip
     echo "Upgrading pip..."
@@ -56,13 +56,17 @@ setup_base() {
     echo "Installing base requirements..."
     pip install -r requirements.txt
 
+    # Create directories
+    echo "Creating directories..."
+    mkdir -p src/data/videos src/data/clips src/outputs logs
+
     echo ""
     echo "Base setup complete."
     echo ""
 }
 
 # ============================================================================
-# --mac: M1 Mac setup (API-based)
+# --mac: M1 Mac setup (CPU-based)
 # ============================================================================
 if [ "$1" = "--mac" ]; then
     setup_base
@@ -72,19 +76,20 @@ if [ "$1" = "--mac" ]; then
     echo "============================================"
     echo ""
     echo "To activate environment:"
-    echo "  source venv_3Denv/bin/activate"
+    echo "  source venv_walkindia/bin/activate"
     echo ""
-    echo "Available modules (API-based):"
-    echo "  python src/m03_evaluator.py --help        # VLM-as-Judge (OpenAI API)"
-    echo "  python src/m03_evaluator.py --plot_only   # Generate plots from metrics.csv"
+    echo "Available modules (CPU-based):"
+    echo "  python -u src/m01_download.py --SANITY 2>&1 | tee logs/m01_download_sanity.log"
+    echo "  python -u src/m02_scene_detect.py --SANITY 2>&1 | tee logs/m02_scene_detect_sanity.log"
+    echo "  python -u src/m06_umap_plot.py --SANITY 2>&1 | tee logs/m06_umap_plot_sanity.log"
     echo ""
-    echo "Note: m01, m02, m04 require GPU (run on A100 server)"
+    echo "Note: m03, m04, m05 require Nvidia GPU (NO CPU fallback)"
     echo ""
     exit 0
 fi
 
 # ============================================================================
-# --gpu: GPU Server setup (AI2-THOR + PyTorch + Flash-Attention)
+# --gpu: GPU Server setup (V-JEPA + Qwen-VL + FAISS) - Nvidia ONLY
 # ============================================================================
 if [ "$1" = "--gpu" ]; then
     if [ "$OS" != "Linux" ]; then
@@ -95,74 +100,56 @@ if [ "$1" = "--gpu" ]; then
     setup_base
 
     echo "============================================"
-    echo "GPU Setup (Linux + Nvidia)"
+    echo "GPU Setup (Linux + Nvidia ONLY)"
     echo "============================================"
 
-    # 0. Install system dependencies (including X server for AI2-THOR)
+    # 1. Install PyTorch 2.5.1 with CUDA 12.4
     echo ""
-    echo "[0/6] Installing system dependencies..."
-    # libgl1: Ubuntu 24.04+ replacement for deprecated libgl1-mesa-glx
-    sudo apt update && sudo apt install -y \
-        xvfb \
-        libgl1 \
-        libglu1-mesa \
-        texlive-latex-base \
-        texlive-latex-extra \
-        texlive-fonts-recommended \
-        texlive-fonts-extra \
-        texlive-bibtex-extra \
-        texlive-science \
-        biber \
-        tree
-
-    # Start virtual X server for headless AI2-THOR
-    echo "Starting Xvfb for AI2-THOR..."
-    Xvfb :99 -screen 0 1024x768x24 &
-    export DISPLAY=:99
-
-    # 1. Install Python 3.12
-    echo ""
-    echo "[1/6] Installing Python 3.12..."
-    sudo apt install -y software-properties-common
-    sudo add-apt-repository -y ppa:deadsnakes/ppa
-    sudo apt update
-    sudo apt install -y python3.12 python3.12-venv python3.12-dev
-
-    # 2. Install PyTorch 2.5.1 with CUDA 12.4
-    echo ""
-    echo "[2/6] Installing PyTorch 2.5.1+cu124..."
+    echo "[1/4] Installing PyTorch 2.5.1+cu124..."
     pip install torch==2.5.1 torchvision==0.20.1 --index-url https://download.pytorch.org/whl/cu124
 
-    # 3. Verify PyTorch
+    # 2. Verify PyTorch + CUDA
     echo ""
-    echo "[3/6] Verifying PyTorch..."
-    python -c "import torch; print(f'PyTorch: {torch.__version__}, CUDA: {torch.version.cuda}, Available: {torch.cuda.is_available()}')"
-
-    # 4. Install GPU requirements (AI2-THOR)
-    echo ""
-    echo "[4/6] Installing GPU requirements (AI2-THOR)..."
-    pip install -r requirements_gpu.txt
-
-    # 5. Install Flash-Attention
-    echo ""
-    echo "[5/6] Installing Flash-Attention 2.8.3..."
-    WHEEL_NAME="flash_attn-2.8.3+cu12torch2.5cxx11abiFALSE-cp312-cp312-linux_x86_64.whl"
-    WHEEL_URL="https://github.com/Dao-AILab/flash-attention/releases/download/v2.8.3/flash_attn-2.8.3%2Bcu12torch2.5cxx11abiFALSE-cp312-cp312-linux_x86_64.whl"
-
-    curl -L -o "$WHEEL_NAME" "$WHEEL_URL"
-    pip install "$WHEEL_NAME"
-    rm -f "$WHEEL_NAME"
-
-    # 6. Final verification
-    echo ""
-    echo "[6/6] Verifying GPU setup..."
+    echo "[2/4] Verifying PyTorch + CUDA..."
     python -c "
 import torch
-import ai2thor
-print(f'PyTorch:  {torch.__version__}')
-print(f'CUDA:     {torch.version.cuda}')
-print(f'GPU:      {torch.cuda.is_available()}')
-print(f'AI2-THOR: {ai2thor.__version__}')
+if not torch.cuda.is_available():
+    print('ERROR: CUDA not available. Nvidia GPU required.')
+    exit(1)
+print(f'PyTorch: {torch.__version__}, CUDA: {torch.version.cuda}, GPU: {torch.cuda.get_device_name(0)}')
+"
+
+    # 3. Install GPU requirements
+    echo ""
+    echo "[3/4] Installing GPU requirements..."
+    pip install -r requirements_gpu.txt
+
+    # 4. Install FAISS-GPU (Nvidia ONLY)
+    echo ""
+    echo "[4/4] Installing FAISS-GPU (Nvidia ONLY)..."
+    pip install faiss-gpu
+
+    # Final verification
+    echo ""
+    echo "Verifying GPU setup..."
+    python -c "
+import torch
+import faiss
+
+if not torch.cuda.is_available():
+    print('ERROR: CUDA not available')
+    exit(1)
+
+if faiss.get_num_gpus() == 0:
+    print('ERROR: FAISS GPU not available')
+    exit(1)
+
+print(f'PyTorch:   {torch.__version__}')
+print(f'CUDA:      {torch.version.cuda}')
+print(f'GPU:       {torch.cuda.get_device_name(0)}')
+print(f'FAISS GPU: {faiss.get_num_gpus()} GPU(s) available')
+print('')
+print('SUCCESS: All GPU components verified')
 "
 
     echo ""
@@ -170,15 +157,13 @@ print(f'AI2-THOR: {ai2thor.__version__}')
     echo "GPU Setup Complete!"
     echo "============================================"
     echo ""
-    echo "Available modules:"
-    echo "  # Full pipeline (sequential model loading)"
-    echo "  python -u src/m04_pipeline_orchestrator.py --sanity 2>&1 | tee logs/m04_sanity.log"
-    echo "  python -u src/m04_pipeline_orchestrator.py --full 2>&1 | tee logs/m04_full.log"
+    echo "To activate environment:"
+    echo "  source venv_walkindia/bin/activate"
     echo ""
-    echo "  # Individual modules"
-    echo "  python -u src/m01_scene_understanding.py --sanity    # Qwen2.5-VL-32B (~40GB)"
-    echo "  python -u src/m02_instruction_generator.py --sanity  # Llama-3.1-70B (~70GB)"
-    echo "  python -u src/m03_evaluator.py --sanity              # GPT-4o API"
+    echo "GPU modules (Nvidia ONLY):"
+    echo "  python -u src/m03_vjepa_embed.py --SANITY 2>&1 | tee logs/m03_vjepa_embed_sanity.log"
+    echo "  python -u src/m04_qwen_tag.py --SANITY 2>&1 | tee logs/m04_qwen_tag_sanity.log"
+    echo "  python -u src/m05_faiss_metrics.py --SANITY 2>&1 | tee logs/m05_faiss_metrics_sanity.log"
     echo ""
     exit 0
 fi
@@ -187,6 +172,6 @@ fi
 echo "Error: Unknown flag '$1'"
 echo ""
 echo "Usage:"
-echo "  ./setup_env.sh --mac   # M1 Mac (API-based)"
-echo "  ./setup_env.sh --gpu   # GPU Server (AI2-THOR + PyTorch)"
+echo "  ./setup_env.sh --mac   # M1 Mac (CPU-based)"
+echo "  ./setup_env.sh --gpu   # GPU Server (Nvidia ONLY)"
 exit 1

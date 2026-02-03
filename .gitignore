@@ -51,8 +51,8 @@ checkpoints/
 *.splat
 
 # Logs
-*.log
-logs/
+# *.log
+# logs/
 
 # Data
 data/Generated_3D_Env/*

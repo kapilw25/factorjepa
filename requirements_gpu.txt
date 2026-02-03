@@ -5,35 +5,38 @@
 #
 # Prerequisites:
 #   - Linux (Ubuntu 20.04+)
-#   - Nvidia GPU (A100-80GB recommended)
+#   - Nvidia GPU (A100-40GB+ recommended)
 #   - CUDA 12.x
 #   - PyTorch 2.5.1+cu124 (install separately via setup_env.sh --gpu)
 #
 # Modules covered:
-#   - src/m01_scene_understanding.py (Qwen2.5-VL-32B)
-#   - src/m02_instruction_generator.py (Llama-3.1-70B)
-#   - src/m04_pipeline_orchestrator.py
-#
-# For headless servers (AI2-THOR), start X server:
-#   sudo apt install xvfb
-#   Xvfb :99 -screen 0 1024x768x24 &
-#   export DISPLAY=:99
+#   - src/m03_vjepa_embed.py (V-JEPA 2 embeddings)
+#   - src/m04_qwen_tag.py (Qwen3-VL tagging)
+#   - src/m05_faiss_metrics.py (FAISS GPU + metrics)
 # =============================================================================
 
-# Base requirements (includes dotenv, openai, numpy, pandas, matplotlib, etc.)
+# Base requirements (includes yt-dlp, scenedetect, umap-learn, etc.)
 -r requirements.txt
 
 # =============================================================================
-# Transformers & Quantization
+# Transformers & Model Loading
 # =============================================================================
 transformers>=4.45.0
 accelerate>=0.25.0
 bitsandbytes>=0.41.0
 
+# =============================================================================
 # Qwen-VL specific
+# =============================================================================
 qwen-vl-utils>=0.0.2
 
 # =============================================================================
-# AI2-THOR (3D simulation - optional)
+# Video Processing
 # =============================================================================
-ai2thor>=5.0.0
+av>=12.0.0
+
+# =============================================================================
+# FAISS GPU (Similarity Search) - Nvidia GPU ONLY
+# =============================================================================
+# Install via setup_env.sh --gpu (no CPU fallback)
+# faiss-gpu is installed separately due to CUDA version requirements
