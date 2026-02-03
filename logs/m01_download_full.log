@@ -1,0 +1,12 @@
+=== FULL MODE: Download all 3 videos (10 min each) ===
+Downloading: https://www.youtube.com/watch?v=ufV-7oGcxps
+Output: /workspace/LLM_asAgent_3D_SR/src/data/videos/temple.mp4
+SUCCESS: Downloaded temple.mp4
+Downloading: https://www.youtube.com/watch?v=fGID1n2j5Qs
+Output: /workspace/LLM_asAgent_3D_SR/src/data/videos/metro.mp4
+SUCCESS: Downloaded metro.mp4
+Downloading: https://www.youtube.com/watch?v=wB5kuvzA5JI
+Output: /workspace/LLM_asAgent_3D_SR/src/data/videos/hilltown.mp4
+SUCCESS: Downloaded hilltown.mp4
+
+FULL: 3/3 videos downloaded

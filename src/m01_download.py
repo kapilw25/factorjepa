@@ -1,10 +1,11 @@
 """
 Download videos from @walkinginindia YouTube channel using yt-dlp.
-CPU-only script (M1 compatible).
+CPU-only script (M1 compatible). Skips existing files by default.
 
 USAGE:
     python -u src/m01_download.py --SANITY 2>&1 | tee logs/m01_download_sanity.log
     python -u src/m01_download.py --FULL 2>&1 | tee logs/m01_download_full.log
+    python -u src/m01_download.py --FULL --force 2>&1 | tee logs/m01_download_full.log  # re-download
 """
 import argparse
 import subprocess
@@ -16,7 +17,7 @@ sys.path.insert(0, str(Path(__file__).parent))
 from utils.config import VIDEOS_DIR, VIDEO_URLS
 
 
-def download_video(url: str, output_path: Path, max_duration: int = 600) -> bool:
+def download_video(url: str, output_path: Path, max_duration: int = 600, force: bool = False) -> bool:
     """
     Download a video using yt-dlp with duration limit.
 
@@ -24,10 +25,16 @@ def download_video(url: str, output_path: Path, max_duration: int = 600) -> bool
         url: YouTube video URL
         output_path: Path to save the video
         max_duration: Max duration in seconds (default 10 min = 600s)
+        force: If True, re-download even if file exists
 
     Returns:
         True if successful, False otherwise
     """
+    # Skip if already downloaded
+    if output_path.exists() and not force:
+        print(f"SKIP: {output_path.name} already exists (use --force to re-download)")
+        return True
+
     cmd = [
         "yt-dlp",
         "-f", "bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best",
@@ -58,6 +65,7 @@ def main():
     parser.add_argument("--FULL", action="store_true", help="Download all 3 videos (10 min each)")
     parser.add_argument("--url", type=str, help="Custom YouTube URL to download")
     parser.add_argument("--name", type=str, default="custom", help="Name for custom video")
+    parser.add_argument("--force", action="store_true", help="Re-download even if file exists")
     args = parser.parse_args()
 
     if not (args.SANITY or args.FULL or args.url):
@@ -73,7 +81,7 @@ def main():
         scene_type = list(VIDEO_URLS.keys())[0]
         url = VIDEO_URLS[scene_type]
         output_path = VIDEOS_DIR / f"{scene_type}.mp4"
-        success = download_video(url, output_path, max_duration=30)
+        success = download_video(url, output_path, max_duration=30, force=args.force)
         print(f"\nSANITY {'PASSED' if success else 'FAILED'}")
 
     elif args.FULL:
@@ -81,7 +89,7 @@ def main():
         results = []
         for scene_type, url in VIDEO_URLS.items():
             output_path = VIDEOS_DIR / f"{scene_type}.mp4"
-            success = download_video(url, output_path, max_duration=600)
+            success = download_video(url, output_path, max_duration=600, force=args.force)
             results.append(success)
 
         print(f"\nFULL: {sum(results)}/{len(results)} videos downloaded")
@@ -89,7 +97,7 @@ def main():
     elif args.url:
         print(f"=== CUSTOM MODE: Download {args.url} ===")
         output_path = VIDEOS_DIR / f"{args.name}.mp4"
-        success = download_video(args.url, output_path, max_duration=600)
+        success = download_video(args.url, output_path, max_duration=600, force=args.force)
         print(f"\nCUSTOM {'PASSED' if success else 'FAILED'}")
 
 

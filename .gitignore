@@ -56,3 +56,8 @@ checkpoints/
 
 # Data
 data/Generated_3D_Env/*
+
+# WalkIndia POC - Large files (re-downloadable via m01_download.py)
+src/data/videos/*.mp4
+src/data/clips/
+*.npy
