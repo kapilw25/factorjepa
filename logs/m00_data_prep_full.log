@@ -1,0 +1,159 @@
+=== Reading Literature/Prev_work4/YT_videos_raw.md ===
+File size: 52554 chars, 1114 lines
+
+=== Parsing markdown to JSON ===
+Drive videos:    122
+Drone videos:    30
+Walking videos:  201
+Monument videos: 3
+Tier2 filled:    1
+Tier2 blank:     14
+Monuments:       54
+---
+GRAND TOTAL:     357 videos
+
+=== Checking for duplicate YouTube IDs ===
+Checked 357 videos, found 0 duplicates
+
+=== Extracting titles for word frequency ===
+Extracted 357 titles
+
+=== Creating city matrix ===
+
+Saved: Literature/Prev_work4/YT_videos_raw.json
+Saved: outputs_data_prep/word_frequency.json
+Saved: outputs_data_prep/city_matrix.json
+
+======================================================================
+DUPLICATE YOUTUBE ID CHECK
+======================================================================
+Total videos:   357
+Unique IDs:     357
+Duplicates:     0
+
+No duplicates found!
+
+======================================================================
+CITY x VIDEO TYPE MATRIX
+======================================================================
+City                 Tier   Drive    Walk     Drone    Total   
+----------------------------------------------------------------------
+--- TIER 1 ---
+Bangalore            1      20       22       5        47      
+Chennai              1      20       30       5        55      
+Delhi                1      20       19       5        44      
+Hyderabad            1      18       20       5        43      
+Kolkata              1      24       55       5        84      
+Mumbai               1      20       22       5        47      
+--- OTHER ---
+Goa                  --     0        33       0        33      
+--- TIER 2 (placeholders) ---
+Ahmedabad            2      (empty)
+Bhopal               2      (empty)
+Chandigarh           2      (empty)
+Coimbatore           2      (1 untagged)
+Indore               2      (empty)
+Jaipur               2      (empty)
+Kochi                2      (empty)
+Lucknow              2      (empty)
+Mysuru               2      (empty)
+Nagpur               2      (empty)
+Pune                 2      (empty)
+Surat                2      (empty)
+Thiruvananthapuram   2      (empty)
+Varanasi             2      (empty)
+Visakhapatnam        2      (empty)
+----------------------------------------------------------------------
+TOTAL                       353     
+  Tier 1: 320, Other: 33, Tier 2: 1
+
+======================================================================
+WORD FREQUENCY ANALYSIS
+======================================================================
+Total titles: 357
+Total words: 3687
+Unique words: 714
+
+--- TOP 30 WORDS ---
+ 1. k               250
+ 2. tour            180
+ 3. kolkata         171
+ 4. india           161
+ 5. walking         161
+ 6. in              136
+ 7. city            132
+ 8. drive           101
+ 9. road            60
+10. to              54
+11. of              53
+12. mumbai          51
+13. chennai         51
+14. delhi           45
+15. bangalore       43
+16. market          42
+17. new             41
+18. hyderabad       34
+19. goa             34
+20. walk            31
+21. s               29
+22. the             28
+23. driving         27
+24. park            27
+25. street          25
+26. capital         24
+27. fps             21
+28. drone           20
+29. real            19
+30. nagar           19
+
+--- TAXONOMY MAPPING ---
+
+TIME_OF_DAY:
+  morning         14
+  night           14
+  evening         11
+  sunset          4
+  afternoon       2
+  golden hour     1
+
+WEATHER:
+  rain            10
+  rainy           4
+  monsoon         1
+  cloudy          1
+
+CROWD_DENSITY:
+  busy            4
+  traffic         3
+  rush hour       1
+  peaceful        1
+
+SCENE_TYPE:
+  market          42
+  beach           13
+  downtown        13
+  flyover         11
+  fort            6
+  heritage        4
+  temple          2
+  expressway      2
+  palace          1
+
+ROAD_LAYOUT:
+  road            60
+  street          25
+  bridge          9
+  lane            6
+  coastal         4
+  tunnel          2
+  narrow          1
+
+NOTABLE_OBJECTS:
+  bus             6
+  bike            4
+  metro           2
+  train           2
+  ferry           1
+  shop            1
+
+FULL COMPLETED

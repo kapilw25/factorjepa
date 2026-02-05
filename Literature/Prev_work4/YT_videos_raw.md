@@ -3,7 +3,7 @@
 
 ## A. 4K Drive in Delhi
 - 1. `Night Drive in Noida 2025 🇮🇳 - Exploring the Expressway in 4K UHD`
-https://www.youtube.com/watch?v=FMDGZeeNG9k&pp=0gcJCZEKAYcqIYzv
+https://www.youtube.com/watch?v=FMDGZeeNG9k
 - 2. `Driving in New Delhi 2025 🇮🇳 - Capital City Tour in Stunning 4K UHD`
 https://www.youtube.com/watch?v=39EbYRKXDoo
 - 3. `Driving in Noida City 2025 🇮🇳 - The Future of Delhi NCR`
@@ -15,7 +15,7 @@ https://www.youtube.com/watch?v=VT143EZ_-eA
 - 6. `4K Night Drive in New Delhi 2025 - Delhi Airport Road Terminal 3`
 https://www.youtube.com/watch?v=WEO9QYnE7_g
 - 7. `Driving in NEW DELHI 2025 🇮🇳 – Real Streets of India’s Capital (4K UHD)`
-https://www.youtube.com/watch?v=dx3kd42tQOE&pp=0gcJCZEKAYcqIYzv
+https://www.youtube.com/watch?v=dx3kd42tQOE
 - 8. `4K New Delhi Night Drive - India’s Capital 🇮🇳`
 https://www.youtube.com/watch?v=xwCVvSZU_i4
 - 9. `4K Drive in New Delhi - Delhi to Noida, India 🇮🇳`
@@ -23,7 +23,7 @@ https://www.youtube.com/watch?v=yMfgkU9YRms
 - 10. `4K HDR Drive in DLF Cyber City Gurgaon (Gurugram) | India`
 https://www.youtube.com/watch?v=oJBJmgso2aU
 - 11. `Driving in New Delhi 2025 🇮🇳 - 4K Tour of India’s Capital City`
-https://www.youtube.com/watch?v=emAS9JNsm8k&pp=0gcJCZEKAYcqIYzv
+https://www.youtube.com/watch?v=emAS9JNsm8k
 - 12. `Driving in NEW DELHI 2025 🇮🇳 – India’s Capital City in 4K UHD`
 https://www.youtube.com/watch?v=GF0jiddlmN0
 - 13. `4K Drive in New Delhi - Delhi to Gurgaon (Gurugram), India 🇮🇳`
@@ -46,183 +46,803 @@ https://www.youtube.com/watch?v=GNmkBx_mZDw
 
 ## B. 4K Drive in Mumbai
 - 1. `Mumbai Drive | Colaba Causeway to Bandra | 4K HDR`
-https://www.youtube.com/watch?v=dTxIyhunxbI&pp=ygUSNEsgRHJpdmUgaW4gTXVtYmFp
+https://www.youtube.com/watch?v=dTxIyhunxbI
 - 2. `Golden Hour Mumbai Drive 4K | Bandra to South Mumbai via Sea Link & Coastal Road Tunnel`
-https://www.youtube.com/watch?v=A4Wi2dpDUFY&pp=ygUSNEsgRHJpdmUgaW4gTXVtYmFp
+https://www.youtube.com/watch?v=A4Wi2dpDUFY
 - 3. `Morning Drive in Mumbai 4K | Nariman Point to Malabar Hill via Nepean Sea Road & Coastal Road Tunnel`
-https://www.youtube.com/watch?v=0tCU8Ysn_nM&pp=ygUSNEsgRHJpdmUgaW4gTXVtYmFp
+https://www.youtube.com/watch?v=0tCU8Ysn_nM
 - 4. `Malabar Hill to Lower Parel Drive | Napensea Road, Mumbai Central & Senapati Bapat Marg`
-https://www.youtube.com/watch?v=hQYo2AONlBs&pp=ygUSNEsgRHJpdmUgaW4gTXVtYmFp
+https://www.youtube.com/watch?v=hQYo2AONlBs
 - 5. `Coastal Road Drive 4K | Marine Drive to Bandra Reclamation via Sea Link & Bow String Arch Bridge`
-https://www.youtube.com/watch?v=XnD9FeKPREs&pp=ygUSNEsgRHJpdmUgaW4gTXVtYmFp
+https://www.youtube.com/watch?v=XnD9FeKPREs
 - 6. `Mumbai Drive 4k - From Versova to Dadar`
-https://www.youtube.com/watch?v=aFdYCJimw_M&pp=ygUSNEsgRHJpdmUgaW4gTXVtYmFp
+https://www.youtube.com/watch?v=aFdYCJimw_M
 - 7. `Bandra to Dharavi Drive in 4K | Real Streets of Mumbai 🇮🇳`
-https://www.youtube.com/watch?v=sNTQBLHiVJc&pp=ygUSNEsgRHJpdmUgaW4gTXVtYmFp
+https://www.youtube.com/watch?v=sNTQBLHiVJc
 - 8. `4K Drive - Pune to Navi Mumbai - Adventure Road Trip to Ikea - India`
-https://www.youtube.com/watch?v=4w-gJPLrCtM&pp=ygUSNEsgRHJpdmUgaW4gTXVtYmFp
+https://www.youtube.com/watch?v=4w-gJPLrCtM
 - 9. `Driving Downtown - Mumbai 4K - Morning Drive`
-https://www.youtube.com/watch?v=_Wb1ASZ4rBA&pp=ygUSNEsgRHJpdmUgaW4gTXVtYmFp
+https://www.youtube.com/watch?v=_Wb1ASZ4rBA
 - 10. `Explore Mumbai: Driving On The Eastern Freeway From Byculla To Vikhroli in 4K HDR`
-https://www.youtube.com/watch?v=DrVTZPFTCv0&pp=ygUSNEsgRHJpdmUgaW4gTXVtYmFp
+https://www.youtube.com/watch?v=DrVTZPFTCv0
 - 11. `South Mumbai 4K - Evening Drive - From Bandra–Worli Sea Link to Hutatma Chowk Via Nagpada`
-https://www.youtube.com/watch?v=BGmoNLSJMGE&pp=ygUSNEsgRHJpdmUgaW4gTXVtYmFp
+https://www.youtube.com/watch?v=BGmoNLSJMGE
 - 12. `Mumbai 4K - Night Drive`
-https://www.youtube.com/watch?v=ozOHKd6BxBQ&pp=ygUSNEsgRHJpdmUgaW4gTXVtYmFp
+https://www.youtube.com/watch?v=ozOHKd6BxBQ
 - 13. `Driving busy Road of Mumbai - 4K Evening Driving Tour`
-`https://www.youtube.com/watch?v=JSH22SdMnFQ&pp=ygUSNEsgRHJpdmUgaW4gTXVtYmFp`
+https://www.youtube.com/watch?v=JSH22SdMnFQ
 - 14. `Mumbai Scenic Bus Tour through Iconic Landmarks and City Streets • 4K HDR`
-https://www.youtube.com/watch?v=AECb7R804uA&pp=ygUSNEsgRHJpdmUgaW4gTXVtYmFp
+https://www.youtube.com/watch?v=AECb7R804uA
 - 15. `Mumbai Rush Hour Drive 4K | Marine Lines to Malabar Hill Club via Babulnath, Nepean Sea Road`
-https://www.youtube.com/watch?v=5RevDLnLvrA&t=4s&pp=ygUSNEsgRHJpdmUgaW4gTXVtYmFp
+https://www.youtube.com/watch?v=5RevDLnLvrA
 - 16. `South Mumbai Drive | Billionaire’s Row & Iconic Landmarks | 4K HDR`
-https://www.youtube.com/watch?v=ovE1WrVtpfk&pp=ygUSNEsgRHJpdmUgaW4gTXVtYmFp
+https://www.youtube.com/watch?v=ovE1WrVtpfk
 - 17. `Bandra to Colaba Drive | Hill Road, Shivaji Park, Haji Ali, Churchgate | Mumbai POV | 4K`
-https://www.youtube.com/watch?v=GlsveccY0xY&pp=ygUSNEsgRHJpdmUgaW4gTXVtYmFp
+https://www.youtube.com/watch?v=GlsveccY0xY
 - 18. `4K Drive in BKC | Mumbai's Main Business District | Bandra-Kurla Complex | CBD | Dolby Visuals...`
-https://www.youtube.com/watch?v=rMMThxqOAt8&pp=ygUSNEsgRHJpdmUgaW4gTXVtYmFp
+https://www.youtube.com/watch?v=rMMThxqOAt8
 - 19. `Nariman Point to Mira Road in 58 Minutes | Coastal Road → WEH | Mumbai POV (2025)`
-https://www.youtube.com/watch?v=NCnZ9EeZRF8&pp=ygUSNEsgRHJpdmUgaW4gTXVtYmFp
+https://www.youtube.com/watch?v=NCnZ9EeZRF8
 - 20. `Mumbai 4K - Driving Downtown - INDIA 4K HDR`
-https://www.youtube.com/watch?v=ArHgX2N8drQ&pp=ygUSNEsgRHJpdmUgaW4gTXVtYmFp
+https://www.youtube.com/watch?v=ArHgX2N8drQ
 
 
 ## C. 4K Drive in Hyderabad
-- 1.
-- 2.
-- 3.
-- 4.
-- 5.
+- 1. `Hyderabad Drive | Hitech City to Financial District via Kondapur & New PJR Flyover | ORR Skyline`
+https://www.youtube.com/watch?v=hOP7vo72ErY
+- 2. `Hyderabad City in India | 4K Drive Tour`
+https://www.youtube.com/watch?v=dgN0x9ednWs
+- 3. `Hyderabad Airport to Gachibowli | 4K Silent Drive | Dusting in Silence Series`
+https://www.youtube.com/watch?v=bGGDeCBSRjw
+- 4. `4K | Hyderabad Financial District Drive | Part 1 | IIIT Signal to Q City`
+https://www.youtube.com/watch?v=XUd0X939-8g
+- 5. `Hitec City Hyderabad 2025 | Sattva Knowledge IT Park | Hi-Tech City Drive | Knowledge City 4k`
+https://www.youtube.com/watch?v=VRGbT1zxPic
+- 6. `Gachibowli to Financial District Drive View | Hyderabad Road Drive | 4K Ultra HD`
+https://www.youtube.com/watch?v=t_yb1aqUkKs
+- 7. `Gachibowli Skylines Drive | Stunning Hyderabad City Views in 4K #hyderabad #trending #construction`
+https://www.youtube.com/watch?v=UtuWJ6KaXHI
+- 8. `4K Drive from Hitec City to Jubilee Hills | Hyderabad City`
+https://www.youtube.com/watch?v=nwLziRaW5Mc
+- 9. `Hyderabad Road Trip | 4K | Hi Tech | Gachibowli | Kokapet | Narsingi` 
+https://www.youtube.com/watch?v=d4FyAkD7ZlY
+- 10. `DRIVING IN THE RICHEST NEIGHBORHOODS OF HYDERABAD | BANJARA, JUBILEE HILLS | MINDSPACE |ROADSOFINDIA`
+https://www.youtube.com/watch?v=NlBH2AcNv10
+- 11. `Banjara Hills Hyderabad - 4K | The Most Expensive Zip Code in India`
+https://www.youtube.com/watch?v=FhWVP0tRToc
+- 12. `Hyderabad 2.0 | International city | New Bharat | India | Driving | 4K`
+https://www.youtube.com/watch?v=nmYcWZ_4ZO4
+- 13. `Kokapet, Gandipet | Hyderabad INDIA - 4K`
+https://www.youtube.com/watch?v=qXDzm_kBYTs
+- 14. `[India 4K] Hyderabad city car drive tour || October 2025`
+https://www.youtube.com/watch?v=GnW9pF6AAKA
+- 15. `HITECH City 4k Drive Tour | Hyderabad | Knowledge City | Mindspace | India | 60 FPS`
+https://www.youtube.com/watch?v=kEBg0pIcsjM
+- 16. `Hyderabad Night View Redefined | Ultra MODERN CITY INDIA | 2024 | Hitech City`
+https://www.youtube.com/watch?v=j677nKl4aOk
+- 17. `HYDERABAD REIMAGINED | 4K | New BHARAT | INDIA | International city | Night drive`
+https://www.youtube.com/watch?v=AQMiq71sQCo
+- 18. `Stunning Skyview Drive Through Hitech City | Hyderabad’s Modern Skyline in 4K`
+https://www.youtube.com/watch?v=XaAfqW0TPbg
+
+
 ## D. 4K Drive in Bangalore
+- 1. `【India Drive 4K】MG Road to Munnekollal, Bangalore – From Downtown to Suburban East | 2025`
+https://www.youtube.com/watch?v=qABnYGIilHE
+- 2. `Bangalore Drive | Bangalore Drive 4K | Bangalore orr metro update | Bengaluru | Amazing Travel Tours`
+https://www.youtube.com/watch?v=iWF8CSKTzn0
+- 3. `【India Drive 4K】Whitefield to MG Road, Bangalore – From Tech Hub to City Center | 2025`
+https://www.youtube.com/watch?v=IQDGp_qQ1OI
+- 4. `Bengaluru City Drive - 4K | IT Capital of India`
+https://www.youtube.com/watch?v=6yLbS7Tq5uY
+- 5. `【India Drive 4K】MG Road Bengaluru to Vapasandra | 2025`
+https://www.youtube.com/watch?v=3T7XZ1lE9Vo
+- 6. `4K Drive through Jayanagar | Bengaluru`
+https://www.youtube.com/watch?v=PWTJe65Qw-k
+- 7. `Koramangala 4K drive | Bangalore City tour | Billionaire & Costly City`
+https://www.youtube.com/watch?v=McJ-sa11O_8
+- 8. `Bengaluru City Drive - 4K | UB City - Vittal Mallya Rd | IT Capital of India`
+https://www.youtube.com/watch?v=7W0bqXN2b1k
+- 9. `Driving in Bangalore 4K | Bhanshakari to Chinnaswamy Stadium | Kasturba Road | Esteem Service`
+https://www.youtube.com/watch?v=QbRghK-FBwI
+- 10. `Bangalore 4k Drive | Mahatma Gandhi Road | Brigade Road | Esteem Service`
+https://www.youtube.com/watch?v=sSBvCVLcc0k
+- 11. `Driving in Bangalore 4K | NICE Ring Road | Esteem Service`
+https://www.youtube.com/watch?v=nFOYLKyWx4w
+- 12. `Driving in Bangalore 4K | Jayanagar 4th Main Road | South End Circle | Esteem Service`
+https://www.youtube.com/watch?v=0dsDjXBthT0
+- 13. `Driving in Bangalore 4K | BTM Layout | Uttarahalli Main Road | Esteem Service`
+https://www.youtube.com/watch?v=f-52ntfv_Ns
+- 14. `Bangalore City 4K Drive | Electronic City Flyover | Silk Board to Electronic City | Esteem Service`
+https://www.youtube.com/watch?v=vj0ZXrm0jYA
+- 15. `Electronic City 4K Drive | Silicon Valley of India | Bangalore City 4K Drive | Esteem Service`
+https://www.youtube.com/watch?v=LD7bl1I2NgM
+- 16. `Driving in Bangalore 4K | Basavanagudi Area | Jayanagar | Esteem Service`
+https://www.youtube.com/watch?v=FoDu_Bhak4E
+- 17. `Bangalore 4k Drive | Mahatma Gandhi Road | Brigade Road | Esteem Service`
+https://www.youtube.com/watch?v=IVDTABXiR4c
+- 18. `Bangalore city | Bangalore city tour | 100 feet road | Esteem Service`
+https://www.youtube.com/watch?v=33LAzx2TQ3c
+- 19. `【India Drive 4K】MG Road to Bangalore Airport | Karnataka | 2024 | City Drive & Expressway`
+https://www.youtube.com/watch?v=QFjB-ezXgOA
+- 20. `Bangalore City Morning Drive [4K]`
+https://www.youtube.com/watch?v=FlzchFfTruw
+
+
+
 ## E. 4K Drive in Chennai
+- 1. `Chennai Narrow Drive | Downtown Drive [4K]`
+https://www.youtube.com/watch?v=-Bl2EIufMNQ
+- 2. `Chennai Downtown Drive | From Airport to City [4K]`
+https://www.youtube.com/watch?v=WznlYZfcivA
+- 3. `Chennai New Development | Shenoy Nagar to Anna Nagar | City Drive [4K]`
+https://www.youtube.com/watch?v=3GHeyVtcrEY
+- 4. `Chennai New T.Nagar Flyover | City Drive[4K]`
+https://www.youtube.com/watch?v=g8NLulwoiLQ
+- 5. `Chennai Tnagar steel bridge night drive|Kathipara to lyola college|#chennai #nightdrive #tnagar #4k`
+https://www.youtube.com/watch?v=Khw8imf8af8
+- 6. `Chennai city morning drive|Marina beach to mount road|#marinabeach #mountroad #chennai #asmr #4k`
+https://www.youtube.com/watch?v=iMqYy9vH_w0
+- 7. `Chennai Downtown Drive | Anna Salai Road [4K]`
+https://www.youtube.com/watch?v=vUJ87vyv7MI
+- 8. `Chennai Morning Drive | Gemini Flyover [4K]`
+https://www.youtube.com/watch?v=qTv2Av5KtYc
+- 9. `Chennai Diverted Route | Kodambakkam Drive [4K]`
+https://www.youtube.com/watch?v=TOniBH8GtgU
+- 10. `Driving in City Traffic | Chennai City Center | 12.9KM Drive - 4K`
+https://www.youtube.com/watch?v=1uan36x3Rw4
+- 11. `Driving to Chennai Downtown | City Drive with Chill Lo-fi Version | POV 4K`
+https://www.youtube.com/watch?v=JQdxw90XUjE
+- 12. `Chennai OMR 4K video tour | Chennai Cinematic Video | Old Mahabalipuram Road | Namma Chennai 2.0`
+https://www.youtube.com/watch?v=l9Sb2UDft9Y
+- 13. `Chennai City Holiday | Marina Road [4K]`
+https://www.youtube.com/watch?v=9AoxJtnDpgw
+- 14. `Chennai Sunset Traffic Drive | Arumbakkam [4K]`
+https://www.youtube.com/watch?v=VeHqaGKoMAg
+- 15. `Chennai City Drive | Chetpet to Purasaiwakkam [4K]`
+https://www.youtube.com/watch?v=o7yMklSe0uE
+- 16. `Chennai Beautiful Morning Drive | RA Puram [4K]`
+https://www.youtube.com/watch?v=w7RacWBH-1Q
+- 17. `Chennai cloudy evening drive| Guindy to chromepet | GST road | 4k | #chennai #chennaicity #guindy`
+https://www.youtube.com/watch?v=15P_-dTlpLY
+- 18. `Chennai Tiniest Streets | India Driving Tour [4K]`
+https://www.youtube.com/watch?v=uL36YVAnVis
+- 19. `Chennai New Flyover | Around T.Nagar [4K]`
+https://www.youtube.com/watch?v=KjZXX27EcZM
+- 20. `Chennai Quite Busy Road | Villivakkam - Padi Drive [4K]`
+https://www.youtube.com/watch?v=5vOTWGh5vdM
+
+
 ## F. 4K Drive in Kolkata
+- 1. `4K Drive in Kolkata | East India's Tier-1 City`
+https://www.youtube.com/watch?v=usx1RGyFQCk
+- 2. `Kolkata Maa flyover downtown drive 4K | Afternoon drive through | POV Drive`
+https://www.youtube.com/watch?v=IyouoqVpaSU
+- 3. `"Driving Through Park Street, Kolkata - A Visual Journey" - Formerly Calcutta | 4K`
+https://www.youtube.com/watch?v=lZ5hy5nsUro
+- 4. `India's Forgotten Capital: Peaceful Morning Drive Through Old Calcutta 🇮🇳 (4K)`
+https://www.youtube.com/watch?v=oBN87fi4uiU
+- 5. `Driving in Kolkata | Morning Downtown Drive | Kolkata Skyline Driving Tour | 4K Drive`
+https://www.youtube.com/watch?v=35X5gdmk0_M
+- 6. `Kolkata Drive 4K | City's Most Spectacular Areas | (formerly Calcutta)`
+https://www.youtube.com/watch?v=MRA4xTN6-yw
+- 7. `Salt Lake City Drive 🇮🇳 Is This India’s Most Planned City? (4K)`
+https://www.youtube.com/watch?v=mKvA7DASMMg
+- 8. `4K DRIVE || NEWTOWN TO PARK CIRCUS || MAA FLYOVER`
+https://www.youtube.com/watch?v=NWI3E6CJTx4
+- 9. `Kolkata City 4K Drive | New Town Area- A Drive Through | Coffee House Newtown | Esteem Service`
+https://www.youtube.com/watch?v=ZF3fhO0cB_U
+- 10. `【India Drive 4K】Kolkata West Bengal 2023`
+https://www.youtube.com/watch?v=6iG9PpV20_U
+- 11. `India Drive 4K | Howrah Bridge, West Bengal | Kolkata 4K Drive`
+https://www.youtube.com/watch?v=7pYJoXt9FA8
+- 12. `Kolkata Maa flyover downtown drive 4K | Afternoon drive through | POV drive`
+https://www.youtube.com/watch?v=IMDpIVz28A0
+- 13. `【India Drive 4K】Kolkata New Market to Baranagar｜2025`
+https://www.youtube.com/watch?v=knLWRB410Js
+- 14. `"Exploring Kolkata's Colonial Heritage" | Kolkata Drive 4k`
+https://www.youtube.com/watch?v=jgs8p14cfm8
+- 15. `Kolkata Maa flyover downtown drive 4K | Night drive through | POV Drive`
+https://www.youtube.com/watch?v=S5QCPt7hKFs
+- 16. `Alipore To Bhawnipore via Belvedere Road - North East Bound Lane - South Kolkata`
+https://www.youtube.com/watch?v=w9IjRZxOQjQ
+- 17. `Garden Reach To Alipore via the Flyover (North East Bound Lane) - South West Side - Kolkata`
+https://www.youtube.com/watch?v=gkd1EdphyEI
+- 18. `New Alipore To Alipore via Bailey Bridge Towards Alipore Zoo Upto AJC Bose Road - Kolkata`
+https://www.youtube.com/watch?v=P18_0Tf3pRg
+- 19. `D.L. Khan Road (Bhowanipore) & Belvedere Road (Alipore) - South West Bound Lane - Kolkata`
+https://www.youtube.com/watch?v=aNIOX9UQu2k
+- 20. `Tollygunge Towards Haridevpur Paschimputiary via M.G Road - Kolkata`
+https://www.youtube.com/watch?v=6LFujaHDaDs
+- 21. `Kalikapur To Tollygunge - Prince Anwar Shah Road (West Bound Lane) - Kolkata`
+https://www.youtube.com/watch?v=jD-_RPSWozI
+- 22. `Dhapa / Tangra Towards UpTo Kalikapur Crossing - E.M Bypass South Bound Lane - Kolkata`
+https://www.youtube.com/watch?v=aOg84GxDrSE
+- 23. `Haridevpur (Paschim Putiary) Towards Jadavpur via Tollygunge - Kolkata`
+https://www.youtube.com/watch?v=Ma9xlfsIX5U
+- 24. `[REUPLOAD] Kolkata : Sonarpur To Salt Lake Via E.M Bypass - North Bound Lane`
+https://www.youtube.com/watch?v=nI1n1Dk6-YA
 
 
-# Waling Tour
+
+# Drone View
+## A. 4K Drone view/tour of Delhi
+- 1. `Delhi 4k - INDIA 🇮🇳 Capital 4K Ultra HD Drone Video | Delhi 4K Aerial View`
+https://www.youtube.com/watch?v=kxoshFAPX7k
+- 2. `Delhi, India 🇮🇳 in 4K ULTRA HD 60FPS by Drone`
+https://www.youtube.com/watch?v=l-5rGi8_A_4
+- 3. `New Delhi - Modern and Beautiful Delhi 2022 | Capital of India`
+https://www.youtube.com/watch?v=JW1jSINTzaw
+- 4. `Noida City | growing It hub in Delhi Ncr | Greater Noida | Uttar pradesh`
+https://www.youtube.com/watch?v=UnVOMPmq63g
+- 5. `Delhi, INDIA 🇮🇳 4K UHD | Drone Footages`
+https://www.youtube.com/watch?v=wrTojcAompA
+
+## B. 4K Drone view/tour of Mumbai
+- 1. `Financial Capital 2024 - Synthwave | Mumbai city 4K`
+https://www.youtube.com/watch?v=0ckImiKkVLg
+- 2. `Mumbai, Maharashtra, India 🇮🇳 in 4K 60FPS ULTRA HD Drone Video`
+https://www.youtube.com/watch?v=afDUnE-a-us
+- 3. `Mumbai City of Dreams by drone [4KUltraHD] | Skylines. Financial Capital Of India`
+https://www.youtube.com/watch?v=6mZN5BfMR3A
+- 4. `Mumbai City , Maharashtra , India 🇮🇳 4K by drone Travel`
+https://www.youtube.com/watch?v=fFjSkhtvGnM
+- 5. `Mumbai 4k - Financial capital of India | Mumbai City Drone View 2025 | Mumbai skyline 4k drone view`
+https://www.youtube.com/watch?v=dwIDIeynONI
+
+## C. 4K Drone view/tour of Hyderabad
+- 1. `Hyderabad city 4k drone view | City of Pearls | Explore Hyderabad| Explore The World`
+https://www.youtube.com/watch?v=EGdQ5QsHlcA
+- 2. `The HYDERABAD They Don't Want You To See 🇮🇳 India 2025`
+https://www.youtube.com/watch?v=vu0_ScOaZvg
+- 3. `Hyderabad City - Amazing Drone Visual | Night to Morning in 4K | Hitech City`
+https://www.youtube.com/watch?v=EPXFc2Dr9mQ
+- 4. `Hyderabad, INDIA 🇮🇳 4K UHD | Drone Footages`
+https://www.youtube.com/watch?v=E8G_kmVbBq4
+- 5. `Hyderabad City View | India’s Tech Capital | HDR Drone Shot View #hyderabad #city #india #smartcity`
+https://www.youtube.com/watch?v=EV4VeliTFIs
+
+## D. 4K Drone view/tour of Bangalore
+- 1. `Bengaluru in 4K | Cinematic Video`
+https://www.youtube.com/watch?v=_YltHpZ1MrI
+- 2. `Bangalore Like You’ve Never Seen Before | Cinematic 4K Drone Film`
+https://www.youtube.com/watch?v=z7cRTSP0vwo
+- 3. `Bangalore, India🇮🇳 Bustling Streets in the Evening of Old Town (4K HDR)`
+https://www.youtube.com/watch?v=Alq5xxKBqdw
+- 4. `Bangalore evening walk 2024 Silicon Valley of India walking tour 4k 60fps.`
+https://www.youtube.com/watch?v=20DKTCHepqQ
+- 5. `Silicon City Bangalore | Immersive Walking Tour in 4K`
+https://www.youtube.com/watch?v=_SWTZFnj-qY
+
+## E. 4K Drone view/tour of Chennai
+- 1. `Chennai, India 🇮🇳 in 4K HDR ULTRA HD 60 FPS Dolby Vision™ Drone Video`
+https://www.youtube.com/watch?v=f43q0qi25VU
+- 2. `Walking in Cheapest Shopping Streets, Chennai | 2.2Km City Walk | Chennai 4K`
+https://www.youtube.com/watch?v=iN-OFbTZZqk
+- 3. `Chennai 4k drone view | Detroit of Asia | Explore Chennai | Explore the world`
+https://www.youtube.com/watch?v=Q8O9vUG4d2s
+- 4. `Beauty of Chennai | Aerial view of Chennai 2022 in 4k`
+https://www.youtube.com/watch?v=gCouE441TW4
+- 5. `Chennai City In INDIA 🇮🇳 In 4K |`
+https://www.youtube.com/watch?v=ZKGUak6Le6A
+
+## F. 4K Drone view/tour of Kolkata
+- 1. `Kolkata 4K Drone View | The City Of Joy Kolkata`
+https://www.youtube.com/watch?v=v4i2bF99WqA
+- 2. `KOLKATA : THE THIRD EYE | Drone documentary | 4K`
+https://www.youtube.com/watch?v=tYY4WnfEEkY
+- 3. `Kolkata city 4k drone view | The City of joy | Explore Kolkata | Explore the world`
+https://www.youtube.com/watch?v=T1vbtFJKJzc
+- 4. `Kolkata, India 🇮🇳 in 4K HDR ULTRA HD 60 FPS Dolby Vision™ Drone Video`
+https://www.youtube.com/watch?v=w5BUs6Wj8sU
+- 5. `Experience the BEST of Kolkata with a 4K Aerial Tour`
+https://www.youtube.com/watch?v=_Sd7JbeN32Y
+
+
+# Walking Tour
 ## A. 4K Walking Tour in Delhi
 - 1. `🇮🇳 This is NEW DELHI 2025 – INSANE Traffic Noise & Raw Street Life! (4K Walking Tour)`
 https://www.youtube.com/watch?v=kn9RPUNqcrA
+- 2. `This Is India’s Capital 2026 🇮🇳 | New Delhi in Real Life (4K Walking Tour)`
+https://www.youtube.com/watch?v=lRJA5hWzp18
+- 3. `New Delhi - The Filthiest Place in India | 4K HDR Walking Tour`
+https://www.youtube.com/watch?v=lDFHLQLh148
+- 4. `Walking in New Delhi 2026 🇮🇳 - India’s Most Populous Megacity (4K Walking Tour)`
+https://www.youtube.com/watch?v=TKmWmmbAYdg
+- 5. `Walking in New Delhi 2026 🇮🇳 | India’s Mega Metropolis (4K Walking Tour)`
+https://www.youtube.com/watch?v=lt9gVXk5eho
+- 6. `🇮🇳 This is REAL INDIA 2025 - NEW DELHI (4K Walking Tour)`
+https://www.youtube.com/watch?v=Sn5iX23AET4
+- 7. `Walking in New Delhi 2026 🇮🇳 | India’s Capital City Walking Tour (4K)`
+https://www.youtube.com/watch?v=9tFAMnOQATY
+- 8. `Walking in New Delhi 2026 🇮🇳 | Life in India’s Capital City (4K Walking Tour)`
+https://www.youtube.com/watch?v=5Voa7WduPtw
+- 9. `This is Delhi 2025 🇮🇳 - Chandni Chowk Market | 4K Walking Tour`
+https://www.youtube.com/watch?v=rkcSj0lFyrA
+- 10. `Walking in New Delhi 2026 🇮🇳 - Connaught Place, Rajiv Chowk (4K Walking Tour)`
+https://www.youtube.com/watch?v=jTrd9cXjTMg
+- 11. `This is New Delhi 2025 🇮🇳 - Capital of India (4K Walking Tour)`
+https://www.youtube.com/watch?v=O7KwpSV7Q4U
+- 12. `🇮🇳 This is INDIA 2025 – Real Life in NEW DELHI (4K Walking Tour)`
+https://www.youtube.com/watch?v=MyYeOzDA1AI
+- 13. `This is Real Delhi 2025 🇮🇳 - Capital of India (4K Walking Tour)`
+https://www.youtube.com/watch?v=QTumc8sDDtU
+- 14. `This is Delhi 2025 🇮🇳 – The Capital of India (4K Walking Tour)`
+https://www.youtube.com/watch?v=eIBW-ol_yb8
+- 15. `Walking in New Delhi 2026 🇮🇳 | Lajpat Nagar Market Street Life (4K Walking Tour)`
+https://www.youtube.com/watch?v=nx7PxZLo4zA
+- 16. `🇮🇳 New Delhi, India: Streets Tourists Rarely See | 4K Walking Tour`
+https://www.youtube.com/watch?v=HgFU4x_aC-8
+- 17. `New Delhi, Paharganj - Walking EXTREMLY BUSY Streets | India Walking Tour 4K HDR`
+https://www.youtube.com/watch?v=-Xlzej8RTTU
+- 18. `Walking in India 2025 🇮🇳 - Connaught Place, New Delhi (Christmas Day 4K Walking Tour)`
+https://www.youtube.com/watch?v=JBT_Lff7hN0
+- 19. `This is REAL INDIA 🇮🇳 - DELHI 2025 (4K Walking Tour)`
+https://www.youtube.com/watch?v=F61kQgzabUA
+
+
 ## B. 4K Walking Tour in Mumbai
+- 1. `The REAL Mumbai, India | Walking Tour INDIA 4K Walk`
+https://www.youtube.com/watch?v=DFQO7Zn-KM4
+- 2. `4K Walking from Mount Mary to Bandstand | Mumbai, India`
+https://www.youtube.com/watch?v=WHAAzUCrqxQ
+- 3. `4K Walking Tour of Jio World Drive, BKC | Mumbai's Luxury Malls`
+https://www.youtube.com/watch?v=Di0IEET8MCg
+- 4. `4K Walking Tour of Prabhadevi & Worli | Mumbai, India`
+https://www.youtube.com/watch?v=l7WXEIiwwHs
+- 5. `4K Walking around Worli Naka | Mumbai, India`
+https://www.youtube.com/watch?v=omsfc5SefZM
+- 6. `4K Night Walk on Pedder Road, South Mumbai`
+https://www.youtube.com/watch?v=r9nzhmVr-rk
+- 7. `4K Walking Tour of Kala Ghoda, Fort | Mumbai, India`
+https://www.youtube.com/watch?v=1zXeL0TeMEY
+- 8. `4K Walking Tour of Tardeo | Mumbai Central`
+https://www.youtube.com/watch?v=OftfMkN_f7I
+- 9. `4K Walking from Churchgate to Gateway of India | Mumbai Heritage Tour`
+https://www.youtube.com/watch?v=-ZKhs7WiRU0
+- 10. `4K Walking Tour of Marine Drive | Mumbai's Liveliest Place #SundayStreets`
+https://www.youtube.com/watch?v=GCUXifsvxfk
+- 11. `4K Walking Tour of Lower Parel | Downtown Mumbai, India`
+https://www.youtube.com/watch?v=Nku69xYWvsU
+- 12. `4K Walking Tour of Hughes Road | Mumbai, India`
+https://www.youtube.com/watch?v=DZl-ExKSpU4
+- 13. `4K Walking Tour of BWSL Promenade at Sunset | Mumbai, India`
+https://www.youtube.com/watch?v=r-42w6oCbHU
+- 14. `4K Walking Tour of Girgaon Chowpatty Viewing Deck | Mumbai, India`
+https://www.youtube.com/watch?v=lqlu7G5oRrU
+- 15. `4K One Green Mile's Parel Bagh (Under Elphinstone Flyover) | Mumbai, India`
+https://www.youtube.com/watch?v=kz2zfbeh-Ag
+- 16. `4K Walking Tour of Dadar Viewing Deck | Mumbai, India`
+https://www.youtube.com/watch?v=iiAEyo_fTnM
+- 17. `4K Walking Tour of Linear Park by Lodha | Mumbai, India`
+https://www.youtube.com/watch?v=5YbtFasB9GA
+- 18. `4K Walking Tour of Mumbai's Billionaire's Row`
+https://www.youtube.com/watch?v=jgVNtbAJm2I
+- 19. `4K Walking Tour of Kamala Nehru Park in Malabar Hill | Mumbai, India`
+https://www.youtube.com/watch?v=Km0vj-gFzFQ
+- 20. `4K Walking Tour of Hanging Gardens | Mumbai, India`
+https://www.youtube.com/watch?v=Q0pT0Kmr6lM
+- 21. `4K Walking Tour of Chowpatty Beach | Mumbai, India`
+https://www.youtube.com/watch?v=q6NaTL9gYSU
+- 22. `4K Walking Tour of Pramod Navalkar Viewing Gallery | Mumbai, India`
+https://www.youtube.com/watch?v=GfwwempFTVw
+
+
+
 ## C. 4K Walking Tour in Hyderabad
+- 1. `Hitech city walk 4k || Hyderabad || Telengana`
+https://www.youtube.com/watch?v=n3tsxMp8hbs
+- 2. `Kothapet Hyderabad Walking Tour.`
+https://www.youtube.com/watch?v=_ja87Kg_usc
+- 3. `CHAITANYAPURY, HYDERABAD WALKING TOUR`
+https://www.youtube.com/watch?v=DHF9Ds_lF3s
+- 4. `L.b.nagar , Hyderabad Walking Tour. 4K 60 Fps With Coptions.`
+https://www.youtube.com/watch?v=ielt9IBVHr0
+- 5. `Jillelaguda Lake Park Walking Tour | Meerpet Hyderabad`
+https://www.youtube.com/watch?v=OAhAnPhZSlE
+- 6. `MANSANPALLY X ROAD WALKING TOUR. 4K/60FPS WITH COPTIONS.`
+https://www.youtube.com/watch?v=838dGoDKlJk
+- 7. `LB NAGAR TO SAROOR NAGAR CHERUVU KATTA NIGHT BIKE RIDE.`
+https://www.youtube.com/watch?v=mKcSb6OwpZk
+- 8. `Lb Nagar To Afzalgunj Bike Tour. Walking Tours Telugu Fullhd/60fps.`
+https://www.youtube.com/watch?v=3nbLw0IxZXk
+- 9. `KCR SPORTS RESORT GHATUPALLY WALKING TOUR FULLHD-60fps.`
+https://www.youtube.com/watch?v=_tq5CktKabc
+- 10. `LB NAGAR NIGHT WALKING TOUR 4K 60/FPS WITH CAPTIONS.`
+https://www.youtube.com/watch?v=yR1U9ZkkRr4
+- 11. `PRASADS MULTIPLEX HYDERABAD WALKING TOUR. FULLHD/60FPS.`
+https://www.youtube.com/watch?v=3A6uQDLDhTU
+- 12. `OSMANIA UNIVERSITY HYDERABAD, ART'S COLLEGE WALKING TOUR. FULLHD/60fps.`
+https://www.youtube.com/watch?v=p5s1-12WK0M
+- 13. `DILSUKHNAGAR WALKING TOUR PART 1. CAPTIONS WITH FULLHD/60fps.`
+https://www.youtube.com/watch?v=qI0DtmauUNQ
+- 14. `THUKKUGUDA TO LB NAGAR BIKE TOUR. FULLHD/60Fps.With Captions.`
+https://www.youtube.com/watch?v=8CimWrAast0
+- 15. `Hyderabad Nehru Zoopark, FullHD/60Fps. With Captions.`
+https://www.youtube.com/watch?v=0t02hvIPRpo
+- 16. `Exploring Small Town India - Shadnagar Full Town Walk (77 Minutes)`
+https://www.youtube.com/watch?v=IJbLFCW9540
+- 17. `Tukkuguda walking Tour. FullHD/30fps. With Coptions.`
+https://www.youtube.com/watch?v=qVWBY5afTJ4
+- 18. `Mansanpally India Village Tour | Authentic Rural Life Experience`
+https://www.youtube.com/watch?v=vr3He-6LgyE
+- 19. `Maheshwaram fullHD - 30fps - Walking tour - With Captions - Walking Tours Telugu`
+https://www.youtube.com/watch?v=CRFKt5_QL5g
+- 20. `Shamshabad walking tour 2022. walking tour FullHD-60fps-With captions.`
+https://www.youtube.com/watch?v=EN5hGCd5P0w
+
+
+
 ## D. 4K Walking Tour in Bangalore
+- 1. `Garden city of India - Bangalore Weekend Night - Amazing 4k Walking Tour 60fps 2024`
+https://www.youtube.com/watch?v=YnuMd2yWDlQ
+- 2. `Silicon City of India - Bangalore | Immersive Evening Walking Tour in 4K`
+https://www.youtube.com/watch?v=st7rGnwyVwQ
+- 3. `#Walking #Tour | #Shivaji #Nagar #Market | #Bangalore @NomadicTraveller`
+https://www.youtube.com/watch?v=YXyobrssTAs
+- 4. `Walking Tour | Bangalore | India| @NomadicTraveller`
+https://www.youtube.com/watch?v=RA0KAMn1-7c
+- 5. `#Walking #Tour | #Commercial #Street | #Bangalore |#Morning #Walk @NomadicTraveller`
+https://www.youtube.com/watch?v=W5h3-FyC5aA
+- 6. `4K walking Tour India | Bangalore church street | @NomadicTraveller`
+https://www.youtube.com/watch?v=NmDIWHoCzEQ
+- 7. `Walking Tour | Brigade Road Bangalore | @NomadicTraveller`
+https://www.youtube.com/watch?v=u_6ewPkln-s
+- 8. `Walking Tour | MG Road | Bangalore | @NomadicTraveller`
+https://www.youtube.com/watch?v=J9O6iFn2cjQ
+- 9. `Walking Tour | MG Road | Bangalore | @NomadicTraveller`
+https://www.youtube.com/watch?v=V09FI-vaTrM
+- 10. `Walking Tour | MG Road Bangalore | @NomadicTraveller`
+https://www.youtube.com/watch?v=DZYCzvWqeiY
+- 11. `4K Ramadan Walking Tour in Frazer Town Bangalore | Bangalore Food Walks`
+https://www.youtube.com/watch?v=yfZ7MKvF4FE
+- 12. `MG Road Bangalore 4k Walking Tour | India Virtual Walks | 4k 60fps`
+https://www.youtube.com/watch?v=1422DkT5c9g
+- 13. `4k walking tour of Church Street, Bangalore | Virtual Treadmill [Slow TV]`
+https://www.youtube.com/watch?v=MUjW0WOIT6Q
+- 14. `【4K】UB City Street Evening Walk, Vlog #12`
+https://www.youtube.com/watch?v=FPrXzPORd5c
+- 15. `【4K】Brigade Road, Bangalore (ನಮ್ಮ ಬೆಂಗಳೂರು). Evening 4K Walk. Vlog #11`
+https://www.youtube.com/watch?v=tgjrKLN0yRg
+- 16. `【4K】HDR Video - An Evening Garden Walk at the Bangalore Botanical Gardens - Vlog #13`
+https://www.youtube.com/watch?v=HRZKcmuI9wg
+- 17. `【4K】Biggest Shiva Statue in Bangalore - 4K Walk Vlog #14`
+https://www.youtube.com/watch?v=R404-bHTIQ4
+- 18. `【4K】Bangalore Palace (ಬೆಂಗಳೂರು ಅರಮನೆ) 4K walking Tour Vlog #15`
+https://www.youtube.com/watch?v=JLWC6aY0GAI
+- 19. `BANNERGHATTA NATIONAL PARK | Jungle Safari | Part 1 | Vlog #16`
+https://www.youtube.com/watch?v=WQ7zDW50-Ec
+- 20. `Iskcon Temple (International Society for Krishna Consciousness) 4K walk | Step Out Vlog #17`
+https://www.youtube.com/watch?v=dkttf1NYZos
+- 21. `Butterfly Park Bannerghatta, Bangalore Part 2 - Step Out Vlog #18`
+https://www.youtube.com/watch?v=ZpsgUToz78o
+- 22. `Nandi Hills, Bangalore, 4 K walk`
+https://www.youtube.com/watch?v=SSj4DGxgah0
+
+
 ## E. 4K Walking Tour in Chennai
-## F. 4K Walking Tourive in Kolkata
-## G. 4K Walking Tourive in Goa
+- 1. `FORUM -FORUM MALL- FORUM MALL CHENNAI -VADAPALANI - SHOPPING`
+https://www.youtube.com/watch?v=CMPpQsKgg9w
+- 2. `ST THOMAS MOUNT, CHENNAI`
+https://www.youtube.com/watch?v=dgapiGk5LKQ
+- 3. `MINT STREET - SOWCARPET - MINT STREET SHOPPING - SOWCARPET SHOPPING`
+https://www.youtube.com/watch?v=a7N5JWmRR4E
+- 4. `KOYAMBEDU VEGETABLE MARKET - KOYAMBEDU MARKET - KOYAMBEDU`
+https://www.youtube.com/watch?v=R3zmFjjsPy8
+- 5. `KOYAMBEDU FRUIT MARKET - KOYAMBEDU MARKET - KOYAMBEDU`
+https://www.youtube.com/watch?v=lAGEVzYzsjs
+- 6. `KOYAMBEDU FLOWER MARKET - KOYAMBEDU MARKET - KOYAMBEDU`
+https://www.youtube.com/watch?v=q0cW5U4SbFg
+- 7. `GOVINDAPPA NAICKEN STREET, CHENNAI`
+https://www.youtube.com/watch?v=Tdd4-bU1q1c
+- 8. `VANAGARAM FISH MARKET-MEEN MARKET - FISH MARKET`
+https://www.youtube.com/watch?v=fwdEV4g3w_c
+- 9. `PALLAVARAM FRIDAY MARKET | PALLAVARAM SANDHAI |சென்னையில் இருக்கும் பழைய சந்தை | PALLAVARAM`
+https://www.youtube.com/watch?v=e8XEODcvogs
+- 10. `T-NAGAR RANGANATHAN STREET | T-NAGAR STREET SHOPPING | T-NAGAR CHENNAI`
+https://www.youtube.com/watch?v=mnC5Etacfnc
+- 11. `MUSEUM - RAIL MUSEUM - CHENNAI RAIL MUSEUM - TRAIN MUSEUM - TOY TRAIN`
+https://www.youtube.com/watch?v=3Ugg1oF_q4c
+- 12. `KASIMEDU FISH MARKET - KASIMEDU MEEN MARKET - KASIMEDU - INDIA'S BIGGEST FISH MARKET - MEEN MARKET`
+https://www.youtube.com/watch?v=pdcrBWWLGWg
+- 13. `ANNA NAGAR TOUR - SHOPPING IN ANNA NAGAR - ALL BRANDED SHOPS IN ONE STREET - ANNANAGAR ROUNDTANA`
+https://www.youtube.com/watch?v=U5aOgovzRL0
+- 14. `CHENNAI LIGHTHOUSE 360° VIEW`
+https://www.youtube.com/watch?v=dDe_Zf0R4bU
+- 15. `KOYAMBEDU BUS STAND 2022 - KOYAMBEDU BUS TERMINUS - KOYAMBEDU BUS STOP KOYAMBEDU MOFUSSIL BUS STAND`
+https://www.youtube.com/watch?v=KlBtglkJezI
+- 16. `PONDY BAZAAR - T.NAGAR PONDY BAZAAR - PONDY BAZAAR CHENNAI - STREET SHOPPING - T.NAGAR....`
+https://www.youtube.com/watch?v=a5lXuHER0to
+- 17. `NSC BOSE ROAD - PARRYS - SOWCARPET - MARWADI - SHOPPING - STREET FOOD`
+https://www.youtube.com/watch?v=GKRyZW_4mUE
+- 18. `VANNARAPETTAI DRESS SHOP - VANARAPETTAI DRESS KADAI - VANNARAPETTAI VEERAS - VANARAPETTAI SAREE`
+https://www.youtube.com/watch?v=C0xqFIjtu70
+- 19. `KATHIPARA BRIDGE PARK | KATHIPARA URBAN SQUARE | KATHIPARA PARK | GUINDY | CHENNAI BOOK FAIR`
+https://www.youtube.com/watch?v=ODj5Cy5Ib8s
+- 20. `Pallavaram Friday Market | Pallavaram Sandhai | Pallavaram Market | Pets Market Chennai | Pallavaram`
+https://www.youtube.com/watch?v=Sj_byusvCQc
+- 21. `Vanagaram fish market | Vanagaram meen market | Vanagaram fish market price today | fish market |`
+https://www.youtube.com/watch?v=NTuskdEjKYs
+- 22. `Burma Bazaar | Parrys Corner | Shopping | Walking Tour | Nsc bose road | Beach railway station |`
+https://www.youtube.com/watch?v=4GfX-OtaKsk
+- 23. `CHENNAI CENTRAL RAILWAY STATION | Chennai mgr Central railway station | New look`
+https://www.youtube.com/watch?v=dd2JWdJ9ejg
+- 24. `KASIMEDU MEEN MARKET | KASIMEDU FISH MARKET - ONE OF THE BIGGEST FISH MARKET IN INDIA - KASIMEDU 🐟`
+https://www.youtube.com/watch?v=HzjU1NYa_Vw
+- 25. `தீவுத்திடல் சென்னை 2023 | THEEVU THIDAL EXHIBITION 2023 | theevu thidal 360° view |`
+https://www.youtube.com/watch?v=dn3GEZ_psoo
+- 26. `PONDY BAZAAR TNAGAR | PONDY BAZAAR CHENNAI | PONDY BAZAAR | PONDY BAZAAR SHOPPING | TNAGAR SHOPPING`
+https://www.youtube.com/watch?v=kO1FV5N8A60
+- 27. `BROADWAY PET MARKET | CHENNAI BROADWAY PET MARKET | BROADWAY PET MARKET CHENNAI | CHENNAI PET MARKET`
+https://www.youtube.com/watch?v=qbZnbnk9xKY
+- 28. `Snake park in chennai | Chennai Snake park | guindy Snake park | Tour | Snake park |`
+https://www.youtube.com/watch?v=P06Zj6wVFdc
+- 29. `GUINDY NATIONAL PARK | Guindy Children park | Guindy park | Guindy National Park chennai | Tour`
+https://www.youtube.com/watch?v=VX_bCHlvFaw
+- 30. `CHEMBARAMBAKKAM LAKE FISH MARKET | செம்பரம்பாக்கம் ஏரி மீன் மார்க்கெட் | Chembarambakkam`
+https://www.youtube.com/watch?v=uCEPT-9yQU4
+
+
+## F. 4K Walking Tour in Kolkata
+- 1. `Kolkata Walking Tour - Walking in Kolkata (India) - Kolkata City Tour 2022`
+https://www.youtube.com/watch?v=FTnyilEfnYE&list=PLOgH7fJi41bVoxyy8GdySQ-Z4qWdaZ_tb&index=1
+- 2. `Walking in Kolkata City India - Park Street Calcutta - Downtown Kolkata City Walking Tour`
+https://www.youtube.com/watch?v=NtSwGBeR3UM&list=PLOgH7fJi41bVoxyy8GdySQ-Z4qWdaZ_tb&index=2
+- 3. `Kolkata Walking Tour 2022 - Patuli Biswa Bangla Sarani - Kolkata City Ambience`
+https://www.youtube.com/watch?v=fmN_KPpUd4g&list=PLOgH7fJi41bVoxyy8GdySQ-Z4qWdaZ_tb&index=3
+- 4. `Kolkata City Tour 2022 - Newtown Kolkata - Kolkata Walking Tour`
+https://www.youtube.com/watch?v=UaNuocRTBiA&list=PLOgH7fJi41bVoxyy8GdySQ-Z4qWdaZ_tb&index=4
+- 5. `Walking in Kolkata (India) - Park Street Kolkata - Kolkata City Tour`
+https://www.youtube.com/watch?v=wUQcNfJscE0&list=PLOgH7fJi41bVoxyy8GdySQ-Z4qWdaZ_tb&index=5
+- 6. `Walking in Kolkata (Calcutta) - Sector V Kolkata - Kolkata Walking Tour in Sector V Newtown`
+https://www.youtube.com/watch?v=sE7AHq4SzeQ&list=PLOgH7fJi41bVoxyy8GdySQ-Z4qWdaZ_tb&index=6
+- 7. `Walking in Kolkata City in the Morning - Kolkata City India 2022 - Calcutta City`
+https://www.youtube.com/watch?v=HYDH4LxlAG4&list=PLOgH7fJi41bVoxyy8GdySQ-Z4qWdaZ_tb&index=7
+- 8. `Virtual Walking Tour in Kolkata City in Winter Season 2022 - Kolkata Walking Tour in Tram Route`
+https://www.youtube.com/watch?v=lln2eah0b3M&list=PLOgH7fJi41bVoxyy8GdySQ-Z4qWdaZ_tb&index=8
+- 9. `Kolkata Walking Tour 2022 - New Market Kolkata - Calcutta City India 🇮🇳`
+https://www.youtube.com/watch?v=8EfRXFrwwvw&list=PLOgH7fJi41bVoxyy8GdySQ-Z4qWdaZ_tb&index=9
+- 10. `Kolkata Walking Tour in Salt Lake City Kolkata - Newtown Kolkata - Salt Lake City Kolkata`
+https://www.youtube.com/watch?v=lmktd9qAp8k&list=PLOgH7fJi41bVoxyy8GdySQ-Z4qWdaZ_tb&index=10
+- 11. `Bara Bazar Kolkata(Calcutta) - Howrah Bridge to MG Road Metro Station - Kolkata Walking Tour`
+https://www.youtube.com/watch?v=ABBU0-7of0g&list=PLOgH7fJi41bVoxyy8GdySQ-Z4qWdaZ_tb&index=11
+- 12. `Garia ,Patuli Kolkata City - Kolkata City Walking tour in the Early Morning - Kolkata City 2023`
+https://www.youtube.com/watch?v=ifqbrIiTj_8&list=PLOgH7fJi41bVoxyy8GdySQ-Z4qWdaZ_tb&index=12
+- 13. `Kolkata City Tour in the Early Morning - 4K Ulta HD Video`
+https://www.youtube.com/watch?v=88swHNZ0vwA&list=PLOgH7fJi41bVoxyy8GdySQ-Z4qWdaZ_tb&index=13
+- 14. `Kolkata City Walking Tour - Kolkata Walk January 2023 - Kolkata ( Calcutta) India`
+https://www.youtube.com/watch?v=yxuH94ReOUI&list=PLOgH7fJi41bVoxyy8GdySQ-Z4qWdaZ_tb&index=14
+- 15. `Kolkata City Tour in Garia Station Road - Kolkata City January 2023`
+https://www.youtube.com/watch?v=bItcLeEl17E&list=PLOgH7fJi41bVoxyy8GdySQ-Z4qWdaZ_tb&index=15
+- 16. `Kolkata Walking Tour in Newtown - Newtown Kolkata - Kolkata City 2023`
+https://www.youtube.com/watch?v=rUUJ9MrMAeA&list=PLOgH7fJi41bVoxyy8GdySQ-Z4qWdaZ_tb&index=16
+- 17. `Kolkata Walking Tour - Walking in Kolkata City - Kolkata City Tour 2023`
+https://www.youtube.com/watch?v=rPCgIIt_ll0&list=PLOgH7fJi41bVoxyy8GdySQ-Z4qWdaZ_tb&index=17
+- 18. `Kolkata Walking Tour 2023 - Princep Ghat Kolkata - Kolkata Walk 4K`
+https://www.youtube.com/watch?v=-RaG6pedYQ8&list=PLOgH7fJi41bVoxyy8GdySQ-Z4qWdaZ_tb&index=18
+- 19. `Walking in Kolkata City India - Gariahat, Desun More - Kolkata City Tour 2023`
+https://www.youtube.com/watch?v=V7TnuqZkVlM&list=PLOgH7fJi41bVoxyy8GdySQ-Z4qWdaZ_tb&index=19
+- 20. `Kolkata City Tour 4K - Science City Kolkata - Kolkata City`
+https://www.youtube.com/watch?v=_NYJec9eOHM&list=PLOgH7fJi41bVoxyy8GdySQ-Z4qWdaZ_tb&index=20
+- 21. `Kolkata Walking Tour Around Howrah Bridge - Howrah Bridge - Kolkata City Tour 2023`
+https://www.youtube.com/watch?v=cqWryfD1eEU&list=PLOgH7fJi41bVoxyy8GdySQ-Z4qWdaZ_tb&index=21
+- 22. `Kolkata Walking Tour Around Bara Bazar Market - Kolkata City Video - 4K Walk`
+https://www.youtube.com/watch?v=dOKYj7eB6Ew&list=PLOgH7fJi41bVoxyy8GdySQ-Z4qWdaZ_tb&index=22
+- 23. `Kolkata Walking Tour in Rain - Bara Bazar Kolkata - Real Life in Kolkata (India)`
+https://www.youtube.com/watch?v=2Jiwa5P6zQM&list=PLOgH7fJi41bVoxyy8GdySQ-Z4qWdaZ_tb&index=23
+- 24. `Walking in Kolkata (Calcutta) - Kolkata City Tour - Real Life in Kolkata India 🇮🇳`
+https://www.youtube.com/watch?v=ETZLeZJCKfk&list=PLOgH7fJi41bVoxyy8GdySQ-Z4qWdaZ_tb&index=24
+- 25. `Kolkata Walking Tour in Newtown Kolkata - Newtown Kolkata City 2023 - 4K video`
+https://www.youtube.com/watch?v=dJ6JWCRoH80&list=PLOgH7fJi41bVoxyy8GdySQ-Z4qWdaZ_tb&index=25
+- 26. `Kolkata Walking Tour in the Evening - Park Street , New Market Kolkata - 4K City Tour`
+https://www.youtube.com/watch?v=nnYHqHBA5fA&list=PLOgH7fJi41bVoxyy8GdySQ-Z4qWdaZ_tb&index=26
+- 27. `Howrah Bridge Kolkata(Calcutta) - Kolkata Walking Tour - Real Life in Kolkata City`
+https://www.youtube.com/watch?v=ALRopmu6wbg&list=PLOgH7fJi41bVoxyy8GdySQ-Z4qWdaZ_tb&index=27
+- 28. `Walking in Kolkata (India) - College Street , MG Road - Real Life in Kolkata India 🇮🇳`
+https://www.youtube.com/watch?v=3c4Li82qH4Y&list=PLOgH7fJi41bVoxyy8GdySQ-Z4qWdaZ_tb&index=28
+- 29. `Kolkata Walk - Kolkata City Tour in Esplanade, Eden Garden - Walking in Indian Third Largest City`
+https://www.youtube.com/watch?v=uBWIEZPXMws&list=PLOgH7fJi41bVoxyy8GdySQ-Z4qWdaZ_tb&index=29
+- 30. `Rainy Day in Kolkata(Calcutta) - Real Life in Kolkata India 🇮🇳 - Kolkata walking Tour 2023`
+https://www.youtube.com/watch?v=rKtR_bPuiQ0&list=PLOgH7fJi41bVoxyy8GdySQ-Z4qWdaZ_tb&index=30
+- 31. `Kolkata City Tour Around Bara Bazar - MG Road, Rabindra Sarani - 4K Walking in Kolkata`
+https://www.youtube.com/watch?v=s9ms9PT0btQ&list=PLOgH7fJi41bVoxyy8GdySQ-Z4qWdaZ_tb&index=31
+- 32. `Kolkata Walking Tour in Bara Bazar Rabindra Sarani Mg Road - Kolkata City 4K - Kolkata 2023`
+https://www.youtube.com/watch?v=JDhjlSW6dLk&list=PLOgH7fJi41bVoxyy8GdySQ-Z4qWdaZ_tb&index=32
+- 33. `Walking in Kolkata (India) - India 🇮🇳 Real Life in Kolkata Old Central - Kolkata Walk 2023`
+https://www.youtube.com/watch?v=x-dad-Elxz4&list=PLOgH7fJi41bVoxyy8GdySQ-Z4qWdaZ_tb&index=33
+- 34. `Walking in Kolkata (India) - Kolkata City Tour - Kolkata Walk 4K`
+https://www.youtube.com/watch?v=e-_ZYDshVgY&list=PLOgH7fJi41bVoxyy8GdySQ-Z4qWdaZ_tb&index=34
+- 35. `Walking in Kolkata (India) - Science City Kolkata - Real Life in Kolkata City`
+https://www.youtube.com/watch?v=fSJyt3XUcmE&list=PLOgH7fJi41bVoxyy8GdySQ-Z4qWdaZ_tb&index=35
+- 36. `4K Kolkata City Tour - Tollygunge Circular Road - Kolkata Walk 2023`
+https://www.youtube.com/watch?v=OdyJ8rBwH0s&list=PLOgH7fJi41bVoxyy8GdySQ-Z4qWdaZ_tb&index=36
+- 37. `Kolkata Walking Tour 4K - Park Street Kolkata - Kolkata 4K`
+https://www.youtube.com/watch?v=FUNmq_YxqDw&list=PLOgH7fJi41bVoxyy8GdySQ-Z4qWdaZ_tb&index=37
+- 38. `Kolkata Walking Tour 4K - Park Street Kolkata - Kolkata 4K`
+https://www.youtube.com/watch?v=462sA2Nqa94&list=PLOgH7fJi41bVoxyy8GdySQ-Z4qWdaZ_tb&index=38
+- 39. `Kolkata City (Calcutta) Walk - India 🇮🇳 Bara Bazar Old Kolkata Central - Real Life in Kolkata India`
+https://www.youtube.com/watch?v=D9zyrrwGWNk&list=PLOgH7fJi41bVoxyy8GdySQ-Z4qWdaZ_tb&index=39
+- 40. `Walking in Kolkata Airport Gate (India) - Dum Dum Kolkata - Kolkata City Tour 2023`
+https://www.youtube.com/watch?v=kPt08giYOC8&list=PLOgH7fJi41bVoxyy8GdySQ-Z4qWdaZ_tb&index=40
+- 41. `Walking in Kolkata (Calcutta) India - Kalighat Kolkata - Real Life in Kolkata India 🇮🇳`
+https://www.youtube.com/watch?v=8LNLOpjav1I&list=PLOgH7fJi41bVoxyy8GdySQ-Z4qWdaZ_tb&index=41
+- 42. `Walking in Kolkata (India) - Indian Street Market - Kolkata Walk 2023`
+https://www.youtube.com/watch?v=r5ICefjIDMM&list=PLOgH7fJi41bVoxyy8GdySQ-Z4qWdaZ_tb&index=42
+- 43. `Walking in Kolkata (India) - Park Street Kolkata (Calcutta) - Real Life in India 🇮🇳`
+https://www.youtube.com/watch?v=UDN-25noUbo&list=PLOgH7fJi41bVoxyy8GdySQ-Z4qWdaZ_tb&index=43
+- 44. `Walking in Kolkata (Indian Street Market) - Kolkata City Tour - Kolkata Walk 4K`
+https://www.youtube.com/watch?v=TG5KTeyEgE0&list=PLOgH7fJi41bVoxyy8GdySQ-Z4qWdaZ_tb&index=44
+- 45. `Walking in Kolkata (India) - AJC Bose Road , Sealdah - Kolkata City Tour in the Morning`
+https://www.youtube.com/watch?v=ds1ijFweccQ&list=PLOgH7fJi41bVoxyy8GdySQ-Z4qWdaZ_tb&index=45
+- 46. `Kolkata(Calcutta) Walking Tour in The Evening - India Walking Tour - Kolkata City India 🇮🇳`
+https://www.youtube.com/watch?v=cMsnU7D1GZ4&list=PLOgH7fJi41bVoxyy8GdySQ-Z4qWdaZ_tb&index=46
+- 47. `Kolkata Walking Tour Around Bara bazar - Kolkata Market Tour - Kolkata Walk`
+https://www.youtube.com/watch?v=4pI3dd4N3a8&list=PLOgH7fJi41bVoxyy8GdySQ-Z4qWdaZ_tb&index=47
+- 48. `Kolkata (Calcutta) City Tour in Rainy Day - Real Life in Kolkata India 🇮🇳`
+https://www.youtube.com/watch?v=QsOcWEPqhWg&list=PLOgH7fJi41bVoxyy8GdySQ-Z4qWdaZ_tb&index=48
+- 49. `Kolkata Walking Tour in Rain - Gariahat, Ballygunge, Park Circus - Kolkata City Tour 2023`
+https://www.youtube.com/watch?v=WCXEXZlVojc&list=PLOgH7fJi41bVoxyy8GdySQ-Z4qWdaZ_tb&index=49
+- 50. `Kolkata Walking Tour in Rain - Cyclone Remal effect in Kolkata - Heavy Rain`
+https://www.youtube.com/watch?v=fcWWJPxRv1U&list=PLOgH7fJi41bVoxyy8GdySQ-Z4qWdaZ_tb&index=50
+- 51. `Kolkata City Tour in Remal Cyclone - Heavy Rain in Kolkata City - Kolkata Walk 2024`
+https://www.youtube.com/watch?v=14jm-ly0Zsg&list=PLOgH7fJi41bVoxyy8GdySQ-Z4qWdaZ_tb&index=51
+- 52. `Kolkata City Tour in Heavy Rain - Cyclone Remal Effect in Kolkata - Park Street Kolkata (Calcutta)`
+https://www.youtube.com/watch?v=8xuzb0FeZlc&list=PLOgH7fJi41bVoxyy8GdySQ-Z4qWdaZ_tb&index=52
+- 53. `Kolkata Walking Tour during Cyclone Remal Landfall - Heavy Rain in Kolkata - Calcutta City India 🇮🇳`
+https://www.youtube.com/watch?v=i-Ip40TEtJ4&list=PLOgH7fJi41bVoxyy8GdySQ-Z4qWdaZ_tb&index=53
+- 54. `Kolkata City Tour in Heavy Rain - Cyclone Remal Landfall in Kolkata - Rain in Kolkata`
+https://www.youtube.com/watch?v=CjHoNtCkSGo&list=PLOgH7fJi41bVoxyy8GdySQ-Z4qWdaZ_tb&index=54
+- 55. `Kolkata Walking Tour Before Remal Cyclone Landfall - Burrabazar Kolkata - Kolkata Walk 2024`
+https://www.youtube.com/watch?v=IvBfjyfwHug&list=PLOgH7fJi41bVoxyy8GdySQ-Z4qWdaZ_tb&index=55
+
+
+## G. 4K Walking Tour in Goa
 - 1 `Sinquerim Beach, Candolim Market & Candolim Beach | August 2020 | 4K Goa India Walking Tour`
-https://www.youtube.com/watch?v=gflBqzcPAKs&list=PL86zn2bf1vhHwSM3O10Q0dQxe1fcF5bxl&index=1
+https://www.youtube.com/watch?v=gflBqzcPAKs
 - 2 `Dr. Salim Ali Bird Sanctuary Nature Trail, Chorao Island | January 2021 | 4K Goa India Walking Tour`
-https://www.youtube.com/watch?v=O1vcEdp-UNY&list=PL86zn2bf1vhHwSM3O10Q0dQxe1fcF5bxl&index=2
+https://www.youtube.com/watch?v=O1vcEdp-UNY
 - 3 `Fontainhas Panjim Streets on Rainy Day | | 4K Goa India Walking Tour`
-https://www.youtube.com/watch?v=LcTItaFqA-8&list=PL86zn2bf1vhHwSM3O10Q0dQxe1fcF5bxl&index=3
+https://www.youtube.com/watch?v=LcTItaFqA-8
 - 4 `Busy Streets Scenes around MG Road, Panjim | November 2020 | 4K Goa India Walking Tour`
-https://www.youtube.com/watch?v=ZnpFrYOjQKQ&list=PL86zn2bf1vhHwSM3O10Q0dQxe1fcF5bxl&index=4
+https://www.youtube.com/watch?v=ZnpFrYOjQKQ
 - 5 `Panjim Promenade On a Rainy Day | Rain ASMR | | 4K Goa India Walking Tour`
-https://www.youtube.com/watch?v=IiT11lKrvVE&list=PL86zn2bf1vhHwSM3O10Q0dQxe1fcF5bxl&index=5
+https://www.youtube.com/watch?v=IiT11lKrvVE
 - 6 `Exploring St. Estevam Island- Walking, Driving & Aerial Scenes | 4K Cinematic Goa Virtual Tour`
-https://www.youtube.com/watch?v=PKHjc9u3wHg&list=PL86zn2bf1vhHwSM3O10Q0dQxe1fcF5bxl&index=6
+https://www.youtube.com/watch?v=PKHjc9u3wHg
 - 7 `Exploring Calangute Beach & Market | September 2020 | 4K Goa India Walking Tour`
-https://www.youtube.com/watch?v=C6Tn_V6-EXg&list=PL86zn2bf1vhHwSM3O10Q0dQxe1fcF5bxl&index=7
+https://www.youtube.com/watch?v=C6Tn_V6-EXg
 - 8 `Walking, Driving & Flying Around Chorao Island | January 2021 | 4K Goa India Virtual Tour`
-https://www.youtube.com/watch?v=1bJMoSTs4rA&list=PL86zn2bf1vhHwSM3O10Q0dQxe1fcF5bxl&index=8
+https://www.youtube.com/watch?v=1bJMoSTs4rA
 - 9 `Siridao Village & Siridao Beach | September 2020 | 4K Goa India Walking Tour`
-https://www.youtube.com/watch?v=HnKlAunBJgw&list=PL86zn2bf1vhHwSM3O10Q0dQxe1fcF5bxl&index=9
+https://www.youtube.com/watch?v=HnKlAunBJgw
 - 10 `18 June Road & Panjim Church | October 2020 | 4K Goa India Walking Tour`
-https://www.youtube.com/watch?v=m6vxCnejLKE&list=PL86zn2bf1vhHwSM3O10Q0dQxe1fcF5bxl&index=10
+https://www.youtube.com/watch?v=m6vxCnejLKE
 - 11 `Exploring Historic Corjuem Fort During Monsoon | 4K Goa Virtual Tour`
-https://www.youtube.com/watch?v=XaI7QtqS4O8&list=PL86zn2bf1vhHwSM3O10Q0dQxe1fcF5bxl&index=11
+https://www.youtube.com/watch?v=XaI7QtqS4O8
 - 12 `Baga Beach Walking Tour | 4K Goa India`
-https://www.youtube.com/watch?v=YX5LXl4bxTg&list=PL86zn2bf1vhHwSM3O10Q0dQxe1fcF5bxl&index=12
+https://www.youtube.com/watch?v=YX5LXl4bxTg
 - 13 `Exploring Divar Island | October 2020 | 4K Goa India Virtual Tour`
-https://www.youtube.com/watch?v=X2GEIVQCk6w&list=PL86zn2bf1vhHwSM3O10Q0dQxe1fcF5bxl&index=13
+https://www.youtube.com/watch?v=X2GEIVQCk6w
 - 14 `Vibrant Streets of Altinho | 4K Goa India Walking Tour | January 2021`
-https://www.youtube.com/watch?v=w2T-gXsHzjE&list=PL86zn2bf1vhHwSM3O10Q0dQxe1fcF5bxl&index=14
+https://www.youtube.com/watch?v=w2T-gXsHzjE
 - 15 `Colorful Mala & Maruti Temple, Panjim | November 2020 | 4K Goa India Walking Tour`
-https://www.youtube.com/watch?v=v0aVwAGV9dE&list=PL86zn2bf1vhHwSM3O10Q0dQxe1fcF5bxl&index=15
+https://www.youtube.com/watch?v=v0aVwAGV9dE
 - 16 `Nature & Beach Walk around Bambolim | September 2020 | 4K Goa India Walking Tour`
-https://www.youtube.com/watch?v=MaZ3WTmOfVc&list=PL86zn2bf1vhHwSM3O10Q0dQxe1fcF5bxl&index=16
+https://www.youtube.com/watch?v=MaZ3WTmOfVc
 - 17 `Campal Heritage Area, Panjim | 4K Goa India Walking Tour`
-https://www.youtube.com/watch?v=t7xoacYTSJw&list=PL86zn2bf1vhHwSM3O10Q0dQxe1fcF5bxl&index=17
+https://www.youtube.com/watch?v=t7xoacYTSJw
 - 18 `Miramar Beach to Campal Gardens | July 2020 | 4K Goa India Walking Tour`
-https://www.youtube.com/watch?v=jQPs0LTwVwY&list=PL86zn2bf1vhHwSM3O10Q0dQxe1fcF5bxl&index=18
+https://www.youtube.com/watch?v=jQPs0LTwVwY
 - 19 `Using Panjim Bus for the First Time Since Lockdown | October 2020 | 4K Goa India Virtual Tour`
-https://www.youtube.com/watch?v=U2hl1v8xxlE&list=PL86zn2bf1vhHwSM3O10Q0dQxe1fcF5bxl&index=19
+https://www.youtube.com/watch?v=U2hl1v8xxlE
 - 20 `Panjim Market Post-Lockdown Scenes | September 2020 | 4K Goa India Walking Tour`
-https://www.youtube.com/watch?v=Dxuqlhmwh-Q&list=PL86zn2bf1vhHwSM3O10Q0dQxe1fcF5bxl&index=20
+https://www.youtube.com/watch?v=Dxuqlhmwh-Q
 - 21 `Ourem Creek and Rua de Ourem, Patto Panjim | | 4K Goa India Walking Tour`
-https://www.youtube.com/watch?v=XeOliFWJBVg&list=PL86zn2bf1vhHwSM3O10Q0dQxe1fcF5bxl&index=21
+https://www.youtube.com/watch?v=XeOliFWJBVg
 - 22 `Ribandar & Chorao Island Ferry Ride Ambient Experience | January 2021 | 4K Goa India Walking Tour`
-https://www.youtube.com/watch?v=vDnO_KXr0us&list=PL86zn2bf1vhHwSM3O10Q0dQxe1fcF5bxl&index=22
+https://www.youtube.com/watch?v=vDnO_KXr0us
 - 23 `Lower Aguada Fort Extension Hike & Drone Shots | 4K Goa India Virtual Tour`
-https://www.youtube.com/watch?v=GT89Ljv5zc8&list=PL86zn2bf1vhHwSM3O10Q0dQxe1fcF5bxl&index=23
+https://www.youtube.com/watch?v=GT89Ljv5zc8
 - 24 `Miramar Beach During Sunset | Panjim January 2021 | 4K Goa India Walking Tour`
-https://www.youtube.com/watch?v=QnWhWcry8rM&list=PL86zn2bf1vhHwSM3O10Q0dQxe1fcF5bxl&index=24
+https://www.youtube.com/watch?v=QnWhWcry8rM
 - 25 `Nature Walk around Campal Gardens, Panjim | December 2020 | 4K Goa India Walking Tour`
-https://www.youtube.com/watch?v=BimNT0Y5Hbs&list=PL86zn2bf1vhHwSM3O10Q0dQxe1fcF5bxl&index=25
+https://www.youtube.com/watch?v=BimNT0Y5Hbs
 - 26 `Panjim Mangrove Boardwalk | Ambient Nature Walk | November 2020 | 4K Goa India Walking Tour`
-https://www.youtube.com/watch?v=P4lewi0UCKc&list=PL86zn2bf1vhHwSM3O10Q0dQxe1fcF5bxl&index=26
+https://www.youtube.com/watch?v=P4lewi0UCKc
 - 27 `Kayaking through Mangroves of Chorao Island- 4K Goa Virtual Experience | Feb 2021`
-https://www.youtube.com/watch?v=IB9MFHPY9c8&list=PL86zn2bf1vhHwSM3O10Q0dQxe1fcF5bxl&index=27
+https://www.youtube.com/watch?v=IB9MFHPY9c8
 - 28 `Ponte de Linhares, Ribandar & Old Goa Churches | 4K Goa India Bike Tour`
-https://www.youtube.com/watch?v=yP6LURr0e5Y&list=PL86zn2bf1vhHwSM3O10Q0dQxe1fcF5bxl&index=28
+https://www.youtube.com/watch?v=yP6LURr0e5Y
 - 29 `Lower Aguada Fort, Sinquerim Beach | 4K Goa India Walking Tour`
-https://www.youtube.com/watch?v=04YKvC8kAgI&list=PL86zn2bf1vhHwSM3O10Q0dQxe1fcF5bxl&index=29
+https://www.youtube.com/watch?v=04YKvC8kAgI
 - 30 `Exploring Lesser Known Heritage - Namazgah in Bicholim | December 2020 | 4K Goa India Virtual Tour`
-https://www.youtube.com/watch?v=f2oXG655Wpc&list=PL86zn2bf1vhHwSM3O10Q0dQxe1fcF5bxl&index=30
+https://www.youtube.com/watch?v=f2oXG655Wpc
 - 31 `Agassaim & Ancient Gopakapattana Port Ruins | Beach Walk & Aerial View | 4K Goa India Virtual Tour`
-https://www.youtube.com/watch?v=2_gdsRymzzM&list=PL86zn2bf1vhHwSM3O10Q0dQxe1fcF5bxl&index=31
+https://www.youtube.com/watch?v=2_gdsRymzzM
 - 32 `Dona Paula Jetty Unlock Scenes | Panjim October 2020 | 4K Goa India Walking Tour`
-https://www.youtube.com/watch?v=Y8Ea5ZpV7n8&list=PL86zn2bf1vhHwSM3O10Q0dQxe1fcF5bxl&index=32
+https://www.youtube.com/watch?v=Y8Ea5ZpV7n8
 - 33 `Chapora Fort & Vagator View Point During Sunset | December 2020 | 4K Goa India Walking Tour`
-https://www.youtube.com/watch?v=LTCSPZap5EY&list=PL86zn2bf1vhHwSM3O10Q0dQxe1fcF5bxl&index=33
+https://www.youtube.com/watch?v=LTCSPZap5EY
 
-⏺ Tier 2 Cities in India 
+## Tier 2 Cities in India 
+## 1: Jaipur  
+##### 4K Walking Tour
+##### 4K Drive
+##### 4K Drone View
 
- ┌────────────────────┬─────────┬─────────┬─────────────────────────────────────────────────┐                                                                                              
-  │        City        │ Walking │ Driving │                     Reason                      │                                                                                              
-  ├────────────────────┼─────────┼─────────┼─────────────────────────────────────────────────┤                                                                                              
-  │ Jaipur             │ ✅      │ ✅      │ narrow_lane (walk) + wide_road/junction (drive) │                                                                                              
-  ├────────────────────┼─────────┼─────────┼─────────────────────────────────────────────────┤                                                                                              
-  │ Varanasi           │ ✅      │ ❌      │ Ghats/alleys only walkable, no highways         │                                                                                              
-  ├────────────────────┼─────────┼─────────┼─────────────────────────────────────────────────┤                                                                                              
-  │ Lucknow            │ ✅      │ ✅      │ fog visible in both, has highways               │                                                                                              
-  ├────────────────────┼─────────┼─────────┼─────────────────────────────────────────────────┤                                                                                              
-  │ Ahmedabad          │ ✅      │ ✅      │ junction, transit, wide_road need drive         │                                                                                              
-  ├────────────────────┼─────────┼─────────┼─────────────────────────────────────────────────┤                                                                                              
-  │ Pune               │ ✅      │ ✅      │ junction, residential needs both                │                                                                                              
-  ├────────────────────┼─────────┼─────────┼─────────────────────────────────────────────────┤                                                                                              
-  │ Kochi              │ ✅      │ ❌      │ promenade, ferry - walking focused              │                                                                                              
-  ├────────────────────┼─────────┼─────────┼─────────────────────────────────────────────────┤                                                                                              
-  │ Chandigarh         │ ❌      │ ✅      │ Planned city = wide roads, best for drive       │                                                                                              
-  ├────────────────────┼─────────┼─────────┼─────────────────────────────────────────────────┤                                                                                              
-  │ Indore             │ ✅      │ ❌      │ market, narrow_lane = walking                   │                                                                                              
-  ├────────────────────┼─────────┼─────────┼─────────────────────────────────────────────────┤                                                                                              
-  │ Bhopal             │ ✅      │ ✅      │ junction needs drive                            │                                                                                              
-  ├────────────────────┼─────────┼─────────┼─────────────────────────────────────────────────┤                                                                                              
-  │ Coimbatore         │ ✅      │ ✅      │ junction needs drive                            │                                                                                              
-  ├────────────────────┼─────────┼─────────┼─────────────────────────────────────────────────┤                                                                                              
-  │ Nagpur             │ ❌      │ ✅      │ junction, highway = drive only                  │                                                                                              
-  ├────────────────────┼─────────┼─────────┼─────────────────────────────────────────────────┤                                                                                              
-  │ Visakhapatnam      │ ✅      │ ✅      │ promenade (walk) + highway (drive)              │                                                                                              
-  ├────────────────────┼─────────┼─────────┼─────────────────────────────────────────────────┤                                                                                              
-  │ Surat              │ ✅      │ ❌      │ market, narrow_lane = walking                   │                                                                                              
-  ├────────────────────┼─────────┼─────────┼─────────────────────────────────────────────────┤                                                                                              
-  │ Thiruvananthapuram │ ✅      │ ❌      │ temple, promenade = walking                     │                                                                                              
-  ├────────────────────┼─────────┼─────────┼─────────────────────────────────────────────────┤                                                                                              
-  │ Mysuru             │ ✅      │ ❌      │ temple, residential = walking                   │                                                                                              
-  └────────────────────┴─────────┴─────────┴─────────────────────────────────────────────────┘                                                                                              
-  ---                                                                                                                                                                                       
-  Summary                                                                                                                                                                                   
-  ┌──────────────┬─────────────────────────────────────────────────────────────────────┬───────┐                                                                                            
-  │     Type     │                               Cities                                │ Count │                                                                                            
-  ├──────────────┼─────────────────────────────────────────────────────────────────────┼───────┤                                                                                            
-  │ Walking only │ Varanasi, Kochi, Indore, Surat, Thiruvananthapuram, Mysuru          │ 6     │                                                                                            
-  ├──────────────┼─────────────────────────────────────────────────────────────────────┼───────┤                                                                                            
-  │ Driving only │ Chandigarh, Nagpur                                                  │ 2     │                                                                                            
-  ├──────────────┼─────────────────────────────────────────────────────────────────────┼───────┤                                                                                            
-  │ Both         │ Jaipur, Lucknow, Ahmedabad, Pune, Bhopal, Coimbatore, Visakhapatnam │ 7     │                                                                                            
-  └──────────────┴─────────────────────────────────────────────────────────────────────┴───────┘   
+## 2. Varanasi
+##### 4K Walking Tour
+##### 4K Drive
+##### 4K Drone View
+
+## 3. Lucknow
+##### 4K Walking Tour
+##### 4K Drive
+##### 4K Drone View
+
+## 4. Ahmedabad
+##### 4K Walking Tour
+##### 4K Drive
+##### 4K Drone View
 
 
+## 5. Pune, 
+##### 4K Walking Tour
+##### 4K Drive
+##### 4K Drone View
+
+## 6. Kochi
+##### 4K Walking Tour
+##### 4K Drive
+##### 4K Drone View
+
+## 7. Chandigarh
+##### 4K Walking Tour
+##### 4K Drive
+##### 4K Drone View
+
+
+## 8. Indore
+##### 4K Walking Tour
+##### 4K Drive
+##### 4K Drone View
+
+## 9. Bhopal
+##### 4K Walking Tour
+##### 4K Drive
+##### 4K Drone View
+
+## 10. Coimbatore
+- 1. `Coimbatore City | Manchester of Tamil Nadu | Coimbatore Tour 2025 🌿🇮🇳`
+https://www.youtube.com/watch?v=HQmd4n4wKn0
+##### 4K Walking Tour
+##### 4K Drive
+##### 4K Drone View
+
+## 11. Nagpur
+##### 4K Walking Tour
+##### 4K Drive
+##### 4K Drone View
+
+## 12. Visakhapatnam
+##### 4K Walking Tour
+##### 4K Drive
+##### 4K Drone View
+
+## 13. Surat
+##### 4K Walking Tour
+##### 4K Drive
+##### 4K Drone View
+
+## 14. Thiruvananthapuram
+##### 4K Walking Tour
+##### 4K Drive
+##### 4K Drone View
+
+## 15. Mysuru
+##### 4K Walking Tour
+##### 4K Drive
+##### 4K Drone View
 
 ## Top 50 monuments
 
@@ -237,202 +857,258 @@ https://www.youtube.com/watch?v=_NofLLZazeA
 - 2. India Gate
 ##### 4K Walking Tour
 ##### 4K Drive
+##### 4K Drone View
 
 - 3. Charminar (Hyderabad) :
 ##### 4K Walking Tour
-##### 4K Drive
-`A Hot Afternoon at Charminar, India | ASMR Walk | #4K #HDR #50FPS | Special Hyderabad Edition`
+- 1. `A Hot Afternoon at Charminar, India | ASMR Walk | #4K #HDR #50FPS | Special Hyderabad Edition`
 https://www.youtube.com/watch?v=VUGNQ9sef4c
-`Hyderabad India Walking Tour 4K | Historic Monuments Old City`
+- 2. `Hyderabad India Walking Tour 4K | Historic Monuments Old City`
 https://www.youtube.com/watch?v=KuikctNEXiI
+- 3. `CHARMINAR NIGHT WALKING TOUR. FULLHD /60FPS.`
+https://www.youtube.com/watch?v=XU-IjEOU6tA
+
+##### 4K Drive
+- 1. `Charminar (Old City), Madina, Pathergatti road | Morning Drive Tour Hyderabad`
+https://www.youtube.com/watch?v=Ao7exerGU1A
+##### 4K Drone View
+
+
 
 - 4. Taj Mahal
 ##### 4K Walking Tour
 ##### 4K Drive
+##### 4K Drone View
 
 - 5. Qutub Minar
 ##### 4K Walking Tour
 ##### 4K Drive
+##### 4K Drone View
 
 - 6. Red Fort (Delhi): 
 ##### 4K Walking Tour
 ##### 4K Drive
 `4K 🇮🇳 Delhi Walk - Inside The Red Fort - India walking tour`
 https://www.youtube.com/watch?v=TWqaSTSWzus
+##### 4K Drone View
 
 - 7. Hawa Mahal
 ##### 4K Walking Tour
 ##### 4K Drive
+##### 4K Drone View
 
 - 8. Amer Fort
 ##### 4K Walking Tour
 ##### 4K Drive
+##### 4K Drone View
 
 - 9. Jantar Mantar
 ##### 4K Walking Tour
 ##### 4K Drive
+##### 4K Drone View
 
 - 10. City Palace, Jaipur
 ##### 4K Walking Tour
 ##### 4K Drive
+##### 4K Drone View
 
 - 11. Mehrangarh Fort
 ##### 4K Walking Tour
 ##### 4K Drive
+##### 4K Drone View
 
 - 12. Jaisalmer Fort
 ##### 4K Walking Tour
 ##### 4K Drive
+##### 4K Drone View
 
 - 13. Chittorgarh Fort
 ##### 4K Walking Tour
 ##### 4K Drive
+##### 4K Drone View
 
 - 14. Ranthambore Fort
 ##### 4K Walking Tour
 ##### 4K Drive
+##### 4K Drone View
 
 - 15. Junagarh Fort
 ##### 4K Walking Tour
 ##### 4K Drive
+##### 4K Drone View
 
 - 16. Fatehpur Sikri
 ##### 4K Walking Tour
 ##### 4K Drive
+##### 4K Drone View
 
 - 17. Agra Fort
 ##### 4K Walking Tour
 ##### 4K Drive
+##### 4K Drone View
 
 - 18. Sanchi Stupa
 ##### 4K Walking Tour
 ##### 4K Drive
+##### 4K Drone View
 
 - 19. Khajuraho Group of Monuments
 ##### 4K Walking Tour
 ##### 4K Drive
+##### 4K Drone View
 
 - 20. Gwalior Fort
 ##### 4K Walking Tour
 ##### 4K Drive
+##### 4K Drone View
 
 - 21. Konark Sun Temple
 ##### 4K Walking Tour
 ##### 4K Drive
+##### 4K Drone View
 
 - 22. Jagannath Temple
 ##### 4K Walking Tour
 ##### 4K Drive
+##### 4K Drone View
 
 - 23. Lingaraja Temple
 ##### 4K Walking Tour
 ##### 4K Drive
+##### 4K Drone View
 
 - 24. Mahabodhi Temple
 ##### 4K Walking Tour
 ##### 4K Drive
+##### 4K Drone View
 
 - 25. Nalanda Mahavihara
 ##### 4K Walking Tour
 ##### 4K Drive
+##### 4K Drone View
 
 - 26. Victoria Memorial
 ##### 4K Walking Tour
 ##### 4K Drive
+##### 4K Drone View
 
 - 27. Howrah Bridge
 ##### 4K Walking Tour
 ##### 4K Drive
+##### 4K Drone View
 
 - 28. Somnath Temple
 ##### 4K Walking Tour
 ##### 4K Drive
+##### 4K Drone View
 
 - 29. Rani ki Vav
 ##### 4K Walking Tour
 ##### 4K Drive
+##### 4K Drone View
 
 - 30. Statue of Unity
 ##### 4K Walking Tour
 ##### 4K Drive
+##### 4K Drone View
 
 - 31. Sabarmati Ashram
 ##### 4K Walking Tour
 ##### 4K Drive
+##### 4K Drone View
 
 - 32. Golconda Fort
 ##### 4K Walking Tour
 ##### 4K Drive
+##### 4K Drone View
 
 - 33. Meenakshi Amman Temple
 ##### 4K Walking Tour
 ##### 4K Drive
+##### 4K Drone View
 
 - 34. Brihadeeswara Temple
 ##### 4K Walking Tour
 ##### 4K Drive
+##### 4K Drone View
 
 - 35. Shore Temple
 ##### 4K Walking Tour
 ##### 4K Drive
+##### 4K Drone View
 
 - 36. Ramanathaswamy Temple
 ##### 4K Walking Tour
 ##### 4K Drive
+##### 4K Drone View
 
 - 37. Mysore Palace
 ##### 4K Walking Tour
 ##### 4K Drive
+##### 4K Drone View
 
 - 38. Hampi
 ##### 4K Walking Tour
 ##### 4K Drive
+##### 4K Drone View
 
 - 39. Virupaksha Temple, Hampi
 ##### 4K Walking Tour
 ##### 4K Drive
+##### 4K Drone View
 
 - 40. Gol Gumbaz
 ##### 4K Walking Tour
 ##### 4K Drive
+##### 4K Drone View
 
 - 41. Ajanta Caves
 ##### 4K Walking Tour
 ##### 4K Drive
+##### 4K Drone View
 
 - 42. Ellora Caves
 ##### 4K Walking Tour
 ##### 4K Drive
+##### 4K Drone View
 
 - 43. Elephanta Caves
 ##### 4K Walking Tour
 ##### 4K Drive
+##### 4K Drone View
 
 - 44. Siddhivinayak Temple
 ##### 4K Walking Tour
 ##### 4K Drive
+##### 4K Drone View
 
 - 45. Shaniwar Wada
 ##### 4K Walking Tour
 ##### 4K Drive
+##### 4K Drone View
 
 - 46. Golden Temple
 ##### 4K Walking Tour
 ##### 4K Drive
+##### 4K Drone View
 
 - 47. Jallianwala Bagh
 ##### 4K Walking Tour
 ##### 4K Drive
+##### 4K Drone View
 
 - 48. Rock Garden
 ##### 4K Walking Tour
 ##### 4K Drive
+##### 4K Drone View
 
 - 49. Lotus Temple
 ##### 4K Walking Tour
 ##### 4K Drive
+##### 4K Drone View
 
 - 50. Humayun's Tomb
 ##### 4K Walking Tour
 ##### 4K Drive
+##### 4K Drone View
 
