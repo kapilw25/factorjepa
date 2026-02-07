@@ -1,22 +1,22 @@
 === Reading Literature/Prev_work4/YT_videos_raw.md ===
-File size: 52554 chars, 1114 lines
+File size: 95136 chars, 1918 lines
 
 === Parsing markdown to JSON ===
-Drive videos:    122
-Drone videos:    30
-Walking videos:  201
-Monument videos: 3
-Tier2 filled:    1
-Tier2 blank:     14
-Monuments:       54
+Tier1 Drive:     122
+Tier1 Drone:     30
+Tier1 Walking:   201
+Tier2 videos:    361 (drive=87, walk=102, drone=82, rain=90)
+Tier2 cities:    15 filled, 0 empty
+Monument videos: 4
+Monuments:       55
 ---
-GRAND TOTAL:     357 videos
+GRAND TOTAL:     718 videos
 
 === Checking for duplicate YouTube IDs ===
-Checked 357 videos, found 0 duplicates
+Checked 716 videos, found 2 duplicates
 
 === Extracting titles for word frequency ===
-Extracted 357 titles
+Extracted 718 titles
 
 === Creating city matrix ===
 
@@ -27,133 +27,177 @@ Saved: outputs_data_prep/city_matrix.json
 ======================================================================
 DUPLICATE YOUTUBE ID CHECK
 ======================================================================
-Total videos:   357
-Unique IDs:     357
-Duplicates:     0
+Total videos:   716
+Unique IDs:     714
+Duplicates:     2
 
-No duplicates found!
+--- DUPLICATE ENTRIES ---
+
+  C72Hr5rcEbY appears 2 times:
+    - [tier2/kochi/walking] Kochi, Kerala Sunset Walking Tour, 6.5 km (4 mile)...
+    - [tier2/kochi/drone] Kochi, Kerala Sunset Walking Tour, 6.5 km (4 mile)...
+
+  tV95grPuV8E appears 2 times:
+    - [tier2/mysuru/walking] 4K Virtual Tour of Mysore Palace Grounds...
+    - [tier2/mysuru/drone] 4K Virtual Tour of Mysore Palace Grounds...
+
+================================================================================
+TABLE 1: OVERALL SUMMARY (All Videos)
+================================================================================
+Category                     Drive     Walk    Drone     Rain    Total
+--------------------------------------------------------------------------------
+Tier 1 (6 cities)              122      168       30        0      320
+Goa                              0       33        0        0       33
+Tier 2 (15 cities)              87      102       82       90      361
+Monuments                        1        2        1        0        4
+--------------------------------------------------------------------------------
+GRAND TOTAL                    210      305      113       90      718
 
 ======================================================================
-CITY x VIDEO TYPE MATRIX
+TABLE 2: TIER 1 CITIES
 ======================================================================
-City                 Tier   Drive    Walk     Drone    Total   
+City                    Drive     Walk    Drone    Total
 ----------------------------------------------------------------------
---- TIER 1 ---
-Bangalore            1      20       22       5        47      
-Chennai              1      20       30       5        55      
-Delhi                1      20       19       5        44      
-Hyderabad            1      18       20       5        43      
-Kolkata              1      24       55       5        84      
-Mumbai               1      20       22       5        47      
---- OTHER ---
-Goa                  --     0        33       0        33      
---- TIER 2 (placeholders) ---
-Ahmedabad            2      (empty)
-Bhopal               2      (empty)
-Chandigarh           2      (empty)
-Coimbatore           2      (1 untagged)
-Indore               2      (empty)
-Jaipur               2      (empty)
-Kochi                2      (empty)
-Lucknow              2      (empty)
-Mysuru               2      (empty)
-Nagpur               2      (empty)
-Pune                 2      (empty)
-Surat                2      (empty)
-Thiruvananthapuram   2      (empty)
-Varanasi             2      (empty)
-Visakhapatnam        2      (empty)
+Kolkata                    24       55        5       84
+Chennai                    20       30        5       55
+Mumbai                     20       22        5       47
+Bangalore                  20       22        5       47
+Delhi                      20       19        5       44
+Hyderabad                  18       20        5       43
 ----------------------------------------------------------------------
-TOTAL                       353     
-  Tier 1: 320, Other: 33, Tier 2: 1
+TOTAL                     122      168       30      320
+
+================================================================================
+TABLE 3: TIER 2 CITIES + GOA
+================================================================================
+City                    Drive     Walk    Drone     Rain    Total
+--------------------------------------------------------------------------------
+Goa                         0       33        0        0       33
+--------------------------------------------------------------------------------
+Pune                        7       11       10       10       38
+Lucknow                     8       10        5        6       29
+Kochi                       8        9        5        5       27
+Varanasi                    8        8        5        5       26
+Ahmedabad                   6        8        5        7       26
+Nagpur                      5        6        5        8       24
+Indore                      5        7        6        5       23
+Chandigarh                  5        5        5        7       22
+Visakhapatnam               5        5        6        6       22
+Jaipur                      5        7        4        5       21
+Coimbatore                  5        5        5        6       21
+Surat                       5        5        6        5       21
+Thiruvananthapuram          5        6        5        5       21
+Bhopal                      5        5        5        5       20
+Mysuru                      5        5        5        5       20
+--------------------------------------------------------------------------------
+TOTAL                      87      135       82       90      394
+
+======================================================================
+TABLE 4: MONUMENTS (4 videos / 55 listed)
+======================================================================
+Monument                       City             Drive   Walk  Drone  Total
+----------------------------------------------------------------------
+Gateway of India, Mumbai                            0      2      0      2
+Red Fort, Delhi                                     1      0      0      1
+Mysore Palace                                       0      0      1      1
+(52 monuments empty)           -                    0      0      0      0
+----------------------------------------------------------------------
+TOTAL                                               1      2      1      4
 
 ======================================================================
 WORD FREQUENCY ANALYSIS
 ======================================================================
-Total titles: 357
-Total words: 3687
-Unique words: 714
+Total titles: 718
+Total words: 7505
+Unique words: 1279
 
 --- TOP 30 WORDS ---
- 1. k               250
- 2. tour            180
- 3. kolkata         171
- 4. india           161
- 5. walking         161
- 6. in              136
- 7. city            132
- 8. drive           101
- 9. road            60
-10. to              54
-11. of              53
-12. mumbai          51
-13. chennai         51
-14. delhi           45
-15. bangalore       43
-16. market          42
-17. new             41
-18. hyderabad       34
-19. goa             34
-20. walk            31
-21. s               29
-22. the             28
-23. driving         27
-24. park            27
-25. street          25
-26. capital         24
-27. fps             21
-28. drone           20
-29. real            19
-30. nagar           19
+ 1. k               519
+ 2. city            338
+ 3. tour            283
+ 4. in              278
+ 5. india           270
+ 6. walking         258
+ 7. kolkata         171
+ 8. drive           155
+ 9. of              134
+10. the             97
+11. rain            96
+12. road            94
+13. to              94
+14. drone           84
+15. walk            66
+16. view            61
+17. market          58
+18. video           57
+19. mumbai          52
+20. chennai         51
+21. ride            50
+22. pune            47
+23. fps             47
+24. new             45
+25. delhi           45
+26. bangalore       45
+27. driving         42
+28. s               42
+29. park            37
+30. indore          37
 
 --- TAXONOMY MAPPING ---
 
 TIME_OF_DAY:
-  morning         14
-  night           14
-  evening         11
-  sunset          4
+  night           31
+  morning         22
+  evening         22
+  sunset          7
   afternoon       2
+  sunrise         1
+  dawn            1
   golden hour     1
 
 WEATHER:
-  rain            10
-  rainy           4
-  monsoon         1
-  cloudy          1
+  rain            96
+  rainy           19
+  monsoon         14
+  cloudy          5
+  foggy           2
+  sunny           1
 
 CROWD_DENSITY:
   busy            4
   traffic         3
+  peaceful        2
   rush hour       1
-  peaceful        1
 
 SCENE_TYPE:
-  market          42
-  beach           13
-  downtown        13
-  flyover         11
-  fort            6
-  heritage        4
-  temple          2
-  expressway      2
-  palace          1
+  market          58
+  beach           20
+  fort            15
+  downtown        14
+  flyover         12
+  heritage        9
+  palace          7
+  temple          3
+  expressway      3
+  highway         3
 
 ROAD_LAYOUT:
-  road            60
-  street          25
-  bridge          9
+  road            94
+  street          36
+  bridge          13
   lane            6
   coastal         4
+  narrow          2
   tunnel          2
-  narrow          1
 
 NOTABLE_OBJECTS:
-  bus             6
-  bike            4
-  metro           2
-  train           2
+  bike            29
+  bus             13
+  metro           3
+  train           3
   ferry           1
+  auto            1
+  rickshaw        1
   shop            1
 
 FULL COMPLETED

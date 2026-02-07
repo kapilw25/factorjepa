@@ -585,115 +585,115 @@ https://www.youtube.com/watch?v=uCEPT-9yQU4
 
 ## F. 4K Walking Tour in Kolkata
 - 1. `Kolkata Walking Tour - Walking in Kolkata (India) - Kolkata City Tour 2022`
-https://www.youtube.com/watch?v=FTnyilEfnYE&list=PLOgH7fJi41bVoxyy8GdySQ-Z4qWdaZ_tb&index=1
+https://www.youtube.com/watch?v=FTnyilEfnYE
 - 2. `Walking in Kolkata City India - Park Street Calcutta - Downtown Kolkata City Walking Tour`
-https://www.youtube.com/watch?v=NtSwGBeR3UM&list=PLOgH7fJi41bVoxyy8GdySQ-Z4qWdaZ_tb&index=2
+https://www.youtube.com/watch?v=NtSwGBeR3UM
 - 3. `Kolkata Walking Tour 2022 - Patuli Biswa Bangla Sarani - Kolkata City Ambience`
-https://www.youtube.com/watch?v=fmN_KPpUd4g&list=PLOgH7fJi41bVoxyy8GdySQ-Z4qWdaZ_tb&index=3
+https://www.youtube.com/watch?v=fmN_KPpUd4g
 - 4. `Kolkata City Tour 2022 - Newtown Kolkata - Kolkata Walking Tour`
-https://www.youtube.com/watch?v=UaNuocRTBiA&list=PLOgH7fJi41bVoxyy8GdySQ-Z4qWdaZ_tb&index=4
+https://www.youtube.com/watch?v=UaNuocRTBiA
 - 5. `Walking in Kolkata (India) - Park Street Kolkata - Kolkata City Tour`
-https://www.youtube.com/watch?v=wUQcNfJscE0&list=PLOgH7fJi41bVoxyy8GdySQ-Z4qWdaZ_tb&index=5
+https://www.youtube.com/watch?v=wUQcNfJscE0
 - 6. `Walking in Kolkata (Calcutta) - Sector V Kolkata - Kolkata Walking Tour in Sector V Newtown`
-https://www.youtube.com/watch?v=sE7AHq4SzeQ&list=PLOgH7fJi41bVoxyy8GdySQ-Z4qWdaZ_tb&index=6
+https://www.youtube.com/watch?v=sE7AHq4SzeQ
 - 7. `Walking in Kolkata City in the Morning - Kolkata City India 2022 - Calcutta City`
-https://www.youtube.com/watch?v=HYDH4LxlAG4&list=PLOgH7fJi41bVoxyy8GdySQ-Z4qWdaZ_tb&index=7
+https://www.youtube.com/watch?v=HYDH4LxlAG4
 - 8. `Virtual Walking Tour in Kolkata City in Winter Season 2022 - Kolkata Walking Tour in Tram Route`
-https://www.youtube.com/watch?v=lln2eah0b3M&list=PLOgH7fJi41bVoxyy8GdySQ-Z4qWdaZ_tb&index=8
+https://www.youtube.com/watch?v=lln2eah0b3M
 - 9. `Kolkata Walking Tour 2022 - New Market Kolkata - Calcutta City India 🇮🇳`
-https://www.youtube.com/watch?v=8EfRXFrwwvw&list=PLOgH7fJi41bVoxyy8GdySQ-Z4qWdaZ_tb&index=9
+https://www.youtube.com/watch?v=8EfRXFrwwvw
 - 10. `Kolkata Walking Tour in Salt Lake City Kolkata - Newtown Kolkata - Salt Lake City Kolkata`
-https://www.youtube.com/watch?v=lmktd9qAp8k&list=PLOgH7fJi41bVoxyy8GdySQ-Z4qWdaZ_tb&index=10
+https://www.youtube.com/watch?v=lmktd9qAp8k
 - 11. `Bara Bazar Kolkata(Calcutta) - Howrah Bridge to MG Road Metro Station - Kolkata Walking Tour`
-https://www.youtube.com/watch?v=ABBU0-7of0g&list=PLOgH7fJi41bVoxyy8GdySQ-Z4qWdaZ_tb&index=11
+https://www.youtube.com/watch?v=ABBU0-7of0g
 - 12. `Garia ,Patuli Kolkata City - Kolkata City Walking tour in the Early Morning - Kolkata City 2023`
-https://www.youtube.com/watch?v=ifqbrIiTj_8&list=PLOgH7fJi41bVoxyy8GdySQ-Z4qWdaZ_tb&index=12
+https://www.youtube.com/watch?v=ifqbrIiTj_8
 - 13. `Kolkata City Tour in the Early Morning - 4K Ulta HD Video`
-https://www.youtube.com/watch?v=88swHNZ0vwA&list=PLOgH7fJi41bVoxyy8GdySQ-Z4qWdaZ_tb&index=13
+https://www.youtube.com/watch?v=88swHNZ0vwA
 - 14. `Kolkata City Walking Tour - Kolkata Walk January 2023 - Kolkata ( Calcutta) India`
-https://www.youtube.com/watch?v=yxuH94ReOUI&list=PLOgH7fJi41bVoxyy8GdySQ-Z4qWdaZ_tb&index=14
+https://www.youtube.com/watch?v=yxuH94ReOUI
 - 15. `Kolkata City Tour in Garia Station Road - Kolkata City January 2023`
-https://www.youtube.com/watch?v=bItcLeEl17E&list=PLOgH7fJi41bVoxyy8GdySQ-Z4qWdaZ_tb&index=15
+https://www.youtube.com/watch?v=bItcLeEl17E
 - 16. `Kolkata Walking Tour in Newtown - Newtown Kolkata - Kolkata City 2023`
-https://www.youtube.com/watch?v=rUUJ9MrMAeA&list=PLOgH7fJi41bVoxyy8GdySQ-Z4qWdaZ_tb&index=16
+https://www.youtube.com/watch?v=rUUJ9MrMAeA
 - 17. `Kolkata Walking Tour - Walking in Kolkata City - Kolkata City Tour 2023`
-https://www.youtube.com/watch?v=rPCgIIt_ll0&list=PLOgH7fJi41bVoxyy8GdySQ-Z4qWdaZ_tb&index=17
+https://www.youtube.com/watch?v=rPCgIIt_ll0
 - 18. `Kolkata Walking Tour 2023 - Princep Ghat Kolkata - Kolkata Walk 4K`
-https://www.youtube.com/watch?v=-RaG6pedYQ8&list=PLOgH7fJi41bVoxyy8GdySQ-Z4qWdaZ_tb&index=18
+https://www.youtube.com/watch?v=-RaG6pedYQ8
 - 19. `Walking in Kolkata City India - Gariahat, Desun More - Kolkata City Tour 2023`
-https://www.youtube.com/watch?v=V7TnuqZkVlM&list=PLOgH7fJi41bVoxyy8GdySQ-Z4qWdaZ_tb&index=19
+https://www.youtube.com/watch?v=V7TnuqZkVlM
 - 20. `Kolkata City Tour 4K - Science City Kolkata - Kolkata City`
-https://www.youtube.com/watch?v=_NYJec9eOHM&list=PLOgH7fJi41bVoxyy8GdySQ-Z4qWdaZ_tb&index=20
+https://www.youtube.com/watch?v=_NYJec9eOHM
 - 21. `Kolkata Walking Tour Around Howrah Bridge - Howrah Bridge - Kolkata City Tour 2023`
-https://www.youtube.com/watch?v=cqWryfD1eEU&list=PLOgH7fJi41bVoxyy8GdySQ-Z4qWdaZ_tb&index=21
+https://www.youtube.com/watch?v=cqWryfD1eEU
 - 22. `Kolkata Walking Tour Around Bara Bazar Market - Kolkata City Video - 4K Walk`
-https://www.youtube.com/watch?v=dOKYj7eB6Ew&list=PLOgH7fJi41bVoxyy8GdySQ-Z4qWdaZ_tb&index=22
+https://www.youtube.com/watch?v=dOKYj7eB6Ew
 - 23. `Kolkata Walking Tour in Rain - Bara Bazar Kolkata - Real Life in Kolkata (India)`
-https://www.youtube.com/watch?v=2Jiwa5P6zQM&list=PLOgH7fJi41bVoxyy8GdySQ-Z4qWdaZ_tb&index=23
+https://www.youtube.com/watch?v=2Jiwa5P6zQM
 - 24. `Walking in Kolkata (Calcutta) - Kolkata City Tour - Real Life in Kolkata India 🇮🇳`
-https://www.youtube.com/watch?v=ETZLeZJCKfk&list=PLOgH7fJi41bVoxyy8GdySQ-Z4qWdaZ_tb&index=24
+https://www.youtube.com/watch?v=ETZLeZJCKfk
 - 25. `Kolkata Walking Tour in Newtown Kolkata - Newtown Kolkata City 2023 - 4K video`
-https://www.youtube.com/watch?v=dJ6JWCRoH80&list=PLOgH7fJi41bVoxyy8GdySQ-Z4qWdaZ_tb&index=25
+https://www.youtube.com/watch?v=dJ6JWCRoH80
 - 26. `Kolkata Walking Tour in the Evening - Park Street , New Market Kolkata - 4K City Tour`
-https://www.youtube.com/watch?v=nnYHqHBA5fA&list=PLOgH7fJi41bVoxyy8GdySQ-Z4qWdaZ_tb&index=26
+https://www.youtube.com/watch?v=nnYHqHBA5fA
 - 27. `Howrah Bridge Kolkata(Calcutta) - Kolkata Walking Tour - Real Life in Kolkata City`
-https://www.youtube.com/watch?v=ALRopmu6wbg&list=PLOgH7fJi41bVoxyy8GdySQ-Z4qWdaZ_tb&index=27
+https://www.youtube.com/watch?v=ALRopmu6wbg
 - 28. `Walking in Kolkata (India) - College Street , MG Road - Real Life in Kolkata India 🇮🇳`
-https://www.youtube.com/watch?v=3c4Li82qH4Y&list=PLOgH7fJi41bVoxyy8GdySQ-Z4qWdaZ_tb&index=28
+https://www.youtube.com/watch?v=3c4Li82qH4Y
 - 29. `Kolkata Walk - Kolkata City Tour in Esplanade, Eden Garden - Walking in Indian Third Largest City`
-https://www.youtube.com/watch?v=uBWIEZPXMws&list=PLOgH7fJi41bVoxyy8GdySQ-Z4qWdaZ_tb&index=29
+https://www.youtube.com/watch?v=uBWIEZPXMws
 - 30. `Rainy Day in Kolkata(Calcutta) - Real Life in Kolkata India 🇮🇳 - Kolkata walking Tour 2023`
-https://www.youtube.com/watch?v=rKtR_bPuiQ0&list=PLOgH7fJi41bVoxyy8GdySQ-Z4qWdaZ_tb&index=30
+https://www.youtube.com/watch?v=rKtR_bPuiQ0
 - 31. `Kolkata City Tour Around Bara Bazar - MG Road, Rabindra Sarani - 4K Walking in Kolkata`
-https://www.youtube.com/watch?v=s9ms9PT0btQ&list=PLOgH7fJi41bVoxyy8GdySQ-Z4qWdaZ_tb&index=31
+https://www.youtube.com/watch?v=s9ms9PT0btQ
 - 32. `Kolkata Walking Tour in Bara Bazar Rabindra Sarani Mg Road - Kolkata City 4K - Kolkata 2023`
-https://www.youtube.com/watch?v=JDhjlSW6dLk&list=PLOgH7fJi41bVoxyy8GdySQ-Z4qWdaZ_tb&index=32
+https://www.youtube.com/watch?v=JDhjlSW6dLk
 - 33. `Walking in Kolkata (India) - India 🇮🇳 Real Life in Kolkata Old Central - Kolkata Walk 2023`
-https://www.youtube.com/watch?v=x-dad-Elxz4&list=PLOgH7fJi41bVoxyy8GdySQ-Z4qWdaZ_tb&index=33
+https://www.youtube.com/watch?v=x-dad-Elxz4
 - 34. `Walking in Kolkata (India) - Kolkata City Tour - Kolkata Walk 4K`
-https://www.youtube.com/watch?v=e-_ZYDshVgY&list=PLOgH7fJi41bVoxyy8GdySQ-Z4qWdaZ_tb&index=34
+https://www.youtube.com/watch?v=e-_ZYDshVgY
 - 35. `Walking in Kolkata (India) - Science City Kolkata - Real Life in Kolkata City`
-https://www.youtube.com/watch?v=fSJyt3XUcmE&list=PLOgH7fJi41bVoxyy8GdySQ-Z4qWdaZ_tb&index=35
+https://www.youtube.com/watch?v=fSJyt3XUcmE
 - 36. `4K Kolkata City Tour - Tollygunge Circular Road - Kolkata Walk 2023`
-https://www.youtube.com/watch?v=OdyJ8rBwH0s&list=PLOgH7fJi41bVoxyy8GdySQ-Z4qWdaZ_tb&index=36
+https://www.youtube.com/watch?v=OdyJ8rBwH0s
 - 37. `Kolkata Walking Tour 4K - Park Street Kolkata - Kolkata 4K`
-https://www.youtube.com/watch?v=FUNmq_YxqDw&list=PLOgH7fJi41bVoxyy8GdySQ-Z4qWdaZ_tb&index=37
+https://www.youtube.com/watch?v=FUNmq_YxqDw
 - 38. `Kolkata Walking Tour 4K - Park Street Kolkata - Kolkata 4K`
-https://www.youtube.com/watch?v=462sA2Nqa94&list=PLOgH7fJi41bVoxyy8GdySQ-Z4qWdaZ_tb&index=38
+https://www.youtube.com/watch?v=462sA2Nqa94
 - 39. `Kolkata City (Calcutta) Walk - India 🇮🇳 Bara Bazar Old Kolkata Central - Real Life in Kolkata India`
-https://www.youtube.com/watch?v=D9zyrrwGWNk&list=PLOgH7fJi41bVoxyy8GdySQ-Z4qWdaZ_tb&index=39
+https://www.youtube.com/watch?v=D9zyrrwGWNk
 - 40. `Walking in Kolkata Airport Gate (India) - Dum Dum Kolkata - Kolkata City Tour 2023`
-https://www.youtube.com/watch?v=kPt08giYOC8&list=PLOgH7fJi41bVoxyy8GdySQ-Z4qWdaZ_tb&index=40
+https://www.youtube.com/watch?v=kPt08giYOC8
 - 41. `Walking in Kolkata (Calcutta) India - Kalighat Kolkata - Real Life in Kolkata India 🇮🇳`
-https://www.youtube.com/watch?v=8LNLOpjav1I&list=PLOgH7fJi41bVoxyy8GdySQ-Z4qWdaZ_tb&index=41
+https://www.youtube.com/watch?v=8LNLOpjav1I
 - 42. `Walking in Kolkata (India) - Indian Street Market - Kolkata Walk 2023`
-https://www.youtube.com/watch?v=r5ICefjIDMM&list=PLOgH7fJi41bVoxyy8GdySQ-Z4qWdaZ_tb&index=42
+https://www.youtube.com/watch?v=r5ICefjIDMM
 - 43. `Walking in Kolkata (India) - Park Street Kolkata (Calcutta) - Real Life in India 🇮🇳`
-https://www.youtube.com/watch?v=UDN-25noUbo&list=PLOgH7fJi41bVoxyy8GdySQ-Z4qWdaZ_tb&index=43
+https://www.youtube.com/watch?v=UDN-25noUbo
 - 44. `Walking in Kolkata (Indian Street Market) - Kolkata City Tour - Kolkata Walk 4K`
-https://www.youtube.com/watch?v=TG5KTeyEgE0&list=PLOgH7fJi41bVoxyy8GdySQ-Z4qWdaZ_tb&index=44
+https://www.youtube.com/watch?v=TG5KTeyEgE0
 - 45. `Walking in Kolkata (India) - AJC Bose Road , Sealdah - Kolkata City Tour in the Morning`
-https://www.youtube.com/watch?v=ds1ijFweccQ&list=PLOgH7fJi41bVoxyy8GdySQ-Z4qWdaZ_tb&index=45
+https://www.youtube.com/watch?v=ds1ijFweccQ
 - 46. `Kolkata(Calcutta) Walking Tour in The Evening - India Walking Tour - Kolkata City India 🇮🇳`
-https://www.youtube.com/watch?v=cMsnU7D1GZ4&list=PLOgH7fJi41bVoxyy8GdySQ-Z4qWdaZ_tb&index=46
+https://www.youtube.com/watch?v=cMsnU7D1GZ4
 - 47. `Kolkata Walking Tour Around Bara bazar - Kolkata Market Tour - Kolkata Walk`
-https://www.youtube.com/watch?v=4pI3dd4N3a8&list=PLOgH7fJi41bVoxyy8GdySQ-Z4qWdaZ_tb&index=47
+https://www.youtube.com/watch?v=4pI3dd4N3a8
 - 48. `Kolkata (Calcutta) City Tour in Rainy Day - Real Life in Kolkata India 🇮🇳`
-https://www.youtube.com/watch?v=QsOcWEPqhWg&list=PLOgH7fJi41bVoxyy8GdySQ-Z4qWdaZ_tb&index=48
+https://www.youtube.com/watch?v=QsOcWEPqhWg
 - 49. `Kolkata Walking Tour in Rain - Gariahat, Ballygunge, Park Circus - Kolkata City Tour 2023`
-https://www.youtube.com/watch?v=WCXEXZlVojc&list=PLOgH7fJi41bVoxyy8GdySQ-Z4qWdaZ_tb&index=49
+https://www.youtube.com/watch?v=WCXEXZlVojc
 - 50. `Kolkata Walking Tour in Rain - Cyclone Remal effect in Kolkata - Heavy Rain`
-https://www.youtube.com/watch?v=fcWWJPxRv1U&list=PLOgH7fJi41bVoxyy8GdySQ-Z4qWdaZ_tb&index=50
+https://www.youtube.com/watch?v=fcWWJPxRv1U
 - 51. `Kolkata City Tour in Remal Cyclone - Heavy Rain in Kolkata City - Kolkata Walk 2024`
-https://www.youtube.com/watch?v=14jm-ly0Zsg&list=PLOgH7fJi41bVoxyy8GdySQ-Z4qWdaZ_tb&index=51
+https://www.youtube.com/watch?v=14jm-ly0Zsg
 - 52. `Kolkata City Tour in Heavy Rain - Cyclone Remal Effect in Kolkata - Park Street Kolkata (Calcutta)`
-https://www.youtube.com/watch?v=8xuzb0FeZlc&list=PLOgH7fJi41bVoxyy8GdySQ-Z4qWdaZ_tb&index=52
+https://www.youtube.com/watch?v=8xuzb0FeZlc
 - 53. `Kolkata Walking Tour during Cyclone Remal Landfall - Heavy Rain in Kolkata - Calcutta City India 🇮🇳`
-https://www.youtube.com/watch?v=i-Ip40TEtJ4&list=PLOgH7fJi41bVoxyy8GdySQ-Z4qWdaZ_tb&index=53
+https://www.youtube.com/watch?v=i-Ip40TEtJ4
 - 54. `Kolkata City Tour in Heavy Rain - Cyclone Remal Landfall in Kolkata - Rain in Kolkata`
-https://www.youtube.com/watch?v=CjHoNtCkSGo&list=PLOgH7fJi41bVoxyy8GdySQ-Z4qWdaZ_tb&index=54
+https://www.youtube.com/watch?v=CjHoNtCkSGo
 - 55. `Kolkata Walking Tour Before Remal Cyclone Landfall - Burrabazar Kolkata - Kolkata Walk 2024`
-https://www.youtube.com/watch?v=IvBfjyfwHug&list=PLOgH7fJi41bVoxyy8GdySQ-Z4qWdaZ_tb&index=55
+https://www.youtube.com/watch?v=IvBfjyfwHug
 
 
 ## G. 4K Walking Tour in Goa
@@ -766,87 +766,885 @@ https://www.youtube.com/watch?v=LTCSPZap5EY
 
 ## Tier 2 Cities in India 
 ## 1: Jaipur  
-##### 4K Walking Tour
-##### 4K Drive
-##### 4K Drone View
+##### 1.1: Jaipur : 4K Walking Tour
+- 1. `Jaipur Daytime and Evening Walk | Jaipur Old City | India 🇮🇳 May 2024 [4K HDR]`
+https://www.youtube.com/watch?v=R6pi2vX_U_0
+- 2. `Jaipur,India 🇮🇳 Hidden Treasures of Jaipur, India's Most Colourful City - A Walk in History [4K-HDR]`
+https://www.youtube.com/watch?v=-MoRGHs81zw
+- 3. `Jaipur Away from Tourists ▪︎ 4K HDR India Walking Tour`
+https://www.youtube.com/watch?v=4YqtHjPgE5o
+- 4. `Morning Walk Around Hawa Mahal and Pink City | Jaipur | Rajasthan Tourism [4k, 60fps] [Slow TV]`
+https://www.youtube.com/watch?v=PZpP-DKeLOI
+- 5. `Walking towards Albert Hall Museum, Jaipur | Ram Niwas Garden | India Walking Tours | 4k, 60fps`
+https://www.youtube.com/watch?v=9gmNfxKLLEk
+- 6. `4k walking in Jaipur | Bapu Bazar | India Walking Tours | 4k 60fps`
+https://www.youtube.com/watch?v=v0gQjydb0E8
+- 7. `Jaipur, India🇮🇳 The Most Colorful City in India You Must Visit (4K HDR)`
+https://www.youtube.com/watch?v=R0wbglRfi5c
+
+##### 1.2: Jaipur : 4K Drive Ride
+- 1. `Morning Ride through Old Jaipur City | Jaipur City Drive Tour | Jaipur 4k`
+https://www.youtube.com/watch?v=wm844UeQR9k
+- 2. `Driving in Jaipur City | Cinematic Video Footage of Jaipur Roads`
+https://www.youtube.com/watch?v=6vF8Uxr9uD8
+- 3. `JLN Marg Jaipur | Bike Ride through Jaipur city 4k`
+https://www.youtube.com/watch?v=S7GB7ZZOr9o
+- 4. `PINK CITY JAIPUR (Rajasthan) | HAWA MAHAL | 4K VIRTUAL TOUR`
+https://www.youtube.com/watch?v=7cestQi14b8
+- 5. `4k Jaipur Ride | Riding auto and bike in Jaipur | India`
+https://www.youtube.com/watch?v=EHEJiDYgSXI
+
+##### 1.3: Jaipur : 4K Drone View
+- 1. `Jaipur Rajasthan ● India 🇮🇳 【4K】 Cinematic Travel Video`
+https://www.youtube.com/watch?v=IKGZEUAZ7pk
+- 2. `Jaipur 4k drone view | Pink City | Explore Jaipur | Explore the world`
+https://www.youtube.com/watch?v=chcDuY748CM
+- 3. `INSANE DIWALI DRONE SHOTS! ✨ Jaipur Mansarovar Glowing Like Gold | 4K Aerial View`
+https://www.youtube.com/watch?v=dh9wl79tI-A
+- 4. `Jaipur - India 4k hd`
+https://www.youtube.com/watch?v=NMRSB7gML10
+
+
+##### 1.4: Jaipur : 4K Rain Tour
+- 1. `Floods and Garbage Everywhere | SlumTour in the Rain | Jaipur, India 4K`
+https://www.youtube.com/watch?v=b1B1CRakyFU
+- 2. `Walking in Rain in the evening | First Rain of Monsoon Jaipur | Relaxing Rain Sounds 4k`
+https://www.youtube.com/watch?v=r5c91lsrBq0
+- 3 `1st Rain of the season in Rajasthan | Walking in Rain | Relaxing rain walking 4k`
+https://www.youtube.com/watch?v=XmYuH0OXUfc
+- 4. `The Rain effect in streets of Jaipur | Walking in the streets of Jaipur in Rain Ambience 4k`
+https://www.youtube.com/watch?v=bxdwQF4enRY
+- 5. `Walking near Jawahar Circle and Airport Road Jaipur | Raining in Jaipur 4k`
+https://www.youtube.com/watch?v=anJGe7otklA
+
 
 ## 2. Varanasi
-##### 4K Walking Tour
-##### 4K Drive
-##### 4K Drone View
+##### 2.1 Varanasi: 4K Walking Tour
+- 1. `Exploring the Vibrant Narrow Streets of Varanasi, India | 4K HDR Walking Tour`
+https://www.youtube.com/watch?v=Odh_7dQwzYQ
+- 2. `Varanasi Walking Tour | Evening walk Ganges Riverside and Ganga Aarti Varanasi | India 🇮🇳 [4K HDR]`
+https://www.youtube.com/watch?v=vYqMUehWH-g
+- 3. `Walking along the Ganges Varanasi - India [4K]`
+https://www.youtube.com/watch?v=XRU9omrRV64
+- 4. `VARANASI, India 🇮🇳 Walking in the India’s Most Spiritual City | 4K Walking Tour`
+https://www.youtube.com/watch?v=NNFDoi_ZJ9U
+- 5. `Exploring the Hidden Alleys of Varanasi – City Centre to the Ganges | India Walking Tour in 4K HDR`
+https://www.youtube.com/watch?v=_NQtEHy_AHE
+- 6. `Will you go to India after seeing this? | Varanasi Walking Tour 4K`
+https://www.youtube.com/watch?v=slFq6dJ7cXw
+- 7. `Varanasi Walk 4K | Walking Tour by the Ganges River | Spiritual City of India`
+https://www.youtube.com/watch?v=9WdcpudKmkQ
+- 8. `Walking with Sunrise in Varanasi (Binaural Ambience Sounds) 4K ASMR`
+https://www.youtube.com/watch?v=G3yM_P39kZE
 
-## 3. Lucknow
-##### 4K Walking Tour
-##### 4K Drive
-##### 4K Drone View
+
+##### 2.2 Varanasi: 4K Drive Tour
+- 1. `4K Varanasi Insane motorcycling through alleyways, street riding in India!`
+https://www.youtube.com/watch?v=aK5bK2WAs44
+- 2. `Riding Motor Bike From Varanasi to Sarnath // Uttar Pradesh 4K India`
+https://www.youtube.com/watch?v=WrAYKN1crBw
+- 3. `4K | Driving In Varanasi City | बनारस शहर के नजारे | Cantt To Varanasi Airport | Most Developed Area`
+https://www.youtube.com/watch?v=Ugn-uqKFMJY
+- 4. `Riding Bike Sarnath to Varanasi // Sarnath 4K India`
+https://www.youtube.com/watch?v=NZfj_HzS0eM
+- 5. `Varanasi Tour in 4K Episode 4 #Newyearnightdrive #Foggy night drive in 2022 #Nightdriveinfog`
+https://www.youtube.com/watch?v=4BH84jEpaY8
+- 6. `4K Drive in Varanasi City | Ramnagar to Tengra mohdh`
+https://www.youtube.com/watch?v=5sxCg1OuYds
+- 7. `4K | Varanasi City Night Bike Ride #varanasi #banaras #cityride #varanasicanttjunction #nadesar`
+https://www.youtube.com/watch?v=cHpMVYC1ZbY
+- 8. `4K |BHU To Banaras Railway Station Bike Ride |Varanasi City Ride| Banaras City Ride #varanasi #anish`
+https://www.youtube.com/watch?v=j-NlNoYYnVg
+
+
+##### 2.3 Varanasi: 4K Drone Tour
+- 1. `Varanasi From Above | DJI Mavic Pro | India | 4K`
+https://www.youtube.com/watch?v=XRkM8zuNr-k
+- 2. `Varanasi Aerial Drone Footage in 4K | Ganga Ghats, Temples & Cityscape`
+https://www.youtube.com/watch?v=lqMBBy-dZ6Y
+- 3. `Varanasi, India [Amazing Places 4K]`
+https://www.youtube.com/watch?v=rDsOi3MByCI
+- 4. `Varanasi in 4K 60fps : India Famous City in the World`
+https://www.youtube.com/watch?v=81Ag3KDNI9w
+- 5. `Kashi Vishwanath - Banaras - Varanasi Drone Video`
+https://www.youtube.com/watch?v=KOXCeSr6Npc
+
+##### 2.4 Varanasi: 4K Rain Tour
+- 1. `WALKING IN THE RAIN, VARANASI, INDIA 4K WITH AMBIENT SOUND | RUINS OF OLD VARANASI | BANARAS`
+https://www.youtube.com/watch?v=fzQ3Lh65OBM
+- 2. `Rain Session in Varanasi बनारस का मौसम।| Nigam Friends|`
+https://www.youtube.com/watch?v=RsyY0_0l1G8
+- 3. `Heavy Rain 🌧  in  Varanasi`
+https://www.youtube.com/shorts/7Z-hJFsV_4g
+- 4. `Manikarnika Ghat after Heavy Rainfall #banaras `
+https://www.youtube.com/shorts/-OHN3YdSsD4
+- 5. `Varanasi Rain Walk 🇮🇳`
+https://www.youtube.com/watch?v=EcNiDDY8KGI
+
+## 3. Lucknow : 
+##### 3.1 Lucknow : 4K Walking Tour
+- 1. `Chowk Market, From Gol Darwaza to Akbari Gate | 4K Lucknow Heritage Walking Tour`
+https://www.youtube.com/watch?v=rYfbMgxqi7A
+- 2. `Exploring Hazratganj Market, Lucknow | हजरतगंज बाज़ार लॉकडाउन | 4K Walking Tour`
+https://www.youtube.com/watch?v=DQOjBJ9tlCg
+- 3. `Kudia Ghat & Gomti River, Lucknow | गोमती नदी कुड़िया घाट लखनऊ | 4K Walking Tour`
+https://www.youtube.com/watch?v=TDka4CvPvBw
+- 4. `Inside Chhattar Manzil & Farhat Baksh Kothi, Lucknow | छत्तर मंज़िल, फरहत बख़्श कोठी लखनऊ`
+https://www.youtube.com/watch?v=wPgJOJ2Jb5U
+- 5. `Old Lucknow Heritage Walk - Rumi Gate, Clock Tower, Imambara | पुराना लखनऊ रूमी दरवाज़ा इमामबाड़ा`
+https://www.youtube.com/watch?v=0yz8-gvg2FU
+- 6. `Exploring Historic Sikander Bagh - 4K Lucknow Heritage Walking Tour`
+https://www.youtube.com/watch?v=QT0MZY0PK88
+- 7. `Boat Ride on Gomti River, Lallumal Ghat Lucknow | 4K Virtual Tour [Background Music]`
+https://www.youtube.com/watch?v=V6dZzPHlkOg
+- 8. `Exploring Historic Dilkusha Kothi - 4K Lucknow Heritage Walking Tour`
+https://www.youtube.com/watch?v=nMDHe1xHC0I
+- 9. `Exploring Gomti Riverfront Park, Lucknow | गोमती रिवरफ्रण्ट पार्क लखनऊ | 4K Walking Tour`
+https://www.youtube.com/watch?v=2VXhO0DAILI
+- 10. `Scenic Views around Gomti Riverside Lucknow | गोमती रिवरसाइड लखनऊ | 4K Walking Tour`
+https://www.youtube.com/watch?v=WeWniEOgib4
+- 11. 
+
+##### 3.2 Lucknow : 4K Drive Tour
+- 1. `4K Drive in Lucknow : Amar Shaheed Path, from Transport Nagar to Gomti Nagar`
+https://www.youtube.com/watch?v=ltTpsH9Gws8
+- 2. `4K Drive in Lucknow : IT Crossing, Parivartan, Hazratganj, Ashok Marg [Ambient]`
+https://www.youtube.com/watch?v=bvornq9wyDw
+- 3. `4K Drive in Lucknow : Kukrail Flyover, Lohia Path, Vikramaditya Marg, Dilkusha`
+https://www.youtube.com/watch?v=77x2vlaVqDY
+- 4. `4K Drive in Lucknow : Amar Shaheed Path, Gomti Nagar [Relaxing Background Music]`
+https://www.youtube.com/watch?v=zPtaJEWFkg0
+- 5. `4K Drive in Lucknow : Hazratganj, Vidhan Sabha Marg, Charbagh, Alambagh [Background Music]`
+https://www.youtube.com/watch?v=Q2oOJ_1r3E0
+- 6. `Lucknow Rickshaw Ride from Parivartan Chowk to Residency | 4K Lucknow Ambient Virtual Tour`
+https://www.youtube.com/watch?v=qttHUc_iRwU
+- 7. `4K Drive in Lucknow : Alambagh to Transport Nagar [With Background Music]`
+https://www.youtube.com/watch?v=wZtl2iEWjhA
+- 8. `Mango Orchards & Giant "Akshaya Vat" Banyan Tree in Majhi, Lucknow | अक्षय वट लखनऊ`
+https://www.youtube.com/watch?v=lqoPyFisJkk
+
+##### 3.3 Lucknow : 4K Drone Tour
+- 1. `Lucknow Drone - India 4K | New & Modern Lucknow Tourism | India Drone Aerial Footage | DJI Mini 2`
+https://www.youtube.com/watch?v=LihyiSZnhUQ
+- 2. `Lucknow city drone view | Uttar Pradesh | Lucknow city tour | City of Nawab`
+https://www.youtube.com/watch?v=ss7STOWBFKs
+- 3. `Lucknow 4k drone view | City of Nawabs | Explore Lucknow | Explore the world`
+https://www.youtube.com/watch?v=6PSrovRHL4c
+- 4. `Lucknow INDIA 🇮🇳 4K Ultra HDR Drone Video | The most under rated city in 4K HDR quality`
+https://www.youtube.com/watch?v=p7CzNosKqVY
+- 5. `Lucknow City | Drone View | Magic Desk Studio | AI | 4K`
+https://www.youtube.com/watch?v=8z_nygDG5zg
+
+##### 3.4 Lucknow: 4K Rain Tour
+- 1. `Exploring Ambedkar Memorial Park in Lucknow on a Rainy Day | 4K Ambient Walking Tour`
+https://www.youtube.com/watch?v=lIHoik0v9mE
+- 2. `Lucknow Monsoon Driving Scenes | लखनऊ में मानसून का मौसम | 4K Virtual Tour, July 2021`
+https://www.youtube.com/watch?v=IcaJ0bu-j8Q
+- 3. `Today Rain in UP East | Raining in Lucknow | Rain 4k Video with real sound Ambience in India #Rain`
+https://www.youtube.com/watch?v=I7UcROPWH_g
+- 4. `Walking in the Rain | Gomti Nagar, Lucknow | (Binaural City Sounds).`
+https://www.youtube.com/watch?v=7WJnxVzCulM
+- 5. `Rain and Car ride || Deep Sleep || Focus || Lucknow vlog || Chill ASMR 4K`
+https://www.youtube.com/watch?v=Lm45ImMOJeQ
+- 6. `Lucknow: 9 dead as army wall collapses due to heavy rain; city waterlogged`
+https://www.youtube.com/watch?v=W9cvNDQpnEo
+
 
 ## 4. Ahmedabad
-##### 4K Walking Tour
-##### 4K Drive
-##### 4K Drone View
+##### 4.1 Ahmedabad : 4K Walking Tour
+- 1. `🇮🇳 AHMEDABAD INDIA: UNEXPECTED ENCOUNTER WITH GIANT ELEPHANTS. It took money from me with his trunk`
+https://www.youtube.com/watch?v=ux_J2Zn2OOQ
+- 2. `🇮🇳 CRAZY ENERGY at AHMEDABAD LADIES’ MARKET! | Exploring INDIA’S Most VIBRANT Old City | 4K HDR`
+https://www.youtube.com/watch?v=UD8cPd7yFg8
+- 3. `🇮🇳🚀🌍 SCIENCE CITY AHMEDABAD🚀 MODERN INDIA 🐠 Must-Visit Place with Kids & Family, 4K HDR`
+https://www.youtube.com/watch?v=C19RM1o9VLw
+- 4. `PURE CHAOS IN THE INDIAN MARKET | Everyone Says Hello Here! | Ahmedabad Walking Tour 4K`
+https://www.youtube.com/watch?v=7NZ5fzDGUAM
+- 5. `🇮🇳 INDIA WALKING TOUR, THE HISTORIC CITY OF AHMEDABAD: EVERY CORNER TELLS A STORY, 4K HDR`
+https://www.youtube.com/watch?v=xitw1xVmqAA
+- 6. `Ahmedabad Walking Tour - Old City Streets, Daily Life & Bustling Markets in 4K HDR`
+https://www.youtube.com/watch?v=DIYHkv1_J8I
+- 7. `🇮🇳 India: Historic Walled City of Ahmedabad - Vibrant Streets, Markets and Timeless Culture | 4K HDR`
+https://www.youtube.com/watch?v=Q-HspWpo9Is
+- 8. `Ahmedabad India 🇮🇳 Walking Tour in 4k`
+https://www.youtube.com/watch?v=yq6QbwnDFVE
+
+##### 4.2 Ahmedabad : 4K Drive Tour
+- 1. `Life of Ahmedabad City📍 | Bike Trip | 4K UHD`
+https://www.youtube.com/watch?v=KfKuGrRlPfA
+- 2. `Ahmedabad City📍 Nikol - Bike Ride🏍️| 4K UHD`
+https://www.youtube.com/watch?v=mXtFXcLdCH8
+- 3. `4K Ahmedabad Drive | Shreyas Bridge | Kankaria #ahmedabad`
+https://www.youtube.com/watch?v=_y5ZzWW9NJw
+- 4. `A drive on SG Highway Ahmedabad, Gujarat, India by Cinematified - Best place in Ahmedabad to travel!`
+https://www.youtube.com/watch?v=JDxDjFhaTy8
+- 5. `Ahmedabad City📍 Thakkarnagar - Bike Ride🏍️| UHD`
+https://www.youtube.com/watch?v=i6wXWfBuSWk
+- 6. `Iskon Ambli Road 4K Drive | The Future Manhattan of Ahmedabad #ahmedabad #4kdrive`
+https://www.youtube.com/watch?v=Fq4spQg6vNM
+
+##### 4.3 Ahmedabad : 4K Drone Tour
+- 1. `Ahmedabad city 4k drone view | The Manchester of India | Explore Ahmedabad | Explore The World`
+https://www.youtube.com/watch?v=xdZFacSYPBE
+- 2. `Sabarmati River Front Ahmedabad 4K Drone View 2022`
+https://www.youtube.com/watch?v=P4HDRSNStf4
+- 3. `Ahmedabad, India from Above – Cinematic 4K Drone Film`
+https://www.youtube.com/watch?v=XnnRIosTvVc
+- 4. `AHMEDABAD CITY - MANCHESTER OF INDIA - DRONE VIDEO | 4K - Atal Bridge, Sabarmati Riverfront`
+https://www.youtube.com/watch?v=QRbdkj6p8Kw
+- 5. `Ahmedabad City - The Heritage City | Ahmedabad City Drone View 2024 | Amdavad City Cinematic View 4K`
+https://www.youtube.com/watch?v=VDOe9CFD3Ks
 
 
-## 5. Pune, 
-##### 4K Walking Tour
-##### 4K Drive
-##### 4K Drone View
+##### 4.4 Ahmedabad: 4K Rain Tour
+1. `4K HDR, Rainy Day in Ahmedabad | Beautiful Rain View`
+https://www.youtube.com/watch?v=0s86Pg6Yqsg
+2. `Biparjoy Cloudy Effect in Ahmedabad. Rain is about to start. 4K Clarity.`
+https://www.youtube.com/watch?v=3gM4193Z1Gc
+3. `#ahmedabad #construction #view from 20th floor in #rain in #4k video`
+https://www.youtube.com/watch?v=mLU6OgLKJuQ
+4. `Ahmedabad Heavy Rain || #shorts #moon #clouds #car #4k`
+https://www.youtube.com/watch?v=gsNWrR4Dq-c
+5. `RIVERFRONT - AHMEDABAD || 4K WALKING TOUR (RAINY DAY)`
+https://www.youtube.com/watch?v=CK0XjG6FKFw
+6. `Monsoon Drive on Sabarmati Riverfront Road Ahmedabad | Scenic 4K Rainy Drive | Roving with Sagar`
+https://www.youtube.com/watch?v=jwe1URLwSj0
+7. `4K ASMR Ahmedabad–Vadodara Expressway RAINY ROADWAYS TAXI RIDE #youtube @sunnymkhuman`
+https://www.youtube.com/watch?v=DUcYwnmuDNs
+
+
+## 5. Pune
+##### 5.1 Pune : 4K Walking Tour
+1. `The REAL PUNE, India | Walking Tour INDIA 4K Walk`
+https://www.youtube.com/watch?v=Lhz3t4IUACg
+2. `VIMAN NAGAR PUNE Walking Tour 4K | Pune City Life Phoenix Mall & Relaxing India Ambience 2025`
+https://www.youtube.com/watch?v=O8wjG60iSxE
+3. `Pune Evening walk - 4K - With Captions!`
+https://www.youtube.com/watch?v=gdj87XF-CsQ
+4. `India Walk 4k | Quick Morning Walk Through The Streets Of India In 4k | Walking Tour Of Pune, India`
+https://www.youtube.com/watch?v=PRgey4R-kVM
+5. `Prabhat Road, Pune Walking Tour | Green Urban Street | 4K`
+https://www.youtube.com/watch?v=CIBZUjPKzR0
+6. `FC Road, Pune | Maharashtra, India • 4K India Walking Tour`
+https://www.youtube.com/watch?v=O7PEJY7a10o
+7. `PUNE'S Rich Shivajinagar | FC Road Market🛍️ | Fergusson College Road Walking Tour in 4K`
+https://www.youtube.com/watch?v=k7SceJVTImY
+8. `Pune India 4K Walking Tour 🇮🇳 | Gangadham, Market Yard & Salisbury Park | Real Streets & City Sounds`
+https://www.youtube.com/watch?v=Mq5rmtPszx0
+9. `PUNE EVENING WALK 2025 PART 1 | 4K WALKING TOUR FROM DECCAN TO BALGANDHAR TILAK | CITY STREET LIFE`
+https://www.youtube.com/watch?v=pJCEzZWsfmc
+10. `Kalyani Nagar Pune 🇮🇳 4K Walking Tour | Beautiful Streets, Lush Garden & City Life 🌿🚶‍♂️`
+https://www.youtube.com/watch?v=Ps94ghLLP6A
+11. `She Walkin 🇮🇳 Maharashtra - Pune - India 4k walking tour`
+https://www.youtube.com/watch?v=tj7dLofDRjU
+
+##### 5.2 Pune : 4K Drive Tour
+1. `Pune City Night Drive - 4K | Camp to Baner Rd`
+https://www.youtube.com/watch?v=LxHLjtlB70c
+2. `[4K] Hinjewadi to Kharadi Drive | Relaxing Music`
+https://www.youtube.com/watch?v=fbRPw9OJjRM
+3. `Exploring Magarpatta City Pune by Bike 🏙️ | 4K Cinematic Tour #magarpatta #2025`
+https://www.youtube.com/watch?v=VqAsa6NfiWA
+4. `4K PUNE CITY RIDE | KAWASAKI Z900 | SC-PROT FULL SYSTEM |`
+https://www.youtube.com/watch?v=csJYzFbL798
+5. `[4K Drive] Baner Road to Garware Circle, Pashan Chowk, Pune MH 🇮🇳 - July 2021`
+https://www.youtube.com/watch?v=CY185b2Wg_A
+6. `Day Road Trip Pune | Bike Ride Nashik Phata | Pune City Tour By Bike`
+https://www.youtube.com/watch?v=Mp-UzEbAO6s
+7. `Pune Tour: Deccan to Aundh: A Bike Ride`
+https://www.youtube.com/watch?v=MNw9Z5h82Ko
+
+##### 5.3 Pune : 4K Drone Tour
+1. `Pune city 4k drone view | Queen of Deccan | Explore Pune | Explore The World`
+https://www.youtube.com/watch?v=SCeSlwJxRKU
+2. `Pune city 🇮🇳 2025 ! Oxford of the East !This is a 4K Cinematic video of pune city #punecity #india`
+https://www.youtube.com/watch?v=31LR0o0-ASU
+3. `Pune city 2024 | IT hub of India | oxford of the east | best city of maharashtra 🇮🇳🌿`
+https://www.youtube.com/watch?v=Z2PAbpeCr4A
+4. `Pune City Skyline 4K - 2022`
+https://www.youtube.com/watch?v=F-PWkKt2mUU
+5. `📍Wakad Nuovocentro drone view, Pune❣️ Pune City Skyline 4K, Wakad, Phoenix Mall of Millennium 2025`
+https://www.youtube.com/watch?v=C5SDdORZvbg
+6. `Hinjewadi 4K Drone View | Hinjewadi The IT Hub of Pune Maharashtra`
+https://www.youtube.com/watch?v=jKEoyAiTgcM
+7. `Amanora Park Town Pune | Magarpatta City 4k Drone Cinematic Video Pune | Amanora Mall | Pune IT Park`
+https://www.youtube.com/watch?v=8L1o0DBtxH8
+8. `Pune City 4k Cinematic Video | पुणे शहर | Emerging IT Hub of India`
+https://www.youtube.com/watch?v=RKW6nLIeXGc
+9. `Pune City - 4k Drone view | Cinematic Video The City Of Maharashtra_Pune (India`
+https://www.youtube.com/watch?v=CVqfOQ7Eg6c
+10. `Balewadi High Street | Baner Cinematic 4K Drone Video Pune City | Pune IT Park`
+https://www.youtube.com/watch?v=Di5r6XtocjQ
+
+##### 5.4 Pune: 4K Rain Tour
+1. `Timelapse 4K | Cityscape | Rain | Cinematic Video | Nature | Pune`
+https://www.youtube.com/watch?v=mLHHVGR_4dc
+2. `cinematic rain video pune purandar fort whatsapp status 4k`
+https://www.youtube.com/watch?v=5TbQDg3MhkM
+3. `Kothrud Pune In rain 4K`
+https://www.youtube.com/watch?v=-EgBIiZ51nw
+4. `[4K] Pune Rain | Relaxing Sound | Rain & Thunder Sound`
+https://www.youtube.com/watch?v=ULyDeaJunW4
+5. `4K Mumbai to Pune Monsoon train journey in ghats`
+https://www.youtube.com/watch?v=Hyo9l41SqpQ
+6. `Heavy rainfall and thunderstorm 😱| PUNE | 4K HDR 60fps | Rain and thunder sound 🔊|`
+https://www.youtube.com/watch?v=63-TDLOjl1Y
+7. `4K | Around Pune During Rain | Khadakwasla | Panshet | Nilkantheshwar`
+https://www.youtube.com/watch?v=e2mtflL8iUA
+8. `Heavy Thunderstorm & Rain in Pune, India (Binaural City Sounds) Walking Tour |4K Rain Ambience`
+https://www.youtube.com/watch?v=gAbwZSiMn4k
+9. `Koregaon Park Rain Walk Pune | 4K Monsoon Walking Tour India | Relaxing City Walk with Ambient Sound`
+https://www.youtube.com/watch?v=X5dJDC8fOvI
+10. `4K Magical Pune Night Drive | Ganesh Utsav 2025 | Karve Road to Bhandarkar Road in Rain| Rain vibes|`
+https://www.youtube.com/watch?v=Cpoc7KCBzUs
 
 ## 6. Kochi
-##### 4K Walking Tour
-##### 4K Drive
-##### 4K Drone View
+##### 6.1 Kochi : 4K Walking Tour
+1. `Fort Kochi | Kerala, India • 4K India Walking Tour`
+https://www.youtube.com/watch?v=ATXuwKWy9XU
+2. `Kochi, Kerala Sunset Walking Tour, 6.5 km (4 mile)`
+https://www.youtube.com/watch?v=C72Hr5rcEbY
+3. `Jew Town Fort Kochi, 450-Year-Old Synagogue`
+https://www.youtube.com/watch?v=145zVUl_9Pk
+4. `Fort Kochi Princess Street & Burgher Street, Kerala Walking Tour`
+https://www.youtube.com/watch?v=m_58dz0D_ps
+5. `Fort Kochi Beach Kerala: A Breath-taking Walking Tour in 4K`
+https://www.youtube.com/watch?v=cCGHlOklOnw
+6. `Vasco da Gama Square Fort Kochi: India Walking Tour`
+https://www.youtube.com/watch?v=9CBkcWgzkRA
+7. `Fort Kochi Chinese Fishing Net: 4K Walking Tour`
+https://www.youtube.com/watch?v=9QGKeKYU0Rk
+8. `Ernakulam to Fort Kochi Boating Tour • 4K 60fps`
+https://www.youtube.com/watch?v=T_LpDH_toio
+9. `Evening Walking Tour of Marine Drive Kochi, Kerala • 4K 60fps`
+https://www.youtube.com/watch?v=-65OxoMJcGQ
+
+##### 6.2 Kochi : 4K Drive Tour
+1. `Kochi, Kerala, India 🔥 Scenic Bike Ride Ernakulam City 🔥 Kochi City Drive Area 🔥 4K 60 FPS`
+https://www.youtube.com/watch?v=zDNZcwC76mo
+2. `Scenic Bike Ride Ernakulam City 🔥 Kochi, Kerala, India 🔥South Indian City Bike Ride 🔥 4K 60 FPS`
+https://www.youtube.com/watch?v=PqJ91bHUZ9Y
+3. `South India Bike Ride 🔥 Kochi, Kerala, India 🔥 Thrippunithura- Kakkanad Areas of Ernakulam 🔥 4K`
+https://www.youtube.com/watch?v=LcJPuCHgwhs
+4. `Kochi, Kerala, India 🔥 Scenic Bike Ride through Ernakulam City 🔥 Edappally Area 🔥 4K 60 FPS`
+https://www.youtube.com/watch?v=aaDzkTWgxC0
+5. `Bike Tour of Kochi City / Clean Road at Kochi Kerala, Bike Riding of Kerala`
+https://www.youtube.com/watch?v=rs8YMX0LeDg
+6. `Driving in Kochi City on Sunday Lockdown day in May 2021 | 4K Driving Video in Indian City`
+https://www.youtube.com/watch?v=DxJxfSnRvWU
+7. `Drive through #Kochi city, Kerala, South India 🏡⁣🏥🏦🌅 [ 4K - HDR ] - 60 FPS | Drive Kochi | Roads 4K`
+https://www.youtube.com/watch?v=CvCza42vBYE
+8. `🔥 [ 4K - UHD ] - Scenic Bike Ride #Indian Streets 🔥 #Kochi City, #Kerala, #India 🔥60 FPS 🏢🏤🏬`
+https://www.youtube.com/watch?v=dB1Sv2hrFLE
+
+##### 6.3 Kochi : 4K Drone Tour
+1. `Kochi City - Emerging IT Hub Of Kerala | Kochi City Drone View 2025 | Kochi City 4k Cinematic Video`
+https://www.youtube.com/watch?v=0ZCRYfmgkkU
+2. `Kochi city 4k drone view | The Queen of Arabian Sea | Explore Kochi | Explore The World`
+https://www.youtube.com/watch?v=ZglsiZMQr84
+3. `Kochi City | You must have never seen such a video of Kochi city. Kochi 4K Cinematic Video`
+https://www.youtube.com/watch?v=voZQ4xCS6fE
+4. `Kochi, Kerala Sunset Walking Tour, 6.5 km (4 mile)`
+https://www.youtube.com/watch?v=C72Hr5rcEbY
+5. `Kochi - Kerala Explore the Drone shots of Kochi in 4K | Commercial Capital`
+https://www.youtube.com/watch?v=bxQ_bBxzfrM
+
+##### 6.4 Kochi : 4K Rain Tour
+1. `I Walked in an EXTREME Thunderstorm in Kochi at Night (This Was a Bad Idea) | 4K Experience`
+https://www.youtube.com/watch?v=qILaE83gTdk
+2. `4K Walking in Heavy Rain through the Suburbs of Kochi City | ASMR Rain Sounds | Monsoon Rainy Day`
+https://www.youtube.com/watch?v=6EEo3FgRils
+3. `Walking in the Heavy Rain | Kochi, India 🇮🇳 Rain and City Sounds`
+https://www.youtube.com/watch?v=ZAb7Cs1YOKg
+4. `Rainy Night Drive in Kochi | Soothing Rain sounds | Get relaxed in 4K | Night Life`
+https://www.youtube.com/watch?v=r1oLNcjuZHc
+5. `[ 4K ] Experience the Thrill of Walking in a Cloudburst in Monsoon - Kochi Suburbs - Heavy Rain ASMR`
+https://www.youtube.com/watch?v=KqD5_Ri_6wg
 
 ## 7. Chandigarh
-##### 4K Walking Tour
-##### 4K Drive
-##### 4K Drone View
+##### 7.1 Chandigarh : 4K Walking Tour
+1. `SECTOR 17 MARKET | CHANDIGARH | 4K WALKING TOUR | #sector17 #chandigarh #travel2pro #shoppingvlog`
+https://www.youtube.com/watch?v=ltK2FfJkosw
+2. `BIRD PARK CHANDIGARH | PART - 1 | 4K WALKING TOUR #chandigarhbirdpark #chandigarh #4k`
+https://www.youtube.com/watch?v=27z-Lz4Q95s
+3. `[4k Walk] Walking Tour Chandigarh Sector 17 | New Year Eve | Dec 31st 2023 | 4K 60fps | Part-2`
+https://www.youtube.com/watch?v=Gtt1UKRd9Rw
+4. `Walking And Exploring- Sector 17 Market Chandigarh Punjab India 🇮🇳 4K HDR Video Walking Tour`
+https://www.youtube.com/watch?v=nyEuBYNGVNw
+5. `Chandigarh the planned city in 4k | Drive In chandigarh Vlog 4K | City Beautiful Chandigarh in 4K`
+https://www.youtube.com/watch?v=1NC8dXxuZ4g
+
+##### 7.2 Chandigarh : 4K Drive Tour
+1. `Chandigarh City Ride India`
+https://www.youtube.com/watch?v=mscBd-QJp-4
+2. `Chandigarh City Ride | OYO HOTEL Chandigarh OYO Hotel| Chandigarh city's Bike Ride | Travel Vikas`
+https://www.youtube.com/watch?v=Qtu_0FMDJCA
+3. `Driving in Beautiful Chandigarh | City Drive | Road Trip #Drive #WithMe`
+https://www.youtube.com/watch?v=ij24C9hyP5A
+4. `Driving in Chandigarh roundabout rule in India |New Yellow line rule in Chandigarh - Explained`
+https://www.youtube.com/watch?v=TPa3omwoHFw
+5. `Chandigarh 4k - Sunset Drive -Driving Downtown`
+https://www.youtube.com/watch?v=VO9K-Ve4gN4
+
+##### 7.3 Chandigarh : 4K Drone Tour
+1. `Chandigarh City 4K Cinematic and Informative Video | Chandigarh City - India's first smart city`
+https://www.youtube.com/watch?v=K6d0sYAHep4
+2. `Birds and Solar Panels : Chandigarh Terrace Life 4k Drone Video`
+https://www.youtube.com/watch?v=Kdc5y4EABMk
+3. `Panjab University Chandigarh Bird Eye View || Foggy Winter Day 2021 || 4k Drone Video`
+https://www.youtube.com/watch?v=rp-JvdTkU50
+4. `Full Chandigarh drone shots`
+https://www.youtube.com/watch?v=2fuiVBsoNIc
+5. `Chandigarh - The City Beautiful | Chandigarh City Drone View 2023 | Chandigarh 4k Cinematic Video`
+https://www.youtube.com/watch?v=YjToGqBudCE
+
+##### 7.4 Chandigarh : 4K Rain Tour
+1. `Driving in Car in The City Beautiful Chandigarh - Rain Sounds - 4K Video`
+https://www.youtube.com/watch?v=O193ALoa_9s
+2. `4K video beautiful weather Chandigarh`
+https://www.youtube.com/watch?v=NBaPsKXtJYw
+3. `india Chandigarh monsoon in 4k`
+https://www.youtube.com/watch?v=qfRsenKhJKI
+4. `4K video || cloudy weather at chandigarh sohana sec 78`
+https://www.youtube.com/watch?v=Xxcqfwt2R1c
+5. `Exploring Rock Garden Chandigarh, Enchanting 4K Rainy Walkthrough | Waterfall and Hidden Gems`
+https://www.youtube.com/watch?v=s3O-YGNRPqg
+6. `Serene Rain Walk at Chandigarh's IT Park: Exploring Lush Greens, Iconic Landmarks and Tranquil Vibes`
+https://www.youtube.com/watch?v=wVd5tt5D0GA
+7. `Water logging on the roads of Chandigarh due to heavy rain in the evening`
+https://www.youtube.com/watch?v=F3ABu_RYm7s
+
 
 
 ## 8. Indore
-##### 4K Walking Tour
-##### 4K Drive
-##### 4K Drone View
+##### 8.1 Indore : 4K Walking Tour
+1. `C-21 mall Indore |Walking tour | Indore city tour 2022 GOPRO`
+https://www.youtube.com/watch?v=EQfEIHi8dzs
+2. `INDORE MADHYA PRADESH WALKING TOUR PART - 1`
+https://www.youtube.com/watch?v=xiLOcgHx-jI
+3. `INDORE 56 DUKAN 4K WALKING TOUR 2025 | CHAPPAN DUKAN STREET FOOD WALK (NO COMMENTARY)`
+https://www.youtube.com/watch?v=qMZOVJQfaYE
+4. `Indore City Night Walking Tour 4K`
+https://www.youtube.com/watch?v=dUjcnOEJg80
+5. `Vijay Nagar, Indore | POV Walk | 4K`
+https://www.youtube.com/watch?v=rt3L1CF57xY
+6. `Cleanest city of India | POV Walk | Indore`
+https://www.youtube.com/watch?v=NoNkB2nOW4M
+7. `Indore Night View: Walking Tour of Rajwada Palace & Vibrant Market #rajwadaindore`
+https://www.youtube.com/watch?v=0T7g-ZR6Pyk
+
+##### 8.2 Indore : 4K Drive Tour
+1. `4K Indore Bypass Road drive 2022 with trusty GOPRO Part-01`
+https://www.youtube.com/watch?v=n_YhRVcsqJc
+2. `4K Indore Bypass Road drive 2022 with trusty GOPRO Part-02`
+https://www.youtube.com/watch?v=Yt3OAeFb8JY
+3. `4K Indore Bypass Road drive 2022 with trusty GOPRO Part-03`
+https://www.youtube.com/watch?v=bVRSWU3x3jA
+4. `Indore Unlock 2 | Streets Of Indore | Drive Through | इंदौर अनलॉक २`
+https://www.youtube.com/watch?v=YRTHHNqU4DI
+5. `Daily ride Indore | city of joy | vlog #13`
+https://www.youtube.com/watch?v=2lhtsTeE3v0
+
+##### 8.3 Indore : 4K Drone Tour
+1. `Indore City - Cleanest City Of India | Indore City 4K Drone View | Indore City 4k Cinematic Video`
+https://www.youtube.com/watch?v=JNEl4asUTfM
+2. `IIT Indore Campus Tour – Stunning Aerial Drone View | Simrol Campus 4K l Indore Madhya Pradesh l`
+https://www.youtube.com/watch?v=U-Rn6jb58Ho
+3. `Indore City - The Cleanest City in India | Indore City | The Cleanest City in India | Indore`
+https://www.youtube.com/watch?v=hSR20ti_Wuk
+4. `Indore Drone View | Drone Shot in Indore #droneview #video #indore #exploreindore`
+https://www.youtube.com/watch?v=QF7_abJIlyk
+5. `IIT Indore | Drone Tour of One of India’s Top IITs | Beautiful Campus Tour with Drone Footage`
+https://www.youtube.com/watch?v=xuPXmSWzJRw
+6. `Indore Aerial View | 4K |Drone |Madhya Pradesh #djimini4pro @MadhyaPradeshTourism`
+https://www.youtube.com/watch?v=QMfQAdRNiAc
+
+##### 8.4 Indore : 4K Rain Tour
+1. `4K- Indore Monsoon Rain city tour 2022 GOPRO`
+https://www.youtube.com/watch?v=RTaz55aqfDg
+2. `4K- Monsoon rain Vijay nagar to bypass | metro construction | indore city tour 2022 GOPRO`
+https://www.youtube.com/watch?v=27zT5WZMtJo
+3. `Rainfall in Indore breaks 39 year record | Monsoon Indore | Indore city tour`
+https://www.youtube.com/watch?v=ngLUKN0xrj4
+4. `Indore's Rain: A Monsoon Experience in the Heart of India`
+https://www.youtube.com/watch?v=KHGxr4qiPcM
+5. `Rainfall Ride in Indore | Monsoon Indore | Indore city tour`
+https://www.youtube.com/watch?v=F-iAXk1HJS8
+
 
 ## 9. Bhopal
-##### 4K Walking Tour
-##### 4K Drive
-##### 4K Drone View
+##### 9.1 Bhopal : 4K Walking Tour
+1. `Lake View Bhopal 🌊 | Upper Lake Walking Tour 4K | Shymala Hills Scenic Walk`
+https://www.youtube.com/watch?v=T6V3pZxJHDc
+2. `Bhopal City Walking Tour in 4K 🚶‍♂️// Bhopal City 😎💥`
+https://www.youtube.com/watch?v=xrOc891E2KM
+3. `UNSEEN 4K Bhopal Market Tour | Exploring the Heart of the City`
+https://www.youtube.com/watch?v=5MgZboVRiq8
+4. `Evening Walk at Bhadbhada Road Bridge | Bhopal 4k Walk | Lake View Walk | Walking India tour 4k`
+https://www.youtube.com/watch?v=O3_8Gw96IBc
+5. `Bhopal- The City of Lakes | Upper Lake | 4K Walking | Nomad Ambience`
+https://www.youtube.com/watch?v=wYFuZeZfA18
+
+##### 9.2 Bhopal : 4K Drive Tour
+1. `Bhopal: Driving from Ret Ghat to P&T Square via Smart Road #bhopal`
+https://www.youtube.com/watch?v=IejnakJbdDQ
+2. `Beautiful Roads of Bhopal City/Ride on my R15V3|Wanderer Rial|Good Camera Shots at GoPro8`
+https://www.youtube.com/watch?v=kSQcwl_yQLA
+3. `Ring Road Ride || Bhopal || DayTime Road Drive || Serene Rides`
+https://www.youtube.com/watch?v=MsKhQB7Zjg8
+4. `Bhopal City Ride-🚗 Bagsevania Main Road,`
+https://www.youtube.com/watch?v=ZGKGG4OEoYE
+5. `bhopal city tour bhopal city street view in 4k fhd`
+https://www.youtube.com/watch?v=duBd_MnV8-o
+
+##### 9.3 Bhopal : 4K Drone Tour
+1. `Bhopal - The City Of Lakes | Cinematic Drone Shots | 4K`
+https://www.youtube.com/watch?v=n-DbqB4iNrU
+2. `Bhopal City - The City Of Lakes | Bhopal City 4K Drone View 2024 | Bhopal City 4k Cinematic Video`
+https://www.youtube.com/watch?v=9Eeq2enRtL8
+3. `Bhopal - The City of Lakes | Cinematic Drone Shots | 4K`
+https://www.youtube.com/watch?v=dhKU7OjmttY
+4. `Bhopal City - The City Of Lakes | Bhopal City 4K Drone View 2024 | Bhopal City 4k Cinematic Video`
+https://www.youtube.com/watch?v=AfsIBrcxdoU
+5. `BHOPAL : Where heart melts in peace || @1shdeep`
+https://www.youtube.com/watch?v=sjoVH77Id3s
+
+##### 9.4 Bhopal : 4K Rain Tour
+1. `Driving Bhopal 4K - Old City in Rainy Season`
+https://www.youtube.com/watch?v=S9yMXzD2VVs
+2. `Rain in Bhopal`
+https://www.youtube.com/watch?v=_35pcCwypA8
+3. `Heavy Rain Highway Driving || BHOPAL TO INDORE || Explore The India 2.0 || #roadtrip #havyrain #trip`
+https://www.youtube.com/watch?v=uDRYoUJ022Y
+4. `Walking In A Beautiful Park In Bhopal After The Rain || ** Relaxing **`
+https://www.youtube.com/watch?v=--pBu8H35ro
+5. `Heavy Rainfall in Bhopal MP | On Location Landscape Photography #19 Angel Saxena | Canon R5 | 4K`
+https://www.youtube.com/watch?v=JmWo2ff-_xo
 
 ## 10. Coimbatore
-- 1. `Coimbatore City | Manchester of Tamil Nadu | Coimbatore Tour 2025 🌿🇮🇳`
-https://www.youtube.com/watch?v=HQmd4n4wKn0
-##### 4K Walking Tour
-##### 4K Drive
-##### 4K Drone View
+##### 10.1 Coimbatore : 4K Walking Tour
+1. `Coimbatore / Kovai City Walking Tour 🔥 Tamil Nadu, India 🔥 Ukkadam Bus Terminus 🔥 4K - UHD - 60 FPS`
+https://www.youtube.com/watch?v=gNefSx8wyEc
+2. `Coimbatore City - Evening Walking Tour 🔥 Gandhipuram, Tamilnadu, India 🔥 4K - UHD - 60 FPS`
+https://www.youtube.com/watch?v=xMZcfCy0TvE
+3. `4K Smart City | Coimbatore Walking Lake areas | Indian city walk | Relaxing video for sleeping`
+https://www.youtube.com/watch?v=qhnlaH-ksiI
+4. `WALKING TOUR COIMBATORE - UKKADAM TO SUNGAM IN 4K`
+https://www.youtube.com/watch?v=IUoxdg3-yYg
+5. `4K Walking in Isha Yoga Center | Adiyogi | Sadhguru's Ashram in Coimbatore`
+https://www.youtube.com/watch?v=JCXE6l2bWKE
+
+##### 10.2 Coimbatore : 4K Drive Tour
+1. `DRIVING IN COIMBATORE - IN 4K`
+https://www.youtube.com/watch?v=Dz6A-jaRaxo
+2. `ride with me at Coimbatore | moto vlogger |exploring coimbatore city`
+https://www.youtube.com/watch?v=TB99NLLXrR8
+3. `4K Cab Ride From Coimbatore City to Isha Yoga Center (Sadhguru's Ashram)`
+https://www.youtube.com/watch?v=NWsPZLTN19c
+4. `Coimbatore Drive`
+https://www.youtube.com/watch?v=kHFUEr_KzSM
+5. `4k Coimbatore Trip`
+https://www.youtube.com/watch?v=FOG7_qbA7dA
+
+##### 10.3 Coimbatore : 4K Drone Tour
+1. `Coimbatore city 4k drone view | The Manchester of South India | Explore Coimbatore | Exploretheworld`
+https://www.youtube.com/watch?v=T-RwQ4o78G8
+2. `[4K] Coimbatore - Through the eyes of a drone`
+https://www.youtube.com/watch?v=Mfs1FBkd9ps
+3. `[4K] Coimbatore at dawn - Drone Video`
+https://www.youtube.com/watch?v=to7bBvTkko4
+4. `Coimbatore City | You must have never seen such a video of Coimbatore city before.`
+https://www.youtube.com/watch?v=d1BYoqTFGfQ
+5. `Coimbatore City || Beauty of Tamil nadu || Amazing View | Drone Video | {View} 🇮🇳`
+https://www.youtube.com/watch?v=zKHDnMqhU0U
+
+
+##### 10.4 Coimbatore : 4K Rain Tour
+1. `Rainy 4K walk in the most beautiful coimbatore lake | Relaxing video`
+https://www.youtube.com/watch?v=1c5Cs0V-oCQ
+2. `Sky Meets Sea | Coimbatore Day | Sky Timelapse, Rain & Karaikal Beach Waves | A Junaid Film | 4K |`
+https://www.youtube.com/watch?v=x_w4l--NZF8
+3. `Coimbatore to Salem 4K Drive | NH544 | Sunny to Rainy Transition | Relaxing Road Trip`
+https://www.youtube.com/watch?v=Ovi5rdcl19g
+4. `Heavy rain🌧 @ coimbatore.`
+https://www.youtube.com/watch?v=6bWP6s4MFiw
+5. `Heavy rain @ Coimbatore // Kerala like rain`
+https://www.youtube.com/watch?v=QmqohjNoXbA
+6. `After 100yrs | 7 Hours Continues Heavy Rain | 2021 Vlog 2 | Coimbatore | known_as_baval`
+https://www.youtube.com/watch?v=H-w9D-1zDA0
 
 ## 11. Nagpur
-##### 4K Walking Tour
-##### 4K Drive
-##### 4K Drone View
+##### 11.1 Nagpur : 4K Walking Tour
+1. `Nagpur Walking Tour 4K: Civil Lines on a Cloudy Morning | Virtual Walk, No Commentary`
+https://www.youtube.com/watch?v=ULRpmpw1jTo
+2. `Nagpur Walking Tour 4K | Shankar Nagar to Dharampeth POV`
+https://www.youtube.com/watch?v=wCKyBXh5FMs
+3. `[4K] WALK IN INDIAN STREET, NAGPUR BARDI MARKET`
+https://www.youtube.com/watch?v=cpvNE5YHerU
+4. `[4K] WALKING IN INDIAN STREET, NAGPUR WHOLE SALE MARKET, COTTON MARKET NAGPUR`
+https://www.youtube.com/watch?v=ncnTGNRzY4g
+5. `[4K] WALKING IN INDIAN STREET, NAGPUR WHOLE VEGETABLES MARKET, COTTON MARKET NAGPUR`
+https://www.youtube.com/watch?v=Affky9995mk
+6. `Nagpur Walking Tour 4K: Exploring the Bustling Sitabuldi Market`
+https://www.youtube.com/watch?v=2swRYp8mXuE
 
-## 12. Visakhapatnam
-##### 4K Walking Tour
-##### 4K Drive
-##### 4K Drone View
+
+##### 11.2 Nagpur : 4K Drive Tour
+1. `Night Ride In Nagpur || Best City Ride || Must Watch #nightride #nagpur #jrpratham`
+https://www.youtube.com/watch?v=kTwBXVVJkA8
+2. `City Ride | On Republic Day @jr.pratham #nagpur #mt15 #india #youtube`
+https://www.youtube.com/watch?v=iVBFLMjLNCk
+3. `Drive through Nagpur`
+https://www.youtube.com/watch?v=RZj7mTbPWh8
+4. `||xpulse 200 Good For City Ride...?||||Hero xpulse 200 2023||||Nagpur City Ride😳||||Vlog||`
+https://www.youtube.com/watch?v=RWWvO1AOvcs
+5. `Nagpur Moto vlog Riding through Nagpur city on the way back.`
+https://www.youtube.com/watch?v=XTyGr6n7K2M
+
+##### 11.3 Nagpur : 4K Drone Tour
+1. `Nagpur City In 3 Minutes`
+https://www.youtube.com/watch?v=ohV9cq7AYjM
+2. `AIIMS Nagpur Campus- Cinematic Drone Shots| Shivam Raj AIIMS`
+https://www.youtube.com/watch?v=z4desdPmB48
+3. `Nagpur night drone view | Dji mini 3 pro shots | TravelBook @amarshahu #nagpur #drone`
+https://www.youtube.com/watch?v=umOJymW60n0
+4. `Drone View of Nagpur Dahegaon | Beautiful Aerial Shots | Maharashtra City View 4K | PT 1/2`
+https://www.youtube.com/watch?v=Ikme85T0BAs
+5. `Drone View of Nagpur Dahegaon | Beautiful Aerial Shots | Maharashtra City View 4K | Pt 2/2`
+https://www.youtube.com/watch?v=qg7oodRsefQ
+
+
+##### 11.4 Nagpur : 4K Rain Tour
+1. `Rainy Morning Drive Ramdeobaba University to Gandhibagh Drive 4k Nagpur`
+https://www.youtube.com/watch?v=_4OLrprpyWw
+2. `A Rainy Night Walk in Nagpur, India | 4K City Sounds & Rain ASMR`
+https://www.youtube.com/watch?v=4SpA-Yvz7C8
+3. `A Peaceful Walk in the Rain | Nagpur's Green Ajni Area (4K Immersive Nature)`
+https://www.youtube.com/watch?v=gsqLqJlR--g
+4. `Rainy Night Drive around Civil Lines, Nagpur Drive 4k`
+https://www.youtube.com/watch?v=Y9hoODPAVNo
+5. `Heavy rain in Nagpur`
+https://www.youtube.com/watch?v=Ii1VMRU_0Ss
+6. `Transformerm blast Heavy Rain in Nagpur`
+https://www.youtube.com/watch?v=dNrTu9kxcGg
+7. `Horrible situation after rain in Nagpur.`
+https://www.youtube.com/watch?v=OBAREOoQs7w
+8. `Nagpur city after heavy rain in night`
+https://www.youtube.com/watch?v=klr4VCGT13g
+
+## 12. Visakhapatnam / Vizag
+##### 12.1 Visakhapatnam / Vizag : 4K Walking Tour
+1. `Vizag city walking Tour 4K`
+https://www.youtube.com/watch?v=mb7uBbTUwx8
+2. `Vizag Harbour | Walking tour | Common man walks #travel`
+https://www.youtube.com/watch?v=v1YIc8t2rbA
+3. `Visakhapatnam (Vizag) tours and spots in 2020 (4K)`
+https://www.youtube.com/watch?v=WXryTKtm0Sg
+4. `Vizag Complete City Tour | Visakhapatnam Travel Guide India`
+https://www.youtube.com/watch?v=vlGCUe-lh3g
+5. `Vizag City Walking Tour`
+https://www.youtube.com/watch?v=158XlnnekGY
+
+
+##### 12.2 Visakhapatnam / Vizag : 4K Drive Tour
+1. `Evening Drive at RK BEACH | Vizag City of Destiny`
+https://www.youtube.com/watch?v=q-YggYMLS7I
+2. `VIZAG (4K) Car Driving @Worlds Most Beautiful Beach City, INDIA`
+https://www.youtube.com/watch?v=ZHL9aA3y-so&t=58s
+3. `Vizag 4K || Super View || GoPro || City Ride`
+https://www.youtube.com/watch?v=Nb0cCvKIxHE
+4. `4K Drive on RK Beach Road. Vizag (HDR)#vizag Roads`
+https://www.youtube.com/watch?v=x3c3TAJREV0
+5. `Drive through Dr NTR Beach Road|Car drive Vizag Beach|Drive towards Kailashgiri hills|Road Condition`
+https://www.youtube.com/watch?v=krr2uAN0iDk
+
+##### 12.3 Visakhapatnam / Vizag : 4K Drone Tour
+1. `Vizag Drone 4K Ultra HD Visakhapatnam`
+https://www.youtube.com/watch?v=vidWT9meMD8
+2. `Visakhapatnam 4k drone view | City of Destiny | Explore Visakhapatnam | Explore the world`
+https://www.youtube.com/watch?v=P5MzCPEIZ_U
+3. `VIZAG DRONE VIDEO || 4K || 2022 || VISAKHAPATNAM | Madyy Vlogs`
+https://www.youtube.com/watch?v=qO4Krckdd7s
+4. `VIZAG CITY OF DESTINY DRONE VIDEO || 4K || 2022 || VISAKHAPATNAM || 4K DRONE SHORT ||`
+https://www.youtube.com/watch?v=uLDOwRyC9qM
+5. `The City of Destiny - Vizag 4K | Visakhapatnam 2025`
+https://www.youtube.com/watch?v=UjPMEiczkkE
+6. `VIZAG by DRONE (4K)`
+https://www.youtube.com/watch?v=37HVUIAWp-4
+
+
+##### 12.4 Visakhapatnam / Vizag : 4K Rain Tour
+1. `Heavy Rains In Visakhapatnam | Weather updates in Vizag City Of Destiny #rain #vizag`
+https://www.youtube.com/watch?v=kt2rGvqu0jM
+2. `Raining in visakhapatnam with rain sound || Relaxing sound || Brosis vlog ||4k video`
+https://www.youtube.com/watch?v=ZB_vJX8e3aM
+3. `Heavy Rain in City Visakhapatnam,Vizag Vision....`
+https://www.youtube.com/watch?v=Bo1hqeirO5M
+4. `Heavy Rain in Visakhapatnam Sudden Weather changes Vizagvision`
+https://www.youtube.com/watch?v=M80D2jC-Sd4
+5. `Heavy Rain in Visakhapatnam,Vizagvision..`
+https://www.youtube.com/watch?v=WCNX-YHloZQ
+6. `Heavy Rain in Visakhapatnam`
+https://www.youtube.com/watch?v=zF7vsaMrCwI    
 
 ## 13. Surat
-##### 4K Walking Tour
-##### 4K Drive
-##### 4K Drone View
+##### 13.1 Surat : 4K Walking Tour
+1. `Walking Tour From Rahul Raj Mall to Central Mall, Surat, (Gujarat) India.`
+https://www.youtube.com/watch?v=_XymDgIusYw
+2. `You Won't Belive its India 🇮🇳 | Walking in Surat | Real People & City Vibes in 4K`
+https://www.youtube.com/watch?v=uNHdBMqXwZs
+3. `Vesu Road sunday walking Tour #suratcity #surat`
+https://www.youtube.com/watch?v=IghguLjGH3U
+4. `Walking Tour Of Gopi Talav In Surat-Gujrat | Visit it in the evening !`
+https://www.youtube.com/watch?v=sB51FZdk3k0
+5. `Walking The Streets of Surat - Slum Visit - Solo Traveller | Adventures in India 🇮🇳`
+https://www.youtube.com/watch?v=uMpH7BVO45U
 
-## 14. Thiruvananthapuram
-##### 4K Walking Tour
-##### 4K Drive
-##### 4K Drone View
 
-## 15. Mysuru
-##### 4K Walking Tour
-##### 4K Drive
-##### 4K Drone View
+##### 13.2 Surat : 4K Drive Tour
+1. `A Motorbike Ride in Surat City | Gujarat | India" | Enjoy the Ride!!!`
+https://www.youtube.com/watch?v=A_IAMoOk55A
+2. `4k car drive footage surat India | surat city tour`
+https://www.youtube.com/watch?v=c_ha17zm1Cw
+3. `SURAT CITY DRIVE`
+https://www.youtube.com/watch?v=CnZk4Mi04YY
+4. `Vesu-Vip Rd || Porsche Area of Surat City || City Ride`
+https://www.youtube.com/watch?v=88C9Uc9GV8Q
+5. `SURAT CITY DRIVE`
+https://www.youtube.com/watch?v=x-PauEKBM3c
+
+##### 13.3 Surat : 4K Drone Tour
+1. `Surat City 💎 Diamond City of India | Surat 4K Cinematic and Informative Video`
+https://www.youtube.com/watch?v=ilXmOihy09c
+2. `Surat City | Cinematic Drone View 4K | Dji Mavic Pro | A Video By Neerjafilms.`
+https://www.youtube.com/watch?v=jLuM3RltYb0
+3. `4k drone tour Diamond Bourse| Surat Diamond Bourse | 4k drone footage - bird's eye view of india`
+https://www.youtube.com/watch?v=uSjfkZTl-Qo
+4. `Surat city 2025 | Gujarat | silk city | Diamond city of india 💎🇮🇳`
+https://www.youtube.com/watch?v=rSzWEI01rEM
+5. `Surat City - Diamond City Of India | Surat City 4k Drone View 2025 | Smart City Surat | City Impulse`
+https://www.youtube.com/watch?v=TLg5_r4aMig
+6. `Flight Landing in cloudy Morning: landing in Heavy Rain at SURAT AIRPORT:`
+https://www.youtube.com/watch?v=z4R1YsCTEas
+
+##### 13.4 Surat : 4K Rain Tour
+1. `Surat City Drive | Driving in Heavy Rain | SVNIT to Y-JUNCTION | 4K Drive.#suratcity`
+https://www.youtube.com/watch?v=JbfKh1tt5Bs
+2. `Surat City Drive in Rain .Pal to Udhna Darwaja . 4k Drive.`
+https://www.youtube.com/watch?v=hvjvHn6y3n4
+3. `Heavy Rain In Surat District , Watch Video`
+https://www.youtube.com/watch?v=7_hX3PCF8sg
+4. `4k Tour - Ring Road New Over Bridge Surat | Flyovers City In India | Beautiful Rain Day Drive Video`
+https://www.youtube.com/watch?v=_Qr4VGLXYiY
+5. `first Rain - surat - Gujarat- chakravat - tofan - news 2021`
+https://www.youtube.com/watch?v=TQASr2yElKo
+
+
+## 14. Thiruvananthapuram / Trivandrum
+##### 14.1 Thiruvananthapuram / Trivandrum : 4K Walking Tour
+1. `Thiruvananthapuram City Walking Tour, Kerala, India 🔥 Palayam - Airport Rd - MG Road 🔥 4K- 60 FPS`
+https://www.youtube.com/watch?v=BRC8ijMbzs0
+2. `Thiruvananthapuram City Walking Tour 🔥 Palayam - Trivandrum Airport Road 🔥 4K - UHD - 60 FPS`
+https://www.youtube.com/watch?v=7yVZYSod7Bo
+3. `Trivandrum City - Walking Tour 🔥 Thiruvananthapuram - Capital of Kerala, India 🔥 4K- 60 FPS`
+https://www.youtube.com/watch?v=sFi0w4b33Z8
+4. `Trivandrum City Tour, Kerala, india 🔥 Walking in Thiruvananthapuram City 🔥 4K - UHD - 60 FPS`
+https://www.youtube.com/watch?v=E1yU7lO9v5o
+5. `Sree Padmanabhaswamy Temple Area 🔥 East Fort, Pazhavangadi, Trivandrum, Kerala, India 🔥 4K - UHD`
+https://www.youtube.com/watch?v=z3yEXIyHiHo
+6. `Trivandrum City Walking Tour 🔥 KSRTC Bus Station, Trivandrum City Central, Kerala, India 🔥4K 60 FPS`
+https://www.youtube.com/watch?v=5hdIp9A8gk8
+
+##### 14.2 Thiruvananthapuram / Trivandrum : 4K Drive Tour
+1. `Trivandrum City Ride 🔥 State Highway 1 🔥 Main Central Road 🔥 KSRTC Bus Ride 🔥 4K - UHD - 60 FPS`
+https://www.youtube.com/watch?v=Uz9J8tfYlvY
+2. `Trivandrum City Tour, Kerala, India 🔥 KSRTC Open Double Decker Electric Bus 🔥 Part 4 🔥 4K - 60 FPS`
+https://www.youtube.com/watch?v=tlX3GGV9dPg
+3. `Trivandrum City Tour, Kerala, India 🔥 KSRTC Open Double Decker Electric Bus 🔥 Part 3 🔥 4K - 60 FPS`
+https://www.youtube.com/watch?v=01eKackXXdg
+4. `KSRTC Open Double Decker Electric Bus 🔥 Trivandrum City Tour, Kerala, India 🔥 Part 2 🔥 4K - 60 FPS`
+https://www.youtube.com/watch?v=ESq_JDPuSmo
+5. `KSRTC Open Double Decker Electric Bus 🔥 Trivandrum City Tour, Kerala, India 🔥 Part 1 🔥 4K - 60 FPS`
+https://www.youtube.com/watch?v=Ly8OkwIgles
+
+##### 14.3 Thiruvananthapuram / Trivandrum : 4K Drone Tour
+1. `തിരുവനതപുരം || THIRUVANATHAPURAM ULTRA HD Video || DRONE FOOTAGE and WalkThrough`
+https://www.youtube.com/watch?v=CB9xGjOzImo
+2. `Trivandrum City Cinematic Video 2021 - The Capital city of Kerala`
+https://www.youtube.com/watch?v=YpHuib5TyNI
+3. `Trivandrum City | तिरुवनन्तपुरम शहर का ऐसा वीडियो आप ने कभी नहीं देखा होगा | Thiruvananthapuram`
+https://www.youtube.com/watch?v=EdoSQktQl8U
+4. `Thiruvananthapuram Drone view`
+https://www.youtube.com/watch?v=T-DwFVIOilU
+5. `Trivandrum , Kerala || Thiruvananthapuram city vlog || Travel vlog || drone view || Rk Rahul Vlogs`
+https://www.youtube.com/watch?v=VAYa2yubvf4
+
+##### 14.4 Thiruvananthapuram / Trivandrum : 4K Rain Tour
+1. `[4K] Rainy morning stroll in Trivandrum City - capital of Kerala, ASMR, Immersive Soothing Cityscape`
+https://www.youtube.com/watch?v=7kTYja0wwo8
+2. `Trivandrum City after rain walk 4k Thiruvananthapuram Rain walk`
+https://www.youtube.com/watch?v=mcfo3s1mMqM
+3. `[4K HDR] Walking in Heavy Rain ,Trivandrum Umbrella Binaural 3D Rain Sounds ASMR`
+https://www.youtube.com/watch?v=VWAzzcW5Nxc
+4. `Relaxing Walk in Rain - Trivandrum City 4K | Manaveeyam | Heavy Rain Sounds | Ambience | ASMR`
+https://www.youtube.com/watch?v=kjXqDG8UXrg
+5. `Relaxing Walk in Heavy Rain - Trivandrum City 4K | Palayam | Heavy Rain Sounds | Ambience | ASMR`
+https://www.youtube.com/watch?v=kW-jefkmmXo
+
+
+## 15. Mysuru / Mysore
+##### 15.1 Mysuru / Mysore : 4K Walking Tour
+1. `4K Virtual Tour of Mysore Palace Grounds`
+https://www.youtube.com/watch?v=tV95grPuV8E
+2. `Royal Streets of Mysore | A Guided Walking Tour to Mysore Palace | 4K 60fps`
+https://www.youtube.com/watch?v=rxov4chj3Yk
+3. `Exploring the Streets of Mysore, Karnataka IN [4K]`
+https://www.youtube.com/watch?v=bcLN0GkAvW0
+4. `4K Mysuru Night Walk | INDIA WALK TOUR Sunday Night Vibes in the City`
+https://www.youtube.com/watch?v=f2Ta7bHwNgI
+5. `Chamundi Hill During Mysore Dasara 2025 | Mysore Hilltop Views | Travel | 4K`
+https://www.youtube.com/watch?v=yxAUbTFDhfY
+
+##### 15.2 Mysuru / Mysore : 4K Drive Tour
+1. `Bangalore to Mysore road trip | Bike Ride`
+https://www.youtube.com/watch?v=ZLnIrWA6sMM
+2. `Early Morning Bike Ride to Chamundi Betta @ Mysore`
+https://www.youtube.com/watch?v=Qh4jgaAtPak
+3. `Bike ride in CHAMUNDI HILLS - Mysuru - 4K`
+https://www.youtube.com/watch?v=nqWCOcnPvTg
+4. `A Drive Through Mysore City During Dussehra l Beautiful road of Mysore l Mysore Palace l 4K l Oct 22`
+https://www.youtube.com/watch?v=KJUb0-_sMCA
+5. `D. D. Urs Road to Gokulam | Moto Vlogs | Mysore City | VV Mohalla | Drive Mysore`
+https://www.youtube.com/watch?v=5nw654lVmOs
+
+##### 15.3 Mysuru / Mysore : 4K Drone Tour
+1. `Mysore City in 2024 - 4K Cinematic Drone Tour`
+https://www.youtube.com/watch?v=2clcTLPNdfg
+2. `The Royal City in 4K | Mysore Cinematic Drone Footage`
+https://www.youtube.com/watch?v=cAw8U4xRTc8
+3. `Mysore (Mysuru) | Cinematic Video | Chinmaya Kotian | Suraj Krishnan`
+https://www.youtube.com/watch?v=8fIEqyruZIk
+4. `4K Virtual Tour of Mysore Palace Grounds`
+https://www.youtube.com/watch?v=tV95grPuV8E
+5. `MYSURU Drone View 4K | Karnataka | INDIA #mysore #dji #nsworld`
+https://www.youtube.com/watch?v=4m9lbb7O2Z4
+
+##### 15.4 Mysuru / Mysore : 4K Rain Tour
+1. `Mysore City ride in Rain (14/11/2022)`
+https://www.youtube.com/watch?v=zYP0uQaoQTA
+2. `Mysore City Night ride in Rain (14/11/2023)`
+https://www.youtube.com/watch?v=0_bwM56GabE
+3. `Mysore rain asmr #asmr #asmr`
+https://www.youtube.com/watch?v=WgS9b0Icf7I
+4. `A beautiful journey from Ooty to Mysore during rain!`
+https://www.youtube.com/watch?v=Yt3pRiUHQ6s
+5. `Rain on Mysore - Bangalore Road`
+https://www.youtube.com/watch?v=o8mj2nzOgfw
+
 
 ## Top 50 monuments
 
-- 1. Gateway of India (Mumbai) : 
+- 1. Gateway of India, Mumbai : 
 ##### 4K Walking Tour
 `Walking Mumbai - Gateway of India FULL DETAILED Tour 4K | Mumbai, IN`
 https://www.youtube.com/watch?v=LVguK9bqj4Y
@@ -854,10 +1652,11 @@ https://www.youtube.com/watch?v=LVguK9bqj4Y
 https://www.youtube.com/watch?v=_NofLLZazeA  
 ##### 4K Drive
 
-- 2. India Gate
-##### 4K Walking Tour
-##### 4K Drive
-##### 4K Drone View
+- 2. India Gate, Delhi
+##### 2.1 India Gate, Delhi : 4K Walking Tour
+##### 2.2 India Gate, Delhi : 4K Drive Tour
+##### 2.3 India Gate, Delhi : 4K Drone Tour
+##### 2.4 India Gate, Delhi : 4K Rain Tour
 
 - 3. Charminar (Hyderabad) :
 ##### 4K Walking Tour
@@ -885,19 +1684,21 @@ https://www.youtube.com/watch?v=Ao7exerGU1A
 ##### 4K Drive
 ##### 4K Drone View
 
-- 6. Red Fort (Delhi): 
-##### 4K Walking Tour
-##### 4K Drive
+- 6. Red Fort, Delhi: 
+##### 6.1: 4K Walking Tour
+##### 6.2: 4K Drive
 `4K 🇮🇳 Delhi Walk - Inside The Red Fort - India walking tour`
 https://www.youtube.com/watch?v=TWqaSTSWzus
-##### 4K Drone View
+##### 6.3: 4K Drone View
 
-- 7. Hawa Mahal
-##### 4K Walking Tour
-##### 4K Drive
-##### 4K Drone View
+- 7. Hawa Mahal, Jaipur
+##### 7.1 Hawa Mahal: 4K Walking Tour
+##### 7.2 Hawa Mahal: 4K Drive
+##### 7.3 Hawa Mahal: 4K Drone View
+- 1. `Hawa Mahal "Palace of Wind" - Jaipur ● India 🇮🇳 【4K】 Cinematic Travel Video`
+https://www.youtube.com/watch?v=jSlrNR2hAqc&list=PLiOtbyzS96dZONGKAddVd6H255Hmtka1Q&index=8
 
-- 8. Amer Fort
+- 8. Amber Fort, Jaipur
 ##### 4K Walking Tour
 ##### 4K Drive
 ##### 4K Drone View
@@ -1043,9 +1844,12 @@ https://www.youtube.com/watch?v=TWqaSTSWzus
 ##### 4K Drone View
 
 - 37. Mysore Palace
-##### 4K Walking Tour
-##### 4K Drive
-##### 4K Drone View
+##### 2.1 Mysore Palace : 4K Walking Tour
+##### 2.2 Mysore Palace : 4K Drive Tour
+##### 2.3 Mysore Palace : 4K Drone Tour
+##### 37.4 Mysore Palace : 4K Rain Tour
+1. `Mysuru Palace / Cinematic video 4k.`
+https://www.youtube.com/watch?v=Bu-9hS9Lzbg
 
 - 38. Hampi
 ##### 4K Walking Tour

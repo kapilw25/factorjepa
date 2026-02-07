@@ -51,129 +51,129 @@
     },
     "jaipur": {
       "tier": 2,
-      "drive": 0,
-      "walking": 0,
-      "drone": 0,
-      "untagged": 0,
-      "total": 0
+      "drive": 5,
+      "walking": 7,
+      "drone": 4,
+      "rain": 5,
+      "total": 21
     },
     "varanasi": {
       "tier": 2,
-      "drive": 0,
-      "walking": 0,
-      "drone": 0,
-      "untagged": 0,
-      "total": 0
+      "drive": 8,
+      "walking": 8,
+      "drone": 5,
+      "rain": 5,
+      "total": 26
     },
     "lucknow": {
       "tier": 2,
-      "drive": 0,
-      "walking": 0,
-      "drone": 0,
-      "untagged": 0,
-      "total": 0
+      "drive": 8,
+      "walking": 10,
+      "drone": 5,
+      "rain": 6,
+      "total": 29
     },
     "ahmedabad": {
       "tier": 2,
-      "drive": 0,
-      "walking": 0,
-      "drone": 0,
-      "untagged": 0,
-      "total": 0
+      "drive": 6,
+      "walking": 8,
+      "drone": 5,
+      "rain": 7,
+      "total": 26
     },
     "pune": {
       "tier": 2,
-      "drive": 0,
-      "walking": 0,
-      "drone": 0,
-      "untagged": 0,
-      "total": 0
+      "drive": 7,
+      "walking": 11,
+      "drone": 10,
+      "rain": 10,
+      "total": 38
     },
     "kochi": {
       "tier": 2,
-      "drive": 0,
-      "walking": 0,
-      "drone": 0,
-      "untagged": 0,
-      "total": 0
+      "drive": 8,
+      "walking": 9,
+      "drone": 5,
+      "rain": 5,
+      "total": 27
     },
     "chandigarh": {
       "tier": 2,
-      "drive": 0,
-      "walking": 0,
-      "drone": 0,
-      "untagged": 0,
-      "total": 0
+      "drive": 5,
+      "walking": 5,
+      "drone": 5,
+      "rain": 7,
+      "total": 22
     },
     "indore": {
       "tier": 2,
-      "drive": 0,
-      "walking": 0,
-      "drone": 0,
-      "untagged": 0,
-      "total": 0
+      "drive": 5,
+      "walking": 7,
+      "drone": 6,
+      "rain": 5,
+      "total": 23
     },
     "bhopal": {
       "tier": 2,
-      "drive": 0,
-      "walking": 0,
-      "drone": 0,
-      "untagged": 0,
-      "total": 0
+      "drive": 5,
+      "walking": 5,
+      "drone": 5,
+      "rain": 5,
+      "total": 20
     },
     "coimbatore": {
       "tier": 2,
-      "drive": 0,
-      "walking": 0,
-      "drone": 0,
-      "untagged": 1,
-      "total": 1
+      "drive": 5,
+      "walking": 5,
+      "drone": 5,
+      "rain": 6,
+      "total": 21
     },
     "nagpur": {
       "tier": 2,
-      "drive": 0,
-      "walking": 0,
-      "drone": 0,
-      "untagged": 0,
-      "total": 0
+      "drive": 5,
+      "walking": 6,
+      "drone": 5,
+      "rain": 8,
+      "total": 24
     },
     "visakhapatnam": {
       "tier": 2,
-      "drive": 0,
-      "walking": 0,
-      "drone": 0,
-      "untagged": 0,
-      "total": 0
+      "drive": 5,
+      "walking": 5,
+      "drone": 6,
+      "rain": 6,
+      "total": 22
     },
     "surat": {
       "tier": 2,
-      "drive": 0,
-      "walking": 0,
-      "drone": 0,
-      "untagged": 0,
-      "total": 0
+      "drive": 5,
+      "walking": 5,
+      "drone": 6,
+      "rain": 5,
+      "total": 21
     },
     "thiruvananthapuram": {
       "tier": 2,
-      "drive": 0,
-      "walking": 0,
-      "drone": 0,
-      "untagged": 0,
-      "total": 0
+      "drive": 5,
+      "walking": 6,
+      "drone": 5,
+      "rain": 5,
+      "total": 21
     },
     "mysuru": {
       "tier": 2,
-      "drive": 0,
-      "walking": 0,
-      "drone": 0,
-      "untagged": 0,
-      "total": 0
+      "drive": 5,
+      "walking": 5,
+      "drone": 5,
+      "rain": 5,
+      "total": 20
     }
   },
   "summary": {
     "tier1_total": 320,
-    "tier2_total": 1,
+    "tier2_total": 361,
     "other_total": 33,
-    "grand_total": 354
+    "grand_total": 714
   }
 }
