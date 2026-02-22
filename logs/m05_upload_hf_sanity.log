@@ -1,383 +1,0 @@
-Step 1: Building clip manifest from clip_durations.json...
-  Total clips in manifest: 115,687
-  Repository: https://huggingface.co/datasets/anonymousML123/walkindia-200k
-  SANITY mode: 2 shards, 2000 clips
-
-Step 2+3: Create 2 shards → upload → delete (streaming)
-  Clips per shard: 1000
-  Total clips: 2,000
-Processing Files (0 / 0)      : |          |  0.00B /  0.00B            
-New Data Upload               : |          |  0.00B /  0.00B            [A
-
-  ...ta/shards/train-00000.tar:   1%|          | 12.7MB / 1.17GB            [A[A
-
-  ...ta/shards/train-00000.tar:   1%|          | 12.7MB / 1.17GB            [A[AProcessing Files (0 / 1)      :   1%|          | 12.7MB / 1.17GB, 31.9MB/s  
-
-  ...ta/shards/train-00000.tar:   8%|▊         | 94.5MB / 1.17GB            [A[AProcessing Files (0 / 1)      :   8%|▊         | 94.5MB / 1.17GB,  158MB/s  
-
-  ...ta/shards/train-00000.tar:  13%|█▎        |  155MB / 1.17GB            [A[AProcessing Files (0 / 1)      :  13%|█▎        |  155MB / 1.17GB,  193MB/s  
-New Data Upload               :   1%|          |  534kB / 67.1MB,  668kB/s  [A
-
-  ...ta/shards/train-00000.tar:  13%|█▎        |  155MB / 1.17GB            [A[A
-
-  ...ta/shards/train-00000.tar:  13%|█▎        |  156MB / 1.17GB            [A[AProcessing Files (0 / 1)      :  13%|█▎        |  156MB / 1.17GB,  130MB/s  
-New Data Upload               :   2%|▏         | 1.60MB / 67.1MB, 1.34MB/s  [A
-
-  ...ta/shards/train-00000.tar:  14%|█▎        |  158MB / 1.17GB            [A[AProcessing Files (0 / 1)      :  14%|█▎        |  158MB / 1.17GB,  113MB/s  
-New Data Upload               :   6%|▋         | 4.27MB / 67.1MB, 3.05MB/s  [A
-
-  ...ta/shards/train-00000.tar:  14%|█▍        |  165MB / 1.17GB            [A[AProcessing Files (0 / 1)      :  14%|█▍        |  165MB / 1.17GB,  103MB/s  
-New Data Upload               :  16%|█▌        | 10.7MB / 67.1MB, 6.68MB/s  [A
-
-  ...ta/shards/train-00000.tar:  17%|█▋        |  200MB / 1.17GB            [A[AProcessing Files (0 / 1)      :  17%|█▋        |  200MB / 1.17GB,  111MB/s  
-New Data Upload               :  19%|█▉        | 12.8MB / 67.1MB, 7.12MB/s  [A
-
-  ...ta/shards/train-00000.tar:  18%|█▊        |  206MB / 1.17GB            [A[AProcessing Files (0 / 1)      :  18%|█▊        |  206MB / 1.17GB,  103MB/s  
-New Data Upload               :  28%|██▊       | 18.7MB / 67.1MB, 9.34MB/s  [A
-
-  ...ta/shards/train-00000.tar:  18%|█▊        |  210MB / 1.17GB            [A[AProcessing Files (0 / 1)      :  18%|█▊        |  210MB / 1.17GB, 95.4MB/s  
-New Data Upload               :  33%|███▎      | 22.4MB / 67.1MB, 10.2MB/s  [A
-
-  ...ta/shards/train-00000.tar:  19%|█▊        |  216MB / 1.17GB            [A[AProcessing Files (0 / 1)      :  19%|█▊        |  216MB / 1.17GB, 90.0MB/s  
-New Data Upload               :  37%|███▋      | 25.1MB / 67.1MB, 10.5MB/s  [A
-
-  ...ta/shards/train-00000.tar:  21%|██        |  240MB / 1.17GB            [A[AProcessing Files (0 / 1)      :  21%|██        |  240MB / 1.17GB, 92.2MB/s  
-New Data Upload               :  39%|███▉      | 26.2MB / 67.1MB, 10.1MB/s  [A
-
-  ...ta/shards/train-00000.tar:  29%|██▉       |  336MB / 1.17GB            [A[AProcessing Files (0 / 1)      :  29%|██▉       |  336MB / 1.17GB,  120MB/s  
-New Data Upload               :  22%|██▏       | 29.4MB /  134MB, 10.5MB/s  [A
-
-  ...ta/shards/train-00000.tar:  35%|███▍      |  402MB / 1.17GB            [A[AProcessing Files (0 / 1)      :  35%|███▍      |  402MB / 1.17GB,  134MB/s  
-New Data Upload               :  25%|██▌       | 33.6MB /  134MB, 11.2MB/s  [A
-
-  ...ta/shards/train-00000.tar:  35%|███▌      |  408MB / 1.17GB            [A[AProcessing Files (0 / 1)      :  35%|███▌      |  408MB / 1.17GB,  128MB/s  
-New Data Upload               :  29%|██▉       | 39.5MB /  134MB, 12.3MB/s  [A
-
-  ...ta/shards/train-00000.tar:  35%|███▌      |  413MB / 1.17GB            [A[AProcessing Files (0 / 1)      :  35%|███▌      |  413MB / 1.17GB,  122MB/s  
-New Data Upload               :  33%|███▎      | 44.8MB /  134MB, 13.2MB/s  [A
-
-  ...ta/shards/train-00000.tar:  36%|███▌      |  420MB / 1.17GB            [A[AProcessing Files (0 / 1)      :  36%|███▌      |  420MB / 1.17GB,  117MB/s  
-New Data Upload               :  39%|███▊      | 51.8MB /  134MB, 14.4MB/s  [A
-
-  ...ta/shards/train-00000.tar:  37%|███▋      |  427MB / 1.17GB            [A[AProcessing Files (0 / 1)      :  37%|███▋      |  427MB / 1.17GB,  112MB/s  
-New Data Upload               :  43%|████▎     | 58.2MB /  134MB, 15.3MB/s  [A
-
-  ...ta/shards/train-00000.tar:  37%|███▋      |  433MB / 1.17GB            [A[AProcessing Files (0 / 1)      :  37%|███▋      |  433MB / 1.17GB,  108MB/s  
-New Data Upload               :  48%|████▊     | 64.1MB /  134MB, 16.0MB/s  [A
-
-  ...ta/shards/train-00000.tar:  46%|████▌     |  537MB / 1.17GB            [A[AProcessing Files (0 / 1)      :  46%|████▌     |  537MB / 1.17GB,  128MB/s  
-New Data Upload               :  53%|█████▎    | 70.5MB /  134MB, 16.8MB/s  [A
-
-  ...ta/shards/train-00000.tar:  55%|█████▌    |  645MB / 1.17GB            [A[AProcessing Files (0 / 1)      :  55%|█████▌    |  645MB / 1.17GB,  147MB/s  
-New Data Upload               :  37%|███▋      | 73.7MB /  201MB, 16.8MB/s  [A
-
-  ...ta/shards/train-00000.tar:  66%|██████▋   |  774MB / 1.17GB            [A[AProcessing Files (0 / 1)      :  66%|██████▋   |  774MB / 1.17GB,  168MB/s  
-New Data Upload               :  40%|████      | 80.7MB /  201MB, 17.5MB/s  [A
-
-  ...ta/shards/train-00000.tar:  78%|███████▊  |  907MB / 1.17GB            [A[AProcessing Files (0 / 1)      :  78%|███████▊  |  907MB / 1.17GB,  189MB/s  
-New Data Upload               :  43%|████▎     | 87.1MB /  201MB, 18.1MB/s  [A
-
-  ...ta/shards/train-00000.tar:  84%|████████▎ |  975MB / 1.17GB            [A[AProcessing Files (0 / 1)      :  84%|████████▎ |  975MB / 1.17GB,  195MB/s  
-New Data Upload               :  32%|███▏      | 90.8MB /  281MB, 18.2MB/s  [A
-
-  ...ta/shards/train-00000.tar:  84%|████████▍ |  981MB / 1.17GB            [A[AProcessing Files (0 / 1)      :  84%|████████▍ |  981MB / 1.17GB,  189MB/s  
-New Data Upload               :  34%|███▍      | 96.7MB /  281MB, 18.6MB/s  [A
-
-  ...ta/shards/train-00000.tar:  85%|████████▍ |  988MB / 1.17GB            [A[AProcessing Files (0 / 1)      :  85%|████████▍ |  988MB / 1.17GB,  183MB/s  
-New Data Upload               :  37%|███▋      |  104MB /  281MB, 19.2MB/s  [A
-
-  ...ta/shards/train-00000.tar:  85%|████████▌ |  993MB / 1.17GB            [A[AProcessing Files (0 / 1)      :  85%|████████▌ |  993MB / 1.17GB,  177MB/s  
-New Data Upload               :  39%|███▊      |  109MB /  281MB, 19.4MB/s  [A
-
-  ...ta/shards/train-00000.tar:  86%|████████▌ | 1.00GB / 1.17GB            [A[AProcessing Files (0 / 1)      :  86%|████████▌ | 1.00GB / 1.17GB,  173MB/s  
-New Data Upload               :  41%|████▏     |  117MB /  281MB, 20.1MB/s  [A
-
-  ...ta/shards/train-00000.tar:  86%|████████▌ | 1.00GB / 1.17GB            [A[AProcessing Files (0 / 1)      :  86%|████████▌ | 1.00GB / 1.17GB,  167MB/s  
-New Data Upload               :  42%|████▏     |  119MB /  281MB, 19.9MB/s  [A
-
-  ...ta/shards/train-00000.tar:  87%|████████▋ | 1.01GB / 1.17GB            [A[AProcessing Files (0 / 1)      :  87%|████████▋ | 1.01GB / 1.17GB,  163MB/s  
-New Data Upload               :  45%|████▌     |  127MB /  281MB, 20.5MB/s  [A
-
-  ...ta/shards/train-00000.tar:  87%|████████▋ | 1.02GB / 1.17GB            [A[AProcessing Files (0 / 1)      :  87%|████████▋ | 1.02GB / 1.17GB,  159MB/s  
-New Data Upload               :  47%|████▋     |  133MB /  281MB, 20.7MB/s  [A
-
-  ...ta/shards/train-00000.tar:  88%|████████▊ | 1.02GB / 1.17GB            [A[AProcessing Files (0 / 1)      :  88%|████████▊ | 1.02GB / 1.17GB,  155MB/s  
-New Data Upload               :  48%|████▊     |  136MB /  281MB, 20.6MB/s  [A
-
-  ...ta/shards/train-00000.tar:  88%|████████▊ | 1.03GB / 1.17GB            [A[AProcessing Files (0 / 1)      :  88%|████████▊ | 1.03GB / 1.17GB,  151MB/s  
-New Data Upload               :  50%|█████     |  141MB /  281MB, 20.8MB/s  [A
-
-  ...ta/shards/train-00000.tar:  88%|████████▊ | 1.03GB / 1.17GB            [A[AProcessing Files (0 / 1)      :  88%|████████▊ | 1.03GB / 1.17GB,  147MB/s  
-New Data Upload               :  52%|█████▏    |  146MB /  281MB, 20.9MB/s  [A
-
-  ...ta/shards/train-00000.tar:  89%|████████▉ | 1.04GB / 1.17GB            [A[AProcessing Files (0 / 1)      :  89%|████████▉ | 1.04GB / 1.17GB,  144MB/s  
-New Data Upload               :  54%|█████▎    |  151MB /  281MB, 21.0MB/s  [A
-
-  ...ta/shards/train-00000.tar:  89%|████████▉ | 1.04GB / 1.17GB            [A[AProcessing Files (0 / 1)      :  89%|████████▉ | 1.04GB / 1.17GB,  141MB/s  
-New Data Upload               :  56%|█████▋    |  158MB /  281MB, 21.4MB/s  [A
-
-  ...ta/shards/train-00000.tar:  90%|████████▉ | 1.05GB / 1.17GB            [A[AProcessing Files (0 / 1)      :  90%|████████▉ | 1.05GB / 1.17GB,  138MB/s  
-New Data Upload               :  57%|█████▋    |  161MB /  281MB, 21.2MB/s  [A
-
-  ...ta/shards/train-00000.tar:  90%|█████████ | 1.05GB / 1.17GB            [A[AProcessing Files (0 / 1)      :  90%|█████████ | 1.05GB / 1.17GB,  135MB/s  
-New Data Upload               :  60%|█████▉    |  169MB /  281MB, 21.6MB/s  [A
-
-  ...ta/shards/train-00000.tar:  91%|█████████ | 1.06GB / 1.17GB            [A[AProcessing Files (0 / 1)      :  91%|█████████ | 1.06GB / 1.17GB,  132MB/s  
-New Data Upload               :  62%|██████▏   |  174MB /  281MB, 21.7MB/s  [A
-
-  ...ta/shards/train-00000.tar:  91%|█████████ | 1.06GB / 1.17GB            [A[AProcessing Files (0 / 1)      :  91%|█████████ | 1.06GB / 1.17GB,  129MB/s  
-New Data Upload               :  63%|██████▎   |  177MB /  281MB, 21.6MB/s  [A
-
-  ...ta/shards/train-00000.tar:  92%|█████████▏| 1.07GB / 1.17GB            [A[AProcessing Files (0 / 1)      :  92%|█████████▏| 1.07GB / 1.17GB,  127MB/s  
-New Data Upload               :  65%|██████▌   |  184MB /  281MB, 21.9MB/s  [A
-
-  ...ta/shards/train-00000.tar:  92%|█████████▏| 1.07GB / 1.17GB            [A[AProcessing Files (0 / 1)      :  92%|█████████▏| 1.07GB / 1.17GB,  125MB/s  
-New Data Upload               :  68%|██████▊   |  190MB /  281MB, 22.1MB/s  [A
-
-  ...ta/shards/train-00000.tar:  93%|█████████▎| 1.08GB / 1.17GB            [A[AProcessing Files (0 / 1)      :  93%|█████████▎| 1.08GB / 1.17GB,  123MB/s  
-New Data Upload               :  70%|██████▉   |  196MB /  281MB, 22.3MB/s  [A
-
-  ...ta/shards/train-00000.tar:  93%|█████████▎| 1.09GB / 1.17GB            [A[AProcessing Files (0 / 1)      :  93%|█████████▎| 1.09GB / 1.17GB,  121MB/s  
-New Data Upload               :  72%|███████▏  |  202MB /  281MB, 22.4MB/s  [A
-
-  ...ta/shards/train-00000.tar:  94%|█████████▎| 1.09GB / 1.17GB            [A[AProcessing Files (0 / 1)      :  94%|█████████▎| 1.09GB / 1.17GB,  119MB/s  
-New Data Upload               :  73%|███████▎  |  206MB /  281MB, 22.4MB/s  [A
-
-  ...ta/shards/train-00000.tar:  94%|█████████▍| 1.10GB / 1.17GB            [A[AProcessing Files (0 / 1)      :  94%|█████████▍| 1.10GB / 1.17GB,  117MB/s  
-New Data Upload               :  76%|███████▌  |  212MB /  281MB, 22.6MB/s  [A
-
-  ...ta/shards/train-00000.tar:  95%|█████████▍| 1.10GB / 1.17GB            [A[AProcessing Files (0 / 1)      :  95%|█████████▍| 1.10GB / 1.17GB,  115MB/s  
-New Data Upload               :  77%|███████▋  |  218MB /  281MB, 22.7MB/s  [A
-
-  ...ta/shards/train-00000.tar:  95%|█████████▍| 1.11GB / 1.17GB            [A[AProcessing Files (0 / 1)      :  95%|█████████▍| 1.11GB / 1.17GB,  113MB/s  
-New Data Upload               :  79%|███████▉  |  223MB /  281MB, 22.7MB/s  [A
-
-  ...ta/shards/train-00000.tar:  95%|█████████▌| 1.11GB / 1.17GB            [A[AProcessing Files (0 / 1)      :  95%|█████████▌| 1.11GB / 1.17GB,  111MB/s  
-New Data Upload               :  81%|████████  |  228MB /  281MB, 22.8MB/s  [A
-
-  ...ta/shards/train-00000.tar:  96%|█████████▌| 1.12GB / 1.17GB            [A[AProcessing Files (0 / 1)      :  96%|█████████▌| 1.12GB / 1.17GB,  110MB/s  
-New Data Upload               :  83%|████████▎ |  233MB /  281MB, 22.9MB/s  [A
-
-  ...ta/shards/train-00000.tar:  96%|█████████▋| 1.12GB / 1.17GB            [A[AProcessing Files (0 / 1)      :  96%|█████████▋| 1.12GB / 1.17GB,  110MB/s  
-New Data Upload               :  85%|████████▍ |  238MB /  281MB, 23.3MB/s  [A
-
-  ...ta/shards/train-00000.tar:  97%|█████████▋| 1.13GB / 1.17GB            [A[AProcessing Files (0 / 1)      :  97%|█████████▋| 1.13GB / 1.17GB,  109MB/s  
-New Data Upload               :  86%|████████▌ |  241MB /  281MB, 23.6MB/s  [A
-
-  ...ta/shards/train-00000.tar:  97%|█████████▋| 1.13GB / 1.17GB            [A[AProcessing Files (0 / 1)      :  97%|█████████▋| 1.13GB / 1.17GB,  101MB/s  
-New Data Upload               :  87%|████████▋ |  244MB /  281MB, 23.9MB/s  [A
-
-  ...ta/shards/train-00000.tar:  97%|█████████▋| 1.13GB / 1.17GB            [A[AProcessing Files (0 / 1)      :  97%|█████████▋| 1.13GB / 1.17GB, 95.9MB/s  
-New Data Upload               :  88%|████████▊ |  248MB /  281MB, 24.3MB/s  [A
-
-  ...ta/shards/train-00000.tar:  98%|█████████▊| 1.14GB / 1.17GB            [A[AProcessing Files (0 / 1)      :  98%|█████████▊| 1.14GB / 1.17GB, 96.3MB/s  
-New Data Upload               :  90%|████████▉ |  252MB /  281MB, 24.7MB/s  [A
-
-  ...ta/shards/train-00000.tar:  98%|█████████▊| 1.14GB / 1.17GB            [A[AProcessing Files (0 / 1)      :  98%|█████████▊| 1.14GB / 1.17GB, 96.6MB/s  
-New Data Upload               :  91%|█████████▏|  257MB /  281MB, 25.0MB/s  [A
-
-  ...ta/shards/train-00000.tar:  98%|█████████▊| 1.15GB / 1.17GB            [A[AProcessing Files (0 / 1)      :  98%|█████████▊| 1.15GB / 1.17GB, 96.8MB/s  
-New Data Upload               :  93%|█████████▎|  261MB /  281MB, 25.1MB/s  [A
-
-  ...ta/shards/train-00000.tar:  99%|█████████▊| 1.15GB / 1.17GB            [A[AProcessing Files (0 / 1)      :  99%|█████████▊| 1.15GB / 1.17GB, 96.6MB/s  
-New Data Upload               :  94%|█████████▍|  266MB /  281MB, 25.0MB/s  [A
-
-  ...ta/shards/train-00000.tar:  99%|█████████▉| 1.15GB / 1.17GB            [A[AProcessing Files (0 / 1)      :  99%|█████████▉| 1.15GB / 1.17GB, 93.5MB/s  
-New Data Upload               :  96%|█████████▌|  270MB /  281MB, 25.2MB/s  [A
-
-  ...ta/shards/train-00000.tar:  99%|█████████▉| 1.16GB / 1.17GB            [A[AProcessing Files (0 / 1)      :  99%|█████████▉| 1.16GB / 1.17GB, 93.2MB/s  
-New Data Upload               :  97%|█████████▋|  272MB /  281MB, 24.8MB/s  [A
-
-  ...ta/shards/train-00000.tar:  99%|█████████▉| 1.16GB / 1.17GB            [A[AProcessing Files (0 / 1)      :  99%|█████████▉| 1.16GB / 1.17GB, 93.1MB/s  
-New Data Upload               :  98%|█████████▊|  275MB /  281MB, 24.7MB/s  [A
-
-  ...ta/shards/train-00000.tar: 100%|█████████▉| 1.16GB / 1.17GB            [A[AProcessing Files (0 / 1)      : 100%|█████████▉| 1.16GB / 1.17GB, 92.8MB/s  
-New Data Upload               :  99%|█████████▉|  278MB /  281MB, 24.8MB/s  [A
-
-  ...ta/shards/train-00000.tar: 100%|█████████▉| 1.17GB / 1.17GB            [A[AProcessing Files (0 / 1)      : 100%|█████████▉| 1.17GB / 1.17GB, 90.7MB/s  
-New Data Upload               : 100%|█████████▉|  281MB /  281MB, 25.0MB/s  [A
-
-  ...ta/shards/train-00000.tar: 100%|█████████▉| 1.17GB / 1.17GB            [A[A
-
-  ...ta/shards/train-00000.tar: 100%|█████████▉| 1.17GB / 1.17GB            [A[AProcessing Files (0 / 1)      : 100%|█████████▉| 1.17GB / 1.17GB, 74.8MB/s  
-New Data Upload               : 100%|█████████▉|  281MB /  281MB, 24.3MB/s  [A
-
-  ...ta/shards/train-00000.tar: 100%|█████████▉| 1.17GB / 1.17GB            [A[A
-
-  ...ta/shards/train-00000.tar: 100%|█████████▉| 1.17GB / 1.17GB            [A[A
-
-  ...ta/shards/train-00000.tar: 100%|█████████▉| 1.17GB / 1.17GB            [A[A
-
-  ...ta/shards/train-00000.tar: 100%|██████████| 1.17GB / 1.17GB            [A[AProcessing Files (1 / 1)      : 100%|██████████| 1.17GB / 1.17GB, 72.4MB/s  
-New Data Upload               : 100%|██████████|  281MB /  281MB, 21.9MB/s  [A
-
-  ...ta/shards/train-00000.tar: 100%|██████████| 1.17GB / 1.17GB            [A[A
-
-  ...ta/shards/train-00000.tar: 100%|██████████| 1.17GB / 1.17GB            [A[A
-
-  ...ta/shards/train-00000.tar: 100%|██████████| 1.17GB / 1.17GB            [A[A
-
-  ...ta/shards/train-00000.tar: 100%|██████████| 1.17GB / 1.17GB            [A[AProcessing Files (1 / 1)      : 100%|██████████| 1.17GB / 1.17GB, 39.1MB/s  
-New Data Upload               : 100%|██████████|  281MB /  281MB, 20.1MB/s  
-  ...ta/shards/train-00000.tar: 100%|██████████| 1.17GB / 1.17GB            
-  [1/2] train-00000.tar (1112 MB, 1000 clips) @ 50.0 MB/s | total=1.1 GB | ETA=0 min
-Processing Files (0 / 0)      : |          |  0.00B /  0.00B            
-New Data Upload               : |          |  0.00B /  0.00B            [A
-
-  ...ta/shards/train-00001.tar:   1%|▏         | 14.7MB / 1.02GB            [A[A
-
-  ...ta/shards/train-00001.tar:   1%|▏         | 14.7MB / 1.02GB            [A[AProcessing Files (0 / 1)      :   1%|▏         | 14.7MB / 1.02GB,   ???B/s  
-
-  ...ta/shards/train-00001.tar:   1%|▏         | 14.7MB / 1.02GB            [A[A
-
-  ...ta/shards/train-00001.tar:   1%|▏         | 14.7MB / 1.02GB            [A[A
-
-  ...ta/shards/train-00001.tar:   7%|▋         | 70.6MB / 1.02GB            [A[AProcessing Files (0 / 1)      :   7%|▋         | 70.6MB / 1.02GB, 93.3MB/s  
-
-  ...ta/shards/train-00001.tar:  18%|█▊        |  186MB / 1.02GB            [A[AProcessing Files (0 / 1)      :  18%|█▊        |  186MB / 1.02GB,  214MB/s  
-
-  ...ta/shards/train-00001.tar:  29%|██▊       |  292MB / 1.02GB            [A[AProcessing Files (0 / 1)      :  29%|██▊       |  292MB / 1.02GB,  277MB/s  
-
-  ...ta/shards/train-00001.tar:  39%|███▊      |  392MB / 1.02GB            [A[AProcessing Files (0 / 1)      :  39%|███▊      |  392MB / 1.02GB,  315MB/s  
-New Data Upload               :   4%|▍         | 2.75MB / 67.1MB, 2.29MB/s  [A
-
-  ...ta/shards/train-00001.tar:  50%|█████     |  513MB / 1.02GB            [A[AProcessing Files (0 / 1)      :  50%|█████     |  513MB / 1.02GB,  356MB/s  
-New Data Upload               :   8%|▊         | 5.49MB / 67.1MB, 3.93MB/s  [A
-
-  ...ta/shards/train-00001.tar:  54%|█████▍    |  552MB / 1.02GB            [A[AProcessing Files (0 / 1)      :  54%|█████▍    |  552MB / 1.02GB,  336MB/s  
-New Data Upload               :  14%|█▍        | 9.34MB / 67.1MB, 5.84MB/s  [A
-
-  ...ta/shards/train-00001.tar:  60%|█████▉    |  607MB / 1.02GB            [A[AProcessing Files (0 / 1)      :  60%|█████▉    |  607MB / 1.02GB,  329MB/s  
-New Data Upload               :  21%|██▏       | 14.3MB / 67.1MB, 7.94MB/s  [A
-
-  ...ta/shards/train-00001.tar:  69%|██████▉   |  706MB / 1.02GB            [A[AProcessing Files (0 / 1)      :  69%|██████▉   |  706MB / 1.02GB,  346MB/s  
-New Data Upload               :  14%|█▎        | 18.1MB /  134MB, 9.07MB/s  [A
-
-  ...ta/shards/train-00001.tar:  73%|███████▎  |  742MB / 1.02GB            [A[AProcessing Files (0 / 1)      :  73%|███████▎  |  742MB / 1.02GB,  331MB/s  
-New Data Upload               :  19%|█▉        | 25.8MB /  134MB, 11.7MB/s  [A
-
-  ...ta/shards/train-00001.tar:  81%|████████▏ |  827MB / 1.02GB            [A[AProcessing Files (0 / 1)      :  81%|████████▏ |  827MB / 1.02GB,  339MB/s  
-New Data Upload               :  23%|██▎       | 30.2MB /  134MB, 12.6MB/s  [A
-
-  ...ta/shards/train-00001.tar:  88%|████████▊ |  895MB / 1.02GB            [A[AProcessing Files (0 / 1)      :  88%|████████▊ |  895MB / 1.02GB,  338MB/s  
-New Data Upload               :  24%|██▎       | 37.9MB /  160MB, 14.6MB/s  [A
-
-  ...ta/shards/train-00001.tar:  88%|████████▊ |  898MB / 1.02GB            [A[AProcessing Files (0 / 1)      :  88%|████████▊ |  898MB / 1.02GB,  316MB/s  
-New Data Upload               :  26%|██▌       | 41.8MB /  160MB, 14.9MB/s  [A
-
-  ...ta/shards/train-00001.tar:  89%|████████▊ |  900MB / 1.02GB            [A[AProcessing Files (0 / 1)      :  89%|████████▊ |  900MB / 1.02GB,  295MB/s  
-New Data Upload               :  27%|██▋       | 43.5MB /  160MB, 14.5MB/s  [A
-
-  ...ta/shards/train-00001.tar:  89%|████████▉ |  906MB / 1.02GB            [A[AProcessing Files (0 / 1)      :  89%|████████▉ |  906MB / 1.02GB,  278MB/s  
-New Data Upload               :  31%|███       | 49.0MB /  160MB, 15.3MB/s  [A
-
-  ...ta/shards/train-00001.tar:  89%|████████▉ |  906MB / 1.02GB            [A[AProcessing Files (0 / 1)      :  89%|████████▉ |  906MB / 1.02GB,  262MB/s  
-New Data Upload               :  31%|███       | 49.5MB /  160MB, 14.6MB/s  [A
-
-  ...ta/shards/train-00001.tar:  90%|█████████ |  915MB / 1.02GB            [A[AProcessing Files (0 / 1)      :  90%|█████████ |  915MB / 1.02GB,  250MB/s  
-New Data Upload               :  37%|███▋      | 58.9MB /  160MB, 16.4MB/s  [A
-
-  ...ta/shards/train-00001.tar:  91%|█████████ |  922MB / 1.02GB            [A[AProcessing Files (0 / 1)      :  91%|█████████ |  922MB / 1.02GB,  239MB/s  
-New Data Upload               :  41%|████      | 64.9MB /  160MB, 17.1MB/s  [A
-
-  ...ta/shards/train-00001.tar:  91%|█████████ |  927MB / 1.02GB            [A[AProcessing Files (0 / 1)      :  91%|█████████ |  927MB / 1.02GB,  228MB/s  
-New Data Upload               :  44%|████▍     | 69.9MB /  160MB, 17.5MB/s  [A
-
-  ...ta/shards/train-00001.tar:  92%|█████████▏|  932MB / 1.02GB            [A[AProcessing Files (0 / 1)      :  92%|█████████▏|  932MB / 1.02GB,  218MB/s  
-New Data Upload               :  47%|████▋     | 75.4MB /  160MB, 18.0MB/s  [A
-
-  ...ta/shards/train-00001.tar:  92%|█████████▏|  939MB / 1.02GB            [A[AProcessing Files (0 / 1)      :  92%|█████████▏|  939MB / 1.02GB,  210MB/s  
-New Data Upload               :  51%|█████▏    | 82.0MB /  160MB, 18.6MB/s  [A
-
-  ...ta/shards/train-00001.tar:  93%|█████████▎|  944MB / 1.02GB            [A[AProcessing Files (0 / 1)      :  93%|█████████▎|  944MB / 1.02GB,  202MB/s  
-New Data Upload               :  55%|█████▍    | 87.5MB /  160MB, 19.0MB/s  [A
-
-  ...ta/shards/train-00001.tar:  93%|█████████▎|  947MB / 1.02GB            [A[AProcessing Files (0 / 1)      :  93%|█████████▎|  947MB / 1.02GB,  194MB/s  
-New Data Upload               :  57%|█████▋    | 90.8MB /  160MB, 18.9MB/s  [A
-
-  ...ta/shards/train-00001.tar:  94%|█████████▍|  954MB / 1.02GB            [A[AProcessing Files (0 / 1)      :  94%|█████████▍|  954MB / 1.02GB,  188MB/s  
-New Data Upload               :  61%|██████    | 96.9MB /  160MB, 19.4MB/s  [A
-
-  ...ta/shards/train-00001.tar:  94%|█████████▍|  958MB / 1.02GB            [A[AProcessing Files (0 / 1)      :  94%|█████████▍|  958MB / 1.02GB,  182MB/s  
-New Data Upload               :  64%|██████▍   |  102MB /  160MB, 19.6MB/s  [A
-
-  ...ta/shards/train-00001.tar:  95%|█████████▍|  962MB / 1.02GB            [A[AProcessing Files (0 / 1)      :  95%|█████████▍|  962MB / 1.02GB,  175MB/s  
-New Data Upload               :  66%|██████▌   |  106MB /  160MB, 19.6MB/s  [A
-
-  ...ta/shards/train-00001.tar:  95%|█████████▍|  962MB / 1.02GB            [A[A
-
-  ...ta/shards/train-00001.tar:  95%|█████████▌|  969MB / 1.02GB            [A[AProcessing Files (0 / 1)      :  95%|█████████▌|  969MB / 1.02GB,  165MB/s  
-New Data Upload               :  70%|███████   |  112MB /  160MB, 19.4MB/s  [A
-
-  ...ta/shards/train-00001.tar:  96%|█████████▌|  974MB / 1.02GB            [A[AProcessing Files (0 / 1)      :  96%|█████████▌|  974MB / 1.02GB,  160MB/s  
-New Data Upload               :  74%|███████▎  |  118MB /  160MB, 19.6MB/s  [A
-
-  ...ta/shards/train-00001.tar:  96%|█████████▋|  980MB / 1.02GB            [A[AProcessing Files (0 / 1)      :  96%|█████████▋|  980MB / 1.02GB,  156MB/s  
-New Data Upload               :  77%|███████▋  |  123MB /  160MB, 19.9MB/s  [A
-
-  ...ta/shards/train-00001.tar:  97%|█████████▋|  985MB / 1.02GB            [A[AProcessing Files (0 / 1)      :  97%|█████████▋|  985MB / 1.02GB,  152MB/s  
-New Data Upload               :  81%|████████  |  129MB /  160MB, 20.1MB/s  [A
-
-  ...ta/shards/train-00001.tar:  98%|█████████▊|  991MB / 1.02GB            [A[AProcessing Files (0 / 1)      :  98%|█████████▊|  991MB / 1.02GB,  148MB/s  
-New Data Upload               :  84%|████████▍ |  134MB /  160MB, 20.4MB/s  [A
-
-  ...ta/shards/train-00001.tar:  98%|█████████▊|  994MB / 1.02GB            [A[AProcessing Files (0 / 1)      :  98%|█████████▊|  994MB / 1.02GB,  144MB/s  
-New Data Upload               :  86%|████████▌ |  138MB /  160MB, 20.2MB/s  [A
-
-  ...ta/shards/train-00001.tar:  98%|█████████▊|  996MB / 1.02GB            [A[AProcessing Files (0 / 1)      :  98%|█████████▊|  996MB / 1.02GB,  140MB/s  
-New Data Upload               :  88%|████████▊ |  140MB /  160MB, 20.0MB/s  [A
-
-  ...ta/shards/train-00001.tar:  98%|█████████▊|  999MB / 1.02GB            [A[AProcessing Files (0 / 1)      :  98%|█████████▊|  999MB / 1.02GB,  137MB/s  
-New Data Upload               :  89%|████████▉ |  143MB /  160MB, 19.8MB/s  [A
-
-  ...ta/shards/train-00001.tar:  99%|█████████▊| 1.00GB / 1.02GB            [A[AProcessing Files (0 / 1)      :  99%|█████████▊| 1.00GB / 1.02GB,  133MB/s  
-New Data Upload               :  91%|█████████ |  145MB /  160MB, 19.6MB/s  [A
-
-  ...ta/shards/train-00001.tar:  99%|█████████▉| 1.00GB / 1.02GB            [A[AProcessing Files (0 / 1)      :  99%|█████████▉| 1.00GB / 1.02GB,  130MB/s  
-New Data Upload               :  93%|█████████▎|  148MB /  160MB, 19.5MB/s  [A
-
-  ...ta/shards/train-00001.tar:  99%|█████████▉| 1.01GB / 1.02GB            [A[AProcessing Files (0 / 1)      :  99%|█████████▉| 1.01GB / 1.02GB,  127MB/s  
-New Data Upload               :  94%|█████████▍|  151MB /  160MB, 19.3MB/s  [A
-
-  ...ta/shards/train-00001.tar:  99%|█████████▉| 1.01GB / 1.02GB            [A[AProcessing Files (0 / 1)      :  99%|█████████▉| 1.01GB / 1.02GB,  124MB/s  
-New Data Upload               :  96%|█████████▌|  154MB /  160MB, 19.2MB/s  [A
-
-  ...ta/shards/train-00001.tar: 100%|█████████▉| 1.01GB / 1.02GB            [A[AProcessing Files (0 / 1)      : 100%|█████████▉| 1.01GB / 1.02GB,  122MB/s  
-New Data Upload               :  98%|█████████▊|  156MB /  160MB, 19.1MB/s  [A
-
-  ...ta/shards/train-00001.tar: 100%|█████████▉| 1.02GB / 1.02GB            [A[AProcessing Files (0 / 1)      : 100%|█████████▉| 1.02GB / 1.02GB,  119MB/s  
-New Data Upload               : 100%|█████████▉|  160MB /  160MB, 19.0MB/s  [A
-
-  ...ta/shards/train-00001.tar: 100%|█████████▉| 1.02GB / 1.02GB            [A[A
-
-  ...ta/shards/train-00001.tar: 100%|█████████▉| 1.02GB / 1.02GB            [A[A
-
-  ...ta/shards/train-00001.tar: 100%|█████████▉| 1.02GB / 1.02GB            [A[A
-
-  ...ta/shards/train-00001.tar: 100%|█████████▉| 1.02GB / 1.02GB            [A[A
-
-  ...ta/shards/train-00001.tar: 100%|█████████▉| 1.02GB / 1.02GB            [A[A
-
-  ...ta/shards/train-00001.tar: 100%|██████████| 1.02GB / 1.02GB            [A[AProcessing Files (1 / 1)      : 100%|██████████| 1.02GB / 1.02GB,  104MB/s  
-New Data Upload               : 100%|██████████|  160MB /  160MB, 16.6MB/s  [A
-
-  ...ta/shards/train-00001.tar: 100%|██████████| 1.02GB / 1.02GB            [A[A
-
-  ...ta/shards/train-00001.tar: 100%|██████████| 1.02GB / 1.02GB            [A[A
-
-  ...ta/shards/train-00001.tar: 100%|██████████| 1.02GB / 1.02GB            [A[AProcessing Files (1 / 1)      : 100%|██████████| 1.02GB / 1.02GB,  100MB/s  
-New Data Upload               : 100%|██████████|  160MB /  160MB, 16.0MB/s  
-  ...ta/shards/train-00001.tar: 100%|██████████| 1.02GB / 1.02GB            
-  [2/2] train-00001.tar (969 MB, 1000 clips) @ 56.1 MB/s | total=2.0 GB | ETA=0 min
-
-Step 4: Uploading README.md...
-Uploaded: README.md
-
-==================================================
-=== UPLOAD COMPLETE ===
-Shards uploaded: 2
-Clips: 2,000
-Size: 2.0 GB
-Duration: 0.0 hours
-Dataset: https://huggingface.co/datasets/anonymousML123/walkindia-200k
-==================================================

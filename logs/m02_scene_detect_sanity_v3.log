@@ -1,856 +1,0 @@
-Section map: 714 videos mapped to hierarchical dirs
-=== SANITY MODE: Process 1 video ===
-  Selected: 6mZN5BfMR3A (unprocessed)
-
-Processing: 6mZN5BfMR3A.mp4
-  Duration: 252.5s
-  Detected: 0 | Progress:   0%|          | 0/7573 [00:00<?, ?frames/s]  Detected: 0 | Progress:   1%|          | 43/7573 [00:00<00:17, 428.02frames/s]  Detected: 2 | Progress:   1%|          | 93/7573 [00:00<00:15, 468.04frames/s]  Detected: 2 | Progress:   2%|▏         | 148/7573 [00:00<00:14, 503.81frames/s]  Detected: 3 | Progress:   3%|▎         | 209/7573 [00:00<00:13, 543.69frames/s]  Detected: 4 | Progress:   4%|▎         | 276/7573 [00:00<00:12, 585.74frames/s]  Detected: 5 | Progress:   5%|▍         | 346/7573 [00:00<00:11, 623.34frames/s]  Detected: 6 | Progress:   5%|▌         | 409/7573 [00:00<00:12, 576.71frames/s]  Detected: 6 | Progress:   6%|▌         | 468/7573 [00:00<00:13, 526.74frames/s]  Detected: 7 | Progress:   7%|▋         | 522/7573 [00:00<00:14, 498.29frames/s]  Detected: 7 | Progress:   8%|▊         | 573/7573 [00:01<00:14, 477.37frames/s]  Detected: 8 | Progress:   8%|▊         | 622/7573 [00:01<00:15, 463.40frames/s]  Detected: 8 | Progress:   9%|▉         | 669/7573 [00:01<00:16, 421.67frames/s]  Detected: 9 | Progress:   9%|▉         | 712/7573 [00:01<00:17, 388.84frames/s]  Detected: 9 | Progress:  10%|█         | 762/7573 [00:01<00:16, 415.57frames/s]  Detected: 10 | Progress:  11%|█         | 805/7573 [00:01<00:16, 411.89frames/s]  Detected: 10 | Progress:  11%|█▏        | 854/7573 [00:01<00:15, 432.56frames/s]  Detected: 11 | Progress:  12%|█▏        | 908/7573 [00:01<00:14, 460.86frames/s]  Detected: 12 | Progress:  13%|█▎        | 966/7573 [00:02<00:13, 494.26frames/s]  Detected: 12 | Progress:  14%|█▎        | 1024/7573 [00:02<00:12, 517.35frames/s]  Detected: 13 | Progress:  14%|█▍        | 1077/7573 [00:02<00:12, 513.71frames/s]  Detected: 14 | Progress:  15%|█▍        | 1134/7573 [00:02<00:12, 528.12frames/s]  Detected: 14 | Progress:  16%|█▌        | 1189/7573 [00:02<00:11, 533.67frames/s]  Detected: 15 | Progress:  16%|█▋        | 1243/7573 [00:02<00:12, 523.79frames/s]  Detected: 15 | Progress:  17%|█▋        | 1296/7573 [00:02<00:12, 512.88frames/s]  Detected: 16 | Progress:  18%|█▊        | 1349/7573 [00:02<00:12, 505.65frames/s]  Detected: 16 | Progress:  18%|█▊        | 1400/7573 [00:02<00:12, 476.12frames/s]  Detected: 17 | Progress:  19%|█▉        | 1453/7573 [00:02<00:12, 487.98frames/s]  Detected: 17 | Progress:  20%|█▉        | 1505/7573 [00:03<00:12, 492.36frames/s]  Detected: 18 | Progress:  21%|██        | 1561/7573 [00:03<00:11, 510.47frames/s]  Detected: 19 | Progress:  21%|██▏       | 1613/7573 [00:03<00:11, 512.63frames/s]  Detected: 19 | Progress:  22%|██▏       | 1672/7573 [00:03<00:11, 533.75frames/s]  Detected: 20 | Progress:  23%|██▎       | 1726/7573 [00:03<00:11, 515.47frames/s]  Detected: 20 | Progress:  23%|██▎       | 1779/7573 [00:03<00:11, 518.11frames/s]  Detected: 21 | Progress:  24%|██▍       | 1835/7573 [00:03<00:10, 528.13frames/s]  Detected: 22 | Progress:  25%|██▍       | 1888/7573 [00:03<00:11, 500.36frames/s]  Detected: 22 | Progress:  26%|██▌       | 1944/7573 [00:03<00:10, 516.88frames/s]  Detected: 23 | Progress:  26%|██▋       | 1997/7573 [00:04<00:11, 497.07frames/s]  Detected: 24 | Progress:  27%|██▋       | 2058/7573 [00:04<00:10, 527.70frames/s]  Detected: 25 | Progress:  28%|██▊       | 2116/7573 [00:04<00:10, 541.94frames/s]  Detected: 25 | Progress:  29%|██▊       | 2173/7573 [00:04<00:09, 548.31frames/s]  Detected: 26 | Progress:  30%|██▉       | 2237/7573 [00:04<00:09, 573.35frames/s]  Detected: 28 | Progress:  30%|███       | 2303/7573 [00:04<00:08, 597.31frames/s]  Detected: 29 | Progress:  31%|███       | 2365/7573 [00:04<00:08, 603.97frames/s]  Detected: 30 | Progress:  32%|███▏      | 2426/7573 [00:04<00:08, 578.26frames/s]  Detected: 31 | Progress:  33%|███▎      | 2485/7573 [00:04<00:09, 532.60frames/s]  Detected: 31 | Progress:  34%|███▎      | 2540/7573 [00:04<00:09, 531.14frames/s]  Detected: 32 | Progress:  34%|███▍      | 2594/7573 [00:05<00:09, 528.20frames/s]  Detected: 34 | Progress:  35%|███▍      | 2648/7573 [00:05<00:09, 513.21frames/s]  Detected: 34 | Progress:  36%|███▌      | 2700/7573 [00:05<00:09, 499.59frames/s]  Detected: 35 | Progress:  36%|███▋      | 2757/7573 [00:05<00:09, 517.99frames/s]  Detected: 36 | Progress:  37%|███▋      | 2812/7573 [00:05<00:09, 523.73frames/s]  Detected: 37 | Progress:  38%|███▊      | 2865/7573 [00:05<00:08, 524.49frames/s]  Detected: 38 | Progress:  39%|███▊      | 2918/7573 [00:05<00:09, 500.24frames/s]  Detected: 38 | Progress:  39%|███▉      | 2969/7573 [00:05<00:09, 497.99frames/s]  Detected: 39 | Progress:  40%|███▉      | 3020/7573 [00:05<00:09, 483.94frames/s]  Detected: 40 | Progress:  41%|████      | 3083/7573 [00:06<00:08, 523.82frames/s]  Detected: 41 | Progress:  41%|████▏     | 3142/7573 [00:06<00:08, 541.22frames/s]  Detected: 42 | Progress:  42%|████▏     | 3197/7573 [00:06<00:08, 527.21frames/s]  Detected: 42 | Progress:  43%|████▎     | 3250/7573 [00:06<00:08, 527.98frames/s]  Detected: 42 | Progress:  44%|████▎     | 3310/7573 [00:06<00:07, 547.42frames/s]  Detected: 43 | Progress:  44%|████▍     | 3368/7573 [00:06<00:07, 554.31frames/s]  Detected: 43 | Progress:  45%|████▌     | 3424/7573 [00:06<00:07, 548.25frames/s]  Detected: 43 | Progress:  46%|████▌     | 3479/7573 [00:06<00:07, 520.23frames/s]  Detected: 44 | Progress:  47%|████▋     | 3532/7573 [00:06<00:07, 522.96frames/s]  Detected: 44 | Progress:  47%|████▋     | 3585/7573 [00:06<00:07, 516.00frames/s]  Detected: 45 | Progress:  48%|████▊     | 3641/7573 [00:07<00:07, 526.90frames/s]  Detected: 46 | Progress:  49%|████▉     | 3695/7573 [00:07<00:07, 527.73frames/s]  Detected: 46 | Progress:  49%|████▉     | 3748/7573 [00:07<00:07, 515.21frames/s]  Detected: 47 | Progress:  50%|█████     | 3800/7573 [00:07<00:08, 462.17frames/s]  Detected: 47 | Progress:  51%|█████     | 3848/7573 [00:07<00:08, 454.71frames/s]  Detected: 48 | Progress:  51%|█████▏    | 3896/7573 [00:07<00:07, 461.41frames/s]  Detected: 49 | Progress:  52%|█████▏    | 3949/7573 [00:07<00:07, 476.37frames/s]  Detected: 50 | Progress:  53%|█████▎    | 3998/7573 [00:07<00:07, 451.43frames/s]  Detected: 51 | Progress:  54%|█████▎    | 4056/7573 [00:07<00:07, 486.16frames/s]  Detected: 52 | Progress:  54%|█████▍    | 4108/7573 [00:08<00:07, 494.35frames/s]  Detected: 54 | Progress:  55%|█████▍    | 4159/7573 [00:08<00:06, 497.58frames/s]  Detected: 55 | Progress:  56%|█████▌    | 4210/7573 [00:08<00:06, 497.61frames/s]  Detected: 55 | Progress:  56%|█████▋    | 4263/7573 [00:08<00:06, 506.39frames/s]  Detected: 56 | Progress:  57%|█████▋    | 4314/7573 [00:08<00:06, 501.32frames/s]  Detected: 57 | Progress:  58%|█████▊    | 4373/7573 [00:08<00:06, 525.94frames/s]  Detected: 57 | Progress:  58%|█████▊    | 4426/7573 [00:08<00:06, 508.11frames/s]  Detected: 58 | Progress:  59%|█████▉    | 4478/7573 [00:08<00:06, 490.39frames/s]  Detected: 58 | Progress:  60%|█████▉    | 4538/7573 [00:08<00:05, 516.73frames/s]  Detected: 59 | Progress:  61%|██████    | 4590/7573 [00:09<00:05, 509.01frames/s]  Detected: 59 | Progress:  61%|██████▏   | 4642/7573 [00:09<00:06, 480.47frames/s]  Detected: 59 | Progress:  62%|██████▏   | 4694/7573 [00:09<00:05, 486.49frames/s]  Detected: 60 | Progress:  63%|██████▎   | 4750/7573 [00:09<00:05, 505.55frames/s]  Detected: 60 | Progress:  63%|██████▎   | 4801/7573 [00:09<00:05, 497.48frames/s]  Detected: 60 | Progress:  64%|██████▍   | 4851/7573 [00:09<00:05, 490.21frames/s]  Detected: 61 | Progress:  65%|██████▍   | 4901/7573 [00:09<00:05, 485.74frames/s]  Detected: 62 | Progress:  65%|██████▌   | 4950/7573 [00:09<00:05, 486.21frames/s]  Detected: 62 | Progress:  66%|██████▌   | 4999/7573 [00:09<00:05, 479.21frames/s]  Detected: 62 | Progress:  67%|██████▋   | 5047/7573 [00:09<00:05, 473.73frames/s]  Detected: 63 | Progress:  67%|██████▋   | 5098/7573 [00:10<00:05, 481.98frames/s]  Detected: 63 | Progress:  68%|██████▊   | 5147/7573 [00:10<00:05, 473.91frames/s]  Detected: 63 | Progress:  69%|██████▊   | 5197/7573 [00:10<00:04, 477.65frames/s]  Detected: 64 | Progress:  69%|██████▉   | 5248/7573 [00:10<00:04, 485.02frames/s]  Detected: 64 | Progress:  70%|██████▉   | 5297/7573 [00:10<00:04, 482.36frames/s]  Detected: 64 | Progress:  71%|███████   | 5352/7573 [00:10<00:04, 499.02frames/s]  Detected: 64 | Progress:  71%|███████▏  | 5405/7573 [00:10<00:04, 506.42frames/s]  Detected: 64 | Progress:  72%|███████▏  | 5456/7573 [00:10<00:05, 411.60frames/s]  Detected: 66 | Progress:  73%|███████▎  | 5520/7573 [00:10<00:04, 469.53frames/s]  Detected: 66 | Progress:  74%|███████▎  | 5576/7573 [00:11<00:04, 493.56frames/s]  Detected: 67 | Progress:  74%|███████▍  | 5631/7573 [00:11<00:03, 505.84frames/s]  Detected: 68 | Progress:  75%|███████▌  | 5684/7573 [00:11<00:03, 508.48frames/s]  Detected: 68 | Progress:  76%|███████▌  | 5737/7573 [00:11<00:03, 503.58frames/s]  Detected: 68 | Progress:  76%|███████▋  | 5789/7573 [00:11<00:03, 506.42frames/s]  Detected: 68 | Progress:  77%|███████▋  | 5841/7573 [00:11<00:03, 507.90frames/s]  Detected: 68 | Progress:  78%|███████▊  | 5893/7573 [00:11<00:03, 475.79frames/s]  Detected: 70 | Progress:  79%|███████▊  | 5963/7573 [00:11<00:02, 537.26frames/s]  Detected: 70 | Progress:  80%|███████▉  | 6031/7573 [00:11<00:02, 577.38frames/s]  Detected: 71 | Progress:  81%|████████  | 6098/7573 [00:12<00:02, 602.80frames/s]  Detected: 72 | Progress:  81%|████████▏ | 6159/7573 [00:12<00:02, 593.43frames/s]  Detected: 74 | Progress:  82%|████████▏ | 6219/7573 [00:12<00:02, 594.96frames/s]  Detected: 74 | Progress:  83%|████████▎ | 6279/7573 [00:12<00:02, 574.99frames/s]  Detected: 75 | Progress:  84%|████████▍ | 6343/7573 [00:12<00:02, 592.62frames/s]  Detected: 75 | Progress:  85%|████████▍ | 6406/7573 [00:12<00:01, 600.07frames/s]  Detected: 76 | Progress:  85%|████████▌ | 6467/7573 [00:12<00:01, 583.95frames/s]  Detected: 76 | Progress:  86%|████████▌ | 6526/7573 [00:12<00:01, 558.55frames/s]  Detected: 77 | Progress:  87%|████████▋ | 6583/7573 [00:12<00:01, 530.93frames/s]  Detected: 77 | Progress:  88%|████████▊ | 6637/7573 [00:12<00:01, 532.84frames/s]  Detected: 78 | Progress:  88%|████████▊ | 6693/7573 [00:13<00:01, 539.61frames/s]  Detected: 78 | Progress:  89%|████████▉ | 6750/7573 [00:13<00:01, 546.36frames/s]  Detected: 79 | Progress:  90%|████████▉ | 6805/7573 [00:13<00:01, 542.40frames/s]  Detected: 81 | Progress:  91%|█████████ | 6861/7573 [00:13<00:01, 545.84frames/s]  Detected: 81 | Progress:  91%|█████████▏| 6919/7573 [00:13<00:01, 554.92frames/s]  Detected: 82 | Progress:  92%|█████████▏| 6975/7573 [00:13<00:01, 527.54frames/s]  Detected: 83 | Progress:  93%|█████████▎| 7037/7573 [00:13<00:00, 553.18frames/s]  Detected: 83 | Progress:  94%|█████████▎| 7093/7573 [00:13<00:00, 527.83frames/s]  Detected: 83 | Progress:  95%|█████████▍| 7169/7573 [00:13<00:00, 591.55frames/s]  Detected: 86 | Progress:  96%|█████████▌| 7233/7573 [00:14<00:00, 605.00frames/s]  Detected: 87 | Progress:  96%|█████████▋| 7295/7573 [00:14<00:00, 606.42frames/s]  Detected: 89 | Progress:  97%|█████████▋| 7357/7573 [00:14<00:00, 574.24frames/s]  Detected: 91 | Progress:  98%|█████████▊| 7417/7573 [00:14<00:00, 579.37frames/s]  Detected: 91 | Progress:  99%|█████████▊| 7476/7573 [00:14<00:00, 572.61frames/s]  Detected: 92 | Progress: 100%|█████████▉| 7545/7573 [00:14<00:00, 606.09frames/s]  Detected: 92 | Progress: 100%|██████████| 7573/7573 [00:14<00:00, 606.09frames/s]  Detected: 92 | Progress: 100%|██████████| 7573/7573 [00:14<00:00, 518.55frames/s]
-  Scene boundaries: 93
-  Split plan: 30 clips
-  Encoded 30/30 clips in 66s
-  --- 6mZN5BfMR3A: 30 clips ---
-    6mZN5BfMR3A-000.mp4  8.27s
-    6mZN5BfMR3A-001.mp4  8.07s
-    6mZN5BfMR3A-002.mp4  9.43s
-    6mZN5BfMR3A-003.mp4  9.03s
-    6mZN5BfMR3A-004.mp4  8.40s
-    6mZN5BfMR3A-005.mp4  9.73s
-    6mZN5BfMR3A-006.mp4  9.00s
-    6mZN5BfMR3A-007.mp4  7.93s
-    6mZN5BfMR3A-008.mp4  7.73s
-    6mZN5BfMR3A-009.mp4  9.47s
-    6mZN5BfMR3A-010.mp4  9.40s
-    6mZN5BfMR3A-011.mp4  8.57s
-    6mZN5BfMR3A-012.mp4  7.17s
-    6mZN5BfMR3A-013.mp4  7.07s
-    6mZN5BfMR3A-014.mp4  8.97s
-    6mZN5BfMR3A-015.mp4  9.90s
-    6mZN5BfMR3A-016.mp4  6.07s
-    6mZN5BfMR3A-017.mp4  7.07s
-    6mZN5BfMR3A-018.mp4  7.00s
-    6mZN5BfMR3A-019.mp4  6.33s
-    6mZN5BfMR3A-020.mp4  9.33s
-    6mZN5BfMR3A-021.mp4  9.60s
-    6mZN5BfMR3A-022.mp4  5.40s
-    6mZN5BfMR3A-023.mp4  9.43s
-    6mZN5BfMR3A-024.mp4  8.40s
-    6mZN5BfMR3A-025.mp4  7.30s
-    6mZN5BfMR3A-026.mp4  8.60s
-    6mZN5BfMR3A-027.mp4  8.43s
-    6mZN5BfMR3A-028.mp4  9.63s
-    6mZN5BfMR3A-029.mp4  11.76s  *** VIOLATION >10s
-  WARNING: 1 clips outside range!
-
-SANITY COMPLETE
-
-=== Auto-uploading clips to HuggingFace ===
-SANITY MODE: Uploading 3 clips
-Repository: https://huggingface.co/datasets/anonymousML123/walkindia-200k
-Created: README.md
-Preparing clips for upload...
-Prepared 30 clips + 0 metadata.jsonl files
-
-Uploading folder to HuggingFace (this may take a few minutes)...
-Processing Files (0 / 0)      : |          |  0.00B /  0.00B            
-New Data Upload               : |          |  0.00B /  0.00B            [A
-
-  ...drone/6mZN5BfMR3A-000.mp4:   2%|▏         | 19.1kB /  934kB            [A[A
-
-
-  ...drone/6mZN5BfMR3A-001.mp4:   2%|▏         | 13.6kB /  665kB            [A[A[A
-
-
-
-  ...drone/6mZN5BfMR3A-002.mp4:   2%|▏         | 14.3kB /  698kB            [A[A[A[A
-
-
-
-
-  ...drone/6mZN5BfMR3A-003.mp4:   2%|▏         | 17.6kB /  863kB            [A[A[A[A[A
-
-
-
-
-
-  ...drone/6mZN5BfMR3A-004.mp4:   2%|▏         | 14.7kB /  722kB            [A[A[A[A[A[A
-
-
-
-
-
-
-  ...drone/6mZN5BfMR3A-005.mp4:   2%|▏         | 19.1kB /  936kB            [A[A[A[A[A[A[A
-
-
-
-
-
-
-
-  ...drone/6mZN5BfMR3A-006.mp4:   2%|▏         | 16.3kB /  800kB            [A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-  ...drone/6mZN5BfMR3A-007.mp4:   2%|▏         | 15.5kB /  761kB            [A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-  ...drone/6mZN5BfMR3A-008.mp4:   2%|▏         | 10.2kB /  500kB            [A[A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-
-  ...drone/6mZN5BfMR3A-009.mp4:   2%|▏         | 19.9kB /  973kB            [A[A[A[A[A[A[A[A[A[A[A
-
-  ...drone/6mZN5BfMR3A-000.mp4:   2%|▏         | 19.1kB /  934kB            [A[A
-
-
-  ...drone/6mZN5BfMR3A-001.mp4:   2%|▏         | 13.6kB /  665kB            [A[A[A
-
-
-
-  ...drone/6mZN5BfMR3A-002.mp4:   2%|▏         | 14.3kB /  698kB            [A[A[A[A
-
-
-
-
-  ...drone/6mZN5BfMR3A-003.mp4:   2%|▏         | 17.6kB /  863kB            [A[A[A[A[A
-
-
-
-
-
-  ...drone/6mZN5BfMR3A-004.mp4:   2%|▏         | 14.7kB /  722kB            [A[A[A[A[A[A
-
-
-
-
-
-
-  ...drone/6mZN5BfMR3A-005.mp4:   2%|▏         | 19.1kB /  936kB            [A[A[A[A[A[A[A
-
-
-
-
-
-
-
-  ...drone/6mZN5BfMR3A-006.mp4:   2%|▏         | 16.3kB /  800kB            [A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-  ...drone/6mZN5BfMR3A-007.mp4:   2%|▏         | 15.5kB /  761kB            [A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-  ...drone/6mZN5BfMR3A-008.mp4:   2%|▏         | 10.2kB /  500kB            [A[A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-
-  [+ 20 files]                :   2%|▏         |  387kB / 19.0MB            [A[A[A[A[A[A[A[A[A[A[AProcessing Files (0 / 30)     :   2%|▏         |  528kB / 25.8MB,  878kB/s  
-New Data Upload               :   2%|▏         |  528kB / 25.8MB,  878kB/s  [A
-
-  ...drone/6mZN5BfMR3A-000.mp4:   2%|▏         | 19.1kB /  934kB            [A[A
-
-
-  ...drone/6mZN5BfMR3A-001.mp4:   2%|▏         | 13.6kB /  665kB            [A[A[A
-
-
-
-  ...drone/6mZN5BfMR3A-002.mp4:   2%|▏         | 14.3kB /  698kB            [A[A[A[A
-
-
-
-
-  ...drone/6mZN5BfMR3A-003.mp4:   2%|▏         | 17.6kB /  863kB            [A[A[A[A[A
-
-
-
-
-
-  ...drone/6mZN5BfMR3A-004.mp4:   2%|▏         | 14.7kB /  722kB            [A[A[A[A[A[A
-
-
-
-
-
-
-  ...drone/6mZN5BfMR3A-005.mp4:   2%|▏         | 19.1kB /  936kB            [A[A[A[A[A[A[A
-
-
-
-
-
-
-
-  ...drone/6mZN5BfMR3A-006.mp4:   2%|▏         | 16.3kB /  800kB            [A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-  ...drone/6mZN5BfMR3A-007.mp4:   2%|▏         | 15.5kB /  761kB            [A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-  ...drone/6mZN5BfMR3A-008.mp4:   2%|▏         | 10.2kB /  500kB            [A[A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-
-  [+ 20 files]                :   2%|▏         |  387kB / 19.0MB            [A[A[A[A[A[A[A[A[A[A[A
-
-  ...drone/6mZN5BfMR3A-000.mp4:  10%|█         | 95.3kB /  934kB            [A[A
-
-
-  ...drone/6mZN5BfMR3A-001.mp4:  10%|█         | 67.9kB /  665kB            [A[A[A
-
-
-
-  ...drone/6mZN5BfMR3A-002.mp4:  10%|█         | 71.3kB /  698kB            [A[A[A[A
-
-
-
-
-  ...drone/6mZN5BfMR3A-003.mp4:  10%|█         | 88.1kB /  863kB            [A[A[A[A[A
-
-
-
-
-
-  ...drone/6mZN5BfMR3A-004.mp4:  10%|█         | 73.7kB /  722kB            [A[A[A[A[A[A
-
-
-
-
-
-
-  ...drone/6mZN5BfMR3A-005.mp4:  10%|█         | 95.5kB /  936kB            [A[A[A[A[A[A[A
-
-
-
-
-
-
-
-  ...drone/6mZN5BfMR3A-006.mp4:  10%|█         | 81.6kB /  800kB            [A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-  ...drone/6mZN5BfMR3A-007.mp4:  10%|█         | 77.7kB /  761kB            [A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-  ...drone/6mZN5BfMR3A-008.mp4:  10%|█         | 51.0kB /  500kB            [A[A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-
-  [+ 20 files]                :  10%|█         | 1.94MB / 19.0MB            [A[A[A[A[A[A[A[A[A[A[AProcessing Files (0 / 30)     :  10%|█         | 2.64MB / 25.8MB, 2.64MB/s  
-New Data Upload               :  10%|█         | 2.64MB / 25.8MB, 2.64MB/s  [A
-
-  ...drone/6mZN5BfMR3A-000.mp4:  35%|███▍      |  324kB /  934kB            [A[A
-
-
-  ...drone/6mZN5BfMR3A-001.mp4:  35%|███▍      |  231kB /  665kB            [A[A[A
-
-
-
-  ...drone/6mZN5BfMR3A-002.mp4:  35%|███▍      |  242kB /  698kB            [A[A[A[A
-
-
-
-
-  ...drone/6mZN5BfMR3A-003.mp4:  35%|███▍      |  300kB /  863kB            [A[A[A[A[A
-
-
-
-
-
-  ...drone/6mZN5BfMR3A-004.mp4:  35%|███▍      |  251kB /  722kB            [A[A[A[A[A[A
-
-
-
-
-
-
-  ...drone/6mZN5BfMR3A-005.mp4:  35%|███▍      |  325kB /  936kB            [A[A[A[A[A[A[A
-
-
-
-
-
-
-
-  ...drone/6mZN5BfMR3A-006.mp4:  35%|███▍      |  277kB /  800kB            [A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-  ...drone/6mZN5BfMR3A-007.mp4:  35%|███▍      |  264kB /  761kB            [A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-  ...drone/6mZN5BfMR3A-008.mp4:  35%|███▍      |  173kB /  500kB            [A[A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-
-  [+ 20 files]                :  35%|███▍      | 6.58MB / 19.0MB            [A[A[A[A[A[A[A[A[A[A[AProcessing Files (0 / 30)     :  35%|███▍      | 8.97MB / 25.8MB, 7.48MB/s  
-New Data Upload               :  35%|███▍      | 8.97MB / 25.8MB, 7.48MB/s  [A
-
-  ...drone/6mZN5BfMR3A-000.mp4:  67%|██████▋   |  629kB /  934kB            [A[A
-
-
-  ...drone/6mZN5BfMR3A-001.mp4:  67%|██████▋   |  448kB /  665kB            [A[A[A
-
-
-
-  ...drone/6mZN5BfMR3A-002.mp4:  67%|██████▋   |  470kB /  698kB            [A[A[A[A
-
-
-
-
-  ...drone/6mZN5BfMR3A-003.mp4:  67%|██████▋   |  582kB /  863kB            [A[A[A[A[A
-
-
-
-
-
-  ...drone/6mZN5BfMR3A-004.mp4:  67%|██████▋   |  487kB /  722kB            [A[A[A[A[A[A
-
-
-
-
-
-
-  ...drone/6mZN5BfMR3A-005.mp4:  67%|██████▋   |  631kB /  936kB            [A[A[A[A[A[A[A
-
-
-
-
-
-
-
-  ...drone/6mZN5BfMR3A-006.mp4:  67%|██████▋   |  539kB /  800kB            [A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-  ...drone/6mZN5BfMR3A-007.mp4:  67%|██████▋   |  513kB /  761kB            [A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-  ...drone/6mZN5BfMR3A-008.mp4:  67%|██████▋   |  337kB /  500kB            [A[A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-
-  [+ 20 files]                :  67%|██████▋   | 12.8MB / 19.0MB            [A[A[A[A[A[A[A[A[A[A[AProcessing Files (0 / 30)     :  67%|██████▋   | 17.4MB / 25.8MB, 12.4MB/s  
-New Data Upload               :  67%|██████▋   | 17.4MB / 25.8MB, 12.4MB/s  [A
-
-  ...drone/6mZN5BfMR3A-000.mp4:  98%|█████████▊|  915kB /  934kB            [A[A
-
-
-  ...drone/6mZN5BfMR3A-001.mp4:  98%|█████████▊|  652kB /  665kB            [A[A[A
-
-
-
-  ...drone/6mZN5BfMR3A-002.mp4:  98%|█████████▊|  684kB /  698kB            [A[A[A[A
-
-
-
-
-  ...drone/6mZN5BfMR3A-003.mp4:  98%|█████████▊|  846kB /  863kB            [A[A[A[A[A
-
-
-
-
-
-  ...drone/6mZN5BfMR3A-004.mp4:  98%|█████████▊|  708kB /  722kB            [A[A[A[A[A[A
-
-
-
-
-
-
-  ...drone/6mZN5BfMR3A-005.mp4:  98%|█████████▊|  917kB /  936kB            [A[A[A[A[A[A[A
-
-
-
-
-
-
-
-  ...drone/6mZN5BfMR3A-006.mp4:  98%|█████████▊|  784kB /  800kB            [A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-  ...drone/6mZN5BfMR3A-007.mp4:  98%|█████████▊|  746kB /  761kB            [A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-  ...drone/6mZN5BfMR3A-008.mp4:  98%|█████████▊|  489kB /  500kB            [A[A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-
-  [+ 20 files]                :  98%|█████████▊| 18.6MB / 19.0MB            [A[A[A[A[A[A[A[A[A[A[AProcessing Files (0 / 30)     :  98%|█████████▊| 25.3MB / 25.8MB, 15.8MB/s  
-New Data Upload               :  98%|█████████▊| 25.3MB / 25.8MB, 15.8MB/s  [A
-
-  ...drone/6mZN5BfMR3A-000.mp4:  98%|█████████▊|  915kB /  934kB            [A[A
-
-
-  ...drone/6mZN5BfMR3A-001.mp4:  98%|█████████▊|  652kB /  665kB            [A[A[A
-
-
-
-  ...drone/6mZN5BfMR3A-002.mp4:  98%|█████████▊|  684kB /  698kB            [A[A[A[A
-
-
-
-
-  ...drone/6mZN5BfMR3A-003.mp4:  98%|█████████▊|  846kB /  863kB            [A[A[A[A[A
-
-
-
-
-
-  ...drone/6mZN5BfMR3A-004.mp4:  98%|█████████▊|  708kB /  722kB            [A[A[A[A[A[A
-
-
-
-
-
-
-  ...drone/6mZN5BfMR3A-005.mp4:  98%|█████████▊|  917kB /  936kB            [A[A[A[A[A[A[A
-
-
-
-
-
-
-
-  ...drone/6mZN5BfMR3A-006.mp4:  98%|█████████▊|  784kB /  800kB            [A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-  ...drone/6mZN5BfMR3A-007.mp4:  98%|█████████▊|  746kB /  761kB            [A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-  ...drone/6mZN5BfMR3A-008.mp4:  98%|█████████▊|  489kB /  500kB            [A[A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-
-  [+ 20 files]                :  98%|█████████▊| 18.6MB / 19.0MB            [A[A[A[A[A[A[A[A[A[A[A
-
-  ...drone/6mZN5BfMR3A-000.mp4:  98%|█████████▊|  915kB /  934kB            [A[A
-
-
-  ...drone/6mZN5BfMR3A-001.mp4:  98%|█████████▊|  652kB /  665kB            [A[A[A
-
-
-
-  ...drone/6mZN5BfMR3A-002.mp4:  98%|█████████▊|  684kB /  698kB            [A[A[A[A
-
-
-
-
-  ...drone/6mZN5BfMR3A-003.mp4:  98%|█████████▊|  846kB /  863kB            [A[A[A[A[A
-
-
-
-
-
-  ...drone/6mZN5BfMR3A-004.mp4:  98%|█████████▊|  708kB /  722kB            [A[A[A[A[A[A
-
-
-
-
-
-
-  ...drone/6mZN5BfMR3A-005.mp4:  98%|█████████▊|  917kB /  936kB            [A[A[A[A[A[A[A
-
-
-
-
-
-
-
-  ...drone/6mZN5BfMR3A-006.mp4:  98%|█████████▊|  784kB /  800kB            [A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-  ...drone/6mZN5BfMR3A-007.mp4:  98%|█████████▊|  746kB /  761kB            [A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-  ...drone/6mZN5BfMR3A-008.mp4:  98%|█████████▊|  489kB /  500kB            [A[A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-
-  [+ 20 files]                :  98%|█████████▊| 18.6MB / 19.0MB            [A[A[A[A[A[A[A[A[A[A[A
-
-  ...drone/6mZN5BfMR3A-000.mp4: 100%|██████████|  934kB /  934kB            [A[A
-
-
-  ...drone/6mZN5BfMR3A-001.mp4: 100%|██████████|  665kB /  665kB            [A[A[A
-
-
-
-  ...drone/6mZN5BfMR3A-002.mp4: 100%|██████████|  698kB /  698kB            [A[A[A[A
-
-
-
-
-  ...drone/6mZN5BfMR3A-003.mp4: 100%|██████████|  863kB /  863kB            [A[A[A[A[A
-
-
-
-
-
-  ...drone/6mZN5BfMR3A-004.mp4: 100%|██████████|  722kB /  722kB            [A[A[A[A[A[A
-
-
-
-
-
-
-  ...drone/6mZN5BfMR3A-005.mp4: 100%|██████████|  936kB /  936kB            [A[A[A[A[A[A[A
-
-
-
-
-
-
-
-  ...drone/6mZN5BfMR3A-006.mp4: 100%|██████████|  800kB /  800kB            [A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-  ...drone/6mZN5BfMR3A-007.mp4: 100%|██████████|  761kB /  761kB            [A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-  ...drone/6mZN5BfMR3A-008.mp4: 100%|██████████|  500kB /  500kB            [A[A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-
-  [+ 20 files]                : 100%|██████████| 19.0MB / 19.0MB            [A[A[A[A[A[A[A[A[A[A[AProcessing Files (30 / 30)    : 100%|██████████| 25.8MB / 25.8MB, 11.7MB/s  
-New Data Upload               : 100%|██████████| 25.8MB / 25.8MB, 11.7MB/s  [A
-
-  ...drone/6mZN5BfMR3A-020.mp4: 100%|██████████| 1.31MB / 1.31MB            [A[A
-
-
-  ...drone/6mZN5BfMR3A-021.mp4: 100%|██████████|  805kB /  805kB            [A[A[A
-
-
-
-  ...drone/6mZN5BfMR3A-022.mp4: 100%|██████████|  551kB /  551kB            [A[A[A[A
-
-
-
-
-  ...drone/6mZN5BfMR3A-023.mp4: 100%|██████████| 1.22MB / 1.22MB            [A[A[A[A[A
-
-
-
-
-
-  ...drone/6mZN5BfMR3A-024.mp4: 100%|██████████|  431kB /  431kB            [A[A[A[A[A[A
-
-
-
-
-
-
-  ...drone/6mZN5BfMR3A-025.mp4: 100%|██████████|  646kB /  646kB            [A[A[A[A[A[A[A
-
-
-
-
-
-
-
-  ...drone/6mZN5BfMR3A-026.mp4: 100%|██████████|  869kB /  869kB            [A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-  ...drone/6mZN5BfMR3A-027.mp4: 100%|██████████|  931kB /  931kB            [A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-  ...drone/6mZN5BfMR3A-028.mp4: 100%|██████████|  644kB /  644kB            [A[A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-
-  ...drone/6mZN5BfMR3A-029.mp4: 100%|██████████| 1.13MB / 1.13MB            [A[A[A[A[A[A[A[A[A[A[A
-
-  ...drone/6mZN5BfMR3A-020.mp4: 100%|██████████| 1.31MB / 1.31MB            [A[A
-
-
-  ...drone/6mZN5BfMR3A-021.mp4: 100%|██████████|  805kB /  805kB            [A[A[A
-
-
-
-  ...drone/6mZN5BfMR3A-022.mp4: 100%|██████████|  551kB /  551kB            [A[A[A[A
-
-
-
-
-  ...drone/6mZN5BfMR3A-023.mp4: 100%|██████████| 1.22MB / 1.22MB            [A[A[A[A[A
-
-
-
-
-
-  ...drone/6mZN5BfMR3A-024.mp4: 100%|██████████|  431kB /  431kB            [A[A[A[A[A[A
-
-
-
-
-
-
-  ...drone/6mZN5BfMR3A-025.mp4: 100%|██████████|  646kB /  646kB            [A[A[A[A[A[A[A
-
-
-
-
-
-
-
-  ...drone/6mZN5BfMR3A-026.mp4: 100%|██████████|  869kB /  869kB            [A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-  ...drone/6mZN5BfMR3A-027.mp4: 100%|██████████|  931kB /  931kB            [A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-  ...drone/6mZN5BfMR3A-028.mp4: 100%|██████████|  644kB /  644kB            [A[A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-
-  ...drone/6mZN5BfMR3A-029.mp4: 100%|██████████| 1.13MB / 1.13MB            [A[A[A[A[A[A[A[A[A[A[AProcessing Files (30 / 30)    : 100%|██████████| 25.8MB / 25.8MB, 10.8MB/s  
-New Data Upload               : 100%|██████████| 25.8MB / 25.8MB, 10.8MB/s  
-  ...drone/6mZN5BfMR3A-020.mp4: 100%|██████████| 1.31MB / 1.31MB            
-  ...drone/6mZN5BfMR3A-021.mp4: 100%|██████████|  805kB /  805kB            
-  ...drone/6mZN5BfMR3A-022.mp4: 100%|██████████|  551kB /  551kB            
-  ...drone/6mZN5BfMR3A-023.mp4: 100%|██████████| 1.22MB / 1.22MB            
-  ...drone/6mZN5BfMR3A-024.mp4: 100%|██████████|  431kB /  431kB            
-  ...drone/6mZN5BfMR3A-025.mp4: 100%|██████████|  646kB /  646kB            
-  ...drone/6mZN5BfMR3A-026.mp4: 100%|██████████|  869kB /  869kB            
-  ...drone/6mZN5BfMR3A-027.mp4: 100%|██████████|  931kB /  931kB            
-  ...drone/6mZN5BfMR3A-028.mp4: 100%|██████████|  644kB /  644kB            
-  ...drone/6mZN5BfMR3A-029.mp4: 100%|██████████| 1.13MB / 1.13MB            
-Upload successful!
-
-=== UPLOAD COMPLETE ===
-Uploaded: 30 clips

@@ -51,7 +51,7 @@ checkpoints/
 *.splat
 
 # Logs
-# *.log
+*.log
 # logs/
 
 # Data
