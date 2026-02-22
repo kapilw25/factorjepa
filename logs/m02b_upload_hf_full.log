@@ -1,7408 +1,0 @@
-Found 337 clips
-
-Uploading to: anonymousML123/walkindia-50-clips
-
-Generating README.md...
-Repository: https://huggingface.co/datasets/anonymousML123/walkindia-50-clips
-Created: README.md
-Preparing clips for upload...
-Prepared 337 clips in /var/folders/_n/wqs6gy2s2z95mhp37pm6p79w0000gn/T/tmpy5nyqdpb/clips
-
-Uploading folder to HuggingFace (this may take a few minutes)...
-It seems you are trying to upload a large folder at once. This might take some time and then fail if the folder is too large. For such cases, it is recommended to upload in smaller batches or to use `HfApi().upload_large_folder(...)`/`hf upload-large-folder` instead. For more details, check out https://huggingface.co/docs/huggingface_hub/main/en/guides/upload#upload-a-large-folder.
-Processing Files (0 / 0)      : |          |  0.00B /  0.00B            
-New Data Upload               : |          |  0.00B /  0.00B            [A
-
-  ...001-scene003-chunk000.mp4: 100%|██████████| 2.21MB / 2.21MB            [A[A
-
-
-  ...001-scene002-chunk001.mp4: 100%|██████████| 2.63MB / 2.63MB            [A[A[A
-
-
-
-  ...001-scene002-chunk002.mp4: 100%|██████████| 3.97MB / 3.97MB            [A[A[A[A
-
-
-
-
-  ...001-scene003-chunk001.mp4: 100%|██████████| 3.09MB / 3.09MB            [A[A[A[A[A
-
-
-
-
-
-  ...001-scene002-chunk000.mp4: 100%|██████████| 1.38MB / 1.38MB            [A[A[A[A[A[A
-
-
-
-
-
-
-  ...001-scene003-chunk002.mp4: 100%|██████████| 3.95MB / 3.95MB            [A[A[A[A[A[A[A
-
-
-
-
-
-
-
-  ...001-scene003-chunk004.mp4: 100%|██████████| 1.29MB / 1.29MB            [A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-  ...001-scene002-chunk003.mp4: 100%|██████████| 4.91MB / 4.91MB            [A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-  ...001-scene003-chunk003.mp4: 100%|██████████| 5.17MB / 5.17MB            [A[A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-
-  ...001-scene003-chunk005.mp4: 100%|██████████| 1.65MB / 1.65MB            [A[A[A[A[A[A[A[A[A[A[A
-
-  ...001-scene003-chunk000.mp4: 100%|██████████| 2.21MB / 2.21MB            [A[A
-
-
-  ...001-scene002-chunk001.mp4: 100%|██████████| 2.63MB / 2.63MB            [A[A[A
-
-
-
-  ...001-scene002-chunk002.mp4: 100%|██████████| 3.97MB / 3.97MB            [A[A[A[A
-
-
-
-
-  ...001-scene003-chunk001.mp4: 100%|██████████| 3.09MB / 3.09MB            [A[A[A[A[A
-
-
-
-
-
-  ...001-scene002-chunk000.mp4: 100%|██████████| 1.38MB / 1.38MB            [A[A[A[A[A[A
-
-
-
-
-
-
-  ...001-scene003-chunk002.mp4: 100%|██████████| 3.95MB / 3.95MB            [A[A[A[A[A[A[A
-
-
-
-
-
-
-
-  ...001-scene003-chunk004.mp4: 100%|██████████| 1.29MB / 1.29MB            [A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-  ...001-scene002-chunk003.mp4: 100%|██████████| 4.91MB / 4.91MB            [A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-  ...001-scene003-chunk003.mp4: 100%|██████████| 5.17MB / 5.17MB            [A[A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-
-  [+ 8 files]                 : 100%|██████████| 26.0MB / 26.0MB            [A[A[A[A[A[A[A[A[A[A[AProcessing Files (18 / 18)    :   5%|▍         | 54.6MB / 1.12GB,   ???B/s  
-
-  ...001-scene003-chunk003.mp4: 100%|██████████| 5.17MB / 5.17MB            [A[A
-
-
-  ...001-scene003-chunk005.mp4: 100%|██████████| 1.65MB / 1.65MB            [A[A[A
-
-
-
-  ...001-scene003-chunk006.mp4: 100%|██████████| 2.34MB / 2.34MB            [A[A[A[A
-
-
-
-
-  ...001-scene003-chunk007.mp4: 100%|██████████| 2.94MB / 2.94MB            [A[A[A[A[A
-
-
-
-
-
-  ...002-scene000-chunk000.mp4: 100%|██████████| 1.61MB / 1.61MB            [A[A[A[A[A[A
-
-
-
-
-
-
-  ...002-scene000-chunk001.mp4: 100%|██████████| 2.35MB / 2.35MB            [A[A[A[A[A[A[A
-
-
-
-
-
-
-
-  ...002-scene000-chunk004.mp4: 100%|██████████| 2.05MB / 2.05MB            [A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-  ...002-scene000-chunk005.mp4: 100%|██████████| 2.63MB / 2.63MB            [A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-  ...002-scene000-chunk006.mp4: 100%|██████████| 4.56MB / 4.56MB            [A[A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-
-  ...002-scene000-chunk007.mp4: 100%|██████████| 5.93MB / 5.93MB            [A[A[A[A[A[A[A[A[A[A[A
-
-  ...001-scene003-chunk003.mp4: 100%|██████████| 5.17MB / 5.17MB            [A[A
-
-
-  ...001-scene003-chunk005.mp4: 100%|██████████| 1.65MB / 1.65MB            [A[A[A
-
-
-
-  ...001-scene003-chunk006.mp4: 100%|██████████| 2.34MB / 2.34MB            [A[A[A[A
-
-
-
-
-  ...001-scene003-chunk007.mp4: 100%|██████████| 2.94MB / 2.94MB            [A[A[A[A[A
-
-
-
-
-
-  ...002-scene000-chunk000.mp4: 100%|██████████| 1.61MB / 1.61MB            [A[A[A[A[A[A
-
-
-
-
-
-
-  ...002-scene000-chunk001.mp4: 100%|██████████| 2.35MB / 2.35MB            [A[A[A[A[A[A[A
-
-
-
-
-
-
-
-  ...002-scene000-chunk004.mp4: 100%|██████████| 2.05MB / 2.05MB            [A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-  ...002-scene000-chunk005.mp4: 100%|██████████| 2.63MB / 2.63MB            [A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-  ...002-scene000-chunk006.mp4: 100%|██████████| 4.56MB / 4.56MB            [A[A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-
-  [+ 10 files]                : 100%|██████████| 36.1MB / 36.1MB            [A[A[A[A[A[A[A[A[A[A[AProcessing Files (28 / 28)    :   8%|▊         | 84.8MB / 1.12GB, 75.6MB/s  
-
-  ...002-scene001-chunk001.mp4: 100%|██████████| 2.87MB / 2.87MB            [A[A
-
-
-  ...002-scene001-chunk000.mp4: 100%|██████████| 5.34MB / 5.34MB            [A[A[A
-
-
-
-  ...002-scene006-chunk007.mp4: 100%|██████████| 3.49MB / 3.49MB            [A[A[A[A
-
-
-
-
-  ...002-scene006-chunk000.mp4: 100%|██████████| 2.93MB / 2.93MB            [A[A[A[A[A
-
-
-
-
-
-  ...002-scene006-chunk001.mp4: 100%|██████████| 3.18MB / 3.18MB            [A[A[A[A[A[A
-
-
-
-
-
-
-  ...002-scene006-chunk002.mp4: 100%|██████████| 3.34MB / 3.34MB            [A[A[A[A[A[A[A
-
-
-
-
-
-
-
-  ...002-scene006-chunk005.mp4: 100%|██████████| 1.17MB / 1.17MB            [A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-  ...002-scene006-chunk003.mp4: 100%|██████████| 4.34MB / 4.34MB            [A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-  ...002-scene006-chunk006.mp4: 100%|██████████| 1.73MB / 1.73MB            [A[A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-
-  [+ 28 files]                :  46%|████▌     | 54.5MB /  118MB            [A[A[A[A[A[A[A[A[A[A[AProcessing Files (40 / 56)    :  12%|█▏        |  138MB / 1.12GB,  138MB/s  
-New Data Upload               :   0%|          |  525kB /  130MB,  876kB/s  [A
-
-  ...wn-Scene-001-scene000.mp4:   1%|          | 6.46kB /  792kB            [A[A
-
-
-  ...001-scene001-chunk000.mp4:   1%|          | 34.5kB / 4.22MB            [A[A[A
-
-
-
-  ...001-scene003-chunk008.mp4:   1%|          | 33.9kB / 4.16MB            [A[A[A[A
-
-
-
-
-  ...001-scene003-chunk009.mp4:   1%|          | 40.2kB / 4.93MB            [A[A[A[A[A
-
-
-
-
-
-  ...002-scene000-chunk002.mp4:   1%|          | 28.7kB / 3.52MB            [A[A[A[A[A[A
-
-
-
-
-
-
-  ...002-scene000-chunk003.mp4:   1%|          | 30.6kB / 3.75MB            [A[A[A[A[A[A[A
-
-
-
-
-
-
-
-  ...002-scene000-chunk008.mp4:   1%|          | 19.1kB / 2.35MB            [A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-  ...002-scene002-chunk000.mp4:   1%|          | 47.2kB / 5.79MB            [A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-  ...002-scene003-chunk000.mp4:   1%|          | 64.4kB / 7.90MB            [A[A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-
-  [+ 54 files]                :  57%|█████▋    |  120MB /  212MB            [A[A[A[A[A[A[A[A[A[A[AProcessing Files (75 / 104)   :  23%|██▎       |  257MB / 1.12GB,  253MB/s  
-New Data Upload               :   1%|          | 1.05MB /  130MB, 1.31MB/s  [A
-
-  ...wn-Scene-001-scene000.mp4:   1%|          | 6.46kB /  792kB            [A[A
-
-
-  ...001-scene001-chunk000.mp4:   1%|          | 34.5kB / 4.22MB            [A[A[A
-
-
-
-  ...001-scene003-chunk008.mp4:   1%|          | 33.9kB / 4.16MB            [A[A[A[A
-
-
-
-
-  ...001-scene003-chunk009.mp4:   1%|          | 40.2kB / 4.93MB            [A[A[A[A[A
-
-
-
-
-
-  ...002-scene000-chunk002.mp4:   1%|          | 28.7kB / 3.52MB            [A[A[A[A[A[A
-
-
-
-
-
-
-  ...002-scene000-chunk003.mp4:   1%|          | 30.6kB / 3.75MB            [A[A[A[A[A[A[A
-
-
-
-
-
-
-
-  ...002-scene000-chunk008.mp4:   1%|          | 19.1kB / 2.35MB            [A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-  ...002-scene002-chunk000.mp4:   1%|          | 47.2kB / 5.79MB            [A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-  ...002-scene003-chunk000.mp4:   1%|          | 64.4kB / 7.90MB            [A[A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-
-  [+ 136 files]               :  59%|█████▉    |  231MB /  389MB            [A[A[A[A[A[A[A[A[A[A[AProcessing Files (173 / 221)  :  44%|████▎     |  487MB / 1.12GB,  434MB/s  
-New Data Upload               :   1%|          | 1.57MB /  197MB, 1.58MB/s  [A
-
-  ...wn-Scene-001-scene000.mp4:   4%|▍         | 32.3kB /  792kB            [A[A
-
-
-  ...001-scene001-chunk000.mp4:   4%|▍         |  172kB / 4.22MB            [A[A[A
-
-
-
-  ...001-scene003-chunk008.mp4:   4%|▍         |  170kB / 4.16MB            [A[A[A[A
-
-
-
-
-  ...001-scene003-chunk009.mp4:   4%|▍         |  201kB / 4.93MB            [A[A[A[A[A
-
-
-
-
-
-  ...002-scene000-chunk002.mp4:   4%|▍         |  144kB / 3.52MB            [A[A[A[A[A[A
-
-
-
-
-
-
-  ...002-scene000-chunk003.mp4:   4%|▍         |  153kB / 3.75MB            [A[A[A[A[A[A[A
-
-
-
-
-
-
-
-  ...002-scene000-chunk008.mp4:   4%|▍         | 95.6kB / 2.35MB            [A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-  ...002-scene002-chunk000.mp4:   4%|▍         |  236kB / 5.79MB            [A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-  ...002-scene003-chunk000.mp4:   4%|▍         |  322kB / 7.90MB            [A[A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-
-  [+ 54 files]                :   2%|▏         | 4.25MB /  224MB            [A[A[A[A[A[A[A[A[A[A[AProcessing Files (173 / 237)  :  44%|████▍     |  492MB / 1.12GB,  364MB/s  
-New Data Upload               :   2%|▏         | 5.77MB /  262MB, 4.81MB/s  [A
-
-  ...wn-Scene-001-scene000.mp4:  11%|█▏        | 90.4kB /  792kB            [A[A
-
-
-  ...001-scene001-chunk000.mp4:  11%|█▏        |  482kB / 4.22MB            [A[A[A
-
-
-
-  ...001-scene003-chunk008.mp4:  11%|█▏        |  475kB / 4.16MB            [A[A[A[A
-
-
-
-
-  ...001-scene003-chunk009.mp4:  11%|█▏        |  562kB / 4.93MB            [A[A[A[A[A
-
-
-
-
-
-  ...002-scene000-chunk002.mp4:  11%|█▏        |  402kB / 3.52MB            [A[A[A[A[A[A
-
-
-
-
-
-
-  ...002-scene000-chunk003.mp4:  11%|█▏        |  429kB / 3.75MB            [A[A[A[A[A[A[A
-
-
-
-
-
-
-
-  ...002-scene000-chunk008.mp4:  11%|█▏        |  268kB / 2.35MB            [A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-  ...002-scene002-chunk000.mp4:  11%|█▏        |  661kB / 5.79MB            [A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-  ...002-scene003-chunk000.mp4:  11%|█▏        |  902kB / 7.90MB            [A[A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-
-  [+ 70 files]                :   4%|▍         | 10.9MB /  291MB            [A[A[A[A[A[A[A[A[A[A[AProcessing Files (173 / 253)  :  45%|████▍     |  501MB / 1.12GB,  319MB/s  
-New Data Upload               :   5%|▍         | 15.2MB /  328MB, 10.9MB/s  [A
-
-  ...wn-Scene-001-scene000.mp4:  19%|█▉        |  149kB /  792kB            [A[A
-
-
-  ...001-scene001-chunk000.mp4:  19%|█▉        |  792kB / 4.22MB            [A[A[A
-
-
-
-  ...001-scene003-chunk008.mp4:  19%|█▉        |  780kB / 4.16MB            [A[A[A[A
-
-
-
-
-  ...001-scene003-chunk009.mp4:  19%|█▉        |  924kB / 4.93MB            [A[A[A[A[A
-
-
-
-
-
-  ...002-scene000-chunk002.mp4:  19%|█▉        |  661kB / 3.52MB            [A[A[A[A[A[A
-
-
-
-
-
-
-  ...002-scene000-chunk003.mp4:  19%|█▉        |  704kB / 3.75MB            [A[A[A[A[A[A[A
-
-
-
-
-
-
-
-  ...002-scene000-chunk008.mp4:  19%|█▉        |  440kB / 2.35MB            [A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-  ...002-scene002-chunk000.mp4:  19%|█▉        | 1.09MB / 5.79MB            [A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-  ...002-scene003-chunk000.mp4:  19%|█▉        | 1.48MB / 7.90MB            [A[A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-
-  [+ 70 files]                :   6%|▌         | 18.2MB /  291MB            [A[A[A[A[A[A[A[A[A[A[AProcessing Files (173 / 253)  :  46%|████▌     |  511MB / 1.12GB,  285MB/s  
-New Data Upload               :   6%|▋         | 25.2MB /  395MB, 15.7MB/s  [A
-
-  ...wn-Scene-001-scene000.mp4:  25%|██▌       |  200kB /  792kB            [A[A
-
-
-  ...001-scene001-chunk000.mp4:  25%|██▌       | 1.07MB / 4.22MB            [A[A[A
-
-
-
-  ...001-scene003-chunk008.mp4:  25%|██▌       | 1.05MB / 4.16MB            [A[A[A[A
-
-
-
-
-  ...001-scene003-chunk009.mp4:  25%|██▌       | 1.25MB / 4.93MB            [A[A[A[A[A
-
-
-
-
-
-  ...002-scene000-chunk002.mp4:  25%|██▌       |  890kB / 3.52MB            [A[A[A[A[A[A
-
-
-
-
-
-
-  ...002-scene000-chunk003.mp4:  25%|██▌       |  949kB / 3.75MB            [A[A[A[A[A[A[A
-
-
-
-
-
-
-
-  ...002-scene000-chunk008.mp4:  25%|██▌       |  593kB / 2.35MB            [A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-  ...002-scene002-chunk000.mp4:  25%|██▌       | 1.46MB / 5.79MB            [A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-  ...002-scene003-chunk000.mp4:  25%|██▌       | 2.00MB / 7.90MB            [A[A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-
-  [+ 90 files]                :   6%|▌         | 21.5MB /  357MB            [A[A[A[A[A[A[A[A[A[A[AProcessing Files (173 / 273)  :  46%|████▋     |  517MB / 1.12GB,  257MB/s  
-New Data Upload               :   8%|▊         | 31.0MB /  395MB, 17.2MB/s  [A
-
-  ...wn-Scene-001-scene000.mp4:  35%|███▌      |  278kB /  792kB            [A[A
-
-
-  ...001-scene001-chunk000.mp4:  35%|███▌      | 1.48MB / 4.22MB            [A[A[A
-
-
-
-  ...001-scene003-chunk008.mp4:  35%|███▌      | 1.46MB / 4.16MB            [A[A[A[A
-
-
-
-
-  ...001-scene003-chunk009.mp4:  35%|███▌      | 1.73MB / 4.93MB            [A[A[A[A[A
-
-
-
-
-
-  ...002-scene000-chunk002.mp4:  35%|███▌      | 1.24MB / 3.52MB            [A[A[A[A[A[A
-
-
-
-
-
-
-  ...002-scene000-chunk003.mp4:  35%|███▌      | 1.32MB / 3.75MB            [A[A[A[A[A[A[A
-
-
-
-
-
-
-
-  ...002-scene000-chunk008.mp4:  35%|███▌      |  822kB / 2.35MB            [A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-  ...002-scene002-chunk000.mp4:  35%|███▌      | 2.03MB / 5.79MB            [A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-  ...002-scene003-chunk000.mp4:  35%|███▌      | 2.77MB / 7.90MB            [A[A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-
-  [+ 106 files]               :   7%|▋         | 29.9MB /  422MB            [A[A[A[A[A[A[A[A[A[A[AProcessing Files (173 / 289)  :  47%|████▋     |  529MB / 1.12GB,  237MB/s  
-New Data Upload               :   9%|▉         | 43.0MB /  460MB, 21.5MB/s  [A
-
-  ...wn-Scene-001-scene000.mp4:  45%|████▍     |  355kB /  792kB            [A[A
-
-
-  ...001-scene001-chunk000.mp4:  45%|████▍     | 1.89MB / 4.22MB            [A[A[A
-
-
-
-  ...001-scene003-chunk008.mp4:  45%|████▍     | 1.87MB / 4.16MB            [A[A[A[A
-
-
-
-
-  ...001-scene003-chunk009.mp4:  45%|████▍     | 2.21MB / 4.93MB            [A[A[A[A[A
-
-
-
-
-
-  ...002-scene000-chunk002.mp4:  45%|████▍     | 1.58MB / 3.52MB            [A[A[A[A[A[A
-
-
-
-
-
-
-  ...002-scene000-chunk003.mp4:  45%|████▍     | 1.68MB / 3.75MB            [A[A[A[A[A[A[A
-
-
-
-
-
-
-
-  ...002-scene000-chunk008.mp4:  45%|████▍     | 1.05MB / 2.35MB            [A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-  ...002-scene002-chunk000.mp4:  45%|████▍     | 2.60MB / 5.79MB            [A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-  ...002-scene003-chunk000.mp4:  45%|████▍     | 3.54MB / 7.90MB            [A[A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-
-  [+ 125 files]               :   8%|▊         | 37.3MB /  489MB            [A[A[A[A[A[A[A[A[A[A[AProcessing Files (173 / 308)  :  48%|████▊     |  540MB / 1.12GB,  221MB/s  
-New Data Upload               :  10%|█         | 54.0MB /  527MB, 24.6MB/s  [A
-
-  ...wn-Scene-001-scene000.mp4:  53%|█████▎    |  420kB /  792kB            [A[A
-
-
-  ...001-scene001-chunk000.mp4:  53%|█████▎    | 2.24MB / 4.22MB            [A[A[A
-
-
-
-  ...001-scene003-chunk008.mp4:  53%|█████▎    | 2.21MB / 4.16MB            [A[A[A[A
-
-
-
-
-  ...001-scene003-chunk009.mp4:  53%|█████▎    | 2.61MB / 4.93MB            [A[A[A[A[A
-
-
-
-
-
-  ...002-scene000-chunk002.mp4:  53%|█████▎    | 1.87MB / 3.52MB            [A[A[A[A[A[A
-
-
-
-
-
-
-  ...002-scene000-chunk003.mp4:  53%|█████▎    | 1.99MB / 3.75MB            [A[A[A[A[A[A[A
-
-
-
-
-
-
-
-  ...002-scene000-chunk008.mp4:  53%|█████▎    | 1.24MB / 2.35MB            [A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-  ...002-scene002-chunk000.mp4:  53%|█████▎    | 3.07MB / 5.79MB            [A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-  ...002-scene003-chunk000.mp4:  53%|█████▎    | 4.19MB / 7.90MB            [A[A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-
-  [+ 125 files]               :   9%|▉         | 45.2MB /  489MB            [A[A[A[A[A[A[A[A[A[A[AProcessing Files (173 / 308)  :  49%|████▉     |  551MB / 1.12GB,  207MB/s  
-New Data Upload               :  11%|█         | 65.1MB /  594MB, 27.1MB/s  [A
-
-  ...wn-Scene-001-scene000.mp4:  55%|█████▌    |  439kB /  792kB            [A[A
-
-
-  ...001-scene001-chunk000.mp4:  55%|█████▌    | 2.34MB / 4.22MB            [A[A[A
-
-
-
-  ...001-scene003-chunk008.mp4:  55%|█████▌    | 2.31MB / 4.16MB            [A[A[A[A
-
-
-
-
-  ...001-scene003-chunk009.mp4:  55%|█████▌    | 2.73MB / 4.93MB            [A[A[A[A[A
-
-
-
-
-
-  ...002-scene000-chunk002.mp4:  55%|█████▌    | 1.95MB / 3.52MB            [A[A[A[A[A[A
-
-
-
-
-
-
-  ...002-scene000-chunk003.mp4:  55%|█████▌    | 2.08MB / 3.75MB            [A[A[A[A[A[A[A
-
-
-
-
-
-
-
-  ...002-scene000-chunk008.mp4:  55%|█████▌    | 1.30MB / 2.35MB            [A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-  ...002-scene002-chunk000.mp4:  55%|█████▌    | 3.21MB / 5.79MB            [A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-  ...002-scene003-chunk000.mp4:  55%|█████▌    | 4.38MB / 7.90MB            [A[A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-
-  [+ 125 files]               :  10%|▉         | 48.0MB /  489MB            [A[A[A[A[A[A[A[A[A[A[AProcessing Files (173 / 308)  :  50%|████▉     |  555MB / 1.12GB,  192MB/s  
-New Data Upload               :  12%|█▏        | 68.7MB /  594MB, 26.4MB/s  [A
-
-  ...wn-Scene-001-scene000.mp4:  62%|██████▏   |  491kB /  792kB            [A[A
-
-
-  ...001-scene001-chunk000.mp4:  62%|██████▏   | 2.62MB / 4.22MB            [A[A[A
-
-
-
-  ...001-scene003-chunk008.mp4:  62%|██████▏   | 2.58MB / 4.16MB            [A[A[A[A
-
-
-
-
-  ...001-scene003-chunk009.mp4:  62%|██████▏   | 3.05MB / 4.93MB            [A[A[A[A[A
-
-
-
-
-
-  ...002-scene000-chunk002.mp4:  62%|██████▏   | 2.18MB / 3.52MB            [A[A[A[A[A[A
-
-
-
-
-
-
-  ...002-scene000-chunk003.mp4:  62%|██████▏   | 2.33MB / 3.75MB            [A[A[A[A[A[A[A
-
-
-
-
-
-
-
-  ...002-scene000-chunk008.mp4:  62%|██████▏   | 1.45MB / 2.35MB            [A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-  ...002-scene002-chunk000.mp4:  62%|██████▏   | 3.59MB / 5.79MB            [A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-  ...002-scene003-chunk000.mp4:  62%|██████▏   | 4.90MB / 7.90MB            [A[A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-
-  [+ 125 files]               :  12%|█▏        | 58.7MB /  489MB            [A[A[A[A[A[A[A[A[A[A[AProcessing Files (173 / 308)  :  51%|█████     |  568MB / 1.12GB,  183MB/s  
-New Data Upload               :  14%|█▍        | 81.8MB /  594MB, 29.2MB/s  [A
-
-  ...wn-Scene-001-scene000.mp4:  66%|██████▌   |  523kB /  792kB            [A[A
-
-
-  ...001-scene001-chunk000.mp4:  66%|██████▌   | 2.79MB / 4.22MB            [A[A[A
-
-
-
-  ...001-scene003-chunk008.mp4:  66%|██████▌   | 2.75MB / 4.16MB            [A[A[A[A
-
-
-
-
-  ...001-scene003-chunk009.mp4:  66%|██████▌   | 3.25MB / 4.93MB            [A[A[A[A[A
-
-
-
-
-
-  ...002-scene000-chunk002.mp4:  66%|██████▌   | 2.33MB / 3.52MB            [A[A[A[A[A[A
-
-
-
-
-
-
-  ...002-scene000-chunk003.mp4:  66%|██████▌   | 2.48MB / 3.75MB            [A[A[A[A[A[A[A
-
-
-
-
-
-
-
-  ...002-scene000-chunk008.mp4:  66%|██████▌   | 1.55MB / 2.35MB            [A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-  ...002-scene002-chunk000.mp4:  66%|██████▌   | 3.82MB / 5.79MB            [A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-  ...002-scene003-chunk000.mp4:  66%|██████▌   | 5.22MB / 7.90MB            [A[A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-
-  [+ 125 files]               :  13%|█▎        | 65.5MB /  489MB            [A[A[A[A[A[A[A[A[A[A[AProcessing Files (173 / 308)  :  52%|█████▏    |  576MB / 1.12GB,  174MB/s  
-New Data Upload               :  15%|█▌        | 90.2MB /  594MB, 30.1MB/s  [A
-
-  ...wn-Scene-001-scene000.mp4:  72%|███████▏  |  568kB /  792kB            [A[A
-
-
-  ...001-scene001-chunk000.mp4:  72%|███████▏  | 3.03MB / 4.22MB            [A[A[A
-
-
-
-  ...001-scene003-chunk008.mp4:  72%|███████▏  | 2.99MB / 4.16MB            [A[A[A[A
-
-
-
-
-  ...001-scene003-chunk009.mp4:  72%|███████▏  | 3.53MB / 4.93MB            [A[A[A[A[A
-
-
-
-
-
-  ...002-scene000-chunk002.mp4:  72%|███████▏  | 2.53MB / 3.52MB            [A[A[A[A[A[A
-
-
-
-
-
-
-  ...002-scene000-chunk003.mp4:  72%|███████▏  | 2.69MB / 3.75MB            [A[A[A[A[A[A[A
-
-
-
-
-
-
-
-  ...002-scene000-chunk008.mp4:  72%|███████▏  | 1.68MB / 2.35MB            [A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-  ...002-scene002-chunk000.mp4:  72%|███████▏  | 4.15MB / 5.79MB            [A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-  ...002-scene003-chunk000.mp4:  72%|███████▏  | 5.67MB / 7.90MB            [A[A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-
-  [+ 125 files]               :  15%|█▍        | 72.3MB /  489MB            [A[A[A[A[A[A[A[A[A[A[AProcessing Files (173 / 308)  :  52%|█████▏    |  585MB / 1.12GB,  166MB/s  
-New Data Upload               :  17%|█▋        | 99.2MB /  594MB, 31.0MB/s  [A
-
-  ...wn-Scene-001-scene000.mp4:  75%|███████▌  |  594kB /  792kB            [A[A
-
-
-  ...001-scene001-chunk000.mp4:  75%|███████▌  | 3.17MB / 4.22MB            [A[A[A
-
-
-
-  ...001-scene003-chunk008.mp4:  75%|███████▌  | 3.12MB / 4.16MB            [A[A[A[A
-
-
-
-
-  ...001-scene003-chunk009.mp4:  75%|███████▌  | 3.70MB / 4.93MB            [A[A[A[A[A
-
-
-
-
-
-  ...002-scene000-chunk002.mp4:  75%|███████▌  | 2.64MB / 3.52MB            [A[A[A[A[A[A
-
-
-
-
-
-
-  ...002-scene000-chunk003.mp4:  75%|███████▌  | 2.82MB / 3.75MB            [A[A[A[A[A[A[A
-
-
-
-
-
-
-
-  ...002-scene000-chunk008.mp4:  75%|███████▌  | 1.76MB / 2.35MB            [A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-  ...002-scene002-chunk000.mp4:  75%|███████▌  | 4.34MB / 5.79MB            [A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-  ...002-scene003-chunk000.mp4:  75%|███████▌  | 5.93MB / 7.90MB            [A[A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-
-  [+ 125 files]               :  16%|█▌        | 78.4MB /  489MB            [A[A[A[A[A[A[A[A[A[A[AProcessing Files (173 / 308)  :  53%|█████▎    |  592MB / 1.12GB,  158MB/s  
-New Data Upload               :  18%|█▊        |  107MB /  594MB, 31.3MB/s  [A
-
-  ...wn-Scene-001-scene000.mp4:  78%|███████▊  |  620kB /  792kB            [A[A
-
-
-  ...001-scene001-chunk000.mp4:  78%|███████▊  | 3.31MB / 4.22MB            [A[A[A
-
-
-
-  ...001-scene003-chunk008.mp4:  78%|███████▊  | 3.26MB / 4.16MB            [A[A[A[A
-
-
-
-
-  ...001-scene003-chunk009.mp4:  78%|███████▊  | 3.86MB / 4.93MB            [A[A[A[A[A
-
-
-
-
-
-  ...002-scene000-chunk002.mp4:  78%|███████▊  | 2.76MB / 3.52MB            [A[A[A[A[A[A
-
-
-
-
-
-
-  ...002-scene000-chunk003.mp4:  78%|███████▊  | 2.94MB / 3.75MB            [A[A[A[A[A[A[A
-
-
-
-
-
-
-
-  ...002-scene000-chunk008.mp4:  78%|███████▊  | 1.84MB / 2.35MB            [A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-  ...002-scene002-chunk000.mp4:  78%|███████▊  | 4.53MB / 5.79MB            [A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-  ...002-scene003-chunk000.mp4:  78%|███████▊  | 6.19MB / 7.90MB            [A[A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-
-  [+ 125 files]               :  17%|█▋        | 83.5MB /  489MB            [A[A[A[A[A[A[A[A[A[A[AProcessing Files (173 / 308)  :  54%|█████▎    |  599MB / 1.12GB,  151MB/s  
-New Data Upload               :  19%|█▉        |  113MB /  594MB, 31.3MB/s  [A
-
-  ...wn-Scene-001-scene000.mp4:  82%|████████▏ |  646kB /  792kB            [A[A
-
-
-  ...001-scene001-chunk000.mp4:  82%|████████▏ | 3.45MB / 4.22MB            [A[A[A
-
-
-
-  ...001-scene003-chunk008.mp4:  82%|████████▏ | 3.39MB / 4.16MB            [A[A[A[A
-
-
-
-
-  ...001-scene003-chunk009.mp4:  82%|████████▏ | 4.02MB / 4.93MB            [A[A[A[A[A
-
-
-
-
-
-  ...002-scene000-chunk002.mp4:  82%|████████▏ | 2.87MB / 3.52MB            [A[A[A[A[A[A
-
-
-
-
-
-
-  ...002-scene000-chunk003.mp4:  82%|████████▏ | 3.06MB / 3.75MB            [A[A[A[A[A[A[A
-
-
-
-
-
-
-
-  ...002-scene000-chunk008.mp4:  82%|████████▏ | 1.91MB / 2.35MB            [A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-  ...002-scene002-chunk000.mp4:  82%|████████▏ | 4.72MB / 5.79MB            [A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-  ...002-scene003-chunk000.mp4:  82%|████████▏ | 6.44MB / 7.90MB            [A[A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-
-  [+ 125 files]               :  19%|█▊        | 91.7MB /  489MB            [A[A[A[A[A[A[A[A[A[A[AProcessing Files (173 / 308)  :  54%|█████▍    |  608MB / 1.12GB,  146MB/s  
-New Data Upload               :  21%|██        |  122MB /  594MB, 32.2MB/s  [A
-
-  ...wn-Scene-001-scene000.mp4:  85%|████████▍ |  672kB /  792kB            [A[A
-
-
-  ...001-scene001-chunk000.mp4:  85%|████████▍ | 3.58MB / 4.22MB            [A[A[A
-
-
-
-  ...001-scene003-chunk008.mp4:  85%|████████▍ | 3.53MB / 4.16MB            [A[A[A[A
-
-
-
-
-  ...001-scene003-chunk009.mp4:  85%|████████▍ | 4.18MB / 4.93MB            [A[A[A[A[A
-
-
-
-
-
-  ...002-scene000-chunk002.mp4:  85%|████████▍ | 2.99MB / 3.52MB            [A[A[A[A[A[A
-
-
-
-
-
-
-  ...002-scene000-chunk003.mp4:  85%|████████▍ | 3.18MB / 3.75MB            [A[A[A[A[A[A[A
-
-
-
-
-
-
-
-  ...002-scene000-chunk008.mp4:  85%|████████▍ | 1.99MB / 2.35MB            [A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-  ...002-scene002-chunk000.mp4:  85%|████████▍ | 4.91MB / 5.79MB            [A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-  ...002-scene003-chunk000.mp4:  85%|████████▍ | 6.70MB / 7.90MB            [A[A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-
-  [+ 125 files]               :  21%|██        |  101MB /  489MB            [A[A[A[A[A[A[A[A[A[A[AProcessing Files (173 / 308)  :  55%|█████▌    |  619MB / 1.12GB,  141MB/s  
-New Data Upload               :  22%|██▏       |  133MB /  594MB, 33.2MB/s  [A
-
-  ...wn-Scene-001-scene000.mp4:  86%|████████▋ |  684kB /  792kB            [A[A
-
-
-  ...001-scene001-chunk000.mp4:  86%|████████▋ | 3.65MB / 4.22MB            [A[A[A
-
-
-
-  ...001-scene003-chunk008.mp4:  86%|████████▋ | 3.60MB / 4.16MB            [A[A[A[A
-
-
-
-
-  ...001-scene003-chunk009.mp4:  86%|████████▋ | 4.26MB / 4.93MB            [A[A[A[A[A
-
-
-
-
-
-  ...002-scene000-chunk002.mp4:  86%|████████▋ | 3.04MB / 3.52MB            [A[A[A[A[A[A
-
-
-
-
-
-
-  ...002-scene000-chunk003.mp4:  86%|████████▋ | 3.25MB / 3.75MB            [A[A[A[A[A[A[A
-
-
-
-
-
-
-
-  ...002-scene000-chunk008.mp4:  86%|████████▋ | 2.03MB / 2.35MB            [A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-  ...002-scene002-chunk000.mp4:  86%|████████▋ | 5.00MB / 5.79MB            [A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-  ...002-scene003-chunk000.mp4:  86%|████████▋ | 6.83MB / 7.90MB            [A[A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-
-  [+ 125 files]               :  22%|██▏       |  108MB /  489MB            [A[A[A[A[A[A[A[A[A[A[AProcessing Files (173 / 308)  :  56%|█████▌    |  626MB / 1.12GB,  136MB/s  
-New Data Upload               :  24%|██▎       |  140MB /  594MB, 33.4MB/s  [A
-
-  ...wn-Scene-001-scene000.mp4:  90%|████████▉ |  710kB /  792kB            [A[A
-
-
-  ...001-scene001-chunk000.mp4:  90%|████████▉ | 3.79MB / 4.22MB            [A[A[A
-
-
-
-  ...001-scene003-chunk008.mp4:  90%|████████▉ | 3.73MB / 4.16MB            [A[A[A[A
-
-
-
-
-  ...001-scene003-chunk009.mp4:  90%|████████▉ | 4.42MB / 4.93MB            [A[A[A[A[A
-
-
-
-
-
-  ...002-scene000-chunk002.mp4:  90%|████████▉ | 3.16MB / 3.52MB            [A[A[A[A[A[A
-
-
-
-
-
-
-  ...002-scene000-chunk003.mp4:  90%|████████▉ | 3.37MB / 3.75MB            [A[A[A[A[A[A[A
-
-
-
-
-
-
-
-  ...002-scene000-chunk008.mp4:  90%|████████▉ | 2.10MB / 2.35MB            [A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-  ...002-scene002-chunk000.mp4:  90%|████████▉ | 5.19MB / 5.79MB            [A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-  ...002-scene003-chunk000.mp4:  90%|████████▉ | 7.09MB / 7.90MB            [A[A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-
-  [+ 125 files]               :  24%|██▎       |  116MB /  489MB            [A[A[A[A[A[A[A[A[A[A[AProcessing Files (173 / 308)  :  57%|█████▋    |  635MB / 1.12GB,  132MB/s  
-New Data Upload               :  25%|██▌       |  150MB /  594MB, 34.0MB/s  [A
-
-  ...wn-Scene-001-scene000.mp4:  93%|█████████▎|  736kB /  792kB            [A[A
-
-
-  ...001-scene001-chunk000.mp4:  93%|█████████▎| 3.93MB / 4.22MB            [A[A[A
-
-
-
-  ...001-scene003-chunk008.mp4:  93%|█████████▎| 3.87MB / 4.16MB            [A[A[A[A
-
-
-
-
-  ...001-scene003-chunk009.mp4:  93%|█████████▎| 4.58MB / 4.93MB            [A[A[A[A[A
-
-
-
-
-
-  ...002-scene000-chunk002.mp4:  93%|█████████▎| 3.27MB / 3.52MB            [A[A[A[A[A[A
-
-
-
-
-
-
-  ...002-scene000-chunk003.mp4:  93%|█████████▎| 3.49MB / 3.75MB            [A[A[A[A[A[A[A
-
-
-
-
-
-
-
-  ...002-scene000-chunk008.mp4:  93%|█████████▎| 2.18MB / 2.35MB            [A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-  ...002-scene002-chunk000.mp4:  93%|█████████▎| 5.38MB / 5.79MB            [A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-  ...002-scene003-chunk000.mp4:  93%|█████████▎| 7.35MB / 7.90MB            [A[A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-
-  [+ 125 files]               :  25%|██▌       |  125MB /  489MB            [A[A[A[A[A[A[A[A[A[A[AProcessing Files (173 / 308)  :  58%|█████▊    |  645MB / 1.12GB,  128MB/s  
-New Data Upload               :  27%|██▋       |  159MB /  594MB, 34.7MB/s  [A
-
-  ...wn-Scene-001-scene000.mp4:  95%|█████████▌|  756kB /  792kB            [A[A
-
-
-  ...001-scene001-chunk000.mp4:  95%|█████████▌| 4.03MB / 4.22MB            [A[A[A
-
-
-
-  ...001-scene003-chunk008.mp4:  95%|█████████▌| 3.97MB / 4.16MB            [A[A[A[A
-
-
-
-
-  ...001-scene003-chunk009.mp4:  95%|█████████▌| 4.70MB / 4.93MB            [A[A[A[A[A
-
-
-
-
-
-  ...002-scene000-chunk002.mp4:  95%|█████████▌| 3.36MB / 3.52MB            [A[A[A[A[A[A
-
-
-
-
-
-
-  ...002-scene000-chunk003.mp4:  95%|█████████▌| 3.58MB / 3.75MB            [A[A[A[A[A[A[A
-
-
-
-
-
-
-
-  ...002-scene000-chunk008.mp4:  95%|█████████▌| 2.24MB / 2.35MB            [A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-  ...002-scene002-chunk000.mp4:  95%|█████████▌| 5.52MB / 5.79MB            [A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-  ...002-scene003-chunk000.mp4:  95%|█████████▌| 7.54MB / 7.90MB            [A[A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-
-  [+ 125 files]               :  27%|██▋       |  133MB /  489MB            [A[A[A[A[A[A[A[A[A[A[AProcessing Files (173 / 308)  :  59%|█████▊    |  655MB / 1.12GB,  125MB/s  
-New Data Upload               :  28%|██▊       |  169MB /  594MB, 35.2MB/s  [A
-
-  ...wn-Scene-001-scene000.mp4:  98%|█████████▊|  775kB /  792kB            [A[A
-
-
-  ...001-scene001-chunk000.mp4:  98%|█████████▊| 4.13MB / 4.22MB            [A[A[A
-
-
-
-  ...001-scene003-chunk008.mp4:  98%|█████████▊| 4.07MB / 4.16MB            [A[A[A[A
-
-
-
-
-  ...001-scene003-chunk009.mp4:  98%|█████████▊| 4.82MB / 4.93MB            [A[A[A[A[A
-
-
-
-
-
-  ...002-scene000-chunk002.mp4:  98%|█████████▊| 3.45MB / 3.52MB            [A[A[A[A[A[A
-
-
-
-
-
-
-  ...002-scene000-chunk003.mp4:  98%|█████████▊| 3.67MB / 3.75MB            [A[A[A[A[A[A[A
-
-
-
-
-
-
-
-  ...002-scene000-chunk008.mp4:  98%|█████████▊| 2.30MB / 2.35MB            [A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-  ...002-scene002-chunk000.mp4:  98%|█████████▊| 5.66MB / 5.79MB            [A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-  ...002-scene003-chunk000.mp4:  98%|█████████▊| 7.73MB / 7.90MB            [A[A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-
-  [+ 125 files]               :  29%|██▉       |  142MB /  489MB            [A[A[A[A[A[A[A[A[A[A[AProcessing Files (173 / 308)  :  60%|█████▉    |  665MB / 1.12GB,  122MB/s  
-New Data Upload               :  30%|███       |  179MB /  594MB, 35.8MB/s  [A
-
-  ...wn-Scene-001-scene000.mp4:  99%|█████████▉|  788kB /  792kB            [A[A
-
-
-  ...001-scene001-chunk000.mp4:  99%|█████████▉| 4.20MB / 4.22MB            [A[A[A
-
-
-
-  ...001-scene003-chunk008.mp4:  99%|█████████▉| 4.14MB / 4.16MB            [A[A[A[A
-
-
-
-
-  ...001-scene003-chunk009.mp4:  99%|█████████▉| 4.90MB / 4.93MB            [A[A[A[A[A
-
-
-
-
-
-  ...002-scene000-chunk002.mp4:  99%|█████████▉| 3.50MB / 3.52MB            [A[A[A[A[A[A
-
-
-
-
-
-
-  ...002-scene000-chunk003.mp4:  99%|█████████▉| 3.74MB / 3.75MB            [A[A[A[A[A[A[A
-
-
-
-
-
-
-
-  ...002-scene000-chunk008.mp4:  99%|█████████▉| 2.33MB / 2.35MB            [A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-  ...002-scene002-chunk000.mp4:  99%|█████████▉| 5.76MB / 5.79MB            [A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-  ...002-scene003-chunk000.mp4:  99%|█████████▉| 7.86MB / 7.90MB            [A[A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-
-  [+ 125 files]               :  31%|███       |  150MB /  489MB            [A[A[A[A[A[A[A[A[A[A[AProcessing Files (173 / 308)  :  60%|██████    |  673MB / 1.12GB,  119MB/s  
-New Data Upload               :  32%|███▏      |  187MB /  594MB, 36.0MB/s  [A
-
-  ...wn-Scene-001-scene000.mp4:  99%|█████████▉|  788kB /  792kB            [A[A
-
-
-  ...001-scene001-chunk000.mp4:  99%|█████████▉| 4.20MB / 4.22MB            [A[A[A
-
-
-
-  ...001-scene003-chunk008.mp4:  99%|█████████▉| 4.14MB / 4.16MB            [A[A[A[A
-
-
-
-
-  ...001-scene003-chunk009.mp4:  99%|█████████▉| 4.90MB / 4.93MB            [A[A[A[A[A
-
-
-
-
-
-  ...002-scene000-chunk002.mp4:  99%|█████████▉| 3.50MB / 3.52MB            [A[A[A[A[A[A
-
-
-
-
-
-
-  ...002-scene000-chunk003.mp4:  99%|█████████▉| 3.74MB / 3.75MB            [A[A[A[A[A[A[A
-
-
-
-
-
-
-
-  ...002-scene000-chunk008.mp4:  99%|█████████▉| 2.33MB / 2.35MB            [A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-  ...002-scene002-chunk000.mp4:  99%|█████████▉| 5.76MB / 5.79MB            [A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-  ...002-scene003-chunk000.mp4:  99%|█████████▉| 7.86MB / 7.90MB            [A[A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-
-  [+ 125 files]               :  32%|███▏      |  158MB /  489MB            [A[A[A[A[A[A[A[A[A[A[AProcessing Files (173 / 308)  :  61%|██████    |  681MB / 1.12GB,  116MB/s  
-New Data Upload               :  33%|███▎      |  195MB /  594MB, 36.1MB/s  [A
-
-  ...wn-Scene-001-scene000.mp4:  99%|█████████▉|  788kB /  792kB            [A[A
-
-
-  ...001-scene001-chunk000.mp4:  99%|█████████▉| 4.20MB / 4.22MB            [A[A[A
-
-
-
-  ...001-scene003-chunk008.mp4:  99%|█████████▉| 4.14MB / 4.16MB            [A[A[A[A
-
-
-
-
-  ...001-scene003-chunk009.mp4:  99%|█████████▉| 4.90MB / 4.93MB            [A[A[A[A[A
-
-
-
-
-
-  ...002-scene000-chunk002.mp4:  99%|█████████▉| 3.50MB / 3.52MB            [A[A[A[A[A[A
-
-
-
-
-
-
-  ...002-scene000-chunk003.mp4:  99%|█████████▉| 3.74MB / 3.75MB            [A[A[A[A[A[A[A
-
-
-
-
-
-
-
-  ...002-scene000-chunk008.mp4:  99%|█████████▉| 2.33MB / 2.35MB            [A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-  ...002-scene002-chunk000.mp4:  99%|█████████▉| 5.76MB / 5.79MB            [A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-  ...002-scene003-chunk000.mp4:  99%|█████████▉| 7.86MB / 7.90MB            [A[A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-
-  [+ 125 files]               :  34%|███▍      |  167MB /  489MB            [A[A[A[A[A[A[A[A[A[A[AProcessing Files (173 / 308)  :  62%|██████▏   |  690MB / 1.12GB,  113MB/s  
-New Data Upload               :  34%|███▍      |  204MB /  594MB, 36.4MB/s  [A
-
-  ...wn-Scene-001-scene000.mp4:  99%|█████████▉|  788kB /  792kB            [A[A
-
-
-  ...001-scene001-chunk000.mp4:  99%|█████████▉| 4.20MB / 4.22MB            [A[A[A
-
-
-
-  ...001-scene003-chunk008.mp4:  99%|█████████▉| 4.14MB / 4.16MB            [A[A[A[A
-
-
-
-
-  ...001-scene003-chunk009.mp4:  99%|█████████▉| 4.90MB / 4.93MB            [A[A[A[A[A
-
-
-
-
-
-  ...002-scene000-chunk002.mp4:  99%|█████████▉| 3.50MB / 3.52MB            [A[A[A[A[A[A
-
-
-
-
-
-
-  ...002-scene000-chunk003.mp4:  99%|█████████▉| 3.74MB / 3.75MB            [A[A[A[A[A[A[A
-
-
-
-
-
-
-
-  ...002-scene000-chunk008.mp4:  99%|█████████▉| 2.33MB / 2.35MB            [A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-  ...002-scene002-chunk000.mp4:  99%|█████████▉| 5.76MB / 5.79MB            [A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-  ...002-scene003-chunk000.mp4:  99%|█████████▉| 7.86MB / 7.90MB            [A[A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-
-  [+ 125 files]               :  36%|███▌      |  176MB /  489MB            [A[A[A[A[A[A[A[A[A[A[AProcessing Files (173 / 308)  :  63%|██████▎   |  699MB / 1.12GB,  111MB/s  
-New Data Upload               :  36%|███▌      |  213MB /  594MB, 36.7MB/s  [A
-
-  ...wn-Scene-001-scene000.mp4:  99%|█████████▉|  788kB /  792kB            [A[A
-
-
-  ...001-scene001-chunk000.mp4:  99%|█████████▉| 4.20MB / 4.22MB            [A[A[A
-
-
-
-  ...001-scene003-chunk008.mp4:  99%|█████████▉| 4.14MB / 4.16MB            [A[A[A[A
-
-
-
-
-  ...001-scene003-chunk009.mp4:  99%|█████████▉| 4.90MB / 4.93MB            [A[A[A[A[A
-
-
-
-
-
-  ...002-scene000-chunk002.mp4:  99%|█████████▉| 3.50MB / 3.52MB            [A[A[A[A[A[A
-
-
-
-
-
-
-  ...002-scene000-chunk003.mp4:  99%|█████████▉| 3.74MB / 3.75MB            [A[A[A[A[A[A[A
-
-
-
-
-
-
-
-  ...002-scene000-chunk008.mp4:  99%|█████████▉| 2.33MB / 2.35MB            [A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-  ...002-scene002-chunk000.mp4:  99%|█████████▉| 5.76MB / 5.79MB            [A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-  ...002-scene003-chunk000.mp4:  99%|█████████▉| 7.86MB / 7.90MB            [A[A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-
-  [+ 125 files]               :  38%|███▊      |  184MB /  489MB            [A[A[A[A[A[A[A[A[A[A[AProcessing Files (173 / 308)  :  63%|██████▎   |  707MB / 1.12GB,  109MB/s  
-New Data Upload               :  37%|███▋      |  221MB /  594MB, 36.8MB/s  [A
-
-  ...wn-Scene-001-scene000.mp4:  99%|█████████▉|  788kB /  792kB            [A[A
-
-
-  ...001-scene001-chunk000.mp4:  99%|█████████▉| 4.20MB / 4.22MB            [A[A[A
-
-
-
-  ...001-scene003-chunk008.mp4:  99%|█████████▉| 4.14MB / 4.16MB            [A[A[A[A
-
-
-
-
-  ...001-scene003-chunk009.mp4:  99%|█████████▉| 4.90MB / 4.93MB            [A[A[A[A[A
-
-
-
-
-
-  ...002-scene000-chunk002.mp4:  99%|█████████▉| 3.50MB / 3.52MB            [A[A[A[A[A[A
-
-
-
-
-
-
-  ...002-scene000-chunk003.mp4:  99%|█████████▉| 3.74MB / 3.75MB            [A[A[A[A[A[A[A
-
-
-
-
-
-
-
-  ...002-scene000-chunk008.mp4:  99%|█████████▉| 2.33MB / 2.35MB            [A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-  ...002-scene002-chunk000.mp4:  99%|█████████▉| 5.76MB / 5.79MB            [A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-  ...002-scene003-chunk000.mp4:  99%|█████████▉| 7.86MB / 7.90MB            [A[A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-
-  [+ 125 files]               :  39%|███▉      |  192MB /  489MB            [A[A[A[A[A[A[A[A[A[A[AProcessing Files (173 / 308)  :  64%|██████▍   |  715MB / 1.12GB,  107MB/s  
-New Data Upload               :  39%|███▊      |  229MB /  594MB, 37.0MB/s  [A
-
-  ...wn-Scene-001-scene000.mp4: 100%|██████████|  792kB /  792kB            [A[A
-
-
-  ...001-scene001-chunk000.mp4: 100%|██████████| 4.22MB / 4.22MB            [A[A[A
-
-
-
-  ...001-scene003-chunk008.mp4: 100%|██████████| 4.16MB / 4.16MB            [A[A[A[A
-
-
-
-
-  ...001-scene003-chunk009.mp4: 100%|██████████| 4.93MB / 4.93MB            [A[A[A[A[A
-
-
-
-
-
-  ...002-scene000-chunk002.mp4: 100%|██████████| 3.52MB / 3.52MB            [A[A[A[A[A[A
-
-
-
-
-
-
-  ...002-scene000-chunk003.mp4: 100%|██████████| 3.75MB / 3.75MB            [A[A[A[A[A[A[A
-
-
-
-
-
-
-
-  ...002-scene000-chunk008.mp4: 100%|██████████| 2.35MB / 2.35MB            [A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-  ...002-scene002-chunk000.mp4: 100%|██████████| 5.79MB / 5.79MB            [A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-  ...002-scene003-chunk000.mp4: 100%|██████████| 7.90MB / 7.90MB            [A[A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-
-  [+ 145 files]               :  36%|███▌      |  201MB /  557MB            [A[A[A[A[A[A[A[A[A[A[AProcessing Files (189 / 328)  :  65%|██████▍   |  724MB / 1.12GB,  105MB/s  
-New Data Upload               :  38%|███▊      |  239MB /  631MB, 37.3MB/s  [A
-
-  ...002-scene005-chunk001.mp4:  19%|█▉        |  629kB / 3.27MB            [A[A
-
-
-  ...002-scene005-chunk002.mp4:  19%|█▉        | 1.16MB / 6.02MB            [A[A[A
-
-
-
-  ...002-scene005-chunk003.mp4:  19%|█▉        | 1.00MB / 5.22MB            [A[A[A[A
-
-
-
-
-  ...002-scene005-chunk004.mp4:  19%|█▉        | 1.13MB / 5.89MB            [A[A[A[A[A
-
-
-
-
-
-  ...002-scene006-chunk004.mp4:  19%|█▉        |  242kB / 1.26MB            [A[A[A[A[A[A
-
-
-
-
-
-
-  ...002-scene006-chunk008.mp4:  19%|█▉        |  955kB / 4.97MB            [A[A[A[A[A[A[A
-
-
-
-
-
-
-
-  ...002-scene006-chunk009.mp4:  19%|█▉        |  280kB / 1.46MB            [A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-  ...002-scene006-chunk010.mp4:  19%|█▉        |  687kB / 3.58MB            [A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-  ...002-scene007-chunk002.mp4:  19%|█▉        |  714kB / 3.71MB            [A[A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-
-  [+ 129 files]               :  35%|███▌      |  175MB /  494MB            [A[A[A[A[A[A[A[A[A[A[AProcessing Files (189 / 328)  :  66%|██████▌   |  732MB / 1.12GB,  103MB/s  
-New Data Upload               :  39%|███▉      |  246MB /  631MB, 37.3MB/s  [A
-
-  ...002-scene005-chunk001.mp4:  19%|█▉        |  629kB / 3.27MB            [A[A
-
-
-  ...002-scene005-chunk002.mp4:  19%|█▉        | 1.16MB / 6.02MB            [A[A[A
-
-
-
-  ...002-scene005-chunk003.mp4:  19%|█▉        | 1.00MB / 5.22MB            [A[A[A[A
-
-
-
-
-  ...002-scene005-chunk004.mp4:  19%|█▉        | 1.13MB / 5.89MB            [A[A[A[A[A
-
-
-
-
-
-  ...002-scene006-chunk004.mp4:  19%|█▉        |  242kB / 1.26MB            [A[A[A[A[A[A
-
-
-
-
-
-
-  ...002-scene006-chunk008.mp4:  19%|█▉        |  955kB / 4.97MB            [A[A[A[A[A[A[A
-
-
-
-
-
-
-
-  ...002-scene006-chunk009.mp4:  19%|█▉        |  280kB / 1.46MB            [A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-  ...002-scene006-chunk010.mp4:  19%|█▉        |  687kB / 3.58MB            [A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-  ...002-scene007-chunk002.mp4:  19%|█▉        |  714kB / 3.71MB            [A[A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-
-  [+ 129 files]               :  37%|███▋      |  182MB /  494MB            [A[A[A[A[A[A[A[A[A[A[AProcessing Files (189 / 328)  :  66%|██████▌   |  739MB / 1.12GB,  101MB/s  
-New Data Upload               :  40%|████      |  253MB /  631MB, 37.2MB/s  [A
-
-  ...002-scene005-chunk001.mp4:  20%|██        |  655kB / 3.27MB            [A[A
-
-
-  ...002-scene005-chunk002.mp4:  20%|██        | 1.21MB / 6.02MB            [A[A[A
-
-
-
-  ...002-scene005-chunk003.mp4:  20%|██        | 1.04MB / 5.22MB            [A[A[A[A
-
-
-
-
-  ...002-scene005-chunk004.mp4:  20%|██        | 1.18MB / 5.89MB            [A[A[A[A[A
-
-
-
-
-
-  ...002-scene006-chunk004.mp4:  20%|██        |  252kB / 1.26MB            [A[A[A[A[A[A
-
-
-
-
-
-
-  ...002-scene006-chunk008.mp4:  20%|██        |  995kB / 4.97MB            [A[A[A[A[A[A[A
-
-
-
-
-
-
-
-  ...002-scene006-chunk009.mp4:  20%|██        |  292kB / 1.46MB            [A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-  ...002-scene006-chunk010.mp4:  20%|██        |  716kB / 3.58MB            [A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-  ...002-scene007-chunk002.mp4:  20%|██        |  743kB / 3.71MB            [A[A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-
-  [+ 129 files]               :  39%|███▊      |  191MB /  494MB            [A[A[A[A[A[A[A[A[A[A[AProcessing Files (189 / 328)  :  67%|██████▋   |  749MB / 1.12GB, 99.2MB/s  
-New Data Upload               :  42%|████▏     |  263MB /  631MB, 37.5MB/s  [A
-
-  ...002-scene005-chunk001.mp4:  20%|██        |  655kB / 3.27MB            [A[A
-
-
-  ...002-scene005-chunk002.mp4:  20%|██        | 1.21MB / 6.02MB            [A[A[A
-
-
-
-  ...002-scene005-chunk003.mp4:  20%|██        | 1.04MB / 5.22MB            [A[A[A[A
-
-
-
-
-  ...002-scene005-chunk004.mp4:  20%|██        | 1.18MB / 5.89MB            [A[A[A[A[A
-
-
-
-
-
-  ...002-scene006-chunk004.mp4:  20%|██        |  252kB / 1.26MB            [A[A[A[A[A[A
-
-
-
-
-
-
-  ...002-scene006-chunk008.mp4:  20%|██        |  995kB / 4.97MB            [A[A[A[A[A[A[A
-
-
-
-
-
-
-
-  ...002-scene006-chunk009.mp4:  20%|██        |  292kB / 1.46MB            [A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-  ...002-scene006-chunk010.mp4:  20%|██        |  716kB / 3.58MB            [A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-  ...002-scene007-chunk002.mp4:  20%|██        |  743kB / 3.71MB            [A[A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-
-  [+ 138 files]               :  38%|███▊      |  201MB /  531MB            [A[A[A[A[A[A[A[A[A[A[AProcessing Files (205 / 337)  :  68%|██████▊   |  758MB / 1.12GB, 97.7MB/s  
-New Data Upload               :  43%|████▎     |  272MB /  631MB, 37.8MB/s  [A
-
-  ...002-scene005-chunk001.mp4:  20%|██        |  655kB / 3.27MB            [A[A
-
-
-  ...002-scene005-chunk002.mp4:  20%|██        | 1.21MB / 6.02MB            [A[A[A
-
-
-
-  ...002-scene005-chunk003.mp4:  20%|██        | 1.04MB / 5.22MB            [A[A[A[A
-
-
-
-
-  ...002-scene005-chunk004.mp4:  20%|██        | 1.18MB / 5.89MB            [A[A[A[A[A
-
-
-
-
-
-  ...002-scene006-chunk004.mp4:  20%|██        |  252kB / 1.26MB            [A[A[A[A[A[A
-
-
-
-
-
-
-  ...002-scene006-chunk008.mp4:  20%|██        |  995kB / 4.97MB            [A[A[A[A[A[A[A
-
-
-
-
-
-
-
-  ...002-scene006-chunk009.mp4:  20%|██        |  292kB / 1.46MB            [A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-  ...002-scene006-chunk010.mp4:  20%|██        |  716kB / 3.58MB            [A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-  ...002-scene007-chunk002.mp4:  20%|██        |  743kB / 3.71MB            [A[A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-
-  [+ 122 files]               :  31%|███       |  142MB /  466MB            [A[A[A[A[A[A[A[A[A[A[AProcessing Files (205 / 337)  :  69%|██████▊   |  765MB / 1.12GB, 96.0MB/s  
-New Data Upload               :  44%|████▍     |  279MB /  631MB, 37.7MB/s  [A
-
-  ...002-scene005-chunk001.mp4:  20%|██        |  655kB / 3.27MB            [A[A
-
-
-  ...002-scene005-chunk002.mp4:  20%|██        | 1.21MB / 6.02MB            [A[A[A
-
-
-
-  ...002-scene005-chunk003.mp4:  20%|██        | 1.04MB / 5.22MB            [A[A[A[A
-
-
-
-
-  ...002-scene005-chunk004.mp4:  20%|██        | 1.18MB / 5.89MB            [A[A[A[A[A
-
-
-
-
-
-  ...002-scene006-chunk004.mp4:  20%|██        |  252kB / 1.26MB            [A[A[A[A[A[A
-
-
-
-
-
-
-  ...002-scene006-chunk008.mp4:  20%|██        |  995kB / 4.97MB            [A[A[A[A[A[A[A
-
-
-
-
-
-
-
-  ...002-scene006-chunk009.mp4:  20%|██        |  292kB / 1.46MB            [A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-  ...002-scene006-chunk010.mp4:  20%|██        |  716kB / 3.58MB            [A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-  ...002-scene007-chunk002.mp4:  20%|██        |  743kB / 3.71MB            [A[A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-
-  [+ 122 files]               :  32%|███▏      |  151MB /  466MB            [A[A[A[A[A[A[A[A[A[A[AProcessing Files (205 / 337)  :  69%|██████▉   |  774MB / 1.12GB, 94.7MB/s  
-New Data Upload               :  46%|████▌     |  288MB /  631MB, 37.9MB/s  [A
-
-  ...002-scene005-chunk001.mp4:  21%|██        |  681kB / 3.27MB            [A[A
-
-
-  ...002-scene005-chunk002.mp4:  21%|██        | 1.25MB / 6.02MB            [A[A[A
-
-
-
-  ...002-scene005-chunk003.mp4:  21%|██        | 1.09MB / 5.22MB            [A[A[A[A
-
-
-
-
-  ...002-scene005-chunk004.mp4:  21%|██        | 1.23MB / 5.89MB            [A[A[A[A[A
-
-
-
-
-
-  ...002-scene006-chunk004.mp4:  21%|██        |  262kB / 1.26MB            [A[A[A[A[A[A
-
-
-
-
-
-
-  ...002-scene006-chunk008.mp4:  21%|██        | 1.03MB / 4.97MB            [A[A[A[A[A[A[A
-
-
-
-
-
-
-
-  ...002-scene006-chunk009.mp4:  21%|██        |  304kB / 1.46MB            [A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-  ...002-scene006-chunk010.mp4:  21%|██        |  745kB / 3.58MB            [A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-  ...002-scene007-chunk002.mp4:  21%|██        |  773kB / 3.71MB            [A[A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-
-  [+ 122 files]               :  35%|███▍      |  161MB /  466MB            [A[A[A[A[A[A[A[A[A[A[AProcessing Files (205 / 337)  :  70%|███████   |  784MB / 1.12GB, 93.5MB/s  
-New Data Upload               :  47%|████▋     |  298MB /  631MB, 38.2MB/s  [A
-
-  ...002-scene005-chunk001.mp4:  21%|██        |  681kB / 3.27MB            [A[A
-
-
-  ...002-scene005-chunk002.mp4:  21%|██        | 1.25MB / 6.02MB            [A[A[A
-
-
-
-  ...002-scene005-chunk003.mp4:  21%|██        | 1.09MB / 5.22MB            [A[A[A[A
-
-
-
-
-  ...002-scene005-chunk004.mp4:  21%|██        | 1.23MB / 5.89MB            [A[A[A[A[A
-
-
-
-
-
-  ...002-scene006-chunk004.mp4:  21%|██        |  262kB / 1.26MB            [A[A[A[A[A[A
-
-
-
-
-
-
-  ...002-scene006-chunk008.mp4:  21%|██        | 1.03MB / 4.97MB            [A[A[A[A[A[A[A
-
-
-
-
-
-
-
-  ...002-scene006-chunk009.mp4:  21%|██        |  304kB / 1.46MB            [A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-  ...002-scene006-chunk010.mp4:  21%|██        |  745kB / 3.58MB            [A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-  ...002-scene007-chunk002.mp4:  21%|██        |  773kB / 3.71MB            [A[A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-
-  [+ 122 files]               :  36%|███▋      |  169MB /  466MB            [A[A[A[A[A[A[A[A[A[A[AProcessing Files (205 / 337)  :  71%|███████   |  792MB / 1.12GB, 92.2MB/s  
-New Data Upload               :  48%|████▊     |  306MB /  631MB, 38.2MB/s  [A
-
-  ...002-scene005-chunk001.mp4:  22%|██▏       |  707kB / 3.27MB            [A[A
-
-
-  ...002-scene005-chunk002.mp4:  22%|██▏       | 1.30MB / 6.02MB            [A[A[A
-
-
-
-  ...002-scene005-chunk003.mp4:  22%|██▏       | 1.13MB / 5.22MB            [A[A[A[A
-
-
-
-
-  ...002-scene005-chunk004.mp4:  22%|██▏       | 1.27MB / 5.89MB            [A[A[A[A[A
-
-
-
-
-
-  ...002-scene006-chunk004.mp4:  22%|██▏       |  272kB / 1.26MB            [A[A[A[A[A[A
-
-
-
-
-
-
-  ...002-scene006-chunk008.mp4:  22%|██▏       | 1.07MB / 4.97MB            [A[A[A[A[A[A[A
-
-
-
-
-
-
-
-  ...002-scene006-chunk009.mp4:  22%|██▏       |  315kB / 1.46MB            [A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-  ...002-scene006-chunk010.mp4:  22%|██▏       |  773kB / 3.58MB            [A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-  ...002-scene007-chunk002.mp4:  22%|██▏       |  803kB / 3.71MB            [A[A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-
-  [+ 122 files]               :  38%|███▊      |  177MB /  466MB            [A[A[A[A[A[A[A[A[A[A[AProcessing Files (221 / 337)  :  72%|███████▏  |  800MB / 1.12GB, 90.9MB/s  
-New Data Upload               :  50%|████▉     |  314MB /  631MB, 38.3MB/s  [A
-
-  ...002-scene005-chunk001.mp4:  22%|██▏       |  707kB / 3.27MB            [A[A
-
-
-  ...002-scene005-chunk002.mp4:  22%|██▏       | 1.30MB / 6.02MB            [A[A[A
-
-
-
-  ...002-scene005-chunk003.mp4:  22%|██▏       | 1.13MB / 5.22MB            [A[A[A[A
-
-
-
-
-  ...002-scene005-chunk004.mp4:  22%|██▏       | 1.27MB / 5.89MB            [A[A[A[A[A
-
-
-
-
-
-  ...002-scene006-chunk004.mp4:  22%|██▏       |  272kB / 1.26MB            [A[A[A[A[A[A
-
-
-
-
-
-
-  ...002-scene006-chunk008.mp4:  22%|██▏       | 1.07MB / 4.97MB            [A[A[A[A[A[A[A
-
-
-
-
-
-
-
-  ...002-scene006-chunk009.mp4:  22%|██▏       |  315kB / 1.46MB            [A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-  ...002-scene006-chunk010.mp4:  22%|██▏       |  773kB / 3.58MB            [A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-  ...002-scene007-chunk002.mp4:  22%|██▏       |  803kB / 3.71MB            [A[A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-
-  [+ 106 files]               :  30%|██▉       |  119MB /  399MB            [A[A[A[A[A[A[A[A[A[A[AProcessing Files (221 / 337)  :  72%|███████▏  |  809MB / 1.12GB, 89.8MB/s  
-New Data Upload               :  51%|█████     |  323MB /  631MB, 38.4MB/s  [A
-
-  ...002-scene005-chunk001.mp4:  22%|██▏       |  707kB / 3.27MB            [A[A
-
-
-  ...002-scene005-chunk002.mp4:  22%|██▏       | 1.30MB / 6.02MB            [A[A[A
-
-
-
-  ...002-scene005-chunk003.mp4:  22%|██▏       | 1.13MB / 5.22MB            [A[A[A[A
-
-
-
-
-  ...002-scene005-chunk004.mp4:  22%|██▏       | 1.27MB / 5.89MB            [A[A[A[A[A
-
-
-
-
-
-  ...002-scene006-chunk004.mp4:  22%|██▏       |  272kB / 1.26MB            [A[A[A[A[A[A
-
-
-
-
-
-
-  ...002-scene006-chunk008.mp4:  22%|██▏       | 1.07MB / 4.97MB            [A[A[A[A[A[A[A
-
-
-
-
-
-
-
-  ...002-scene006-chunk009.mp4:  22%|██▏       |  315kB / 1.46MB            [A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-  ...002-scene006-chunk010.mp4:  22%|██▏       |  773kB / 3.58MB            [A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-  ...002-scene007-chunk002.mp4:  22%|██▏       |  803kB / 3.71MB            [A[A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-
-  [+ 106 files]               :  32%|███▏      |  127MB /  399MB            [A[A[A[A[A[A[A[A[A[A[AProcessing Files (221 / 337)  :  73%|███████▎  |  816MB / 1.12GB, 88.6MB/s  
-New Data Upload               :  52%|█████▏    |  331MB /  631MB, 38.4MB/s  [A
-
-  ...002-scene005-chunk001.mp4:  22%|██▏       |  734kB / 3.27MB            [A[A
-
-
-  ...002-scene005-chunk002.mp4:  22%|██▏       | 1.35MB / 6.02MB            [A[A[A
-
-
-
-  ...002-scene005-chunk003.mp4:  22%|██▏       | 1.17MB / 5.22MB            [A[A[A[A
-
-
-
-
-  ...002-scene005-chunk004.mp4:  22%|██▏       | 1.32MB / 5.89MB            [A[A[A[A[A
-
-
-
-
-
-  ...002-scene006-chunk004.mp4:  22%|██▏       |  282kB / 1.26MB            [A[A[A[A[A[A
-
-
-
-
-
-
-  ...002-scene006-chunk008.mp4:  22%|██▏       | 1.11MB / 4.97MB            [A[A[A[A[A[A[A
-
-
-
-
-
-
-
-  ...002-scene006-chunk009.mp4:  22%|██▏       |  327kB / 1.46MB            [A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-  ...002-scene006-chunk010.mp4:  22%|██▏       |  802kB / 3.58MB            [A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-  ...002-scene007-chunk002.mp4:  22%|██▏       |  832kB / 3.71MB            [A[A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-
-  [+ 106 files]               :  34%|███▍      |  136MB /  399MB            [A[A[A[A[A[A[A[A[A[A[AProcessing Files (221 / 337)  :  74%|███████▍  |  826MB / 1.12GB, 87.6MB/s  
-New Data Upload               :  54%|█████▍    |  340MB /  631MB, 38.6MB/s  [A
-
-  ...002-scene005-chunk001.mp4:  22%|██▏       |  734kB / 3.27MB            [A[A
-
-
-  ...002-scene005-chunk002.mp4:  22%|██▏       | 1.35MB / 6.02MB            [A[A[A
-
-
-
-  ...002-scene005-chunk003.mp4:  22%|██▏       | 1.17MB / 5.22MB            [A[A[A[A
-
-
-
-
-  ...002-scene005-chunk004.mp4:  22%|██▏       | 1.32MB / 5.89MB            [A[A[A[A[A
-
-
-
-
-
-  ...002-scene006-chunk004.mp4:  22%|██▏       |  282kB / 1.26MB            [A[A[A[A[A[A
-
-
-
-
-
-
-  ...002-scene006-chunk008.mp4:  22%|██▏       | 1.11MB / 4.97MB            [A[A[A[A[A[A[A
-
-
-
-
-
-
-
-  ...002-scene006-chunk009.mp4:  22%|██▏       |  327kB / 1.46MB            [A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-  ...002-scene006-chunk010.mp4:  22%|██▏       |  802kB / 3.58MB            [A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-  ...002-scene007-chunk002.mp4:  22%|██▏       |  832kB / 3.71MB            [A[A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-
-  [+ 106 files]               :  36%|███▌      |  142MB /  399MB            [A[A[A[A[A[A[A[A[A[A[AProcessing Files (221 / 337)  :  75%|███████▍  |  832MB / 1.12GB, 86.4MB/s  
-New Data Upload               :  55%|█████▍    |  346MB /  631MB, 38.5MB/s  [A
-
-  ...002-scene005-chunk001.mp4:  23%|██▎       |  760kB / 3.27MB            [A[A
-
-
-  ...002-scene005-chunk002.mp4:  23%|██▎       | 1.40MB / 6.02MB            [A[A[A
-
-
-
-  ...002-scene005-chunk003.mp4:  23%|██▎       | 1.21MB / 5.22MB            [A[A[A[A
-
-
-
-
-  ...002-scene005-chunk004.mp4:  23%|██▎       | 1.37MB / 5.89MB            [A[A[A[A[A
-
-
-
-
-
-  ...002-scene006-chunk004.mp4:  23%|██▎       |  292kB / 1.26MB            [A[A[A[A[A[A
-
-
-
-
-
-
-  ...002-scene006-chunk008.mp4:  23%|██▎       | 1.15MB / 4.97MB            [A[A[A[A[A[A[A
-
-
-
-
-
-
-
-  ...002-scene006-chunk009.mp4:  23%|██▎       |  339kB / 1.46MB            [A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-  ...002-scene006-chunk010.mp4:  23%|██▎       |  830kB / 3.58MB            [A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-  ...002-scene007-chunk002.mp4:  23%|██▎       |  862kB / 3.71MB            [A[A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-
-  [+ 106 files]               :  36%|███▋      |  146MB /  399MB            [A[A[A[A[A[A[A[A[A[A[AProcessing Files (221 / 337)  :  75%|███████▍  |  836MB / 1.12GB, 84.9MB/s  
-New Data Upload               :  55%|█████▌    |  350MB /  631MB, 38.0MB/s  [A
-
-  ...002-scene005-chunk001.mp4:  23%|██▎       |  760kB / 3.27MB            [A[A
-
-
-  ...002-scene005-chunk002.mp4:  23%|██▎       | 1.40MB / 6.02MB            [A[A[A
-
-
-
-  ...002-scene005-chunk003.mp4:  23%|██▎       | 1.21MB / 5.22MB            [A[A[A[A
-
-
-
-
-  ...002-scene005-chunk004.mp4:  23%|██▎       | 1.37MB / 5.89MB            [A[A[A[A[A
-
-
-
-
-
-  ...002-scene006-chunk004.mp4:  23%|██▎       |  292kB / 1.26MB            [A[A[A[A[A[A
-
-
-
-
-
-
-  ...002-scene006-chunk008.mp4:  23%|██▎       | 1.15MB / 4.97MB            [A[A[A[A[A[A[A
-
-
-
-
-
-
-
-  ...002-scene006-chunk009.mp4:  23%|██▎       |  339kB / 1.46MB            [A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-  ...002-scene006-chunk010.mp4:  23%|██▎       |  830kB / 3.58MB            [A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-  ...002-scene007-chunk002.mp4:  23%|██▎       |  862kB / 3.71MB            [A[A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-
-  [+ 106 files]               :  38%|███▊      |  150MB /  399MB            [A[A[A[A[A[A[A[A[A[A[AProcessing Files (221 / 337)  :  75%|███████▌  |  841MB / 1.12GB, 83.6MB/s  
-New Data Upload               :  56%|█████▌    |  355MB /  631MB, 37.7MB/s  [A
-
-  ...002-scene005-chunk001.mp4:  24%|██▍       |  786kB / 3.27MB            [A[A
-
-
-  ...002-scene005-chunk002.mp4:  24%|██▍       | 1.45MB / 6.02MB            [A[A[A
-
-
-
-  ...002-scene005-chunk003.mp4:  24%|██▍       | 1.25MB / 5.22MB            [A[A[A[A
-
-
-
-
-  ...002-scene005-chunk004.mp4:  24%|██▍       | 1.41MB / 5.89MB            [A[A[A[A[A
-
-
-
-
-
-  ...002-scene006-chunk004.mp4:  24%|██▍       |  302kB / 1.26MB            [A[A[A[A[A[A
-
-
-
-
-
-
-  ...002-scene006-chunk008.mp4:  24%|██▍       | 1.19MB / 4.97MB            [A[A[A[A[A[A[A
-
-
-
-
-
-
-
-  ...002-scene006-chunk009.mp4:  24%|██▍       |  350kB / 1.46MB            [A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-  ...002-scene006-chunk010.mp4:  24%|██▍       |  859kB / 3.58MB            [A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-  ...002-scene007-chunk002.mp4:  24%|██▍       |  892kB / 3.71MB            [A[A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-
-  [+ 106 files]               :  39%|███▉      |  156MB /  399MB            [A[A[A[A[A[A[A[A[A[A[AProcessing Files (230 / 337)  :  76%|███████▌  |  847MB / 1.12GB, 82.5MB/s  
-New Data Upload               :  57%|█████▋    |  361MB /  631MB, 37.6MB/s  [A
-
-  ...002-scene005-chunk001.mp4:  24%|██▍       |  786kB / 3.27MB            [A[A
-
-
-  ...002-scene005-chunk002.mp4:  24%|██▍       | 1.45MB / 6.02MB            [A[A[A
-
-
-
-  ...002-scene005-chunk003.mp4:  24%|██▍       | 1.25MB / 5.22MB            [A[A[A[A
-
-
-
-
-  ...002-scene005-chunk004.mp4:  24%|██▍       | 1.41MB / 5.89MB            [A[A[A[A[A
-
-
-
-
-
-  ...002-scene006-chunk004.mp4:  24%|██▍       |  302kB / 1.26MB            [A[A[A[A[A[A
-
-
-
-
-
-
-  ...002-scene006-chunk008.mp4:  24%|██▍       | 1.19MB / 4.97MB            [A[A[A[A[A[A[A
-
-
-
-
-
-
-
-  ...002-scene006-chunk009.mp4:  24%|██▍       |  350kB / 1.46MB            [A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-  ...002-scene006-chunk010.mp4:  24%|██▍       |  859kB / 3.58MB            [A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-  ...002-scene007-chunk002.mp4:  24%|██▍       |  892kB / 3.71MB            [A[A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-
-  [+ 97 files]                :  34%|███▍      |  124MB /  362MB            [A[A[A[A[A[A[A[A[A[A[AProcessing Files (230 / 337)  :  76%|███████▌  |  851MB / 1.12GB, 81.3MB/s  
-New Data Upload               :  58%|█████▊    |  365MB /  631MB, 37.3MB/s  [A
-
-  ...002-scene005-chunk001.mp4:  25%|██▍       |  812kB / 3.27MB            [A[A
-
-
-  ...002-scene005-chunk002.mp4:  25%|██▍       | 1.50MB / 6.02MB            [A[A[A
-
-
-
-  ...002-scene005-chunk003.mp4:  25%|██▍       | 1.29MB / 5.22MB            [A[A[A[A
-
-
-
-
-  ...002-scene005-chunk004.mp4:  25%|██▍       | 1.46MB / 5.89MB            [A[A[A[A[A
-
-
-
-
-
-  ...002-scene006-chunk004.mp4:  25%|██▍       |  312kB / 1.26MB            [A[A[A[A[A[A
-
-
-
-
-
-
-  ...002-scene006-chunk008.mp4:  25%|██▍       | 1.23MB / 4.97MB            [A[A[A[A[A[A[A
-
-
-
-
-
-
-
-  ...002-scene006-chunk009.mp4:  25%|██▍       |  362kB / 1.46MB            [A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-  ...002-scene006-chunk010.mp4:  25%|██▍       |  888kB / 3.58MB            [A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-  ...002-scene007-chunk002.mp4:  25%|██▍       |  922kB / 3.71MB            [A[A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-
-  [+ 97 files]                :  36%|███▌      |  129MB /  362MB            [A[A[A[A[A[A[A[A[A[A[AProcessing Files (230 / 337)  :  77%|███████▋  |  857MB / 1.12GB, 80.2MB/s  
-New Data Upload               :  59%|█████▉    |  371MB /  631MB, 37.1MB/s  [A
-
-  ...002-scene005-chunk001.mp4:  25%|██▍       |  812kB / 3.27MB            [A[A
-
-
-  ...002-scene005-chunk002.mp4:  25%|██▍       | 1.50MB / 6.02MB            [A[A[A
-
-
-
-  ...002-scene005-chunk003.mp4:  25%|██▍       | 1.29MB / 5.22MB            [A[A[A[A
-
-
-
-
-  ...002-scene005-chunk004.mp4:  25%|██▍       | 1.46MB / 5.89MB            [A[A[A[A[A
-
-
-
-
-
-  ...002-scene006-chunk004.mp4:  25%|██▍       |  312kB / 1.26MB            [A[A[A[A[A[A
-
-
-
-
-
-
-  ...002-scene006-chunk008.mp4:  25%|██▍       | 1.23MB / 4.97MB            [A[A[A[A[A[A[A
-
-
-
-
-
-
-
-  ...002-scene006-chunk009.mp4:  25%|██▍       |  362kB / 1.46MB            [A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-  ...002-scene006-chunk010.mp4:  25%|██▍       |  888kB / 3.58MB            [A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-  ...002-scene007-chunk002.mp4:  25%|██▍       |  922kB / 3.71MB            [A[A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-
-  [+ 97 files]                :  37%|███▋      |  134MB /  362MB            [A[A[A[A[A[A[A[A[A[A[AProcessing Files (230 / 337)  :  77%|███████▋  |  862MB / 1.12GB, 79.1MB/s  
-New Data Upload               :  60%|█████▉    |  376MB /  631MB, 36.9MB/s  [A
-
-  ...002-scene005-chunk001.mp4:  26%|██▌       |  839kB / 3.27MB            [A[A
-
-
-  ...002-scene005-chunk002.mp4:  26%|██▌       | 1.54MB / 6.02MB            [A[A[A
-
-
-
-  ...002-scene005-chunk003.mp4:  26%|██▌       | 1.34MB / 5.22MB            [A[A[A[A
-
-
-
-
-  ...002-scene005-chunk004.mp4:  26%|██▌       | 1.51MB / 5.89MB            [A[A[A[A[A
-
-
-
-
-
-  ...002-scene006-chunk004.mp4:  26%|██▌       |  322kB / 1.26MB            [A[A[A[A[A[A
-
-
-
-
-
-
-  ...002-scene006-chunk008.mp4:  26%|██▌       | 1.27MB / 4.97MB            [A[A[A[A[A[A[A
-
-
-
-
-
-
-
-  ...002-scene006-chunk009.mp4:  26%|██▌       |  374kB / 1.46MB            [A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-  ...002-scene006-chunk010.mp4:  26%|██▌       |  916kB / 3.58MB            [A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-  ...002-scene007-chunk002.mp4:  26%|██▌       |  951kB / 3.71MB            [A[A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-
-  [+ 97 files]                :  38%|███▊      |  139MB /  362MB            [A[A[A[A[A[A[A[A[A[A[AProcessing Files (230 / 337)  :  78%|███████▊  |  867MB / 1.12GB, 79.6MB/s  
-New Data Upload               :  60%|██████    |  381MB /  631MB, 37.4MB/s  [A
-
-  ...002-scene005-chunk001.mp4:  26%|██▋       |  865kB / 3.27MB            [A[A
-
-
-  ...002-scene005-chunk002.mp4:  26%|██▋       | 1.59MB / 6.02MB            [A[A[A
-
-
-
-  ...002-scene005-chunk003.mp4:  26%|██▋       | 1.38MB / 5.22MB            [A[A[A[A
-
-
-
-
-  ...002-scene005-chunk004.mp4:  26%|██▋       | 1.56MB / 5.89MB            [A[A[A[A[A
-
-
-
-
-
-  ...002-scene006-chunk004.mp4:  26%|██▋       |  333kB / 1.26MB            [A[A[A[A[A[A
-
-
-
-
-
-
-  ...002-scene006-chunk008.mp4:  26%|██▋       | 1.31MB / 4.97MB            [A[A[A[A[A[A[A
-
-
-
-
-
-
-
-  ...002-scene006-chunk009.mp4:  26%|██▋       |  385kB / 1.46MB            [A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-  ...002-scene006-chunk010.mp4:  26%|██▋       |  945kB / 3.58MB            [A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-  ...002-scene007-chunk002.mp4:  26%|██▋       |  981kB / 3.71MB            [A[A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-
-  [+ 97 files]                :  40%|███▉      |  145MB /  362MB            [A[A[A[A[A[A[A[A[A[A[AProcessing Files (230 / 337)  :  78%|███████▊  |  873MB / 1.12GB, 77.3MB/s  
-New Data Upload               :  61%|██████▏   |  387MB /  631MB, 38.0MB/s  [A
-
-  ...002-scene005-chunk001.mp4:  26%|██▋       |  865kB / 3.27MB            [A[A
-
-
-  ...002-scene005-chunk002.mp4:  26%|██▋       | 1.59MB / 6.02MB            [A[A[A
-
-
-
-  ...002-scene005-chunk003.mp4:  26%|██▋       | 1.38MB / 5.22MB            [A[A[A[A
-
-
-
-
-  ...002-scene005-chunk004.mp4:  26%|██▋       | 1.56MB / 5.89MB            [A[A[A[A[A
-
-
-
-
-
-  ...002-scene006-chunk004.mp4:  26%|██▋       |  333kB / 1.26MB            [A[A[A[A[A[A
-
-
-
-
-
-
-  ...002-scene006-chunk008.mp4:  26%|██▋       | 1.31MB / 4.97MB            [A[A[A[A[A[A[A
-
-
-
-
-
-
-
-  ...002-scene006-chunk009.mp4:  26%|██▋       |  385kB / 1.46MB            [A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-  ...002-scene006-chunk010.mp4:  26%|██▋       |  945kB / 3.58MB            [A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-  ...002-scene007-chunk002.mp4:  26%|██▋       |  981kB / 3.71MB            [A[A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-
-  [+ 97 files]                :  41%|████▏     |  150MB /  362MB            [A[A[A[A[A[A[A[A[A[A[AProcessing Files (230 / 337)  :  79%|███████▊  |  879MB / 1.12GB, 72.7MB/s  
-New Data Upload               :  62%|██████▏   |  393MB /  631MB, 38.4MB/s  [A
-
-  ...002-scene005-chunk001.mp4:  27%|██▋       |  891kB / 3.27MB            [A[A
-
-
-  ...002-scene005-chunk002.mp4:  27%|██▋       | 1.64MB / 6.02MB            [A[A[A
-
-
-
-  ...002-scene005-chunk003.mp4:  27%|██▋       | 1.42MB / 5.22MB            [A[A[A[A
-
-
-
-
-  ...002-scene005-chunk004.mp4:  27%|██▋       | 1.60MB / 5.89MB            [A[A[A[A[A
-
-
-
-
-
-  ...002-scene006-chunk004.mp4:  27%|██▋       |  343kB / 1.26MB            [A[A[A[A[A[A
-
-
-
-
-
-
-  ...002-scene006-chunk008.mp4:  27%|██▋       | 1.35MB / 4.97MB            [A[A[A[A[A[A[A
-
-
-
-
-
-
-
-  ...002-scene006-chunk009.mp4:  27%|██▋       |  397kB / 1.46MB            [A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-  ...002-scene006-chunk010.mp4:  27%|██▋       |  974kB / 3.58MB            [A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-  ...002-scene007-chunk002.mp4:  27%|██▋       | 1.01MB / 3.71MB            [A[A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-
-  [+ 97 files]                :  43%|████▎     |  155MB /  362MB            [A[A[A[A[A[A[A[A[A[A[AProcessing Files (230 / 337)  :  79%|███████▉  |  884MB / 1.12GB, 61.4MB/s  
-New Data Upload               :  63%|██████▎   |  398MB /  631MB, 38.9MB/s  [A
-
-  ...002-scene005-chunk001.mp4:  27%|██▋       |  891kB / 3.27MB            [A[A
-
-
-  ...002-scene005-chunk002.mp4:  27%|██▋       | 1.64MB / 6.02MB            [A[A[A
-
-
-
-  ...002-scene005-chunk003.mp4:  27%|██▋       | 1.42MB / 5.22MB            [A[A[A[A
-
-
-
-
-  ...002-scene005-chunk004.mp4:  27%|██▋       | 1.60MB / 5.89MB            [A[A[A[A[A
-
-
-
-
-
-  ...002-scene006-chunk004.mp4:  27%|██▋       |  343kB / 1.26MB            [A[A[A[A[A[A
-
-
-
-
-
-
-  ...002-scene006-chunk008.mp4:  27%|██▋       | 1.35MB / 4.97MB            [A[A[A[A[A[A[A
-
-
-
-
-
-
-
-  ...002-scene006-chunk009.mp4:  27%|██▋       |  397kB / 1.46MB            [A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-  ...002-scene006-chunk010.mp4:  27%|██▋       |  974kB / 3.58MB            [A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-  ...002-scene007-chunk002.mp4:  27%|██▋       | 1.01MB / 3.71MB            [A[A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-
-  [+ 97 files]                :  44%|████▍     |  160MB /  362MB            [A[A[A[A[A[A[A[A[A[A[AProcessing Files (230 / 337)  :  80%|███████▉  |  889MB / 1.12GB, 39.4MB/s  
-New Data Upload               :  64%|██████▍   |  403MB /  631MB, 39.4MB/s  [A
-
-  ...002-scene005-chunk001.mp4:  28%|██▊       |  917kB / 3.27MB            [A[A
-
-
-  ...002-scene005-chunk002.mp4:  28%|██▊       | 1.69MB / 6.02MB            [A[A[A
-
-
-
-  ...002-scene005-chunk003.mp4:  28%|██▊       | 1.46MB / 5.22MB            [A[A[A[A
-
-
-
-
-  ...002-scene005-chunk004.mp4:  28%|██▊       | 1.65MB / 5.89MB            [A[A[A[A[A
-
-
-
-
-
-  ...002-scene006-chunk004.mp4:  28%|██▊       |  353kB / 1.26MB            [A[A[A[A[A[A
-
-
-
-
-
-
-  ...002-scene006-chunk008.mp4:  28%|██▊       | 1.39MB / 4.97MB            [A[A[A[A[A[A[A
-
-
-
-
-
-
-
-  ...002-scene006-chunk009.mp4:  28%|██▊       |  409kB / 1.46MB            [A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-  ...002-scene006-chunk010.mp4:  28%|██▊       | 1.00MB / 3.58MB            [A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-  ...002-scene007-chunk002.mp4:  28%|██▊       | 1.04MB / 3.71MB            [A[A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-
-  [+ 97 files]                :  46%|████▌     |  166MB /  362MB            [A[A[A[A[A[A[A[A[A[A[AProcessing Files (230 / 337)  :  80%|████████  |  895MB / 1.12GB, 39.5MB/s  
-New Data Upload               :  65%|██████▍   |  409MB /  631MB, 39.5MB/s  [A
-
-  ...002-scene005-chunk001.mp4:  29%|██▉       |  943kB / 3.27MB            [A[A
-
-
-  ...002-scene005-chunk002.mp4:  29%|██▉       | 1.74MB / 6.02MB            [A[A[A
-
-
-
-  ...002-scene005-chunk003.mp4:  29%|██▉       | 1.50MB / 5.22MB            [A[A[A[A
-
-
-
-
-  ...002-scene005-chunk004.mp4:  29%|██▉       | 1.70MB / 5.89MB            [A[A[A[A[A
-
-
-
-
-
-  ...002-scene006-chunk004.mp4:  29%|██▉       |  363kB / 1.26MB            [A[A[A[A[A[A
-
-
-
-
-
-
-  ...002-scene006-chunk008.mp4:  29%|██▉       | 1.43MB / 4.97MB            [A[A[A[A[A[A[A
-
-
-
-
-
-
-
-  ...002-scene006-chunk009.mp4:  29%|██▉       |  421kB / 1.46MB            [A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-  ...002-scene006-chunk010.mp4:  29%|██▉       | 1.03MB / 3.58MB            [A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-  ...002-scene007-chunk002.mp4:  29%|██▉       | 1.07MB / 3.71MB            [A[A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-
-  [+ 97 files]                :  47%|████▋     |  171MB /  362MB            [A[A[A[A[A[A[A[A[A[A[AProcessing Files (230 / 337)  :  81%|████████  |  901MB / 1.12GB, 39.1MB/s  
-New Data Upload               :  66%|██████▌   |  415MB /  631MB, 39.1MB/s  [A
-
-  ...002-scene005-chunk001.mp4:  29%|██▉       |  943kB / 3.27MB            [A[A
-
-
-  ...002-scene005-chunk002.mp4:  29%|██▉       | 1.74MB / 6.02MB            [A[A[A
-
-
-
-  ...002-scene005-chunk003.mp4:  29%|██▉       | 1.50MB / 5.22MB            [A[A[A[A
-
-
-
-
-  ...002-scene005-chunk004.mp4:  29%|██▉       | 1.70MB / 5.89MB            [A[A[A[A[A
-
-
-
-
-
-  ...002-scene006-chunk004.mp4:  29%|██▉       |  363kB / 1.26MB            [A[A[A[A[A[A
-
-
-
-
-
-
-  ...002-scene006-chunk008.mp4:  29%|██▉       | 1.43MB / 4.97MB            [A[A[A[A[A[A[A
-
-
-
-
-
-
-
-  ...002-scene006-chunk009.mp4:  29%|██▉       |  421kB / 1.46MB            [A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-  ...002-scene006-chunk010.mp4:  29%|██▉       | 1.03MB / 3.58MB            [A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-  ...002-scene007-chunk002.mp4:  29%|██▉       | 1.07MB / 3.71MB            [A[A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-
-  [+ 97 files]                :  49%|████▊     |  176MB /  362MB            [A[A[A[A[A[A[A[A[A[A[AProcessing Files (230 / 337)  :  81%|████████  |  905MB / 1.12GB, 38.6MB/s  
-New Data Upload               :  66%|██████▋   |  419MB /  631MB, 38.6MB/s  [A
-
-  ...002-scene005-chunk001.mp4:  30%|██▉       |  970kB / 3.27MB            [A[A
-
-
-  ...002-scene005-chunk002.mp4:  30%|██▉       | 1.78MB / 6.02MB            [A[A[A
-
-
-
-  ...002-scene005-chunk003.mp4:  30%|██▉       | 1.55MB / 5.22MB            [A[A[A[A
-
-
-
-
-  ...002-scene005-chunk004.mp4:  30%|██▉       | 1.74MB / 5.89MB            [A[A[A[A[A
-
-
-
-
-
-  ...002-scene006-chunk004.mp4:  30%|██▉       |  373kB / 1.26MB            [A[A[A[A[A[A
-
-
-
-
-
-
-  ...002-scene006-chunk008.mp4:  30%|██▉       | 1.47MB / 4.97MB            [A[A[A[A[A[A[A
-
-
-
-
-
-
-
-  ...002-scene006-chunk009.mp4:  30%|██▉       |  432kB / 1.46MB            [A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-  ...002-scene006-chunk010.mp4:  30%|██▉       | 1.06MB / 3.58MB            [A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-  ...002-scene007-chunk002.mp4:  30%|██▉       | 1.10MB / 3.71MB            [A[A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-
-  [+ 97 files]                :  50%|█████     |  182MB /  362MB            [A[A[A[A[A[A[A[A[A[A[AProcessing Files (230 / 337)  :  82%|████████▏ |  911MB / 1.12GB, 38.7MB/s  
-New Data Upload               :  67%|██████▋   |  425MB /  631MB, 38.7MB/s  [A
-
-  ...002-scene005-chunk001.mp4:  30%|███       |  996kB / 3.27MB            [A[A
-
-
-  ...002-scene005-chunk002.mp4:  30%|███       | 1.83MB / 6.02MB            [A[A[A
-
-
-
-  ...002-scene005-chunk003.mp4:  30%|███       | 1.59MB / 5.22MB            [A[A[A[A
-
-
-
-
-  ...002-scene005-chunk004.mp4:  30%|███       | 1.79MB / 5.89MB            [A[A[A[A[A
-
-
-
-
-
-  ...002-scene006-chunk004.mp4:  30%|███       |  383kB / 1.26MB            [A[A[A[A[A[A
-
-
-
-
-
-
-  ...002-scene006-chunk008.mp4:  30%|███       | 1.51MB / 4.97MB            [A[A[A[A[A[A[A
-
-
-
-
-
-
-
-  ...002-scene006-chunk009.mp4:  30%|███       |  444kB / 1.46MB            [A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-  ...002-scene006-chunk010.mp4:  30%|███       | 1.09MB / 3.58MB            [A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-  ...002-scene007-chunk002.mp4:  30%|███       | 1.13MB / 3.71MB            [A[A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-
-  [+ 97 files]                :  51%|█████▏    |  186MB /  362MB            [A[A[A[A[A[A[A[A[A[A[AProcessing Files (230 / 337)  :  82%|████████▏ |  916MB / 1.12GB, 38.0MB/s  
-New Data Upload               :  68%|██████▊   |  430MB /  631MB, 38.0MB/s  [A
-
-  ...002-scene005-chunk001.mp4:  31%|███       | 1.02MB / 3.27MB            [A[A
-
-
-  ...002-scene005-chunk002.mp4:  31%|███       | 1.88MB / 6.02MB            [A[A[A
-
-
-
-  ...002-scene005-chunk003.mp4:  31%|███       | 1.63MB / 5.22MB            [A[A[A[A
-
-
-
-
-  ...002-scene005-chunk004.mp4:  31%|███       | 1.84MB / 5.89MB            [A[A[A[A[A
-
-
-
-
-
-  ...002-scene006-chunk004.mp4:  31%|███       |  393kB / 1.26MB            [A[A[A[A[A[A
-
-
-
-
-
-
-  ...002-scene006-chunk008.mp4:  31%|███       | 1.55MB / 4.97MB            [A[A[A[A[A[A[A
-
-
-
-
-
-
-
-  ...002-scene006-chunk009.mp4:  31%|███       |  456kB / 1.46MB            [A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-  ...002-scene006-chunk010.mp4:  31%|███       | 1.12MB / 3.58MB            [A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-  ...002-scene007-chunk002.mp4:  31%|███       | 1.16MB / 3.71MB            [A[A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-
-  [+ 97 files]                :  52%|█████▏    |  190MB /  362MB            [A[A[A[A[A[A[A[A[A[A[AProcessing Files (230 / 337)  :  82%|████████▏ |  920MB / 1.12GB, 37.3MB/s  
-New Data Upload               :  69%|██████▉   |  434MB /  631MB, 37.3MB/s  [A
-
-  ...002-scene005-chunk001.mp4:  31%|███       | 1.02MB / 3.27MB            [A[A
-
-
-  ...002-scene005-chunk002.mp4:  31%|███       | 1.88MB / 6.02MB            [A[A[A
-
-
-
-  ...002-scene005-chunk003.mp4:  31%|███       | 1.63MB / 5.22MB            [A[A[A[A
-
-
-
-
-  ...002-scene005-chunk004.mp4:  31%|███       | 1.84MB / 5.89MB            [A[A[A[A[A
-
-
-
-
-
-  ...002-scene006-chunk004.mp4:  31%|███       |  393kB / 1.26MB            [A[A[A[A[A[A
-
-
-
-
-
-
-  ...002-scene006-chunk008.mp4:  31%|███       | 1.55MB / 4.97MB            [A[A[A[A[A[A[A
-
-
-
-
-
-
-
-  ...002-scene006-chunk009.mp4:  31%|███       |  456kB / 1.46MB            [A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-  ...002-scene006-chunk010.mp4:  31%|███       | 1.12MB / 3.58MB            [A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-  ...002-scene007-chunk002.mp4:  31%|███       | 1.16MB / 3.71MB            [A[A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-
-  [+ 97 files]                :  53%|█████▎    |  194MB /  362MB            [A[A[A[A[A[A[A[A[A[A[AProcessing Files (230 / 337)  :  83%|████████▎ |  924MB / 1.12GB, 36.5MB/s  
-New Data Upload               :  69%|██████▉   |  438MB /  631MB, 36.5MB/s  [A
-
-  ...002-scene005-chunk001.mp4:  32%|███▏      | 1.05MB / 3.27MB            [A[A
-
-
-  ...002-scene005-chunk002.mp4:  32%|███▏      | 1.93MB / 6.02MB            [A[A[A
-
-
-
-  ...002-scene005-chunk003.mp4:  32%|███▏      | 1.67MB / 5.22MB            [A[A[A[A
-
-
-
-
-  ...002-scene005-chunk004.mp4:  32%|███▏      | 1.89MB / 5.89MB            [A[A[A[A[A
-
-
-
-
-
-  ...002-scene006-chunk004.mp4:  32%|███▏      |  403kB / 1.26MB            [A[A[A[A[A[A
-
-
-
-
-
-
-  ...002-scene006-chunk008.mp4:  32%|███▏      | 1.59MB / 4.97MB            [A[A[A[A[A[A[A
-
-
-
-
-
-
-
-  ...002-scene006-chunk009.mp4:  32%|███▏      |  467kB / 1.46MB            [A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-  ...002-scene006-chunk010.mp4:  32%|███▏      | 1.15MB / 3.58MB            [A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-  ...002-scene007-chunk002.mp4:  32%|███▏      | 1.19MB / 3.71MB            [A[A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-
-  [+ 97 files]                :  55%|█████▍    |  197MB /  362MB            [A[A[A[A[A[A[A[A[A[A[AProcessing Files (230 / 337)  :  83%|████████▎ |  928MB / 1.12GB, 36.6MB/s  
-New Data Upload               :  70%|███████   |  442MB /  631MB, 36.6MB/s  [A
-
-  ...002-scene005-chunk001.mp4:  32%|███▏      | 1.05MB / 3.27MB            [A[A
-
-
-  ...002-scene005-chunk002.mp4:  32%|███▏      | 1.93MB / 6.02MB            [A[A[A
-
-
-
-  ...002-scene005-chunk003.mp4:  32%|███▏      | 1.67MB / 5.22MB            [A[A[A[A
-
-
-
-
-  ...002-scene005-chunk004.mp4:  32%|███▏      | 1.89MB / 5.89MB            [A[A[A[A[A
-
-
-
-
-
-  ...002-scene006-chunk004.mp4:  32%|███▏      |  403kB / 1.26MB            [A[A[A[A[A[A
-
-
-
-
-
-
-  ...002-scene006-chunk008.mp4:  32%|███▏      | 1.59MB / 4.97MB            [A[A[A[A[A[A[A
-
-
-
-
-
-
-
-  ...002-scene006-chunk009.mp4:  32%|███▏      |  467kB / 1.46MB            [A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-  ...002-scene006-chunk010.mp4:  32%|███▏      | 1.15MB / 3.58MB            [A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-  ...002-scene007-chunk002.mp4:  32%|███▏      | 1.19MB / 3.71MB            [A[A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-
-  [+ 97 files]                :  56%|█████▌    |  201MB /  362MB            [A[A[A[A[A[A[A[A[A[A[AProcessing Files (230 / 337)  :  83%|████████▎ |  932MB / 1.12GB, 35.7MB/s  
-New Data Upload               :  71%|███████   |  446MB /  631MB, 35.7MB/s  [A
-
-  ...002-scene005-chunk001.mp4:  33%|███▎      | 1.07MB / 3.27MB            [A[A
-
-
-  ...002-scene005-chunk002.mp4:  33%|███▎      | 1.98MB / 6.02MB            [A[A[A
-
-
-
-  ...002-scene005-chunk003.mp4:  33%|███▎      | 1.71MB / 5.22MB            [A[A[A[A
-
-
-
-
-  ...002-scene005-chunk004.mp4:  33%|███▎      | 1.93MB / 5.89MB            [A[A[A[A[A
-
-
-
-
-
-  ...002-scene006-chunk004.mp4:  33%|███▎      |  413kB / 1.26MB            [A[A[A[A[A[A
-
-
-
-
-
-
-  ...002-scene006-chunk008.mp4:  33%|███▎      | 1.63MB / 4.97MB            [A[A[A[A[A[A[A
-
-
-
-
-
-
-
-  ...002-scene006-chunk009.mp4:  33%|███▎      |  479kB / 1.46MB            [A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-  ...002-scene006-chunk010.mp4:  33%|███▎      | 1.17MB / 3.58MB            [A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-  ...002-scene007-chunk002.mp4:  33%|███▎      | 1.22MB / 3.71MB            [A[A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-
-  [+ 97 files]                :  57%|█████▋    |  206MB /  362MB            [A[A[A[A[A[A[A[A[A[A[AProcessing Files (230 / 337)  :  84%|████████▍ |  936MB / 1.12GB, 35.3MB/s  
-New Data Upload               :  71%|███████▏  |  450MB /  631MB, 35.3MB/s  [A
-
-  ...002-scene005-chunk001.mp4:  34%|███▎      | 1.10MB / 3.27MB            [A[A
-
-
-  ...002-scene005-chunk002.mp4:  34%|███▎      | 2.03MB / 6.02MB            [A[A[A
-
-
-
-  ...002-scene005-chunk003.mp4:  34%|███▎      | 1.75MB / 5.22MB            [A[A[A[A
-
-
-
-
-  ...002-scene005-chunk004.mp4:  34%|███▎      | 1.98MB / 5.89MB            [A[A[A[A[A
-
-
-
-
-
-  ...002-scene006-chunk004.mp4:  34%|███▎      |  423kB / 1.26MB            [A[A[A[A[A[A
-
-
-
-
-
-
-  ...002-scene006-chunk008.mp4:  34%|███▎      | 1.67MB / 4.97MB            [A[A[A[A[A[A[A
-
-
-
-
-
-
-
-  ...002-scene006-chunk009.mp4:  34%|███▎      |  491kB / 1.46MB            [A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-  ...002-scene006-chunk010.mp4:  34%|███▎      | 1.20MB / 3.58MB            [A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-  ...002-scene007-chunk002.mp4:  34%|███▎      | 1.25MB / 3.71MB            [A[A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-
-  [+ 97 files]                :  58%|█████▊    |  210MB /  362MB            [A[A[A[A[A[A[A[A[A[A[AProcessing Files (250 / 337)  :  84%|████████▍ |  941MB / 1.12GB, 34.9MB/s  
-New Data Upload               :  72%|███████▏  |  456MB /  631MB, 34.9MB/s  [A
-
-  ...002-scene005-chunk001.mp4:  34%|███▍      | 1.13MB / 3.27MB            [A[A
-
-
-  ...002-scene005-chunk002.mp4:  34%|███▍      | 2.07MB / 6.02MB            [A[A[A
-
-
-
-  ...002-scene005-chunk003.mp4:  34%|███▍      | 1.80MB / 5.22MB            [A[A[A[A
-
-
-
-
-  ...002-scene005-chunk004.mp4:  34%|███▍      | 2.03MB / 5.89MB            [A[A[A[A[A
-
-
-
-
-
-  ...002-scene006-chunk004.mp4:  34%|███▍      |  433kB / 1.26MB            [A[A[A[A[A[A
-
-
-
-
-
-
-  ...002-scene006-chunk008.mp4:  34%|███▍      | 1.71MB / 4.97MB            [A[A[A[A[A[A[A
-
-
-
-
-
-
-
-  ...002-scene006-chunk009.mp4:  34%|███▍      |  502kB / 1.46MB            [A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-  ...002-scene006-chunk010.mp4:  34%|███▍      | 1.23MB / 3.58MB            [A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-  ...002-scene007-chunk002.mp4:  34%|███▍      | 1.28MB / 3.71MB            [A[A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-
-  [+ 77 files]                :  50%|█████     |  148MB /  295MB            [A[A[A[A[A[A[A[A[A[A[AProcessing Files (250 / 337)  :  85%|████████▍ |  947MB / 1.12GB, 34.7MB/s  
-New Data Upload               :  73%|███████▎  |  461MB /  631MB, 34.7MB/s  [A
-
-  ...002-scene005-chunk001.mp4:  35%|███▌      | 1.15MB / 3.27MB            [A[A
-
-
-  ...002-scene005-chunk002.mp4:  35%|███▌      | 2.12MB / 6.02MB            [A[A[A
-
-
-
-  ...002-scene005-chunk003.mp4:  35%|███▌      | 1.84MB / 5.22MB            [A[A[A[A
-
-
-
-
-  ...002-scene005-chunk004.mp4:  35%|███▌      | 2.07MB / 5.89MB            [A[A[A[A[A
-
-
-
-
-
-  ...002-scene006-chunk004.mp4:  35%|███▌      |  443kB / 1.26MB            [A[A[A[A[A[A
-
-
-
-
-
-
-  ...002-scene006-chunk008.mp4:  35%|███▌      | 1.75MB / 4.97MB            [A[A[A[A[A[A[A
-
-
-
-
-
-
-
-  ...002-scene006-chunk009.mp4:  35%|███▌      |  514kB / 1.46MB            [A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-  ...002-scene006-chunk010.mp4:  35%|███▌      | 1.26MB / 3.58MB            [A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-  ...002-scene007-chunk002.mp4:  35%|███▌      | 1.31MB / 3.71MB            [A[A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-
-  [+ 77 files]                :  52%|█████▏    |  152MB /  295MB            [A[A[A[A[A[A[A[A[A[A[AProcessing Files (250 / 337)  :  85%|████████▌ |  951MB / 1.12GB, 34.5MB/s  
-New Data Upload               :  74%|███████▎  |  465MB /  631MB, 34.5MB/s  [A
-
-  ...002-scene005-chunk001.mp4:  36%|███▌      | 1.18MB / 3.27MB            [A[A
-
-
-  ...002-scene005-chunk002.mp4:  36%|███▌      | 2.17MB / 6.02MB            [A[A[A
-
-
-
-  ...002-scene005-chunk003.mp4:  36%|███▌      | 1.88MB / 5.22MB            [A[A[A[A
-
-
-
-
-  ...002-scene005-chunk004.mp4:  36%|███▌      | 2.12MB / 5.89MB            [A[A[A[A[A
-
-
-
-
-
-  ...002-scene006-chunk004.mp4:  36%|███▌      |  453kB / 1.26MB            [A[A[A[A[A[A
-
-
-
-
-
-
-  ...002-scene006-chunk008.mp4:  36%|███▌      | 1.79MB / 4.97MB            [A[A[A[A[A[A[A
-
-
-
-
-
-
-
-  ...002-scene006-chunk009.mp4:  36%|███▌      |  526kB / 1.46MB            [A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-  ...002-scene006-chunk010.mp4:  36%|███▌      | 1.29MB / 3.58MB            [A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-  ...002-scene007-chunk002.mp4:  36%|███▌      | 1.34MB / 3.71MB            [A[A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-
-  [+ 77 files]                :  53%|█████▎    |  157MB /  295MB            [A[A[A[A[A[A[A[A[A[A[AProcessing Files (250 / 337)  :  86%|████████▌ |  956MB / 1.12GB, 34.1MB/s  
-New Data Upload               :  74%|███████▍  |  470MB /  631MB, 34.1MB/s  [A
-
-  ...002-scene005-chunk001.mp4:  37%|███▋      | 1.21MB / 3.27MB            [A[A
-
-
-  ...002-scene005-chunk002.mp4:  37%|███▋      | 2.22MB / 6.02MB            [A[A[A
-
-
-
-  ...002-scene005-chunk003.mp4:  37%|███▋      | 1.92MB / 5.22MB            [A[A[A[A
-
-
-
-
-  ...002-scene005-chunk004.mp4:  37%|███▋      | 2.17MB / 5.89MB            [A[A[A[A[A
-
-
-
-
-
-  ...002-scene006-chunk004.mp4:  37%|███▋      |  464kB / 1.26MB            [A[A[A[A[A[A
-
-
-
-
-
-
-  ...002-scene006-chunk008.mp4:  37%|███▋      | 1.83MB / 4.97MB            [A[A[A[A[A[A[A
-
-
-
-
-
-
-
-  ...002-scene006-chunk009.mp4:  37%|███▋      |  537kB / 1.46MB            [A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-  ...002-scene006-chunk010.mp4:  37%|███▋      | 1.32MB / 3.58MB            [A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-  ...002-scene007-chunk002.mp4:  37%|███▋      | 1.37MB / 3.71MB            [A[A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-
-  [+ 77 files]                :  55%|█████▍    |  162MB /  295MB            [A[A[A[A[A[A[A[A[A[A[AProcessing Files (250 / 337)  :  86%|████████▌ |  961MB / 1.12GB, 33.6MB/s  
-New Data Upload               :  75%|███████▌  |  475MB /  631MB, 33.6MB/s  [A
-
-  ...002-scene005-chunk001.mp4:  38%|███▊      | 1.23MB / 3.27MB            [A[A
-
-
-  ...002-scene005-chunk002.mp4:  38%|███▊      | 2.27MB / 6.02MB            [A[A[A
-
-
-
-  ...002-scene005-chunk003.mp4:  38%|███▊      | 1.96MB / 5.22MB            [A[A[A[A
-
-
-
-
-  ...002-scene005-chunk004.mp4:  38%|███▊      | 2.22MB / 5.89MB            [A[A[A[A[A
-
-
-
-
-
-  ...002-scene006-chunk004.mp4:  38%|███▊      |  474kB / 1.26MB            [A[A[A[A[A[A
-
-
-
-
-
-
-  ...002-scene006-chunk008.mp4:  38%|███▊      | 1.87MB / 4.97MB            [A[A[A[A[A[A[A
-
-
-
-
-
-
-
-  ...002-scene006-chunk009.mp4:  38%|███▊      |  549kB / 1.46MB            [A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-  ...002-scene006-chunk010.mp4:  38%|███▊      | 1.35MB / 3.58MB            [A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-  ...002-scene007-chunk002.mp4:  38%|███▊      | 1.40MB / 3.71MB            [A[A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-
-  [+ 77 files]                :  56%|█████▋    |  167MB /  295MB            [A[A[A[A[A[A[A[A[A[A[AProcessing Files (250 / 337)  :  87%|████████▋ |  966MB / 1.12GB, 33.3MB/s  
-New Data Upload               :  76%|███████▌  |  480MB /  631MB, 33.3MB/s  [A
-
-  ...002-scene005-chunk001.mp4:  38%|███▊      | 1.26MB / 3.27MB            [A[A
-
-
-  ...002-scene005-chunk002.mp4:  38%|███▊      | 2.31MB / 6.02MB            [A[A[A
-
-
-
-  ...002-scene005-chunk003.mp4:  38%|███▊      | 2.00MB / 5.22MB            [A[A[A[A
-
-
-
-
-  ...002-scene005-chunk004.mp4:  38%|███▊      | 2.26MB / 5.89MB            [A[A[A[A[A
-
-
-
-
-
-  ...002-scene006-chunk004.mp4:  38%|███▊      |  484kB / 1.26MB            [A[A[A[A[A[A
-
-
-
-
-
-
-  ...002-scene006-chunk008.mp4:  38%|███▊      | 1.91MB / 4.97MB            [A[A[A[A[A[A[A
-
-
-
-
-
-
-
-  ...002-scene006-chunk009.mp4:  38%|███▊      |  561kB / 1.46MB            [A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-  ...002-scene006-chunk010.mp4:  38%|███▊      | 1.37MB / 3.58MB            [A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-  ...002-scene007-chunk002.mp4:  38%|███▊      | 1.43MB / 3.71MB            [A[A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-
-  [+ 77 files]                :  58%|█████▊    |  172MB /  295MB            [A[A[A[A[A[A[A[A[A[A[AProcessing Files (250 / 337)  :  87%|████████▋ |  972MB / 1.12GB, 33.0MB/s  
-New Data Upload               :  77%|███████▋  |  486MB /  631MB, 33.0MB/s  [A
-
-  ...002-scene005-chunk001.mp4:  40%|████      | 1.31MB / 3.27MB            [A[A
-
-
-  ...002-scene005-chunk002.mp4:  40%|████      | 2.41MB / 6.02MB            [A[A[A
-
-
-
-  ...002-scene005-chunk003.mp4:  40%|████      | 2.09MB / 5.22MB            [A[A[A[A
-
-
-
-
-  ...002-scene005-chunk004.mp4:  40%|████      | 2.36MB / 5.89MB            [A[A[A[A[A
-
-
-
-
-
-  ...002-scene006-chunk004.mp4:  40%|████      |  504kB / 1.26MB            [A[A[A[A[A[A
-
-
-
-
-
-
-  ...002-scene006-chunk008.mp4:  40%|████      | 1.99MB / 4.97MB            [A[A[A[A[A[A[A
-
-
-
-
-
-
-
-  ...002-scene006-chunk009.mp4:  40%|████      |  584kB / 1.46MB            [A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-  ...002-scene006-chunk010.mp4:  40%|████      | 1.43MB / 3.58MB            [A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-  ...002-scene007-chunk002.mp4:  40%|████      | 1.49MB / 3.71MB            [A[A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-
-  [+ 77 files]                :  60%|██████    |  178MB /  295MB            [A[A[A[A[A[A[A[A[A[A[AProcessing Files (250 / 337)  :  88%|████████▊ |  979MB / 1.12GB, 32.7MB/s  
-New Data Upload               :  78%|███████▊  |  493MB /  631MB, 32.7MB/s  [A
-
-  ...002-scene005-chunk001.mp4:  41%|████      | 1.34MB / 3.27MB            [A[A
-
-
-  ...002-scene005-chunk002.mp4:  41%|████      | 2.46MB / 6.02MB            [A[A[A
-
-
-
-  ...002-scene005-chunk003.mp4:  41%|████      | 2.13MB / 5.22MB            [A[A[A[A
-
-
-
-
-  ...002-scene005-chunk004.mp4:  41%|████      | 2.40MB / 5.89MB            [A[A[A[A[A
-
-
-
-
-
-  ...002-scene006-chunk004.mp4:  41%|████      |  514kB / 1.26MB            [A[A[A[A[A[A
-
-
-
-
-
-
-  ...002-scene006-chunk008.mp4:  41%|████      | 2.03MB / 4.97MB            [A[A[A[A[A[A[A
-
-
-
-
-
-
-
-  ...002-scene006-chunk009.mp4:  41%|████      |  596kB / 1.46MB            [A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-  ...002-scene006-chunk010.mp4:  41%|████      | 1.46MB / 3.58MB            [A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-  ...002-scene007-chunk002.mp4:  41%|████      | 1.52MB / 3.71MB            [A[A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-
-  [+ 77 files]                :  62%|██████▏   |  183MB /  295MB            [A[A[A[A[A[A[A[A[A[A[AProcessing Files (250 / 337)  :  88%|████████▊ |  984MB / 1.12GB, 32.3MB/s  
-New Data Upload               :  79%|███████▉  |  498MB /  631MB, 32.3MB/s  [A
-
-  ...002-scene005-chunk001.mp4:  42%|████▏     | 1.39MB / 3.27MB            [A[A
-
-
-  ...002-scene005-chunk002.mp4:  42%|████▏     | 2.56MB / 6.02MB            [A[A[A
-
-
-
-  ...002-scene005-chunk003.mp4:  42%|████▏     | 2.21MB / 5.22MB            [A[A[A[A
-
-
-
-
-  ...002-scene005-chunk004.mp4:  42%|████▏     | 2.50MB / 5.89MB            [A[A[A[A[A
-
-
-
-
-
-  ...002-scene006-chunk004.mp4:  42%|████▏     |  534kB / 1.26MB            [A[A[A[A[A[A
-
-
-
-
-
-
-  ...002-scene006-chunk008.mp4:  42%|████▏     | 2.11MB / 4.97MB            [A[A[A[A[A[A[A
-
-
-
-
-
-
-
-  ...002-scene006-chunk009.mp4:  42%|████▏     |  619kB / 1.46MB            [A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-  ...002-scene006-chunk010.mp4:  42%|████▏     | 1.52MB / 3.58MB            [A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-  ...002-scene007-chunk002.mp4:  42%|████▏     | 1.58MB / 3.71MB            [A[A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-
-  [+ 77 files]                :  64%|██████▍   |  190MB /  295MB            [A[A[A[A[A[A[A[A[A[A[AProcessing Files (250 / 337)  :  89%|████████▉ |  991MB / 1.12GB, 32.0MB/s  
-New Data Upload               :  80%|████████  |  505MB /  631MB, 32.0MB/s  [A
-
-  ...002-scene005-chunk001.mp4:  43%|████▎     | 1.41MB / 3.27MB            [A[A
-
-
-  ...002-scene005-chunk002.mp4:  43%|████▎     | 2.60MB / 6.02MB            [A[A[A
-
-
-
-  ...002-scene005-chunk003.mp4:  43%|████▎     | 2.25MB / 5.22MB            [A[A[A[A
-
-
-
-
-  ...002-scene005-chunk004.mp4:  43%|████▎     | 2.55MB / 5.89MB            [A[A[A[A[A
-
-
-
-
-
-  ...002-scene006-chunk004.mp4:  43%|████▎     |  544kB / 1.26MB            [A[A[A[A[A[A
-
-
-
-
-
-
-  ...002-scene006-chunk008.mp4:  43%|████▎     | 2.15MB / 4.97MB            [A[A[A[A[A[A[A
-
-
-
-
-
-
-
-  ...002-scene006-chunk009.mp4:  43%|████▎     |  631kB / 1.46MB            [A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-  ...002-scene006-chunk010.mp4:  43%|████▎     | 1.55MB / 3.58MB            [A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-  ...002-scene007-chunk002.mp4:  43%|████▎     | 1.61MB / 3.71MB            [A[A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-
-  [+ 77 files]                :  66%|██████▋   |  196MB /  295MB            [A[A[A[A[A[A[A[A[A[A[AProcessing Files (250 / 337)  :  89%|████████▉ |  998MB / 1.12GB, 31.8MB/s  
-New Data Upload               :  81%|████████  |  512MB /  631MB, 31.8MB/s  [A
-
-  ...002-scene005-chunk001.mp4:  44%|████▍     | 1.44MB / 3.27MB            [A[A
-
-
-  ...002-scene005-chunk002.mp4:  44%|████▍     | 2.65MB / 6.02MB            [A[A[A
-
-
-
-  ...002-scene005-chunk003.mp4:  44%|████▍     | 2.30MB / 5.22MB            [A[A[A[A
-
-
-
-
-  ...002-scene005-chunk004.mp4:  44%|████▍     | 2.59MB / 5.89MB            [A[A[A[A[A
-
-
-
-
-
-  ...002-scene006-chunk004.mp4:  44%|████▍     |  554kB / 1.26MB            [A[A[A[A[A[A
-
-
-
-
-
-
-  ...002-scene006-chunk008.mp4:  44%|████▍     | 2.19MB / 4.97MB            [A[A[A[A[A[A[A
-
-
-
-
-
-
-
-  ...002-scene006-chunk009.mp4:  44%|████▍     |  642kB / 1.46MB            [A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-  ...002-scene006-chunk010.mp4:  44%|████▍     | 1.57MB / 3.58MB            [A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-  ...002-scene007-chunk002.mp4:  44%|████▍     | 1.64MB / 3.71MB            [A[A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-
-  [+ 77 files]                :  68%|██████▊   |  201MB /  295MB            [A[A[A[A[A[A[A[A[A[A[AProcessing Files (250 / 337)  :  90%|████████▉ | 1.00GB / 1.12GB, 31.5MB/s  
-New Data Upload               :  82%|████████▏ |  516MB /  631MB, 31.5MB/s  [A
-
-  ...002-scene005-chunk001.mp4:  46%|████▋     | 1.52MB / 3.27MB            [A[A
-
-
-  ...002-scene005-chunk002.mp4:  46%|████▋     | 2.80MB / 6.02MB            [A[A[A
-
-
-
-  ...002-scene005-chunk003.mp4:  46%|████▋     | 2.42MB / 5.22MB            [A[A[A[A
-
-
-
-
-  ...002-scene005-chunk004.mp4:  46%|████▋     | 2.73MB / 5.89MB            [A[A[A[A[A
-
-
-
-
-
-  ...002-scene006-chunk004.mp4:  46%|████▋     |  585kB / 1.26MB            [A[A[A[A[A[A
-
-
-
-
-
-
-  ...002-scene006-chunk008.mp4:  46%|████▋     | 2.31MB / 4.97MB            [A[A[A[A[A[A[A
-
-
-
-
-
-
-
-  ...002-scene006-chunk009.mp4:  46%|████▋     |  678kB / 1.46MB            [A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-  ...002-scene006-chunk010.mp4:  46%|████▋     | 1.66MB / 3.58MB            [A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-  ...002-scene007-chunk002.mp4:  46%|████▋     | 1.72MB / 3.71MB            [A[A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-
-  [+ 77 files]                :  70%|██████▉   |  207MB /  295MB            [A[A[A[A[A[A[A[A[A[A[AProcessing Files (250 / 337)  :  90%|█████████ | 1.01GB / 1.12GB, 31.3MB/s  
-New Data Upload               :  83%|████████▎ |  523MB /  631MB, 31.3MB/s  [A
-
-  ...002-scene005-chunk001.mp4:  48%|████▊     | 1.57MB / 3.27MB            [A[A
-
-
-  ...002-scene005-chunk002.mp4:  48%|████▊     | 2.89MB / 6.02MB            [A[A[A
-
-
-
-  ...002-scene005-chunk003.mp4:  48%|████▊     | 2.51MB / 5.22MB            [A[A[A[A
-
-
-
-
-  ...002-scene005-chunk004.mp4:  48%|████▊     | 2.83MB / 5.89MB            [A[A[A[A[A
-
-
-
-
-
-  ...002-scene006-chunk004.mp4:  48%|████▊     |  605kB / 1.26MB            [A[A[A[A[A[A
-
-
-
-
-
-
-  ...002-scene006-chunk008.mp4:  48%|████▊     | 2.39MB / 4.97MB            [A[A[A[A[A[A[A
-
-
-
-
-
-
-
-  ...002-scene006-chunk009.mp4:  48%|████▊     |  701kB / 1.46MB            [A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-  ...002-scene006-chunk010.mp4:  48%|████▊     | 1.72MB / 3.58MB            [A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-  ...002-scene007-chunk002.mp4:  48%|████▊     | 1.78MB / 3.71MB            [A[A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-
-  [+ 77 files]                :  72%|███████▏  |  212MB /  295MB            [A[A[A[A[A[A[A[A[A[A[AProcessing Files (250 / 337)  :  91%|█████████ | 1.02GB / 1.12GB, 31.0MB/s  
-New Data Upload               :  84%|████████▍ |  530MB /  631MB, 31.0MB/s  [A
-
-  ...002-scene005-chunk001.mp4:  49%|████▉     | 1.60MB / 3.27MB            [A[A
-
-
-  ...002-scene005-chunk002.mp4:  49%|████▉     | 2.94MB / 6.02MB            [A[A[A
-
-
-
-  ...002-scene005-chunk003.mp4:  49%|████▉     | 2.55MB / 5.22MB            [A[A[A[A
-
-
-
-
-  ...002-scene005-chunk004.mp4:  49%|████▉     | 2.88MB / 5.89MB            [A[A[A[A[A
-
-
-
-
-
-  ...002-scene006-chunk004.mp4:  49%|████▉     |  615kB / 1.26MB            [A[A[A[A[A[A
-
-
-
-
-
-
-  ...002-scene006-chunk008.mp4:  49%|████▉     | 2.43MB / 4.97MB            [A[A[A[A[A[A[A
-
-
-
-
-
-
-
-  ...002-scene006-chunk009.mp4:  49%|████▉     |  713kB / 1.46MB            [A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-  ...002-scene006-chunk010.mp4:  49%|████▉     | 1.75MB / 3.58MB            [A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-  ...002-scene007-chunk002.mp4:  49%|████▉     | 1.81MB / 3.71MB            [A[A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-
-  [+ 77 files]                :  74%|███████▍  |  219MB /  295MB            [A[A[A[A[A[A[A[A[A[A[AProcessing Files (250 / 337)  :  92%|█████████▏| 1.02GB / 1.12GB, 30.9MB/s  
-New Data Upload               :  85%|████████▌ |  536MB /  631MB, 30.9MB/s  [A
-
-  ...002-scene005-chunk001.mp4:  51%|█████     | 1.68MB / 3.27MB            [A[A
-
-
-  ...002-scene005-chunk002.mp4:  51%|█████     | 3.09MB / 6.02MB            [A[A[A
-
-
-
-  ...002-scene005-chunk003.mp4:  51%|█████     | 2.67MB / 5.22MB            [A[A[A[A
-
-
-
-
-  ...002-scene005-chunk004.mp4:  51%|█████     | 3.02MB / 5.89MB            [A[A[A[A[A
-
-
-
-
-
-  ...002-scene006-chunk004.mp4:  51%|█████     |  645kB / 1.26MB            [A[A[A[A[A[A
-
-
-
-
-
-
-  ...002-scene006-chunk008.mp4:  51%|█████     | 2.55MB / 4.97MB            [A[A[A[A[A[A[A
-
-
-
-
-
-
-
-  ...002-scene006-chunk009.mp4:  51%|█████     |  748kB / 1.46MB            [A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-  ...002-scene006-chunk010.mp4:  51%|█████     | 1.83MB / 3.58MB            [A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-  ...002-scene007-chunk002.mp4:  51%|█████     | 1.90MB / 3.71MB            [A[A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-
-  [+ 77 files]                :  76%|███████▋  |  226MB /  295MB            [A[A[A[A[A[A[A[A[A[A[AProcessing Files (269 / 337)  :  92%|█████████▏| 1.03GB / 1.12GB, 30.9MB/s  
-New Data Upload               :  86%|████████▌ |  544MB /  631MB, 30.9MB/s  [A
-
-  ...002-scene005-chunk001.mp4:  53%|█████▎    | 1.73MB / 3.27MB            [A[A
-
-
-  ...002-scene005-chunk002.mp4:  53%|█████▎    | 3.18MB / 6.02MB            [A[A[A
-
-
-
-  ...002-scene005-chunk003.mp4:  53%|█████▎    | 2.76MB / 5.22MB            [A[A[A[A
-
-
-
-
-  ...002-scene005-chunk004.mp4:  53%|█████▎    | 3.11MB / 5.89MB            [A[A[A[A[A
-
-
-
-
-
-  ...002-scene006-chunk004.mp4:  53%|█████▎    |  665kB / 1.26MB            [A[A[A[A[A[A
-
-
-
-
-
-
-  ...002-scene006-chunk008.mp4:  53%|█████▎    | 2.63MB / 4.97MB            [A[A[A[A[A[A[A
-
-
-
-
-
-
-
-  ...002-scene006-chunk009.mp4:  53%|█████▎    |  771kB / 1.46MB            [A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-  ...002-scene006-chunk010.mp4:  53%|█████▎    | 1.89MB / 3.58MB            [A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-  ...002-scene007-chunk002.mp4:  53%|█████▎    | 1.96MB / 3.71MB            [A[A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-
-  [+ 58 files]                :  73%|███████▎  |  166MB /  228MB            [A[A[A[A[A[A[A[A[A[A[AProcessing Files (269 / 337)  :  93%|█████████▎| 1.04GB / 1.12GB, 30.7MB/s  
-New Data Upload               :  87%|████████▋ |  552MB /  631MB, 30.7MB/s  [A
-
-  ...002-scene005-chunk001.mp4:  54%|█████▍    | 1.78MB / 3.27MB            [A[A
-
-
-  ...002-scene005-chunk002.mp4:  54%|█████▍    | 3.28MB / 6.02MB            [A[A[A
-
-
-
-  ...002-scene005-chunk003.mp4:  54%|█████▍    | 2.84MB / 5.22MB            [A[A[A[A
-
-
-
-
-  ...002-scene005-chunk004.mp4:  54%|█████▍    | 3.20MB / 5.89MB            [A[A[A[A[A
-
-
-
-
-
-  ...002-scene006-chunk004.mp4:  54%|█████▍    |  685kB / 1.26MB            [A[A[A[A[A[A
-
-
-
-
-
-
-  ...002-scene006-chunk008.mp4:  54%|█████▍    | 2.71MB / 4.97MB            [A[A[A[A[A[A[A
-
-
-
-
-
-
-
-  ...002-scene006-chunk009.mp4:  54%|█████▍    |  794kB / 1.46MB            [A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-  ...002-scene006-chunk010.mp4:  54%|█████▍    | 1.95MB / 3.58MB            [A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-  ...002-scene007-chunk002.mp4:  54%|█████▍    | 2.02MB / 3.71MB            [A[A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-
-  [+ 58 files]                :  76%|███████▌  |  173MB /  228MB            [A[A[A[A[A[A[A[A[A[A[AProcessing Files (269 / 337)  :  94%|█████████▎| 1.05GB / 1.12GB, 30.8MB/s  
-New Data Upload               :  89%|████████▊ |  560MB /  631MB, 30.8MB/s  [A
-
-  ...002-scene005-chunk001.mp4:  57%|█████▋    | 1.86MB / 3.27MB            [A[A
-
-
-  ...002-scene005-chunk002.mp4:  57%|█████▋    | 3.42MB / 6.02MB            [A[A[A
-
-
-
-  ...002-scene005-chunk003.mp4:  57%|█████▋    | 2.96MB / 5.22MB            [A[A[A[A
-
-
-
-
-  ...002-scene005-chunk004.mp4:  57%|█████▋    | 3.35MB / 5.89MB            [A[A[A[A[A
-
-
-
-
-
-  ...002-scene006-chunk004.mp4:  57%|█████▋    |  716kB / 1.26MB            [A[A[A[A[A[A
-
-
-
-
-
-
-  ...002-scene006-chunk008.mp4:  57%|█████▋    | 2.83MB / 4.97MB            [A[A[A[A[A[A[A
-
-
-
-
-
-
-
-  ...002-scene006-chunk009.mp4:  57%|█████▋    |  829kB / 1.46MB            [A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-  ...002-scene006-chunk010.mp4:  57%|█████▋    | 2.03MB / 3.58MB            [A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-  ...002-scene007-chunk002.mp4:  57%|█████▋    | 2.11MB / 3.71MB            [A[A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-
-  [+ 58 files]                :  79%|███████▉  |  180MB /  228MB            [A[A[A[A[A[A[A[A[A[A[AProcessing Files (269 / 337)  :  94%|█████████▍| 1.05GB / 1.12GB, 30.8MB/s  
-New Data Upload               :  90%|████████▉ |  567MB /  631MB, 30.8MB/s  [A
-
-  ...002-scene005-chunk001.mp4:  58%|█████▊    | 1.91MB / 3.27MB            [A[A
-
-
-  ...002-scene005-chunk002.mp4:  58%|█████▊    | 3.52MB / 6.02MB            [A[A[A
-
-
-
-  ...002-scene005-chunk003.mp4:  58%|█████▊    | 3.05MB / 5.22MB            [A[A[A[A
-
-
-
-
-  ...002-scene005-chunk004.mp4:  58%|█████▊    | 3.44MB / 5.89MB            [A[A[A[A[A
-
-
-
-
-
-  ...002-scene006-chunk004.mp4:  58%|█████▊    |  736kB / 1.26MB            [A[A[A[A[A[A
-
-
-
-
-
-
-  ...002-scene006-chunk008.mp4:  58%|█████▊    | 2.91MB / 4.97MB            [A[A[A[A[A[A[A
-
-
-
-
-
-
-
-  ...002-scene006-chunk009.mp4:  58%|█████▊    |  853kB / 1.46MB            [A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-  ...002-scene006-chunk010.mp4:  58%|█████▊    | 2.09MB / 3.58MB            [A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-  ...002-scene007-chunk002.mp4:  58%|█████▊    | 2.17MB / 3.71MB            [A[A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-
-  [+ 58 files]                :  82%|████████▏ |  188MB /  228MB            [A[A[A[A[A[A[A[A[A[A[AProcessing Files (269 / 337)  :  95%|█████████▌| 1.06GB / 1.12GB, 30.7MB/s  
-New Data Upload               :  91%|█████████▏|  576MB /  631MB, 30.7MB/s  [A
-
-  ...002-scene005-chunk001.mp4:  62%|██████▏   | 2.02MB / 3.27MB            [A[A
-
-
-  ...002-scene005-chunk002.mp4:  62%|██████▏   | 3.71MB / 6.02MB            [A[A[A
-
-
-
-  ...002-scene005-chunk003.mp4:  62%|██████▏   | 3.22MB / 5.22MB            [A[A[A[A
-
-
-
-
-  ...002-scene005-chunk004.mp4:  62%|██████▏   | 3.63MB / 5.89MB            [A[A[A[A[A
-
-
-
-
-
-  ...002-scene006-chunk004.mp4:  62%|██████▏   |  776kB / 1.26MB            [A[A[A[A[A[A
-
-
-
-
-
-
-  ...002-scene006-chunk008.mp4:  62%|██████▏   | 3.06MB / 4.97MB            [A[A[A[A[A[A[A
-
-
-
-
-
-
-
-  ...002-scene006-chunk009.mp4:  62%|██████▏   |  899kB / 1.46MB            [A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-  ...002-scene006-chunk010.mp4:  62%|██████▏   | 2.20MB / 3.58MB            [A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-  ...002-scene007-chunk002.mp4:  62%|██████▏   | 2.29MB / 3.71MB            [A[A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-
-  [+ 58 files]                :  86%|████████▋ |  197MB /  228MB            [A[A[A[A[A[A[A[A[A[A[AProcessing Files (269 / 337)  :  96%|█████████▌| 1.07GB / 1.12GB, 30.8MB/s  
-New Data Upload               :  93%|█████████▎|  586MB /  631MB, 30.8MB/s  [A
-
-  ...002-scene005-chunk001.mp4:  63%|██████▎   | 2.07MB / 3.27MB            [A[A
-
-
-  ...002-scene005-chunk002.mp4:  63%|██████▎   | 3.81MB / 6.02MB            [A[A[A
-
-
-
-  ...002-scene005-chunk003.mp4:  63%|██████▎   | 3.30MB / 5.22MB            [A[A[A[A
-
-
-
-
-  ...002-scene005-chunk004.mp4:  63%|██████▎   | 3.72MB / 5.89MB            [A[A[A[A[A
-
-
-
-
-
-  ...002-scene006-chunk004.mp4:  63%|██████▎   |  796kB / 1.26MB            [A[A[A[A[A[A
-
-
-
-
-
-
-  ...002-scene006-chunk008.mp4:  63%|██████▎   | 3.14MB / 4.97MB            [A[A[A[A[A[A[A
-
-
-
-
-
-
-
-  ...002-scene006-chunk009.mp4:  63%|██████▎   |  923kB / 1.46MB            [A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-  ...002-scene006-chunk010.mp4:  63%|██████▎   | 2.26MB / 3.58MB            [A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-  ...002-scene007-chunk002.mp4:  63%|██████▎   | 2.35MB / 3.71MB            [A[A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-
-  [+ 58 files]                :  90%|████████▉ |  205MB /  228MB            [A[A[A[A[A[A[A[A[A[A[AProcessing Files (269 / 337)  :  97%|█████████▋| 1.08GB / 1.12GB, 30.9MB/s  
-New Data Upload               :  94%|█████████▍|  594MB /  631MB, 30.9MB/s  [A
-
-  ...002-scene005-chunk001.mp4:  66%|██████▋   | 2.17MB / 3.27MB            [A[A
-
-
-  ...002-scene005-chunk002.mp4:  66%|██████▋   | 4.00MB / 6.02MB            [A[A[A
-
-
-
-  ...002-scene005-chunk003.mp4:  66%|██████▋   | 3.47MB / 5.22MB            [A[A[A[A
-
-
-
-
-  ...002-scene005-chunk004.mp4:  66%|██████▋   | 3.91MB / 5.89MB            [A[A[A[A[A
-
-
-
-
-
-  ...002-scene006-chunk004.mp4:  66%|██████▋   |  836kB / 1.26MB            [A[A[A[A[A[A
-
-
-
-
-
-
-  ...002-scene006-chunk008.mp4:  66%|██████▋   | 3.30MB / 4.97MB            [A[A[A[A[A[A[A
-
-
-
-
-
-
-
-  ...002-scene006-chunk009.mp4:  66%|██████▋   |  970kB / 1.46MB            [A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-  ...002-scene006-chunk010.mp4:  66%|██████▋   | 2.38MB / 3.58MB            [A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-  ...002-scene007-chunk002.mp4:  66%|██████▋   | 2.47MB / 3.71MB            [A[A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-
-  [+ 58 files]                :  93%|█████████▎|  213MB /  228MB            [A[A[A[A[A[A[A[A[A[A[AProcessing Files (269 / 337)  :  98%|█████████▊| 1.09GB / 1.12GB, 31.0MB/s  
-New Data Upload               :  96%|█████████▌|  604MB /  631MB, 31.0MB/s  [A
-
-  ...002-scene005-chunk001.mp4:  69%|██████▉   | 2.25MB / 3.27MB            [A[A
-
-
-  ...002-scene005-chunk002.mp4:  69%|██████▉   | 4.15MB / 6.02MB            [A[A[A
-
-
-
-  ...002-scene005-chunk003.mp4:  69%|██████▉   | 3.59MB / 5.22MB            [A[A[A[A
-
-
-
-
-  ...002-scene005-chunk004.mp4:  69%|██████▉   | 4.05MB / 5.89MB            [A[A[A[A[A
-
-
-
-
-
-  ...002-scene006-chunk004.mp4:  69%|██████▉   |  867kB / 1.26MB            [A[A[A[A[A[A
-
-
-
-
-
-
-  ...002-scene006-chunk008.mp4:  69%|██████▉   | 3.42MB / 4.97MB            [A[A[A[A[A[A[A
-
-
-
-
-
-
-
-  ...002-scene006-chunk009.mp4:  69%|██████▉   | 1.00MB / 1.46MB            [A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-  ...002-scene006-chunk010.mp4:  69%|██████▉   | 2.46MB / 3.58MB            [A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-  ...002-scene007-chunk002.mp4:  69%|██████▉   | 2.56MB / 3.71MB            [A[A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-
-  [+ 58 files]                :  95%|█████████▍|  216MB /  228MB            [A[A[A[A[A[A[A[A[A[A[AProcessing Files (269 / 337)  :  98%|█████████▊| 1.09GB / 1.12GB, 30.4MB/s  
-New Data Upload               :  96%|█████████▋|  608MB /  631MB, 30.4MB/s  [A
-
-  ...002-scene005-chunk001.mp4:  71%|███████▏  | 2.33MB / 3.27MB            [A[A
-
-
-  ...002-scene005-chunk002.mp4:  71%|███████▏  | 4.29MB / 6.02MB            [A[A[A
-
-
-
-  ...002-scene005-chunk003.mp4:  71%|███████▏  | 3.72MB / 5.22MB            [A[A[A[A
-
-
-
-
-  ...002-scene005-chunk004.mp4:  71%|███████▏  | 4.19MB / 5.89MB            [A[A[A[A[A
-
-
-
-
-
-  ...002-scene006-chunk004.mp4:  71%|███████▏  |  897kB / 1.26MB            [A[A[A[A[A[A
-
-
-
-
-
-
-  ...002-scene006-chunk008.mp4:  71%|███████▏  | 3.54MB / 4.97MB            [A[A[A[A[A[A[A
-
-
-
-
-
-
-
-  ...002-scene006-chunk009.mp4:  71%|███████▏  | 1.04MB / 1.46MB            [A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-  ...002-scene006-chunk010.mp4:  71%|███████▏  | 2.55MB / 3.58MB            [A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-  ...002-scene007-chunk002.mp4:  71%|███████▏  | 2.65MB / 3.71MB            [A[A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-
-  [+ 58 files]                :  96%|█████████▌|  219MB /  228MB            [A[A[A[A[A[A[A[A[A[A[AProcessing Files (269 / 337)  :  98%|█████████▊| 1.10GB / 1.12GB, 30.0MB/s  
-New Data Upload               :  97%|█████████▋|  612MB /  631MB, 30.0MB/s  [A
-
-  ...002-scene005-chunk001.mp4:  75%|███████▌  | 2.46MB / 3.27MB            [A[A
-
-
-  ...002-scene005-chunk002.mp4:  75%|███████▌  | 4.53MB / 6.02MB            [A[A[A
-
-
-
-  ...002-scene005-chunk003.mp4:  75%|███████▌  | 3.93MB / 5.22MB            [A[A[A[A
-
-
-
-
-  ...002-scene005-chunk004.mp4:  75%|███████▌  | 4.43MB / 5.89MB            [A[A[A[A[A
-
-
-
-
-
-  ...002-scene006-chunk004.mp4:  75%|███████▌  |  947kB / 1.26MB            [A[A[A[A[A[A
-
-
-
-
-
-
-  ...002-scene006-chunk008.mp4:  75%|███████▌  | 3.74MB / 4.97MB            [A[A[A[A[A[A[A
-
-
-
-
-
-
-
-  ...002-scene006-chunk009.mp4:  75%|███████▌  | 1.10MB / 1.46MB            [A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-  ...002-scene006-chunk010.mp4:  75%|███████▌  | 2.69MB / 3.58MB            [A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-  ...002-scene007-chunk002.mp4:  75%|███████▌  | 2.79MB / 3.71MB            [A[A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-
-  [+ 58 files]                :  97%|█████████▋|  220MB /  228MB            [A[A[A[A[A[A[A[A[A[A[AProcessing Files (269 / 337)  :  99%|█████████▊| 1.10GB / 1.12GB, 29.4MB/s  
-New Data Upload               :  97%|█████████▋|  614MB /  631MB, 29.4MB/s  [A
-
-  ...002-scene005-chunk001.mp4:  78%|███████▊  | 2.57MB / 3.27MB            [A[A
-
-
-  ...002-scene005-chunk002.mp4:  78%|███████▊  | 4.73MB / 6.02MB            [A[A[A
-
-
-
-  ...002-scene005-chunk003.mp4:  78%|███████▊  | 4.09MB / 5.22MB            [A[A[A[A
-
-
-
-
-  ...002-scene005-chunk004.mp4:  78%|███████▊  | 4.62MB / 5.89MB            [A[A[A[A[A
-
-
-
-
-
-  ...002-scene006-chunk004.mp4:  78%|███████▊  |  988kB / 1.26MB            [A[A[A[A[A[A
-
-
-
-
-
-
-  ...002-scene006-chunk008.mp4:  78%|███████▊  | 3.90MB / 4.97MB            [A[A[A[A[A[A[A
-
-
-
-
-
-
-
-  ...002-scene006-chunk009.mp4:  78%|███████▊  | 1.14MB / 1.46MB            [A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-  ...002-scene006-chunk010.mp4:  78%|███████▊  | 2.81MB / 3.58MB            [A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-  ...002-scene007-chunk002.mp4:  78%|███████▊  | 2.91MB / 3.71MB            [A[A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-
-  [+ 58 files]                :  97%|█████████▋|  221MB /  228MB            [A[A[A[A[A[A[A[A[A[A[AProcessing Files (269 / 337)  :  99%|█████████▊| 1.10GB / 1.12GB, 28.8MB/s  
-New Data Upload               :  98%|█████████▊|  616MB /  631MB, 28.8MB/s  [A
-
-  ...002-scene005-chunk001.mp4:  82%|████████▏ | 2.70MB / 3.27MB            [A[A
-
-
-  ...002-scene005-chunk002.mp4:  82%|████████▏ | 4.97MB / 6.02MB            [A[A[A
-
-
-
-  ...002-scene005-chunk003.mp4:  82%|████████▏ | 4.30MB / 5.22MB            [A[A[A[A
-
-
-
-
-  ...002-scene005-chunk004.mp4:  82%|████████▏ | 4.85MB / 5.89MB            [A[A[A[A[A
-
-
-
-
-
-  ...002-scene006-chunk004.mp4:  82%|████████▏ | 1.04MB / 1.26MB            [A[A[A[A[A[A
-
-
-
-
-
-
-  ...002-scene006-chunk008.mp4:  82%|████████▏ | 4.10MB / 4.97MB            [A[A[A[A[A[A[A
-
-
-
-
-
-
-
-  ...002-scene006-chunk009.mp4:  82%|████████▏ | 1.20MB / 1.46MB            [A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-  ...002-scene006-chunk010.mp4:  82%|████████▏ | 2.95MB / 3.58MB            [A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-  ...002-scene007-chunk002.mp4:  82%|████████▏ | 3.06MB / 3.71MB            [A[A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-
-  [+ 58 files]                :  98%|█████████▊|  223MB /  228MB            [A[A[A[A[A[A[A[A[A[A[AProcessing Files (288 / 337)  :  99%|█████████▉| 1.11GB / 1.12GB, 28.3MB/s  
-New Data Upload               :  98%|█████████▊|  619MB /  631MB, 28.3MB/s  [A
-
-  ...002-scene005-chunk001.mp4:  86%|████████▌ | 2.80MB / 3.27MB            [A[A
-
-
-  ...002-scene005-chunk002.mp4:  86%|████████▌ | 5.16MB / 6.02MB            [A[A[A
-
-
-
-  ...002-scene005-chunk003.mp4:  86%|████████▌ | 4.47MB / 5.22MB            [A[A[A[A
-
-
-
-
-  ...002-scene005-chunk004.mp4:  86%|████████▌ | 5.04MB / 5.89MB            [A[A[A[A[A
-
-
-
-
-
-  ...002-scene006-chunk004.mp4:  86%|████████▌ | 1.08MB / 1.26MB            [A[A[A[A[A[A
-
-
-
-
-
-
-  ...002-scene006-chunk008.mp4:  86%|████████▌ | 4.26MB / 4.97MB            [A[A[A[A[A[A[A
-
-
-
-
-
-
-
-  ...002-scene006-chunk009.mp4:  86%|████████▌ | 1.25MB / 1.46MB            [A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-  ...002-scene006-chunk010.mp4:  86%|████████▌ | 3.06MB / 3.58MB            [A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-  ...002-scene007-chunk002.mp4:  86%|████████▌ | 3.18MB / 3.71MB            [A[A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-
-  [+ 39 files]                :  97%|█████████▋|  157MB /  161MB            [A[A[A[A[A[A[A[A[A[A[AProcessing Files (288 / 337)  :  99%|█████████▉| 1.11GB / 1.12GB, 27.6MB/s  
-New Data Upload               :  98%|█████████▊|  621MB /  631MB, 27.6MB/s  [A
-
-  ...002-scene005-chunk001.mp4:  90%|████████▉ | 2.93MB / 3.27MB            [A[A
-
-
-  ...002-scene005-chunk002.mp4:  90%|████████▉ | 5.40MB / 6.02MB            [A[A[A
-
-
-
-  ...002-scene005-chunk003.mp4:  90%|████████▉ | 4.68MB / 5.22MB            [A[A[A[A
-
-
-
-
-  ...002-scene005-chunk004.mp4:  90%|████████▉ | 5.28MB / 5.89MB            [A[A[A[A[A
-
-
-
-
-
-  ...002-scene006-chunk004.mp4:  90%|████████▉ | 1.13MB / 1.26MB            [A[A[A[A[A[A
-
-
-
-
-
-
-  ...002-scene006-chunk008.mp4:  90%|████████▉ | 4.46MB / 4.97MB            [A[A[A[A[A[A[A
-
-
-
-
-
-
-
-  ...002-scene006-chunk009.mp4:  90%|████████▉ | 1.31MB / 1.46MB            [A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-  ...002-scene006-chunk010.mp4:  90%|████████▉ | 3.21MB / 3.58MB            [A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-  ...002-scene007-chunk002.mp4:  90%|████████▉ | 3.33MB / 3.71MB            [A[A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-
-  [+ 39 files]                :  98%|█████████▊|  158MB /  161MB            [A[A[A[A[A[A[A[A[A[A[AProcessing Files (324 / 337)  :  99%|█████████▉| 1.11GB / 1.12GB, 27.2MB/s  
-New Data Upload               :  99%|█████████▉|  624MB /  631MB, 27.2MB/s  [A
-
-  ...002-scene005-chunk001.mp4:  94%|█████████▎| 3.07MB / 3.27MB            [A[A
-
-
-  ...002-scene005-chunk002.mp4:  94%|█████████▎| 5.64MB / 6.02MB            [A[A[A
-
-
-
-  ...002-scene005-chunk003.mp4:  94%|█████████▎| 4.89MB / 5.22MB            [A[A[A[A
-
-
-
-
-  ...002-scene005-chunk004.mp4:  94%|█████████▎| 5.51MB / 5.89MB            [A[A[A[A[A
-
-
-
-
-
-  ...002-scene006-chunk004.mp4:  94%|█████████▎| 1.18MB / 1.26MB            [A[A[A[A[A[A
-
-
-
-
-
-
-  ...002-scene006-chunk008.mp4:  94%|█████████▎| 4.66MB / 4.97MB            [A[A[A[A[A[A[A
-
-
-
-
-
-
-
-  ...002-scene006-chunk009.mp4:  94%|█████████▎| 1.37MB / 1.46MB            [A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-  ...002-scene006-chunk010.mp4:  94%|█████████▎| 3.35MB / 3.58MB            [A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-  ...002-scene007-chunk002.mp4:  94%|█████████▎| 3.48MB / 3.71MB            [A[A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-
-  [+ 3 files]                 :  94%|█████████▎| 28.2MB / 30.1MB            [A[A[A[A[A[A[A[A[A[A[AProcessing Files (324 / 337)  : 100%|█████████▉| 1.11GB / 1.12GB, 27.1MB/s  
-New Data Upload               :  99%|█████████▉|  627MB /  631MB, 27.1MB/s  [A
-
-  ...002-scene005-chunk001.mp4:  98%|█████████▊| 3.22MB / 3.27MB            [A[A
-
-
-  ...002-scene005-chunk002.mp4:  98%|█████████▊| 5.93MB / 6.02MB            [A[A[A
-
-
-
-  ...002-scene005-chunk003.mp4:  98%|█████████▊| 5.14MB / 5.22MB            [A[A[A[A
-
-
-
-
-  ...002-scene005-chunk004.mp4:  98%|█████████▊| 5.80MB / 5.89MB            [A[A[A[A[A
-
-
-
-
-
-  ...002-scene006-chunk004.mp4:  98%|█████████▊| 1.24MB / 1.26MB            [A[A[A[A[A[A
-
-
-
-
-
-
-  ...002-scene006-chunk008.mp4:  98%|█████████▊| 4.89MB / 4.97MB            [A[A[A[A[A[A[A
-
-
-
-
-
-
-
-  ...002-scene006-chunk009.mp4:  98%|█████████▊| 1.44MB / 1.46MB            [A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-  ...002-scene006-chunk010.mp4:  98%|█████████▊| 3.52MB / 3.58MB            [A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-  ...002-scene007-chunk002.mp4:  98%|█████████▊| 3.66MB / 3.71MB            [A[A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-
-  [+ 3 files]                 :  98%|█████████▊| 29.7MB / 30.1MB            [A[A[A[A[A[A[A[A[A[A[AProcessing Files (324 / 337)  : 100%|█████████▉| 1.12GB / 1.12GB, 27.0MB/s  
-New Data Upload               : 100%|█████████▉|  630MB /  631MB, 27.0MB/s  [A
-
-  ...002-scene005-chunk001.mp4:  99%|█████████▉| 3.25MB / 3.27MB            [A[A
-
-
-  ...002-scene005-chunk002.mp4:  99%|█████████▉| 5.98MB / 6.02MB            [A[A[A
-
-
-
-  ...002-scene005-chunk003.mp4:  99%|█████████▉| 5.18MB / 5.22MB            [A[A[A[A
-
-
-
-
-  ...002-scene005-chunk004.mp4:  99%|█████████▉| 5.84MB / 5.89MB            [A[A[A[A[A
-
-
-
-
-
-  ...002-scene006-chunk004.mp4:  99%|█████████▉| 1.25MB / 1.26MB            [A[A[A[A[A[A
-
-
-
-
-
-
-  ...002-scene006-chunk008.mp4:  99%|█████████▉| 4.93MB / 4.97MB            [A[A[A[A[A[A[A
-
-
-
-
-
-
-
-  ...002-scene006-chunk009.mp4:  99%|█████████▉| 1.45MB / 1.46MB            [A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-  ...002-scene006-chunk010.mp4:  99%|█████████▉| 3.55MB / 3.58MB            [A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-  ...002-scene007-chunk002.mp4:  99%|█████████▉| 3.69MB / 3.71MB            [A[A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-
-  [+ 3 files]                 :  99%|█████████▉| 29.9MB / 30.1MB            [A[A[A[A[A[A[A[A[A[A[AProcessing Files (324 / 337)  : 100%|█████████▉| 1.12GB / 1.12GB, 26.4MB/s  
-New Data Upload               : 100%|█████████▉|  630MB /  631MB, 26.4MB/s  [A
-
-  ...002-scene005-chunk001.mp4:  99%|█████████▉| 3.25MB / 3.27MB            [A[A
-
-
-  ...002-scene005-chunk002.mp4:  99%|█████████▉| 5.98MB / 6.02MB            [A[A[A
-
-
-
-  ...002-scene005-chunk003.mp4:  99%|█████████▉| 5.18MB / 5.22MB            [A[A[A[A
-
-
-
-
-  ...002-scene005-chunk004.mp4:  99%|█████████▉| 5.84MB / 5.89MB            [A[A[A[A[A
-
-
-
-
-
-  ...002-scene006-chunk004.mp4:  99%|█████████▉| 1.25MB / 1.26MB            [A[A[A[A[A[A
-
-
-
-
-
-
-  ...002-scene006-chunk008.mp4:  99%|█████████▉| 4.93MB / 4.97MB            [A[A[A[A[A[A[A
-
-
-
-
-
-
-
-  ...002-scene006-chunk009.mp4:  99%|█████████▉| 1.45MB / 1.46MB            [A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-  ...002-scene006-chunk010.mp4:  99%|█████████▉| 3.55MB / 3.58MB            [A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-  ...002-scene007-chunk002.mp4:  99%|█████████▉| 3.69MB / 3.71MB            [A[A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-
-  [+ 3 files]                 :  99%|█████████▉| 29.9MB / 30.1MB            [A[A[A[A[A[A[A[A[A[A[A
-
-  ...002-scene005-chunk001.mp4:  99%|█████████▉| 3.25MB / 3.27MB            [A[A
-
-
-  ...002-scene005-chunk002.mp4:  99%|█████████▉| 5.98MB / 6.02MB            [A[A[A
-
-
-
-  ...002-scene005-chunk003.mp4:  99%|█████████▉| 5.18MB / 5.22MB            [A[A[A[A
-
-
-
-
-  ...002-scene005-chunk004.mp4:  99%|█████████▉| 5.84MB / 5.89MB            [A[A[A[A[A
-
-
-
-
-
-  ...002-scene006-chunk004.mp4:  99%|█████████▉| 1.25MB / 1.26MB            [A[A[A[A[A[A
-
-
-
-
-
-
-  ...002-scene006-chunk008.mp4:  99%|█████████▉| 4.93MB / 4.97MB            [A[A[A[A[A[A[A
-
-
-
-
-
-
-
-  ...002-scene006-chunk009.mp4:  99%|█████████▉| 1.45MB / 1.46MB            [A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-  ...002-scene006-chunk010.mp4:  99%|█████████▉| 3.55MB / 3.58MB            [A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-  ...002-scene007-chunk002.mp4:  99%|█████████▉| 3.69MB / 3.71MB            [A[A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-
-  [+ 3 files]                 :  99%|█████████▉| 29.9MB / 30.1MB            [A[A[A[A[A[A[A[A[A[A[A
-
-  ...002-scene005-chunk001.mp4:  99%|█████████▉| 3.25MB / 3.27MB            [A[A
-
-
-  ...002-scene005-chunk002.mp4:  99%|█████████▉| 5.98MB / 6.02MB            [A[A[A
-
-
-
-  ...002-scene005-chunk003.mp4:  99%|█████████▉| 5.18MB / 5.22MB            [A[A[A[A
-
-
-
-
-  ...002-scene005-chunk004.mp4:  99%|█████████▉| 5.84MB / 5.89MB            [A[A[A[A[A
-
-
-
-
-
-  ...002-scene006-chunk004.mp4:  99%|█████████▉| 1.25MB / 1.26MB            [A[A[A[A[A[A
-
-
-
-
-
-
-  ...002-scene006-chunk008.mp4:  99%|█████████▉| 4.93MB / 4.97MB            [A[A[A[A[A[A[A
-
-
-
-
-
-
-
-  ...002-scene006-chunk009.mp4:  99%|█████████▉| 1.45MB / 1.46MB            [A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-  ...002-scene006-chunk010.mp4:  99%|█████████▉| 3.55MB / 3.58MB            [A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-  ...002-scene007-chunk002.mp4:  99%|█████████▉| 3.69MB / 3.71MB            [A[A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-
-  [+ 3 files]                 :  99%|█████████▉| 29.9MB / 30.1MB            [A[A[A[A[A[A[A[A[A[A[A
-
-  ...002-scene005-chunk001.mp4:  99%|█████████▉| 3.25MB / 3.27MB            [A[A
-
-
-  ...002-scene005-chunk002.mp4:  99%|█████████▉| 5.98MB / 6.02MB            [A[A[A
-
-
-
-  ...002-scene005-chunk003.mp4:  99%|█████████▉| 5.18MB / 5.22MB            [A[A[A[A
-
-
-
-
-  ...002-scene005-chunk004.mp4:  99%|█████████▉| 5.84MB / 5.89MB            [A[A[A[A[A
-
-
-
-
-
-  ...002-scene006-chunk004.mp4:  99%|█████████▉| 1.25MB / 1.26MB            [A[A[A[A[A[A
-
-
-
-
-
-
-  ...002-scene006-chunk008.mp4:  99%|█████████▉| 4.93MB / 4.97MB            [A[A[A[A[A[A[A
-
-
-
-
-
-
-
-  ...002-scene006-chunk009.mp4:  99%|█████████▉| 1.45MB / 1.46MB            [A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-  ...002-scene006-chunk010.mp4:  99%|█████████▉| 3.55MB / 3.58MB            [A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-  ...002-scene007-chunk002.mp4:  99%|█████████▉| 3.69MB / 3.71MB            [A[A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-
-  [+ 3 files]                 :  99%|█████████▉| 29.9MB / 30.1MB            [A[A[A[A[A[A[A[A[A[A[A
-
-  ...002-scene005-chunk001.mp4: 100%|██████████| 3.27MB / 3.27MB            [A[A
-
-
-  ...002-scene005-chunk002.mp4: 100%|██████████| 6.02MB / 6.02MB            [A[A[A
-
-
-
-  ...002-scene005-chunk003.mp4: 100%|██████████| 5.22MB / 5.22MB            [A[A[A[A
-
-
-
-
-  ...002-scene005-chunk004.mp4: 100%|██████████| 5.89MB / 5.89MB            [A[A[A[A[A
-
-
-
-
-
-  ...002-scene006-chunk004.mp4: 100%|██████████| 1.26MB / 1.26MB            [A[A[A[A[A[A
-
-
-
-
-
-
-  ...002-scene006-chunk008.mp4: 100%|██████████| 4.97MB / 4.97MB            [A[A[A[A[A[A[A
-
-
-
-
-
-
-
-  ...002-scene006-chunk009.mp4: 100%|██████████| 1.46MB / 1.46MB            [A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-  ...002-scene006-chunk010.mp4: 100%|██████████| 3.58MB / 3.58MB            [A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-  ...002-scene007-chunk002.mp4: 100%|██████████| 3.71MB / 3.71MB            [A[A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-
-  [+ 3 files]                 : 100%|██████████| 30.1MB / 30.1MB            [A[A[A[A[A[A[A[A[A[A[AProcessing Files (337 / 337)  : 100%|██████████| 1.12GB / 1.12GB, 23.9MB/s  
-New Data Upload               : 100%|██████████|  631MB /  631MB, 23.9MB/s  [A
-
-  ...002-scene005-chunk004.mp4: 100%|██████████| 5.89MB / 5.89MB            [A[A
-
-
-  ...002-scene006-chunk004.mp4: 100%|██████████| 1.26MB / 1.26MB            [A[A[A
-
-
-
-  ...002-scene006-chunk008.mp4: 100%|██████████| 4.97MB / 4.97MB            [A[A[A[A
-
-
-
-
-  ...002-scene006-chunk009.mp4: 100%|██████████| 1.46MB / 1.46MB            [A[A[A[A[A
-
-
-
-
-
-  ...002-scene006-chunk010.mp4: 100%|██████████| 3.58MB / 3.58MB            [A[A[A[A[A[A
-
-
-
-
-
-
-  ...002-scene007-chunk002.mp4: 100%|██████████| 3.71MB / 3.71MB            [A[A[A[A[A[A[A
-
-
-
-
-
-
-
-  ...002-scene008-chunk000.mp4: 100%|██████████| 7.51MB / 7.51MB            [A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-  ...002-scene009-chunk000.mp4: 100%|██████████| 8.75MB / 8.75MB            [A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-  ...002-scene009-chunk001.mp4: 100%|██████████| 5.76MB / 5.76MB            [A[A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-
-  ...002-scene009-chunk002.mp4: 100%|██████████| 8.12MB / 8.12MB            [A[A[A[A[A[A[A[A[A[A[A
-
-  ...002-scene005-chunk004.mp4: 100%|██████████| 5.89MB / 5.89MB            [A[A
-
-
-  ...002-scene006-chunk004.mp4: 100%|██████████| 1.26MB / 1.26MB            [A[A[A
-
-
-
-  ...002-scene006-chunk008.mp4: 100%|██████████| 4.97MB / 4.97MB            [A[A[A[A
-
-
-
-
-  ...002-scene006-chunk009.mp4: 100%|██████████| 1.46MB / 1.46MB            [A[A[A[A[A
-
-
-
-
-
-  ...002-scene006-chunk010.mp4: 100%|██████████| 3.58MB / 3.58MB            [A[A[A[A[A[A
-
-
-
-
-
-
-  ...002-scene007-chunk002.mp4: 100%|██████████| 3.71MB / 3.71MB            [A[A[A[A[A[A[A
-
-
-
-
-
-
-
-  ...002-scene008-chunk000.mp4: 100%|██████████| 7.51MB / 7.51MB            [A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-  ...002-scene009-chunk000.mp4: 100%|██████████| 8.75MB / 8.75MB            [A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-  ...002-scene009-chunk001.mp4: 100%|██████████| 5.76MB / 5.76MB            [A[A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-
-  ...002-scene009-chunk002.mp4: 100%|██████████| 8.12MB / 8.12MB            [A[A[A[A[A[A[A[A[A[A[A
-
-  ...002-scene005-chunk004.mp4: 100%|██████████| 5.89MB / 5.89MB            [A[A
-
-
-  ...002-scene006-chunk004.mp4: 100%|██████████| 1.26MB / 1.26MB            [A[A[A
-
-
-
-  ...002-scene006-chunk008.mp4: 100%|██████████| 4.97MB / 4.97MB            [A[A[A[A
-
-
-
-
-  ...002-scene006-chunk009.mp4: 100%|██████████| 1.46MB / 1.46MB            [A[A[A[A[A
-
-
-
-
-
-  ...002-scene006-chunk010.mp4: 100%|██████████| 3.58MB / 3.58MB            [A[A[A[A[A[A
-
-
-
-
-
-
-  ...002-scene007-chunk002.mp4: 100%|██████████| 3.71MB / 3.71MB            [A[A[A[A[A[A[A
-
-
-
-
-
-
-
-  ...002-scene008-chunk000.mp4: 100%|██████████| 7.51MB / 7.51MB            [A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-  ...002-scene009-chunk000.mp4: 100%|██████████| 8.75MB / 8.75MB            [A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-  ...002-scene009-chunk001.mp4: 100%|██████████| 5.76MB / 5.76MB            [A[A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-
-  ...002-scene009-chunk002.mp4: 100%|██████████| 8.12MB / 8.12MB            [A[A[A[A[A[A[A[A[A[A[A
-
-  ...002-scene005-chunk004.mp4: 100%|██████████| 5.89MB / 5.89MB            [A[A
-
-
-  ...002-scene006-chunk004.mp4: 100%|██████████| 1.26MB / 1.26MB            [A[A[A
-
-
-
-  ...002-scene006-chunk008.mp4: 100%|██████████| 4.97MB / 4.97MB            [A[A[A[A
-
-
-
-
-  ...002-scene006-chunk009.mp4: 100%|██████████| 1.46MB / 1.46MB            [A[A[A[A[A
-
-
-
-
-
-  ...002-scene006-chunk010.mp4: 100%|██████████| 3.58MB / 3.58MB            [A[A[A[A[A[A
-
-
-
-
-
-
-  ...002-scene007-chunk002.mp4: 100%|██████████| 3.71MB / 3.71MB            [A[A[A[A[A[A[A
-
-
-
-
-
-
-
-  ...002-scene008-chunk000.mp4: 100%|██████████| 7.51MB / 7.51MB            [A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-  ...002-scene009-chunk000.mp4: 100%|██████████| 8.75MB / 8.75MB            [A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-  ...002-scene009-chunk001.mp4: 100%|██████████| 5.76MB / 5.76MB            [A[A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-
-  ...002-scene009-chunk002.mp4: 100%|██████████| 8.12MB / 8.12MB            [A[A[A[A[A[A[A[A[A[A[A
-
-  ...002-scene005-chunk004.mp4: 100%|██████████| 5.89MB / 5.89MB            [A[A
-
-
-  ...002-scene006-chunk004.mp4: 100%|██████████| 1.26MB / 1.26MB            [A[A[A
-
-
-
-  ...002-scene006-chunk008.mp4: 100%|██████████| 4.97MB / 4.97MB            [A[A[A[A
-
-
-
-
-  ...002-scene006-chunk009.mp4: 100%|██████████| 1.46MB / 1.46MB            [A[A[A[A[A
-
-
-
-
-
-  ...002-scene006-chunk010.mp4: 100%|██████████| 3.58MB / 3.58MB            [A[A[A[A[A[A
-
-
-
-
-
-
-  ...002-scene007-chunk002.mp4: 100%|██████████| 3.71MB / 3.71MB            [A[A[A[A[A[A[A
-
-
-
-
-
-
-
-  ...002-scene008-chunk000.mp4: 100%|██████████| 7.51MB / 7.51MB            [A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-  ...002-scene009-chunk000.mp4: 100%|██████████| 8.75MB / 8.75MB            [A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-  ...002-scene009-chunk001.mp4: 100%|██████████| 5.76MB / 5.76MB            [A[A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-
-  ...002-scene009-chunk002.mp4: 100%|██████████| 8.12MB / 8.12MB            [A[A[A[A[A[A[A[A[A[A[A
-
-  ...002-scene005-chunk004.mp4: 100%|██████████| 5.89MB / 5.89MB            [A[A
-
-
-  ...002-scene006-chunk004.mp4: 100%|██████████| 1.26MB / 1.26MB            [A[A[A
-
-
-
-  ...002-scene006-chunk008.mp4: 100%|██████████| 4.97MB / 4.97MB            [A[A[A[A
-
-
-
-
-  ...002-scene006-chunk009.mp4: 100%|██████████| 1.46MB / 1.46MB            [A[A[A[A[A
-
-
-
-
-
-  ...002-scene006-chunk010.mp4: 100%|██████████| 3.58MB / 3.58MB            [A[A[A[A[A[A
-
-
-
-
-
-
-  ...002-scene007-chunk002.mp4: 100%|██████████| 3.71MB / 3.71MB            [A[A[A[A[A[A[A
-
-
-
-
-
-
-
-  ...002-scene008-chunk000.mp4: 100%|██████████| 7.51MB / 7.51MB            [A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-  ...002-scene009-chunk000.mp4: 100%|██████████| 8.75MB / 8.75MB            [A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-  ...002-scene009-chunk001.mp4: 100%|██████████| 5.76MB / 5.76MB            [A[A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-
-  ...002-scene009-chunk002.mp4: 100%|██████████| 8.12MB / 8.12MB            [A[A[A[A[A[A[A[A[A[A[AProcessing Files (337 / 337)  : 100%|██████████| 1.12GB / 1.12GB, 21.1MB/s  
-New Data Upload               : 100%|██████████|  631MB /  631MB, 21.1MB/s  
-  ...002-scene005-chunk004.mp4: 100%|██████████| 5.89MB / 5.89MB            
-  ...002-scene006-chunk004.mp4: 100%|██████████| 1.26MB / 1.26MB            
-  ...002-scene006-chunk008.mp4: 100%|██████████| 4.97MB / 4.97MB            
-  ...002-scene006-chunk009.mp4: 100%|██████████| 1.46MB / 1.46MB            
-  ...002-scene006-chunk010.mp4: 100%|██████████| 3.58MB / 3.58MB            
-  ...002-scene007-chunk002.mp4: 100%|██████████| 3.71MB / 3.71MB            
-  ...002-scene008-chunk000.mp4: 100%|██████████| 7.51MB / 7.51MB            
-  ...002-scene009-chunk000.mp4: 100%|██████████| 8.75MB / 8.75MB            
-  ...002-scene009-chunk001.mp4: 100%|██████████| 5.76MB / 5.76MB            
-  ...002-scene009-chunk002.mp4: 100%|██████████| 8.12MB / 8.12MB            
-Upload successful!
-
-=== UPLOAD COMPLETE ===
-Uploaded: 337 clips + README.md
-Dataset: https://huggingface.co/datasets/anonymousML123/walkindia-50-clips

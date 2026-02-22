@@ -60,4 +60,9 @@ data/Generated_3D_Env/*
 # WalkIndia POC - Large files (re-downloadable via m01_download.py)
 src/data/videos/*.mp4
 src/data/clips/
+src/data/
 *.npy
+
+# secrets
+cookies.txt
+YT_cookies_2.txt

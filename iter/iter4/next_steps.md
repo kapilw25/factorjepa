@@ -71,3 +71,24 @@
 | road_layout | multi | intersection, narrow_lane, wide_road, sidewalk_present, median |
 
 ---
+
+## 6. HF Upload Fallback: WebDataset TAR Shards
+
+> If individual .mp4 upload fails (HF limit: 10k files/dir, 256 commits/hr), convert to WebDataset format.
+
+```
+data/
+├── shard-00000.tar  (video1.mp4, video1.json, video2.mp4, video2.json, ...)
+├── shard-00001.tar
+├── ...
+└── shard-00120.tar
+```
+
+- 115k clips x ~1.3MB = ~150GB -> ~150 TAR shards (~1GB each)
+- HF sees 150 files instead of 115k -> no directory limits, fast commits
+- Supports streaming: `load_dataset(..., streaming=True)`
+- Used by major video datasets (COCO, Ego4D, InternVid)
+
+---
+
+cd src && caffeinate -s python -u -c "from utils.hf_upload import upload_full; from utils.config import CLIPS_DIR, HF_DATASET_REPO; upload_full(CLIPS_DIR, HF_DATASET_REPO)" 2>&1 | tee ../logs/m02_hf_upload.log

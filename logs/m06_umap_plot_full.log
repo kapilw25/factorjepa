@@ -1,40 +1,0 @@
-Loaded embeddings: (242, 1024)
-Loaded tags: 242 clips
-Computing UMAP projection (n_neighbors=15, min_dist=0.1)...
-/workspace/LLM_asAgent_3D_SR/venv_walkindia/lib/python3.10/site-packages/umap/umap_.py:1952: UserWarning: n_jobs value 1 overridden to 1 by setting random_state. Use no seed for parallelism.
-  warn(
-UMAP(n_jobs=1, random_state=42, verbose=True)
-Tue Feb  3 18:02:45 2026 Construct fuzzy simplicial set
-Tue Feb  3 18:02:45 2026 Finding Nearest Neighbors
-Tue Feb  3 18:02:49 2026 Finished Nearest Neighbor Search
-Tue Feb  3 18:02:51 2026 Construct embedding
-Epochs completed:   0%|            0/500 [00:00]	completed  0  /  500 epochs
-Epochs completed:   0%|            1/500 [00:00]	completed  50  /  500 epochs
-Epochs completed:  18%| █▊         90/500 [00:00]	completed  100  /  500 epochs
-	completed  150  /  500 epochs
-Epochs completed:  36%| ███▌       179/500 [00:00]	completed  200  /  500 epochs
-	completed  250  /  500 epochs
-Epochs completed:  54%| █████▎     268/500 [00:00]	completed  300  /  500 epochs
-	completed  350  /  500 epochs
-Epochs completed:  71%| ███████▏   357/500 [00:00]	completed  400  /  500 epochs
-Epochs completed:  89%| ████████▉  446/500 [00:01]	completed  450  /  500 epochs
-Epochs completed: 100%| ██████████ 500/500 [00:01]
-Tue Feb  3 18:02:52 2026 Finished embedding
-UMAP projection shape: (242, 2)
-Saved: /workspace/LLM_asAgent_3D_SR/src/outputs/m06_umap.png
-Saved: /workspace/LLM_asAgent_3D_SR/src/outputs/m06_umap.pdf
-Building FAISS index for confusion matrix (k=5)...
-Saved: /workspace/LLM_asAgent_3D_SR/src/outputs/m06_confusion_matrix.png
-
-Per-class retrieval accuracy:
-  commercial: 26.0%
-  hilltown: 59.0%
-  junction: 0.0%
-  lane: 71.3%
-  market: 71.3%
-  metro: 98.0%
-  residential: 15.0%
-
-=== VISUALIZATION COMPLETE ===
-PNG: /workspace/LLM_asAgent_3D_SR/src/outputs/m06_umap.png
-PDF: /workspace/LLM_asAgent_3D_SR/src/outputs/m06_umap.pdf

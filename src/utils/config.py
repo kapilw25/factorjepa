@@ -1,94 +1,101 @@
 """
-Common configuration for WalkIndia-50 POC.
+Common configuration for WalkIndia-200k pipeline.
 """
 import os
+import re
 from pathlib import Path
 
 # Base paths
 PROJECT_ROOT = Path(__file__).parent.parent.parent
 SRC_DIR = PROJECT_ROOT / "src"
+UTILS_DIR = SRC_DIR / "utils"
 DATA_DIR = SRC_DIR / "data"
 VIDEOS_DIR = DATA_DIR / "videos"
 CLIPS_DIR = DATA_DIR / "clips"
+SHARDS_DIR = DATA_DIR / "shards"
 OUTPUTS_DIR = SRC_DIR / "outputs"
 LOGS_DIR = PROJECT_ROOT / "logs"
 
+# Input data (canonical copies in src/utils/)
+YT_VIDEOS_JSON = UTILS_DIR / "YT_videos_raw.json"
+TAG_TAXONOMY_JSON = UTILS_DIR / "tag_taxonomy.json"
+
 # Ensure directories exist
-for d in [VIDEOS_DIR, CLIPS_DIR, OUTPUTS_DIR, LOGS_DIR]:
+for d in [VIDEOS_DIR, CLIPS_DIR, SHARDS_DIR, OUTPUTS_DIR, LOGS_DIR]:
     d.mkdir(parents=True, exist_ok=True)
 
 # HuggingFace dataset config
-HF_DATASET_REPO = "anonymousML123/walkindia-50-clips"
+HF_DATASET_REPO = "anonymousML123/walkindia-200k"
+
+# HuggingFace private split repos (50GB limit per repo)
+HF_DATASET_REPO_PART1 = "anonymousML123/walkindia-200k-part1"
+HF_DATASET_REPO_PART2 = "anonymousML123/walkindia-200k-part2"
+HF_DATASET_REPOS = [HF_DATASET_REPO_PART1, HF_DATASET_REPO_PART2]
+HF_REPO_SIZE_LIMIT_GB = 300
+
+# Re-encoding config (CRF 28 on 480p shrinks ~40-50%)
+REENCODE_CRF = 28
 
 
 def ensure_clips_exist() -> bool:
     """
-    Check if clips exist locally. If not, download from HuggingFace.
+    Check if clips exist locally. If not, download from HuggingFace (both split repos).
     Returns True if clips are available, False otherwise.
     """
-    # Check if clips already exist
-    clip_dirs = [d for d in CLIPS_DIR.iterdir() if d.is_dir()] if CLIPS_DIR.exists() else []
-    clip_count = sum(len(list(d.glob("*.mp4"))) for d in clip_dirs)
+    # Check if clips already exist (recursive search for hierarchical structure)
+    clip_count = len(list(CLIPS_DIR.rglob("*.mp4"))) if CLIPS_DIR.exists() else 0
 
     if clip_count > 0:
         print(f"Found {clip_count} clips locally in {CLIPS_DIR}")
         return True
 
-    # Auto-download from HuggingFace
-    print(f"No clips found locally. Downloading from HuggingFace: {HF_DATASET_REPO}")
+    # Auto-download from HuggingFace (try split repos, then fallback to single repo)
+    repos_to_try = HF_DATASET_REPOS + [HF_DATASET_REPO]
+
     try:
+        import shutil
         from huggingface_hub import snapshot_download
 
-        local_dir = snapshot_download(
-            repo_id=HF_DATASET_REPO,
-            repo_type="dataset",
-            local_dir=DATA_DIR / "hf_download",
-            allow_patterns=["clips/**/*.mp4"],
-        )
+        for repo in repos_to_try:
+            print(f"Downloading from HuggingFace: {repo}")
+            try:
+                local_dir = snapshot_download(
+                    repo_id=repo,
+                    repo_type="dataset",
+                    local_dir=DATA_DIR / "hf_download",
+                    allow_patterns=["clips/**/*.mp4"],
+                )
 
-        # Move clips to expected location
-        hf_clips_dir = Path(local_dir) / "clips"
-        if hf_clips_dir.exists():
-            import shutil
-            for scene_dir in hf_clips_dir.iterdir():
-                if scene_dir.is_dir():
-                    dest_dir = CLIPS_DIR / scene_dir.name
-                    dest_dir.mkdir(parents=True, exist_ok=True)
-                    for clip in scene_dir.glob("*.mp4"):
-                        shutil.copy2(clip, dest_dir / clip.name)
+                # Mirror entire clips tree (hierarchical structure)
+                hf_clips_dir = Path(local_dir) / "clips"
+                if hf_clips_dir.exists():
+                    shutil.copytree(hf_clips_dir, CLIPS_DIR, dirs_exist_ok=True)
 
-            # Cleanup temp download
-            shutil.rmtree(DATA_DIR / "hf_download", ignore_errors=True)
+                # Cleanup temp download
+                shutil.rmtree(DATA_DIR / "hf_download", ignore_errors=True)
+                print(f"  Downloaded clips from {repo}")
+
+            except Exception as e:
+                print(f"  Skipping {repo}: {e}")
+                continue
 
         # Verify
-        clip_dirs = [d for d in CLIPS_DIR.iterdir() if d.is_dir()]
-        clip_count = sum(len(list(d.glob("*.mp4"))) for d in clip_dirs)
-        print(f"Downloaded {clip_count} clips from HuggingFace")
+        clip_count = len(list(CLIPS_DIR.rglob("*.mp4")))
+        print(f"Total clips available: {clip_count}")
         return clip_count > 0
 
     except ImportError:
         print("ERROR: huggingface_hub not installed. Run: pip install huggingface_hub")
         return False
-    except Exception as e:
-        print(f"ERROR downloading from HuggingFace: {e}")
-        return False
-
-# Video URLs from @WalkinginIndia YouTube channel
-# 3 different scenarios (~10 min each)
-VIDEO_URLS = {
-    "temple": "https://www.youtube.com/watch?v=ufV-7oGcxps",   # Amritsar - Golden Temple & Bazaar
-    "metro": "https://www.youtube.com/watch?v=fGID1n2j5Qs",    # Delhi Metro - Dilli Haat INA Station
-    "hilltown": "https://www.youtube.com/watch?v=wB5kuvzA5JI", # Mussoorie - Camel's Back Road
-}
 
 # PySceneDetect config
 CLIP_MIN_DURATION = 4.0  # seconds
-CLIP_MAX_DURATION = 5.0  # seconds
+CLIP_MAX_DURATION = 10.0  # seconds (professor spec: min 4, max 10)
 
-# V-JEPA config
-VJEPA_MODEL_ID = "facebook/vjepa2-vitl-fpc64-256"
+# V-JEPA config (ViT-G 384: 1B params, strongest V-JEPA variant for best embeddings)
+VJEPA_MODEL_ID = "facebook/vjepa2-vitg-fpc64-384"
 VJEPA_FRAMES_PER_CLIP = 64
-VJEPA_EMBEDDING_DIM = 1024  # ViT-L hidden dimension
+VJEPA_EMBEDDING_DIM = 1408  # ViT-G hidden dimension
 
 # Qwen3-VL config
 QWEN_MODEL_ID = "Qwen/Qwen3-VL-8B-Instruct"
@@ -99,9 +106,9 @@ FAISS_K_NEIGHBORS = 6  # includes self
 # Output files
 EMBEDDINGS_FILE = DATA_DIR / "embeddings.npy"
 TAGS_FILE = DATA_DIR / "tags.json"
-UMAP_PLOT_PNG = OUTPUTS_DIR / "m06_umap.png"
-UMAP_PLOT_PDF = OUTPUTS_DIR / "m06_umap.pdf"
-METRICS_FILE = OUTPUTS_DIR / "m05_metrics.json"
+UMAP_PLOT_PNG = OUTPUTS_DIR / "m07_umap.png"
+UMAP_PLOT_PDF = OUTPUTS_DIR / "m07_umap.pdf"
+METRICS_FILE = OUTPUTS_DIR / "m06_metrics.json"
 
 
 # =============================================================================
@@ -128,14 +135,12 @@ def check_gpu():
 
 def get_all_clips() -> list:
     """
-    Get all video clips from CLIPS_DIR.
+    Get all video clips from CLIPS_DIR (recursive).
     Returns list of Path objects.
     """
-    clip_dirs = [d for d in CLIPS_DIR.iterdir() if d.is_dir()]
-    all_clips = []
-    for clip_dir in clip_dirs:
-        all_clips.extend(list(clip_dir.glob("*.mp4")))
-    return all_clips
+    if not CLIPS_DIR.exists():
+        return []
+    return sorted(CLIPS_DIR.rglob("*.mp4"))
 
 
 def get_all_videos() -> list:
@@ -162,6 +167,108 @@ def get_video_duration(video_path) -> float:
         return 0.0
 
 
+def sanitize_name(name: str) -> str:
+    """Sanitize name for use as directory name (lowercase, underscores)."""
+    name = name.lower().strip()
+    name = re.sub(r'[,\s]+', '_', name)
+    name = re.sub(r'[^a-z0-9_]', '', name)
+    name = re.sub(r'_+', '_', name)
+    return name.strip('_')
+
+
+def build_video_section_map() -> dict:
+    """Build video_id → section path mapping from YT_videos_raw.json.
+
+    Returns dict like: {"qABnYGIilHE": "tier1/bangalore/drive", ...}
+    """
+    import json
+
+    if not YT_VIDEOS_JSON.exists():
+        print(f"WARNING: {YT_VIDEOS_JSON} not found, cannot build section map")
+        return {}
+
+    with open(YT_VIDEOS_JSON, 'r') as f:
+        data = json.load(f)
+
+    mapping = {}
+
+    # Drive tours (tier1)
+    for city, vids in data.get("drive_tours", {}).items():
+        for v in vids:
+            if v.get("id"):
+                mapping[v["id"]] = f"tier1/{city}/drive"
+
+    # Drone views (tier1)
+    for city, vids in data.get("drone_views", {}).items():
+        for v in vids:
+            if v.get("id"):
+                mapping[v["id"]] = f"tier1/{city}/drone"
+
+    # Walking tours (tier1 + goa)
+    for city, vids in data.get("walking_tours", {}).items():
+        for v in vids:
+            if v.get("id"):
+                if city == "goa":
+                    mapping[v["id"]] = "goa/walking"
+                else:
+                    mapping[v["id"]] = f"tier1/{city}/walking"
+
+    # Tier 2
+    for city, city_data in data.get("tier2_cities", {}).items():
+        for tour_type in ["drive", "walking", "drone", "rain"]:
+            for v in city_data.get(tour_type, []):
+                if v.get("id"):
+                    mapping[v["id"]] = f"tier2/{city}/{tour_type}"
+
+    # Monuments
+    for m in data.get("monuments", []):
+        monument_name = sanitize_name(m.get("name", "unknown"))
+        city = m.get("city", "")
+        if city:
+            dir_name = f"{monument_name}_{sanitize_name(city)}"
+        else:
+            dir_name = monument_name
+        for tour_type in ["walking_tours", "drive_tours", "drone_views"]:
+            for v in m.get(tour_type, []):
+                if v.get("id"):
+                    mapping[v["id"]] = f"monuments/{dir_name}"
+
+    return mapping
+
+
+# Processed-video tracking (for m02 with clip-count verification)
+PROCESSED_VIDEOS_FILE = CLIPS_DIR / ".processed.json"
+
+
+def get_processed_video_ids() -> dict:
+    """Get dict of {video_id: clip_count} already processed by m02."""
+    import json
+    if not PROCESSED_VIDEOS_FILE.exists():
+        # Migrate from old .processed.txt if it exists
+        old_file = CLIPS_DIR / ".processed.txt"
+        if old_file.exists():
+            ids = set(old_file.read_text().strip().split('\n')) - {''}
+            migrated = {vid_id: -1 for vid_id in ids}  # -1 = unknown count
+            with open(PROCESSED_VIDEOS_FILE, 'w') as f:
+                json.dump(migrated, f)
+            old_file.unlink()
+            print(f"Migrated {len(migrated)} entries from .processed.txt → .processed.json")
+            return migrated
+        return {}
+    with open(PROCESSED_VIDEOS_FILE) as f:
+        return json.load(f)
+
+
+def mark_video_processed(video_id: str, clip_count: int):
+    """Record that a video has been processed with its clip count."""
+    import json
+    PROCESSED_VIDEOS_FILE.parent.mkdir(parents=True, exist_ok=True)
+    processed = get_processed_video_ids()
+    processed[video_id] = clip_count
+    with open(PROCESSED_VIDEOS_FILE, 'w') as f:
+        json.dump(processed, f)
+
+
 def load_embeddings_and_tags() -> tuple:
     """
     Load embeddings and tags, verify alignment.
@@ -174,7 +281,7 @@ def load_embeddings_and_tags() -> tuple:
     # Load embeddings
     if not EMBEDDINGS_FILE.exists():
         print(f"ERROR: Embeddings not found: {EMBEDDINGS_FILE}")
-        print("Run m03_vjepa_embed.py first")
+        print("Run m05_vjepa_embed.py first")
         sys.exit(1)
 
     embeddings = np.load(EMBEDDINGS_FILE).astype(np.float32)
@@ -255,7 +362,12 @@ def setup_ram_cache(clip_paths: list, use_cache: bool = True, cache_subdir: str 
     cached_paths = []
     for src_path in tqdm(clip_paths, desc="Caching to RAM", unit="clip"):
         src_path = Path(src_path)
-        cache_name = f"{src_path.parent.name}__{src_path.name}"
+        # Use relative path from CLIPS_DIR with __ separator for hierarchical dirs
+        try:
+            rel = src_path.relative_to(CLIPS_DIR)
+            cache_name = str(rel).replace(os.sep, "__")
+        except ValueError:
+            cache_name = f"{src_path.parent.name}__{src_path.name}"
         dst_path = cache_dir / cache_name
         shutil.copy2(src_path, dst_path)
         cached_paths.append(dst_path)
@@ -275,7 +387,7 @@ def cleanup_ram_cache(cache_subdir: str = "clips"):
 
 def get_deduplicated_clips() -> list:
     """
-    Get clip paths from m03's deduplicated output (embeddings.paths.npy).
+    Get clip paths from m04's deduplicated output (embeddings.paths.npy).
     Falls back to all clips if embeddings not available.
 
     Returns:
@@ -290,16 +402,22 @@ def get_deduplicated_clips() -> list:
         print(f"Loaded {len(clip_paths)} deduplicated clips from {paths_file.name}")
         return [Path(p) for p in clip_paths]
     else:
-        print(f"WARNING: {paths_file.name} not found. Run m03_vjepa_embed.py first.")
+        print(f"WARNING: {paths_file.name} not found. Run m05_vjepa_embed.py first.")
         print("Falling back to all clips (may cause misalignment with embeddings)")
         return get_all_clips()
 
 
 def restore_original_path(cache_path: Path, clips_dir: Path = None) -> str:
-    """Convert RAM cache path back to original path."""
+    """Convert RAM cache path back to original path (supports hierarchical dirs)."""
     if clips_dir is None:
         clips_dir = CLIPS_DIR
     cache_name = cache_path.name
+    # Replace __ back to path separators (hierarchical structure)
+    rel_path = cache_name.replace("__", os.sep)
+    restored = clips_dir / rel_path
+    if restored.exists():
+        return str(restored)
+    # Fallback: old-style single __ split
     parts = cache_name.split("__", 1)
     if len(parts) == 2:
         return str(clips_dir / parts[0] / parts[1])

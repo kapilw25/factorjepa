@@ -1,0 +1,60 @@
+{
+  "_comment": "Tag taxonomy for WalkIndia-200k (professor spec + urban scene literature extras)",
+  "_source": "Literature/Prev_work4/notes_raw.md + DriveIndia + CARScenes + IDD datasets",
+
+  "scene_type": {
+    "type": "single",
+    "values": ["market", "junction", "residential_lane", "promenade", "transit", "temple_tourist", "highway", "alley", "commercial", "construction"],
+    "default": "residential_lane"
+  },
+  "time_of_day": {
+    "type": "single",
+    "values": ["morning", "afternoon", "evening", "night"],
+    "default": "afternoon"
+  },
+  "weather": {
+    "type": "single",
+    "values": ["clear", "cloudy", "rain", "fog"],
+    "default": "clear"
+  },
+  "crowd_density": {
+    "type": "single",
+    "values": ["low", "med", "high"],
+    "default": "med"
+  },
+  "traffic_density": {
+    "type": "single",
+    "values": ["low", "med", "high"],
+    "default": "med"
+  },
+  "road_layout": {
+    "type": "multi",
+    "values": ["intersection", "narrow_lane", "wide_road", "sidewalk_present", "median"],
+    "default": ["wide_road"]
+  },
+  "road_surface": {
+    "type": "single",
+    "values": ["paved", "unpaved", "cobblestone", "wet"],
+    "default": "paved"
+  },
+  "infrastructure_quality": {
+    "type": "single",
+    "values": ["good", "moderate", "poor"],
+    "default": "moderate"
+  },
+  "notable_objects": {
+    "type": "multi",
+    "values": ["bus", "auto_rickshaw", "bike", "car", "truck", "street_vendor", "police", "signage", "animals", "pedestrian", "construction_barrier"],
+    "default": ["pedestrian", "bike"]
+  },
+  "vegetation": {
+    "type": "single",
+    "values": ["none", "sparse", "dense"],
+    "default": "sparse"
+  },
+  "lighting": {
+    "type": "single",
+    "values": ["natural", "artificial", "mixed", "low_light"],
+    "default": "natural"
+  }
+}

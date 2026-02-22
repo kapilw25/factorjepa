@@ -1,6 +1,0 @@
-=== SANITY MODE: Download 1 video (30s) ===
-Downloading: https://www.youtube.com/watch?v=ufV-7oGcxps
-Output: /workspace/LLM_asAgent_3D_SR/src/data/videos/temple.mp4
-SUCCESS: Downloaded temple.mp4
-
-SANITY PASSED

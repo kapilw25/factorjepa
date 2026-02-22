@@ -38,5 +38,8 @@ scipy>=1.10.0
 # UMAP Visualization
 umap-learn>=0.5.0
 
+# PDF Text Extraction
+PyMuPDF>=1.24.0
+
 # Progress Bar
 tqdm>=4.65.0
