@@ -20,6 +20,7 @@
 transformers>=4.57.0
 accelerate>=0.25.0
 bitsandbytes>=0.41.0
+datasets>=2.14.0
 
 # =============================================================================
 # VLM Tagging (m04_vlm_tag.py)

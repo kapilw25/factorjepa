@@ -14,7 +14,7 @@
   },
   "weather": {
     "type": "single",
-    "values": ["clear", "cloudy", "rain", "fog"],
+    "values": ["clear", "cloudy", "rain", "fog", "overcast"],
     "default": "clear"
   },
   "crowd_density": {
@@ -34,7 +34,7 @@
   },
   "road_surface": {
     "type": "single",
-    "values": ["paved", "unpaved", "cobblestone", "wet"],
+    "values": ["asphalt", "concrete", "dirt", "cobblestone", "mixed", "paved", "unpaved", "wet"],
     "default": "paved"
   },
   "infrastructure_quality": {
@@ -49,7 +49,7 @@
   },
   "vegetation": {
     "type": "single",
-    "values": ["none", "sparse", "dense"],
+    "values": ["none", "sparse", "moderate", "dense"],
     "default": "sparse"
   },
   "lighting": {

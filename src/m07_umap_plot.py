@@ -20,7 +20,7 @@ import numpy as np
 sys.path.insert(0, str(Path(__file__).parent))
 from utils.config import (
     EMBEDDINGS_FILE, TAGS_FILE, METRICS_FILE, OUTPUTS_DIR,
-    CLIPS_DIR, FAISS_K_NEIGHBORS,
+    FAISS_K_NEIGHBORS,
     add_subset_arg, get_output_dir,
 )
 

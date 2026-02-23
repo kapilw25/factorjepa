@@ -5,6 +5,7 @@ window, encode each clip once with libx264 CRF 28. No double encoding, no respli
 USAGE:
     python -u src/m02_scene_detect.py --SANITY 2>&1 | tee logs/m02_scene_detect_sanity.log
     caffeinate -s python -u src/m02_scene_detect.py --FULL 2>&1 | tee logs/m02_scene_detect_full.log
+    caffeinate -s python -u src/m02_scene_detect.py --FULL --keyframes 2>&1 | tee logs/m02_scene_detect_full_kf.log
 """
 import argparse
 import subprocess
@@ -120,6 +121,31 @@ def encode_clip(video_path: Path, start: float, duration: float,
         return False
 
 
+def extract_keyframe(clip_path: Path) -> bool:
+    """Extract 1 keyframe (middle frame) from a clip as JPEG. Output: same dir, same name .jpg."""
+    output_path = clip_path.with_suffix(".jpg")
+    if output_path.exists():
+        return True
+    dur = get_video_duration(clip_path)
+    if dur <= 0:
+        return False
+    mid = dur / 2.0
+    cmd = [
+        "ffmpeg", "-y",
+        "-ss", str(mid),
+        "-i", str(clip_path),
+        "-frames:v", "1",
+        "-q:v", "2",
+        "-loglevel", "error",
+        str(output_path)
+    ]
+    try:
+        result = subprocess.run(cmd, capture_output=True, text=True, timeout=30)
+        return result.returncode == 0 and output_path.exists()
+    except Exception:
+        return False
+
+
 def verify_video_clips(video_id: str, section_map: dict, clips_dir: Path) -> int:
     """Count actual clips on disk for a video. Returns count."""
     if section_map and video_id in section_map:
@@ -131,7 +157,8 @@ def verify_video_clips(video_id: str, section_map: dict, clips_dir: Path) -> int
     return len(list(video_clip_dir.glob(f"{video_id}-*.mp4")))
 
 
-def process_video(video: Path, clips_dir: Path, section_map: dict = None) -> int:
+def process_video(video: Path, clips_dir: Path, section_map: dict = None,
+                   keyframes: bool = False) -> int:
     """Detect scenes → greedy split plan → encode each clip once. Returns clip count."""
     video_id = video.stem
     print(f"\nProcessing: {video.name}")
@@ -183,7 +210,12 @@ def process_video(video: Path, clips_dir: Path, section_map: dict = None) -> int
     encode_time = time.time() - start_time
     print(f"  Encoded {len(encoded_clips)}/{len(intervals)} clips in {encode_time:.0f}s")
 
-    # 5. Print per-clip durations for log monitoring
+    # 5. Extract keyframes if requested
+    if keyframes and encoded_clips:
+        kf_ok = sum(1 for c in encoded_clips if extract_keyframe(c))
+        print(f"  Keyframes: {kf_ok}/{len(encoded_clips)} extracted")
+
+    # 6. Print per-clip durations for log monitoring
     violations = 0
     print(f"  --- {video_id}: {len(encoded_clips)} clips ---")
     for clip in encoded_clips:
@@ -209,6 +241,7 @@ def main():
     parser = argparse.ArgumentParser(description="Greedy scene-aware split → encode → upload")
     parser.add_argument("--SANITY", action="store_true", help="Process 1 video only")
     parser.add_argument("--FULL", action="store_true", help="Process all videos (auto-polls if m01 still running)")
+    parser.add_argument("--keyframes", action="store_true", help="Extract 1 middle-frame JPEG per clip")
     args = parser.parse_args()
 
     if not (args.SANITY or args.FULL):
@@ -252,7 +285,7 @@ def main():
             sys.exit(0)
 
         print(f"  Selected: {vid.stem} (unprocessed)")
-        clip_count = process_video(vid, CLIPS_DIR, section_map)
+        clip_count = process_video(vid, CLIPS_DIR, section_map, keyframes=args.keyframes)
         mark_video_processed(vid.stem, clip_count)
         print(f"\nSANITY COMPLETE")
 
@@ -290,7 +323,7 @@ def main():
                     batch_clips = 0
                     for i, video in enumerate(new_videos, 1):
                         print(f"\n  [{i}/{len(new_videos)}] {video.name}")
-                        clip_count = process_video(video, CLIPS_DIR, section_map)
+                        clip_count = process_video(video, CLIPS_DIR, section_map, keyframes=args.keyframes)
                         batch_clips += clip_count
                         mark_video_processed(video.stem, clip_count)
 

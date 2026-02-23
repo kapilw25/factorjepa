@@ -146,8 +146,8 @@ def estimate_disk_usage(videos: list, max_resolution: int) -> float:
     with open(DURATIONS_JSON, 'r') as f:
         durations = json.load(f)
 
-    # Build ID → filesize map
-    id_to_info = {d["id"]: d for d in durations if d.get("status") == "ok"}
+    # Build ID → filesize map (durations is {"summary":..., "videos":[...]})
+    id_to_info = {d["id"]: d for d in durations.get("videos", []) if d.get("status") == "ok"}
 
     # Bitrate ratios relative to best quality (from real data: 4K avg = 2.3 MB/s)
     res_ratio = {360: 0.07, 480: 0.12, 720: 0.25, 1080: 0.5, 1440: 0.75, 2160: 1.0}

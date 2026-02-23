@@ -117,8 +117,8 @@ VLM_MODELS = {
 BAKEOFF_CLIP_COUNT = 2500
 
 # Output files
-EMBEDDINGS_FILE = DATA_DIR / "embeddings.npy"
-TAGS_FILE = DATA_DIR / "tags.json"
+EMBEDDINGS_FILE = OUTPUTS_DIR / "embeddings.npy"
+TAGS_FILE = OUTPUTS_DIR / "tags.json"
 UMAP_PLOT_PNG = OUTPUTS_DIR / "m07_umap.png"
 UMAP_PLOT_PDF = OUTPUTS_DIR / "m07_umap.pdf"
 METRICS_FILE = OUTPUTS_DIR / "m06_metrics.json"
@@ -359,7 +359,7 @@ def load_embeddings_and_tags() -> tuple:
     # Load tags
     if not TAGS_FILE.exists():
         print(f"ERROR: Tags not found: {TAGS_FILE}")
-        print("Run m04_qwen_tag.py first")
+        print("Run m04_vlm_tag.py first")
         sys.exit(1)
 
     with open(TAGS_FILE, 'r') as f:

@@ -18,7 +18,7 @@ sys.path.insert(0, str(Path(__file__).parent))
 
 # Paths
 RAW_MD = Path("Literature/Prev_work4/YT_videos_raw.md")
-OUTPUT_JSON = Path("Literature/Prev_work4/YT_videos_raw.json")
+OUTPUT_JSON = Path("src/utils/YT_videos_raw.json")
 OUTPUT_DIR = Path("outputs_data_prep")
 
 
