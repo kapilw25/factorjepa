@@ -32,7 +32,28 @@
 | 1 | **Geographic transfer evaluation** | STRONG | No one has tested if V-JEPA's "world model" transfers to Indian streets |
 | 2 | **Label-free video evaluation metrics** | STRONG | Self-consistency & stability metrics are new for video (only done for images) |
 | 3 | **Indian urban video dataset** | MEDIUM | New dataset contribution (~200K clips from 700 videos) |
-| 4 | **Qwen3-VL pseudo-labeling pipeline** | MEDIUM | Practical contribution for structured video tagging |
+| 4 | **VLM bake-off pipeline** | MEDIUM | 3-VLM comparison (Qwen3-VL, VideoLLaMA3, Keye-VL) → consensus-based winner selection |
+
+### POC-First Strategy
+
+**Run the entire 4-chapter pipeline on a 10K stratified subset before scaling to 115K.**
+
+| Aspect | Detail |
+|--------|--------|
+| **Subset size** | 10,000 clips (from 115K) |
+| **Why 10K** | Statistical minimum for kNN (k=6, 10 scene types × 1K each), FAISS IVF-PQ training (≥8K), confidence sweep binning |
+| **Sampling** | Stratified by city_tier (1/2/3) × tour_type (walk/drive/drone) × geography — proportional |
+| **Tool** | `m00c_sample_subset.py` → `data/subset_10k.json` (deterministic, seed=42) |
+| **Flag** | All scripts (m04-m07) accept `--subset data/subset_10k.json` to operate on POC subset only |
+| **Output dir** | `outputs_poc/` (separate from `outputs/`) |
+| **Scale up** | After POC validates → drop `--subset` flag, same scripts run on 115K |
+
+**POC timeline:**
+| Week | Chapter | GPU Hours | Deliverable |
+|:----:|---------|:---------:|-------------|
+| 1 | Ch 8+9 (data + eval) | ~4h | POC metrics.json + plots |
+| 2 | Ch 10 (continual pretraining) | ~20h | frozen vs adapted comparison |
+| 3-4 | Ch 11 (surgery fine-tuning) | ~54h | frozen vs adapted vs surgical comparison |
 
 ### Research Gap (Validated via Web Search)
 
@@ -45,8 +66,8 @@
 
 | Limitation | Mitigation |
 |------------|------------|
-| VLM tags are pseudo-labels, not ground truth | Cross-VLM validation (3 VLMs must agree) + per-field confidence scores |
-| Circular bias: Western models validating Western models | Include DINOv2/random baselines + 3 architecturally diverse VLMs |
+| VLM tags are pseudo-labels, not ground truth | VLM bake-off (3-way consensus on 2.5K clips) + per-field confidence + confidence sweep |
+| Circular bias: Western models validating Western models | Include DINOv2/random baselines; primary metrics are label-free (Cycle@K, Overlap@K) |
 | Video artifacts (blur, shake) may confound clustering | Quality filtering + stratified analysis |
 
 ---
@@ -59,6 +80,7 @@ flowchart LR
         A["YouTube<br>700 videos<br>20-30 min"] --> B["PySceneDetect<br>4-10s cuts<br>+ keyframes"]
         B --> C["~115K clips<br>121 GB"]
         C --> D["WebDataset<br>116 TAR shards<br>HF Upload"]
+        D --> SUB["m00c<br>Stratified 10K<br>subset_10k.json"]
     end
 
     subgraph VJEPA ["V-JEPA BRANCH (GPU)"]
@@ -67,29 +89,31 @@ flowchart LR
         G --> H["UMAP + FiftyOne<br>2D/3D viz · kNN grids<br>Macro/micro reporting"]
     end
 
-    subgraph VLM ["MULTI-VLM BRANCH (GPU × 3, isolated)"]
-        I1["m04a<br>Qwen3-VL-8B"] --> J["m04d<br>Cross-VLM Merge<br>>90%=conf <70%=discard"]
-        I2["m04b<br>VideoLLaMA3-7B"] --> J
-        I3["m04c<br>InternVL2.5-8B"] --> J
+    subgraph VLM ["VLM BAKE-OFF (GPU → select → full)"]
+        I1["m04 --BAKEOFF<br>Qwen3-VL-8B<br>2.5K clips"] --> S["m04b<br>VLM Select<br>consensus = gold"]
+        I2["m04 --BAKEOFF<br>VideoLLaMA3-7B<br>2.5K clips"] --> S
+        I3["m04 --BAKEOFF<br>Keye-VL-1.5-8B<br>2.5K clips"] --> S
+        S --> W["m04 --FULL<br>Winner VLM<br>POC: 7.5K · Full: 113K"]
     end
 
     subgraph OUT ["DELIVERABLES"]
-        K["1. Benchmark (9 metrics)<br>2. Dataset (34 fields/clip)<br>3. Paper Finding<br>4. Baselines<br>5. Cross-VLM"]
+        K["1. Benchmark (9 metrics)<br>2. Dataset (33 fields/clip)<br>3. Paper Finding<br>4. Baselines<br>5. VLM Bake-off Report<br>6. POC → Full scaling report"]
     end
 
-    D --> E
-    D --> I1
-    D --> I2
-    D --> I3
-    J --> F
-    J -.->|"confidence<br>scores"| G
+    SUB -->|"POC: 10K"| E
+    SUB -->|"POC: 2.5K"| I1
+    SUB -->|"POC: 2.5K"| I2
+    SUB -->|"POC: 2.5K"| I3
+    W --> F
+    W -.->|"confidence<br>scores"| G
     H --> K
-    J --> K
+    S --> K
 
     style A fill:#1e88e5,color:#fff,font-weight:bold,font-size:28px
     style B fill:#8e24aa,color:#fff,font-weight:bold,font-size:28px
     style C fill:#00897b,color:#fff,font-weight:bold,font-size:28px
     style D fill:#5e35b1,color:#fff,font-weight:bold,font-size:28px
+    style SUB fill:#fdd835,color:#000,font-weight:bold,font-size:28px
     style E fill:#43a047,color:#fff,font-weight:bold,font-size:28px
     style F fill:#e53935,color:#fff,font-weight:bold,font-size:28px
     style G fill:#d81b60,color:#fff,font-weight:bold,font-size:28px
@@ -97,37 +121,51 @@ flowchart LR
     style I1 fill:#00acc1,color:#fff,font-weight:bold,font-size:28px
     style I2 fill:#00838f,color:#fff,font-weight:bold,font-size:28px
     style I3 fill:#006064,color:#fff,font-weight:bold,font-size:28px
-    style J fill:#f4511e,color:#fff,font-weight:bold,font-size:28px
+    style S fill:#ff6f00,color:#fff,font-weight:bold,font-size:28px
+    style W fill:#00acc1,color:#fff,font-weight:bold,font-size:28px
     style K fill:#b71c1c,color:#fff,font-weight:bold,font-size:28px
 ```
 
-### Why VLM Branch connects to V-JEPA BRANCH (J → F, J -.-> G)
+### Why VLM Branch connects to V-JEPA BRANCH (W → F, W -.-> G)
 
 ```
-DATA PIPELINE        V-JEPA BRANCH              MULTI-VLM BRANCH (isolated)
-─────────────        ─────────────              ────────────────────────────
-WebDataset    ──→    V-JEPA 2 → FAISS  ←──     m04a Qwen3-VL ──┐
-(116 TARs)           embeddings   ↑              m04b VideoLLaMA3 ├→ m04d Merge → tags.json
-                                  │              m04c InternVL2.5 ─┘
-                                  │
+DATA PIPELINE        V-JEPA BRANCH              VLM BAKE-OFF BRANCH
+─────────────        ─────────────              ──────────────────────
+WebDataset    ──→    m00c Subset   ──→          POC: 10K clips (--subset)
+(116 TARs)           (10K stratified)            Full: 115K clips (no flag)
+                          │
+                          ├──→ V-JEPA 2 → FAISS  ←──  Phase 1: 3 VLMs × 2.5K clips
+                          │    embeddings   ↑           Qwen3-VL   ──┐
+                          │                 │           VideoLLaMA3 ──┤→ m04b Select → Winner
+                          │                 │           Keye-VL-1.5 ──┘
+                          │                 │          Phase 2: Winner × remaining → tags.json
+                          │                 │          (POC: 7.5K remaining | Full: 113K remaining)
+                          │                 │
                      Prec@K uses BOTH:
                      • embeddings (V-JEPA) for kNN neighbors
-                     • scene_type (cross-VLM validated) as ground-truth labels
+                     • scene_type (winner VLM pseudo-label) as diagnostic labels
 
-                     Confidence sweep uses:
-                     • confidence scores from VLMs → filter → recompute metrics
+                     No gold truth needed:
+                     • cross-VLM consensus on 2,500 clips = proxy gold truth
+                     • VLM with highest agreement with other two = winner
 
-                     Question m06 answers:
-                     "Do clips with same cross-VLM scene_type
-                      land near each other in V-JEPA space?"
+                     NOTE: Tags are DIAGNOSTIC — primary metrics
+                     (Cycle@K, Overlap@K) are label-free
 ```
 
 How tags flow into evaluation:
 
 ```
-m04a tags_qwen.json  ──┐
-m04b tags_videollama ───┤──→ m04d merge ──→ tags.json (34 fields/clip)
-m04c tags_internvl   ──┘
+Phase 1: Bake-off (2,500 clips × 3 VLMs)
+m04 --BAKEOFF qwen       → data/bakeoff/tags_qwen.json
+m04 --BAKEOFF videollama  → data/bakeoff/tags_videollama.json
+m04 --BAKEOFF keye        → data/bakeoff/tags_keye.json
+         ↓
+m04b_vlm_select.py → vlm_comparison.json + plots → Winner
+
+Phase 2: Winner on remaining clips
+m04 --FULL <winner> --subset data/subset_10k.json → outputs_poc/tags.json  (POC: 7.5K)
+m04 --FULL <winner>                               → tags.json              (Full: 113K)
 
 tags.json                            m06 evaluates V-JEPA quality (9 metrics):
 ┌──────────────────────┐            ┌──────────────────────────────────┐
@@ -138,14 +176,14 @@ tags.json                            m06 evaluates V-JEPA quality (9 metrics):
 │     "confidence_     │            │     % neighbors with same type?  │
 │       scene_type":   │            ├──────────────────────────────────┤
 │       0.92,          │            │ + Cycle@K, Overlap@K, mAP@K,    │
-│     "_vlm_agreement":│            │   nDCG@K, Silhouette            │
-│       0.95,          │            │ + Conf sweep, Multi-attr slices  │
-│     ...              │            │ + Hard/Easy mode (±30s window)   │
-│   },                 │            └──────────────────────────────────┘
-│   ...                │
-│ ]                    │            m07 visualizes:
-└──────────────────────┘            ┌──────────────────────────────────┐
-                       ──────────→  │ UMAP scatter colored by scene_type│
+│     "_model": ...,   │            │   nDCG@K, Silhouette            │
+│     ...              │            │ + Conf sweep, Multi-attr slices  │
+│   },                 │            │ + Hard/Easy mode (±30s window)   │
+│   ...                │            └──────────────────────────────────┘
+│ ]                    │
+└──────────────────────┘            m07 visualizes:
+                       ──────────→  ┌──────────────────────────────────┐
+                                    │ UMAP scatter colored by scene_type│
                                     │ Confusion matrix + kNN grids     │
                                     │ Macro/micro reporting            │
                                     └──────────────────────────────────┘
@@ -179,17 +217,13 @@ tags.json                            m06 evaluates V-JEPA quality (9 metrics):
 ║                                     ║                              ▲                                                                  ║   ║
 ║                                     ║ tags + confidence ───────────┘ (confidence feeds threshold sweep)                               ║   ║
 ║                                     ║                                                                                                 ║   ║
-║  MULTI-VLM BRANCH (isolated, parallel):                                                                                               ║   ║
+║  VLM BAKE-OFF BRANCH (3 VLMs × 2.5K → select winner → full 113K):                                                                    ║   ║
 ║  ┌──────────────────────────────┐                                                                                                     ║   ║
-║  │  m04a Qwen3-VL-8B           │──┐                                                                                                  ║   ║
-║  │  + confidence + provenance  │  │     ┌─────────────────────────────────────┐                                                       ║   ║
-║  ├──────────────────────────────┤  ├───► │  m04d  Cross-VLM Merge (CPU)        │                                                       ║   ║
-║  │  m04b VideoLLaMA3-7B        │──┤     │  Qwen3 ∩ VideoLLaMA3 ∩ InternVL2.5  │ ════════════════════════════════════════════════════════╣   ║
-║  │  + confidence + provenance  │  │     │  >90% = high conf | <70% = discard  │                                                       ║   ║
-║  ├──────────────────────────────┤  │     └─────────────────────────────────────┘                                                       ║   ║
-║  │  m04c InternVL2.5-8B        │──┘                                                                                                   ║   ║
-║  │  + confidence + provenance  │                                                                                                      ║   ║
-║  └──────────────────────────────┘                                                                                                     ║   ║
+║  │  m04 --BAKEOFF (2.5K clips) │     ┌───────────────────────────┐     ┌──────────────────────────┐                                   ║   ║
+║  │  ├ Qwen3-VL-8B              │     │  m04b VLM Select (CPU)    │     │  m04 --FULL (winner)     │                                   ║   ║
+║  │  ├ VideoLLaMA3-7B           │────►│  consensus = proxy gold   │────►│  ~113K remaining clips   │═════════════════════════════════╣   ║
+║  │  └ Keye-VL-1.5-8B           │     │  → vlm_comparison.json    │     │  → tags.json (33 fields) │                                   ║   ║
+║  └──────────────────────────────┘     └───────────────────────────┘     └──────────────────────────┘                                   ║   ║
 ║                                                                                                                                       ║   ║
 ╚═══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════╩═══╩═╝
                                                                                                                                         ║
@@ -198,10 +232,10 @@ tags.json                            m06 evaluates V-JEPA quality (9 metrics):
 ║                                                           DELIVERABLES                                                                    ║
 ╠═════════════════════╦═════════════════════════════════════════════════════════════════════════════════════════════════════════════════════╣
 ║ 1. Benchmark        ║ 9 metrics: Cycle@K, Prec@K, Overlap@K, mAP@K, nDCG@K, Silhouette, Conf sweep, Slices, Hard/Easy                    ║
-║ 2. Dataset          ║ WalkIndia-200K (115K clips · 34 fields/clip: tags + confidence + provenance + agreement)                                        ║
+║ 2. Dataset          ║ WalkIndia-200K (115K clips · 33 fields/clip: tags + confidence + provenance)                                        ║
 ║ 3. Paper Finding    ║ Does V-JEPA transfer to Indian streets? (Yes/No + evidence across 9 metrics)                                       ║
 ║ 4. Baselines        ║ Random embeddings, DINOv2, shuffled V-JEPA, CLIP                                                                   ║
-║ 5. Cross-VLM        ║ % clips where Qwen3, VideoLLaMA3, InternVL2.5 agree (replaces human audit)                                         ║
+║ 5. VLM Bake-off     ║ 3-VLM comparison report on 2.5K clips (consensus-based selection, publishable finding)                                ║
 ╚═════════════════════╩═════════════════════════════════════════════════════════════════════════════════════════════════════════════════════╝
 ```
 
@@ -214,16 +248,16 @@ tags.json                            m06 evaluates V-JEPA quality (9 metrics):
 | **Cycle@K** | YES | If A's nearest neighbor is B, does B point back to A? No labels needed. |
 | **Overlap@K** | YES | Same clip with different crops → similar neighbors? No labels needed. |
 | **Silhouette** | **NO** | Uses scene_type labels for cluster assignment. |
-| **Prec@K / mAP@K / nDCG@K** | **NO** | Uses cross-VLM validated pseudo-labels. Honest about this. |
+| **Prec@K / mAP@K / nDCG@K** | **NO** | Uses bake-off winner's pseudo-labels as diagnostics. Honest about this. |
 
 ### Addressing Circular Bias
 
 | Concern | Mitigation |
 |---------|------------|
-| V-JEPA + single VLM both Western-trained | Cross-VLM agreement: Qwen3 ∩ VideoLLaMA3 ∩ InternVL2.5 |
-| Single VLM bias | Use 3 different VLMs, only trust labels where all 3 agree |
+| V-JEPA + VLM both Western-trained | Primary metrics (Cycle@K, Overlap@K) are label-free — no VLM dependency |
+| Single VLM bias | 3-VLM bake-off on 2.5K clips validates tag quality via cross-model consensus |
 | Video artifacts vs semantics | Filter by quality score, stratify analysis by blur/shake |
-| Models may share training data biases | Report agreement % as confidence metric |
+| VLMs may share training data biases | 3 architecturally diverse VLMs (different backbones, vision encoders) + DINOv2/random baselines |
 
 ---
 
@@ -274,25 +308,35 @@ tags.json                            m06 evaluates V-JEPA quality (9 metrics):
 
 ---
 
-## Step 4: Auto-Tagging (3 Isolated VLMs + Merge)
+## Step 4: Auto-Tagging (VLM Bake-off → Winner)
 
-**Architecture**: Option 2 — each VLM runs in isolation, then merge
+**Architecture**: Single parameterized script `m04_vlm_tag.py --model qwen|videollama|keye`
 
 ```
-m04a_qwen_tag.py       → tags_qwen.json       (Qwen3-VL-8B, vLLM)
-m04b_videollama_tag.py → tags_videollama.json  (VideoLLaMA3-7B)
-m04c_internvl_tag.py   → tags_internvl.json    (InternVL2.5-8B)
-                              ↓
-m04d_vlm_merge.py      → tags.json (unified, cross-VLM validated)
+Phase 1: Bake-off (same 2,500 clips × 3 VLMs)
+m04_vlm_tag.py --model qwen       --BAKEOFF → data/bakeoff/tags_qwen.json
+m04_vlm_tag.py --model videollama  --BAKEOFF → data/bakeoff/tags_videollama.json
+m04_vlm_tag.py --model keye        --BAKEOFF → data/bakeoff/tags_keye.json
+                                        ↓
+m04b_vlm_select.py → vlm_comparison.json (consensus = proxy gold truth)
+                                        ↓
+Phase 2: Winner runs --FULL → tags.json (resumes from bake-off checkpoint)
 ```
 
-Why isolated: different dependencies, different GPU memory profiles, can run on different machines.
+No gold truth needed — cross-VLM consensus IS the evaluation:
+- 3 architecturally different VLMs tag the same 2,500 clips independently
+- VLM with highest agreement with the other two = winner
+- Also measured: JSON parse rate, taxonomy compliance, confidence calibration, speed
 
-| VLM | Size | Strength | Script |
-|-----|------|----------|--------|
-| **Qwen3-VL-8B** | 8B | Hindi text/signage, MLVU 75.3 | m04a (existing) |
-| **VideoLLaMA3-7B** | 7B | Motion understanding, #1 VideoMME | m04b (NEW) |
-| **InternVL2.5-8B** | 8B | Architectural diversity | m04c (NEW) |
+VLMs selected by **benchmark scores** (not download count):
+
+| VLM | Size | VideoMME | MLVU | Why Selected |
+|-----|------|:--------:|:----:|-------------|
+| **Qwen3-VL-8B** | 8B | — | 75.3 | Best Hindi text/signage, existing implementation |
+| **VideoLLaMA3-7B** | 7B | 66.2 | 73.0 | Best MLVU + PerceptionTest (72.8), SigLIP vision encoder |
+| **Keye-VL-1.5-8B** | 8B | 73.0 | — | Highest VideoMME (beats GPT-4o 71.9), SlowFast encoding |
+
+GPU budget: ~1h bake-off + ~10h full = **~11h total** (vs ~30h if all 3 on full)
 
 Structured tags per clip — 11 fields (NOT free-form captions):
 
@@ -317,11 +361,10 @@ Structured tags per clip — 11 fields (NOT free-form captions):
   "_model":                 "Qwen/Qwen3-VL-8B-Instruct",
   "_prompt_version":        "v1.0",
   "_tagged_at":             "2026-02-22T14:30:00Z",
-  "_vlm_agreement":         0.95
 }
 ```
 
-After m04d merge: 8 metadata + 11 tags + 11 confidence + 3 provenance + 1 agreement = **34 fields per clip**
+After m04 tagging (winner VLM): 8 metadata + 11 tags + 11 confidence + 3 provenance = **33 fields per clip**
 
 ---
 
@@ -452,7 +495,7 @@ All metrics reported in **Easy** (all neighbors) and **Hard** (±30s exclusion w
 | **Overlap@K** | Overlap@K (Step 7) | IoU of kNN(crop1) vs kNN(crop2) for same clip | Robustness to view changes |
 | **Silhouette** | Silhouette (Step 8) | sklearn silhouette_score on embeddings + scene_type | Cluster separation quality |
 
-### 8.2 Pseudo-Label Metrics (uses Cross-VLM validated tags)
+### 8.2 Pseudo-Label Metrics (uses Qwen diagnostic tags)
 
 | Metric | Proposal Name | Formula | What It Measures |
 |--------|---------------|---------|------------------|
@@ -477,28 +520,28 @@ All metrics reported in **Easy** (all neighbors) and **Hard** (±30s exclusion w
 | **DINOv2 (image-only)** | Tests if video understanding adds value |
 | **CLIP** | Tests text-vision alignment baseline |
 
-### 8.5 Cross-VLM Agreement (Reduces Single-Model Bias)
+### 8.5 Tag Quality Control (VLM Bake-off + Confidence)
 
-3 VLMs run in isolation (m04a, m04b, m04c), merged by m04d:
+Winner VLM selected via 3-way bake-off on 2,500 clips:
 
-| VLM | Size | Why Selected | Strength |
-|-----|------|--------------|----------|
-| **Qwen3-VL-8B** | 8B | Best on MLVU (75.3), LVBench (56.2) | Long video, Hindi text/signage |
-| **VideoLLaMA3-7B** | 7B | #1 on VideoMME (7B class), 128 frames | Motion understanding |
-| **InternVL2.5-8B** | 8B | Different architecture, Chinese training | Architectural diversity |
+| QC Mechanism | How It Works |
+|-------------|--------------|
+| **VLM bake-off** | 3 VLMs tag 2.5K clips → cross-VLM consensus selects best VLM (no gold labels) |
+| **Per-field confidence** | Winner VLM outputs confidence_* per field in [0,1] |
+| **Confidence sweep** | Vary threshold → plot metric vs coverage tradeoff |
+| **High-confidence slices** | Only evaluate on clips with confidence > threshold |
 
-**Agreement Metric:**
-```
-Cross-VLM Agreement % = |clips where Qwen3 ∩ VideoLLaMA3 ∩ InternVL agree| / total clips
-```
+Bake-off selection criteria (5 dimensions):
+| Criterion | Weight | Signal |
+|-----------|:------:|--------|
+| JSON parse success % | 30% | VLM that can't produce valid JSON is useless |
+| Cross-VLM agreement % | 25% | VLM closest to majority vote across 11 fields |
+| Speed (clips/sec) | 20% | Matters for 113K full run |
+| Taxonomy compliance % | 15% | Values within allowed categories |
+| Confidence calibration | 10% | High confidence → high agreement? |
 
-| Agreement Level | Interpretation | Action |
-|-----------------|----------------|--------|
-| > 90% | High confidence | Use as ground truth |
-| 70-90% | Moderate confidence | Review edge cases |
-| < 70% | Low confidence | Discard |
-
-Cross-VLM agreement replaces both dual-prompt self-consistency and human audit from the proposal — 3 architecturally different VLMs is a stronger QC signal.
+Tags are DIAGNOSTIC for Ch 10-11 slice-wise analysis.
+Primary metrics (Cycle@K, Overlap@K) are label-free and don't depend on tag quality.
 
 ### 8.6 Confounder Analysis
 
@@ -511,7 +554,8 @@ Cross-VLM agreement replaces both dual-prompt self-consistency and human audit f
 
 ### Success Criteria
 
-> V-JEPA transfers well if: (1) Cycle@K > 70%, (2) Cross-VLM agreement > 80%, (3) Outperforms DINOv2 baseline on Indian data, (4) Hard-mode Prec@K significantly above random baseline.
+> **POC milestone (10K subset):** Same criteria on 10K clips. If POC metrics are stable → scale to 115K.
+> **Full milestone (115K):** V-JEPA transfers well if: (1) Cycle@K > 70%, (2) Outperforms DINOv2 baseline on Indian data, (3) Hard-mode Prec@K significantly above random baseline, (4) Ch 10-11 adapted model improves over frozen baseline.
 
 ---
 
@@ -519,12 +563,11 @@ Cross-VLM agreement replaces both dual-prompt self-consistency and human audit f
 
 | Step | Library | Purpose |
 |------|---------|---------|
+| 0c | m00c_sample_subset.py | Stratified 10K subset for POC → `data/subset_10k.json` |
 | 2 | PySceneDetect | Split videos into clips + keyframe export |
 | 3 | V-JEPA 2 (ViT-G) | Frozen video embeddings (1408-dim) |
-| 4a | Qwen3-VL-8B | Structured auto-tagging (isolated VLM) |
-| 4b | VideoLLaMA3-7B | Structured auto-tagging (isolated VLM) |
-| 4c | InternVL2.5-8B | Structured auto-tagging (isolated VLM) |
-| 4d | — | Cross-VLM agreement merge (CPU) |
+| 4 | Qwen3-VL-8B / VideoLLaMA3-7B / Keye-VL-1.5-8B | VLM bake-off (2.5K clips) → winner tags full dataset |
+| 4b | m04b_vlm_select.py | CPU-only: cross-VLM consensus comparison → pick winner |
 | 5 | FAISS | Fast similarity search (GPU) + Hard/Easy mode |
 | 6 | UMAP | Dimensionality reduction & visualization + kNN grids |
 | 7 | FiftyOne | Interactive dataset exploration |
@@ -540,18 +583,105 @@ were compared against this plan. 12 discrepancies were found and resolved:
 |---|-------------|----------|-----------|
 | 1 | 11 tag fields vs proposal's 7 | **KEEP 11** | Extra 4 (road_surface, infrastructure_quality, vegetation, lighting) capture India-specific attributes |
 | 2 | Variable 4-10s clips vs proposal's fixed 10s | **KEEP 4-10s** | Scene-aware splitting produces better clips |
-| 3 | QC: dual-prompt + human audit | **SKIP** | Cross-VLM agreement (#11) across 3 architecturally different VLMs is stronger |
-| 4 | Per-field confidence scores | **ADD** | Each VLM outputs confidence_* per field. Enables confidence sweep in m06 |
+| 3 | QC: dual-prompt + human audit | **SKIP** | Confidence from Qwen logprobs + confidence sweep. Tags are diagnostic only |
+| 4 | Per-field confidence scores | **ADD** | Qwen outputs confidence_* per field (logprobs). Enables confidence sweep in m06 |
 | 5 | Provenance tracking | **ADD** | _model, _prompt_version, _tagged_at per clip |
 | 6 | Keyframe export | **ADD** | --keyframes flag in m02, 1 keyframe per clip via ffmpeg |
 | 7 | Metric naming mismatch | **RENAME** | Use proposal names: Cycle@K, Prec@K, Overlap@K (old names as aliases) |
 | 8 | 6+ missing metrics | **ADD** | mAP@K, nDCG@K, Silhouette, Overlap@K, multi-attr slices, conf sweep, macro/micro |
 | 9 | No Hard/Easy mode | **ADD** | Exclusion window ±30s within same video_id. Report both modes |
 | 10 | No train/val/test splits | **SKIP** | Pure evaluation project — no training. Exclusion window (#9) handles leakage |
-| 11 | Cross-VLM agreement (plan addition) | **KEEP** | 3 isolated VLMs (m04a/b/c) + merge (m04d) — stronger than proposal's single VLM |
+| 11 | Multi-VLM cross-check | **ADD (bake-off)** | 3 VLMs on 2.5K clips → consensus selects winner → winner on full 113K. GPU-efficient |
 | 12 | Baselines (plan addition) | **KEEP** | Random, DINOv2, Shuffled V-JEPA, CLIP — needed for fair comparison |
 
 Engineering details for each change → see `iter/iter6/plan.md` (Proposal Alignment section).
+
+---
+
+## Bridge: How Ch 9 Outputs Feed into Ch 10-11
+
+> **Note:** Ch 10-11 are NOT in current scope. This section shows how current work connects to future work.
+> POC-first: All 4 chapters run on 10K subset first. Scale to 115K after POC validates.
+> Detailed Ch 10-11 diagrams will be created when Ch 9 POC metrics are in hand.
+
+```mermaid
+flowchart LR
+    subgraph CH9 ["CH 9: EVALUATING V-JEPA (current scope)"]
+        direction LR
+        A1["embeddings.npy<br>V-JEPA frozen<br>1408-dim"]
+        A2["tags.json<br>Winner VLM<br>33 fields/clip"]
+        A3["faiss_index.bin<br>kNN index"]
+        A4["metrics.json<br>9 metrics<br>Hard/Easy"]
+        A5["vlm_comparison.json<br>Bake-off report"]
+    end
+
+    subgraph CH10 ["CH 10: CONTINUAL PRETRAINING (future)"]
+        B1["Student-Teacher<br>JEPA objective<br>on Indian clips"]
+        B2["EMA updates<br>+ drift stabilizer<br>λ·‖θ − θ₀‖²"]
+        B3["Checkpoint selection<br>via validation retrieval"]
+        B4["OUTPUT:<br>V-JEPA (adapted)<br>Indian-tuned encoder"]
+    end
+
+    subgraph CH11 ["CH 11: SURGERY FINE-TUNING (future)"]
+        C1["SAM3 masks<br>→ tracklets<br>→ agent vs layout"]
+        C2["Factor Datasets<br>D_L (layout-only)<br>D_A (agent-only)<br>D_I (interaction)"]
+        C3["Progressive Prefix<br>Unfreezing<br>Stage 1→2→3"]
+        C4["OUTPUT:<br>V-JEPA (surgical)<br>Factor-aware encoder"]
+    end
+
+    subgraph COMPARE ["FINAL COMPARISON"]
+        D1["Re-run m06/m07<br>on all 3 encoders"]
+        D2["V-JEPA (frozen)<br>vs (adapted)<br>vs (surgical)"]
+    end
+
+    A1 -->|"validation<br>retrieval"| B3
+    A2 -->|"slice-wise<br>diagnostics"| B1
+    A3 -->|"fast checkpoint<br>selection"| B3
+    B1 --> B2 --> B3 --> B4
+
+    A2 -->|"stratified<br>sampling"| C1
+    A4 -->|"baseline to<br>measure improvement"| D1
+    C1 --> C2 --> C3 --> C4
+    B4 -->|"new embeddings"| D1
+    C4 -->|"new embeddings"| D1
+    D1 --> D2
+
+    style A1 fill:#43a047,color:#fff,font-weight:bold
+    style A2 fill:#00acc1,color:#fff,font-weight:bold
+    style A3 fill:#e53935,color:#fff,font-weight:bold
+    style A4 fill:#d81b60,color:#fff,font-weight:bold
+    style A5 fill:#ff6f00,color:#fff,font-weight:bold
+    style B1 fill:#7b1fa2,color:#fff,font-weight:bold
+    style B2 fill:#7b1fa2,color:#fff,font-weight:bold
+    style B3 fill:#7b1fa2,color:#fff,font-weight:bold
+    style B4 fill:#4a148c,color:#fff,font-weight:bold
+    style C1 fill:#1565c0,color:#fff,font-weight:bold
+    style C2 fill:#1565c0,color:#fff,font-weight:bold
+    style C3 fill:#1565c0,color:#fff,font-weight:bold
+    style C4 fill:#0d47a1,color:#fff,font-weight:bold
+    style D1 fill:#bf360c,color:#fff,font-weight:bold
+    style D2 fill:#b71c1c,color:#fff,font-weight:bold
+```
+
+**What each Ch 9 artifact feeds:**
+
+| Ch 9 Output | Used By | Purpose |
+|-------------|---------|---------|
+| `embeddings.npy` | Ch 10 | Validation retrieval (Cycle@K, Overlap@K) to select best checkpoint |
+| `tags.json` | Ch 10, Ch 11 | Slice-wise diagnostics (scene_type, time_of_day trends) + stratified sampling |
+| `faiss_index.bin` | Ch 10 | Fast kNN during checkpoint selection (no rebuilding index each time) |
+| `metrics.json` | Ch 11, Final | Frozen V-JEPA baseline to measure how much adaptation improves |
+| `vlm_comparison.json` | Paper | Publishable finding: which VLM works best on Indian street videos |
+
+**Final comparison (the paper's punchline):**
+```
+V-JEPA (frozen)    → metrics_frozen.json     ← Ch 9 (current)
+V-JEPA (adapted)   → metrics_adapted.json    ← Ch 10 (continual pretraining)
+V-JEPA (surgical)  → metrics_surgical.json   ← Ch 11 (surgery fine-tuning)
+
+Question the paper answers:
+"Does domain adaptation help V-JEPA understand Indian streets better?"
+```
 
 ---
 
@@ -569,8 +699,8 @@ The following tools are **not required** for the current pipeline but may be use
 |--------|---------|
 | **Pros** | Precise object boundaries, exact object counts, track objects across frames |
 | **Cons** | High compute cost, slow inference, requires GPU |
-| **Current Redundancy** | HIGH - Qwen3-VL already captures `notable_objects` list |
-| **Future Use Case** | Object-level features for fine-grained retrieval, counting pedestrians/vehicles |
+| **Current Redundancy** | LOW - Required for Ch 11 factor datasets (layout/agent/interaction) |
+| **Future Use Case** | Ch 11: SAM3 masks → tracklets → factor patching for surgery fine-tuning |
 
 ```
 [OPTIONAL] clip frames ──→ SAM3 ──→ pixel masks per object
@@ -651,7 +781,7 @@ The following tools are **not required** for the current pipeline but may be use
 
 | Tool | Redundancy | Add When? |
 |------|------------|-----------|
-| SAM3 | HIGH | Need object-level features |
+| SAM3 | LOW (needed for Ch 11) | Factor datasets for surgery fine-tuning |
 | DINOv2 | HIGH | Ablation study / ensemble experiments |
 | TransNetV2 | MEDIUM | Scene splits are poor quality |
 | Autodistill | HIGH | Need bounding box annotations |

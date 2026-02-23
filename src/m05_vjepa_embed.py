@@ -1,13 +1,14 @@
 """
 Generate V-JEPA 2 embeddings with batched GPU inference + deduplication.
-GPU-only script (Nvidia CUDA required). Optimized for A100-40GB with torchcodec + RAM cache.
+GPU-only (Nvidia CUDA required, no CPU fallback). Optimized for A100-40GB with torchcodec + RAM cache.
 
 USAGE:
     python -u src/m05_vjepa_embed.py --SANITY 2>&1 | tee logs/m05_vjepa_embed_sanity.log
+    python -u src/m05_vjepa_embed.py --FULL --subset data/subset_10k.json 2>&1 | tee logs/m05_vjepa_embed_poc.log
     python -u src/m05_vjepa_embed.py --FULL 2>&1 | tee logs/m05_vjepa_embed_full.log
-    python -u src/m05_vjepa_embed.py --FULL --batch-size 24 --num-workers 8 2>&1 | tee logs/m05_full_bs24.log
 """
 import argparse
+import json
 import sys
 import time
 from pathlib import Path
@@ -22,7 +23,7 @@ from utils.config import (
     ensure_clips_exist, check_gpu, get_all_clips,
     DEFAULT_BATCH_SIZE, DEFAULT_NUM_WORKERS,
     setup_ram_cache, cleanup_ram_cache, restore_original_path,
-    check_output_exists
+    check_output_exists, load_subset, add_subset_arg, get_output_dir,
 )
 
 try:
@@ -218,8 +219,34 @@ def deduplicate_embeddings(embeddings: np.ndarray, clip_paths: list, threshold: 
     return deduped_embeddings, deduped_paths, num_removed
 
 
+def clip_path_to_subset_key(clip_path: Path) -> str:
+    """Convert local clip path to subset key format: section/video_id/file."""
+    try:
+        rel = clip_path.relative_to(CLIPS_DIR)
+    except ValueError:
+        rel = Path(clip_path.name)
+    # rel = "goa/walking/04YKvC8kAgI-000.mp4"
+    # section = "goa/walking", file = "04YKvC8kAgI-000.mp4"
+    section = str(rel.parent)
+    fname = rel.name
+    # video_id = everything before the last dash-number pattern
+    video_id = fname.rsplit("-", 1)[0] if "-" in fname else fname.replace(".mp4", "")
+    return f"{section}/{video_id}/{fname}"
+
+
+def filter_clips_by_subset(all_clips: list, subset_keys: set) -> list:
+    """Filter local clip paths to only those in subset."""
+    filtered = []
+    for clip_path in all_clips:
+        key = clip_path_to_subset_key(clip_path)
+        if key in subset_keys:
+            filtered.append(clip_path)
+    print(f"[POC] Filtered {len(all_clips):,} → {len(filtered):,} clips (subset match)")
+    return filtered
+
+
 def main():
-    parser = argparse.ArgumentParser(description="Generate V-JEPA embeddings (GPU-optimized, torchcodec + RAM cache)")
+    parser = argparse.ArgumentParser(description="Generate V-JEPA embeddings (GPU-only, torchcodec + RAM cache)")
     parser.add_argument("--SANITY", action="store_true", help="Process 5 clips only")
     parser.add_argument("--FULL", action="store_true", help="Process all clips")
     parser.add_argument("--model", type=str, default=VJEPA_MODEL_ID, help="Model ID")
@@ -228,6 +255,7 @@ def main():
     parser.add_argument("--no-ram-cache", action="store_true", help="Disable RAM cache (/dev/shm)")
     parser.add_argument("--no-dedupe", action="store_true", help="Skip deduplication")
     parser.add_argument("--threshold", type=float, default=DEDUPE_THRESHOLD, help="Dedupe threshold")
+    add_subset_arg(parser)
     args = parser.parse_args()
 
     if not (args.SANITY or args.FULL):
@@ -238,9 +266,17 @@ def main():
     check_gpu()
     device = "cuda"
 
+    # Output path: POC vs Full
+    output_dir = get_output_dir(args.subset)
+    embeddings_file = output_dir / "embeddings.npy" if args.subset else EMBEDDINGS_FILE
+
+    print(f"Output: {embeddings_file}")
+    if args.subset:
+        print(f"[POC] Subset: {args.subset}")
+
     # Check if embeddings already exist
-    if EMBEDDINGS_FILE.exists():
-        if not check_output_exists([EMBEDDINGS_FILE, EMBEDDINGS_FILE.with_suffix('.paths.npy')], "embeddings"):
+    if embeddings_file.exists():
+        if not check_output_exists([embeddings_file, embeddings_file.with_suffix('.paths.npy')], "embeddings"):
             print("Using cached embeddings.")
             return
 
@@ -255,7 +291,15 @@ def main():
         print(f"ERROR: No clips found in {CLIPS_DIR}")
         sys.exit(1)
 
-    print(f"Found {len(all_clips)} clips")
+    print(f"Found {len(all_clips):,} clips")
+
+    # Subset filtering
+    if args.subset:
+        subset_keys = load_subset(args.subset)
+        all_clips = filter_clips_by_subset(all_clips, subset_keys)
+        if not all_clips:
+            print("ERROR: No clips matched subset keys. Check key format.")
+            sys.exit(1)
 
     # Limit clips for sanity mode
     if args.SANITY:
@@ -281,17 +325,9 @@ def main():
         model.eval()
         print(f"Model loaded on {device} (dtype: {next(model.parameters()).dtype})")
     except Exception as e:
-        print(f"ERROR loading model: {e}")
+        print(f"FATAL: Model load failed: {e}")
         cleanup_ram_cache(cache_subdir="vjepa_clips")
-        print("\nFalling back to dummy embeddings")
-        embeddings = np.random.randn(len(all_clips), VJEPA_EMBEDDING_DIM).astype(np.float32)
-        orig_paths = [str(c) for c in all_clips]
-        if not args.no_dedupe:
-            embeddings, orig_paths, _ = deduplicate_embeddings(embeddings, orig_paths, args.threshold)
-        np.save(EMBEDDINGS_FILE, embeddings)
-        np.save(EMBEDDINGS_FILE.with_suffix('.paths.npy'), orig_paths)
-        print(f"Saved dummy embeddings: {EMBEDDINGS_FILE}")
-        return
+        sys.exit(1)
 
     # Create dataset and dataloader
     print(f"\n=== Batch Processing Config ===")
@@ -373,11 +409,12 @@ def main():
         )
 
     # Save embeddings
-    np.save(EMBEDDINGS_FILE, embeddings)
-    np.save(EMBEDDINGS_FILE.with_suffix('.paths.npy'), clip_paths)
+    embeddings_file.parent.mkdir(parents=True, exist_ok=True)
+    np.save(embeddings_file, embeddings)
+    np.save(embeddings_file.with_suffix('.paths.npy'), clip_paths)
 
     print(f"\n=== EMBEDDING COMPLETE ===")
-    print(f"Saved: {EMBEDDINGS_FILE}")
+    print(f"Saved: {embeddings_file}")
     print(f"Shape: {embeddings.shape}")
     print(f"Unique clips: {len(clip_paths)}")
 

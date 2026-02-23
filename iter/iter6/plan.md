@@ -7,14 +7,13 @@ Final Module Numbering (after renumbering)
 src/
 ├── m00_data_prep.py              # Parse YT_videos_raw.md → JSON, word freq, city matrix
 ├── m00b_fetch_durations.py       # Fetch YT video durations via yt-dlp metadata (no download)
+├── m00c_sample_subset.py          # Stratified 10K subset sampling for POC runs
 ├── m01_download.py               # Download 714 YT videos at 480p (Mac, aria2c)
 ├── m02_scene_detect.py           # Greedy scene-aware split → ffmpeg encode clips + keyframe export
 ├── m02b_scene_fetch_duration.py  # Scan all clips, output clip_durations.json
 ├── m03_pack_shards.py            # Pack clips into WebDataset TAR shards → upload to HF
-├── m04a_qwen_tag.py              # [GPU] Qwen3-VL-8B tagging (vLLM + HF streaming) → tags_qwen.json
-├── m04b_videollama_tag.py        # [GPU] VideoLLaMA3-7B tagging → tags_videollama.json
-├── m04c_internvl_tag.py          # [GPU] InternVL2.5-8B tagging → tags_internvl.json
-├── m04d_vlm_merge.py             # Cross-VLM agreement merge → unified tags.json (CPU)
+├── m04_vlm_tag.py                # [GPU] VLM tagging (--model qwen|videollama|keye, --BAKEOFF|--FULL)
+├── m04b_vlm_select.py            # [CPU] Bake-off comparison → pick winner VLM
 ├── m05_vjepa_embed.py            # [GPU] V-JEPA 2 embeddings (ViT-G, 1408-dim)
 ├── m06_faiss_metrics.py          # FAISS kNN: 9 metrics + Hard/Easy mode
 ├── m07_umap_plot.py              # UMAP visualization + kNN confusion matrix + kNN neighbor grids
@@ -34,14 +33,15 @@ flowchart LR
     C --> D["m02<br>Scene Detect<br>+ keyframes"]
     D --> E["m02b<br>Clip Durations"]
     E --> F["m03<br>Pack Shards<br>HF Upload"]
-    F --> G1["m04a<br>Qwen3-VL<br>GPU"]
-    F --> G2["m04b<br>VideoLLaMA3<br>GPU"]
-    F --> G3["m04c<br>InternVL2.5<br>GPU"]
+    F --> G1["m04 --BAKEOFF<br>Qwen3-VL-8B<br>GPU · 2.5K clips"]
+    F --> G2["m04 --BAKEOFF<br>VideoLLaMA3-7B<br>GPU · 2.5K clips"]
+    F --> G3["m04 --BAKEOFF<br>Keye-VL-1.5-8B<br>GPU · 2.5K clips"]
+    G1 --> S["m04b<br>VLM Select<br>CPU"]
+    G2 --> S
+    G3 --> S
+    S --> W["m04 --FULL<br>Winner VLM<br>POC: 7.5K · Full: 113K"]
     F --> H["m05<br>V-JEPA Embed<br>GPU"]
-    G1 --> M["m04d<br>VLM Merge<br>CPU"]
-    G2 --> M
-    G3 --> M
-    M --> I["m06<br>FAISS Metrics<br>9 metrics · Hard/Easy"]
+    W --> I["m06<br>FAISS Metrics<br>9 metrics · Hard/Easy"]
     H --> I
     I --> J["m07<br>UMAP Plot<br>+ kNN grids"]
 
@@ -54,26 +54,45 @@ flowchart LR
     style G1 fill:#00acc1,color:#fff,font-weight:bold,font-size:28px
     style G2 fill:#00838f,color:#fff,font-weight:bold,font-size:28px
     style G3 fill:#006064,color:#fff,font-weight:bold,font-size:28px
-    style M fill:#ff6f00,color:#fff,font-weight:bold,font-size:28px
+    style S fill:#ff6f00,color:#fff,font-weight:bold,font-size:28px
+    style W fill:#00acc1,color:#fff,font-weight:bold,font-size:28px
     style H fill:#43a047,color:#fff,font-weight:bold,font-size:28px
     style I fill:#d81b60,color:#fff,font-weight:bold,font-size:28px
     style J fill:#546e7a,color:#fff,font-weight:bold,font-size:28px
 ```
 
 Notes:
-- m04a, m04b, m04c, m05 all run in parallel (all stream from HF)
-- m04d merges 3 VLM outputs → unified tags.json (Cross-VLM agreement)
-- Both m04d AND m05 must complete before m06 can run
-- m04d outputs tags.json (cross-VLM validated labels for cluster purity)
+- POC-first: Run entire Ch 8+9 pipeline on 10K stratified subset before scaling to 115K
+- Phase 1 (bake-off): 3 VLMs tag the SAME 2,500 clips in parallel → m04b picks the winner
+- Phase 2 (full): winner VLM tags remaining clips (POC: ~7.5K, FULL: ~113K) → tags.json
+- m04 bake-off and m05 run in parallel (both stream from HF)
+- Both m04 --FULL AND m05 must complete before m06 can run
+- m04 outputs tags.json (winner VLM pseudo-labels for diagnostic slicing)
 - m05 outputs embeddings.npy (learned representations)
-- m06 asks: "do clips with same cross-VLM tag land near each other in V-JEPA embedding space?"
+- m06 asks: "do clips with same scene_type land near each other in V-JEPA embedding space?"
+- Tags are DIAGNOSTIC — primary metrics (Cycle@K, Overlap@K) are label-free
+- No gold truth needed: cross-VLM consensus on 2,500 clips IS the evaluation signal
+- --subset flag: all scripts (m04-m07) accept --subset <path> to operate on POC subset only
 
 How tags flow into evaluation:
 
 ```
-m04a tags_qwen.json  ──┐
-m04b tags_videollama.json ──┤──→ m04d VLM Merge ──→ tags.json (unified)
-m04c tags_internvl.json ──┘     (>90% agree = keep, <70% = discard)
+PHASE 1: VLM Bake-off (2,500 clips × 3 VLMs)
+─────────────────────────────────────────────
+m04 --model qwen --BAKEOFF       → data/bakeoff/tags_qwen.json
+m04 --model videollama --BAKEOFF → data/bakeoff/tags_videollama.json
+m04 --model keye --BAKEOFF       → data/bakeoff/tags_keye.json
+                                         ↓
+m04b_vlm_select.py               → vlm_comparison.json + .png/.pdf
+                                   (cross-VLM consensus = proxy gold truth)
+                                         ↓
+                                   Winner = VLM with highest agreement
+                                   with the other two (no human labels needed)
+
+PHASE 2: Full Run (winner on ~113K remaining clips)
+────────────────────────────────────────────────────
+m04 --model <winner> --FULL      → tags.json (33 fields/clip)
+                                   (resumes from bake-off checkpoint)
 
 tags.json                            m06 evaluates V-JEPA quality (9 metrics):
 ┌──────────────────────┐             ┌──────────────────────────────────┐
@@ -85,13 +104,13 @@ tags.json                            m06 evaluates V-JEPA quality (9 metrics):
 │       scene_type":   │             ├──────────────────────────────────┤
 │       0.92,          │             │ + Cycle@K, Overlap@K, mAP@K,    │
 │     "_model": ...,   │             │   nDCG@K, Silhouette,           │
-│     "_vlm_agreement":│             │   Conf sweep, Multi-attr slices │
-│       0.95,          │             │ + Hard/Easy mode (±30s window)   │
-│     ...              │             └──────────────────────────────────┘
-│   },                 │
-│   ...                │             m07 visualizes:
-│ ]                    │             ┌──────────────────────────────────┐
-└──────────────────────┘  ────────→  │ UMAP scatter colored by          │
+│     ...              │             │   Conf sweep, Multi-attr slices │
+│   },                 │             │ + Hard/Easy mode (±30s window)   │
+│   ...                │             └──────────────────────────────────┘
+│ ]                    │
+└──────────────────────┘             m07 visualizes:
+                        ──────────→  ┌──────────────────────────────────┐
+                                     │ UMAP scatter colored by          │
                                      │   tags[i]["scene_type"]          │
                                      │ Confusion matrix + kNN grids    │
                                      │ Macro/micro reporting           │
@@ -100,13 +119,83 @@ tags.json                            m06 evaluates V-JEPA quality (9 metrics):
 
 Naming Convention
 
-- Numbered modules (m00-m07, m04a-m04d): Pipeline steps with CLI (--SANITY/--FULL)
-- m04a/m04b/m04c: Isolated VLM scripts (different deps, can run on different machines)
-- m04d: CPU-only Cross-VLM merge
+- Numbered modules (m00-m07): Pipeline steps with CLI (--SANITY/--BAKEOFF/--FULL)
+- m00c_sample_subset.py: Stratified sampling → data/subset_10k.json (deterministic, seed=42)
+- m04_vlm_tag.py: Parameterized by --model (qwen|videollama|keye). VLMBackend ABC + 3 concrete impls
+- m04b_vlm_select.py: CPU-only bake-off comparison. Reads 3 bakeoff JSONs → picks winner
+- --subset <path>: All scripts (m04-m07) accept this flag. Filters to POC subset, outputs to outputs_poc/
 - utils/hf_utils.py: Shared HF library (auth, README, metadata upload)
-- utils/config.py: All path constants and shared utility functions
+- utils/config.py: All path constants, VLM_MODELS dict, SUBSET_FILE, shared utility functions
 - utils/export_metadata.py: tags.json → metadata.jsonl conversion
-- utils/tag_taxonomy.json: Tag field definitions + confidence schema for all VLMs
+- utils/tag_taxonomy.json: Tag field definitions + confidence schema
+
+POC-First Strategy (10K subset → 115K full)
+=============================================
+
+Rationale: Instead of burning GPU compute on 115K clips at every step across Ch 8-11,
+run the entire 4-chapter pipeline on a 10K stratified subset first. Validate metrics,
+debug code, tune hyperparams on cheap runs. Scale to 115K only after POC results confirm
+the pipeline works end-to-end.
+
+Optimal subset size: 10,000 clips
+- Statistical minimum for kNN (k=6): ~1K per scene_type × 10 types = 10K
+- FAISS IVF-PQ training: needs ≥8×nlist = 8×1000 = 8K (10K covers this)
+- Confidence sweep binning: needs ~500+ per bin to be meaningful
+- Bake-off consensus: 2,500 clips (subset of 10K) already planned
+
+Implementation: m00c_sample_subset.py
+```
+python -u src/m00c_sample_subset.py --n 10000 2>&1 | tee logs/m00c_sample_subset.log
+```
+
+Stratified sampling:
+- Input: clip_durations.json (115K entries with video_id, section, city, tier, duration)
+- Stratify by: city_tier (1/2/3) × tour_type (walk/drive/drone) × geography (proportional)
+- Output: data/subset_10k.json (list of 10K clip keys, deterministic seed=42)
+- Ensures every city tier, video type, and geographic region is represented proportionally
+
+--subset flag architecture:
+```
+# All pipeline scripts accept --subset <path>:
+python -u src/m04_vlm_tag.py --model qwen --BAKEOFF --subset data/subset_10k.json
+python -u src/m04_vlm_tag.py --model <winner> --FULL --subset data/subset_10k.json
+python -u src/m05_vjepa_embed.py --FULL --subset data/subset_10k.json
+python -u src/m06_faiss_metrics.py --subset data/subset_10k.json
+python -u src/m07_umap_plot.py --subset data/subset_10k.json
+
+# When --subset is provided:
+# - HF streaming skips clips not in subset (fast seek via __key__ match)
+# - Output files go to outputs_poc/ instead of outputs/
+# - Logs prefixed with [POC] for easy identification
+# - No code path differences — same pipeline, fewer clips
+```
+
+POC timeline (estimated):
+```
+Week 1: Ch 8 + Ch 9 POC
+  - m00c: generate 10K subset                          (~5 min, CPU)
+  - m04 --BAKEOFF × 3 VLMs on 2.5K clips               (~1h, GPU)
+  - m04b: select winner                                 (~5 min, CPU)
+  - m04 --FULL winner on remaining 7.5K                 (~45 min, GPU)
+  - m05: V-JEPA embed 10K clips                         (~2h, GPU)
+  - m06: FAISS metrics (9 metrics, Hard/Easy)            (~10 min, CPU)
+  - m07: UMAP + visualizations                           (~10 min, CPU)
+  → Deliverable: POC metrics.json + plots
+
+Week 2: Ch 10 POC (code does NOT exist yet)
+  - Continual pretraining on 10K clips                   (~20h, GPU)
+  - Re-run m06/m07 on adapted embeddings
+  → Deliverable: frozen vs adapted comparison
+
+Week 3-4: Ch 11 POC (code does NOT exist yet)
+  - SAM3 masks on 10K clips (~100K frames)               (~14-28h, GPU)
+  - Factor dataset construction                          (~2h, CPU)
+  - Surgery fine-tuning                                  (~40h, GPU)
+  - Re-run m06/m07 on surgical embeddings
+  → Deliverable: frozen vs adapted vs surgical comparison
+```
+
+After POC validates → scale to 115K with same scripts (just drop --subset flag).
 
 Key Design Decisions
 
@@ -162,9 +251,9 @@ Dataset: https://huggingface.co/datasets/anonymousML123/walkindia-200k
 
 ---
 
-Implementation: src/m04a_qwen_tag.py (vLLM + HF Streaming)
+Implementation: src/m04_vlm_tag.py (Parameterized VLM Tagging + Bake-off)
 
-STATUS: IMPLEMENTED (637 lines, all 10 production fixes applied)
+STATUS: Refactoring m04_qwen_tag.py → m04_vlm_tag.py (VLMBackend abstraction)
 
 Research Summary
 
@@ -192,7 +281,7 @@ Production Issues (10 fixes applied)
 | 4 | Oversized encoder cache | MEDIUM | `max_model_len` 16384→4096 (our clips: ~210 video tokens + 350 text + 512 output = ~1072, 4× headroom) | 485 |
 | 5 | HF streaming timeout | HIGH | Producer thread retries with exponential backoff (1s→2s→4s→...→60s, max 5 retries) | 325-332 |
 | 6 | Corrupted MP4 crash | MEDIUM | `validate_mp4()` checks file size >1KB + cv2 frame count >0 before VLM | 135-149 |
-| 7 | Tempfile /tmp disk full | MEDIUM | `finally` block always cleans up; uses project-local `OUTPUTS_DIR/tmp_m04a/` not `/tmp` | 233-239 |
+| 7 | Tempfile /tmp disk full | MEDIUM | `finally` block always cleans up; uses project-local `OUTPUTS_DIR/tmp_m04/` not `/tmp` | 233-239 |
 | 8 | Checkpoint corruption | MEDIUM | Atomic `os.replace()` write, `.tmp` backup recovery, interval 1000→500 clips | 154-186 |
 | 9 | GPU under-utilization | HIGH | Producer/consumer pipeline: background thread preprocesses batch N+1 while GPU infers batch N | 288-338 |
 | 10 | Tests | — | py_compile OK, AST OK, --help OK | verified |
@@ -226,8 +315,32 @@ WORKER subprocess (loads vLLM, exits after segment)
 ```
 
 USAGE:
-    python -u src/m04a_qwen_tag.py --SANITY 2>&1 | tee logs/m04a_qwen_tag_sanity.log
-    python -u src/m04a_qwen_tag.py --FULL 2>&1 | tee logs/m04a_qwen_tag_full.log
+    # Sanity check (20 clips)
+    python -u src/m04_vlm_tag.py --model qwen --SANITY 2>&1 | tee logs/m04_sanity_qwen.log
+
+    # --- POC MODE (10K subset) ---
+    # Phase 1: Bake-off (2,500 clips × 3 VLMs — can run in parallel on 3 GPUs)
+    python -u src/m04_vlm_tag.py --model qwen --BAKEOFF --subset data/subset_10k.json 2>&1 | tee logs/m04_bakeoff_qwen_poc.log
+    python -u src/m04_vlm_tag.py --model videollama --BAKEOFF --subset data/subset_10k.json 2>&1 | tee logs/m04_bakeoff_videollama_poc.log
+    python -u src/m04_vlm_tag.py --model keye --BAKEOFF --subset data/subset_10k.json 2>&1 | tee logs/m04_bakeoff_keye_poc.log
+
+    # Phase 2: Select winner (CPU-only)
+    python -u src/m04b_vlm_select.py 2>&1 | tee logs/m04b_vlm_select.log
+
+    # Phase 3: Winner on remaining POC clips (~7.5K)
+    python -u src/m04_vlm_tag.py --model <winner> --FULL --subset data/subset_10k.json 2>&1 | tee logs/m04_full_<winner>_poc.log
+
+    # --- FULL MODE (115K, after POC validates) ---
+    # Phase 1: Bake-off (same 2,500 clips, no --subset)
+    python -u src/m04_vlm_tag.py --model qwen --BAKEOFF 2>&1 | tee logs/m04_bakeoff_qwen.log
+    python -u src/m04_vlm_tag.py --model videollama --BAKEOFF 2>&1 | tee logs/m04_bakeoff_videollama.log
+    python -u src/m04_vlm_tag.py --model keye --BAKEOFF 2>&1 | tee logs/m04_bakeoff_keye.log
+
+    # Phase 2: Select winner (CPU-only)
+    python -u src/m04b_vlm_select.py 2>&1 | tee logs/m04b_vlm_select.log
+
+    # Phase 3: Full run (winner on remaining ~113K clips)
+    python -u src/m04_vlm_tag.py --model <winner> --FULL 2>&1 | tee logs/m04_full_<winner>.log
 
 Performance Budget (H100 80GB)
 
@@ -236,7 +349,23 @@ Performance Budget (H100 80GB)
 - VLM inference: 1-5 clips/s on H100 — THIS is the bottleneck
 - Preprocessing: parallelized (4 threads), pipelined with inference (Issue 3+9)
 - Engine restarts: ~12 workers × ~60s model load = ~12 min overhead (vs hours lost to OOM)
-- Total estimate: 115k clips ÷ 3 clips/s ÷ 3600 = ~10.7 hours + 12 min restarts
+
+Bake-off budget:
+- Qwen on 2,500 clips at ~3 clips/s      = ~14 min
+- VideoLLaMA3 on 2,500 clips at ~1-2 c/s  = ~20-40 min (transformers, no vLLM batching)
+- Keye-VL on 2,500 clips at ~2-3 clips/s  = ~15-20 min
+- Total bake-off: ~50-70 min
+
+POC budget (10K subset):
+- Bake-off (3 × 2.5K): ~1h GPU
+- Winner on remaining 7.5K: ~45 min GPU
+- V-JEPA embed 10K: ~2h GPU
+- FAISS + UMAP: ~20 min CPU
+- Total POC Ch 8+9: ~4h GPU + ~25 min CPU
+
+Full budget (115K, after POC validates):
+- Full run (winner only): 113k clips ÷ 3 clips/s ÷ 3600 = ~10.5 hours
+- Grand total: ~11.5 hours (vs ~30h if all 3 ran on full)
 
 Tag Taxonomy (11 fields from src/utils/tag_taxonomy.json)
 
@@ -249,13 +378,12 @@ Enriched JSON Sidecar (after tagging)
 Before (m03 pack): 8 metadata fields
   video_id, section, city, tour_type, tier, duration_sec, size_mb, source_file
 
-After (m04d merge): 8 metadata + 11 tags + 11 confidence + 3 provenance + 1 agreement = 34 fields
+After (m04 tagging): 8 metadata + 11 tags + 11 confidence + 3 provenance = 33 fields
   + 11 tags: scene_type, time_of_day, weather, crowd_density, traffic_density,
     road_layout, road_surface, infrastructure_quality, notable_objects,
     vegetation, lighting
   + 11 confidence: confidence_scene_type, confidence_time_of_day, ... (each in [0,1])
-  + 3 provenance: _model, _prompt_version, _tagged_at
-  + 1 agreement: _vlm_agreement (fraction of 3 VLMs that agreed)
+  + 3 provenance: _model (winner VLM from bake-off), _prompt_version, _tagged_at
 
 ---
 
@@ -268,11 +396,10 @@ Ch 9: Evaluating V-JEPA) against this engineering plan:
 KEPT as-is (plan diverges from proposal intentionally):
 - 11 tag fields (proposal has 7) — extra 4 fields capture India-specific attributes
 - Variable 4-10s clips (proposal says fixed 10s) — scene-aware splitting is better
-- Cross-VLM agreement (not in proposal) — stronger QC than single-VLM
 - Baselines: Random, DINOv2, Shuffled V-JEPA, CLIP (not in proposal) — needed for fair comparison
 
 ADDED to align with proposal:
-- Per-field confidence scores (#4): each VLM outputs confidence_* per field
+- Per-field confidence scores (#4): Qwen outputs confidence_* per field (logprobs)
 - Provenance tracking (#5): _model, _prompt_version, _tagged_at per clip
 - Keyframe export (#6): --keyframes flag in m02, 1 keyframe per clip via ffmpeg
 - Metric naming (#7): proposal names as primary (Cycle@K, Prec@K, Overlap@K)
@@ -280,20 +407,39 @@ ADDED to align with proposal:
 - Hard/Easy mode (#9): exclusion window ±30s within same video_id
 
 SKIPPED:
-- Dual-prompt self-consistency: Cross-VLM agreement (3 VLMs) is stronger
-- Human spot-check audit: Cross-VLM agreement replaces this
+- Human spot-check audit: VLM bake-off consensus replaces this
 - Train/val/test splits: not needed for pure evaluation (no training). Exclusion window handles leakage
 
-VLM Architecture (Option 2: Isolated VLMs):
+VLM Architecture: Bake-off (3 VLMs on 2.5K → winner on 113K)
 ```
-m04a_qwen_tag.py       → tags_qwen.json      (Qwen3-VL-8B, vLLM)
-m04b_videollama_tag.py → tags_videollama.json (VideoLLaMA3-7B)
-m04c_internvl_tag.py   → tags_internvl.json   (InternVL2.5-8B)
-                           ↓
-m04d_vlm_merge.py   → tags.json (unified, cross-VLM validated)
+Phase 1: Bake-off (same 2,500 clips, deterministic HF stream order)
+m04_vlm_tag.py --model qwen       --BAKEOFF → data/bakeoff/tags_qwen.json
+m04_vlm_tag.py --model videollama  --BAKEOFF → data/bakeoff/tags_videollama.json
+m04_vlm_tag.py --model keye        --BAKEOFF → data/bakeoff/tags_keye.json
+                                        ↓
+m04b_vlm_select.py → vlm_comparison.json (cross-VLM consensus = proxy gold truth)
+                                        ↓
+Phase 2: Winner VLM runs --FULL → tags.json (resumes from bake-off checkpoint)
 ```
-Each VLM script is isolated: different dependencies, different GPU memory profiles,
-can run on different machines. m04d is CPU-only merge + agreement computation.
+
+VLM Selection Criteria (no human labels needed):
+| Criterion | Weight | What it measures |
+|-----------|--------|-----------------|
+| Cross-VLM agreement % | 25% | How often this VLM matches majority vote across 11 fields |
+| JSON parse success % | 30% | % of clips with valid structured JSON output |
+| Taxonomy compliance % | 15% | % of values within allowed tag categories |
+| Confidence calibration | 10% | Correlation between confidence and agreement |
+| Speed (clips/sec) | 20% | Throughput — matters for 113K full run |
+
+VLMs selected by benchmark scores (not download count):
+| VLM | Size | VideoMME | MLVU | Why Selected |
+|-----|------|----------|------|--------------|
+| **Qwen3-VL-8B** | 8B | — | 75.3 | Best Hindi text/signage, existing implementation |
+| **VideoLLaMA3-7B** | 7B | 66.2 | 73.0 | Best MLVU + PerceptionTest, SigLIP vision encoder |
+| **Keye-VL-1.5-8B** | 8B | 73.0 | — | Highest VideoMME (beats GPT-4o), SlowFast encoding |
+
+GPU budget: ~1h bake-off (3×2.5K) + ~10h full (1×113K) = ~11h total
+vs. 3 VLMs on full: ~30h. Saves ~19h GPU for Ch 10-11.
 
 Metrics output schema (m06):
 ```json
@@ -311,18 +457,26 @@ Metrics output schema (m06):
     {"threshold": 0.5, "coverage": 0.95, "prec_at_k": 56.1},
     {"threshold": 0.7, "coverage": 0.80, "prec_at_k": 62.3}
   ],
-  "k_neighbors": 6, "num_clips": 115687, "exclusion_window_sec": 30
+  "k_neighbors": 6, "num_clips": 10000, "exclusion_window_sec": 30,
+  "mode": "poc", "subset_file": "data/subset_10k.json"
 }
 ```
 
 Implementation priority:
-1. m04b + m04c + m04d (Cross-VLM pipeline) — unlocks agreement-based QC
-2. Metric renaming (Cycle@K, Prec@K) — no logic change
-3. New metrics (mAP@K, nDCG@K, Silhouette, macro/micro) — pure numpy
-4. Confidence scores in VLM prompts — prompt engineering + parse
-5. Provenance tracking — trivial addition to tag output
-6. Hard/Easy mode — exclusion window masking in m06
-7. Multi-attribute slices — loop over tag fields in m06
-8. Keyframe export — ffmpeg flag in m02
-9. Overlap@K — needs augmented re-embedding via m05
-10. kNN neighbor grids — visualization in m07, needs keyframes
+0. Build m00c_sample_subset.py — stratified 10K subset (prerequisite for all POC runs)
+1. Add --subset flag to config.py + all pipeline scripts (m04-m07)
+2. Refactor m04_qwen_tag.py → m04_vlm_tag.py (VLMBackend ABC + QwenBackend + VideoLLaMA3Backend + KeyeVLBackend)
+3. Add --BAKEOFF mode (2,500 clips) + --model flag
+4. Build m04b_vlm_select.py (cross-VLM agreement, parse rate, speed, comparison plots)
+5. Update m05_vjepa_embed.py for --subset + POC mode
+6. Update m06_faiss_metrics.py — 9 metrics + Hard/Easy mode + --subset
+7. Update m07_umap_plot.py — kNN grids + --subset
+8. Run Ch 8+9 POC end-to-end on 10K subset → validate metrics
+9. Metric renaming (Cycle@K, Prec@K) — no logic change
+10. Confidence scores in VLM prompts — prompt engineering + parse
+11. Provenance tracking — trivial addition to tag output
+12. Multi-attribute slices — loop over tag fields in m06
+13. Keyframe export — ffmpeg flag in m02
+14. Overlap@K — needs augmented re-embedding via m05
+15. kNN neighbor grids — visualization in m07, needs keyframes
+16. After POC validates → scale to 115K (drop --subset flag)

@@ -103,12 +103,81 @@ QWEN_MODEL_ID = "Qwen/Qwen3-VL-8B-Instruct"
 # FAISS config
 FAISS_K_NEIGHBORS = 6  # includes self
 
+# POC subset config
+SUBSET_FILE = PROJECT_ROOT / "data" / "subset_10k.json"
+OUTPUTS_POC_DIR = SRC_DIR / "outputs_poc"
+BAKEOFF_DIR = DATA_DIR / "bakeoff"
+
+# VLM bake-off config
+VLM_MODELS = {
+    "qwen": "Qwen/Qwen3-VL-8B-Instruct",
+    "videollama": "DAMO-NLP-SG/VideoLLaMA3-7B",
+    "keye": "Keye-VL/Keye-VL-1.5-8B-Chat",
+}
+BAKEOFF_CLIP_COUNT = 2500
+
 # Output files
 EMBEDDINGS_FILE = DATA_DIR / "embeddings.npy"
 TAGS_FILE = DATA_DIR / "tags.json"
 UMAP_PLOT_PNG = OUTPUTS_DIR / "m07_umap.png"
 UMAP_PLOT_PDF = OUTPUTS_DIR / "m07_umap.pdf"
 METRICS_FILE = OUTPUTS_DIR / "m06_metrics.json"
+
+
+# Ensure POC directories exist
+for d in [OUTPUTS_POC_DIR, BAKEOFF_DIR]:
+    d.mkdir(parents=True, exist_ok=True)
+
+
+# =============================================================================
+# SUBSET / POC UTILITIES
+# =============================================================================
+
+def load_subset(subset_path: str = None) -> set:
+    """
+    Load subset clip keys from JSON file.
+
+    Args:
+        subset_path: Path to subset JSON (e.g., data/subset_10k.json).
+                     If None, returns empty set (= no filtering, full mode).
+
+    Returns:
+        Set of clip keys (e.g., {"goa/walking/04YKvC8kAgI/04YKvC8kAgI-000.mp4", ...})
+        Empty set means no filtering (full mode).
+    """
+    if subset_path is None:
+        return set()
+
+    import json
+    p = Path(subset_path)
+    if not p.exists():
+        print(f"ERROR: Subset file not found: {p}")
+        import sys
+        sys.exit(1)
+
+    with open(p) as f:
+        data = json.load(f)
+
+    keys = set(data["clip_keys"])
+    print(f"[POC] Loaded subset: {len(keys):,} clip keys from {p.name}")
+    return keys
+
+
+def get_output_dir(subset_path: str = None) -> Path:
+    """
+    Return output directory based on mode.
+    POC mode (--subset) → outputs_poc/
+    Full mode           → outputs/
+    """
+    if subset_path:
+        return OUTPUTS_POC_DIR
+    return OUTPUTS_DIR
+
+
+def add_subset_arg(parser):
+    """Add --subset argument to any argparse parser (shared across m04-m07)."""
+    parser.add_argument("--subset", type=str, default=None,
+                        help="Path to subset JSON (e.g., data/subset_10k.json) for POC mode")
 
 
 # =============================================================================

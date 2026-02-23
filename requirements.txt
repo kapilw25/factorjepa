@@ -2,13 +2,6 @@
 # Base Requirements (M1 Mac / CPU / API-based operations)
 # =============================================================================
 # Install: pip install -r requirements.txt
-#
-# Modules covered:
-#   - src/m01_download.py (yt-dlp)
-#   - src/m02_scene_detect.py (PySceneDetect)
-#   - src/m02b_upload_hf.py (HuggingFace upload)
-#   - src/m06_umap_plot.py (UMAP visualization)
-#   - src/utils/config.py
 # =============================================================================
 
 # Environment & Config
@@ -37,6 +30,9 @@ scipy>=1.10.0
 
 # UMAP Visualization
 umap-learn>=0.5.0
+
+# ML Metrics (silhouette score in m06)
+scikit-learn>=1.3.0
 
 # PDF Text Extraction
 PyMuPDF>=1.24.0

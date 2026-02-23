@@ -7,12 +7,7 @@
 #   - Linux (Ubuntu 20.04+)
 #   - Nvidia GPU (A100-40GB+ recommended)
 #   - CUDA 12.x
-#   - PyTorch 2.5.1+cu124 (install separately via setup_env.sh --gpu)
-#
-# Modules covered:
-#   - src/m03_vjepa_embed.py (V-JEPA 2 embeddings)
-#   - src/m04_qwen_tag.py (Qwen3-VL tagging)
-#   - src/m05_faiss_metrics.py (FAISS GPU + metrics)
+#   - PyTorch 2.5.1+cu124 (install separately via setup_env_uv.sh --gpu)
 # =============================================================================
 
 # Base requirements (includes yt-dlp, scenedetect, umap-learn, etc.)
@@ -27,9 +22,10 @@ accelerate>=0.25.0
 bitsandbytes>=0.41.0
 
 # =============================================================================
-# Qwen-VL specific
+# VLM Tagging (m04_vlm_tag.py)
 # =============================================================================
 qwen-vl-utils>=0.0.2
+vllm>=0.6.0
 
 # =============================================================================
 # Video Processing

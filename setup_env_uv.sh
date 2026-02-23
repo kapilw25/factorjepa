@@ -1,6 +1,6 @@
 #!/bin/bash
 # ============================================================================
-# Environment Setup Script - WalkIndia-50 POC (UV-based)
+# Environment Setup Script - WalkIndia-200K (UV-based)
 # ============================================================================
 # Usage:
 #   chmod +x setup_env_uv.sh
@@ -35,7 +35,7 @@ OS="$(uname -s)"
 # ============================================================================
 setup_base() {
     echo "============================================"
-    echo "WalkIndia-50 POC Environment Setup (UV)"
+    echo "WalkIndia-200K Environment Setup (UV)"
     echo "============================================"
     echo "Detected OS: $OS"
     echo ""
@@ -100,7 +100,7 @@ setup_base() {
     # Create directories
     echo ""
     echo "Creating directories..."
-    mkdir -p src/data/videos src/data/clips src/outputs logs
+    mkdir -p src/data/videos src/data/clips src/data/shards src/data/bakeoff src/outputs src/outputs_poc data logs
 
     echo ""
     echo "Base setup complete."
@@ -120,12 +120,7 @@ if [ "$1" = "--mac" ]; then
     echo "To activate environment:"
     echo "  source venv_walkindia/bin/activate"
     echo ""
-    echo "Available modules (CPU-based):"
-    echo "  python -u src/m01_download.py --SANITY 2>&1 | tee logs/m01_download_sanity.log"
-    echo "  python -u src/m02_scene_detect.py --SANITY 2>&1 | tee logs/m02_scene_detect_sanity.log"
-    echo "  python -u src/m06_umap_plot.py 2>&1 | tee logs/m06_umap_plot.log"
-    echo ""
-    echo "Note: m03, m04, m05 require Nvidia GPU (NO CPU fallback)"
+    echo "See each script's docstring for usage (python src/m*.py --help)"
     echo ""
     exit 0
 fi
@@ -202,7 +197,8 @@ if not torch.cuda.is_available():
     exit(1)
 
 if faiss.get_num_gpus() == 0:
-    print('WARNING: FAISS GPU not available, will use CPU')
+    print('ERROR: FAISS GPU not available. No CPU fallback.')
+    exit(1)
 
 print(f'PyTorch:      {torch.__version__}')
 print(f'CUDA:         {torch.version.cuda}')
@@ -221,10 +217,7 @@ print('SUCCESS: All GPU components verified')
     echo "To activate environment:"
     echo "  source venv_walkindia/bin/activate"
     echo ""
-    echo "GPU modules (Nvidia ONLY):"
-    echo "  python -u src/m03_vjepa_embed.py --SANITY 2>&1 | tee logs/m03_vjepa_embed_sanity.log"
-    echo "  python -u src/m04_qwen_tag.py --SANITY 2>&1 | tee logs/m04_qwen_tag_sanity.log"
-    echo "  python -u src/m05_faiss_metrics.py 2>&1 | tee logs/m05_faiss_metrics.log"
+    echo "See each script's docstring for usage (python src/m*.py --help)"
     echo ""
     exit 0
 fi
