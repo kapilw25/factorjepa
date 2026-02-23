@@ -26,3 +26,4 @@ python -c "import ast; ast.parse(open('src/m01_*.py').read())"  # AST check
 
 
 8) for each @outputs/plots - both [.png & .pdf] versions should be generated  >> build (src/utils/plotting.py) accordingly
+9) be DEVIL's ADVOCATE to look for a)  OOM b) underutiliation of GPU [solution: batch processing, vLLM], C) idle period for GPU are, d) Data starvation (46% of GPU underutil per Microsoft study), e) VRAM memory leaks across long runs, f) Numerical instability with fp16 — soln: uses flash-attn-2 which handles fp16 correctly, g) Checkpoint corruption

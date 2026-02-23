@@ -200,11 +200,17 @@ if faiss.get_num_gpus() == 0:
     print('ERROR: FAISS GPU not available. No CPU fallback.')
     exit(1)
 
-print(f'PyTorch:      {torch.__version__}')
-print(f'CUDA:         {torch.version.cuda}')
-print(f'GPU:          {torch.cuda.get_device_name(0)}')
-print(f'FAISS GPU:    {faiss.get_num_gpus()} GPU(s) available')
-print(f'Flash-Attn:   {flash_attn.__version__}')
+import transformers
+from datasets import load_dataset
+
+print(f'PyTorch:        {torch.__version__}')
+print(f'CUDA:           {torch.version.cuda}')
+print(f'GPU:            {torch.cuda.get_device_name(0)}')
+print(f'VRAM:           {torch.cuda.get_device_properties(0).total_mem / 1e9:.0f} GB')
+print(f'FAISS GPU:      {faiss.get_num_gpus()} GPU(s) available')
+print(f'Flash-Attn:     {flash_attn.__version__}')
+print(f'Transformers:   {transformers.__version__}')
+print(f'Datasets:       OK')
 print('')
 print('SUCCESS: All GPU components verified')
 "

@@ -172,3 +172,40 @@ m00 → m00b → m01 → m02 → m02b → m03     [COMPLETED — Mac CPU]
 
 All clips stream from HF — no local data/clips needed on GPU server.
 All architectural details, design decisions, and diagrams → see `plan_HIGH_LEVEL.md`
+
+---
+
+## Known Issues (can only be resolved/tested on GPU)
+
+### Must verify on first GPU run
+
+| # | Module | Issue | What to check | Fix if it fails |
+|---|--------|-------|---------------|-----------------|
+| 1 | m04 | vLLM engine may fail on older CUDA drivers | `python -c "import vllm; print(vllm.__version__)"` | `pip install vllm --upgrade` or fall back to `--backend transformers` |
+| 2 | m05 | flash-attn import crash (needs CUDA compile) | `python -c "import flash_attn"` | `pip install flash-attn --no-build-isolation` or use pre-built wheel from `setup_env_uv.sh --gpu` |
+| 3 | m05 | `DEFAULT_BATCH_SIZE=16` may OOM without flash-attn | Monitor with `nvidia-smi` during first batch | Reduce: `--batch-size 8` or `--batch-size 4` |
+| 4 | m05 | `DECODE_WORKERS=4` may starve or over-subscribe CPU | Watch `htop` CPU usage + GPU util via `nvidia-smi dmon` | Tune: edit `DECODE_WORKERS` in m05 (try 2 or 8) |
+| 5 | m05 | HF streaming throughput may bottleneck on slow network | If `clips/s < 1.0` in progress log, network is the bottleneck | Use `HF_HUB_ENABLE_HF_TRANSFER=1` env var for faster downloads |
+| 6 | m06 | FAISS GPU index build may fail if `faiss-gpu` not installed | `python -c "import faiss; print(faiss.get_num_gpus())"` | `pip install faiss-gpu-cu12` (match CUDA version) |
+
+### Performance tuning (after POC runs)
+
+| # | Module | What to benchmark | Tuning lever |
+|---|--------|-------------------|--------------|
+| 7 | m05 | GPU utilization % (`nvidia-smi dmon -s u`) | If <50%: increase `--batch-size` to 32 or 64 |
+| 8 | m05 | Producer vs consumer balance | If GPU idle between batches: increase `PREFETCH_QUEUE_SIZE` from 2→4 |
+| 9 | m05 | Checkpoint I/O stall | If throughput drops every 500 clips: increase `CHECKPOINT_EVERY` to 2000 |
+| 10 | m04 | VLM inference speed across 3 models | Log `clips/s` per model; fastest model with good quality wins bakeoff |
+| 11 | m05 | Resume re-streams from clip 0 | On crash recovery at 80K+, expect ~10-30min of skip-through before GPU gets work. Track via `processed_keys` log |
+| 12 | m07 | kNN grid shows placeholder squares, not real frames | Expected — HF clip keys are not local paths. Real thumbnails only if clips exist locally |
+
+### Potential runtime errors
+
+| # | Module | Error | Cause | Resolution |
+|---|--------|-------|-------|------------|
+| 13 | m04 | `torch.cuda.OutOfMemoryError` | VLM batch too large | Reduce `TRANSFORMERS_BATCH_SIZE` (m04:522) from 4→2 |
+| 14 | m05 | `torch.cuda.OutOfMemoryError` | V-JEPA batch too large | `--batch-size 8` or `--batch-size 4` |
+| 15 | m05 | `ConnectionError` / `TimeoutError` during HF stream | Network instability | Auto-retries up to 5× with exponential backoff; if persistent, check HF status |
+| 16 | m05 | Slow resume after crash | Re-iterates entire HF stream to skip processed clips | Normal behavior; `processed_keys` set prevents duplicate embeddings |
+| 17 | m06 | `FATAL: N key mismatches between embeddings.paths.npy and tags.json` | m04 and m05 ran on different subsets or one crashed mid-run | Re-run whichever module was incomplete; keys must align |
+| 18 | all | `NameError: name 'torch' is not defined` | GPU packages not installed | `pip install -r requirements_gpu.txt` inside venv |

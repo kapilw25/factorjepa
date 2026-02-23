@@ -16,6 +16,7 @@ import sys
 import tempfile
 import threading
 import time
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
 import numpy as np
@@ -62,6 +63,7 @@ MAX_STREAM_RETRIES = 5
 PREFETCH_QUEUE_SIZE = 2
 CHECKPOINT_EVERY = 500
 TOTAL_CLIPS = 115_687
+DECODE_WORKERS = 4
 
 
 # ── HF Streaming Helpers ──────────────────────────────────────────────
@@ -188,11 +190,21 @@ def load_checkpoint(checkpoint_file: Path) -> tuple:
 
 # ── Producer Thread (HF Stream → Decode → Queue) ──────────────────────
 
+def _process_and_enqueue(processor, batch_tensors, batch_keys, q):
+    """Process video tensors through processor and enqueue for GPU inference."""
+    processed_list = []
+    for vt in batch_tensors:
+        processed = processor(vt, return_tensors="pt")
+        processed_list.append(processed["pixel_values_videos"])
+    batched_pixels = torch.cat(processed_list, dim=0)
+    q.put(("batch", batched_pixels, batch_keys[:]))
+
+
 def _producer_thread(processor, batch_size: int, tmp_dir: str,
                      q: queue.Queue, stop_event: threading.Event,
                      clip_limit: int, subset_keys: set, num_frames: int,
                      processed_keys: set):
-    """Stream from HF, filter by subset, decode video tensors, batch through processor, enqueue."""
+    """Stream from HF, filter by subset, decode video tensors in parallel, enqueue."""
     produced = 0
     skipped = 0
     retries = 0
@@ -200,8 +212,9 @@ def _producer_thread(processor, batch_size: int, tmp_dir: str,
     while produced < clip_limit and not stop_event.is_set():
         try:
             ds = _create_stream(0)
-            batch_tensors = []
-            batch_keys = []
+            # Collect a batch of (bytes, key) pairs, then decode in parallel
+            pending_bytes = []
+            pending_keys = []
 
             for example in ds:
                 if stop_event.is_set():
@@ -224,40 +237,47 @@ def _producer_thread(processor, batch_size: int, tmp_dir: str,
                 if not mp4_bytes:
                     continue
 
-                # Decode video tensor
-                video_tensor = decode_video_bytes(mp4_bytes, tmp_dir, clip_key, num_frames)
-                if video_tensor is None:
-                    continue
+                pending_bytes.append(mp4_bytes)
+                pending_keys.append(clip_key)
 
-                batch_tensors.append(video_tensor)
-                batch_keys.append(clip_key)
+                if len(pending_bytes) >= batch_size:
+                    # Parallel decode batch
+                    with ThreadPoolExecutor(max_workers=DECODE_WORKERS) as pool:
+                        futures = [
+                            pool.submit(decode_video_bytes, b, tmp_dir, k, num_frames)
+                            for b, k in zip(pending_bytes, pending_keys)
+                        ]
+                        results = [(f.result(), k) for f, k in zip(futures, pending_keys)]
 
-                if len(batch_tensors) >= batch_size:
-                    # Process through video processor
-                    processed_list = []
-                    for vt in batch_tensors:
-                        processed = processor(vt, return_tensors="pt")
-                        processed_list.append(processed["pixel_values_videos"])
-                    batched_pixels = torch.cat(processed_list, dim=0)
+                    batch_tensors = [t for t, k in results if t is not None]
+                    batch_keys = [k for t, k in results if t is not None]
 
-                    q.put(("batch", batched_pixels, batch_keys[:]))
-                    produced += len(batch_tensors)
-                    batch_tensors = []
-                    batch_keys = []
+                    if batch_tensors:
+                        _process_and_enqueue(processor, batch_tensors, batch_keys, q)
+                        produced += len(batch_tensors)
+
+                    pending_bytes = []
+                    pending_keys = []
                     retries = 0
 
                     if produced >= clip_limit:
                         break
 
             # Final partial batch
-            if batch_tensors and not stop_event.is_set():
-                processed_list = []
-                for vt in batch_tensors:
-                    processed = processor(vt, return_tensors="pt")
-                    processed_list.append(processed["pixel_values_videos"])
-                batched_pixels = torch.cat(processed_list, dim=0)
-                q.put(("batch", batched_pixels, batch_keys[:]))
-                produced += len(batch_tensors)
+            if pending_bytes and not stop_event.is_set():
+                with ThreadPoolExecutor(max_workers=DECODE_WORKERS) as pool:
+                    futures = [
+                        pool.submit(decode_video_bytes, b, tmp_dir, k, num_frames)
+                        for b, k in zip(pending_bytes, pending_keys)
+                    ]
+                    results = [(f.result(), k) for f, k in zip(futures, pending_keys)]
+
+                batch_tensors = [t for t, k in results if t is not None]
+                batch_keys = [k for t, k in results if t is not None]
+
+                if batch_tensors:
+                    _process_and_enqueue(processor, batch_tensors, batch_keys, q)
+                    produced += len(batch_tensors)
 
             break  # stream exhausted normally
 
@@ -464,6 +484,7 @@ def main():
 
         # Consumer loop (GPU inference)
         start_time = time.time()  # reset for this run's throughput
+        checkpoint_thread = None
 
         try:
             while True:
@@ -492,15 +513,30 @@ def main():
                 print(f"  [{len(all_embeddings):,}/{total_target:,}] "
                       f"{throughput:.1f} clips/s | failed={failed_count}")
 
-                # Checkpoint
+                # Async checkpoint (non-blocking — GPU continues while disk writes)
                 if len(all_embeddings) % CHECKPOINT_EVERY < args.batch_size:
-                    save_checkpoint(all_embeddings, all_keys, checkpoint_file)
+                    if checkpoint_thread and checkpoint_thread.is_alive():
+                        checkpoint_thread.join()  # wait for previous checkpoint
+                    # Snapshot current state for async save
+                    emb_snapshot = list(all_embeddings)
+                    keys_snapshot = list(all_keys)
+                    checkpoint_thread = threading.Thread(
+                        target=save_checkpoint,
+                        args=(emb_snapshot, keys_snapshot, checkpoint_file),
+                        daemon=True,
+                    )
+                    checkpoint_thread.start()
 
         except KeyboardInterrupt:
             print("\nInterrupted! Saving checkpoint...")
             stop_event.set()
         finally:
             stop_event.set()
+            # Wait for any in-flight checkpoint
+            if checkpoint_thread and checkpoint_thread.is_alive():
+                checkpoint_thread.join(timeout=30)
+            # Final checkpoint save (synchronous — captures all data)
+            save_checkpoint(all_embeddings, all_keys, checkpoint_file)
             producer.join(timeout=10)
             shutil.rmtree(tmp_dir, ignore_errors=True)
             # Clean parent tmp_m05/ only if empty (other runs may use it)

@@ -635,7 +635,7 @@ def main():
         clip_paths = np.load(paths_file, allow_pickle=True).tolist()
         print(f"Loaded clip paths: {len(clip_paths):,}")
 
-    # Align
+    # Align + key validation
     n = min(embeddings.shape[0], len(tags))
     if len(tags) != embeddings.shape[0]:
         print(f"WARNING: Mismatch {embeddings.shape[0]} emb vs {len(tags)} tags, truncating to {n}")
@@ -643,6 +643,16 @@ def main():
     tags = tags[:n]
     if clip_paths:
         clip_paths = clip_paths[:n]
+        # Verify embedding-tag alignment via clip keys
+        tag_keys = [t.get("_clip_key", "") for t in tags]
+        if tag_keys[0]:  # tags have _clip_key field
+            mismatches = sum(1 for p, k in zip(clip_paths, tag_keys) if p != k)
+            if mismatches > 0:
+                print(f"FATAL: {mismatches}/{n} key mismatches between embeddings.paths.npy and tags.json")
+                print(f"  First emb key: {clip_paths[0]}")
+                print(f"  First tag key: {tag_keys[0]}")
+                sys.exit(1)
+            print(f"Key alignment verified: {n:,} clips match")
 
     if args.SANITY:
         n = min(100, n)

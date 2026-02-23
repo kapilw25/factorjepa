@@ -3,6 +3,7 @@ Common configuration for WalkIndia-200k pipeline.
 """
 import os
 import re
+import sys
 from pathlib import Path
 
 # Base paths
@@ -152,7 +153,6 @@ def load_subset(subset_path: str = None) -> set:
     p = Path(subset_path)
     if not p.exists():
         print(f"ERROR: Subset file not found: {p}")
-        import sys
         sys.exit(1)
 
     with open(p) as f:
@@ -186,7 +186,6 @@ def add_subset_arg(parser):
 
 def check_gpu():
     """Check if CUDA GPU is available. Exit if not."""
-    import sys
     try:
         import torch
     except ImportError:
@@ -343,7 +342,6 @@ def load_embeddings_and_tags() -> tuple:
     Load embeddings and tags, verify alignment.
     Returns (embeddings, tags) or exits on error.
     """
-    import sys
     import json
     import numpy as np
 
