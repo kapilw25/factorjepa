@@ -27,3 +27,14 @@ python -c "import ast; ast.parse(open('src/m01_*.py').read())"  # AST check
 
 8) for each @outputs/plots - both [.png & .pdf] versions should be generated  >> build (src/utils/plotting.py) accordingly
 9) be DEVIL's ADVOCATE to look for a)  OOM b) underutiliation of GPU [solution: batch processing, vLLM], C) idle period for GPU are, d) Data starvation (46% of GPU underutil per Microsoft study), e) VRAM memory leaks across long runs, f) Numerical instability with fp16 — soln: uses flash-attn-2 which handles fp16 correctly, g) Checkpoint corruption
+
+10) GPU Optimizations (apply to any GPU pipeline):
+10.1) torch.compile(model) after model.eval() — 15-30% speedup on static-shape models (ViT, ResNet). Print warning about first-batch compile latency.
+10.2) FAISS GPU for ALL index operations — use faiss.StandardGpuResources() + faiss.index_cpu_to_gpu(res, 0, cpu_index). Never leave CPU FAISS in GPU scripts.
+10.3) cuML GPU replacements — replace sklearn/umap-learn CPU ops with cuML equivalents (UMAP, DBSCAN, KMeans, PCA). 50-100x speedup. Install via `--extra-index-url https://pypi.nvidia.com`.
+10.4) wandb experiment tracking — shared utils pattern:
+  - src/utils/wandb_utils.py with: add_wandb_args(), init_wandb(), log_metrics(), log_image(), log_artifact(), finish_wandb()
+  - all functions are no-ops when run is None (--no-wandb flag)
+  - every GPU module gets --no-wandb argparse flag
+  - log metrics per batch (throughput, loss), log plots as wandb.Image, log output files as artifacts
+  - add wandb>=0.15.0 to requirements_gpu.txt (NOT individual pip install)

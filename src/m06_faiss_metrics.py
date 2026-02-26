@@ -22,6 +22,9 @@ from utils.config import (
     FAISS_K_NEIGHBORS, TAG_TAXONOMY_JSON,
     check_gpu, add_subset_arg, get_output_dir,
 )
+from utils.wandb_utils import (
+    add_wandb_args, init_wandb, log_metrics, log_image, log_artifact, finish_wandb,
+)
 
 try:
     import faiss
@@ -183,8 +186,11 @@ def compute_overlap_at_k(embeddings: np.ndarray, k: int) -> float:
     sample_n = min(n, 5000)
     sample_idx = rng.choice(n, sample_n, replace=False) if n > sample_n else np.arange(n)
 
-    idx_a = faiss.IndexFlatL2(mid)
-    idx_b = faiss.IndexFlatL2(d - mid)
+    res = faiss.StandardGpuResources()
+    idx_a_cpu = faiss.IndexFlatL2(mid)
+    idx_b_cpu = faiss.IndexFlatL2(d - mid)
+    idx_a = faiss.index_cpu_to_gpu(res, 0, idx_a_cpu)
+    idx_b = faiss.index_cpu_to_gpu(res, 0, idx_b_cpu)
     idx_a.add(emb_a)
     idx_b.add(emb_b)
 
@@ -590,6 +596,7 @@ def main():
                         help=f"Number of neighbors (default: {FAISS_K_NEIGHBORS})")
     parser.add_argument("--no-plots", action="store_true", help="Skip plot generation")
     add_subset_arg(parser)
+    add_wandb_args(parser)
     args = parser.parse_args()
 
     if not (args.SANITY or args.FULL):
@@ -598,6 +605,10 @@ def main():
         sys.exit(1)
 
     check_gpu()
+
+    mode = "SANITY" if args.SANITY else ("POC" if args.subset else "FULL")
+    wb_run = init_wandb("m06", mode, config=vars(args),
+                        enabled=not args.no_wandb)
 
     # Output routing: POC vs Full
     output_dir = get_output_dir(args.subset)
@@ -689,6 +700,24 @@ def main():
     conf_sweep = compute_confidence_sweep(I[:, :k + 1], tags, k)
     print(f"\nConfidence sweep: {len(conf_sweep)} thresholds")
 
+    # wandb: log all metrics
+    for prefix, m in [("easy", easy), ("hard", hard)]:
+        for metric in ["cycle_at_k", "overlap_at_k", "silhouette", "prec_at_k", "map_at_k", "ndcg_at_k"]:
+            v = m.get(metric)
+            if v is not None:
+                log_metrics(wb_run, {f"{prefix}/{metric}": v})
+        log_metrics(wb_run, {
+            f"{prefix}/macro_prec_at_k": m["macro_avg"]["prec_at_k"],
+            f"{prefix}/micro_prec_at_k": m["micro_avg"]["prec_at_k"],
+        })
+    for s in conf_sweep:
+        if s["prec_at_k"] is not None:
+            log_metrics(wb_run, {
+                "confidence_sweep/threshold": s["threshold"],
+                "confidence_sweep/prec_at_k": s["prec_at_k"],
+                "confidence_sweep/coverage": s["coverage"],
+            })
+
     # ── Save ─────────────────────────────────────────────────────────
     output = {
         "easy": easy,
@@ -709,6 +738,9 @@ def main():
     # ── Plots ────────────────────────────────────────────────────────
     if not args.no_plots:
         generate_plots(easy, hard, conf_sweep, D[:, :k + 1], k, output_dir, n)
+        for plot_name in ["m06_purity_by_scene", "m06_distance_hist",
+                          "m06_confidence_sweep", "m06_radar"]:
+            log_image(wb_run, plot_name, str(output_dir / f"{plot_name}.png"))
 
     # ── Summary ──────────────────────────────────────────────────────
     print(f"\n{'='*60}")
@@ -727,6 +759,9 @@ def main():
 
     print(f"\n  Macro Prec@K:  Easy={easy['macro_avg']['prec_at_k']:.2f}%  Hard={hard['macro_avg']['prec_at_k']:.2f}%")
     print(f"  Micro Prec@K:  Easy={easy['micro_avg']['prec_at_k']:.2f}%  Hard={hard['micro_avg']['prec_at_k']:.2f}%")
+
+    log_artifact(wb_run, "metrics", str(metrics_file))
+    finish_wandb(wb_run)
 
 
 if __name__ == "__main__":

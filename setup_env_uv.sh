@@ -142,12 +142,12 @@ if [ "$1" = "--gpu" ]; then
 
     # 1. Install PyTorch 2.5.1 with CUDA 12.4
     echo ""
-    echo "[1/5] Installing PyTorch 2.5.1+cu124..."
+    echo "[1/7] Installing PyTorch 2.5.1+cu124..."
     uv pip install torch==2.5.1 torchvision==0.20.1 --index-url https://download.pytorch.org/whl/cu124
 
     # 2. Verify PyTorch + CUDA
     echo ""
-    echo "[2/5] Verifying PyTorch + CUDA..."
+    echo "[2/7] Verifying PyTorch + CUDA..."
     python -c "
 import torch
 if not torch.cuda.is_available():
@@ -158,12 +158,12 @@ print(f'PyTorch: {torch.__version__}, CUDA: {torch.version.cuda}, GPU: {torch.cu
 
     # 3. Install GPU requirements
     echo ""
-    echo "[3/5] Installing GPU requirements (UV - fast)..."
+    echo "[3/7] Installing GPU requirements (UV - fast)..."
     uv pip install -r requirements_gpu.txt
 
     # 4. Install Flash-Attention 2.8.3 (pre-built wheel for CUDA 12 + PyTorch 2.5)
     echo ""
-    echo "[4/5] Installing Flash-Attention 2.8.3..."
+    echo "[4/7] Installing Flash-Attention 2.8.3..."
     WHEEL_NAME="flash_attn-2.8.3+cu12torch2.5cxx11abiFALSE-cp312-cp312-linux_x86_64.whl"
     WHEEL_URL="https://github.com/Dao-AILab/flash-attention/releases/download/v2.8.3/flash_attn-2.8.3%2Bcu12torch2.5cxx11abiFALSE-cp312-cp312-linux_x86_64.whl"
 
@@ -181,8 +181,18 @@ print(f'PyTorch: {torch.__version__}, CUDA: {torch.version.cuda}, GPU: {torch.cu
 
     # 5. Install FAISS-GPU (CUDA 12)
     echo ""
-    echo "[5/5] Installing FAISS-GPU (CUDA 12)..."
+    echo "[5/7] Installing FAISS-GPU (CUDA 12)..."
     uv pip install faiss-gpu-cu12
+
+    # 6. Install cuML (GPU UMAP) from RAPIDS PyPI
+    echo ""
+    echo "[6/7] Installing cuML (GPU UMAP)..."
+    uv pip install cuml-cu12 --extra-index-url https://pypi.nvidia.com
+
+    # 7. Install wandb (experiment tracking)
+    echo ""
+    echo "[7/7] Installing wandb..."
+    uv pip install wandb
 
     # Final verification
     echo ""
@@ -202,6 +212,8 @@ if faiss.get_num_gpus() == 0:
 
 import transformers
 from datasets import load_dataset
+import cuml
+import wandb
 
 print(f'PyTorch:        {torch.__version__}')
 print(f'CUDA:           {torch.version.cuda}')
@@ -210,6 +222,8 @@ print(f'VRAM:           {torch.cuda.get_device_properties(0).total_mem / 1e9:.0f
 print(f'FAISS GPU:      {faiss.get_num_gpus()} GPU(s) available')
 print(f'Flash-Attn:     {flash_attn.__version__}')
 print(f'Transformers:   {transformers.__version__}')
+print(f'cuML:           {cuml.__version__}')
+print(f'wandb:          {wandb.__version__}')
 print(f'Datasets:       OK')
 print('')
 print('SUCCESS: All GPU components verified')

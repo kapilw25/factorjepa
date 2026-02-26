@@ -1,6 +1,6 @@
 """
 UMAP visualization + kNN confusion matrix + kNN neighbor grids + macro/micro reporting.
-CPU-only (M1 compatible). Reads embeddings.npy, tags.json, and optionally m06_metrics.json.
+GPU-only (cuML UMAP, FAISS GPU, Nvidia CUDA). Reads embeddings.npy, tags.json, and optionally m06_metrics.json.
 
 USAGE:
     python -u src/m07_umap_plot.py --SANITY 2>&1 | tee logs/m07_umap_plot_sanity.log
@@ -23,9 +23,18 @@ from utils.config import (
     FAISS_K_NEIGHBORS,
     add_subset_arg, get_output_dir,
 )
+from utils.wandb_utils import (
+    add_wandb_args, init_wandb, log_metrics, log_image, finish_wandb,
+)
 
 try:
-    import umap
+    from cuml.manifold import UMAP as cuUMAP
+except ImportError:
+    print("FATAL: cuML not installed. GPU UMAP required (no CPU fallback).")
+    print("Install via setup_env_uv.sh --gpu")
+    sys.exit(1)
+
+try:
     import matplotlib
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
@@ -33,7 +42,7 @@ try:
     from matplotlib.offsetbox import OffsetImage, AnnotationBbox
 except ImportError as e:
     print(f"ERROR: Missing dependency: {e}")
-    print("Install with: pip install umap-learn matplotlib")
+    print("Install with: pip install matplotlib")
     sys.exit(1)
 
 try:
@@ -103,9 +112,10 @@ def create_umap_plot(embeddings: np.ndarray, tags: list, output_dir: Path,
     """UMAP scatter colored by scene_type with metrics overlay."""
     print(f"Computing UMAP (n_neighbors={n_neighbors}, min_dist={min_dist})...")
 
-    reducer = umap.UMAP(n_components=2, n_neighbors=n_neighbors,
-                        min_dist=min_dist, random_state=42, verbose=True)
-    emb_2d = reducer.fit_transform(embeddings)
+    reducer = cuUMAP(n_components=2, n_neighbors=n_neighbors,
+                     min_dist=min_dist, random_state=42, verbose=True)
+    emb_2d_cu = reducer.fit_transform(embeddings)
+    emb_2d = emb_2d_cu.get() if hasattr(emb_2d_cu, 'get') else np.asarray(emb_2d_cu)
 
     scene_types = [t.get("scene_type", "unknown") for t in tags]
     colors = [SCENE_COLORS.get(st, SCENE_COLORS["unknown"]) for st in scene_types]
@@ -154,13 +164,15 @@ def create_umap_plot(embeddings: np.ndarray, tags: list, output_dir: Path,
 
 def create_confusion_matrix(embeddings: np.ndarray, tags: list, output_dir: Path,
                             k: int = 5):
-    """kNN retrieval confusion matrix (CPU FAISS)."""
+    """kNN retrieval confusion matrix (GPU FAISS)."""
     if not HAS_FAISS:
         print("WARNING: faiss not available, skipping confusion matrix")
         return
 
-    print(f"Building CPU FAISS for confusion matrix (k={k})...")
-    index = faiss.IndexFlatL2(embeddings.shape[1])
+    print(f"Building GPU FAISS for confusion matrix (k={k})...")
+    res = faiss.StandardGpuResources()
+    index_cpu = faiss.IndexFlatL2(embeddings.shape[1])
+    index = faiss.index_cpu_to_gpu(res, 0, index_cpu)
     index.add(embeddings)
     _, I = index.search(embeddings, k + 1)
 
@@ -347,6 +359,7 @@ def main():
                         help=f"kNN neighbors (default: {FAISS_K_NEIGHBORS})")
     parser.add_argument("--no-grid", action="store_true", help="Skip kNN grid (faster)")
     add_subset_arg(parser)
+    add_wandb_args(parser)
     args = parser.parse_args()
 
     if not (args.SANITY or args.FULL):
@@ -357,6 +370,10 @@ def main():
     # Output routing
     output_dir = get_output_dir(args.subset)
     output_dir.mkdir(parents=True, exist_ok=True)
+
+    mode = "SANITY" if args.SANITY else ("POC" if args.subset else "FULL")
+    wb_run = init_wandb("m07", mode, config=vars(args),
+                        enabled=not args.no_wandb)
 
     print(f"Output dir: {output_dir}")
     if args.subset:
@@ -434,8 +451,26 @@ def main():
     print("\n=== MACRO/MICRO REPORTING ===")
     print_macro_micro(metrics_data)
 
+    # wandb logging
+    if metrics_data:
+        for prefix in ["easy", "hard"]:
+            m = metrics_data.get(prefix, {})
+            macro = m.get("macro_avg", {}).get("prec_at_k")
+            micro = m.get("micro_avg", {}).get("prec_at_k")
+            if macro is not None:
+                log_metrics(wb_run, {f"{prefix}/macro_prec_at_k": macro})
+            if micro is not None:
+                log_metrics(wb_run, {f"{prefix}/micro_prec_at_k": micro})
+
+    log_image(wb_run, "umap", str(output_dir / "m07_umap.png"))
+    log_image(wb_run, "confusion_matrix", str(output_dir / "m07_confusion_matrix.png"))
+    if not args.no_grid:
+        log_image(wb_run, "knn_grid", str(output_dir / "m07_knn_grid.png"))
+
     print(f"\n=== VISUALIZATION COMPLETE ===")
     print(f"Outputs in: {output_dir}")
+
+    finish_wandb(wb_run)
 
 
 if __name__ == "__main__":

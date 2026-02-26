@@ -37,6 +37,9 @@ from utils.config import (
     VLM_MODELS, BAKEOFF_CLIP_COUNT, BAKEOFF_DIR, OUTPUTS_POC_DIR,
     check_gpu, check_output_exists, load_subset, add_subset_arg,
 )
+from utils.wandb_utils import (
+    add_wandb_args, init_wandb, log_metrics, log_artifact, finish_wandb,
+)
 
 # ── HF datasets (streaming) ──────────────────────────────────────────────
 try:
@@ -305,9 +308,10 @@ class VideoLLaMA3Backend(VLMBackend):
             torch_dtype=torch.bfloat16,
             device_map="auto",
             trust_remote_code=True,
+            attn_implementation="flash_attention_2",
         )
         self.model.eval()
-        print(f"VideoLLaMA3 loaded via transformers")
+        print(f"VideoLLaMA3 loaded via transformers (FA2)")
 
     def preprocess_one(self, example: dict, tmp_dir: str) -> dict | None:
         tmp_path = None
@@ -417,9 +421,10 @@ class KeyeVLBackend(VLMBackend):
             torch_dtype=torch.bfloat16,
             device_map="auto",
             trust_remote_code=True,
+            attn_implementation="flash_attention_2",
         )
         self.model.eval()
-        print(f"Keye-VL loaded via transformers")
+        print(f"Keye-VL loaded via transformers (FA2)")
 
     def preprocess_one(self, example: dict, tmp_dir: str) -> dict | None:
         tmp_path = None
@@ -696,7 +701,8 @@ def _producer_thread(backend, start_from, batch_size, tmp_dir,
 
 def stream_and_tag(backend: VLMBackend, args,
                    start_from: int, clip_limit: int,
-                   tags_file: Path, subset_keys: set) -> list:
+                   tags_file: Path, subset_keys: set,
+                   wb_run=None) -> list:
     """Stream from HF, preprocess in background, infer on GPU. Backend-agnostic."""
     print(f"\nStreaming from: {HF_DATASET_REPO}")
     print(f"  backend={backend.model_name}  start_from={start_from:,}  clip_limit={clip_limit:,}")
@@ -746,6 +752,11 @@ def stream_and_tag(backend: VLMBackend, args,
             eta_min = remaining / rate / 60 if rate > 0 else 0
             print(f"  [{clips_this_run:,}/{clip_limit:,}] "
                   f"{rate:.2f} clips/s | ETA {eta_min:.0f} min | {backend.model_name}")
+            log_metrics(wb_run, {
+                "clips_tagged": clips_this_run,
+                "throughput_clips_per_s": rate,
+                "eta_min": eta_min,
+            })
 
             # Checkpoint
             if clips_this_run % CHECKPOINT_EVERY < batch_size:
@@ -828,6 +839,8 @@ def orchestrator_main(args):
             cmd.append("--FULL")
         if args.subset:
             cmd.extend(["--subset", args.subset])
+        if args.no_wandb:
+            cmd.append("--no-wandb")
 
         result = subprocess.run(cmd)
 
@@ -853,6 +866,12 @@ def worker_main(args):
     """Worker subprocess: load backend, process segment, exit."""
     check_gpu()
 
+    mode = "SANITY" if args.SANITY else ("BAKEOFF" if args.BAKEOFF else ("POC" if args.subset else "FULL"))
+    wb_run = init_wandb("m04", f"{mode}_{args.model}",
+                        config={"model": args.model, "start_from": args.start_from,
+                                "process_count": args.process_count},
+                        enabled=not args.no_wandb)
+
     tags_file = get_tags_file(args.model, args.BAKEOFF, args.subset)
     subset_keys = load_subset(args.subset) if args.subset else set()
 
@@ -867,9 +886,13 @@ def worker_main(args):
         clip_limit=args.process_count,
         tags_file=tags_file,
         subset_keys=subset_keys,
+        wb_run=wb_run,
     )
 
     backend.cleanup()
+
+    log_artifact(wb_run, f"tags_{args.model}", str(tags_file))
+    finish_wandb(wb_run)
     print("Worker exiting (GPU memory will be released).")
 
 
@@ -983,6 +1006,7 @@ def main():
     parser.add_argument("--batch-size", type=int, default=None,
                         help="Override batch size")
     add_subset_arg(parser)
+    add_wandb_args(parser)
 
     # Internal worker args (spawned by orchestrator)
     parser.add_argument("--_worker", action="store_true", help=argparse.SUPPRESS)

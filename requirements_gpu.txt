@@ -36,7 +36,17 @@ av>=12.0.0
 # Install manually if needed: pip install torchcodec
 
 # =============================================================================
+# Experiment Tracking
+# =============================================================================
+wandb>=0.15.0
+
+# =============================================================================
+# cuML GPU (UMAP, DBSCAN, etc.) - Nvidia GPU ONLY
+# =============================================================================
+# cuml-cu12 installed via setup_env_uv.sh --gpu (RAPIDS PyPI)
+
+# =============================================================================
 # FAISS GPU (Similarity Search) - Nvidia GPU ONLY
 # =============================================================================
-# Install via setup_env.sh --gpu (no CPU fallback)
+# Install via setup_env_uv.sh --gpu (no CPU fallback)
 # faiss-gpu is installed separately due to CUDA version requirements

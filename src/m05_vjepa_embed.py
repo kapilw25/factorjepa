@@ -29,6 +29,7 @@ from utils.config import (
     check_gpu, DEFAULT_BATCH_SIZE,
     check_output_exists, load_subset, add_subset_arg, get_output_dir,
 )
+from utils.wandb_utils import add_wandb_args, init_wandb, log_metrics, log_artifact, finish_wandb
 
 try:
     import torch
@@ -379,6 +380,7 @@ def main():
     parser.add_argument("--no-dedupe", action="store_true", help="Skip deduplication")
     parser.add_argument("--threshold", type=float, default=DEDUPE_THRESHOLD, help="Dedupe threshold")
     add_subset_arg(parser)
+    add_wandb_args(parser)
     args = parser.parse_args()
 
     if not (args.SANITY or args.FULL):
@@ -388,6 +390,10 @@ def main():
 
     check_gpu()
     device = "cuda"
+
+    mode = "SANITY" if args.SANITY else ("POC" if args.subset else "FULL")
+    wb_run = init_wandb("m05", mode, config=vars(args),
+                        enabled=not args.no_wandb)
 
     # Output paths
     output_dir = get_output_dir(args.subset)
@@ -454,6 +460,8 @@ def main():
                 attn_implementation="flash_attention_2",
             )
             model.eval()
+            print("Applying torch.compile (first batch will be slow due to compilation)...")
+            model = torch.compile(model)
             print(f"Model loaded on {device} (dtype: {next(model.parameters()).dtype})")
         except Exception as e:
             print(f"FATAL: Model load failed: {e}")
@@ -512,6 +520,11 @@ def main():
                 throughput = clips_this_run / elapsed if elapsed > 0 else 0
                 print(f"  [{len(all_embeddings):,}/{total_target:,}] "
                       f"{throughput:.1f} clips/s | failed={failed_count}")
+                log_metrics(wb_run, {
+                    "clips_processed": len(all_embeddings),
+                    "throughput_clips_per_s": throughput,
+                    "failed": failed_count,
+                })
 
                 # Async checkpoint (non-blocking — GPU continues while disk writes)
                 if len(all_embeddings) % CHECKPOINT_EVERY < args.batch_size:
@@ -582,6 +595,14 @@ def main():
     print(f"Saved: {embeddings_file}")
     print(f"Shape: {embeddings.shape}")
     print(f"Unique clips: {len(clip_keys)}")
+
+    log_metrics(wb_run, {
+        "total_clips": len(clip_keys),
+        "embedding_dim": embeddings.shape[1],
+    })
+    log_artifact(wb_run, "embeddings", str(embeddings_file))
+    log_artifact(wb_run, "paths", str(embeddings_file.with_suffix('.paths.npy')))
+    finish_wandb(wb_run)
 
 
 if __name__ == "__main__":
