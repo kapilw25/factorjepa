@@ -22,6 +22,11 @@ def init_wandb(module_name: str, mode: str, config: dict = None,
     if not enabled:
         return None
     try:
+        from dotenv import load_dotenv
+        load_dotenv()
+    except ImportError:
+        pass
+    try:
         import wandb
         run = wandb.init(
             project="walkindia-200k",
