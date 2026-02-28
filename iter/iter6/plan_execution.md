@@ -4,12 +4,16 @@ STATUS: m00-m03 COMPLETED (Mac CPU). m04-m08 on GPU.
 Dataset: https://huggingface.co/datasets/anonymousML123/walkindia-200k (private, HF_TOKEN in .env)
 Backend: All 3 VLMs use transformers sequential inference (vLLM removed — OOMs on ≤24GB GPUs).
 
-### GPU Strategy
-| Mode | GPU | VRAM | Purpose |
-|------|-----|------|---------|
-| `--SANITY` (20 clips) | RTX Pro 4000 | 24GB | Debug: validate model loading, inference, JSON parsing |
-| `--BAKEOFF` (2500 clips) | RTX Pro 6000 | 96GB | Production: 3-VLM comparison |
-| `--FULL` (10K-115K clips) | RTX Pro 6000 | 96GB | Production: winner tags full dataset |
+### GPU Strategy & Clip Selection
+
+| Mode | Command Flags | GPU | VRAM | Input Pool | Selection Method | Output Count | Output Path |
+|------|---------------|-----|------|------------|------------------|--------------|-------------|
+| **SANITY** | `--SANITY` | RTX Pro 4000 | 24GB | 115K stream | First 20 from stream | 20 | `outputs/tags_sanity_{model}.json` |
+| **BAKEOFF** | `--BAKEOFF --subset` | RTX Pro 6000 | 96GB | 10K subset | First 2,500 matching subset keys | 2,500 | `data/bakeoff/tags_{model}.json` |
+| **FULL (POC)** | `--FULL --subset` | RTX Pro 6000 | 96GB | 10K subset | All 10,000 matching subset keys | 10,000 | `outputs_poc/tags.json` |
+| **FULL (prod)** | `--FULL` | RTX Pro 6000 | 96GB | 115K stream | All clips, no filter | 115,687 | `outputs/tags.json` |
+
+> **Design choice:** The 10K subset is video-uniform (geographic diversity), while the 2,500 BAKEOFF subset is the first 2,500 of those 10K encountered in stream order (deterministic, reproducible). The winner VLM then resumes from its 2,500 checkpoint and finishes the remaining 7,500.
 
 ---
 
