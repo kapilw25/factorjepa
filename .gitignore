@@ -54,6 +54,9 @@ checkpoints/
 *.log
 # logs/
 
+# Weights & Biases
+wandb/
+
 # Data
 data/LEGACY*
 
