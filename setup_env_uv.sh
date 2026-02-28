@@ -50,6 +50,13 @@ setup_base() {
             NEED_APT_UPDATE=true
         fi
 
+        for pkg in jq htop tmux wget curl; do
+            if ! command -v "$pkg" &> /dev/null; then
+                APT_PACKAGES="$APT_PACKAGES $pkg"
+                NEED_APT_UPDATE=true
+            fi
+        done
+
         if ! command -v python3.12 &> /dev/null; then
             echo "Adding deadsnakes PPA for Python 3.12..."
             apt-get update
