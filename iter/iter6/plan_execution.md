@@ -192,9 +192,18 @@ print(f'Shape match: {emb.shape[0] == len(paths)}')
 
 **Expected:** `embeddings.npy` (~10K × 1408), `embeddings.paths.npy` (10K keys). ~2h GPU.
 
+**SANITY Status:**
+- [x] m05 SANITY: PASSED (6 clips streamed, 2 dupes removed → 4 unique embeddings, shape (4, 1408), 96.7s, 0.1 clips/s)
+
 ---
 
 ## Step 5: FAISS 9-metric evaluation (requires Step 3 + Step 4)
+
+**Blackwell (sm_120) prerequisite:** `faiss-gpu-cu12` pip package only ships sm_70+sm_80 kernels → CUDA error 209 at runtime. Must build from source first:
+```bash
+./build_faiss_sm120.sh 2>&1 | tee logs/build_faiss_sm120.log
+# Re-install only (build artifacts cached): ./build_faiss_sm120.sh --install
+```
 
 FAISS-GPU kNN index → 9 metrics in Easy/Hard mode + confidence sweep + multi-attribute slices. Saves knn_indices.npy for downstream plotting.
 
@@ -228,6 +237,9 @@ ls -la src/outputs_poc/m06_*.png src/outputs_poc/m06_*.pdf
 
 **Expected:** `m06_metrics.json` (9 metrics × 2 modes), `knn_indices.npy`, 4 plots (.png + .pdf). ~5 min GPU.
 
+**SANITY Status:**
+- [x] m06 SANITY: PASSED (4 clips, FAISS-GPU sm_120 from source build, Easy Prec@K=50%, knn_indices (4,4), 3 plots saved)
+
 ---
 
 ## Step 6: UMAP dimensionality reduction (GPU cuML)
@@ -249,6 +261,9 @@ python -c "import numpy as np; u = np.load('src/outputs_poc/umap_2d.npy'); print
 ```
 
 **Expected:** `umap_2d.npy` (10K × 2). ~2 min GPU.
+
+**SANITY Status:**
+- [x] m07 SANITY: PASSED (4 clips, cuML GPU UMAP in 0.6s, n_neighbors=3, umap_2d.npy shape (4, 2))
 
 ---
 

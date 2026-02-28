@@ -232,6 +232,15 @@ print(f'PyTorch: {torch.__version__}, CUDA: {torch.version.cuda}, GPU: {torch.cu
     # 5. Install FAISS-GPU (CUDA 12)
     echo ""
     echo "[5/7] Installing FAISS-GPU (CUDA 12)..."
+    if [ "$GPU_ARCH" = "120" ]; then
+        echo "WARNING: Blackwell (sm_120) detected — pip faiss-gpu-cu12 only ships sm_70+sm_80 kernels."
+        echo "         pip package will install but CUDA error 209 at runtime."
+        echo ""
+        echo "After setup completes, build FAISS from source (~10 min):"
+        echo "  ./build_faiss_sm120.sh 2>&1 | tee logs/build_faiss_sm120.log"
+        echo ""
+        echo "Installing pip faiss-gpu-cu12 as placeholder (will be replaced by source build)..."
+    fi
     uv pip install faiss-gpu-cu12
 
     # 6. Install cuML (GPU UMAP) from RAPIDS PyPI
