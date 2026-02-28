@@ -1,7 +1,3 @@
-# Github
-> git config user.name "kapilw25"
-  git config user.email "kapilw25@gmail.com" 
-
 #   Simple solution to overwrite everything:
 ```
 git fetch && git reset --hard origin/main
@@ -31,4 +27,3 @@ Open Browser: http://localhost:6006
 
 >> note: being Devil's advocate does NOT mean, hallucinate/fake-produce the mistakes which dont exist. If the code is correct , then accept it and move on
 >> WEBSEARCH [not always] : if needed to find the universal practices in Ai/ML research world
-- never modify @CLAUDE.md

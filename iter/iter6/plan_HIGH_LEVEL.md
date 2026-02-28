@@ -44,7 +44,7 @@
 | **Why 10K** | Statistical minimum for kNN (k=6, 10 scene types × 1K each), FAISS IVF-PQ training (≥8K), confidence sweep binning |
 | **Sampling** | Video-level uniform: each video contributes ~equal clips (ensures all cities/types represented) |
 | **Tool** | `m00c_sample_subset.py` → `data/subset_10k.json` (deterministic, seed=42) |
-| **Flag** | All scripts (m04-m07) accept `--subset data/subset_10k.json` to operate on POC subset only |
+| **Flag** | All scripts (m04-m08) accept `--subset data/subset_10k.json` to operate on POC subset only |
 | **Output dir** | `outputs_poc/` (separate from `outputs/`) |
 | **Scale up** | After POC validates → drop `--subset` flag, same scripts run on 115K |
 
@@ -87,10 +87,11 @@ flowchart LR
     end
 
     subgraph VJEPA ["V-JEPA BRANCH (GPU)"]
-        direction LR
+        direction TB
         E["V-JEPA 2<br>clip → 64 frm<br>ViT-G frozen"] --> F["FAISS kNN<br>IVF-PQ<br>Hard/Easy mode"]
         F --> G["METRICS<br>Cycle@K · Prec@K · Overlap@K<br>mAP@K · nDCG@K · Silhouette<br>Conf sweep · Multi-attr slices"]
-        G --> H["UMAP + FiftyOne<br>2D/3D viz · kNN grids<br>Macro/micro reporting"]
+        G --> H1["m07 UMAP<br>cuML GPU<br>→ umap_2d.npy"]
+        H1 --> H2["m08 Plot<br>CPU matplotlib<br>2D viz · kNN grids<br>Macro/micro reporting"]
     end
 
     subgraph VLM ["VLM BAKE-OFF (GPU → select → full)"]
@@ -120,7 +121,8 @@ flowchart LR
     style E fill:#43a047,color:#fff,font-weight:bold,font-size:28px
     style F fill:#e53935,color:#fff,font-weight:bold,font-size:28px
     style G fill:#d81b60,color:#fff,font-weight:bold,font-size:28px
-    style H fill:#6d4c41,color:#fff,font-weight:bold,font-size:28px
+    style H1 fill:#6d4c41,color:#fff,font-weight:bold,font-size:28px
+    style H2 fill:#795548,color:#fff,font-weight:bold,font-size:28px
     style I1 fill:#00acc1,color:#fff,font-weight:bold,font-size:28px
     style I2 fill:#00838f,color:#fff,font-weight:bold,font-size:28px
     style I3 fill:#006064,color:#fff,font-weight:bold,font-size:28px
@@ -184,10 +186,12 @@ tags.json                            m06 evaluates V-JEPA quality (9 metrics):
 │   },                 │            │ + Hard/Easy mode (±30s window)   │
 │   ...                │            └──────────────────────────────────┘
 │ ]                    │
-└──────────────────────┘            m07 visualizes:
+└──────────────────────┘            m07 (GPU): cuML UMAP → umap_2d.npy
+                                    m08 (CPU): reads pre-computed .npy files
                        ──────────→  ┌──────────────────────────────────┐
                                     │ UMAP scatter colored by scene_type│
-                                    │ Confusion matrix + kNN grids     │
+                                    │ Confusion matrix (from knn_indices│
+                                    │   saved by m06) + kNN grids      │
                                     │ Macro/micro reporting            │
                                     └──────────────────────────────────┘
 ```
@@ -572,8 +576,9 @@ Primary metrics (Cycle@K, Overlap@K) are label-free and don't depend on tag qual
 | 4 | Qwen3-VL-8B / VideoLLaMA3-7B / Keye-VL-1.5-8B | VLM bake-off (2.5K clips) → winner tags full dataset |
 | 4b | m04b_vlm_select.py | CPU-only: cross-VLM consensus comparison → pick winner |
 | 5 | FAISS | Fast similarity search (GPU) + Hard/Easy mode |
-| 6 | UMAP | Dimensionality reduction & visualization + kNN grids |
-| 7 | FiftyOne | Interactive dataset exploration |
+| 6 | m07 UMAP (GPU cuML) | Dimensionality reduction → umap_2d.npy |
+| 7 | m08 Plot (CPU) | Visualization: UMAP scatter, confusion matrix, kNN grids (reads .npy files) |
+| 8 | FiftyOne | Interactive dataset exploration |
 
 ---
 
@@ -589,7 +594,7 @@ were compared against this plan. 12 discrepancies were found and resolved:
 | 3 | QC: dual-prompt + human audit | **SKIP** | Confidence from Qwen logprobs + confidence sweep. Tags are diagnostic only |
 | 4 | Per-field confidence scores | **ADD** | Qwen outputs confidence_* per field (logprobs). Enables confidence sweep in m06 |
 | 5 | Provenance tracking | **ADD** | _model, _prompt_version, _tagged_at per clip |
-| 6 | Keyframe export | **ADD (optional)** | --keyframes flag in m02, 1 keyframe per clip via ffmpeg. m07 extracts frames on-the-fly without this. |
+| 6 | Keyframe export | **ADD (optional)** | --keyframes flag in m02, 1 keyframe per clip via ffmpeg. m08 extracts frames on-the-fly without this. |
 | 7 | Metric naming mismatch | **RENAME** | Use proposal names: Cycle@K, Prec@K, Overlap@K (old names as aliases) |
 | 8 | 6+ missing metrics | **ADD** | mAP@K, nDCG@K, Silhouette, Overlap@K, multi-attr slices, conf sweep, macro/micro |
 | 9 | No Hard/Easy mode | **ADD** | Exclusion window ±30s within same video_id. Report both modes |
@@ -642,11 +647,11 @@ data/
 
 ### Naming Convention
 
-- Numbered modules (m00-m07): Pipeline steps with CLI (--SANITY/--BAKEOFF/--FULL)
+- Numbered modules (m00-m08): Pipeline steps with CLI (--SANITY/--BAKEOFF/--FULL)
 - m00c_sample_subset.py: Video-level uniform sampling → data/subset_10k.json (deterministic, seed=42)
 - m04_vlm_tag.py: Parameterized by --model (qwen|videollama|keye). VLMBackend ABC + 3 concrete impls
 - m04b_vlm_select.py: CPU-only bake-off comparison. Reads 3 bakeoff JSONs → picks winner
-- --subset flag: All scripts (m04-m07) accept this. Filters to POC subset, outputs to outputs_poc/
+- --subset flag: All scripts (m04-m08) accept this. Filters to POC subset, outputs to outputs_poc/
 - utils/config.py: All path constants, VLM_MODELS dict, SUBSET_FILE, shared utility functions
 - utils/tag_taxonomy.json: Tag field definitions + confidence schema
 
@@ -718,7 +723,7 @@ POC budget (10K subset):
 - Bake-off (3 x 2.5K): ~1h GPU
 - Winner on remaining 7.5K: ~45 min GPU
 - V-JEPA embed 10K: ~2h GPU
-- FAISS + UMAP: ~20 min CPU
+- FAISS + UMAP (GPU cuML): ~5 min GPU; m08 plotting: ~5 min CPU
 - Total POC Ch 8+9: ~4h GPU + ~25 min CPU
 
 Full budget (115K, after POC validates):
@@ -781,7 +786,7 @@ flowchart LR
     end
 
     subgraph COMPARE ["FINAL COMPARISON"]
-        D1["Re-run m06/m07<br>on all 3 encoders"]
+        D1["Re-run m06/m07/m08<br>on all 3 encoders"]
         D2["V-JEPA (frozen)<br>vs (adapted)<br>vs (surgical)"]
     end
 

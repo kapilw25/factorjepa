@@ -1,11 +1,12 @@
 """
-UMAP visualization + kNN confusion matrix + kNN neighbor grids + macro/micro reporting.
-GPU-only (cuML UMAP, FAISS GPU, Nvidia CUDA). Reads embeddings.npy, tags.json, and optionally m06_metrics.json.
+CPU-only visualization: UMAP scatter + kNN confusion matrix + kNN grids.
+Reads pre-computed outputs: umap_2d.npy, knn_indices.npy, tags.json, m06_metrics.json.
+No FAISS, no cuML, no torch. Runs on M1 Mac.
 
 USAGE:
-    python -u src/m07_umap_plot.py --SANITY 2>&1 | tee logs/m07_umap_plot_sanity.log
-    python -u src/m07_umap_plot.py --FULL --subset data/subset_10k.json 2>&1 | tee logs/m07_umap_plot_poc.log
-    python -u src/m07_umap_plot.py --FULL 2>&1 | tee logs/m07_umap_plot_full.log
+    python -u src/m08_plot.py --SANITY 2>&1 | tee logs/m08_plot_sanity.log
+    python -u src/m08_plot.py --FULL --subset data/subset_10k.json 2>&1 | tee logs/m08_plot_poc.log
+    python -u src/m08_plot.py --FULL 2>&1 | tee logs/m08_plot_full.log
 """
 import argparse
 import json
@@ -16,7 +17,6 @@ from pathlib import Path
 
 import numpy as np
 
-# Add src to path for utils import
 sys.path.insert(0, str(Path(__file__).parent))
 from utils.config import (
     EMBEDDINGS_FILE, TAGS_FILE, METRICS_FILE, OUTPUTS_DIR,
@@ -28,28 +28,14 @@ from utils.wandb_utils import (
 )
 
 try:
-    from cuml.manifold import UMAP as cuUMAP
-except ImportError:
-    print("FATAL: cuML not installed. GPU UMAP required (no CPU fallback).")
-    print("Install via setup_env_uv.sh --gpu")
-    sys.exit(1)
-
-try:
     import matplotlib
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
     import matplotlib.patches as mpatches
-    from matplotlib.offsetbox import OffsetImage, AnnotationBbox
 except ImportError as e:
     print(f"ERROR: Missing dependency: {e}")
     print("Install with: pip install matplotlib")
     sys.exit(1)
-
-try:
-    import faiss
-    HAS_FAISS = True
-except ImportError:
-    HAS_FAISS = False
 
 # ── Scene type color palette ─────────────────────────────────────────────
 SCENE_COLORS = {
@@ -66,7 +52,7 @@ SCENE_COLORS = {
     "unknown": "#666666",
 }
 
-N_KNN_GRID_ROWS = 8  # number of query clips to show in kNN grid
+N_KNN_GRID_ROWS = 8
 
 
 # ── Video frame extraction ───────────────────────────────────────────────
@@ -107,16 +93,9 @@ def make_placeholder(label: str, color: str, size: int = 128) -> np.ndarray:
 
 # ── UMAP Scatter Plot ────────────────────────────────────────────────────
 
-def create_umap_plot(embeddings: np.ndarray, tags: list, output_dir: Path,
-                     metrics_data: dict, n_neighbors: int = 15, min_dist: float = 0.1):
+def create_umap_plot(emb_2d: np.ndarray, tags: list, output_dir: Path,
+                     metrics_data: dict):
     """UMAP scatter colored by scene_type with metrics overlay."""
-    print(f"Computing UMAP (n_neighbors={n_neighbors}, min_dist={min_dist})...")
-
-    reducer = cuUMAP(n_components=2, n_neighbors=n_neighbors,
-                     min_dist=min_dist, random_state=42, verbose=True)
-    emb_2d_cu = reducer.fit_transform(embeddings)
-    emb_2d = emb_2d_cu.get() if hasattr(emb_2d_cu, 'get') else np.asarray(emb_2d_cu)
-
     scene_types = [t.get("scene_type", "unknown") for t in tags]
     colors = [SCENE_COLORS.get(st, SCENE_COLORS["unknown"]) for st in scene_types]
     scene_counts = defaultdict(int)
@@ -135,7 +114,6 @@ def create_umap_plot(embeddings: np.ndarray, tags: list, output_dir: Path,
     ax.set_ylabel('UMAP 2', fontsize=12)
     ax.set_title(f'V-JEPA Embeddings (n={len(tags):,}, colored by scene_type)', fontsize=14)
 
-    # Overlay metrics from m06 if available
     if metrics_data:
         easy = metrics_data.get("easy", {})
         lines = []
@@ -154,35 +132,25 @@ def create_umap_plot(embeddings: np.ndarray, tags: list, output_dir: Path,
 
     plt.tight_layout()
     for ext in [".png", ".pdf"]:
-        plt.savefig(output_dir / f"m07_umap{ext}", dpi=150 if ext == ".png" else None,
+        plt.savefig(output_dir / f"m08_umap{ext}", dpi=150 if ext == ".png" else None,
                     bbox_inches='tight')
     plt.close()
-    print(f"Saved: {output_dir / 'm07_umap.png'}")
+    print(f"Saved: {output_dir / 'm08_umap.png'}")
 
 
 # ── Confusion Matrix ─────────────────────────────────────────────────────
 
-def create_confusion_matrix(embeddings: np.ndarray, tags: list, output_dir: Path,
+def create_confusion_matrix(knn_indices: np.ndarray, tags: list, output_dir: Path,
                             k: int = 5):
-    """kNN retrieval confusion matrix (GPU FAISS)."""
-    if not HAS_FAISS:
-        print("WARNING: faiss not available, skipping confusion matrix")
-        return
-
-    print(f"Building GPU FAISS for confusion matrix (k={k})...")
-    res = faiss.StandardGpuResources()
-    index_cpu = faiss.IndexFlatL2(embeddings.shape[1])
-    index = faiss.index_cpu_to_gpu(res, 0, index_cpu)
-    index.add(embeddings)
-    _, I = index.search(embeddings, k + 1)
-
+    """kNN retrieval confusion matrix from pre-computed indices (no FAISS needed)."""
     scene_types = sorted(set(t.get("scene_type", "unknown") for t in tags))
 
     conf = defaultdict(lambda: defaultdict(int))
-    for i, neighbors in enumerate(I):
+    for i, neighbors in enumerate(knn_indices):
         qt = tags[i].get("scene_type", "unknown")
-        for j in neighbors[1:k + 1]:
-            conf[qt][tags[j].get("scene_type", "unknown")] += 1
+        for j in neighbors[1:k + 1]:  # skip self (col 0)
+            if 0 <= j < len(tags):
+                conf[qt][tags[j].get("scene_type", "unknown")] += 1
 
     matrix = np.zeros((len(scene_types), len(scene_types)))
     for i, qt in enumerate(scene_types):
@@ -209,31 +177,24 @@ def create_confusion_matrix(embeddings: np.ndarray, tags: list, output_dir: Path
     plt.colorbar(im, ax=ax, label='% of Retrievals')
     plt.tight_layout()
     for ext in [".png", ".pdf"]:
-        plt.savefig(output_dir / f"m07_confusion_matrix{ext}",
+        plt.savefig(output_dir / f"m08_confusion_matrix{ext}",
                     dpi=150 if ext == ".png" else None)
     plt.close()
-    print(f"Saved: {output_dir / 'm07_confusion_matrix.png'}")
+    print(f"Saved: {output_dir / 'm08_confusion_matrix.png'}")
 
-    # Per-class accuracy
     print("\nPer-class retrieval accuracy:")
     for i, st in enumerate(scene_types):
         print(f"  {st}: {matrix[i, i]:.1f}%")
 
-    return I  # return indices for kNN grid
-
 
 # ── kNN Neighbor Grid ────────────────────────────────────────────────────
 
-def create_knn_grid(indices: np.ndarray, tags: list, clip_paths: list,
+def create_knn_grid(knn_indices: np.ndarray, tags: list, clip_paths: list,
                     output_dir: Path, k: int = 5, n_rows: int = N_KNN_GRID_ROWS):
-    """
-    Visual grid: each row = [query clip] → [k nearest neighbors].
-    Selects diverse queries across scene types for representative display.
-    """
+    """Visual grid: each row = [query clip] -> [k nearest neighbors]."""
     n = len(tags)
     scene_types = sorted(set(t.get("scene_type", "unknown") for t in tags))
 
-    # Select diverse queries: pick from each scene type round-robin
     rng = np.random.RandomState(42)
     by_scene = defaultdict(list)
     for i, t in enumerate(tags):
@@ -256,7 +217,6 @@ def create_knn_grid(indices: np.ndarray, tags: list, clip_paths: list,
         print("WARNING: No queries selected for kNN grid")
         return
 
-    # Build grid: n_rows x (1 + k) thumbnails
     n_cols = 1 + k
     thumb_size = 128
 
@@ -270,7 +230,7 @@ def create_knn_grid(indices: np.ndarray, tags: list, clip_paths: list,
 
         for col in range(n_cols):
             ax = axes[row][col] if n_cols > 1 else axes[row]
-            idx = qi if col == 0 else indices[qi, col]  # col 0=self, 1..k=neighbors
+            idx = qi if col == 0 else knn_indices[qi, col]
 
             if idx < 0 or idx >= n:
                 ax.set_facecolor("#333333")
@@ -281,7 +241,6 @@ def create_knn_grid(indices: np.ndarray, tags: list, clip_paths: list,
             scene = tags[idx].get("scene_type", "unknown")
             color = SCENE_COLORS.get(scene, "#666666")
 
-            # Try to extract video frame
             thumb = None
             if clip_paths and idx < len(clip_paths):
                 p = Path(clip_paths[idx])
@@ -297,7 +256,6 @@ def create_knn_grid(indices: np.ndarray, tags: list, clip_paths: list,
             ax.set_xticks([])
             ax.set_yticks([])
 
-            # Border: green if same scene as query, red if different
             if col == 0:
                 for spine in ax.spines.values():
                     spine.set_color(query_color)
@@ -319,10 +277,10 @@ def create_knn_grid(indices: np.ndarray, tags: list, clip_paths: list,
     plt.suptitle(f'kNN Neighbor Grid (k={k})', fontsize=14, fontweight='bold', y=1.02)
     plt.tight_layout()
     for ext in [".png", ".pdf"]:
-        plt.savefig(output_dir / f"m07_knn_grid{ext}",
+        plt.savefig(output_dir / f"m08_knn_grid{ext}",
                     dpi=150 if ext == ".png" else None, bbox_inches='tight')
     plt.close()
-    print(f"Saved: {output_dir / 'm07_knn_grid.png'}")
+    print(f"Saved: {output_dir / 'm08_knn_grid.png'}")
 
 
 # ── Macro/Micro Summary ─────────────────────────────────────────────────
@@ -350,11 +308,9 @@ def print_macro_micro(metrics_data: dict):
 
 def main():
     parser = argparse.ArgumentParser(
-        description="UMAP visualization + kNN confusion matrix + kNN grids")
+        description="CPU-only visualization: UMAP scatter + confusion matrix + kNN grids")
     parser.add_argument("--SANITY", action="store_true", help="Run on first 200 clips")
     parser.add_argument("--FULL", action="store_true", help="Run on all clips")
-    parser.add_argument("--n-neighbors", type=int, default=15, help="UMAP n_neighbors")
-    parser.add_argument("--min-dist", type=float, default=0.1, help="UMAP min_dist")
     parser.add_argument("--k", type=int, default=FAISS_K_NEIGHBORS,
                         help=f"kNN neighbors (default: {FAISS_K_NEIGHBORS})")
     parser.add_argument("--no-grid", action="store_true", help="Skip kNN grid (faster)")
@@ -367,91 +323,90 @@ def main():
         print("\nERROR: Specify --SANITY or --FULL")
         sys.exit(1)
 
-    # Output routing
     output_dir = get_output_dir(args.subset)
     output_dir.mkdir(parents=True, exist_ok=True)
 
     mode = "SANITY" if args.SANITY else ("POC" if args.subset else "FULL")
-    wb_run = init_wandb("m07", mode, config=vars(args),
-                        enabled=not args.no_wandb)
+    wb_run = init_wandb("m08", mode, config=vars(args), enabled=not args.no_wandb)
 
     print(f"Output dir: {output_dir}")
-    if args.subset:
-        print(f"[POC] Subset: {args.subset}")
 
-    # Load embeddings + tags (respect POC paths)
+    # Resolve file paths
     if args.subset:
-        emb_file = output_dir / "embeddings.npy"
         tags_file = output_dir / "tags.json"
         paths_file = output_dir / "embeddings.paths.npy"
         metrics_file = output_dir / "m06_metrics.json"
+        umap_file = output_dir / "umap_2d.npy"
+        knn_file = output_dir / "knn_indices.npy"
     else:
-        emb_file = EMBEDDINGS_FILE
         tags_file = TAGS_FILE
         paths_file = EMBEDDINGS_FILE.with_suffix('.paths.npy')
         metrics_file = METRICS_FILE
+        umap_file = OUTPUTS_DIR / "umap_2d.npy"
+        knn_file = OUTPUTS_DIR / "knn_indices.npy"
 
-    for f, desc in [(emb_file, "embeddings"), (tags_file, "tags")]:
+    # Check required files
+    for f, desc, prereq in [
+        (umap_file, "UMAP 2D coords", "m07_umap.py"),
+        (knn_file, "kNN indices", "m06_faiss_metrics.py"),
+        (tags_file, "tags", "m04_vlm_tag.py"),
+    ]:
         if not f.exists():
             print(f"FATAL: {desc} not found: {f}")
+            print(f"  Run {prereq} first.")
             sys.exit(1)
 
-    embeddings = np.load(emb_file).astype(np.float32)
+    emb_2d = np.load(umap_file)
+    knn_indices = np.load(knn_file)
     with open(tags_file) as f:
         tags = json.load(f)
 
-    # Clip paths
     clip_paths = []
     if paths_file.exists():
         clip_paths = np.load(paths_file, allow_pickle=True).tolist()
 
     # Align
-    n = min(embeddings.shape[0], len(tags))
-    embeddings = embeddings[:n]
+    n = min(emb_2d.shape[0], knn_indices.shape[0], len(tags))
+    emb_2d = emb_2d[:n]
+    knn_indices = knn_indices[:n]
     tags = tags[:n]
     if clip_paths:
         clip_paths = clip_paths[:n]
 
     if args.SANITY:
         n = min(200, n)
-        embeddings = embeddings[:n]
+        emb_2d = emb_2d[:n]
+        knn_indices = knn_indices[:n]
         tags = tags[:n]
         clip_paths = clip_paths[:n] if clip_paths else []
         print(f"SANITY MODE: {n} clips")
 
-    print(f"Loaded: {n:,} clips, dim={embeddings.shape[1]}")
+    print(f"Loaded: {n:,} clips")
 
-    # Load m06 metrics if available
+    # Load m06 metrics
     metrics_data = {}
     if metrics_file.exists():
         with open(metrics_file) as f:
             metrics_data = json.load(f)
         print(f"Loaded m06 metrics: {metrics_file.name}")
 
-    # UMAP params
-    n_neighbors = min(args.n_neighbors, n - 1)
-    if n_neighbors < 2:
-        print("ERROR: Need at least 3 clips for UMAP")
-        sys.exit(1)
-
     k = min(args.k, n - 1)
 
     # 1. UMAP scatter
-    create_umap_plot(embeddings, tags, output_dir, metrics_data,
-                     n_neighbors=n_neighbors, min_dist=args.min_dist)
+    create_umap_plot(emb_2d, tags, output_dir, metrics_data)
 
-    # 2. Confusion matrix (returns kNN indices)
-    I = create_confusion_matrix(embeddings, tags, output_dir, k=k)
+    # 2. Confusion matrix (from pre-computed kNN indices — no FAISS)
+    create_confusion_matrix(knn_indices, tags, output_dir, k=k)
 
     # 3. kNN neighbor grid
-    if not args.no_grid and I is not None:
-        create_knn_grid(I, tags, clip_paths, output_dir, k=k)
+    if not args.no_grid:
+        create_knn_grid(knn_indices, tags, clip_paths, output_dir, k=k)
 
     # 4. Macro/micro summary
     print("\n=== MACRO/MICRO REPORTING ===")
     print_macro_micro(metrics_data)
 
-    # wandb logging
+    # wandb
     if metrics_data:
         for prefix in ["easy", "hard"]:
             m = metrics_data.get(prefix, {})
@@ -462,14 +417,13 @@ def main():
             if micro is not None:
                 log_metrics(wb_run, {f"{prefix}/micro_prec_at_k": micro})
 
-    log_image(wb_run, "umap", str(output_dir / "m07_umap.png"))
-    log_image(wb_run, "confusion_matrix", str(output_dir / "m07_confusion_matrix.png"))
+    log_image(wb_run, "umap", str(output_dir / "m08_umap.png"))
+    log_image(wb_run, "confusion_matrix", str(output_dir / "m08_confusion_matrix.png"))
     if not args.no_grid:
-        log_image(wb_run, "knn_grid", str(output_dir / "m07_knn_grid.png"))
+        log_image(wb_run, "knn_grid", str(output_dir / "m08_knn_grid.png"))
 
     print(f"\n=== VISUALIZATION COMPLETE ===")
     print(f"Outputs in: {output_dir}")
-
     finish_wandb(wb_run)
 
 

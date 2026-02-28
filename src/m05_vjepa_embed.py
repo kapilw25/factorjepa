@@ -29,6 +29,7 @@ from utils.config import (
     check_gpu, DEFAULT_BATCH_SIZE,
     check_output_exists, load_subset, add_subset_arg, get_output_dir,
 )
+from utils.gpu_batch import compute_batch_sizes, add_gpu_mem_arg
 from utils.wandb_utils import add_wandb_args, init_wandb, log_metrics, log_artifact, finish_wandb
 
 try:
@@ -376,11 +377,12 @@ def main():
     parser.add_argument("--SANITY", action="store_true", help="Process 5 clips only")
     parser.add_argument("--FULL", action="store_true", help="Process all clips")
     parser.add_argument("--model", type=str, default=VJEPA_MODEL_ID, help="Model ID")
-    parser.add_argument("--batch-size", type=int, default=DEFAULT_BATCH_SIZE, help="Batch size")
+    parser.add_argument("--batch-size", type=int, default=None, help="Override batch size (auto-computed if omitted)")
     parser.add_argument("--no-dedupe", action="store_true", help="Skip deduplication")
     parser.add_argument("--threshold", type=float, default=DEDUPE_THRESHOLD, help="Dedupe threshold")
     add_subset_arg(parser)
     add_wandb_args(parser)
+    add_gpu_mem_arg(parser)
     args = parser.parse_args()
 
     if not (args.SANITY or args.FULL):
@@ -390,6 +392,12 @@ def main():
 
     check_gpu()
     device = "cuda"
+
+    # Auto-compute batch size from VRAM if not explicitly set
+    if args.batch_size is None:
+        batch_sizes = compute_batch_sizes(gpu_vram_gb=args.gpu_mem)
+        args.batch_size = batch_sizes["vjepa"]
+    print(f"Batch size: {args.batch_size}")
 
     mode = "SANITY" if args.SANITY else ("POC" if args.subset else "FULL")
     wb_run = init_wandb("m05", mode, config=vars(args),

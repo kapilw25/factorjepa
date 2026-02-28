@@ -1,5 +1,5 @@
 """HuggingFace shared utilities: auth, README generation, metadata upload.
-Used by m03_pack_shards.py (TAR upload) and m04_qwen_tag.py (metadata upload).
+Used by m03_pack_shards.py (TAR upload) and m04_vlm_tag.py (metadata upload).
 """
 import os
 from pathlib import Path
@@ -228,7 +228,7 @@ def upload_metadata_only(clips_dir: Path, repo_id: str, token: str, leaf_dirs: s
 
 def upload_metadata(clips_dir: Path, repo_id: str) -> int:
     """Upload only metadata.jsonl files to existing HF repo (no clips re-upload).
-    Called from m04_qwen_tag.py after tagging on GPU server."""
+    Called from m04_vlm_tag.py after tagging on GPU server."""
     _setup_hf_env()
     token = _get_token()
     if not token:

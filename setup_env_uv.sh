@@ -140,10 +140,18 @@ if [ "$1" = "--gpu" ]; then
     echo "GPU Setup (Linux + Nvidia ONLY)"
     echo "============================================"
 
-    # 1. Install PyTorch 2.5.1 with CUDA 12.4
+    # 1. Install PyTorch (auto-detect Blackwell vs Ampere/Hopper)
     echo ""
-    echo "[1/7] Installing PyTorch 2.5.1+cu124..."
-    uv pip install torch==2.5.1 torchvision==0.20.1 --index-url https://download.pytorch.org/whl/cu124
+    GPU_NAME=$(nvidia-smi --query-gpu=gpu_name --format=csv,noheader 2>/dev/null | head -1 || echo "")
+    echo "Detected GPU: ${GPU_NAME:-unknown}"
+    if echo "$GPU_NAME" | grep -qiE "blackwell|rtx.*pro.*(4000|6000)|rtx.*5090|rtx.*5080|rtx.*5070"; then
+        echo "[1/7] Installing PyTorch (CUDA 12.8 — Blackwell)..."
+        echo "NOTE: Blackwell requires PyTorch nightly with cu128"
+        uv pip install torch torchvision --index-url https://download.pytorch.org/whl/nightly/cu128
+    else
+        echo "[1/7] Installing PyTorch 2.5.1+cu124..."
+        uv pip install torch==2.5.1 torchvision==0.20.1 --index-url https://download.pytorch.org/whl/cu124
+    fi
 
     # 2. Verify PyTorch + CUDA
     echo ""
@@ -161,23 +169,58 @@ print(f'PyTorch: {torch.__version__}, CUDA: {torch.version.cuda}, GPU: {torch.cu
     echo "[3/7] Installing GPU requirements (UV - fast)..."
     uv pip install -r requirements_gpu.txt
 
-    # 4. Install Flash-Attention 2.8.3 (pre-built wheel for CUDA 12 + PyTorch 2.5)
+    # 4. Install Flash-Attention 2 (auto-detect GPU arch)
     echo ""
-    echo "[4/7] Installing Flash-Attention 2.8.3..."
-    WHEEL_NAME="flash_attn-2.8.3+cu12torch2.5cxx11abiFALSE-cp312-cp312-linux_x86_64.whl"
-    WHEEL_URL="https://github.com/Dao-AILab/flash-attention/releases/download/v2.8.3/flash_attn-2.8.3%2Bcu12torch2.5cxx11abiFALSE-cp312-cp312-linux_x86_64.whl"
+    echo "[4/7] Installing Flash-Attention 2..."
+    GPU_ARCH=$(python -c "import torch; cc=torch.cuda.get_device_capability(); print(f'{cc[0]}{cc[1]}')" 2>/dev/null || echo "")
+    echo "GPU compute capability: sm_${GPU_ARCH:-unknown}"
 
-    # Clean any existing/partial wheel files before download
-    rm -f flash_attn*.whl
-    # Use aria2 with 16 parallel connections to bypass GitHub CDN throttling
-    if command -v aria2c &> /dev/null; then
-        aria2c -x 16 -s 16 -o "$WHEEL_NAME" "$WHEEL_URL"
+    if [ "$GPU_ARCH" = "80" ] || [ "$GPU_ARCH" = "86" ] || [ "$GPU_ARCH" = "89" ] || [ "$GPU_ARCH" = "90" ]; then
+        # Ampere/Ada/Hopper — use prebuilt wheel (fast)
+        echo "Using prebuilt FA2 wheel for sm_${GPU_ARCH}..."
+        WHEEL_NAME="flash_attn-2.8.3+cu12torch2.5cxx11abiFALSE-cp312-cp312-linux_x86_64.whl"
+        WHEEL_URL="https://github.com/Dao-AILab/flash-attention/releases/download/v2.8.3/flash_attn-2.8.3%2Bcu12torch2.5cxx11abiFALSE-cp312-cp312-linux_x86_64.whl"
+        rm -f flash_attn*.whl
+        if command -v aria2c &> /dev/null; then
+            aria2c -x 16 -s 16 -o "$WHEEL_NAME" "$WHEEL_URL"
+        else
+            wget -O "$WHEEL_NAME" "$WHEEL_URL"
+        fi
+        uv pip install "$WHEEL_NAME"
+        rm -f "$WHEEL_NAME"
+    elif [ -n "$GPU_ARCH" ]; then
+        # Unknown arch (e.g. sm_120 Blackwell) — build from source
+        echo "WARNING: No prebuilt FA2 wheel for sm_${GPU_ARCH}. Building from source (30-90 min)..."
+        if ! command -v nvcc &> /dev/null; then
+            for CUDA_PATH in /usr/local/cuda /usr/local/cuda-12.8 /usr/local/cuda-12; do
+                if [ -f "${CUDA_PATH}/bin/nvcc" ]; then
+                    export PATH="${CUDA_PATH}/bin:$PATH"
+                    export CUDA_HOME="${CUDA_PATH}"
+                    break
+                fi
+            done
+        fi
+        if ! command -v nvcc &> /dev/null; then
+            echo "ERROR: nvcc not found. Cannot build FA2 from source."
+            echo "Install CUDA toolkit 12.8+ or set CUDA_HOME."
+            echo "Scripts will fall back to PyTorch SDPA (slower but functional)."
+        else
+            export CUDA_HOME="${CUDA_HOME:-$(dirname $(dirname $(which nvcc)))}"
+            echo "Using nvcc: $(nvcc --version | grep release)"
+            FA2_DIR="/tmp/flash-attention-build"
+            rm -rf "$FA2_DIR"
+            git clone --depth 1 https://github.com/Dao-AILab/flash-attention.git "$FA2_DIR"
+            cd "$FA2_DIR" && git submodule update --init --recursive && cd -
+            echo "Compiling FA2 for sm_${GPU_ARCH} (this takes 30-90 min)..."
+            FLASH_ATTN_CUDA_ARCHS="${GPU_ARCH}" MAX_JOBS=4 NVCC_THREADS=1 \
+                uv pip install "$FA2_DIR" --no-build-isolation 2>&1 | tee /tmp/fa2_build.log
+            rm -rf "$FA2_DIR"
+            echo "FlashAttention-2 built for sm_${GPU_ARCH}"
+        fi
     else
-        echo "aria2c not found, using wget..."
-        wget -O "$WHEEL_NAME" "$WHEEL_URL"
+        echo "WARNING: Could not detect GPU arch. Skipping FA2."
+        echo "Install manually: TORCH_CUDA_ARCH_LIST='X.Y' pip install flash-attn --no-build-isolation"
     fi
-    uv pip install "$WHEEL_NAME"
-    rm -f "$WHEEL_NAME"
 
     # 5. Install FAISS-GPU (CUDA 12)
     echo ""
@@ -200,7 +243,6 @@ print(f'PyTorch: {torch.__version__}, CUDA: {torch.version.cuda}, GPU: {torch.cu
     python -c "
 import torch
 import faiss
-import flash_attn
 
 if not torch.cuda.is_available():
     print('ERROR: CUDA not available')
@@ -210,6 +252,13 @@ if faiss.get_num_gpus() == 0:
     print('ERROR: FAISS GPU not available. No CPU fallback.')
     exit(1)
 
+cc = torch.cuda.get_device_capability()
+try:
+    import flash_attn
+    fa_ver = flash_attn.__version__
+except ImportError:
+    fa_ver = 'NOT INSTALLED (will use PyTorch SDPA)'
+
 import transformers
 from datasets import load_dataset
 import cuml
@@ -218,9 +267,10 @@ import wandb
 print(f'PyTorch:        {torch.__version__}')
 print(f'CUDA:           {torch.version.cuda}')
 print(f'GPU:            {torch.cuda.get_device_name(0)}')
+print(f'GPU Arch:       sm_{cc[0]}{cc[1]}')
 print(f'VRAM:           {torch.cuda.get_device_properties(0).total_mem / 1e9:.0f} GB')
 print(f'FAISS GPU:      {faiss.get_num_gpus()} GPU(s) available')
-print(f'Flash-Attn:     {flash_attn.__version__}')
+print(f'Flash-Attn:     {fa_ver}')
 print(f'Transformers:   {transformers.__version__}')
 print(f'cuML:           {cuml.__version__}')
 print(f'wandb:          {wandb.__version__}')

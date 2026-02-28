@@ -37,6 +37,7 @@ from utils.config import (
     VLM_MODELS, BAKEOFF_CLIP_COUNT, BAKEOFF_DIR, OUTPUTS_POC_DIR,
     check_gpu, check_output_exists, load_subset, add_subset_arg,
 )
+from utils.gpu_batch import compute_batch_sizes, add_gpu_mem_arg
 from utils.wandb_utils import (
     add_wandb_args, init_wandb, log_metrics, log_artifact, finish_wandb,
 )
@@ -198,7 +199,7 @@ class QwenBackend(VLMBackend):
         self.llm = LLM(
             model=self.model_id,
             max_model_len=4096,
-            gpu_memory_utilization=0.85,
+            gpu_memory_utilization=0.85,  # fixed — vLLM uses continuous batching
             enforce_eager=True,
             limit_mm_per_prompt={"video": 1},
         )
@@ -523,8 +524,9 @@ BACKENDS = {
 # CONFIG
 # ═════════════════════════════════════════════════════════════════════════
 
+# Defaults (overridden by auto-compute from gpu_batch.compute_batch_sizes)
 VLLM_BATCH_SIZE = 8
-TRANSFORMERS_BATCH_SIZE = 4          # smaller for non-vLLM backends
+TRANSFORMERS_BATCH_SIZE = 4
 CHECKPOINT_EVERY = 500
 ENGINE_RESTART_EVERY = 10_000
 MAX_STREAM_RETRIES = 5
@@ -841,6 +843,8 @@ def orchestrator_main(args):
             cmd.extend(["--subset", args.subset])
         if args.no_wandb:
             cmd.append("--no-wandb")
+        if args.gpu_mem is not None:
+            cmd.extend(["--gpu-mem", str(args.gpu_mem)])
 
         result = subprocess.run(cmd)
 
@@ -865,6 +869,14 @@ def orchestrator_main(args):
 def worker_main(args):
     """Worker subprocess: load backend, process segment, exit."""
     check_gpu()
+
+    # Auto-compute batch size from VRAM if not explicitly set via --batch-size
+    # NOTE: only transformers backends need this — vLLM uses continuous batching
+    global TRANSFORMERS_BATCH_SIZE
+    batch_sizes = compute_batch_sizes(gpu_vram_gb=args.gpu_mem)
+    if args.batch_size is None:
+        TRANSFORMERS_BATCH_SIZE = batch_sizes["transformers"]
+        args.batch_size = get_batch_size(args.model)
 
     mode = "SANITY" if args.SANITY else ("BAKEOFF" if args.BAKEOFF else ("POC" if args.subset else "FULL"))
     wb_run = init_wandb("m04", f"{mode}_{args.model}",
@@ -1007,6 +1019,7 @@ def main():
                         help="Override batch size")
     add_subset_arg(parser)
     add_wandb_args(parser)
+    add_gpu_mem_arg(parser)
 
     # Internal worker args (spawned by orchestrator)
     parser.add_argument("--_worker", action="store_true", help=argparse.SUPPRESS)

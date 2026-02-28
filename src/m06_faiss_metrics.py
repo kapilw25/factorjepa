@@ -735,6 +735,11 @@ def main():
         json.dump(output, f, indent=2)
     print(f"\nSaved: {metrics_file}")
 
+    # Save kNN indices for downstream plotting (m08_plot.py)
+    knn_file = output_dir / "knn_indices.npy"
+    np.save(knn_file, I[:, :k + 1])  # (N, k+1) — col 0 is self
+    print(f"Saved: {knn_file} ({I[:, :k + 1].shape})")
+
     # ── Plots ────────────────────────────────────────────────────────
     if not args.no_plots:
         generate_plots(easy, hard, conf_sweep, D[:, :k + 1], k, output_dir, n)

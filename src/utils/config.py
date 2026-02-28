@@ -120,8 +120,8 @@ BAKEOFF_CLIP_COUNT = 2500
 # Output files
 EMBEDDINGS_FILE = OUTPUTS_DIR / "embeddings.npy"
 TAGS_FILE = OUTPUTS_DIR / "tags.json"
-UMAP_PLOT_PNG = OUTPUTS_DIR / "m07_umap.png"
-UMAP_PLOT_PDF = OUTPUTS_DIR / "m07_umap.pdf"
+UMAP_PLOT_PNG = OUTPUTS_DIR / "m08_umap.png"
+UMAP_PLOT_PDF = OUTPUTS_DIR / "m08_umap.pdf"
 METRICS_FILE = OUTPUTS_DIR / "m06_metrics.json"
 
 
@@ -175,7 +175,7 @@ def get_output_dir(subset_path: str = None) -> Path:
 
 
 def add_subset_arg(parser):
-    """Add --subset argument to any argparse parser (shared across m04-m07)."""
+    """Add --subset argument to any argparse parser (shared across m04-m08)."""
     parser.add_argument("--subset", type=str, default=None,
                         help="Path to subset JSON (e.g., data/subset_10k.json) for POC mode")
 
