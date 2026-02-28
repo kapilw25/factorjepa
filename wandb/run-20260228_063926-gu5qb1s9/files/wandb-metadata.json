@@ -1,0 +1,50 @@
+{
+  "os":  "Linux-6.8.0-94-generic-x86_64-with-glibc2.39",
+  "python":  "CPython 3.12.12",
+  "startedAt":  "2026-02-28T06:39:26.142760Z",
+  "args":  [
+    "--_worker",
+    "--model",
+    "videollama",
+    "--start-from",
+    "0",
+    "--process-count",
+    "20",
+    "--SANITY"
+  ],
+  "program":  "/workspace/LLM_asAgent_3D_SR/src/m04_vlm_tag.py",
+  "codePath":  "src/m04_vlm_tag.py",
+  "codePathLocal":  "src/m04_vlm_tag.py",
+  "git":  {
+    "remote":  "https://github.com/kapilw25/LLM_asAgent_3D_SR.git",
+    "commit":  "adde179160108c5b343fb21faf332c6eb0a07311"
+  },
+  "email":  "kapilw25@gmail.com",
+  "root":  "/workspace/LLM_asAgent_3D_SR",
+  "host":  "cf276db8f7fd",
+  "executable":  "/workspace/LLM_asAgent_3D_SR/venv_walkindia/bin/python",
+  "cpu_count":  48,
+  "cpu_count_logical":  96,
+  "gpu":  "NVIDIA RTX PRO 4000 Blackwell",
+  "gpu_count":  1,
+  "disk":  {
+    "/":  {
+      "total":  "34359738368",
+      "used":  "1100550144"
+    }
+  },
+  "memory":  {
+    "total":  "270077276160"
+  },
+  "gpu_nvidia":  [
+    {
+      "name":  "NVIDIA RTX PRO 4000 Blackwell",
+      "memoryTotal":  "25655508992",
+      "cudaCores":  8960,
+      "architecture":  "Blackwell",
+      "uuid":  "GPU-a6a7d36f-900f-1f2e-93d1-38b87a24286d"
+    }
+  ],
+  "cudaVersion":  "13.1",
+  "writerId":  "olw2ulxj5y1eczwxjehdz9n6sv0l55ca"
+}

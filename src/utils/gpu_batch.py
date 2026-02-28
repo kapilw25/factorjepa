@@ -8,10 +8,8 @@ _BASELINE_VRAM_GB = 40
 # (baseline_value, cap) — only for manual-batch pipelines
 _PROFILES = {
     "vjepa":        (16, 64),    # V-JEPA ViT-G embedding batch
-    "transformers": (4,  16),    # VideoLLaMA3 / Keye via transformers (manual batching)
+    "transformers": (4,  16),    # Qwen3-VL / VideoLLaMA3 / LLaVA-NeXT via transformers (sequential)
 }
-# NOTE: vLLM NOT included — it uses continuous batching internally.
-# vLLM's gpu_memory_utilization=0.85 is a fixed fraction, not VRAM-scaled.
 
 
 def compute_batch_sizes(gpu_vram_gb: float | None = None) -> dict[str, int]:

@@ -1,0 +1,77 @@
+_wandb:
+    value:
+        cli_version: 0.25.0
+        e:
+            4amuvmsbs70h3nil6bv9zzvvohtf8pg3:
+                args:
+                    - --_worker
+                    - --model
+                    - qwen
+                    - --start-from
+                    - "0"
+                    - --process-count
+                    - "20"
+                    - --SANITY
+                codePath: src/m04_vlm_tag.py
+                codePathLocal: src/m04_vlm_tag.py
+                cpu_count: 48
+                cpu_count_logical: 96
+                cudaVersion: "13.1"
+                disk:
+                    /:
+                        total: "34359738368"
+                        used: "1099218944"
+                email: kapilw25@gmail.com
+                executable: /workspace/LLM_asAgent_3D_SR/venv_walkindia/bin/python
+                git:
+                    commit: adde179160108c5b343fb21faf332c6eb0a07311
+                    remote: https://github.com/kapilw25/LLM_asAgent_3D_SR.git
+                gpu: NVIDIA RTX PRO 4000 Blackwell
+                gpu_count: 1
+                gpu_nvidia:
+                    - architecture: Blackwell
+                      cudaCores: 8960
+                      memoryTotal: "25655508992"
+                      name: NVIDIA RTX PRO 4000 Blackwell
+                      uuid: GPU-a6a7d36f-900f-1f2e-93d1-38b87a24286d
+                host: cf276db8f7fd
+                memory:
+                    total: "270077276160"
+                os: Linux-6.8.0-94-generic-x86_64-with-glibc2.39
+                program: /workspace/LLM_asAgent_3D_SR/src/m04_vlm_tag.py
+                python: CPython 3.12.12
+                root: /workspace/LLM_asAgent_3D_SR
+                startedAt: "2026-02-28T06:11:41.973495Z"
+                writerId: 4amuvmsbs70h3nil6bv9zzvvohtf8pg3
+        m: []
+        python_version: 3.12.12
+        t:
+            "1":
+                - 1
+                - 49
+                - 51
+            "2":
+                - 1
+                - 5
+                - 11
+                - 41
+                - 49
+                - 51
+                - 53
+                - 71
+            "3":
+                - 2
+                - 13
+                - 16
+            "4": 3.12.12
+            "5": 0.25.0
+            "10":
+                - 20
+            "12": 0.25.0
+            "13": linux-x86_64
+model:
+    value: qwen
+process_count:
+    value: 20
+start_from:
+    value: 0

@@ -32,7 +32,7 @@
 | 1 | **Geographic transfer evaluation** | STRONG | No one has tested if V-JEPA's "world model" transfers to Indian streets |
 | 2 | **Label-free video evaluation metrics** | STRONG | Self-consistency & stability metrics are new for video (only done for images) |
 | 3 | **Indian urban video dataset** | MEDIUM | New dataset contribution (~200K clips from 700 videos) |
-| 4 | **VLM bake-off pipeline** | MEDIUM | 3-VLM comparison (Qwen3-VL, VideoLLaMA3, Keye-VL) → consensus-based winner selection |
+| 4 | **VLM bake-off pipeline** | MEDIUM | 3-VLM comparison (Qwen3-VL, VideoLLaMA3, LLaVA-NeXT-Video) → consensus-based winner selection |
 
 ### POC-First Strategy
 
@@ -98,7 +98,7 @@ flowchart LR
         direction TB
         I1["m04 --BAKEOFF<br>Qwen3-VL-8B<br>2.5K clips"] --> S["m04b<br>VLM Select<br>consensus = gold"]
         I2["m04 --BAKEOFF<br>VideoLLaMA3-7B<br>2.5K clips"] --> S
-        I3["m04 --BAKEOFF<br>Keye-VL-1.5-8B<br>2.5K clips"] --> S
+        I3["m04 --BAKEOFF<br>LLaVA-NeXT-Video-1.5-8B<br>2.5K clips"] --> S
         S --> W["m04 --FULL<br>Winner VLM<br>POC: 7.5K · Full: 113K"]
     end
 
@@ -142,7 +142,7 @@ WebDataset    ──→    m00c Subset   ──→          POC: 10K clips (--su
                           ├──→ V-JEPA 2 → FAISS  ←──  Phase 1: 3 VLMs × 2.5K clips
                           │    embeddings   ↑           Qwen3-VL   ──┐
                           │                 │           VideoLLaMA3 ──┤→ m04b Select → Winner
-                          │                 │           Keye-VL-1.5 ──┘
+                          │                 │           LLaVA-NeXT-Video-1.5 ──┘
                           │                 │          Phase 2: Winner × remaining → tags.json
                           │                 │          (POC: 7.5K remaining | Full: 113K remaining)
                           │                 │
@@ -164,7 +164,7 @@ How tags flow into evaluation:
 Phase 1: Bake-off (2,500 clips × 3 VLMs)
 m04 --BAKEOFF qwen       → data/bakeoff/tags_qwen.json
 m04 --BAKEOFF videollama  → data/bakeoff/tags_videollama.json
-m04 --BAKEOFF keye        → data/bakeoff/tags_keye.json
+m04 --BAKEOFF llava        → data/bakeoff/tags_llava.json
          ↓
 m04b_vlm_select.py → vlm_comparison.json + plots → Winner
 
@@ -229,7 +229,7 @@ tags.json                            m06 evaluates V-JEPA quality (9 metrics):
 ║  │  m04 --BAKEOFF (2.5K clips) │     ┌───────────────────────────┐     ┌──────────────────────────┐                                   ║   ║
 ║  │  ├ Qwen3-VL-8B              │     │  m04b VLM Select (CPU)    │     │  m04 --FULL (winner)     │                                   ║   ║
 ║  │  ├ VideoLLaMA3-7B           │────►│  consensus = proxy gold   │────►│  ~113K remaining clips   │═════════════════════════════════╣   ║
-║  │  └ Keye-VL-1.5-8B           │     │  → vlm_comparison.json    │     │  → tags.json (33 fields) │                                   ║   ║
+║  │  └ LLaVA-NeXT-Video-1.5-8B           │     │  → vlm_comparison.json    │     │  → tags.json (33 fields) │                                   ║   ║
 ║  └──────────────────────────────┘     └───────────────────────────┘     └──────────────────────────┘                                   ║   ║
 ║                                                                                                                                       ║   ║
 ╚═══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════╩═══╩═╝
@@ -317,13 +317,13 @@ tags.json                            m06 evaluates V-JEPA quality (9 metrics):
 
 ## Step 4: Auto-Tagging (VLM Bake-off → Winner)
 
-**Architecture**: Single parameterized script `m04_vlm_tag.py --model qwen|videollama|keye`
+**Architecture**: Single parameterized script `m04_vlm_tag.py --model qwen|videollama|llava`
 
 ```
 Phase 1: Bake-off (same 2,500 clips × 3 VLMs)
 m04_vlm_tag.py --model qwen       --BAKEOFF → data/bakeoff/tags_qwen.json
 m04_vlm_tag.py --model videollama  --BAKEOFF → data/bakeoff/tags_videollama.json
-m04_vlm_tag.py --model keye        --BAKEOFF → data/bakeoff/tags_keye.json
+m04_vlm_tag.py --model llava        --BAKEOFF → data/bakeoff/tags_llava.json
                                         ↓
 m04b_vlm_select.py → vlm_comparison.json (consensus = proxy gold truth)
                                         ↓
@@ -341,7 +341,7 @@ VLMs selected by **benchmark scores** (not download count):
 |-----|------|:--------:|:----:|-------------|
 | **Qwen3-VL-8B** | 8B | — | 75.3 | Best Hindi text/signage, existing implementation |
 | **VideoLLaMA3-7B** | 7B | 66.2 | 73.0 | Best MLVU + PerceptionTest (72.8), SigLIP vision encoder |
-| **Keye-VL-1.5-8B** | 8B | 73.0 | — | Highest VideoMME (beats GPT-4o 71.9), SlowFast encoding |
+| **LLaVA-NeXT-Video-1.5-8B** | 8B | 73.0 | — | Highest VideoMME (beats GPT-4o 71.9), SlowFast encoding |
 
 GPU budget: ~1h bake-off + ~10h full = **~11h total** (vs ~30h if all 3 on full)
 
@@ -573,7 +573,7 @@ Primary metrics (Cycle@K, Overlap@K) are label-free and don't depend on tag qual
 | 0c | m00c_sample_subset.py | Video-level uniform 10K subset for POC → `data/subset_10k.json` |
 | 2 | PySceneDetect | Split videos into clips (optional `--keyframes` for JPEG export) |
 | 3 | V-JEPA 2 (ViT-G) | Frozen video embeddings (1408-dim) |
-| 4 | Qwen3-VL-8B / VideoLLaMA3-7B / Keye-VL-1.5-8B | VLM bake-off (2.5K clips) → winner tags full dataset |
+| 4 | Qwen3-VL-8B / VideoLLaMA3-7B / LLaVA-NeXT-Video-1.5-8B | VLM bake-off (2.5K clips) → winner tags full dataset |
 | 4b | m04b_vlm_select.py | CPU-only: cross-VLM consensus comparison → pick winner |
 | 5 | FAISS | Fast similarity search (GPU) + Hard/Easy mode |
 | 6 | m07 UMAP (GPU cuML) | Dimensionality reduction → umap_2d.npy |
@@ -649,7 +649,7 @@ data/
 
 - Numbered modules (m00-m08): Pipeline steps with CLI (--SANITY/--BAKEOFF/--FULL)
 - m00c_sample_subset.py: Video-level uniform sampling → data/subset_10k.json (deterministic, seed=42)
-- m04_vlm_tag.py: Parameterized by --model (qwen|videollama|keye). VLMBackend ABC + 3 concrete impls
+- m04_vlm_tag.py: Parameterized by --model (qwen|videollama|llava). VLMBackend ABC + 3 concrete impls
 - m04b_vlm_select.py: CPU-only bake-off comparison. Reads 3 bakeoff JSONs → picks winner
 - --subset flag: All scripts (m04-m08) accept this. Filters to POC subset, outputs to outputs_poc/
 - utils/config.py: All path constants, VLM_MODELS dict, SUBSET_FILE, shared utility functions
@@ -657,11 +657,11 @@ data/
 
 ### m04 Production Architecture
 
-vLLM research notes:
-- `limit_mm_per_prompt={"video": 1}` (1 video per prompt)
-- `process_vision_info(messages, return_video_kwargs=True)` handles video extraction
-- `mm_processor_kwargs=video_kwargs` is CRITICAL (tells processor not to re-sample frames)
-- `enforce_eager=True` avoids CUDA graph memory issues
+Transformers backend notes (all 3 VLMs):
+- All VLMs use `AutoModelForCausalLM` / `Qwen3VLForConditionalGeneration` + `AutoProcessor`
+- Qwen-specific: `process_vision_info(messages, return_video_kwargs=True)` from `qwen_vl_utils`
+- Sequential inference: one clip at a time within batch loop (direct memory control)
+- `flash_attention_2` + `torch.bfloat16` + `device_map="auto"` across all backends
 - `OMP_NUM_THREADS=1` fixes thread oversubscription in containers
 
 HF WebDataset streaming:
@@ -676,20 +676,20 @@ ORCHESTRATOR (main process, no GPU)
     ├── spawns WORKER subprocess every 10k clips (prevents VRAM leak)
     └── loops until all clips done
 
-WORKER subprocess (loads vLLM, exits after segment)
-    ├── loads VLM via vLLM LLM() [max_model_len=4096, enforce_eager=True]
+WORKER subprocess (loads transformers model, exits after segment)
+    ├── loads VLM via transformers (AutoModelForCausalLM / Qwen3VLForConditionalGeneration)
     │
     ├── PRODUCER THREAD (background)
     │   ├── HF WebDataset stream (streaming=True, decode=False)
     │   ├── retry on ConnectionError/Timeout (exp backoff)
     │   ├── write mp4 → project-local tmpdir
     │   ├── validate mp4 (size >1KB + cv2 frame count >0)
-    │   ├── ThreadPoolExecutor(4): process_vision_info() in parallel
+    │   ├── ThreadPoolExecutor(4): preprocess in parallel
     │   └── put preprocessed batch → Queue(maxsize=2)
     │
     ├── CONSUMER (main thread, GPU inference)
     │   ├── take batch from Queue
-    │   ├── vLLM LLM.generate() → batched inference
+    │   ├── model.generate() → sequential inference per clip
     │   ├── parse JSON → merge metadata + 11 tags
     │   └── atomic checkpoint every 500 clips (os.replace)
     │
@@ -701,9 +701,9 @@ Production issues resolved (10 fixes):
 | # | Issue | Severity | Fix |
 |---|-------|----------|-----|
 | 1 | VRAM leak over long runs | CRITICAL | Orchestrator spawns worker subprocesses every 10k clips |
-| 2 | CPU RAM leak (V1 engine) | HIGH | `VLLM_USE_V1=0` forces stable V0 engine |
-| 3 | Single-threaded preprocessing | HIGH | `ThreadPoolExecutor(4)` parallelizes process_vision_info() |
-| 4 | Oversized encoder cache | MEDIUM | max_model_len 16384→4096 (4x headroom for our clips) |
+| 2 | vLLM OOM on ≤24GB GPUs | HIGH | Switched all 3 VLMs to transformers (sequential inference, direct memory control) |
+| 3 | Single-threaded preprocessing | HIGH | `ThreadPoolExecutor(4)` parallelizes preprocessing |
+| 4 | Batch size override bug | MEDIUM | Orchestrator only passes --batch-size when user explicitly sets it; worker auto-computes from VRAM |
 | 5 | HF streaming timeout | HIGH | Producer retries with exponential backoff (1s→60s, max 5) |
 | 6 | Corrupted MP4 crash | MEDIUM | validate_mp4() checks size + frame count before VLM |
 | 7 | Tempfile /tmp disk full | MEDIUM | Uses project-local tmpdir, always cleaned in finally block |
@@ -711,24 +711,27 @@ Production issues resolved (10 fixes):
 | 9 | GPU under-utilization | HIGH | Producer/consumer pipeline: preprocess N+1 while GPU infers N |
 | 10 | Tests | — | py_compile, AST, --help verified |
 
-### Performance Budget (H100 80GB)
+### Performance Budget
 
-Bake-off budget:
-- Qwen on 2,500 clips at ~3 clips/s = ~14 min
-- VideoLLaMA3 on 2,500 clips at ~1-2 c/s = ~20-40 min
-- Keye-VL on 2,500 clips at ~2-3 clips/s = ~15-20 min
-- Total bake-off: ~50-70 min
+All 3 VLMs use transformers sequential inference (no vLLM). Throughput depends on GPU tier.
 
-POC budget (10K subset):
-- Bake-off (3 x 2.5K): ~1h GPU
-- Winner on remaining 7.5K: ~45 min GPU
+**RTX PRO 4000 (24GB, debug GPU):**
+- Qwen: ~0.08 clips/s (measured, SANITY 20 clips in 260s)
+- Bake-off (3 × 2.5K): ~26h total (~8.7h per VLM)
+- Winner on remaining 7.5K: ~26h
+- Total POC: ~52h GPU + V-JEPA + metrics
+
+**RTX PRO 6000 Blackwell (96GB, production GPU):**
+- Qwen: ~0.5-1 clips/s estimated (4x VRAM → larger batches)
+- Bake-off (3 × 2.5K): ~4-7h total
+- Winner on remaining 7.5K: ~2-4h
 - V-JEPA embed 10K: ~2h GPU
 - FAISS + UMAP (GPU cuML): ~5 min GPU; m08 plotting: ~5 min CPU
-- Total POC Ch 8+9: ~4h GPU + ~25 min CPU
+- Total POC Ch 8+9: ~10-15h GPU + ~25 min CPU
 
-Full budget (115K, after POC validates):
-- Full run (winner only): 113k clips / 3 clips/s / 3600 = ~10.5 hours
-- Grand total: ~11.5 hours (vs ~30h if all 3 ran on full)
+**Full budget (115K, after POC validates):**
+- Full run (winner only): 113k clips at ~0.5-1 clips/s = ~31-63h (96GB GPU)
+- Consider: upgrade to 96GB GPU for production runs
 
 ### Metrics Output Schema (m06)
 

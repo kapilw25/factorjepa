@@ -18,6 +18,9 @@ fi
 #   Docs: https://docs.anthropic.com/en/docs/claude-code/overview
 curl -fsSL https://claude.ai/install.sh | bash
 
+# Ensure ~/.local/bin is in PATH (native installer location)
+export PATH="$HOME/.local/bin:$PATH"
+
 # Navigate to your project directory.
 # cd /path/to/your/project
 

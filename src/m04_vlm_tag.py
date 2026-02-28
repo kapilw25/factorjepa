@@ -1,12 +1,12 @@
 """
-VLM tagging with bake-off: 3 backends (Qwen3-VL via vLLM, VideoLLaMA3, Keye-VL via transformers).
+VLM tagging with bake-off: 3 backends (Qwen3-VL, VideoLLaMA3, LLaVA-NeXT-Video — all via transformers).
 Orchestrator/worker pattern for VRAM management. HF WebDataset streaming with checkpoint/resume.
 
 USAGE:
     python -u src/m04_vlm_tag.py --model qwen --SANITY 2>&1 | tee logs/m04_sanity_qwen.log
     python -u src/m04_vlm_tag.py --model qwen --BAKEOFF --subset data/subset_10k.json 2>&1 | tee logs/m04_bakeoff_qwen_poc.log
     python -u src/m04_vlm_tag.py --model videollama --BAKEOFF --subset data/subset_10k.json 2>&1 | tee logs/m04_bakeoff_videollama_poc.log
-    python -u src/m04_vlm_tag.py --model keye --BAKEOFF --subset data/subset_10k.json 2>&1 | tee logs/m04_bakeoff_keye_poc.log
+    python -u src/m04_vlm_tag.py --model llava --BAKEOFF --subset data/subset_10k.json 2>&1 | tee logs/m04_bakeoff_llava_poc.log
     python -u src/m04_vlm_tag.py --model qwen --FULL --subset data/subset_10k.json 2>&1 | tee logs/m04_full_qwen_poc.log
     python -u src/m04_vlm_tag.py --model qwen --FULL 2>&1 | tee logs/m04_full_qwen.log
 """
@@ -26,8 +26,6 @@ from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timezone
 from pathlib import Path
 
-# ── Fix vLLM V0 engine leak (applies only when vLLM is used) ─────────────
-os.environ.setdefault("VLLM_USE_V1", "0")
 os.environ.setdefault("OMP_NUM_THREADS", "1")
 
 # Add src to path for utils import
@@ -179,37 +177,33 @@ class VLMBackend(ABC):
 
 
 # ═════════════════════════════════════════════════════════════════════════
-# BACKEND: Qwen3-VL-8B (vLLM batched inference)
+# BACKEND: Qwen3-VL-8B (transformers, sequential inference)
 # ═════════════════════════════════════════════════════════════════════════
 
 class QwenBackend(VLMBackend):
-    """Qwen3-VL-8B via vLLM. Fastest backend (batched GPU inference)."""
+    """Qwen3-VL-8B via transformers. Sequential inference with direct memory control."""
 
     def __init__(self):
         super().__init__("qwen", VLM_MODELS["qwen"])
-        self.llm = None
+        self.model = None
         self.processor = None
-        self.sampling_params = None
 
     def load_model(self):
-        from vllm import LLM, SamplingParams
-        from transformers import AutoProcessor
+        import torch
+        from transformers import Qwen3VLForConditionalGeneration, AutoProcessor
 
-        print(f"Loading vLLM: {self.model_id}")
-        self.llm = LLM(
-            model=self.model_id,
-            max_model_len=4096,
-            gpu_memory_utilization=0.85,  # fixed — vLLM uses continuous batching
-            enforce_eager=True,
-            limit_mm_per_prompt={"video": 1},
-        )
+        print(f"Loading transformers: {self.model_id}")
         self.processor = AutoProcessor.from_pretrained(self.model_id)
-        self.sampling_params = SamplingParams(max_tokens=512, temperature=0.1)
-        print(f"Qwen loaded via vLLM")
+        self.model = Qwen3VLForConditionalGeneration.from_pretrained(
+            self.model_id,
+            dtype=torch.bfloat16,
+            device_map="auto",
+            attn_implementation="flash_attention_2",
+        )
+        self.model.eval()
+        print(f"Qwen loaded via transformers (FA2)")
 
     def preprocess_one(self, example: dict, tmp_dir: str) -> dict | None:
-        from qwen_vl_utils import process_vision_info
-
         tmp_path = None
         try:
             mp4_data = example["mp4"]
@@ -223,59 +217,76 @@ class QwenBackend(VLMBackend):
             if not validate_mp4(tmp_path):
                 return None
 
-            messages = [{"role": "user", "content": [
-                {"type": "video", "video": tmp_path, "max_pixels": 360 * 420, "fps": 1.0},
-                {"type": "text", "text": TAG_PROMPT},
-            ]}]
-
-            prompt = self.processor.apply_chat_template(
-                messages, tokenize=False, add_generation_prompt=True
-            )
-            image_inputs, video_inputs, video_kwargs = process_vision_info(
-                messages, return_video_kwargs=True
-            )
-
-            mm_data = {}
-            if video_inputs is not None:
-                mm_data["video"] = video_inputs
-
-            return {
-                "prompt": prompt,
-                "multi_modal_data": mm_data,
-                "mm_processor_kwargs": video_kwargs,
-            }
+            return {"video_path": tmp_path, "key": key}
         except Exception as e:
             print(f"  WARN: qwen preprocess failed ({example.get('__key__', '?')}): {e}")
-            return None
-        finally:
             if tmp_path and os.path.exists(tmp_path):
                 try:
                     os.unlink(tmp_path)
                 except OSError:
                     pass
+            return None
 
     def generate_batch(self, preprocessed: list, batch: list) -> list:
-        valid_indices = {i for i, p in enumerate(preprocessed) if p is not None}
-        valid_inputs = [preprocessed[i] for i in sorted(valid_indices)]
-
-        outputs = self.llm.generate(valid_inputs, self.sampling_params) if valid_inputs else []
+        import torch
+        from qwen_vl_utils import process_vision_info
 
         results = []
-        out_i = 0
         for i, example in enumerate(batch):
-            if i in valid_indices and out_i < len(outputs):
-                tags = parse_json_output(outputs[out_i].outputs[0].text)
+            pp = preprocessed[i]
+            if pp is None:
+                results.append(get_dummy_tag())
+                continue
+
+            video_path = pp["video_path"]
+            try:
+                messages = [{"role": "user", "content": [
+                    {"type": "video", "video": video_path, "max_pixels": 360 * 420, "fps": 1.0},
+                    {"type": "text", "text": TAG_PROMPT},
+                ]}]
+
+                text = self.processor.apply_chat_template(
+                    messages, tokenize=False, add_generation_prompt=True
+                )
+                image_inputs, video_inputs, video_kwargs = process_vision_info(
+                    messages, return_video_kwargs=True
+                )
+
+                inputs = self.processor(
+                    text=[text],
+                    videos=video_inputs,
+                    return_tensors="pt",
+                    padding=True,
+                    **video_kwargs,
+                ).to(self.model.device)
+
+                with torch.no_grad():
+                    output_ids = self.model.generate(
+                        **inputs, max_new_tokens=512, temperature=0.1, do_sample=True
+                    )
+                generated = output_ids[0][inputs["input_ids"].shape[1]:]
+                response = self.processor.decode(generated, skip_special_tokens=True)
+
+                tags = parse_json_output(response)
                 if tags is None:
                     tags = get_dummy_tag()
-                out_i += 1
-            else:
-                tags = get_dummy_tag()
-            results.append(tags)
+                results.append(tags)
+
+            except Exception as e:
+                print(f"  WARN: qwen inference failed ({pp['key']}): {e}")
+                results.append(get_dummy_tag())
+            finally:
+                if os.path.exists(video_path):
+                    try:
+                        os.unlink(video_path)
+                    except OSError:
+                        pass
+
         return results
 
     def cleanup(self):
-        del self.llm, self.processor
-        self.llm = self.processor = None
+        del self.model, self.processor
+        self.model = self.processor = None
         gc.collect()
         try:
             import torch
@@ -299,6 +310,13 @@ class VideoLLaMA3Backend(VLMBackend):
     def load_model(self):
         import torch
         from transformers import AutoModelForCausalLM, AutoProcessor
+
+        # VideoLLaMA3's remote code imports VideoInput from transformers.image_utils,
+        # but VideoInput is only a type hint and doesn't exist in transformers <5.0.
+        import transformers.image_utils as _img_utils
+        if not hasattr(_img_utils, "VideoInput"):
+            import typing as _t
+            _img_utils.VideoInput = _t.Any
 
         print(f"Loading transformers: {self.model_id}")
         self.processor = AutoProcessor.from_pretrained(
@@ -350,24 +368,26 @@ class VideoLLaMA3Backend(VLMBackend):
 
             video_path = pp["video_path"]
             try:
-                messages = [{"role": "user", "content": [
-                    {"type": "video", "video": {"video_path": video_path, "fps": 1.0, "max_frames": 64}},
-                    {"type": "text", "text": TAG_PROMPT},
-                ]}]
+                conversation = [
+                    {"role": "system", "content": "You are a helpful assistant."},
+                    {"role": "user", "content": [
+                        {"type": "video", "video": {"video_path": video_path, "fps": 1, "max_frames": 128}},
+                        {"type": "text", "text": TAG_PROMPT},
+                    ]},
+                ]
 
-                text = self.processor.apply_chat_template(messages, tokenize=False, add_generation_prompt=True)
-                inputs = self.processor(
-                    text=text, videos=[video_path],
-                    return_tensors="pt", padding=True
-                ).to(self.model.device)
+                inputs = self.processor(conversation=conversation, return_tensors="pt")
+                inputs = {k: v.cuda() if isinstance(v, torch.Tensor) else v for k, v in inputs.items()}
+                if "pixel_values" in inputs:
+                    inputs["pixel_values"] = inputs["pixel_values"].to(torch.bfloat16)
 
                 with torch.no_grad():
                     output_ids = self.model.generate(
                         **inputs, max_new_tokens=512, temperature=0.1, do_sample=True
                     )
-                # Decode only generated tokens (skip input)
-                generated = output_ids[0][inputs["input_ids"].shape[1]:]
-                response = self.processor.decode(generated, skip_special_tokens=True)
+                response = self.processor.batch_decode(
+                    output_ids, skip_special_tokens=True
+                )[0].strip()
 
                 tags = parse_json_output(response)
                 if tags is None:
@@ -398,57 +418,72 @@ class VideoLLaMA3Backend(VLMBackend):
 
 
 # ═════════════════════════════════════════════════════════════════════════
-# BACKEND: Keye-VL-1.5-8B (transformers, sequential inference)
+# BACKEND: LLaVA-NeXT-Video-7B (native transformers, sequential inference)
 # ═════════════════════════════════════════════════════════════════════════
 
-class KeyeVLBackend(VLMBackend):
-    """Keye-VL-1.5-8B via transformers. Highest VideoMME (beats GPT-4o), SlowFast encoding."""
+LLAVA_NUM_FRAMES = 16  # 8-32 range; 16 balances detail vs VRAM on 24GB
+
+
+class LLaVANextBackend(VLMBackend):
+    """LLaVA-NeXT-Video-7B via native transformers. No trust_remote_code needed."""
 
     def __init__(self):
-        super().__init__("keye", VLM_MODELS["keye"])
+        super().__init__("llava", VLM_MODELS["llava"])
         self.model = None
         self.processor = None
 
     def load_model(self):
         import torch
-        from transformers import AutoModelForCausalLM, AutoProcessor
+        from transformers import LlavaNextVideoForConditionalGeneration, LlavaNextVideoProcessor
 
         print(f"Loading transformers: {self.model_id}")
-        self.processor = AutoProcessor.from_pretrained(
-            self.model_id, trust_remote_code=True
-        )
-        self.model = AutoModelForCausalLM.from_pretrained(
+        self.processor = LlavaNextVideoProcessor.from_pretrained(self.model_id)
+        self.model = LlavaNextVideoForConditionalGeneration.from_pretrained(
             self.model_id,
-            torch_dtype=torch.bfloat16,
+            torch_dtype=torch.float16,
             device_map="auto",
-            trust_remote_code=True,
-            attn_implementation="flash_attention_2",
+            low_cpu_mem_usage=True,
         )
         self.model.eval()
-        print(f"Keye-VL loaded via transformers (FA2)")
+        print(f"LLaVA-NeXT-Video loaded via transformers (native)")
 
     def preprocess_one(self, example: dict, tmp_dir: str) -> dict | None:
-        tmp_path = None
         try:
+            import av
+            import io
+            import numpy as np
+
             mp4_data = example["mp4"]
             mp4_bytes = mp4_data["bytes"] if isinstance(mp4_data, dict) else mp4_data
             key = example.get("__key__", "unknown")
 
-            tmp_path = os.path.join(tmp_dir, f"{key}.mp4")
-            with open(tmp_path, "wb") as f:
-                f.write(mp4_bytes)
+            container = av.open(io.BytesIO(mp4_bytes))
+            total_frames = container.streams.video[0].frames
+            if total_frames <= 0:
+                # Fallback: count frames manually
+                total_frames = sum(1 for _ in container.decode(video=0))
+                container.seek(0)
 
-            if not validate_mp4(tmp_path):
+            n = min(LLAVA_NUM_FRAMES, total_frames)
+            indices = set(np.linspace(0, total_frames - 1, n).astype(int))
+
+            frames = []
+            container.seek(0)
+            for i, frame in enumerate(container.decode(video=0)):
+                if i in indices:
+                    frames.append(frame.to_ndarray(format="rgb24"))
+                if i >= max(indices):
+                    break
+            container.close()
+
+            if len(frames) == 0:
                 return None
 
-            return {"video_path": tmp_path, "key": key}
+            clip = np.stack(frames)
+            return {"clip": clip, "key": key}
+
         except Exception as e:
-            print(f"  WARN: keye preprocess failed ({example.get('__key__', '?')}): {e}")
-            if tmp_path and os.path.exists(tmp_path):
-                try:
-                    os.unlink(tmp_path)
-                except OSError:
-                    pass
+            print(f"  WARN: llava preprocess failed ({example.get('__key__', '?')}): {e}")
             return None
 
     def generate_batch(self, preprocessed: list, batch: list) -> list:
@@ -461,22 +496,23 @@ class KeyeVLBackend(VLMBackend):
                 results.append(get_dummy_tag())
                 continue
 
-            video_path = pp["video_path"]
             try:
-                messages = [{"role": "user", "content": [
-                    {"type": "video", "video": video_path},
+                conversation = [{"role": "user", "content": [
                     {"type": "text", "text": TAG_PROMPT},
+                    {"type": "video"},
                 ]}]
 
-                text = self.processor.apply_chat_template(messages, tokenize=False, add_generation_prompt=True)
+                prompt = self.processor.apply_chat_template(
+                    conversation, add_generation_prompt=True
+                )
                 inputs = self.processor(
-                    text=text, videos=[video_path],
-                    return_tensors="pt", padding=True
+                    text=prompt, videos=pp["clip"],
+                    padding=True, return_tensors="pt"
                 ).to(self.model.device)
 
                 with torch.no_grad():
                     output_ids = self.model.generate(
-                        **inputs, max_new_tokens=512, temperature=0.1, do_sample=True
+                        **inputs, max_new_tokens=512, do_sample=False
                     )
                 generated = output_ids[0][inputs["input_ids"].shape[1]:]
                 response = self.processor.decode(generated, skip_special_tokens=True)
@@ -487,14 +523,8 @@ class KeyeVLBackend(VLMBackend):
                 results.append(tags)
 
             except Exception as e:
-                print(f"  WARN: keye inference failed ({pp['key']}): {e}")
+                print(f"  WARN: llava inference failed ({pp['key']}): {e}")
                 results.append(get_dummy_tag())
-            finally:
-                if os.path.exists(video_path):
-                    try:
-                        os.unlink(video_path)
-                    except OSError:
-                        pass
 
         return results
 
@@ -516,7 +546,7 @@ class KeyeVLBackend(VLMBackend):
 BACKENDS = {
     "qwen": QwenBackend,
     "videollama": VideoLLaMA3Backend,
-    "keye": KeyeVLBackend,
+    "llava": LLaVANextBackend,
 }
 
 
@@ -524,8 +554,7 @@ BACKENDS = {
 # CONFIG
 # ═════════════════════════════════════════════════════════════════════════
 
-# Defaults (overridden by auto-compute from gpu_batch.compute_batch_sizes)
-VLLM_BATCH_SIZE = 8
+# Default (overridden by auto-compute from gpu_batch.compute_batch_sizes)
 TRANSFORMERS_BATCH_SIZE = 4
 CHECKPOINT_EVERY = 500
 ENGINE_RESTART_EVERY = 10_000
@@ -538,15 +567,18 @@ PROMPT_VERSION = "v1.0"
 def get_batch_size(model_name: str, override: int = None) -> int:
     if override:
         return override
-    return VLLM_BATCH_SIZE if model_name == "qwen" else TRANSFORMERS_BATCH_SIZE
+    return TRANSFORMERS_BATCH_SIZE
 
 
 # ═════════════════════════════════════════════════════════════════════════
 # OUTPUT PATH LOGIC
 # ═════════════════════════════════════════════════════════════════════════
 
-def get_tags_file(model_name: str, is_bakeoff: bool, subset_path: str = None) -> Path:
+def get_tags_file(model_name: str, is_bakeoff: bool, subset_path: str = None,
+                   is_sanity: bool = False) -> Path:
     """Determine output tags file based on mode."""
+    if is_sanity:
+        return OUTPUTS_DIR / f"tags_sanity_{model_name}.json"
     if is_bakeoff:
         return BAKEOFF_DIR / f"tags_{model_name}.json"
     elif subset_path:
@@ -794,7 +826,7 @@ def stream_and_tag(backend: VLMBackend, args,
 
 def orchestrator_main(args):
     """Spawn worker subprocesses every ENGINE_RESTART_EVERY clips."""
-    tags_file = get_tags_file(args.model, args.BAKEOFF, args.subset)
+    tags_file = get_tags_file(args.model, args.BAKEOFF, args.subset, is_sanity=args.SANITY)
 
     if args.SANITY:
         total_clips = 20
@@ -831,8 +863,9 @@ def orchestrator_main(args):
             "--model", args.model,
             "--start-from", str(skip_count),
             "--process-count", str(segment_size),
-            "--batch-size", str(get_batch_size(args.model, args.batch_size)),
         ]
+        if args.batch_size is not None:
+            cmd.extend(["--batch-size", str(args.batch_size)])
         if args.SANITY:
             cmd.append("--SANITY")
         if args.BAKEOFF:
@@ -871,7 +904,6 @@ def worker_main(args):
     check_gpu()
 
     # Auto-compute batch size from VRAM if not explicitly set via --batch-size
-    # NOTE: only transformers backends need this — vLLM uses continuous batching
     global TRANSFORMERS_BATCH_SIZE
     batch_sizes = compute_batch_sizes(gpu_vram_gb=args.gpu_mem)
     if args.batch_size is None:
@@ -884,7 +916,7 @@ def worker_main(args):
                                 "process_count": args.process_count},
                         enabled=not args.no_wandb)
 
-    tags_file = get_tags_file(args.model, args.BAKEOFF, args.subset)
+    tags_file = get_tags_file(args.model, args.BAKEOFF, args.subset, is_sanity=args.SANITY)
     subset_keys = load_subset(args.subset) if args.subset else set()
 
     backend_cls = BACKENDS[args.model]
@@ -918,7 +950,7 @@ def stream_and_tag_dummy(args) -> list:
         print("ERROR: datasets library required")
         sys.exit(1)
 
-    tags_file = get_tags_file(args.model, args.BAKEOFF, args.subset)
+    tags_file = get_tags_file(args.model, args.BAKEOFF, args.subset, is_sanity=args.SANITY)
     subset_keys = load_subset(args.subset) if args.subset else set()
 
     print(f"\nStreaming from: {HF_DATASET_REPO} (dummy mode, model={args.model})")
@@ -1009,7 +1041,7 @@ def main():
         description="VLM tagging with bake-off (3 backends, HF WebDataset streaming)")
     parser.add_argument("--model", type=str, required=True,
                         choices=list(BACKENDS.keys()),
-                        help="VLM backend: qwen, videollama, keye")
+                        help="VLM backend: qwen, videollama, llava")
     parser.add_argument("--SANITY", action="store_true", help="Process 20 clips only")
     parser.add_argument("--BAKEOFF", action="store_true",
                         help=f"Bake-off mode: tag first {BAKEOFF_CLIP_COUNT} clips")
@@ -1038,7 +1070,7 @@ def main():
         print("\nERROR: Specify --SANITY, --BAKEOFF, or --FULL")
         sys.exit(1)
 
-    tags_file = get_tags_file(args.model, args.BAKEOFF, args.subset)
+    tags_file = get_tags_file(args.model, args.BAKEOFF, args.subset, is_sanity=args.SANITY)
     print(f"Model:   {args.model} ({VLM_MODELS[args.model]})")
     print(f"Mode:    {'SANITY' if args.SANITY else 'BAKEOFF' if args.BAKEOFF else 'FULL'}")
     print(f"Output:  {tags_file}")

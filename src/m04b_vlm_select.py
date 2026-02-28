@@ -1,8 +1,4 @@
-"""
-Bake-off comparison: read 3 VLM tag JSONs, compute 5-criterion weighted score, pick winner.
-CPU-only. No GPU needed. Outputs vlm_comparison.json + comparison plots (.png + .pdf).
-
-USAGE:
+"""Bake-off: 5-criterion weighted VLM selection + 2x2 diagnostic dashboard.
     python -u src/m04b_vlm_select.py 2>&1 | tee logs/m04b_vlm_select.log
 """
 import json
@@ -38,6 +34,24 @@ def load_taxonomy() -> dict:
 
 TAXONOMY = load_taxonomy()
 TAG_FIELDS = list(TAXONOMY.keys())
+VALID_SCENE_TYPES = set(TAXONOMY["scene_type"]["values"])
+VALID_OBJECTS = set(TAXONOMY["notable_objects"]["values"])
+
+# Dashboard constants (shared palette with m04c/m08)
+MODEL_LABELS = {"qwen": "Qwen3-VL", "videollama": "VideoLLaMA3", "llava": "LLaVA-NeXT"}
+VLM_COLORS = {"qwen": "#2196F3", "videollama": "#4CAF50", "llava": "#FF9800"}
+SCENE_COLORS = {
+    "market": "#e41a1c", "junction": "#4daf4a", "residential_lane": "#984ea3",
+    "promenade": "#377eb8", "transit": "#999999", "temple_tourist": "#ff7f00",
+    "highway": "#ffff33", "alley": "#a65628", "commercial": "#17becf",
+    "construction": "#f781bf", "unknown": "#666666",
+}
+CONFIDENCE_FIELDS = [
+    "confidence_scene_type", "confidence_time_of_day", "confidence_weather",
+    "confidence_crowd_density", "confidence_traffic_density", "confidence_road_layout",
+    "confidence_road_surface", "confidence_infrastructure_quality",
+    "confidence_notable_objects", "confidence_vegetation", "confidence_lighting",
+]
 
 
 # ── Load bake-off tags ────────────────────────────────────────────────────
@@ -342,6 +356,156 @@ def generate_comparison_plot(results: dict, winner: str):
     print(f"Saved: {pdf_path}")
 
 
+# ── 2x2 Dashboard (same layout as m04c_sanity_compare) ───────────────────
+
+def compute_dashboard_metrics(tags: list) -> dict:
+    """Compute 4 visual-diagnostic metrics for one VLM's tags."""
+    import numpy as np
+
+    n = len(tags)
+
+    # 1. Parse rate — scene_type is a single valid enum (no pipe-delimited dumps)
+    valid_clips = [c for c in tags if "|" not in str(c.get("scene_type", ""))
+                   and str(c.get("scene_type", "")) in VALID_SCENE_TYPES]
+    parse_rate = len(valid_clips) / n * 100 if n > 0 else 0.0
+
+    # 2. Scene diversity
+    scene_types = [c["scene_type"] for c in valid_clips]
+    scene_counts = {}
+    for st in scene_types:
+        scene_counts[st] = scene_counts.get(st, 0) + 1
+
+    # 3. Confidence distribution (exclude all-zero garbage clips)
+    all_confs = []
+    for c in tags:
+        clip_confs = [c.get(f, 0.0) for f in CONFIDENCE_FIELDS if f in c]
+        if clip_confs and any(v > 0.0 for v in clip_confs):
+            all_confs.extend(clip_confs)
+
+    # 4. Objects: on-taxonomy vs off-taxonomy
+    all_objects = set()
+    for c in tags:
+        objs = c.get("notable_objects", [])
+        if isinstance(objs, list):
+            all_objects.update(objs)
+    all_objects = {o for o in all_objects if "subset of:" not in str(o)}
+    on_taxonomy = all_objects & VALID_OBJECTS
+    off_taxonomy = all_objects - VALID_OBJECTS
+
+    return {
+        "parse_rate": parse_rate,
+        "valid_clips": len(valid_clips),
+        "total_clips": n,
+        "scene_counts": scene_counts,
+        "conf_values": all_confs,
+        "objects_on_taxonomy": len(on_taxonomy),
+        "objects_off_taxonomy": len(off_taxonomy),
+    }
+
+
+def generate_dashboard_plot(all_tags: dict, model_names: list):
+    """Generate 2x2 diagnostic dashboard (same layout as m04c_sanity_compare)."""
+    try:
+        import matplotlib
+        matplotlib.use("Agg")
+        import matplotlib.pyplot as plt
+        import numpy as np
+    except ImportError:
+        print("WARNING: matplotlib/numpy not available, skipping dashboard")
+        return
+
+    # Compute dashboard metrics per VLM
+    results = {m: compute_dashboard_metrics(all_tags[m]) for m in model_names}
+    n_clips = len(all_tags[model_names[0]])
+
+    fig, axes = plt.subplots(2, 2, figsize=(14, 10))
+    fig.suptitle(f"VLM Bake-off Dashboard ({n_clips:,} clips each)",
+                 fontsize=16, fontweight="bold", y=0.98)
+
+    x_pos = np.arange(len(model_names))
+    colors = [VLM_COLORS.get(m, "#888888") for m in model_names]
+    labels = [MODEL_LABELS.get(m, m) for m in model_names]
+
+    # ── Top-left: Parse rate ─────────────────────────────────────────────
+    ax = axes[0, 0]
+    rates = [results[m]["parse_rate"] for m in model_names]
+    bars = ax.bar(x_pos, rates, color=colors, width=0.5, edgecolor="white", linewidth=0.8)
+    ax.set_xticks(x_pos)
+    ax.set_xticklabels(labels, fontsize=10)
+    ax.set_ylabel("Parse Rate (%)", fontsize=11)
+    ax.set_title("JSON Parse Rate", fontsize=12, fontweight="bold")
+    ax.set_ylim(0, 110)
+    ax.axhline(y=100, color="gray", linestyle="--", alpha=0.5, linewidth=0.8)
+    for bar, rate in zip(bars, rates):
+        ax.text(bar.get_x() + bar.get_width() / 2, bar.get_height() + 2,
+                f"{rate:.0f}%", ha="center", va="bottom", fontsize=10, fontweight="bold")
+
+    # ── Top-right: Scene type distribution (stacked horizontal bar) ──────
+    ax = axes[0, 1]
+    all_scenes = sorted({s for m in model_names for s in results[m]["scene_counts"]})
+    y_pos = np.arange(len(model_names))
+    left_offsets = np.zeros(len(model_names))
+    for scene in all_scenes:
+        widths = [results[m]["scene_counts"].get(scene, 0) for m in model_names]
+        color = SCENE_COLORS.get(scene, SCENE_COLORS["unknown"])
+        ax.barh(y_pos, widths, left=left_offsets, height=0.5, color=color,
+                edgecolor="white", linewidth=0.5, label=scene)
+        left_offsets += np.array(widths)
+    ax.set_yticks(y_pos)
+    ax.set_yticklabels(labels, fontsize=10)
+    ax.set_xlabel("Number of clips", fontsize=11)
+    ax.set_title("Scene Type Distribution", fontsize=12, fontweight="bold")
+    ax.legend(fontsize=7, loc="lower right", ncol=2)
+
+    # ── Bottom-left: Confidence distributions (box plot) ─────────────────
+    ax = axes[1, 0]
+    conf_data = [results[m]["conf_values"] or [0.0] for m in model_names]
+    bp = ax.boxplot(conf_data, patch_artist=True, widths=0.4,
+                    medianprops=dict(color="black", linewidth=1.5))
+    for patch, m in zip(bp["boxes"], model_names):
+        patch.set_facecolor(VLM_COLORS.get(m, "#888888"))
+        patch.set_alpha(0.7)
+    ax.set_xticklabels(labels, fontsize=10)
+    ax.set_ylabel("Confidence Score", fontsize=11)
+    ax.set_title("Confidence Distributions", fontsize=12, fontweight="bold")
+    ax.set_ylim(-0.05, 1.05)
+
+    # ── Bottom-right: Objects butterfly (on-taxonomy + / off-taxonomy -) ─
+    ax = axes[1, 1]
+    on_counts = [results[m]["objects_on_taxonomy"] for m in model_names]
+    off_counts = [results[m]["objects_off_taxonomy"] for m in model_names]
+    bar_w = 0.5
+    bars_on = ax.bar(x_pos, on_counts, color=colors, width=bar_w,
+                     edgecolor="white", linewidth=0.8, label="On-taxonomy")
+    bars_off = ax.bar(x_pos, [-c for c in off_counts], color=colors, width=bar_w,
+                      edgecolor="white", linewidth=0.8, alpha=0.45, label="Off-taxonomy",
+                      hatch="//")
+    ax.set_xticks(x_pos)
+    ax.set_xticklabels(labels, fontsize=10)
+    ax.set_ylabel("Unique Objects", fontsize=11)
+    ax.set_title("Notable Objects: On vs Off Taxonomy", fontsize=12, fontweight="bold")
+    ax.axhline(y=0, color="black", linewidth=0.8)
+    for bar, count in zip(bars_on, on_counts):
+        ax.text(bar.get_x() + bar.get_width() / 2, bar.get_height() + 0.3,
+                str(count), ha="center", va="bottom", fontsize=10, fontweight="bold")
+    for bar, count in zip(bars_off, off_counts):
+        if count > 0:
+            ax.text(bar.get_x() + bar.get_width() / 2, bar.get_y() - 0.3,
+                    str(count), ha="center", va="top", fontsize=10, fontweight="bold",
+                    color="#d32f2f")
+    ax.legend(fontsize=8, loc="lower right")
+
+    plt.tight_layout(rect=[0, 0, 1, 0.95])
+
+    png_path = BAKEOFF_DIR / "vlm_dashboard.png"
+    pdf_path = BAKEOFF_DIR / "vlm_dashboard.pdf"
+    fig.savefig(png_path, dpi=150, bbox_inches="tight")
+    fig.savefig(pdf_path, bbox_inches="tight")
+    plt.close(fig)
+    print(f"Saved: {png_path}")
+    print(f"Saved: {pdf_path}")
+
+
 # ── Main ──────────────────────────────────────────────────────────────────
 
 def main():
@@ -453,6 +617,7 @@ def main():
 
     # Generate plots
     generate_comparison_plot(results, winner)
+    generate_dashboard_plot(all_tags, model_names)
 
     print(f"\n=== BAKE-OFF COMPLETE ===")
     print(f"Winner: {winner}")

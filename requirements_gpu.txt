@@ -17,7 +17,9 @@
 # Transformers & Model Loading
 # =============================================================================
 # V-JEPA 2 requires transformers>=4.52.0, Qwen3-VL requires >=4.57.0
-transformers>=4.57.0
+# V-JEPA 2 needs >=4.52.0, Qwen3-VL needs >=4.57.0, LLaVA-NeXT-Video needs >=4.42.0
+# Pin <5.0: VideoLLaMA3 remote code breaks on 5.x (processor signature + API changes)
+transformers>=4.57.0,<5.0
 accelerate>=0.25.0
 bitsandbytes>=0.41.0
 datasets>=2.14.0
@@ -26,7 +28,9 @@ datasets>=2.14.0
 # VLM Tagging (m04_vlm_tag.py)
 # =============================================================================
 qwen-vl-utils>=0.0.2
-vllm>=0.6.0
+decord>=0.6.0
+imageio>=2.31.0
+ffmpeg-python>=0.2.0
 
 # =============================================================================
 # Video Processing

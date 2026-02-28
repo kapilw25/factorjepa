@@ -113,7 +113,7 @@ BAKEOFF_DIR = DATA_DIR / "bakeoff"
 VLM_MODELS = {
     "qwen": "Qwen/Qwen3-VL-8B-Instruct",
     "videollama": "DAMO-NLP-SG/VideoLLaMA3-7B",
-    "keye": "Keye-VL/Keye-VL-1.5-8B-Chat",
+    "llava": "llava-hf/LLaVA-NeXT-Video-7B-hf",
 }
 BAKEOFF_CLIP_COUNT = 2500
 

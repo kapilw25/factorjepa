@@ -1,7 +1,15 @@
 # Execution Plan: BAKEOFF Experiment (m04 → m08)
 
-STATUS: m00-m03 COMPLETED (Mac CPU). m04-m08 code ready for GPU.
+STATUS: m00-m03 COMPLETED (Mac CPU). m04-m08 on GPU.
 Dataset: https://huggingface.co/datasets/anonymousML123/walkindia-200k (private, HF_TOKEN in .env)
+Backend: All 3 VLMs use transformers sequential inference (vLLM removed — OOMs on ≤24GB GPUs).
+
+### GPU Strategy
+| Mode | GPU | VRAM | Purpose |
+|------|-----|------|---------|
+| `--SANITY` (20 clips) | RTX Pro 4000 | 24GB | Debug: validate model loading, inference, JSON parsing |
+| `--BAKEOFF` (2500 clips) | RTX Pro 6000 | 96GB | Production: 3-VLM comparison |
+| `--FULL` (10K-115K clips) | RTX Pro 6000 | 96GB | Production: winner tags full dataset |
 
 ---
 
@@ -17,7 +25,7 @@ source venv_walkindia/bin/activate
 
 ```bash
 # GPU + packages
-python -c "import torch; print(f'GPU: {torch.cuda.get_device_name(0)}, VRAM: {torch.cuda.get_device_properties(0).total_mem/1e9:.0f}GB')"
+python -c "import torch; print(f'GPU: {torch.cuda.get_device_name(0)}, VRAM: {torch.cuda.get_device_properties(0).total_memory/1e9:.0f}GB')"
 python -c "import faiss; print(f'FAISS GPUs: {faiss.get_num_gpus()}')"
 python -c "import cuml; print(f'cuML: {cuml.__version__}')"
 python -c "import wandb; print(f'wandb: {wandb.__version__}')"
@@ -31,26 +39,87 @@ python -c "import json; d=json.load(open('data/subset_10k.json')); print(f'Subse
 
 ---
 
-## Step 1: VLM Bake-off — 3 VLMs × 2,500 clips each
+## Step 0: SANITY checks — RTX Pro 4000 (24GB) — debug/validate before bake-off
+
+Run each VLM on 20 clips to verify model loading, inference, JSON parsing, and output format.
+Delete stale checkpoints before each sanity run if needed.
+
+```bash
+# Clean stale outputs (only if re-running)
+rm -f src/outputs/tags.json src/outputs/tags.json.tmp
+
+# Qwen3-VL sanity (PASSED — 20/20 clips, 0.08 clips/s, 260s)
+python -u src/m04_vlm_tag.py --model qwen --SANITY 2>&1 | tee logs/m04_sanity_qwen.log
+
+# VideoLLaMA3 sanity
+python -u src/m04_vlm_tag.py --model videollama --SANITY 2>&1 | tee logs/m04_sanity_videollama.log
+
+# LLaVA-NeXT-Video sanity
+python -u src/m04_vlm_tag.py --model llava --SANITY 2>&1 | tee logs/m04_sanity_llava.log
+```
+
+### Verify Step 0 output
+
+```bash
+# Check each model's sanity output (SANITY creates tags_sanity_{model}.json, not tags.json)
+for model in qwen videollama llava; do
+  python -c "
+import json
+t = json.load(open('src/outputs/tags_sanity_${model}.json'))
+print(f'tags_sanity_${model}.json: {len(t)} clips, {len(t[0].keys())} fields')
+print(f'  scene_type: {t[0].get(\"scene_type\", \"MISSING\")}')
+print(f'  confidence: {t[0].get(\"confidence_scene_type\", \"MISSING\")}')
+"
+done
+```
+
+**Expected:** 20 clips, 34 fields each, valid JSON with all 11 tag fields + 11 confidence fields + provenance.
+
+**Status:**
+- [x] Qwen3-VL: PASSED (20/20, 0.08 clips/s, all JSON parsed)
+- [x] VideoLLaMA3: PASSED (20/20, 0.10 clips/s, all JSON parsed)
+- [x] LLaVA-NeXT-Video: PASSED (20/20, 0.08 clips/s, 17/20 valid — 3 returned enum dumps)
+
+**Note:** `m04b_vlm_select.py` (Step 2) is expected to fail at this stage — it requires Step 1 bakeoff data (`src/data/bakeoff/tags_{model}.json`) which doesn't exist until bakeoff runs complete.
+
+### Compare SANITY results (CPU — no GPU needed)
+
+```bash
+python -u src/m04c_sanity_compare.py 2>&1 | tee logs/m04c_sanity_compare.log
+ls -la src/outputs/m04c_sanity_compare.{png,pdf}
+```
+
+**Output:** `m04c_sanity_compare.png` + `.pdf` — 2x2 dashboard (parse rate, scene distribution, confidence boxplot, on/off-taxonomy objects butterfly chart).
+
+---
+
+## Step 1: VLM Bake-off — RTX Pro 6000 (96GB) — 3 VLMs × 2,500 clips each
 
 Each VLM tags the first 2,500 clips from the 10K subset (streams from HF, no local clips).
 
 ```bash
+# Clean stale bakeoff checkpoints (only if re-running from scratch)
+rm -f src/data/bakeoff/tags_qwen.json src/data/bakeoff/tags_videollama.json src/data/bakeoff/tags_llava.json
+
 python -u src/m04_vlm_tag.py --model qwen --BAKEOFF --subset data/subset_10k.json 2>&1 | tee logs/m04_bakeoff_qwen_poc.log
+
 python -u src/m04_vlm_tag.py --model videollama --BAKEOFF --subset data/subset_10k.json 2>&1 | tee logs/m04_bakeoff_videollama_poc.log
-python -u src/m04_vlm_tag.py --model keye --BAKEOFF --subset data/subset_10k.json 2>&1 | tee logs/m04_bakeoff_keye_poc.log
+
+python -u src/m04_vlm_tag.py --model llava --BAKEOFF --subset data/subset_10k.json 2>&1 | tee logs/m04_bakeoff_llava_poc.log
 ```
 
 ### Verify Step 1 output
 
 ```bash
 # 3 bakeoff tag files exist, each with 2500 clips
-for model in qwen videollama keye; do
+for model in qwen videollama llava; do
   python -c "import json; t=json.load(open('src/data/bakeoff/tags_${model}.json')); print(f'tags_${model}.json: {len(t)} clips')"
 done
 ```
 
-**Expected:** 3 files × 2,500 clips each. ~1h total GPU.
+**Expected:** 3 files × 2,500 clips each.
+**Est. time (24GB GPU):** ~8-9h per VLM at ~0.08 clips/s. ~26h total (sequential).
+**Est. time (96GB GPU):** ~1-2h per VLM. ~4-7h total.
 
 ---
 
@@ -68,18 +137,19 @@ python -u src/m04b_vlm_select.py 2>&1 | tee logs/m04b_vlm_select.log
 # Winner selected + comparison report
 python -c "import json; d=json.load(open('src/data/bakeoff/vlm_comparison.json')); print(f'Winner: {d[\"winner\"]} (score: {d[\"models\"][d[\"winner\"]][\"weighted_total\"]:.3f})')"
 ls -la src/data/bakeoff/vlm_comparison.{json,png,pdf}
+ls -la src/data/bakeoff/vlm_dashboard.{png,pdf}
 ```
 
-**Expected:** `vlm_comparison.json` with winner name + scores. `vlm_comparison.png` + `.pdf` plots.
+**Expected:** `vlm_comparison.json` with winner name + scores. `vlm_comparison.{png,pdf}` (weighted scores) + `vlm_dashboard.{png,pdf}` (2x2 diagnostic: parse rate, scene distribution, confidence, on/off-taxonomy objects).
 
 ---
 
-## Step 3: Winner tags remaining 7,500 clips
+## Step 3: Winner tags remaining 7,500 clips — RTX Pro 6000 (96GB)
 
 Winner VLM runs --FULL on the 10K subset. Resumes from bake-off checkpoint (already has 2,500 tagged), so only ~7,500 new clips processed.
 
 ```bash
-# Replace <winner> with output from Step 2 (qwen, videollama, or keye)
+# Replace <winner> with output from Step 2 (qwen, videollama, or llava)
 python -u src/m04_vlm_tag.py --model <winner> --FULL --subset data/subset_10k.json 2>&1 | tee logs/m04_full_poc.log
 ```
 
@@ -90,7 +160,8 @@ python -c "import json; t=json.load(open('src/outputs_poc/tags.json')); print(f'
 # Expect: ~10,000 clips, 33 fields each
 ```
 
-**Expected:** `outputs_poc/tags.json` with ~10K clips × 33 fields. ~45 min GPU.
+**Expected:** `outputs_poc/tags.json` with ~10K clips × 33 fields.
+**Est. time (24GB):** ~26h. **Est. time (96GB):** ~2-4h.
 
 ---
 
@@ -99,6 +170,10 @@ python -c "import json; t=json.load(open('src/outputs_poc/tags.json')); print(f'
 V-JEPA 2 ViT-G (1B params, frozen) encodes each clip → 1408-dim embedding. Producer-consumer pipeline with torch.compile.
 
 ```bash
+# SANITY — RTX Pro 4000 (24GB) — validate model loading + embedding output
+python -u src/m05_vjepa_embed.py --SANITY 2>&1 | tee logs/m05_sanity.log
+
+# FULL — RTX Pro 6000 (96GB) — embed 10K clips
 python -u src/m05_vjepa_embed.py --FULL --subset data/subset_10k.json 2>&1 | tee logs/m05_vjepa_embed_poc.log
 ```
 
@@ -124,6 +199,10 @@ print(f'Shape match: {emb.shape[0] == len(paths)}')
 FAISS-GPU kNN index → 9 metrics in Easy/Hard mode + confidence sweep + multi-attribute slices. Saves knn_indices.npy for downstream plotting.
 
 ```bash
+# SANITY — RTX Pro 4000 (24GB) — validate FAISS index + metric computation
+python -u src/m06_faiss_metrics.py --SANITY 2>&1 | tee logs/m06_sanity.log
+
+# FULL — RTX Pro 6000 (96GB) — compute 9 metrics on 10K clips
 python -u src/m06_faiss_metrics.py --FULL --subset data/subset_10k.json 2>&1 | tee logs/m06_faiss_metrics_poc.log
 ```
 
@@ -156,6 +235,10 @@ ls -la src/outputs_poc/m06_*.png src/outputs_poc/m06_*.pdf
 cuML GPU UMAP: 10K × 1408 → 10K × 2. Saves umap_2d.npy for CPU plotting.
 
 ```bash
+# SANITY — RTX Pro 4000 (24GB) — validate cuML UMAP loading + output shape
+python -u src/m07_umap.py --SANITY 2>&1 | tee logs/m07_sanity.log
+
+# FULL — RTX Pro 6000 (96GB) — UMAP on 10K embeddings
 python -u src/m07_umap.py --FULL --subset data/subset_10k.json 2>&1 | tee logs/m07_umap_poc.log
 ```
 
@@ -226,27 +309,47 @@ print(f'Silhouet  {m[\"easy\"][\"silhouette\"]:5.3f}    {m[\"hard\"][\"silhouett
 
 ---
 
-## Timeline (RTX Pro 4000 — 24GB VRAM)
+## Timeline
+
+### RTX PRO 4000 (24GB VRAM — debug GPU)
 
 | Step | Module | GPU? | Est. Time |
 |------|--------|------|-----------|
-| 1 | m04 BAKEOFF (3 VLMs × 2.5K) | GPU | ~1h |
+| 0 | m04 SANITY (3 VLMs × 20) | GPU | ~15 min each |
+| 1 | m04 BAKEOFF (3 VLMs × 2.5K) | GPU | ~8-9h each, ~26h total |
 | 2 | m04b select winner | CPU | ~1 min |
-| 3 | m04 FULL (winner × 7.5K) | GPU | ~45 min |
+| 3 | m04 FULL (winner × 7.5K) | GPU | ~26h |
 | 4 | m05 V-JEPA embed (10K) | GPU | ~2h |
 | 5 | m06 FAISS metrics | GPU | ~5 min |
 | 6 | m07 UMAP (cuML) | GPU | ~2 min |
 | 7 | m08 plots | CPU | ~5 min |
-| **Total** | | | **~4h GPU + ~10 min CPU** |
+| **Total** | | | **~54h GPU + ~10 min CPU** |
+
+### RTX PRO 6000 Blackwell (96GB VRAM — production GPU)
+
+| Step | Module | GPU? | Est. Time |
+|------|--------|------|-----------|
+| 0 | m04 SANITY (3 VLMs × 20) | GPU | ~5 min each |
+| 1 | m04 BAKEOFF (3 VLMs × 2.5K) | GPU | ~1-2h each, ~4-7h total |
+| 2 | m04b select winner | CPU | ~1 min |
+| 3 | m04 FULL (winner × 7.5K) | GPU | ~2-4h |
+| 4 | m05 V-JEPA embed (10K) | GPU | ~2h |
+| 5 | m06 FAISS metrics | GPU | ~5 min |
+| 6 | m07 UMAP (cuML) | GPU | ~2 min |
+| 7 | m08 plots | CPU | ~5 min |
+| **Total** | | | **~10-15h GPU + ~10 min CPU** |
 
 ---
 
 ## Dependency Graph
 
 ```
+Step 0: m04 --SANITY (qwen, videollama, llava) → validate before bake-off
+                    │
+                    ↓
 Step 1: m04 --BAKEOFF (qwen)  ─┐
 Step 1: m04 --BAKEOFF (videollama) ─┤→ Step 2: m04b (pick winner) → Step 3: m04 --FULL (winner)
-Step 1: m04 --BAKEOFF (keye)  ─┘                                            │
+Step 1: m04 --BAKEOFF (llava)  ─┘                                            │
                                                                              ↓
 Step 4: m05 V-JEPA embed ──────────────────────────────────────────→ Step 5: m06 FAISS metrics
                                                                              │
