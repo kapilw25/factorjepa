@@ -1,54 +1,11 @@
-# Execution Plan: WalkIndia-200K Pipeline
+# Execution Plan: BAKEOFF Experiment (m04 → m08)
 
-STATUS: m00-m03 COMPLETED (Mac CPU). m04-m07 ready for GPU.
-Dataset: https://huggingface.co/datasets/anonymousML123/walkindia-200k
-
-## Module Tree
-
-```
-src/
-├── m00_data_prep.py              # Parse YT_videos_raw.md → JSON, word freq, city matrix
-├── m00b_fetch_durations.py       # Fetch YT video durations via yt-dlp metadata (no download)
-├── m00c_sample_subset.py         # Video-level uniform 10K subset sampling for POC runs
-├── m01_download.py               # Download 714 YT videos at 480p (Mac, aria2c)
-├── m02_scene_detect.py           # Greedy scene-aware split → ffmpeg encode clips (optional --keyframes)
-├── m02b_scene_fetch_duration.py  # Scan all clips, output clip_durations.json
-├── m03_pack_shards.py            # Pack clips into WebDataset TAR shards → upload to HF
-├── m04_vlm_tag.py                # [GPU] VLM tagging (--model qwen|videollama|keye, --BAKEOFF|--FULL)
-├── m04b_vlm_select.py            # [CPU] Bake-off comparison → pick winner VLM
-├── m05_vjepa_embed.py            # [GPU] V-JEPA 2 embeddings (ViT-G, 1408-dim, HF streaming)
-├── m06_faiss_metrics.py          # FAISS kNN: 9 metrics + Hard/Easy mode
-├── m07_umap_plot.py              # UMAP visualization + kNN grids
-└── utils/
-    ├── __init__.py
-    ├── config.py                 # Paths, constants, shared utility functions
-    ├── export_metadata.py        # tags.json → metadata.jsonl per leaf dir
-    ├── hf_utils.py               # HF auth, README gen, metadata upload
-    └── tag_taxonomy.json         # 11 tag fields + confidence schema for VLMs
-```
+STATUS: m00-m03 COMPLETED (Mac CPU). m04-m08 code ready for GPU.
+Dataset: https://huggingface.co/datasets/anonymousML123/walkindia-200k (private, HF_TOKEN in .env)
 
 ---
 
-## Phase 1: Data Preparation (Mac CPU) — COMPLETED
-
-m00→m00b→m01→m02→m02b→m03: 714 videos → 115,687 clips → 116 TAR shards → HF upload (121.5 GB).
-m00c: Video-level uniform sampling → `data/subset_10k.json` (10K clip keys, seed=42).
-
----
-
-## Phase 2: POC Pipeline on 10K Subset (GPU Server)
-
-### Hardware: A100-40GB (sufficient)
-
-| Component | Size |
-|---|---|
-| Python venv + packages | ~15 GB |
-| HF model cache (4 models) | ~50 GB |
-| Outputs (embeddings, tags, plots) | ~1 GB |
-| Local clips needed | **0 GB** (all HF streaming) |
-| **Total disk volume** | **100 GB** |
-
-### Setup
+## Pre-flight: GPU Server Setup
 
 ```bash
 git clone <repo> && cd LLM_asAgent_3D_SR
@@ -56,14 +13,27 @@ git clone <repo> && cd LLM_asAgent_3D_SR
 source venv_walkindia/bin/activate
 ```
 
-### GPU Execution Sequence (all sequential, peak VRAM ~16GB)
+### Verify setup
 
-**Step 1: Bake-off — 3 VLMs × 2,500 clips each (streams from HF)**
+```bash
+# GPU + packages
+python -c "import torch; print(f'GPU: {torch.cuda.get_device_name(0)}, VRAM: {torch.cuda.get_device_properties(0).total_mem/1e9:.0f}GB')"
+python -c "import faiss; print(f'FAISS GPUs: {faiss.get_num_gpus()}')"
+python -c "import cuml; print(f'cuML: {cuml.__version__}')"
+python -c "import wandb; print(f'wandb: {wandb.__version__}')"
 
-| | Path |
-|---|---|
-| INPUT | HF WebDataset stream, `src/utils/tag_taxonomy.json`, `data/subset_10k.json` |
-| OUTPUT | `src/data/bakeoff/tags_{qwen,videollama,keye}.json` |
+# HF auth (private repo)
+python -c "from dotenv import load_dotenv; load_dotenv(); import os; t=os.getenv('HF_TOKEN'); print(f'HF_TOKEN: {t[:10]}...' if t else 'MISSING')"
+
+# Subset file exists
+python -c "import json; d=json.load(open('data/subset_10k.json')); print(f'Subset: {d[\"n\"]} clips from {d[\"num_videos\"]} videos')"
+```
+
+---
+
+## Step 1: VLM Bake-off — 3 VLMs × 2,500 clips each
+
+Each VLM tags the first 2,500 clips from the 10K subset (streams from HF, no local clips).
 
 ```bash
 python -u src/m04_vlm_tag.py --model qwen --BAKEOFF --subset data/subset_10k.json 2>&1 | tee logs/m04_bakeoff_qwen_poc.log
@@ -71,141 +41,222 @@ python -u src/m04_vlm_tag.py --model videollama --BAKEOFF --subset data/subset_1
 python -u src/m04_vlm_tag.py --model keye --BAKEOFF --subset data/subset_10k.json 2>&1 | tee logs/m04_bakeoff_keye_poc.log
 ```
 
-**Step 2: Pick winner (CPU)**
+### Verify Step 1 output
 
-| | Path |
-|---|---|
-| INPUT | `src/data/bakeoff/tags_{qwen,videollama,keye}.json`, `src/utils/tag_taxonomy.json` |
-| OUTPUT | `src/data/bakeoff/vlm_comparison.{json,png,pdf}` |
+```bash
+# 3 bakeoff tag files exist, each with 2500 clips
+for model in qwen videollama keye; do
+  python -c "import json; t=json.load(open('src/data/bakeoff/tags_${model}.json')); print(f'tags_${model}.json: {len(t)} clips')"
+done
+```
+
+**Expected:** 3 files × 2,500 clips each. ~1h total GPU.
+
+---
+
+## Step 2: Pick winner VLM (CPU — no GPU needed)
+
+5-criterion weighted comparison: JSON parse (30%), cross-VLM agreement (25%), speed (20%), taxonomy compliance (15%), confidence calibration (10%).
 
 ```bash
 python -u src/m04b_vlm_select.py 2>&1 | tee logs/m04b_vlm_select.log
 ```
 
-**Step 3: Winner tags remaining 7.5K clips (streams from HF)**
-
-| | Path |
-|---|---|
-| INPUT | HF WebDataset stream, `src/utils/tag_taxonomy.json`, `data/subset_10k.json` |
-| OUTPUT | `src/outputs_poc/tags.json` (~10K clips, 33 fields each) |
+### Verify Step 2 output
 
 ```bash
+# Winner selected + comparison report
+python -c "import json; d=json.load(open('src/data/bakeoff/vlm_comparison.json')); print(f'Winner: {d[\"winner\"]} (score: {d[\"models\"][d[\"winner\"]][\"weighted_total\"]:.3f})')"
+ls -la src/data/bakeoff/vlm_comparison.{json,png,pdf}
+```
+
+**Expected:** `vlm_comparison.json` with winner name + scores. `vlm_comparison.png` + `.pdf` plots.
+
+---
+
+## Step 3: Winner tags remaining 7,500 clips
+
+Winner VLM runs --FULL on the 10K subset. Resumes from bake-off checkpoint (already has 2,500 tagged), so only ~7,500 new clips processed.
+
+```bash
+# Replace <winner> with output from Step 2 (qwen, videollama, or keye)
 python -u src/m04_vlm_tag.py --model <winner> --FULL --subset data/subset_10k.json 2>&1 | tee logs/m04_full_poc.log
 ```
 
-**Step 4: V-JEPA 2 embeddings (streams from HF)**
+### Verify Step 3 output
 
-| | Path |
-|---|---|
-| INPUT | HF WebDataset stream, `data/subset_10k.json` |
-| OUTPUT | `src/outputs_poc/embeddings.npy` (10K × 1408), `src/outputs_poc/embeddings.paths.npy` |
+```bash
+python -c "import json; t=json.load(open('src/outputs_poc/tags.json')); print(f'tags.json: {len(t)} clips, fields: {len(t[0].keys())}')"
+# Expect: ~10,000 clips, 33 fields each
+```
+
+**Expected:** `outputs_poc/tags.json` with ~10K clips × 33 fields. ~45 min GPU.
+
+---
+
+## Step 4: V-JEPA 2 embeddings (streams from HF)
+
+V-JEPA 2 ViT-G (1B params, frozen) encodes each clip → 1408-dim embedding. Producer-consumer pipeline with torch.compile.
 
 ```bash
 python -u src/m05_vjepa_embed.py --FULL --subset data/subset_10k.json 2>&1 | tee logs/m05_vjepa_embed_poc.log
 ```
 
-**Step 5: FAISS metrics (requires Step 3 + Step 4 done)**
+### Verify Step 4 output
 
-| | Path |
-|---|---|
-| INPUT | `src/outputs_poc/embeddings.npy`, `src/outputs_poc/tags.json`, `src/utils/tag_taxonomy.json` |
-| OUTPUT | `src/outputs_poc/m06_metrics.json`, `src/outputs_poc/m06_*.{png,pdf}` |
+```bash
+python -c "
+import numpy as np
+emb = np.load('src/outputs_poc/embeddings.npy')
+paths = np.load('src/outputs_poc/embeddings.paths.npy', allow_pickle=True)
+print(f'embeddings.npy:       {emb.shape} (expect ~10000 x 1408)')
+print(f'embeddings.paths.npy: {len(paths)} clip keys')
+print(f'Shape match: {emb.shape[0] == len(paths)}')
+"
+```
+
+**Expected:** `embeddings.npy` (~10K × 1408), `embeddings.paths.npy` (10K keys). ~2h GPU.
+
+---
+
+## Step 5: FAISS 9-metric evaluation (requires Step 3 + Step 4)
+
+FAISS-GPU kNN index → 9 metrics in Easy/Hard mode + confidence sweep + multi-attribute slices. Saves knn_indices.npy for downstream plotting.
 
 ```bash
 python -u src/m06_faiss_metrics.py --FULL --subset data/subset_10k.json 2>&1 | tee logs/m06_faiss_metrics_poc.log
 ```
 
-**Step 6: UMAP + kNN plots (CPU)**
-
-| | Path |
-|---|---|
-| INPUT | `src/outputs_poc/embeddings.npy`, `src/outputs_poc/tags.json`, `src/outputs_poc/m06_metrics.json` |
-| OUTPUT | `src/outputs_poc/m07_umap.{png,pdf}`, `src/outputs_poc/m07_confusion_matrix.{png,pdf}`, `src/outputs_poc/m07_knn_grid.{png,pdf}` |
+### Verify Step 5 output
 
 ```bash
-python -u src/m07_umap_plot.py --FULL --subset data/subset_10k.json 2>&1 | tee logs/m07_umap_plot_poc.log
+# Metrics JSON
+python -c "
+import json
+m = json.load(open('src/outputs_poc/m06_metrics.json'))
+print(f'Easy Cycle@K:   {m[\"easy\"][\"cycle_at_k\"]:.1f}%')
+print(f'Easy Prec@K:    {m[\"easy\"][\"prec_at_k\"]:.1f}%')
+print(f'Hard Cycle@K:   {m[\"hard\"][\"cycle_at_k\"]:.1f}%')
+print(f'Hard Prec@K:    {m[\"hard\"][\"prec_at_k\"]:.1f}%')
+print(f'Silhouette:     {m[\"easy\"][\"silhouette\"]:.3f}')
+print(f'Conf sweep pts: {len(m[\"confidence_sweep\"])}')
+"
+
+# kNN indices + plots exist
+ls -la src/outputs_poc/knn_indices.npy
+ls -la src/outputs_poc/m06_*.png src/outputs_poc/m06_*.pdf
 ```
 
-**Estimated time (A100-40GB):** ~4h GPU + 25min CPU for POC (10K subset).
+**Expected:** `m06_metrics.json` (9 metrics × 2 modes), `knn_indices.npy`, 4 plots (.png + .pdf). ~5 min GPU.
 
 ---
 
-## Phase 3: Full Scale (115K, after POC validates) — FUTURE
+## Step 6: UMAP dimensionality reduction (GPU cuML)
 
-Same commands as Phase 2 but **without** `--subset` flag. Outputs go to `src/outputs/` instead of `src/outputs_poc/`.
+cuML GPU UMAP: 10K × 1408 → 10K × 2. Saves umap_2d.npy for CPU plotting.
 
 ```bash
-python -u src/m04_vlm_tag.py --model qwen --BAKEOFF 2>&1 | tee logs/m04_bakeoff_qwen.log
-python -u src/m04_vlm_tag.py --model videollama --BAKEOFF 2>&1 | tee logs/m04_bakeoff_videollama.log
-python -u src/m04_vlm_tag.py --model keye --BAKEOFF 2>&1 | tee logs/m04_bakeoff_keye.log
-python -u src/m04b_vlm_select.py 2>&1 | tee logs/m04b_vlm_select.log
-python -u src/m04_vlm_tag.py --model <winner> --FULL 2>&1 | tee logs/m04_full.log
-python -u src/m05_vjepa_embed.py --FULL 2>&1 | tee logs/m05_vjepa_embed_full.log
-python -u src/m06_faiss_metrics.py --FULL 2>&1 | tee logs/m06_faiss_metrics_full.log
-python -u src/m07_umap_plot.py --FULL 2>&1 | tee logs/m07_umap_plot_full.log
+python -u src/m07_umap.py --FULL --subset data/subset_10k.json 2>&1 | tee logs/m07_umap_poc.log
+```
+
+### Verify Step 6 output
+
+```bash
+python -c "import numpy as np; u = np.load('src/outputs_poc/umap_2d.npy'); print(f'umap_2d.npy: {u.shape} (expect ~10000 x 2)')"
+```
+
+**Expected:** `umap_2d.npy` (10K × 2). ~2 min GPU.
+
+---
+
+## Step 7: Visualization (CPU — no GPU needed)
+
+Reads pre-computed .npy files (embeddings, knn_indices, umap_2d) + tags.json → UMAP scatter, confusion matrix, kNN grid.
+
+```bash
+python -u src/m08_plot.py --FULL --subset data/subset_10k.json 2>&1 | tee logs/m08_plot_poc.log
+```
+
+### Verify Step 7 output
+
+```bash
+ls -la src/outputs_poc/m08_umap.{png,pdf}
+ls -la src/outputs_poc/m08_confusion_matrix.{png,pdf}
+ls -la src/outputs_poc/m08_knn_grid.{png,pdf}
+```
+
+**Expected:** 3 plots × 2 formats = 6 files. ~5 min CPU.
+
+---
+
+## Final Verification: All POC Outputs
+
+```bash
+echo "=== BAKEOFF OUTPUTS ==="
+ls -lh src/data/bakeoff/tags_*.json
+ls -lh src/data/bakeoff/vlm_comparison.*
+
+echo ""
+echo "=== POC OUTPUTS ==="
+ls -lh src/outputs_poc/tags.json
+ls -lh src/outputs_poc/embeddings.npy
+ls -lh src/outputs_poc/embeddings.paths.npy
+ls -lh src/outputs_poc/knn_indices.npy
+ls -lh src/outputs_poc/umap_2d.npy
+ls -lh src/outputs_poc/m06_metrics.json
+ls -lh src/outputs_poc/m06_*.png
+ls -lh src/outputs_poc/m08_*.png
+
+echo ""
+echo "=== METRICS SUMMARY ==="
+python -c "
+import json
+m = json.load(open('src/outputs_poc/m06_metrics.json'))
+print(f'Clips:          {m[\"num_clips\"]:,}')
+print(f'k_neighbors:    {m[\"k_neighbors\"]}')
+print(f'')
+print(f'          Easy     Hard')
+print(f'Cycle@K   {m[\"easy\"][\"cycle_at_k\"]:5.1f}%   {m[\"hard\"][\"cycle_at_k\"]:5.1f}%')
+print(f'Prec@K    {m[\"easy\"][\"prec_at_k\"]:5.1f}%   {m[\"hard\"][\"prec_at_k\"]:5.1f}%')
+print(f'mAP@K     {m[\"easy\"][\"map_at_k\"]:5.3f}    {m[\"hard\"][\"map_at_k\"]:5.3f}')
+print(f'nDCG@K    {m[\"easy\"][\"ndcg_at_k\"]:5.3f}    {m[\"hard\"][\"ndcg_at_k\"]:5.3f}')
+print(f'Silhouet  {m[\"easy\"][\"silhouette\"]:5.3f}    {m[\"hard\"][\"silhouette\"]:5.3f}')
+"
 ```
 
 ---
 
-## Execution Order (Dependency)
+## Timeline (RTX Pro 4000 — 24GB VRAM)
+
+| Step | Module | GPU? | Est. Time |
+|------|--------|------|-----------|
+| 1 | m04 BAKEOFF (3 VLMs × 2.5K) | GPU | ~1h |
+| 2 | m04b select winner | CPU | ~1 min |
+| 3 | m04 FULL (winner × 7.5K) | GPU | ~45 min |
+| 4 | m05 V-JEPA embed (10K) | GPU | ~2h |
+| 5 | m06 FAISS metrics | GPU | ~5 min |
+| 6 | m07 UMAP (cuML) | GPU | ~2 min |
+| 7 | m08 plots | CPU | ~5 min |
+| **Total** | | | **~4h GPU + ~10 min CPU** |
+
+---
+
+## Dependency Graph
 
 ```
-m00 → m00b → m01 → m02 → m02b → m03     [COMPLETED — Mac CPU]
-                                  ↓
-                               m00c        [COMPLETED — data/subset_10k.json]
-                                  ↓
-                    ┌─────────────┼──────────────┐
-                    ↓             ↓              ↓
-               m04 BAKEOFF    m04 BAKEOFF    m05 V-JEPA
-               (qwen)        (videollama)    (parallel)
-               m04 BAKEOFF
-               (keye)
-                    ↓
-                  m04b          (CPU — pick winner)
-                    ↓
-               m04 --FULL      (winner on remaining)
-                    ↓
-                    └─────────→ m06 ←───────┘
-                                 ↓
-                                m07
+Step 1: m04 --BAKEOFF (qwen)  ─┐
+Step 1: m04 --BAKEOFF (videollama) ─┤→ Step 2: m04b (pick winner) → Step 3: m04 --FULL (winner)
+Step 1: m04 --BAKEOFF (keye)  ─┘                                            │
+                                                                             ↓
+Step 4: m05 V-JEPA embed ──────────────────────────────────────────→ Step 5: m06 FAISS metrics
+                                                                             │
+                                                                             ↓
+                                                                     Step 6: m07 UMAP
+                                                                             │
+                                                                             ↓
+                                                                     Step 7: m08 plots
 ```
+
+NOTE: Step 4 (m05) has NO dependency on Steps 1-3. It can run in PARALLEL with the bake-off if you have 2 GPUs. On single GPU, run sequentially as listed above.
 
 All clips stream from HF — no local data/clips needed on GPU server.
-All architectural details, design decisions, and diagrams → see `plan_HIGH_LEVEL.md`
-
----
-
-## Known Issues (can only be resolved/tested on GPU)
-
-### Must verify on first GPU run
-
-| # | Module | Issue | What to check | Fix if it fails |
-|---|--------|-------|---------------|-----------------|
-| 1 | m04 | vLLM engine may fail on older CUDA drivers | `python -c "import vllm; print(vllm.__version__)"` | `pip install vllm --upgrade` or fall back to `--backend transformers` |
-| 2 | m05 | flash-attn import crash (needs CUDA compile) | `python -c "import flash_attn"` | `pip install flash-attn --no-build-isolation` or use pre-built wheel from `setup_env_uv.sh --gpu` |
-| 3 | m05 | `DEFAULT_BATCH_SIZE=16` may OOM without flash-attn | Monitor with `nvidia-smi` during first batch | Reduce: `--batch-size 8` or `--batch-size 4` |
-| 4 | m05 | `DECODE_WORKERS=4` may starve or over-subscribe CPU | Watch `htop` CPU usage + GPU util via `nvidia-smi dmon` | Tune: edit `DECODE_WORKERS` in m05 (try 2 or 8) |
-| 5 | m05 | HF streaming throughput may bottleneck on slow network | If `clips/s < 1.0` in progress log, network is the bottleneck | Use `HF_HUB_ENABLE_HF_TRANSFER=1` env var for faster downloads |
-| 6 | m06 | FAISS GPU index build may fail if `faiss-gpu` not installed | `python -c "import faiss; print(faiss.get_num_gpus())"` | `pip install faiss-gpu-cu12` (match CUDA version) |
-
-### Performance tuning (after POC runs)
-
-| # | Module | What to benchmark | Tuning lever |
-|---|--------|-------------------|--------------|
-| 7 | m05 | GPU utilization % (`nvidia-smi dmon -s u`) | If <50%: increase `--batch-size` to 32 or 64 |
-| 8 | m05 | Producer vs consumer balance | If GPU idle between batches: increase `PREFETCH_QUEUE_SIZE` from 2→4 |
-| 9 | m05 | Checkpoint I/O stall | If throughput drops every 500 clips: increase `CHECKPOINT_EVERY` to 2000 |
-| 10 | m04 | VLM inference speed across 3 models | Log `clips/s` per model; fastest model with good quality wins bakeoff |
-| 11 | m05 | Resume re-streams from clip 0 | On crash recovery at 80K+, expect ~10-30min of skip-through before GPU gets work. Track via `processed_keys` log |
-| 12 | m07 | kNN grid shows placeholder squares, not real frames | Expected — HF clip keys are not local paths. Real thumbnails only if clips exist locally |
-
-### Potential runtime errors
-
-| # | Module | Error | Cause | Resolution |
-|---|--------|-------|-------|------------|
-| 13 | m04 | `torch.cuda.OutOfMemoryError` | VLM batch too large | Reduce `TRANSFORMERS_BATCH_SIZE` (m04:522) from 4→2 |
-| 14 | m05 | `torch.cuda.OutOfMemoryError` | V-JEPA batch too large | `--batch-size 8` or `--batch-size 4` |
-| 15 | m05 | `ConnectionError` / `TimeoutError` during HF stream | Network instability | Auto-retries up to 5× with exponential backoff; if persistent, check HF status |
-| 16 | m05 | Slow resume after crash | Re-iterates entire HF stream to skip processed clips | Normal behavior; `processed_keys` set prevents duplicate embeddings |
-| 17 | m06 | `FATAL: N key mismatches between embeddings.paths.npy and tags.json` | m04 and m05 ran on different subsets or one crashed mid-run | Re-run whichever module was incomplete; keys must align |
-| 18 | all | `NameError: name 'torch' is not defined` | GPU packages not installed | `pip install -r requirements_gpu.txt` inside venv |
