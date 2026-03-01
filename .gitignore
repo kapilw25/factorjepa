@@ -69,6 +69,9 @@ src/data/
 # Generated on RTX PRO 6000 96GB via FAISS-GPU + cuML. Enables CPU-only plotting on M1 Mac (m08_plot.py).
 # Re-generation requires GPU: m05 (V-JEPA embed, ~90 min) → m06 (FAISS kNN) → m07 (cuML UMAP).
 
+# Large binary
+*.mp4
+
 # secrets
 cookies.txt
 YT_cookies_2.txt
