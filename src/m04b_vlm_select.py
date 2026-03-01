@@ -1,6 +1,8 @@
 """Bake-off: 5-criterion weighted VLM selection + 2x2 diagnostic dashboard.
     python -u src/m04b_vlm_select.py 2>&1 | tee logs/m04b_vlm_select.log
+    python -u src/m04b_vlm_select.py --SANITY 2>&1 | tee logs/m04b_sanity_select.log
 """
+import argparse
 import json
 import sys
 from collections import Counter
@@ -21,8 +23,6 @@ WEIGHTS = {
     "taxonomy":         0.15,  # % values within allowed categories
     "confidence_cal":   0.10,  # correlation(confidence, agreement)
 }
-
-OUTPUT_JSON = BAKEOFF_DIR / "vlm_comparison.json"
 
 
 # ── Load taxonomy ─────────────────────────────────────────────────────────
@@ -56,14 +56,18 @@ CONFIDENCE_FIELDS = [
 
 # ── Load bake-off tags ────────────────────────────────────────────────────
 
-def load_bakeoff_tags() -> dict:
-    """
-    Load tags_{model}.json for each VLM in BAKEOFF_DIR.
-    Returns: {model_name: [tag_dict, ...]}
-    """
+def load_bakeoff_tags(sanity: bool = False) -> dict:
+    """Load tag JSON files for each VLM. Returns: {model_name: [tag_dict, ...]}"""
     loaded = {}
+    if sanity:
+        tag_dir = OUTPUTS_DIR
+        pattern = "tags_sanity_{}.json"
+    else:
+        tag_dir = BAKEOFF_DIR
+        pattern = "tags_{}.json"
+
     for model_name in VLM_MODELS:
-        path = BAKEOFF_DIR / f"tags_{model_name}.json"
+        path = tag_dir / pattern.format(model_name)
         if not path.exists():
             print(f"WARNING: {path} not found, skipping {model_name}")
             continue
@@ -76,7 +80,7 @@ def load_bakeoff_tags() -> dict:
         print(f"Loaded {model_name}: {len(tags):,} clips from {path.name}")
 
     if len(loaded) < 2:
-        print(f"ERROR: Need at least 2 VLM bake-off files in {BAKEOFF_DIR}/")
+        print(f"ERROR: Need at least 2 VLM tag files in {tag_dir}/")
         print(f"Found: {list(loaded.keys())}")
         sys.exit(1)
 
@@ -287,7 +291,7 @@ def normalize_speed(speed_scores: dict) -> dict:
 
 # ── Plot ──────────────────────────────────────────────────────────────────
 
-def generate_comparison_plot(results: dict, winner: str):
+def generate_comparison_plot(results: dict, winner: str, output_dir: Path = BAKEOFF_DIR):
     """Generate radar + bar chart comparing VLMs (.png + .pdf)."""
     try:
         import matplotlib
@@ -344,11 +348,9 @@ def generate_comparison_plot(results: dict, winner: str):
 
     plt.tight_layout()
 
-    output_dir = BAKEOFF_DIR
     output_dir.mkdir(parents=True, exist_ok=True)
-
-    png_path = output_dir / "vlm_comparison.png"
-    pdf_path = output_dir / "vlm_comparison.pdf"
+    png_path = output_dir / "m04b_vlm_comparison.png"
+    pdf_path = output_dir / "m04b_vlm_comparison.pdf"
     plt.savefig(png_path, dpi=150)
     plt.savefig(pdf_path)
     plt.close()
@@ -403,7 +405,7 @@ def compute_dashboard_metrics(tags: list) -> dict:
     }
 
 
-def generate_dashboard_plot(all_tags: dict, model_names: list):
+def generate_dashboard_plot(all_tags: dict, model_names: list, output_dir: Path = BAKEOFF_DIR):
     """Generate 2x2 diagnostic dashboard (same layout as m04c_sanity_compare)."""
     try:
         import matplotlib
@@ -497,8 +499,8 @@ def generate_dashboard_plot(all_tags: dict, model_names: list):
 
     plt.tight_layout(rect=[0, 0, 1, 0.95])
 
-    png_path = BAKEOFF_DIR / "vlm_dashboard.png"
-    pdf_path = BAKEOFF_DIR / "vlm_dashboard.pdf"
+    png_path = output_dir / "m04b_vlm_dashboard.png"
+    pdf_path = output_dir / "m04b_vlm_dashboard.pdf"
     fig.savefig(png_path, dpi=150, bbox_inches="tight")
     fig.savefig(pdf_path, bbox_inches="tight")
     plt.close(fig)
@@ -508,14 +510,28 @@ def generate_dashboard_plot(all_tags: dict, model_names: list):
 
 # ── Main ──────────────────────────────────────────────────────────────────
 
+def parse_args():
+    parser = argparse.ArgumentParser(description="VLM bake-off selection")
+    parser.add_argument("--SANITY", action="store_true",
+                        help="Use SANITY tags (src/outputs/tags_sanity_*.json) instead of bakeoff")
+    return parser.parse_args()
+
+
 def main():
-    print(f"VLM Bake-off Selection")
-    print(f"Bakeoff dir: {BAKEOFF_DIR}")
+    args = parse_args()
+    sanity = args.SANITY
+
+    mode_label = "SANITY" if sanity else "BAKEOFF"
+    output_dir = OUTPUTS_DIR if sanity else BAKEOFF_DIR
+    output_json = output_dir / "m04b_vlm_comparison.json"
+
+    print(f"VLM Bake-off Selection  (mode={mode_label})")
+    print(f"Tag dir: {OUTPUTS_DIR if sanity else BAKEOFF_DIR}")
     print(f"Weights: {WEIGHTS}")
     print()
 
-    # Load all bake-off tags
-    all_tags = load_bakeoff_tags()
+    # Load tags
+    all_tags = load_bakeoff_tags(sanity=sanity)
     model_names = list(all_tags.keys())
     print(f"\nModels loaded: {model_names}")
 
@@ -575,7 +591,7 @@ def main():
 
     # Print results table
     print(f"\n{'='*70}")
-    print(f"{'VLM BAKE-OFF RESULTS':^70}")
+    print(f"{'VLM ' + mode_label + ' RESULTS':^70}")
     print(f"{'='*70}")
     print(f"{'Criterion':<25} {'Weight':>6}  ", end="")
     for m in model_names:
@@ -603,6 +619,7 @@ def main():
 
     # Save results
     output = {
+        "mode": mode_label,
         "winner": winner,
         "winner_model_id": VLM_MODELS.get(winner, winner),
         "weights": WEIGHTS,
@@ -610,18 +627,21 @@ def main():
         "models": results,
     }
 
-    OUTPUT_JSON.parent.mkdir(parents=True, exist_ok=True)
-    with open(OUTPUT_JSON, "w") as f:
+    output_dir.mkdir(parents=True, exist_ok=True)
+    with open(output_json, "w") as f:
         json.dump(output, f, indent=2)
-    print(f"\nSaved: {OUTPUT_JSON}")
+    print(f"\nSaved: {output_json}")
 
     # Generate plots
-    generate_comparison_plot(results, winner)
-    generate_dashboard_plot(all_tags, model_names)
+    generate_comparison_plot(results, winner, output_dir=output_dir)
+    generate_dashboard_plot(all_tags, model_names, output_dir=output_dir)
 
-    print(f"\n=== BAKE-OFF COMPLETE ===")
+    print(f"\n=== {mode_label} COMPLETE ===")
     print(f"Winner: {winner}")
-    print(f"Next: python -u src/m04_vlm_tag.py --model {winner} --FULL [--subset data/subset_10k.json]")
+    if sanity:
+        print(f"Note: SANITY results on {min_clips} clips — use --BAKEOFF for statistical significance")
+    else:
+        print(f"Next: python -u src/m04_vlm_tag.py --model {winner} --FULL [--subset data/subset_10k.json]")
 
 
 if __name__ == "__main__":

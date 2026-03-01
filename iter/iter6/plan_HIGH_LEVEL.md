@@ -87,7 +87,7 @@ flowchart LR
     end
 
     subgraph VJEPA ["V-JEPA BRANCH (GPU)"]
-        direction TB
+        direction LR
         E["V-JEPA 2<br>clip → 64 frm<br>ViT-G frozen"] --> F["FAISS kNN<br>IVF-PQ<br>Hard/Easy mode"]
         F --> G["METRICS<br>Cycle@K · Prec@K · Overlap@K<br>mAP@K · nDCG@K · Silhouette<br>Conf sweep · Multi-attr slices"]
         G --> H1["m07 UMAP<br>cuML GPU<br>→ umap_2d.npy"]

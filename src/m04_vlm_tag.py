@@ -8,6 +8,7 @@ USAGE:
     python -u src/m04_vlm_tag.py --model videollama --BAKEOFF --subset data/subset_10k.json 2>&1 | tee logs/m04_bakeoff_videollama_poc.log
     python -u src/m04_vlm_tag.py --model llava --BAKEOFF --subset data/subset_10k.json 2>&1 | tee logs/m04_bakeoff_llava_poc.log
     python -u src/m04_vlm_tag.py --model qwen --FULL --subset data/subset_10k.json 2>&1 | tee logs/m04_full_qwen_poc.log
+    python -u src/m04_vlm_tag.py --model qwen --plot-only --subset data/subset_10k.json 2>&1 | tee logs/m04_full_qwen_plot.log
     python -u src/m04_vlm_tag.py --model qwen --FULL 2>&1 | tee logs/m04_full_qwen.log
 """
 import argparse
@@ -35,7 +36,7 @@ from utils.config import (
     VLM_MODELS, BAKEOFF_CLIP_COUNT, BAKEOFF_DIR, OUTPUTS_POC_DIR,
     check_gpu, check_output_exists, load_subset, add_subset_arg,
 )
-from utils.gpu_batch import compute_batch_sizes, add_gpu_mem_arg
+from utils.gpu_batch import compute_batch_sizes, add_gpu_mem_arg, AdaptiveBatchSizer
 from utils.wandb_utils import (
     add_wandb_args, init_wandb, log_metrics, log_artifact, finish_wandb,
 )
@@ -144,15 +145,15 @@ def validate_mp4(path: str) -> bool:
 # VLM BACKEND ABC
 # ═════════════════════════════════════════════════════════════════════════
 
-PREPROCESS_WORKERS = 4
-
-
 class VLMBackend(ABC):
     """Abstract base class for VLM tagging backends."""
+
+    PREPROCESS_WORKERS = 4  # Default; subclasses override
 
     def __init__(self, model_name: str, model_id: str):
         self.model_name = model_name
         self.model_id = model_id
+        self.batch_sizer = None  # Set by worker_main() after load_model()
 
     @abstractmethod
     def load_model(self) -> None:
@@ -164,12 +165,89 @@ class VLMBackend(ABC):
 
     def preprocess_batch(self, batch: list, tmp_dir: str) -> list:
         """Parallel preprocessing via ThreadPoolExecutor."""
-        with ThreadPoolExecutor(max_workers=PREPROCESS_WORKERS) as pool:
+        with ThreadPoolExecutor(max_workers=self.PREPROCESS_WORKERS) as pool:
             return list(pool.map(lambda ex: self.preprocess_one(ex, tmp_dir), batch))
 
-    @abstractmethod
     def generate_batch(self, preprocessed: list, batch: list) -> list:
-        """Run inference on preprocessed batch. Returns list of tag dicts (one per clip)."""
+        """Orchestrate adaptive sub-batching with OOM recovery.
+
+        Filters None-preprocessed → dummy tags, then processes valid items
+        in sub-batches sized by self.batch_sizer. On OOM: halve sub-batch,
+        empty_cache, retry. Cleanup happens OUTSIDE except block (fairseq pattern).
+        """
+        import torch
+
+        results = [None] * len(batch)
+
+        # Fill None-preprocessed slots with dummy tags
+        valid = []
+        for i, pp in enumerate(preprocessed):
+            if pp is None:
+                results[i] = get_dummy_tag()
+            else:
+                valid.append((i, pp))
+
+        if not valid:
+            return results
+
+        # No sizer configured → process all valid items in one call (legacy path)
+        if self.batch_sizer is None:
+            sub_results = self._generate_subbatch([pp for _, pp in valid])
+            for (orig_idx, _), tag in zip(valid, sub_results):
+                results[orig_idx] = tag
+            return results
+
+        # Process valid items in adaptive sub-batches
+        idx = 0
+        while idx < len(valid):
+            sub_size = min(self.batch_sizer.size, len(valid) - idx)
+            sub_items = valid[idx:idx + sub_size]
+            sub_pp = [pp for _, pp in sub_items]
+
+            oom = False
+            sub_results = None
+            try:
+                sub_results = self._generate_subbatch(sub_pp)
+            except torch.cuda.OutOfMemoryError:
+                oom = True
+
+            # CRITICAL: cleanup OUTSIDE except block (exception holds stack frame
+            # references → prevents tensor deallocation if cleaned inside except)
+            if oom:
+                gc.collect()
+                torch.cuda.empty_cache()
+                if not self.batch_sizer.on_oom():
+                    # At min size, still OOM → dummy-tag this sub-batch, move on
+                    for orig_idx, _ in sub_items:
+                        results[orig_idx] = get_dummy_tag()
+                    self._cleanup_preprocessed(sub_pp)
+                    idx += sub_size
+                continue  # retry same sub_items with reduced size (idx not advanced)
+
+            # Success — map results back
+            for (orig_idx, _), tag in zip(sub_items, sub_results):
+                results[orig_idx] = tag
+            idx += sub_size
+            self.batch_sizer.after_batch_success()
+
+        return results
+
+    @abstractmethod
+    def _generate_subbatch(self, items: list[dict]) -> list[dict]:
+        """Run inference on a sub-batch of preprocessed items (all non-None).
+
+        Args:
+            items: List of preprocessed dicts from preprocess_one() (guaranteed non-None).
+        Returns:
+            List of tag dicts, same length as items.
+        """
+
+    def _cleanup_preprocessed(self, items: list[dict]) -> None:
+        """Optional hook: clean up preprocessed resources when items are dummy-tagged.
+
+        Called by generate_batch() when OOM at min sub-batch forces dummy-tagging.
+        Override in backends that create temp files (e.g., VideoLLaMA3).
+        """
 
     @abstractmethod
     def cleanup(self) -> None:
@@ -177,11 +255,13 @@ class VLMBackend(ABC):
 
 
 # ═════════════════════════════════════════════════════════════════════════
-# BACKEND: Qwen3-VL-8B (transformers, sequential inference)
+# BACKEND: Qwen3-VL-8B (transformers, batched inference)
 # ═════════════════════════════════════════════════════════════════════════
 
 class QwenBackend(VLMBackend):
-    """Qwen3-VL-8B via transformers. Sequential inference with direct memory control."""
+    """Qwen3-VL-8B via transformers. Batched model.generate() with adaptive sub-batching."""
+
+    PREPROCESS_WORKERS = 6  # Heavy CPU work (decord decode via process_vision_info) in preprocess_one
 
     def __init__(self):
         super().__init__("qwen", VLM_MODELS["qwen"])
@@ -204,8 +284,11 @@ class QwenBackend(VLMBackend):
         print(f"Qwen loaded via transformers (FA2)")
 
     def preprocess_one(self, example: dict, tmp_dir: str) -> dict | None:
+        """Write mp4 → decode video (decord, fps=1) → template text. Runs in ThreadPoolExecutor."""
         tmp_path = None
         try:
+            from qwen_vl_utils import process_vision_info
+
             mp4_data = example["mp4"]
             mp4_bytes = mp4_data["bytes"] if isinstance(mp4_data, dict) else mp4_data
             key = example.get("__key__", "unknown")
@@ -217,47 +300,109 @@ class QwenBackend(VLMBackend):
             if not validate_mp4(tmp_path):
                 return None
 
-            return {"video_path": tmp_path, "key": key}
+            # CPU-heavy: video decode + frame sampling (thread-safe)
+            messages = [{"role": "user", "content": [
+                {"type": "video", "video": tmp_path, "max_pixels": 360 * 420, "fps": 1.0},
+                {"type": "text", "text": TAG_PROMPT},
+            ]}]
+
+            text = self.processor.apply_chat_template(
+                messages, tokenize=False, add_generation_prompt=True
+            )
+            _image_inputs, video_inputs, video_kwargs = process_vision_info(
+                messages, return_video_kwargs=True
+            )
+
+            return {
+                "text": text,
+                "video_inputs": video_inputs,
+                "video_kwargs": video_kwargs,
+                "key": key,
+            }
         except Exception as e:
             print(f"  WARN: qwen preprocess failed ({example.get('__key__', '?')}): {e}")
+            return None
+        finally:
+            # Delete temp file immediately — video already decoded into tensors
             if tmp_path and os.path.exists(tmp_path):
                 try:
                     os.unlink(tmp_path)
                 except OSError:
                     pass
-            return None
 
-    def generate_batch(self, preprocessed: list, batch: list) -> list:
+    def _generate_subbatch(self, items: list[dict]) -> list[dict]:
+        """Batched model.generate(). OOM propagates to base class AdaptiveBatchSizer."""
         import torch
-        from qwen_vl_utils import process_vision_info
+
+        try:
+            return self._generate_batched(items)
+        except torch.cuda.OutOfMemoryError:
+            raise  # → base class handles via AdaptiveBatchSizer
+        except Exception as e:
+            print(f"  WARN: qwen batched inference failed ({e}), per-clip fallback")
+            return self._generate_per_clip(items)
+
+    def _generate_batched(self, items: list[dict]) -> list[dict]:
+        """True batched path: single processor() + single model.generate()."""
+        import torch
+
+        # Collect texts and video inputs across the sub-batch
+        texts = [pp["text"] for pp in items]
+        all_videos = []
+        all_fps = []
+        for pp in items:
+            all_videos.extend(pp["video_inputs"])
+            all_fps.extend(pp["video_kwargs"].get("fps", []))
+
+        merged_kwargs = {}
+        if all_fps:
+            merged_kwargs = {"do_sample_frames": False, "fps": all_fps}
+
+        # Batched tokenization + vision processing (left-pad for decoder-only generation)
+        self.processor.tokenizer.padding_side = "left"
+        inputs = self.processor(
+            text=texts,
+            videos=all_videos,
+            return_tensors="pt",
+            padding=True,
+            **merged_kwargs,
+        ).to(self.model.device)
+
+        # Single batched generate
+        with torch.no_grad():
+            output_ids = self.model.generate(
+                **inputs,
+                max_new_tokens=512,
+                temperature=0.1,
+                do_sample=True,
+                pad_token_id=self.processor.tokenizer.pad_token_id,
+            )
+
+        # Strip input tokens (left-padded → all input_ids same length)
+        seq_len = inputs["input_ids"].shape[1]
+        responses = self.processor.batch_decode(
+            output_ids[:, seq_len:], skip_special_tokens=True
+        )
 
         results = []
-        for i, example in enumerate(batch):
-            pp = preprocessed[i]
-            if pp is None:
-                results.append(get_dummy_tag())
-                continue
+        for resp in responses:
+            tags = parse_json_output(resp)
+            results.append(tags if tags is not None else get_dummy_tag())
+        return results
 
-            video_path = pp["video_path"]
+    def _generate_per_clip(self, items: list[dict]) -> list[dict]:
+        """Per-clip fallback using already-decoded video tensors from preprocess_one."""
+        import torch
+
+        results = []
+        for pp in items:
             try:
-                messages = [{"role": "user", "content": [
-                    {"type": "video", "video": video_path, "max_pixels": 360 * 420, "fps": 1.0},
-                    {"type": "text", "text": TAG_PROMPT},
-                ]}]
-
-                text = self.processor.apply_chat_template(
-                    messages, tokenize=False, add_generation_prompt=True
-                )
-                image_inputs, video_inputs, video_kwargs = process_vision_info(
-                    messages, return_video_kwargs=True
-                )
-
                 inputs = self.processor(
-                    text=[text],
-                    videos=video_inputs,
+                    text=[pp["text"]],
+                    videos=pp["video_inputs"],
                     return_tensors="pt",
                     padding=True,
-                    **video_kwargs,
+                    **pp["video_kwargs"],
                 ).to(self.model.device)
 
                 with torch.no_grad():
@@ -268,20 +413,10 @@ class QwenBackend(VLMBackend):
                 response = self.processor.decode(generated, skip_special_tokens=True)
 
                 tags = parse_json_output(response)
-                if tags is None:
-                    tags = get_dummy_tag()
-                results.append(tags)
-
+                results.append(tags if tags is not None else get_dummy_tag())
             except Exception as e:
-                print(f"  WARN: qwen inference failed ({pp['key']}): {e}")
+                print(f"  WARN: qwen per-clip failed ({pp['key']}): {e}")
                 results.append(get_dummy_tag())
-            finally:
-                if os.path.exists(video_path):
-                    try:
-                        os.unlink(video_path)
-                    except OSError:
-                        pass
-
         return results
 
     def cleanup(self):
@@ -296,11 +431,12 @@ class QwenBackend(VLMBackend):
 
 
 # ═════════════════════════════════════════════════════════════════════════
-# BACKEND: VideoLLaMA3-7B (transformers, sequential inference)
+# BACKEND: VideoLLaMA3-7B (transformers, batched inference)
 # ═════════════════════════════════════════════════════════════════════════
 
 class VideoLLaMA3Backend(VLMBackend):
-    """VideoLLaMA3-7B via transformers. Best MLVU + PerceptionTest, SigLIP encoder."""
+    """VideoLLaMA3-7B via transformers. Per-clip inference (token compression enforces batch_size=1).
+    Processor is NOT thread-safe (trust_remote_code) — kept in GPU thread."""
 
     def __init__(self):
         super().__init__("videollama", VLM_MODELS["videollama"])
@@ -333,6 +469,7 @@ class VideoLLaMA3Backend(VLMBackend):
         print(f"VideoLLaMA3 loaded via transformers (FA2)")
 
     def preprocess_one(self, example: dict, tmp_dir: str) -> dict | None:
+        """Write mp4 + validate. Processor call stays in GPU thread (not thread-safe)."""
         tmp_path = None
         try:
             mp4_data = example["mp4"]
@@ -356,16 +493,12 @@ class VideoLLaMA3Backend(VLMBackend):
                     pass
             return None
 
-    def generate_batch(self, preprocessed: list, batch: list) -> list:
+    def _generate_subbatch(self, items: list[dict]) -> list[dict]:
+        """Per-clip sequential: processor + model.generate() in GPU thread."""
         import torch
 
         results = []
-        for i, example in enumerate(batch):
-            pp = preprocessed[i]
-            if pp is None:
-                results.append(get_dummy_tag())
-                continue
-
+        for pp in items:
             video_path = pp["video_path"]
             try:
                 conversation = [
@@ -390,12 +523,9 @@ class VideoLLaMA3Backend(VLMBackend):
                 )[0].strip()
 
                 tags = parse_json_output(response)
-                if tags is None:
-                    tags = get_dummy_tag()
-                results.append(tags)
-
+                results.append(tags if tags is not None else get_dummy_tag())
             except Exception as e:
-                print(f"  WARN: videollama inference failed ({pp['key']}): {e}")
+                print(f"  WARN: videollama per-clip failed ({pp['key']}): {e}")
                 results.append(get_dummy_tag())
             finally:
                 if os.path.exists(video_path):
@@ -403,7 +533,6 @@ class VideoLLaMA3Backend(VLMBackend):
                         os.unlink(video_path)
                     except OSError:
                         pass
-
         return results
 
     def cleanup(self):
@@ -418,14 +547,16 @@ class VideoLLaMA3Backend(VLMBackend):
 
 
 # ═════════════════════════════════════════════════════════════════════════
-# BACKEND: LLaVA-NeXT-Video-7B (native transformers, sequential inference)
+# BACKEND: LLaVA-NeXT-Video-7B (native transformers, batched inference)
 # ═════════════════════════════════════════════════════════════════════════
 
 LLAVA_NUM_FRAMES = 16  # 8-32 range; 16 balances detail vs VRAM on 24GB
 
 
 class LLaVANextBackend(VLMBackend):
-    """LLaVA-NeXT-Video-7B via native transformers. No trust_remote_code needed."""
+    """LLaVA-NeXT-Video-7B via native transformers. Batched model.generate()."""
+
+    PREPROCESS_WORKERS = 4  # Already does heavy work (PyAV frame decode)
 
     def __init__(self):
         super().__init__("llava", VLM_MODELS["llava"])
@@ -443,11 +574,13 @@ class LLaVANextBackend(VLMBackend):
             torch_dtype=torch.float16,
             device_map="auto",
             low_cpu_mem_usage=True,
+            attn_implementation="flash_attention_2",
         )
         self.model.eval()
-        print(f"LLaVA-NeXT-Video loaded via transformers (native)")
+        print(f"LLaVA-NeXT-Video loaded via transformers (FA2)")
 
     def preprocess_one(self, example: dict, tmp_dir: str) -> dict | None:
+        """PyAV frame decode (CPU-heavy). Runs in ThreadPoolExecutor. No temp files."""
         try:
             import av
             import io
@@ -479,23 +612,82 @@ class LLaVANextBackend(VLMBackend):
             if len(frames) == 0:
                 return None
 
-            clip = np.stack(frames)
+            clip = np.stack(frames)  # (N, H, W, 3)
+
+            # Pad to LLAVA_NUM_FRAMES for uniform batching (repeat last frame)
+            if clip.shape[0] < LLAVA_NUM_FRAMES:
+                pad = np.repeat(clip[-1:], LLAVA_NUM_FRAMES - clip.shape[0], axis=0)
+                clip = np.concatenate([clip, pad], axis=0)
+
             return {"clip": clip, "key": key}
 
         except Exception as e:
             print(f"  WARN: llava preprocess failed ({example.get('__key__', '?')}): {e}")
             return None
 
-    def generate_batch(self, preprocessed: list, batch: list) -> list:
+    def _generate_subbatch(self, items: list[dict]) -> list[dict]:
+        """Batched model.generate(). OOM propagates to base class AdaptiveBatchSizer."""
+        import torch
+
+        try:
+            return self._generate_batched(items)
+        except torch.cuda.OutOfMemoryError:
+            raise  # → base class handles via AdaptiveBatchSizer
+        except Exception as e:
+            print(f"  WARN: llava batched inference failed ({e}), per-clip fallback")
+            return self._generate_per_clip(items)
+
+    def _generate_batched(self, items: list[dict]) -> list[dict]:
+        """True batched path: processor natively batches text+videos → single model.generate()."""
+        import torch
+
+        # Same prompt for all clips (tag prompt is fixed)
+        conversation = [{"role": "user", "content": [
+            {"type": "text", "text": TAG_PROMPT},
+            {"type": "video"},
+        ]}]
+        prompt = self.processor.apply_chat_template(
+            conversation, add_generation_prompt=True
+        )
+
+        # Batched processor call — handles tokenization, video processing, left-padding
+        # pixel_values_videos is stacked (5D) because LLAVA_NUM_FRAMES=16 is fixed
+        prompts = [prompt] * len(items)
+        clips = [pp["clip"] for pp in items]
+
+        self.processor.tokenizer.padding_side = "left"
+        inputs = self.processor(
+            text=prompts, videos=clips,
+            padding=True, return_tensors="pt",
+        ).to(self.model.device)
+
+        # Single batched generate
+        with torch.no_grad():
+            output_ids = self.model.generate(
+                **inputs,
+                max_new_tokens=512,
+                do_sample=False,
+                pad_token_id=self.processor.tokenizer.pad_token_id,
+            )
+
+        # Strip input tokens (left-padded → all same length)
+        seq_len = inputs["input_ids"].shape[1]
+        responses = self.processor.batch_decode(
+            output_ids[:, seq_len:], skip_special_tokens=True
+        )
+
+        results = []
+        for resp in responses:
+            tags = parse_json_output(resp)
+            results.append(tags if tags is not None else get_dummy_tag())
+        return results
+
+    def _generate_per_clip(self, items: list[dict]) -> list[dict]:
+        """Per-clip fallback using already-decoded numpy clips from preprocess_one."""
         import torch
 
         results = []
-        for i, example in enumerate(batch):
-            pp = preprocessed[i]
-            if pp is None:
-                results.append(get_dummy_tag())
-                continue
-
+        for pp in items:
             try:
                 conversation = [{"role": "user", "content": [
                     {"type": "text", "text": TAG_PROMPT},
@@ -518,12 +710,9 @@ class LLaVANextBackend(VLMBackend):
                 response = self.processor.decode(generated, skip_special_tokens=True)
 
                 tags = parse_json_output(response)
-                if tags is None:
-                    tags = get_dummy_tag()
-                results.append(tags)
-
+                results.append(tags if tags is not None else get_dummy_tag())
             except Exception as e:
-                print(f"  WARN: llava inference failed ({pp['key']}): {e}")
+                print(f"  WARN: llava per-clip failed ({pp['key']}): {e}")
                 results.append(get_dummy_tag())
 
         return results
@@ -559,7 +748,7 @@ TRANSFORMERS_BATCH_SIZE = 4
 CHECKPOINT_EVERY = 500
 ENGINE_RESTART_EVERY = 10_000
 MAX_STREAM_RETRIES = 5
-PREFETCH_QUEUE_SIZE = 2
+PREFETCH_QUEUE_SIZE = 4  # Batched generate is faster → producer needs more buffer
 TOTAL_CLIPS = 115_687
 PROMPT_VERSION = "v1.0"
 
@@ -642,12 +831,19 @@ def load_checkpoint(tags_file: Path) -> tuple[list, int]:
 # PROVENANCE (per-clip metadata appended after inference)
 # ═════════════════════════════════════════════════════════════════════════
 
-def add_provenance(tags: dict, example: dict, model_id: str) -> dict:
+def add_provenance(tags: dict, example: dict, model_id: str,
+                    timestamp: float | None = None) -> dict:
     """Merge metadata + tags + provenance into final clip record."""
     meta = example.get("json", {})
     if isinstance(meta, (bytes, str)):
         meta = json.loads(meta) if meta else {}
     key = example.get("__key__", "")
+
+    if timestamp is not None:
+        ts_str = datetime.fromtimestamp(timestamp, tz=timezone.utc).strftime(
+            "%Y-%m-%dT%H:%M:%S.%fZ")
+    else:
+        ts_str = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.%fZ")
 
     return {
         "__key__": key,
@@ -655,7 +851,7 @@ def add_provenance(tags: dict, example: dict, model_id: str) -> dict:
         **tags,
         "_model": model_id,
         "_prompt_version": PROMPT_VERSION,
-        "_tagged_at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+        "_tagged_at": ts_str,
     }
 
 
@@ -771,10 +967,16 @@ def stream_and_tag(backend: VLMBackend, args,
             if msg_type == "done":
                 break
 
+            batch_t0 = time.time()
             tag_list = backend.generate_batch(preprocessed, batch)
+            batch_t1 = time.time()
 
-            for example, tags in zip(batch, tag_list):
-                record = add_provenance(tags, example, backend.model_id)
+            # Interpolate _tagged_at across batch duration (real inference time)
+            batch_dur = batch_t1 - batch_t0
+            for idx, (example, tags) in enumerate(zip(batch, tag_list)):
+                frac = idx / max(len(batch) - 1, 1)
+                clip_time = batch_t0 + frac * batch_dur
+                record = add_provenance(tags, example, backend.model_id, clip_time)
                 all_tags.append(record)
 
             clips_this_run += len(batch)
@@ -922,7 +1124,14 @@ def worker_main(args):
     backend_cls = BACKENDS[args.model]
     backend = backend_cls()
     backend.load_model()
-    print(f"Backend loaded: {backend.model_name} | batch_size={args.batch_size}")
+
+    # Adaptive sub-batch sizing: initial from VRAM scaling, max = producer batch size
+    sub_batch_size = batch_sizes["transformers_batch"]
+    backend.batch_sizer = AdaptiveBatchSizer(
+        initial_size=sub_batch_size,
+        max_size=args.batch_size,
+    )
+    print(f"Backend loaded: {backend.model_name} | batch_size={args.batch_size} | {backend.batch_sizer}")
 
     stream_and_tag(
         backend, args,
@@ -985,7 +1194,7 @@ def stream_and_tag_dummy(args) -> list:
 # ═════════════════════════════════════════════════════════════════════════
 
 def generate_plot(all_tags: list, model_name: str, output_dir: Path = None):
-    """Generate scene distribution bar chart (.png + .pdf)."""
+    """Generate scene distribution + full taxonomy distribution plots (.png + .pdf)."""
     try:
         import matplotlib
         matplotlib.use("Agg")
@@ -993,11 +1202,13 @@ def generate_plot(all_tags: list, model_name: str, output_dir: Path = None):
     except ImportError:
         print("WARNING: matplotlib not available, skipping plot")
         return
+    from collections import Counter
 
     if output_dir is None:
         output_dir = OUTPUTS_DIR
     output_dir.mkdir(parents=True, exist_ok=True)
 
+    # ── 1. Scene type bar chart (single key, backward compat) ──
     scene_counts = {}
     for t in all_tags:
         st = t.get("scene_type", "unknown")
@@ -1023,13 +1234,79 @@ def generate_plot(all_tags: list, model_name: str, output_dir: Path = None):
     plt.xticks(rotation=45, ha='right')
     plt.tight_layout()
 
-    plot_png = output_dir / f"m04_scene_distribution_{model_name}.png"
-    plot_pdf = output_dir / f"m04_scene_distribution_{model_name}.pdf"
-    plt.savefig(plot_png, dpi=150)
-    plt.savefig(plot_pdf)
+    for ext in ('png', 'pdf'):
+        path = output_dir / f"m04_scene_distribution_{model_name}.{ext}"
+        plt.savefig(path, dpi=150, bbox_inches='tight')
+        print(f"Saved: {path}")
     plt.close()
-    print(f"Saved: {plot_png}")
-    print(f"Saved: {plot_pdf}")
+
+    # ── 2. Full taxonomy distribution (all 11 keys) ──
+    tag_keys = [k for k in TAXONOMY]
+    n_keys = len(tag_keys)
+    cols = 4
+    rows = (n_keys + cols) // cols  # extra slot for info panel
+    fig, axes = plt.subplots(rows, cols, figsize=(24, 5 * rows))
+    axes = axes.flatten()
+    palette = plt.cm.tab20.colors + plt.cm.tab20b.colors  # 40 distinct colors
+
+    for idx, key in enumerate(tag_keys):
+        ax = axes[idx]
+        meta = TAXONOMY[key]
+        tax_values = meta.get("values", [])
+
+        counts = Counter()
+        for clip in all_tags:
+            val = clip.get(key)
+            if val is None:
+                counts["MISSING"] += 1
+            elif isinstance(val, list):
+                for v in val:
+                    counts[v] += 1
+            else:
+                counts[str(val)] += 1
+
+        # Order: taxonomy values first, then off-taxonomy by count
+        ordered = []
+        remaining = dict(counts)
+        for v in tax_values:
+            if v in remaining:
+                ordered.append((v, remaining.pop(v)))
+        for v, c in sorted(remaining.items(), key=lambda x: -x[1]):
+            ordered.append((v, c))
+
+        labels = [x[0] for x in ordered]
+        values = [x[1] for x in ordered]
+        bar_colors = [palette[i % len(palette)] for i in range(len(labels))]
+
+        bars = ax.bar(range(len(labels)), values, color=bar_colors)
+        ax.set_xticks(range(len(labels)))
+        ax.set_xticklabels(labels, rotation=45, ha='right', fontsize=8)
+        ax.set_title(f'{key} ({meta["type"]})', fontsize=12, fontweight='bold')
+        ax.set_ylabel('Count')
+
+        for bar, val in zip(bars, values):
+            if val > 0:
+                ax.text(bar.get_x() + bar.get_width() / 2,
+                        bar.get_height() + max(values) * 0.01,
+                        str(val), ha='center', va='bottom', fontsize=7)
+
+    # Hide unused subplots, use last for info
+    for i in range(n_keys, len(axes)):
+        axes[i].axis('off')
+    axes[n_keys].text(0.5, 0.5,
+                      f'WalkIndia-200K\n{model_name}\n{len(all_tags):,} clips',
+                      ha='center', va='center', fontsize=14,
+                      transform=axes[n_keys].transAxes)
+
+    fig.suptitle(f'Full Taxonomy Distribution — {model_name} (n={len(all_tags):,} clips)',
+                 fontsize=16, fontweight='bold')
+    plt.tight_layout(rect=[0, 0, 1, 0.96])
+
+    for ext in ('png', 'pdf'):
+        path = output_dir / f"m04_taxonomy_distribution_{model_name}.{ext}"
+        fig.savefig(path, dpi=150, bbox_inches='tight')
+        print(f"Saved: {path}")
+    plt.close()
 
 
 # ═════════════════════════════════════════════════════════════════════════
@@ -1047,6 +1324,8 @@ def main():
                         help=f"Bake-off mode: tag first {BAKEOFF_CLIP_COUNT} clips")
     parser.add_argument("--FULL", action="store_true", help="Process all clips")
     parser.add_argument("--dummy", action="store_true", help="Dummy tags (no GPU)")
+    parser.add_argument("--plot-only", action="store_true",
+                        help="Regenerate plots from existing tags (no GPU)")
     parser.add_argument("--batch-size", type=int, default=None,
                         help="Override batch size")
     add_subset_arg(parser)
@@ -1065,15 +1344,26 @@ def main():
         worker_main(args)
         return
 
-    if not (args.SANITY or args.BAKEOFF or args.FULL):
+    if not (args.SANITY or args.BAKEOFF or args.FULL or args.plot_only):
         parser.print_help()
-        print("\nERROR: Specify --SANITY, --BAKEOFF, or --FULL")
+        print("\nERROR: Specify --SANITY, --BAKEOFF, --FULL, or --plot-only")
         sys.exit(1)
 
     tags_file = get_tags_file(args.model, args.BAKEOFF, args.subset, is_sanity=args.SANITY)
     print(f"Model:   {args.model} ({VLM_MODELS[args.model]})")
-    print(f"Mode:    {'SANITY' if args.SANITY else 'BAKEOFF' if args.BAKEOFF else 'FULL'}")
     print(f"Output:  {tags_file}")
+
+    # --plot-only: regenerate plots from existing tags, no GPU needed
+    if args.plot_only:
+        all_tags, count = load_checkpoint(tags_file)
+        if count == 0:
+            print(f"ERROR: No tags found at {tags_file}")
+            sys.exit(1)
+        print(f"Loaded {count:,} tags, regenerating plots...")
+        generate_plot(all_tags, args.model, tags_file.parent)
+        return
+
+    print(f"Mode:    {'SANITY' if args.SANITY else 'BAKEOFF' if args.BAKEOFF else 'FULL'}")
     if args.subset:
         print(f"Subset:  {args.subset}")
 

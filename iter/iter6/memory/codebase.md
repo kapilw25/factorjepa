@@ -16,15 +16,15 @@
   - Output BAKEOFF: src/data/bakeoff/tags_{model}.json
   - Output FULL+subset: src/outputs_poc/tags.json
   - Output FULL: src/outputs/tags.json
-  - env vars: VLLM_USE_V1=0, OMP_NUM_THREADS=1
+  - env vars: OMP_NUM_THREADS=1
 
 - **m04b_vlm_select.py**: CPU-only. 5-criterion weighted comparison (JSON parse 30%, agreement 25%, speed 20%, taxonomy 15%, conf calibration 10%). Reads 3 bakeoff JSONs. Output: src/data/bakeoff/vlm_comparison.json + .png/.pdf + vlm_dashboard.{png,pdf} (2x2 diagnostic)
 
 - **m04c_sanity_compare.py**: CPU-only. Reads 3 tags_sanity_{model}.json files, computes 4 metrics (parse rate, scene diversity, confidence calibration, on/off-taxonomy objects), generates 2x2 dashboard. Output: src/outputs/m04c_sanity_compare.{png,pdf}
 
-- **m05_vjepa_embed.py**: V-JEPA 2 ViT-G (1B params, frozen, float16, FA2, torch.compile). Producer-consumer: HF stream → parallel decode (torchcodec or PyAV) → GPU inference. Async checkpoints (.npz). Cosine dedup (threshold 0.95). Output: embeddings.npy + embeddings.paths.npy
+- **m05_vjepa_embed.py**: V-JEPA 2 ViT-G (1B params, frozen, float16, FA2, torch.compile). Requires flash-attn (FATAL exit if missing). Producer-consumer: HF stream → parallel decode (torchcodec or PyAV) → GPU inference. Async checkpoints (.npz). Cosine dedup (threshold 0.95). Output: embeddings.npy + embeddings.paths.npy
 
-- **m06_faiss_metrics.py**: FAISS-GPU IVFFlat index. 9 metrics in Easy/Hard mode. Hard = exclude ±30s same video. Metrics: Cycle@K, Overlap@K (dim-split approx), Silhouette, Prec@K, mAP@K, nDCG@K, per-scene purity, multi-attr slices, confidence sweep. Saves knn_indices.npy for m08.
+- **m06_faiss_metrics.py**: FAISS-GPU IndexFlatL2 (<1000) or IndexIVFFlat (≥1000). 9 metrics in Easy/Hard mode. Hard = exclude ±30s same video. Metrics: Cycle@K, Overlap@K (dim-split approx), Silhouette, Prec@K, mAP@K, nDCG@K, per-scene purity, multi-attr slices, confidence sweep. Saves knn_indices.npy for m08.
 
 - **m07_umap.py**: cuML GPU UMAP (n_components=2, n_neighbors=15, min_dist=0.1). Output: umap_2d.npy
 

@@ -6,29 +6,88 @@
 #   chmod +x setup_env_uv.sh
 #
 #   # M1 Mac (CPU-based: download, scene detect, UMAP)
-#   ./setup_env_uv.sh --mac
+#   ./setup_env_uv.sh --mac 2>&1 | tee logs/setup_env_cpu.log
 #
 #   # GPU Server (V-JEPA, Qwen-VL, FAISS) - Nvidia GPU ONLY
-#   ./setup_env_uv.sh --gpu
+#   ./setup_env_uv.sh --gpu 2>&1 | tee logs/setup_env_gpu.log
+#
+#   # GPU Server with prebuilt wheels (skip FA2 + FAISS source build)
+#   ./setup_env_uv.sh --gpu --from-wheels 2>&1 | tee logs/setup_env_gpu.log
 #
 #   # Activate
-#   # source venv_walkindia/bin/activate
+#   # source venv_walkindia/bin/activate # replace    
 # ============================================================================
 
 set -e  # Exit on error
+
+# ============================================================================
+# Pinned versions (Blackwell sm_120 + CUDA 12.8 + Python 3.12)
+# ============================================================================
+TORCH_VERSION="2.12.0.dev20260228"  # PyTorch nightly cu128 — pinned for FA2 wheel compat
+RELEASE_TAG="sm120-cu128-py312"     # GitHub release tag for prebuilt FA2 + FAISS wheels
+
+# ============================================================================
+# Parse flags
+# ============================================================================
+FROM_WHEELS=false
+for arg in "$@"; do
+    if [ "$arg" = "--from-wheels" ]; then
+        FROM_WHEELS=true
+    fi
+done
 
 # Show usage if no flag provided
 if [ -z "$1" ]; then
     echo "Error: No flag provided"
     echo ""
     echo "Usage:"
-    echo "  ./setup_env_uv.sh --mac   # M1 Mac (CPU-based)"
-    echo "  ./setup_env_uv.sh --gpu   # GPU Server (Nvidia ONLY)"
+    echo "  ./setup_env_uv.sh --mac                 # M1 Mac (CPU-based)"
+    echo "  ./setup_env_uv.sh --gpu                 # GPU Server (Nvidia ONLY)"
+    echo "  ./setup_env_uv.sh --gpu --from-wheels   # GPU + prebuilt FA2/FAISS wheels"
     exit 1
 fi
 
 # Detect OS
 OS="$(uname -s)"
+
+# ============================================================================
+# Download prebuilt sm_120 wheels from GitHub Release
+# ============================================================================
+download_sm120_wheels() {
+    local REPO_SLUG
+    REPO_SLUG=$(git remote get-url origin 2>/dev/null | sed 's|.*github.com[:/]||' | sed 's|\.git$||')
+    if [ -z "$REPO_SLUG" ]; then
+        echo "FATAL: Cannot detect GitHub repo from git remote."
+        return 1
+    fi
+
+    local API_URL="https://api.github.com/repos/${REPO_SLUG}/releases/tags/${RELEASE_TAG}"
+    mkdir -p wheels
+    echo "Downloading prebuilt sm_120 wheels from: github.com/${REPO_SLUG}/releases/tag/${RELEASE_TAG}"
+
+    local URLS
+    URLS=$(curl -sL "$API_URL" | python3 -c "
+import sys, json
+try:
+    data = json.load(sys.stdin)
+    for asset in data.get('assets', []):
+        if asset['name'].endswith('.whl'):
+            print(asset['browser_download_url'])
+except: pass
+" 2>/dev/null)
+
+    if [ -z "$URLS" ]; then
+        echo "WARNING: No wheels found in release '${RELEASE_TAG}'."
+        echo "Upload wheels first: gh release create ${RELEASE_TAG} wheels/*.whl"
+        return 1
+    fi
+
+    for url in $URLS; do
+        echo "  Downloading: $(basename "$url")"
+        wget -q -P wheels/ "$url"
+    done
+    echo "Downloaded $(ls wheels/*.whl 2>/dev/null | wc -l) wheel(s) to wheels/"
+}
 
 # ============================================================================
 # Common setup (both --mac and --gpu)
@@ -107,7 +166,7 @@ setup_base() {
     # Create directories
     echo ""
     echo "Creating directories..."
-    mkdir -p src/data/videos src/data/clips src/data/shards src/data/bakeoff src/outputs src/outputs_poc data logs
+    mkdir -p src/data/videos src/data/clips src/data/shards src/data/bakeoff src/outputs src/outputs_poc data logs wheels
 
     echo ""
     echo "Base setup complete."
@@ -147,14 +206,23 @@ if [ "$1" = "--gpu" ]; then
     echo "GPU Setup (Linux + Nvidia ONLY)"
     echo "============================================"
 
+    # Download prebuilt wheels if --from-wheels
+    if [ "$FROM_WHEELS" = true ]; then
+        echo ""
+        echo "=== Downloading prebuilt wheels ==="
+        download_sm120_wheels || {
+            echo "Falling back to building from source..."
+            FROM_WHEELS=false
+        }
+    fi
+
     # 1. Install PyTorch (auto-detect Blackwell vs Ampere/Hopper)
     echo ""
     GPU_NAME=$(nvidia-smi --query-gpu=gpu_name --format=csv,noheader 2>/dev/null | head -1 || echo "")
     echo "Detected GPU: ${GPU_NAME:-unknown}"
     if echo "$GPU_NAME" | grep -qiE "blackwell|rtx.*pro.*(4000|6000)|rtx.*5090|rtx.*5080|rtx.*5070"; then
-        echo "[1/7] Installing PyTorch (CUDA 12.8 — Blackwell)..."
-        echo "NOTE: Blackwell requires PyTorch nightly with cu128"
-        uv pip install torch torchvision --index-url https://download.pytorch.org/whl/nightly/cu128
+        echo "[1/7] Installing PyTorch ${TORCH_VERSION}+cu128 (Blackwell — pinned)..."
+        uv pip install "torch==${TORCH_VERSION}" torchvision --index-url https://download.pytorch.org/whl/nightly/cu128
     else
         echo "[1/7] Installing PyTorch 2.5.1+cu124..."
         uv pip install torch==2.5.1 torchvision==0.20.1 --index-url https://download.pytorch.org/whl/cu124
@@ -182,7 +250,11 @@ print(f'PyTorch: {torch.__version__}, CUDA: {torch.version.cuda}, GPU: {torch.cu
     GPU_ARCH=$(python -c "import torch; cc=torch.cuda.get_device_capability(); print(f'{cc[0]}{cc[1]}')" 2>/dev/null || echo "")
     echo "GPU compute capability: sm_${GPU_ARCH:-unknown}"
 
-    if [ "$GPU_ARCH" = "80" ] || [ "$GPU_ARCH" = "86" ] || [ "$GPU_ARCH" = "89" ] || [ "$GPU_ARCH" = "90" ]; then
+    if ls wheels/flash_attn*.whl &>/dev/null 2>&1; then
+        # Prebuilt wheel available (from --from-wheels or previous build)
+        echo "Installing FA2 from prebuilt wheel..."
+        uv pip install wheels/flash_attn*.whl
+    elif [ "$GPU_ARCH" = "80" ] || [ "$GPU_ARCH" = "86" ] || [ "$GPU_ARCH" = "89" ] || [ "$GPU_ARCH" = "90" ]; then
         # Ampere/Ada/Hopper — use prebuilt wheel (fast)
         echo "Using prebuilt FA2 wheel for sm_${GPU_ARCH}..."
         WHEEL_NAME="flash_attn-2.8.3+cu12torch2.5cxx11abiFALSE-cp312-cp312-linux_x86_64.whl"
@@ -196,34 +268,64 @@ print(f'PyTorch: {torch.__version__}, CUDA: {torch.version.cuda}, GPU: {torch.cu
         uv pip install "$WHEEL_NAME"
         rm -f "$WHEEL_NAME"
     elif [ -n "$GPU_ARCH" ]; then
-        # Unknown arch (e.g. sm_120 Blackwell) — build from source
+        # Unknown arch (e.g. sm_120 Blackwell) — check existing install, then build from source
+        if python -c "import flash_attn; print(f'Flash-Attn {flash_attn.__version__} already installed')" 2>/dev/null; then
+            echo "Skipping FA2 build (already installed)."
+        else
         echo "WARNING: No prebuilt FA2 wheel for sm_${GPU_ARCH}. Building from source (30-90 min)..."
-        if ! command -v nvcc &> /dev/null; then
-            for CUDA_PATH in /usr/local/cuda /usr/local/cuda-12.8 /usr/local/cuda-12; do
-                if [ -f "${CUDA_PATH}/bin/nvcc" ]; then
-                    export PATH="${CUDA_PATH}/bin:$PATH"
-                    export CUDA_HOME="${CUDA_PATH}"
+
+        # FA2 build requires nvcc matching PyTorch's CUDA version exactly
+        PYTORCH_CUDA=$(python -c "import torch; print(torch.version.cuda)" 2>/dev/null || echo "")
+        echo "PyTorch compiled with CUDA: ${PYTORCH_CUDA}"
+
+        # Search for version-matched CUDA toolkit (versioned paths first)
+        FA2_CUDA_HOME=""
+        for CUDA_PATH in "/usr/local/cuda-${PYTORCH_CUDA}" /usr/local/cuda-12.8 /usr/local/cuda-12 /usr/local/cuda; do
+            if [ -f "${CUDA_PATH}/bin/nvcc" ]; then
+                NVCC_VER=$("${CUDA_PATH}/bin/nvcc" --version 2>&1 | sed -n 's/.*release \([0-9]*\.[0-9]*\).*/\1/p')
+                if [ "${NVCC_VER}" = "${PYTORCH_CUDA}" ]; then
+                    FA2_CUDA_HOME="${CUDA_PATH}"
+                    echo "Found matching CUDA ${NVCC_VER} toolkit at ${CUDA_PATH}"
                     break
                 fi
-            done
+            fi
+        done
+
+        # If no match found, install matching CUDA toolkit via apt
+        if [ -z "$FA2_CUDA_HOME" ]; then
+            CUDA_PKG="cuda-toolkit-$(echo "${PYTORCH_CUDA}" | tr '.' '-')"
+            echo "No CUDA ${PYTORCH_CUDA} toolkit found. Installing ${CUDA_PKG} via apt..."
+            apt-get update -qq && apt-get install -y -qq "${CUDA_PKG}" > /dev/null 2>&1 || true
+            if [ -f "/usr/local/cuda-${PYTORCH_CUDA}/bin/nvcc" ]; then
+                FA2_CUDA_HOME="/usr/local/cuda-${PYTORCH_CUDA}"
+                echo "Installed CUDA ${PYTORCH_CUDA} at ${FA2_CUDA_HOME}"
+            fi
         fi
-        if ! command -v nvcc &> /dev/null; then
-            echo "ERROR: nvcc not found. Cannot build FA2 from source."
-            echo "Install CUDA toolkit 12.8+ or set CUDA_HOME."
-            echo "Scripts will fall back to PyTorch SDPA (slower but functional)."
+
+        if [ -z "$FA2_CUDA_HOME" ]; then
+            echo "FATAL: Could not find or install CUDA toolkit ${PYTORCH_CUDA}."
+            echo "System nvcc: $(nvcc --version 2>&1 | sed -n 's/.*release \([0-9]*\.[0-9]*\).*/\1/p') (needs ${PYTORCH_CUDA})"
+            echo "Install manually: apt-get install cuda-toolkit-$(echo "${PYTORCH_CUDA}" | tr '.' '-')"
         else
-            export CUDA_HOME="${CUDA_HOME:-$(dirname $(dirname $(which nvcc)))}"
+            export CUDA_HOME="${FA2_CUDA_HOME}"
+            export PATH="${FA2_CUDA_HOME}/bin:$PATH"
             echo "Using nvcc: $(nvcc --version | grep release)"
             FA2_DIR="/tmp/flash-attention-build"
             rm -rf "$FA2_DIR"
             git clone --depth 1 https://github.com/Dao-AILab/flash-attention.git "$FA2_DIR"
             cd "$FA2_DIR" && git submodule update --init --recursive && cd -
-            echo "Compiling FA2 for sm_${GPU_ARCH} (this takes 30-90 min)..."
+            # Build wheel (saved to wheels/ for caching) then install
+            echo "Building FA2 wheel for sm_${GPU_ARCH} (this takes 30-90 min)..."
+            mkdir -p wheels
+            uv pip install pip 2>/dev/null || true
             FLASH_ATTN_CUDA_ARCHS="${GPU_ARCH}" MAX_JOBS=4 NVCC_THREADS=1 \
-                uv pip install "$FA2_DIR" --no-build-isolation 2>&1 | tee /tmp/fa2_build.log
+                pip wheel "$FA2_DIR" --no-build-isolation --no-deps --wheel-dir wheels/ 2>&1 | tee /tmp/fa2_build.log
+            uv pip install wheels/flash_attn*.whl
             rm -rf "$FA2_DIR"
             echo "FlashAttention-2 built for sm_${GPU_ARCH}"
+            echo "Wheel saved: $(ls wheels/flash_attn*.whl 2>/dev/null | head -1)"
         fi
+        fi  # end of "already installed" check
     else
         echo "WARNING: Could not detect GPU arch. Skipping FA2."
         echo "Install manually: TORCH_CUDA_ARCH_LIST='X.Y' pip install flash-attn --no-build-isolation"
@@ -232,16 +334,22 @@ print(f'PyTorch: {torch.__version__}, CUDA: {torch.version.cuda}, GPU: {torch.cu
     # 5. Install FAISS-GPU (CUDA 12)
     echo ""
     echo "[5/7] Installing FAISS-GPU (CUDA 12)..."
-    if [ "$GPU_ARCH" = "120" ]; then
-        echo "WARNING: Blackwell (sm_120) detected — pip faiss-gpu-cu12 only ships sm_70+sm_80 kernels."
-        echo "         pip package will install but CUDA error 209 at runtime."
-        echo ""
-        echo "After setup completes, build FAISS from source (~10 min):"
-        echo "  ./build_faiss_sm120.sh 2>&1 | tee logs/build_faiss_sm120.log"
-        echo ""
-        echo "Installing pip faiss-gpu-cu12 as placeholder (will be replaced by source build)..."
+    if ls wheels/faiss*.whl &>/dev/null 2>&1; then
+        # Prebuilt wheel available (from --from-wheels or previous build)
+        echo "Installing FAISS-GPU from prebuilt wheel..."
+        uv pip uninstall -y faiss-gpu faiss-gpu-cu12 faiss-cpu faiss 2>/dev/null || true
+        uv pip install wheels/faiss*.whl
+    elif [ "$GPU_ARCH" = "120" ]; then
+        if [ -f "/tmp/faiss_build/build/faiss/python/setup.py" ]; then
+            echo "Blackwell (sm_120) — reinstalling FAISS-GPU from cached build artifacts..."
+            ./build_faiss_sm120.sh --install 2>&1 | tee logs/build_faiss_sm120.log
+        else
+            echo "Blackwell (sm_120) — building FAISS-GPU from source (~10 min, pip wheel lacks sm_120 kernels)..."
+            ./build_faiss_sm120.sh 2>&1 | tee logs/build_faiss_sm120.log
+        fi
+    else
+        uv pip install faiss-gpu-cu12
     fi
-    uv pip install faiss-gpu-cu12
 
     # 6. Install cuML (GPU UMAP) from RAPIDS PyPI
     echo ""
@@ -312,6 +420,7 @@ fi
 echo "Error: Unknown flag '$1'"
 echo ""
 echo "Usage:"
-echo "  ./setup_env_uv.sh --mac   # M1 Mac (CPU-based)"
-echo "  ./setup_env_uv.sh --gpu   # GPU Server (Nvidia ONLY)"
+echo "  ./setup_env_uv.sh --mac                 # M1 Mac (CPU-based)"
+echo "  ./setup_env_uv.sh --gpu                 # GPU Server (Nvidia ONLY)"
+echo "  ./setup_env_uv.sh --gpu --from-wheels   # GPU + prebuilt FA2/FAISS wheels"
 exit 1

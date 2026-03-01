@@ -150,21 +150,21 @@ def apply_hard_filter(distances: np.ndarray, indices: np.ndarray,
 
 # ── Label-Free Metrics (3) ──────────────────────────────────────────────
 
-def compute_cycle_at_k(indices: np.ndarray, k: int) -> float:
-    """Cycle@K: % of clips where kNN(A)=B implies B's kNN includes A."""
+def compute_cycle_at_k(indices: np.ndarray, k: int) -> tuple:
+    """Cycle@K: % of clips where kNN(A)=B implies B's kNN includes A.
+    Returns (global_score, per_clip_bool_array) for groupby analysis."""
     n = indices.shape[0]
-    consistent = 0
-    valid = 0
+    per_clip = np.full(n, -1, dtype=np.int8)  # -1=invalid, 0=fail, 1=success
 
     for i in range(n):
         nearest = indices[i, 1]
         if nearest < 0 or nearest >= n:
             continue
-        valid += 1
-        if i in set(indices[nearest, 1:k + 1].tolist()):
-            consistent += 1
+        per_clip[i] = 1 if i in set(indices[nearest, 1:k + 1].tolist()) else 0
 
-    return (consistent / valid * 100) if valid > 0 else 0.0
+    valid_mask = per_clip >= 0
+    global_score = (per_clip[valid_mask].sum() / valid_mask.sum() * 100) if valid_mask.sum() > 0 else 0.0
+    return float(global_score), per_clip
 
 
 def compute_overlap_at_k(embeddings: np.ndarray, k: int) -> float:
@@ -208,15 +208,16 @@ def compute_overlap_at_k(embeddings: np.ndarray, k: int) -> float:
     return (total_iou / sample_n * 100)
 
 
-def compute_silhouette(embeddings: np.ndarray, tags: list) -> float:
-    """Silhouette score on embeddings grouped by scene_type. Returns [-1, 1]."""
+def compute_silhouette(embeddings: np.ndarray, tags: list,
+                       field: str = "scene_type") -> float:
+    """Silhouette score on embeddings grouped by `field`. Returns [-1, 1]."""
     try:
         from sklearn.metrics import silhouette_score
     except ImportError:
         print("WARNING: sklearn not available, skipping silhouette")
         return 0.0
 
-    labels = [t.get("scene_type", "unknown") for t in tags]
+    labels = [t.get(field, "unknown") for t in tags]
     unique = set(labels)
     if len(unique) < 2:
         return 0.0
@@ -253,14 +254,15 @@ def compute_prec_at_k(indices: np.ndarray, tags: list, k: int,
     return (correct / total * 100) if total > 0 else 0.0
 
 
-def compute_map_at_k(indices: np.ndarray, tags: list, k: int) -> float:
-    """mAP@K: Mean Average Precision using scene_type as relevance."""
+def compute_map_at_k(indices: np.ndarray, tags: list, k: int,
+                     field: str = "scene_type") -> float:
+    """mAP@K: Mean Average Precision using `field` as relevance."""
     n = indices.shape[0]
     n_tags = len(tags)
     total_ap = 0.0
 
     for i in range(n):
-        my_type = tags[i].get("scene_type", "unknown")
+        my_val = tags[i].get(field, "unknown")
         hits = 0
         ap_sum = 0.0
 
@@ -268,7 +270,7 @@ def compute_map_at_k(indices: np.ndarray, tags: list, k: int) -> float:
             j = indices[i, rank]
             if j < 0 or j >= n_tags:
                 continue
-            if tags[j].get("scene_type", "unknown") == my_type:
+            if tags[j].get(field, "unknown") == my_val:
                 hits += 1
                 ap_sum += hits / rank
 
@@ -402,25 +404,68 @@ def compute_macro_micro_avg(per_scene: dict) -> tuple:
     return macro, micro
 
 
+def compute_cycle_per_key(cycle_per_clip: np.ndarray, tags: list,
+                          field: str) -> dict:
+    """Group per-clip cycle results by a tag field → {value: {cycle_at_k, count}}."""
+    groups = {}
+    for i, t in enumerate(tags):
+        val = t.get(field, "unknown")
+        groups.setdefault(val, [])
+        if cycle_per_clip[i] >= 0:
+            groups[val].append(cycle_per_clip[i])
+
+    return {val: {"cycle_at_k": round(int(sum(int(x) for x in arr)) / len(arr) * 100, 2),
+                  "count": len(arr)}
+            for val, arr in sorted(groups.items()) if len(arr) > 0}
+
+
+def compute_map_per_key(indices: np.ndarray, tags: list, k: int,
+                        field: str) -> dict:
+    """mAP@K grouped by each value of `field`."""
+    n_tags = len(tags)
+    groups = {}
+    for i in range(indices.shape[0]):
+        val = tags[i].get(field, "unknown")
+        groups.setdefault(val, {"ap_sum": 0.0, "count": 0})
+        groups[val]["count"] += 1
+
+        my_val = tags[i].get(field, "unknown")
+        hits = 0
+        ap = 0.0
+        for rank in range(1, k + 1):
+            j = indices[i, rank]
+            if j < 0 or j >= n_tags:
+                continue
+            if tags[j].get(field, "unknown") == my_val:
+                hits += 1
+                ap += hits / rank
+        groups[val]["ap_sum"] += ap / k
+
+    return {val: {"map_at_k": round(s["ap_sum"] / s["count"], 4), "count": s["count"]}
+            for val, s in sorted(groups.items()) if s["count"] > 0}
+
+
 # ── Compute All Metrics for a Mode ──────────────────────────────────────
 
 def compute_all_metrics(embeddings: np.ndarray, D: np.ndarray, I: np.ndarray,
                         tags: list, k: int, taxonomy: dict, mode: str) -> dict:
     """Compute all 9 metrics for one mode (easy or hard)."""
+    single_fields = [f for f, spec in taxonomy.items() if spec["type"] == "single"]
     print(f"\n{'='*50}")
     print(f"{mode.upper()} MODE (k={k})")
     print(f"{'='*50}")
 
     t0 = time.time()
 
-    cycle = compute_cycle_at_k(I, k)
+    # ── Global metrics ──
+    cycle, cycle_per_clip = compute_cycle_at_k(I, k)
     print(f"  Cycle@K:     {cycle:.2f}%")
 
     overlap = compute_overlap_at_k(embeddings, k)
     print(f"  Overlap@K:   {f'{overlap:.2f}% (dim-split approx)' if overlap is not None else 'SKIPPED (< 100 clips)'}")
 
     sil = compute_silhouette(embeddings, tags)
-    print(f"  Silhouette:  {sil:.4f}")
+    print(f"  Silhouette:  {sil:.4f} (scene_type)")
 
     prec = compute_prec_at_k(I, tags, k)
     print(f"  Prec@K:      {prec:.2f}%")
@@ -430,6 +475,42 @@ def compute_all_metrics(embeddings: np.ndarray, D: np.ndarray, I: np.ndarray,
 
     ndcg = compute_ndcg_at_k(I, tags, k, taxonomy)
     print(f"  nDCG@K:      {ndcg:.4f}")
+
+    # ── Per-key breakdowns (Step 11: repeat for all single-value fields) ──
+    print(f"  Computing per-key breakdowns for {len(single_fields)} fields...")
+
+    # Silhouette per-key: which dimension does V-JEPA cluster by?
+    silhouette_per_key = {}
+    for field in single_fields:
+        s = compute_silhouette(embeddings, tags, field=field)
+        silhouette_per_key[field] = round(s, 4)
+    sil_sorted = sorted(silhouette_per_key.items(), key=lambda x: x[1], reverse=True)
+    print(f"  Silhouette per-key: {', '.join(f'{f}={v:.4f}' for f, v in sil_sorted[:3])} ...")
+
+    # Prec@K per-key: retrieval purity using each field as match criterion
+    prec_per_key = {}
+    for field in single_fields:
+        prec_per_key[field] = round(compute_prec_at_k(I, tags, k, field=field), 2)
+    prec_sorted = sorted(prec_per_key.items(), key=lambda x: x[1], reverse=True)
+    print(f"  Prec@K per-key: {', '.join(f'{f}={v:.2f}%' for f, v in prec_sorted[:3])} ...")
+
+    # mAP@K per-key: ranking quality using each field as relevance
+    map_per_key = {}
+    for field in single_fields:
+        map_per_key[field] = round(compute_map_at_k(I, tags, k, field=field), 4)
+    map_sorted = sorted(map_per_key.items(), key=lambda x: x[1], reverse=True)
+    print(f"  mAP@K per-key: {', '.join(f'{f}={v:.4f}' for f, v in map_sorted[:3])} ...")
+
+    # Cycle@K per-key: neighborhood coherence grouped by tag values
+    cycle_per_key = {}
+    for field in single_fields:
+        cycle_per_key[field] = compute_cycle_per_key(cycle_per_clip, tags, field)
+    print(f"  Cycle@K per-key: computed for {len(cycle_per_key)} fields")
+
+    # mAP@K per-value: mAP@K broken down by each value within each field
+    map_per_value = {}
+    for field in single_fields:
+        map_per_value[field] = compute_map_per_key(I, tags, k, field)
 
     per_scene = compute_per_scene_purity(I, tags, k)
     multi_attr = compute_multi_attribute_slices(I, tags, k)
@@ -447,6 +528,11 @@ def compute_all_metrics(embeddings: np.ndarray, D: np.ndarray, I: np.ndarray,
         "ndcg_at_k": round(ndcg, 4),
         "per_scene": per_scene,
         "multi_attribute_slices": multi_attr,
+        "silhouette_per_key": silhouette_per_key,
+        "prec_per_key": prec_per_key,
+        "map_per_key": map_per_key,
+        "cycle_per_key": cycle_per_key,
+        "map_per_value": map_per_value,
         "macro_avg": macro,
         "micro_avg": micro,
     }
@@ -467,46 +553,18 @@ def generate_plots(easy: dict, hard: dict, conf_sweep: list,
 
     output_dir.mkdir(parents=True, exist_ok=True)
 
-    # ── Plot 1: Easy vs Hard per-scene purity ────────────────────────
-    all_scenes = sorted(set(list(easy["per_scene"]) + list(hard["per_scene"])))
-    x = np.arange(len(all_scenes))
-    w = 0.35
-    ev = [easy["per_scene"].get(s, {}).get("prec_at_k", 0) for s in all_scenes]
-    hv = [hard["per_scene"].get(s, {}).get("prec_at_k", 0) for s in all_scenes]
-
-    fig, ax = plt.subplots(figsize=(12, 6))
-    bars_e = ax.bar(x - w / 2, ev, w, label="Easy", color="#4CAF50", alpha=0.8)
-    ax.bar(x + w / 2, hv, w, label="Hard", color="#F44336", alpha=0.8)
-
-    for bar, sc in zip(bars_e, all_scenes):
-        cnt = easy["per_scene"].get(sc, {}).get("count", 0)
-        ax.text(bar.get_x() + bar.get_width() / 2, bar.get_height() + 1,
-                f'n={cnt}', ha='center', va='bottom', fontsize=7, fontweight='bold')
-
-    ax.axhline(y=50, color='orange', linestyle='--', linewidth=1.5, label='50% baseline')
-    ax.set_xlabel('Scene Type')
-    ax.set_ylabel('Prec@K (%)')
-    ax.set_title(f'Retrieval Purity by Scene — Easy vs Hard (k={k}, n={n:,})')
-    ax.set_xticks(x)
-    ax.set_xticklabels(all_scenes, rotation=45, ha='right')
-    ax.legend()
-    ax.set_ylim(0, 110)
-    plt.tight_layout()
-    for ext in [".png", ".pdf"]:
-        plt.savefig(output_dir / f"m06_purity_by_scene{ext}", dpi=150 if ext == ".png" else None)
-    plt.close()
-    print(f"Saved: {output_dir / 'm06_purity_by_scene.png'}")
-
-    # ── Plot 2: kNN distance distribution ────────────────────────────
+    # ── Plot 1: kNN distance distribution (clipped to 99.9th pctile) ─
     fig, ax = plt.subplots(figsize=(10, 6))
     dists = D_easy[:, 1:].flatten()
-    dists = dists[np.isfinite(dists)]
-    ax.hist(dists, bins=50, color='steelblue', alpha=0.7, edgecolor='white')
-    med = np.median(dists)
+    dists = dists[np.isfinite(dists) & (dists > 0)]
+    clip_val = np.percentile(dists, 99.9)
+    dists_clipped = dists[dists <= clip_val]
+    ax.hist(dists_clipped, bins=80, color='steelblue', alpha=0.7, edgecolor='white')
+    med = np.median(dists_clipped)
     ax.axvline(x=med, color='red', linestyle='--', label=f'Median: {med:.2f}')
     ax.set_xlabel('L2 Distance')
     ax.set_ylabel('Count')
-    ax.set_title(f'kNN Distance Distribution (k={k})')
+    ax.set_title(f'kNN Distance Distribution (k={k}, clipped to 99.9th pctile)')
     ax.legend()
     plt.tight_layout()
     for ext in [".png", ".pdf"]:
@@ -543,7 +601,278 @@ def generate_plots(easy: dict, hard: dict, conf_sweep: list,
         plt.close()
         print(f"Saved: {output_dir / 'm06_confidence_sweep.png'}")
 
-    # ── Plot 4: Radar — Easy vs Hard ─────────────────────────────────
+    # ── Plot 4: Multi-panel purity (all 9 single-value taxonomy keys) ─
+    panel_data = [("scene_type", easy["per_scene"], hard["per_scene"])]
+    for field in SLICE_FIELDS:
+        e_slice = easy.get("multi_attribute_slices", {}).get(field, {})
+        h_slice = hard.get("multi_attribute_slices", {}).get(field, {})
+        if e_slice:
+            panel_data.append((field, e_slice, h_slice))
+
+    n_panels = len(panel_data)
+    n_cols_grid = 3
+    n_rows_grid = (n_panels + n_cols_grid - 1) // n_cols_grid
+    fig, axes = plt.subplots(n_rows_grid, n_cols_grid, figsize=(6 * n_cols_grid, 5 * n_rows_grid))
+    axes_flat = axes.flatten() if n_panels > 1 else [axes]
+
+    for idx, (field_name, e_data, h_data) in enumerate(panel_data):
+        ax = axes_flat[idx]
+        all_vals = sorted(set(list(e_data.keys()) + list(h_data.keys())))
+        xp = np.arange(len(all_vals))
+        wp = 0.35
+        ev_p = [e_data.get(v, {}).get("prec_at_k", 0) for v in all_vals]
+        hv_p = [h_data.get(v, {}).get("prec_at_k", 0) for v in all_vals]
+        counts = [e_data.get(v, {}).get("count", 0) for v in all_vals]
+
+        bars = ax.bar(xp - wp / 2, ev_p, wp, color="#4CAF50", alpha=0.8)
+        ax.bar(xp + wp / 2, hv_p, wp, color="#F44336", alpha=0.8)
+
+        for bar, cnt in zip(bars, counts):
+            if cnt > 0:
+                ax.text(bar.get_x() + bar.get_width() / 2, bar.get_height() + 0.5,
+                        f'n={cnt}', ha='center', va='bottom', fontsize=6)
+
+        label_name = field_name.replace("_", " ").title()
+        ax.set_title(label_name, fontsize=11, fontweight='bold')
+        ax.set_xticks(xp)
+        ax.set_xticklabels(all_vals, rotation=45, ha='right', fontsize=8)
+        ax.set_ylim(0, max(max(ev_p, default=0), max(hv_p, default=0)) * 1.3 + 5)
+        ax.set_ylabel('Prec@K (%)', fontsize=8)
+
+    # Hide unused axes
+    for idx in range(n_panels, len(axes_flat)):
+        axes_flat[idx].set_visible(False)
+
+    # Shared legend
+    from matplotlib.patches import Patch
+    legend_elements = [Patch(facecolor='#4CAF50', alpha=0.8, label='Easy'),
+                       Patch(facecolor='#F44336', alpha=0.8, label='Hard')]
+    fig.legend(handles=legend_elements, loc='upper right', fontsize=10, framealpha=0.9)
+    fig.suptitle(f'Retrieval Purity — All Taxonomy Keys (k={k}, n={n:,})', fontsize=14, fontweight='bold')
+    plt.tight_layout(rect=[0, 0, 1, 0.96])
+    for ext in [".png", ".pdf"]:
+        plt.savefig(output_dir / f"m06_purity_all_keys{ext}",
+                    dpi=150 if ext == ".png" else None, bbox_inches='tight')
+    plt.close()
+    print(f"Saved: {output_dir / 'm06_purity_all_keys.png'}")
+
+    # ── Plot 5: Silhouette per-key bar chart ─────────────────────────
+    e_sil = easy.get("silhouette_per_key", {})
+    h_sil = hard.get("silhouette_per_key", {})
+    if e_sil:
+        fields_sorted = sorted(e_sil.keys(), key=lambda f: e_sil.get(f, 0), reverse=True)
+        fig, ax = plt.subplots(figsize=(10, 6))
+        xp = np.arange(len(fields_sorted))
+        wp = 0.35
+        ev = [e_sil.get(f, 0) for f in fields_sorted]
+        hv = [h_sil.get(f, 0) for f in fields_sorted]
+        ax.bar(xp - wp / 2, ev, wp, color="#4CAF50", alpha=0.8, label="Easy")
+        ax.bar(xp + wp / 2, hv, wp, color="#F44336", alpha=0.8, label="Hard")
+        ax.axhline(y=0, color='gray', linewidth=0.5, linestyle='--')
+        ax.set_xticks(xp)
+        ax.set_xticklabels([f.replace("_", " ").title() for f in fields_sorted],
+                           rotation=35, ha='right', fontsize=9)
+        ax.set_ylabel('Silhouette Score')
+        ax.set_title(f'Silhouette per Taxonomy Key — Which Dimension Does V-JEPA Cluster By? (k={k}, n={n:,})',
+                     fontsize=11, fontweight='bold')
+        ax.legend()
+        plt.tight_layout()
+        for ext in [".png", ".pdf"]:
+            plt.savefig(output_dir / f"m06_silhouette_per_key{ext}",
+                        dpi=150 if ext == ".png" else None, bbox_inches='tight')
+        plt.close()
+        print(f"Saved: {output_dir / 'm06_silhouette_per_key.png'}")
+
+    # ── Plot 6: mAP@K per-key bar chart ──────────────────────────────
+    e_map = easy.get("map_per_key", {})
+    h_map = hard.get("map_per_key", {})
+    if e_map:
+        fields_sorted = sorted(e_map.keys(), key=lambda f: e_map.get(f, 0), reverse=True)
+        fig, ax = plt.subplots(figsize=(10, 6))
+        xp = np.arange(len(fields_sorted))
+        wp = 0.35
+        ev = [e_map.get(f, 0) for f in fields_sorted]
+        hv = [h_map.get(f, 0) for f in fields_sorted]
+        ax.bar(xp - wp / 2, ev, wp, color="#4CAF50", alpha=0.8, label="Easy")
+        ax.bar(xp + wp / 2, hv, wp, color="#F44336", alpha=0.8, label="Hard")
+        ax.set_xticks(xp)
+        ax.set_xticklabels([f.replace("_", " ").title() for f in fields_sorted],
+                           rotation=35, ha='right', fontsize=9)
+        ax.set_ylabel('mAP@K')
+        ax.set_title(f'mAP@K per Taxonomy Key — Ranking Quality by Field (k={k}, n={n:,})',
+                     fontsize=11, fontweight='bold')
+        ax.legend()
+        plt.tight_layout()
+        for ext in [".png", ".pdf"]:
+            plt.savefig(output_dir / f"m06_map_per_key{ext}",
+                        dpi=150 if ext == ".png" else None, bbox_inches='tight')
+        plt.close()
+        print(f"Saved: {output_dir / 'm06_map_per_key.png'}")
+
+    # ── Plot 7: Cycle@K per-key 3x3 multi-panel ─────────────────────
+    e_cycle = easy.get("cycle_per_key", {})
+    h_cycle = hard.get("cycle_per_key", {})
+    if e_cycle:
+        cycle_fields = sorted(e_cycle.keys())
+        n_cp = len(cycle_fields)
+        n_cols_c = 3
+        n_rows_c = (n_cp + n_cols_c - 1) // n_cols_c
+        fig, axes = plt.subplots(n_rows_c, n_cols_c, figsize=(6 * n_cols_c, 5 * n_rows_c))
+        axes_flat = axes.flatten() if n_cp > 1 else [axes]
+
+        for idx, field_name in enumerate(cycle_fields):
+            ax = axes_flat[idx]
+            e_fd = e_cycle.get(field_name, {})
+            h_fd = h_cycle.get(field_name, {})
+            all_vals = sorted(set(list(e_fd.keys()) + list(h_fd.keys())))
+            xp = np.arange(len(all_vals))
+            wp = 0.35
+            ev_c = [e_fd.get(v, {}).get("cycle_at_k", 0) for v in all_vals]
+            hv_c = [h_fd.get(v, {}).get("cycle_at_k", 0) for v in all_vals]
+            counts = [e_fd.get(v, {}).get("count", 0) for v in all_vals]
+
+            bars = ax.bar(xp - wp / 2, ev_c, wp, color="#4CAF50", alpha=0.8)
+            ax.bar(xp + wp / 2, hv_c, wp, color="#F44336", alpha=0.8)
+            for bar, cnt in zip(bars, counts):
+                if cnt > 0:
+                    ax.text(bar.get_x() + bar.get_width() / 2, bar.get_height() + 0.5,
+                            f'n={cnt}', ha='center', va='bottom', fontsize=6)
+            ax.set_title(field_name.replace("_", " ").title(), fontsize=11, fontweight='bold')
+            ax.set_xticks(xp)
+            ax.set_xticklabels(all_vals, rotation=45, ha='right', fontsize=8)
+            ax.set_ylim(0, max(max(ev_c, default=0), max(hv_c, default=0)) * 1.3 + 5)
+            ax.set_ylabel('Cycle@K (%)', fontsize=8)
+
+        for idx in range(n_cp, len(axes_flat)):
+            axes_flat[idx].set_visible(False)
+
+        from matplotlib.patches import Patch as _Patch
+        fig.legend(handles=[_Patch(facecolor='#4CAF50', alpha=0.8, label='Easy'),
+                            _Patch(facecolor='#F44336', alpha=0.8, label='Hard')],
+                   loc='upper right', fontsize=10, framealpha=0.9)
+        fig.suptitle(f'Cycle@K per Taxonomy Key (k={k}, n={n:,})', fontsize=14, fontweight='bold')
+        plt.tight_layout(rect=[0, 0, 1, 0.96])
+        for ext in [".png", ".pdf"]:
+            plt.savefig(output_dir / f"m06_cycle_per_key{ext}",
+                        dpi=150 if ext == ".png" else None, bbox_inches='tight')
+        plt.close()
+        print(f"Saved: {output_dir / 'm06_cycle_per_key.png'}")
+
+    # ── Plot 8: mAP@K per-value 3x3 multi-panel ─────────────────────
+    e_mapv = easy.get("map_per_value", {})
+    h_mapv = hard.get("map_per_value", {})
+    if e_mapv:
+        mapv_fields = sorted(e_mapv.keys())
+        n_mp = len(mapv_fields)
+        n_cols_m = 3
+        n_rows_m = (n_mp + n_cols_m - 1) // n_cols_m
+        fig, axes = plt.subplots(n_rows_m, n_cols_m, figsize=(6 * n_cols_m, 5 * n_rows_m))
+        axes_flat = axes.flatten() if n_mp > 1 else [axes]
+
+        for idx, field_name in enumerate(mapv_fields):
+            ax = axes_flat[idx]
+            e_fd = e_mapv.get(field_name, {})
+            h_fd = h_mapv.get(field_name, {})
+            all_vals = sorted(set(list(e_fd.keys()) + list(h_fd.keys())))
+            xp = np.arange(len(all_vals))
+            wp = 0.35
+            ev_m = [e_fd.get(v, {}).get("map_at_k", 0) for v in all_vals]
+            hv_m = [h_fd.get(v, {}).get("map_at_k", 0) for v in all_vals]
+            counts = [e_fd.get(v, {}).get("count", 0) for v in all_vals]
+
+            bars = ax.bar(xp - wp / 2, ev_m, wp, color="#4CAF50", alpha=0.8)
+            ax.bar(xp + wp / 2, hv_m, wp, color="#F44336", alpha=0.8)
+            for bar, cnt in zip(bars, counts):
+                if cnt > 0:
+                    ax.text(bar.get_x() + bar.get_width() / 2, bar.get_height() + 0.002,
+                            f'n={cnt}', ha='center', va='bottom', fontsize=6)
+            ax.set_title(field_name.replace("_", " ").title(), fontsize=11, fontweight='bold')
+            ax.set_xticks(xp)
+            ax.set_xticklabels(all_vals, rotation=45, ha='right', fontsize=8)
+            ax.set_ylim(0, max(max(ev_m, default=0), max(hv_m, default=0)) * 1.3 + 0.05)
+            ax.set_ylabel('mAP@K', fontsize=8)
+
+        for idx in range(n_mp, len(axes_flat)):
+            axes_flat[idx].set_visible(False)
+
+        from matplotlib.patches import Patch as _Patch2
+        fig.legend(handles=[_Patch2(facecolor='#4CAF50', alpha=0.8, label='Easy'),
+                            _Patch2(facecolor='#F44336', alpha=0.8, label='Hard')],
+                   loc='upper right', fontsize=10, framealpha=0.9)
+        fig.suptitle(f'mAP@K per Taxonomy Value (k={k}, n={n:,})', fontsize=14, fontweight='bold')
+        plt.tight_layout(rect=[0, 0, 1, 0.96])
+        for ext in [".png", ".pdf"]:
+            plt.savefig(output_dir / f"m06_map_per_value{ext}",
+                        dpi=150 if ext == ".png" else None, bbox_inches='tight')
+        plt.close()
+        print(f"Saved: {output_dir / 'm06_map_per_value.png'}")
+
+    # ── Plot 9: Combined metrics-by-key grid (1x3) ──────────────────
+    e_sil2 = easy.get("silhouette_per_key", {})
+    e_prec2 = easy.get("prec_per_key", {})
+    e_map2 = easy.get("map_per_key", {})
+    h_sil2 = hard.get("silhouette_per_key", {})
+    h_prec2 = hard.get("prec_per_key", {})
+    h_map2 = hard.get("map_per_key", {})
+    if e_sil2 and e_prec2 and e_map2:
+        # Sort all panels by mAP (strongest signal) for consistent x-axis
+        fields_sorted = sorted(e_map2.keys(), key=lambda f: e_map2.get(f, 0), reverse=True)
+        xlabels = [f.replace("_", " ").title() for f in fields_sorted]
+        xp = np.arange(len(fields_sorted))
+        wp = 0.35
+
+        fig, axes = plt.subplots(1, 3, figsize=(22, 6))
+
+        # Panel 1: Silhouette
+        ax = axes[0]
+        ev = [e_sil2.get(f, 0) for f in fields_sorted]
+        hv = [h_sil2.get(f, 0) for f in fields_sorted]
+        ax.bar(xp - wp / 2, ev, wp, color="#4CAF50", alpha=0.8, label="Easy")
+        ax.bar(xp + wp / 2, hv, wp, color="#F44336", alpha=0.8, label="Hard")
+        ax.axhline(y=0, color='gray', linewidth=0.8, linestyle='--')
+        ax.set_xticks(xp)
+        ax.set_xticklabels(xlabels, rotation=35, ha='right', fontsize=9)
+        ax.set_ylabel('Silhouette Score')
+        ax.set_title('Silhouette per Key\n(higher = better clustering, range [-1, +1])',
+                     fontsize=11, fontweight='bold')
+        ax.legend(fontsize=8)
+
+        # Panel 2: Prec@K
+        ax = axes[1]
+        ev = [e_prec2.get(f, 0) for f in fields_sorted]
+        hv = [h_prec2.get(f, 0) for f in fields_sorted]
+        ax.bar(xp - wp / 2, ev, wp, color="#4CAF50", alpha=0.8, label="Easy")
+        ax.bar(xp + wp / 2, hv, wp, color="#F44336", alpha=0.8, label="Hard")
+        ax.set_xticks(xp)
+        ax.set_xticklabels(xlabels, rotation=35, ha='right', fontsize=9)
+        ax.set_ylabel('Prec@K (%)')
+        ax.set_title('Prec@K per Key\n(higher = more neighbors match, %)',
+                     fontsize=11, fontweight='bold')
+        ax.legend(fontsize=8)
+
+        # Panel 3: mAP@K
+        ax = axes[2]
+        ev = [e_map2.get(f, 0) for f in fields_sorted]
+        hv = [h_map2.get(f, 0) for f in fields_sorted]
+        ax.bar(xp - wp / 2, ev, wp, color="#4CAF50", alpha=0.8, label="Easy")
+        ax.bar(xp + wp / 2, hv, wp, color="#F44336", alpha=0.8, label="Hard")
+        ax.set_xticks(xp)
+        ax.set_xticklabels(xlabels, rotation=35, ha='right', fontsize=9)
+        ax.set_ylabel('mAP@K')
+        ax.set_title('mAP@K per Key\n(higher = better ranked results, range [0, 1])',
+                     fontsize=11, fontweight='bold')
+        ax.legend(fontsize=8)
+
+        fig.suptitle(f'V-JEPA Representation Quality — All Metrics by Taxonomy Key (k={k}, n={n:,})',
+                     fontsize=14, fontweight='bold')
+        plt.tight_layout(rect=[0, 0, 1, 0.93])
+        for ext in [".png", ".pdf"]:
+            plt.savefig(output_dir / f"m06_metrics_by_key{ext}",
+                        dpi=150 if ext == ".png" else None, bbox_inches='tight')
+        plt.close()
+        print(f"Saved: {output_dir / 'm06_metrics_by_key.png'}")
+
+    # ── Plot 10: Radar — Easy vs Hard ────────────────────────────────
     radar_keys = ["cycle_at_k", "prec_at_k"]
     if easy.get("overlap_at_k") is not None:
         radar_keys.append("overlap_at_k")
@@ -743,8 +1072,11 @@ def main():
     # ── Plots ────────────────────────────────────────────────────────
     if not args.no_plots:
         generate_plots(easy, hard, conf_sweep, D[:, :k + 1], k, output_dir, n)
-        for plot_name in ["m06_purity_by_scene", "m06_distance_hist",
-                          "m06_confidence_sweep", "m06_radar"]:
+        for plot_name in ["m06_distance_hist", "m06_confidence_sweep",
+                          "m06_purity_all_keys", "m06_silhouette_per_key",
+                          "m06_map_per_key", "m06_cycle_per_key",
+                          "m06_map_per_value", "m06_metrics_by_key",
+                          "m06_radar"]:
             log_image(wb_run, plot_name, str(output_dir / f"{plot_name}.png"))
 
     # ── Summary ──────────────────────────────────────────────────────

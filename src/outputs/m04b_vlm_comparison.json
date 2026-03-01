@@ -1,0 +1,72 @@
+{
+  "mode": "SANITY",
+  "winner": "qwen",
+  "winner_model_id": "Qwen/Qwen3-VL-8B-Instruct",
+  "weights": {
+    "json_parse": 0.3,
+    "agreement": 0.25,
+    "speed": 0.2,
+    "taxonomy": 0.15,
+    "confidence_cal": 0.1
+  },
+  "n_clips_compared": 64,
+  "models": {
+    "qwen": {
+      "model_id": "Qwen/Qwen3-VL-8B-Instruct",
+      "n_clips": 64,
+      "raw_scores": {
+        "json_parse": 1.0,
+        "agreement": 0.890625,
+        "speed_clips_per_sec": 1.3675159033018394,
+        "taxonomy": 0.9957386363636364,
+        "confidence_cal": 0.46921670614017774
+      },
+      "scores": {
+        "json_parse": 1.0,
+        "agreement": 0.890625,
+        "speed": 1.0,
+        "taxonomy": 0.9957386363636364,
+        "confidence_cal": 0.46921670614017774
+      },
+      "weighted_total": 0.9189387160685633
+    },
+    "videollama": {
+      "model_id": "DAMO-NLP-SG/VideoLLaMA3-7B",
+      "n_clips": 64,
+      "raw_scores": {
+        "json_parse": 0.828125,
+        "agreement": 0.6690340909090909,
+        "speed_clips_per_sec": 0.1411680211631686,
+        "taxonomy": 0.8806818181818182,
+        "confidence_cal": 0.46998842896766124
+      },
+      "scores": {
+        "json_parse": 0.828125,
+        "agreement": 0.6690340909090909,
+        "speed": 0.10322952795087888,
+        "taxonomy": 0.8806818181818182,
+        "confidence_cal": 0.46998842896766124
+      },
+      "weighted_total": 0.6154430439414873
+    },
+    "llava": {
+      "model_id": "llava-hf/LLaVA-NeXT-Video-7B-hf",
+      "n_clips": 64,
+      "raw_scores": {
+        "json_parse": 1.0,
+        "agreement": 0.49573863636363635,
+        "speed_clips_per_sec": 0.4199058107963597,
+        "taxonomy": 0.8480113636363636,
+        "confidence_cal": 0.6385834438173845
+      },
+      "scores": {
+        "json_parse": 1.0,
+        "agreement": 0.49573863636363635,
+        "speed": 0.30705735105712895,
+        "taxonomy": 0.8480113636363636,
+        "confidence_cal": 0.6385834438173845
+      },
+      "weighted_total": 0.6764061782295279
+    }
+  }
+}

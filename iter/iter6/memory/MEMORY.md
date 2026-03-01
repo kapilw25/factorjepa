@@ -8,10 +8,11 @@ Research benchmark testing if V-JEPA (Meta's video foundation model, trained on 
 - See [debugging.md](debugging.md) for known issues and fixes
 
 ## GPU Environment
-- Debug GPU: RTX PRO 4000 Blackwell (25GB VRAM, sm_120)
-- PyTorch 2.8.0+cu128, CUDA 12.8, FA2 2.8.3 (built from source for sm_120)
-- cuML 26.02, FAISS-GPU 1.13.2 (built from source for sm_120 via build_faiss_sm120.sh), wandb 0.25, Transformers 5.2
-- Python 3.12.12, UV package manager
+- Debug/SANITY GPU: RTX PRO 4000 Blackwell (24GB VRAM, sm_120, ~$0.2/hr)
+- Full/BAKEOFF GPU: RTX PRO 6000 Blackwell (96GB VRAM, sm_120, ~$0.8/hr)
+- PyTorch 2.12.0.dev+cu128 (nightly), CUDA 12.8, FA2 (built from source for sm_120)
+- cuML 26.02, FAISS-GPU 1.13.2 (built from source for sm_120 via build_faiss_sm120.sh), wandb 0.25
+- transformers >=4.57.0,<5.0 (pinned), Python 3.12.12, UV package manager
 
 ## Critical Path Constants (config.py)
 - PROJECT_ROOT = src/../.. (repo root)

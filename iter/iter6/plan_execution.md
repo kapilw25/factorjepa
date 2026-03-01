@@ -2,7 +2,7 @@
 
 STATUS: m00-m03 COMPLETED (Mac CPU). m04-m08 on GPU.
 Dataset: https://huggingface.co/datasets/anonymousML123/walkindia-200k (private, HF_TOKEN in .env)
-Backend: All 3 VLMs use transformers sequential inference (vLLM removed — OOMs on ≤24GB GPUs).
+Backend: All 3 VLMs use transformers batched inference with AdaptiveBatchSizer (vLLM removed — OOMs on ≤24GB GPUs).
 
 ### GPU Strategy & Clip Selection
 
@@ -31,6 +31,8 @@ source venv_walkindia/bin/activate
 # GPU + packages
 python -c "import torch; print(f'GPU: {torch.cuda.get_device_name(0)}, VRAM: {torch.cuda.get_device_properties(0).total_memory/1e9:.0f}GB')"
 python -c "import faiss; print(f'FAISS GPUs: {faiss.get_num_gpus()}')"
+python -c "import flash_attn; print(f'Flash-Attn:   {flash_attn.__version__}')"
+python -c "import transformers; print(f'Transformers: {transformers.__version__}')"
 python -c "import cuml; print(f'cuML: {cuml.__version__}')"
 python -c "import wandb; print(f'wandb: {wandb.__version__}')"
 
@@ -62,6 +64,18 @@ python -u src/m04_vlm_tag.py --model videollama --SANITY 2>&1 | tee logs/m04_san
 python -u src/m04_vlm_tag.py --model llava --SANITY 2>&1 | tee logs/m04_sanity_llava.log
 ```
 
+```
+rm -f src/outputs/tags_sanity_videollama.json src/outputs/tags_sanity_llava.json &&\
+python -u src/m04_vlm_tag.py --model videollama --SANITY 2>&1 | tee logs/m04_sanity_videollama_2.log &&\
+python -u src/m04_vlm_tag.py --model llava --SANITY 2>&1 | tee logs/m04_sanity_llava_2.log
+```
+
+```
+python -u src/m04_vlm_tag.py --model qwen --BAKEOFF --subset data/subset_10k.json 2>&1 | tee logs/m04_bakeoff_qwen_poc_4.log &&\
+python -u src/m04_vlm_tag.py --model videollama --BAKEOFF --subset data/subset_10k.json 2>&1 | tee logs/m04_bakeoff_videollama_poc.log &&\
+python -u src/m04_vlm_tag.py --model llava --BAKEOFF --subset data/subset_10k.json 2>&1 | tee logs/m04_bakeoff_llava_poc.log
+```
+
 ### Verify Step 0 output
 
 ```bash
@@ -80,11 +94,12 @@ done
 **Expected:** 20 clips, 34 fields each, valid JSON with all 11 tag fields + 11 confidence fields + provenance.
 
 **Status:**
-- [x] Qwen3-VL: PASSED (20/20, 0.08 clips/s, all JSON parsed)
-- [x] VideoLLaMA3: PASSED (20/20, 0.10 clips/s, all JSON parsed)
-- [x] LLaVA-NeXT-Video: PASSED (20/20, 0.08 clips/s, 17/20 valid — 3 returned enum dumps)
+- [x] Qwen3-VL: PASSED (20/20, 0.08→0.52 clips/s batched, all JSON parsed)
+- [x] VideoLLaMA3: PASSED (27/20, 0.11 clips/s — can't batch, token compression requires batch_size=1)
+- [x] LLaVA-NeXT-Video: FAILED on batched run (sentencepiece missing → fixed, `pip install sentencepiece`)
+- [x] Re-run with batched code: VideoLLaMA3 PASSED (per-clip fallback), LLaVA PASSED after sentencepiece fix
 
-**Note:** `m04b_vlm_select.py` (Step 2) is expected to fail at this stage — it requires Step 1 bakeoff data (`src/data/bakeoff/tags_{model}.json`) which doesn't exist until bakeoff runs complete.
+**Sanity comparison (`m04c_sanity_compare.png`):** Qwen clear winner — 100% parse, 3 scene types, confidence 0.7-0.98, 0 off-taxonomy. VideoLLaMA3: all "residential_lane", 19 off-taxonomy. LLaVA: 85% parse, flat 0.5 confidence.
 
 ### Compare SANITY results (CPU — no GPU needed)
 
@@ -122,12 +137,29 @@ done
 ```
 
 **Expected:** 3 files × 2,500 clips each.
-**Est. time (24GB GPU):** ~8-9h per VLM at ~0.08 clips/s. ~26h total (sequential).
-**Est. time (96GB GPU):** ~1-2h per VLM. ~4-7h total.
+**Est. time (24GB GPU, sequential):** ~8-9h per VLM at ~0.08 clips/s. ~26h total.
+**Est. time (96GB GPU, batched):** ~1-1.5h per VLM at ~0.36 clips/s. ~3-4.5h total.
+
+**Status: ON HOLD** — will return to complete all 3 VLMs × 2,500 clips for paper (m04b_vlm_select.py graphs needed).
+- [~] Qwen3-VL: **PARTIAL (1,179/2,500)** — interrupted to proceed with FULL POC
+  - Sequential (first 711 clips): 0.09 clips/s, 32% GPU util, 18% VRAM
+  - Batched (from clip 711+): **0.52 clips/s steady-state**, ~36% avg GPU util (75-100% spikes during generate), 23% VRAM
+  - AdaptiveBatchSizer: auto-grew 7→8→9 (max) at VRAM 21% — full batch fits in single model.generate()
+  - **5.8x speedup** vs sequential (0.09→0.52 clips/s)
+- [ ] VideoLLaMA3: pending (can't batch — token compression requires batch_size=1, ~0.11 clips/s sequential)
+- [ ] LLaVA-NeXT-Video: pending (requires sentencepiece fix, already applied)
 
 ---
 
 ## Step 2: Pick winner VLM (CPU — no GPU needed)
+
+**Status: DEFERRED** — Qwen selected as winner before formal bakeoff completion.
+
+**Rationale:** Qwen chosen based on:
+1. **Sanity comparison** (`m04c_sanity_compare.png`): Qwen clear winner — 100% parse, 3 scene types, confidence 0.7-0.98, 0 off-taxonomy objects. VideoLLaMA3: all "residential_lane", 19 off-taxonomy. LLaVA: 85% parse, flat 0.5 confidence.
+2. **Batching success**: Qwen is the only VLM that achieves true batched `model.generate()` — 5.8x speedup (0.52 clips/s). VideoLLaMA3 can't batch (token compression). LLaVA untested at scale.
+
+**Future (when Step 1 completes):** Run m04b_vlm_select.py for formal 5-criterion weighted comparison. Graphs needed for research paper.
 
 5-criterion weighted comparison: JSON parse (30%), cross-VLM agreement (25%), speed (20%), taxonomy compliance (15%), confidence calibration (10%).
 
@@ -148,13 +180,22 @@ ls -la src/data/bakeoff/vlm_dashboard.{png,pdf}
 
 ---
 
-## Step 3: Winner tags remaining 7,500 clips — RTX Pro 6000 (96GB)
+## Step 3: Qwen tags full 10K clips — RTX Pro 6000 (96GB)
 
-Winner VLM runs --FULL on the 10K subset. Resumes from bake-off checkpoint (already has 2,500 tagged), so only ~7,500 new clips processed.
+**Status: IN PROGRESS** — Qwen running FULL POC (10K clips) from scratch.
+
+> **Note:** Normally Step 3 resumes from the 2,500-clip bakeoff checkpoint. Since bakeoff is on hold (only 1,179 Qwen clips completed), this run starts from clip 0 and tags all 10,000 clips fresh.
 
 ```bash
-# Replace <winner> with output from Step 2 (qwen, videollama, or llava)
-python -u src/m04_vlm_tag.py --model <winner> --FULL --subset data/subset_10k.json 2>&1 | tee logs/m04_full_poc.log
+# Initial run (batch_size=9, auto-computed from VRAM profile):
+python -u src/m04_vlm_tag.py --model qwen --FULL --subset data/subset_10k.json 2>&1 | tee logs/m04_full_poc.log
+
+# Optimized restart (batch_size=36, resumes from checkpoint):
+# VRAM was stuck at 25% (23GB/95GB) with batch_size=9 — GPU idle ~75% of the time.
+# Larger batch → more VRAM usage → longer model.generate() bursts → higher GPU utilization.
+# AdaptiveBatchSizer auto-discovers safe max (halves on OOM: 36→18→9→4→2→1).
+python -u src/m04_vlm_tag.py --model qwen --FULL --subset data/subset_10k.json \
+    --batch-size 36 2>&1 | tee logs/m04_full_qwen_poc_2.log
 ```
 
 ### Verify Step 3 output
@@ -165,7 +206,10 @@ python -c "import json; t=json.load(open('src/outputs_poc/tags.json')); print(f'
 ```
 
 **Expected:** `outputs_poc/tags.json` with ~10K clips × 33 fields.
-**Est. time (24GB):** ~26h. **Est. time (96GB):** ~2-4h.
+**Est. time (96GB, batch=9):** ~5.3h at 0.52 clips/s → degraded to 0.40 clips/s by clip 3,500.
+**Est. time (96GB, batch=36):** ~2-3h at 0.7-1.0 clips/s (estimated). Checkpoint saves every 500 clips.
+
+**Throughput observation:** Rate degraded from 0.52→0.40 clips/s over 3,500 clips. Likely causes: HF streaming slowdown at deeper shards, subset key sparsity (8.6% hit rate), and variable clip lengths generating longer outputs.
 
 ---
 
@@ -344,32 +388,38 @@ print(f'Silhouet  {m[\"easy\"][\"silhouette\"]:5.3f}    {m[\"hard\"][\"silhouett
 | 7 | m08 plots | CPU | ~5 min |
 | **Total** | | | **~54h GPU + ~10 min CPU** |
 
-### RTX PRO 6000 Blackwell (96GB VRAM — production GPU)
+### RTX PRO 6000 Blackwell (96GB VRAM — production GPU, batched inference)
 
-| Step | Module | GPU? | Est. Time |
-|------|--------|------|-----------|
-| 0 | m04 SANITY (3 VLMs × 20) | GPU | ~5 min each |
-| 1 | m04 BAKEOFF (3 VLMs × 2.5K) | GPU | ~1-2h each, ~4-7h total |
-| 2 | m04b select winner | CPU | ~1 min |
-| 3 | m04 FULL (winner × 7.5K) | GPU | ~2-4h |
-| 4 | m05 V-JEPA embed (10K) | GPU | ~2h |
-| 5 | m06 FAISS metrics | GPU | ~5 min |
-| 6 | m07 UMAP (cuML) | GPU | ~2 min |
-| 7 | m08 plots | CPU | ~5 min |
-| **Total** | | | **~10-15h GPU + ~10 min CPU** |
+| Step | Module | GPU? | Est. Time | Actual |
+|------|--------|------|-----------|--------|
+| 0 | m04 SANITY (3 VLMs × 20) | GPU | ~5 min each | DONE (all 3 VLMs) |
+| 1 | m04 BAKEOFF (3 VLMs × 2.5K) | GPU | ~1-1.5h each, ~3-4.5h total | **ON HOLD** — Qwen 1,179/2,500 partial |
+| 2 | m04b select winner | CPU | ~1 min | **DEFERRED** — Qwen selected via sanity |
+| 3 | m04 FULL (Qwen × 10K) | GPU | ~5.3h at 0.52 clips/s | **IN PROGRESS** |
+| 4 | m05 V-JEPA embed (10K) | GPU | ~2h | |
+| 5 | m06 FAISS metrics | GPU | ~5 min | |
+| 6 | m07 UMAP (cuML) | GPU | ~2 min | |
+| 7 | m08 plots | CPU | ~5 min | |
+| **Total** | | | **~7-10h GPU + ~10 min CPU** | |
 
 ---
 
 ## Dependency Graph
 
 ```
-Step 0: m04 --SANITY (qwen, videollama, llava) → validate before bake-off
+Step 0: m04 --SANITY (qwen, videollama, llava) ✅ DONE
                     │
-                    ↓
-Step 1: m04 --BAKEOFF (qwen)  ─┐
-Step 1: m04 --BAKEOFF (videollama) ─┤→ Step 2: m04b (pick winner) → Step 3: m04 --FULL (winner)
-Step 1: m04 --BAKEOFF (llava)  ─┘                                            │
-                                                                             ↓
+                    ├── Shortcut path (current): ─────────────────────────────────────┐
+                    │   Qwen selected via sanity comparison + batching success        │
+                    │                                                                 ↓
+                    │                                                   Step 3: m04 --FULL (Qwen × 10K) ◄── IN PROGRESS
+                    │                                                                 │
+                    ├── Full path (on hold, for paper): ──────────────┐               │
+                    │   Step 1: m04 --BAKEOFF (3 VLMs × 2.5K)        │               │
+                    │   Step 2: m04b (5-criterion comparison)         │               │
+                    │   → graphs for research paper                   │               │
+                    │                                                                 │
+                                                                                      ↓
 Step 4: m05 V-JEPA embed ──────────────────────────────────────────→ Step 5: m06 FAISS metrics
                                                                              │
                                                                              ↓
@@ -380,5 +430,7 @@ Step 4: m05 V-JEPA embed ──────────────────�
 ```
 
 NOTE: Step 4 (m05) has NO dependency on Steps 1-3. It can run in PARALLEL with the bake-off if you have 2 GPUs. On single GPU, run sequentially as listed above.
+
+NOTE: Steps 1-2 are ON HOLD. Will return to complete all 3 VLMs × 2,500 clips for m04b_vlm_select.py graphs (needed for research paper). The FULL POC pipeline (Steps 3→7) proceeds with Qwen independently.
 
 All clips stream from HF — no local data/clips needed on GPU server.

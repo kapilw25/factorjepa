@@ -8,7 +8,7 @@
 - "No CPU fallback" applies to inference/compute scripts (m04/m05/m06/m07), NOT visualization/plotting scripts (m08)
 4) Docstrings: max 2-line explanation + terminal commands only (--SANITY, --FULL args)
 4.1) format: `python -u src/*.py --args arg_name 2>&1 | tee logs/<log_name>.log`
-5) Dependencies: update @setup_env.sh, @requirements.txt (CPU), @requirements_gpu.txt (GPU) — install via venv ONLY, no individual pip
+5) Dependencies: update @setup_env_uv.sh, @requirements.txt (CPU), @requirements_gpu.txt (GPU) — install via UV ONLY, no individual pip
 6) Test on M1 `venv_walkindia` : `py_compile` + `--help` + `ast` — full GPU tests on cloud only
 7) Plots: both .png & .pdf. m08_plot.py = CPU-only (pure matplotlib, reads pre-computed .npy files)
 7.1) GPU scripts save .npy artifacts (embeddings, knn_indices, umap_2d) → CPU scripts read them. NEVER duplicate GPU compute in CPU scripts (e.g. never rebuild FAISS index in plotting when m06 already saves knn_indices.npy)

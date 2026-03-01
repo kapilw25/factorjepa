@@ -3,6 +3,7 @@
 ## Known Issues & Fixes
 
 ### 1. PyTorch 2.8.0+ API change: total_mem → total_memory
+- **Versions affected**: PyTorch 2.8.0+ (current env: 2.12.0.dev+cu128 nightly)
 - **Files affected**: setup_env_uv.sh (line 278), plan_execution.md (line 20)
 - **Fix**: `torch.cuda.get_device_properties(0).total_mem` → `.total_memory`
 - **Status**: FIXED
@@ -76,5 +77,6 @@
 
 ## Batch Size Auto-Scaling
 - gpu_batch.py: baseline A100-40GB, scale = actual_vram / 40
-- RTX PRO 4000 (25GB): scale ≈ 0.62 → vjepa batch=9, transformers batch=2
+- RTX PRO 4000 (24GB): scale ≈ 0.60 → vjepa batch=9, transformers batch=2
+- RTX PRO 6000 (96GB): scale ≈ 2.40 → vjepa batch=38, transformers batch=9
 - All 3 VLMs use transformers batch sizing (no more vLLM exception)

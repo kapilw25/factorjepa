@@ -12,6 +12,7 @@ import json
 import os
 import queue
 import shutil
+import subprocess
 import sys
 import tempfile
 import threading
@@ -66,6 +67,7 @@ PREFETCH_QUEUE_SIZE = 2
 CHECKPOINT_EVERY = 500
 TOTAL_CLIPS = 115_687
 DECODE_WORKERS = 4
+ENGINE_RESTART_EVERY = 10_000
 
 
 # ── HF Streaming Helpers ──────────────────────────────────────────────
@@ -369,41 +371,16 @@ def get_batch_embeddings(model, batched_pixels: torch.Tensor, device: str) -> np
     return embeddings
 
 
-# ── Main ───────────────────────────────────────────────────────────────
+# ═════════════════════════════════════════════════════════════════════════
+# ORCHESTRATOR / WORKER (subprocess pattern for HF stream resilience)
+# ═════════════════════════════════════════════════════════════════════════
 
-def main():
-    parser = argparse.ArgumentParser(
-        description="Generate V-JEPA 2 embeddings (GPU-only, HF WebDataset streaming)")
-    parser.add_argument("--SANITY", action="store_true", help="Process 5 clips only")
-    parser.add_argument("--FULL", action="store_true", help="Process all clips")
-    parser.add_argument("--model", type=str, default=VJEPA_MODEL_ID, help="Model ID")
-    parser.add_argument("--batch-size", type=int, default=None, help="Override batch size (auto-computed if omitted)")
-    parser.add_argument("--no-dedupe", action="store_true", help="Skip deduplication")
-    parser.add_argument("--threshold", type=float, default=DEDUPE_THRESHOLD, help="Dedupe threshold")
-    add_subset_arg(parser)
-    add_wandb_args(parser)
-    add_gpu_mem_arg(parser)
-    args = parser.parse_args()
+def orchestrator_main(args):
+    """Spawn worker subprocesses every ENGINE_RESTART_EVERY clips.
 
-    if not (args.SANITY or args.FULL):
-        parser.print_help()
-        print("\nERROR: Specify --SANITY or --FULL")
-        sys.exit(1)
-
-    check_gpu()
-    device = "cuda"
-
-    # Auto-compute batch size from VRAM if not explicitly set
-    if args.batch_size is None:
-        batch_sizes = compute_batch_sizes(gpu_vram_gb=args.gpu_mem)
-        args.batch_size = batch_sizes["vjepa"]
-    print(f"Batch size: {args.batch_size}")
-
-    mode = "SANITY" if args.SANITY else ("POC" if args.subset else "FULL")
-    wb_run = init_wandb("m05", mode, config=vars(args),
-                        enabled=not args.no_wandb)
-
-    # Output paths
+    Each worker gets fresh HF connections + GPU state. On stream stall
+    (10-min producer timeout), worker exits, orchestrator respawns from checkpoint.
+    """
     output_dir = get_output_dir(args.subset)
     embeddings_file = output_dir / "embeddings.npy" if args.subset else EMBEDDINGS_FILE
     checkpoint_file = output_dir / ".m05_checkpoint.npz"
@@ -418,155 +395,69 @@ def main():
             print("Using cached embeddings.")
             return
 
-    # Subset loading
+    # Determine total clips
     subset_keys = load_subset(args.subset) if args.subset else set()
-
-    # Clip limit
     if args.SANITY:
-        clip_limit = 5
-        args.batch_size = min(args.batch_size, 2)
-        print(f"SANITY MODE: Processing {clip_limit} clips")
+        total_clips = 5
     elif subset_keys:
-        clip_limit = len(subset_keys)
+        total_clips = len(subset_keys)
     else:
-        clip_limit = TOTAL_CLIPS
+        total_clips = TOTAL_CLIPS
 
-    print(f"Clip limit: {clip_limit:,}")
+    print(f"Clip limit: {total_clips:,}")
     print(f"Streaming from: {HF_DATASET_REPO}")
 
-    # Load checkpoint
-    all_embeddings, all_keys, resume_count = load_checkpoint(checkpoint_file)
-    processed_keys = set(all_keys)
-    if resume_count > 0:
-        print(f"Resuming from checkpoint: {resume_count:,}/{clip_limit:,} clips")
-        clip_limit -= resume_count
-
-    # Initialize timing/stats before conditional block (used in post-processing)
-    start_time = time.time()
-    failed_count = 0
-
-    if clip_limit <= 0:
-        print("All clips already processed (checkpoint). Running post-processing...")
+    # Load checkpoint to determine progress
+    _, _, skip_count = load_checkpoint(checkpoint_file)
+    if skip_count >= total_clips:
+        print(f"All clips processed ({skip_count:,}/{total_clips:,}). Running post-processing...")
     else:
-        # Load model
-        print(f"\nLoading model: {args.model}")
-        try:
-            processor = AutoVideoProcessor.from_pretrained(args.model)
-            try:
-                import flash_attn  # noqa: F401
-            except ImportError:
-                print("FATAL: flash-attn not installed.")
-                print("V-JEPA 2 ViT-G requires Flash Attention 2 for memory-efficient inference.")
-                print("")
-                print("Install via setup_env_uv.sh --gpu (downloads pre-built wheel), or manually:")
-                print("  pip install flash-attn --no-build-isolation")
-                sys.exit(1)
-            model = AutoModel.from_pretrained(
-                args.model,
-                torch_dtype=torch.float16,
-                device_map="auto",
-                attn_implementation="flash_attention_2",
-            )
-            model.eval()
-            print("Applying torch.compile (first batch will be slow due to compilation)...")
-            model = torch.compile(model)
-            print(f"Model loaded on {device} (dtype: {next(model.parameters()).dtype})")
-        except Exception as e:
-            print(f"FATAL: Model load failed: {e}")
-            sys.exit(1)
+        if skip_count > 0:
+            print(f"Resuming from checkpoint: {skip_count:,}/{total_clips:,} clips")
 
-        # Create temp dir + queue
-        print(f"\n=== Streaming Config ===")
-        print(f"batch_size:    {args.batch_size}")
-        print(f"video_decoder: {'torchcodec (fast)' if USE_TORCHCODEC else 'PyAV'}")
-        print(f"prefetch:      {PREFETCH_QUEUE_SIZE} batches")
-        print(f"checkpoint:    every {CHECKPOINT_EVERY} clips")
+        segment_idx = 0
+        while skip_count < total_clips:
+            segment_size = min(ENGINE_RESTART_EVERY, total_clips - skip_count)
+            segment_idx += 1
+            print(f"\n{'='*60}")
+            print(f"WORKER {segment_idx}: embeddings {skip_count:,} → {skip_count + segment_size:,}")
+            print(f"{'='*60}")
 
-        tmp_base = output_dir / "tmp_m05"
-        tmp_base.mkdir(parents=True, exist_ok=True)
-        tmp_dir = tempfile.mkdtemp(dir=tmp_base)
+            cmd = [
+                sys.executable, "-u", os.path.abspath(__file__),
+                "--_worker",
+                "--start-from", str(skip_count),
+                "--process-count", str(segment_size),
+            ]
+            if args.batch_size is not None:
+                cmd.extend(["--batch-size", str(args.batch_size)])
+            if args.SANITY:
+                cmd.append("--SANITY")
+            if args.FULL:
+                cmd.append("--FULL")
+            if args.subset:
+                cmd.extend(["--subset", args.subset])
+            if args.no_wandb:
+                cmd.append("--no-wandb")
+            if args.gpu_mem is not None:
+                cmd.extend(["--gpu-mem", str(args.gpu_mem)])
+            if args.model != VJEPA_MODEL_ID:
+                cmd.extend(["--model", args.model])
 
-        q = queue.Queue(maxsize=PREFETCH_QUEUE_SIZE)
-        stop_event = threading.Event()
+            result = subprocess.run(cmd)
 
-        # Start producer thread
-        producer = threading.Thread(
-            target=_producer_thread,
-            args=(processor, args.batch_size, tmp_dir, q, stop_event,
-                  clip_limit, subset_keys, VJEPA_FRAMES_PER_CLIP, processed_keys),
-            daemon=True,
-        )
-        producer.start()
+            _, _, new_count = load_checkpoint(checkpoint_file)
+            if new_count > skip_count:
+                skip_count = new_count
+                print(f"Worker done. Progress: {skip_count:,}/{total_clips:,}")
+            elif result.returncode != 0:
+                print(f"Worker failed (exit {result.returncode}). Resume with same command.")
+                break
+            else:
+                skip_count = total_clips
 
-        # Consumer loop (GPU inference)
-        start_time = time.time()  # reset for this run's throughput
-        checkpoint_thread = None
-
-        try:
-            while True:
-                try:
-                    msg_type, batched_pixels, batch_keys = q.get(timeout=600)
-                except queue.Empty:
-                    print("\nProducer timeout (10 min). Saving checkpoint...")
-                    break
-
-                if msg_type == "done":
-                    break
-
-                # GPU inference
-                embeddings = get_batch_embeddings(model, batched_pixels, device)
-
-                for emb, key in zip(embeddings, batch_keys):
-                    all_embeddings.append(emb)
-                    all_keys.append(key)
-                    processed_keys.add(key)
-
-                # Progress
-                elapsed = time.time() - start_time
-                clips_this_run = len(all_embeddings) - resume_count
-                total_target = clip_limit + resume_count
-                throughput = clips_this_run / elapsed if elapsed > 0 else 0
-                print(f"  [{len(all_embeddings):,}/{total_target:,}] "
-                      f"{throughput:.1f} clips/s | failed={failed_count}")
-                log_metrics(wb_run, {
-                    "clips_processed": len(all_embeddings),
-                    "throughput_clips_per_s": throughput,
-                    "failed": failed_count,
-                })
-
-                # Async checkpoint (non-blocking — GPU continues while disk writes)
-                if len(all_embeddings) % CHECKPOINT_EVERY < args.batch_size:
-                    if checkpoint_thread and checkpoint_thread.is_alive():
-                        checkpoint_thread.join()  # wait for previous checkpoint
-                    # Snapshot current state for async save
-                    emb_snapshot = list(all_embeddings)
-                    keys_snapshot = list(all_keys)
-                    checkpoint_thread = threading.Thread(
-                        target=save_checkpoint,
-                        args=(emb_snapshot, keys_snapshot, checkpoint_file),
-                        daemon=True,
-                    )
-                    checkpoint_thread.start()
-
-        except KeyboardInterrupt:
-            print("\nInterrupted! Saving checkpoint...")
-            stop_event.set()
-        finally:
-            stop_event.set()
-            # Wait for any in-flight checkpoint
-            if checkpoint_thread and checkpoint_thread.is_alive():
-                checkpoint_thread.join(timeout=30)
-            # Final checkpoint save (synchronous — captures all data)
-            save_checkpoint(all_embeddings, all_keys, checkpoint_file)
-            producer.join(timeout=10)
-            shutil.rmtree(tmp_dir, ignore_errors=True)
-            # Clean parent tmp_m05/ only if empty (other runs may use it)
-            try:
-                tmp_base.rmdir()
-            except OSError:
-                pass
-
-    # Stack embeddings
+    # ── Post-processing: dedupe + save final output ──
+    all_embeddings, all_keys, final_count = load_checkpoint(checkpoint_file)
     if not all_embeddings:
         print("ERROR: No embeddings collected.")
         sys.exit(1)
@@ -574,28 +465,19 @@ def main():
     embeddings = np.stack(all_embeddings).astype(np.float32)
     clip_keys = all_keys
 
-    elapsed_total = time.time() - start_time
-
     print(f"\n=== Processing Stats ===")
     print(f"Total clips:     {len(clip_keys):,}")
-    print(f"Failed:          {failed_count}")
-    if elapsed_total > 0:
-        print(f"Time:            {elapsed_total:.1f}s")
-        print(f"Throughput:      {len(clip_keys) / elapsed_total:.1f} clips/sec")
     print(f"Embedding shape: {embeddings.shape}")
 
-    # Deduplicate
     if not args.no_dedupe:
         embeddings, clip_keys, num_removed = deduplicate_embeddings(
             embeddings, clip_keys, args.threshold
         )
 
-    # Save final output
     embeddings_file.parent.mkdir(parents=True, exist_ok=True)
     np.save(embeddings_file, embeddings)
     np.save(embeddings_file.with_suffix('.paths.npy'), np.array(clip_keys, dtype=object))
 
-    # Delete checkpoint (completed successfully)
     if checkpoint_file.exists():
         checkpoint_file.unlink()
 
@@ -604,6 +486,8 @@ def main():
     print(f"Shape: {embeddings.shape}")
     print(f"Unique clips: {len(clip_keys)}")
 
+    wb_run = init_wandb("m05", "COMPLETE", config=vars(args),
+                        enabled=not args.no_wandb)
     log_metrics(wb_run, {
         "total_clips": len(clip_keys),
         "embedding_dim": embeddings.shape[1],
@@ -611,6 +495,196 @@ def main():
     log_artifact(wb_run, "embeddings", str(embeddings_file))
     log_artifact(wb_run, "paths", str(embeddings_file.with_suffix('.paths.npy')))
     finish_wandb(wb_run)
+
+
+def worker_main(args):
+    """Worker subprocess: load V-JEPA, process segment, save checkpoint, exit."""
+    check_gpu()
+    device = "cuda"
+
+    if args.batch_size is None:
+        batch_sizes = compute_batch_sizes(gpu_vram_gb=args.gpu_mem)
+        args.batch_size = batch_sizes["vjepa"]
+    print(f"Batch size: {args.batch_size}")
+
+    mode = "SANITY" if args.SANITY else ("POC" if args.subset else "FULL")
+    wb_run = init_wandb("m05", mode,
+                        config={"start_from": args.start_from,
+                                "process_count": args.process_count},
+                        enabled=not args.no_wandb)
+
+    output_dir = get_output_dir(args.subset)
+    checkpoint_file = output_dir / ".m05_checkpoint.npz"
+    subset_keys = load_subset(args.subset) if args.subset else set()
+
+    # Load checkpoint for resume (processed_keys used by producer to skip done clips)
+    all_embeddings, all_keys, resume_count = load_checkpoint(checkpoint_file)
+    processed_keys = set(all_keys)
+
+    clip_limit = args.process_count
+    if clip_limit <= 0:
+        print("No clips to process.")
+        finish_wandb(wb_run)
+        return
+
+    if args.SANITY:
+        args.batch_size = min(args.batch_size, 2)
+
+    # Load model
+    print(f"\nLoading model: {args.model}")
+    try:
+        processor = AutoVideoProcessor.from_pretrained(args.model)
+        try:
+            import flash_attn  # noqa: F401
+        except ImportError:
+            print("FATAL: flash-attn not installed.")
+            print("V-JEPA 2 ViT-G requires Flash Attention 2 for memory-efficient inference.")
+            print("")
+            print("Install via setup_env_uv.sh --gpu (downloads pre-built wheel), or manually:")
+            print("  pip install flash-attn --no-build-isolation")
+            sys.exit(1)
+        model = AutoModel.from_pretrained(
+            args.model,
+            torch_dtype=torch.float16,
+            device_map="auto",
+            attn_implementation="flash_attention_2",
+        )
+        model.eval()
+        print("Applying torch.compile (first batch will be slow due to compilation)...")
+        model = torch.compile(model)
+        print(f"Model loaded on {device} (dtype: {next(model.parameters()).dtype})")
+    except Exception as e:
+        print(f"FATAL: Model load failed: {e}")
+        sys.exit(1)
+
+    # Producer-consumer setup
+    print(f"\n=== Streaming Config ===")
+    print(f"batch_size:    {args.batch_size}")
+    print(f"video_decoder: {'torchcodec (fast)' if USE_TORCHCODEC else 'PyAV'}")
+    print(f"prefetch:      {PREFETCH_QUEUE_SIZE} batches")
+    print(f"checkpoint:    every {CHECKPOINT_EVERY} clips")
+
+    tmp_base = output_dir / "tmp_m05"
+    tmp_base.mkdir(parents=True, exist_ok=True)
+    tmp_dir = tempfile.mkdtemp(dir=tmp_base)
+
+    q = queue.Queue(maxsize=PREFETCH_QUEUE_SIZE)
+    stop_event = threading.Event()
+
+    producer = threading.Thread(
+        target=_producer_thread,
+        args=(processor, args.batch_size, tmp_dir, q, stop_event,
+              clip_limit, subset_keys, VJEPA_FRAMES_PER_CLIP, processed_keys),
+        daemon=True,
+    )
+    producer.start()
+
+    start_time = time.time()
+    failed_count = 0
+    checkpoint_thread = None
+
+    try:
+        while True:
+            try:
+                msg_type, batched_pixels, batch_keys = q.get(timeout=600)
+            except queue.Empty:
+                print("\nProducer timeout (10 min). Saving checkpoint...")
+                break
+
+            if msg_type == "done":
+                break
+
+            embeddings = get_batch_embeddings(model, batched_pixels, device)
+
+            for emb, key in zip(embeddings, batch_keys):
+                all_embeddings.append(emb)
+                all_keys.append(key)
+                processed_keys.add(key)
+
+            elapsed = time.time() - start_time
+            clips_this_run = len(all_embeddings) - resume_count
+            total_target = clip_limit + resume_count
+            throughput = clips_this_run / elapsed if elapsed > 0 else 0
+            print(f"  [{len(all_embeddings):,}/{total_target:,}] "
+                  f"{throughput:.1f} clips/s | failed={failed_count}")
+            log_metrics(wb_run, {
+                "clips_processed": len(all_embeddings),
+                "throughput_clips_per_s": throughput,
+                "failed": failed_count,
+            })
+
+            if len(all_embeddings) % CHECKPOINT_EVERY < args.batch_size:
+                if checkpoint_thread and checkpoint_thread.is_alive():
+                    checkpoint_thread.join()
+                emb_snapshot = list(all_embeddings)
+                keys_snapshot = list(all_keys)
+                checkpoint_thread = threading.Thread(
+                    target=save_checkpoint,
+                    args=(emb_snapshot, keys_snapshot, checkpoint_file),
+                    daemon=True,
+                )
+                checkpoint_thread.start()
+
+    except KeyboardInterrupt:
+        print("\nInterrupted! Saving checkpoint...")
+        stop_event.set()
+    finally:
+        stop_event.set()
+        if checkpoint_thread and checkpoint_thread.is_alive():
+            checkpoint_thread.join(timeout=30)
+        save_checkpoint(all_embeddings, all_keys, checkpoint_file)
+        producer.join(timeout=10)
+        shutil.rmtree(tmp_dir, ignore_errors=True)
+        try:
+            tmp_base.rmdir()
+        except OSError:
+            pass
+
+    clips_this_run = len(all_embeddings) - resume_count
+    if clips_this_run > 0:
+        elapsed = time.time() - start_time
+        print(f"\nSegment done: {clips_this_run:,} clips in {elapsed:.0f}s "
+              f"({clips_this_run/elapsed:.2f} clips/s)")
+
+    finish_wandb(wb_run)
+    print("Worker exiting (GPU memory will be released).")
+
+
+# ── Main ───────────────────────────────────────────────────────────────
+
+def main():
+    parser = argparse.ArgumentParser(
+        description="Generate V-JEPA 2 embeddings (GPU-only, HF WebDataset streaming)")
+    parser.add_argument("--SANITY", action="store_true", help="Process 5 clips only")
+    parser.add_argument("--FULL", action="store_true", help="Process all clips")
+    parser.add_argument("--model", type=str, default=VJEPA_MODEL_ID, help="Model ID")
+    parser.add_argument("--batch-size", type=int, default=None,
+                        help="Override batch size (auto-computed if omitted)")
+    parser.add_argument("--no-dedupe", action="store_true", help="Skip deduplication")
+    parser.add_argument("--threshold", type=float, default=DEDUPE_THRESHOLD,
+                        help="Dedupe threshold")
+    add_subset_arg(parser)
+    add_wandb_args(parser)
+    add_gpu_mem_arg(parser)
+
+    # Internal worker args (spawned by orchestrator)
+    parser.add_argument("--_worker", action="store_true", help=argparse.SUPPRESS)
+    parser.add_argument("--start-from", type=int, default=0, help=argparse.SUPPRESS)
+    parser.add_argument("--process-count", type=int, default=ENGINE_RESTART_EVERY,
+                        help=argparse.SUPPRESS)
+    args = parser.parse_args()
+
+    # Worker mode (spawned by orchestrator)
+    if args._worker:
+        worker_main(args)
+        return
+
+    if not (args.SANITY or args.FULL):
+        parser.print_help()
+        print("\nERROR: Specify --SANITY or --FULL")
+        sys.exit(1)
+
+    orchestrator_main(args)
 
 
 if __name__ == "__main__":

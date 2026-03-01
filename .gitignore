@@ -38,6 +38,7 @@ htmlcov/
 dist/
 build/
 *.egg-info/
+wheels/*.whl
 
 # ML Models (Phase 2+)
 *.pt
@@ -64,7 +65,9 @@ data/LEGACY*
 src/data/videos/*.mp4
 src/data/clips/
 src/data/
-*.npy
+# *.npy — KEPT IN REPO: 29MB total (5,105 clips × 1,408-dim V-JEPA embeddings + kNN indices + UMAP 2D).
+# Generated on RTX PRO 6000 96GB via FAISS-GPU + cuML. Enables CPU-only plotting on M1 Mac (m08_plot.py).
+# Re-generation requires GPU: m05 (V-JEPA embed, ~90 min) → m06 (FAISS kNN) → m07 (cuML UMAP).
 
 # secrets
 cookies.txt

@@ -20,6 +20,7 @@
 # V-JEPA 2 needs >=4.52.0, Qwen3-VL needs >=4.57.0, LLaVA-NeXT-Video needs >=4.42.0
 # Pin <5.0: VideoLLaMA3 remote code breaks on 5.x (processor signature + API changes)
 transformers>=4.57.0,<5.0
+sentencepiece>=0.1.99  # LLaVA-NeXT-Video: LlamaTokenizerFast requires sentencepiece for from_slow path
 accelerate>=0.25.0
 bitsandbytes>=0.41.0
 datasets>=2.14.0

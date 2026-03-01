@@ -23,6 +23,14 @@ from utils.config import (
     FAISS_K_NEIGHBORS,
     add_subset_arg, get_output_dir,
 )
+
+TAXONOMY_FILE = Path(__file__).parent / "utils" / "tag_taxonomy.json"
+SINGLE_VALUE_KEYS = []
+if TAXONOMY_FILE.exists():
+    with open(TAXONOMY_FILE) as _f:
+        _tax = json.load(_f)
+    SINGLE_VALUE_KEYS = [k for k, v in _tax.items()
+                         if not k.startswith("_") and v.get("type") == "single"]
 from utils.wandb_utils import (
     add_wandb_args, init_wandb, log_metrics, log_image, finish_wandb,
 )
@@ -91,37 +99,57 @@ def make_placeholder(label: str, color: str, size: int = 128) -> np.ndarray:
     return buf.reshape(size, size, 4)[:, :, :3]
 
 
+# ── Dynamic color palette ────────────────────────────────────────────────
+
+_TABLEAU20 = [
+    "#e41a1c", "#4daf4a", "#984ea3", "#377eb8", "#999999",
+    "#ff7f00", "#ffff33", "#a65628", "#17becf", "#f781bf",
+    "#1f77b4", "#aec7e8", "#2ca02c", "#d62728", "#9467bd",
+    "#8c564b", "#e377c2", "#bcbd22", "#7f7f7f", "#dbdb8d",
+]
+
+def _get_color_map(values: list) -> dict:
+    """Build a value→color map. Uses SCENE_COLORS for scene_type values, else auto-assigns."""
+    unique = sorted(set(values))
+    cmap = {}
+    for i, v in enumerate(unique):
+        cmap[v] = SCENE_COLORS.get(v, _TABLEAU20[i % len(_TABLEAU20)])
+    return cmap
+
+
 # ── UMAP Scatter Plot ────────────────────────────────────────────────────
 
 def create_umap_plot(emb_2d: np.ndarray, tags: list, output_dir: Path,
-                     metrics_data: dict):
-    """UMAP scatter colored by scene_type with metrics overlay."""
-    scene_types = [t.get("scene_type", "unknown") for t in tags]
-    colors = [SCENE_COLORS.get(st, SCENE_COLORS["unknown"]) for st in scene_types]
-    scene_counts = defaultdict(int)
-    for st in scene_types:
-        scene_counts[st] += 1
+                     metrics_data: dict, field: str = "scene_type"):
+    """UMAP scatter colored by a taxonomy field with metrics overlay."""
+    values = [t.get(field, "unknown") for t in tags]
+    color_map = _get_color_map(values)
+    colors = [color_map.get(v, "#666666") for v in values]
+    counts = defaultdict(int)
+    for v in values:
+        counts[v] += 1
 
     fig, ax = plt.subplots(figsize=(12, 10))
     ax.scatter(emb_2d[:, 0], emb_2d[:, 1], c=colors, s=max(5, 80 - len(tags) // 200),
                alpha=0.7, edgecolors='white', linewidths=0.3)
 
-    legend_patches = [mpatches.Patch(color=c, label=f"{st} (n={scene_counts[st]})")
-                      for st, c in SCENE_COLORS.items() if st in scene_counts]
+    legend_patches = [mpatches.Patch(color=color_map[v], label=f"{v} (n={counts[v]})")
+                      for v in sorted(color_map) if v in counts]
     ax.legend(handles=legend_patches, loc='upper right', fontsize=9)
 
     ax.set_xlabel('UMAP 1', fontsize=12)
     ax.set_ylabel('UMAP 2', fontsize=12)
-    ax.set_title(f'V-JEPA Embeddings (n={len(tags):,}, colored by scene_type)', fontsize=14)
+    label = field.replace("_", " ").title()
+    ax.set_title(f'V-JEPA Embeddings (n={len(tags):,}, colored by {field})', fontsize=14)
 
-    if metrics_data:
+    if metrics_data and field == "scene_type":
         easy = metrics_data.get("easy", {})
         lines = []
         for m in ["cycle_at_k", "prec_at_k", "silhouette"]:
             v = easy.get(m)
             if v is not None:
-                label = m.replace("_", " ").title()
-                lines.append(f"{label}: {v}")
+                ml = m.replace("_", " ").title()
+                lines.append(f"{ml}: {v}")
         macro = easy.get("macro_avg", {}).get("prec_at_k")
         if macro is not None:
             lines.append(f"Macro Prec@K: {macro}%")
@@ -131,60 +159,167 @@ def create_umap_plot(emb_2d: np.ndarray, tags: list, output_dir: Path,
                     bbox=dict(boxstyle='round', facecolor='white', alpha=0.85))
 
     plt.tight_layout()
+    suffix = f"_{field}" if field != "scene_type" else ""
     for ext in [".png", ".pdf"]:
-        plt.savefig(output_dir / f"m08_umap{ext}", dpi=150 if ext == ".png" else None,
-                    bbox_inches='tight')
+        plt.savefig(output_dir / f"m08_umap{suffix}{ext}",
+                    dpi=150 if ext == ".png" else None, bbox_inches='tight')
     plt.close()
-    print(f"Saved: {output_dir / 'm08_umap.png'}")
+    print(f"Saved: {output_dir / f'm08_umap{suffix}.png'}")
 
 
 # ── Confusion Matrix ─────────────────────────────────────────────────────
 
 def create_confusion_matrix(knn_indices: np.ndarray, tags: list, output_dir: Path,
-                            k: int = 5):
+                            k: int = 5, field: str = "scene_type"):
     """kNN retrieval confusion matrix from pre-computed indices (no FAISS needed)."""
-    scene_types = sorted(set(t.get("scene_type", "unknown") for t in tags))
+    field_values = sorted(set(t.get(field, "unknown") for t in tags))
 
     conf = defaultdict(lambda: defaultdict(int))
     for i, neighbors in enumerate(knn_indices):
-        qt = tags[i].get("scene_type", "unknown")
+        qt = tags[i].get(field, "unknown")
         for j in neighbors[1:k + 1]:  # skip self (col 0)
             if 0 <= j < len(tags):
-                conf[qt][tags[j].get("scene_type", "unknown")] += 1
+                conf[qt][tags[j].get(field, "unknown")] += 1
 
-    matrix = np.zeros((len(scene_types), len(scene_types)))
-    for i, qt in enumerate(scene_types):
+    matrix = np.zeros((len(field_values), len(field_values)))
+    for i, qt in enumerate(field_values):
         total = sum(conf[qt].values())
-        for j, nt in enumerate(scene_types):
+        for j, nt in enumerate(field_values):
             matrix[i, j] = conf[qt][nt] / total * 100 if total > 0 else 0
 
-    fig, ax = plt.subplots(figsize=(10, 8))
+    label = field.replace("_", " ").title()
+    fig, ax = plt.subplots(figsize=(max(8, len(field_values) * 0.9 + 2),
+                                    max(6, len(field_values) * 0.8 + 2)))
     im = ax.imshow(matrix, cmap='Blues')
-    ax.set_xticks(range(len(scene_types)))
-    ax.set_yticks(range(len(scene_types)))
-    ax.set_xticklabels(scene_types, rotation=45, ha='right')
-    ax.set_yticklabels(scene_types)
-    ax.set_xlabel('Retrieved Scene Type')
-    ax.set_ylabel('Query Scene Type')
-    ax.set_title(f'kNN Retrieval Confusion (k={k})')
+    ax.set_xticks(range(len(field_values)))
+    ax.set_yticks(range(len(field_values)))
+    ax.set_xticklabels(field_values, rotation=45, ha='right')
+    ax.set_yticklabels(field_values)
+    ax.set_xlabel(f'Retrieved {label}')
+    ax.set_ylabel(f'Query {label}')
+    ax.set_title(f'kNN Retrieval Confusion — {label} (k={k})')
 
-    for i in range(len(scene_types)):
-        for j in range(len(scene_types)):
+    fontsize = 9 if len(field_values) <= 10 else 7
+    for i in range(len(field_values)):
+        for j in range(len(field_values)):
             color = 'white' if matrix[i, j] > 50 else 'black'
             ax.text(j, i, f'{matrix[i, j]:.0f}%', ha='center', va='center',
-                    color=color, fontsize=9)
+                    color=color, fontsize=fontsize)
 
     plt.colorbar(im, ax=ax, label='% of Retrievals')
     plt.tight_layout()
+    suffix = f"_{field}" if field != "scene_type" else ""
     for ext in [".png", ".pdf"]:
-        plt.savefig(output_dir / f"m08_confusion_matrix{ext}",
+        plt.savefig(output_dir / f"m08_confusion_matrix{suffix}{ext}",
                     dpi=150 if ext == ".png" else None)
     plt.close()
-    print(f"Saved: {output_dir / 'm08_confusion_matrix.png'}")
+    print(f"Saved: {output_dir / f'm08_confusion_matrix{suffix}.png'}")
 
-    print("\nPer-class retrieval accuracy:")
-    for i, st in enumerate(scene_types):
-        print(f"  {st}: {matrix[i, i]:.1f}%")
+    if field == "scene_type":
+        print("\nPer-class retrieval accuracy:")
+        for i, st in enumerate(field_values):
+            print(f"  {st}: {matrix[i, i]:.1f}%")
+
+
+# ── Combined 3x3 UMAP Grid ──────────────────────────────────────────────
+
+def create_umap_grid(emb_2d: np.ndarray, tags: list, output_dir: Path,
+                     plot_keys: list):
+    """3x3 grid of UMAP scatters, one per taxonomy key."""
+    n_panels = len(plot_keys)
+    n_cols, n_rows = 3, (n_panels + 2) // 3
+    fig, axes = plt.subplots(n_rows, n_cols, figsize=(7 * n_cols, 6 * n_rows))
+    axes_flat = axes.flatten()
+    pt_size = max(2, 30 - len(tags) // 300)
+
+    for idx, field in enumerate(plot_keys):
+        ax = axes_flat[idx]
+        values = [t.get(field, "unknown") for t in tags]
+        color_map = _get_color_map(values)
+        colors = [color_map.get(v, "#666666") for v in values]
+        counts = defaultdict(int)
+        for v in values:
+            counts[v] += 1
+
+        ax.scatter(emb_2d[:, 0], emb_2d[:, 1], c=colors, s=pt_size,
+                   alpha=0.6, edgecolors='none')
+        legend_patches = [mpatches.Patch(color=color_map[v],
+                          label=f"{v} ({counts[v]})")
+                          for v in sorted(color_map) if v in counts]
+        ax.legend(handles=legend_patches, loc='upper right', fontsize=6,
+                  framealpha=0.8, handlelength=1, handletextpad=0.3)
+        label = field.replace("_", " ").title()
+        ax.set_title(label, fontsize=11, fontweight='bold')
+        ax.set_xlabel('UMAP 1', fontsize=8)
+        ax.set_ylabel('UMAP 2', fontsize=8)
+        ax.tick_params(labelsize=7)
+
+    for idx in range(n_panels, len(axes_flat)):
+        axes_flat[idx].set_visible(False)
+
+    fig.suptitle(f'V-JEPA UMAP — All Taxonomy Keys (n={len(tags):,})',
+                 fontsize=15, fontweight='bold')
+    plt.tight_layout(rect=[0, 0, 1, 0.97])
+    for ext in [".png", ".pdf"]:
+        plt.savefig(output_dir / f"m08_umap_grid{ext}",
+                    dpi=150 if ext == ".png" else None, bbox_inches='tight')
+    plt.close()
+    print(f"Saved: {output_dir / 'm08_umap_grid.png'}")
+
+
+# ── Combined 3x3 Confusion Matrix Grid ─────────────────────────────────
+
+def create_confusion_matrix_grid(knn_indices: np.ndarray, tags: list,
+                                 output_dir: Path, k: int, plot_keys: list):
+    """3x3 grid of confusion matrices, one per taxonomy key."""
+    n_panels = len(plot_keys)
+    n_cols, n_rows = 3, (n_panels + 2) // 3
+    fig, axes = plt.subplots(n_rows, n_cols, figsize=(7 * n_cols, 6 * n_rows))
+    axes_flat = axes.flatten()
+
+    for idx, field in enumerate(plot_keys):
+        ax = axes_flat[idx]
+        field_values = sorted(set(t.get(field, "unknown") for t in tags))
+
+        conf = defaultdict(lambda: defaultdict(int))
+        for i, neighbors in enumerate(knn_indices):
+            qt = tags[i].get(field, "unknown")
+            for j in neighbors[1:k + 1]:
+                if 0 <= j < len(tags):
+                    conf[qt][tags[j].get(field, "unknown")] += 1
+
+        matrix = np.zeros((len(field_values), len(field_values)))
+        for i, qt in enumerate(field_values):
+            total = sum(conf[qt].values())
+            for j, nt in enumerate(field_values):
+                matrix[i, j] = conf[qt][nt] / total * 100 if total > 0 else 0
+
+        im = ax.imshow(matrix, cmap='Blues')
+        ax.set_xticks(range(len(field_values)))
+        ax.set_yticks(range(len(field_values)))
+        ax.set_xticklabels(field_values, rotation=45, ha='right', fontsize=7)
+        ax.set_yticklabels(field_values, fontsize=7)
+        label = field.replace("_", " ").title()
+        ax.set_title(label, fontsize=11, fontweight='bold')
+
+        fontsize = 7 if len(field_values) <= 6 else 5
+        for i in range(len(field_values)):
+            for j in range(len(field_values)):
+                color = 'white' if matrix[i, j] > 50 else 'black'
+                ax.text(j, i, f'{matrix[i, j]:.0f}%', ha='center', va='center',
+                        color=color, fontsize=fontsize)
+
+    for idx in range(n_panels, len(axes_flat)):
+        axes_flat[idx].set_visible(False)
+
+    fig.suptitle(f'kNN Retrieval Confusion — All Taxonomy Keys (k={k})',
+                 fontsize=15, fontweight='bold')
+    plt.tight_layout(rect=[0, 0, 1, 0.97])
+    for ext in [".png", ".pdf"]:
+        plt.savefig(output_dir / f"m08_confusion_matrix_grid{ext}",
+                    dpi=150 if ext == ".png" else None, bbox_inches='tight')
+    plt.close()
+    print(f"Saved: {output_dir / 'm08_confusion_matrix_grid.png'}")
 
 
 # ── kNN Neighbor Grid ────────────────────────────────────────────────────
@@ -392,13 +527,25 @@ def main():
 
     k = min(args.k, n - 1)
 
-    # 1. UMAP scatter
-    create_umap_plot(emb_2d, tags, output_dir, metrics_data)
+    # Taxonomy keys to iterate (scene_type first, then remaining single-value keys)
+    plot_keys = ["scene_type"]
+    for fk in SINGLE_VALUE_KEYS:
+        if fk != "scene_type" and fk not in plot_keys:
+            plot_keys.append(fk)
+    print(f"Taxonomy keys for plots: {plot_keys}")
 
-    # 2. Confusion matrix (from pre-computed kNN indices — no FAISS)
-    create_confusion_matrix(knn_indices, tags, output_dir, k=k)
+    # 1. UMAP scatters (individual per key + combined 3x3 grid)
+    for fk in plot_keys:
+        create_umap_plot(emb_2d, tags, output_dir, metrics_data, field=fk)
+    create_umap_grid(emb_2d, tags, output_dir, plot_keys)
 
-    # 3. kNN neighbor grid
+    # 2. Confusion matrices (individual per key + combined 3x3 grid)
+    for fk in plot_keys:
+        create_confusion_matrix(knn_indices, tags, output_dir, k=k, field=fk)
+    create_confusion_matrix_grid(knn_indices, tags, output_dir, k=k,
+                                 plot_keys=plot_keys)
+
+    # 3. kNN neighbor grid (scene_type only — visual design is scene-specific)
     if not args.no_grid:
         create_knn_grid(knn_indices, tags, clip_paths, output_dir, k=k)
 
@@ -417,8 +564,14 @@ def main():
             if micro is not None:
                 log_metrics(wb_run, {f"{prefix}/micro_prec_at_k": micro})
 
-    log_image(wb_run, "umap", str(output_dir / "m08_umap.png"))
-    log_image(wb_run, "confusion_matrix", str(output_dir / "m08_confusion_matrix.png"))
+    for fk in plot_keys:
+        suffix = f"_{fk}" if fk != "scene_type" else ""
+        log_image(wb_run, f"umap{suffix}", str(output_dir / f"m08_umap{suffix}.png"))
+        log_image(wb_run, f"confusion_matrix{suffix}",
+                  str(output_dir / f"m08_confusion_matrix{suffix}.png"))
+    log_image(wb_run, "umap_grid", str(output_dir / "m08_umap_grid.png"))
+    log_image(wb_run, "confusion_matrix_grid",
+              str(output_dir / "m08_confusion_matrix_grid.png"))
     if not args.no_grid:
         log_image(wb_run, "knn_grid", str(output_dir / "m08_knn_grid.png"))
 

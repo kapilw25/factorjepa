@@ -114,10 +114,18 @@ echo "Build time: $(( (END_TIME - START_TIME) / 60 ))m $(( (END_TIME - START_TIM
 
 fi  # end of build block
 
-# ── 7. Install Python bindings into venv ──────────────────────────────────
+# ── 7. Build wheel + install Python bindings into venv ────────────────────
+WHEELS_DIR="$(cd "$(dirname "$0")" && pwd)/wheels"
+mkdir -p "${WHEELS_DIR}"
 echo ""
-echo "=== Installing Python bindings into venv ==="
+echo "=== Building wheel + installing Python bindings ==="
 cd "${FAISS_SRC}/build/faiss/python"
+# Build wheel for caching (saved to wheels/ for GitHub release upload)
+${PIP} install pip 2>/dev/null || true
+pip wheel . --no-deps --wheel-dir "${WHEELS_DIR}/" 2>/dev/null && {
+    echo "Wheel saved: $(ls "${WHEELS_DIR}"/faiss*.whl 2>/dev/null | head -1)"
+} || echo "Wheel export skipped (non-fatal, installing directly)"
+# Install into venv
 ${PIP} install .
 echo "Installed faiss to: $(${PIP} show faiss 2>/dev/null | grep Location || echo 'unknown')"
 
