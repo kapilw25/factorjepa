@@ -16,9 +16,11 @@
 │                                                                                 │
 │   • Two Indian market scenes are SIMILAR                                        │
 │   • A market scene is DIFFERENT from a temple scene                             │
-│   • Night traffic looks DIFFERENT from morning traffic                          │
+│   • Chaotic mixed traffic is DIFFERENT from orderly motorized traffic           │
+│   • Shared pedestrian-vehicle space is DIFFERENT from separated sidewalks       │
 │                                                                                 │
-│   WITHOUT teaching it anything about India!                                     │
+│   WITHOUT teaching it anything about India!  (Ch 9)                             │
+│   Then: Can we TEACH it Indian patterns?     (Ch 10 + Ch 11)                   │
 │                                                                                 │
 └─────────────────────────────────────────────────────────────────────────────────┘
 ```
@@ -32,28 +34,8 @@
 | 1 | **Geographic transfer evaluation** | STRONG | No one has tested if V-JEPA's "world model" transfers to Indian streets |
 | 2 | **Label-free video evaluation metrics** | STRONG | Self-consistency & stability metrics are new for video (only done for images) |
 | 3 | **Indian urban video dataset** | MEDIUM | New dataset contribution (~200K clips from 700 videos) |
-| 4 | **VLM bake-off pipeline** | MEDIUM | 3-VLM comparison (Qwen3-VL, VideoLLaMA3, LLaVA-NeXT-Video) → consensus-based winner selection |
-
-### POC-First Strategy
-
-**Run the entire 4-chapter pipeline on a 10K video-level uniform subset before scaling to 115K.**
-
-| Aspect | Detail |
-|--------|--------|
-| **Subset size** | 10,000 clips (from 115K) |
-| **Why 10K** | Statistical minimum for kNN (k=6, 10 scene types × 1K each), FAISS IVF-PQ training (≥8K), confidence sweep binning |
-| **Sampling** | Video-level uniform: each video contributes ~equal clips (ensures all cities/types represented) |
-| **Tool** | `m00c_sample_subset.py` → `data/subset_10k.json` (deterministic, seed=42) |
-| **Flag** | All scripts (m04-m08) accept `--subset data/subset_10k.json` to operate on POC subset only |
-| **Output dir** | `outputs_poc/` (separate from `outputs/`) |
-| **Scale up** | After POC validates → drop `--subset` flag, same scripts run on 115K |
-
-**POC timeline:**
-| Week | Chapter | GPU Hours | Deliverable |
-|:----:|---------|:---------:|-------------|
-| 1 | Ch 8+9 (data + eval) | ~4h | POC metrics.json + plots |
-| 2 | Ch 10 (continual pretraining) | ~20h | frozen vs adapted comparison |
-| 3-4 | Ch 11 (surgery fine-tuning) | ~54h | frozen vs adapted vs surgical comparison |
+| 4 | **VLM bake-off pipeline** | MEDIUM | 3-VLM comparison → consensus-based winner selection |
+| 5 | **Domain adaptation via surgery fine-tuning** | STRONG | Factor-decomposed self-supervised adaptation (layout/agent/interaction) |
 
 ### Research Gap (Validated via Web Search)
 
@@ -61,6 +43,7 @@
 - NO large-scale Indian urban walking video dataset
 - NO "self-consistency + stability" metrics applied to VIDEO embeddings
 - NO study on cultural/geographical transfer of video world models
+- NO factor-decomposed self-supervised domain adaptation for video encoders
 
 ### Honest Limitations
 
@@ -72,46 +55,79 @@
 
 ---
 
-## Pipeline Summary
+## POC-First Strategy
+
+**Run the entire 4-chapter pipeline on a 10K video-level uniform subset before scaling to 115K.**
+
+| Aspect | Detail |
+|--------|--------|
+| **Subset** | 10,000 clips from 115K (video-level uniform, seed=42) |
+| **Tool** | `m00c_sample_subset.py` → `data/subset_10k.json` |
+| **Flag** | All scripts accept `--subset data/subset_10k.json` |
+| **Output** | `outputs_poc/` (separate from `outputs/`) |
+| **Scale** | After POC validates → drop `--subset`, same scripts run on 115K |
+
+### POC Timeline (Sequential, on RTX PRO 6000 96GB)
+
+| Week | Chapter | GPU Hours | Deliverable | Status |
+|:----:|---------|:---------:|-------------|--------|
+| 1 | Ch 8+9 (data + eval + baselines) | ~15h | metrics_frozen.json + 15 plots + baselines | **90% DONE** |
+| 2 | Ch 10 (continual pretraining) | ~20h | metrics_adapted.json (frozen vs adapted) | NEXT |
+| 3-4 | Ch 11 (surgery fine-tuning) | ~54h | metrics_surgical.json (frozen vs adapted vs surgical) | FUTURE |
+
+---
+
+## Full Pipeline (Ch 8 → 9 → 10 → 11)
 
 ```mermaid
-flowchart LR
-    subgraph DATA ["DATA PIPELINE (Mac CPU)"]
-        direction TB
-        A["YouTube<br>700 videos<br>20-30 min"] --> B["PySceneDetect<br>4-10s cuts"]
-        B --> C["~115K clips<br>121 GB"]
-        C --> D["WebDataset<br>116 TAR shards<br>HF Upload"]
-    end
-
-    subgraph SUB ["m00c<br>Video-level Uniform 10K<br>subset_10k.json"]
-    end
-
-    subgraph VJEPA ["V-JEPA BRANCH (GPU)"]
+flowchart TB
+    subgraph DATA ["Ch 8 · Data Pipeline (Mac CPU)"]
         direction LR
-        E["V-JEPA 2<br>clip → 64 frm<br>ViT-G frozen"] --> F["FAISS kNN<br>IVF-PQ<br>Hard/Easy mode"]
-        F --> G["METRICS<br>Cycle@K · Prec@K · Overlap@K<br>mAP@K · nDCG@K · Silhouette<br>Conf sweep · Multi-attr slices"]
-        G --> H1["m07 UMAP<br>cuML GPU<br>→ umap_2d.npy"]
-        H1 --> H2["m08 Plot<br>CPU matplotlib<br>2D viz · kNN grids<br>Macro/micro reporting"]
+        A["YouTube<br>700 vids"] --> B["PySceneDetect<br>4-10s cuts"] --> C["~115K clips<br>121 GB"] --> D["WebDataset<br>116 TAR · HF"]
     end
 
-    subgraph VLM ["VLM BAKE-OFF (GPU → select → full)"]
+    SUB(["m00c · 10K uniform · seed=42"])
+
+    subgraph VLM ["Ch 8 · VLM Bake-off (2.5K)"]
+        direction LR
+        I1["Qwen3-VL-8B"] --> S["m04b · 5-criterion<br>consensus"]
+        I2["VideoLLaMA3-7B"] --> S
+        I3["LLaVA-NeXT-1.5-8B"] --> S
+        S --> W["Winner → tags.json<br>16 fields × denseworld"]
+    end
+
+    subgraph CH9 ["Ch 9 · Evaluate Frozen V-JEPA"]
         direction TB
-        I1["m04 --BAKEOFF<br>Qwen3-VL-8B<br>2.5K clips"] --> S["m04b<br>VLM Select<br>consensus = gold"]
-        I2["m04 --BAKEOFF<br>VideoLLaMA3-7B<br>2.5K clips"] --> S
-        I3["m04 --BAKEOFF<br>LLaVA-NeXT-Video-1.5-8B<br>2.5K clips"] --> S
-        S --> W["m04 --FULL<br>Winner VLM<br>POC: 7.5K · Full: 113K"]
+        E["V-JEPA 2 ViT-G<br>frozen · 1408-dim"] --> F["FAISS kNN<br>k=6 · Hard/Easy"]
+        BL["m05b · 4 Baselines<br>Random · DINOv2<br>Shuffled · CLIP"] --> F
+        F --> G["9 Metrics<br>+ true Overlap@K<br>+ quality strat.<br>+ 16-field slices"]
+        G --> H["UMAP + plots<br>× 5 encoders"]
     end
 
-    subgraph OUT ["DELIVERABLES"]
-        K["1. Benchmark (9 metrics)<br>2. Dataset (33 fields/clip)<br>3. Paper Finding<br>4. Baselines<br>5. VLM Bake-off Report<br>6. POC → Full scaling report"]
+    subgraph CH10 ["Ch 10 · Continual Pretraining"]
+        direction TB
+        J1["Student encoder<br>init = frozen"] --> J2["JEPA loss<br>mask 20%"] --> J3["Teacher EMA<br>τ = 0.999"] --> J4["V-JEPA<br>(adapted)"]
+    end
+
+    subgraph CH11 ["Ch 11 · Surgery Fine-Tuning"]
+        direction TB
+        K1["SAM3 masks<br>→ tracklets"] --> K2["3 Factor Datasets<br>D_L · D_A · D_I"] --> K3["3-Stage Prefix<br>Unfreezing"] --> K4["V-JEPA<br>(surgical)"]
+    end
+
+    subgraph FINAL ["PAPER · 3-WAY COMPARISON"]
+        direction TB
+        L1["Re-run m05→m08<br>all 3 encoders"] --> L2["frozen vs adapted<br>vs surgical<br>× 15 taxonomy keys"]
     end
 
     DATA --> SUB
-    SUB -->|"POC: 10K"| VJEPA
-    SUB -->|"POC: 2.5K"| VLM
-    VLM --> VJEPA
-    VJEPA --> OUT
-    VLM --> OUT
+    SUB --> VLM
+    SUB --> CH9
+    W -->|"tags for eval"| CH9
+    W -->|"stratified<br>batch"| CH10
+    W -->|"stratified<br>batch"| CH11
+    CH9 -->|"frozen<br>baseline"| FINAL
+    CH10 --> FINAL
+    CH11 --> FINAL
 
     style A fill:#1e88e5,color:#fff,font-weight:bold,font-size:28px
     style B fill:#8e24aa,color:#fff,font-weight:bold,font-size:28px
@@ -121,827 +137,691 @@ flowchart LR
     style E fill:#43a047,color:#fff,font-weight:bold,font-size:28px
     style F fill:#e53935,color:#fff,font-weight:bold,font-size:28px
     style G fill:#d81b60,color:#fff,font-weight:bold,font-size:28px
-    style H1 fill:#6d4c41,color:#fff,font-weight:bold,font-size:28px
-    style H2 fill:#795548,color:#fff,font-weight:bold,font-size:28px
+    style H fill:#795548,color:#fff,font-weight:bold,font-size:28px
+    style BL fill:#546e7a,color:#fff,font-weight:bold,font-size:28px
     style I1 fill:#00acc1,color:#fff,font-weight:bold,font-size:28px
     style I2 fill:#00838f,color:#fff,font-weight:bold,font-size:28px
     style I3 fill:#006064,color:#fff,font-weight:bold,font-size:28px
     style S fill:#ff6f00,color:#fff,font-weight:bold,font-size:28px
     style W fill:#00acc1,color:#fff,font-weight:bold,font-size:28px
-    style K fill:#b71c1c,color:#fff,font-weight:bold,font-size:28px
-```
-
-### Why VLM Branch connects to V-JEPA BRANCH (W → F, W -.-> G)
-
-```
-DATA PIPELINE        V-JEPA BRANCH              VLM BAKE-OFF BRANCH
-─────────────        ─────────────              ──────────────────────
-WebDataset    ──→    m00c Subset   ──→          POC: 10K clips (--subset)
-(116 TARs)           (10K uniform)               Full: 115K clips (no flag)
-                          │
-                          ├──→ V-JEPA 2 → FAISS  ←──  Phase 1: 3 VLMs × 2.5K clips
-                          │    embeddings   ↑           Qwen3-VL   ──┐
-                          │                 │           VideoLLaMA3 ──┤→ m04b Select → Winner
-                          │                 │           LLaVA-NeXT-Video-1.5 ──┘
-                          │                 │          Phase 2: Winner × remaining → tags.json
-                          │                 │          (POC: 7.5K remaining | Full: 113K remaining)
-                          │                 │
-                     Prec@K uses BOTH:
-                     • embeddings (V-JEPA) for kNN neighbors
-                     • scene_type (winner VLM pseudo-label) as diagnostic labels
-
-                     No gold truth needed:
-                     • cross-VLM consensus on 2,500 clips = proxy gold truth
-                     • VLM with highest agreement with other two = winner
-
-                     NOTE: Tags are DIAGNOSTIC — primary metrics
-                     (Cycle@K, Overlap@K) are label-free
-```
-
-How tags flow into evaluation:
-
-```
-Phase 1: Bake-off (2,500 clips × 3 VLMs)
-m04 --BAKEOFF qwen       → data/bakeoff/tags_qwen.json
-m04 --BAKEOFF videollama  → data/bakeoff/tags_videollama.json
-m04 --BAKEOFF llava        → data/bakeoff/tags_llava.json
-         ↓
-m04b_vlm_select.py → vlm_comparison.json + plots → Winner
-
-Phase 2: Winner on remaining clips
-m04 --FULL <winner> --subset data/subset_10k.json → outputs_poc/tags.json  (POC: 7.5K)
-m04 --FULL <winner>                               → tags.json              (Full: 113K)
-
-tags.json                            m06 evaluates V-JEPA quality (9 metrics):
-┌──────────────────────┐            ┌──────────────────────────────────┐
-│ [                    │            │ Prec@K:                          │
-│   {                  │            │   For each clip i:               │
-│     "scene_type":    │──────────→ │     my_type = tags[i]["scene_type"]
-│       "market",      │            │     neighbors = kNN(embeddings[i])│
-│     "confidence_     │            │     % neighbors with same type?  │
-│       scene_type":   │            ├──────────────────────────────────┤
-│       0.92,          │            │ + Cycle@K, Overlap@K, mAP@K,    │
-│     "_model": ...,   │            │   nDCG@K, Silhouette            │
-│     ...              │            │ + Conf sweep, Multi-attr slices  │
-│   },                 │            │ + Hard/Easy mode (±30s window)   │
-│   ...                │            └──────────────────────────────────┘
-│ ]                    │
-└──────────────────────┘            m07 (GPU): cuML UMAP → umap_2d.npy
-                                    m08 (CPU): reads pre-computed .npy files
-                       ──────────→  ┌──────────────────────────────────┐
-                                    │ UMAP scatter colored by scene_type│
-                                    │ Confusion matrix (from knn_indices│
-                                    │   saved by m06) + kNN grids      │
-                                    │ Macro/micro reporting            │
-                                    └──────────────────────────────────┘
-```
-
-<details>
-<summary>Original ASCII art (cross-reference)</summary>
-
-```
-╔═══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════╗
-║                                                       WalkIndia-200K Benchmark                                                            ║
-╚═══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════╝
-
-┌──────────────┐       ┌──────────────────┐       ┌──────────────┐
-│   YouTube    │       │  PySceneDetect   │       │  ~115K clips │
-│  700 videos  │ ════► │  4-10s cuts      │ ════► │   121 GB     │ ════╗
-│  20-30 min   │       │  4-10s cuts      │       │              │     ║
-└──────────────┘       └──────────────────┘       └──────────────┘     ║
-                                                                       ▼
-╔══════════════════════════════════════════════════════════════════════▼════════════════════════════════════════════════════════════════════╗
-║                                          PARALLEL PROCESSING                                                                              ║
-╠═══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════╣
-║                                                                                                                                           ║
-║  V-JEPA BRANCH:                                                                                                                           ║
-║  ┌──────────────────┐       ┌──────────────────┐       ┌──────────────────────────────────┐       ┌───────────────────────────────┐       ║
-║  │    V-JEPA 2      │       │    FAISS kNN     │       │           METRICS (9)            │       │     UMAP + FiftyOne           │       ║
-║  │  clip ➔ 64 frm   │ ════► │     IVF-PQ       │ ════► │  Cycle@K · Prec@K · Overlap@K   │ ════► │   2D/3D viz · kNN grids       ═║═══╗   ║
-║  │  ➔ ViT-G (frozen)│       │  Hard/Easy mode  │       │  mAP@K · nDCG@K · Silhouette   │       │   Macro/micro reporting        │   ║   ║
-║  └──────────────────┘       └──────────────────┘       │  Conf sweep · Multi-attr slices │       └───────────────────────────────┘   ║   ║
-║                                     ▲                  └──────────────────────────────────┘                                           ║   ║
-║                                     ║                              ▲                                                                  ║   ║
-║                                     ║ tags + confidence ───────────┘ (confidence feeds threshold sweep)                               ║   ║
-║                                     ║                                                                                                 ║   ║
-║  VLM BAKE-OFF BRANCH (3 VLMs × 2.5K → select winner → full 113K):                                                                    ║   ║
-║  ┌──────────────────────────────┐                                                                                                     ║   ║
-║  │  m04 --BAKEOFF (2.5K clips) │     ┌───────────────────────────┐     ┌──────────────────────────┐                                   ║   ║
-║  │  ├ Qwen3-VL-8B              │     │  m04b VLM Select (CPU)    │     │  m04 --FULL (winner)     │                                   ║   ║
-║  │  ├ VideoLLaMA3-7B           │────►│  consensus = proxy gold   │────►│  ~113K remaining clips   │═════════════════════════════════╣   ║
-║  │  └ LLaVA-NeXT-Video-1.5-8B           │     │  → vlm_comparison.json    │     │  → tags.json (33 fields) │                                   ║   ║
-║  └──────────────────────────────┘     └───────────────────────────┘     └──────────────────────────┘                                   ║   ║
-║                                                                                                                                       ║   ║
-╚═══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════╩═══╩═╝
-                                                                                                                                        ║
-                                                                                                                                        ▼
-╔═══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════╗
-║                                                           DELIVERABLES                                                                    ║
-╠═════════════════════╦═════════════════════════════════════════════════════════════════════════════════════════════════════════════════════╣
-║ 1. Benchmark        ║ 9 metrics: Cycle@K, Prec@K, Overlap@K, mAP@K, nDCG@K, Silhouette, Conf sweep, Slices, Hard/Easy                    ║
-║ 2. Dataset          ║ WalkIndia-200K (115K clips · 33 fields/clip: tags + confidence + provenance)                                        ║
-║ 3. Paper Finding    ║ Does V-JEPA transfer to Indian streets? (Yes/No + evidence across 9 metrics)                                       ║
-║ 4. Baselines        ║ Random embeddings, DINOv2, shuffled V-JEPA, CLIP                                                                   ║
-║ 5. VLM Bake-off     ║ 3-VLM comparison report on 2.5K clips (consensus-based selection, publishable finding)                                ║
-╚═════════════════════╩═════════════════════════════════════════════════════════════════════════════════════════════════════════════════════╝
-```
-
-</details>
-
-### Clarification: "Label-Free" Claim
-
-| Metric | Truly Label-Free? | Explanation |
-|--------|-------------------|-------------|
-| **Cycle@K** | YES | If A's nearest neighbor is B, does B point back to A? No labels needed. |
-| **Overlap@K** | YES | Same clip with different crops → similar neighbors? No labels needed. |
-| **Silhouette** | **NO** | Uses scene_type labels for cluster assignment. |
-| **Prec@K / mAP@K / nDCG@K** | **NO** | Uses bake-off winner's pseudo-labels as diagnostics. Honest about this. |
-
-### Addressing Circular Bias
-
-| Concern | Mitigation |
-|---------|------------|
-| V-JEPA + VLM both Western-trained | Primary metrics (Cycle@K, Overlap@K) are label-free — no VLM dependency |
-| Single VLM bias | 3-VLM bake-off on 2.5K clips validates tag quality via cross-model consensus |
-| Video artifacts vs semantics | Filter by quality score, stratify analysis by blur/shake |
-| VLMs may share training data biases | 3 architecturally diverse VLMs (different backbones, vision encoders) + DINOv2/random baselines |
-
----
-
-## Step 1: Data Collection
-
-| Source | @walkinginindia YouTube |
-|--------|-------------------------|
-| Videos | ~700 videos × 20-30 min |
-| Total  | 14,000-21,000 minutes   |
-| Content| Markets, Junctions, Temples, Beach roads, Lanes |
-| Tool   | `yt-dlp` / `youtube-dl` |
-| Output | Raw `.mp4` files        |
-
----
-
-## Step 2: Scene Detection
-
-**Library**: `PySceneDetect` ([scenedetect.com](https://scenedetect.com))
-
-```
-30-min video ──→ Content Detection ──→ [clip1][clip2][clip3]...
-                                        4-10s  4-10s  4-10s
-                                      + optional --keyframes (1 JPEG per clip)
-```
-
-| Input  | 700 videos              |
-|--------|-------------------------|
-| Output | ~115K short clips (4-10s), optional keyframes via `--keyframes` |
-| Method | Greedy scene-aware splitting (PySceneDetect ContentDetector) |
-
----
-
-## Step 3: V-JEPA 2 Embedding
-
-**Model**: `facebook/vjepa2-vitg-fpc64-384` (1B params, frozen)
-
-```
-4-10s clip ──→ Sample 64 frames ──→ ViT-G Encoder ──→ Embedding Vector
-                                    (NO TRAINING)     [dim: 1408]
-```
-
-| Property | Value |
-|----------|-------|
-| Frames   | 64 per clip |
-| Params   | 1B (ViT-G, frozen) |
-| Embedding dim | 1408 |
-| Training | None required |
-
----
-
-## Step 4: Auto-Tagging (VLM Bake-off → Winner)
-
-**Architecture**: Single parameterized script `m04_vlm_tag.py --model qwen|videollama|llava`
-
-```
-Phase 1: Bake-off (same 2,500 clips × 3 VLMs)
-m04_vlm_tag.py --model qwen       --BAKEOFF → data/bakeoff/tags_qwen.json
-m04_vlm_tag.py --model videollama  --BAKEOFF → data/bakeoff/tags_videollama.json
-m04_vlm_tag.py --model llava        --BAKEOFF → data/bakeoff/tags_llava.json
-                                        ↓
-m04b_vlm_select.py → vlm_comparison.json (consensus = proxy gold truth)
-                                        ↓
-Phase 2: Winner runs --FULL → tags.json (resumes from bake-off checkpoint)
-```
-
-No gold truth needed — cross-VLM consensus IS the evaluation:
-- 3 architecturally different VLMs tag the same 2,500 clips independently
-- VLM with highest agreement with the other two = winner
-- Also measured: JSON parse rate, taxonomy compliance, confidence calibration, speed
-
-VLMs selected by **benchmark scores** (not download count):
-
-| VLM | Size | VideoMME | MLVU | Why Selected |
-|-----|------|:--------:|:----:|-------------|
-| **Qwen3-VL-8B** | 8B | — | 75.3 | Best Hindi text/signage, existing implementation |
-| **VideoLLaMA3-7B** | 7B | 66.2 | 73.0 | Best MLVU + PerceptionTest (72.8), SigLIP vision encoder |
-| **LLaVA-NeXT-Video-1.5-8B** | 8B | 73.0 | — | Highest VideoMME (beats GPT-4o 71.9), SlowFast encoding |
-
-GPU budget: ~1h bake-off + ~10h full = **~11h total** (vs ~30h if all 3 on full)
-
-Structured tags per clip — 11 fields (NOT free-form captions):
-
-```json
-{
-  "scene_type":             "market|junction|residential_lane|promenade|transit|temple_tourist|highway|alley|commercial|construction",
-  "time_of_day":            "morning|afternoon|evening|night",
-  "weather":                "clear|cloudy|rain|fog|overcast",
-  "crowd_density":          "low|med|high",
-  "traffic_density":        "low|med|high",
-  "road_surface":           "asphalt|concrete|dirt|cobblestone|mixed|paved|unpaved|wet",
-  "infrastructure_quality": "good|moderate|poor",
-  "vegetation":             "none|sparse|moderate|dense",
-  "lighting":               "natural|artificial|mixed|low_light",
-  "notable_objects":        ["bus","auto_rickshaw","bike","car","truck","street_vendor","police","signage","animals","pedestrian","construction_barrier"],
-  "road_layout":            "intersection|narrow_lane|wide_road|sidewalk_present|median",
-
-  "confidence_scene_type":  0.92,
-  "confidence_time_of_day": 0.85,
-  "...":                    "... (11 confidence fields, each in [0,1])",
-
-  "_model":                 "Qwen/Qwen3-VL-8B-Instruct",
-  "_prompt_version":        "v1.0",
-  "_tagged_at":             "2026-02-22T14:30:00Z",
-}
-```
-
-After m04 tagging (winner VLM): 8 metadata + 11 tags + 11 confidence + 3 provenance = **33 fields per clip**
-
----
-
-## Step 5: FAISS Indexing
-
-**Library**: `FAISS` (Facebook AI Similarity Search)
-
-**Why FAISS instead of naive kNN:**
-| Metric | Naive kNN | FAISS (IVF-PQ) |
-|--------|-----------|----------------|
-| Time complexity | O(n²) | O(n log n) |
-| 200K clips search | ~hours | ~seconds |
-| Memory | All in RAM | Compressed (PQ) |
-| GPU support | No | Yes (5-10x faster) |
-
-```
-115K embeddings ──→ FAISS Index (IVF-PQ) ──→ Fast Approximate kNN
-                                              ├── Easy mode (all neighbors)
-                                              └── Hard mode (exclude ±30s same video)
-```
-
-**Hard/Easy Mode** (proposal alignment):
-- Easy: default kNN, no exclusion
-- Hard: mask out neighbors within ±30s of same video_id before computing metrics
-- Reports both modes side-by-side — handles temporal leakage without train/val/test splits
-
-**Recommended Index:**
-```python
-import faiss
-
-d = 1408  # V-JEPA ViT-G embedding dimension
-nlist = 1000  # clusters for IVF
-
-# IVF + PQ: fast, memory-efficient
-quantizer = faiss.IndexFlatL2(d)
-index = faiss.IndexIVFPQ(quantizer, d, nlist, 16, 8)
-index.train(embeddings)
-index.add(embeddings)
-
-# Search k nearest neighbors
-distances, indices = index.search(query, k=10)
+    style J1 fill:#7b1fa2,color:#fff,font-weight:bold,font-size:28px
+    style J2 fill:#7b1fa2,color:#fff,font-weight:bold,font-size:28px
+    style J3 fill:#9c27b0,color:#fff,font-weight:bold,font-size:28px
+    style J4 fill:#4a148c,color:#fff,font-weight:bold,font-size:28px
+    style K1 fill:#1565c0,color:#fff,font-weight:bold,font-size:28px
+    style K2 fill:#1565c0,color:#fff,font-weight:bold,font-size:28px
+    style K3 fill:#1565c0,color:#fff,font-weight:bold,font-size:28px
+    style K4 fill:#0d47a1,color:#fff,font-weight:bold,font-size:28px
+    style L1 fill:#bf360c,color:#fff,font-weight:bold,font-size:28px
+    style L2 fill:#b71c1c,color:#fff,font-weight:bold,font-size:28px
 ```
 
 ---
 
-## Step 6: UMAP Visualization
+## Taxonomy: v1 → v2 (Denseworld)
 
-**Library**: `UMAP` (Uniform Manifold Approximation and Projection)
+Tags serve **two purposes only**: (1) stratified batching for Ch10/Ch11, (2) slice-wise evaluation. They are NEVER training labels.
 
-**Why UMAP:**
-| Feature | UMAP | t-SNE |
-|---------|------|-------|
-| Speed | Fast | Slow |
-| Global structure | Preserved | Lost |
-| Scalability | 200K+ points | ~10K points |
-| Clustering-friendly | Yes (works with HDBSCAN) | Limited |
+| Field | v1 (Western) | v2 (Denseworld — Indian) | Change |
+|-------|-------------|--------------------------|--------|
+| `scene_type` | market, junction, residential_lane, promenade, transit, temple_tourist, highway, **alley**(n=14), commercial, **construction**(n=53) | market, **bazaar**, junction, residential_lane, promenade, transit, temple_tourist, highway, commercial, **ghat**, **flyover_underpass** | Removed dead categories, added Indian scenes |
+| `time_of_day` | morning, afternoon, evening, night | **day, night** | Collapsed — pollution haze makes day subdivisions indistinguishable |
+| `traffic_mix` | *(missing)* | **motorized_only, mixed_motorized, mixed_all, pedestrian_dominant** | **NEW** — THE Indian differentiator |
+| `ped_vehicle_separation` | *(missing)* | **separated, partial, shared_space** | **NEW** — Western vs Indian infrastructure gap |
+| `road_encroachment` | *(missing)* | **clear, partial, heavy** | **NEW** — informal road use |
+| `road_layout` | 5 values | + **speed_breaker, open_drain** | Indian infrastructure |
+| `notable_objects` | 11 Western-generic | 14 Indian-specific: + **cycle_rickshaw, handcart, sacred_cow, stray_dog, overhead_wires, religious_shrine** − police, construction_barrier, animals | India-specific objects |
+| `video_quality` | *(missing)* | **clean, blur, shake** | **NEW** — quality stratification for confounder analysis |
+| weather, crowd_density, traffic_density, road_surface, infrastructure_quality, vegetation, lighting | *(unchanged)* | *(unchanged)* | Universal fields |
+
+**Total: 11 → 16 fields** (13 single + 2 multi + 1 changelog). File: `src/utils/tag_taxonomy_denseworld.json`
+
+---
+
+## Ch 9: Evaluate Frozen V-JEPA (DONE — 90%)
+
+### Code built vs Proposal (FactorJEPA Ch 9)
+
+| # | Proposal Step | Status | Module → Evidence |
+|:---:|:---|:---:|:---|
+| | **9.1 Step-by-step evaluation protocol** | | |
+| 1 | Clip bank + leakage prevention | ✅ BUILT | m02 (4-10s scene-aware cuts) + m06 (±30s exclusion mask, video_id grouping) |
+| 2 | Embedding extraction (frozen) | ✅ BUILT | m05 (V-JEPA 2 ViT-G, 1408-dim, mean-pool, near-dedup) |
+| 3 | Build kNN index | ✅ BUILT | m06 (FAISS-GPU, k=6, Easy + Hard modes) |
+| 4 | Evaluation subsets via tags | ✅ BUILT | m04 (dynamic prompt from taxonomy, 16 fields) + m06 (confidence sweep 7 thresholds) |
+| | **9.2 Overall (label-free) evaluation** | | |
+| 5 | Qualitative kNN grids | ✅ BUILT | m08 create_knn_grid() (query + k neighbors, green/red borders) |
+| 6 | Cycle consistency | ✅ BUILT | m06 compute_cycle_at_k() Easy + Hard |
+| 7 | Overlap@K (augmentation) | ⚠️ APPROX | m06 compute_overlap_at_k() = dim-split approximation, NOT true multi-crop |
+| 8 | Clustering diagnostics | ✅ BUILT | m06 compute_silhouette() per 13 single-val keys (tags as labels, no k-means) |
+| | **9.3 Class-wise evaluation using weak tags** | | |
+| 9 | Prec@K per class | ✅ BUILT | m06 compute_prec_at_k() + compute_per_scene_purity() per-value |
+| 10 | mAP@K / nDCG@K | ✅ BUILT | m06 compute_map_at_k() + compute_ndcg_at_k() (graded multi-field) |
+| 11 | Multi-attribute slices | ✅ BUILT | m06 compute_multi_attribute_slices() (8 slice fields, all taxonomy keys) |
+| 12 | Confusion analysis | ✅ BUILT | m08 create_confusion_matrix() + 3x3 grid per taxonomy key |
+| | **9.4 Reporting: overall vs class-wise** | | |
+| 13 | Macro/micro aggregation | ✅ BUILT | m06 compute_macro_micro_avg() (macro + count-weighted micro) |
+| 14 | Confidence sweep + Hard/Easy | ✅ BUILT | m06 compute_confidence_sweep() (7 thresholds) + Hard mode throughout |
+| 15 | Student-friendly protocol | — OPTIONAL | (not needed for paper) |
+| | **Critical for paper (not in original 15 steps)** | | |
+| 16 | Baseline — Random embeddings | ❌ NOT BUILT | Lower bound: random 1408-dim vectors → same m06 metrics pipeline |
+| 17 | Baseline — DINOv2 (image) | ❌ NOT BUILT | Image-only encoder on middle frame → exposes video vs image gap |
+| 18 | Baseline — Shuffled V-JEPA | ❌ NOT BUILT | Frame-shuffled clips → re-embed → proves temporal order matters |
+| 19 | Baseline — CLIP (text-vision) | ❌ NOT BUILT | Text-aligned encoder → tests if semantic alignment helps retrieval |
+| 20 | True Overlap@K (multi-crop) | ❌ NOT BUILT | Requires video augmentation pipeline (crop/resize → re-embed → compare kNN) |
+| 21 | VLM re-tag with denseworld | ❌ NOT RUN | Code built (m04), but POC used old 9-key taxonomy; denseworld adds 4 fields |
+| 22 | UMAP visualization | ✅ BUILT | m07 GPU cuML UMAP (1408→2D) + m08 scatter plots per key; umap_2d.npy exists |
+
+### GAP: Baselines (CRITICAL — must do before paper)
 
 ```
-1408-dim embeddings ──→ UMAP ──→ 2D/3D scatter plot + kNN neighbor grids
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                    Ch 9 BASELINE COMPARISON (MISSING)                        │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                             │
+│  Without baselines, "Prec@K = 18.73%" is meaningless.                      │
+│  Is that good? Compared to WHAT?                                           │
+│                                                                             │
+│  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐       │
+│  │   Random     │  │  DINOv2     │  │  Shuffled   │  │    CLIP     │       │
+│  │  embeddings  │  │ (image-only)│  │   V-JEPA    │  │(text-vision)│       │
+│  ├─────────────┤  ├─────────────┤  ├─────────────┤  ├─────────────┤       │
+│  │ 1408-dim    │  │ ViT-L/14    │  │ shuffle frms│  │ ViT-L/14    │       │
+│  │ random vecs │  │ frozen      │  │ re-embed    │  │ frozen      │       │
+│  │ L2-normed   │  │ 1 frame/clip│  │ same V-JEPA │  │ 1 frame/clip│       │
+│  ├─────────────┤  ├─────────────┤  ├─────────────┤  ├─────────────┤       │
+│  │ LOWER BOUND │  │ IMAGE vs    │  │ TEMPORAL    │  │ TEXT-VISION │       │
+│  │ ~10% Prec@K │  │ VIDEO test  │  │ ORDER test  │  │ ALIGNMENT   │       │
+│  │ (1/10 types)│  │             │  │             │  │ test        │       │
+│  └──────┬──────┘  └──────┬──────┘  └──────┬──────┘  └──────┬──────┘       │
+│         │                │                │                │               │
+│         └────────────────┴────────────────┴────────────────┘               │
+│                                    │                                        │
+│                                    ▼                                        │
+│                    ALL re-run through SAME m06/m07/m08                      │
+│                    SAME 5,105 clips, SAME k=6, SAME tags                   │
+│                    → side-by-side comparison table in paper                 │
+│                                                                             │
+│  PRIORITY:                                                                  │
+│  ■ Random baseline    — ~30 min (generate random vectors, run m06)         │
+│  ■ DINOv2 baseline    — ~2-3h GPU (embed 5K clips, run m06)               │
+│  ■ Shuffled V-JEPA    — ~2h GPU (temporal order test)                      │
+│  ■ CLIP baseline      — ~2h GPU (text-vision alignment)                    │
+│                                                                             │
+└─────────────────────────────────────────────────────────────────────────────┘
 ```
 
-**Use cases:**
-- Paper figures showing cluster separation
-- Debug embedding quality
-- Validate if scene types actually cluster
+### Ch 9 Key Findings (from report.md)
 
-```python
-import umap
-
-reducer = umap.UMAP(n_components=2, n_neighbors=15, min_dist=0.1)
-embedding_2d = reducer.fit_transform(embeddings)
-
-# Plot with scene_type colors from Qwen3-VL tags
-plt.scatter(embedding_2d[:, 0], embedding_2d[:, 1], c=scene_type_colors)
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                          Ch 9 FINDINGS SUMMARY                              │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                             │
+│  1. V-JEPA organizes by ILLUMINATION, not SCENE SEMANTICS                  │
+│     lighting mAP@K = 0.66  >>>  scene_type mAP@K = 0.11  (6x gap)         │
+│     Only lighting has positive silhouette (+0.0007)                         │
+│                                                                             │
+│  2. High nDCG (0.90) + Low Prec@K (18.7%) = CONTEXTUAL retrieval          │
+│     Neighbors share lighting + weather + crowd but DIFFER in scene type    │
+│     "Similar vibes, different places"                                       │
+│                                                                             │
+│  3. Neighborhoods are STABLE: Cycle@K ~79% (77-81% band)                   │
+│     Uniform across ALL scene types — model quality is consistent            │
+│                                                                             │
+│  4. Easy/Hard gap < 0.6pp — data pipeline prevents temporal leakage        │
+│                                                                             │
+│  5. VLM confidence UNCALIBRATED: 99.84% of clips ≥ 0.9 confidence         │
+│     Confidence sweep is flat — threshold filtering uninformative            │
+│                                                                             │
+│  IMPLICATION FOR Ch 10-11:                                                  │
+│  V-JEPA needs domain adaptation to understand Indian SCENE SEMANTICS.       │
+│  It already captures lighting/weather — adaptation should target            │
+│  traffic_mix, pedestrian_vehicle_separation, scene_type (denseworld keys)  │
+│                                                                             │
+└─────────────────────────────────────────────────────────────────────────────┘
 ```
 
 ---
 
-## Step 7: FiftyOne Exploration
+## Ch 10: Continual Self-Supervised Pretraining
 
-**Library**: `FiftyOne` (Voxel51) - Open-source dataset curation tool
-
-**Why FiftyOne:**
-| Feature | Custom Scripts | FiftyOne |
-|---------|----------------|----------|
-| Interactive UI | No | Yes (web-based) |
-| UMAP built-in | Manual | One-click |
-| Filter by tags | Code | Visual |
-| Find outliers | Hard | Easy |
-| Share with team | Difficult | URL link |
+### System Diagram
 
 ```
-clips + embeddings + tags ──→ FiftyOne Dataset ──→ Interactive Web UI
+┌─────────────────────────────────────────────────────────────────────────────────────────┐
+│                     Ch 10: CONTINUAL PRETRAINING ON INDIAN CLIPS                        │
+│                     Same JEPA loss, no labels, just Indian data                         │
+├─────────────────────────────────────────────────────────────────────────────────────────┤
+│                                                                                         │
+│  INPUTS FROM Ch 9:                                                                      │
+│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐                                  │
+│  │ tags.json    │  │ embeddings   │  │ metrics      │                                  │
+│  │ (denseworld  │  │ .npy         │  │ _frozen.json │                                  │
+│  │  15 fields)  │  │ (frozen      │  │ (baseline to │                                  │
+│  │              │  │  encoder)    │  │  beat)       │                                  │
+│  └──────┬───────┘  └──────┬───────┘  └──────┬───────┘                                  │
+│         │                 │                 │                                            │
+│    stratified         validation        compare                                         │
+│    batching           retrieval         before/after                                     │
+│         │                 │                 │                                            │
+│  ═══════╪═════════════════╪═════════════════╪══════════════════════════════════           │
+│         ▼                 ▼                 ▼                                            │
+│                                                                                         │
+│  ┌─ ONE TRAINING STEP ─────────────────────────────────────────────────────────┐        │
+│  │                                                                              │        │
+│  │  1. SAMPLE batch (uniform by video_id, stratified by denseworld tags)       │        │
+│  │     ┌───────────────────────────────────────────────────────────────┐        │        │
+│  │     │ Ensure mix of: day/night, traffic_mix values,                │        │        │
+│  │     │ pedestrian_vehicle_separation, scene_type diversity          │        │        │
+│  │     │ Tags used for SAMPLING ONLY — never as supervised targets    │        │        │
+│  │     └───────────────────────────────────────────────────────────────┘        │        │
+│  │                                                                              │        │
+│  │  2. DECODE clip → T frames (16 or 32) → 224×224                            │        │
+│  │     Apply video-consistent augmentations (one crop for ALL frames)          │        │
+│  │                                                                              │        │
+│  │  3. MASK 20% of spatiotemporal patches (2-6 rectangular blocks)             │        │
+│  │     ┌──┬──┬──┬──┬──┬──┬──┬──┐                                              │        │
+│  │     │  │  │██│██│  │  │  │  │  ██ = hidden (target)                         │        │
+│  │     ├──┼──┼──┼──┼──┼──┼──┼──┤  □  = visible (context)                      │        │
+│  │     │  │  │██│██│  │  │  │  │                                               │        │
+│  │     ├──┼──┼──┼──┼──┼──┼──┼──┤                                              │        │
+│  │     │  │  │  │  │  │  │  │  │                                               │        │
+│  │     └──┴──┴──┴──┴──┴──┴──┴──┘                                              │        │
+│  │                                                                              │        │
+│  │  4. FORWARD PASS                                                            │        │
+│  │     ┌─────────────────┐          ┌─────────────────┐                        │        │
+│  │     │  STUDENT f_θ    │          │  TEACHER f_θ̄   │                        │        │
+│  │     │  (trainable)    │          │  (EMA copy)     │                        │        │
+│  │     │  sees: visible  │          │  sees: masked   │                        │        │
+│  │     │  patches only   │          │  patches only   │                        │        │
+│  │     └────────┬────────┘          └────────┬────────┘                        │        │
+│  │              │                            │ (no gradients)                   │        │
+│  │              ▼                            ▼                                  │        │
+│  │     ┌─────────────────┐          ┌─────────────────┐                        │        │
+│  │     │  PREDICTOR g_φ  │          │  Teacher targets │                        │        │
+│  │     │  (trainable)    │─── MSE ──│  T = sg(f_θ̄)    │                        │        │
+│  │     │  predicts T̂     │   loss   │  (stop gradient) │                        │        │
+│  │     └─────────────────┘          └─────────────────┘                        │        │
+│  │                                                                              │        │
+│  │  5. UPDATE                                                                  │        │
+│  │     θ ← θ − lr·∇L_JEPA(θ,φ)           (student + predictor by gradient)    │        │
+│  │     θ̄ ← 0.999·θ̄ + 0.001·θ             (teacher by EMA, no gradient)       │        │
+│  │     Optional: + λ·‖θ − θ₀‖²            (drift stabilizer)                  │        │
+│  │                                                                              │        │
+│  └──────────────────────────────────────────────────────────────────────────────┘        │
+│                                                                                         │
+│  CHECKPOINT SELECTION (every 2K-5K steps):                                              │
+│  ┌──────────────────────────────────────────────────────────────────────┐                │
+│  │  1. Extract embeddings on validation subset (held-out video_ids)    │                │
+│  │  2. Build FAISS index → compute Cycle@K (Hard mode)                │                │
+│  │  3. Pick checkpoint with best Cycle@K                              │                │
+│  │     (primary: label-free, no tag dependency)                        │                │
+│  │  4. Also log: Prec@K per denseworld key (diagnostic, not selection) │                │
+│  └──────────────────────────────────────────────────────────────────────┘                │
+│                                                                                         │
+│  OUTPUT: V-JEPA (adapted) = student encoder f_θ at best checkpoint                      │
+│                                                                                         │
+├─────────────────────────────────────────────────────────────────────────────────────────┤
+│  HYPERPARAMETERS (runnable defaults)                                                    │
+│  Clip: 10s, T=16 frames, 224px │ Mask: 20%, 2-6 blocks │ EMA τ: 0.996→0.999 warmup    │
+│  Optimizer: AdamW │ LR: small (backbone) + larger (predictor) │ Grad clip: 1.0          │
+│  Drift: λ tuned in ablation │ Checkpoint: every 2K steps │ Mixed precision (bf16)       │
+│  Est GPU: ~20h on RTX PRO 6000 (96GB) for 10K clips                                    │
+└─────────────────────────────────────────────────────────────────────────────────────────┘
 ```
 
-**Use cases:**
-- Browse 200K clips visually
-- Click on UMAP points to view clips
-- Filter by scene_type, crowd_density, etc.
-- Find mislabeled samples
+### Ch 10 Evaluation (re-run SAME pipeline)
 
-```python
-import fiftyone as fo
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                     Ch 10 EVALUATION FLOW                                   │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                             │
+│  V-JEPA (adapted)                                                           │
+│  student checkpoint                                                         │
+│        │                                                                    │
+│        ▼                                                                    │
+│  m05_vjepa_embed.py ──→ embeddings_adapted.npy (re-embed ALL 5K clips)     │
+│        │                                                                    │
+│        ▼                                                                    │
+│  m06_faiss_metrics.py ──→ metrics_adapted.json (SAME 9 metrics)            │
+│        │                     + per-key breakdown on 15 denseworld fields    │
+│        ▼                                                                    │
+│  m07_umap.py ──→ umap_2d_adapted.npy                                      │
+│        │                                                                    │
+│        ▼                                                                    │
+│  m08_plot.py ──→ SIDE-BY-SIDE plots: frozen vs adapted                     │
+│                                                                             │
+│  KEY COMPARISON TABLE (the paper result):                                   │
+│  ┌──────────────────────┬──────────────┬──────────────┬─────────┐          │
+│  │ Metric               │ Frozen (Ch9) │ Adapted(Ch10)│ Delta   │          │
+│  ├──────────────────────┼──────────────┼──────────────┼─────────┤          │
+│  │ scene_type mAP@K     │ 0.11         │ ???          │ +???    │          │
+│  │ traffic_mix mAP@K    │ (new field)  │ ???          │ (new)   │          │
+│  │ ped_veh_sep mAP@K    │ (new field)  │ ???          │ (new)   │          │
+│  │ lighting mAP@K       │ 0.66         │ ???          │ ±???    │          │
+│  │ Cycle@K              │ 78.96%       │ ???          │ ±???    │          │
+│  │ nDCG@K               │ 0.90         │ ???          │ ±???    │          │
+│  └──────────────────────┴──────────────┴──────────────┴─────────┘          │
+│                                                                             │
+│  EXPECTED OUTCOMES:                                                         │
+│  • scene_type mAP improves modestly (0.11 → 0.15-0.20)                    │
+│  • traffic_mix/ped_veh_sep show Indian-specific learning                    │
+│  • lighting mAP stays stable (already good at 0.66)                        │
+│  • IF no improvement → motivates Ch 11 (surgery needed, not just data)     │
+│                                                                             │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
 
-dataset = fo.Dataset("walkindia-200k")
-for clip_path, embedding, tags in zip(clips, embeddings, all_tags):
-    sample = fo.Sample(filepath=clip_path)
-    sample["embedding"] = embedding.tolist()
-    sample["scene_type"] = tags["scene_type"]
-    sample["crowd_density"] = tags["crowd_density"]
-    dataset.add_sample(sample)
+### Code built vs Proposal (FactorJEPA Ch 10)
 
-# Launch interactive UI
-session = fo.launch_app(dataset)
+| # | Proposal Step | Status | Module → Evidence |
+|:---:|:---|:---:|:---|
+| | **10.1 Training data and sampling** | | |
+| 1 | Train/val split by video_id (avoid leakage) | ❌ NOT BUILT | m09 — need video_id-level split (no clip from same video in both sets) |
+| 2 | Decode normalization (fixed FPS, T frames, 224px) | ❌ NOT BUILT | m09 — consistent T={16,32} frames, fixed spatial resize+crop pipeline |
+| 3 | Stratified sampling (uniform by video_id + tag mix) | ❌ NOT BUILT | m09 — denseworld tags for batch balancing (day/night, traffic_mix, scene_type) |
+| | **10.2 Model components** | | |
+| 4 | Student encoder (init from frozen V-JEPA, trainable) | ❌ NOT BUILT | m09 — load facebook/vjepa2-vitg-fpc64-384, set requires_grad=True |
+| 5 | Teacher encoder (EMA copy, non-trainable) | ❌ NOT BUILT | m09 — deepcopy of student, no gradients, updated only by EMA |
+| 6 | Predictor network (student→teacher space, trainable) | ❌ NOT BUILT | m09 — small network g_phi, trained jointly with student |
+| | **10.3 Continual JEPA objective** | | |
+| 7 | Two views per clip (context + target views) | ❌ NOT BUILT | m09 — video-consistent augments (one crop for ALL frames in clip) |
+| 8 | Spatiotemporal masking (15-30%, 2-6 block sampling) | ❌ NOT BUILT | m09 — sample M_t (target tokens), M_c = complement (context tokens) |
+| 9 | Latent regression loss (MSE, stop-gradient on T) | ❌ NOT BUILT | m09 — L_JEPA = E[norm(T_hat - sg(T))^2] over masked tokens + minibatch |
+| 10 | Teacher EMA update (tau warmup 0.996 → 0.999) | ❌ NOT BUILT | m09 — theta_bar = tau * theta_bar + (1-tau) * theta after each step |
+| | **10.4 Optimization** | | |
+| 11 | AdamW + LR schedule (small backbone, larger predictor) | ❌ NOT BUILT | m09 — warmup + grad clip 1.0, mixed precision bf16 |
+| 12 | Conservative drift control (L2 anchor to theta_0) | ❌ NOT BUILT | m09 — optional R_stab = lambda * norm(theta - theta_0)^2, lambda tuned |
+| | **10.5 Training loop** | | |
+| 13 | Full training step (sample→decode→augment→mask→fwd→loss→update→EMA) | ❌ NOT BUILT | m09 — complete loop, uniform video_id sampling |
+| 14 | Checkpointing (student + teacher, every 2K-5K steps) | ❌ NOT BUILT | m09 — save both weights, student = official checkpoint |
+| | **10.6 Validation and model selection** | | |
+| 15 | Fast validation subset (held-out video_ids, 5-10K) | ❌ NOT BUILT | m09 — fixed val set, cheap retrieval metrics per checkpoint |
+| 16 | Checkpoint selection (best Cycle@K hard mode) | ❌ NOT BUILT | m09 — primary: label-free Cycle@K, diagnostic: per-key Prec@K |
+| | **10.7 Reporting and ablations** | | |
+| 17 | Ablations (steps, aug strength, EMA tau, stabilizer lambda) | ❌ NOT BUILT | m09 — sweep 4 hyperparams, report overall + slice metrics |
+| 18 | Evaluation (re-run m05→m08, frozen vs adapted table) | ❌ NOT BUILT | m05+m06+m07+m08 — re-embed with adapted encoder, side-by-side comparison |
+
+---
+
+## Ch 11: Surgery Fine-Tuning
+
+### Factor Dataset Creation (SAM → Tracklets → 3 Datasets)
+
+```
+┌─────────────────────────────────────────────────────────────────────────────────────────┐
+│                     Ch 11: FACTOR DATASET CREATION                                      │
+├─────────────────────────────────────────────────────────────────────────────────────────┤
+│                                                                                         │
+│  RAW CLIP (10s, Delhi market):                                                          │
+│  ┌─────────────────────────────────────────────────────────────────────────────┐        │
+│  │  🏪🏪  🛺 🐄  👤👤👤  🏪🏪  🛺  👤  🏪  overhead wires ~~~~            │        │
+│  │  shops  auto cow  people  shops auto person  road surface ════             │        │
+│  └─────────────────────────────────────────────────────────────────────────────┘        │
+│                    │                                                                    │
+│                    ▼                                                                    │
+│  STEP 1: SAM3 (every frame) → instance masks {m_t,k} with confidence                   │
+│  STEP 2: Track across frames → greedy IoU matching (δ_iou=0.3, gap=1 frame)            │
+│  STEP 3: Classify tracklets → motion score (centroid displacement)                      │
+│           moving (≥4 frames above threshold) = AGENT                                    │
+│           static = LAYOUT / BACKGROUND                                                  │
+│                    │                                                                    │
+│          ┌─────────┼────────────────────┐                                               │
+│          ▼         ▼                    ▼                                                │
+│  ┌──────────────┐ ┌──────────────┐ ┌──────────────────────────────────┐                 │
+│  │ D_L: LAYOUT  │ │ D_A: AGENT  │ │ D_I: INTERACTION                 │                 │
+│  │              │ │              │ │                                  │                 │
+│  │ Suppress all │ │ Suppress    │ │ Mine pairs of agent tracklets    │                 │
+│  │ agents       │ │ background  │ │ that are:                        │                 │
+│  │ (blur/       │ │ (zeros/     │ │  • close (d < 0.2 × frame_w)    │                 │
+│  │  inpaint)    │ │  matte)     │ │  • persistent (≥4 frames)       │                 │
+│  │              │ │              │ │  • with motion cue:             │                 │
+│  │ Keeps:       │ │ Keeps:      │ │    approach/retreat/cross/follow │                 │
+│  │ roads,       │ │ autos,      │ │                                  │                 │
+│  │ buildings,   │ │ cows,       │ │ Extract spatiotemporal tube      │                 │
+│  │ wires,       │ │ rickshaws,  │ │ (bounding box + margin around    │                 │
+│  │ drains,      │ │ people,     │ │  both agents across event)       │                 │
+│  │ speed bumps  │ │ dogs,       │ │                                  │                 │
+│  │              │ │ handcarts   │ │ Anti-shortcut perturbations:     │                 │
+│  │              │ │              │ │  • tube jitter (±5-15%)         │                 │
+│  │              │ │              │ │  • margin randomization          │                 │
+│  │              │ │              │ │  • raw vs masked mixing (50/50) │                 │
+│  │              │ │              │ │  • mask noise (dilation/erosion) │                 │
+│  └──────────────┘ └──────────────┘ └──────────────────────────────────┘                 │
+│                                                                                         │
+│  EVAL MAPPING (denseworld taxonomy → factor):                                           │
+│  ┌──────────────────────────────────────────────────────────────┐                       │
+│  │ Layout (D_L):  road_layout, road_surface, infrastructure_   │                       │
+│  │                quality, road_encroachment                    │                       │
+│  │ Agent (D_A):   notable_objects, traffic_mix,                │                       │
+│  │                pedestrian_vehicle_separation, crowd_density  │                       │
+│  │ Interaction:   mined from SAM (not VLM tags)                │                       │
+│  └──────────────────────────────────────────────────────────────┘                       │
+│                                                                                         │
+└─────────────────────────────────────────────────────────────────────────────────────────┘
+```
+
+### 3-Stage Progressive Prefix Unfreezing
+
+```
+┌─────────────────────────────────────────────────────────────────────────────────────────┐
+│                     Ch 11: 3-STAGE SURGERY SCHEDULE                                     │
+│                     Same JEPA loss throughout — only input + trainable depth change      │
+├─────────────────────────────────────────────────────────────────────────────────────────┤
+│                                                                                         │
+│  V-JEPA encoder: L transformer layers (e.g. L=40)                                       │
+│                                                                                         │
+│  STAGE 1: LAYOUT (learn Indian road geometry)                                           │
+│  ┌─────────────────────────────────────────────────────────────┐                        │
+│  │  Layers 0-10   ████████████ TRAINABLE                      │                        │
+│  │  Layers 11-39  ░░░░░░░░░░░░░░░░░░░░░░░░░░░░ FROZEN        │                        │
+│  │                                                             │                        │
+│  │  Input: 100% layout-only clips (D_L)                       │                        │
+│  │  Learns: narrow lanes, open drains, speed breakers,         │                        │
+│  │          overhead wires, road widths — Indian road features  │                        │
+│  │  Duration: ~5K steps + short warmup                         │                        │
+│  └─────────────────────────────────────────────────────────────┘                        │
+│                              │                                                          │
+│                              ▼                                                          │
+│  STAGE 2: AGENTS (learn Indian vehicles/people/animals)                                 │
+│  ┌─────────────────────────────────────────────────────────────┐                        │
+│  │  Layers 0-20   ████████████████████████ TRAINABLE          │                        │
+│  │  Layers 21-39  ░░░░░░░░░░░░░░░░░░ FROZEN                  │                        │
+│  │                                                             │                        │
+│  │  Input: 90% agent-only (D_A) + 10% layout replay (D_L)    │                        │
+│  │  Learns: auto-rickshaws, cycle-rickshaws, sacred cows,      │                        │
+│  │          handcarts, stray dogs — Indian agent vocabulary     │                        │
+│  │  Duration: ~5K steps + short warmup for newly-unfrozen      │                        │
+│  └─────────────────────────────────────────────────────────────┘                        │
+│                              │                                                          │
+│                              ▼                                                          │
+│  STAGE 3: INTERACTIONS (learn agent-agent relationships)                                │
+│  ┌─────────────────────────────────────────────────────────────┐                        │
+│  │  Layers 0-30   ████████████████████████████████ TRAINABLE  │                        │
+│  │  Layers 31-39  ░░░░░░░░ FROZEN                             │                        │
+│  │                                                             │                        │
+│  │  Input: 85% interaction (D_I) + 10% agent + 5% layout     │                        │
+│  │  Learns: auto dodging cow, pedestrian crossing through      │                        │
+│  │          mixed traffic, rickshaw following pedestrian        │                        │
+│  │  Duration: ~5K steps + short warmup for newly-unfrozen      │                        │
+│  └─────────────────────────────────────────────────────────────┘                        │
+│                              │                                                          │
+│                              ▼                                                          │
+│  OUTPUT: V-JEPA (surgical) = student encoder at best checkpoint                         │
+│                                                                                         │
+│  WHY PROGRESSIVE (not all-at-once):                                                     │
+│  • Shallow layers learn low-level Indian textures FIRST (roads, surfaces)               │
+│  • Mid layers learn mid-level Indian objects NEXT (agents, vehicles)                    │
+│  • Deep layers learn high-level Indian relationships LAST (interactions)                │
+│  • Replay mixing prevents catastrophic forgetting of earlier stages                     │
+│  • Frozen output layers preserve compatibility with downstream tasks                    │
+│                                                                                         │
+│  SANITY CHECK: Run evaluation on RAW (unpatched) clips.                                 │
+│  If gains only on patched clips → model learned artifacts, not Indian patterns. FAIL.   │
+│                                                                                         │
+├─────────────────────────────────────────────────────────────────────────────────────────┤
+│  Est GPU: ~54h on RTX PRO 6000 (96GB) for 10K clips                                    │
+│  SAM3 masks: can run in parallel with Ch10 training (~10h GPU)                          │
+└─────────────────────────────────────────────────────────────────────────────────────────┘
+```
+
+### Code built vs Proposal (FactorJEPA Ch 11)
+
+| # | Proposal Step | Status | Module → Evidence |
+|:---:|:---|:---:|:---|
+| | **11.1 Factor datasets from SAM segmentation** | | |
+| 1 | SAM3 instance segmentation (every frame → masks) | ❌ NOT BUILT | m10 — run SAM3 per frame, store as RLE/PNG, with confidence scores |
+| 2 | Greedy IoU tracklet matching (delta_iou=0.3, gap=1) | ❌ NOT BUILT | m10 — associate masks across frames, max IoU matching, short gap tolerance |
+| 3 | Agent vs layout classification (motion filter) | ❌ NOT BUILT | m10 — centroid displacement per tracklet, agent if motion > thresh for >=4 frames |
+| 4 | Per-frame mask generation (A_t, B_t) | ❌ NOT BUILT | m10 — A_t = union of agent masks, B_t = complement, optional dilation for thin structures |
+| | **11.1 Derived datasets** | | |
+| 5 | D_L: layout-only (suppress agents via blur/inpaint) | ❌ NOT BUILT | m11 — preserve B_t (roads, buildings, wires), suppress A_t pixels |
+| 6 | D_A: agent-only (suppress background via zeros/matte) | ❌ NOT BUILT | m11 — preserve A_t (vehicles, people, animals), suppress B_t pixels |
+| | **11.2 Mining interaction events for D_I** | | |
+| 7 | Candidate pairs (overlapping agent tracklets >=4 frms) | ❌ NOT BUILT | m11 — enumerate (tau_a, tau_b) pairs with temporal co-occurrence >= r frames |
+| 8 | Distance + persistence filter (d < d_max, >=4 consec) | ❌ NOT BUILT | m11 — centroid distance < 0.15-0.25 x frame_w for >=r consecutive frames |
+| 9 | Relative motion cue (approach/retreat/cross/follow) | ❌ NOT BUILT | m11 — direction vectors, approach=decreasing d, crossing >45 deg, following=similar velocity |
+| 10 | Interaction tube extraction (bbox + 10-20% margin) | ❌ NOT BUILT | m11 — per-frame box enclosing both agents, expand margin, crop spatiotemporal tube |
+| 11 | D_I: interaction dataset (raw vs masked rendering) | ❌ NOT BUILT | m11 — raw tube crop + soft-matte masked crop, mix 50/50 |
+| | **11.3 Selective factor patching** | | |
+| 12 | Anti-shortcut perturbations (6 types) | ❌ NOT BUILT | m11 — tube jitter +-5-15%, margin rand, raw/masked mixing, boundary blend, mask noise, artifact realism |
+| | **11.4 Training objective (same JEPA loss)** | | |
+| 13 | JEPA loss on patched clips (MSE, stop-grad, EMA) | ❌ NOT BUILT | m12 — identical loss to Ch10, only input distribution changes (patched clips) |
+| | **11.5 Progressive prefix unfreezing** | | |
+| 14 | Prefix boundary implementation (freeze layers > n_s) | ❌ NOT BUILT | m12 — requires_grad=False, exclude from optimizer param groups, no state update |
+| 15 | Stage 1 — Layout (n1 ~ 0.25L, p(L)=1.0) | ❌ NOT BUILT | m12 — shallow layers trainable, 100% D_L input, ~5K steps + warmup |
+| 16 | Stage 2 — Agent (n2 ~ 0.50L, p(A)=0.9, p(L)=0.1) | ❌ NOT BUILT | m12 — mid layers unfrozen, 90% D_A + 10% D_L replay, ~5K steps + warmup |
+| 17 | Stage 3 — Interaction (n3 ~ 0.75L, p(I)=0.85, p(A)=0.10, p(L)=0.05) | ❌ NOT BUILT | m12 — deep layers unfrozen, 85% D_I + replay mix, ~5K steps + warmup |
+| 18 | Layer-wise LR decay (smaller LR early, larger at boundary) | ❌ NOT BUILT | m12 — within unfrozen prefix, reduces risk of destroying low-level filters |
+| | **11.6 Stage-wise training loop** | | |
+| 19 | Per-stage init (increase n_s, rebuild optimizer, warmup) | ❌ NOT BUILT | m12 — newly-unfrozen layers get fresh optimizer state, short warmup avoids spikes |
+| 20 | Full training iteration per stage | ❌ NOT BUILT | m12 — sample mode m → clip → P_m(x) → views/masks → fwd → loss → backprop unfrozen → EMA |
+| 21 | Checkpointing (student + teacher per stage) | ❌ NOT BUILT | m12 — student checkpoint = final "V-JEPA (surgical)" model |
+| | **11.7 Quality filters and defaults** | | |
+| 22 | Quality filters (drop empty/degenerate samples) | ❌ NOT BUILT | m11 — drop agent-only if A_t ~ 0, layout-only if A_t covers >80%, broken tracklets |
+| | **11.8 Verification** | | |
+| 23 | Overall retrieval eval (kNN grids, Cycle@K, Overlap@K) | ❌ NOT BUILT | m05+m06+m07+m08 — re-embed with surgical encoder, same pipeline as Ch9 |
+| 24 | Factor-sliced retrieval (query D_L/D_A/D_I separately) | ❌ NOT BUILT | m06 — per-factor neighborhoods: layout→layout, agent→agent, interaction→interaction |
+| 25 | Sanity check — raw vs patched clips | ❌ NOT BUILT | m06 — gains must transfer to RAW clips; patched-only gains = artifact learning (FAIL) |
+| 26 | Final 3-way comparison (frozen vs adapted vs surgical) | ❌ NOT BUILT | m05+m06+m07+m08 — x 15 denseworld keys, side-by-side table for paper |
+
+---
+
+## Final Comparison (The Paper's Punchline)
+
+```
+┌─────────────────────────────────────────────────────────────────────────────────────────┐
+│                     3-WAY COMPARISON: frozen vs adapted vs surgical                     │
+├─────────────────────────────────────────────────────────────────────────────────────────┤
+│                                                                                         │
+│  SAME evaluation pipeline for all 3 encoders:                                           │
+│                                                                                         │
+│  m05 (embed) → m06 (FAISS metrics) → m07 (UMAP) → m08 (plots)                         │
+│  SAME 5,105 clips, SAME tags, SAME k=6, SAME Hard/Easy modes                           │
+│                                                                                         │
+│  ┌────────────────────┬──────────────┬──────────────┬──────────────┐                    │
+│  │ Metric             │ Ch 9: Frozen │ Ch 10: Adapt │ Ch 11: Surg  │                    │
+│  ├────────────────────┼──────────────┼──────────────┼──────────────┤                    │
+│  │ scene_type mAP@K   │ 0.11         │              │              │                    │
+│  │ traffic_mix mAP@K  │ (retag)      │              │              │                    │
+│  │ ped_veh_sep mAP@K  │ (retag)      │              │              │                    │
+│  │ road_encroach mAP  │ (retag)      │              │              │                    │
+│  │ lighting mAP@K     │ 0.66         │              │              │                    │
+│  │ Cycle@K            │ 78.96%       │              │              │                    │
+│  │ nDCG@K             │ 0.90         │              │              │                    │
+│  │ Silhouette (scene) │ -0.061       │              │              │                    │
+│  │ Prec@K (scene)     │ 18.73%       │              │              │                    │
+│  ├────────────────────┼──────────────┼──────────────┼──────────────┤                    │
+│  │ DINOv2 baseline    │ ???          │     —        │     —        │                    │
+│  │ Random baseline    │ ???          │     —        │     —        │                    │
+│  └────────────────────┴──────────────┴──────────────┴──────────────┘                    │
+│                                                                                         │
+│  PAPER STORY (what each outcome means):                                                 │
+│                                                                                         │
+│  IF Ch10 improves + Ch11 improves more:                                                 │
+│  → "Self-supervised adaptation helps, structured surgery helps MORE.                    │
+│     Factor decomposition (layout→agent→interaction) is the right                        │
+│     inductive bias for adapting video world models to new domains."                     │
+│                                                                                         │
+│  IF Ch10 improves + Ch11 ≈ Ch10:                                                       │
+│  → "Basic domain data is sufficient. Surgery adds complexity but                        │
+│     not value — simpler continual pretraining is recommended."                          │
+│                                                                                         │
+│  IF Ch10 no improvement + Ch11 improves:                                                │
+│  → "Unstructured data exposure fails. The model needs GUIDED                            │
+│     exposure to layout/agent/interaction factors separately."                            │
+│                                                                                         │
+│  IF neither improves:                                                                   │
+│  → "Self-supervised adaptation is insufficient for cross-domain                         │
+│     transfer. Supervised fine-tuning or architectural changes needed."                  │
+│     (Still a publishable negative result!)                                              │
+│                                                                                         │
+└─────────────────────────────────────────────────────────────────────────────────────────┘
 ```
 
 ---
 
-## Step 8: Evaluation - Quantitative Metrics (9 metrics)
+## Dependency Graph & Parallelization
 
-All metrics reported in **Easy** (all neighbors) and **Hard** (±30s exclusion window) modes.
-
-### 8.1 Label-Free Metrics (Core Contribution)
-
-| Metric | Proposal Name | Formula | What It Measures |
-|--------|---------------|---------|------------------|
-| **Cycle@K** | Cycle@k (Step 6) | % of clips where kNN(A)=B implies kNN(B)=A | Embedding neighborhood stability |
-| **Overlap@K** | Overlap@K (Step 7) | IoU of kNN neighborhoods from two views. *Implemented as dim-split approximation (no crop augmentation pipeline).* | Robustness to view changes |
-| **Silhouette** | Silhouette (Step 8) | sklearn silhouette_score on embeddings + scene_type | Cluster separation quality |
-
-### 8.2 Pseudo-Label Metrics (uses Qwen diagnostic tags)
-
-| Metric | Proposal Name | Formula | What It Measures |
-|--------|---------------|---------|------------------|
-| **Prec@K** | Prec@K (Step 9) | % of kNN neighbors with same scene_type | Semantic coherence |
-| **mAP@K** | mAP@K (Step 10) | Mean Average Precision: ranked retrieval with tag-based relevance | Retrieval ranking quality |
-| **nDCG@K** | nDCG@K (Step 10) | Normalized DCG: graded relevance from multi-field tag overlap | Graded retrieval quality |
-
-### 8.3 Analysis Metrics
-
-| Metric | Proposal Step | What It Measures |
-|--------|---------------|------------------|
-| **Multi-attribute slices** | Step 11 | Prec@K grouped by time_of_day, weather, crowd_density, etc |
-| **Confidence sweep** | Step 14 | Vary confidence cutoff → plot Prec@K vs coverage |
-| **Macro/micro averaging** | Step 13 | Per-class avg (macro) and global avg (micro) for all metrics |
-
-### 8.4 Baselines (Required for Fair Comparison)
-
-| Baseline | Purpose |
-|----------|---------|
-| **Random embeddings** | Lower bound - should have ~0% consistency |
-| **Shuffled V-JEPA** | Tests if temporal order matters |
-| **DINOv2 (image-only)** | Tests if video understanding adds value |
-| **CLIP** | Tests text-vision alignment baseline |
-
-### 8.5 Tag Quality Control (VLM Bake-off + Confidence)
-
-Winner VLM selected via 3-way bake-off on 2,500 clips:
-
-| QC Mechanism | How It Works |
-|-------------|--------------|
-| **VLM bake-off** | 3 VLMs tag 2.5K clips → cross-VLM consensus selects best VLM (no gold labels) |
-| **Per-field confidence** | Winner VLM outputs confidence_* per field in [0,1] |
-| **Confidence sweep** | Vary threshold → plot metric vs coverage tradeoff |
-| **High-confidence slices** | Only evaluate on clips with confidence > threshold |
-
-Bake-off selection criteria (5 dimensions):
-| Criterion | Weight | Signal |
-|-----------|:------:|--------|
-| JSON parse success % | 30% | VLM that can't produce valid JSON is useless |
-| Cross-VLM agreement % | 25% | VLM closest to majority vote across 11 fields |
-| Speed (clips/sec) | 20% | Matters for 113K full run |
-| Taxonomy compliance % | 15% | Values within allowed categories |
-| Confidence calibration | 10% | High confidence → high agreement? |
-
-Tags are DIAGNOSTIC for Ch 10-11 slice-wise analysis.
-Primary metrics (Cycle@K, Overlap@K) are label-free and don't depend on tag quality.
-
-### 8.6 Confounder Analysis
-
-| Confounder | Mitigation |
-|------------|------------|
-| Motion blur | Filter clips by blur score > threshold |
-| Camera shake | Filter clips by optical flow variance |
-| Lighting changes | Stratify analysis: day vs night |
-| Video quality | Report metrics separately for high/low quality |
-
-### Success Criteria
-
-> **POC milestone (10K subset):** Same criteria on 10K clips. If POC metrics are stable → scale to 115K.
-> **Full milestone (115K):** V-JEPA transfers well if: (1) Cycle@K > 70%, (2) Outperforms DINOv2 baseline on Indian data, (3) Hard-mode Prec@K significantly above random baseline, (4) Ch 10-11 adapted model improves over frozen baseline.
-
----
-
-## Key Libraries
-
-| Step | Library | Purpose |
-|------|---------|---------|
-| 0c | m00c_sample_subset.py | Video-level uniform 10K subset for POC → `data/subset_10k.json` |
-| 2 | PySceneDetect | Split videos into clips (optional `--keyframes` for JPEG export) |
-| 3 | V-JEPA 2 (ViT-G) | Frozen video embeddings (1408-dim) |
-| 4 | Qwen3-VL-8B / VideoLLaMA3-7B / LLaVA-NeXT-Video-1.5-8B | VLM bake-off (2.5K clips) → winner tags full dataset |
-| 4b | m04b_vlm_select.py | CPU-only: cross-VLM consensus comparison → pick winner |
-| 5 | FAISS | Fast similarity search (GPU) + Hard/Easy mode |
-| 6 | m07 UMAP (GPU cuML) | Dimensionality reduction → umap_2d.npy |
-| 7 | m08 Plot (CPU) | Visualization: UMAP scatter, confusion matrix, kNN grids (reads .npy files) |
-| 8 | FiftyOne | Interactive dataset exploration |
-
----
-
-## Proposal Alignment (FactorJEPA Ch 8-9)
-
-Cross-reference: FactorJEPA proposal chapters 8 (Automatic Annotations) and 9 (Evaluating V-JEPA)
-were compared against this plan. 12 discrepancies were found and resolved:
-
-| # | Discrepancy | Decision | Rationale |
-|---|-------------|----------|-----------|
-| 1 | 11 tag fields vs proposal's 7 | **KEEP 11** | Extra 4 (road_surface, infrastructure_quality, vegetation, lighting) capture India-specific attributes |
-| 2 | Variable 4-10s clips vs proposal's fixed 10s | **KEEP 4-10s** | Scene-aware splitting produces better clips |
-| 3 | QC: dual-prompt + human audit | **SKIP** | Confidence from Qwen logprobs + confidence sweep. Tags are diagnostic only |
-| 4 | Per-field confidence scores | **ADD** | Qwen outputs confidence_* per field (logprobs). Enables confidence sweep in m06 |
-| 5 | Provenance tracking | **ADD** | _model, _prompt_version, _tagged_at per clip |
-| 6 | Keyframe export | **ADD (optional)** | --keyframes flag in m02, 1 keyframe per clip via ffmpeg. m08 extracts frames on-the-fly without this. |
-| 7 | Metric naming mismatch | **RENAME** | Use proposal names: Cycle@K, Prec@K, Overlap@K (old names as aliases) |
-| 8 | 6+ missing metrics | **ADD** | mAP@K, nDCG@K, Silhouette, Overlap@K, multi-attr slices, conf sweep, macro/micro |
-| 9 | No Hard/Easy mode | **ADD** | Exclusion window ±30s within same video_id. Report both modes |
-| 10 | No train/val/test splits | **SKIP** | Pure evaluation project — no training. Exclusion window (#9) handles leakage |
-| 11 | Multi-VLM cross-check | **ADD (bake-off)** | 3 VLMs on 2.5K clips → consensus selects winner → winner on full 113K. GPU-efficient |
-| 12 | Baselines (plan addition) | **KEEP** | Random, DINOv2, Shuffled V-JEPA, CLIP — needed for fair comparison |
-
----
-
-## Engineering Details
-
-### Context: Why WebDataset TAR Shards
-
-115,687 mp4 clips (121.2 GB) across 75 sections. Individual mp4 upload failed due to:
-- HF 10k files/directory limit (kolkata/walking has 20,633 files)
-- 256 commits/hour rate limit (stuck at 104k/115k for 12+ hours)
-- MerkleDB xet cache errors
-
-Solution: WebDataset TAR shards (~1GB each). HF sees ~120 files instead of 115k.
-
-TAR structure (HF WebDataset convention):
 ```
-data/
-├── train-00000.tar
-│   ├── 000000.mp4          # clip video
-│   ├── 000000.json         # metadata for this clip
-│   ├── 000001.mp4
-│   ├── 000001.json
-│   └── ...                 # ~1000 clips per shard
-├── train-00001.tar
-├── ...
-└── train-00115.tar         # ~116 shards total
-```
-
-### Key Design Decisions
-
-1. **m03_pack_shards.py vs utils/hf_utils.py — NOT redundant:**
-   - m03 = CLI pipeline step (TAR packing + upload orchestration)
-   - hf_utils = shared library (auth, token, README gen, metadata upload)
-   - m03 imports FROM hf_utils
-
-2. **m02b stays standalone (not merged into m02):**
-   - m02 takes ~6 hours (scene detection + encoding)
-   - m02b takes ~5 min (ffprobe scan)
-   - Separate steps = independent re-runs
-
-3. **Obsolete functions removed from hf_utils.py:**
-   - upload_full() — old upload_large_folder approach (hit 10k file limit)
-   - commit_remaining() — old batch commit workaround
-
-### Naming Convention
-
-- Numbered modules (m00-m08): Pipeline steps with CLI (--SANITY/--BAKEOFF/--FULL)
-- m00c_sample_subset.py: Video-level uniform sampling → data/subset_10k.json (deterministic, seed=42)
-- m04_vlm_tag.py: Parameterized by --model (qwen|videollama|llava). VLMBackend ABC + 3 concrete impls
-- m04b_vlm_select.py: CPU-only bake-off comparison. Reads 3 bakeoff JSONs → picks winner
-- --subset flag: All scripts (m04-m08) accept this. Filters to POC subset, outputs to outputs_poc/
-- utils/config.py: All path constants, VLM_MODELS dict, SUBSET_FILE, shared utility functions
-- utils/tag_taxonomy.json: Tag field definitions + confidence schema
-
-### m04 Production Architecture
-
-Transformers backend notes (all 3 VLMs):
-- All VLMs use `AutoModelForCausalLM` / `Qwen3VLForConditionalGeneration` + `AutoProcessor`
-- Qwen-specific: `process_vision_info(messages, return_video_kwargs=True)` from `qwen_vl_utils`
-- Sequential inference: one clip at a time within batch loop (direct memory control)
-- `flash_attention_2` + `torch.bfloat16` + `device_map="auto"` across all backends
-- `OMP_NUM_THREADS=1` fixes thread oversubscription in containers
-
-HF WebDataset streaming:
-- `load_dataset(repo, split="train", streaming=True)` auto-detects TAR shards
-- `.decode(False)` returns raw mp4 bytes (no video decoding)
-- Each example: `{"mp4": {"path":..., "bytes": b"..."}, "json": {...}, "__key__": "000000"}`
-
-Architecture (orchestrator/worker pattern):
-```
-ORCHESTRATOR (main process, no GPU)
-    ├── reads checkpoint (tags.json)
-    ├── spawns WORKER subprocess every 10k clips (prevents VRAM leak)
-    └── loops until all clips done
-
-WORKER subprocess (loads transformers model, exits after segment)
-    ├── loads VLM via transformers (AutoModelForCausalLM / Qwen3VLForConditionalGeneration)
-    │
-    ├── PRODUCER THREAD (background)
-    │   ├── HF WebDataset stream (streaming=True, decode=False)
-    │   ├── retry on ConnectionError/Timeout (exp backoff)
-    │   ├── write mp4 → project-local tmpdir
-    │   ├── validate mp4 (size >1KB + cv2 frame count >0)
-    │   ├── ThreadPoolExecutor(4): preprocess in parallel
-    │   └── put preprocessed batch → Queue(maxsize=2)
-    │
-    ├── CONSUMER (main thread, GPU inference)
-    │   ├── take batch from Queue
-    │   ├── model.generate() → sequential inference per clip
-    │   ├── parse JSON → merge metadata + 11 tags
-    │   └── atomic checkpoint every 500 clips (os.replace)
-    │
-    └── exit (GPU memory fully released)
-```
-
-Production issues resolved (10 fixes):
-
-| # | Issue | Severity | Fix |
-|---|-------|----------|-----|
-| 1 | VRAM leak over long runs | CRITICAL | Orchestrator spawns worker subprocesses every 10k clips |
-| 2 | vLLM OOM on ≤24GB GPUs | HIGH | Switched all 3 VLMs to transformers (sequential inference, direct memory control) |
-| 3 | Single-threaded preprocessing | HIGH | `ThreadPoolExecutor(4)` parallelizes preprocessing |
-| 4 | Batch size override bug | MEDIUM | Orchestrator only passes --batch-size when user explicitly sets it; worker auto-computes from VRAM |
-| 5 | HF streaming timeout | HIGH | Producer retries with exponential backoff (1s→60s, max 5) |
-| 6 | Corrupted MP4 crash | MEDIUM | validate_mp4() checks size + frame count before VLM |
-| 7 | Tempfile /tmp disk full | MEDIUM | Uses project-local tmpdir, always cleaned in finally block |
-| 8 | Checkpoint corruption | MEDIUM | Atomic os.replace(), .tmp backup recovery, interval 500 clips |
-| 9 | GPU under-utilization | HIGH | Producer/consumer pipeline: preprocess N+1 while GPU infers N |
-| 10 | Tests | — | py_compile, AST, --help verified |
-
-### Performance Budget
-
-All 3 VLMs use transformers sequential inference (no vLLM). Throughput depends on GPU tier.
-
-**RTX PRO 4000 (24GB, debug GPU):**
-- Qwen: ~0.08 clips/s (measured, SANITY 20 clips in 260s)
-- Bake-off (3 × 2.5K): ~26h total (~8.7h per VLM)
-- Winner on remaining 7.5K: ~26h
-- Total POC: ~52h GPU + V-JEPA + metrics
-
-**RTX PRO 6000 Blackwell (96GB, production GPU):**
-- Qwen: ~0.5-1 clips/s estimated (4x VRAM → larger batches)
-- Bake-off (3 × 2.5K): ~4-7h total
-- Winner on remaining 7.5K: ~2-4h
-- V-JEPA embed 10K: ~2h GPU
-- FAISS + UMAP (GPU cuML): ~5 min GPU; m08 plotting: ~5 min CPU
-- Total POC Ch 8+9: ~10-15h GPU + ~25 min CPU
-
-**Full budget (115K, after POC validates):**
-- Full run (winner only): 113k clips at ~0.5-1 clips/s = ~31-63h (96GB GPU)
-- Consider: upgrade to 96GB GPU for production runs
-
-### Metrics Output Schema (m06)
-
-```json
-{
-  "easy": {
-    "cycle_at_k": 72.1, "prec_at_k": 58.3,
-    "overlap_at_k": 65.0, "map_at_k": 0.45,
-    "ndcg_at_k": 0.52, "silhouette": 0.31,
-    "per_scene": {},
-    "multi_attribute_slices": {},
-    "macro_avg": {}, "micro_avg": {}
-  },
-  "hard": {"cycle_at_k": 41.5, "prec_at_k": 35.2, "...": "..."},
-  "confidence_sweep": [
-    {"threshold": 0.5, "coverage": 0.95, "prec_at_k": 56.1},
-    {"threshold": 0.7, "coverage": 0.80, "prec_at_k": 62.3}
-  ],
-  "k_neighbors": 6, "num_clips": 10000, "exclusion_window_sec": 30,
-  "mode": "poc", "subset_file": "data/subset_10k.json"
-}
+┌─────────────────────────────────────────────────────────────────────────────────────────┐
+│                     DEPENDENCY GRAPH (what blocks what)                                  │
+├─────────────────────────────────────────────────────────────────────────────────────────┤
+│                                                                                         │
+│  WEEK 1: Fill Ch 9 gaps                                                                 │
+│  ┌──────────────────┐  ┌──────────────────┐                                             │
+│  │ Random baseline  │  │ DINOv2 baseline  │  (independent, can run in parallel)         │
+│  │ ~30 min CPU      │  │ ~3h GPU          │                                             │
+│  └────────┬─────────┘  └────────┬─────────┘                                             │
+│           │                     │                                                        │
+│           └──────────┬──────────┘                                                        │
+│                      ▼                                                                   │
+│           ┌──────────────────────┐                                                       │
+│           │ Re-tag 10K clips     │                                                       │
+│           │ with denseworld      │                                                       │
+│           │ taxonomy (Qwen)      │                                                       │
+│           │ ~5.3h GPU            │                                                       │
+│           └──────────┬───────────┘                                                       │
+│                      │                                                                   │
+│  ════════════════════╪═══════════════════════════════════════════════════                 │
+│                      │                                                                   │
+│  WEEK 2: Ch 10       │                                                                   │
+│  ┌───────────────────▼───────────┐  ┌─────────────────────────────────┐                  │
+│  │ Ch 10: Continual pretraining  │  │ Ch 11 PREP (parallel on CPU):  │                  │
+│  │ Student-teacher JEPA          │  │ • Write SAM3 pipeline script   │                  │
+│  │ ~20h GPU                      │  │ • Write tracklet mining        │                  │
+│  │                               │  │ • Write factor dataset builder │                  │
+│  │ ALSO (parallel on GPU):       │  │ • Test on SANITY (20 clips)   │                  │
+│  │ • SAM3 masks on 10K clips     │  │                               │                  │
+│  │   (~10h, can interleave)      │  │                               │                  │
+│  └───────────────┬───────────────┘  └─────────────────────────────────┘                  │
+│                  │                                                                       │
+│                  ▼                                                                       │
+│  ┌───────────────────────────────┐                                                       │
+│  │ Ch 10 Evaluation              │                                                       │
+│  │ Re-run m05→m08                │                                                       │
+│  │ Compare: frozen vs adapted    │                                                       │
+│  │ ~3h GPU                       │                                                       │
+│  └───────────────┬───────────────┘                                                       │
+│                  │                                                                       │
+│  ════════════════╪═══════════════════════════════════════════════════                     │
+│                  │                                                                       │
+│  WEEK 3-4: Ch 11 │                                                                       │
+│  ┌───────────────▼───────────────┐                                                       │
+│  │ Ch 11: Surgery fine-tuning    │                                                       │
+│  │ Starts from Ch10 checkpoint   │                                                       │
+│  │ (NOT from frozen V-JEPA)      │                                                       │
+│  │                               │                                                       │
+│  │ Stage 1: Layout  (~18h GPU)   │                                                       │
+│  │ Stage 2: Agent   (~18h GPU)   │                                                       │
+│  │ Stage 3: Interact (~18h GPU)  │                                                       │
+│  └───────────────┬───────────────┘                                                       │
+│                  │                                                                       │
+│                  ▼                                                                       │
+│  ┌───────────────────────────────┐                                                       │
+│  │ FINAL Evaluation              │                                                       │
+│  │ Re-run m05→m08 on all 3      │                                                       │
+│  │ 3-way comparison table        │                                                       │
+│  │ ~3h GPU                       │                                                       │
+│  └───────────────────────────────┘                                                       │
+│                                                                                         │
+│  TOTAL: ~65h GPU + ~5h CPU over 4 weeks                                                │
+│                                                                                         │
+└─────────────────────────────────────────────────────────────────────────────────────────┘
 ```
 
 ---
 
-## Bridge: How Ch 9 Outputs Feed into Ch 10-11
-
-> **Note:** Ch 10-11 are NOT in current scope. This section shows how current work connects to future work.
-> POC-first: All 4 chapters run on 10K subset first. Scale to 115K after POC validates.
-> Detailed Ch 10-11 diagrams will be created when Ch 9 POC metrics are in hand.
+## Artifact Flow (What Each Chapter Produces & Consumes)
 
 ```mermaid
 flowchart LR
-    subgraph CH9 ["CH 9: EVALUATING V-JEPA (current scope)"]
-        direction LR
-        A1["embeddings.npy<br>V-JEPA frozen<br>1408-dim"]
-        A2["tags.json<br>Winner VLM<br>33 fields/clip"]
-        A3["faiss_index.bin<br>kNN index"]
-        A4["metrics.json<br>9 metrics<br>Hard/Easy"]
-        A5["vlm_comparison.json<br>Bake-off report"]
+    subgraph CH9 ["Ch 9 Artifacts ✅"]
+        direction TB
+        E1["embeddings.npy<br>frozen · 1408-dim"]
+        T1["tags.json<br>denseworld · 16 fields"]
+        M1["metrics_frozen.json<br>9 metrics · baseline"]
+        P1["15 plots (.png/.pdf)"]
+        B1["baselines: Random ·<br>DINOv2 · Shuffled · CLIP"]
     end
 
-    subgraph CH10 ["CH 10: CONTINUAL PRETRAINING (future)"]
-        B1["Student-Teacher<br>JEPA objective<br>on Indian clips"]
-        B2["EMA updates<br>+ drift stabilizer<br>λ·‖θ − θ₀‖²"]
-        B3["Checkpoint selection<br>via validation retrieval"]
-        B4["OUTPUT:<br>V-JEPA (adapted)<br>Indian-tuned encoder"]
+    subgraph CH10 ["Ch 10 Artifacts"]
+        direction TB
+        CK2["checkpoint_adapted.pt<br>student encoder"]
+        E2["embeddings_adapted.npy"]
+        M2["metrics_adapted.json"]
     end
 
-    subgraph CH11 ["CH 11: SURGERY FINE-TUNING (future)"]
-        C1["SAM3 masks<br>→ tracklets<br>→ agent vs layout"]
-        C2["Factor Datasets<br>D_L (layout-only)<br>D_A (agent-only)<br>D_I (interaction)"]
-        C3["Progressive Prefix<br>Unfreezing<br>Stage 1→2→3"]
-        C4["OUTPUT:<br>V-JEPA (surgical)<br>Factor-aware encoder"]
+    subgraph CH11 ["Ch 11 Artifacts"]
+        direction TB
+        CK3["checkpoint_surgical.pt<br>student encoder"]
+        E3["embeddings_surgical.npy"]
+        M3["metrics_surgical.json"]
     end
 
-    subgraph COMPARE ["FINAL COMPARISON"]
-        D1["Re-run m06/m07/m08<br>on all 3 encoders"]
-        D2["V-JEPA (frozen)<br>vs (adapted)<br>vs (surgical)"]
+    subgraph PAPER ["Paper Deliverables"]
+        direction TB
+        D1["3-way comparison table<br>frozen vs adapted vs surgical<br>× 15 denseworld keys"]
+        D2["Key finding:<br>lighting ≫ scene semantics<br>Surgery → traffic_mix gain"]
+        D1 --> D2
     end
 
-    A1 -->|"validation<br>retrieval"| B3
-    A2 -->|"slice-wise<br>diagnostics"| B1
-    A3 -->|"fast checkpoint<br>selection"| B3
-    B1 --> B2 --> B3 --> B4
+    E1 -->|"val retrieval"| CH10
+    T1 -->|"strat. batch"| CH10
+    T1 -->|"strat. batch"| CH11
+    M1 -->|"baseline"| CH10
+    CK2 -->|"init weights"| CH11
 
-    A2 -->|"stratified<br>sampling"| C1
-    A4 -->|"baseline to<br>measure improvement"| D1
-    C1 --> C2 --> C3 --> C4
-    B4 -->|"new embeddings"| D1
-    C4 -->|"new embeddings"| D1
-    D1 --> D2
+    M1 --> D1
+    M2 --> D1
+    M3 --> D1
+    B1 --> D1
 
-    style A1 fill:#43a047,color:#fff,font-weight:bold
-    style A2 fill:#00acc1,color:#fff,font-weight:bold
-    style A3 fill:#e53935,color:#fff,font-weight:bold
-    style A4 fill:#d81b60,color:#fff,font-weight:bold
-    style A5 fill:#ff6f00,color:#fff,font-weight:bold
-    style B1 fill:#7b1fa2,color:#fff,font-weight:bold
-    style B2 fill:#7b1fa2,color:#fff,font-weight:bold
-    style B3 fill:#7b1fa2,color:#fff,font-weight:bold
-    style B4 fill:#4a148c,color:#fff,font-weight:bold
-    style C1 fill:#1565c0,color:#fff,font-weight:bold
-    style C2 fill:#1565c0,color:#fff,font-weight:bold
-    style C3 fill:#1565c0,color:#fff,font-weight:bold
-    style C4 fill:#0d47a1,color:#fff,font-weight:bold
-    style D1 fill:#bf360c,color:#fff,font-weight:bold
-    style D2 fill:#b71c1c,color:#fff,font-weight:bold
-```
-
-**What each Ch 9 artifact feeds:**
-
-| Ch 9 Output | Used By | Purpose |
-|-------------|---------|---------|
-| `embeddings.npy` | Ch 10 | Validation retrieval (Cycle@K, Overlap@K) to select best checkpoint |
-| `tags.json` | Ch 10, Ch 11 | Slice-wise diagnostics (scene_type, time_of_day trends) + stratified sampling |
-| `faiss_index.bin` | Ch 10 | Fast kNN during checkpoint selection (no rebuilding index each time) |
-| `metrics.json` | Ch 11, Final | Frozen V-JEPA baseline to measure how much adaptation improves |
-| `vlm_comparison.json` | Paper | Publishable finding: which VLM works best on Indian street videos |
-
-**Final comparison (the paper's punchline):**
-```
-V-JEPA (frozen)    → metrics_frozen.json     ← Ch 9 (current)
-V-JEPA (adapted)   → metrics_adapted.json    ← Ch 10 (continual pretraining)
-V-JEPA (surgical)  → metrics_surgical.json   ← Ch 11 (surgery fine-tuning)
-
-Question the paper answers:
-"Does domain adaptation help V-JEPA understand Indian streets better?"
+    style E1 fill:#43a047,color:#fff,font-weight:bold,font-size:28px
+    style T1 fill:#00acc1,color:#fff,font-weight:bold,font-size:28px
+    style M1 fill:#d81b60,color:#fff,font-weight:bold,font-size:28px
+    style P1 fill:#795548,color:#fff,font-weight:bold,font-size:28px
+    style B1 fill:#ff6f00,color:#fff,font-weight:bold,font-size:28px
+    style E2 fill:#7b1fa2,color:#fff,font-weight:bold,font-size:28px
+    style M2 fill:#7b1fa2,color:#fff,font-weight:bold,font-size:28px
+    style CK2 fill:#4a148c,color:#fff,font-weight:bold,font-size:28px
+    style E3 fill:#1565c0,color:#fff,font-weight:bold,font-size:28px
+    style M3 fill:#1565c0,color:#fff,font-weight:bold,font-size:28px
+    style CK3 fill:#0d47a1,color:#fff,font-weight:bold,font-size:28px
+    style D1 fill:#bf360c,color:#fff,font-weight:bold,font-size:28px
+    style D2 fill:#b71c1c,color:#fff,font-weight:bold,font-size:28px
 ```
 
 ---
 
-## Optional Improvements
+## Module Numbering (Existing + Proposed)
 
-The following tools are **not required** for the current pipeline but may be useful for future extensions.
-
----
-
-### 1. SAM3 (Segment Anything Model 3)
-
-**Purpose**: Pixel-level object segmentation masks
-
-| Aspect | Details |
-|--------|---------|
-| **Pros** | Precise object boundaries, exact object counts, track objects across frames |
-| **Cons** | High compute cost, slow inference, requires GPU |
-| **Current Redundancy** | LOW - Required for Ch 11 factor datasets (layout/agent/interaction) |
-| **Future Use Case** | Ch 11: SAM3 masks → tracklets → factor patching for surgery fine-tuning |
-
-```
-[OPTIONAL] clip frames ──→ SAM3 ──→ pixel masks per object
-```
+| Module | Chapter | Purpose | Status |
+|--------|---------|---------|--------|
+| m00-m03 | Ch 8 | Data pipeline (YouTube → clips → shards → HF) | DONE (Mac CPU) |
+| m00c | Ch 8 | Video-level uniform 10K subset | DONE |
+| m04 | Ch 8 | VLM tagging (Qwen/VideoLLaMA/LLaVA) | DONE |
+| m04b | Ch 8 | VLM bake-off comparison | DONE |
+| m04c | Ch 8 | Sanity comparison dashboard | DONE |
+| m05 | Ch 9 | V-JEPA 2 embedding extraction | DONE |
+| m06 | Ch 9 | FAISS kNN + 9 metrics | DONE |
+| m07 | Ch 9 | cuML GPU UMAP | DONE |
+| m08 | Ch 9 | CPU matplotlib plots | DONE |
+| **m05b** | **Ch 9** | **Baseline embeddings (random, DINOv2, shuffled, CLIP)** | **TODO** |
+| **m09** | **Ch 10** | **Continual pretraining (student-teacher JEPA)** | **TODO** |
+| **m10** | **Ch 11** | **SAM3 segmentation + tracklet mining** | **TODO** |
+| **m11** | **Ch 11** | **Factor dataset creation (D_L, D_A, D_I)** | **TODO** |
+| **m12** | **Ch 11** | **Surgery fine-tuning (3-stage progressive unfreezing)** | **TODO** |
 
 ---
 
-### 2. DINOv2 (Multi-Encoder Ensemble)
+## Success Criteria
 
-**Purpose**: Add image-based embeddings alongside V-JEPA video embeddings
-
-| Aspect | Details |
-|--------|---------|
-| **Pros** | Strong static appearance features, well-established baseline, can ensemble with V-JEPA |
-| **Cons** | 2x compute cost, requires embedding fusion strategy |
-| **Current Redundancy** | HIGH - V-JEPA 2 already trained on images+videos, covers both motion & appearance |
-| **Future Use Case** | Ablation study comparing V-JEPA vs DINOv2 vs ensemble on Indian data |
-
-```
-[OPTIONAL] clip ──→ DINOv2 ──→ image embedding ──┐
-                └──→ V-JEPA ──→ video embedding ──┴──→ concat/fuse
-```
-
----
-
-### 3. TransNetV2 (Neural Scene Detection)
-
-**Purpose**: Neural network-based scene boundary detection (replace PySceneDetect)
-
-| Aspect | Details |
-|--------|---------|
-| **Pros** | Higher accuracy on hard cuts, better on gradual transitions, trained on real boundaries |
-| **Cons** | Requires GPU, slower than PySceneDetect, marginal improvement |
-| **Current Redundancy** | MEDIUM - PySceneDetect's `detect-adaptive` already good enough |
-| **Future Use Case** | If scene splits are poor quality, switch to TransNetV2 |
-
-```
-[OPTIONAL] video ──→ TransNetV2 ──→ more accurate scene boundaries
-```
-
----
-
-### 4. Autodistill (Zero-Annotation Object Detection)
-
-**Purpose**: Auto-label objects using foundation models (GroundingDINO + SAM)
-
-| Aspect | Details |
-|--------|---------|
-| **Pros** | Precise bounding boxes, object counts, no manual labeling needed |
-| **Cons** | Pipeline complexity, requires multiple models, slow inference |
-| **Current Redundancy** | HIGH - Qwen3-VL sufficient for scene-level tagging, we don't need boxes |
-| **Future Use Case** | If you need object-level ground truth for training downstream models |
-
-```
-[OPTIONAL] clip ──→ GroundingDINO ──→ bounding boxes ──→ object counts
-```
-
----
-
-### 5. Weak Supervision / LLM Validator
-
-**Purpose**: Use LLM (GPT-4) to auto-correct/validate Qwen3-VL tags
-
-| Aspect | Details |
-|--------|---------|
-| **Pros** | Catches tagging errors, improves ground truth quality, industry standard |
-| **Cons** | API costs (GPT-4), adds latency, premature optimization |
-| **Current Redundancy** | HIGH - Only needed if Qwen3-VL tags have many errors (test first) |
-| **Future Use Case** | Production-grade dataset curation, if Qwen3-VL accuracy drops below 90% |
-
-```
-[OPTIONAL] clip ──→ Qwen3-VL ──→ tags ──→ GPT-4 validator ──→ cleaned tags
-```
-
----
-
-## Optional Summary Table
-
-| Tool | Redundancy | Add When? |
-|------|------------|-----------|
-| SAM3 | LOW (needed for Ch 11) | Factor datasets for surgery fine-tuning |
-| DINOv2 | HIGH | Ablation study / ensemble experiments |
-| TransNetV2 | MEDIUM | Scene splits are poor quality |
-| Autodistill | HIGH | Need bounding box annotations |
-| Weak Supervision | HIGH | Qwen3-VL accuracy < 90% |
+| Milestone | Criteria | When |
+|-----------|----------|------|
+| **Ch 9 complete** | Baselines done. V-JEPA Prec@K significantly above random. | Week 1 |
+| **Ch 10 POC** | Adapted Cycle@K ≥ frozen. scene_type mAP improves. traffic_mix/ped_veh_sep show signal. | Week 2 |
+| **Ch 11 POC** | Surgical > adapted on factor-specific metrics. Gains transfer to RAW (unpatched) clips. | Week 4 |
+| **Paper-ready** | 3-way comparison table with baselines. 15-key denseworld breakdown. All plots reproducible. | Week 5 |

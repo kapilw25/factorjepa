@@ -1,0 +1,81 @@
+{
+  "_comment": "Tag taxonomy v2 for WalkIndia-200k — Indian non-Western urban scenes",
+  "_source": "v1 (DriveIndia + CARScenes + IDD) + professor feedback on Indian-specific dimensions",
+  "_changelog": "v2: collapsed time_of_day to day/night (pollution haze), added bazaar/ghat/flyover_underpass to scene_type, removed alley/construction (too sparse), added traffic_mix + pedestrian_vehicle_separation + road_encroachment fields, Indian-specific notable_objects, added speed_breaker/open_drain to road_layout, added video_quality (clean/blur/shake) for confounder analysis",
+
+  "scene_type": {
+    "type": "single",
+    "values": ["market", "bazaar", "junction", "residential_lane", "promenade", "transit", "temple_tourist", "highway", "commercial", "ghat", "flyover_underpass"],
+    "default": "residential_lane"
+  },
+  "time_of_day": {
+    "type": "single",
+    "values": ["day", "night"],
+    "default": "day"
+  },
+  "weather": {
+    "type": "single",
+    "values": ["clear", "cloudy", "rain", "fog", "overcast"],
+    "default": "clear"
+  },
+  "crowd_density": {
+    "type": "single",
+    "values": ["low", "med", "high"],
+    "default": "med"
+  },
+  "traffic_density": {
+    "type": "single",
+    "values": ["low", "med", "high"],
+    "default": "med"
+  },
+  "traffic_mix": {
+    "type": "single",
+    "values": ["motorized_only", "mixed_motorized", "mixed_all", "pedestrian_dominant"],
+    "default": "mixed_motorized"
+  },
+  "pedestrian_vehicle_separation": {
+    "type": "single",
+    "values": ["separated", "partial", "shared_space"],
+    "default": "partial"
+  },
+  "road_layout": {
+    "type": "multi",
+    "values": ["intersection", "narrow_lane", "wide_road", "sidewalk_present", "median", "speed_breaker", "open_drain"],
+    "default": ["wide_road"]
+  },
+  "road_surface": {
+    "type": "single",
+    "values": ["asphalt", "concrete", "dirt", "cobblestone", "mixed", "paved", "unpaved", "wet"],
+    "default": "paved"
+  },
+  "infrastructure_quality": {
+    "type": "single",
+    "values": ["good", "moderate", "poor"],
+    "default": "moderate"
+  },
+  "road_encroachment": {
+    "type": "single",
+    "values": ["clear", "partial", "heavy"],
+    "default": "partial"
+  },
+  "notable_objects": {
+    "type": "multi",
+    "values": ["bus", "auto_rickshaw", "cycle_rickshaw", "bike", "car", "truck", "handcart", "street_vendor", "sacred_cow", "stray_dog", "pedestrian", "overhead_wires", "signage", "religious_shrine"],
+    "default": ["pedestrian", "bike"]
+  },
+  "vegetation": {
+    "type": "single",
+    "values": ["none", "sparse", "moderate", "dense"],
+    "default": "sparse"
+  },
+  "lighting": {
+    "type": "single",
+    "values": ["natural", "artificial", "mixed", "low_light"],
+    "default": "natural"
+  },
+  "video_quality": {
+    "type": "single",
+    "values": ["clean", "blur", "shake"],
+    "default": "clean"
+  }
+}

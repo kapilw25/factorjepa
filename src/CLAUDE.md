@@ -4,14 +4,16 @@
 - Debug/SANITY: RTX Pro 4000 (24GB VRAM, ~$0.2/hr) — use --SANITY (20 clips) to validate model loading, inference, JSON parsing
 - Full/BAKEOFF runs: RTX Pro 6000 Blackwell (96GB VRAM, ~$0.8/hr) — use --BAKEOFF (2500 clips) and --FULL (10K-115K clips)
 - M1 Macbook: CPU/API ops + AST/lint only. No GPU fallback
+- GPU Software: PyTorch 2.12.0.dev+cu128 nightly, CUDA 12.8, FA2 (source-built sm_120), cuML 26.02, FAISS-GPU 1.13.2 (source-built sm_120), Python 3.12.12, UV
 - GPU scripts must FAIL LOUD — no silent CPU fallback (e.g. FAISS-CPU masking GPU fail, sklearn masking cuML fail)
 - "No CPU fallback" applies to inference/compute scripts (m04/m05/m06/m07), NOT visualization/plotting scripts (m08)
 4) Docstrings: max 2-line explanation + terminal commands only (--SANITY, --FULL args)
 4.1) format: `python -u src/*.py --args arg_name 2>&1 | tee logs/<log_name>.log`
-5) Dependencies: update @setup_env_uv.sh, @requirements.txt (CPU), @requirements_gpu.txt (GPU) — install via UV ONLY, no individual pip
-6) Test on M1 `venv_walkindia` : `py_compile` + `--help` + `ast` — full GPU tests on cloud only
+5) Dependencies: update @setup_env_uv.sh, @requirements.txt (CPU), @requirements_gpu.txt (GPU) — install via UV ONLY, no individual pip. **ENFORCED: `.claude/hooks/enforce-dev-rules.sh` blocks `pip install` / `uv pip install` via PreToolUse hook.**
+6) Test on M1 `venv_walkindia` : `py_compile` + `--help` + `ast` — full GPU tests on cloud only. **ENFORCED: `.claude/hooks/enforce-dev-rules.sh` blocks bare `python3` without venv activation via PreToolUse hook.** Always: `source venv_walkindia/bin/activate && python3 -m module`
 7) Plots: both .png & .pdf. m08_plot.py = CPU-only (pure matplotlib, reads pre-computed .npy files)
 7.1) GPU scripts save .npy artifacts (embeddings, knn_indices, umap_2d) → CPU scripts read them. NEVER duplicate GPU compute in CPU scripts (e.g. never rebuild FAISS index in plotting when m06 already saves knn_indices.npy)
+7.2) embeddings.paths.npy stores clip keys (not local paths) — used for Hard mode ±30s exclusion. Tags↔embeddings alignment via __key__ field. FAISS uses IVFFlat (not IVF-PQ) — simpler, sufficient at 10K-115K scale
 8) Devil's advocate: OOM, GPU underutil, data starvation, VRAM leaks, fp16 instability (use flash-attn-2), checkpoint corruption /auto-resume solution
 9) GPU Optimizations:
 - torch.compile(model) after model.eval() — warn about first-batch compile latency
@@ -27,4 +29,8 @@
 - Be brutally honest. Disagree when I'm wrong, but never hallucinate or lie.
 - Devil's advocate does NOT mean fabricating bugs that don't exist. If code is correct, say so and move on.
 - WEBSEARCH when needed to confirm universal AI/ML research practices.
-- Git: provide commit message text only. NEVER run git commands. User handles all git ops via git_push.sh.
+- Git: provide commit message text only. NEVER run git commands. User handles all git ops via git_push.sh. **ENFORCED: `.claude/hooks/enforce-dev-rules.sh` blocks `git commit/push/add/reset` via PreToolUse hook.**
+- NEVER draw conclusions from statistically insufficient data. A sanity check validates code correctness (no crashes, valid output), NOT model performance. Do not propose architectural changes, formula rewrites, or bottleneck diagnoses based on < 100 data points.
+- Think like a Sr. Research Scientist: before making any recommendation, ask "do I have enough evidence for this claim?" If the answer is no, say so explicitly instead of speculating. Superficial pattern-matching on small samples is Jr-level analysis — dig into architecture, read the actual code paths, and ground every recommendation in either sufficient data or first-principles reasoning.
+- GPU time is expensive — idle GPU = wasted money; idle user during GPU job = wasted time. Keep the GPU busy.
+- Mandatory checklist for ANY new loop that makes GPU/API/VLM calls: (1) tqdm progress bar, (2) auto-resume from checkpoint (skip completed items on restart), (3) tee logging, (4) wandb integration. No exceptions. If you write a pipeline loop without all four, you have shipped broken code. **ENFORCED: Run `/preflight <file>` skill to verify before running any new pipeline code.** See `.claude/skills/preflight/SKILL.md`.
