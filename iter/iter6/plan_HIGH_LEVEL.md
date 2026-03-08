@@ -88,12 +88,13 @@ flowchart TB
 
     SUB(["m00c · 10K uniform · seed=42"])
 
-    subgraph VLM ["Ch 8 · VLM Bake-off (2.5K)"]
+    subgraph VLM ["Ch 8 · VLM Tagging"]
         direction LR
-        I1["Qwen3-VL-8B"] --> S["m04b · 5-criterion<br>consensus"]
+        I1["Qwen3-VL-8B<br>(10K POC)"] --> S["m04b · 5-criterion<br>consensus"]
         I2["VideoLLaMA3-7B"] --> S
         I3["LLaVA-NeXT-1.5-8B"] --> S
-        S --> W["Winner → tags.json<br>16 fields × denseworld"]
+        S --> W["Winner → tags.json<br>16 fields × v3 taxonomy"]
+        I4["Qwen3.5-9B via vLLM<br>(115K FULL)"] -.->|"upgrade"| W
     end
 
     subgraph CH9 ["Ch 9 · Evaluate Frozen V-JEPA"]
@@ -142,6 +143,7 @@ flowchart TB
     style I1 fill:#00acc1,color:#fff,font-weight:bold,font-size:28px
     style I2 fill:#00838f,color:#fff,font-weight:bold,font-size:28px
     style I3 fill:#006064,color:#fff,font-weight:bold,font-size:28px
+    style I4 fill:#e65100,color:#fff,font-weight:bold,font-size:28px
     style S fill:#ff6f00,color:#fff,font-weight:bold,font-size:28px
     style W fill:#00acc1,color:#fff,font-weight:bold,font-size:28px
     style J1 fill:#7b1fa2,color:#fff,font-weight:bold,font-size:28px
@@ -158,11 +160,11 @@ flowchart TB
 
 ---
 
-## Taxonomy: v1 → v2 (Denseworld)
+## Taxonomy: v1 → v3 (Indian Urban)
 
 Tags serve **two purposes only**: (1) stratified batching for Ch10/Ch11, (2) slice-wise evaluation. They are NEVER training labels.
 
-| Field | v1 (Western) | v2 (Denseworld — Indian) | Change |
+| Field | v1 (Western) | v3 (Indian Urban) | Change |
 |-------|-------------|--------------------------|--------|
 | `scene_type` | market, junction, residential_lane, promenade, transit, temple_tourist, highway, **alley**(n=14), commercial, **construction**(n=53) | market, **bazaar**, junction, residential_lane, promenade, transit, temple_tourist, highway, commercial, **ghat**, **flyover_underpass** | Removed dead categories, added Indian scenes |
 | `time_of_day` | morning, afternoon, evening, night | **day, night** | Collapsed — pollution haze makes day subdivisions indistinguishable |
@@ -174,11 +176,11 @@ Tags serve **two purposes only**: (1) stratified batching for Ch10/Ch11, (2) sli
 | `video_quality` | *(missing)* | **clean, blur, shake** | **NEW** — quality stratification for confounder analysis |
 | weather, crowd_density, traffic_density, road_surface, infrastructure_quality, vegetation, lighting | *(unchanged)* | *(unchanged)* | Universal fields |
 
-**Total: 11 → 16 fields** (13 single + 2 multi + 1 changelog). File: `src/utils/tag_taxonomy_denseworld.json`
+**Total: 11 → 16 fields** (13 single + 2 multi + 1 changelog). File: `src/utils/tag_taxonomy.json` (v3)
 
 ---
 
-## Ch 9: Evaluate Frozen V-JEPA (DONE — 90%)
+## Ch 9: Evaluate Frozen V-JEPA
 
 ### Code built vs Proposal (FactorJEPA Ch 9)
 
@@ -204,23 +206,23 @@ Tags serve **two purposes only**: (1) stratified batching for Ch10/Ch11, (2) sli
 | 14 | Confidence sweep + Hard/Easy | ✅ BUILT | m06 compute_confidence_sweep() (7 thresholds) + Hard mode throughout |
 | 15 | Student-friendly protocol | — OPTIONAL | (not needed for paper) |
 | | **Critical for paper (not in original 15 steps)** | | |
-| 16 | Baseline — Random embeddings | ❌ NOT BUILT | Lower bound: random 1408-dim vectors → same m06 metrics pipeline |
-| 17 | Baseline — DINOv2 (image) | ❌ NOT BUILT | Image-only encoder on middle frame → exposes video vs image gap |
-| 18 | Baseline — Shuffled V-JEPA | ❌ NOT BUILT | Frame-shuffled clips → re-embed → proves temporal order matters |
-| 19 | Baseline — CLIP (text-vision) | ❌ NOT BUILT | Text-aligned encoder → tests if semantic alignment helps retrieval |
-| 20 | True Overlap@K (multi-crop) | ❌ NOT BUILT | Requires video augmentation pipeline (crop/resize → re-embed → compare kNN) |
-| 21 | VLM re-tag with denseworld | ❌ NOT RUN | Code built (m04), but POC used old 9-key taxonomy; denseworld adds 4 fields |
+| 16 | Baseline — Random embeddings | ✅ BUILT | m05b `--encoder random` — random 1408-dim vectors, L2-normed, CPU-only |
+| 17 | Baseline — DINOv2 (image) | ✅ BUILT | m05b `--encoder dinov2` — ViT-L/14 middle-frame, 1024-dim, GPU |
+| 18 | Baseline — Shuffled V-JEPA | ✅ BUILT | m05b `--encoder vjepa_shuffled` — temporal-order ablation, 1408-dim, GPU |
+| 19 | Baseline — CLIP (text-vision) | ✅ BUILT | m05b `--encoder clip` — ViT-L/14 middle-frame, 768-dim, GPU |
+| 20 | True Overlap@K (multi-crop) | ✅ BUILT | m05c augmented embeddings + m06 `--true-overlap` integration |
+| 21 | VLM re-tag 10K (v3 taxonomy) | ✅ BUILT | m04 with v3 taxonomy (16 fields). 115K: Qwen3.5-9B via vLLM (planned) |
 | 22 | UMAP visualization | ✅ BUILT | m07 GPU cuML UMAP (1408→2D) + m08 scatter plots per key; umap_2d.npy exists |
 
-### GAP: Baselines (CRITICAL — must do before paper)
+### Baselines — CODE BUILT (GPU runs pending)
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────┐
-│                    Ch 9 BASELINE COMPARISON (MISSING)                        │
+│                    Ch 9 BASELINE COMPARISON (CODE BUILT)                     │
 ├─────────────────────────────────────────────────────────────────────────────┤
 │                                                                             │
-│  Without baselines, "Prec@K = 18.73%" is meaningless.                      │
-│  Is that good? Compared to WHAT?                                           │
+│  All 4 baselines + True Overlap@K coded in m05b + m05c.                    │
+│  m06/m07 accept --encoder flag. m08b generates comparison plots.           │
 │                                                                             │
 │  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐       │
 │  │   Random     │  │  DINOv2     │  │  Shuffled   │  │    CLIP     │       │
@@ -231,22 +233,19 @@ Tags serve **two purposes only**: (1) stratified batching for Ch10/Ch11, (2) sli
 │  │ L2-normed   │  │ 1 frame/clip│  │ same V-JEPA │  │ 1 frame/clip│       │
 │  ├─────────────┤  ├─────────────┤  ├─────────────┤  ├─────────────┤       │
 │  │ LOWER BOUND │  │ IMAGE vs    │  │ TEMPORAL    │  │ TEXT-VISION │       │
-│  │ ~10% Prec@K │  │ VIDEO test  │  │ ORDER test  │  │ ALIGNMENT   │       │
-│  │ (1/10 types)│  │             │  │             │  │ test        │       │
+│  │ m05b CPU    │  │ VIDEO test  │  │ ORDER test  │  │ ALIGNMENT   │       │
+│  │ ✅ BUILT    │  │ ✅ BUILT    │  │ ✅ BUILT    │  │ ✅ BUILT    │       │
 │  └──────┬──────┘  └──────┬──────┘  └──────┬──────┘  └──────┬──────┘       │
 │         │                │                │                │               │
 │         └────────────────┴────────────────┴────────────────┘               │
 │                                    │                                        │
 │                                    ▼                                        │
 │                    ALL re-run through SAME m06/m07/m08                      │
-│                    SAME 5,105 clips, SAME k=6, SAME tags                   │
-│                    → side-by-side comparison table in paper                 │
+│                    via --encoder flag (FAISS is dim-agnostic)               │
+│                    m08b generates comparison bar + radar + LaTeX            │
 │                                                                             │
-│  PRIORITY:                                                                  │
-│  ■ Random baseline    — ~30 min (generate random vectors, run m06)         │
-│  ■ DINOv2 baseline    — ~2-3h GPU (embed 5K clips, run m06)               │
-│  ■ Shuffled V-JEPA    — ~2h GPU (temporal order test)                      │
-│  ■ CLIP baseline      — ~2h GPU (text-vision alignment)                    │
+│  115K FULL: VLM re-tag with Qwen3.5-9B via vLLM on Blackwell              │
+│  (see vLLM_plan_Blackwell.md for deployment plan)                          │
 │                                                                             │
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
@@ -277,7 +276,7 @@ Tags serve **two purposes only**: (1) stratified batching for Ch10/Ch11, (2) sli
 │  IMPLICATION FOR Ch 10-11:                                                  │
 │  V-JEPA needs domain adaptation to understand Indian SCENE SEMANTICS.       │
 │  It already captures lighting/weather — adaptation should target            │
-│  traffic_mix, pedestrian_vehicle_separation, scene_type (denseworld keys)  │
+│  traffic_mix, pedestrian_vehicle_separation, scene_type (v3 taxonomy keys)  │
 │                                                                             │
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
@@ -297,7 +296,7 @@ Tags serve **two purposes only**: (1) stratified batching for Ch10/Ch11, (2) sli
 │  INPUTS FROM Ch 9:                                                                      │
 │  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐                                  │
 │  │ tags.json    │  │ embeddings   │  │ metrics      │                                  │
-│  │ (denseworld  │  │ .npy         │  │ _frozen.json │                                  │
+│  │ (v3 taxonomy  │  │ .npy         │  │ _frozen.json │                                  │
 │  │  15 fields)  │  │ (frozen      │  │ (baseline to │                                  │
 │  │              │  │  encoder)    │  │  beat)       │                                  │
 │  └──────┬───────┘  └──────┬───────┘  └──────┬───────┘                                  │
@@ -310,7 +309,7 @@ Tags serve **two purposes only**: (1) stratified batching for Ch10/Ch11, (2) sli
 │                                                                                         │
 │  ┌─ ONE TRAINING STEP ─────────────────────────────────────────────────────────┐        │
 │  │                                                                              │        │
-│  │  1. SAMPLE batch (uniform by video_id, stratified by denseworld tags)       │        │
+│  │  1. SAMPLE batch (uniform by video_id, stratified by v3 taxonomy tags)       │        │
 │  │     ┌───────────────────────────────────────────────────────────────┐        │        │
 │  │     │ Ensure mix of: day/night, traffic_mix values,                │        │        │
 │  │     │ pedestrian_vehicle_separation, scene_type diversity          │        │        │
@@ -357,7 +356,7 @@ Tags serve **two purposes only**: (1) stratified batching for Ch10/Ch11, (2) sli
 │  │  2. Build FAISS index → compute Cycle@K (Hard mode)                │                │
 │  │  3. Pick checkpoint with best Cycle@K                              │                │
 │  │     (primary: label-free, no tag dependency)                        │                │
-│  │  4. Also log: Prec@K per denseworld key (diagnostic, not selection) │                │
+│  │  4. Also log: Prec@K per v3 taxonomy key (diagnostic, not selection) │                │
 │  └──────────────────────────────────────────────────────────────────────┘                │
 │                                                                                         │
 │  OUTPUT: V-JEPA (adapted) = student encoder f_θ at best checkpoint                      │
@@ -386,7 +385,7 @@ Tags serve **two purposes only**: (1) stratified batching for Ch10/Ch11, (2) sli
 │        │                                                                    │
 │        ▼                                                                    │
 │  m06_faiss_metrics.py ──→ metrics_adapted.json (SAME 9 metrics)            │
-│        │                     + per-key breakdown on 15 denseworld fields    │
+│        │                     + per-key breakdown on 15 v3 taxonomy fields    │
 │        ▼                                                                    │
 │  m07_umap.py ──→ umap_2d_adapted.npy                                      │
 │        │                                                                    │
@@ -421,7 +420,7 @@ Tags serve **two purposes only**: (1) stratified batching for Ch10/Ch11, (2) sli
 | | **10.1 Training data and sampling** | | |
 | 1 | Train/val split by video_id (avoid leakage) | ❌ NOT BUILT | m09 — need video_id-level split (no clip from same video in both sets) |
 | 2 | Decode normalization (fixed FPS, T frames, 224px) | ❌ NOT BUILT | m09 — consistent T={16,32} frames, fixed spatial resize+crop pipeline |
-| 3 | Stratified sampling (uniform by video_id + tag mix) | ❌ NOT BUILT | m09 — denseworld tags for batch balancing (day/night, traffic_mix, scene_type) |
+| 3 | Stratified sampling (uniform by video_id + tag mix) | ❌ NOT BUILT | m09 — v3 taxonomy tags for batch balancing (day/night, traffic_mix, scene_type) |
 | | **10.2 Model components** | | |
 | 4 | Student encoder (init from frozen V-JEPA, trainable) | ❌ NOT BUILT | m09 — load facebook/vjepa2-vitg-fpc64-384, set requires_grad=True |
 | 5 | Teacher encoder (EMA copy, non-trainable) | ❌ NOT BUILT | m09 — deepcopy of student, no gradients, updated only by EMA |
@@ -491,7 +490,7 @@ Tags serve **two purposes only**: (1) stratified batching for Ch10/Ch11, (2) sli
 │  │              │ │              │ │  • mask noise (dilation/erosion) │                 │
 │  └──────────────┘ └──────────────┘ └──────────────────────────────────┘                 │
 │                                                                                         │
-│  EVAL MAPPING (denseworld taxonomy → factor):                                           │
+│  EVAL MAPPING (v3 taxonomy taxonomy → factor):                                           │
 │  ┌──────────────────────────────────────────────────────────────┐                       │
 │  │ Layout (D_L):  road_layout, road_surface, infrastructure_   │                       │
 │  │                quality, road_encroachment                    │                       │
@@ -605,7 +604,7 @@ Tags serve **two purposes only**: (1) stratified batching for Ch10/Ch11, (2) sli
 | 23 | Overall retrieval eval (kNN grids, Cycle@K, Overlap@K) | ❌ NOT BUILT | m05+m06+m07+m08 — re-embed with surgical encoder, same pipeline as Ch9 |
 | 24 | Factor-sliced retrieval (query D_L/D_A/D_I separately) | ❌ NOT BUILT | m06 — per-factor neighborhoods: layout→layout, agent→agent, interaction→interaction |
 | 25 | Sanity check — raw vs patched clips | ❌ NOT BUILT | m06 — gains must transfer to RAW clips; patched-only gains = artifact learning (FAIL) |
-| 26 | Final 3-way comparison (frozen vs adapted vs surgical) | ❌ NOT BUILT | m05+m06+m07+m08 — x 15 denseworld keys, side-by-side table for paper |
+| 26 | Final 3-way comparison (frozen vs adapted vs surgical) | ❌ NOT BUILT | m05+m06+m07+m08 — x 15 v3 taxonomy keys, side-by-side table for paper |
 
 ---
 
@@ -670,22 +669,29 @@ Tags serve **two purposes only**: (1) stratified batching for Ch10/Ch11, (2) sli
 │                     DEPENDENCY GRAPH (what blocks what)                                  │
 ├─────────────────────────────────────────────────────────────────────────────────────────┤
 │                                                                                         │
-│  WEEK 1: Fill Ch 9 gaps                                                                 │
-│  ┌──────────────────┐  ┌──────────────────┐                                             │
-│  │ Random baseline  │  │ DINOv2 baseline  │  (independent, can run in parallel)         │
-│  │ ~30 min CPU      │  │ ~3h GPU          │                                             │
-│  └────────┬─────────┘  └────────┬─────────┘                                             │
-│           │                     │                                                        │
-│           └──────────┬──────────┘                                                        │
-│                      ▼                                                                   │
-│           ┌──────────────────────┐                                                       │
-│           │ Re-tag 10K clips     │                                                       │
-│           │ with denseworld      │                                                       │
-│           │ taxonomy (Qwen)      │                                                       │
-│           │ ~5.3h GPU            │                                                       │
-│           └──────────┬───────────┘                                                       │
-│                      │                                                                   │
-│  ════════════════════╪═══════════════════════════════════════════════════                 │
+│  WEEK 1: Fill Ch 9 gaps (ALL CODE BUILT — GPU runs pending)                              │
+│  ┌──────────────────┐  ┌──────────────────┐  ┌──────────────────┐                       │
+│  │ Random baseline  │  │ DINOv2 baseline  │  │ CLIP baseline    │                       │
+│  │ m05b (CPU)       │  │ m05b (GPU)       │  │ m05b (GPU)       │                       │
+│  └────────┬─────────┘  └────────┬─────────┘  └────────┬─────────┘                       │
+│           │  ┌──────────────────┐│  ┌──────────────────┐│                                │
+│           │  │ Shuffled V-JEPA  ││  │ True Overlap@K   ││                                │
+│           │  │ m05b (GPU)       ││  │ m05c (GPU)       ││                                │
+│           │  └────────┬─────────┘│  └────────┬─────────┘│                                │
+│           └───────────┴──────────┴───────────┴──────────┘                                │
+│                                  │                                                       │
+│                                  ▼                                                       │
+│           ┌───────────────────────────────────────────────┐                               │
+│           │ FAISS × 5 encoders (m06 --encoder)            │                               │
+│           │ + UMAP × 5 (m07) + m08b comparison            │                               │
+│           └──────────────────────┬────────────────────────┘                               │
+│                                  │                                                       │
+│           ┌──────────────────────▼────────────────────────┐                               │
+│           │ VLM re-tag 115K clips: Qwen3.5-9B via vLLM   │                               │
+│           │ (on Blackwell GPU, see vLLM_plan_Blackwell.md)│                               │
+│           └──────────────────────┬────────────────────────┘                               │
+│                                  │                                                       │
+│  ════════════════════════════════╪═══════════════════════════════════                     │
 │                      │                                                                   │
 │  WEEK 2: Ch 10       │                                                                   │
 │  ┌───────────────────▼───────────┐  ┌─────────────────────────────────┐                  │
@@ -741,7 +747,7 @@ flowchart LR
     subgraph CH9 ["Ch 9 Artifacts ✅"]
         direction TB
         E1["embeddings.npy<br>frozen · 1408-dim"]
-        T1["tags.json<br>denseworld · 16 fields"]
+        T1["tags.json<br>v3 taxonomy · 16 fields"]
         M1["metrics_frozen.json<br>9 metrics · baseline"]
         P1["15 plots (.png/.pdf)"]
         B1["baselines: Random ·<br>DINOv2 · Shuffled · CLIP"]
@@ -763,7 +769,7 @@ flowchart LR
 
     subgraph PAPER ["Paper Deliverables"]
         direction TB
-        D1["3-way comparison table<br>frozen vs adapted vs surgical<br>× 15 denseworld keys"]
+        D1["3-way comparison table<br>frozen vs adapted vs surgical<br>× 15 taxonomy keys"]
         D2["Key finding:<br>lighting ≫ scene semantics<br>Surgery → traffic_mix gain"]
         D1 --> D2
     end
@@ -809,7 +815,9 @@ flowchart LR
 | m06 | Ch 9 | FAISS kNN + 9 metrics | DONE |
 | m07 | Ch 9 | cuML GPU UMAP | DONE |
 | m08 | Ch 9 | CPU matplotlib plots | DONE |
-| **m05b** | **Ch 9** | **Baseline embeddings (random, DINOv2, shuffled, CLIP)** | **TODO** |
+| **m05b** | **Ch 9** | **Baseline embeddings (random, DINOv2, shuffled, CLIP)** | **DONE** (code built, GPU runs pending) |
+| **m05c** | **Ch 9** | **Augmented V-JEPA embeddings for True Overlap@K** | **DONE** (code built, GPU runs pending) |
+| **m08b** | **Ch 9** | **Multi-encoder comparison (bar chart, radar, LaTeX)** | **DONE** (CPU-only, runs after m06 × 5) |
 | **m09** | **Ch 10** | **Continual pretraining (student-teacher JEPA)** | **TODO** |
 | **m10** | **Ch 11** | **SAM3 segmentation + tracklet mining** | **TODO** |
 | **m11** | **Ch 11** | **Factor dataset creation (D_L, D_A, D_I)** | **TODO** |
@@ -824,4 +832,4 @@ flowchart LR
 | **Ch 9 complete** | Baselines done. V-JEPA Prec@K significantly above random. | Week 1 |
 | **Ch 10 POC** | Adapted Cycle@K ≥ frozen. scene_type mAP improves. traffic_mix/ped_veh_sep show signal. | Week 2 |
 | **Ch 11 POC** | Surgical > adapted on factor-specific metrics. Gains transfer to RAW (unpatched) clips. | Week 4 |
-| **Paper-ready** | 3-way comparison table with baselines. 15-key denseworld breakdown. All plots reproducible. | Week 5 |
+| **Paper-ready** | 3-way comparison table with baselines. 15-key v3 taxonomy breakdown. All plots reproducible. | Week 5 |

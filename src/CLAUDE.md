@@ -11,6 +11,9 @@
 4.1) format: `python -u src/*.py --args arg_name 2>&1 | tee logs/<log_name>.log`
 5) Dependencies: update @setup_env_uv.sh, @requirements.txt (CPU), @requirements_gpu.txt (GPU) — install via UV ONLY, no individual pip. **ENFORCED: `.claude/hooks/enforce-dev-rules.sh` blocks `pip install` / `uv pip install` via PreToolUse hook.**
 6) Test on M1 `venv_walkindia` : `py_compile` + `--help` + `ast` — full GPU tests on cloud only. **ENFORCED: `.claude/hooks/enforce-dev-rules.sh` blocks bare `python3` without venv activation via PreToolUse hook.** Always: `source venv_walkindia/bin/activate && python3 -m module`
+6.1) **MANDATORY after ANY edit to `src/m*.py`:** Run BOTH checks before moving on. No exceptions. **ENFORCED: `.claude/hooks/post-edit-lint.sh` via PostToolUse hook.**
+   - `source venv_walkindia/bin/activate && python3 -m py_compile src/<file>.py`
+   - AST structural check (verify functions, argparse choices, imports)
 7) Plots: both .png & .pdf. m08_plot.py = CPU-only (pure matplotlib, reads pre-computed .npy files)
 7.1) GPU scripts save .npy artifacts (embeddings, knn_indices, umap_2d) → CPU scripts read them. NEVER duplicate GPU compute in CPU scripts (e.g. never rebuild FAISS index in plotting when m06 already saves knn_indices.npy)
 7.2) embeddings.paths.npy stores clip keys (not local paths) — used for Hard mode ±30s exclusion. Tags↔embeddings alignment via __key__ field. FAISS uses IVFFlat (not IVF-PQ) — simpler, sufficient at 10K-115K scale

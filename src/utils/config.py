@@ -125,6 +125,35 @@ UMAP_PLOT_PDF = OUTPUTS_DIR / "m08_umap.pdf"
 METRICS_FILE = OUTPUTS_DIR / "m06_metrics.json"
 
 
+# Encoder registry (baselines + V-JEPA). suffix="" = backward compat for vjepa.
+ENCODER_REGISTRY = {
+    "vjepa":          {"model_id": VJEPA_MODEL_ID,                       "dim": 1408, "type": "video",         "suffix": ""},
+    "random":         {"model_id": None,                                  "dim": 1408, "type": "synthetic",     "suffix": "_random"},
+    "dinov2":         {"model_id": "facebook/dinov2-vitl14",             "dim": 1024, "type": "image",          "suffix": "_dinov2"},
+    "clip":           {"model_id": "openai/clip-vit-large-patch14",      "dim": 768,  "type": "image",          "suffix": "_clip"},
+    "vjepa_shuffled": {"model_id": VJEPA_MODEL_ID,                       "dim": 1408, "type": "video_shuffled", "suffix": "_vjepa_shuffled"},
+}
+
+
+def get_encoder_files(encoder: str, output_dir: Path) -> dict:
+    """Return {embeddings, paths, metrics, knn_indices, umap_2d} paths for an encoder."""
+    sfx = ENCODER_REGISTRY[encoder]["suffix"]
+    return {
+        "embeddings":  output_dir / f"embeddings{sfx}.npy",
+        "paths":       output_dir / f"embeddings{sfx}.paths.npy",
+        "metrics":     output_dir / f"m06_metrics{sfx}.json",
+        "knn_indices": output_dir / f"knn_indices{sfx}.npy",
+        "umap_2d":     output_dir / f"umap_2d{sfx}.npy",
+    }
+
+
+def add_encoder_arg(parser):
+    """Add --encoder argument to m05b/m06/m07/m08 parsers."""
+    parser.add_argument("--encoder", default="vjepa",
+                        choices=list(ENCODER_REGISTRY.keys()),
+                        help="Encoder whose embeddings to process (default: vjepa)")
+
+
 # Ensure POC directories exist
 for d in [OUTPUTS_POC_DIR, BAKEOFF_DIR]:
     d.mkdir(parents=True, exist_ok=True)

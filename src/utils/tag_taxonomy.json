@@ -1,11 +1,11 @@
 {
-  "_comment": "Tag taxonomy v2 for WalkIndia-200k — Indian non-Western urban scenes",
+  "_comment": "Tag taxonomy v3 for WalkIndia-200k — Indian non-Western urban scenes",
   "_source": "v1 (DriveIndia + CARScenes + IDD) + professor feedback on Indian-specific dimensions",
-  "_changelog": "v2: collapsed time_of_day to day/night (pollution haze), added bazaar/ghat/flyover_underpass to scene_type, removed alley/construction (too sparse), added traffic_mix + pedestrian_vehicle_separation + road_encroachment fields, Indian-specific notable_objects, added speed_breaker/open_drain to road_layout, added video_quality (clean/blur/shake) for confounder analysis",
+  "_changelog": "v3: renamed temple_tourist→heritage_tourist (covers temples/forts/palaces/monuments), added beach_coastal + skyline_aerial scene_types, added bridge to road_layout, added skyscraper to notable_objects. v2: collapsed time_of_day to day/night (pollution haze), added bazaar/ghat/flyover_underpass to scene_type, removed alley/construction (too sparse), added traffic_mix + pedestrian_vehicle_separation + road_encroachment fields, Indian-specific notable_objects, added speed_breaker/open_drain to road_layout, added video_quality (clean/blur/shake) for confounder analysis",
 
   "scene_type": {
     "type": "single",
-    "values": ["market", "bazaar", "junction", "residential_lane", "promenade", "transit", "temple_tourist", "highway", "commercial", "ghat", "flyover_underpass"],
+    "values": ["market", "bazaar", "junction", "residential_lane", "promenade", "transit", "heritage_tourist", "highway", "commercial", "ghat", "flyover_underpass", "beach_coastal", "skyline_aerial"],
     "default": "residential_lane"
   },
   "time_of_day": {
@@ -40,7 +40,7 @@
   },
   "road_layout": {
     "type": "multi",
-    "values": ["intersection", "narrow_lane", "wide_road", "sidewalk_present", "median", "speed_breaker", "open_drain"],
+    "values": ["intersection", "narrow_lane", "wide_road", "sidewalk_present", "median", "speed_breaker", "open_drain", "bridge"],
     "default": ["wide_road"]
   },
   "road_surface": {
@@ -60,7 +60,7 @@
   },
   "notable_objects": {
     "type": "multi",
-    "values": ["bus", "auto_rickshaw", "cycle_rickshaw", "bike", "car", "truck", "handcart", "street_vendor", "sacred_cow", "stray_dog", "pedestrian", "overhead_wires", "signage", "religious_shrine"],
+    "values": ["bus", "auto_rickshaw", "cycle_rickshaw", "bike", "car", "truck", "handcart", "street_vendor", "sacred_cow", "stray_dog", "pedestrian", "overhead_wires", "signage", "religious_shrine", "skyscraper"],
     "default": ["pedestrian", "bike"]
   },
   "vegetation": {

@@ -17,6 +17,7 @@ sys.path.insert(0, str(Path(__file__).parent))
 from utils.config import (
     EMBEDDINGS_FILE, check_gpu,
     add_subset_arg, get_output_dir,
+    add_encoder_arg, get_encoder_files,
 )
 from utils.wandb_utils import add_wandb_args, init_wandb, log_artifact, finish_wandb
 
@@ -34,6 +35,7 @@ def main():
     parser.add_argument("--FULL", action="store_true", help="All clips")
     parser.add_argument("--n-neighbors", type=int, default=15, help="UMAP n_neighbors")
     parser.add_argument("--min-dist", type=float, default=0.1, help="UMAP min_dist")
+    add_encoder_arg(parser)
     add_subset_arg(parser)
     add_wandb_args(parser)
     args = parser.parse_args()
@@ -51,8 +53,10 @@ def main():
     mode = "SANITY" if args.SANITY else ("POC" if args.subset else "FULL")
     wb_run = init_wandb("m07", mode, config=vars(args), enabled=not args.no_wandb)
 
-    # Load embeddings
-    emb_file = (output_dir / "embeddings.npy") if args.subset else EMBEDDINGS_FILE
+    # Load embeddings (encoder-aware paths)
+    enc_files = get_encoder_files(args.encoder, output_dir)
+    emb_file = enc_files["embeddings"]
+    print(f"Encoder: {args.encoder}")
     if not emb_file.exists():
         print(f"FATAL: embeddings not found: {emb_file}")
         sys.exit(1)
@@ -80,8 +84,8 @@ def main():
     emb_2d = result.get() if hasattr(result, 'get') else np.asarray(result)
     elapsed = time.time() - t0
 
-    # Save
-    out_path = output_dir / "umap_2d.npy"
+    # Save (encoder-aware path)
+    out_path = enc_files["umap_2d"]
     np.save(out_path, emb_2d)
     print(f"Saved: {out_path} ({emb_2d.shape})")
     print(f"UMAP completed in {elapsed:.1f}s")

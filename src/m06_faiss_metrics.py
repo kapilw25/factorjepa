@@ -21,6 +21,7 @@ from utils.config import (
     EMBEDDINGS_FILE, TAGS_FILE, METRICS_FILE, OUTPUTS_DIR,
     FAISS_K_NEIGHBORS, TAG_TAXONOMY_JSON,
     check_gpu, add_subset_arg, get_output_dir,
+    add_encoder_arg, get_encoder_files, ENCODER_REGISTRY,
 )
 from utils.wandb_utils import (
     add_wandb_args, init_wandb, log_metrics, log_image, log_artifact, finish_wandb,
@@ -39,6 +40,53 @@ DEFAULT_CLIP_DURATION_SEC = 10
 CONFIDENCE_THRESHOLDS = [0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]
 SLICE_FIELDS = ["time_of_day", "weather", "crowd_density", "traffic_density",
                 "road_surface", "infrastructure_quality", "vegetation", "lighting"]
+
+
+# ── True Overlap@K (from augmented embeddings) ──────────────────────────
+
+def compute_true_overlap_at_k(output_dir: Path, k: int) -> float:
+    """True Overlap@K: kNN IoU between two augmented views of the same clips.
+
+    Loads overlap_augA.npy and overlap_augB.npy (from m05c_true_overlap.py),
+    builds FAISS index on each, computes IoU of kNN neighborhoods.
+    Returns percentage [0, 100] or None if augmented files missing.
+    """
+    aug_a_file = output_dir / "overlap_augA.npy"
+    aug_b_file = output_dir / "overlap_augB.npy"
+
+    if not aug_a_file.exists() or not aug_b_file.exists():
+        return None
+
+    aug_a = np.load(aug_a_file).astype(np.float32)
+    aug_b = np.load(aug_b_file).astype(np.float32)
+
+    if aug_a.shape != aug_b.shape:
+        print(f"WARNING: augA shape {aug_a.shape} != augB shape {aug_b.shape}")
+        return None
+
+    n, d = aug_a.shape
+    res = faiss.StandardGpuResources()
+
+    # Build index on view A, find kNN for each clip in A-space
+    idx_a = faiss.index_cpu_to_gpu(res, 0, faiss.IndexFlatL2(d))
+    idx_a.add(aug_a)
+    _, I_a = idx_a.search(aug_a, k + 1)  # each clip's neighbors in view A
+
+    # Build index on view B, find kNN for each clip in B-space
+    idx_b = faiss.index_cpu_to_gpu(res, 0, faiss.IndexFlatL2(d))
+    idx_b.add(aug_b)
+    _, I_b = idx_b.search(aug_b, k + 1)  # each clip's neighbors in view B
+
+    # Compute IoU of kNN sets (skip self at col 0)
+    total_iou = 0.0
+    for i in range(n):
+        set_a = set(I_a[i, 1:k + 1].tolist()) - {-1}
+        set_b = set(I_b[i, 1:k + 1].tolist()) - {-1}
+        union = set_a | set_b
+        if union:
+            total_iou += len(set_a & set_b) / len(union)
+
+    return (total_iou / n) * 100
 
 
 # ── Load taxonomy ────────────────────────────────────────────────────────
@@ -924,6 +972,9 @@ def main():
     parser.add_argument("--k", type=int, default=FAISS_K_NEIGHBORS,
                         help=f"Number of neighbors (default: {FAISS_K_NEIGHBORS})")
     parser.add_argument("--no-plots", action="store_true", help="Skip plot generation")
+    parser.add_argument("--true-overlap", action="store_true",
+                        help="Use augmented embeddings for True Overlap@K (from m05c)")
+    add_encoder_arg(parser)
     add_subset_arg(parser)
     add_wandb_args(parser)
     args = parser.parse_args()
@@ -939,24 +990,26 @@ def main():
     wb_run = init_wandb("m06", mode, config=vars(args),
                         enabled=not args.no_wandb)
 
-    # Output routing: POC vs Full
+    # Output routing: POC vs Full, encoder-aware paths
     output_dir = get_output_dir(args.subset)
-    metrics_file = output_dir / "m06_metrics.json" if args.subset else METRICS_FILE
+    enc_files = get_encoder_files(args.encoder, output_dir)
+    metrics_file = enc_files["metrics"]
+    emb_file = enc_files["embeddings"]
+    paths_file = enc_files["paths"]
 
+    # Tags are shared across all encoders (not encoder-specific)
+    if args.subset:
+        tags_file = output_dir / "tags.json"
+    else:
+        tags_file = TAGS_FILE
+
+    enc_info = ENCODER_REGISTRY[args.encoder]
+    print(f"Encoder:     {args.encoder} (dim={enc_info['dim']}, type={enc_info['type']})")
     print(f"Output dir:  {output_dir}")
+    print(f"Embeddings:  {emb_file}")
     print(f"Metrics:     {metrics_file}")
     if args.subset:
         print(f"[POC] Subset: {args.subset}")
-
-    # Load embeddings + tags (respect POC paths)
-    if args.subset:
-        emb_file = output_dir / "embeddings.npy"
-        tags_file = output_dir / "tags.json"
-        paths_file = output_dir / "embeddings.paths.npy"
-    else:
-        emb_file = EMBEDDINGS_FILE
-        tags_file = TAGS_FILE
-        paths_file = EMBEDDINGS_FILE.with_suffix('.paths.npy')
 
     for f, desc in [(emb_file, "embeddings"), (tags_file, "tags")]:
         if not f.exists():
@@ -1025,6 +1078,18 @@ def main():
         print("\nWARNING: No clip paths → Hard mode = Easy mode (no exclusion)")
         hard = easy
 
+    # ── True Overlap@K (replaces dim-split if augmented embeddings exist) ──
+    if args.true_overlap:
+        true_ov = compute_true_overlap_at_k(output_dir, k)
+        if true_ov is not None:
+            print(f"\n  True Overlap@K: {true_ov:.2f}% (multi-crop augmentation)")
+            easy["overlap_at_k"] = round(true_ov, 2)
+            easy["overlap_method"] = "true_multi_crop"
+            hard["overlap_at_k"] = round(true_ov, 2)
+            hard["overlap_method"] = "true_multi_crop"
+        else:
+            print("\n  WARNING: --true-overlap set but overlap_augA/B.npy not found. Run m05c first.")
+
     # ── Confidence sweep ─────────────────────────────────────────────
     conf_sweep = compute_confidence_sweep(I[:, :k + 1], tags, k)
     print(f"\nConfidence sweep: {len(conf_sweep)} thresholds")
@@ -1049,6 +1114,8 @@ def main():
 
     # ── Save ─────────────────────────────────────────────────────────
     output = {
+        "encoder": args.encoder,
+        "encoder_dim": enc_info["dim"],
         "easy": easy,
         "hard": hard,
         "confidence_sweep": conf_sweep,
@@ -1065,7 +1132,7 @@ def main():
     print(f"\nSaved: {metrics_file}")
 
     # Save kNN indices for downstream plotting (m08_plot.py)
-    knn_file = output_dir / "knn_indices.npy"
+    knn_file = enc_files["knn_indices"]
     np.save(knn_file, I[:, :k + 1])  # (N, k+1) — col 0 is self
     print(f"Saved: {knn_file} ({I[:, :k + 1].shape})")
 

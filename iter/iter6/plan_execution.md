@@ -1,19 +1,16 @@
-# Execution Plan: BAKEOFF Experiment (m04 → m08)
+# Execution Plan: Ch9 Complete Pipeline (m04 → m08b)
 
-STATUS: m00-m03 COMPLETED (Mac CPU). m04-m08 on GPU.
+STATUS: m00-m03 COMPLETED (Mac CPU). Steps 0-7 (collapsed pipeline — each module runs once).
 Dataset: https://huggingface.co/datasets/anonymousML123/walkindia-200k (private, HF_TOKEN in .env)
-Backend: All 3 VLMs use transformers batched inference with AdaptiveBatchSizer (vLLM removed — OOMs on ≤24GB GPUs).
+VLM: **Qwen3-VL-8B** (winner — 0.919 weighted score via 5-criterion bake-off). Transformers batched inference with AdaptiveBatchSizer.
 
 ### GPU Strategy & Clip Selection
 
 | Mode | Command Flags | GPU | VRAM | Input Pool | Selection Method | Output Count | Output Path |
 |------|---------------|-----|------|------------|------------------|--------------|-------------|
-| **SANITY** | `--SANITY` | RTX Pro 4000 | 24GB | 115K stream | First 20 from stream | 20 | `outputs/tags_sanity_{model}.json` |
-| **BAKEOFF** | `--BAKEOFF --subset` | RTX Pro 6000 | 96GB | 10K subset | First 2,500 matching subset keys | 2,500 | `data/bakeoff/tags_{model}.json` |
+| **SANITY** | `--SANITY` | RTX Pro 4000 | 24GB | 115K stream | First 20 from stream | 20 | `outputs/tags_sanity_qwen.json` |
 | **FULL (POC)** | `--FULL --subset` | RTX Pro 6000 | 96GB | 10K subset | All 10,000 matching subset keys | 10,000 | `outputs_poc/tags.json` |
 | **FULL (prod)** | `--FULL` | RTX Pro 6000 | 96GB | 115K stream | All clips, no filter | 115,687 | `outputs/tags.json` |
-
-> **Design choice:** The 10K subset is video-uniform (geographic diversity), while the 2,500 BAKEOFF subset is the first 2,500 of those 10K encountered in stream order (deterministic, reproducible). The winner VLM then resumes from its 2,500 checkpoint and finishes the remaining 7,500.
 
 ---
 
@@ -45,175 +42,61 @@ python -c "import json; d=json.load(open('data/subset_10k.json')); print(f'Subse
 
 ---
 
-## Step 0: SANITY checks — RTX Pro 4000 (24GB) — debug/validate before bake-off
+## Step 0: VLM Selection — COMPLETED
 
-Run each VLM on 20 clips to verify model loading, inference, JSON parsing, and output format.
-Delete stale checkpoints before each sanity run if needed.
+**Winner: Qwen3-VL-8B** (weighted score: **0.919** out of 1.0)
 
-```bash
-# Clean stale outputs (only if re-running)
-rm -f src/outputs/tags.json src/outputs/tags.json.tmp
+5-criterion bake-off on 20-clip SANITY + 2,500-clip partial runs:
 
-# Qwen3-VL sanity (PASSED — 20/20 clips, 0.08 clips/s, 260s)
-python -u src/m04_vlm_tag.py --model qwen --SANITY 2>&1 | tee logs/m04_sanity_qwen.log
+| Criterion | Weight | Qwen | VideoLLaMA3 | LLaVA |
+|-----------|--------|------|-------------|-------|
+| JSON Parse | 30% | 1.00 | 0.83 | 1.00 |
+| Agreement | 25% | 0.89 | 0.67 | 0.50 |
+| Speed | 20% | 1.00 | 0.10 | 0.31 |
+| Taxonomy | 15% | 1.00 | 0.88 | 0.85 |
+| Conf. Calibration | 10% | 0.47 | 0.47 | 0.64 |
+| **Weighted Total** | | **0.919** | **0.615** | **0.676** |
 
-# VideoLLaMA3 sanity
-python -u src/m04_vlm_tag.py --model videollama --SANITY 2>&1 | tee logs/m04_sanity_videollama.log
-
-# LLaVA-NeXT-Video sanity
-python -u src/m04_vlm_tag.py --model llava --SANITY 2>&1 | tee logs/m04_sanity_llava.log
-```
-
-```
-rm -f src/outputs/tags_sanity_videollama.json src/outputs/tags_sanity_llava.json &&\
-python -u src/m04_vlm_tag.py --model videollama --SANITY 2>&1 | tee logs/m04_sanity_videollama_2.log &&\
-python -u src/m04_vlm_tag.py --model llava --SANITY 2>&1 | tee logs/m04_sanity_llava_2.log
-```
-
-```
-python -u src/m04_vlm_tag.py --model qwen --BAKEOFF --subset data/subset_10k.json 2>&1 | tee logs/m04_bakeoff_qwen_poc_4.log &&\
-python -u src/m04_vlm_tag.py --model videollama --BAKEOFF --subset data/subset_10k.json 2>&1 | tee logs/m04_bakeoff_videollama_poc.log &&\
-python -u src/m04_vlm_tag.py --model llava --BAKEOFF --subset data/subset_10k.json 2>&1 | tee logs/m04_bakeoff_llava_poc.log
-```
-
-### Verify Step 0 output
-
-```bash
-# Check each model's sanity output (SANITY creates tags_sanity_{model}.json, not tags.json)
-for model in qwen videollama llava; do
-  python -c "
-import json
-t = json.load(open('src/outputs/tags_sanity_${model}.json'))
-print(f'tags_sanity_${model}.json: {len(t)} clips, {len(t[0].keys())} fields')
-print(f'  scene_type: {t[0].get(\"scene_type\", \"MISSING\")}')
-print(f'  confidence: {t[0].get(\"confidence_scene_type\", \"MISSING\")}')
-"
-done
-```
-
-**Expected:** 20 clips, 34 fields each, valid JSON with all 11 tag fields + 11 confidence fields + provenance.
+See `iter/iter6/plots/m04b_vlm_comparison.png` for full visualization.
 
 **Status:**
-- [x] Qwen3-VL: PASSED (20/20, 0.08→0.52 clips/s batched, all JSON parsed)
-- [x] VideoLLaMA3: PASSED (27/20, 0.11 clips/s — can't batch, token compression requires batch_size=1)
-- [x] LLaVA-NeXT-Video: FAILED on batched run (sentencepiece missing → fixed, `pip install sentencepiece`)
-- [x] Re-run with batched code: VideoLLaMA3 PASSED (per-clip fallback), LLaVA PASSED after sentencepiece fix
-
-**Sanity comparison (`m04c_sanity_compare.png`):** Qwen clear winner — 100% parse, 3 scene types, confidence 0.7-0.98, 0 off-taxonomy. VideoLLaMA3: all "residential_lane", 19 off-taxonomy. LLaVA: 85% parse, flat 0.5 confidence.
-
-### Compare SANITY results (CPU — no GPU needed)
-
-```bash
-python -u src/m04c_sanity_compare.py 2>&1 | tee logs/m04c_sanity_compare.log
-ls -la src/outputs/m04c_sanity_compare.{png,pdf}
-```
-
-**Output:** `m04c_sanity_compare.png` + `.pdf` — 2x2 dashboard (parse rate, scene distribution, confidence boxplot, on/off-taxonomy objects butterfly chart).
+- [x] SANITY (3 VLMs x 20 clips): DONE
+- [x] Sanity comparison (`m04c_sanity_compare.png`): DONE
+- [x] Winner selection: **Qwen** (0.919 — dominates on parse, speed, taxonomy)
 
 ---
 
-## Step 1: VLM Bake-off — RTX Pro 6000 (96GB) — 3 VLMs × 2,500 clips each
+## Step 1: Qwen tags 10K clips (v3 taxonomy) — RTX Pro 6000 (96GB)
 
-Each VLM tags the first 2,500 clips from the 10K subset (streams from HF, no local clips).
+Qwen3-VL tags all 10K POC clips using v3 taxonomy (`src/utils/tag_taxonomy.json` — 16 fields including `traffic_mix`, `ped_vehicle_separation`, `road_encroachment`, `video_quality`).
 
 ```bash
-# Clean stale bakeoff checkpoints (only if re-running from scratch)
-rm -f src/data/bakeoff/tags_qwen.json src/data/bakeoff/tags_videollama.json src/data/bakeoff/tags_llava.json
-
-python -u src/m04_vlm_tag.py --model qwen --BAKEOFF --subset data/subset_10k.json 2>&1 | tee logs/m04_bakeoff_qwen_poc.log
-
-python -u src/m04_vlm_tag.py --model videollama --BAKEOFF --subset data/subset_10k.json 2>&1 | tee logs/m04_bakeoff_videollama_poc.log
-
-python -u src/m04_vlm_tag.py --model llava --BAKEOFF --subset data/subset_10k.json 2>&1 | tee logs/m04_bakeoff_llava_poc.log
+python -u src/m04_vlm_tag.py --model qwen --FULL --subset data/subset_10k.json \
+    --batch-size 36 2>&1 | tee logs/m04_full_qwen_poc.log
 ```
 
 ### Verify Step 1 output
 
 ```bash
-# 3 bakeoff tag files exist, each with 2500 clips
-for model in qwen videollama llava; do
-  python -c "import json; t=json.load(open('src/data/bakeoff/tags_${model}.json')); print(f'tags_${model}.json: {len(t)} clips')"
-done
+python -c "
+import json
+t = json.load(open('src/outputs_poc/tags.json'))
+print(f'tags.json: {len(t)} clips, {len(t[0].keys())} fields')
+for field in ['traffic_mix', 'ped_vehicle_separation', 'road_encroachment', 'video_quality']:
+    vals = set(t[i].get(field, 'MISSING') for i in range(min(20, len(t))))
+    print(f'  {field}: {vals}')
+"
 ```
 
-**Expected:** 3 files × 2,500 clips each.
-**Est. time (24GB GPU, sequential):** ~8-9h per VLM at ~0.08 clips/s. ~26h total.
-**Est. time (96GB GPU, batched):** ~1-1.5h per VLM at ~0.36 clips/s. ~3-4.5h total.
+**Expected:** `outputs_poc/tags.json` with ~10K clips x 40+ fields (16 tags + 16 confidences + provenance).
+**Est. time (96GB, batch=36):** ~2-3h at 0.7-1.0 clips/s. Checkpoint saves every 500 clips.
 
-**Status: ON HOLD** — will return to complete all 3 VLMs × 2,500 clips for paper (m04b_vlm_select.py graphs needed).
-- [~] Qwen3-VL: **PARTIAL (1,179/2,500)** — interrupted to proceed with FULL POC
-  - Sequential (first 711 clips): 0.09 clips/s, 32% GPU util, 18% VRAM
-  - Batched (from clip 711+): **0.52 clips/s steady-state**, ~36% avg GPU util (75-100% spikes during generate), 23% VRAM
-  - AdaptiveBatchSizer: auto-grew 7→8→9 (max) at VRAM 21% — full batch fits in single model.generate()
-  - **5.8x speedup** vs sequential (0.09→0.52 clips/s)
-- [ ] VideoLLaMA3: pending (can't batch — token compression requires batch_size=1, ~0.11 clips/s sequential)
-- [ ] LLaVA-NeXT-Video: pending (requires sentencepiece fix, already applied)
+**Status:**
+- [ ] Qwen FULL POC (10K, v3 taxonomy): pending
 
 ---
 
-## Step 2: Pick winner VLM (CPU — no GPU needed)
-
-**Status: DEFERRED** — Qwen selected as winner before formal bakeoff completion.
-
-**Rationale:** Qwen chosen based on:
-1. **Sanity comparison** (`m04c_sanity_compare.png`): Qwen clear winner — 100% parse, 3 scene types, confidence 0.7-0.98, 0 off-taxonomy objects. VideoLLaMA3: all "residential_lane", 19 off-taxonomy. LLaVA: 85% parse, flat 0.5 confidence.
-2. **Batching success**: Qwen is the only VLM that achieves true batched `model.generate()` — 5.8x speedup (0.52 clips/s). VideoLLaMA3 can't batch (token compression). LLaVA untested at scale.
-
-**Future (when Step 1 completes):** Run m04b_vlm_select.py for formal 5-criterion weighted comparison. Graphs needed for research paper.
-
-5-criterion weighted comparison: JSON parse (30%), cross-VLM agreement (25%), speed (20%), taxonomy compliance (15%), confidence calibration (10%).
-
-```bash
-python -u src/m04b_vlm_select.py 2>&1 | tee logs/m04b_vlm_select.log
-```
-
-### Verify Step 2 output
-
-```bash
-# Winner selected + comparison report
-python -c "import json; d=json.load(open('src/data/bakeoff/vlm_comparison.json')); print(f'Winner: {d[\"winner\"]} (score: {d[\"models\"][d[\"winner\"]][\"weighted_total\"]:.3f})')"
-ls -la src/data/bakeoff/vlm_comparison.{json,png,pdf}
-ls -la src/data/bakeoff/vlm_dashboard.{png,pdf}
-```
-
-**Expected:** `vlm_comparison.json` with winner name + scores. `vlm_comparison.{png,pdf}` (weighted scores) + `vlm_dashboard.{png,pdf}` (2x2 diagnostic: parse rate, scene distribution, confidence, on/off-taxonomy objects).
-
----
-
-## Step 3: Qwen tags full 10K clips — RTX Pro 6000 (96GB)
-
-**Status: IN PROGRESS** — Qwen running FULL POC (10K clips) from scratch.
-
-> **Note:** Normally Step 3 resumes from the 2,500-clip bakeoff checkpoint. Since bakeoff is on hold (only 1,179 Qwen clips completed), this run starts from clip 0 and tags all 10,000 clips fresh.
-
-```bash
-# Initial run (batch_size=9, auto-computed from VRAM profile):
-python -u src/m04_vlm_tag.py --model qwen --FULL --subset data/subset_10k.json 2>&1 | tee logs/m04_full_poc.log
-
-# Optimized restart (batch_size=36, resumes from checkpoint):
-# VRAM was stuck at 25% (23GB/95GB) with batch_size=9 — GPU idle ~75% of the time.
-# Larger batch → more VRAM usage → longer model.generate() bursts → higher GPU utilization.
-# AdaptiveBatchSizer auto-discovers safe max (halves on OOM: 36→18→9→4→2→1).
-python -u src/m04_vlm_tag.py --model qwen --FULL --subset data/subset_10k.json \
-    --batch-size 36 2>&1 | tee logs/m04_full_qwen_poc_2.log
-```
-
-### Verify Step 3 output
-
-```bash
-python -c "import json; t=json.load(open('src/outputs_poc/tags.json')); print(f'tags.json: {len(t)} clips, fields: {len(t[0].keys())}')"
-# Expect: ~10,000 clips, 33 fields each
-```
-
-**Expected:** `outputs_poc/tags.json` with ~10K clips × 33 fields.
-**Est. time (96GB, batch=9):** ~5.3h at 0.52 clips/s → degraded to 0.40 clips/s by clip 3,500.
-**Est. time (96GB, batch=36):** ~2-3h at 0.7-1.0 clips/s (estimated). Checkpoint saves every 500 clips.
-
-**Throughput observation:** Rate degraded from 0.52→0.40 clips/s over 3,500 clips. Likely causes: HF streaming slowdown at deeper shards, subset key sparsity (8.6% hit rate), and variable clip lengths generating longer outputs.
-
----
-
-## Step 4: V-JEPA 2 embeddings (streams from HF)
+## Step 2: V-JEPA 2 embeddings (streams from HF)
 
 V-JEPA 2 ViT-G (1B params, frozen) encodes each clip → 1408-dim embedding. Producer-consumer pipeline with torch.compile.
 
@@ -225,7 +108,7 @@ python -u src/m05_vjepa_embed.py --SANITY 2>&1 | tee logs/m05_sanity.log
 python -u src/m05_vjepa_embed.py --FULL --subset data/subset_10k.json 2>&1 | tee logs/m05_vjepa_embed_poc.log
 ```
 
-### Verify Step 4 output
+### Verify Step 2 output
 
 ```bash
 python -c "
@@ -245,7 +128,112 @@ print(f'Shape match: {emb.shape[0] == len(paths)}')
 
 ---
 
-## Step 5: FAISS 9-metric evaluation (requires Step 3 + Step 4)
+### Encoder Comparison Table
+
+> V-JEPA metrics alone are meaningless without baselines — "18.73% compared to what?" Steps 3-4 add 4 baselines + True Overlap@K. Steps 5-7 run m06/m07/m08 once each on ALL 5 encoders.
+>
+> All baseline scripts built and verified (`py_compile` + AST) on M1 Mac. See `iter/iter6/plan_ch9_baselines.md` for architecture details.
+
+| Encoder | Script | Model | Dim | Type | GPU? |
+|---------|--------|-------|-----|------|------|
+| V-JEPA (Step 2) | `m05_vjepa_embed.py` | `vjepa2-vitg-fpc64-384` | 1408 | video (all frames) | GPU |
+| Random | `m05b_baselines.py` | — | 1408 | synthetic | **CPU** |
+| DINOv2 | `m05b_baselines.py` | `dinov2-vitl14` | 1024 | image (middle frame) | GPU |
+| CLIP | `m05b_baselines.py` | `clip-vit-large-patch14` | 768 | image (middle frame) | GPU |
+| Shuffled V-JEPA | `m05b_baselines.py` | `vjepa2-vitg-fpc64-384` | 1408 | video (shuffled frames) | GPU |
+
+**Native dims, no projection.** FAISS is dimension-agnostic (`d = embeddings.shape[1]`). Metrics are dimensionless ratios — comparable across dims.
+
+---
+
+## Step 3: Baseline embeddings — m05b (CPU + GPU)
+
+**Prerequisite:** Step 2 must be complete (V-JEPA `embeddings.npy` + `embeddings.paths.npy` exist).
+
+Generate embeddings for all 4 baseline encoders sequentially (Random → DINOv2 → CLIP → Shuffled V-JEPA). Random is CPU-safe; others require GPU. Each encoder auto-skips if output already exists.
+
+```bash
+# SANITY — validate all 4 encoders load + produce output (5 clips each)
+python -u src/m05b_baselines.py --encoder all --SANITY 2>&1 | tee logs/m05b_all_sanity.log
+
+# FULL — embed 10K clips × 4 encoders (~6-8h GPU total)
+python -u src/m05b_baselines.py --encoder all --FULL --subset data/subset_10k.json \
+    2>&1 | tee logs/m05b_all_poc.log
+```
+
+> **Debug individual encoder:** `python -u src/m05b_baselines.py --encoder dinov2 --SANITY 2>&1 | tee logs/m05b_dinov2_sanity.log`
+> Choices: `random`, `dinov2`, `clip`, `vjepa_shuffled`, `all`
+
+### Verify Step 3 output
+
+```bash
+python -c "
+import numpy as np
+for enc, sfx, dim in [('random','_random',1408), ('dinov2','_dinov2',1024),
+                       ('clip','_clip',768), ('vjepa_shuffled','_vjepa_shuffled',1408)]:
+    emb = np.load(f'src/outputs_poc/embeddings{sfx}.npy')
+    paths = np.load(f'src/outputs_poc/embeddings{sfx}.paths.npy', allow_pickle=True)
+    ok = '✓' if emb.shape[1] == dim and emb.shape[0] == len(paths) else '✗'
+    print(f'{ok} {enc:20s} embeddings{sfx}.npy: {emb.shape} (expect ~10K x {dim}), paths: {len(paths)}')
+"
+```
+
+**Expected per encoder:**
+
+| Encoder | File | Shape | Time |
+|---------|------|-------|------|
+| Random | `embeddings_random.npy` | (10K, 1408) | ~1 min CPU |
+| DINOv2 | `embeddings_dinov2.npy` | (10K, 1024) | ~2-3h GPU |
+| CLIP | `embeddings_clip.npy` | (10K, 768) | ~2h GPU |
+| Shuffled V-JEPA | `embeddings_vjepa_shuffled.npy` | (10K, 1408) | ~2h GPU |
+
+**Status:**
+- [ ] SANITY (`--encoder all --SANITY`): pending
+- [ ] FULL POC (`--encoder all --FULL --subset`): pending
+
+---
+
+## Step 4: True Overlap@K augmented embeddings — RTX Pro 6000 (96GB)
+
+**Prerequisite:** Step 2 must be complete (V-JEPA model loads, embeddings exist).
+
+Generate two augmented V-JEPA embedding sets (BYOL/DINO multi-crop protocol) for True Overlap@K measurement.
+
+- View A: `RandomResizedCrop(scale=0.4-1.0)` + ColorJitter
+- View B: `RandomResizedCrop(scale=0.2-0.6)` + GaussianBlur
+- Same crop params for all T frames per clip (temporal consistency)
+
+```bash
+python -u src/m05c_true_overlap.py --FULL --subset data/subset_10k.json \
+    2>&1 | tee logs/m05c_overlap_poc.log
+```
+
+### Verify Step 4 output
+
+```bash
+python -c "
+import numpy as np
+a = np.load('src/outputs_poc/overlap_augA.npy')
+b = np.load('src/outputs_poc/overlap_augB.npy')
+k = np.load('src/outputs_poc/overlap_keys.npy', allow_pickle=True)
+print(f'overlap_augA.npy: {a.shape} (expect ~10K x 1408)')
+print(f'overlap_augB.npy: {b.shape} (expect ~10K x 1408)')
+print(f'overlap_keys.npy: {len(k)} keys')
+print(f'Shape match: {a.shape == b.shape and a.shape[0] == len(k)}')
+"
+```
+
+**Expected:** `overlap_augA.npy` + `overlap_augB.npy` (10K x 1408 each) + `overlap_keys.npy` (10K keys).
+**Est. time:** ~3-4h GPU (2x V-JEPA inference + augmentation overhead).
+
+**Status:**
+- [ ] True Overlap augmented embeddings: pending
+
+---
+
+## Step 5: FAISS 9-metric evaluation — ALL 5 encoders — RTX Pro 6000 (96GB)
+
+**Prerequisite:** Steps 1 (v3 tags), 2 (vjepa), 3a-3d (all baselines), 4 (augmented embeddings).
 
 **Blackwell (sm_120) prerequisite:** `faiss-gpu-cu12` pip package only ships sm_70+sm_80 kernels → CUDA error 209 at runtime. Must build from source first:
 ```bash
@@ -253,184 +241,343 @@ print(f'Shape match: {emb.shape[0] == len(paths)}')
 # Re-install only (build artifacts cached): ./build_faiss_sm120.sh --install
 ```
 
-FAISS-GPU kNN index → 9 metrics in Easy/Hard mode + confidence sweep + multi-attribute slices. Saves knn_indices.npy for downstream plotting.
+FAISS-GPU kNN index → 9 metrics in Easy/Hard mode + confidence sweep + multi-attribute slices. Run m06 once per encoder. V-JEPA gets `--true-overlap` for True Overlap@K (using augmented embeddings from Step 4). Tags are shared across all encoders (same `tags.json`).
+
+### 5a: V-JEPA (with True Overlap@K)
 
 ```bash
-# SANITY — RTX Pro 4000 (24GB) — validate FAISS index + metric computation
-python -u src/m06_faiss_metrics.py --SANITY 2>&1 | tee logs/m06_sanity.log
+python -u src/m06_faiss_metrics.py --encoder vjepa --true-overlap \
+    --FULL --subset data/subset_10k.json 2>&1 | tee logs/m06_vjepa_poc.log
+```
 
-# FULL — RTX Pro 6000 (96GB) — compute 9 metrics on 10K clips
-python -u src/m06_faiss_metrics.py --FULL --subset data/subset_10k.json 2>&1 | tee logs/m06_faiss_metrics_poc.log
+### 5b: Random
+
+```bash
+python -u src/m06_faiss_metrics.py --encoder random \
+    --FULL --subset data/subset_10k.json 2>&1 | tee logs/m06_random_poc.log
+```
+
+### 5c: DINOv2
+
+```bash
+python -u src/m06_faiss_metrics.py --encoder dinov2 \
+    --FULL --subset data/subset_10k.json 2>&1 | tee logs/m06_dinov2_poc.log
+```
+
+### 5d: CLIP
+
+```bash
+python -u src/m06_faiss_metrics.py --encoder clip \
+    --FULL --subset data/subset_10k.json 2>&1 | tee logs/m06_clip_poc.log
+```
+
+### 5e: Shuffled V-JEPA
+
+```bash
+python -u src/m06_faiss_metrics.py --encoder vjepa_shuffled \
+    --FULL --subset data/subset_10k.json 2>&1 | tee logs/m06_shuffled_poc.log
 ```
 
 ### Verify Step 5 output
 
 ```bash
-# Metrics JSON
 python -c "
 import json
-m = json.load(open('src/outputs_poc/m06_metrics.json'))
-print(f'Easy Cycle@K:   {m[\"easy\"][\"cycle_at_k\"]:.1f}%')
-print(f'Easy Prec@K:    {m[\"easy\"][\"prec_at_k\"]:.1f}%')
-print(f'Hard Cycle@K:   {m[\"hard\"][\"cycle_at_k\"]:.1f}%')
-print(f'Hard Prec@K:    {m[\"hard\"][\"prec_at_k\"]:.1f}%')
-print(f'Silhouette:     {m[\"easy\"][\"silhouette\"]:.3f}')
-print(f'Conf sweep pts: {len(m[\"confidence_sweep\"])}')
+for enc, sfx in [('vjepa',''), ('random','_random'), ('dinov2','_dinov2'),
+                  ('clip','_clip'), ('vjepa_shuffled','_vjepa_shuffled')]:
+    try:
+        m = json.load(open(f'src/outputs_poc/m06_metrics{sfx}.json'))
+        ov = m['easy'].get('overlap_method', 'dim_split')
+        print(f'✓ {enc:20s} Prec@K={m[\"easy\"][\"prec_at_k\"]:5.1f}%  mAP={m[\"easy\"][\"map_at_k\"]:.3f}  '
+              f'Cycle={m[\"easy\"][\"cycle_at_k\"]:5.1f}%  overlap={ov}')
+    except FileNotFoundError:
+        print(f'✗ {enc:20s} m06_metrics{sfx}.json NOT FOUND')
 "
-
-# kNN indices + plots exist
-ls -la src/outputs_poc/knn_indices.npy
-ls -la src/outputs_poc/m06_*.png src/outputs_poc/m06_*.pdf
 ```
 
-**Expected:** `m06_metrics.json` (9 metrics × 2 modes), `knn_indices.npy`, 4 plots (.png + .pdf). ~5 min GPU.
+**Expected per encoder:**
+
+| Encoder | Output JSON | kNN Indices | Time |
+|---------|-------------|-------------|------|
+| V-JEPA | `m06_metrics.json` | `knn_indices.npy` | ~5 min |
+| Random | `m06_metrics_random.json` | `knn_indices_random.npy` | ~5 min |
+| DINOv2 | `m06_metrics_dinov2.json` | `knn_indices_dinov2.npy` | ~5 min |
+| CLIP | `m06_metrics_clip.json` | `knn_indices_clip.npy` | ~5 min |
+| Shuffled V-JEPA | `m06_metrics_vjepa_shuffled.json` | `knn_indices_vjepa_shuffled.npy` | ~5 min |
+
+**Note:** V-JEPA's `m06_metrics.json` will have `"overlap_method": "true_multi_crop"` (from Step 4). All others use dim-split approximation.
 
 **SANITY Status:**
 - [x] m06 SANITY: PASSED (4 clips, FAISS-GPU sm_120 from source build, Easy Prec@K=50%, knn_indices (4,4), 3 plots saved)
 
+**Status:**
+- [ ] V-JEPA (with True Overlap): pending
+- [ ] Random: pending
+- [ ] DINOv2: pending
+- [ ] CLIP: pending
+- [ ] Shuffled V-JEPA: pending
+
 ---
 
-## Step 6: UMAP dimensionality reduction (GPU cuML)
+## Step 6: UMAP for ALL 5 encoders — RTX Pro 6000 (96GB)
 
-cuML GPU UMAP: 10K × 1408 → 10K × 2. Saves umap_2d.npy for CPU plotting.
+**Prerequisite:** Steps 2 + 3a-3d (all encoder embeddings exist).
+
+cuML GPU UMAP: N × D → N × 2 for each encoder. Produces `umap_2d{sfx}.npy` for CPU plotting.
 
 ```bash
-# SANITY — RTX Pro 4000 (24GB) — validate cuML UMAP loading + output shape
-python -u src/m07_umap.py --SANITY 2>&1 | tee logs/m07_sanity.log
+# V-JEPA
+python -u src/m07_umap.py --encoder vjepa --FULL --subset data/subset_10k.json \
+    2>&1 | tee logs/m07_umap_vjepa_poc.log
 
-# FULL — RTX Pro 6000 (96GB) — UMAP on 10K embeddings
-python -u src/m07_umap.py --FULL --subset data/subset_10k.json 2>&1 | tee logs/m07_umap_poc.log
+# Random
+python -u src/m07_umap.py --encoder random --FULL --subset data/subset_10k.json \
+    2>&1 | tee logs/m07_umap_random_poc.log
+
+# DINOv2
+python -u src/m07_umap.py --encoder dinov2 --FULL --subset data/subset_10k.json \
+    2>&1 | tee logs/m07_umap_dinov2_poc.log
+
+# CLIP
+python -u src/m07_umap.py --encoder clip --FULL --subset data/subset_10k.json \
+    2>&1 | tee logs/m07_umap_clip_poc.log
+
+# Shuffled V-JEPA
+python -u src/m07_umap.py --encoder vjepa_shuffled --FULL --subset data/subset_10k.json \
+    2>&1 | tee logs/m07_umap_shuffled_poc.log
 ```
 
 ### Verify Step 6 output
 
 ```bash
-python -c "import numpy as np; u = np.load('src/outputs_poc/umap_2d.npy'); print(f'umap_2d.npy: {u.shape} (expect ~10000 x 2)')"
+python -c "
+import numpy as np
+for enc, sfx in [('vjepa',''), ('random','_random'), ('dinov2','_dinov2'),
+                  ('clip','_clip'), ('vjepa_shuffled','_vjepa_shuffled')]:
+    try:
+        u = np.load(f'src/outputs_poc/umap_2d{sfx}.npy')
+        print(f'✓ {enc:20s} umap_2d{sfx}.npy: {u.shape}')
+    except FileNotFoundError:
+        print(f'✗ {enc:20s} umap_2d{sfx}.npy NOT FOUND')
+"
 ```
 
-**Expected:** `umap_2d.npy` (10K × 2). ~2 min GPU.
+**Expected:** 5 files × (10K, 2). ~2 min each GPU.
 
 **SANITY Status:**
 - [x] m07 SANITY: PASSED (4 clips, cuML GPU UMAP in 0.6s, n_neighbors=3, umap_2d.npy shape (4, 2))
 
+**Status:**
+- [ ] V-JEPA UMAP: pending
+- [ ] Random UMAP: pending
+- [ ] DINOv2 UMAP: pending
+- [ ] CLIP UMAP: pending
+- [ ] Shuffled V-JEPA UMAP: pending
+
 ---
 
-## Step 7: Visualization (CPU — no GPU needed)
+## Step 7: Visualization + multi-encoder comparison (CPU — no GPU needed)
 
-Reads pre-computed .npy files (embeddings, knn_indices, umap_2d) + tags.json → UMAP scatter, confusion matrix, kNN grid.
+**Prerequisite:** Steps 5a-5e (all 5 encoder metrics JSON files exist) + Step 6 (UMAP).
+
+### 7a: Per-encoder V-JEPA plots (m08)
 
 ```bash
-python -u src/m08_plot.py --FULL --subset data/subset_10k.json 2>&1 | tee logs/m08_plot_poc.log
+python -u src/m08_plot.py --FULL --subset data/subset_10k.json \
+    2>&1 | tee logs/m08_plot_poc.log
+```
+
+### 7b: Multi-encoder comparison (m08b)
+
+Reads `m06_metrics_*.json` for all available encoders. Generates grouped bar chart, radar plot, LaTeX table, and terminal summary.
+
+```bash
+python -u src/m08b_compare.py --FULL --subset data/subset_10k.json \
+    2>&1 | tee logs/m08b_compare.log
 ```
 
 ### Verify Step 7 output
 
 ```bash
+# Per-encoder plots (m08)
 ls -la src/outputs_poc/m08_umap.{png,pdf}
 ls -la src/outputs_poc/m08_confusion_matrix.{png,pdf}
 ls -la src/outputs_poc/m08_knn_grid.{png,pdf}
+
+# Multi-encoder comparison (m08b)
+ls -la src/outputs_poc/m08b_encoder_comparison.{png,pdf}
+ls -la src/outputs_poc/m08b_radar.{png,pdf}
+ls -la src/outputs_poc/m08b_comparison_table.tex
 ```
 
-**Expected:** 3 plots × 2 formats = 6 files. ~5 min CPU.
+**Expected outputs from m08b:**
+
+| File | Description |
+|------|-------------|
+| `m08b_encoder_comparison.{png,pdf}` | Grouped bar chart: 5 metrics x 5 encoders, Easy vs Hard |
+| `m08b_radar.{png,pdf}` | Radar plot: one polygon per encoder, normalized |
+| `m08b_comparison_table.tex` | Paper-ready LaTeX table |
+
+**Status:**
+- [ ] m08 per-encoder plots: pending
+- [ ] m08b multi-encoder comparison: pending
 
 ---
 
-## Final Verification: All POC Outputs
+## Final Verification: All Ch9 Outputs
 
 ```bash
-echo "=== BAKEOFF OUTPUTS ==="
-ls -lh src/data/bakeoff/tags_*.json
-ls -lh src/data/bakeoff/vlm_comparison.*
+echo "=== TAGS (v3 taxonomy) ==="
+python -c "
+import json; t=json.load(open('src/outputs_poc/tags.json'))
+print(f'tags.json: {len(t)} clips, {len(t[0].keys())} fields')
+v3_fields = ['traffic_mix','ped_vehicle_separation','road_encroachment','video_quality']
+present = [f for f in v3_fields if f in t[0]]
+print(f'v3 fields: {len(present)}/{len(v3_fields)} present')
+"
 
 echo ""
-echo "=== POC OUTPUTS ==="
-ls -lh src/outputs_poc/tags.json
-ls -lh src/outputs_poc/embeddings.npy
-ls -lh src/outputs_poc/embeddings.paths.npy
-ls -lh src/outputs_poc/knn_indices.npy
-ls -lh src/outputs_poc/umap_2d.npy
-ls -lh src/outputs_poc/m06_metrics.json
-ls -lh src/outputs_poc/m06_*.png
-ls -lh src/outputs_poc/m08_*.png
+echo "=== EMBEDDINGS (5 encoders) ==="
+python -c "
+import numpy as np
+for enc, sfx, dim in [('vjepa','',1408), ('random','_random',1408), ('dinov2','_dinov2',1024),
+                       ('clip','_clip',768), ('vjepa_shuffled','_vjepa_shuffled',1408)]:
+    try:
+        e = np.load(f'src/outputs_poc/embeddings{sfx}.npy')
+        p = np.load(f'src/outputs_poc/embeddings{sfx}.paths.npy', allow_pickle=True)
+        ok = '✓' if e.shape[1]==dim and e.shape[0]==len(p) else '✗'
+        print(f'{ok} {enc:20s} {e.shape}')
+    except: print(f'✗ {enc:20s} MISSING')
+"
 
 echo ""
-echo "=== METRICS SUMMARY ==="
+echo "=== METRICS (5 encoders) ==="
 python -c "
 import json
-m = json.load(open('src/outputs_poc/m06_metrics.json'))
-print(f'Clips:          {m[\"num_clips\"]:,}')
-print(f'k_neighbors:    {m[\"k_neighbors\"]}')
-print(f'')
-print(f'          Easy     Hard')
-print(f'Cycle@K   {m[\"easy\"][\"cycle_at_k\"]:5.1f}%   {m[\"hard\"][\"cycle_at_k\"]:5.1f}%')
-print(f'Prec@K    {m[\"easy\"][\"prec_at_k\"]:5.1f}%   {m[\"hard\"][\"prec_at_k\"]:5.1f}%')
-print(f'mAP@K     {m[\"easy\"][\"map_at_k\"]:5.3f}    {m[\"hard\"][\"map_at_k\"]:5.3f}')
-print(f'nDCG@K    {m[\"easy\"][\"ndcg_at_k\"]:5.3f}    {m[\"hard\"][\"ndcg_at_k\"]:5.3f}')
-print(f'Silhouet  {m[\"easy\"][\"silhouette\"]:5.3f}    {m[\"hard\"][\"silhouette\"]:5.3f}')
+print(f'{\"Encoder\":20s} {\"Prec@K\":>8s} {\"mAP@K\":>8s} {\"Cycle@K\":>8s} {\"nDCG@K\":>8s} {\"Silhouet\":>8s}')
+print('-' * 62)
+for enc, sfx in [('vjepa',''), ('random','_random'), ('dinov2','_dinov2'),
+                  ('clip','_clip'), ('vjepa_shuffled','_vjepa_shuffled')]:
+    try:
+        m = json.load(open(f'src/outputs_poc/m06_metrics{sfx}.json'))
+        e = m['easy']
+        print(f'{enc:20s} {e[\"prec_at_k\"]:7.1f}% {e[\"map_at_k\"]:8.4f} {e[\"cycle_at_k\"]:7.1f}% {e[\"ndcg_at_k\"]:8.4f} {e[\"silhouette\"]:8.4f}')
+    except: print(f'{enc:20s} MISSING')
 "
+
+echo ""
+echo "=== TRUE OVERLAP@K ==="
+python -c "
+import json
+try:
+    m = json.load(open('src/outputs_poc/m06_metrics.json'))
+    method = m['easy'].get('overlap_method', 'dim_split')
+    ov = m['easy'].get('overlap_at_k', 'N/A')
+    print(f'Overlap@K: {ov}% (method: {method})')
+except: print('MISSING')
+"
+
+echo ""
+echo "=== UMAP (5 encoders) ==="
+python -c "
+import numpy as np
+for enc, sfx in [('vjepa',''), ('random','_random'), ('dinov2','_dinov2'),
+                  ('clip','_clip'), ('vjepa_shuffled','_vjepa_shuffled')]:
+    try:
+        u = np.load(f'src/outputs_poc/umap_2d{sfx}.npy')
+        print(f'✓ {enc:20s} {u.shape}')
+    except: print(f'✗ {enc:20s} MISSING')
+"
+
+echo ""
+echo "=== PLOTS ==="
+ls -la src/outputs_poc/m06_*.png src/outputs_poc/m08_*.png src/outputs_poc/m08b_*.png 2>/dev/null
+ls -la src/outputs_poc/m08b_comparison_table.tex 2>/dev/null
 ```
 
 ---
 
 ## Timeline
 
-### RTX PRO 4000 (24GB VRAM — debug GPU)
-
-| Step | Module | GPU? | Est. Time |
-|------|--------|------|-----------|
-| 0 | m04 SANITY (3 VLMs × 20) | GPU | ~15 min each |
-| 1 | m04 BAKEOFF (3 VLMs × 2.5K) | GPU | ~8-9h each, ~26h total |
-| 2 | m04b select winner | CPU | ~1 min |
-| 3 | m04 FULL (winner × 7.5K) | GPU | ~26h |
-| 4 | m05 V-JEPA embed (10K) | GPU | ~2h |
-| 5 | m06 FAISS metrics | GPU | ~5 min |
-| 6 | m07 UMAP (cuML) | GPU | ~2 min |
-| 7 | m08 plots | CPU | ~5 min |
-| **Total** | | | **~54h GPU + ~10 min CPU** |
-
 ### RTX PRO 6000 Blackwell (96GB VRAM — production GPU, batched inference)
 
 | Step | Module | GPU? | Est. Time | Actual |
 |------|--------|------|-----------|--------|
-| 0 | m04 SANITY (3 VLMs × 20) | GPU | ~5 min each | DONE (all 3 VLMs) |
-| 1 | m04 BAKEOFF (3 VLMs × 2.5K) | GPU | ~1-1.5h each, ~3-4.5h total | **ON HOLD** — Qwen 1,179/2,500 partial |
-| 2 | m04b select winner | CPU | ~1 min | **DEFERRED** — Qwen selected via sanity |
-| 3 | m04 FULL (Qwen × 10K) | GPU | ~5.3h at 0.52 clips/s | **IN PROGRESS** |
-| 4 | m05 V-JEPA embed (10K) | GPU | ~2h | |
-| 5 | m06 FAISS metrics | GPU | ~5 min | |
-| 6 | m07 UMAP (cuML) | GPU | ~2 min | |
-| 7 | m08 plots | CPU | ~5 min | |
-| **Total** | | | **~7-10h GPU + ~10 min CPU** | |
+| 0 | VLM Selection (3 VLMs bake-off) | GPU | — | **DONE** (Qwen 0.919) |
+| 1 | m04 Qwen tags 10K (v3 taxonomy) | GPU | ~2-3h | |
+| 2 | m05 V-JEPA embed (10K) | GPU | ~2h | |
+| 3 | m05b `--encoder all` (random+DINOv2+CLIP+shuffled) | GPU | ~6-8h | |
+| 4 | m05c True Overlap augmented (10K) | GPU | ~3-4h | |
+| 5 | m06 FAISS metrics (x5 encoders) | GPU | ~25 min | |
+| 6 | m07 UMAP (x5 encoders) | GPU | ~10 min | |
+| 7 | m08 + m08b plots + comparison | CPU | ~5 min | |
+| **Grand Total** | | | **~14-17h GPU + ~10 min CPU** | |
+
+### GPU Parallelization Opportunities
+
+Steps 3b, 3c, 3d can run on **different GPUs** in parallel (independent encoder embeddings). On single GPU, run sequentially. Step 4 (m05c) can run in parallel with Steps 3b-3d if a second GPU is available.
+
+### Vast.ai: Use Datacenter-Backed Instances Only
+
+> **IMPORTANT:** When renting GPU instances on vast.ai, always select machines tagged **`datacenter`** (not `host`-only). Datacenter machines support **shared storage volumes** — multiple GPU instances can mount the same disk. This enables spinning up 2-4 parallel instances on the same volume to run baselines concurrently:
+>
+> | Instance | Step | Encoder | Shared Volume |
+> |----------|------|---------|---------------|
+> | GPU #1 | 3b | DINOv2 | `/workspace` (shared) |
+> | GPU #2 | 3c | CLIP | `/workspace` (shared) |
+> | GPU #3 | 3d | Shuffled V-JEPA | `/workspace` (shared) |
+> | GPU #4 | 4 | m05c True Overlap | `/workspace` (shared) |
+>
+> All instances read from the same `data/subset_10k.json` and `embeddings.paths.npy`, and write to separate output files (`embeddings_dinov2.npy`, `embeddings_clip.npy`, etc.) — no write conflicts.
+>
+> **How to set up:**
+> 1. Create a **local volume** on a datacenter (e.g. `datacenter:120840` Texas or `datacenter:18` Alberta)
+> 2. Rent first instance with "Create local volume" → this provisions the shared disk
+> 3. Rent additional instances on the **same datacenter** → attach the **existing volume**
+> 4. All instances see the same `/workspace` with repo, venv, and HF cache
+>
+> **Cost savings:** Running 4 baselines in parallel (~2-3h each) costs the same total GPU-hours as sequential (~10h on 1 GPU), but finishes in ~3h wall-clock instead of ~10h. At ~$1/hr per RTX PRO 6000, that's $4 x 3h = $12 parallel vs $1 x 10h = $10 sequential — marginal cost increase for 3x faster turnaround.
 
 ---
 
 ## Dependency Graph
 
 ```
-Step 0: m04 --SANITY (qwen, videollama, llava) ✅ DONE
-                    │
-                    ├── Shortcut path (current): ─────────────────────────────────────┐
-                    │   Qwen selected via sanity comparison + batching success        │
-                    │                                                                 ↓
-                    │                                                   Step 3: m04 --FULL (Qwen × 10K) ◄── IN PROGRESS
-                    │                                                                 │
-                    ├── Full path (on hold, for paper): ──────────────┐               │
-                    │   Step 1: m04 --BAKEOFF (3 VLMs × 2.5K)        │               │
-                    │   Step 2: m04b (5-criterion comparison)         │               │
-                    │   → graphs for research paper                   │               │
-                    │                                                                 │
-                                                                                      ↓
-Step 4: m05 V-JEPA embed ──────────────────────────────────────────→ Step 5: m06 FAISS metrics
-                                                                             │
-                                                                             ↓
-                                                                     Step 6: m07 UMAP
-                                                                             │
-                                                                             ↓
-                                                                     Step 7: m08 plots
+Step 0: VLM Selection ✅ DONE (Qwen 0.919)
+         │
+         ↓
+Step 1: m04 Qwen tags 10K (v3 taxonomy) ──────────────────────────────────────────┐
+         │                                                                         │
+         ↓                                                                         │
+Step 2: m05 V-JEPA embed ──┬──────────────────────────────────────────────────┐    │
+                            │                                                  │    │
+                            ├→ Step 3a: m05b random  (CPU) ──┐                │    │
+                            │                                 │                │    │
+                            ├→ Step 3b: m05b DINOv2  (GPU) ──┤                │    │
+                            │                                 │                │    │
+                            ├→ Step 3c: m05b CLIP    (GPU) ──┤                │    │
+                            │                                 │                │    │
+                            └→ Step 3d: m05b shuffled (GPU) ──┤                │    │
+                                                              │                │    │
+                            Step 4: m05c true overlap ────────┤                │    │
+                                                              │                │    │
+                               ┌──────────────────────────────┘                │    │
+                               │  All 5 encoder embeddings                    │    │
+                               │  + augmented embeddings                      │    │
+                               │  + v3 tags                                   │    │
+                               ▼                                              ▼    ▼
+                     Step 5: m06 FAISS metrics (x5 encoders + --true-overlap)
+                               │
+                               ├→ Step 6: m07 UMAP (x5 encoders)
+                               │
+                               └→ Step 7: m08 + m08b plots + comparison + LaTeX table
 ```
 
-NOTE: Step 4 (m05) has NO dependency on Steps 1-3. It can run in PARALLEL with the bake-off if you have 2 GPUs. On single GPU, run sequentially as listed above.
-
-NOTE: Steps 1-2 are ON HOLD. Will return to complete all 3 VLMs × 2,500 clips for m04b_vlm_select.py graphs (needed for research paper). The FULL POC pipeline (Steps 3→7) proceeds with Qwen independently.
+**Key dependencies:**
+- Steps 3a-3d are independent of each other (can parallelize on multiple GPUs)
+- Step 4 is independent of Steps 3a-3d (can parallelize)
+- Step 5 needs ALL of: Step 1 (tags) + Steps 2+3a-3d (embeddings) + Step 4 (augmented)
+- Steps 6-7 only need Step 5 output
+- Steps 2-4 have NO dependency on Step 1 (tags). Embeddings can be generated IN PARALLEL with tagging. Only Step 5 (metrics) needs both embeddings AND tags.
 
 All clips stream from HF — no local data/clips needed on GPU server.
