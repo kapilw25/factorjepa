@@ -88,11 +88,11 @@ def _extract_middle_frame(video_tensor, num_frames: int):
     return Image.fromarray(frame.astype(np.uint8))
 
 
-def _producer_image_baseline(batch_size: int, tmp_dir: str,
+def _producer_image_baseline(processor, batch_size: int, tmp_dir: str,
                               q: queue.Queue, stop_event: threading.Event,
                               clip_limit: int, subset_keys: set,
                               processed_keys: set, num_frames: int):
-    """Stream from HF, decode, extract middle frame, enqueue PIL images."""
+    """Stream from HF, decode, extract middle frame, preprocess, enqueue tensors."""
     produced = 0
     retries = 0
 
@@ -137,7 +137,8 @@ def _producer_image_baseline(batch_size: int, tmp_dir: str,
                             keys.append(key)
 
                     if frames:
-                        q.put(("batch", frames, keys[:]))
+                        inputs = processor(images=frames, return_tensors="pt")
+                        q.put(("batch", inputs, keys[:]))
                         produced += len(frames)
 
                     pending_bytes = []
@@ -164,7 +165,8 @@ def _producer_image_baseline(batch_size: int, tmp_dir: str,
                         keys.append(key)
 
                 if frames:
-                    q.put(("batch", frames, keys[:]))
+                    inputs = processor(images=frames, return_tensors="pt")
+                    q.put(("batch", inputs, keys[:]))
                     produced += len(frames)
 
             break  # stream exhausted
@@ -199,14 +201,17 @@ def generate_dinov2(output_dir: Path, args, clip_limit: int, subset_keys: set):
     print(f"Loading model: {model_id}")
     processor = AutoImageProcessor.from_pretrained(model_id)
     model = AutoModel.from_pretrained(model_id, torch_dtype=torch.float16,
-                                      device_map="auto")
+                                      device_map="auto",
+                                      attn_implementation="flash_attention_2")
     model.eval()
-    print(f"DINOv2 loaded (dim=1024, dtype={next(model.parameters()).dtype})")
+    print("Applying torch.compile (first batch will be slow due to compilation)...")
+    model = torch.compile(model)
+    print(f"DINOv2 loaded (dim=1024, dtype=float16, FA2+compiled)")
 
     all_embeddings, all_keys, resume_count = load_checkpoint(checkpoint_file)
     processed_keys = set(all_keys)
 
-    batch_size = args.batch_size or compute_batch_sizes(gpu_vram_gb=args.gpu_mem)["vjepa"]
+    batch_size = args.batch_size or compute_batch_sizes(gpu_vram_gb=args.gpu_mem)["image_encoder"]
     if args.SANITY:
         batch_size = min(batch_size, 4)
 
@@ -216,7 +221,7 @@ def generate_dinov2(output_dir: Path, args, clip_limit: int, subset_keys: set):
 
     producer = threading.Thread(
         target=_producer_image_baseline,
-        args=(batch_size, tmp_dir, q, stop_event, clip_limit,
+        args=(processor, batch_size, tmp_dir, q, stop_event, clip_limit,
               subset_keys, processed_keys, VJEPA_FRAMES_PER_CLIP),
         daemon=True,
     )
@@ -226,7 +231,7 @@ def generate_dinov2(output_dir: Path, args, clip_limit: int, subset_keys: set):
     try:
         while True:
             try:
-                msg_type, frames, batch_keys = q.get(timeout=600)
+                msg_type, batch_inputs, batch_keys = q.get(timeout=600)
             except queue.Empty:
                 print("\nProducer timeout (10 min). Saving checkpoint...")
                 break
@@ -234,7 +239,7 @@ def generate_dinov2(output_dir: Path, args, clip_limit: int, subset_keys: set):
             if msg_type == "done":
                 break
 
-            inputs = processor(images=frames, return_tensors="pt").to(device)
+            inputs = {k: v.to(device) for k, v in batch_inputs.items() if hasattr(v, 'to')}
             with torch.no_grad():
                 outputs = model(**inputs)
                 # DINOv2: CLS token is first position
@@ -285,14 +290,17 @@ def generate_clip(output_dir: Path, args, clip_limit: int, subset_keys: set):
     print(f"Loading model: {model_id}")
     processor = CLIPProcessor.from_pretrained(model_id)
     model = CLIPModel.from_pretrained(model_id, torch_dtype=torch.float16,
-                                      device_map="auto")
+                                      device_map="auto",
+                                      attn_implementation="sdpa")
     model.eval()
-    print(f"CLIP loaded (dim=768, dtype={next(model.parameters()).dtype})")
+    print("Applying torch.compile (first batch will be slow due to compilation)...")
+    model = torch.compile(model)
+    print(f"CLIP loaded (dim=768, dtype=float16, SDPA+compiled)")
 
     all_embeddings, all_keys, resume_count = load_checkpoint(checkpoint_file)
     processed_keys = set(all_keys)
 
-    batch_size = args.batch_size or compute_batch_sizes(gpu_vram_gb=args.gpu_mem)["vjepa"]
+    batch_size = args.batch_size or compute_batch_sizes(gpu_vram_gb=args.gpu_mem)["image_encoder"]
     if args.SANITY:
         batch_size = min(batch_size, 4)
 
@@ -302,7 +310,7 @@ def generate_clip(output_dir: Path, args, clip_limit: int, subset_keys: set):
 
     producer = threading.Thread(
         target=_producer_image_baseline,
-        args=(batch_size, tmp_dir, q, stop_event, clip_limit,
+        args=(processor, batch_size, tmp_dir, q, stop_event, clip_limit,
               subset_keys, processed_keys, VJEPA_FRAMES_PER_CLIP),
         daemon=True,
     )
@@ -312,7 +320,7 @@ def generate_clip(output_dir: Path, args, clip_limit: int, subset_keys: set):
     try:
         while True:
             try:
-                msg_type, frames, batch_keys = q.get(timeout=600)
+                msg_type, batch_inputs, batch_keys = q.get(timeout=600)
             except queue.Empty:
                 print("\nProducer timeout (10 min). Saving checkpoint...")
                 break
@@ -320,7 +328,7 @@ def generate_clip(output_dir: Path, args, clip_limit: int, subset_keys: set):
             if msg_type == "done":
                 break
 
-            inputs = processor(images=frames, return_tensors="pt").to(device)
+            inputs = {k: v.to(device) for k, v in batch_inputs.items() if hasattr(v, 'to')}
             with torch.no_grad():
                 emb = model.get_image_features(**inputs).cpu().numpy().astype(np.float32)
 

@@ -15,6 +15,11 @@ _VLM_BATCH_CAP = 64                 # Hard cap regardless of VRAM
 _VJEPA_BASELINE_VRAM_GB = 40
 _VJEPA_PROFILE = (16, 64)           # (baseline_batch_at_40GB, cap)
 
+# Image encoders (DINOv2-L ~300M, CLIP-L ~400M): single frame, 3-4x smaller than V-JEPA
+# Per-clip cost ~10-50x cheaper (1 frame × 224² vs 64 frames × 384²)
+_IMAGE_ENC_MULTIPLIER = 4           # 4x the V-JEPA batch size
+_IMAGE_ENC_CAP = 256                # Hard cap
+
 
 def compute_batch_sizes(gpu_vram_gb: float | None = None) -> dict[str, int]:
     """
@@ -54,8 +59,12 @@ def compute_batch_sizes(gpu_vram_gb: float | None = None) -> dict[str, int]:
         vlm_max = max(1, min(int(usable_for_clips / _VLM_MARGINAL_GB_PER_CLIP), _VLM_BATCH_CAP))
     vlm_initial = max(1, int(vlm_max * 0.80))  # Conservative start, sizer grows
 
+    # ── Image encoders (DINOv2, CLIP): 4x V-JEPA batch (much cheaper per clip) ──
+    image_encoder = max(1, min(vjepa * _IMAGE_ENC_MULTIPLIER, _IMAGE_ENC_CAP))
+
     sizes = {
         "vjepa": vjepa,
+        "image_encoder": image_encoder,
         "transformers": vlm_max,
         "transformers_batch": vlm_initial,
     }
@@ -65,6 +74,7 @@ def compute_batch_sizes(gpu_vram_gb: float | None = None) -> dict[str, int]:
           f"VLM cost model: {_VLM_MODEL_OVERHEAD_GB:.0f}GB fixed + "
           f"{_VLM_MARGINAL_GB_PER_CLIP}GB/clip")
     print(f"  vjepa={vjepa} (linear, scale={scale:.2f}x from {_VJEPA_BASELINE_VRAM_GB}GB)")
+    print(f"  image_encoder={image_encoder} (4x vjepa, cap {_IMAGE_ENC_CAP})")
     print(f"  transformers={vlm_max} (max batch, est {est_vram:.0f}GB = "
           f"{est_vram/gpu_vram_gb:.0%} VRAM)")
     print(f"  sub-batch={vlm_initial} (initial, AdaptiveBatchSizer grows to {vlm_max})")
