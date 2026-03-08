@@ -134,13 +134,13 @@ print(f'Shape match: {emb.shape[0] == len(paths)}')
 >
 > All baseline scripts built and verified (`py_compile` + AST) on M1 Mac. See `iter/iter6/plan_ch9_baselines.md` for architecture details.
 
-| Encoder | Script | Model | Dim | Type | GPU? |
-|---------|--------|-------|-----|------|------|
-| V-JEPA (Step 2) | `m05_vjepa_embed.py` | `vjepa2-vitg-fpc64-384` | 1408 | video (all frames) | GPU |
-| Random | `m05b_baselines.py` | — | 1408 | synthetic | **CPU** |
-| DINOv2 | `m05b_baselines.py` | `dinov2-vitl14` | 1024 | image (middle frame) | GPU |
-| CLIP | `m05b_baselines.py` | `clip-vit-large-patch14` | 768 | image (middle frame) | GPU |
-| Shuffled V-JEPA | `m05b_baselines.py` | `vjepa2-vitg-fpc64-384` | 1408 | video (shuffled frames) | GPU |
+| Encoder | Script | Model | Dim | Type | GPU? | Attention | Batch Profile |
+|---------|--------|-------|-----|------|------|-----------|---------------|
+| V-JEPA (Step 2) | `m05_vjepa_embed.py` | `vjepa2-vitg-fpc64-384` | 1408 | video (all frames) | GPU | FA2 + compile | `["vjepa"]` |
+| Random | `m05b_baselines.py` | — | 1408 | synthetic | **CPU** | — | — |
+| DINOv2 | `m05b_baselines.py` | `dinov2-vitl14` | 1024 | image (middle frame) | GPU | FA2 + compile | `["image_encoder"]` (4x vjepa) |
+| CLIP | `m05b_baselines.py` | `clip-vit-large-patch14` | 768 | image (middle frame) | GPU | SDPA + compile | `["image_encoder"]` (4x vjepa) |
+| Shuffled V-JEPA | `m05b_baselines.py` | `vjepa2-vitg-fpc64-384` | 1408 | video (shuffled frames) | GPU | FA2 + compile | `["vjepa"]` |
 
 **Native dims, no projection.** FAISS is dimension-agnostic (`d = embeddings.shape[1]`). Metrics are dimensionless ratios — comparable across dims.
 
@@ -151,6 +151,12 @@ print(f'Shape match: {emb.shape[0] == len(paths)}')
 **Prerequisite:** Step 2 must be complete (V-JEPA `embeddings.npy` + `embeddings.paths.npy` exist).
 
 Generate embeddings for all 4 baseline encoders sequentially (Random → DINOv2 → CLIP → Shuffled V-JEPA). Random is CPU-safe; others require GPU. Each encoder auto-skips if output already exists.
+
+**GPU Optimizations (matching m05_vjepa_embed.py patterns):**
+- DINOv2: FA2 (`attn_implementation="flash_attention_2"`) + `torch.compile(model)` + producer pre-processes tensors on CPU thread
+- CLIP: SDPA (`attn_implementation="sdpa"`) + `torch.compile(model)` + producer pre-processes tensors on CPU thread
+- Shuffled V-JEPA: FA2 + `torch.compile(model)` + producer pre-processes (same V-JEPA model)
+- Batch size: `compute_batch_sizes()["image_encoder"]` for DINOv2/CLIP (4x vjepa, cap 256 — single-frame models are 10-50x cheaper per clip than V-JEPA)
 
 ```bash
 # SANITY — validate all 4 encoders load + produce output (5 clips each)

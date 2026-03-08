@@ -71,7 +71,7 @@
 
 | Week | Chapter | GPU Hours | Deliverable | Status |
 |:----:|---------|:---------:|-------------|--------|
-| 1 | Ch 8+9 (data + eval + baselines) | ~15h | metrics_frozen.json + 15 plots + baselines | **90% DONE** |
+| 1 | Ch 8+9 (data + eval + baselines) | ~15h | metrics_frozen.json + 15 plots + baselines | **95% DONE** (code built + optimized, GPU runs pending via `run_ch9_overnight.sh`) |
 | 2 | Ch 10 (continual pretraining) | ~20h | metrics_adapted.json (frozen vs adapted) | NEXT |
 | 3-4 | Ch 11 (surgery fine-tuning) | ~54h | metrics_surgical.json (frozen vs adapted vs surgical) | FUTURE |
 
@@ -815,7 +815,7 @@ flowchart LR
 | m06 | Ch 9 | FAISS kNN + 9 metrics | DONE |
 | m07 | Ch 9 | cuML GPU UMAP | DONE |
 | m08 | Ch 9 | CPU matplotlib plots | DONE |
-| **m05b** | **Ch 9** | **Baseline embeddings (random, DINOv2, shuffled, CLIP)** | **DONE** (code built, GPU runs pending) |
+| **m05b** | **Ch 9** | **Baseline embeddings (random, DINOv2, shuffled, CLIP). Optimized: DINOv2=FA2+compile, CLIP=SDPA+compile, shuffled=FA2+compile. Producer pre-processes, image_encoder batch profile (4x vjepa).** | **DONE** (code built, GPU runs pending) |
 | **m05c** | **Ch 9** | **Augmented V-JEPA embeddings for True Overlap@K** | **DONE** (code built, GPU runs pending) |
 | **m08b** | **Ch 9** | **Multi-encoder comparison (bar chart, radar, LaTeX)** | **DONE** (CPU-only, runs after m06 × 5) |
 | **m09** | **Ch 10** | **Continual pretraining (student-teacher JEPA)** | **TODO** |
