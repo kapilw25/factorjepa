@@ -106,6 +106,7 @@ FAISS_K_NEIGHBORS = 6  # includes self
 
 # POC subset config
 SUBSET_FILE = PROJECT_ROOT / "data" / "subset_10k.json"
+OUTPUTS_SANITY_DIR = SRC_DIR / "outputs_sanity"
 OUTPUTS_POC_DIR = SRC_DIR / "outputs_poc"
 BAKEOFF_DIR = DATA_DIR / "bakeoff"
 
@@ -129,7 +130,7 @@ METRICS_FILE = OUTPUTS_DIR / "m06_metrics.json"
 ENCODER_REGISTRY = {
     "vjepa":          {"model_id": VJEPA_MODEL_ID,                       "dim": 1408, "type": "video",         "suffix": ""},
     "random":         {"model_id": None,                                  "dim": 1408, "type": "synthetic",     "suffix": "_random"},
-    "dinov2":         {"model_id": "facebook/dinov2-vitl14",             "dim": 1024, "type": "image",          "suffix": "_dinov2"},
+    "dinov2":         {"model_id": "facebook/dinov2-giant",              "dim": 1536, "type": "image",          "suffix": "_dinov2"},
     "clip":           {"model_id": "openai/clip-vit-large-patch14",      "dim": 768,  "type": "image",          "suffix": "_clip"},
     "vjepa_shuffled": {"model_id": VJEPA_MODEL_ID,                       "dim": 1408, "type": "video_shuffled", "suffix": "_vjepa_shuffled"},
 }
@@ -154,8 +155,8 @@ def add_encoder_arg(parser):
                         help="Encoder whose embeddings to process (default: vjepa)")
 
 
-# Ensure POC directories exist
-for d in [OUTPUTS_POC_DIR, BAKEOFF_DIR]:
+# Ensure POC/sanity directories exist
+for d in [OUTPUTS_SANITY_DIR, OUTPUTS_POC_DIR, BAKEOFF_DIR]:
     d.mkdir(parents=True, exist_ok=True)
 
 
@@ -192,12 +193,15 @@ def load_subset(subset_path: str = None) -> set:
     return keys
 
 
-def get_output_dir(subset_path: str = None) -> Path:
+def get_output_dir(subset_path: str = None, sanity: bool = False) -> Path:
     """
     Return output directory based on mode.
-    POC mode (--subset) → outputs_poc/
-    Full mode           → outputs/
+    SANITY mode          → outputs_sanity/
+    POC mode (--subset)  → outputs_poc/
+    Full mode            → outputs/
     """
+    if sanity:
+        return OUTPUTS_SANITY_DIR
     if subset_path:
         return OUTPUTS_POC_DIR
     return OUTPUTS_DIR

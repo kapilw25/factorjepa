@@ -32,8 +32,8 @@ case "$1" in
         MODE="SANITY"
         MODE_FLAG="--SANITY"
         SUBSET_FLAG=""
-        OUT_DIR="src/outputs"
-        TAGS_FILE="src/outputs/tags_sanity_qwen.json"
+        OUT_DIR="src/outputs_sanity"
+        TAGS_FILE="src/outputs_sanity/tags_sanity_qwen.json"
         BATCH_M04=""
         MIN_CLIPS=5
         ;;
@@ -43,7 +43,7 @@ case "$1" in
         SUBSET_FLAG="--subset data/subset_10k.json"
         OUT_DIR="src/outputs_poc"
         TAGS_FILE="src/outputs_poc/tags.json"
-        BATCH_M04="--batch-size 36"
+        BATCH_M04=""
         MIN_CLIPS=1000
         ;;
     *)
@@ -56,7 +56,7 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 cd "$SCRIPT_DIR"
 
 LOGDIR="logs"
-mkdir -p "$LOGDIR"
+mkdir -p "$LOGDIR" "$OUT_DIR"
 
 MASTER_LOG="$LOGDIR/ch9_${MODE}_$(date +%Y%m%d_%H%M%S).log"
 
@@ -287,6 +287,13 @@ except Exception as e:
     print(f'  tags: NOT FOUND or corrupt ({e})')
 "
 
+# Symlink tags file so downstream steps (m06, m08) find it at the canonical path
+CANONICAL_TAGS="${OUT_DIR}/tags.json"
+if [[ -f "$TAGS_FILE" && "$TAGS_FILE" != "$CANONICAL_TAGS" ]]; then
+    ln -sf "$(cd "$(dirname "$TAGS_FILE")" && pwd)/$(basename "$TAGS_FILE")" "$CANONICAL_TAGS"
+    log "Symlinked: $(basename "$TAGS_FILE") → tags.json"
+fi
+
 # ── Step 2: V-JEPA embeddings ────────────────────────────────────────
 run_step 2 "m05 V-JEPA embeddings" "$T_M05" \
     "$LOGDIR/m05_${MODE,,}.log" \
@@ -311,7 +318,7 @@ run_step 3 "m05b baselines (all 4 encoders)" "$T_M05B" \
 
 verify "Step 3 baselines" "
 import numpy as np
-for enc, sfx, dim in [('random','_random',1408), ('dinov2','_dinov2',1024),
+for enc, sfx, dim in [('random','_random',1408), ('dinov2','_dinov2',1536),
                        ('clip','_clip',768), ('vjepa_shuffled','_vjepa_shuffled',1408)]:
     try:
         emb = np.load(f'${OUT_DIR}/embeddings{sfx}.npy')
@@ -433,7 +440,7 @@ check('tags.json', tags_file,
 # Embeddings (5 encoders)
 print()
 print('=== EMBEDDINGS (5 encoders) ===')
-for enc, sfx, dim in [('vjepa','',1408), ('random','_random',1408), ('dinov2','_dinov2',1024),
+for enc, sfx, dim in [('vjepa','',1408), ('random','_random',1408), ('dinov2','_dinov2',1536),
                        ('clip','_clip',768), ('vjepa_shuffled','_vjepa_shuffled',1408)]:
     check(f'{enc} embeddings',  f'{out}/embeddings{sfx}.npy',
           lambda p: str(np.load(p).shape))

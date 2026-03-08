@@ -140,21 +140,27 @@ upload_wheels() {
     echo ""
     echo "=== Uploading to GitHub Release: ${RELEASE_TAG} ==="
 
+    # Build release notes from actual wheel filenames
+    RELEASE_NOTES="$(cat <<EOF
+Pin: torch==2.12.0.dev20260228+cu128, Python 3.12.12
+$(ls wheels/*.whl 2>/dev/null | while read w; do echo "- $(basename "$w")"; done)
+Built for sm_120 Blackwell, CUDA 12.8.
+Rebuild if PyTorch version changes.
+EOF
+)"
+
     # Check if release already exists
     if gh release view "${RELEASE_TAG}" &>/dev/null 2>&1; then
         echo "Release '${RELEASE_TAG}' already exists. Uploading assets (overwrite if exists)..."
         gh release upload "${RELEASE_TAG}" wheels/*.whl --clobber
+        # Update release notes to match current wheel versions
+        gh release edit "${RELEASE_TAG}" --notes "$RELEASE_NOTES"
+        echo "Release notes updated."
     else
         echo "Creating release '${RELEASE_TAG}'..."
         gh release create "${RELEASE_TAG}" wheels/*.whl \
             --title "Prebuilt wheels: sm_120 + CUDA 12.8 + Python 3.12" \
-            --notes "$(cat <<'EOF'
-Pin: torch==2.12.0.dev20260228+cu128, Python 3.12.12
-- flash_attn-2.8.3 (built for sm_120 Blackwell, CUDA 12.8)
-- faiss-1.13.2 (built for sm_120 Blackwell)
-Rebuild if PyTorch version changes.
-EOF
-)"
+            --notes "$RELEASE_NOTES"
     fi
 
     echo ""

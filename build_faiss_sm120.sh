@@ -4,13 +4,17 @@
 #
 # Usage:
 #   chmod +x build_faiss_sm120.sh
-#   ./build_faiss_sm120.sh           # full build from scratch
-#   ./build_faiss_sm120.sh --install # skip build, just install from existing build artifacts
+#   ./build_faiss_sm120.sh 2>&1 | tee logs/build_faiss_sm120.log           # full build from scratch
+#   ./build_faiss_sm120.sh --install 2>&1 | tee logs/install_faiss_sm120.log # skip build, just install from existing build artifacts
 #
 # Prerequisites: CUDA toolkit, cmake, python venv activated
 # Time: ~10 min on 96-core machine
 
 set -euo pipefail
+
+# Resolve paths BEFORE any cd (BASH_SOURCE is relative, must resolve now)
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+WHEELS_DIR="${SCRIPT_DIR}/wheels"
 
 VENV_DIR="${VENV_DIR:-/workspace/LLM_asAgent_3D_SR/venv_walkindia}"
 FAISS_SRC="/tmp/faiss_build"
@@ -115,18 +119,183 @@ echo "Build time: $(( (END_TIME - START_TIME) / 60 ))m $(( (END_TIME - START_TIM
 fi  # end of build block
 
 # ── 7. Build wheel + install Python bindings into venv ────────────────────
-WHEELS_DIR="$(cd "$(dirname "$0")" && pwd)/wheels"
+# WHEELS_DIR was resolved at top of script (before any cd)
 mkdir -p "${WHEELS_DIR}"
 echo ""
-echo "=== Building wheel + installing Python bindings ==="
-cd "${FAISS_SRC}/build/faiss/python"
-# Build wheel for caching (saved to wheels/ for GitHub release upload)
-${PIP} install pip 2>/dev/null || true
-pip wheel . --no-deps --wheel-dir "${WHEELS_DIR}/" 2>/dev/null && {
-    echo "Wheel saved: $(ls "${WHEELS_DIR}"/faiss*.whl 2>/dev/null | head -1)"
-} || echo "Wheel export skipped (non-fatal, installing directly)"
-# Install into venv
-${PIP} install .
+echo "=== Building platform wheel + installing Python bindings ==="
+echo "Wheels dir: ${WHEELS_DIR}"
+
+FAISS_PY_DIR="${FAISS_SRC}/build/faiss/python"
+cd "${FAISS_PY_DIR}"
+
+# Collect all .so files that must be in the wheel
+echo "Locating native .so files from build tree..."
+SO_MANIFEST="/tmp/_faiss_so_manifest"
+rm -f "${SO_MANIFEST}"
+
+for so_file in \
+    "${FAISS_SRC}/build/faiss/libfaiss.so" \
+    "${FAISS_SRC}/build/faiss/libfaiss_avx2.so" \
+    "${FAISS_SRC}/build/faiss/gpu/libfaiss_gpu.so" \
+; do
+    [ -f "$so_file" ] && echo "$so_file" >> "${SO_MANIFEST}"
+done
+
+# SWIG extensions (in python build dir, may have versioned names)
+for so_file in "${FAISS_PY_DIR}"/_swigfaiss*.so "${FAISS_PY_DIR}"/_swigfaiss_gpu*.so; do
+    [ -f "$so_file" ] && echo "$so_file" >> "${SO_MANIFEST}"
+done
+
+# Callbacks library
+[ -f "${FAISS_PY_DIR}/libfaiss_python_callbacks.so" ] && \
+    echo "${FAISS_PY_DIR}/libfaiss_python_callbacks.so" >> "${SO_MANIFEST}"
+
+SO_COUNT=$(wc -l < "${SO_MANIFEST}" 2>/dev/null || echo 0)
+echo "Found ${SO_COUNT} .so file(s) to include:"
+cat "${SO_MANIFEST}" | while read f; do ls -lh "$f"; done
+
+if [ "${SO_COUNT}" -eq 0 ]; then
+    echo "FATAL: No .so files found in build tree!"
+    find "${FAISS_SRC}/build" -name "*.so" -type f
+    exit 1
+fi
+
+# Remove any previous wheel
+rm -f "${WHEELS_DIR}"/faiss*.whl
+
+# Step 1: Let pip build its base wheel (Python files + whatever its build
+# system includes — typically misses libfaiss.so)
+${PIP} install pip wheel setuptools 2>/dev/null || true
+echo ""
+echo "Building base wheel..."
+pip wheel . --no-deps --no-build-isolation --wheel-dir "${WHEELS_DIR}/"
+WHEEL_FILE=$(ls "${WHEELS_DIR}"/faiss*.whl 2>/dev/null | head -1)
+
+if [ -z "$WHEEL_FILE" ]; then
+    echo "WARNING: pip wheel failed. Installing directly into venv..."
+    ${PIP} install --no-build-isolation .
+    echo "Installed faiss to: $(${PIP} show faiss 2>/dev/null | grep Location || echo 'unknown')"
+else
+    # Step 2: Inject ALL required .so files into the wheel zip and fix
+    # the platform tag (both internal WHEEL metadata and filename).
+    # This avoids fighting pip's package_data/MANIFEST.in — we directly
+    # control what goes into the zip.
+    echo ""
+    echo "Injecting .so files into wheel and fixing platform tag..."
+    FAISS_SO_MANIFEST="${SO_MANIFEST}" FAISS_WHEEL="${WHEEL_FILE}" \
+    ${PYTHON} << 'INJECT_SCRIPT'
+import zipfile, os, hashlib, base64
+
+wheel_path = os.environ['FAISS_WHEEL']
+manifest_path = os.environ['FAISS_SO_MANIFEST']
+
+with open(manifest_path) as f:
+    so_files = [line.strip() for line in f if line.strip()]
+
+print(f"Wheel: {wheel_path}")
+print(f"Processing {len(so_files)} .so file(s)")
+
+with zipfile.ZipFile(wheel_path, 'r') as zin:
+    existing_names = set(zin.namelist())
+
+    # Find .dist-info directory
+    dist_info = [n.split('/')[0] for n in existing_names if '.dist-info/' in n][0]
+    wheel_meta_path = f"{dist_info}/WHEEL"
+    record_path = f"{dist_info}/RECORD"
+
+    tmp_path = wheel_path + '.tmp'
+    with zipfile.ZipFile(tmp_path, 'w', zipfile.ZIP_DEFLATED) as zout:
+        # Copy existing files (except WHEEL and RECORD — we rewrite those)
+        for name in existing_names:
+            if name in (wheel_meta_path, record_path):
+                continue
+            zout.writestr(name, zin.read(name))
+
+        # Inject .so files under faiss/ in the wheel
+        for so_path in so_files:
+            so_basename = os.path.basename(so_path)
+            wheel_entry = f"faiss/{so_basename}"
+            if wheel_entry in existing_names:
+                print(f"  Already in wheel: {wheel_entry}")
+                continue
+            with open(so_path, 'rb') as f:
+                data = f.read()
+            zout.writestr(wheel_entry, data)
+            print(f"  Injected: {wheel_entry} ({len(data) / 1024 / 1024:.1f} MB)")
+
+        # Fix WHEEL metadata: correct platform tag
+        wheel_meta = zin.read(wheel_meta_path).decode()
+        wheel_meta = wheel_meta.replace(
+            'Tag: py3-none-any', 'Tag: cp312-cp312-linux_x86_64')
+        zout.writestr(wheel_meta_path, wheel_meta)
+
+        # Rebuild RECORD with correct hashes
+        record_entries = []
+        for name in zout.namelist():
+            if name == record_path:
+                continue
+            data = zout.read(name)
+            digest = hashlib.sha256(data).digest()
+            h = "sha256=" + base64.urlsafe_b64encode(digest).rstrip(b'=').decode()
+            record_entries.append(f"{name},{h},{len(data)}")
+        record_entries.append(f"{record_path},,")
+        zout.writestr(record_path, '\n'.join(record_entries) + '\n')
+
+os.replace(tmp_path, wheel_path)
+
+# Fix filename to match the platform tag
+dirname = os.path.dirname(wheel_path)
+basename = os.path.basename(wheel_path)
+if 'none-any' in basename:
+    new_basename = basename.replace('py3-none-any', 'cp312-cp312-linux_x86_64')
+    new_path = os.path.join(dirname, new_basename)
+    os.rename(wheel_path, new_path)
+    wheel_path = new_path
+    print(f"Renamed: {new_basename}")
+
+# Write final path for shell to read back
+with open('/tmp/_faiss_wheel_path', 'w') as f:
+    f.write(wheel_path)
+
+print("Done.")
+INJECT_SCRIPT
+
+    WHEEL_FILE=$(cat /tmp/_faiss_wheel_path 2>/dev/null || echo "")
+    rm -f /tmp/_faiss_wheel_path "${SO_MANIFEST}"
+
+    if [ -n "$WHEEL_FILE" ] && [ -f "$WHEEL_FILE" ]; then
+        echo ""
+        echo "Wheel saved: ${WHEEL_FILE}"
+        echo ""
+        echo "=== Wheel contents (.so files) ==="
+        ${PYTHON} -c "
+import zipfile, os
+z = zipfile.ZipFile('${WHEEL_FILE}')
+so_files = [n for n in z.namelist() if n.endswith('.so')]
+for f in so_files:
+    info = z.getinfo(f)
+    print(f'  {f} ({info.file_size / 1024 / 1024:.1f} MB)')
+whl_mb = os.path.getsize('${WHEEL_FILE}') / 1024 / 1024
+print(f'Total: {len(so_files)} .so file(s), wheel size: {whl_mb:.1f} MB')
+if not any('libfaiss.so' in f for f in so_files):
+    print('FATAL: libfaiss.so missing from wheel — it will not work!')
+    exit(1)
+if not any('_swigfaiss' in f for f in so_files):
+    print('FATAL: _swigfaiss.so missing from wheel — it will not work!')
+    exit(1)
+print('OK: wheel contains required native libraries')
+"
+        if [ $? -ne 0 ]; then
+            echo "Deleting broken wheel."
+            rm -f "${WHEEL_FILE}"
+        fi
+    else
+        echo "WARNING: Wheel post-processing failed."
+    fi
+fi
+
+# Install into venv (direct install from build tree — always works)
+${PIP} install --no-build-isolation .
 echo "Installed faiss to: $(${PIP} show faiss 2>/dev/null | grep Location || echo 'unknown')"
 
 # ── 8. Verify ────────────────────────────────────────────────────────────

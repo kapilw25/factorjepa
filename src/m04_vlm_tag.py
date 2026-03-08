@@ -33,7 +33,7 @@ os.environ.setdefault("OMP_NUM_THREADS", "1")
 sys.path.insert(0, str(Path(__file__).parent))
 from utils.config import (
     TAGS_FILE, TAG_TAXONOMY_JSON, HF_DATASET_REPO, OUTPUTS_DIR,
-    VLM_MODELS, BAKEOFF_CLIP_COUNT, BAKEOFF_DIR, OUTPUTS_POC_DIR,
+    VLM_MODELS, BAKEOFF_CLIP_COUNT, BAKEOFF_DIR, OUTPUTS_POC_DIR, OUTPUTS_SANITY_DIR,
     check_gpu, check_output_exists, load_subset, add_subset_arg,
 )
 from utils.gpu_batch import compute_batch_sizes, add_gpu_mem_arg, AdaptiveBatchSizer
@@ -767,7 +767,7 @@ def get_tags_file(model_name: str, is_bakeoff: bool, subset_path: str = None,
                    is_sanity: bool = False) -> Path:
     """Determine output tags file based on mode."""
     if is_sanity:
-        return OUTPUTS_DIR / f"tags_sanity_{model_name}.json"
+        return OUTPUTS_SANITY_DIR / f"tags_sanity_{model_name}.json"
     if is_bakeoff:
         return BAKEOFF_DIR / f"tags_{model_name}.json"
     elif subset_path:
@@ -941,7 +941,7 @@ def stream_and_tag(backend: VLMBackend, args,
 
     all_tags, _ = load_checkpoint(tags_file)
 
-    tmp_base = OUTPUTS_DIR / "tmp_m04"
+    tmp_base = tags_file.parent / "tmp_m04"
     tmp_base.mkdir(parents=True, exist_ok=True)
     tmp_dir = tempfile.mkdtemp(dir=tmp_base)
 

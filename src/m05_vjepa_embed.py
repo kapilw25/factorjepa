@@ -381,8 +381,8 @@ def orchestrator_main(args):
     Each worker gets fresh HF connections + GPU state. On stream stall
     (10-min producer timeout), worker exits, orchestrator respawns from checkpoint.
     """
-    output_dir = get_output_dir(args.subset)
-    embeddings_file = output_dir / "embeddings.npy" if args.subset else EMBEDDINGS_FILE
+    output_dir = get_output_dir(args.subset, sanity=args.SANITY)
+    embeddings_file = output_dir / "embeddings.npy"
     checkpoint_file = output_dir / ".m05_checkpoint.npz"
 
     print(f"Output: {embeddings_file}")
@@ -513,7 +513,7 @@ def worker_main(args):
                                 "process_count": args.process_count},
                         enabled=not args.no_wandb)
 
-    output_dir = get_output_dir(args.subset)
+    output_dir = get_output_dir(args.subset, sanity=args.SANITY)
     checkpoint_file = output_dir / ".m05_checkpoint.npz"
     subset_keys = load_subset(args.subset) if args.subset else set()
 

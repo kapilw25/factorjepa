@@ -10,7 +10,7 @@ import numpy as np
 
 # ── paths (same pattern as m08_plot.py) ──────────────────────────────────────
 sys.path.insert(0, str(Path(__file__).parent))
-from utils.config import OUTPUTS_DIR, TAG_TAXONOMY_JSON
+from utils.config import OUTPUTS_DIR, OUTPUTS_SANITY_DIR, TAG_TAXONOMY_JSON
 
 MODELS = ["qwen", "videollama", "llava"]
 MODEL_LABELS = {"qwen": "Qwen3-VL", "videollama": "VideoLLaMA3", "llava": "LLaVA-NeXT"}
@@ -236,7 +236,7 @@ def main():
     # Load all 3 sanity tag files
     all_tags = {}
     for model in MODELS:
-        path = OUTPUTS_DIR / f"tags_sanity_{model}.json"
+        path = OUTPUTS_SANITY_DIR / f"tags_sanity_{model}.json"
         if not path.exists():
             print(f"ERROR: {path} not found. Run: python -u src/m04_vlm_tag.py --model {model} --SANITY")
             sys.exit(1)
@@ -253,7 +253,7 @@ def main():
     print_table(results)
 
     # Generate dashboard plot
-    plot_dashboard(results, OUTPUTS_DIR)
+    plot_dashboard(results, OUTPUTS_SANITY_DIR)
 
     print("Done.")
 

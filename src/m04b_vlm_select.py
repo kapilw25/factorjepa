@@ -11,7 +11,7 @@ from pathlib import Path
 # Add src to path for utils import
 sys.path.insert(0, str(Path(__file__).parent))
 from utils.config import (
-    BAKEOFF_DIR, OUTPUTS_DIR, TAG_TAXONOMY_JSON, VLM_MODELS,
+    BAKEOFF_DIR, OUTPUTS_DIR, OUTPUTS_SANITY_DIR, TAG_TAXONOMY_JSON, VLM_MODELS,
 )
 
 # ── Config ────────────────────────────────────────────────────────────────
@@ -60,7 +60,7 @@ def load_bakeoff_tags(sanity: bool = False) -> dict:
     """Load tag JSON files for each VLM. Returns: {model_name: [tag_dict, ...]}"""
     loaded = {}
     if sanity:
-        tag_dir = OUTPUTS_DIR
+        tag_dir = OUTPUTS_SANITY_DIR
         pattern = "tags_sanity_{}.json"
     else:
         tag_dir = BAKEOFF_DIR

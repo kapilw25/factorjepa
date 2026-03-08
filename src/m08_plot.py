@@ -458,7 +458,7 @@ def main():
         print("\nERROR: Specify --SANITY or --FULL")
         sys.exit(1)
 
-    output_dir = get_output_dir(args.subset)
+    output_dir = get_output_dir(args.subset, sanity=args.SANITY)
     output_dir.mkdir(parents=True, exist_ok=True)
 
     mode = "SANITY" if args.SANITY else ("POC" if args.subset else "FULL")
@@ -466,19 +466,12 @@ def main():
 
     print(f"Output dir: {output_dir}")
 
-    # Resolve file paths
-    if args.subset:
-        tags_file = output_dir / "tags.json"
-        paths_file = output_dir / "embeddings.paths.npy"
-        metrics_file = output_dir / "m06_metrics.json"
-        umap_file = output_dir / "umap_2d.npy"
-        knn_file = output_dir / "knn_indices.npy"
-    else:
-        tags_file = TAGS_FILE
-        paths_file = EMBEDDINGS_FILE.with_suffix('.paths.npy')
-        metrics_file = METRICS_FILE
-        umap_file = OUTPUTS_DIR / "umap_2d.npy"
-        knn_file = OUTPUTS_DIR / "knn_indices.npy"
+    # Resolve file paths (all relative to output_dir)
+    tags_file = output_dir / "tags.json"
+    paths_file = output_dir / "embeddings.paths.npy"
+    metrics_file = output_dir / "m06_metrics.json"
+    umap_file = output_dir / "umap_2d.npy"
+    knn_file = output_dir / "knn_indices.npy"
 
     # Check required files
     for f, desc, prereq in [

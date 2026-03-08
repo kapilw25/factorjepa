@@ -270,10 +270,15 @@ def compute_silhouette(embeddings: np.ndarray, tags: list,
     if len(unique) < 2:
         return 0.0
 
+    n = len(embeddings)
+    # silhouette_score requires 2 <= n_labels <= n_samples - 1
+    if len(unique) >= n:
+        print(f"  Silhouette: SKIPPED (n_labels={len(unique)} >= n_samples={n})")
+        return 0.0
+
     label_map = {l: i for i, l in enumerate(sorted(unique))}
     label_ints = np.array([label_map[l] for l in labels])
 
-    n = len(embeddings)
     if n > 10000:
         rng = np.random.RandomState(42)
         idx = rng.choice(n, 10000, replace=False)
@@ -991,17 +996,14 @@ def main():
                         enabled=not args.no_wandb)
 
     # Output routing: POC vs Full, encoder-aware paths
-    output_dir = get_output_dir(args.subset)
+    output_dir = get_output_dir(args.subset, sanity=args.SANITY)
     enc_files = get_encoder_files(args.encoder, output_dir)
     metrics_file = enc_files["metrics"]
     emb_file = enc_files["embeddings"]
     paths_file = enc_files["paths"]
 
     # Tags are shared across all encoders (not encoder-specific)
-    if args.subset:
-        tags_file = output_dir / "tags.json"
-    else:
-        tags_file = TAGS_FILE
+    tags_file = output_dir / "tags.json"
 
     enc_info = ENCODER_REGISTRY[args.encoder]
     print(f"Encoder:     {args.encoder} (dim={enc_info['dim']}, type={enc_info['type']})")

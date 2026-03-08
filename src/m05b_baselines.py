@@ -189,7 +189,7 @@ def _producer_image_baseline(processor, batch_size: int, tmp_dir: str,
 
 
 def generate_dinov2(output_dir: Path, args, clip_limit: int, subset_keys: set):
-    """Task 17: DINOv2 ViT-L/14 — middle frame, CLS token, 1024-dim."""
+    """DINOv2 ViT-g/14 — middle frame, CLS token, 1536-dim."""
     torch = _import_torch()
     from transformers import AutoImageProcessor, AutoModel
 
@@ -206,7 +206,8 @@ def generate_dinov2(output_dir: Path, args, clip_limit: int, subset_keys: set):
     model.eval()
     print("Applying torch.compile (first batch will be slow due to compilation)...")
     model = torch.compile(model)
-    print(f"DINOv2 loaded (dim=1024, dtype=float16, FA2+compiled)")
+    dim = ENCODER_REGISTRY["dinov2"]["dim"]
+    print(f"DINOv2 loaded (dim={dim}, dtype=float16, FA2+compiled)")
 
     all_embeddings, all_keys, resume_count = load_checkpoint(checkpoint_file)
     processed_keys = set(all_keys)
@@ -215,7 +216,9 @@ def generate_dinov2(output_dir: Path, args, clip_limit: int, subset_keys: set):
     if args.SANITY:
         batch_size = min(batch_size, 4)
 
-    tmp_dir = tempfile.mkdtemp(dir=output_dir / "tmp_m05b")
+    tmp_base = output_dir / "tmp_m05b"
+    tmp_base.mkdir(parents=True, exist_ok=True)
+    tmp_dir = tempfile.mkdtemp(dir=tmp_base)
     q = queue.Queue(maxsize=PREFETCH_QUEUE_SIZE)
     stop_event = threading.Event()
 
@@ -304,7 +307,9 @@ def generate_clip(output_dir: Path, args, clip_limit: int, subset_keys: set):
     if args.SANITY:
         batch_size = min(batch_size, 4)
 
-    tmp_dir = tempfile.mkdtemp(dir=output_dir / "tmp_m05b")
+    tmp_base = output_dir / "tmp_m05b"
+    tmp_base.mkdir(parents=True, exist_ok=True)
+    tmp_dir = tempfile.mkdtemp(dir=tmp_base)
     q = queue.Queue(maxsize=PREFETCH_QUEUE_SIZE)
     stop_event = threading.Event()
 
@@ -648,7 +653,7 @@ def main():
 def _run_single_encoder(encoder: str, args):
     """Run a single baseline encoder end-to-end."""
     info = ENCODER_REGISTRY[encoder]
-    output_dir = get_output_dir(args.subset)
+    output_dir = get_output_dir(args.subset, sanity=args.SANITY)
     output_dir.mkdir(parents=True, exist_ok=True)
     files = get_encoder_files(encoder, output_dir)
 

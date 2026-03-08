@@ -279,7 +279,7 @@ def main():
         print("\nERROR: Specify --SANITY or --FULL")
         sys.exit(1)
 
-    output_dir = get_output_dir(args.subset)
+    output_dir = get_output_dir(args.subset, sanity=args.SANITY)
     print(f"Output dir: {output_dir}")
     print(f"Scanning for encoder metrics...")
 

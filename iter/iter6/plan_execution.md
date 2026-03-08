@@ -71,8 +71,7 @@ See `iter/iter6/plots/m04b_vlm_comparison.png` for full visualization.
 Qwen3-VL tags all 10K POC clips using v3 taxonomy (`src/utils/tag_taxonomy.json` — 16 fields including `traffic_mix`, `ped_vehicle_separation`, `road_encroachment`, `video_quality`).
 
 ```bash
-python -u src/m04_vlm_tag.py --model qwen --FULL --subset data/subset_10k.json \
-    --batch-size 36 2>&1 | tee logs/m04_full_qwen_poc.log
+python -u src/m04_vlm_tag.py --model qwen --FULL --subset data/subset_10k.json 2>&1 | tee logs/m04_full_qwen_poc.log
 ```
 
 ### Verify Step 1 output

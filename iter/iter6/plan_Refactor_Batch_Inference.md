@@ -98,6 +98,260 @@ Processor does **not** support batched input. CPU prep stays sequential on GPU t
 
 ---
 
+## CRITICAL: Two Bugs Discovered During 10K POC FULL Run (Mar 8, 2026)
+
+### Context: What Happened
+
+Ran `./run_ch9_overnight.sh --FULL` on RTX PRO 6000 (96GB). Step 1 (m04 VLM tagging) started at 11:13 AM, still running at 6:30 AM next day. Only 3,844/10,000 clips tagged in ~7 hours. Throughput declined continuously:
+
+```
+clip   320:  1.16 clips/s  (GPU warm, queue pre-filled)
+clip 1,344:  0.95 clips/s
+clip 2,880:  0.67 clips/s
+clip 3,456:  0.59 clips/s
+clip 3,712:  0.51 clips/s  ← still declining, no sign of plateau
+```
+
+GPU utilization: **0% most of the time** (nvtop confirmed). VRAM: 62%. The GPU was idle, waiting for the producer thread to deliver batches.
+
+---
+
+### BUG 1: Producer Starvation — HF Streaming with Subset Filtering
+
+**Root cause**: The 10K POC subset is 8.4% of the 115K dataset. To fill ONE batch of 64 clips, the producer must:
+1. Stream ~744 clips from HuggingFace (network I/O)
+2. Check each clip key against the subset (CPU)
+3. Discard ~680 non-matching clips
+4. Decode the 64 matching clips via decord (CPU)
+5. Queue the batch for GPU inference
+
+Network I/O + filtering + decode became slower than GPU inference → GPU starves.
+
+**This affects ALL 4 HF-streaming steps, not just m04:**
+
+| Step | Module | Streams from HF? | Same bottleneck? | Est. time at 0.5 clips/s |
+|------|--------|:-:|:-:|:-:|
+| 1 | m04 (VLM tagging) | Yes | **YES** | ~5.5h |
+| 2 | m05 (V-JEPA embed) | Yes | **YES** | ~5.5h |
+| 3 | m05b (4 baselines) | Yes | **YES** × 4 encoders | ~22h |
+| 4 | m05c (true overlap) | Yes | **YES** | ~5.5h |
+| 5-7 | m06/m07/m08 | No (reads .npy) | No | ~30 min total |
+| | | | **TOTAL** | **~39h** |
+
+At current rates, the FULL pipeline would take **~39 hours** — unacceptable on an $0.80/hr GPU.
+
+**Benchmark confirming HF itself is fast** (tested during the run):
+```
+Raw HF streaming (no decode): 171 clips/s, 43.5 clips/s with full bytes
+Subset hit rate: 8.4% (168 matches in 2000 clips sampled)
+Avg clip size: 1.1 MB
+10K subset total: ~10.7 GB
+Stream-through all 115K to find 10K matches: ~11 min
+```
+
+HF is not dying — the producer is just doing 12× more work than it needs to (streaming 115K to find 10K).
+
+---
+
+### BUG 2: Resume Creates Duplicate Tags with Subset Filtering
+
+**The bug**: When the pipeline restarts (kill + rerun, or ENGINE_RESTART_EVERY), the orchestrator sets `--start-from` to the checkpoint count (number of matched clips). But this count != the raw HF dataset position.
+
+**How it works now (BROKEN for subset mode):**
+
+```
+Orchestrator:
+  all_tags, skip_count = load_checkpoint(tags_file)    # skip_count = 3,844 (matched clips)
+  cmd = [..., "--start-from", str(skip_count), ...]     # --start-from 3844
+
+Worker:
+  _create_stream(start_from=3844)                       # ds.skip(3844) in raw dataset
+  → Stream starts at raw dataset position 3844
+```
+
+**The math that shows the bug:**
+
+```
+10K subset is uniformly sampled from 115K → hit rate = 8.4%
+To find 3,844 matching clips, the stream scanned through:
+  3,844 / 0.084 ≈ 45,762 raw dataset positions (positions 0 → ~45,762)
+
+On restart, stream starts at position 3,844 (not 45,762!)
+  → Positions 3,844 → 45,762 contain ~(45,762-3,844) × 0.084 ≈ 3,521 ALREADY-TAGGED clips
+  → These get re-processed and APPENDED to all_tags → DUPLICATE ENTRIES
+
+Result: tags.json would contain ~3,521 duplicate clips out of 10,000.
+```
+
+**Why this didn't matter before:** Without subset filtering (full 115K mode), every dataset item gets processed, so `skip_count == raw position`. The bug only manifests with `--subset`.
+
+**Why a simple kill+restart would make things WORSE:**
+1. Duplicates corrupt tags.json (downstream m06/m08 would compute wrong metrics)
+2. Speed would temporarily improve (fresh connection, early stream position) then degrade again at the same point
+3. The worker re-does GPU inference on already-tagged clips — pure waste
+
+---
+
+### SOLUTION: Pre-Download Subset to Local Disk (`m00d_download_subset.py`)
+
+Instead of streaming 115K clips from HF and filtering to 10K on every step, download the 10K subset clips ONCE to local disk. All subsequent steps read locally → 100% hit rate, no network I/O.
+
+**New script: `src/m00d_download_subset.py`**
+
+```
+PURPOSE: Stream through HF dataset once, save matching subset clips to local WebDataset shards.
+INPUT:   data/subset_10k.json (clip keys), HF dataset (streaming)
+OUTPUT:  data/subset_10k_local/ directory with WebDataset TAR shards
+
+Estimated time: ~11 min (one-time cost)
+Estimated disk: ~10.7 GB
+
+USAGE:
+  python -u src/m00d_download_subset.py --subset data/subset_10k.json 2>&1 | tee logs/m00d_download.log
+```
+
+**What it does:**
+1. Load subset keys from `data/subset_10k.json` (10,000 keys)
+2. Stream through full HF dataset (115K clips, ~11 min)
+3. For each matching clip: save mp4 bytes + JSON metadata to local WebDataset TAR shards
+4. Write `data/subset_10k_local/manifest.json` with shard paths and clip count
+5. Progress bar + checkpoint (can resume if interrupted)
+
+**Code changes to existing modules (m04, m05, m05b, m05c):**
+
+Add `--local-data` flag to all 4 HF-streaming modules:
+
+```python
+# In argparse:
+parser.add_argument("--local-data", type=str, default=None,
+                    help="Local WebDataset dir (from m00d_download_subset.py)")
+
+# In _create_stream() or equivalent:
+if args.local_data:
+    ds = load_dataset("webdataset", data_dir=args.local_data, split="train", streaming=True)
+else:
+    ds = load_dataset(HF_DATASET_REPO, split="train", streaming=True)
+
+# No subset filtering needed — local shards contain ONLY subset clips
+# hit rate = 100%, no network I/O
+```
+
+**Changes to `run_ch9_overnight.sh`:**
+
+```bash
+# Add pre-download step BEFORE step 1:
+LOCAL_DATA="data/subset_10k_local"
+if [[ "$MODE" == "FULL" && ! -d "$LOCAL_DATA" ]]; then
+    log "Pre-downloading subset to local disk..."
+    python -u src/m00d_download_subset.py --subset data/subset_10k.json \
+        2>&1 | tee "$LOGDIR/m00d_download.log" | tee -a "$MASTER_LOG"
+fi
+
+# Add --local-data flag to steps 1-4:
+LOCAL_FLAG=""
+if [[ -d "$LOCAL_DATA" ]]; then
+    LOCAL_FLAG="--local-data $LOCAL_DATA"
+fi
+
+# Step 1: m04
+run_step 1 "m04 VLM tagging (Qwen)" "$T_M04" \
+    "$LOGDIR/m04_${MODE,,}_qwen.log" \
+    src/m04_vlm_tag.py --model qwen $MODE_FLAG $LOCAL_FLAG --no-wandb
+
+# Step 2: m05 (same pattern)
+# Step 3: m05b (same pattern)
+# Step 4: m05c (same pattern)
+```
+
+**Fix for BUG 2 (resume duplicates) — also needed:**
+
+In `_producer_thread()` in m04_vlm_tag.py (and equivalent in m05/m05b/m05c):
+
+```python
+def _producer_thread(backend, start_from, batch_size, tmp_dir,
+                     q, stop_event, clip_limit, subset_keys,
+                     already_tagged_keys=None):    # ← NEW parameter
+    # ...
+    for example in ds:
+        # Subset filtering (only if streaming from HF, not needed for local)
+        if subset_keys:
+            clip_key = get_clip_key(example)
+            if clip_key not in subset_keys:
+                skipped += 1
+                continue
+
+        # NEW: Skip already-tagged clips on resume (prevents duplicates)
+        if already_tagged_keys:
+            ex_key = example.get("__key__", "")
+            if ex_key in already_tagged_keys:
+                skipped += 1
+                continue
+        # ... rest of producer logic
+```
+
+In `stream_and_tag()`:
+
+```python
+def stream_and_tag(backend, args, start_from, clip_limit, tags_file, subset_keys, wb_run=None):
+    all_tags, _ = load_checkpoint(tags_file)
+
+    # NEW: Build set of already-tagged keys for dedup on resume
+    already_tagged_keys = {t["__key__"] for t in all_tags if "__key__" in t} if all_tags else None
+    if already_tagged_keys:
+        print(f"  [resume] {len(already_tagged_keys):,} already-tagged keys loaded for dedup")
+
+    # ... existing code ...
+
+    producer = threading.Thread(
+        target=_producer_thread,
+        args=(backend, start_from, batch_size, tmp_dir,
+              q, stop_event, clip_limit, subset_keys,
+              already_tagged_keys),    # ← PASS dedup set
+        daemon=True,
+    )
+```
+
+---
+
+### Impact Summary
+
+| Metric | Current (HF stream + filter) | After fix (local pre-download) |
+|--------|-----|------|
+| m04 throughput | 0.51 clips/s (declining) | ~1.5-2.0 clips/s (stable) |
+| m04 ETA (10K) | ~5.5h+ | ~1.5-2h |
+| m05 ETA | ~5.5h | ~1-2h |
+| m05b ETA (4 enc) | ~22h | ~4-6h |
+| m05c ETA | ~5.5h | ~1-2h |
+| **Total pipeline** | **~39h** | **~8-12h** |
+| GPU idle time | ~90% (waiting for producer) | ~10% (normal batch gaps) |
+| Resume correctness | **BROKEN** (duplicate tags) | **FIXED** (dedup by __key__) |
+| Pre-download cost | N/A | ~11 min one-time |
+
+### Implementation Order
+
+```
+1. Write m00d_download_subset.py (new script, ~1h)
+2. Fix resume dedup bug in m04_vlm_tag.py (add already_tagged_keys, ~15 min)
+3. Add --local-data flag to m04, m05, m05b, m05c (~30 min each, ~2h total)
+4. Update run_ch9_overnight.sh with pre-download step + --local-data flag (~15 min)
+5. Test with --SANITY first (~5 min)
+6. Run --FULL (~8-12h)
+```
+
+### Files to modify
+
+| File | Change |
+|------|--------|
+| `src/m00d_download_subset.py` | **NEW** — download subset clips to local WebDataset |
+| `src/m04_vlm_tag.py` | Add `--local-data` flag + fix resume dedup bug |
+| `src/m05_vjepa_embed.py` | Add `--local-data` flag |
+| `src/m05b_baselines.py` | Add `--local-data` flag |
+| `src/m05c_true_overlap.py` | Add `--local-data` flag |
+| `run_ch9_overnight.sh` | Add pre-download step + pass `--local-data` to steps 1-4 |
+| `data/subset_10k_local/` | **NEW** — local WebDataset shards (~10.7 GB) |
+
+---
+
 ## Future Work: HF Stream Resilience
 
 `ENGINE_RESTART_EVERY` already handles HF stream deaths (checkpoint + fresh worker subprocess). Observed at clip ~8K: stream stall → auto-recovery, zero data lost. **TODO for 115K:** add a per-worker timeout (e.g. 10 min no progress → kill + restart) to avoid hanging on dead sockets that never trigger subprocess exit.
