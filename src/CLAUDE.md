@@ -11,9 +11,9 @@
 4.1) format: `python -u src/*.py --args arg_name 2>&1 | tee logs/<log_name>.log`
 5) Dependencies: update @setup_env_uv.sh, @requirements.txt (CPU), @requirements_gpu.txt (GPU) — install via UV ONLY, no individual pip. **ENFORCED: `.claude/hooks/enforce-dev-rules.sh` blocks `pip install` / `uv pip install` via PreToolUse hook.**
 6) Test on M1 `venv_walkindia` : `py_compile` + `--help` + `ast` — full GPU tests on cloud only. **ENFORCED: `.claude/hooks/enforce-dev-rules.sh` blocks bare `python3` without venv activation via PreToolUse hook.** Always: `source venv_walkindia/bin/activate && python3 -m module`
-6.1) **MANDATORY after ANY edit to `src/m*.py`:** Run BOTH checks before moving on. No exceptions. **ENFORCED: `.claude/hooks/post-edit-lint.sh` via PostToolUse hook.**
-   - `source venv_walkindia/bin/activate && python3 -m py_compile src/<file>.py`
-   - AST structural check (verify functions, argparse choices, imports)
+6.1) **MANDATORY after ANY edit to `src/m*.py`:** Run BOTH checks before moving on. No exceptions.
+   - `source venv_walkindia/bin/activate && python3 -m py_compile src/<file>.py` — **ENFORCED: `.claude/hooks/post-edit-lint.sh` auto-runs via PostToolUse hook.**
+   - AST structural check (verify functions, argparse choices, imports) — **MANUAL: Claude must run explicitly.**
 7) Plots: both .png & .pdf. m08_plot.py = CPU-only (pure matplotlib, reads pre-computed .npy files)
 7.1) GPU scripts save .npy artifacts (embeddings, knn_indices, umap_2d) → CPU scripts read them. NEVER duplicate GPU compute in CPU scripts (e.g. never rebuild FAISS index in plotting when m06 already saves knn_indices.npy)
 7.2) embeddings.paths.npy stores clip keys (not local paths) — used for Hard mode ±30s exclusion. Tags↔embeddings alignment via __key__ field. FAISS uses IVFFlat (not IVF-PQ) — simpler, sufficient at 10K-115K scale
@@ -36,4 +36,4 @@
 - NEVER draw conclusions from statistically insufficient data. A sanity check validates code correctness (no crashes, valid output), NOT model performance. Do not propose architectural changes, formula rewrites, or bottleneck diagnoses based on < 100 data points.
 - Think like a Sr. Research Scientist: before making any recommendation, ask "do I have enough evidence for this claim?" If the answer is no, say so explicitly instead of speculating. Superficial pattern-matching on small samples is Jr-level analysis — dig into architecture, read the actual code paths, and ground every recommendation in either sufficient data or first-principles reasoning.
 - GPU time is expensive — idle GPU = wasted money; idle user during GPU job = wasted time. Keep the GPU busy.
-- Mandatory checklist for ANY new loop that makes GPU/API/VLM calls: (1) tqdm progress bar, (2) auto-resume from checkpoint (skip completed items on restart), (3) tee logging, (4) wandb integration. No exceptions. If you write a pipeline loop without all four, you have shipped broken code. **ENFORCED: Run `/preflight <file>` skill to verify before running any new pipeline code.** See `.claude/skills/preflight/SKILL.md`.
+- Mandatory checklist for ANY new loop that makes GPU/API/VLM calls: (1) tqdm progress bar, (2) auto-resume from checkpoint (skip completed items on restart), (3) tee logging, (4) wandb integration. No exceptions. If you write a pipeline loop without all four, you have shipped broken code. **MANUAL: Run `/preflight <file>` skill to verify before running any new pipeline code.** See `.claude/skills/preflight/SKILL.md`.
