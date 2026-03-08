@@ -22,7 +22,9 @@
 - torch.compile(model) after model.eval() — warn about first-batch compile latency
 - FAISS GPU: faiss.StandardGpuResources() + index_cpu_to_gpu(). Never CPU FAISS in GPU scripts
 - cuML GPU: for iterative algorithms (UMAP, DBSCAN, KMeans, PCA) — 50-100x speedup. Install via `--extra-index-url https://pypi.nvidia.com`. For metrics (silhouette, accuracy, F1) keep sklearn/numpy on CPU — post-inference, not a bottleneck
-- Auto batch sizing: src/utils/gpu_batch.py — compute_batch_sizes(gpu_vram_gb) auto-detects VRAM, scales linearly from A100-40GB baseline. --gpu-mem arg to override. All 3 VLMs use transformers sequential inference
+- Auto batch sizing: src/utils/gpu_batch.py — compute_batch_sizes(gpu_vram_gb) auto-detects VRAM, returns `{"vjepa", "image_encoder", "transformers", "transformers_batch"}`. V-JEPA: linear from 40GB baseline. Image encoder: 4x vjepa (cap 256) for DINOv2/CLIP single-frame models. --gpu-mem arg to override. All 3 VLMs use transformers sequential inference
+- Attention per encoder: V-JEPA/shuffled/DINOv2 = FA2 (`attn_implementation="flash_attention_2"`), CLIP = SDPA (`attn_implementation="sdpa"` — FA2 support uncertain for CLIPModel)
+- Producer pre-processing: processor() runs in CPU producer thread, enqueues ready tensors → GPU thread only does .to(device) + forward pass. Applies to m05 (V-JEPA), m05b (all GPU baselines), m05c (augmented)
 - transformers pinned >=4.57.0,<5.0 — all 3 VLMs work. LLaVA-NeXT-Video native (>=4.42). Keye-VL dropped (4 cascading compat errors with both 4.x and 5.x)
 - wandb: shared src/utils/wandb_utils.py with: add_wandb_args(parser), init_wandb(module, mode, config, enabled), log_metrics(run, dict, step), log_image(run, key, path), log_artifact(run, name, path), finish_wandb(run). --no-wandb flag on every GPU module, all functions no-op when run=None
 10) Each `print` statmenet must be `dynamic`. Remove/modify all false advertising / `static` prints from code. 
