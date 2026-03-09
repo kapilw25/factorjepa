@@ -17,6 +17,7 @@
 7) Plots: both .png & .pdf. m08_plot.py = CPU-only (pure matplotlib, reads pre-computed .npy files)
 7.1) GPU scripts save .npy artifacts (embeddings, knn_indices, umap_2d) → CPU scripts read them. NEVER duplicate GPU compute in CPU scripts (e.g. never rebuild FAISS index in plotting when m06 already saves knn_indices.npy)
 7.2) embeddings.paths.npy stores clip keys (not local paths) — used for Hard mode ±30s exclusion. Tags↔embeddings alignment via __key__ field. FAISS uses IVFFlat (not IVF-PQ) — simpler, sufficient at 10K-115K scale
+7.3) m05c reads embeddings.paths.npy (deduped keys, ~5K) instead of subset_10k.json (10K). Ordering dependency: m05 must complete before m05c (enforced by run_ch9_overnight.sh step ordering)
 8) Devil's advocate: OOM, GPU underutil, data starvation, VRAM leaks, fp16 instability (use flash-attn-2), checkpoint corruption /auto-resume solution
 9) GPU Optimizations:
 - torch.compile(model) after model.eval() — warn about first-batch compile latency
@@ -27,7 +28,9 @@
 - Producer pre-processing: processor() runs in CPU producer thread, enqueues ready tensors → GPU thread only does .to(device) + forward pass. Applies to m05 (V-JEPA), m05b (all GPU baselines), m05c (augmented)
 - transformers pinned >=4.57.0,<5.0 — all 3 VLMs work. LLaVA-NeXT-Video native (>=4.42). Keye-VL dropped (4 cascading compat errors with both 4.x and 5.x)
 - wandb: shared src/utils/wandb_utils.py with: add_wandb_args(parser), init_wandb(module, mode, config, enabled), log_metrics(run, dict, step), log_image(run, key, path), log_artifact(run, name, path), finish_wandb(run). --no-wandb flag on every GPU module, all functions no-op when run=None
-10) Each `print` statmenet must be `dynamic`. Remove/modify all false advertising / `static` prints from code. 
+10) Each `print` statmenet must be `dynamic`. Remove/modify all false advertising / `static` prints from code.
+11) Throughput reporting: NEVER use `total_clips / elapsed` when checkpoint clips are loaded at t=0 — this inflates initial rate and shows fake decline. Use `new_clips_this_run / elapsed` for accurate throughput. See m05c Bug #4 in `iter/iter6/plan_batch_speedup.md`.
+12) Threading: NEVER use ThreadPoolExecutor for CPU-bound PyTorch tensor ops (augmentation, processor). ATen spawns ~80 internal threads per worker → 8 workers = 640+ threads → OS scheduler thrash → 0% throughput. Threading is ONLY for I/O-bound ops (video decode, file read).
 
 # RULES (MUST follow)
 - you do not be have to be yes-man on my very demand >> behave like a  Sr. AI/ML Research engineer >> give me pros and cons of each of my demand

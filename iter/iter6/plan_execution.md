@@ -98,8 +98,8 @@ du -sh data/subset_10k_local/
 **Expected:** `data/subset_10k_local/` with ~10 TAR shards (1000 clips each) + `manifest.json`. ~10.7 GB total.
 
 **Status:**
-- [ ] SANITY (20 clips): pending
-- [ ] FULL (10K clips): pending
+- [x] SANITY (20 clips): DONE
+- [x] FULL (10K clips): DONE (23.8 min, CDN v3, 10.45 GB)
 
 ---
 
@@ -130,7 +130,7 @@ for field in ['traffic_mix', 'ped_vehicle_separation', 'road_encroachment', 'vid
 **Note:** Resume dedup fix via `already_tagged_keys` prevents duplicate tags on restart.
 
 **Status:**
-- [ ] Qwen FULL POC (10K, v3 taxonomy): pending
+- [x] Qwen FULL POC (10K, v3 taxonomy): DONE (121m 39s, 1.33 clips/s, 10K clips tagged)
 
 ---
 
@@ -160,7 +160,7 @@ print(f'Shape match: {emb.shape[0] == len(paths)}')
 "
 ```
 
-**Expected:** `embeddings.npy` (~10K × 1408), `embeddings.paths.npy` (10K keys). ~2h GPU.
+**Expected:** `embeddings.npy` (~5K × 1408 after cosine dedup > 0.95), `embeddings.paths.npy` (5K deduped keys). ~1h 20m GPU.
 
 **SANITY Status:**
 - [x] m05 SANITY: PASSED (6 clips streamed, 2 dupes removed → 4 unique embeddings, shape (4, 1408), 96.7s, 0.1 clips/s)
@@ -233,8 +233,8 @@ for enc, sfx, dim in [('random','_random',1408), ('dinov2','_dinov2',1024),
 | Shuffled V-JEPA | `embeddings_vjepa_shuffled.npy` | (10K, 1408) | ~2h GPU |
 
 **Status:**
-- [ ] SANITY (`--encoder all --SANITY`): pending
-- [ ] FULL POC (`--encoder all --FULL --subset`): pending
+- [x] SANITY (`--encoder all --SANITY`): DONE
+- [x] FULL POC (`--encoder all --FULL --subset`): DONE (98m 43s total — random 5,105, dinov2/clip/shuffled 10K each)
 
 ---
 
@@ -272,7 +272,7 @@ print(f'Shape match: {a.shape == b.shape and a.shape[0] == len(k)}')
 **Est. time:** ~1-2h GPU (2x V-JEPA inference on deduped clips only + augmentation overhead).
 
 **Status:**
-- [ ] True Overlap augmented embeddings: pending
+- [x] True Overlap augmented embeddings: DONE (92m 57s with dedup fix — 5,105 clips, filtered from 8,439 checkpoint)
 
 ---
 
@@ -356,11 +356,11 @@ for enc, sfx in [('vjepa',''), ('random','_random'), ('dinov2','_dinov2'),
 - [x] m06 SANITY: PASSED (4 clips, FAISS-GPU sm_120 from source build, Easy Prec@K=50%, knn_indices (4,4), 3 plots saved)
 
 **Status:**
-- [ ] V-JEPA (with True Overlap): pending
-- [ ] Random: pending
-- [ ] DINOv2: pending
-- [ ] CLIP: pending
-- [ ] Shuffled V-JEPA: pending
+- [x] V-JEPA (with True Overlap): DONE (18s, Prec@K=14.6%, mAP=0.079, Overlap=10.5% true_multi_crop)
+- [x] Random: DONE (17s, Prec@K=12.2%, mAP=0.061)
+- [x] DINOv2: DONE (31s, Prec@K=50.5%, mAP=0.427)
+- [x] CLIP: DONE (29s, Prec@K=46.0%, mAP=0.382)
+- [x] Shuffled V-JEPA: DONE (31s, Prec@K=35.3%, mAP=0.272)
 
 ---
 
@@ -413,11 +413,11 @@ for enc, sfx in [('vjepa',''), ('random','_random'), ('dinov2','_dinov2'),
 - [x] m07 SANITY: PASSED (4 clips, cuML GPU UMAP in 0.6s, n_neighbors=3, umap_2d.npy shape (4, 2))
 
 **Status:**
-- [ ] V-JEPA UMAP: pending
-- [ ] Random UMAP: pending
-- [ ] DINOv2 UMAP: pending
-- [ ] CLIP UMAP: pending
-- [ ] Shuffled V-JEPA UMAP: pending
+- [x] V-JEPA UMAP: DONE (4s, 5105×2)
+- [x] Random UMAP: DONE (3s, 5105×2)
+- [x] DINOv2 UMAP: DONE (4s, 10000×2)
+- [x] CLIP UMAP: DONE (3s, 10000×2)
+- [x] Shuffled V-JEPA UMAP: DONE (3s, 10000×2)
 
 ---
 
@@ -464,8 +464,8 @@ ls -la src/outputs_poc/m08b_comparison_table.tex
 | `m08b_comparison_table.tex` | Paper-ready LaTeX table |
 
 **Status:**
-- [ ] m08 per-encoder plots: pending
-- [ ] m08b multi-encoder comparison: pending
+- [x] m08 per-encoder plots: DONE (15s — UMAP scatter, confusion matrices, kNN grid)
+- [x] m08b multi-encoder comparison: DONE (1s — bar chart, radar, LaTeX table)
 
 ---
 
@@ -549,15 +549,15 @@ ls -la src/outputs_poc/m08b_comparison_table.tex 2>/dev/null
 | Step | Module | GPU? | Est. Time | Actual |
 |------|--------|------|-----------|--------|
 | 0 | VLM Selection (3 VLMs bake-off) | GPU | — | **DONE** (Qwen 0.919) |
-| 0.5 | m00d pre-download subset to local TARs | **CPU** | ~12 min | pending |
-| 1 | m04 Qwen tags 10K (v3 taxonomy) + `--local-data` | GPU | ~1.5-2h | pending |
-| 2 | m05 V-JEPA embed (10K) + `--local-data` | GPU | ~1-2h | pending |
-| 3 | m05b `--encoder all` + `--local-data` | GPU | ~3-5h | pending |
-| 4 | m05c True Overlap augmented + `--local-data` | GPU | ~1-2h | pending |
-| 5 | m06 FAISS metrics (x5 encoders) | GPU | ~25 min | pending |
-| 6 | m07 UMAP (x5 encoders) | GPU | ~10 min | pending |
-| 7 | m08 + m08b plots + comparison | CPU | ~5 min | pending |
-| **Grand Total** | | | **~8-12h GPU + ~15 min CPU** | |
+| 0.5 | m00d pre-download subset to local TARs | **CPU** | ~12 min | **23.8 min** (CDN v3) |
+| 1 | m04 Qwen tags 10K (v3 taxonomy) + `--local-data` | GPU | ~1.5-2h | **2h 2m** (1.33 clips/s) |
+| 2 | m05 V-JEPA embed (10K) + `--local-data` | GPU | ~1-2h | **1h 20m** (2.1 clips/s, 10K→5,105 dedup) |
+| 3 | m05b `--encoder all` + `--local-data` | GPU | ~3-5h | **1h 39m** (all 4 fresh) |
+| 4 | m05c True Overlap augmented + `--local-data` | GPU | ~1-2h | **93m** (with dedup fix, 5,105 clips) |
+| 5 | m06 FAISS metrics (x5 encoders) | GPU | ~25 min | **2m 6s** (~25s each) |
+| 6 | m07 UMAP (x5 encoders) | GPU | ~10 min | **17s** (~3s each) |
+| 7 | m08 + m08b plots + comparison | CPU | ~5 min | **16s** |
+| **Grand Total** | | | **~8-12h GPU + ~15 min CPU** | **~6h 35m clean** |
 
 ### GPU Parallelization Opportunities
 

@@ -72,7 +72,7 @@
 
 | Week | Chapter | GPU Hours | Deliverable | Status |
 |:----:|---------|:---------:|-------------|--------|
-| 1 | Ch 8+9 (data + eval + baselines) | ~8-12h | metrics_frozen.json + 15 plots + baselines | **98% DONE** (all code built + m00d local pre-download + dedup fix. SANITY + FULL POC pending on RTX PRO 6000 via `run_ch9_overnight.sh`) |
+| 1 | Ch 8+9 (data + eval + baselines) | ~8-12h | metrics_frozen.json + 15 plots + baselines | **DONE** (48 outputs, 0 errors. Clean time ~6h 35m on RTX PRO 6000. Actual first run ~12h 18m across 6 runs due to bugs fixed incrementally.) |
 | 2 | Ch 10 (continual pretraining) | ~20h | metrics_adapted.json (frozen vs adapted) | NEXT |
 | 3-4 | Ch 11 (surgery fine-tuning) | ~54h | metrics_surgical.json (frozen vs adapted vs surgical) | FUTURE |
 
@@ -215,11 +215,11 @@ Tags serve **two purposes only**: (1) stratified batching for Ch10/Ch11, (2) sli
 | 21 | VLM re-tag 10K (v3 taxonomy) | ✅ BUILT | m04 with v3 taxonomy (16 fields). 115K: Qwen3.5-9B via vLLM (planned) |
 | 22 | UMAP visualization | ✅ BUILT | m07 GPU cuML UMAP (1408→2D) + m08 scatter plots per key; umap_2d.npy exists |
 
-### Baselines — CODE BUILT (GPU runs pending)
+### Baselines — COMPLETE (10K POC, Mar 9 2026)
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────┐
-│                    Ch 9 BASELINE COMPARISON (CODE BUILT)                     │
+│                    Ch 9 BASELINE COMPARISON (COMPLETE)                        │
 ├─────────────────────────────────────────────────────────────────────────────┤
 │                                                                             │
 │  All 4 baselines + True Overlap@K coded in m05b + m05c.                    │
@@ -274,33 +274,52 @@ Tags serve **two purposes only**: (1) stratified batching for Ch10/Ch11, (2) sli
 
 **Bottom line**: The 4 chosen baselines form a clean 2×2 ablation grid (temporal vs static × self-supervised vs language-supervised), plus a random lower bound. Adding more models would create a leaderboard, not deepen understanding.
 
-### Ch 9 Key Findings (from report.md)
+### Ch 9 Key Findings (10K POC, 5 encoders, Mar 9 2026)
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────┐
-│                          Ch 9 FINDINGS SUMMARY                              │
+│                    Ch 9 FINDINGS SUMMARY (10K POC)                           │
 ├─────────────────────────────────────────────────────────────────────────────┤
 │                                                                             │
-│  1. V-JEPA organizes by ILLUMINATION, not SCENE SEMANTICS                  │
-│     lighting mAP@K = 0.66  >>>  scene_type mAP@K = 0.11  (6x gap)         │
-│     Only lighting has positive silhouette (+0.0007)                         │
+│  5-ENCODER COMPARISON (Easy mode, k=6):                                     │
 │                                                                             │
-│  2. High nDCG (0.90) + Low Prec@K (18.7%) = CONTEXTUAL retrieval          │
-│     Neighbors share lighting + weather + crowd but DIFFER in scene type    │
+│  Encoder          Prec@K   mAP@K  Cycle@K  nDCG@K  Overlap@K  Silhouette  │
+│  ─────────────────────────────────────────────────────────────────────────  │
+│  dinov2            50.5%  0.4271   66.8%   0.9577   60.9%(d)   -0.0574    │
+│  clip              46.0%  0.3816   65.2%   0.9583   47.1%(d)   -0.0470    │
+│  vjepa_shuffled    35.3%  0.2724   76.2%   0.9500   35.3%(d)   -0.2245    │
+│  vjepa             14.6%  0.0792   78.7%   0.9032   10.5%(t)   -0.2503    │
+│  random            12.2%  0.0608   55.0%   0.8978    0.0%(d)   -0.0206    │
+│                                                                             │
+│  (d)=dim-split approx, (t)=true multi-crop                                 │
+│                                                                             │
+│  KEY FINDINGS:                                                              │
+│                                                                             │
+│  1. V-JEPA WINS Cycle@K (78.7%) — most stable neighborhoods               │
+│     But LAGS badly on Prec@K (14.6%) and mAP@K (0.079)                    │
+│     vs DINOv2 (50.5% / 0.427) and CLIP (46.0% / 0.382)                   │
+│                                                                             │
+│  2. IMAGE baselines (DINOv2, CLIP) CRUSH video model (V-JEPA)             │
+│     on retrieval accuracy — single middle frame > 64 video frames          │
+│     V-JEPA's temporal reasoning doesn't help scene classification          │
+│                                                                             │
+│  3. Shuffled V-JEPA (35.3%) > V-JEPA (14.6%) on Prec@K                   │
+│     Destroying temporal order IMPROVES retrieval — V-JEPA's temporal       │
+│     encoding actively HURTS scene-type discrimination                      │
+│                                                                             │
+│  4. V-JEPA organizes by ILLUMINATION, not SCENE SEMANTICS                  │
+│     Per-key mAP: time_of_day=0.617, lighting=0.580 >> scene_type=0.079    │
 │     "Similar vibes, different places"                                       │
 │                                                                             │
-│  3. Neighborhoods are STABLE: Cycle@K ~79% (77-81% band)                   │
-│     Uniform across ALL scene types — model quality is consistent            │
-│                                                                             │
-│  4. Easy/Hard gap < 0.6pp — data pipeline prevents temporal leakage        │
-│                                                                             │
-│  5. VLM confidence UNCALIBRATED: 99.84% of clips ≥ 0.9 confidence         │
-│     Confidence sweep is flat — threshold filtering uninformative            │
+│  5. Easy/Hard gap < 0.5pp — data pipeline prevents temporal leakage        │
 │                                                                             │
 │  IMPLICATION FOR Ch 10-11:                                                  │
 │  V-JEPA needs domain adaptation to understand Indian SCENE SEMANTICS.       │
 │  It already captures lighting/weather — adaptation should target            │
 │  traffic_mix, pedestrian_vehicle_separation, scene_type (v3 taxonomy keys)  │
+│                                                                             │
+│  PIPELINE TIMING (clean run estimate with current code):                    │
+│  m04=2h02m, m05=1h20m, m05b=1h39m, m05c=93m, m06-m08b=3m → ~6h 35m       │
 │                                                                             │
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
@@ -647,18 +666,19 @@ Tags serve **two purposes only**: (1) stratified batching for Ch10/Ch11, (2) sli
 │  ┌────────────────────┬──────────────┬──────────────┬──────────────┐                    │
 │  │ Metric             │ Ch 9: Frozen │ Ch 10: Adapt │ Ch 11: Surg  │                    │
 │  ├────────────────────┼──────────────┼──────────────┼──────────────┤                    │
-│  │ scene_type mAP@K   │ 0.11         │              │              │                    │
-│  │ traffic_mix mAP@K  │ (retag)      │              │              │                    │
-│  │ ped_veh_sep mAP@K  │ (retag)      │              │              │                    │
-│  │ road_encroach mAP  │ (retag)      │              │              │                    │
-│  │ lighting mAP@K     │ 0.66         │              │              │                    │
-│  │ Cycle@K            │ 78.96%       │              │              │                    │
-│  │ nDCG@K             │ 0.90         │              │              │                    │
-│  │ Silhouette (scene) │ -0.061       │              │              │                    │
-│  │ Prec@K (scene)     │ 18.73%       │              │              │                    │
+│  │ Prec@K (scene)     │ 14.6%        │              │              │                    │
+│  │ mAP@K (overall)    │ 0.079        │              │              │                    │
+│  │ Cycle@K            │ 78.7%        │              │              │                    │
+│  │ nDCG@K             │ 0.903        │              │              │                    │
+│  │ Overlap@K (true)   │ 10.5%        │              │              │                    │
+│  │ Silhouette (scene) │ -0.250       │              │              │                    │
+│  │ time_of_day mAP@K  │ 0.617        │              │              │                    │
+│  │ lighting mAP@K     │ 0.580        │              │              │                    │
 │  ├────────────────────┼──────────────┼──────────────┼──────────────┤                    │
-│  │ DINOv2 baseline    │ ???          │     —        │     —        │                    │
-│  │ Random baseline    │ ???          │     —        │     —        │                    │
+│  │ DINOv2 Prec@K      │ 50.5%        │     —        │     —        │                    │
+│  │ CLIP Prec@K        │ 46.0%        │     —        │     —        │                    │
+│  │ Shuffled Prec@K    │ 35.3%        │     —        │     —        │                    │
+│  │ Random Prec@K      │ 12.2%        │     —        │     —        │                    │
 │  └────────────────────┴──────────────┴──────────────┴──────────────┘                    │
 │                                                                                         │
 │  PAPER STORY (what each outcome means):                                                 │
@@ -832,7 +852,7 @@ flowchart LR
 |--------|---------|---------|--------|
 | m00-m03 | Ch 8 | Data pipeline (YouTube → clips → shards → HF) | DONE (Mac CPU) |
 | m00c | Ch 8 | Video-level uniform 10K subset | DONE |
-| **m00d** | **Ch 8** | **Pre-download subset to local WebDataset TARs. CPU-only (~11 min). Fixes producer starvation (8.4% hit rate → 100%).** | **DONE** (code built, SANITY + FULL pending on GPU) |
+| **m00d** | **Ch 8** | **Pre-download subset to local WebDataset TARs. CPU-only (~11 min). Fixes producer starvation (8.4% hit rate → 100%).** | **DONE** (23.8 min CDN v3, 10K clips, 10.45 GB) |
 | m04 | Ch 8 | VLM tagging (Qwen/VideoLLaMA/LLaVA). Now supports `--local-data` + resume dedup fix. | DONE |
 | m04b | Ch 8 | VLM bake-off comparison | DONE |
 | m04c | Ch 8 | Sanity comparison dashboard | DONE |
@@ -840,8 +860,8 @@ flowchart LR
 | m06 | Ch 9 | FAISS kNN + 9 metrics | DONE |
 | m07 | Ch 9 | cuML GPU UMAP | DONE |
 | m08 | Ch 9 | CPU matplotlib plots | DONE |
-| **m05b** | **Ch 9** | **Baseline embeddings (random, DINOv2, shuffled, CLIP). Supports `--local-data`. Optimized: FA2/SDPA+compile, producer pre-processes, image_encoder batch profile (4x vjepa).** | **DONE** (code built, GPU runs pending) |
-| **m05c** | **Ch 9** | **Augmented V-JEPA embeddings for True Overlap@K. Supports `--local-data`.** | **DONE** (code built, GPU runs pending) |
+| **m05b** | **Ch 9** | **Baseline embeddings (random, DINOv2, shuffled, CLIP). Supports `--local-data`. Optimized: FA2/SDPA+compile, producer pre-processes, image_encoder batch profile (4x vjepa).** | **DONE** (98m 43s — random 5K, dinov2/clip/shuffled 10K each) |
+| **m05c** | **Ch 9** | **Augmented V-JEPA embeddings for True Overlap@K. Supports `--local-data`. Dedup optimization reads embeddings.paths.npy (5,105 clips).** | **DONE** (93m with dedup fix, 5,105 clips) |
 | **m08b** | **Ch 9** | **Multi-encoder comparison (bar chart, radar, LaTeX)** | **DONE** (CPU-only, runs after m06 × 5) |
 | **m09** | **Ch 10** | **Continual pretraining (student-teacher JEPA)** | **TODO** |
 | **m10** | **Ch 11** | **SAM3 segmentation + tracklet mining** | **TODO** |

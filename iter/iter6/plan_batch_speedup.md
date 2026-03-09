@@ -299,10 +299,10 @@ Instead of streaming 115K clips from HF and filtering to 10K on every step, down
 |--------|-----|------|---------|
 | m04 throughput | 0.51 clips/s (declining) | ~1.5-2.0 clips/s (stable) | **1.33 clips/s** (stable, batch=64) |
 | m04 ETA (10K) | ~5.5h+ | ~1.5-2h | **2h 2m** ✅ |
-| m05 ETA | ~5.5h | ~1-2h | **1h 20m** (5,105 clips before stream death) |
-| m05b ETA (4 enc) | ~22h | ~4-6h | **1h 39m** (dinov2+clip+shuffled=10K each) |
-| m05c ETA | ~5.5h | ~1-2h | Bug #4: 0.3→?? clips/s (vectorized fix pending validation) |
-| **Total pipeline** | **~39h** | **~8-12h** | **~5h so far** (m05c incomplete) |
+| m05 ETA | ~5.5h | ~1-2h | **1h 20m** (10K clips, 5,105 after dedup) |
+| m05b ETA (4 enc) | ~22h | ~4-6h | **1h 39m** (random=5K, dinov2+clip+shuffled=10K each) |
+| m05c ETA | ~5.5h | ~1-2h | **93 min** (with dedup fix: 5,105 clips instead of 10K) |
+| **Total pipeline** | **~39h** | **~8-12h** | **~6h 35m clean** (actual first run ~12h 18m due to bugs) |
 | GPU idle time | ~90% (waiting for producer) | ~10% (normal batch gaps) | **VRAM 63%, batch=64** |
 | Resume correctness | **BROKEN** (duplicate tags) | **FIXED** (dedup by __key__) | ✅ verified |
 | Pre-download cost | N/A | ~11 min (streaming) | **23.8 min** (CDN, after HF throttle) |
@@ -326,7 +326,8 @@ Instead of streaming 115K clips from HF and filtering to 10K on every step, down
     m05b: dinov2 10K ✅, clip 10K ✅, vjepa_shuffled 10K ✅, random 5K (matched vjepa) ⚠️
     m05c: 4,144/10K @ 0.3 clips/s (stuck, see Bug #4) ⚠️
 11. ✅ Bug #4 fix: vectorized augmentation + removed ATen thread oversubscription — Mar 9, 2026
-12. 🔄 FULL pipeline run 2 needed: delete incomplete vjepa+random, re-run m05/m05b-random/m05c/m06-m08
+12. ✅ FULL pipeline COMPLETE (Mar 9, 2026): 48 outputs, 0 errors. 6 runs total (bugs fixed incrementally).
+    Actual times: m04=2h02m, m05=1h20m, m05b=1h39m, m05c=93m (dedup fix), m06-m08b=3m
 ```
 
 ---
