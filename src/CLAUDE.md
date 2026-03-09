@@ -40,13 +40,14 @@
 - GPU time is expensive — idle GPU = wasted money; idle user during GPU job = wasted time. Keep the GPU busy.
 - Mandatory checklist for ANY new loop that makes GPU/API/VLM calls: (1) tqdm progress bar, (2) auto-resume from checkpoint (skip completed items on restart), (3) tee logging, (4) wandb integration. No exceptions. If you write a pipeline loop without all four, you have shipped broken code. **MANUAL: Run `/preflight <file>` skill to verify before running any new pipeline code.** See `.claude/skills/preflight/SKILL.md`.
 
-# OPEN BUGS — MUST FIX BEFORE NEXT --FULL RUN
-See `iter/iter6/plan_Refactor_Batch_Inference.md` for full details, code snippets, and implementation plan.
+# BUGS — STATUS
 
-1) **Producer starvation (HF streaming + subset filter)**: With `--subset data/subset_10k.json`, m04/m05/m05b/m05c stream 115K clips from HF to find 10K matches (8.4% hit rate). GPU sits idle 90% of the time. Throughput degrades from 1.16→0.51 clips/s. Total pipeline: ~39h instead of ~8-12h. **FIX**: Write `m00d_download_subset.py` to pre-download 10K clips locally (~11 min, ~10.7 GB), add `--local-data` flag to m04/m05/m05b/m05c.
+1) **Producer starvation (HF streaming + subset filter)**: FIXED (Mar 8, 2026). `m00d_download_subset.py` pre-downloads 10K subset to local WebDataset TARs (~11 min, ~10.7 GB). `--local-data` flag added to m04/m05/m05b/m05c + `run_ch9_overnight.sh`. Code complete, verified on M1 Mac (py_compile + AST, 45/45 requirements). **SANITY + FULL POC pending on RTX PRO 6000 (96GB).**
 
-2) **Resume dedup bug (subset mode only)**: Checkpoint stores matched-clip count, but `--start-from` treats it as raw dataset position. On restart, producer re-scans already-tagged clips → duplicate entries in tags.json. **FIX**: Pass `already_tagged_keys` set to producer thread, skip clips whose `__key__` is already in checkpoint.
+2) **Resume dedup bug (subset mode only)**: FIXED (Mar 8, 2026). `already_tagged_keys` set built from checkpoint in `stream_and_tag()`, passed to `_producer_thread()`. Clips whose `__key__` already in checkpoint are skipped. Code complete in m04_vlm_tag.py. **Pending GPU validation.**
 
-3) **10K POC run status**: Aborted at 3,844/10,000 tags (checkpoint: `src/outputs_poc/tags.json`). Must fix bugs above, then delete this checkpoint and re-run clean.
+3) **10K POC run status**: Aborted at 3,844/10,000 tags (checkpoint: `src/outputs_poc/tags.json`). Must delete this checkpoint and re-run clean with `--local-data`.
 
 4) **Batch size override removed**: `run_ch9_overnight.sh` FULL mode no longer passes `--batch-size 36` — auto-compute via `gpu_batch.py` handles it (computes batch=64 on 96GB GPU). Verified working.
+
+See `iter/iter6/plan_batch_speedup.md` for full details.

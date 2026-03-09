@@ -149,10 +149,11 @@ if [[ "$MODE" == "SANITY" ]]; then
     T_M08="~1 min"
     T_M08B="~1 min"
 else
-    T_M04="~2-4h"
+    T_M00D="~12 min"
+    T_M04="~1.5-2h"
     T_M05="~1-2h"
-    T_M05B="~6-8h"
-    T_M05C="~3-4h"
+    T_M05B="~3-5h"
+    T_M05C="~1-2h"
     T_M06="~5 min each"
     T_M07="~2 min each"
     T_M08="~2 min"
@@ -268,10 +269,33 @@ echo "" | tee -a "$MASTER_LOG"
 # PIPELINE STEPS
 # ═══════════════════════════════════════════════════════════════════════
 
+# ── Step 0: Pre-download subset to local disk (FULL mode only) ──────
+LOCAL_DATA="data/subset_10k_local"
+LOCAL_FLAG=""
+
+if [[ "$MODE" == "FULL" ]]; then
+    if [[ -d "$LOCAL_DATA" && -f "$LOCAL_DATA/manifest.json" ]]; then
+        log "Local subset already exists: $LOCAL_DATA (skipping download)"
+        LOCAL_FLAG="--local-data $LOCAL_DATA"
+    else
+        run_step 0 "m00d pre-download subset" "$T_M00D" \
+            "$LOGDIR/m00d_download.log" \
+            src/m00d_download_subset.py --subset data/subset_10k.json --no-wandb \
+            || { log "FATAL: m00d failed. Cannot proceed without local data."; exit 1; }
+
+        if [[ -d "$LOCAL_DATA" && -f "$LOCAL_DATA/manifest.json" ]]; then
+            LOCAL_FLAG="--local-data $LOCAL_DATA"
+            log "Local subset ready: $LOCAL_DATA"
+        else
+            log "WARNING: m00d did not produce expected output. Falling back to HF streaming."
+        fi
+    fi
+fi
+
 # ── Step 1: VLM tagging (Qwen) ───────────────────────────────────────
 run_step 1 "m04 VLM tagging (Qwen)" "$T_M04" \
     "$LOGDIR/m04_${MODE,,}_qwen.log" \
-    src/m04_vlm_tag.py --model qwen $MODE_FLAG $SUBSET_FLAG $BATCH_M04 --no-wandb \
+    src/m04_vlm_tag.py --model qwen $MODE_FLAG $SUBSET_FLAG $LOCAL_FLAG $BATCH_M04 --no-wandb \
     || { log "WARNING: m04 failed. Step 5 (m06 metrics) will fail without tags."; }
     # Non-fatal: embeddings (Steps 2-4) don't need tags. Only m06 does.
 
@@ -297,7 +321,7 @@ fi
 # ── Step 2: V-JEPA embeddings ────────────────────────────────────────
 run_step 2 "m05 V-JEPA embeddings" "$T_M05" \
     "$LOGDIR/m05_${MODE,,}.log" \
-    src/m05_vjepa_embed.py $MODE_FLAG $SUBSET_FLAG --no-wandb \
+    src/m05_vjepa_embed.py $MODE_FLAG $SUBSET_FLAG $LOCAL_FLAG --no-wandb \
     || { log "FATAL: m05 failed. Steps 3-7 depend on V-JEPA embeddings."; exit 1; }
 
 verify "Step 2 embeddings" "
@@ -312,7 +336,7 @@ print(f'  shape match: {emb.shape[0] == len(paths)}')
 # ── Step 3: Baseline embeddings (all 4) ──────────────────────────────
 run_step 3 "m05b baselines (all 4 encoders)" "$T_M05B" \
     "$LOGDIR/m05b_${MODE,,}_all.log" \
-    src/m05b_baselines.py --encoder all $MODE_FLAG $SUBSET_FLAG --no-wandb \
+    src/m05b_baselines.py --encoder all $MODE_FLAG $SUBSET_FLAG $LOCAL_FLAG --no-wandb \
     || { log "WARNING: m05b failed. Some baseline metrics will be missing."; }
     # Non-fatal: V-JEPA metrics still work without baselines
 
@@ -332,7 +356,7 @@ for enc, sfx, dim in [('random','_random',1408), ('dinov2','_dinov2',1536),
 # ── Step 4: True Overlap augmented embeddings ─────────────────────────
 run_step 4 "m05c True Overlap augmented embeddings" "$T_M05C" \
     "$LOGDIR/m05c_${MODE,,}.log" \
-    src/m05c_true_overlap.py $MODE_FLAG $SUBSET_FLAG --no-wandb \
+    src/m05c_true_overlap.py $MODE_FLAG $SUBSET_FLAG $LOCAL_FLAG --no-wandb \
     || { log "WARNING: m05c failed. True Overlap@K will use dim-split fallback."; }
     # Non-fatal: m06 falls back to dim-split without augmented embeddings
 

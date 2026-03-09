@@ -28,7 +28,7 @@ from utils.config import (
     EMBEDDINGS_FILE, VJEPA_MODEL_ID, HF_DATASET_REPO,
     VJEPA_FRAMES_PER_CLIP, VJEPA_EMBEDDING_DIM,
     check_gpu, DEFAULT_BATCH_SIZE,
-    check_output_exists, load_subset, add_subset_arg, get_output_dir,
+    check_output_exists, load_subset, add_subset_arg, add_local_data_arg, get_output_dir,
 )
 from utils.gpu_batch import compute_batch_sizes, add_gpu_mem_arg
 from utils.wandb_utils import add_wandb_args, init_wandb, log_metrics, log_artifact, finish_wandb
@@ -83,9 +83,12 @@ def get_clip_key(example: dict) -> str:
     return f"{section}/{video_id}/{source_file}"
 
 
-def _create_stream(skip_count: int = 0):
-    """Create HF streaming dataset, optionally skipping already-processed examples."""
-    ds = load_dataset(HF_DATASET_REPO, split="train", streaming=True)
+def _create_stream(skip_count: int = 0, local_data: str = None):
+    """Create streaming dataset from HF or local WebDataset shards."""
+    if local_data:
+        ds = load_dataset("webdataset", data_dir=local_data, split="train", streaming=True)
+    else:
+        ds = load_dataset(HF_DATASET_REPO, split="train", streaming=True)
     ds = ds.decode(False)
     if skip_count > 0:
         ds = ds.skip(skip_count)
@@ -207,15 +210,15 @@ def _process_and_enqueue(processor, batch_tensors, batch_keys, q):
 def _producer_thread(processor, batch_size: int, tmp_dir: str,
                      q: queue.Queue, stop_event: threading.Event,
                      clip_limit: int, subset_keys: set, num_frames: int,
-                     processed_keys: set):
-    """Stream from HF, filter by subset, decode video tensors in parallel, enqueue."""
+                     processed_keys: set, local_data: str = None):
+    """Stream from HF (or local shards), filter by subset, decode video tensors in parallel, enqueue."""
     produced = 0
     skipped = 0
     retries = 0
 
     while produced < clip_limit and not stop_event.is_set():
         try:
-            ds = _create_stream(0)
+            ds = _create_stream(0, local_data=local_data)
             # Collect a batch of (bytes, key) pairs, then decode in parallel
             pending_bytes = []
             pending_keys = []
@@ -443,6 +446,8 @@ def orchestrator_main(args):
                 cmd.extend(["--gpu-mem", str(args.gpu_mem)])
             if args.model != VJEPA_MODEL_ID:
                 cmd.extend(["--model", args.model])
+            if getattr(args, 'local_data', None):
+                cmd.extend(["--local-data", args.local_data])
 
             result = subprocess.run(cmd)
 
@@ -574,7 +579,8 @@ def worker_main(args):
     producer = threading.Thread(
         target=_producer_thread,
         args=(processor, args.batch_size, tmp_dir, q, stop_event,
-              clip_limit, subset_keys, VJEPA_FRAMES_PER_CLIP, processed_keys),
+              clip_limit, subset_keys, VJEPA_FRAMES_PER_CLIP, processed_keys,
+              getattr(args, 'local_data', None)),
         daemon=True,
     )
     producer.start()
@@ -664,6 +670,7 @@ def main():
     parser.add_argument("--threshold", type=float, default=DEDUPE_THRESHOLD,
                         help="Dedupe threshold")
     add_subset_arg(parser)
+    add_local_data_arg(parser)
     add_wandb_args(parser)
     add_gpu_mem_arg(parser)
 

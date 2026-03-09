@@ -194,122 +194,37 @@ Result: tags.json would contain ~3,521 duplicate clips out of 10,000.
 
 ### SOLUTION: Pre-Download Subset to Local Disk (`m00d_download_subset.py`)
 
+> **STATUS: CODE COMPLETE (Mar 8, 2026).** All 7 files implemented + verified (45/45 plan requirements pass on M1 Mac via `py_compile` + AST). **Pending: SANITY test + FULL POC run on RTX PRO 6000 (96GB).**
+
 Instead of streaming 115K clips from HF and filtering to 10K on every step, download the 10K subset clips ONCE to local disk. All subsequent steps read locally → 100% hit rate, no network I/O.
 
-**New script: `src/m00d_download_subset.py`**
+#### Files Modified (all verified `py_compile` + AST on M1 Mac)
 
-```
-PURPOSE: Stream through HF dataset once, save matching subset clips to local WebDataset shards.
-INPUT:   data/subset_10k.json (clip keys), HF dataset (streaming)
-OUTPUT:  data/subset_10k_local/ directory with WebDataset TAR shards
+| File | Change | Status |
+|------|--------|--------|
+| `src/utils/config.py` | Added `add_local_data_arg(parser)` shared helper | DONE |
+| `src/m00d_download_subset.py` | **NEW** — CPU-only pre-download (~275 lines) | DONE |
+| `src/m05_vjepa_embed.py` | `_create_stream(local_data=)` + `--local-data` arg + orchestrator passthrough | DONE |
+| `src/m04_vlm_tag.py` | `_create_stream(local_data=)` + `already_tagged_keys` dedup + `--local-data` arg + orchestrator passthrough | DONE |
+| `src/m05b_baselines.py` | `local_data` param to both producer functions + `--local-data` arg | DONE |
+| `src/m05c_true_overlap.py` | `local_data` param to producer + `--local-data` arg | DONE |
+| `run_ch9_overnight.sh` | Step 0 pre-download + `$LOCAL_FLAG` to Steps 1-4 + updated time estimates | DONE |
 
-Estimated time: ~11 min (one-time cost)
-Estimated disk: ~10.7 GB
-
-USAGE:
-  python -u src/m00d_download_subset.py --subset data/subset_10k.json 2>&1 | tee logs/m00d_download.log
-```
-
-**What it does:**
-1. Load subset keys from `data/subset_10k.json` (10,000 keys)
-2. Stream through full HF dataset (115K clips, ~11 min)
-3. For each matching clip: save mp4 bytes + JSON metadata to local WebDataset TAR shards
-4. Write `data/subset_10k_local/manifest.json` with shard paths and clip count
-5. Progress bar + checkpoint (can resume if interrupted)
-
-**Code changes to existing modules (m04, m05, m05b, m05c):**
-
-Add `--local-data` flag to all 4 HF-streaming modules:
-
-```python
-# In argparse:
-parser.add_argument("--local-data", type=str, default=None,
-                    help="Local WebDataset dir (from m00d_download_subset.py)")
-
-# In _create_stream() or equivalent:
-if args.local_data:
-    ds = load_dataset("webdataset", data_dir=args.local_data, split="train", streaming=True)
-else:
-    ds = load_dataset(HF_DATASET_REPO, split="train", streaming=True)
-
-# No subset filtering needed — local shards contain ONLY subset clips
-# hit rate = 100%, no network I/O
-```
-
-**Changes to `run_ch9_overnight.sh`:**
+#### Pending GPU Validation
 
 ```bash
-# Add pre-download step BEFORE step 1:
-LOCAL_DATA="data/subset_10k_local"
-if [[ "$MODE" == "FULL" && ! -d "$LOCAL_DATA" ]]; then
-    log "Pre-downloading subset to local disk..."
-    python -u src/m00d_download_subset.py --subset data/subset_10k.json \
-        2>&1 | tee "$LOGDIR/m00d_download.log" | tee -a "$MASTER_LOG"
-fi
+# SANITY test (20 clips, ~5 min):
+python -u src/m00d_download_subset.py --subset data/subset_10k.json --SANITY 2>&1 | tee logs/m00d_sanity.log
+# Verify: data/subset_10k_local/ has TARs + manifest.json
 
-# Add --local-data flag to steps 1-4:
-LOCAL_FLAG=""
-if [[ -d "$LOCAL_DATA" ]]; then
-    LOCAL_FLAG="--local-data $LOCAL_DATA"
-fi
+# Then test --local-data flag propagation:
+python -u src/m05b_baselines.py --encoder random --SANITY --local-data data/subset_10k_local 2>&1
 
-# Step 1: m04
-run_step 1 "m04 VLM tagging (Qwen)" "$T_M04" \
-    "$LOGDIR/m04_${MODE,,}_qwen.log" \
-    src/m04_vlm_tag.py --model qwen $MODE_FLAG $LOCAL_FLAG --no-wandb
-
-# Step 2: m05 (same pattern)
-# Step 3: m05b (same pattern)
-# Step 4: m05c (same pattern)
+# FULL POC (10K clips, ~12 min download + ~8-12h pipeline):
+./run_ch9_overnight.sh --FULL
 ```
 
-**Fix for BUG 2 (resume duplicates) — also needed:**
-
-In `_producer_thread()` in m04_vlm_tag.py (and equivalent in m05/m05b/m05c):
-
-```python
-def _producer_thread(backend, start_from, batch_size, tmp_dir,
-                     q, stop_event, clip_limit, subset_keys,
-                     already_tagged_keys=None):    # ← NEW parameter
-    # ...
-    for example in ds:
-        # Subset filtering (only if streaming from HF, not needed for local)
-        if subset_keys:
-            clip_key = get_clip_key(example)
-            if clip_key not in subset_keys:
-                skipped += 1
-                continue
-
-        # NEW: Skip already-tagged clips on resume (prevents duplicates)
-        if already_tagged_keys:
-            ex_key = example.get("__key__", "")
-            if ex_key in already_tagged_keys:
-                skipped += 1
-                continue
-        # ... rest of producer logic
-```
-
-In `stream_and_tag()`:
-
-```python
-def stream_and_tag(backend, args, start_from, clip_limit, tags_file, subset_keys, wb_run=None):
-    all_tags, _ = load_checkpoint(tags_file)
-
-    # NEW: Build set of already-tagged keys for dedup on resume
-    already_tagged_keys = {t["__key__"] for t in all_tags if "__key__" in t} if all_tags else None
-    if already_tagged_keys:
-        print(f"  [resume] {len(already_tagged_keys):,} already-tagged keys loaded for dedup")
-
-    # ... existing code ...
-
-    producer = threading.Thread(
-        target=_producer_thread,
-        args=(backend, start_from, batch_size, tmp_dir,
-              q, stop_event, clip_limit, subset_keys,
-              already_tagged_keys),    # ← PASS dedup set
-        daemon=True,
-    )
-```
+Implementation details in the code itself (7 files modified, 45/45 plan requirements verified).
 
 ---
 
@@ -330,25 +245,17 @@ def stream_and_tag(backend, args, start_from, clip_limit, tags_file, subset_keys
 ### Implementation Order
 
 ```
-1. Write m00d_download_subset.py (new script, ~1h)
-2. Fix resume dedup bug in m04_vlm_tag.py (add already_tagged_keys, ~15 min)
-3. Add --local-data flag to m04, m05, m05b, m05c (~30 min each, ~2h total)
-4. Update run_ch9_overnight.sh with pre-download step + --local-data flag (~15 min)
-5. Test with --SANITY first (~5 min)
-6. Run --FULL (~8-12h)
+1. ✅ config.py: add_local_data_arg() shared helper
+2. ✅ m05_vjepa_embed.py: _create_stream(local_data=) + --local-data arg + orchestrator passthrough
+3. ✅ m04_vlm_tag.py: _create_stream(local_data=) + already_tagged_keys dedup + --local-data arg
+4. ✅ m05b_baselines.py: local_data param to both producers + --local-data arg
+5. ✅ m05c_true_overlap.py: local_data param to producer + --local-data arg
+6. ✅ m00d_download_subset.py: new CPU-only script (~275 lines)
+7. ✅ run_ch9_overnight.sh: Step 0 pre-download + $LOCAL_FLAG to Steps 1-4
+── ALL CODE COMPLETE (Mar 8, 2026). Verified: py_compile + AST (45/45 requirements). ──
+8. ⏳ SANITY test on RTX PRO 6000 (20 clips, ~5 min)
+9. ⏳ FULL POC run on RTX PRO 6000 (10K clips, ~8-12h)
 ```
-
-### Files to modify
-
-| File | Change |
-|------|--------|
-| `src/m00d_download_subset.py` | **NEW** — download subset clips to local WebDataset |
-| `src/m04_vlm_tag.py` | Add `--local-data` flag + fix resume dedup bug |
-| `src/m05_vjepa_embed.py` | Add `--local-data` flag |
-| `src/m05b_baselines.py` | Add `--local-data` flag |
-| `src/m05c_true_overlap.py` | Add `--local-data` flag |
-| `run_ch9_overnight.sh` | Add pre-download step + pass `--local-data` to steps 1-4 |
-| `data/subset_10k_local/` | **NEW** — local WebDataset shards (~10.7 GB) |
 
 ---
 

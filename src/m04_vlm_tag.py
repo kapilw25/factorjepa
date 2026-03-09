@@ -34,7 +34,7 @@ sys.path.insert(0, str(Path(__file__).parent))
 from utils.config import (
     TAGS_FILE, TAG_TAXONOMY_JSON, HF_DATASET_REPO, OUTPUTS_DIR,
     VLM_MODELS, BAKEOFF_CLIP_COUNT, BAKEOFF_DIR, OUTPUTS_POC_DIR, OUTPUTS_SANITY_DIR,
-    check_gpu, check_output_exists, load_subset, add_subset_arg,
+    check_gpu, check_output_exists, load_subset, add_subset_arg, add_local_data_arg,
 )
 from utils.gpu_batch import compute_batch_sizes, add_gpu_mem_arg, AdaptiveBatchSizer
 from utils.wandb_utils import (
@@ -859,8 +859,12 @@ def add_provenance(tags: dict, example: dict, model_id: str,
 # PIPELINE: Producer / Consumer (backend-agnostic)
 # ═════════════════════════════════════════════════════════════════════════
 
-def _create_stream(skip_count: int):
-    ds = load_dataset(HF_DATASET_REPO, split="train", streaming=True)
+def _create_stream(skip_count: int, local_data: str = None):
+    """Create streaming dataset from HF or local WebDataset shards."""
+    if local_data:
+        ds = load_dataset("webdataset", data_dir=local_data, split="train", streaming=True)
+    else:
+        ds = load_dataset(HF_DATASET_REPO, split="train", streaming=True)
     ds = ds.decode(False)
     if skip_count > 0:
         ds = ds.skip(skip_count)
@@ -868,9 +872,11 @@ def _create_stream(skip_count: int):
 
 
 def _producer_thread(backend, start_from, batch_size, tmp_dir,
-                     q, stop_event, clip_limit, subset_keys):
+                     q, stop_event, clip_limit, subset_keys,
+                     already_tagged_keys=None, local_data=None):
     """
-    Background thread: streams from HF, filters by subset, preprocesses batches.
+    Background thread: streams from HF (or local shards), filters by subset,
+    skips already-tagged clips on resume, preprocesses batches.
     Puts (batch, preprocessed) onto queue for consumer.
     """
     produced = 0
@@ -879,7 +885,7 @@ def _producer_thread(backend, start_from, batch_size, tmp_dir,
 
     while produced < clip_limit and not stop_event.is_set():
         try:
-            ds = _create_stream(start_from + produced + skipped)
+            ds = _create_stream(start_from + produced + skipped, local_data=local_data)
             batch = []
 
             for example in ds:
@@ -890,6 +896,13 @@ def _producer_thread(backend, start_from, batch_size, tmp_dir,
                 if subset_keys:
                     clip_key = get_clip_key(example)
                     if clip_key not in subset_keys:
+                        skipped += 1
+                        continue
+
+                # Dedup on resume — skip already-tagged clips
+                if already_tagged_keys:
+                    ck = get_clip_key(example)
+                    if ck in already_tagged_keys:
                         skipped += 1
                         continue
 
@@ -941,6 +954,13 @@ def stream_and_tag(backend: VLMBackend, args,
 
     all_tags, _ = load_checkpoint(tags_file)
 
+    # Build dedup set from existing tags for resume correctness (Bug 2 fix)
+    already_tagged_keys = None
+    if all_tags:
+        already_tagged_keys = {t["__key__"] for t in all_tags if "__key__" in t}
+        if already_tagged_keys:
+            print(f"  [resume] {len(already_tagged_keys):,} already-tagged keys loaded for dedup")
+
     tmp_base = tags_file.parent / "tmp_m04"
     tmp_base.mkdir(parents=True, exist_ok=True)
     tmp_dir = tempfile.mkdtemp(dir=tmp_base)
@@ -953,7 +973,8 @@ def stream_and_tag(backend: VLMBackend, args,
     producer = threading.Thread(
         target=_producer_thread,
         args=(backend, start_from, batch_size, tmp_dir,
-              q, stop_event, clip_limit, subset_keys),
+              q, stop_event, clip_limit, subset_keys,
+              already_tagged_keys, getattr(args, 'local_data', None)),
         daemon=True,
     )
     producer.start()
@@ -1080,6 +1101,8 @@ def orchestrator_main(args):
             cmd.append("--no-wandb")
         if args.gpu_mem is not None:
             cmd.extend(["--gpu-mem", str(args.gpu_mem)])
+        if getattr(args, 'local_data', None):
+            cmd.extend(["--local-data", args.local_data])
 
         result = subprocess.run(cmd)
 
@@ -1329,6 +1352,7 @@ def main():
     parser.add_argument("--batch-size", type=int, default=None,
                         help="Override batch size")
     add_subset_arg(parser)
+    add_local_data_arg(parser)
     add_wandb_args(parser)
     add_gpu_mem_arg(parser)
 

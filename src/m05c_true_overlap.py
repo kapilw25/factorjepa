@@ -21,7 +21,7 @@ import numpy as np
 sys.path.insert(0, str(Path(__file__).parent))
 from utils.config import (
     VJEPA_FRAMES_PER_CLIP, check_gpu, check_output_exists,
-    load_subset, add_subset_arg, get_output_dir,
+    load_subset, add_subset_arg, add_local_data_arg, get_output_dir,
 )
 from utils.gpu_batch import compute_batch_sizes, add_gpu_mem_arg
 from utils.wandb_utils import add_wandb_args, init_wandb, log_metrics, log_artifact, finish_wandb
@@ -97,14 +97,15 @@ def _augment_clip_consistent(video_tensor: torch.Tensor, view: str,
 def _producer_overlap(processor, batch_size: int, tmp_dir: str,
                        q: queue.Queue, stop_event: threading.Event,
                        clip_limit: int, subset_keys: set,
-                       processed_keys: set, num_frames: int):
-    """Stream clips, produce two augmented views per clip."""
+                       processed_keys: set, num_frames: int,
+                       local_data: str = None):
+    """Stream clips (HF or local shards), produce two augmented views per clip."""
     produced = 0
     retries = 0
 
     while produced < clip_limit and not stop_event.is_set():
         try:
-            ds = _create_stream(0)
+            ds = _create_stream(0, local_data=local_data)
             pending_bytes = []
             pending_keys = []
 
@@ -206,6 +207,7 @@ def main():
     parser.add_argument("--FULL", action="store_true", help="Process all clips")
     parser.add_argument("--batch-size", type=int, default=None)
     add_subset_arg(parser)
+    add_local_data_arg(parser)
     add_wandb_args(parser)
     add_gpu_mem_arg(parser)
     args = parser.parse_args()
@@ -284,7 +286,8 @@ def main():
     producer = threading.Thread(
         target=_producer_overlap,
         args=(processor, batch_size, tmp_dir, q, stop_event,
-              clip_limit, subset_keys, processed_keys, VJEPA_FRAMES_PER_CLIP),
+              clip_limit, subset_keys, processed_keys, VJEPA_FRAMES_PER_CLIP,
+              getattr(args, 'local_data', None)),
         daemon=True,
     )
     producer.start()

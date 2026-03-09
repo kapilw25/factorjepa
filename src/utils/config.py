@@ -213,6 +213,13 @@ def add_subset_arg(parser):
                         help="Path to subset JSON (e.g., data/subset_10k.json) for POC mode")
 
 
+def add_local_data_arg(parser):
+    """Add --local-data argument for pre-downloaded local WebDataset shards."""
+    parser.add_argument("--local-data", type=str, default=None,
+                        help="Local WebDataset dir (from m00d_download_subset.py). "
+                             "Bypasses HF streaming for 100%% hit rate.")
+
+
 # =============================================================================
 # UTILITY FUNCTIONS (avoid redundancy across modules)
 # =============================================================================

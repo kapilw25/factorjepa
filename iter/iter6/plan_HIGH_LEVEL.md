@@ -63,7 +63,8 @@
 |--------|--------|
 | **Subset** | 10,000 clips from 115K (video-level uniform, seed=42) |
 | **Tool** | `m00c_sample_subset.py` → `data/subset_10k.json` |
-| **Flag** | All scripts accept `--subset data/subset_10k.json` |
+| **Flag** | All scripts accept `--subset data/subset_10k.json` + `--local-data data/subset_10k_local` |
+| **Pre-download** | `m00d_download_subset.py` pre-downloads 10K clips to local WebDataset TARs (~11 min, ~10.7 GB) |
 | **Output** | `outputs_poc/` (separate from `outputs/`) |
 | **Scale** | After POC validates → drop `--subset`, same scripts run on 115K |
 
@@ -71,7 +72,7 @@
 
 | Week | Chapter | GPU Hours | Deliverable | Status |
 |:----:|---------|:---------:|-------------|--------|
-| 1 | Ch 8+9 (data + eval + baselines) | ~15h | metrics_frozen.json + 15 plots + baselines | **95% DONE** (code built + optimized, GPU runs pending via `run_ch9_overnight.sh`) |
+| 1 | Ch 8+9 (data + eval + baselines) | ~8-12h | metrics_frozen.json + 15 plots + baselines | **98% DONE** (all code built + m00d local pre-download + dedup fix. SANITY + FULL POC pending on RTX PRO 6000 via `run_ch9_overnight.sh`) |
 | 2 | Ch 10 (continual pretraining) | ~20h | metrics_adapted.json (frozen vs adapted) | NEXT |
 | 3-4 | Ch 11 (surgery fine-tuning) | ~54h | metrics_surgical.json (frozen vs adapted vs surgical) | FUTURE |
 
@@ -249,6 +250,29 @@ Tags serve **two purposes only**: (1) stratified batching for Ch10/Ch11, (2) sli
 │                                                                             │
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
+
+### Baseline Selection Rationale
+
+**Design principle**: Controlled ablation — each baseline isolates ONE variable vs V-JEPA. This is NOT a model leaderboard; it's a diagnostic tool to answer "what makes V-JEPA's embeddings work (or fail) for Indian street scenes?"
+
+#### Chosen (4 baselines)
+
+| Encoder | Params | Input | Research Question | Why Included |
+|---------|--------|-------|-------------------|--------------|
+| **Random** | 0 | none | Lower bound — does any metric beat chance? | Sanity check. If V-JEPA ≈ random, embeddings are useless. |
+| **DINOv2** (ViT-L/14) | ~300M | 1 frame | Does temporal info help, or is a single frame enough? | Same training paradigm (self-supervised), removes video → image. Isolates temporal contribution. |
+| **CLIP** (ViT-L/14) | ~300M | 1 frame | Does language supervision help visual retrieval? | Same arch (ViT-L), but contrastive text-image training. Isolates language alignment effect. |
+| **V-JEPA Shuffled** | 1B | 64 frames (shuffled) | Does frame ORDER matter, or just frame bag? | Same model + same frames, only temporal order destroyed. Isolates temporal reasoning. |
+
+#### Skipped (3 candidate models)
+
+| Model | Params | Why Excluded |
+|-------|--------|--------------|
+| **Qwen3-VL-Embedding-8B** | 8B | 8× V-JEPA's params — unfair comparison. Language-supervised VLM (wrong axis: tests model family, not a controlled variable). Ch10-11 adapt V-JEPA, not compare model families. |
+| **VideoMAE v2** | ~1B | Self-supervised video encoder (closest fair alternative), but same training paradigm as V-JEPA — would test architecture differences, not isolate a clear variable. Adds GPU hours without answering a distinct question. |
+| **InternVideo2** | ~1B | Multi-stage trained (self-sup + supervised + text-aligned) — confounds 3+ variables at once. Cannot attribute performance delta to any single factor. |
+
+**Bottom line**: The 4 chosen baselines form a clean 2×2 ablation grid (temporal vs static × self-supervised vs language-supervised), plus a random lower bound. Adding more models would create a leaderboard, not deepen understanding.
 
 ### Ch 9 Key Findings (from report.md)
 
@@ -808,15 +832,16 @@ flowchart LR
 |--------|---------|---------|--------|
 | m00-m03 | Ch 8 | Data pipeline (YouTube → clips → shards → HF) | DONE (Mac CPU) |
 | m00c | Ch 8 | Video-level uniform 10K subset | DONE |
-| m04 | Ch 8 | VLM tagging (Qwen/VideoLLaMA/LLaVA) | DONE |
+| **m00d** | **Ch 8** | **Pre-download subset to local WebDataset TARs. CPU-only (~11 min). Fixes producer starvation (8.4% hit rate → 100%).** | **DONE** (code built, SANITY + FULL pending on GPU) |
+| m04 | Ch 8 | VLM tagging (Qwen/VideoLLaMA/LLaVA). Now supports `--local-data` + resume dedup fix. | DONE |
 | m04b | Ch 8 | VLM bake-off comparison | DONE |
 | m04c | Ch 8 | Sanity comparison dashboard | DONE |
-| m05 | Ch 9 | V-JEPA 2 embedding extraction | DONE |
+| m05 | Ch 9 | V-JEPA 2 embedding extraction. `_create_stream()` supports `local_data` kwarg (shared by m05b/m05c). | DONE |
 | m06 | Ch 9 | FAISS kNN + 9 metrics | DONE |
 | m07 | Ch 9 | cuML GPU UMAP | DONE |
 | m08 | Ch 9 | CPU matplotlib plots | DONE |
-| **m05b** | **Ch 9** | **Baseline embeddings (random, DINOv2, shuffled, CLIP). Optimized: DINOv2=FA2+compile, CLIP=SDPA+compile, shuffled=FA2+compile. Producer pre-processes, image_encoder batch profile (4x vjepa).** | **DONE** (code built, GPU runs pending) |
-| **m05c** | **Ch 9** | **Augmented V-JEPA embeddings for True Overlap@K** | **DONE** (code built, GPU runs pending) |
+| **m05b** | **Ch 9** | **Baseline embeddings (random, DINOv2, shuffled, CLIP). Supports `--local-data`. Optimized: FA2/SDPA+compile, producer pre-processes, image_encoder batch profile (4x vjepa).** | **DONE** (code built, GPU runs pending) |
+| **m05c** | **Ch 9** | **Augmented V-JEPA embeddings for True Overlap@K. Supports `--local-data`.** | **DONE** (code built, GPU runs pending) |
 | **m08b** | **Ch 9** | **Multi-encoder comparison (bar chart, radar, LaTeX)** | **DONE** (CPU-only, runs after m06 × 5) |
 | **m09** | **Ch 10** | **Continual pretraining (student-teacher JEPA)** | **TODO** |
 | **m10** | **Ch 11** | **SAM3 segmentation + tracklet mining** | **TODO** |

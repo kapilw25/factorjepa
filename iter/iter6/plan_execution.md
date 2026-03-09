@@ -4,6 +4,8 @@ STATUS: m00-m03 COMPLETED (Mac CPU). Steps 0-7 (collapsed pipeline — each modu
 Dataset: https://huggingface.co/datasets/anonymousML123/walkindia-200k (private, HF_TOKEN in .env)
 VLM: **Qwen3-VL-8B** (winner — 0.919 weighted score via 5-criterion bake-off). Transformers batched inference with AdaptiveBatchSizer.
 
+**CRITICAL FIX (Mar 8, 2026):** Added `m00d_download_subset.py` (pre-download 10K subset to local WebDataset TARs) + `--local-data` flag to m04/m05/m05b/m05c + resume dedup fix in m04. All code complete + verified on M1 Mac. **SANITY + FULL POC pending on RTX PRO 6000 (96GB).** See `iter/iter6/plan_batch_speedup.md` for bug analysis and solution details. Pipeline time reduced from ~39h → ~8-12h.
+
 ### GPU Strategy & Clip Selection
 
 | Mode | Command Flags | GPU | VRAM | Input Pool | Selection Method | Output Count | Output Path |
@@ -66,12 +68,48 @@ See `iter/iter6/plots/m04b_vlm_comparison.png` for full visualization.
 
 ---
 
+## Step 0.5: Pre-download subset to local disk — CPU-only (NEW)
+
+**Prerequisite:** `data/subset_10k.json` exists. No GPU needed.
+
+Pre-download 10K subset clips from HF to local WebDataset TAR shards. One-time cost (~11 min, ~10.7 GB). Eliminates producer starvation bug (8.4% hit rate → 100% hit rate) for all subsequent steps.
+
+```bash
+# SANITY — download first 20 matching clips only
+python -u src/m00d_download_subset.py --subset data/subset_10k.json --SANITY 2>&1 | tee logs/m00d_sanity.log
+
+# FULL — download all 10K matching clips
+python -u src/m00d_download_subset.py --subset data/subset_10k.json 2>&1 | tee logs/m00d_download.log
+```
+
+### Verify Step 0.5 output
+
+```bash
+python -c "
+import json
+m = json.load(open('data/subset_10k_local/manifest.json'))
+print(f'Manifest: {m[\"n\"]} clips, {len(m[\"shards\"])} shards')
+print(f'Subset file: {m[\"subset_file\"]}')
+"
+ls -la data/subset_10k_local/*.tar | head -5
+du -sh data/subset_10k_local/
+```
+
+**Expected:** `data/subset_10k_local/` with ~10 TAR shards (1000 clips each) + `manifest.json`. ~10.7 GB total.
+
+**Status:**
+- [ ] SANITY (20 clips): pending
+- [ ] FULL (10K clips): pending
+
+---
+
 ## Step 1: Qwen tags 10K clips (v3 taxonomy) — RTX Pro 6000 (96GB)
 
 Qwen3-VL tags all 10K POC clips using v3 taxonomy (`src/utils/tag_taxonomy.json` — 16 fields including `traffic_mix`, `ped_vehicle_separation`, `road_encroachment`, `video_quality`).
 
 ```bash
-python -u src/m04_vlm_tag.py --model qwen --FULL --subset data/subset_10k.json 2>&1 | tee logs/m04_full_qwen_poc.log
+python -u src/m04_vlm_tag.py --model qwen --FULL --subset data/subset_10k.json \
+    --local-data data/subset_10k_local 2>&1 | tee logs/m04_full_qwen_poc.log
 ```
 
 ### Verify Step 1 output
@@ -88,7 +126,8 @@ for field in ['traffic_mix', 'ped_vehicle_separation', 'road_encroachment', 'vid
 ```
 
 **Expected:** `outputs_poc/tags.json` with ~10K clips x 40+ fields (16 tags + 16 confidences + provenance).
-**Est. time (96GB, batch=36):** ~2-3h at 0.7-1.0 clips/s. Checkpoint saves every 500 clips.
+**Est. time (96GB, batch=64, local data):** ~1.5-2h at ~1.5-2.0 clips/s (100% hit rate with `--local-data`). Checkpoint saves every 500 clips.
+**Note:** Resume dedup fix via `already_tagged_keys` prevents duplicate tags on restart.
 
 **Status:**
 - [ ] Qwen FULL POC (10K, v3 taxonomy): pending
@@ -104,7 +143,8 @@ V-JEPA 2 ViT-G (1B params, frozen) encodes each clip → 1408-dim embedding. Pro
 python -u src/m05_vjepa_embed.py --SANITY 2>&1 | tee logs/m05_sanity.log
 
 # FULL — RTX Pro 6000 (96GB) — embed 10K clips
-python -u src/m05_vjepa_embed.py --FULL --subset data/subset_10k.json 2>&1 | tee logs/m05_vjepa_embed_poc.log
+python -u src/m05_vjepa_embed.py --FULL --subset data/subset_10k.json \
+    --local-data data/subset_10k_local 2>&1 | tee logs/m05_vjepa_embed_poc.log
 ```
 
 ### Verify Step 2 output
@@ -161,9 +201,9 @@ Generate embeddings for all 4 baseline encoders sequentially (Random → DINOv2 
 # SANITY — validate all 4 encoders load + produce output (5 clips each)
 python -u src/m05b_baselines.py --encoder all --SANITY 2>&1 | tee logs/m05b_all_sanity.log
 
-# FULL — embed 10K clips × 4 encoders (~6-8h GPU total)
+# FULL — embed 10K clips × 4 encoders (~3-5h GPU total with local data)
 python -u src/m05b_baselines.py --encoder all --FULL --subset data/subset_10k.json \
-    2>&1 | tee logs/m05b_all_poc.log
+    --local-data data/subset_10k_local 2>&1 | tee logs/m05b_all_poc.log
 ```
 
 > **Debug individual encoder:** `python -u src/m05b_baselines.py --encoder dinov2 --SANITY 2>&1 | tee logs/m05b_dinov2_sanity.log`
@@ -210,7 +250,7 @@ Generate two augmented V-JEPA embedding sets (BYOL/DINO multi-crop protocol) for
 
 ```bash
 python -u src/m05c_true_overlap.py --FULL --subset data/subset_10k.json \
-    2>&1 | tee logs/m05c_overlap_poc.log
+    --local-data data/subset_10k_local 2>&1 | tee logs/m05c_overlap_poc.log
 ```
 
 ### Verify Step 4 output
@@ -509,14 +549,15 @@ ls -la src/outputs_poc/m08b_comparison_table.tex 2>/dev/null
 | Step | Module | GPU? | Est. Time | Actual |
 |------|--------|------|-----------|--------|
 | 0 | VLM Selection (3 VLMs bake-off) | GPU | — | **DONE** (Qwen 0.919) |
-| 1 | m04 Qwen tags 10K (v3 taxonomy) | GPU | ~2-3h | |
-| 2 | m05 V-JEPA embed (10K) | GPU | ~2h | |
-| 3 | m05b `--encoder all` (random+DINOv2+CLIP+shuffled) | GPU | ~6-8h | |
-| 4 | m05c True Overlap augmented (10K) | GPU | ~3-4h | |
-| 5 | m06 FAISS metrics (x5 encoders) | GPU | ~25 min | |
-| 6 | m07 UMAP (x5 encoders) | GPU | ~10 min | |
-| 7 | m08 + m08b plots + comparison | CPU | ~5 min | |
-| **Grand Total** | | | **~14-17h GPU + ~10 min CPU** | |
+| 0.5 | m00d pre-download subset to local TARs | **CPU** | ~12 min | pending |
+| 1 | m04 Qwen tags 10K (v3 taxonomy) + `--local-data` | GPU | ~1.5-2h | pending |
+| 2 | m05 V-JEPA embed (10K) + `--local-data` | GPU | ~1-2h | pending |
+| 3 | m05b `--encoder all` + `--local-data` | GPU | ~3-5h | pending |
+| 4 | m05c True Overlap augmented + `--local-data` | GPU | ~1-2h | pending |
+| 5 | m06 FAISS metrics (x5 encoders) | GPU | ~25 min | pending |
+| 6 | m07 UMAP (x5 encoders) | GPU | ~10 min | pending |
+| 7 | m08 + m08b plots + comparison | CPU | ~5 min | pending |
+| **Grand Total** | | | **~8-12h GPU + ~15 min CPU** | |
 
 ### GPU Parallelization Opportunities
 
@@ -548,41 +589,47 @@ Steps 3b, 3c, 3d can run on **different GPUs** in parallel (independent encoder 
 ## Dependency Graph
 
 ```
-Step 0: VLM Selection ✅ DONE (Qwen 0.919)
-         │
-         ↓
-Step 1: m04 Qwen tags 10K (v3 taxonomy) ──────────────────────────────────────────┐
-         │                                                                         │
-         ↓                                                                         │
-Step 2: m05 V-JEPA embed ──┬──────────────────────────────────────────────────┐    │
-                            │                                                  │    │
-                            ├→ Step 3a: m05b random  (CPU) ──┐                │    │
-                            │                                 │                │    │
-                            ├→ Step 3b: m05b DINOv2  (GPU) ──┤                │    │
-                            │                                 │                │    │
-                            ├→ Step 3c: m05b CLIP    (GPU) ──┤                │    │
-                            │                                 │                │    │
-                            └→ Step 3d: m05b shuffled (GPU) ──┤                │    │
-                                                              │                │    │
-                            Step 4: m05c true overlap ────────┤                │    │
-                                                              │                │    │
-                               ┌──────────────────────────────┘                │    │
-                               │  All 5 encoder embeddings                    │    │
-                               │  + augmented embeddings                      │    │
-                               │  + v3 tags                                   │    │
-                               ▼                                              ▼    ▼
-                     Step 5: m06 FAISS metrics (x5 encoders + --true-overlap)
-                               │
-                               ├→ Step 6: m07 UMAP (x5 encoders)
-                               │
-                               └→ Step 7: m08 + m08b plots + comparison + LaTeX table
+Step 0:   VLM Selection ✅ DONE (Qwen 0.919)
+          │
+          ↓
+Step 0.5: m00d pre-download subset → data/subset_10k_local/ (~12 min, CPU-only)
+          │
+          ├──→ LOCAL_FLAG="--local-data data/subset_10k_local"
+          │
+          ↓
+Step 1: m04 Qwen tags 10K (v3 taxonomy) + $LOCAL_FLAG ────────────────────────┐
+          │                                                                    │
+          ↓                                                                    │
+Step 2: m05 V-JEPA embed + $LOCAL_FLAG ──┬────────────────────────────────┐    │
+                                          │                                │    │
+                                          ├→ Step 3a: m05b random  (CPU) ─┐│    │
+                                          │                                ││    │
+                                          ├→ Step 3b: m05b DINOv2  (GPU) ─┤│    │
+                                          │           + $LOCAL_FLAG         ││    │
+                                          ├→ Step 3c: m05b CLIP    (GPU) ─┤│    │
+                                          │           + $LOCAL_FLAG         ││    │
+                                          └→ Step 3d: m05b shuffled (GPU) ─┤│    │
+                                                      + $LOCAL_FLAG         ││    │
+                                          Step 4: m05c true overlap ────────┤│    │
+                                                  + $LOCAL_FLAG              ││    │
+                                             ┌───────────────────────────────┘│    │
+                                             │  All 5 encoder embeddings      │    │
+                                             │  + augmented embeddings        │    │
+                                             │  + v3 tags                     │    │
+                                             ▼                                ▼    ▼
+                                   Step 5: m06 FAISS metrics (x5 encoders + --true-overlap)
+                                             │
+                                             ├→ Step 6: m07 UMAP (x5 encoders)
+                                             │
+                                             └→ Step 7: m08 + m08b plots + comparison + LaTeX table
 ```
 
 **Key dependencies:**
+- Step 0.5 (pre-download) must complete before Steps 1-4 can use `--local-data`
 - Steps 3a-3d are independent of each other (can parallelize on multiple GPUs)
 - Step 4 is independent of Steps 3a-3d (can parallelize)
 - Step 5 needs ALL of: Step 1 (tags) + Steps 2+3a-3d (embeddings) + Step 4 (augmented)
 - Steps 6-7 only need Step 5 output
 - Steps 2-4 have NO dependency on Step 1 (tags). Embeddings can be generated IN PARALLEL with tagging. Only Step 5 (metrics) needs both embeddings AND tags.
 
-All clips stream from HF — no local data/clips needed on GPU server.
+**Data flow:** `m00d` downloads 10K clips to local TARs → all steps read locally via `--local-data` (100% hit rate, no HF streaming overhead). `run_ch9_overnight.sh` handles this automatically (Step 0 + `$LOCAL_FLAG`).

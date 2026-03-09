@@ -23,7 +23,7 @@ import numpy as np
 sys.path.insert(0, str(Path(__file__).parent))
 from utils.config import (
     ENCODER_REGISTRY, VJEPA_EMBEDDING_DIM, VJEPA_FRAMES_PER_CLIP,
-    check_gpu, check_output_exists, load_subset, add_subset_arg,
+    check_gpu, check_output_exists, load_subset, add_subset_arg, add_local_data_arg,
     get_output_dir, get_encoder_files,
 )
 from utils.gpu_batch import compute_batch_sizes, add_gpu_mem_arg
@@ -91,14 +91,15 @@ def _extract_middle_frame(video_tensor, num_frames: int):
 def _producer_image_baseline(processor, batch_size: int, tmp_dir: str,
                               q: queue.Queue, stop_event: threading.Event,
                               clip_limit: int, subset_keys: set,
-                              processed_keys: set, num_frames: int):
-    """Stream from HF, decode, extract middle frame, preprocess, enqueue tensors."""
+                              processed_keys: set, num_frames: int,
+                              local_data: str = None):
+    """Stream from HF (or local shards), decode, extract middle frame, preprocess, enqueue tensors."""
     produced = 0
     retries = 0
 
     while produced < clip_limit and not stop_event.is_set():
         try:
-            ds = _create_stream(0)
+            ds = _create_stream(0, local_data=local_data)
             pending_bytes = []
             pending_keys = []
 
@@ -225,7 +226,8 @@ def generate_dinov2(output_dir: Path, args, clip_limit: int, subset_keys: set):
     producer = threading.Thread(
         target=_producer_image_baseline,
         args=(processor, batch_size, tmp_dir, q, stop_event, clip_limit,
-              subset_keys, processed_keys, VJEPA_FRAMES_PER_CLIP),
+              subset_keys, processed_keys, VJEPA_FRAMES_PER_CLIP,
+              getattr(args, 'local_data', None)),
         daemon=True,
     )
     producer.start()
@@ -316,7 +318,8 @@ def generate_clip(output_dir: Path, args, clip_limit: int, subset_keys: set):
     producer = threading.Thread(
         target=_producer_image_baseline,
         args=(processor, batch_size, tmp_dir, q, stop_event, clip_limit,
-              subset_keys, processed_keys, VJEPA_FRAMES_PER_CLIP),
+              subset_keys, processed_keys, VJEPA_FRAMES_PER_CLIP,
+              getattr(args, 'local_data', None)),
         daemon=True,
     )
     producer.start()
@@ -374,15 +377,16 @@ def generate_clip(output_dir: Path, args, clip_limit: int, subset_keys: set):
 def _producer_shuffled_vjepa(processor, batch_size: int, tmp_dir: str,
                               q: queue.Queue, stop_event: threading.Event,
                               clip_limit: int, subset_keys: set,
-                              processed_keys: set, num_frames: int):
-    """Stream from HF, decode, shuffle frame order, process for V-JEPA."""
+                              processed_keys: set, num_frames: int,
+                              local_data: str = None):
+    """Stream from HF (or local shards), decode, shuffle frame order, process for V-JEPA."""
     torch = _import_torch()
     produced = 0
     retries = 0
 
     while produced < clip_limit and not stop_event.is_set():
         try:
-            ds = _create_stream(0)
+            ds = _create_stream(0, local_data=local_data)
             pending_bytes = []
             pending_keys = []
 
@@ -534,7 +538,8 @@ def generate_shuffled_vjepa(output_dir: Path, args, clip_limit: int, subset_keys
     producer = threading.Thread(
         target=_producer_shuffled_vjepa,
         args=(processor, batch_size, tmp_dir, q, stop_event,
-              clip_limit, subset_keys, processed_keys, VJEPA_FRAMES_PER_CLIP),
+              clip_limit, subset_keys, processed_keys, VJEPA_FRAMES_PER_CLIP,
+              getattr(args, 'local_data', None)),
         daemon=True,
     )
     producer.start()
@@ -618,6 +623,7 @@ def main():
     parser.add_argument("--batch-size", type=int, default=None,
                         help="Override batch size (auto-computed if omitted)")
     add_subset_arg(parser)
+    add_local_data_arg(parser)
     add_wandb_args(parser)
     add_gpu_mem_arg(parser)
     args = parser.parse_args()

@@ -1,5 +1,11 @@
 # WalkIndia-200K Project Memory
 
+## Snapshot Sync Rule
+When you update this file OR `src/CLAUDE.md`, copy the updated version to its snapshot:
+- This file → `src/MEMORY.md`
+- `src/CLAUDE.md` → already in-repo, no extra copy needed
+Both snapshots are version-tracked in git. Keep them in sync.
+
 ## Project Overview
 Research benchmark testing if V-JEPA 2 (Meta's video foundation model, trained on Western data) transfers to Indian street scenes. Pipeline: YouTube videos → scene-split clips → WebDataset shards (HF) → VLM tagging → V-JEPA embeddings → FAISS metrics → UMAP → plots.
 
