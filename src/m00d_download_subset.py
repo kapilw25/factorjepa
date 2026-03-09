@@ -104,6 +104,13 @@ def download_subset(args):
                         {"subset": args.subset, "clip_limit": clip_limit},
                         enabled=not args.no_wandb)
 
+    # Load HF_TOKEN from .env for private dataset access
+    try:
+        from dotenv import load_dotenv
+        load_dotenv()
+    except ImportError:
+        pass
+
     # Stream HF dataset
     print(f"\nStreaming from: {HF_DATASET_REPO}")
     ds = load_dataset(HF_DATASET_REPO, split="train", streaming=True)

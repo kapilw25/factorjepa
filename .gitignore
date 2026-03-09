@@ -60,6 +60,7 @@ wandb/
 
 # Data
 data/LEGACY*
+data/subset_10k_local/*
 
 # WalkIndia POC - Large files (re-downloadable via m01_download.py)
 src/data/videos/*.mp4
