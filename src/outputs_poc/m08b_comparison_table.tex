@@ -1,0 +1,16 @@
+\begin{table}[ht]
+\centering
+\caption{Encoder comparison on 10K Indian urban clips (Easy mode, $k=6$)}
+\label{tab:encoder_comparison}
+\begin{tabular}{lrrrrrr}
+\toprule
+Encoder & Dim & Cycle@K & Overlap@K & Prec@K & mAP@K & nDCG@K \\
+\midrule
+vjepa & 1408 & 78.65 & 10.50 & 14.63 & 0.0792 & 0.9032 \\
+random & 1408 & 54.99 & 0.00 & 12.21 & 0.0608 & 0.8978 \\
+dinov2 & 1536 & 66.77 & 60.90 & 50.48 & 0.4271 & 0.9577 \\
+clip & 768 & 65.17 & 47.06 & 46.03 & 0.3816 & 0.9583 \\
+vjepa\_shuffled & 1408 & 76.19 & 35.32 & 35.33 & 0.2724 & 0.9500 \\
+\bottomrule
+\end{tabular}
+\end{table}

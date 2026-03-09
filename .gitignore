@@ -53,7 +53,7 @@ checkpoints/
 
 # Logs
 *.log
-# logs/
+logs/*
 
 # Weights & Biases
 wandb/

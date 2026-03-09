@@ -41,11 +41,9 @@ import torchvision.transforms.functional as TF
 
 def _augment_clip_consistent(video_tensor: torch.Tensor, view: str,
                               seed: int) -> torch.Tensor:
-    """Apply spatial augmentation consistently across all frames of a clip.
+    """Vectorized BYOL/DINO augmentation on full (T,C,H,W) tensor.
 
-    Same random crop params for every frame (temporal consistency).
-    view="A": large crop + color jitter
-    view="B": small crop + gaussian blur
+    Replaces per-frame loop with batch tensor ops (64x fewer kernel launches).
     """
     T_frames, C, H, W = video_tensor.shape
     rng = torch.Generator()
@@ -66,30 +64,29 @@ def _augment_clip_consistent(video_tensor: torch.Tensor, view: str,
         i, j, h, w = T.RandomResizedCrop.get_params(
             video_tensor[0], scale=(0.2, 0.6), ratio=(0.75, 1.33))
         do_flip = torch.rand(1, generator=rng).item() < 0.5
-        brightness = contrast = saturation = 1.0
-        hue = 0.0
 
-    frames = []
-    for t in range(T_frames):
-        frame = video_tensor[t].float() / 255.0  # (C, H, W) -> float [0,1]
-        frame = TF.resized_crop(frame, i, j, h, w, [384, 384])
+    # ── Vectorized: crop + resize all T frames in one shot ──
+    video = video_tensor.float() / 255.0          # (T, C, H, W)
+    video = video[:, :, i:i+h, j:j+w]             # spatial crop (single slice)
+    video = torch.nn.functional.interpolate(       # single F.interpolate vs 64
+        video, size=(384, 384), mode='bilinear', align_corners=False)
 
-        if do_flip:
-            frame = TF.hflip(frame)
+    if do_flip:
+        video = video.flip(-1)
 
-        if view == "A":
-            frame = TF.adjust_brightness(frame, brightness)
-            frame = TF.adjust_contrast(frame, contrast)
-            frame = TF.adjust_saturation(frame, saturation)
-            frame = TF.adjust_hue(frame, hue)
-        else:
-            # Gaussian blur for view B
-            frame = TF.gaussian_blur(frame, kernel_size=23, sigma=1.0)
+    if view == "A":
+        # All TF functions support (T, C, H, W) — T treated as batch dim
+        video = TF.adjust_brightness(video, brightness)
+        video = TF.adjust_contrast(video, contrast)
+        video = TF.adjust_saturation(video, saturation)
+        if abs(hue) > 0.01:
+            video = TF.adjust_hue(video, hue)
+    else:
+        # gaussian_blur supports (*, C, H, W) via conv2d with groups=C
+        video = TF.gaussian_blur(video, kernel_size=23, sigma=1.0)
 
-        frame = (frame * 255).clamp(0, 255).to(torch.uint8)
-        frames.append(frame)
-
-    return torch.stack(frames)
+    video = (video * 255).clamp(0, 255).to(torch.uint8)
+    return video
 
 
 # ── Producer ──────────────────────────────────────────────────────────
@@ -165,7 +162,14 @@ def _producer_overlap(processor, batch_size: int, tmp_dir: str,
 
 def _decode_augment_enqueue(pending_bytes, pending_keys, tmp_dir,
                               num_frames, processor, q):
-    """Decode batch, create 2 augmented views, process, enqueue."""
+    """Decode batch, create 2 augmented views, process, enqueue.
+
+    Decode is threaded (I/O-bound). Augmentation is sequential but vectorized
+    (64x fewer kernel launches per clip). No threading for augment/processor
+    to avoid ATen thread-pool oversubscription (8 workers × 80 ATen threads
+    = 640+ threads → scheduler thrash → 0% throughput).
+    """
+    # 1) Parallel decode (I/O-bound, GIL-free — threading helps)
     with ThreadPoolExecutor(max_workers=DECODE_WORKERS) as pool:
         futures = [
             pool.submit(decode_video_bytes, b, tmp_dir, k, num_frames)
@@ -177,6 +181,7 @@ def _decode_augment_enqueue(pending_bytes, pending_keys, tmp_dir,
     views_b = []
     keys = []
 
+    # 2) Sequential augmentation (vectorized per-clip: 1 F.interpolate vs 64)
     for tensor, key in results:
         if tensor is None:
             continue
@@ -190,7 +195,7 @@ def _decode_augment_enqueue(pending_bytes, pending_keys, tmp_dir,
     if not views_a:
         return
 
-    # Process both views through V-JEPA processor
+    # 3) Sequential processor (normalization — fast after vectorized augment)
     pixels_a = torch.cat([processor(v, return_tensors="pt")["pixel_values_videos"]
                           for v in views_a], dim=0)
     pixels_b = torch.cat([processor(v, return_tensors="pt")["pixel_values_videos"]
@@ -233,6 +238,21 @@ def main():
             return
 
     subset_keys = load_subset(args.subset) if args.subset else set()
+
+    # Use deduped keys from V-JEPA embeddings.paths.npy instead of full subset.
+    # m05 deduplicates at cosine sim > 0.95 (e.g. 10K → 5,105). Clips outside
+    # this set have no base embedding — m06 can't use their overlap data.
+    deduped_paths_file = output_dir / "embeddings.paths.npy"
+    if deduped_paths_file.exists() and not args.SANITY:
+        deduped_keys = set(np.load(deduped_paths_file, allow_pickle=True).tolist())
+        original_count = len(subset_keys) if subset_keys else 115_687
+        subset_keys = (subset_keys & deduped_keys) if subset_keys else deduped_keys
+        print(f"[DEDUP] Target: {len(subset_keys):,} deduped keys "
+              f"(from {original_count:,} in subset → {len(deduped_keys):,} after V-JEPA dedup)")
+    elif not args.SANITY:
+        print("WARNING: embeddings.paths.npy not found — processing full subset "
+              "(run m05 first for dedup optimization)")
+
     clip_limit = 5 if args.SANITY else (len(subset_keys) if subset_keys else 115_687)
 
     batch_size = args.batch_size or compute_batch_sizes(gpu_vram_gb=args.gpu_mem)["vjepa"]
@@ -340,6 +360,16 @@ def main():
 
     arr_a = np.stack(all_emb_a).astype(np.float32)
     arr_b = np.stack(all_emb_b).astype(np.float32)
+
+    # Filter to deduped keys only (checkpoint may contain extra clips from prior runs)
+    if subset_keys and len(all_keys) > len(subset_keys):
+        keep = np.array([k in subset_keys for k in all_keys])
+        n_before = len(all_keys)
+        arr_a = arr_a[keep]
+        arr_b = arr_b[keep]
+        all_keys = [k for k, m in zip(all_keys, keep) if m]
+        print(f"  Filtered: {n_before:,} → {len(all_keys):,} (removed {n_before - len(all_keys):,} non-deduped)")
+
     np.save(aug_a_file, arr_a)
     np.save(aug_b_file, arr_b)
     np.save(keys_file, np.array(all_keys, dtype=object))

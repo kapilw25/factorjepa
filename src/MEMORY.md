@@ -60,7 +60,8 @@ Research benchmark testing if V-JEPA 2 (Meta's video foundation model, trained o
 - m00-m08b: ALL CODE BUILT, SANITY passed for m05/m06/m07
 - m00d + --local-data: FIXED producer starvation + resume dedup (Mar 8, 2026)
 - run_ch9_overnight.sh: Step 0 (m00d) → Steps 1-8 with `--local-data`. ~8-12h (was ~39h)
-- GPU runs pending: 10K POC on RTX PRO 6000 (96GB)
+- GPU env: VERIFIED on RTX PRO 6000 Blackwell (102GB). All components pass (PyTorch, FAISS, FA2, cuML, wandb)
+- GPU runs pending: 10K POC on RTX PRO 6000
 
 ## Architecture Gotchas
 - GPU scripts save .npy → CPU scripts read them (never duplicate GPU compute in plotting)
@@ -92,3 +93,5 @@ Research benchmark testing if V-JEPA 2 (Meta's video foundation model, trained o
 - `setup_env_uv.sh --mac` (M1 CPU) / `--gpu` (Nvidia) / `--gpu --from-wheels` (prebuilt sm_120 wheels)
 - `build_faiss_sm120.sh` — source-build FAISS for Blackwell sm_120
 - `build_wheels_sm120.sh` — build FA2+FAISS wheels + upload to GitHub Release
+- Prebuilt wheels: GitHub Release tag `sm120-cu128-py312` → FA2 2.8.3 + FAISS 1.14.1
+- FAISS wheel fix (Mar 9): setup_env_uv.sh auto-installs libopenblas-dev + patchelf RPATH fix

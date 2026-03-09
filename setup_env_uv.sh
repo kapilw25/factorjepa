@@ -19,6 +19,7 @@
 # ============================================================================
 
 set -e  # Exit on error
+mkdir -p logs  # Ensure logs/ exists early (for tee piping)
 
 # ============================================================================
 # Pinned versions (Blackwell sm_120 + CUDA 12.8 + Python 3.12)
@@ -334,11 +335,26 @@ print(f'PyTorch: {torch.__version__}, CUDA: {torch.version.cuda}, GPU: {torch.cu
     # 5. Install FAISS-GPU (CUDA 12)
     echo ""
     echo "[5/7] Installing FAISS-GPU (CUDA 12)..."
+    # FAISS source-built wheel needs libopenblas at runtime
+    if ! dpkg -s libopenblas-dev &>/dev/null 2>&1; then
+        echo "Installing libopenblas-dev (FAISS runtime dependency)..."
+        apt-get update -qq && apt-get install -y -qq libopenblas-dev > /dev/null 2>&1
+    fi
+
     if ls wheels/faiss*.whl &>/dev/null 2>&1; then
         # Prebuilt wheel available (from --from-wheels or previous build)
         echo "Installing FAISS-GPU from prebuilt wheel..."
         uv pip uninstall -y faiss-gpu faiss-gpu-cu12 faiss-cpu faiss 2>/dev/null || true
         uv pip install wheels/faiss*.whl
+        # Fix RPATH so _swigfaiss.so finds libfaiss.so in the same directory
+        FAISS_PKG="$(python -c 'import sysconfig,os; print(os.path.join(sysconfig.get_path("purelib"),"faiss"))' 2>/dev/null || echo '')"
+        if [ -n "$FAISS_PKG" ] && [ -d "$FAISS_PKG" ]; then
+            command -v patchelf &>/dev/null || apt-get install -y -qq patchelf > /dev/null 2>&1
+            for so in "$FAISS_PKG"/_swigfaiss*.so "$FAISS_PKG"/libfaiss_python_callbacks.so "$FAISS_PKG"/_faiss_example_external_module.so; do
+                [ -f "$so" ] && patchelf --set-rpath '$ORIGIN' "$so"
+            done
+            echo "Fixed RPATH for FAISS .so files in $FAISS_PKG"
+        fi
     elif [ "$GPU_ARCH" = "120" ]; then
         if [ -f "/tmp/faiss_build/build/faiss/python/setup.py" ]; then
             echo "Blackwell (sm_120) — reinstalling FAISS-GPU from cached build artifacts..."
@@ -393,7 +409,7 @@ print(f'CUDA:           {torch.version.cuda}')
 print(f'GPU:            {torch.cuda.get_device_name(0)}')
 print(f'GPU Arch:       sm_{cc[0]}{cc[1]}')
 print(f'VRAM:           {torch.cuda.get_device_properties(0).total_memory / 1e9:.0f} GB')
-print(f'FAISS GPU:      {faiss.get_num_gpus()} GPU(s) available')
+print(f'FAISS:          {faiss.__version__} ({faiss.get_num_gpus()} GPU(s) available)')
 print(f'Flash-Attn:     {fa_ver}')
 print(f'Transformers:   {transformers.__version__}')
 print(f'cuML:           {cuml.__version__}')

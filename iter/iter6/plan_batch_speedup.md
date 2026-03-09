@@ -98,7 +98,7 @@ Processor does **not** support batched input. CPU prep stays sequential on GPU t
 
 ---
 
-## CRITICAL: Two Bugs Discovered During 10K POC FULL Run (Mar 8, 2026)
+## CRITICAL: Four Bugs Discovered During 10K POC Runs (Mar 8-9, 2026)
 
 ### Context: What Happened
 
@@ -192,55 +192,120 @@ Result: tags.json would contain ~3,521 duplicate clips out of 10,000.
 
 ---
 
+### BUG 3: `manifest.json` Causes `tarfile.ReadError: invalid header` (Mar 9, 2026)
+
+**Discovered:** First FULL pipeline run after m00d download completed. Both m04 and m05 crashed immediately.
+
+**Root cause:** `m00d_download_subset.py` writes `manifest.json` (resume tracker) alongside the `.tar` shards in `data/subset_10k_local/`. When downstream modules call `load_dataset("webdataset", data_dir=local_data, ...)`, the HF datasets library tries to parse ALL files in the directory as TARs — including `manifest.json`, which is not a TAR.
+
+```
+tarfile.ReadError: invalid header
+  File ".../webdataset.py", line 80, in _split_generators
+    first_examples = list(islice(pipeline, self.NUM_EXAMPLES_FOR_FEATURES_INFERENCE))
+  File ".../file_utils.py", line 1331, in _iter_tar
+    stream = tarfile.open(fileobj=f, mode="r|*")   ← manifest.json is not a TAR
+```
+
+**Fix:** Changed `data_dir=local_data` → `data_files=f"{local_data}/*.tar"` in both:
+- `src/m04_vlm_tag.py:865` — `_create_stream()`
+- `src/m05_vjepa_embed.py:89` — `_create_stream()` (also used by m05b/m05c via import)
+
+The `data_files` glob explicitly selects only `.tar` files, excluding `manifest.json`.
+
+**Impact:** Pipeline-blocking. Both m04 and m05 failed with 0 clips processed. Fixed in 2 lines.
+
+---
+
+### BUG 4: m05c True Overlap — ATen Thread Oversubscription (Mar 9, 2026)
+
+**Discovered:** m05c running at 0.3 clips/s with GPU at 0%, CPU at 1420%. 4,144/10,000 clips completed in ~4h.
+
+**Root cause (two layers):**
+
+1. **Per-frame augmentation loop (original code):** `_augment_clip_consistent()` looped over 64 frames calling `TF.resized_crop()` individually = 4,736 `F.interpolate` calls per batch (64 frames × 2 views × 37 clips). Entire batch augmented on CPU while GPU sat idle.
+
+2. **ThreadPoolExecutor + ATen thread explosion (first fix attempt):** Vectorized the per-frame loop (1 `F.interpolate` per clip instead of 64) but wrapped augmentation in `ThreadPoolExecutor(max_workers=8)`. Each Python thread's PyTorch ops spawned ~80 ATen internal threads → **644 total threads** → OS scheduler thrash → process sleeping with 0% throughput. Process appeared stuck for 35+ minutes with no output.
+
+**Fix (two parts):**
+
+Part 1 — Vectorized augmentation (`_augment_clip_consistent`):
+```python
+# Before: 64 per-frame calls
+for t in range(T_frames):
+    frame = TF.resized_crop(frame, i, j, h, w, [384, 384])  # 64× F.interpolate
+
+# After: single tensor op on (T, C, H, W)
+video = video[:, :, i:i+h, j:j+w]                           # single slice
+video = F.interpolate(video, size=(384, 384), ...)           # single call
+# Color ops (adjust_brightness/contrast/saturation/hue) and gaussian_blur
+# all support 4D tensors natively — no per-frame loop
+```
+
+Part 2 — Removed threading for augment/processor (kept for decode only):
+```
+ThreadPoolExecutor for decode:     KEPT (I/O-bound, GIL-free)
+ThreadPoolExecutor for augment:    REMOVED (ATen thread explosion)
+ThreadPoolExecutor for processor:  REMOVED (same ATen issue)
+```
+
+**Impact:** Per-clip augment: 64 `F.interpolate` → 1 (~64× fewer kernel launches). Thread count: 644 → ~20. Expected throughput: 0.3 → 3-10 clips/s (pending validation after re-run).
+
+---
+
 ### SOLUTION: Pre-Download Subset to Local Disk (`m00d_download_subset.py`)
 
-> **STATUS: CODE COMPLETE (Mar 8, 2026).** All 7 files implemented + verified (45/45 plan requirements pass on M1 Mac via `py_compile` + AST). **Pending: SANITY test + FULL POC run on RTX PRO 6000 (96GB).**
+> **STATUS: GPU VALIDATED (Mar 9, 2026).** SANITY passed (16/16 steps). FULL 10K POC download complete + pipeline running.
 
 Instead of streaming 115K clips from HF and filtering to 10K on every step, download the 10K subset clips ONCE to local disk. All subsequent steps read locally → 100% hit rate, no network I/O.
 
-#### Files Modified (all verified `py_compile` + AST on M1 Mac)
+#### Files Modified (all verified `py_compile` + AST on M1 Mac, GPU validated on RTX PRO 6000)
 
 | File | Change | Status |
 |------|--------|--------|
 | `src/utils/config.py` | Added `add_local_data_arg(parser)` shared helper | DONE |
-| `src/m00d_download_subset.py` | **NEW** — CPU-only pre-download (~275 lines) | DONE |
-| `src/m05_vjepa_embed.py` | `_create_stream(local_data=)` + `--local-data` arg + orchestrator passthrough | DONE |
-| `src/m04_vlm_tag.py` | `_create_stream(local_data=)` + `already_tagged_keys` dedup + `--local-data` arg + orchestrator passthrough | DONE |
+| `src/m00d_download_subset.py` | **NEW** — CPU-only pre-download (~330 lines). **Rewritten v3: CDN TAR shard download** (not streaming API) to bypass HF bandwidth throttle. Downloads one shard at a time via `hf_hub_download`, extracts matching clips, deletes shard, moves to next. Resume via `manifest.json`. | DONE |
+| `src/m05_vjepa_embed.py` | `_create_stream(local_data=)` + `--local-data` arg + orchestrator passthrough. **Fix: `data_files` glob** (see Bug #3 below) | DONE |
+| `src/m04_vlm_tag.py` | `_create_stream(local_data=)` + `already_tagged_keys` dedup + `--local-data` arg + orchestrator passthrough. **Fix: `data_files` glob** (see Bug #3 below) | DONE |
 | `src/m05b_baselines.py` | `local_data` param to both producer functions + `--local-data` arg | DONE |
 | `src/m05c_true_overlap.py` | `local_data` param to producer + `--local-data` arg | DONE |
 | `run_ch9_overnight.sh` | Step 0 pre-download + `$LOCAL_FLAG` to Steps 1-4 + updated time estimates | DONE |
+| `setup_env_uv.sh` | FAISS RPATH fix (`patchelf --set-rpath '$ORIGIN'`) + `libopenblas-dev` install | DONE |
 
-#### Pending GPU Validation
+#### GPU Validation Results (RTX PRO 6000 Blackwell, 102GB)
 
-```bash
-# SANITY test (20 clips, ~5 min):
-python -u src/m00d_download_subset.py --subset data/subset_10k.json --SANITY 2>&1 | tee logs/m00d_sanity.log
-# Verify: data/subset_10k_local/ has TARs + manifest.json
+**m00d download (v3 CDN approach):**
+- 10,000/10,000 clips downloaded in **23.8 min** (116 HF shards scanned, 115,637 clips scanned)
+- Output: 25 local TAR shards, 10.45 GB in `data/subset_10k_local/`
+- Resume worked correctly: initial streaming run saved 4,148 clips → CDN run found remaining 5,852
+- Disk-friendly: ~1.5 GB temp at a time (download → extract → delete)
 
-# Then test --local-data flag propagation:
-python -u src/m05b_baselines.py --encoder random --SANITY --local-data data/subset_10k_local 2>&1
+**SANITY pipeline:** 16/16 steps passed, 29 OK outputs, 4m 52s
 
-# FULL POC (10K clips, ~12 min download + ~8-12h pipeline):
-./run_ch9_overnight.sh --FULL
-```
+**FULL pipeline (in progress):** m04 running at 1.20 clips/s (batch=64, VRAM 63%), ETA ~2.3h. First checkpoint at 512 tags.
 
-Implementation details in the code itself (7 files modified, 45/45 plan requirements verified).
+#### m00d Evolution: Why 3 Versions
+
+| Version | Method | Problem |
+|---------|--------|---------|
+| v1 | HF `load_dataset(streaming=True)` | Throttled at ~62K clips (~68 GB streamed), speed drops from 140→3.5 clips/s |
+| v2 | v1 + auto-reconnect with `.skip(scanned)` | HF throttles by token/IP bandwidth, not per-connection. Reconnect doesn't help. |
+| **v3 (current)** | `hf_hub_download` per TAR shard via CDN | Different rate-limit path. 12s/shard, 23.8 min total. No throttle. |
 
 ---
 
 ### Impact Summary
 
-| Metric | Current (HF stream + filter) | After fix (local pre-download) |
-|--------|-----|------|
-| m04 throughput | 0.51 clips/s (declining) | ~1.5-2.0 clips/s (stable) |
-| m04 ETA (10K) | ~5.5h+ | ~1.5-2h |
-| m05 ETA | ~5.5h | ~1-2h |
-| m05b ETA (4 enc) | ~22h | ~4-6h |
-| m05c ETA | ~5.5h | ~1-2h |
-| **Total pipeline** | **~39h** | **~8-12h** |
-| GPU idle time | ~90% (waiting for producer) | ~10% (normal batch gaps) |
-| Resume correctness | **BROKEN** (duplicate tags) | **FIXED** (dedup by __key__) |
-| Pre-download cost | N/A | ~11 min one-time |
+| Metric | Before (HF stream + filter) | After (local pre-download) | Measured |
+|--------|-----|------|---------|
+| m04 throughput | 0.51 clips/s (declining) | ~1.5-2.0 clips/s (stable) | **1.33 clips/s** (stable, batch=64) |
+| m04 ETA (10K) | ~5.5h+ | ~1.5-2h | **2h 2m** ✅ |
+| m05 ETA | ~5.5h | ~1-2h | **1h 20m** (5,105 clips before stream death) |
+| m05b ETA (4 enc) | ~22h | ~4-6h | **1h 39m** (dinov2+clip+shuffled=10K each) |
+| m05c ETA | ~5.5h | ~1-2h | Bug #4: 0.3→?? clips/s (vectorized fix pending validation) |
+| **Total pipeline** | **~39h** | **~8-12h** | **~5h so far** (m05c incomplete) |
+| GPU idle time | ~90% (waiting for producer) | ~10% (normal batch gaps) | **VRAM 63%, batch=64** |
+| Resume correctness | **BROKEN** (duplicate tags) | **FIXED** (dedup by __key__) | ✅ verified |
+| Pre-download cost | N/A | ~11 min (streaming) | **23.8 min** (CDN, after HF throttle) |
 
 ### Implementation Order
 
@@ -250,16 +315,41 @@ Implementation details in the code itself (7 files modified, 45/45 plan requirem
 3. ✅ m04_vlm_tag.py: _create_stream(local_data=) + already_tagged_keys dedup + --local-data arg
 4. ✅ m05b_baselines.py: local_data param to both producers + --local-data arg
 5. ✅ m05c_true_overlap.py: local_data param to producer + --local-data arg
-6. ✅ m00d_download_subset.py: new CPU-only script (~275 lines)
+6. ✅ m00d_download_subset.py: v1 streaming → v2 reconnect → v3 CDN TAR download (~330 lines)
 7. ✅ run_ch9_overnight.sh: Step 0 pre-download + $LOCAL_FLAG to Steps 1-4
 ── ALL CODE COMPLETE (Mar 8, 2026). Verified: py_compile + AST (45/45 requirements). ──
-8. ⏳ SANITY test on RTX PRO 6000 (20 clips, ~5 min)
-9. ⏳ FULL POC run on RTX PRO 6000 (10K clips, ~8-12h)
+8. ✅ SANITY test on RTX PRO 6000 (16/16 passed, 4m 52s) — Mar 9, 2026
+9. ✅ FULL download on RTX PRO 6000 (10K/10K, 23.8 min, 10.45 GB) — Mar 9, 2026
+10. ✅ FULL pipeline run 1 on RTX PRO 6000 — Mar 9, 2026
+    m04: 10K/10K (2h 2m, 1.33 clips/s) ✅
+    m05: 5,105/10K (stream died, no checkpoint) ⚠️
+    m05b: dinov2 10K ✅, clip 10K ✅, vjepa_shuffled 10K ✅, random 5K (matched vjepa) ⚠️
+    m05c: 4,144/10K @ 0.3 clips/s (stuck, see Bug #4) ⚠️
+11. ✅ Bug #4 fix: vectorized augmentation + removed ATen thread oversubscription — Mar 9, 2026
+12. 🔄 FULL pipeline run 2 needed: delete incomplete vjepa+random, re-run m05/m05b-random/m05c/m06-m08
 ```
 
 ---
 
-## Future Work: HF Stream Resilience
+## Implemented Optimizations
+
+### m05c: Skip Deduped Clips (~2× speedup) — DONE
+
+m05 deduplicates V-JEPA embeddings (cosine sim > 0.95): 10,000 → 5,105 unique clips. m05c now reads `embeddings.paths.npy` (5,105 deduped keys) instead of `subset_10k.json` (10,000 keys), halving V-JEPA inference work.
+
+**Changes in `src/m05c_true_overlap.py`:**
+- After loading subset_keys, loads `embeddings.paths.npy` from output_dir and intersects with subset
+- Falls back to full subset if `embeddings.paths.npy` doesn't exist (with warning)
+- Filters final output to only deduped keys (handles checkpoint from prior run with extra clips)
+- Prints `[DEDUP] Target: N deduped keys` for observability
+
+**Does NOT apply to m05b baselines.** dinov2/clip/vjepa_shuffled each produce 10,000 embeddings independently. The dedup is V-JEPA-specific — baselines need the full 10K for fair per-encoder evaluation.
+
+**Ordering dependency:** m05 must complete before m05c (already enforced by `run_ch9_overnight.sh` step ordering).
+
+## Future Work
+
+### HF Stream Resilience
 
 `ENGINE_RESTART_EVERY` already handles HF stream deaths (checkpoint + fresh worker subprocess). Observed at clip ~8K: stream stall → auto-recovery, zero data lost. **TODO for 115K:** add a per-worker timeout (e.g. 10 min no progress → kill + restart) to avoid hanging on dead sockets that never trigger subprocess exit.
 

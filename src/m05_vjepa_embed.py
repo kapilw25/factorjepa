@@ -86,7 +86,7 @@ def get_clip_key(example: dict) -> str:
 def _create_stream(skip_count: int = 0, local_data: str = None):
     """Create streaming dataset from HF or local WebDataset shards."""
     if local_data:
-        ds = load_dataset("webdataset", data_dir=local_data, split="train", streaming=True)
+        ds = load_dataset("webdataset", data_files=f"{local_data}/*.tar", split="train", streaming=True)
     else:
         ds = load_dataset(HF_DATASET_REPO, split="train", streaming=True)
     ds = ds.decode(False)

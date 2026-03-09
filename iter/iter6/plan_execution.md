@@ -28,11 +28,11 @@ source venv_walkindia/bin/activate
 
 ```bash
 # GPU + packages
-python -c "import torch; print(f'GPU: {torch.cuda.get_device_name(0)}, VRAM: {torch.cuda.get_device_properties(0).total_memory/1e9:.0f}GB')"
-python -c "import faiss; print(f'FAISS GPUs: {faiss.get_num_gpus()}')"
-python -c "import flash_attn; print(f'Flash-Attn:   {flash_attn.__version__}')"
-python -c "import transformers; print(f'Transformers: {transformers.__version__}')"
-python -c "import cuml; print(f'cuML: {cuml.__version__}')"
+python -c "import torch; print(f'GPU: {torch.cuda.get_device_name(0)}, VRAM: {torch.cuda.get_device_properties(0).total_memory/1e9:.0f}GB')" && \
+python -c "import faiss; print(f'FAISS GPUs: {faiss.get_num_gpus()}')" && \
+python -c "import flash_attn; print(f'Flash-Attn:   {flash_attn.__version__}')" && \
+python -c "import transformers; print(f'Transformers: {transformers.__version__}')" && \
+python -c "import cuml; print(f'cuML: {cuml.__version__}')" && \
 python -c "import wandb; print(f'wandb: {wandb.__version__}')"
 
 # HF auth (private repo)
@@ -240,7 +240,7 @@ for enc, sfx, dim in [('random','_random',1408), ('dinov2','_dinov2',1024),
 
 ## Step 4: True Overlap@K augmented embeddings — RTX Pro 6000 (96GB)
 
-**Prerequisite:** Step 2 must be complete (V-JEPA model loads, embeddings exist).
+**Prerequisite:** Step 2 must be complete (V-JEPA `embeddings.npy` + `embeddings.paths.npy` exist). m05c reads `embeddings.paths.npy` to process only deduped clips (~5,105 instead of 10K).
 
 Generate two augmented V-JEPA embedding sets (BYOL/DINO multi-crop protocol) for True Overlap@K measurement.
 
@@ -261,15 +261,15 @@ import numpy as np
 a = np.load('src/outputs_poc/overlap_augA.npy')
 b = np.load('src/outputs_poc/overlap_augB.npy')
 k = np.load('src/outputs_poc/overlap_keys.npy', allow_pickle=True)
-print(f'overlap_augA.npy: {a.shape} (expect ~10K x 1408)')
-print(f'overlap_augB.npy: {b.shape} (expect ~10K x 1408)')
+print(f'overlap_augA.npy: {a.shape} (expect ~5K x 1408, matches deduped count)')
+print(f'overlap_augB.npy: {b.shape} (expect ~5K x 1408, matches deduped count)')
 print(f'overlap_keys.npy: {len(k)} keys')
 print(f'Shape match: {a.shape == b.shape and a.shape[0] == len(k)}')
 "
 ```
 
-**Expected:** `overlap_augA.npy` + `overlap_augB.npy` (10K x 1408 each) + `overlap_keys.npy` (10K keys).
-**Est. time:** ~3-4h GPU (2x V-JEPA inference + augmentation overhead).
+**Expected:** `overlap_augA.npy` + `overlap_augB.npy` (~5K x 1408 each, matching deduped clip count from `embeddings.paths.npy`) + `overlap_keys.npy`.
+**Est. time:** ~1-2h GPU (2x V-JEPA inference on deduped clips only + augmentation overhead).
 
 **Status:**
 - [ ] True Overlap augmented embeddings: pending

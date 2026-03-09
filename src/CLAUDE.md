@@ -4,7 +4,7 @@
 - Debug/SANITY: RTX Pro 4000 (24GB VRAM, ~$0.2/hr) — use --SANITY (20 clips) to validate model loading, inference, JSON parsing
 - Full/BAKEOFF runs: RTX Pro 6000 Blackwell (96GB VRAM, ~$0.8/hr) — use --BAKEOFF (2500 clips) and --FULL (10K-115K clips)
 - M1 Macbook: CPU/API ops + AST/lint only. No GPU fallback
-- GPU Software: PyTorch 2.12.0.dev+cu128 nightly, CUDA 12.8, FA2 (source-built sm_120), cuML 26.02, FAISS-GPU 1.13.2 (source-built sm_120), Python 3.12.12, UV
+- GPU Software: PyTorch 2.12.0.dev+cu128 nightly, CUDA 12.8, FA2 2.8.3 (prebuilt sm_120 wheel), cuML 26.02, FAISS-GPU 1.14.1 (prebuilt sm_120 wheel, needs patchelf RPATH fix + libopenblas-dev), Python 3.12.12, UV
 - GPU scripts must FAIL LOUD — no silent CPU fallback (e.g. FAISS-CPU masking GPU fail, sklearn masking cuML fail)
 - "No CPU fallback" applies to inference/compute scripts (m04/m05/m06/m07), NOT visualization/plotting scripts (m08)
 4) Docstrings: max 2-line explanation + terminal commands only (--SANITY, --FULL args)
@@ -40,14 +40,5 @@
 - GPU time is expensive — idle GPU = wasted money; idle user during GPU job = wasted time. Keep the GPU busy.
 - Mandatory checklist for ANY new loop that makes GPU/API/VLM calls: (1) tqdm progress bar, (2) auto-resume from checkpoint (skip completed items on restart), (3) tee logging, (4) wandb integration. No exceptions. If you write a pipeline loop without all four, you have shipped broken code. **MANUAL: Run `/preflight <file>` skill to verify before running any new pipeline code.** See `.claude/skills/preflight/SKILL.md`.
 
-# BUGS — STATUS
-
-1) **Producer starvation (HF streaming + subset filter)**: FIXED (Mar 8, 2026). `m00d_download_subset.py` pre-downloads 10K subset to local WebDataset TARs (~11 min, ~10.7 GB). `--local-data` flag added to m04/m05/m05b/m05c + `run_ch9_overnight.sh`. Code complete, verified on M1 Mac (py_compile + AST, 45/45 requirements). **SANITY + FULL POC pending on RTX PRO 6000 (96GB).**
-
-2) **Resume dedup bug (subset mode only)**: FIXED (Mar 8, 2026). `already_tagged_keys` set built from checkpoint in `stream_and_tag()`, passed to `_producer_thread()`. Clips whose `__key__` already in checkpoint are skipped. Code complete in m04_vlm_tag.py. **Pending GPU validation.**
-
-3) **10K POC run status**: Aborted at 3,844/10,000 tags (checkpoint: `src/outputs_poc/tags.json`). Must delete this checkpoint and re-run clean with `--local-data`.
-
-4) **Batch size override removed**: `run_ch9_overnight.sh` FULL mode no longer passes `--batch-size 36` — auto-compute via `gpu_batch.py` handles it (computes batch=64 on 96GB GPU). Verified working.
-
-See `iter/iter6/plan_batch_speedup.md` for full details.
+# REFERENCE
+- Bug history & batch speedup details: `iter/iter6/plan_batch_speedup.md`
