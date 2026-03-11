@@ -73,8 +73,9 @@
 | Week | Chapter | GPU Hours | Deliverable | Status |
 |:----:|---------|:---------:|-------------|--------|
 | 1 | Ch 8+9 (data + eval + baselines) | ~8-12h | metrics_frozen.json + 15 plots + baselines | **DONE** (48 outputs, 0 errors. Clean time ~6h 35m on RTX PRO 6000. Actual first run ~12h 18m across 6 runs due to bugs fixed incrementally.) |
-| 2 | Ch 10 (continual pretraining) | ~20h | metrics_adapted.json (frozen vs adapted) | NEXT |
-| 3-4 | Ch 11 (surgery fine-tuning) | ~54h | metrics_surgical.json (frozen vs adapted vs surgical) | FUTURE |
+| 1.5 | Temporal eval extension (m04f + m06 ext) | ~3h CPU + ~2h GPU | motion features + temporal Prec@K + updated radar | **TODO** (pre-Ch10 requirement) |
+| 2 | Ch 10 (continual pretraining) | ~20h | metrics_adapted.json (frozen vs adapted, spatial + temporal) | NEXT |
+| 3-4 | Ch 11 (surgery fine-tuning) | ~54h | metrics_surgical.json (frozen vs adapted vs surgical, spatial + temporal) | FUTURE |
 
 ---
 
@@ -214,6 +215,10 @@ Tags serve **two purposes only**: (1) stratified batching for Ch10/Ch11, (2) sli
 | 20 | True Overlap@K (multi-crop) | ✅ BUILT | m05c augmented embeddings + m06 `--true-overlap` integration |
 | 21 | VLM re-tag 10K (v3 taxonomy) | ✅ BUILT | m04 with v3 taxonomy (16 fields). 115K: Qwen3.5-9B via vLLM (planned) |
 | 22 | UMAP visualization | ✅ BUILT | m07 GPU cuML UMAP (1408→2D) + m08 scatter plots per key; umap_2d.npy exists |
+| | **Temporal evaluation extension (post-Ch9 finding)** | | |
+| 23 | Optical flow motion features (per clip) | ❌ NOT BUILT | m04f — RAFT/Farneback → mean flow magnitude, flow direction histogram, camera motion estimate. CPU-computable, deterministic. Ground-truth temporal signal. |
+| 24 | VLM temporal tags (camera_motion, traffic_flow, crowd_dynamics) | ❌ NOT BUILT | m04 prompt extension — add 3 temporal fields to v3 taxonomy. Requires re-tagging 10K clips (~2h GPU). Risk: VLM temporal quality uncertain. |
+| 25 | Temporal Prec@K / mAP@K evaluation | ❌ NOT BUILT | m06 extension — compute retrieval metrics using temporal tags/features. Control: if DINOv2/CLIP score well on "temporal" tags → tags are actually spatial proxies. |
 
 ### Baselines — COMPLETE (10K POC, Mar 9 2026)
 
@@ -313,16 +318,118 @@ Tags serve **two purposes only**: (1) stratified batching for Ch10/Ch11, (2) sli
 │                                                                             │
 │  5. Easy/Hard gap < 0.5pp — data pipeline prevents temporal leakage        │
 │                                                                             │
+│  6. EVALUATION GAP: taxonomy measures SPATIAL features only                │
+│     All 16 v3 taxonomy fields are spatial (scene_type, road_surface, etc.) │
+│     V-JEPA learns spatiotemporal dynamics — 0 temporal fields to measure   │
+│     External validation: "Temporal vs Spatial: Comparing DINOv3 and        │
+│     V-JEPA2" (arXiv:2509.21595) confirms same spatial/temporal tradeoff   │
+│     → Need temporal evaluation extension before Ch10/Ch11 (see below)     │
+│                                                                             │
 │  IMPLICATION FOR Ch 10-11:                                                  │
 │  V-JEPA needs domain adaptation to understand Indian SCENE SEMANTICS.       │
 │  It already captures lighting/weather — adaptation should target            │
 │  traffic_mix, pedestrian_vehicle_separation, scene_type (v3 taxonomy keys)  │
+│  ALSO: add temporal evaluation metrics to measure Ch10/Ch11 gains on       │
+│  the axis where V-JEPA is DESIGNED to excel (motion/dynamics)              │
 │                                                                             │
 │  PIPELINE TIMING (clean run estimate with current code):                    │
 │  m04=2h02m, m05=1h20m, m05b=1h39m, m05c=93m, m06-m08b=3m → ~6h 35m       │
 │                                                                             │
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
+
+---
+
+## Temporal Evaluation Extension (Pre-Ch10 Requirement)
+
+### Motivation
+
+Ch 9 findings reveal a **measurement gap**: all 16 v3 taxonomy fields measure spatial/appearance features. V-JEPA's temporal features (motion patterns, camera dynamics, traffic flow) are **unmeasured**. Without temporal metrics, we cannot:
+- Fully characterize what V-JEPA captures vs image baselines
+- Measure whether Ch10 continual pretraining improves temporal understanding
+- Measure whether Ch11 agent/interaction surgery stages succeed
+
+External validation: [arXiv:2509.21595](https://arxiv.org/abs/2509.21595) "Temporal vs Spatial: DINOv3 and V-JEPA2" confirms spatial models cluster better, temporal models are more consistent — same pattern as our data.
+
+### Two Approaches (Priority Order)
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                    TEMPORAL EVALUATION: TWO APPROACHES                       │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                             │
+│  APPROACH A: COMPUTED MOTION FEATURES (RECOMMENDED FIRST)                  │
+│  ─────────────────────────────────────────────────────────                  │
+│  Module: m04f (new, CPU-computable, deterministic)                         │
+│                                                                             │
+│  Per-clip features:                                                         │
+│  • Mean optical flow magnitude (RAFT or Farneback)                         │
+│  • Flow direction histogram (8-16 bins)                                    │
+│  • Camera motion estimate (global homography fit)                          │
+│  • Temporal intensity variance (frame differencing)                         │
+│                                                                             │
+│  Evaluation: "Do V-JEPA neighbors have similar motion statistics?"         │
+│  → Compute Pearson/Spearman correlation between embedding distance         │
+│    and motion feature distance for all K-nearest pairs                     │
+│  → Per-encoder comparison (V-JEPA should >> DINOv2/CLIP)                  │
+│                                                                             │
+│  Pros: deterministic, no VLM noise, ground-truth temporal signal           │
+│  Cons: low-level features, may not capture high-level actions              │
+│  Effort: ~1 new module, CPU-only, ~2-3h on 10K clips                      │
+│                                                                             │
+│  ───────────────────────────────────────────────────────────────────        │
+│                                                                             │
+│  APPROACH B: VLM TEMPORAL TAGS (SUPPLEMENTARY)                             │
+│  ─────────────────────────────────────────────                              │
+│  Module: m04 prompt extension + tag_taxonomy.json v4                       │
+│                                                                             │
+│  New taxonomy fields:                                                       │
+│  • camera_motion: static | pan_left | pan_right | walk_forward | shaky     │
+│  • dominant_traffic_flow: toward | away | cross_left | cross_right | mixed │
+│  • crowd_dynamics: static | dispersing | converging | flowing              │
+│                                                                             │
+│  Evaluation: standard Prec@K / mAP@K on temporal fields                   │
+│  Control: if DINOv2/CLIP score well → tags are spatial proxies, not truly  │
+│           temporal. This control is ESSENTIAL.                              │
+│                                                                             │
+│  Pros: semantic-level temporal understanding, extends existing pipeline     │
+│  Cons: VLM temporal quality uncertain, requires re-tagging (~2h GPU)       │
+│  Effort: prompt update + re-tag 10K + m06 extension                        │
+│                                                                             │
+│  ───────────────────────────────────────────────────────────────────        │
+│                                                                             │
+│  EXPECTED RESULTS (Ch9 baseline with temporal metrics):                     │
+│                                                                             │
+│  Metric type       V-JEPA   DINOv2   CLIP   Shuffled   Random              │
+│  ──────────────────────────────────────────────────────────────             │
+│  Spatial Prec@K    14.6%    50.5%    46.0%  35.3%      12.2%   (current)   │
+│  Temporal Prec@K   ???      LOW*     LOW*   LOW**      ~0%     (expected)  │
+│                                                                             │
+│  * DINOv2/CLIP = single-frame → blind to motion (should be near-random)   │
+│  ** Shuffled = temporal order destroyed → temporal metrics should degrade  │
+│                                                                             │
+│  IF V-JEPA >> image baselines on temporal metrics:                          │
+│     → POWERFUL FINDING: V-JEPA encodes temporal dynamics that image        │
+│       models cannot see, but these dynamics don't correlate with           │
+│       spatial scene taxonomy                                                │
+│     → Motivates: adapt V-JEPA's temporal features to Indian dynamics       │
+│                                                                             │
+│  IF V-JEPA ≈ image baselines on temporal metrics:                          │
+│     → Tags are spatial proxies (control check) OR V-JEPA's temporal       │
+│       features don't capture high-level motion semantics                    │
+│                                                                             │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+### Implementation Sequence
+
+| Step | Action | Module | Effort | When |
+|------|--------|--------|--------|------|
+| 1 | Optical flow features (Approach A) | m04f (new) | ~1 day coding + ~3h CPU | Before Ch10 |
+| 2 | Temporal correlation analysis in m06 | m06 extension | ~0.5 day | Before Ch10 |
+| 3 | VLM temporal tags (Approach B, optional) | m04 prompt + retag | ~0.5 day + ~2h GPU | Before Ch10 |
+| 4 | Temporal Prec@K + image-baseline control | m06 extension | ~0.5 day | Before Ch10 |
+| 5 | Update m08b radar/bar with temporal axis | m08b extension | ~0.5 day | Before Ch10 |
 
 ---
 
@@ -439,18 +546,29 @@ Tags serve **two purposes only**: (1) stratified batching for Ch10/Ch11, (2) sli
 │  ┌──────────────────────┬──────────────┬──────────────┬─────────┐          │
 │  │ Metric               │ Frozen (Ch9) │ Adapted(Ch10)│ Delta   │          │
 │  ├──────────────────────┼──────────────┼──────────────┼─────────┤          │
-│  │ scene_type mAP@K     │ 0.11         │ ???          │ +???    │          │
-│  │ traffic_mix mAP@K    │ (new field)  │ ???          │ (new)   │          │
-│  │ ped_veh_sep mAP@K    │ (new field)  │ ???          │ (new)   │          │
-│  │ lighting mAP@K       │ 0.66         │ ???          │ ±???    │          │
-│  │ Cycle@K              │ 78.96%       │ ???          │ ±???    │          │
-│  │ nDCG@K               │ 0.90         │ ???          │ ±???    │          │
+│  │ SPATIAL METRICS:     │              │              │         │          │
+│  │ scene_type mAP@K     │ 0.079        │ ???          │ +???    │          │
+│  │ traffic_mix mAP@K    │ (measured)   │ ???          │ ±???    │          │
+│  │ ped_veh_sep mAP@K    │ (measured)   │ ???          │ ±???    │          │
+│  │ lighting mAP@K       │ 0.580        │ ???          │ ±???    │          │
+│  │ TEMPORAL METRICS:    │              │              │         │          │
+│  │ motion corr (flow)   │ ???          │ ???          │ ±???    │          │
+│  │ camera_motion Prec@K │ ???          │ ???          │ ±???    │          │
+│  │ traffic_flow Prec@K  │ ???          │ ???          │ ±???    │          │
+│  │ LABEL-FREE:          │              │              │         │          │
+│  │ Cycle@K              │ 78.7%        │ ???          │ ±???    │          │
+│  │ Overlap@K (true)     │ 10.5%        │ ???          │ ±???    │          │
+│  │ nDCG@K               │ 0.903        │ ???          │ ±???    │          │
 │  └──────────────────────┴──────────────┴──────────────┴─────────┘          │
 │                                                                             │
 │  EXPECTED OUTCOMES:                                                         │
-│  • scene_type mAP improves modestly (0.11 → 0.15-0.20)                    │
+│  • scene_type mAP improves modestly (0.079 → 0.10-0.15)                   │
 │  • traffic_mix/ped_veh_sep show Indian-specific learning                    │
-│  • lighting mAP stays stable (already good at 0.66)                        │
+│  • lighting mAP stays stable (already good at 0.58)                        │
+│  • Temporal metrics: motion correlation should IMPROVE (Indian-adapted     │
+│    temporal features better match Indian traffic/crowd dynamics)            │
+│  • IF spatial improves but temporal doesn't → model learns appearance only │
+│  • IF temporal improves but spatial doesn't → model learns dynamics only   │
 │  • IF no improvement → motivates Ch 11 (surgery needed, not just data)     │
 │                                                                             │
 └─────────────────────────────────────────────────────────────────────────────┘
@@ -485,6 +603,11 @@ Tags serve **two purposes only**: (1) stratified batching for Ch10/Ch11, (2) sli
 | | **10.7 Reporting and ablations** | | |
 | 17 | Ablations (steps, aug strength, EMA tau, stabilizer lambda) | ❌ NOT BUILT | m09 — sweep 4 hyperparams, report overall + slice metrics |
 | 18 | Evaluation (re-run m05→m08, frozen vs adapted table) | ❌ NOT BUILT | m05+m06+m07+m08 — re-embed with adapted encoder, side-by-side comparison |
+| | **Pre-Ch10 temporal evaluation (new, from Ch9 findings)** | | |
+| 19 | Optical flow motion features (m04f) | ❌ NOT BUILT | m04f — RAFT/Farneback per clip → flow magnitude, direction histogram, camera motion. CPU-only. |
+| 20 | Temporal correlation analysis in m06 | ❌ NOT BUILT | m06 — correlate embedding distance with motion feature distance per encoder. V-JEPA should >> DINOv2. |
+| 21 | VLM temporal tags (optional, Approach B) | ❌ NOT BUILT | m04 prompt extension — camera_motion, traffic_flow, crowd_dynamics. Re-tag 10K (~2h GPU). |
+| 22 | Temporal Prec@K + image-baseline control | ❌ NOT BUILT | m06 — temporal retrieval metrics. Control: DINOv2/CLIP should score LOW (single-frame → motion-blind). |
 
 ---
 
@@ -648,6 +771,9 @@ Tags serve **two purposes only**: (1) stratified batching for Ch10/Ch11, (2) sli
 | 24 | Factor-sliced retrieval (query D_L/D_A/D_I separately) | ❌ NOT BUILT | m06 — per-factor neighborhoods: layout→layout, agent→agent, interaction→interaction |
 | 25 | Sanity check — raw vs patched clips | ❌ NOT BUILT | m06 — gains must transfer to RAW clips; patched-only gains = artifact learning (FAIL) |
 | 26 | Final 3-way comparison (frozen vs adapted vs surgical) | ❌ NOT BUILT | m05+m06+m07+m08 — x 15 v3 taxonomy keys, side-by-side table for paper |
+| | **Temporal evaluation for Ch11 (critical for Stages 2-3)** | | |
+| 27 | Temporal metrics per surgery stage | ❌ NOT BUILT | m06 — measure temporal Prec@K + motion correlation after each stage. Stage 1 (layout) → spatial gain expected. Stage 2 (agent) → temporal gain expected. Stage 3 (interaction) → temporal gain expected. Without temporal metrics, Stages 2-3 gains are UNMEASURABLE. |
+| 28 | Factor-temporal cross-analysis | ❌ NOT BUILT | m06 — per-factor × per-metric-type matrix: which surgery stage improves spatial vs temporal understanding? This is the paper's key table for Ch11. |
 
 ---
 
@@ -666,14 +792,20 @@ Tags serve **two purposes only**: (1) stratified batching for Ch10/Ch11, (2) sli
 │  ┌────────────────────┬──────────────┬──────────────┬──────────────┐                    │
 │  │ Metric             │ Ch 9: Frozen │ Ch 10: Adapt │ Ch 11: Surg  │                    │
 │  ├────────────────────┼──────────────┼──────────────┼──────────────┤                    │
+│  │ SPATIAL:           │              │              │              │                    │
 │  │ Prec@K (scene)     │ 14.6%        │              │              │                    │
 │  │ mAP@K (overall)    │ 0.079        │              │              │                    │
-│  │ Cycle@K            │ 78.7%        │              │              │                    │
-│  │ nDCG@K             │ 0.903        │              │              │                    │
-│  │ Overlap@K (true)   │ 10.5%        │              │              │                    │
 │  │ Silhouette (scene) │ -0.250       │              │              │                    │
 │  │ time_of_day mAP@K  │ 0.617        │              │              │                    │
 │  │ lighting mAP@K     │ 0.580        │              │              │                    │
+│  │ TEMPORAL (NEW):    │              │              │              │                    │
+│  │ motion corr (flow) │ (pending)    │              │              │                    │
+│  │ camera_motion P@K  │ (pending)    │              │              │                    │
+│  │ traffic_flow P@K   │ (pending)    │              │              │                    │
+│  │ LABEL-FREE:        │              │              │              │                    │
+│  │ Cycle@K            │ 78.7%        │              │              │                    │
+│  │ nDCG@K             │ 0.903        │              │              │                    │
+│  │ Overlap@K (true)   │ 10.5%        │              │              │                    │
 │  ├────────────────────┼──────────────┼──────────────┼──────────────┤                    │
 │  │ DINOv2 Prec@K      │ 50.5%        │     —        │     —        │                    │
 │  │ CLIP Prec@K        │ 46.0%        │     —        │     —        │                    │
@@ -701,6 +833,20 @@ Tags serve **two purposes only**: (1) stratified batching for Ch10/Ch11, (2) sli
 │     transfer. Supervised fine-tuning or architectural changes needed."                  │
 │     (Still a publishable negative result!)                                              │
 │                                                                                         │
+│  TEMPORAL × SPATIAL MATRIX (enriched story with temporal metrics):                      │
+│                                                                                         │
+│  IF spatial improves + temporal improves:                                                │
+│  → "Adaptation works on BOTH axes — model learns Indian scenes AND dynamics"            │
+│                                                                                         │
+│  IF spatial improves + temporal flat:                                                    │
+│  → "Model learns Indian visual appearance but NOT Indian motion dynamics"               │
+│                                                                                         │
+│  IF temporal improves + spatial flat:                                                    │
+│  → "Model captures Indian dynamics but scene classification still weak —                │
+│     temporal features and scene taxonomy are orthogonal"                                 │
+│                                                                                         │
+│  The spatial × temporal matrix is the RICHEST story for the paper.                      │
+│                                                                                         │
 └─────────────────────────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -713,7 +859,7 @@ Tags serve **two purposes only**: (1) stratified batching for Ch10/Ch11, (2) sli
 │                     DEPENDENCY GRAPH (what blocks what)                                  │
 ├─────────────────────────────────────────────────────────────────────────────────────────┤
 │                                                                                         │
-│  WEEK 1: Fill Ch 9 gaps (ALL CODE BUILT — GPU runs pending)                              │
+│  WEEK 1: Ch 9 COMPLETE + Temporal Evaluation Extension                                   │
 │  ┌──────────────────┐  ┌──────────────────┐  ┌──────────────────┐                       │
 │  │ Random baseline  │  │ DINOv2 baseline  │  │ CLIP baseline    │                       │
 │  │ m05b (CPU)       │  │ m05b (GPU)       │  │ m05b (GPU)       │                       │
@@ -726,8 +872,16 @@ Tags serve **two purposes only**: (1) stratified batching for Ch10/Ch11, (2) sli
 │                                  │                                                       │
 │                                  ▼                                                       │
 │           ┌───────────────────────────────────────────────┐                               │
-│           │ FAISS × 5 encoders (m06 --encoder)            │                               │
+│           │ FAISS × 5 encoders (m06 --encoder)            │  ← DONE                      │
 │           │ + UMAP × 5 (m07) + m08b comparison            │                               │
+│           └──────────────────────┬────────────────────────┘                               │
+│                                  │                                                       │
+│           ┌──────────────────────▼────────────────────────┐                               │
+│           │ TEMPORAL EVAL EXTENSION (NEW, pre-Ch10)       │                               │
+│           │ m04f: optical flow features (CPU, ~3h)        │                               │
+│           │ m06 ext: temporal correlation analysis         │                               │
+│           │ m04 ext: VLM temporal tags (optional, ~2h GPU)│                               │
+│           │ m08b ext: radar/bar with temporal axis         │                               │
 │           └──────────────────────┬────────────────────────┘                               │
 │                                  │                                                       │
 │           ┌──────────────────────▼────────────────────────┐                               │
@@ -863,6 +1017,7 @@ flowchart LR
 | **m05b** | **Ch 9** | **Baseline embeddings (random, DINOv2, shuffled, CLIP). Supports `--local-data`. Optimized: FA2/SDPA+compile, producer pre-processes, image_encoder batch profile (4x vjepa).** | **DONE** (98m 43s — random 5K, dinov2/clip/shuffled 10K each) |
 | **m05c** | **Ch 9** | **Augmented V-JEPA embeddings for True Overlap@K. Supports `--local-data`. Dedup optimization reads embeddings.paths.npy (5,105 clips).** | **DONE** (93m with dedup fix, 5,105 clips) |
 | **m08b** | **Ch 9** | **Multi-encoder comparison (bar chart, radar, LaTeX)** | **DONE** (CPU-only, runs after m06 × 5) |
+| **m04f** | **Ch 9+** | **Optical flow motion features per clip (CPU). RAFT/Farneback → flow magnitude, direction histogram, camera motion. Temporal ground-truth for retrieval evaluation.** | **TODO** |
 | **m09** | **Ch 10** | **Continual pretraining (student-teacher JEPA)** | **TODO** |
 | **m10** | **Ch 11** | **SAM3 segmentation + tracklet mining** | **TODO** |
 | **m11** | **Ch 11** | **Factor dataset creation (D_L, D_A, D_I)** | **TODO** |
@@ -874,7 +1029,8 @@ flowchart LR
 
 | Milestone | Criteria | When |
 |-----------|----------|------|
-| **Ch 9 complete** | Baselines done. V-JEPA Prec@K significantly above random. | Week 1 |
-| **Ch 10 POC** | Adapted Cycle@K ≥ frozen. scene_type mAP improves. traffic_mix/ped_veh_sep show signal. | Week 2 |
-| **Ch 11 POC** | Surgical > adapted on factor-specific metrics. Gains transfer to RAW (unpatched) clips. | Week 4 |
-| **Paper-ready** | 3-way comparison table with baselines. 15-key v3 taxonomy breakdown. All plots reproducible. | Week 5 |
+| **Ch 9 complete** | Baselines done. V-JEPA Prec@K significantly above random. | Week 1 **DONE** |
+| **Temporal eval** | m04f motion features computed. V-JEPA motion correlation > DINOv2/CLIP (validates temporal encoding). Image baselines score LOW on temporal metrics (control check passes). | Week 1.5 |
+| **Ch 10 POC** | Adapted Cycle@K ≥ frozen. scene_type mAP improves. traffic_mix/ped_veh_sep show signal. Temporal metrics show Indian-specific motion learning. | Week 2 |
+| **Ch 11 POC** | Surgical > adapted on factor-specific metrics. Stage 2 (agent) shows temporal gain. Stage 3 (interaction) shows temporal gain. Gains transfer to RAW (unpatched) clips. | Week 4 |
+| **Paper-ready** | 3-way comparison table with baselines. 15 spatial keys + 3 temporal keys. Spatial × temporal matrix. All plots reproducible. | Week 5 |
