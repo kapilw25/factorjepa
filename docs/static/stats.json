@@ -1,0 +1,277 @@
+{
+  "summary": {
+    "total_clips": 115687,
+    "total_videos": 714,
+    "total_cities": 22,
+    "total_hours": 275.8,
+    "total_gb": 121.2,
+    "taxonomy_fields": 16,
+    "last_updated": "2026-03-15"
+  },
+  "tier1": {
+    "label": "Tier 1 Cities",
+    "description": "6 metros",
+    "cities": [
+      {
+        "city": "Kolkata",
+        "drive": 3790,
+        "walk": 20633,
+        "drone": 655,
+        "total": 25078,
+        "hours": 58.0,
+        "gb": 27.1
+      },
+      {
+        "city": "Mumbai",
+        "drive": 6412,
+        "walk": 4167,
+        "drone": 181,
+        "total": 10760,
+        "hours": 25.8,
+        "gb": 12.1
+      },
+      {
+        "city": "Delhi",
+        "drive": 4114,
+        "walk": 6159,
+        "drone": 199,
+        "total": 10472,
+        "hours": 24.5,
+        "gb": 11.5
+      },
+      {
+        "city": "Chennai",
+        "drive": 1984,
+        "walk": 5870,
+        "drone": 426,
+        "total": 8280,
+        "hours": 19.5,
+        "gb": 9.0
+      },
+      {
+        "city": "Hyderabad",
+        "drive": 2210,
+        "walk": 5037,
+        "drone": 217,
+        "total": 7464,
+        "hours": 18.0,
+        "gb": 6.8
+      },
+      {
+        "city": "Bangalore",
+        "drive": 3453,
+        "walk": 2335,
+        "drone": 772,
+        "total": 6560,
+        "hours": 15.7,
+        "gb": 7.2
+      }
+    ],
+    "totals": {
+      "drive": 21963,
+      "walk": 44201,
+      "drone": 2450,
+      "total": 68614,
+      "hours": 161.4,
+      "gb": 73.7
+    }
+  },
+  "goa": {
+    "walk": 5835,
+    "total": 5835,
+    "hours": 14.2,
+    "gb": 6.1
+  },
+  "tier2": {
+    "label": "Tier 2 Cities",
+    "description": "15 cities",
+    "cities": [
+      {
+        "city": "Ahmedabad",
+        "drive": 476,
+        "walk": 4875,
+        "drone": 208,
+        "total": 5867,
+        "hours": 14.0,
+        "gb": 6.8,
+        "rain": 308
+      },
+      {
+        "city": "Varanasi",
+        "drive": 1087,
+        "walk": 2761,
+        "drone": 233,
+        "total": 4317,
+        "hours": 10.7,
+        "gb": 4.5,
+        "rain": 236
+      },
+      {
+        "city": "Jaipur",
+        "drive": 676,
+        "walk": 2206,
+        "drone": 214,
+        "total": 4170,
+        "hours": 10.0,
+        "gb": 4.2,
+        "rain": 1074
+      },
+      {
+        "city": "Kochi",
+        "drive": 1021,
+        "walk": 1222,
+        "drone": 865,
+        "total": 4096,
+        "hours": 10.1,
+        "gb": 4.2,
+        "rain": 988
+      },
+      {
+        "city": "Pune",
+        "drive": 707,
+        "walk": 1795,
+        "drone": 326,
+        "total": 3156,
+        "hours": 7.4,
+        "gb": 3.2,
+        "rain": 328
+      },
+      {
+        "city": "Coimbatore",
+        "drive": 1705,
+        "walk": 554,
+        "drone": 145,
+        "total": 2933,
+        "hours": 7.2,
+        "gb": 2.9,
+        "rain": 529
+      },
+      {
+        "city": "Lucknow",
+        "drive": 812,
+        "walk": 1412,
+        "drone": 189,
+        "total": 2779,
+        "hours": 6.9,
+        "gb": 2.6,
+        "rain": 366
+      },
+      {
+        "city": "Thiruvananthapuram",
+        "drive": 727,
+        "walk": 664,
+        "drone": 197,
+        "total": 2650,
+        "hours": 6.4,
+        "gb": 2.8,
+        "rain": 1062
+      },
+      {
+        "city": "Chandigarh",
+        "drive": 524,
+        "walk": 923,
+        "drone": 160,
+        "total": 2291,
+        "hours": 5.5,
+        "gb": 2.4,
+        "rain": 684
+      },
+      {
+        "city": "Nagpur",
+        "drive": 376,
+        "walk": 929,
+        "drone": 131,
+        "total": 1870,
+        "hours": 4.4,
+        "gb": 1.6,
+        "rain": 434
+      },
+      {
+        "city": "Indore",
+        "drive": 645,
+        "walk": 614,
+        "drone": 90,
+        "total": 1694,
+        "hours": 4.2,
+        "gb": 1.4,
+        "rain": 345
+      },
+      {
+        "city": "Visakhapatnam",
+        "drive": 256,
+        "walk": 811,
+        "drone": 304,
+        "total": 1508,
+        "hours": 3.6,
+        "gb": 1.2,
+        "rain": 137
+      },
+      {
+        "city": "Mysuru",
+        "drive": 489,
+        "walk": 418,
+        "drone": 174,
+        "total": 1352,
+        "hours": 3.3,
+        "gb": 1.2,
+        "rain": 271
+      },
+      {
+        "city": "Surat",
+        "drive": 472,
+        "walk": 303,
+        "drone": 142,
+        "total": 1102,
+        "hours": 2.7,
+        "gb": 1.0,
+        "rain": 185
+      },
+      {
+        "city": "Bhopal",
+        "drive": 249,
+        "walk": 322,
+        "drone": 119,
+        "total": 958,
+        "hours": 2.3,
+        "gb": 0.8,
+        "rain": 268
+      }
+    ],
+    "totals": {
+      "drive": 10222,
+      "walk": 19809,
+      "drone": 3497,
+      "rain": 7215,
+      "total": 40743,
+      "hours": 98.8,
+      "gb": 40.9
+    }
+  },
+  "monuments": {
+    "sites": [
+      {
+        "name": "Gateway Of India Mumbai",
+        "clips": 266,
+        "hours": 0.7,
+        "gb": 0.3
+      },
+      {
+        "name": "Mysore Palace",
+        "clips": 15,
+        "hours": 0.0,
+        "gb": 0.0
+      },
+      {
+        "name": "Red Fort Delhi",
+        "clips": 214,
+        "hours": 0.6,
+        "gb": 0.2
+      }
+    ],
+    "totals": {
+      "total": 495,
+      "hours": 1.3,
+      "gb": 0.5
+    }
+  }
+}

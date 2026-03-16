@@ -5,6 +5,9 @@ Flags clips outside [4s, 10s] range. JSON mirrors the directory hierarchy.
 USAGE:
     python -u src/m02b_scene_fetch_duration.py --SANITY 2>&1 | tee logs/m02b_scene_fetch_duration_sanity.log
     python -u src/m02b_scene_fetch_duration.py --FULL 2>&1 | tee logs/m02b_scene_fetch_duration_full.log
+    
+    # Print clips-per-city table from existing JSON (no scanning)
+    python -u src/m02b_scene_fetch_duration.py --stats
 """
 import argparse
 import json
@@ -212,5 +215,183 @@ def main():
             print(f"  ... and {len(violations) - 20} more")
 
 
+def print_clips_per_city():
+    """Read existing clip_durations.json and print clips-per-city tables."""
+    if not OUTPUT_JSON.exists():
+        print(f"ERROR: {OUTPUT_JSON} not found. Run --FULL first.")
+        sys.exit(1)
+
+    with open(OUTPUT_JSON, "r") as f:
+        data = json.load(f)
+
+    sections = data.get("sections", {})
+    summary = data.get("summary", {})
+
+    def get_clips(prefix):
+        return sum(v["total_clips"] for k, v in sections.items() if k.startswith(prefix))
+
+    def get_dur_gb(prefix):
+        dur = 0.0
+        size = 0.0
+        for k, v in sections.items():
+            if k.startswith(prefix):
+                for _, clips in v.get("videos", {}).items():
+                    for c in clips:
+                        dur += c.get("duration_sec", 0)
+                        size += c.get("size_mb", 0)
+        return dur / 3600, size / 1024
+
+    tier1_cities = ["kolkata", "chennai", "bangalore", "mumbai", "delhi", "hyderabad"]
+    tier2_cities = ["jaipur", "varanasi", "lucknow", "ahmedabad", "pune", "kochi",
+                    "chandigarh", "indore", "bhopal", "coimbatore", "nagpur",
+                    "visakhapatnam", "surat", "thiruvananthapuram", "mysuru"]
+
+    total_clips = summary.get("total_clips", 0)
+    total_hrs = summary.get("total_duration_hours", 0)
+    total_gb = summary.get("total_size_gb", 0)
+
+    print(f"\n{'=' * 90}")
+    print(f"CLIPS PER CITY ({total_clips:,} total clips | {total_hrs:.1f} hours | {total_gb:.1f} GB)")
+    print(f"{'=' * 90}")
+
+    # ===== TIER 1 =====
+    print(f"\n--- Tier 1 Cities (6 metros) ---")
+    print(f"{'City':<20} {'Drive':>8} {'Walk':>8} {'Drone':>8} {'Total':>8} {'Hrs':>7} {'GB':>7}")
+    print("-" * 75)
+
+    t1 = {"drive": 0, "walk": 0, "drone": 0, "total": 0}
+    t1_dur = t1_size = 0.0
+    for city in sorted(tier1_cities, key=lambda c: -get_clips(f"tier1/{c}")):
+        d = get_clips(f"tier1/{city}/drive")
+        w = get_clips(f"tier1/{city}/walking")
+        dr = get_clips(f"tier1/{city}/drone")
+        total = d + w + dr
+        hrs, gb = get_dur_gb(f"tier1/{city}")
+        print(f"{city.capitalize():<20} {d:>8,} {w:>8,} {dr:>8,} {total:>8,} {hrs:>7.1f} {gb:>7.1f}")
+        t1["drive"] += d; t1["walk"] += w; t1["drone"] += dr; t1["total"] += total
+        t1_dur += hrs; t1_size += gb
+
+    print("-" * 75)
+    print(f"{'Tier 1 Total':<20} {t1['drive']:>8,} {t1['walk']:>8,} {t1['drone']:>8,} {t1['total']:>8,} {t1_dur:>7.1f} {t1_size:>7.1f}")
+
+    # ===== GOA =====
+    goa_w = get_clips("goa/walking")
+    goa_hrs, goa_gb = get_dur_gb("goa")
+    print(f"\n{'Goa':<20} {'':>8} {goa_w:>8,} {'':>8} {goa_w:>8,} {goa_hrs:>7.1f} {goa_gb:>7.1f}")
+
+    # ===== TIER 2 =====
+    print(f"\n--- Tier 2 Cities (15 cities) ---")
+    print(f"{'City':<20} {'Drive':>8} {'Walk':>8} {'Drone':>8} {'Rain':>8} {'Total':>8} {'Hrs':>7} {'GB':>7}")
+    print("-" * 85)
+
+    t2 = {"drive": 0, "walk": 0, "drone": 0, "rain": 0, "total": 0}
+    t2_dur = t2_size = 0.0
+    for city in sorted(tier2_cities, key=lambda c: -get_clips(f"tier2/{c}")):
+        d = get_clips(f"tier2/{city}/drive")
+        w = get_clips(f"tier2/{city}/walking")
+        dr = get_clips(f"tier2/{city}/drone")
+        r = get_clips(f"tier2/{city}/rain")
+        total = d + w + dr + r
+        hrs, gb = get_dur_gb(f"tier2/{city}")
+        print(f"{city.capitalize():<20} {d:>8,} {w:>8,} {dr:>8,} {r:>8,} {total:>8,} {hrs:>7.1f} {gb:>7.1f}")
+        t2["drive"] += d; t2["walk"] += w; t2["drone"] += dr; t2["rain"] += r; t2["total"] += total
+        t2_dur += hrs; t2_size += gb
+
+    print("-" * 85)
+    print(f"{'Tier 2 Total':<20} {t2['drive']:>8,} {t2['walk']:>8,} {t2['drone']:>8,} {t2['rain']:>8,} {t2['total']:>8,} {t2_dur:>7.1f} {t2_size:>7.1f}")
+
+    # ===== MONUMENTS =====
+    mon_clips = get_clips("monuments")
+    mon_hrs, mon_gb = get_dur_gb("monuments")
+    mon_sections = {k: v for k, v in sections.items() if k.startswith("monuments")}
+    if mon_sections:
+        print(f"\n--- Monuments ---")
+        print(f"{'Monument':<40} {'Clips':>8} {'Hrs':>7} {'GB':>7}")
+        print("-" * 65)
+        for k in sorted(mon_sections.keys()):
+            name = k.replace("monuments/", "").replace("_", " ").title()
+            c = mon_sections[k]["total_clips"]
+            h, g = get_dur_gb(k)
+            print(f"{name:<40} {c:>8,} {h:>7.1f} {g:>7.1f}")
+        print("-" * 65)
+        print(f"{'Monuments Total':<40} {mon_clips:>8,} {mon_hrs:>7.1f} {mon_gb:>7.1f}")
+
+    # ===== GRAND TOTAL =====
+    grand = t1["total"] + goa_w + t2["total"] + mon_clips
+    grand_hrs = t1_dur + goa_hrs + t2_dur + mon_hrs
+    grand_gb = t1_size + goa_gb + t2_size + mon_gb
+
+    print(f"\n{'=' * 90}")
+    print(f"{'GRAND TOTAL':<20} {'':>42} {grand:>8,} {grand_hrs:>7.1f} {grand_gb:>7.1f}")
+    print(f"{'=' * 90}")
+
+    # ===== Export docs/static/stats.json for webpage =====
+    from datetime import date
+
+    def city_row(city, prefix, has_rain=False):
+        d = get_clips(f"{prefix}/drive")
+        w = get_clips(f"{prefix}/walking")
+        dr = get_clips(f"{prefix}/drone")
+        r = get_clips(f"{prefix}/rain") if has_rain else 0
+        total = d + w + dr + r
+        hrs, gb = get_dur_gb(prefix)
+        row = {"city": city, "drive": d, "walk": w, "drone": dr, "total": total,
+               "hours": round(hrs, 1), "gb": round(gb, 1)}
+        if has_rain:
+            row["rain"] = r
+        return row
+
+    stats = {
+        "summary": {
+            "total_clips": grand,
+            "total_videos": 714,
+            "total_cities": len(tier1_cities) + len(tier2_cities) + 1,
+            "total_hours": round(grand_hrs, 1),
+            "total_gb": round(grand_gb, 1),
+            "taxonomy_fields": 16,
+            "last_updated": str(date.today()),
+        },
+        "tier1": {
+            "label": "Tier 1 Cities",
+            "description": "6 metros",
+            "cities": [city_row(c.capitalize(), f"tier1/{c}") for c in sorted(tier1_cities, key=lambda c: -get_clips(f"tier1/{c}"))],
+            "totals": {"drive": t1["drive"], "walk": t1["walk"], "drone": t1["drone"],
+                       "total": t1["total"], "hours": round(t1_dur, 1), "gb": round(t1_size, 1)},
+        },
+        "goa": {
+            "walk": goa_w, "total": goa_w,
+            "hours": round(goa_hrs, 1), "gb": round(goa_gb, 1),
+        },
+        "tier2": {
+            "label": "Tier 2 Cities",
+            "description": "15 cities",
+            "cities": [city_row(c.capitalize(), f"tier2/{c}", has_rain=True) for c in sorted(tier2_cities, key=lambda c: -get_clips(f"tier2/{c}"))],
+            "totals": {"drive": t2["drive"], "walk": t2["walk"], "drone": t2["drone"],
+                       "rain": t2["rain"], "total": t2["total"],
+                       "hours": round(t2_dur, 1), "gb": round(t2_size, 1)},
+        },
+        "monuments": {
+            "sites": [],
+            "totals": {"total": mon_clips, "hours": round(mon_hrs, 1), "gb": round(mon_gb, 1)},
+        },
+    }
+
+    for k in sorted(mon_sections.keys()):
+        name = k.replace("monuments/", "").replace("_", " ").title()
+        c = mon_sections[k]["total_clips"]
+        h, g = get_dur_gb(k)
+        stats["monuments"]["sites"].append({"name": name, "clips": c, "hours": round(h, 1), "gb": round(g, 1)})
+
+    stats_path = PROJECT_ROOT / "docs" / "static" / "stats.json"
+    stats_path.parent.mkdir(parents=True, exist_ok=True)
+    with open(stats_path, "w") as f:
+        json.dump(stats, f, indent=2)
+    print(f"\nExported: {stats_path}")
+
+
 if __name__ == "__main__":
-    main()
+    # Check for --stats before main argparse (no scanning needed)
+    if "--stats" in sys.argv:
+        print_clips_per_city()
+    else:
+        main()
