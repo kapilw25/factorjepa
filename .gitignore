@@ -72,6 +72,8 @@ src/data/
 
 # Large binary
 *.mp4
+# Exception: allow small web demo videos in docs/
+!docs/static/videos/**/*.mp4
 
 # secrets
 cookies.txt

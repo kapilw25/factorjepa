@@ -19,7 +19,7 @@ VLM: **Qwen3-VL-8B** (winner — 0.919 weighted score via 5-criterion bake-off).
 ## Pre-flight: GPU Server Setup
 
 ```bash
-git clone <repo> && cd LLM_asAgent_3D_SR
+git clone <repo> && cd factorjepa
 ./setup_env_uv.sh --gpu
 source venv_walkindia/bin/activate
 ```

@@ -1,0 +1,98 @@
+[
+  {
+    "key": "066502",
+    "city": "mumbai",
+    "scene_type": "market",
+    "time_of_day": "day",
+    "source_file": "BGmoNLSJMGE-258.mp4",
+    "section": "tier1/mumbai/drive"
+  },
+  {
+    "key": "025285",
+    "city": "delhi",
+    "scene_type": "heritage_tourist",
+    "time_of_day": "day",
+    "source_file": "JW1jSINTzaw-001.mp4",
+    "section": "tier1/delhi/drone"
+  },
+  {
+    "key": "000008",
+    "city": "goa",
+    "scene_type": "promenade",
+    "time_of_day": "day",
+    "source_file": "04YKvC8kAgI-008.mp4",
+    "section": "goa/walking"
+  },
+  {
+    "key": "110290",
+    "city": "varanasi",
+    "scene_type": "transit",
+    "time_of_day": "day",
+    "source_file": "Ugn-uqKFMJY-146.mp4",
+    "section": "tier2/varanasi/drive"
+  },
+  {
+    "key": "088870",
+    "city": "jaipur",
+    "scene_type": "commercial",
+    "time_of_day": "day",
+    "source_file": "7cestQi14b8-010.mp4",
+    "section": "tier2/jaipur/drive"
+  },
+  {
+    "key": "006351",
+    "city": "bangalore",
+    "scene_type": "residential_lane",
+    "time_of_day": "day",
+    "source_file": "0dsDjXBthT0-021.mp4",
+    "section": "tier1/bangalore/drive"
+  },
+  {
+    "key": "033932",
+    "city": "hyderabad",
+    "scene_type": "flyover_underpass",
+    "time_of_day": "night",
+    "source_file": "EPXFc2Dr9mQ-002.mp4",
+    "section": "tier1/hyderabad/drone"
+  },
+  {
+    "key": "093881",
+    "city": "kochi",
+    "scene_type": "highway",
+    "time_of_day": "day",
+    "source_file": "0ZCRYfmgkkU-003.mp4",
+    "section": "tier2/kochi/drone"
+  },
+  {
+    "key": "013036",
+    "city": "chennai",
+    "scene_type": "junction",
+    "time_of_day": "day",
+    "source_file": "15P_-dTlpLY-060.mp4",
+    "section": "tier1/chennai/drive"
+  },
+  {
+    "key": "040213",
+    "city": "kolkata",
+    "scene_type": "commercial",
+    "time_of_day": "night",
+    "source_file": "MRA4xTN6-yw-074.mp4",
+    "section": "tier1/kolkata/drive"
+  },
+  {
+    "key": "102963",
+    "city": "pune",
+    "scene_type": "commercial",
+    "time_of_day": "day",
+    "source_file": "CY185b2Wg_A-009.mp4",
+    "section": "tier2/pune/drive"
+  },
+  {
+    "key": "097311",
+    "city": "lucknow",
+    "scene_type": "heritage_tourist",
+    "time_of_day": "day",
+    "source_file": "lqoPyFisJkk-058.mp4",
+    "section": "tier2/lucknow/drive"
+  }
+]

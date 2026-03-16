@@ -421,6 +421,29 @@ External validation: [arXiv:2509.21595](https://arxiv.org/abs/2509.21595) "Tempo
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
 
+### Pipeline Ordering Rationale
+
+The temporal evaluation extension comes AFTER the full spatial pipeline (m04→m08b), not before.
+This is intentional — the temporal gap was **discovered from Ch9 results**, not known a priori.
+
+```
+Pipeline ordering:
+1. Run full spatial pipeline (DONE, Ch9 rows 1-22)
+   m04 tags → m05/m05b/m05c embeddings → m06 FAISS → m07 UMAP → m08/m08b plots
+   ↓
+2. Discover temporal evaluation gap from Ch9 results (DONE)
+   Finding: shuffled > normal V-JEPA → temporal encoding hurts spatial scene classification
+   Finding: 16 taxonomy fields × 0 temporal = measurement gap
+   ↓
+3. Extend with temporal metrics (TODO, rows 23-25)
+   m04f (optical flow) → m06 extension (temporal Prec@K) → m08b update
+   ↓
+4. Re-run FAISS extension with temporal features → updated radar/comparison
+   Now the comparison table has BOTH spatial and temporal axes
+```
+
+The spatial metrics are PRESERVED (not replaced). Temporal is additive.
+
 ### Implementation Sequence
 
 | Step | Action | Module | Effort | When |

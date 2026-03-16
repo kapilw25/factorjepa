@@ -1,0 +1,852 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>FactorJEPA | Does V-JEPA 2 Understand Indian Streets?</title>
+  <meta name="description" content="Benchmarking Video Foundation Models on WalkIndia-200K: Image encoders (DINOv2: 50.5%) dramatically outperform V-JEPA (14.6%) on Indian street scene retrieval.">
+  <meta name="keywords" content="V-JEPA, DINOv2, CLIP, video understanding, Indian street scenes, WalkIndia-200K, FactorJEPA, DenseWorld, benchmark">
+
+  <!-- Google Scholar (Highwire Press) -->
+  <meta name="citation_title" content="Does V-JEPA 2 Understand Indian Streets? Benchmarking Video Foundation Models on WalkIndia-200K">
+  <meta name="citation_author" content="Wanaskar, Kapil">
+  <meta name="citation_author" content="Jena, Gaytri">
+  <meta name="citation_author" content="Jain, Vinija">
+  <meta name="citation_author" content="Chadha, Aman">
+  <meta name="citation_author" content="Das, Amitava">
+  <meta name="citation_publication_date" content="2026">
+
+  <!-- Open Graph -->
+  <meta property="og:title" content="Does V-JEPA 2 Understand Indian Streets?">
+  <meta property="og:description" content="Image encoders (DINOv2: 50.5%) dramatically outperform V-JEPA (14.6%) on Indian street scene retrieval. Shuffling frames improves V-JEPA by 2.4x.">
+  <meta property="og:image" content="static/images/m08b_radar.png">
+  <meta property="og:url" content="https://kapilw25.github.io/factorjepa/">
+  <meta property="og:type" content="website">
+
+  <!-- Twitter Card -->
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Does V-JEPA 2 Understand Indian Streets?">
+  <meta name="twitter:description" content="Image encoders dramatically outperform V-JEPA on Indian street scene retrieval. Shuffling frames improves V-JEPA by 2.4x.">
+  <meta name="twitter:image" content="static/images/m08b_radar.png">
+
+  <!-- Favicon -->
+  <link rel="icon" type="image/x-icon" href="static/images/favicon.ico">
+  <link rel="apple-touch-icon" href="static/images/denseworld_logo.png">
+
+  <!-- Bulma CSS -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.4/css/bulma.min.css">
+  <!-- Font Awesome -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Libre+Baskerville:wght@400;700&family=Source+Sans+3:wght@300;400;600;700&display=swap">
+
+  <style>
+    :root {
+      --bg-cream: #FAF7F2;
+      --bg-sand: #F0EBE1;
+      --text-dark: #2D2318;
+      --text-secondary: #6B5E52;
+      --accent-terracotta: #8B3A2A;
+      --accent-saffron: #D4762C;
+      --accent-green: #3B6B35;
+      --border-tan: #D4C9B8;
+    }
+
+    body {
+      font-family: 'Source Sans 3', sans-serif;
+      color: var(--text-dark);
+      background-color: var(--bg-cream);
+    }
+
+    h1, h2, h3, h4, .title, .subtitle {
+      font-family: 'Libre Baskerville', serif;
+      color: var(--text-dark);
+    }
+
+    .hero-body { padding: 2rem 1.5rem; }
+
+    .paper-title {
+      font-size: 2.5rem;
+      font-weight: 700;
+      line-height: 1.2;
+      margin-bottom: 0.5rem;
+    }
+
+    .paper-subtitle {
+      font-size: 1.3rem;
+      color: var(--text-secondary);
+      font-family: 'Source Sans 3', sans-serif;
+      font-weight: 300;
+    }
+
+    .author-block {
+      font-size: 1.1rem;
+      margin-top: 0.8rem;
+    }
+
+    .publication-links a {
+      margin: 0.3rem;
+    }
+
+    a { color: var(--accent-terracotta); }
+    a:hover { color: var(--accent-saffron); }
+
+    .section { background-color: var(--bg-cream); }
+    .section:nth-child(even) { background-color: var(--bg-sand); }
+
+    .finding-card {
+      background: white;
+      border-radius: 12px;
+      padding: 1.5rem;
+      border-left: 5px solid var(--accent-terracotta);
+      box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+      margin-bottom: 1rem;
+    }
+
+    .finding-card .stat {
+      font-size: 1.8rem;
+      font-weight: 700;
+      color: var(--accent-terracotta);
+      font-family: 'Source Sans 3', sans-serif;
+    }
+
+    .finding-card .desc {
+      font-size: 1rem;
+      color: var(--text-secondary);
+      margin-top: 0.3rem;
+    }
+
+    .finding-card:nth-child(2) { border-left-color: var(--accent-saffron); }
+    .finding-card:nth-child(2) .stat { color: var(--accent-saffron); }
+    .finding-card:nth-child(3) { border-left-color: var(--accent-green); }
+    .finding-card:nth-child(3) .stat { color: var(--accent-green); }
+
+    table.results-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.95rem;
+    }
+
+    table.results-table th {
+      background-color: var(--accent-terracotta);
+      color: white;
+      padding: 0.6rem 0.8rem;
+      text-align: center;
+      font-family: 'Source Sans 3', sans-serif;
+      font-weight: 600;
+    }
+
+    table.results-table td {
+      padding: 0.5rem 0.8rem;
+      text-align: center;
+      border-bottom: 1px solid var(--border-tan);
+    }
+
+    table.results-table tr:hover { background-color: var(--bg-sand); }
+
+    .best-value { font-weight: 700; color: var(--accent-terracotta); }
+
+    .plot-container {
+      background: white;
+      border-radius: 8px;
+      padding: 1rem;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.05);
+      margin-bottom: 1.5rem;
+    }
+
+    .plot-container img {
+      width: 100%;
+      border-radius: 4px;
+    }
+
+    .plot-caption {
+      font-size: 0.9rem;
+      color: var(--text-secondary);
+      margin-top: 0.5rem;
+      font-style: italic;
+    }
+
+    .bibtex-box {
+      background: var(--text-dark);
+      color: #e0d5c8;
+      border-radius: 8px;
+      padding: 1.2rem;
+      font-family: 'JetBrains Mono', 'Fira Code', monospace;
+      font-size: 0.85rem;
+      position: relative;
+      overflow-x: auto;
+    }
+
+    .copy-btn {
+      position: absolute;
+      top: 0.5rem;
+      right: 0.5rem;
+      background: var(--accent-terracotta);
+      color: white;
+      border: none;
+      border-radius: 4px;
+      padding: 0.3rem 0.6rem;
+      cursor: pointer;
+      font-size: 0.8rem;
+    }
+    .copy-btn:hover { background: var(--accent-saffron); }
+
+    .footer {
+      background-color: var(--text-dark);
+      color: var(--border-tan);
+      padding: 2rem;
+    }
+    .footer a { color: var(--accent-saffron); }
+
+    .video-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 8px;
+    }
+    @media (max-width: 768px) {
+      .video-grid { grid-template-columns: repeat(2, 1fr); }
+      .paper-title { font-size: 1.6rem; }
+    }
+
+    .video-cell video {
+      width: 100%;
+      border-radius: 6px;
+    }
+    .video-cell .label-text {
+      font-size: 0.75rem;
+      color: var(--text-secondary);
+      text-align: center;
+      margin-top: 0.2rem;
+    }
+
+    .badge-row {
+      margin-top: 0.5rem;
+    }
+    .badge-row img {
+      height: 22px;
+      margin: 0 4px;
+    }
+
+    .dataset-stats td { text-align: left; padding: 0.4rem 1rem; }
+    .dataset-stats th { text-align: left; padding: 0.4rem 1rem; background: var(--bg-sand); }
+
+    blockquote {
+      background: var(--bg-sand);
+      border-left: 4px solid var(--accent-terracotta);
+      padding: 1rem 1.5rem;
+      border-radius: 0 8px 8px 0;
+      font-size: 1.05rem;
+      line-height: 1.7;
+    }
+
+    .roadmap-table td:first-child { font-weight: 600; }
+    .roadmap-table .status-complete { color: var(--accent-green); font-weight: 700; }
+    .roadmap-table .status-planned { color: var(--text-secondary); }
+
+    .knn-section { margin-bottom: 2rem; }
+    .knn-label {
+      font-weight: 700;
+      font-size: 1rem;
+      margin-bottom: 0.5rem;
+      font-family: 'Source Sans 3', sans-serif;
+    }
+    .knn-row {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex-wrap: nowrap;
+      overflow-x: auto;
+    }
+    .knn-cell {
+      flex: 0 0 auto;
+      width: 140px;
+      text-align: center;
+    }
+    .knn-cell video {
+      width: 100%;
+      border-radius: 4px;
+      border: 3px solid transparent;
+    }
+    .knn-cell.query video { border-color: var(--accent-terracotta); }
+    .knn-cell.match video { border-color: var(--accent-green); }
+    .knn-cell.miss video { border-color: #cc3333; }
+    .knn-cell .knn-tag {
+      font-size: 0.7rem;
+      margin-top: 2px;
+    }
+    .knn-arrow {
+      font-size: 1.5rem;
+      color: var(--text-secondary);
+      flex: 0 0 auto;
+    }
+
+    .pragma-footer {
+      font-size: 0.85rem;
+      text-align: center;
+      color: var(--border-tan);
+    }
+  </style>
+</head>
+
+<body>
+
+<!-- ==================== HERO ==================== -->
+<section class="hero is-light">
+  <div class="hero-body">
+    <div class="container has-text-centered">
+
+      <img src="static/images/denseworld_logo.png" alt="DenseWorld Logo" style="height: 80px; margin-bottom: 0.8rem;">
+      <p class="paper-title">Does V-JEPA 2 Understand Indian Streets?</p>
+      <p class="paper-subtitle">Benchmarking Video Foundation Models on WalkIndia-200K</p>
+
+      <div class="author-block">
+        <span>Kapil Wanaskar<sup>1</sup></span> &nbsp;
+        <span>Gaytri Jena<sup>4</sup></span> &nbsp;
+        <span>Vinija Jain<sup>2</sup></span> &nbsp;
+        <span>Aman Chadha<sup>3</sup></span> &nbsp;
+        <span>Amitava Das<sup>4</sup></span>
+      </div>
+      <div style="font-size: 0.9rem; color: var(--text-secondary); margin-top: 0.4rem;">
+        <sup>1</sup>Canva Research, USA &nbsp;&nbsp;
+        <sup>2</sup>Google, USA &nbsp;&nbsp;
+        <sup>3</sup>Apple, USA &nbsp;&nbsp;
+        <sup>4</sup>Pragya Lab, BITS Pilani Goa, India
+      </div>
+
+      <div class="badge-row">
+        <a href="https://github.com/kapilw25/factorjepa" target="_blank">
+          <img src="https://img.shields.io/badge/Code-GitHub-black?logo=github" alt="GitHub">
+        </a>
+        <a href="https://huggingface.co/datasets/anonymousML123/walkindia-200k" target="_blank">
+          <img src="https://img.shields.io/badge/Dataset-HuggingFace-ffd21e?logo=huggingface" alt="HuggingFace Dataset">
+        </a>
+        <img src="https://img.shields.io/badge/Status-Preprint-yellow" alt="Preprint">
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- ==================== TEASER VIDEO GRID ==================== -->
+<section class="section" style="padding-top: 1.5rem; padding-bottom: 1.5rem;">
+  <div class="container" style="max-width: 1100px;">
+    <div class="video-grid">
+      <div class="video-cell">
+        <video autoplay muted loop playsinline><source src="static/videos/teaser/mumbai_market.mp4" type="video/mp4"></video>
+        <div class="label-text">Mumbai / Market</div>
+      </div>
+      <div class="video-cell">
+        <video autoplay muted loop playsinline><source src="static/videos/teaser/delhi_heritage_tourist.mp4" type="video/mp4"></video>
+        <div class="label-text">Delhi / Heritage</div>
+      </div>
+      <div class="video-cell">
+        <video autoplay muted loop playsinline><source src="static/videos/teaser/goa_promenade.mp4" type="video/mp4"></video>
+        <div class="label-text">Goa / Promenade</div>
+      </div>
+      <div class="video-cell">
+        <video autoplay muted loop playsinline><source src="static/videos/teaser/varanasi_transit.mp4" type="video/mp4"></video>
+        <div class="label-text">Varanasi / Transit</div>
+      </div>
+      <div class="video-cell">
+        <video autoplay muted loop playsinline><source src="static/videos/teaser/jaipur_commercial.mp4" type="video/mp4"></video>
+        <div class="label-text">Jaipur / Commercial</div>
+      </div>
+      <div class="video-cell">
+        <video autoplay muted loop playsinline><source src="static/videos/teaser/bangalore_residential_lane.mp4" type="video/mp4"></video>
+        <div class="label-text">Bangalore / Residential</div>
+      </div>
+      <div class="video-cell">
+        <video autoplay muted loop playsinline><source src="static/videos/teaser/hyderabad_flyover_underpass.mp4" type="video/mp4"></video>
+        <div class="label-text">Hyderabad / Night</div>
+      </div>
+      <div class="video-cell">
+        <video autoplay muted loop playsinline><source src="static/videos/teaser/kochi_highway.mp4" type="video/mp4"></video>
+        <div class="label-text">Kochi / Highway</div>
+      </div>
+      <div class="video-cell">
+        <video autoplay muted loop playsinline><source src="static/videos/teaser/chennai_junction.mp4" type="video/mp4"></video>
+        <div class="label-text">Chennai / Junction</div>
+      </div>
+      <div class="video-cell">
+        <video autoplay muted loop playsinline><source src="static/videos/teaser/kolkata_commercial.mp4" type="video/mp4"></video>
+        <div class="label-text">Kolkata / Night</div>
+      </div>
+      <div class="video-cell">
+        <video autoplay muted loop playsinline><source src="static/videos/teaser/pune_commercial.mp4" type="video/mp4"></video>
+        <div class="label-text">Pune / Commercial</div>
+      </div>
+      <div class="video-cell">
+        <video autoplay muted loop playsinline><source src="static/videos/teaser/lucknow_heritage_tourist.mp4" type="video/mp4"></video>
+        <div class="label-text">Lucknow / Heritage</div>
+      </div>
+    </div>
+    <p class="plot-caption has-text-centered" style="margin-top: 0.5rem;">Sample clips from WalkIndia-200K: 200K clips across 714 YouTube walking tour videos from 25+ Indian cities.</p>
+  </div>
+</section>
+
+<!-- ==================== ABSTRACT ==================== -->
+<section class="section">
+  <div class="container" style="max-width: 900px;">
+    <h2 class="title is-3 has-text-centered">Abstract</h2>
+    <blockquote>
+      Do video foundation models trained on Western data understand the dense, crowded, chaotic streets of India?
+      We introduce <strong>WalkIndia-200K</strong>, a large-scale benchmark of 200,000 video clips from 714 YouTube
+      walking tours across 25+ Indian cities. Each clip is automatically tagged with 16 structured attributes
+      (scene type, crowd density, traffic mix, road surface, etc.) using a VLM bake-off won by Qwen3-VL-8B.
+      <br><br>
+      We evaluate five encoders &mdash; <strong>V-JEPA 2</strong> (ViT-G, frozen), <strong>DINOv2</strong> (ViT-L/14),
+      <strong>CLIP</strong> (ViT-L/14), <strong>V-JEPA Shuffled</strong> (temporal ablation), and a <strong>Random</strong>
+      baseline &mdash; on 9 retrieval metrics across Easy/Hard modes. Our key finding:
+      <strong>image-based encoders (DINOv2: 50.5% Prec@K) dramatically outperform the video encoder
+      (V-JEPA: 14.6%)</strong> on spatial scene classification. More strikingly,
+      <strong>shuffling V-JEPA's input frames improves performance by 2.4&times;</strong> (35.3% Prec@K),
+      demonstrating that temporal encoding actively hurts spatial scene understanding in this domain.
+    </blockquote>
+  </div>
+</section>
+
+<!-- ==================== KEY FINDINGS ==================== -->
+<section class="section">
+  <div class="container" style="max-width: 900px;">
+    <h2 class="title is-3 has-text-centered">Key Findings</h2>
+
+    <div class="finding-card">
+      <div class="stat">DINOv2 50.5% vs V-JEPA 14.6%</div>
+      <div class="desc"><strong>Image Beats Video.</strong> Single-frame image encoders outperform the 64-frame video encoder on spatial scene classification across Indian street scenes.</div>
+    </div>
+
+    <div class="finding-card">
+      <div class="stat">Shuffled 35.3% vs Normal 14.6% &mdash; 2.4&times; improvement</div>
+      <div class="desc"><strong>Temporal Encoding Hurts.</strong> Randomly permuting V-JEPA's input frames destroys temporal information &mdash; and improves spatial retrieval by 2.4&times;. The temporal pathway is noise for this task.</div>
+    </div>
+
+    <div class="finding-card">
+      <div class="stat">V-JEPA Cycle@K: 78.7% (highest of all encoders)</div>
+      <div class="desc"><strong>Consistent but Wrong.</strong> V-JEPA builds the most self-consistent kNN neighborhoods &mdash; they just encode camera motion similarity, not scene semantics.</div>
+    </div>
+
+  </div>
+</section>
+
+<!-- ==================== ENCODER COMPARISON ==================== -->
+<section class="section">
+  <div class="container" style="max-width: 1100px;">
+    <h2 class="title is-3 has-text-centered">Five-Encoder Comparison</h2>
+
+    <div class="columns">
+      <div class="column is-7">
+        <div class="plot-container">
+          <img src="static/images/m08b_encoder_comparison.png" alt="Bar chart comparing 5 encoders across Cycle@K, Overlap@K, Prec@K, mAP@K, nDCG@K in Easy and Hard modes">
+          <p class="plot-caption">5 encoders &times; 5 metrics &times; Easy/Hard modes. DINOv2 and CLIP dominate retrieval accuracy; V-JEPA leads only on Cycle@K.</p>
+        </div>
+      </div>
+      <div class="column is-5">
+        <div class="plot-container">
+          <img src="static/images/m08b_radar.png" alt="Radar chart showing 5-encoder comparison. DINOv2 has the largest polygon area.">
+          <p class="plot-caption">Easy mode, normalized 0&ndash;100%. DINOv2 (green) has the largest polygon; V-JEPA (blue) excels only on Cycle@K.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Results table -->
+    <table class="results-table">
+      <thead>
+        <tr>
+          <th>Encoder</th>
+          <th>Dim</th>
+          <th>Cycle@K</th>
+          <th>Overlap@K</th>
+          <th>Prec@K</th>
+          <th>mAP@K</th>
+          <th>nDCG@K</th>
+          <th>Silhouette</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>V-JEPA 2</strong></td>
+          <td>1408</td>
+          <td class="best-value">78.65%</td>
+          <td>10.50%</td>
+          <td>14.63%</td>
+          <td>0.0792</td>
+          <td>0.9032</td>
+          <td>-0.2503</td>
+        </tr>
+        <tr>
+          <td>Random</td>
+          <td>1408</td>
+          <td>54.99%</td>
+          <td>0.00%</td>
+          <td>12.21%</td>
+          <td>0.0608</td>
+          <td>0.8978</td>
+          <td>-0.0206</td>
+        </tr>
+        <tr>
+          <td><strong>DINOv2</strong></td>
+          <td>1024</td>
+          <td>66.77%</td>
+          <td class="best-value">60.90%</td>
+          <td class="best-value">50.48%</td>
+          <td class="best-value">0.4271</td>
+          <td>0.9577</td>
+          <td>-0.0574</td>
+        </tr>
+        <tr>
+          <td>CLIP</td>
+          <td>768</td>
+          <td>65.17%</td>
+          <td>47.06%</td>
+          <td>46.03%</td>
+          <td>0.3816</td>
+          <td class="best-value">0.9583</td>
+          <td>-0.0470</td>
+        </tr>
+        <tr>
+          <td>V-JEPA Shuffled</td>
+          <td>1408</td>
+          <td>76.19%</td>
+          <td>35.32%</td>
+          <td>35.33%</td>
+          <td>0.2724</td>
+          <td>0.9500</td>
+          <td>-0.2245</td>
+        </tr>
+      </tbody>
+    </table>
+    <p class="plot-caption has-text-centered" style="margin-top: 0.5rem;">Easy mode, k=6. All numbers verified against <code>m06_metrics*.json</code>. Bold = best in column.</p>
+
+  </div>
+</section>
+
+<!-- ==================== kNN RETRIEVAL DEMO ==================== -->
+<section class="section">
+  <div class="container" style="max-width: 1100px;">
+    <h2 class="title is-3 has-text-centered">kNN Retrieval Demo</h2>
+    <p class="has-text-centered" style="margin-bottom: 1.5rem; color: var(--text-secondary);">
+      Same query clip, different encoders. <span style="color: var(--accent-green);">Green border</span> = correct scene match. <span style="color: #cc3333;">Red border</span> = wrong scene.
+    </p>
+
+    <!-- Query 1: beach_coastal -->
+    <div class="knn-section">
+      <div class="knn-label">Query: beach_coastal (Goa) &mdash; DINOv2 retrieval (5/5 correct)</div>
+      <div class="knn-row">
+        <div class="knn-cell query">
+          <video autoplay muted loop playsinline><source src="static/videos/knn/dinov2_q37_query.mp4" type="video/mp4"></video>
+          <div class="knn-tag"><strong>Query</strong></div>
+        </div>
+        <div class="knn-arrow">&rarr;</div>
+        <div class="knn-cell match">
+          <video autoplay muted loop playsinline><source src="static/videos/knn/dinov2_q37_nn1.mp4" type="video/mp4"></video>
+          <div class="knn-tag">beach_coastal</div>
+        </div>
+        <div class="knn-cell match">
+          <video autoplay muted loop playsinline><source src="static/videos/knn/dinov2_q37_nn2.mp4" type="video/mp4"></video>
+          <div class="knn-tag">beach_coastal</div>
+        </div>
+        <div class="knn-cell match">
+          <video autoplay muted loop playsinline><source src="static/videos/knn/dinov2_q37_nn3.mp4" type="video/mp4"></video>
+          <div class="knn-tag">beach_coastal</div>
+        </div>
+        <div class="knn-cell match">
+          <video autoplay muted loop playsinline><source src="static/videos/knn/dinov2_q37_nn4.mp4" type="video/mp4"></video>
+          <div class="knn-tag">beach_coastal</div>
+        </div>
+        <div class="knn-cell match">
+          <video autoplay muted loop playsinline><source src="static/videos/knn/dinov2_q37_nn5.mp4" type="video/mp4"></video>
+          <div class="knn-tag">beach_coastal</div>
+        </div>
+      </div>
+
+      <div class="knn-label" style="margin-top: 0.8rem;">Same query &mdash; V-JEPA Shuffled retrieval (0/5 correct)</div>
+      <div class="knn-row">
+        <div class="knn-cell query">
+          <video autoplay muted loop playsinline><source src="static/videos/knn/shuffled_q37_query.mp4" type="video/mp4"></video>
+          <div class="knn-tag"><strong>Query</strong></div>
+        </div>
+        <div class="knn-arrow">&rarr;</div>
+        <div class="knn-cell miss">
+          <video autoplay muted loop playsinline><source src="static/videos/knn/shuffled_q37_nn1.mp4" type="video/mp4"></video>
+          <div class="knn-tag">promenade</div>
+        </div>
+        <div class="knn-cell miss">
+          <video autoplay muted loop playsinline><source src="static/videos/knn/shuffled_q37_nn2.mp4" type="video/mp4"></video>
+          <div class="knn-tag">promenade</div>
+        </div>
+        <div class="knn-cell miss">
+          <video autoplay muted loop playsinline><source src="static/videos/knn/shuffled_q37_nn3.mp4" type="video/mp4"></video>
+          <div class="knn-tag">highway</div>
+        </div>
+        <div class="knn-cell miss">
+          <video autoplay muted loop playsinline><source src="static/videos/knn/shuffled_q37_nn4.mp4" type="video/mp4"></video>
+          <div class="knn-tag">skyline_aerial</div>
+        </div>
+        <div class="knn-cell miss">
+          <video autoplay muted loop playsinline><source src="static/videos/knn/shuffled_q37_nn5.mp4" type="video/mp4"></video>
+          <div class="knn-tag">promenade</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Query 2: market -->
+    <div class="knn-section">
+      <div class="knn-label">Query: market (Delhi) &mdash; DINOv2 retrieval (5/5 correct)</div>
+      <div class="knn-row">
+        <div class="knn-cell query">
+          <video autoplay muted loop playsinline><source src="static/videos/knn/dinov2_q74_query.mp4" type="video/mp4"></video>
+          <div class="knn-tag"><strong>Query</strong></div>
+        </div>
+        <div class="knn-arrow">&rarr;</div>
+        <div class="knn-cell match">
+          <video autoplay muted loop playsinline><source src="static/videos/knn/dinov2_q74_nn1.mp4" type="video/mp4"></video>
+          <div class="knn-tag">market</div>
+        </div>
+        <div class="knn-cell match">
+          <video autoplay muted loop playsinline><source src="static/videos/knn/dinov2_q74_nn2.mp4" type="video/mp4"></video>
+          <div class="knn-tag">market</div>
+        </div>
+        <div class="knn-cell match">
+          <video autoplay muted loop playsinline><source src="static/videos/knn/dinov2_q74_nn3.mp4" type="video/mp4"></video>
+          <div class="knn-tag">market</div>
+        </div>
+        <div class="knn-cell match">
+          <video autoplay muted loop playsinline><source src="static/videos/knn/dinov2_q74_nn4.mp4" type="video/mp4"></video>
+          <div class="knn-tag">market</div>
+        </div>
+        <div class="knn-cell match">
+          <video autoplay muted loop playsinline><source src="static/videos/knn/dinov2_q74_nn5.mp4" type="video/mp4"></video>
+          <div class="knn-tag">market</div>
+        </div>
+      </div>
+
+      <div class="knn-label" style="margin-top: 0.8rem;">Same query &mdash; V-JEPA Shuffled retrieval (0/5 correct)</div>
+      <div class="knn-row">
+        <div class="knn-cell query">
+          <video autoplay muted loop playsinline><source src="static/videos/knn/shuffled_q74_query.mp4" type="video/mp4"></video>
+          <div class="knn-tag"><strong>Query</strong></div>
+        </div>
+        <div class="knn-arrow">&rarr;</div>
+        <div class="knn-cell miss">
+          <video autoplay muted loop playsinline><source src="static/videos/knn/shuffled_q74_nn1.mp4" type="video/mp4"></video>
+          <div class="knn-tag">residential_lane</div>
+        </div>
+        <div class="knn-cell miss">
+          <video autoplay muted loop playsinline><source src="static/videos/knn/shuffled_q74_nn2.mp4" type="video/mp4"></video>
+          <div class="knn-tag">residential_lane</div>
+        </div>
+        <div class="knn-cell miss">
+          <video autoplay muted loop playsinline><source src="static/videos/knn/shuffled_q74_nn3.mp4" type="video/mp4"></video>
+          <div class="knn-tag">residential_lane</div>
+        </div>
+        <div class="knn-cell miss">
+          <video autoplay muted loop playsinline><source src="static/videos/knn/shuffled_q74_nn4.mp4" type="video/mp4"></video>
+          <div class="knn-tag">transit</div>
+        </div>
+        <div class="knn-cell miss">
+          <video autoplay muted loop playsinline><source src="static/videos/knn/shuffled_q74_nn5.mp4" type="video/mp4"></video>
+          <div class="knn-tag">transit</div>
+        </div>
+      </div>
+    </div>
+
+    <p class="plot-caption has-text-centered">DINOv2 (image encoder) retrieves scene-matching clips. V-JEPA Shuffled retrieves clips with similar visual properties but different scene types &mdash; demonstrating the spatial retrieval gap.</p>
+  </div>
+</section>
+
+<!-- ==================== PIPELINE ==================== -->
+<section class="section">
+  <div class="container" style="max-width: 900px;">
+    <h2 class="title is-3 has-text-centered">Pipeline</h2>
+    <div class="plot-container has-text-centered" style="padding: 1.5rem; font-family: 'Source Sans 3', sans-serif; font-size: 1rem; line-height: 2.2;">
+      <strong>YouTube</strong> (714 videos, 20&ndash;30 min each)
+      &rarr; <strong>PySceneDetect</strong> (shot-aware 4&ndash;10s cuts)
+      &rarr; <strong>~115K clips</strong> (121 GB)
+      &rarr; <strong>WebDataset</strong> (116 TAR shards, HuggingFace)
+      <br>
+      &rarr; <strong>VLM Bake-off</strong> (Qwen3-VL-8B wins, 0.919 score)
+      &rarr; <strong>16-field v3 Taxonomy</strong>
+      <br>
+      &rarr; <strong>5 Encoders</strong> (V-JEPA / DINOv2 / CLIP / Shuffled / Random)
+      &rarr; <strong>FAISS-GPU kNN</strong> (k=6, Easy+Hard)
+      <br>
+      &rarr; <strong>9 Metrics</strong> (Cycle@K, Prec@K, Overlap@K, mAP@K, nDCG@K, Silhouette, ...)
+      &rarr; <strong>cuML UMAP</strong> &rarr; <strong>Plots</strong>
+    </div>
+    <p class="plot-caption has-text-centered">End-to-end pipeline: from YouTube walking tours to reproducible retrieval benchmarks. Total runtime ~6h 35m on RTX PRO 6000 (96 GB).</p>
+  </div>
+</section>
+
+<!-- ==================== DATASET ==================== -->
+<section class="section">
+  <div class="container" style="max-width: 1100px;">
+    <h2 class="title is-3 has-text-centered">WalkIndia-200K Dataset</h2>
+
+    <div class="columns">
+      <div class="column is-5">
+        <table class="dataset-stats" style="width: 100%;">
+          <tr><th>Metric</th><th>Value</th></tr>
+          <tr><td>Total clips</td><td>~200,000 (115,687 in v1)</td></tr>
+          <tr><td>Source videos</td><td>714 YouTube walking tours</td></tr>
+          <tr><td>Cities</td><td>25+ (Mumbai, Delhi, Bangalore, Goa, Jaipur, ...)</td></tr>
+          <tr><td>Clip duration</td><td>4&ndash;12 seconds</td></tr>
+          <tr><td>Taxonomy</td><td>16 fields (v3): 13 single + 2 multi + changelog</td></tr>
+          <tr><td>VLM tagger</td><td>Qwen3-VL-8B (0.919 bake-off score)</td></tr>
+          <tr><td>Format</td><td>WebDataset TARs on HuggingFace</td></tr>
+          <tr><td>POC subset</td><td>10K clips (video-level uniform, seed=42)</td></tr>
+        </table>
+        <div style="margin-top: 1rem; text-align: center;">
+          <a href="https://huggingface.co/datasets/anonymousML123/walkindia-200k" target="_blank" class="button is-link" style="background-color: var(--accent-terracotta);">
+            <span class="icon"><i class="fas fa-database"></i></span>
+            <span>Browse on HuggingFace</span>
+          </a>
+        </div>
+      </div>
+      <div class="column is-7">
+        <div class="plot-container">
+          <img src="static/images/m04_taxonomy_distribution_qwen.png" alt="Full taxonomy distribution across 16 fields for 10,000 clips tagged by Qwen3-VL-8B">
+          <p class="plot-caption">Full taxonomy distribution (v3, 16 fields) across 10,000 POC clips tagged by Qwen3-VL-8B.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ==================== DETAILED RESULTS ==================== -->
+<section class="section">
+  <div class="container" style="max-width: 1100px;">
+    <h2 class="title is-3 has-text-centered">Detailed Results</h2>
+
+    <div class="columns">
+      <div class="column is-6">
+        <div class="plot-container">
+          <img src="static/images/m06_silhouette_per_key.png" alt="Silhouette score per taxonomy key showing V-JEPA clusters by lighting, not scene type">
+          <p class="plot-caption"><strong>What does V-JEPA cluster by?</strong> Silhouette per taxonomy key. Lighting (+0.0009) is the only positive value; scene_type (-0.25) is worst. V-JEPA organizes by illumination, not scene semantics.</p>
+        </div>
+      </div>
+      <div class="column is-6">
+        <div class="plot-container">
+          <img src="static/images/m06_map_per_key.png" alt="mAP@K per taxonomy key showing time_of_day and lighting dominate while scene_type is last">
+          <p class="plot-caption"><strong>Ranking quality by field.</strong> mAP@K for time_of_day (0.62) is 8&times; higher than scene_type (0.08). The model captures when, not where.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="columns">
+      <div class="column is-6">
+        <div class="plot-container">
+          <img src="static/images/m08_umap.png" alt="UMAP 2D projection of V-JEPA embeddings for 5,105 clips colored by scene type, showing no clean clusters">
+          <p class="plot-caption"><strong>UMAP projection (V-JEPA, n=5,105).</strong> Colors = scene types. No clean clusters &mdash; V-JEPA does not organize by scene semantics.</p>
+        </div>
+      </div>
+      <div class="column is-6">
+        <div class="plot-container">
+          <img src="static/images/m08_confusion_matrix.png" alt="kNN retrieval confusion matrix for scene_type showing weak diagonals and market/residential_lane dominating retrievals">
+          <p class="plot-caption"><strong>Retrieval confusion (scene_type).</strong> Weak diagonals across all types. Market and residential_lane dominate regardless of query.</p>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<!-- ==================== SPATIAL-TEMPORAL GAP ==================== -->
+<section class="section">
+  <div class="container" style="max-width: 900px;">
+    <h2 class="title is-3 has-text-centered">The Spatial-Temporal Gap</h2>
+
+    <div class="content" style="font-size: 1.05rem; line-height: 1.8;">
+      <p><strong>Why does V-JEPA fail on scene classification?</strong></p>
+
+      <p>V-JEPA 2 is trained to predict masked spatiotemporal patches &mdash; it learns motion patterns, camera trajectories, and temporal dynamics. But our taxonomy measures <strong>only spatial attributes</strong> (scene_type, road_surface, crowd_density...). The model's temporal features are strong (Cycle@K: 78.7%, highest) but encode the wrong thing for this task.</p>
+
+      <p><strong>Evidence:</strong> Shuffling V-JEPA's 64 input frames via <code>torch.randperm()</code> destroys temporal information, forcing the model to use its spatial pathway &mdash; which improves Prec@K from 14.6% to 35.3%. This confirms: temporal encoding is noise for spatial scene classification.</p>
+
+      <p><strong>External validation:</strong> <a href="https://arxiv.org/abs/2509.21595" target="_blank">arXiv:2509.21595</a> <em>"Temporal vs Spatial: Comparing DINOv3 and V-JEPA2"</em> confirms the same spatial/temporal tradeoff on UCF Sports.</p>
+
+      <p><strong>Next steps:</strong> We are extending the evaluation with temporal metrics (optical flow features, motion tags) to measure V-JEPA on the axis where it should excel. If V-JEPA >> image baselines on temporal metrics, the paper story becomes: <em>"Spatial and temporal transfer are independent axes &mdash; V-JEPA captures Indian dynamics but not Indian scenes."</em></p>
+    </div>
+  </div>
+</section>
+
+<!-- ==================== FUTURE WORK ==================== -->
+<section class="section">
+  <div class="container" style="max-width: 900px;">
+    <h2 class="title is-3 has-text-centered">Roadmap</h2>
+
+    <table class="results-table roadmap-table">
+      <thead>
+        <tr><th>Phase</th><th>Description</th><th>Status</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Ch 9: Frozen Evaluation</td>
+          <td>5-encoder benchmark on 10K POC (9 metrics, Easy/Hard)</td>
+          <td class="status-complete">Complete</td>
+        </tr>
+        <tr>
+          <td>Temporal Extension</td>
+          <td>Optical flow features (m04f) + temporal Prec@K + image-baseline control</td>
+          <td class="status-planned">Planned</td>
+        </tr>
+        <tr>
+          <td>Ch 10: Continual Pretraining</td>
+          <td>Adapt V-JEPA to Indian data using the same JEPA loss (student-teacher)</td>
+          <td class="status-planned">Planned</td>
+        </tr>
+        <tr>
+          <td>Ch 11: Surgery Fine-Tuning</td>
+          <td>Progressive prefix unfreezing with factor datasets (layout / agent / interaction)</td>
+          <td class="status-planned">Planned</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- ==================== BIBTEX ==================== -->
+<section class="section">
+  <div class="container" style="max-width: 700px;">
+    <h2 class="title is-3 has-text-centered">BibTeX</h2>
+
+    <div class="bibtex-box">
+      <button class="copy-btn" onclick="copyBibtex()"><i class="fas fa-copy"></i> Copy</button>
+<pre id="bibtex-text">@article{wanaskar2026walkindia,
+  title={Does V-JEPA 2 Understand Indian Streets? Benchmarking Video Foundation Models on WalkIndia-200K},
+  author={Wanaskar, Kapil and Jena, Gaytri and Jain, Vinija and Chadha, Aman and Das, Amitava},
+  journal={arXiv preprint arXiv:XXXX.XXXXX},
+  year={2026}
+}</pre>
+    </div>
+  </div>
+</section>
+
+<!-- ==================== FOOTER ==================== -->
+<footer class="footer">
+  <div class="container">
+    <div class="pragma-footer">
+      Part of the <strong>DenseWorld</strong> research program
+      &mdash; <em>World Models for Populous, Crowded, and Chaotic Global South</em>
+      <br><br>
+      This website is built using the
+      <a href="https://github.com/eliahuhorwitz/Academic-project-page-template" target="_blank">Academic Project Page Template</a>,
+      licensed under <a href="https://creativecommons.org/licenses/by-sa/4.0/" target="_blank">CC BY-SA 4.0</a>.
+    </div>
+  </div>
+</footer>
+
+<script>
+function copyBibtex() {
+  const text = document.getElementById('bibtex-text').innerText;
+  navigator.clipboard.writeText(text).then(() => {
+    const btn = document.querySelector('.copy-btn');
+    btn.innerHTML = '<i class="fas fa-check"></i> Copied!';
+    setTimeout(() => { btn.innerHTML = '<i class="fas fa-copy"></i> Copy'; }, 2000);
+  });
+}
+</script>
+
+</body>
+</html>
