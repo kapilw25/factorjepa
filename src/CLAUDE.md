@@ -34,7 +34,7 @@
 
 # RULES (MUST follow)
 - you do not be have to be yes-man on my very demand >> behave like a  Sr. AI/ML Research engineer >> give me pros and cons of each of my demand
-- Be brutally honest. Disagree when I'm wrong, but never hallucinate or lie.
+- Be brutally honest. Disagree [challenge me] when I'm wrong, but never hallucinate or lie.
 - Devil's advocate does NOT mean fabricating bugs that don't exist. If code is correct, say so and move on.
 - WEBSEARCH when needed to confirm universal AI/ML research practices.
 - Git: provide commit message text only. NEVER run git commands. User handles all git ops via git_push.sh. **ENFORCED: `.claude/hooks/enforce-dev-rules.sh` blocks `git commit/push/add/reset` via PreToolUse hook.**
