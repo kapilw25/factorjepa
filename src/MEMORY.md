@@ -25,7 +25,7 @@ Research benchmark testing if V-JEPA 2 (Meta's video foundation model, trained o
 - **m04_vlm_tag.py**: 3 VLM backends (Qwen/VideoLLaMA3/LLaVA). Checkpoint every 500. `--local-data` support.
 - **m04b_vlm_select.py**: CPU-only. 5-criterion weighted bake-off comparison.
 - **m04c_sanity_compare.py**: CPU-only. Reads 3 sanity JSONs, computes 4 metrics, 2x2 dashboard.
-- **m04f_motion_features.py**: (TODO) CPU-only. RAFT/Farneback optical flow → mean magnitude, direction histogram, camera motion estimate per clip. Temporal ground-truth for retrieval evaluation.
+- **m04f_motion_features.py**: (TODO) GPU-RAFT optical flow (`torchvision.models.optical_flow.raft_large`) → 13D features per clip (mean/std/max magnitude, 8-bin direction histogram, camera motion xy). Temporal ground-truth for retrieval evaluation.
 - **m05_vjepa_embed.py**: V-JEPA 2 ViT-G (1B, frozen, fp16, FA2, torch.compile). Producer-consumer. `--local-data` support.
 - **m05b_baselines.py**: 4 baselines — `--encoder random|dinov2|clip|vjepa_shuffled|all`. `--local-data` support.
 - **m05c_true_overlap.py**: Augmented V-JEPA embeddings (BYOL/DINO multi-crop). `--local-data` support.
@@ -65,8 +65,9 @@ Research benchmark testing if V-JEPA 2 (Meta's video foundation model, trained o
   - Key finding: taxonomy measures ONLY spatial features, 0 temporal fields → evaluation gap
   - External validation: arXiv:2509.21595 confirms same DINOv3 > V-JEPA spatial tradeoff
 - **Temporal eval extension: TODO** (pre-Ch10 requirement)
-  - m04f: optical flow motion features (CPU, Approach A — recommended first)
-  - VLM temporal tags (Approach B — supplementary, uncertain quality)
+  - m04f: GPU-RAFT optical flow motion features (Approach A — confirmed)
+  - m06b: temporal correlation analysis (CPU, per encoder)
+  - VLM temporal tags (Approach B — confirmed unreliable out-of-the-box; needs fine-tuning on ~1,400 clips if pursued)
   - Expected: V-JEPA >> image baselines on temporal metrics (reversal of spatial result)
 - **Ch10: NOT BUILT** (m09 — continual pretraining)
 - **Ch11: NOT BUILT** (m10/m11/m12 — SAM + factors + surgery)
