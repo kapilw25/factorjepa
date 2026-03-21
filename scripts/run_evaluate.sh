@@ -1,14 +1,16 @@
 #!/usr/bin/env bash
 # ═══════════════════════════════════════════════════════════════════════
-# Ch9 Overnight Pipeline: m04 → m05 → m05b → m05c → m04d → m06 → m06b → m07 → m08 → m08b
+# Evaluate Frozen V-JEPA on Indian Urban Walking Clips (FactorJEPA Ch9)
+#
+# Pipeline: m04 → m05 → m05b → m05c → m04d → m06 → m06b → m07 → m08 → m08b
+# Spatial (9 metrics) + Temporal (5 metrics) evaluation, 5 encoders, 95% CI
 #
 # USAGE:
-#   ./run_ch9_overnight.sh --SANITY          # Quick validation (5-20 clips, ~15 min)
-#   ./run_ch9_overnight.sh --FULL            # 10K POC full run (~8-12h overnight)
+#   ./scripts/run_evaluate.sh --SANITY       # Quick validation (~15 min)
+#   ./scripts/run_evaluate.sh --FULL         # 10K POC full run (~7h)
 #
-# Features: pre-flight checks, error handling, post-step verification,
-#           auto-resume (checkpoints), timestamps, final output summary
-# All steps are SEQUENTIAL on single GPU (each needs full VRAM).
+# Features: pre-flight checks, checkpoint/resume, error handling, verification
+# All steps SEQUENTIAL on single GPU. Skips completed steps automatically.
 # Prerequisites: ./setup_env_uv.sh --gpu [--from-wheels]
 # ═══════════════════════════════════════════════════════════════════════
 set -euo pipefail

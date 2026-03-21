@@ -421,51 +421,91 @@ for enc, sfx in [('vjepa',''), ('random','_random'), ('dinov2','_dinov2'),
 
 ---
 
-## Step 7: Visualization + multi-encoder comparison (CPU — no GPU needed)
+## Step 4.5: GPU-RAFT Motion Features — m04d (GPU, NEW)
 
-**Prerequisite:** Steps 5a-5e (all 5 encoder metrics JSON files exist) + Step 6 (UMAP).
+**Prerequisite:** Step 0.5 (local data) or HF streaming. No dependency on tags or embeddings.
 
-### 7a: Per-encoder V-JEPA plots (m08)
+GPU-RAFT optical flow → 13D motion features per clip. Batched inference via AdaptiveBatchSizer.
 
 ```bash
-python -u src/m08_plot.py --FULL --subset data/subset_10k.json \
-    2>&1 | tee logs/m08_plot_poc.log
+# SANITY
+python -u src/m04d_motion_features.py --SANITY --subset data/subset_10k.json \
+    --local-data data/subset_10k_local 2>&1 | tee logs/m04d_sanity.log
+
+# FULL
+python -u src/m04d_motion_features.py --FULL --subset data/subset_10k.json \
+    --local-data data/subset_10k_local 2>&1 | tee logs/m04d_motion.log
+```
+
+**Expected:** `motion_features.npy` (N, 13) + `motion_features.paths.npy` + `motion_features_meta.json`
+**Est. time:** ~30-50 min on RTX PRO 6000 (96GB)
+
+**Status:**
+- [ ] SANITY: pending
+- [ ] FULL POC: pending
+
+---
+
+## Step 5.5: Temporal Correlation — m06b (CPU, NEW)
+
+**Prerequisite:** Step 2+3 (embeddings for all encoders). Step 4.5 (motion features) optional — metrics 4-5 run without it.
+
+5 temporal metrics per encoder: Spearman rho, Temporal Prec@K, Motion mAP (need m04d), Order Sensitivity, Temporal Locality (no m04d needed). All with bootstrap 95% CI.
+
+```bash
+# Per encoder
+python -u src/m06b_temporal_corr.py --encoder vjepa --FULL --subset data/subset_10k.json \
+    2>&1 | tee logs/m06b_vjepa.log
+
+for enc in random dinov2 clip vjepa_shuffled; do
+    python -u src/m06b_temporal_corr.py --encoder $enc --FULL --subset data/subset_10k.json \
+        2>&1 | tee logs/m06b_${enc}.log
+done
+```
+
+**Expected:** `m06b_temporal_corr{sfx}.json` per encoder (5 files)
+**Est. time:** ~1 min per encoder (CPU)
+
+**Status:**
+- [ ] All 5 encoders: pending
+
+---
+
+## Step 7: Visualization + multi-encoder comparison (CPU — no GPU needed)
+
+**Prerequisite:** Steps 5a-5e (all 5 encoder metrics JSON files exist) + Step 5.5 (temporal) + Step 6 (UMAP).
+
+### 7a: Per-encoder plots (m08, looped × 5 encoders)
+
+```bash
+for enc in vjepa random dinov2 clip vjepa_shuffled; do
+    python -u src/m08_plot.py --encoder $enc --FULL --subset data/subset_10k.json \
+        2>&1 | tee logs/m08_plot_${enc}.log
+done
 ```
 
 ### 7b: Multi-encoder comparison (m08b)
 
-Reads `m06_metrics_*.json` for all available encoders. Generates grouped bar chart, radar plot, LaTeX table, and terminal summary.
+Reads `m06_metrics_*.json` + `m06b_temporal_corr_*.json` for all encoders. Generates grouped bar chart, spatial-temporal bar, tradeoff scatter, radar, LaTeX table with ±CI.
 
 ```bash
 python -u src/m08b_compare.py --FULL --subset data/subset_10k.json \
     2>&1 | tee logs/m08b_compare.log
 ```
 
-### Verify Step 7 output
-
-```bash
-# Per-encoder plots (m08)
-ls -la src/outputs_poc/m08_umap.{png,pdf}
-ls -la src/outputs_poc/m08_confusion_matrix.{png,pdf}
-ls -la src/outputs_poc/m08_knn_grid.{png,pdf}
-
-# Multi-encoder comparison (m08b)
-ls -la src/outputs_poc/m08b_encoder_comparison.{png,pdf}
-ls -la src/outputs_poc/m08b_radar.{png,pdf}
-ls -la src/outputs_poc/m08b_comparison_table.tex
-```
-
 **Expected outputs from m08b:**
 
 | File | Description |
 |------|-------------|
-| `m08b_encoder_comparison.{png,pdf}` | Grouped bar chart: 5 metrics x 5 encoders, Easy vs Hard |
+| `m08b_encoder_comparison.{png,pdf}` | Grouped bar chart: 5 spatial metrics × 5 encoders, Easy vs Hard, with 95% CI error bars |
+| `m08b_spatial_temporal_bar.{png,pdf}` | Spatial metrics (left) + temporal metrics (right), per encoder |
+| `m08b_tradeoff_scatter.{png,pdf}` | X=spatial aggregate, Y=temporal aggregate, per encoder |
 | `m08b_radar.{png,pdf}` | Radar plot: one polygon per encoder, normalized |
-| `m08b_comparison_table.tex` | Paper-ready LaTeX table |
+| `m08b_comparison_table.tex` | Paper-ready LaTeX table with ±CI |
 
 **Status:**
-- [x] m08 per-encoder plots: DONE (15s — UMAP scatter, confusion matrices, kNN grid)
-- [x] m08b multi-encoder comparison: DONE (1s — bar chart, radar, LaTeX table)
+- [x] m08 per-encoder plots: DONE (spatial only, needs re-run with --encoder for all 5)
+- [x] m08b multi-encoder comparison: DONE (spatial only, needs re-run after m06b for temporal)
 
 ---
 
@@ -554,10 +594,13 @@ ls -la src/outputs_poc/m08b_comparison_table.tex 2>/dev/null
 | 2 | m05 V-JEPA embed (10K) + `--local-data` | GPU | ~1-2h | **1h 20m** (2.1 clips/s, 10K→5,105 dedup) |
 | 3 | m05b `--encoder all` + `--local-data` | GPU | ~3-5h | **1h 39m** (all 4 fresh) |
 | 4 | m05c True Overlap augmented + `--local-data` | GPU | ~1-2h | **93m** (with dedup fix, 5,105 clips) |
-| 5 | m06 FAISS metrics (x5 encoders) | GPU | ~25 min | **2m 6s** (~25s each) |
+| 4.5 | m04d GPU-RAFT motion features (13D) | GPU | ~30-50 min | pending |
+| 5 | m06 FAISS metrics (x5 encoders) + 95% CI | GPU | ~25 min | **2m 6s** (~25s each) |
+| 5.5 | m06b temporal correlation (x5 encoders) | CPU | ~5 min | pending |
 | 6 | m07 UMAP (x5 encoders) | GPU | ~10 min | **17s** (~3s each) |
-| 7 | m08 + m08b plots + comparison | CPU | ~5 min | **16s** |
-| **Grand Total** | | | **~8-12h GPU + ~15 min CPU** | **~6h 35m clean** |
+| 7a | m08 per-encoder plots (x5 encoders) | CPU | ~10 min | pending (needs --encoder loop) |
+| 7b | m08b comparison + spatial-temporal bar + scatter | CPU | ~2 min | pending (needs m06b output) |
+| **Grand Total** | | | **~9-13h GPU + ~20 min CPU** | **~7h clean (est.)** |
 
 ### GPU Parallelization Opportunities
 

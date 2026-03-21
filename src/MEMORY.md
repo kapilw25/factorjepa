@@ -109,16 +109,13 @@ Research benchmark testing if V-JEPA 2 (Meta's video foundation model, trained o
 - **Ch11: NOT BUILT** (m10/m11/m12 — SAM + factors + surgery)
 
 ## Architecture Gotchas
+- **NEVER use HF streaming for subset runs** — GPU sits idle 90%+ while scanning 115K clips for 10K matches (8.4% hit rate). Always pre-download via m00d → `--local-data data/subset_10k_local` (100% hit rate)
 - GPU scripts save .npy → CPU scripts read them (never duplicate GPU compute in plotting)
 - embeddings.paths.npy stores clip keys (not local paths) — used for Hard mode ±30s exclusion
 - Tags↔embeddings alignment via __key__ field
 - FAISS IVFFlat (not IVF-PQ) — dim-agnostic (d = embeddings.shape[1])
 - Encoder suffix system: vjepa="" (backward compat), others="_encodername"
-
-## Batch Size Auto-Scaling (gpu_batch.py)
-- Baseline: A100-40GB, scale = actual_vram / 40
-- RTX PRO 4000 (24GB): vjepa=9, image_encoder=36, transformers=2
-- RTX PRO 6000 (96GB): vjepa=38, image_encoder=152, transformers=9
+- `src/data/` is legacy local storage (gitignored). Zero Python scripts reference it. All pipeline scripts read from HF or `data/subset_10k_local/`
 
 ## VLM Strategy
 - 10K POC: Qwen3-VL-8B via transformers (validated, 0.919 score)

@@ -22,85 +22,58 @@
 | **V-JEPA 2** (video) | 14.6% | 0.079 | **78.7%** |
 | Random | 12.2% | 0.061 | 55.0% |
 
-**Image beats video.** DINOv2 (50.5%) outperforms V-JEPA (14.6%) by 3.5x on scene classification. Shuffling V-JEPA's frames improves it by **2.4x** — temporal encoding hurts spatial understanding.
+**Image beats video on spatial metrics.** DINOv2 outperforms V-JEPA by 3.5x on scene classification. Shuffling V-JEPA's frames improves it by 2.4x — temporal encoding hurts spatial understanding. But V-JEPA wins Cycle@K (78.7%), the most temporally-sensitive metric.
 
 ---
 
-## Reproduce: Full Evaluation Pipeline
-
-### 1. Setup
+## Setup
 
 ```bash
-# GPU server (Nvidia)
 git clone https://github.com/kapilw25/factorjepa.git && cd factorjepa
-./setup_env_uv.sh --gpu
+./setup_env_uv.sh --gpu          # Nvidia GPU server (installs PyTorch, FAISS-GPU, cuML, FA2)
+# or: ./setup_env_uv.sh --mac    # M1 Mac (CPU-only, for development/testing)
 source venv_walkindia/bin/activate
 ```
 
-### 2. Pre-download 10K subset (CPU, ~11 min)
+---
+
+## Pipeline
+
+Three stages, each a single command. All stages use checkpoint/resume — safe to interrupt and restart.
+
+### Evaluate frozen encoders (~7h GPU)
+
+5 encoders (V-JEPA 2 + DINOv2 + CLIP + Shuffled + Random), 9 spatial metrics + 5 temporal metrics, bootstrap 95% CI, comparison plots.
 
 ```bash
-python -u src/m00d_download_subset.py --subset data/subset_10k.json 2>&1 | tee logs/m00d_download.log
+./scripts/run_evaluate.sh --FULL
 ```
 
-### 3. VLM tagging — Qwen3-VL-8B (GPU, ~2h)
+Covers: `m00d` (data download) &#8594; `m04` (VLM tagging) &#8594; `m05/m05b/m05c` (embeddings) &#8594; `m04d` (RAFT motion features) &#8594; `m06/m06b` (spatial + temporal metrics) &#8594; `m07` (UMAP) &#8594; `m08/m08b` (plots + comparison)
+
+### Continual pretraining (TODO, ~20h GPU)
+
+Self-supervised JEPA loss on Indian clips. Student-teacher with EMA, stratified sampling by v3 taxonomy.
 
 ```bash
-python -u src/m04_vlm_tag.py --model qwen --FULL --subset data/subset_10k.json \
-    --local-data data/subset_10k_local 2>&1 | tee logs/m04_full_qwen_poc.log
+./scripts/run_pretrain.sh --FULL
 ```
 
-### 4. Embeddings — V-JEPA 2 + 4 baselines (GPU, ~4h)
+Covers: `m09` (continual pretraining) &#8594; re-run evaluation pipeline with adapted encoder
+
+### Representation surgery (TODO, ~54h GPU)
+
+Progressive prefix unfreezing with factor datasets (Layout &#8594; Agent &#8594; Interaction) from SAM3 segmentation.
 
 ```bash
-# V-JEPA 2 ViT-G (1408-dim, ~80 min)
-python -u src/m05_vjepa_embed.py --FULL --subset data/subset_10k.json \
-    --local-data data/subset_10k_local 2>&1 | tee logs/m05_vjepa_embed_poc.log
-
-# 4 baselines: Random + DINOv2 + CLIP + Shuffled (~100 min)
-python -u src/m05b_baselines.py --encoder all --FULL --subset data/subset_10k.json \
-    --local-data data/subset_10k_local 2>&1 | tee logs/m05b_all_poc.log
-
-# True Overlap@K augmented embeddings (~90 min)
-python -u src/m05c_true_overlap.py --FULL --subset data/subset_10k.json \
-    --local-data data/subset_10k_local 2>&1 | tee logs/m05c_overlap_poc.log
+./scripts/run_surgery.sh --FULL
 ```
 
-### 5. FAISS metrics — 5 encoders (GPU, ~3 min)
-
-```bash
-python -u src/m06_faiss_metrics.py --encoder vjepa --true-overlap \
-    --FULL --subset data/subset_10k.json 2>&1 | tee logs/m06_vjepa_poc.log
-
-for enc in random dinov2 clip vjepa_shuffled; do
-    python -u src/m06_faiss_metrics.py --encoder $enc \
-        --FULL --subset data/subset_10k.json 2>&1 | tee logs/m06_${enc}_poc.log
-done
-```
-
-### 6. UMAP + Plots (GPU + CPU, ~2 min)
-
-```bash
-# UMAP (GPU — cuML)
-for enc in vjepa random dinov2 clip vjepa_shuffled; do
-    python -u src/m07_umap.py --encoder $enc --FULL --subset data/subset_10k.json \
-        2>&1 | tee logs/m07_umap_${enc}_poc.log
-done
-
-# Plots (CPU — matplotlib)
-python -u src/m08_plot.py --FULL --subset data/subset_10k.json 2>&1 | tee logs/m08_plot_poc.log
-python -u src/m08b_compare.py --FULL --subset data/subset_10k.json 2>&1 | tee logs/m08b_compare.log
-```
-
-### Total: ~6.5 hours on RTX PRO 6000 (96GB)
+Covers: `m10` (SAM3 + tracklets) &#8594; `m11` (factor datasets) &#8594; `m12` (3-stage surgery) &#8594; re-run evaluation
 
 ---
 
-## Dataset Stats
-
-```bash
-python -u src/m02b_scene_fetch_duration.py --stats
-```
+## Dataset
 
 | Tier | Cities | Clips | Hours | GB |
 |------|--------|-------|-------|----|
@@ -109,6 +82,22 @@ python -u src/m02b_scene_fetch_duration.py --stats
 | Tier 2 | 15 cities | 40,743 | 99h | 41 |
 | Monuments | 3 | 495 | 1h | 1 |
 | **Total** | **22** | **115,687** | **276h** | **121** |
+
+---
+
+## Code Structure
+
+```
+src/
+├── m00-m03          # Data pipeline (YouTube → clips → WebDataset → HF)
+├── m04              # VLM tagging (Qwen3-VL-8B, 16-field taxonomy)
+├── m04d             # GPU-RAFT optical flow (13D motion features)
+├── m05/m05b/m05c    # Embeddings (V-JEPA + 4 baselines + True Overlap)
+├── m06/m06b         # Spatial metrics (FAISS) + temporal correlation
+├── m07              # UMAP (cuML GPU)
+├── m08/m08b         # Plots + multi-encoder comparison
+└── utils/           # Config, bootstrap CI, gpu_batch, wandb
+```
 
 ---
 

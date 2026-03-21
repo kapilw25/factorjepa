@@ -69,14 +69,32 @@
 | **Output** | `outputs_poc/` (separate from `outputs/`) |
 | **Scale** | After POC validates → drop `--subset`, same scripts run on 115K |
 
+### Model Strategy: V-JEPA 2.0 (POC) → 2.0 + 2.1 Ablation (Final)
+
+| Phase | Model | Embedding Dim | Purpose |
+|-------|-------|---------------|---------|
+| **10K POC** | V-JEPA 2.0 ViT-g (1B) | 1408 | Validate Ch9→Ch10→Ch11 pipeline. No rework. |
+| **115K Primary** | V-JEPA 2.0 ViT-g (1B) | 1408 | Main results, proposal-aligned |
+| **115K Ablation** | V-JEPA 2.1 ViT-G (2B) | 1664 | "Does model scale improve domain adaptation?" |
+
+**Why both at 115K**: At 115K clips (~276h), overfitting risk is low for both models (~8.7K and ~16K params/clip). The scaling ablation is a publishable contribution — NeurIPS reviewers expect scaling analysis. V-JEPA 2.1's advantages at 115K scale:
+- Dense Predictive Loss → richer gradient signal during continual pretraining
+- Deep Self-Supervision → intermediate layers directly supervised → more robust prefix unfreezing (Ch11)
+- 2x better segmentation features → cleaner SAM3 masks for factor datasets (Ch11 D_L/D_A/D_I)
+- Scaling law (ICLR 2024): fine-tuning gains increase with model size at sufficient data
+
+**Why 2.0 stays primary**: Proposal-aligned, 2x faster training (~20h vs ~40h per stage), pipeline-compatible (1408-dim), lower risk for first complete run.
+
 ### POC Timeline (Sequential, on RTX PRO 6000 96GB)
 
 | Week | Chapter | GPU Hours | Deliverable | Status |
 |:----:|---------|:---------:|-------------|--------|
 | 1 | Ch 8+9 (data + eval + baselines) | ~8-12h | metrics_frozen.json + 15 plots + baselines | **DONE** (48 outputs, 0 errors. Clean time ~6h 35m on RTX PRO 6000. Actual first run ~12h 18m across 6 runs due to bugs fixed incrementally.) |
-| 1.5 | Temporal eval extension (m04f + m06 ext) | ~3h CPU + ~2h GPU | motion features + temporal Prec@K + updated radar | **TODO** (pre-Ch10 requirement) |
+| 1.5 | Temporal eval extension (m04d + m06b) | ~1h GPU + ~10m CPU | motion features + 5 temporal metrics + spatial-temporal comparison | **BUILT** (needs GPU run) |
 | 2 | Ch 10 (continual pretraining) | ~20h | metrics_adapted.json (frozen vs adapted, spatial + temporal) | NEXT |
 | 3-4 | Ch 11 (surgery fine-tuning) | ~54h | metrics_surgical.json (frozen vs adapted vs surgical, spatial + temporal) | FUTURE |
+| 5 | 115K full run (2.0 primary) | ~65h | Full-scale results for paper | FUTURE |
+| 6 | 115K ablation (2.1) | ~90h | Scaling ablation: 1B vs 2B domain adaptation | FUTURE |
 
 ---
 
@@ -770,37 +788,43 @@ The spatial metrics are PRESERVED (not replaced). Temporal is additive.
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────────────────┐
-│                     3-WAY COMPARISON: frozen vs adapted vs surgical                     │
+│          PAPER COMPARISON: frozen vs adapted vs surgical × model scale                  │
 ├─────────────────────────────────────────────────────────────────────────────────────────┤
 │                                                                                         │
-│  SAME evaluation pipeline for all 3 encoders:                                           │
+│  SAME evaluation pipeline for all encoders:                                              │
+│  m05 (embed) → m06 (FAISS + 95% CI) → m06b (temporal) → m07 (UMAP) → m08/m08b (plots) │
+│  SAME clips, SAME tags, SAME k=6, SAME Hard/Easy modes                                 │
 │                                                                                         │
-│  m05 (embed) → m06 (FAISS metrics) → m07 (UMAP) → m08 (plots)                         │
-│  SAME 5,105 clips, SAME tags, SAME k=6, SAME Hard/Easy modes                           │
+│  ┌────────────────────┬──────────────┬──────────────┬──────────────┬──────────────┐     │
+│  │ Metric             │ Ch9: Frozen  │ Ch10: Adapt  │ Ch11: Surg   │ 2.1 Ablation │     │
+│  │                    │ 2.0 ViT-g 1B │ 2.0 ViT-g 1B │ 2.0 ViT-g 1B │ 2.1 ViT-G 2B │     │
+│  ├────────────────────┼──────────────┼──────────────┼──────────────┼──────────────┤     │
+│  │ SPATIAL:           │              │              │              │              │     │
+│  │ Prec@K (scene)     │ 14.6%        │              │              │              │     │
+│  │ mAP@K (overall)    │ 0.079        │              │              │              │     │
+│  │ Silhouette (scene) │ -0.250       │              │              │              │     │
+│  │ time_of_day mAP@K  │ 0.617        │              │              │              │     │
+│  │ lighting mAP@K     │ 0.580        │              │              │              │     │
+│  │ TEMPORAL (5 metrics, no VLM dependency):                                       │     │
+│  │ Spearman rho       │ (pending)    │              │              │              │     │
+│  │ Temporal Prec@K    │ (pending)    │              │              │              │     │
+│  │ Motion mAP         │ (pending)    │              │              │              │     │
+│  │ Order Sensitivity  │ (pending)    │              │              │              │     │
+│  │ Temporal Locality  │ (pending)    │              │              │              │     │
+│  │ LABEL-FREE:        │              │              │              │              │     │
+│  │ Cycle@K            │ 78.7%        │              │              │              │     │
+│  │ nDCG@K             │ 0.903        │              │              │              │     │
+│  │ Overlap@K (true)   │ 10.5%        │              │              │              │     │
+│  ├────────────────────┼──────────────┼──────────────┼──────────────┼──────────────┤     │
+│  │ DINOv2 Prec@K      │ 50.5%        │     —        │     —        │     —        │     │
+│  │ CLIP Prec@K        │ 46.0%        │     —        │     —        │     —        │     │
+│  │ Shuffled Prec@K    │ 35.3%        │     —        │     —        │     —        │     │
+│  │ Random Prec@K      │ 12.2%        │     —        │     —        │     —        │     │
+│  └────────────────────┴──────────────┴──────────────┴──────────────┴──────────────┘     │
 │                                                                                         │
-│  ┌────────────────────┬──────────────┬──────────────┬──────────────┐                    │
-│  │ Metric             │ Ch 9: Frozen │ Ch 10: Adapt │ Ch 11: Surg  │                    │
-│  ├────────────────────┼──────────────┼──────────────┼──────────────┤                    │
-│  │ SPATIAL:           │              │              │              │                    │
-│  │ Prec@K (scene)     │ 14.6%        │              │              │                    │
-│  │ mAP@K (overall)    │ 0.079        │              │              │                    │
-│  │ Silhouette (scene) │ -0.250       │              │              │                    │
-│  │ time_of_day mAP@K  │ 0.617        │              │              │                    │
-│  │ lighting mAP@K     │ 0.580        │              │              │                    │
-│  │ TEMPORAL (NEW):    │              │              │              │                    │
-│  │ motion corr (flow) │ (pending)    │              │              │                    │
-│  │ camera_motion P@K  │ (pending)    │              │              │                    │
-│  │ traffic_flow P@K   │ (pending)    │              │              │                    │
-│  │ LABEL-FREE:        │              │              │              │                    │
-│  │ Cycle@K            │ 78.7%        │              │              │                    │
-│  │ nDCG@K             │ 0.903        │              │              │                    │
-│  │ Overlap@K (true)   │ 10.5%        │              │              │                    │
-│  ├────────────────────┼──────────────┼──────────────┼──────────────┤                    │
-│  │ DINOv2 Prec@K      │ 50.5%        │     —        │     —        │                    │
-│  │ CLIP Prec@K        │ 46.0%        │     —        │     —        │                    │
-│  │ Shuffled Prec@K    │ 35.3%        │     —        │     —        │                    │
-│  │ Random Prec@K      │ 12.2%        │     —        │     —        │                    │
-│  └────────────────────┴──────────────┴──────────────┴──────────────┘                    │
+│  2.1 ABLATION COLUMN answers: "Does scaling from 1B → 2B improve domain adaptation?"   │
+│  Run full Ch9→Ch10→Ch11 with V-JEPA 2.1 ViT-G (2B, 1664-dim) at 115K scale.           │
+│  Publishable either way — NeurIPS reviewers expect scaling analysis.                    │
 │                                                                                         │
 │  PAPER STORY (what each outcome means):                                                 │
 │                                                                                         │
@@ -835,6 +859,20 @@ The spatial metrics are PRESERVED (not replaced). Temporal is additive.
 │     temporal features and scene taxonomy are orthogonal"                                 │
 │                                                                                         │
 │  The spatial × temporal matrix is the RICHEST story for the paper.                      │
+│                                                                                         │
+│  SCALING ABLATION (2.0 vs 2.1):                                                         │
+│                                                                                         │
+│  IF 2.1 (2B) >> 2.0 (1B) after adaptation:                                             │
+│  → "Model scale matters for domain adaptation — 2B captures Indian patterns             │
+│     that 1B cannot. Dense self-supervision enables richer feature learning."             │
+│                                                                                         │
+│  IF 2.1 ≈ 2.0 after adaptation:                                                        │
+│  → "Domain adaptation is data-bound, not model-bound. 1B is sufficient —                │
+│     diminishing returns from scaling. Practical recommendation: use smaller."            │
+│                                                                                         │
+│  IF 2.1 < 2.0 after adaptation:                                                        │
+│  → "Larger models overfit to domain artifacts. Dense loss learns suppression             │
+│     patterns (Ch11 factor patching). Regularization needed at 2B scale."                 │
 │                                                                                         │
 └─────────────────────────────────────────────────────────────────────────────────────────┘
 ```

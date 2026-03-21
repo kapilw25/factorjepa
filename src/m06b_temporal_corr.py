@@ -4,10 +4,9 @@ Measures how well each encoder captures temporal/motion structure.
 CPU-only — reads pre-computed .npy files from m04d + m05/m05b.
 
 USAGE:
-    python -u src/m06b_temporal_corr.py --encoder vjepa --FULL \
-        --subset data/subset_10k.json 2>&1 | tee logs/m06b_vjepa.log
-    python -u src/m06b_temporal_corr.py --encoder dinov2 --FULL \
-        --subset data/subset_10k.json 2>&1 | tee logs/m06b_dinov2.log
+    python -u src/m06b_temporal_corr.py --encoder vjepa --SANITY 2>&1 | tee logs/m06b_vjepa_sanity.log
+    python -u src/m06b_temporal_corr.py --encoder vjepa --FULL --subset data/subset_10k.json 2>&1 | tee logs/m06b_vjepa.log
+    python -u src/m06b_temporal_corr.py --encoder dinov2 --FULL --subset data/subset_10k.json 2>&1 | tee logs/m06b_dinov2.log
 """
 import argparse
 import json
