@@ -1,10 +1,10 @@
 """
-CPU-only multi-encoder comparison: grouped bar chart, radar plot, LaTeX table.
-Reads m06_metrics_*.json for all available encoders. No GPU needed.
+CPU-only multi-encoder comparison: grouped bar chart, spatial-temporal tradeoff scatter,
+combined radar, LaTeX table with 95% CI. Reads m06_metrics_*.json + m06b_temporal_corr_*.json.
 
 USAGE:
+    python -u src/m08b_compare.py --SANITY 2>&1 | tee logs/m08b_compare_sanity.log
     python -u src/m08b_compare.py --FULL --subset data/subset_10k.json 2>&1 | tee logs/m08b_compare.log
-    python -u src/m08b_compare.py --FULL 2>&1 | tee logs/m08b_compare_full.log
 """
 import argparse
 import json
@@ -65,6 +65,26 @@ def load_all_metrics(output_dir: Path) -> dict:
                 results[name] = json.load(f)
             print(f"  Loaded: {name} ({files['metrics'].name})")
     return results
+
+
+def load_all_temporal(output_dir: Path) -> dict:
+    """Load m06b_temporal_corr_*.json for all available encoders."""
+    results = {}
+    for name in ENCODER_ORDER:
+        sfx = ENCODER_REGISTRY[name]["suffix"]
+        temporal_file = output_dir / f"m06b_temporal_corr{sfx}.json"
+        if temporal_file.exists():
+            with open(temporal_file) as f:
+                results[name] = json.load(f)
+            print(f"  Loaded temporal: {name} ({temporal_file.name})")
+    return results
+
+
+TEMPORAL_METRICS_DISPLAY = [
+    ("spearman_rho", "Spearman rho"),
+    ("temporal_prec_at_k", "Temp Prec@K (%)"),
+    ("motion_retrieval_map", "Motion mAP"),
+]
 
 
 # ── Terminal Summary Table ───────────────────────────────────────────
@@ -227,6 +247,154 @@ def create_radar_plot(all_metrics: dict, output_dir: Path):
     print(f"Saved: {output_dir / 'm08b_radar.png'}")
 
 
+# ── Spatial-Temporal Grouped Bar Chart ────────────────────────────────
+
+def create_grouped_bar_chart(all_metrics: dict, all_temporal: dict, output_dir: Path):
+    """Grouped bar chart: spatial metrics (left) | temporal metrics (right)."""
+    encoders = [e for e in ENCODER_ORDER if e in all_metrics]
+    if len(encoders) < 2:
+        return
+
+    spatial_keys = [("prec_at_k", "Prec@K (%)"), ("map_at_k", "mAP@K"),
+                    ("cycle_at_k", "Cycle@K (%)"), ("overlap_at_k", "Overlap@K (%)"),
+                    ("ndcg_at_k", "nDCG@K")]
+    temporal_keys = [(k, l) for k, l in TEMPORAL_METRICS_DISPLAY if any(
+        all_temporal.get(e, {}).get(k) is not None for e in encoders)]
+
+    # Add locality ratio if available
+    if any(all_temporal.get(e, {}).get("temporal_locality", {}).get("ratio") is not None
+           for e in encoders):
+        temporal_keys.append(("temporal_locality_ratio", "Locality Ratio"))
+
+    all_keys = spatial_keys + temporal_keys
+    n_total = len(all_keys)
+    n_spatial = len(spatial_keys)
+    if n_total == 0:
+        return
+
+    fig, axes = plt.subplots(1, n_total, figsize=(3.2 * n_total, 5), squeeze=False)
+    axes = axes[0]
+
+    for ax_idx, (metric_key, metric_label) in enumerate(all_keys):
+        ax = axes[ax_idx]
+        x = np.arange(len(encoders))
+        vals = []
+        errs = []
+
+        for enc in encoders:
+            if ax_idx < n_spatial:
+                # Spatial metric from m06
+                v = all_metrics[enc].get("easy", {}).get(metric_key)
+                ci_h = all_metrics[enc].get("easy", {}).get("ci", {}).get(metric_key, {}).get("ci_half", 0)
+            elif metric_key == "temporal_locality_ratio":
+                v = all_temporal.get(enc, {}).get("temporal_locality", {}).get("ratio")
+                ci_h = 0
+            else:
+                v = all_temporal.get(enc, {}).get(metric_key)
+                ci_h = all_temporal.get(enc, {}).get(f"{metric_key}_ci", {}).get("ci_half", 0)
+                if ci_h == 0 and metric_key == "spearman_rho":
+                    ci_h = all_temporal.get(enc, {}).get("spearman_rho_ci", {}).get("ci_half", 0)
+            vals.append(v if v is not None else 0)
+            errs.append(ci_h)
+
+        colors = [ENCODER_COLORS.get(e, "#888") for e in encoders]
+        ax.bar(x, vals, color=colors, alpha=0.85, yerr=errs, capsize=3, error_kw={"lw": 1})
+        ax.set_title(metric_label, fontsize=9, fontweight="bold")
+        ax.set_xticks(x)
+        ax.set_xticklabels([e.replace("_", "\n") for e in encoders], fontsize=7, rotation=0)
+        ax.tick_params(axis="y", labelsize=8)
+
+        # Separator between spatial and temporal
+        if ax_idx == n_spatial - 1:
+            ax.axvline(x=len(encoders) - 0.5, color="gray", linestyle="--", alpha=0.3)
+
+    # Add group labels
+    fig.text(n_spatial / (2 * n_total), 0.01, "SPATIAL", ha="center",
+             fontsize=11, fontweight="bold", color="#2E7D32")
+    if temporal_keys:
+        fig.text((n_spatial + n_total) / (2 * n_total), 0.01, "TEMPORAL", ha="center",
+                 fontsize=11, fontweight="bold", color="#C62828")
+
+    plt.suptitle("Spatial vs Temporal Encoder Comparison (Easy mode, 95% CI)",
+                 fontsize=12, fontweight="bold", y=1.02)
+    plt.tight_layout(rect=[0, 0.03, 1, 1])
+    for ext in [".png", ".pdf"]:
+        plt.savefig(output_dir / f"m08b_spatial_temporal_bar{ext}",
+                    dpi=150 if ext == ".png" else None, bbox_inches="tight")
+    plt.close()
+    print(f"Saved: {output_dir / 'm08b_spatial_temporal_bar.png'}")
+
+
+# ── Spatial-Temporal Tradeoff Scatter ────────────────────────────────
+
+def create_tradeoff_scatter(all_metrics: dict, all_temporal: dict, output_dir: Path):
+    """2D scatter: X=spatial aggregate, Y=temporal aggregate. Each encoder = labeled point."""
+    encoders = [e for e in ENCODER_ORDER if e in all_metrics]
+    if len(encoders) < 2 or not all_temporal:
+        return
+
+    # Spatial aggregate: mean of normalized (Prec@K, mAP@K, nDCG@K)
+    spatial_keys = ["prec_at_k", "map_at_k", "ndcg_at_k"]
+    # Temporal aggregate: mean of available temporal metrics (normalized)
+    temporal_keys = ["spearman_rho", "temporal_prec_at_k", "motion_retrieval_map"]
+
+    # Collect raw values
+    spatial_raw = {enc: [] for enc in encoders}
+    temporal_raw = {enc: [] for enc in encoders}
+
+    for enc in encoders:
+        for sk in spatial_keys:
+            v = all_metrics[enc].get("easy", {}).get(sk)
+            spatial_raw[enc].append(v if v is not None else 0)
+        for tk in temporal_keys:
+            v = all_temporal.get(enc, {}).get(tk)
+            temporal_raw[enc].append(v if v is not None else 0)
+
+    # Normalize each metric to [0, 1] across encoders
+    def normalize_list(raw_dict, keys):
+        scores = {}
+        for i, k in enumerate(keys):
+            vals = [raw_dict[e][i] for e in encoders]
+            vmax = max(vals) if max(vals) > 0 else 1
+            for e in encoders:
+                scores.setdefault(e, []).append(raw_dict[e][i] / vmax)
+        return {e: np.mean(v) * 100 for e, v in scores.items()}
+
+    spatial_scores = normalize_list(spatial_raw, spatial_keys)
+    temporal_scores = normalize_list(temporal_raw, temporal_keys)
+
+    # Check if temporal has any non-zero values
+    if all(v == 0 for v in temporal_scores.values()):
+        print("  WARN: All temporal scores are 0 — skipping tradeoff scatter (need m04d + m06b first)")
+        return
+
+    fig, ax = plt.subplots(1, 1, figsize=(7, 6))
+    for enc in encoders:
+        sx = spatial_scores[enc]
+        ty = temporal_scores[enc]
+        color = ENCODER_COLORS.get(enc, "#888")
+        ax.scatter(sx, ty, s=200, c=color, edgecolors="black", linewidth=1.5, zorder=5)
+        ax.annotate(enc.replace("_", "\n"), (sx, ty), textcoords="offset points",
+                    xytext=(10, 10), fontsize=9, fontweight="bold", color=color)
+
+    # Diagonal reference
+    lim = max(max(spatial_scores.values()), max(temporal_scores.values())) * 1.15
+    ax.plot([0, lim], [0, lim], "--", color="gray", alpha=0.3, label="Balanced")
+    ax.set_xlim(0, lim)
+    ax.set_ylim(0, lim)
+    ax.set_xlabel("Spatial Score (normalized)", fontsize=11)
+    ax.set_ylabel("Temporal Score (normalized)", fontsize=11)
+    ax.set_title("Spatial-Temporal Tradeoff", fontsize=13, fontweight="bold")
+    ax.legend(fontsize=9)
+    ax.set_aspect("equal")
+    plt.tight_layout()
+    for ext in [".png", ".pdf"]:
+        plt.savefig(output_dir / f"m08b_tradeoff_scatter{ext}",
+                    dpi=150 if ext == ".png" else None, bbox_inches="tight")
+    plt.close()
+    print(f"Saved: {output_dir / 'm08b_tradeoff_scatter.png'}")
+
+
 # ── LaTeX Table ──────────────────────────────────────────────────────
 
 def create_latex_table(all_metrics: dict, output_dir: Path):
@@ -305,7 +473,11 @@ def main():
         print("FATAL: No encoder metrics found. Run m06 first.")
         sys.exit(1)
 
+    all_temporal = load_all_temporal(output_dir)
+
     print(f"\nFound {len(all_metrics)} encoder(s): {', '.join(all_metrics.keys())}")
+    if all_temporal:
+        print(f"Found {len(all_temporal)} temporal result(s): {', '.join(all_temporal.keys())}")
 
     mode = "SANITY" if args.SANITY else ("POC" if args.subset else "FULL")
     wb_run = init_wandb("m08b", mode, config=vars(args), enabled=not args.no_wandb)
@@ -318,9 +490,14 @@ def main():
         create_bar_chart(all_metrics, output_dir)
         create_radar_plot(all_metrics, output_dir)
         create_latex_table(all_metrics, output_dir)
+        create_grouped_bar_chart(all_metrics, all_temporal, output_dir)
+        create_tradeoff_scatter(all_metrics, all_temporal, output_dir)
 
-        for name in ["m08b_encoder_comparison", "m08b_radar"]:
-            log_image(wb_run, name, str(output_dir / f"{name}.png"))
+        for name in ["m08b_encoder_comparison", "m08b_radar",
+                     "m08b_spatial_temporal_bar", "m08b_tradeoff_scatter"]:
+            png = output_dir / f"{name}.png"
+            if png.exists():
+                log_image(wb_run, name, str(png))
     else:
         print("Only 1 encoder found — skipping comparison plots (need >= 2).")
 

@@ -52,6 +52,7 @@
 | VLM tags are pseudo-labels, not ground truth | VLM bake-off (3-way consensus on 2.5K clips) + per-field confidence + confidence sweep |
 | Circular bias: Western models validating Western models | Include DINOv2/random baselines; primary metrics are label-free (Cycle@K, Overlap@K) |
 | Video artifacts (blur, shake) may confound clustering | Quality filtering + stratified analysis |
+| 480p CRF28 compression may limit optical flow quality | Mitigated: 854x480 is within RAFT's benchmarked range (Sintel 1024x436, KITTI 1242x375). 520x360 downsampling smooths block artifacts. Aggregate features (mean/std/max over 360×520 px × 16 pairs) average out per-pixel noise. |
 
 ---
 
@@ -216,9 +217,9 @@ Tags serve **two purposes only**: (1) stratified batching for Ch10/Ch11, (2) sli
 | 21 | VLM re-tag 10K (v3 taxonomy) | ✅ BUILT | m04 with v3 taxonomy (16 fields). 115K: Qwen3.5-9B via vLLM (planned) |
 | 22 | UMAP visualization | ✅ BUILT | m07 GPU cuML UMAP (1408→2D) + m08 scatter plots per key; umap_2d.npy exists |
 | | **Temporal evaluation extension (post-Ch9 finding)** | | |
-| 23 | Optical flow motion features (per clip) | ❌ NOT BUILT | m04f — RAFT/Farneback → mean flow magnitude, flow direction histogram, camera motion estimate. CPU-computable, deterministic. Ground-truth temporal signal. |
-| 24 | VLM temporal tags (camera_motion, traffic_flow, crowd_dynamics) | ❌ NOT BUILT | m04 prompt extension — add 3 temporal fields to v3 taxonomy. Requires re-tagging 10K clips (~2h GPU). Risk: VLM temporal quality uncertain. |
-| 25 | Temporal Prec@K / mAP@K evaluation | ❌ NOT BUILT | m06 extension — compute retrieval metrics using temporal tags/features. Control: if DINOv2/CLIP score well on "temporal" tags → tags are actually spatial proxies. |
+| 23 | GPU-RAFT optical flow features (13D per clip) | ✅ BUILT | m04d — `torchvision.models.optical_flow.raft_large()`, batched via AdaptiveBatchSizer. Needs GPU run. |
+| 24 | VLM temporal tags | ❌ BLOCKED | VLM temporal understanding confirmed unreliable (<60% accuracy). Fine-tuning on ~1,400 clips needed if pursued. |
+| 25 | 5 temporal correlation metrics | ✅ BUILT | m06b — Spearman rho, Temporal Prec@K, Motion mAP, Order Sensitivity, Temporal Locality. Bootstrap 95% CI. |
 
 ### Baselines — COMPLETE (10K POC, Mar 9 2026)
 
@@ -351,74 +352,39 @@ Ch 9 findings reveal a **measurement gap**: all 16 v3 taxonomy fields measure sp
 
 External validation: [arXiv:2509.21595](https://arxiv.org/abs/2509.21595) "Temporal vs Spatial: DINOv3 and V-JEPA2" confirms spatial models cluster better, temporal models are more consistent — same pattern as our data.
 
-### Two Approaches (Priority Order)
+### Temporal Metrics (BUILT — 5 metrics, no VLM dependency)
+
+VLM temporal tags (Approach B) were **confirmed unreliable** (MotionBench CVPR 2025: <60%, CameraBench NeurIPS 2025: ~50% AP, SpookyBench: 0% on pure temporal patterns). Instead, 5 deterministic temporal metrics were built:
+
+| Metric | What it tests | Module | Uses VLM? | Status |
+|--------|---------------|--------|-----------|--------|
+| Spearman rho | Embedding-motion correlation | m06b | No (optical flow) | BUILT |
+| Temporal Prec@K | kNN neighbors in same motion quartile | m06b | No (optical flow) | BUILT |
+| Motion Retrieval mAP | mAP on motion clusters | m06b | No (optical flow) | BUILT |
+| Order Sensitivity | Normal vs shuffled embedding distance | m06b | No (existing embeddings) | BUILT |
+| Temporal Locality | Intra vs inter-video coherence | m06b | No (existing embeddings) | BUILT |
+
+Metrics 4-5 use only existing embeddings (zero GPU cost). Metrics 1-3 require m04d (GPU-RAFT optical flow) to run first.
+
+All metrics include bootstrap 95% CI (BCa, 10K iterations via `scipy.stats.bootstrap`).
+
+**Visualization** (BUILT in m08b):
+- Grouped bar chart: spatial metrics (left) | temporal metrics (right), per encoder
+- Spatial-temporal tradeoff scatter: X=spatial aggregate, Y=temporal aggregate, per encoder
+- Combined radar: all metrics on one plot, spatial left / temporal right
+- LaTeX table: all metrics with ±CI
 
 ```
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                    TEMPORAL EVALUATION: TWO APPROACHES                       │
-├─────────────────────────────────────────────────────────────────────────────┤
-│                                                                             │
-│  APPROACH A: COMPUTED MOTION FEATURES (RECOMMENDED FIRST)                  │
-│  ─────────────────────────────────────────────────────────                  │
-│  Module: m04f (new, CPU-computable, deterministic)                         │
-│                                                                             │
-│  Per-clip features:                                                         │
-│  • Mean optical flow magnitude (RAFT or Farneback)                         │
-│  • Flow direction histogram (8-16 bins)                                    │
-│  • Camera motion estimate (global homography fit)                          │
-│  • Temporal intensity variance (frame differencing)                         │
-│                                                                             │
-│  Evaluation: "Do V-JEPA neighbors have similar motion statistics?"         │
-│  → Compute Pearson/Spearman correlation between embedding distance         │
-│    and motion feature distance for all K-nearest pairs                     │
-│  → Per-encoder comparison (V-JEPA should >> DINOv2/CLIP)                  │
-│                                                                             │
-│  Pros: deterministic, no VLM noise, ground-truth temporal signal           │
-│  Cons: low-level features, may not capture high-level actions              │
-│  Effort: ~1 new module, CPU-only, ~2-3h on 10K clips                      │
-│                                                                             │
-│  ───────────────────────────────────────────────────────────────────        │
-│                                                                             │
-│  APPROACH B: VLM TEMPORAL TAGS (SUPPLEMENTARY)                             │
-│  ─────────────────────────────────────────────                              │
-│  Module: m04 prompt extension + tag_taxonomy.json v4                       │
-│                                                                             │
-│  New taxonomy fields:                                                       │
-│  • camera_motion: static | pan_left | pan_right | walk_forward | shaky     │
-│  • dominant_traffic_flow: toward | away | cross_left | cross_right | mixed │
-│  • crowd_dynamics: static | dispersing | converging | flowing              │
-│                                                                             │
-│  Evaluation: standard Prec@K / mAP@K on temporal fields                   │
-│  Control: if DINOv2/CLIP score well → tags are spatial proxies, not truly  │
-│           temporal. This control is ESSENTIAL.                              │
-│                                                                             │
-│  Pros: semantic-level temporal understanding, extends existing pipeline     │
-│  Cons: VLM temporal quality uncertain, requires re-tagging (~2h GPU)       │
-│  Effort: prompt update + re-tag 10K + m06 extension                        │
-│                                                                             │
-│  ───────────────────────────────────────────────────────────────────        │
-│                                                                             │
-│  EXPECTED RESULTS (Ch9 baseline with temporal metrics):                     │
-│                                                                             │
-│  Metric type       V-JEPA   DINOv2   CLIP   Shuffled   Random              │
-│  ──────────────────────────────────────────────────────────────             │
-│  Spatial Prec@K    14.6%    50.5%    46.0%  35.3%      12.2%   (current)   │
-│  Temporal Prec@K   ???      LOW*     LOW*   LOW**      ~0%     (expected)  │
-│                                                                             │
-│  * DINOv2/CLIP = single-frame → blind to motion (should be near-random)   │
-│  ** Shuffled = temporal order destroyed → temporal metrics should degrade  │
-│                                                                             │
-│  IF V-JEPA >> image baselines on temporal metrics:                          │
-│     → POWERFUL FINDING: V-JEPA encodes temporal dynamics that image        │
-│       models cannot see, but these dynamics don't correlate with           │
-│       spatial scene taxonomy                                                │
-│     → Motivates: adapt V-JEPA's temporal features to Indian dynamics       │
-│                                                                             │
-│  IF V-JEPA ≈ image baselines on temporal metrics:                          │
-│     → Tags are spatial proxies (control check) OR V-JEPA's temporal       │
-│       features don't capture high-level motion semantics                    │
-│                                                                             │
-└─────────────────────────────────────────────────────────────────────────────┘
+EXPECTED RESULTS:
+
+Metric type       V-JEPA   DINOv2   CLIP   Shuffled   Random
+──────────────────────────────────────────────────────────────
+Spatial Prec@K    14.6%    50.5%    46.0%  35.3%      12.2%   (measured)
+Temporal metrics  HIGH*    LOW**    LOW**  REDUCED*** ~0%     (expected)
+
+* V-JEPA encodes 64 frames temporally → should capture motion
+** DINOv2/CLIP = single-frame → blind to motion
+*** Shuffled = temporal order destroyed → temporal should degrade
 ```
 
 ### Pipeline Ordering Rationale
@@ -1040,7 +1006,8 @@ flowchart LR
 | **m05b** | **Ch 9** | **Baseline embeddings (random, DINOv2, shuffled, CLIP). Supports `--local-data`. Optimized: FA2/SDPA+compile, producer pre-processes, image_encoder batch profile (4x vjepa).** | **DONE** (98m 43s — random 5K, dinov2/clip/shuffled 10K each) |
 | **m05c** | **Ch 9** | **Augmented V-JEPA embeddings for True Overlap@K. Supports `--local-data`. Dedup optimization reads embeddings.paths.npy (5,105 clips).** | **DONE** (93m with dedup fix, 5,105 clips) |
 | **m08b** | **Ch 9** | **Multi-encoder comparison (bar chart, radar, LaTeX)** | **DONE** (CPU-only, runs after m06 × 5) |
-| **m04f** | **Ch 9+** | **Optical flow motion features per clip (CPU). RAFT/Farneback → flow magnitude, direction histogram, camera motion. Temporal ground-truth for retrieval evaluation.** | **TODO** |
+| **m04d** | **Ch 9+** | **GPU-RAFT optical flow → 13D motion features per clip. Batched inference via AdaptiveBatchSizer.** | **BUILT** |
+| **m06b** | **Ch 9+** | **Temporal correlation: 5 metrics per encoder (Spearman, TempPrec, MotionMAP, OrderSensitivity, Locality). CPU-only.** | **BUILT** |
 | **m09** | **Ch 10** | **Continual pretraining (student-teacher JEPA)** | **TODO** |
 | **m10** | **Ch 11** | **SAM3 segmentation + tracklet mining** | **TODO** |
 | **m11** | **Ch 11** | **Factor dataset creation (D_L, D_A, D_I)** | **TODO** |
