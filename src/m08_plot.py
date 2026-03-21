@@ -1,12 +1,12 @@
 """
 CPU-only visualization: UMAP scatter + kNN confusion matrix + kNN grids.
-Reads pre-computed outputs: umap_2d.npy, knn_indices.npy, tags.json, m06_metrics.json.
-No FAISS, no cuML, no torch. Runs on M1 Mac.
+Reads encoder-aware inputs via --encoder flag: umap_2d{sfx}.npy, knn_indices{sfx}.npy.
+Plots saved with encoder suffix to avoid overwrite. No FAISS, no cuML, no torch.
 
 USAGE:
-    python -u src/m08_plot.py --SANITY 2>&1 | tee logs/m08_plot_sanity.log
-    python -u src/m08_plot.py --FULL --subset data/subset_10k.json 2>&1 | tee logs/m08_plot_poc.log
-    python -u src/m08_plot.py --FULL 2>&1 | tee logs/m08_plot_full.log
+    python -u src/m08_plot.py --encoder vjepa --SANITY 2>&1 | tee logs/m08_plot_vjepa_sanity.log
+    python -u src/m08_plot.py --encoder vjepa --FULL --subset data/subset_10k.json 2>&1 | tee logs/m08_plot_vjepa.log
+    python -u src/m08_plot.py --encoder dinov2 --FULL --subset data/subset_10k.json 2>&1 | tee logs/m08_plot_dinov2.log
 """
 import argparse
 import json
@@ -20,8 +20,8 @@ import numpy as np
 sys.path.insert(0, str(Path(__file__).parent))
 from utils.config import (
     EMBEDDINGS_FILE, TAGS_FILE, METRICS_FILE, OUTPUTS_DIR,
-    FAISS_K_NEIGHBORS,
-    add_subset_arg, get_output_dir,
+    FAISS_K_NEIGHBORS, ENCODER_REGISTRY,
+    add_subset_arg, add_encoder_arg, get_output_dir, get_encoder_files,
 )
 
 TAXONOMY_FILE = Path(__file__).parent / "utils" / "tag_taxonomy.json"
@@ -120,7 +120,8 @@ def _get_color_map(values: list) -> dict:
 # ── UMAP Scatter Plot ────────────────────────────────────────────────────
 
 def create_umap_plot(emb_2d: np.ndarray, tags: list, output_dir: Path,
-                     metrics_data: dict, field: str = "scene_type"):
+                     metrics_data: dict, field: str = "scene_type",
+                     enc_sfx: str = ""):
     """UMAP scatter colored by a taxonomy field with metrics overlay."""
     values = [t.get(field, "unknown") for t in tags]
     color_map = _get_color_map(values)
@@ -161,16 +162,17 @@ def create_umap_plot(emb_2d: np.ndarray, tags: list, output_dir: Path,
     plt.tight_layout()
     suffix = f"_{field}" if field != "scene_type" else ""
     for ext in [".png", ".pdf"]:
-        plt.savefig(output_dir / f"m08_umap{suffix}{ext}",
+        plt.savefig(output_dir / f"m08_umap{enc_sfx}{suffix}{ext}",
                     dpi=150 if ext == ".png" else None, bbox_inches='tight')
     plt.close()
-    print(f"Saved: {output_dir / f'm08_umap{suffix}.png'}")
+    print(f"Saved: {output_dir / f'm08_umap{enc_sfx}{suffix}.png'}")
 
 
 # ── Confusion Matrix ─────────────────────────────────────────────────────
 
 def create_confusion_matrix(knn_indices: np.ndarray, tags: list, output_dir: Path,
-                            k: int = 5, field: str = "scene_type"):
+                            k: int = 5, field: str = "scene_type",
+                            enc_sfx: str = ""):
     """kNN retrieval confusion matrix from pre-computed indices (no FAISS needed)."""
     field_values = sorted(set(t.get(field, "unknown") for t in tags))
 
@@ -210,10 +212,10 @@ def create_confusion_matrix(knn_indices: np.ndarray, tags: list, output_dir: Pat
     plt.tight_layout()
     suffix = f"_{field}" if field != "scene_type" else ""
     for ext in [".png", ".pdf"]:
-        plt.savefig(output_dir / f"m08_confusion_matrix{suffix}{ext}",
+        plt.savefig(output_dir / f"m08_confusion_matrix{enc_sfx}{suffix}{ext}",
                     dpi=150 if ext == ".png" else None)
     plt.close()
-    print(f"Saved: {output_dir / f'm08_confusion_matrix{suffix}.png'}")
+    print(f"Saved: {output_dir / f'm08_confusion_matrix{enc_sfx}{suffix}.png'}")
 
     if field == "scene_type":
         print("\nPer-class retrieval accuracy:")
@@ -224,7 +226,7 @@ def create_confusion_matrix(knn_indices: np.ndarray, tags: list, output_dir: Pat
 # ── Combined 3x3 UMAP Grid ──────────────────────────────────────────────
 
 def create_umap_grid(emb_2d: np.ndarray, tags: list, output_dir: Path,
-                     plot_keys: list):
+                     plot_keys: list, enc_sfx: str = ""):
     """3x3 grid of UMAP scatters, one per taxonomy key."""
     n_panels = len(plot_keys)
     n_cols, n_rows = 3, (n_panels + 2) // 3
@@ -261,16 +263,17 @@ def create_umap_grid(emb_2d: np.ndarray, tags: list, output_dir: Path,
                  fontsize=15, fontweight='bold')
     plt.tight_layout(rect=[0, 0, 1, 0.97])
     for ext in [".png", ".pdf"]:
-        plt.savefig(output_dir / f"m08_umap_grid{ext}",
+        plt.savefig(output_dir / f"m08_umap_grid{enc_sfx}{ext}",
                     dpi=150 if ext == ".png" else None, bbox_inches='tight')
     plt.close()
-    print(f"Saved: {output_dir / 'm08_umap_grid.png'}")
+    print(f"Saved: {output_dir / f'm08_umap_grid{enc_sfx}.png'}")
 
 
 # ── Combined 3x3 Confusion Matrix Grid ─────────────────────────────────
 
 def create_confusion_matrix_grid(knn_indices: np.ndarray, tags: list,
-                                 output_dir: Path, k: int, plot_keys: list):
+                                 output_dir: Path, k: int, plot_keys: list,
+                                 enc_sfx: str = ""):
     """3x3 grid of confusion matrices, one per taxonomy key."""
     n_panels = len(plot_keys)
     n_cols, n_rows = 3, (n_panels + 2) // 3
@@ -316,16 +319,17 @@ def create_confusion_matrix_grid(knn_indices: np.ndarray, tags: list,
                  fontsize=15, fontweight='bold')
     plt.tight_layout(rect=[0, 0, 1, 0.97])
     for ext in [".png", ".pdf"]:
-        plt.savefig(output_dir / f"m08_confusion_matrix_grid{ext}",
+        plt.savefig(output_dir / f"m08_confusion_matrix_grid{enc_sfx}{ext}",
                     dpi=150 if ext == ".png" else None, bbox_inches='tight')
     plt.close()
-    print(f"Saved: {output_dir / 'm08_confusion_matrix_grid.png'}")
+    print(f"Saved: {output_dir / f'm08_confusion_matrix_grid{enc_sfx}.png'}")
 
 
 # ── kNN Neighbor Grid ────────────────────────────────────────────────────
 
 def create_knn_grid(knn_indices: np.ndarray, tags: list, clip_paths: list,
-                    output_dir: Path, k: int = 5, n_rows: int = N_KNN_GRID_ROWS):
+                    output_dir: Path, k: int = 5, n_rows: int = N_KNN_GRID_ROWS,
+                    enc_sfx: str = ""):
     """Visual grid: each row = [query clip] -> [k nearest neighbors]."""
     n = len(tags)
     scene_types = sorted(set(t.get("scene_type", "unknown") for t in tags))
@@ -412,10 +416,10 @@ def create_knn_grid(knn_indices: np.ndarray, tags: list, clip_paths: list,
     plt.suptitle(f'kNN Neighbor Grid (k={k})', fontsize=14, fontweight='bold', y=1.02)
     plt.tight_layout()
     for ext in [".png", ".pdf"]:
-        plt.savefig(output_dir / f"m08_knn_grid{ext}",
+        plt.savefig(output_dir / f"m08_knn_grid{enc_sfx}{ext}",
                     dpi=150 if ext == ".png" else None, bbox_inches='tight')
     plt.close()
-    print(f"Saved: {output_dir / 'm08_knn_grid.png'}")
+    print(f"Saved: {output_dir / f'm08_knn_grid{enc_sfx}.png'}")
 
 
 # ── Macro/Micro Summary ─────────────────────────────────────────────────
@@ -449,6 +453,7 @@ def main():
     parser.add_argument("--k", type=int, default=FAISS_K_NEIGHBORS,
                         help=f"kNN neighbors (default: {FAISS_K_NEIGHBORS})")
     parser.add_argument("--no-grid", action="store_true", help="Skip kNN grid (faster)")
+    add_encoder_arg(parser)
     add_subset_arg(parser)
     add_wandb_args(parser)
     args = parser.parse_args()
@@ -466,12 +471,15 @@ def main():
 
     print(f"Output dir: {output_dir}")
 
-    # Resolve file paths (all relative to output_dir)
+    # Resolve file paths — encoder-aware via get_encoder_files()
+    enc_files = get_encoder_files(args.encoder, output_dir)
+    enc_sfx = ENCODER_REGISTRY[args.encoder]["suffix"]
     tags_file = output_dir / "tags.json"
-    paths_file = output_dir / "embeddings.paths.npy"
-    metrics_file = output_dir / "m06_metrics.json"
-    umap_file = output_dir / "umap_2d.npy"
-    knn_file = output_dir / "knn_indices.npy"
+    paths_file = enc_files["paths"]
+    metrics_file = enc_files["metrics"]
+    umap_file = enc_files["umap_2d"]
+    knn_file = enc_files["knn_indices"]
+    print(f"Encoder: {args.encoder} (suffix='{enc_sfx}')")
 
     # Check required files
     for f, desc, prereq in [
@@ -529,18 +537,21 @@ def main():
 
     # 1. UMAP scatters (individual per key + combined 3x3 grid)
     for fk in plot_keys:
-        create_umap_plot(emb_2d, tags, output_dir, metrics_data, field=fk)
-    create_umap_grid(emb_2d, tags, output_dir, plot_keys)
+        create_umap_plot(emb_2d, tags, output_dir, metrics_data, field=fk,
+                         enc_sfx=enc_sfx)
+    create_umap_grid(emb_2d, tags, output_dir, plot_keys, enc_sfx=enc_sfx)
 
     # 2. Confusion matrices (individual per key + combined 3x3 grid)
     for fk in plot_keys:
-        create_confusion_matrix(knn_indices, tags, output_dir, k=k, field=fk)
+        create_confusion_matrix(knn_indices, tags, output_dir, k=k, field=fk,
+                                enc_sfx=enc_sfx)
     create_confusion_matrix_grid(knn_indices, tags, output_dir, k=k,
-                                 plot_keys=plot_keys)
+                                 plot_keys=plot_keys, enc_sfx=enc_sfx)
 
     # 3. kNN neighbor grid (scene_type only — visual design is scene-specific)
     if not args.no_grid:
-        create_knn_grid(knn_indices, tags, clip_paths, output_dir, k=k)
+        create_knn_grid(knn_indices, tags, clip_paths, output_dir, k=k,
+                        enc_sfx=enc_sfx)
 
     # 4. Macro/micro summary
     print("\n=== MACRO/MICRO REPORTING ===")
@@ -559,14 +570,17 @@ def main():
 
     for fk in plot_keys:
         suffix = f"_{fk}" if fk != "scene_type" else ""
-        log_image(wb_run, f"umap{suffix}", str(output_dir / f"m08_umap{suffix}.png"))
-        log_image(wb_run, f"confusion_matrix{suffix}",
-                  str(output_dir / f"m08_confusion_matrix{suffix}.png"))
-    log_image(wb_run, "umap_grid", str(output_dir / "m08_umap_grid.png"))
-    log_image(wb_run, "confusion_matrix_grid",
-              str(output_dir / "m08_confusion_matrix_grid.png"))
+        log_image(wb_run, f"umap{enc_sfx}{suffix}",
+                  str(output_dir / f"m08_umap{enc_sfx}{suffix}.png"))
+        log_image(wb_run, f"confusion_matrix{enc_sfx}{suffix}",
+                  str(output_dir / f"m08_confusion_matrix{enc_sfx}{suffix}.png"))
+    log_image(wb_run, f"umap_grid{enc_sfx}",
+              str(output_dir / f"m08_umap_grid{enc_sfx}.png"))
+    log_image(wb_run, f"confusion_matrix_grid{enc_sfx}",
+              str(output_dir / f"m08_confusion_matrix_grid{enc_sfx}.png"))
     if not args.no_grid:
-        log_image(wb_run, "knn_grid", str(output_dir / "m08_knn_grid.png"))
+        log_image(wb_run, f"knn_grid{enc_sfx}",
+                  str(output_dir / f"m08_knn_grid{enc_sfx}.png"))
 
     print(f"\n=== VISUALIZATION COMPLETE ===")
     print(f"Outputs in: {output_dir}")

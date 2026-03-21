@@ -16,6 +16,7 @@
    - AST structural check (verify functions, argparse choices, imports) — **MANUAL: Claude must run explicitly.**
 7) Plots: both .png & .pdf. m08_plot.py = CPU-only (pure matplotlib, reads pre-computed .npy files)
 7.1) GPU scripts save .npy artifacts (embeddings, knn_indices, umap_2d) → CPU scripts read them. NEVER duplicate GPU compute in CPU scripts (e.g. never rebuild FAISS index in plotting when m06 already saves knn_indices.npy)
+7.4) **95% CI MANDATORY**: Every metric reported in JSON or displayed in plots/tables MUST include bootstrap 95% CI (BCa, 10K iterations via `scipy.stats.bootstrap`). Use `utils/bootstrap.py`: compute per-clip scores → `bootstrap_ci(scores)` → store `{"mean", "ci_lo", "ci_hi", "ci_half"}` under `"ci"` key in JSON. Plots: error bars via `yerr=ci_half`. LaTeX tables: `50.5{\tiny$\pm$2.1}` format. No point estimates without CI — this is a research paper.
 7.2) embeddings.paths.npy stores clip keys (not local paths) — used for Hard mode ±30s exclusion. Tags↔embeddings alignment via __key__ field. FAISS uses IVFFlat (not IVF-PQ) — simpler, sufficient at 10K-115K scale
 7.3) m05c reads embeddings.paths.npy (deduped keys, ~5K) instead of subset_10k.json (10K). Ordering dependency: m05 must complete before m05c (enforced by run_ch9_overnight.sh step ordering)
 8) Devil's advocate: OOM, GPU underutil, data starvation, VRAM leaks, fp16 instability (use flash-attn-2), checkpoint corruption /auto-resume solution

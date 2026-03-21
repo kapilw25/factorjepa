@@ -13,26 +13,62 @@ Research benchmark testing if V-JEPA 2 (Meta's video foundation model, trained o
 
 ### m00-m03: Data Pipeline (CPU, completed)
 - **m00_data_prep.py**: Parse YT_videos_raw.md → JSON, word freq, city matrix
+  - `python -u src/m00_data_prep.py --SANITY 2>&1 | tee logs/m00_sanity.log`
+  - `python -u src/m00_data_prep.py --FULL 2>&1 | tee logs/m00_full.log`
 - **m00b_fetch_durations.py**: yt-dlp metadata fetch (no download)
+  - `python -u src/m00b_fetch_durations.py --SANITY 2>&1 | tee logs/m00b_sanity.log`
+  - `python -u src/m00b_fetch_durations.py --FULL 2>&1 | tee logs/m00b_full.log`
 - **m00c_sample_subset.py**: Video-level uniform 10K subset → data/subset_10k.json (seed=42)
-- **m00d_download_subset.py**: Pre-download subset to local WebDataset TARs (~11 min, ~10.7 GB). CPU-only. Fixes producer starvation (8.4%→100% hit rate). Output: `data/subset_10k_local/`
+  - `python -u src/m00c_sample_subset.py --FULL 2>&1 | tee logs/m00c_full.log`
+- **m00d_download_subset.py**: Pre-download subset to local WebDataset TARs. CPU-only.
+  - `python -u src/m00d_download_subset.py --SANITY --subset data/subset_10k.json 2>&1 | tee logs/m00d_sanity.log`
+  - `python -u src/m00d_download_subset.py --subset data/subset_10k.json 2>&1 | tee logs/m00d_download.log`
 - **m01_download.py**: Download 714 videos at 480p via yt-dlp + aria2c
+  - `python -u src/m01_download.py --SANITY 2>&1 | tee logs/m01_sanity.log`
+  - `python -u src/m01_download.py --FULL 2>&1 | tee logs/m01_full.log`
 - **m02_scene_detect.py**: Greedy scene-aware split [4-10s] + CRF28 encode
+  - `python -u src/m02_scene_detect.py --SANITY 2>&1 | tee logs/m02_sanity.log`
+  - `python -u src/m02_scene_detect.py --FULL 2>&1 | tee logs/m02_full.log`
 - **m02b_scene_fetch_duration.py**: Scan clips → clip_durations.json
+  - `python -u src/m02b_scene_fetch_duration.py --SANITY 2>&1 | tee logs/m02b_sanity.log`
+  - `python -u src/m02b_scene_fetch_duration.py --FULL 2>&1 | tee logs/m02b_full.log`
 - **m03_pack_shards.py**: Pack clips → WebDataset TARs → stream-upload to HF
+  - `python -u src/m03_pack_shards.py --SANITY 2>&1 | tee logs/m03_sanity.log`
+  - `python -u src/m03_pack_shards.py --FULL 2>&1 | tee logs/m03_full.log`
 
 ### m04-m08b: GPU Pipeline
-- **m04_vlm_tag.py**: 3 VLM backends (Qwen/VideoLLaMA3/LLaVA). Checkpoint every 500. `--local-data` support.
+- **m04_vlm_tag.py**: 3 VLM backends (Qwen/VideoLLaMA3/LLaVA). AdaptiveBatchSizer. `--local-data`.
+  - `python -u src/m04_vlm_tag.py --model qwen --SANITY 2>&1 | tee logs/m04_sanity_qwen.log`
+  - `python -u src/m04_vlm_tag.py --model qwen --FULL --subset data/subset_10k.json --local-data data/subset_10k_local 2>&1 | tee logs/m04_full_qwen_poc.log`
 - **m04b_vlm_select.py**: CPU-only. 5-criterion weighted bake-off comparison.
-- **m04c_sanity_compare.py**: CPU-only. Reads 3 sanity JSONs, computes 4 metrics, 2x2 dashboard.
-- **m04f_motion_features.py**: (TODO) GPU-RAFT optical flow (`torchvision.models.optical_flow.raft_large`) → 13D features per clip (mean/std/max magnitude, 8-bin direction histogram, camera motion xy). Temporal ground-truth for retrieval evaluation.
-- **m05_vjepa_embed.py**: V-JEPA 2 ViT-G (1B, frozen, fp16, FA2, torch.compile). Producer-consumer. `--local-data` support.
-- **m05b_baselines.py**: 4 baselines — `--encoder random|dinov2|clip|vjepa_shuffled|all`. `--local-data` support.
-- **m05c_true_overlap.py**: Augmented V-JEPA embeddings (BYOL/DINO multi-crop). `--local-data` support.
-- **m06_faiss_metrics.py**: FAISS-GPU kNN → 9 metrics Easy/Hard. `--encoder` flag (dim-agnostic).
+  - `python -u src/m04b_vlm_select.py --SANITY 2>&1 | tee logs/m04b_sanity.log`
+- **m04c_sanity_compare.py**: CPU-only. 4-metric table + 2x2 dashboard.
+  - `python -u src/m04c_sanity_compare.py 2>&1 | tee logs/m04c_compare.log`
+- **m04d_motion_features.py**: GPU-RAFT optical flow → 13D motion features. AdaptiveBatchSizer.
+  - `python -u src/m04d_motion_features.py --SANITY --subset data/subset_10k.json --local-data data/subset_10k_local 2>&1 | tee logs/m04d_sanity.log`
+  - `python -u src/m04d_motion_features.py --FULL --subset data/subset_10k.json --local-data data/subset_10k_local 2>&1 | tee logs/m04d_motion.log`
+- **m05_vjepa_embed.py**: V-JEPA 2 ViT-G (1B, frozen, fp16, FA2, torch.compile). Producer-consumer.
+  - `python -u src/m05_vjepa_embed.py --SANITY 2>&1 | tee logs/m05_sanity.log`
+  - `python -u src/m05_vjepa_embed.py --FULL --subset data/subset_10k.json --local-data data/subset_10k_local 2>&1 | tee logs/m05_vjepa_embed_poc.log`
+- **m05b_baselines.py**: 4 baselines — `--encoder random|dinov2|clip|vjepa_shuffled|all`.
+  - `python -u src/m05b_baselines.py --encoder all --SANITY 2>&1 | tee logs/m05b_sanity.log`
+  - `python -u src/m05b_baselines.py --encoder all --FULL --subset data/subset_10k.json --local-data data/subset_10k_local 2>&1 | tee logs/m05b_all_poc.log`
+- **m05c_true_overlap.py**: Augmented V-JEPA embeddings (BYOL/DINO multi-crop).
+  - `python -u src/m05c_true_overlap.py --SANITY 2>&1 | tee logs/m05c_sanity.log`
+  - `python -u src/m05c_true_overlap.py --FULL --subset data/subset_10k.json --local-data data/subset_10k_local 2>&1 | tee logs/m05c_overlap_poc.log`
+- **m06_faiss_metrics.py**: FAISS-GPU kNN → 9 metrics Easy/Hard. `--encoder` flag. Plots with encoder suffix.
+  - `python -u src/m06_faiss_metrics.py --encoder vjepa --SANITY 2>&1 | tee logs/m06_vjepa_sanity.log`
+  - `python -u src/m06_faiss_metrics.py --encoder vjepa --FULL --subset data/subset_10k.json 2>&1 | tee logs/m06_vjepa_poc.log`
+- **m06b_temporal_corr.py**: CPU-only. Temporal correlation per encoder.
+  - `python -u src/m06b_temporal_corr.py --encoder vjepa --FULL --subset data/subset_10k.json 2>&1 | tee logs/m06b_vjepa.log`
 - **m07_umap.py**: cuML GPU UMAP (1408→2D). `--encoder` flag.
-- **m08_plot.py**: CPU-only matplotlib. UMAP scatter, confusion matrix, kNN grid.
+  - `python -u src/m07_umap.py --encoder vjepa --SANITY 2>&1 | tee logs/m07_vjepa_sanity.log`
+  - `python -u src/m07_umap.py --encoder vjepa --FULL --subset data/subset_10k.json 2>&1 | tee logs/m07_umap_vjepa_poc.log`
+- **m08_plot.py**: CPU-only matplotlib. `--encoder` flag. Plots with encoder suffix.
+  - `python -u src/m08_plot.py --encoder vjepa --SANITY 2>&1 | tee logs/m08_plot_vjepa_sanity.log`
+  - `python -u src/m08_plot.py --encoder vjepa --FULL --subset data/subset_10k.json 2>&1 | tee logs/m08_plot_vjepa.log`
 - **m08b_compare.py**: CPU-only. Multi-encoder comparison: bar chart, radar, LaTeX table.
+  - `python -u src/m08b_compare.py --FULL --subset data/subset_10k.json 2>&1 | tee logs/m08b_compare.log`
 
 ## Critical Constants (config.py)
 - HF_DATASET_REPO = "anonymousML123/walkindia-200k"
@@ -65,7 +101,7 @@ Research benchmark testing if V-JEPA 2 (Meta's video foundation model, trained o
   - Key finding: taxonomy measures ONLY spatial features, 0 temporal fields → evaluation gap
   - External validation: arXiv:2509.21595 confirms same DINOv3 > V-JEPA spatial tradeoff
 - **Temporal eval extension: TODO** (pre-Ch10 requirement)
-  - m04f: GPU-RAFT optical flow motion features (Approach A — confirmed)
+  - m04d: GPU-RAFT optical flow motion features (Approach A — confirmed)
   - m06b: temporal correlation analysis (CPU, per encoder)
   - VLM temporal tags (Approach B — confirmed unreliable out-of-the-box; needs fine-tuning on ~1,400 clips if pursued)
   - Expected: V-JEPA >> image baselines on temporal metrics (reversal of spatial result)

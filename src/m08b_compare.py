@@ -133,18 +133,27 @@ def create_bar_chart(all_metrics: dict, output_dir: Path):
         hard_vals = []
         colors = []
 
+        easy_errs = []
+        hard_errs = []
         for enc in encoders:
             easy_v = all_metrics[enc].get("easy", {}).get(metric_key)
             hard_v = all_metrics[enc].get("hard", {}).get(metric_key)
             easy_vals.append(easy_v if easy_v is not None else 0)
             hard_vals.append(hard_v if hard_v is not None else 0)
             colors.append(ENCODER_COLORS.get(enc, "#888"))
+            # 95% CI half-width for error bars
+            easy_ci = all_metrics[enc].get("easy", {}).get("ci", {}).get(metric_key, {})
+            hard_ci = all_metrics[enc].get("hard", {}).get("ci", {}).get(metric_key, {})
+            easy_errs.append(easy_ci.get("ci_half", 0))
+            hard_errs.append(hard_ci.get("ci_half", 0))
 
         bar_w = 0.35
         bars_easy = ax.bar(x - bar_w / 2, easy_vals, bar_w, label="Easy",
-                           color=colors, alpha=0.85)
+                           color=colors, alpha=0.85,
+                           yerr=easy_errs, capsize=3, error_kw={"lw": 1})
         bars_hard = ax.bar(x + bar_w / 2, hard_vals, bar_w, label="Hard",
-                           color=colors, alpha=0.45, hatch="//")
+                           color=colors, alpha=0.45, hatch="//",
+                           yerr=hard_errs, capsize=3, error_kw={"lw": 1})
 
         ax.set_title(metric_label, fontsize=11, fontweight="bold")
         ax.set_xticks(x)
@@ -241,15 +250,23 @@ def create_latex_table(all_metrics: dict, output_dir: Path):
         dim = all_metrics[enc].get("encoder_dim", ENCODER_REGISTRY[enc]["dim"])
         label = enc.replace("_", r"\_")
 
+        ci_data = easy.get("ci", {})
         vals = []
         for key in ["cycle_at_k", "overlap_at_k", "prec_at_k", "map_at_k", "ndcg_at_k"]:
             v = easy.get(key)
+            ci_half = ci_data.get(key, {}).get("ci_half")
             if v is None:
                 vals.append("--")
             elif key in ("cycle_at_k", "overlap_at_k", "prec_at_k"):
-                vals.append(f"{v:.2f}")
+                if ci_half is not None:
+                    vals.append(f"{v:.1f}{{\\tiny$\\pm${ci_half:.1f}}}")
+                else:
+                    vals.append(f"{v:.2f}")
             else:
-                vals.append(f"{v:.4f}")
+                if ci_half is not None:
+                    vals.append(f"{v:.3f}{{\\tiny$\\pm${ci_half:.3f}}}")
+                else:
+                    vals.append(f"{v:.4f}")
 
         lines.append(f"{label} & {dim} & {' & '.join(vals)} \\\\")
 

@@ -1,11 +1,12 @@
 """
-Compute 9 evaluation metrics on V-JEPA embeddings via FAISS-GPU in Easy/Hard mode.
-GPU-only (FAISS-GPU required). Reads embeddings.npy + tags.json.
+Compute 9 evaluation metrics via FAISS-GPU in Easy/Hard mode.
+GPU-only (FAISS-GPU required). Reads embeddings{sfx}.npy + tags.json.
+Plots saved with encoder suffix to avoid overwrite across encoders.
 
 USAGE:
-    python -u src/m06_faiss_metrics.py --SANITY 2>&1 | tee logs/m06_faiss_metrics_sanity.log
-    python -u src/m06_faiss_metrics.py --FULL --subset data/subset_10k.json 2>&1 | tee logs/m06_faiss_metrics_poc.log
-    python -u src/m06_faiss_metrics.py --FULL 2>&1 | tee logs/m06_faiss_metrics_full.log
+    python -u src/m06_faiss_metrics.py --encoder vjepa --SANITY 2>&1 | tee logs/m06_vjepa_sanity.log
+    python -u src/m06_faiss_metrics.py --encoder vjepa --FULL --subset data/subset_10k.json 2>&1 | tee logs/m06_vjepa_poc.log
+    python -u src/m06_faiss_metrics.py --encoder dinov2 --FULL --subset data/subset_10k.json 2>&1 | tee logs/m06_dinov2_poc.log
 """
 import argparse
 import json
@@ -25,6 +26,10 @@ from utils.config import (
 )
 from utils.wandb_utils import (
     add_wandb_args, init_wandb, log_metrics, log_image, log_artifact, finish_wandb,
+)
+from utils.bootstrap import (
+    bootstrap_ci, per_clip_prec_at_k, per_clip_map_at_k,
+    per_clip_cycle_at_k, per_clip_ndcg_at_k,
 )
 
 try:
@@ -570,6 +575,23 @@ def compute_all_metrics(embeddings: np.ndarray, D: np.ndarray, I: np.ndarray,
     macro, micro = compute_macro_micro_avg(per_scene)
     print(f"  Macro avg:   {macro['prec_at_k']:.2f}%")
     print(f"  Micro avg:   {micro['prec_at_k']:.2f}%")
+
+    # ── Bootstrap 95% CI on global metrics ──
+    print(f"  Bootstrap 95% CI (BCa, 10K iterations)...")
+    pc_prec = per_clip_prec_at_k(I, tags, k)
+    pc_map = per_clip_map_at_k(I, tags, k)
+    pc_cycle = per_clip_cycle_at_k(I, k)
+    pc_ndcg = per_clip_ndcg_at_k(I, tags, k, taxonomy)
+
+    ci_prec = bootstrap_ci(pc_prec)
+    ci_map = bootstrap_ci(pc_map)
+    ci_cycle = bootstrap_ci(pc_cycle[~np.isnan(pc_cycle)])
+    ci_ndcg = bootstrap_ci(pc_ndcg[~np.isnan(pc_ndcg)])
+
+    print(f"  Prec@K:  {ci_prec['mean']:.2f}% ± {ci_prec['ci_half']:.2f}")
+    print(f"  mAP@K:   {ci_map['mean']:.4f} ± {ci_map['ci_half']:.4f}")
+    print(f"  Cycle@K: {ci_cycle['mean']:.2f}% ± {ci_cycle['ci_half']:.2f}")
+    print(f"  nDCG@K:  {ci_ndcg['mean']:.4f} ± {ci_ndcg['ci_half']:.4f}")
     print(f"  [{time.time() - t0:.1f}s]")
 
     return {
@@ -579,6 +601,12 @@ def compute_all_metrics(embeddings: np.ndarray, D: np.ndarray, I: np.ndarray,
         "prec_at_k": round(prec, 2),
         "map_at_k": round(map_k, 4),
         "ndcg_at_k": round(ndcg, 4),
+        "ci": {
+            "prec_at_k": ci_prec,
+            "map_at_k": ci_map,
+            "cycle_at_k": ci_cycle,
+            "ndcg_at_k": ci_ndcg,
+        },
         "per_scene": per_scene,
         "multi_attribute_slices": multi_attr,
         "silhouette_per_key": silhouette_per_key,
@@ -594,7 +622,8 @@ def compute_all_metrics(embeddings: np.ndarray, D: np.ndarray, I: np.ndarray,
 # ── Plots ────────────────────────────────────────────────────────────────
 
 def generate_plots(easy: dict, hard: dict, conf_sweep: list,
-                   D_easy: np.ndarray, k: int, output_dir: Path, n: int):
+                   D_easy: np.ndarray, k: int, output_dir: Path, n: int,
+                   sfx: str = ""):
     """Generate diagnostic plots (.png + .pdf)."""
     try:
         import matplotlib
@@ -621,7 +650,7 @@ def generate_plots(easy: dict, hard: dict, conf_sweep: list,
     ax.legend()
     plt.tight_layout()
     for ext in [".png", ".pdf"]:
-        plt.savefig(output_dir / f"m06_distance_hist{ext}", dpi=150 if ext == ".png" else None)
+        plt.savefig(output_dir / f"m06_distance_hist{sfx}{ext}", dpi=150 if ext == ".png" else None)
     plt.close()
     print(f"Saved: {output_dir / 'm06_distance_hist.png'}")
 
@@ -650,7 +679,7 @@ def generate_plots(easy: dict, hard: dict, conf_sweep: list,
         ax1.legend(h1 + h2, l1 + l2, loc='center left')
         plt.tight_layout()
         for ext in [".png", ".pdf"]:
-            plt.savefig(output_dir / f"m06_confidence_sweep{ext}", dpi=150 if ext == ".png" else None)
+            plt.savefig(output_dir / f"m06_confidence_sweep{sfx}{ext}", dpi=150 if ext == ".png" else None)
         plt.close()
         print(f"Saved: {output_dir / 'm06_confidence_sweep.png'}")
 
@@ -704,7 +733,7 @@ def generate_plots(easy: dict, hard: dict, conf_sweep: list,
     fig.suptitle(f'Retrieval Purity — All Taxonomy Keys (k={k}, n={n:,})', fontsize=14, fontweight='bold')
     plt.tight_layout(rect=[0, 0, 1, 0.96])
     for ext in [".png", ".pdf"]:
-        plt.savefig(output_dir / f"m06_purity_all_keys{ext}",
+        plt.savefig(output_dir / f"m06_purity_all_keys{sfx}{ext}",
                     dpi=150 if ext == ".png" else None, bbox_inches='tight')
     plt.close()
     print(f"Saved: {output_dir / 'm06_purity_all_keys.png'}")
@@ -731,7 +760,7 @@ def generate_plots(easy: dict, hard: dict, conf_sweep: list,
         ax.legend()
         plt.tight_layout()
         for ext in [".png", ".pdf"]:
-            plt.savefig(output_dir / f"m06_silhouette_per_key{ext}",
+            plt.savefig(output_dir / f"m06_silhouette_per_key{sfx}{ext}",
                         dpi=150 if ext == ".png" else None, bbox_inches='tight')
         plt.close()
         print(f"Saved: {output_dir / 'm06_silhouette_per_key.png'}")
@@ -757,7 +786,7 @@ def generate_plots(easy: dict, hard: dict, conf_sweep: list,
         ax.legend()
         plt.tight_layout()
         for ext in [".png", ".pdf"]:
-            plt.savefig(output_dir / f"m06_map_per_key{ext}",
+            plt.savefig(output_dir / f"m06_map_per_key{sfx}{ext}",
                         dpi=150 if ext == ".png" else None, bbox_inches='tight')
         plt.close()
         print(f"Saved: {output_dir / 'm06_map_per_key.png'}")
@@ -806,7 +835,7 @@ def generate_plots(easy: dict, hard: dict, conf_sweep: list,
         fig.suptitle(f'Cycle@K per Taxonomy Key (k={k}, n={n:,})', fontsize=14, fontweight='bold')
         plt.tight_layout(rect=[0, 0, 1, 0.96])
         for ext in [".png", ".pdf"]:
-            plt.savefig(output_dir / f"m06_cycle_per_key{ext}",
+            plt.savefig(output_dir / f"m06_cycle_per_key{sfx}{ext}",
                         dpi=150 if ext == ".png" else None, bbox_inches='tight')
         plt.close()
         print(f"Saved: {output_dir / 'm06_cycle_per_key.png'}")
@@ -855,7 +884,7 @@ def generate_plots(easy: dict, hard: dict, conf_sweep: list,
         fig.suptitle(f'mAP@K per Taxonomy Value (k={k}, n={n:,})', fontsize=14, fontweight='bold')
         plt.tight_layout(rect=[0, 0, 1, 0.96])
         for ext in [".png", ".pdf"]:
-            plt.savefig(output_dir / f"m06_map_per_value{ext}",
+            plt.savefig(output_dir / f"m06_map_per_value{sfx}{ext}",
                         dpi=150 if ext == ".png" else None, bbox_inches='tight')
         plt.close()
         print(f"Saved: {output_dir / 'm06_map_per_value.png'}")
@@ -920,7 +949,7 @@ def generate_plots(easy: dict, hard: dict, conf_sweep: list,
                      fontsize=14, fontweight='bold')
         plt.tight_layout(rect=[0, 0, 1, 0.93])
         for ext in [".png", ".pdf"]:
-            plt.savefig(output_dir / f"m06_metrics_by_key{ext}",
+            plt.savefig(output_dir / f"m06_metrics_by_key{sfx}{ext}",
                         dpi=150 if ext == ".png" else None, bbox_inches='tight')
         plt.close()
         print(f"Saved: {output_dir / 'm06_metrics_by_key.png'}")
@@ -963,7 +992,7 @@ def generate_plots(easy: dict, hard: dict, conf_sweep: list,
         ax.legend(loc='upper right')
         plt.tight_layout()
         for ext in [".png", ".pdf"]:
-            plt.savefig(output_dir / f"m06_radar{ext}", dpi=150 if ext == ".png" else None)
+            plt.savefig(output_dir / f"m06_radar{sfx}{ext}", dpi=150 if ext == ".png" else None)
         plt.close()
         print(f"Saved: {output_dir / 'm06_radar.png'}")
 
@@ -1140,13 +1169,14 @@ def main():
 
     # ── Plots ────────────────────────────────────────────────────────
     if not args.no_plots:
-        generate_plots(easy, hard, conf_sweep, D[:, :k + 1], k, output_dir, n)
+        sfx = ENCODER_REGISTRY[args.encoder]["suffix"]
+        generate_plots(easy, hard, conf_sweep, D[:, :k + 1], k, output_dir, n, sfx=sfx)
         for plot_name in ["m06_distance_hist", "m06_confidence_sweep",
                           "m06_purity_all_keys", "m06_silhouette_per_key",
                           "m06_map_per_key", "m06_cycle_per_key",
                           "m06_map_per_value", "m06_metrics_by_key",
                           "m06_radar"]:
-            log_image(wb_run, plot_name, str(output_dir / f"{plot_name}.png"))
+            log_image(wb_run, f"{plot_name}{sfx}", str(output_dir / f"{plot_name}{sfx}.png"))
 
     # ── Summary ──────────────────────────────────────────────────────
     print(f"\n{'='*60}")

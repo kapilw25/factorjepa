@@ -457,3 +457,75 @@ python -u src/m06_faiss_metrics.py --FULL 2>&1 | tee logs/m06_full_115k.log
 python -u src/m07_umap.py --FULL 2>&1 | tee logs/m07_full_115k.log
 python -u src/m08_plot.py --FULL 2>&1 | tee logs/m08_full_115k.log
 ```
+
+
+########
+
+    Based on what I know from the conversation context:
+
+    GPU-RAFT Batch Optimization Strategy                                                                              
+  
+    How your codebase already does VRAM auto-detection                                                                
+                                                                                                                    
+    From src/utils/gpu_batch.py (which I read earlier):
+
+    def compute_batch_sizes(gpu_vram_gb: float | None = None) -> dict:
+        """Auto-compute batch sizes from detected (or --gpu-mem overridden) GPU VRAM."""
+        # Auto-detects VRAM if gpu_vram_gb is None
+        # Baseline: A100-40GB, scale = actual_vram / 40
+        # Returns: {"vjepa": int, "image_encoder": int, "transformers": int, "transformers_batch": int}
+
+    The pattern is:
+    - Auto-detect: torch.cuda.get_device_properties(0).total_mem (or similar)
+    - Linear scaling: scale = actual_vram / baseline_vram
+    - Per-workload caps: V-JEPA caps at 64, image_encoder caps at 256
+    - Override: --gpu-mem arg to force a specific VRAM value
+    - AdaptiveBatchSizer class: starts at computed size, halves on OOM, grows on success
+
+    For GPU-RAFT in m04f
+
+    RAFT uses ~2-4 GB for a single frame pair at 480p. On 96GB, you can batch multiple frame pairs simultaneously:
+
+    Approach: Process multiple frame pairs per clip in a single forward pass (RAFT accepts batched input (B, 3, H,
+    W)).
+
+    # Pseudocode for m04f batch sizing
+    def compute_raft_batch_size(gpu_vram_gb=None):
+        if gpu_vram_gb is None:
+            gpu_vram_gb = torch.cuda.get_device_properties(0).total_mem / (1024**3)
+
+        # RAFT at 520x360: ~2GB per frame pair in batch
+        # Reserve 2GB for model weights + overhead
+        available = gpu_vram_gb - 2.0
+        batch_size = max(1, int(available / 2.0))  # ~2GB per pair
+        batch_size = min(batch_size, 16)  # cap at 16 (all pairs in one clip)
+        return batch_size
+
+    On your hardware:
+    - RTX PRO 6000 (96GB): batch_size = min(47, 16) = 16 — all 16 frame pairs per clip in ONE forward pass
+    - RTX PRO 4000 (24GB): batch_size = min(11, 16) = 11 — still most pairs at once
+
+    Key insight from plan_batch_speedup.md patterns
+
+    I haven't read that specific file in this session, but based on the CLAUDE.md reference to it (Bug #4: throughput
+    reporting) and the existing batch optimization patterns:
+
+    1. Don't process frame pairs sequentially — batch all 16 pairs: model(prev_batch, curr_batch) where both are (16,
+    3, H, W) tensors
+    2. Use the existing AdaptiveBatchSizer — start at computed size, auto-halve on OOM
+    3. Producer-consumer pattern (from m05): CPU thread decodes video frames, GPU thread runs RAFT batched
+    4. torch.compile(model) after model.eval() — per CLAUDE.md rule 9, warn about first-batch compile latency
+    5. Multiple clips per GPU batch: If VRAM allows, you can even stack frame pairs from MULTIPLE clips (e.g., 2 clips
+     x 16 pairs = 32 pairs at once on 96GB)
+
+    Recommended m04f batch strategy
+
+    96GB card:
+      - RAFT model: ~200MB
+      - 16 frame pairs at 520x360: ~2GB per pair × 16 = ~32GB
+      - Headroom: 64GB unused
+      → Can do 2-3 clips worth of frame pairs simultaneously (32-48 pairs)
+      → Or use torch.compile + fp16 to halve memory → 4-6 clips at once
+
+    The main bottleneck will be video decoding on CPU (cv2.VideoCapture), not GPU compute. The producer-consumer
+    pattern from m05 is essential here — have a CPU thread decode frames while GPU processes the previous clip's flow.
