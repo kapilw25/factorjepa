@@ -3,6 +3,10 @@ GPU-RAFT optical flow motion features per clip (13D vector).
 Extracts deterministic temporal ground-truth: mean/std/max magnitude,
 8-bin direction histogram, camera motion (dx, dy).
 
+Producer-consumer pipeline: CPU thread decodes video + preprocesses frame
+pairs → queue → GPU thread batches multiple clips' pairs into one RAFT
+forward pass. ~5-10x faster than sequential.
+
 USAGE:
     python -u src/m04d_motion_features.py --SANITY --subset data/subset_10k.json \
         --local-data data/subset_10k_local 2>&1 | tee logs/m04d_sanity.log
@@ -10,13 +14,17 @@ USAGE:
         --local-data data/subset_10k_local 2>&1 | tee logs/m04d_motion.log
 """
 import argparse
+import io
 import json
 import os
+import queue
 import sys
-import tempfile
+import threading
 import time
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
+import av
 import cv2
 import numpy as np
 from tqdm import tqdm
@@ -45,6 +53,9 @@ FEATURE_NAMES = [
 ]
 N_FRAME_PAIRS = 16
 CHECKPOINT_INTERVAL = 200
+PRODUCER_QUEUE_SIZE = 8   # preprocessed clip batches buffered ahead
+CLIPS_PER_GPU_BATCH = 8   # clips per RAFT forward (128 pairs; cuDNN disabled for grid_sample overflow PyTorch#88380)
+DECODE_WORKERS = 4         # parallel PyAV decode threads (releases GIL, I/O-bound)
 
 
 # ── HF Streaming (reuse m05 pattern) ────────────────────────────────
@@ -74,47 +85,54 @@ def get_clip_key(example: dict) -> str:
     return f"{section}/{video_id}/{source_file}"
 
 
-# ── Video Decode ─────────────────────────────────────────────────────
+# ── Video Decode (PyAV from bytes — no temp file, 5x faster than cv2 seek) ──
 
 def decode_video_frames(video_bytes: bytes, n_pairs: int = N_FRAME_PAIRS):
-    """Decode video bytes to evenly-spaced consecutive frame pairs.
+    """Decode video bytes to evenly-spaced consecutive frame pairs via PyAV.
 
-    Returns list of (prev_frame, curr_frame) as uint8 numpy arrays (H, W, 3).
+    Single sequential pass — avoids cv2's slow H.264 keyframe seeking.
+    Returns list of (prev_frame, curr_frame) as uint8 BGR numpy arrays (H, W, 3).
     """
-    tmp = tempfile.NamedTemporaryFile(suffix=".mp4", delete=False)
-    try:
-        tmp.write(video_bytes)
-        tmp.flush()
-        tmp_path = tmp.name
-        tmp.close()
+    container = av.open(io.BytesIO(video_bytes))
+    stream = container.streams.video[0]
 
-        cap = cv2.VideoCapture(tmp_path)
-        total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
-        if total_frames < 2:
-            cap.release()
-            return []
+    # Get total frame count (stream.frames may be 0 for some containers)
+    total_frames = stream.frames
+    if total_frames == 0 and stream.duration and stream.time_base:
+        total_frames = int(float(stream.duration * stream.time_base)
+                          * float(stream.average_rate or 30))
+    if total_frames < 2:
+        container.close()
+        return []
 
-        # Sample n_pairs evenly-spaced consecutive pairs
-        stride = max(1, (total_frames - 1) // n_pairs)
-        pair_starts = [i * stride for i in range(n_pairs)]
-        pair_starts = [s for s in pair_starts if s + 1 < total_frames]
+    # Compute which frame indices we need
+    stride = max(1, (total_frames - 1) // n_pairs)
+    pair_starts = []
+    needed = set()
+    for i in range(n_pairs):
+        s = i * stride
+        if s + 1 < total_frames:
+            pair_starts.append(s)
+            needed.add(s)
+            needed.add(s + 1)
+    max_needed = max(needed) if needed else 0
 
-        pairs = []
-        frame_cache = {}
-        for start in pair_starts:
-            for idx in [start, start + 1]:
-                if idx not in frame_cache:
-                    cap.set(cv2.CAP_PROP_POS_FRAMES, idx)
-                    ret, frame = cap.read()
-                    frame_cache[idx] = frame if ret else None
-            prev = frame_cache.get(start)
-            curr = frame_cache.get(start + 1)
-            if prev is not None and curr is not None:
-                pairs.append((prev, curr))
-        cap.release()
-        return pairs
-    finally:
-        os.unlink(tmp.name)
+    # Single sequential decode pass — collect only needed frames
+    frames = {}
+    for idx, frame in enumerate(container.decode(video=0)):
+        if idx in needed:
+            frames[idx] = frame.to_ndarray(format="bgr24")
+        if idx >= max_needed:
+            break
+    container.close()
+
+    pairs = []
+    for s in pair_starts:
+        prev = frames.get(s)
+        curr = frames.get(s + 1)
+        if prev is not None and curr is not None:
+            pairs.append((prev, curr))
+    return pairs
 
 
 # ── RAFT Optical Flow ────────────────────────────────────────────────
@@ -155,68 +173,20 @@ def _preprocess_pairs(frame_pairs, transforms):
     return torch.stack(prev_list), torch.stack(curr_list)
 
 
-def compute_clip_motion(model, transforms, frame_pairs, device, sizer=None):
-    """Extract 13D motion feature from frame pairs via batched GPU-RAFT.
+def _aggregate_flow(flow_np, n_pairs):
+    """Aggregate RAFT flow output for one clip into 13D feature vector.
 
-    Batches all frame pairs into a single forward pass. Uses AdaptiveBatchSizer
-    for OOM recovery (halves batch on OOM).
-
-    Returns np.ndarray of shape (13,) float32, or None if no valid pairs.
+    Args:
+        flow_np: numpy array of shape (n_pairs, 2, H, W)
+        n_pairs: number of frame pairs for this clip
+    Returns:
+        np.ndarray of shape (13,) float32
     """
-    if not frame_pairs:
-        return None
-
-    # Preprocess all pairs into tensors (CPU)
-    prev_batch, curr_batch = _preprocess_pairs(frame_pairs, transforms)
-    n_total = len(frame_pairs)
-
-    # Determine sub-batch size
-    batch_size = sizer.size if sizer else n_total
-    all_flows = []
-
-    i = 0
-    while i < n_total:
-        end = min(i + batch_size, n_total)
-        prev_sub = prev_batch[i:end].to(device)
-        curr_sub = curr_batch[i:end].to(device)
-
-        oom = False
-        try:
-            with torch.no_grad():
-                flows = model(prev_sub, curr_sub)
-            # flows[-1] = last refinement iteration, shape (B, 2, H, W)
-            all_flows.append(flows[-1].cpu())
-            if sizer:
-                sizer.after_batch_success()
-            i = end
-        except torch.cuda.OutOfMemoryError:
-            oom = True
-
-        if oom:
-            import gc
-            gc.collect()
-            torch.cuda.empty_cache()
-            if sizer:
-                if not sizer.on_oom():
-                    return None  # give up on this clip
-                batch_size = sizer.size
-            else:
-                # No sizer — fall back to sequential
-                batch_size = max(1, batch_size // 2)
-                if batch_size == 0:
-                    return None
-            # Retry from same position
-            continue
-
-    # Concat all sub-batch flows → (N, 2, H, W)
-    flow_all = torch.cat(all_flows, dim=0).numpy()  # (N, 2, H, W)
-
-    dx_all = flow_all[:, 0]  # (N, H, W)
-    dy_all = flow_all[:, 1]  # (N, H, W)
+    dx_all = flow_np[:, 0]  # (N, H, W)
+    dy_all = flow_np[:, 1]  # (N, H, W)
     mag_all = np.sqrt(dx_all**2 + dy_all**2)
     ang_all = np.arctan2(dy_all, dx_all)
 
-    # Aggregate across all frame pairs
     flat_mag = mag_all.flatten()
     mean_mag = float(np.mean(flat_mag))
     std_mag = float(np.std(flat_mag))
@@ -231,13 +201,127 @@ def compute_clip_motion(model, transforms, frame_pairs, device, sizer=None):
         hist = hist / hist_sum
 
     # Camera motion: median flow per pair, then median across pairs
-    per_pair_dx = np.median(dx_all.reshape(n_total, -1), axis=1)
-    per_pair_dy = np.median(dy_all.reshape(n_total, -1), axis=1)
+    per_pair_dx = np.median(dx_all.reshape(n_pairs, -1), axis=1)
+    per_pair_dy = np.median(dy_all.reshape(n_pairs, -1), axis=1)
     cam_x = float(np.median(per_pair_dx))
     cam_y = float(np.median(per_pair_dy))
 
     return np.array([mean_mag, std_mag, max_mag, *hist, cam_x, cam_y],
                     dtype=np.float32)
+
+
+# ── Producer Thread ──────────────────────────────────────────────────
+
+def _producer_thread(q: queue.Queue, stop_event: threading.Event,
+                     transforms, n_pairs: int, clip_limit: int,
+                     subset_keys: set, processed_keys: set,
+                     local_data: str = None):
+    """Stream clips, parallel-decode video via PyAV, preprocess, enqueue for GPU.
+
+    Each queue item is ("batch", prev_tensors, curr_tensors, keys, n_pairs_per_clip)
+    where prev/curr are (total_pairs, 3, H, W) tensors ready for GPU .to(device).
+    Uses DECODE_WORKERS threads for parallel PyAV decode (releases GIL).
+    """
+    produced = 0
+    skipped = 0
+    errors = 0
+
+    def _decode_one(mp4_bytes, key, n_p):
+        """Decode + preprocess one clip. Called from thread pool."""
+        pairs = decode_video_frames(mp4_bytes, n_pairs=n_p)
+        if not pairs:
+            return None, key
+        prev_b, curr_b = _preprocess_pairs(pairs, transforms)
+        return (prev_b, curr_b, prev_b.shape[0]), key
+
+    try:
+        ds = _create_stream(local_data=local_data)
+
+        # Collect raw bytes for a batch, then parallel-decode
+        batch_bytes = []   # (mp4_bytes, clip_key)
+
+        for example in ds:
+            if stop_event.is_set() or produced >= clip_limit:
+                break
+
+            clip_key = get_clip_key(example)
+
+            if subset_keys and clip_key not in subset_keys:
+                skipped += 1
+                continue
+
+            if clip_key in processed_keys:
+                skipped += 1
+                continue
+
+            mp4_data = example.get("mp4", b"")
+            mp4_bytes = mp4_data["bytes"] if isinstance(mp4_data, dict) else mp4_data
+            if isinstance(mp4_bytes, str):
+                mp4_bytes = mp4_bytes.encode()
+            if not mp4_bytes or len(mp4_bytes) < 1000:
+                errors += 1
+                continue
+
+            batch_bytes.append((mp4_bytes, clip_key))
+
+            # When we have enough clips, parallel-decode and enqueue
+            if len(batch_bytes) >= CLIPS_PER_GPU_BATCH:
+                pending_prevs, pending_currs = [], []
+                pending_keys, pending_n_pairs = [], []
+
+                with ThreadPoolExecutor(max_workers=DECODE_WORKERS) as pool:
+                    futures = [pool.submit(_decode_one, b, k, n_pairs)
+                               for b, k in batch_bytes]
+                    for fut in futures:
+                        result, key = fut.result()
+                        if result is None:
+                            errors += 1
+                        else:
+                            prev_b, curr_b, n_p = result
+                            pending_prevs.append(prev_b)
+                            pending_currs.append(curr_b)
+                            pending_keys.append(key)
+                            pending_n_pairs.append(n_p)
+
+                if pending_keys:
+                    cat_prev = torch.cat(pending_prevs, dim=0)
+                    cat_curr = torch.cat(pending_currs, dim=0)
+                    q.put(("batch", cat_prev, cat_curr,
+                            pending_keys[:], pending_n_pairs[:]))
+                    produced += len(pending_keys)
+
+                batch_bytes = []
+
+        # Flush remaining partial batch
+        if batch_bytes and not stop_event.is_set():
+            pending_prevs, pending_currs = [], []
+            pending_keys, pending_n_pairs = [], []
+
+            with ThreadPoolExecutor(max_workers=DECODE_WORKERS) as pool:
+                futures = [pool.submit(_decode_one, b, k, n_pairs)
+                           for b, k in batch_bytes]
+                for fut in futures:
+                    result, key = fut.result()
+                    if result is None:
+                        errors += 1
+                    else:
+                        prev_b, curr_b, n_p = result
+                        pending_prevs.append(prev_b)
+                        pending_currs.append(curr_b)
+                        pending_keys.append(key)
+                        pending_n_pairs.append(n_p)
+
+            if pending_keys:
+                cat_prev = torch.cat(pending_prevs, dim=0)
+                cat_curr = torch.cat(pending_currs, dim=0)
+                q.put(("batch", cat_prev, cat_curr,
+                        pending_keys[:], pending_n_pairs[:]))
+                produced += len(pending_keys)
+
+    except Exception as e:
+        print(f"\n  PRODUCER ERROR: {e}")
+    finally:
+        q.put(("done", errors, skipped))
 
 
 # ── Checkpoint ───────────────────────────────────────────────────────
@@ -312,6 +396,8 @@ def main():
         print(f"Subset: {len(subset_keys):,} keys")
         if clip_limit is None:
             clip_limit = len(subset_keys)
+    if clip_limit is None:
+        clip_limit = 999_999_999  # effectively unlimited
 
     # Checkpoint
     checkpoint_file = output_dir / ".m04d_checkpoint.npz"
@@ -326,81 +412,123 @@ def main():
     device = _torch.device("cuda")
     model, transforms = load_raft_model(device)
 
-    # Batch sizer: start with all n_pairs in one forward, OOM halves
-    sizer = AdaptiveBatchSizer(initial_size=args.n_pairs, min_size=1,
-                               max_size=args.n_pairs, memory_cap=0.85)
+    # Batch sizer for sub-batching within GPU forward (OOM recovery)
+    sizer = AdaptiveBatchSizer(
+        initial_size=CLIPS_PER_GPU_BATCH * args.n_pairs,
+        min_size=args.n_pairs,
+        max_size=CLIPS_PER_GPU_BATCH * args.n_pairs,
+        memory_cap=0.85)
     print(f"RAFT batch sizer: {sizer}")
+    print(f"Producer-consumer: queue={PRODUCER_QUEUE_SIZE}, "
+          f"clips/GPU_batch={CLIPS_PER_GPU_BATCH}")
 
-    # Stream clips
-    ds = _create_stream(local_data=getattr(args, 'local_data', None))
+    # ── Launch producer thread ──
+    q = queue.Queue(maxsize=PRODUCER_QUEUE_SIZE)
+    stop_event = threading.Event()
 
-    total = clip_limit or 0
+    producer = threading.Thread(
+        target=_producer_thread,
+        args=(q, stop_event, transforms, args.n_pairs,
+              clip_limit, subset_keys, processed_keys,
+              getattr(args, 'local_data', None)),
+        daemon=True)
+    producer.start()
+
+    # ── GPU consumer loop ──
+    total = clip_limit if clip_limit < 999_999_999 else 0
     pbar = tqdm(total=total, initial=start_count,
                 desc="m04d motion features", unit="clip")
     processed = start_count
-    skipped = 0
     t_start = time.time()
+    last_window_count = start_count
+    last_window_time = t_start
     errors = 0
+    producer_errors = 0
+    producer_skipped = 0
 
-    for example in ds:
-        if clip_limit and processed >= clip_limit:
+    while True:
+        try:
+            item = q.get(timeout=300)  # 5 min timeout
+        except queue.Empty:
+            print("\n  TIMEOUT: producer stalled for 5 min, stopping")
             break
 
-        # Subset filter
-        clip_key = get_clip_key(example)
-        if subset_keys and clip_key not in subset_keys:
-            skipped += 1
+        if item[0] == "done":
+            producer_errors = item[1]
+            producer_skipped = item[2]
+            break
+
+        _, prev_all, curr_all, batch_keys, n_pairs_list = item
+        # prev_all/curr_all: (total_pairs, 3, H, W) on CPU
+        total_pairs = prev_all.shape[0]
+
+        # GPU forward — sub-batch if needed for OOM safety
+        batch_size = sizer.size
+        all_flows = []
+        i = 0
+        oom_failed = False
+
+        while i < total_pairs:
+            end = min(i + batch_size, total_pairs)
+            prev_sub = prev_all[i:end].contiguous().to(device)
+            curr_sub = curr_all[i:end].contiguous().to(device)
+
+            try:
+                # cuDNN grid_sample overflows at large batch (PyTorch#88380)
+                # Native CUDA fallback works; cuDNN still used for convolutions
+                with _torch.no_grad(), _torch.backends.cudnn.flags(enabled=False):
+                    flows = model(prev_sub, curr_sub)
+                all_flows.append(flows[-1].cpu())
+                sizer.after_batch_success()
+                i = end
+            except _torch.cuda.OutOfMemoryError:
+                import gc
+                gc.collect()
+                _torch.cuda.empty_cache()
+                if sizer.on_oom():
+                    batch_size = sizer.size
+                else:
+                    oom_failed = True
+                    break
+
+        if oom_failed or not all_flows:
+            errors += len(batch_keys)
             continue
 
-        # Resume dedup
-        if clip_key in processed_keys:
-            skipped += 1
-            continue
+        # Concat flows and split per clip
+        flow_cat = _torch.cat(all_flows, dim=0).numpy()  # (total_pairs, 2, H, W)
 
-        # Decode video
-        mp4_bytes = example.get("mp4", b"")
-        if isinstance(mp4_bytes, str):
-            mp4_bytes = mp4_bytes.encode()
-        if not mp4_bytes or len(mp4_bytes) < 1000:
-            errors += 1
-            continue
+        offset = 0
+        for clip_key, n_p in zip(batch_keys, n_pairs_list):
+            clip_flow = flow_cat[offset:offset + n_p]
+            offset += n_p
 
-        try:
-            frame_pairs = decode_video_frames(mp4_bytes, n_pairs=args.n_pairs)
-            if not frame_pairs:
-                errors += 1
-                continue
-
-            features = compute_clip_motion(model, transforms, frame_pairs, device,
-                                         sizer=sizer)
-            if features is None:
-                errors += 1
-                continue
-
-            features_list.append(features)
+            feat = _aggregate_flow(clip_flow, n_p)
+            features_list.append(feat)
             keys_list.append(clip_key)
             processed_keys.add(clip_key)
             processed += 1
             pbar.update(1)
 
-            # Checkpoint
-            if processed % CHECKPOINT_INTERVAL == 0:
-                save_checkpoint(features_list, keys_list, checkpoint_file)
-                elapsed = time.time() - t_start
-                rate = (processed - start_count) / elapsed if elapsed > 0 else 0
-                pbar.set_postfix({"rate": f"{rate:.1f}/s", "err": errors,
-                                  "skip": skipped})
-                log_metrics(wb_run, {"processed": processed, "errors": errors,
-                                     "rate": rate}, step=processed)
-
-        except Exception as e:
-            errors += 1
-            if errors <= 5:
-                print(f"\n  ERROR [{clip_key}]: {e}")
-            continue
+        # Checkpoint
+        if processed % CHECKPOINT_INTERVAL < len(batch_keys):
+            save_checkpoint(features_list, keys_list, checkpoint_file)
+            now = time.time()
+            window_clips = processed - last_window_count
+            window_time = now - last_window_time
+            rate = window_clips / window_time if window_time > 0 else 0
+            last_window_count = processed
+            last_window_time = now
+            pbar.set_postfix({"rate": f"{rate:.1f}/s",
+                              "err": errors + producer_errors})
+            log_metrics(wb_run, {"processed": processed, "errors": errors,
+                                 "rate": rate}, step=processed)
 
     pbar.close()
+    stop_event.set()
+    producer.join(timeout=10)
     elapsed = time.time() - t_start
+    total_errors = errors + producer_errors
 
     # Final save
     if not features_list:
@@ -426,8 +554,9 @@ def main():
         "feature_names": FEATURE_NAMES,
         "n_frame_pairs": args.n_pairs,
         "compute_time_sec": round(elapsed, 1),
-        "errors": errors,
-        "skipped": skipped,
+        "errors": total_errors,
+        "producer_errors": producer_errors,
+        "producer_skipped": producer_skipped,
         "mode": mode,
     }
     with open(meta_file, "w") as f:
@@ -437,11 +566,12 @@ def main():
     rate = (processed - start_count) / elapsed if elapsed > 0 else 0
     print(f"\n{'='*60}")
     print(f"m04d COMPLETE: {processed:,} clips, {elapsed:.0f}s ({rate:.1f} clips/s)")
-    print(f"  Errors: {errors}, Skipped: {skipped}")
+    print(f"  Errors: {total_errors} (GPU: {errors}, producer: {producer_errors})")
+    print(f"  Skipped: {producer_skipped}")
     print(f"{'='*60}")
 
     log_metrics(wb_run, {"total_clips": processed, "total_time_sec": elapsed,
-                         "errors": errors}, step=processed)
+                         "errors": total_errors}, step=processed)
 
     # Cleanup checkpoint
     if checkpoint_file.exists():

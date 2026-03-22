@@ -1,0 +1,17 @@
+{
+  "encoder": "clip",
+  "encoder_dim": 768,
+  "encoder_type": "image",
+  "n_clips_aligned": 0,
+  "k_neighbors": 6,
+  "compute_time_sec": 0.0,
+  "mode": "SANITY",
+  "temporal_locality": {
+    "intra_video_dist": 0.5245,
+    "inter_video_dist": NaN,
+    "ratio": 0.0,
+    "n_intra_pairs": 15,
+    "n_inter_pairs": 0,
+    "n_multi_clip_videos": 1
+  }
+}

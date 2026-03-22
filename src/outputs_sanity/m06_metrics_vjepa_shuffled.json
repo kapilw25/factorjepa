@@ -8,6 +8,32 @@
     "prec_at_k": 20.0,
     "map_at_k": 0.1722,
     "ndcg_at_k": 0.9882,
+    "ci": {
+      "prec_at_k": {
+        "mean": 20.0,
+        "ci_lo": 6.666667,
+        "ci_hi": 33.333333,
+        "ci_half": 13.333333
+      },
+      "map_at_k": {
+        "mean": 0.172222,
+        "ci_lo": 0.05,
+        "ci_hi": 0.322222,
+        "ci_half": 0.136111
+      },
+      "cycle_at_k": {
+        "mean": 1.0,
+        "ci_lo": NaN,
+        "ci_hi": NaN,
+        "ci_half": NaN
+      },
+      "ndcg_at_k": {
+        "mean": 0.988158,
+        "ci_lo": 0.982009,
+        "ci_hi": 0.994231,
+        "ci_half": 0.006111
+      }
+    },
     "per_scene": {
       "beach_coastal": {
         "prec_at_k": 0.0,
@@ -359,6 +385,32 @@
     "prec_at_k": 0.0,
     "map_at_k": 0.0,
     "ndcg_at_k": 1.0,
+    "ci": {
+      "prec_at_k": {
+        "mean": 0.0,
+        "ci_lo": NaN,
+        "ci_hi": NaN,
+        "ci_half": NaN
+      },
+      "map_at_k": {
+        "mean": 0.0,
+        "ci_lo": NaN,
+        "ci_hi": NaN,
+        "ci_half": NaN
+      },
+      "cycle_at_k": {
+        "mean": 1.0,
+        "ci_lo": NaN,
+        "ci_hi": NaN,
+        "ci_half": NaN
+      },
+      "ndcg_at_k": {
+        "mean": 1.0,
+        "ci_lo": NaN,
+        "ci_hi": NaN,
+        "ci_half": NaN
+      }
+    },
     "per_scene": {
       "heritage_tourist": {
         "prec_at_k": 0.0,

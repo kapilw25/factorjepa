@@ -209,7 +209,7 @@ Tags serve **two purposes only**: (1) stratified batching for Ch10/Ch11, (2) sli
 |:---:|:---|:---:|:---|
 | | **9.1 Step-by-step evaluation protocol** | | |
 | 1 | Clip bank + leakage prevention | ✅ BUILT | m02 (4-10s scene-aware cuts) + m06 (±30s exclusion mask, video_id grouping) |
-| 2 | Embedding extraction (frozen) | ✅ BUILT | m05 (V-JEPA 2 ViT-G, 1408-dim, mean-pool, near-dedup) |
+| 2 | Embedding extraction (frozen) | ✅ BUILT | m05 (V-JEPA 2 ViT-G, 1408-dim, mean-pool, `--no-dedupe`). **Cosine dedup REMOVED** (Mar 22 2026): V-JEPA's similarity shouldn't filter the eval set (circular reasoning). Hard mode ±30s exclusion handles true temporal duplicates. |
 | 3 | Build kNN index | ✅ BUILT | m06 (FAISS-GPU, k=6, Easy + Hard modes) |
 | 4 | Evaluation subsets via tags | ✅ BUILT | m04 (dynamic prompt from taxonomy, 16 fields) + m06 (confidence sweep 7 thresholds) |
 | | **9.2 Overall (label-free) evaluation** | | |
@@ -1042,7 +1042,7 @@ flowchart LR
 | m07 | Ch 9 | cuML GPU UMAP | DONE |
 | m08 | Ch 9 | CPU matplotlib plots | DONE |
 | **m05b** | **Ch 9** | **Baseline embeddings (random, DINOv2, shuffled, CLIP). Supports `--local-data`. Optimized: FA2/SDPA+compile, producer pre-processes, image_encoder batch profile (4x vjepa).** | **DONE** (98m 43s — random 5K, dinov2/clip/shuffled 10K each) |
-| **m05c** | **Ch 9** | **Augmented V-JEPA embeddings for True Overlap@K. Supports `--local-data`. Dedup optimization reads embeddings.paths.npy (5,105 clips).** | **DONE** (93m with dedup fix, 5,105 clips) |
+| **m05c** | **Ch 9** | **Augmented V-JEPA embeddings for True Overlap@K. Supports `--local-data`. Now runs on full 10K clips (dedup removed).** | **DONE** (93m first run, re-running on 10K) |
 | **m08b** | **Ch 9** | **Multi-encoder comparison (bar chart, radar, LaTeX)** | **DONE** (CPU-only, runs after m06 × 5) |
 | **m04d** | **Ch 9+** | **GPU-RAFT optical flow → 13D motion features per clip. Batched inference via AdaptiveBatchSizer.** | **BUILT** |
 | **m06b** | **Ch 9+** | **Temporal correlation: 5 metrics per encoder (Spearman, TempPrec, MotionMAP, OrderSensitivity, Locality). CPU-only.** | **BUILT** |
@@ -1050,6 +1050,10 @@ flowchart LR
 | **m10** | **Ch 11** | **SAM3 segmentation + tracklet mining** | **TODO** |
 | **m11** | **Ch 11** | **Factor dataset creation (D_L, D_A, D_I)** | **TODO** |
 | **m12** | **Ch 11** | **Surgery fine-tuning (3-stage progressive unfreezing)** | **TODO** |
+
+### TODO: Rename V-JEPA file suffix "" → "_vjepa" (post-Ch9 validation)
+
+V-JEPA output files use empty suffix (`embeddings.npy`) while all other encoders use `_encodername` (`embeddings_dinov2.npy`). Legacy backward compat. ~10 files affected: `config.py`, `m05`, `m05c`, `m06`, `m06b`, `m07`, `m08`, `m08b`, `run_evaluate.sh`. Do after no-dedup re-run validates — cosmetic, no metric impact.
 
 ---
 

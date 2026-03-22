@@ -60,6 +60,18 @@ Bootstrap CI                 → DONE (all metrics)
 
 ---
 
+## TODO: Rename V-JEPA files to use `_vjepa` suffix (post-Ch9)
+
+V-JEPA files use empty suffix (`embeddings.npy`, `knn_indices.npy`, `umap_2d.npy`) while all other encoders use `_encodername` suffix. This is legacy backward compat from when V-JEPA was the only encoder.
+
+**Scope**: ~10 files — `config.py` ENCODER_REGISTRY, `m05_vjepa_embed.py`, `m05c_true_overlap.py`, `m06_faiss_metrics.py`, `m06b_temporal_corr.py`, `m07_umap.py`, `m08_plot.py`, `m08b_compare.py`, `run_evaluate.sh` verify blocks, `plan_execution.md` verify scripts.
+
+**When**: After no-dedup re-run validates. Not during active pipeline runs — one missed reference = silent file-not-found.
+
+**Change**: In `config.py` ENCODER_REGISTRY, change `vjepa` suffix from `""` to `"_vjepa"`. Update all file I/O that constructs paths with suffix.
+
+---
+
 ## Honest Assessment
 
 **Risk (original)**: 480p compressed video may limit RAFT flow quality.

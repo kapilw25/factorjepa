@@ -18,6 +18,7 @@ from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
 import numpy as np
+from tqdm import tqdm
 
 # Add src to path for utils import
 sys.path.insert(0, str(Path(__file__).parent))
@@ -233,6 +234,10 @@ def generate_dinov2(output_dir: Path, args, clip_limit: int, subset_keys: set):
     producer.start()
 
     start_time = time.time()
+    last_window_count = len(all_embeddings)
+    last_window_time = start_time
+    pbar = tqdm(total=clip_limit, initial=resume_count,
+                desc="m05b dinov2", unit="clip")
     try:
         while True:
             try:
@@ -260,10 +265,14 @@ def generate_dinov2(output_dir: Path, args, clip_limit: int, subset_keys: set):
                 all_keys.append(k)
                 processed_keys.add(k)
 
-            elapsed = time.time() - start_time
-            clips_done = len(all_embeddings) - resume_count
-            throughput = clips_done / elapsed if elapsed > 0 else 0
-            print(f"  [{len(all_embeddings):,}/{clip_limit:,}] {throughput:.1f} clips/s")
+            pbar.update(len(batch_keys))
+            now = time.time()
+            window_clips = len(all_embeddings) - last_window_count
+            window_time = now - last_window_time
+            throughput = window_clips / window_time if window_time > 0 else 0
+            last_window_count = len(all_embeddings)
+            last_window_time = now
+            pbar.set_postfix({"rate": f"{throughput:.1f}/s"})
 
             if len(all_embeddings) % CHECKPOINT_EVERY < batch_size:
                 save_checkpoint(list(all_embeddings), list(all_keys), checkpoint_file)
@@ -272,6 +281,7 @@ def generate_dinov2(output_dir: Path, args, clip_limit: int, subset_keys: set):
         print("\nInterrupted! Saving checkpoint...")
         stop_event.set()
     finally:
+        pbar.close()
         stop_event.set()
         save_checkpoint(all_embeddings, all_keys, checkpoint_file)
         producer.join(timeout=10)
@@ -325,6 +335,10 @@ def generate_clip(output_dir: Path, args, clip_limit: int, subset_keys: set):
     producer.start()
 
     start_time = time.time()
+    last_window_count = len(all_embeddings)
+    last_window_time = start_time
+    pbar = tqdm(total=clip_limit, initial=resume_count,
+                desc="m05b clip", unit="clip")
     try:
         while True:
             try:
@@ -350,10 +364,14 @@ def generate_clip(output_dir: Path, args, clip_limit: int, subset_keys: set):
                 all_keys.append(k)
                 processed_keys.add(k)
 
-            elapsed = time.time() - start_time
-            clips_done = len(all_embeddings) - resume_count
-            throughput = clips_done / elapsed if elapsed > 0 else 0
-            print(f"  [{len(all_embeddings):,}/{clip_limit:,}] {throughput:.1f} clips/s")
+            pbar.update(len(batch_keys))
+            now = time.time()
+            window_clips = len(all_embeddings) - last_window_count
+            window_time = now - last_window_time
+            throughput = window_clips / window_time if window_time > 0 else 0
+            last_window_count = len(all_embeddings)
+            last_window_time = now
+            pbar.set_postfix({"rate": f"{throughput:.1f}/s"})
 
             if len(all_embeddings) % CHECKPOINT_EVERY < batch_size:
                 save_checkpoint(list(all_embeddings), list(all_keys), checkpoint_file)
@@ -362,6 +380,7 @@ def generate_clip(output_dir: Path, args, clip_limit: int, subset_keys: set):
         print("\nInterrupted! Saving checkpoint...")
         stop_event.set()
     finally:
+        pbar.close()
         stop_event.set()
         save_checkpoint(all_embeddings, all_keys, checkpoint_file)
         producer.join(timeout=10)
@@ -545,6 +564,10 @@ def generate_shuffled_vjepa(output_dir: Path, args, clip_limit: int, subset_keys
     producer.start()
 
     start_time = time.time()
+    last_window_count = len(all_embeddings)
+    last_window_time = start_time
+    pbar = tqdm(total=clip_limit, initial=resume_count,
+                desc="m05b vjepa_shuffled", unit="clip")
     try:
         while True:
             try:
@@ -563,10 +586,14 @@ def generate_shuffled_vjepa(output_dir: Path, args, clip_limit: int, subset_keys
                 all_keys.append(k)
                 processed_keys.add(k)
 
-            elapsed = time.time() - start_time
-            clips_done = len(all_embeddings) - resume_count
-            throughput = clips_done / elapsed if elapsed > 0 else 0
-            print(f"  [{len(all_embeddings):,}/{clip_limit:,}] {throughput:.1f} clips/s")
+            pbar.update(len(batch_keys))
+            now = time.time()
+            window_clips = len(all_embeddings) - last_window_count
+            window_time = now - last_window_time
+            throughput = window_clips / window_time if window_time > 0 else 0
+            last_window_count = len(all_embeddings)
+            last_window_time = now
+            pbar.set_postfix({"rate": f"{throughput:.1f}/s"})
 
             if len(all_embeddings) % CHECKPOINT_EVERY < batch_size:
                 save_checkpoint(list(all_embeddings), list(all_keys), checkpoint_file)
@@ -575,6 +602,7 @@ def generate_shuffled_vjepa(output_dir: Path, args, clip_limit: int, subset_keys
         print("\nInterrupted! Saving checkpoint...")
         stop_event.set()
     finally:
+        pbar.close()
         stop_event.set()
         save_checkpoint(all_embeddings, all_keys, checkpoint_file)
         producer.join(timeout=10)

@@ -17,6 +17,7 @@ from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
 import numpy as np
+from tqdm import tqdm
 
 sys.path.insert(0, str(Path(__file__).parent))
 from utils.config import (
@@ -160,42 +161,59 @@ def _producer_overlap(processor, batch_size: int, tmp_dir: str,
     q.put(("done", None, None, None))
 
 
+def _decode_and_augment_one(mp4_bytes, key, tmp_dir, num_frames):
+    """Decode + augment one clip into 2 views. Thread-safe (no shared state).
+
+    Returns (aug_a, aug_b, key) or (None, None, key) on failure.
+    """
+    # Prevent ATen OpenMP oversubscription: 4 workers × 6 threads = 24
+    # = nproc (24 cores). Avoids 4 × 24 = 96 threads (PyTorch #37259)
+    torch.set_num_threads(6)
+    tensor = decode_video_bytes(mp4_bytes, tmp_dir, key, num_frames)
+    if tensor is None:
+        return None, None, key
+    seed = hash(key) % (2**31)
+    aug_a = _augment_clip_consistent(tensor, "A", seed)
+    aug_b = _augment_clip_consistent(tensor, "B", seed + 1)
+    return aug_a, aug_b, key
+
+
+# Number of parallel decode+augment workers. cv2/PyAV decode releases GIL,
+# torchvision.transforms.functional ops are C++ and release GIL for the heavy
+# work (interpolate, gaussian_blur, adjust_*). Safe to thread — each clip uses
+# its own tensors with no shared state. NOT ATen threadpool oversubscription:
+# these are independent clip-level operations, not intra-op parallelism.
+AUGMENT_WORKERS = 4
+
+
 def _decode_augment_enqueue(pending_bytes, pending_keys, tmp_dir,
                               num_frames, processor, q):
-    """Decode batch, create 2 augmented views, process, enqueue.
+    """Decode + augment batch in parallel, process, enqueue.
 
-    Decode is threaded (I/O-bound). Augmentation is sequential but vectorized
-    (64x fewer kernel launches per clip). No threading for augment/processor
-    to avoid ATen thread-pool oversubscription (8 workers × 80 ATen threads
-    = 640+ threads → scheduler thrash → 0% throughput).
+    Parallel decode+augment (4 workers, GIL released for C++ ops).
+    Sequential processor (normalization — fast, ~5% of total time).
     """
-    # 1) Parallel decode (I/O-bound, GIL-free — threading helps)
-    with ThreadPoolExecutor(max_workers=DECODE_WORKERS) as pool:
+    # 1) Parallel decode + augment (both release GIL for heavy C++ ops)
+    with ThreadPoolExecutor(max_workers=AUGMENT_WORKERS) as pool:
         futures = [
-            pool.submit(decode_video_bytes, b, tmp_dir, k, num_frames)
+            pool.submit(_decode_and_augment_one, b, k, tmp_dir, num_frames)
             for b, k in zip(pending_bytes, pending_keys)
         ]
-        results = [(f.result(), k) for f, k in zip(futures, pending_keys)]
+        results = [f.result() for f in futures]
 
     views_a = []
     views_b = []
     keys = []
-
-    # 2) Sequential augmentation (vectorized per-clip: 1 F.interpolate vs 64)
-    for tensor, key in results:
-        if tensor is None:
-            continue
-        seed = hash(key) % (2**31)
-        aug_a = _augment_clip_consistent(tensor, "A", seed)
-        aug_b = _augment_clip_consistent(tensor, "B", seed + 1)
-        views_a.append(aug_a)
-        views_b.append(aug_b)
-        keys.append(key)
+    for aug_a, aug_b, key in results:
+        if aug_a is not None:
+            views_a.append(aug_a)
+            views_b.append(aug_b)
+            keys.append(key)
 
     if not views_a:
         return
 
-    # 3) Sequential processor (normalization — fast after vectorized augment)
+    # 2) Sequential processor (normalization — fast after vectorized augment)
     pixels_a = torch.cat([processor(v, return_tensors="pt")["pixel_values_videos"]
                           for v in views_a], dim=0)
     pixels_b = torch.cat([processor(v, return_tensors="pt")["pixel_values_videos"]
@@ -313,6 +331,10 @@ def main():
     producer.start()
 
     start_time = time.time()
+    last_window_count = len(all_keys)
+    last_window_time = start_time
+    pbar = tqdm(total=clip_limit, initial=len(all_keys),
+                desc="m05c true overlap", unit="clip")
     try:
         while True:
             try:
@@ -333,9 +355,15 @@ def main():
                 all_keys.append(k)
                 processed_keys.add(k)
 
-            elapsed = time.time() - start_time
-            throughput = len(all_keys) / elapsed if elapsed > 0 else 0
-            print(f"  [{len(all_keys):,}/{clip_limit:,}] {throughput:.1f} clips/s (2 views each)")
+            pbar.update(len(batch_keys))
+            # Windowed throughput (rule #11: never total/elapsed with checkpoint)
+            now = time.time()
+            window_clips = len(all_keys) - last_window_count
+            window_time = now - last_window_time
+            throughput = window_clips / window_time if window_time > 0 else 0
+            last_window_count = len(all_keys)
+            last_window_time = now
+            pbar.set_postfix({"rate": f"{throughput:.1f}/s"})
 
             if len(all_keys) % CHECKPOINT_EVERY < batch_size:
                 _save_overlap_checkpoint(all_emb_a, all_emb_b, all_keys, checkpoint_file)
@@ -344,6 +372,7 @@ def main():
         print("\nInterrupted! Saving checkpoint...")
         stop_event.set()
     finally:
+        pbar.close()
         stop_event.set()
         _save_overlap_checkpoint(all_emb_a, all_emb_b, all_keys, checkpoint_file)
         producer.join(timeout=10)

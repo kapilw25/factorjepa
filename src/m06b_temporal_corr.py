@@ -25,6 +25,7 @@ from utils.config import (
 from utils.wandb_utils import (
     add_wandb_args, init_wandb, log_metrics, finish_wandb,
 )
+from utils.bootstrap import bootstrap_ci
 
 N_SAMPLE_PAIRS = 100_000
 N_MOTION_CLUSTERS = 4
@@ -104,14 +105,14 @@ def compute_temporal_prec_at_k(knn_indices, motion_features, k=6):
     """% of kNN neighbors in same motion quartile as query.
 
     Uses mean_magnitude (feature index 0) for quartile binning.
+    Returns (aggregate_pct, ci_dict) with bootstrap 95% CI.
     """
     mean_mag = motion_features[:, 0]
     quartile_edges = np.percentile(mean_mag, [25, 50, 75])
     quartiles = np.digitize(mean_mag, quartile_edges)
 
     N = min(len(knn_indices), len(motion_features))
-    matches = 0
-    total = 0
+    per_clip_scores = np.full(N, np.nan)
     for i in range(N):
         query_q = quartiles[i]
         neighbors = knn_indices[i, 1:k + 1]  # skip self (col 0)
@@ -119,23 +120,27 @@ def compute_temporal_prec_at_k(knn_indices, motion_features, k=6):
         if len(valid) == 0:
             continue
         neighbor_qs = quartiles[valid]
-        matches += int(np.sum(neighbor_qs == query_q))
-        total += len(valid)
+        per_clip_scores[i] = float(np.sum(neighbor_qs == query_q)) / len(valid) * 100
 
-    return float(matches / total * 100) if total > 0 else 0.0
+    valid_scores = per_clip_scores[~np.isnan(per_clip_scores)]
+    agg = float(np.mean(valid_scores)) if len(valid_scores) > 0 else 0.0
+    ci = bootstrap_ci(valid_scores) if len(valid_scores) > 0 else None
+    return agg, ci
 
 
 def compute_motion_retrieval_map(knn_indices, motion_features, k=6,
                                   n_clusters=N_MOTION_CLUSTERS):
-    """mAP where 'relevant' = same motion cluster (KMeans on motion features)."""
+    """mAP where 'relevant' = same motion cluster (KMeans on motion features).
+
+    Returns (aggregate_map, ci_dict) with bootstrap 95% CI.
+    """
     from sklearn.cluster import KMeans
 
     N = min(len(knn_indices), len(motion_features))
-    # Cluster motion features
     kmeans = KMeans(n_clusters=n_clusters, random_state=42, n_init=10)
     labels = kmeans.fit_predict(motion_features[:N])
 
-    ap_scores = []
+    per_clip_ap = np.full(N, np.nan)
     for i in range(N):
         query_label = labels[i]
         neighbors = knn_indices[i, 1:k + 1]
@@ -143,17 +148,19 @@ def compute_motion_retrieval_map(knn_indices, motion_features, k=6,
         if len(valid) == 0:
             continue
         neighbor_labels = labels[valid]
-        # Compute AP for this query
         relevant = (neighbor_labels == query_label)
         if not np.any(relevant):
-            ap_scores.append(0.0)
+            per_clip_ap[i] = 0.0
             continue
         cumsum = np.cumsum(relevant).astype(np.float64)
         precision_at = cumsum / np.arange(1, len(relevant) + 1)
         ap = np.sum(precision_at * relevant) / np.sum(relevant)
-        ap_scores.append(float(ap))
+        per_clip_ap[i] = float(ap)
 
-    return float(np.mean(ap_scores)) if ap_scores else 0.0
+    valid_scores = per_clip_ap[~np.isnan(per_clip_ap)]
+    agg = float(np.mean(valid_scores)) if len(valid_scores) > 0 else 0.0
+    ci = bootstrap_ci(valid_scores) if len(valid_scores) > 0 else None
+    return agg, ci
 
 
 def compute_temporal_order_sensitivity(emb_normal, emb_shuffled,
@@ -244,14 +251,34 @@ def compute_temporal_locality(embeddings, clip_keys, n_sample=50000, seed=42):
     mask = (idx_a != idx_b) & (video_ids[idx_a] != video_ids[idx_b])
     inter_dists = np.linalg.norm(embeddings[idx_a[mask]] - embeddings[idx_b[mask]], axis=1)
 
-    intra_mean = float(np.mean(intra_dists))
-    inter_mean = float(np.mean(inter_dists))
+    intra_arr = np.array(intra_dists)
+    inter_arr = np.array(inter_dists)
+    intra_mean = float(np.mean(intra_arr))
+    inter_mean = float(np.mean(inter_arr))
     ratio = intra_mean / inter_mean if inter_mean > 0 else 0.0
+
+    # Bootstrap CI on ratio via resampling both intra and inter distributions
+    rng_boot = np.random.default_rng(seed + 1)
+    n_boot = 1000
+    boot_ratios = np.empty(n_boot)
+    for b in range(n_boot):
+        intra_sample = intra_arr[rng_boot.integers(0, len(intra_arr), len(intra_arr))]
+        inter_sample = inter_arr[rng_boot.integers(0, len(inter_arr), len(inter_arr))]
+        im = np.mean(inter_sample)
+        boot_ratios[b] = np.mean(intra_sample) / im if im > 0 else 0
+    ci_lo = float(np.percentile(boot_ratios, 2.5))
+    ci_hi = float(np.percentile(boot_ratios, 97.5))
 
     return {
         "intra_video_dist": round(intra_mean, 4),
         "inter_video_dist": round(inter_mean, 4),
         "ratio": round(ratio, 4),
+        "ratio_ci": {
+            "mean": round(ratio, 6),
+            "ci_lo": round(ci_lo, 6),
+            "ci_hi": round(ci_hi, 6),
+            "ci_half": round((ci_hi - ci_lo) / 2, 6),
+        },
         "n_intra_pairs": len(intra_dists),
         "n_inter_pairs": int(mask.sum()),
         "n_multi_clip_videos": len(multi_clip_vids),
@@ -336,7 +363,9 @@ def main():
     rho, pval, actual_pairs, rho_ci = None, None, 0, None
     n_aligned = 0
     temporal_prec = None
+    temporal_prec_ci = None
     motion_map = None
+    motion_map_ci = None
 
     if motion_features is not None:
         aligned_emb, aligned_mot, n_aligned = align_by_keys(
@@ -360,18 +389,20 @@ def main():
             print(f"  Spearman rho = {rho:.4f} ± {rho_ci['ci_half']:.4f} "
                   f"(p = {pval:.2e}, {actual_pairs:,} pairs)")
 
-            # Metrics 2-3: Temporal Prec@K + Motion mAP
+            # Metrics 2-3: Temporal Prec@K + Motion mAP (with bootstrap CI)
             if knn_indices is not None:
                 knn_n = min(len(knn_indices), n_aligned)
-                print(f"\nComputing Temporal Prec@K (k={args.k})...")
-                temporal_prec = compute_temporal_prec_at_k(
+                print(f"\nComputing Temporal Prec@K (k={args.k}, + bootstrap 95% CI)...")
+                temporal_prec, temporal_prec_ci = compute_temporal_prec_at_k(
                     knn_indices[:knn_n], aligned_mot[:knn_n], k=args.k)
-                print(f"  Temporal Prec@K = {temporal_prec:.1f}%")
+                ci_str = f" \u00b1 {temporal_prec_ci['ci_half']:.1f}" if temporal_prec_ci else ""
+                print(f"  Temporal Prec@K = {temporal_prec:.1f}%{ci_str}")
 
-                print(f"\nComputing Motion Retrieval mAP (k={args.k}, clusters={N_MOTION_CLUSTERS})...")
-                motion_map = compute_motion_retrieval_map(
+                print(f"\nComputing Motion Retrieval mAP (k={args.k}, clusters={N_MOTION_CLUSTERS}, + bootstrap 95% CI)...")
+                motion_map, motion_map_ci = compute_motion_retrieval_map(
                     knn_indices[:knn_n], aligned_mot_norm[:knn_n], k=args.k)
-                print(f"  Motion Retrieval mAP = {motion_map:.4f}")
+                ci_str = f" \u00b1 {motion_map_ci['ci_half']:.4f}" if motion_map_ci else ""
+                print(f"  Motion Retrieval mAP = {motion_map:.4f}{ci_str}")
 
     # ── Temporal Order Sensitivity (V-JEPA only) ─────────────────
     order_sensitivity = None
@@ -427,8 +458,12 @@ def main():
         results["motion_clusters"] = N_MOTION_CLUSTERS
     if temporal_prec is not None:
         results["temporal_prec_at_k"] = round(temporal_prec, 2)
+        if temporal_prec_ci:
+            results["temporal_prec_at_k_ci"] = temporal_prec_ci
     if motion_map is not None:
         results["motion_retrieval_map"] = round(motion_map, 6)
+        if motion_map_ci:
+            results["motion_retrieval_map_ci"] = motion_map_ci
     if order_sensitivity is not None:
         results["temporal_order_sensitivity"] = order_sensitivity
     if locality is not None:
@@ -446,9 +481,11 @@ def main():
     if rho is not None:
         print(f"  Spearman rho:          {rho:.4f} ± {rho_ci['ci_half']:.4f}")
     if temporal_prec is not None:
-        print(f"  Temporal Prec@K:       {temporal_prec:.1f}%")
+        ci_str = f" \u00b1 {temporal_prec_ci['ci_half']:.1f}" if temporal_prec_ci else ""
+        print(f"  Temporal Prec@K:       {temporal_prec:.1f}%{ci_str}")
     if motion_map is not None:
-        print(f"  Motion Retrieval mAP:  {motion_map:.4f}")
+        ci_str = f" \u00b1 {motion_map_ci['ci_half']:.4f}" if motion_map_ci else ""
+        print(f"  Motion Retrieval mAP:  {motion_map:.4f}{ci_str}")
     if order_sensitivity is not None:
         print(f"  Order Sensitivity:     {order_sensitivity['mean']:.2f} (mean L2)")
     if locality is not None:

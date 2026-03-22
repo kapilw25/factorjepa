@@ -21,6 +21,7 @@ from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
 import numpy as np
+from tqdm import tqdm
 
 # Add src to path for utils import
 sys.path.insert(0, str(Path(__file__).parent))
@@ -586,8 +587,11 @@ def worker_main(args):
     producer.start()
 
     start_time = time.time()
+    last_window_time = start_time
+    last_window_count = 0
     failed_count = 0
     checkpoint_thread = None
+    pbar = tqdm(total=clip_limit, desc="m05_vjepa", unit="clip")
 
     try:
         while True:
@@ -607,17 +611,25 @@ def worker_main(args):
                 all_keys.append(key)
                 processed_keys.add(key)
 
-            elapsed = time.time() - start_time
             clips_this_run = len(all_embeddings) - resume_count
             total_target = clip_limit + resume_count
-            throughput = clips_this_run / elapsed if elapsed > 0 else 0
-            print(f"  [{len(all_embeddings):,}/{total_target:,}] "
-                  f"{throughput:.1f} clips/s | failed={failed_count}")
+            pbar.update(len(batch_keys))
+
+            # Windowed throughput
+            now = time.time()
+            window_elapsed = now - last_window_time
+            window_clips = clips_this_run - last_window_count
+            throughput = window_clips / window_elapsed if window_elapsed > 0 else 0
+            pbar.set_postfix_str(f"{throughput:.1f} clips/s | failed={failed_count}")
             log_metrics(wb_run, {
                 "clips_processed": len(all_embeddings),
                 "throughput_clips_per_s": throughput,
                 "failed": failed_count,
             })
+            # Reset window every 30s
+            if window_elapsed >= 30:
+                last_window_time = now
+                last_window_count = clips_this_run
 
             if len(all_embeddings) % CHECKPOINT_EVERY < args.batch_size:
                 if checkpoint_thread and checkpoint_thread.is_alive():
@@ -635,6 +647,7 @@ def worker_main(args):
         print("\nInterrupted! Saving checkpoint...")
         stop_event.set()
     finally:
+        pbar.close()
         stop_event.set()
         if checkpoint_thread and checkpoint_thread.is_alive():
             checkpoint_thread.join(timeout=30)

@@ -193,34 +193,82 @@ def create_bar_chart(all_metrics: dict, output_dir: Path):
     print(f"Saved: {output_dir / 'm08b_encoder_comparison.png'}")
 
 
-# ── Radar Plot ───────────────────────────────────────────────────────
+# ── Radar Plot (Spatial + Temporal hemispheres) ─────────────────────
 
-def create_radar_plot(all_metrics: dict, output_dir: Path):
-    """Radar/spider plot with one polygon per encoder (Easy mode)."""
+def create_radar_plot(all_metrics: dict, output_dir: Path,
+                      all_temporal: dict = None):
+    """Combined radar: 5 spatial axes (left) + 3 temporal axes (right).
+
+    Spatial from m06, temporal from m06b. Hemisphere shading shows the
+    spatial-temporal tradeoff at a glance: DINOv2 bulges left, V-JEPA
+    bulges right, shuffled loses right side, random stays near center.
+    """
     encoders = [e for e in ENCODER_ORDER if e in all_metrics]
     if len(encoders) < 2:
         return
 
-    radar_metrics = ["cycle_at_k", "overlap_at_k", "prec_at_k", "map_at_k", "ndcg_at_k"]
-    radar_labels = ["Cycle@K", "Overlap@K", "Prec@K", "mAP@K", "nDCG@K"]
+    # 5 spatial + 3 temporal axes (ordered so spatial=left, temporal=right)
+    spatial_keys = ["prec_at_k", "map_at_k", "cycle_at_k", "overlap_at_k", "ndcg_at_k"]
+    spatial_labels = ["Prec@K", "mAP@K", "Cycle@K", "Overlap@K", "nDCG@K"]
 
-    # Collect raw values per encoder
+    temporal_keys = ["spearman_rho", "temporal_prec_at_k", "temporal_locality_inv"]
+    temporal_labels = ["Spearman \u03c1", "Temp Prec@K", "Temp Locality"]
+
+    has_temporal = all_temporal and any(
+        all_temporal.get(e, {}).get("spearman_rho") is not None for e in encoders)
+
+    if has_temporal:
+        all_keys = spatial_keys + temporal_keys
+        all_labels = spatial_labels + temporal_labels
+    else:
+        all_keys = spatial_keys
+        all_labels = spatial_labels
+
+    n_metrics = len(all_keys)
+    n_spatial = len(spatial_keys)
+
+    # Collect raw values
     raw = {}
     for enc in encoders:
         easy = all_metrics[enc].get("easy", {})
-        raw[enc] = [easy.get(m) for m in radar_metrics]
+        vals = []
+        for k in all_keys:
+            if k in spatial_keys:
+                vals.append(easy.get(k))
+            elif k == "temporal_locality_inv":
+                # Invert locality ratio: lower=better, so plot 1-ratio
+                ratio = (all_temporal or {}).get(enc, {}).get(
+                    "temporal_locality", {}).get("ratio")
+                vals.append(1.0 - ratio if ratio is not None else None)
+            else:
+                vals.append((all_temporal or {}).get(enc, {}).get(k))
+        raw[enc] = vals
 
-    # Normalize each metric to [0, 100]
-    n_metrics = len(radar_metrics)
+    # Normalize each axis to [0, 100]
     maxes = []
     for i in range(n_metrics):
-        vals = [raw[e][i] for e in encoders if raw[e][i] is not None]
-        maxes.append(max(vals) if vals else 1)
+        axis_vals = [raw[e][i] for e in encoders if raw[e][i] is not None]
+        maxes.append(max(axis_vals) if axis_vals else 1)
 
     angles = np.linspace(0, 2 * np.pi, n_metrics, endpoint=False).tolist()
-    angles += angles[:1]  # close polygon
+    angles += angles[:1]
 
-    fig, ax = plt.subplots(1, 1, figsize=(7, 7), subplot_kw=dict(polar=True))
+    fig, ax = plt.subplots(1, 1, figsize=(8, 8), subplot_kw=dict(polar=True))
+
+    # Hemisphere shading (spatial left, temporal right)
+    if has_temporal:
+        spatial_start = angles[0]
+        spatial_end = angles[n_spatial - 1]
+        temporal_start = angles[n_spatial]
+        temporal_end = angles[-2]
+        ax.fill_between(
+            np.linspace(spatial_start - 0.15, spatial_end + 0.15, 50),
+            0, 115, alpha=0.04, color="#2E7D32", zorder=0)
+        ax.fill_between(
+            np.linspace(temporal_start - 0.15, temporal_end + 0.15, 50),
+            0, 115, alpha=0.04, color="#C62828", zorder=0)
+
+    # Plot each encoder polygon
     for enc in encoders:
         vals = []
         for i, v in enumerate(raw[enc]):
@@ -228,17 +276,33 @@ def create_radar_plot(all_metrics: dict, output_dir: Path):
                 vals.append(v / maxes[i] * 100)
             else:
                 vals.append(0)
-        vals += vals[:1]  # close
-        ax.plot(angles, vals, 'o-', label=enc, color=ENCODER_COLORS.get(enc, "#888"),
-                linewidth=2, markersize=5)
-        ax.fill(angles, vals, color=ENCODER_COLORS.get(enc, "#888"), alpha=0.1)
+        vals += vals[:1]
+        ax.plot(angles, vals, 'o-', label=ENCODER_LABELS.get(enc, enc).replace('\n', ' '),
+                color=ENCODER_COLORS.get(enc, "#888"), linewidth=2, markersize=5)
+        ax.fill(angles, vals, color=ENCODER_COLORS.get(enc, "#888"), alpha=0.08)
 
+    # Axis labels with color coding
     ax.set_xticks(angles[:-1])
-    ax.set_xticklabels(radar_labels, fontsize=10)
-    ax.set_ylim(0, 110)
-    ax.set_title("Encoder Comparison (Easy, normalized)", fontsize=12,
-                 fontweight="bold", pad=20)
-    ax.legend(loc="lower right", fontsize=9, bbox_to_anchor=(1.2, 0))
+    label_colors = (["#2E7D32"] * n_spatial +
+                    ["#C62828"] * (n_metrics - n_spatial))
+    labels = ax.set_xticklabels(all_labels, fontsize=10)
+    for label, color in zip(labels, label_colors):
+        label.set_color(color)
+        label.set_fontweight("bold")
+
+    ax.set_ylim(0, 115)
+    title = "Spatial + Temporal Encoder Comparison" if has_temporal else "Encoder Comparison"
+    ax.set_title(f"{title} (Easy, normalized)", fontsize=12,
+                 fontweight="bold", pad=25)
+    ax.legend(loc="lower right", fontsize=8, bbox_to_anchor=(1.3, -0.05))
+
+    # Add hemisphere labels
+    if has_temporal:
+        fig.text(0.15, 0.92, "SPATIAL", fontsize=11, fontweight="bold",
+                 color="#2E7D32", ha="center")
+        fig.text(0.85, 0.92, "TEMPORAL", fontsize=11, fontweight="bold",
+                 color="#C62828", ha="center")
+
     plt.tight_layout()
     for ext in [".png", ".pdf"]:
         plt.savefig(output_dir / f"m08b_radar{ext}",
@@ -247,10 +311,14 @@ def create_radar_plot(all_metrics: dict, output_dir: Path):
     print(f"Saved: {output_dir / 'm08b_radar.png'}")
 
 
-# ── Spatial-Temporal Grouped Bar Chart ────────────────────────────────
+# ── Spatial-Temporal Bar Chart (2-row layout) ──────────────────────
 
 def create_grouped_bar_chart(all_metrics: dict, all_temporal: dict, output_dir: Path):
-    """Grouped bar chart: spatial metrics (left) | temporal metrics (right)."""
+    """2-row bar chart: spatial metrics (top row) | temporal metrics (bottom row).
+
+    Each subplot = one metric, bars = encoders. Green header for spatial,
+    red header for temporal. 95% CI error bars on all metrics.
+    """
     encoders = [e for e in ENCODER_ORDER if e in all_metrics]
     if len(encoders) < 2:
         return
@@ -261,34 +329,30 @@ def create_grouped_bar_chart(all_metrics: dict, all_temporal: dict, output_dir: 
     temporal_keys = [(k, l) for k, l in TEMPORAL_METRICS_DISPLAY if any(
         all_temporal.get(e, {}).get(k) is not None for e in encoders)]
 
-    # Add locality ratio if available
     if any(all_temporal.get(e, {}).get("temporal_locality", {}).get("ratio") is not None
            for e in encoders):
         temporal_keys.append(("temporal_locality_ratio", "Locality Ratio"))
 
-    all_keys = spatial_keys + temporal_keys
-    n_total = len(all_keys)
     n_spatial = len(spatial_keys)
-    if n_total == 0:
-        return
+    n_temporal = len(temporal_keys)
+    n_cols = max(n_spatial, n_temporal) if n_temporal > 0 else n_spatial
+    n_rows = 2 if n_temporal > 0 else 1
 
-    fig, axes = plt.subplots(1, n_total, figsize=(3.2 * n_total, 5), squeeze=False)
-    axes = axes[0]
+    fig, axes = plt.subplots(n_rows, n_cols, figsize=(3.5 * n_cols, 4.5 * n_rows),
+                             squeeze=False)
 
-    for ax_idx, (metric_key, metric_label) in enumerate(all_keys):
-        ax = axes[ax_idx]
+    def _plot_bar(ax, metric_key, metric_label, source, title_color):
         x = np.arange(len(encoders))
-        vals = []
-        errs = []
-
+        vals, errs = [], []
         for enc in encoders:
-            if ax_idx < n_spatial:
-                # Spatial metric from m06
+            if source == "spatial":
                 v = all_metrics[enc].get("easy", {}).get(metric_key)
-                ci_h = all_metrics[enc].get("easy", {}).get("ci", {}).get(metric_key, {}).get("ci_half", 0)
+                ci_h = all_metrics[enc].get("easy", {}).get("ci", {}).get(
+                    metric_key, {}).get("ci_half", 0)
             elif metric_key == "temporal_locality_ratio":
                 v = all_temporal.get(enc, {}).get("temporal_locality", {}).get("ratio")
-                ci_h = 0
+                ci_h = all_temporal.get(enc, {}).get("temporal_locality", {}).get(
+                    "ratio_ci", {}).get("ci_half", 0)
             else:
                 v = all_temporal.get(enc, {}).get(metric_key)
                 ci_h = all_temporal.get(enc, {}).get(f"{metric_key}_ci", {}).get("ci_half", 0)
@@ -299,25 +363,35 @@ def create_grouped_bar_chart(all_metrics: dict, all_temporal: dict, output_dir: 
 
         colors = [ENCODER_COLORS.get(e, "#888") for e in encoders]
         ax.bar(x, vals, color=colors, alpha=0.85, yerr=errs, capsize=3, error_kw={"lw": 1})
-        ax.set_title(metric_label, fontsize=9, fontweight="bold")
+        ax.set_title(metric_label, fontsize=10, fontweight="bold", color=title_color)
         ax.set_xticks(x)
-        ax.set_xticklabels([e.replace("_", "\n") for e in encoders], fontsize=7, rotation=0)
+        ax.set_xticklabels([e.replace("_", "\n") for e in encoders], fontsize=7)
         ax.tick_params(axis="y", labelsize=8)
 
-        # Separator between spatial and temporal
-        if ax_idx == n_spatial - 1:
-            ax.axvline(x=len(encoders) - 0.5, color="gray", linestyle="--", alpha=0.3)
+    # Top row: spatial metrics
+    for i, (key, label) in enumerate(spatial_keys):
+        _plot_bar(axes[0][i], key, label, "spatial", "#2E7D32")
+    # Hide unused top-row axes
+    for i in range(n_spatial, n_cols):
+        axes[0][i].set_visible(False)
 
-    # Add group labels
-    fig.text(n_spatial / (2 * n_total), 0.01, "SPATIAL", ha="center",
-             fontsize=11, fontweight="bold", color="#2E7D32")
-    if temporal_keys:
-        fig.text((n_spatial + n_total) / (2 * n_total), 0.01, "TEMPORAL", ha="center",
-                 fontsize=11, fontweight="bold", color="#C62828")
+    # Bottom row: temporal metrics
+    if n_temporal > 0:
+        for i, (key, label) in enumerate(temporal_keys):
+            _plot_bar(axes[1][i], key, label, "temporal", "#C62828")
+        for i in range(n_temporal, n_cols):
+            axes[1][i].set_visible(False)
+
+    # Row labels
+    fig.text(0.02, 0.75, "SPATIAL", fontsize=13, fontweight="bold",
+             color="#2E7D32", rotation=90, va="center")
+    if n_temporal > 0:
+        fig.text(0.02, 0.28, "TEMPORAL", fontsize=13, fontweight="bold",
+                 color="#C62828", rotation=90, va="center")
 
     plt.suptitle("Spatial vs Temporal Encoder Comparison (Easy mode, 95% CI)",
-                 fontsize=12, fontweight="bold", y=1.02)
-    plt.tight_layout(rect=[0, 0.03, 1, 1])
+                 fontsize=13, fontweight="bold", y=1.01)
+    plt.tight_layout(rect=[0.04, 0, 1, 0.98])
     for ext in [".png", ".pdf"]:
         plt.savefig(output_dir / f"m08b_spatial_temporal_bar{ext}",
                     dpi=150 if ext == ".png" else None, bbox_inches="tight")
@@ -393,6 +467,256 @@ def create_tradeoff_scatter(all_metrics: dict, all_temporal: dict, output_dir: P
                     dpi=150 if ext == ".png" else None, bbox_inches="tight")
     plt.close()
     print(f"Saved: {output_dir / 'm08b_tradeoff_scatter.png'}")
+
+
+# ── Temporal Order Ablation (V-JEPA vs Shuffled) ───────────────────
+
+def create_ablation_chart(all_metrics: dict, all_temporal: dict, output_dir: Path):
+    """Paired bar chart: V-JEPA (normal) vs Shuffled on ALL metrics.
+
+    Spatial metrics: shuffled >= normal proves temporal encoding hurts spatial.
+    Temporal metrics: normal >> shuffled proves V-JEPA learns temporal structure.
+    Delta annotation with propagated 95% CI on each pair.
+    """
+    if "vjepa" not in all_metrics or "vjepa_shuffled" not in all_metrics:
+        print("  SKIP ablation chart: need both vjepa and vjepa_shuffled")
+        return
+
+    # Collect all metrics for both encoders
+    spatial_defs = [
+        ("prec_at_k", "Prec@K (%)", "spatial"),
+        ("map_at_k", "mAP@K", "spatial"),
+        ("cycle_at_k", "Cycle@K (%)", "spatial"),
+        ("overlap_at_k", "Overlap@K (%)", "spatial"),
+        ("ndcg_at_k", "nDCG@K", "spatial"),
+    ]
+    temporal_defs = [
+        ("spearman_rho", "Spearman \u03c1", "temporal"),
+        ("temporal_prec_at_k", "Temp Prec@K (%)", "temporal"),
+        ("motion_retrieval_map", "Motion mAP", "temporal"),
+    ]
+    # Add temporal locality if available
+    if all_temporal and all_temporal.get("vjepa", {}).get("temporal_locality", {}).get("ratio") is not None:
+        temporal_defs.append(("temporal_locality_ratio", "Locality\n(lower=better)", "temporal"))
+
+    has_temporal = all_temporal and any(
+        all_temporal.get("vjepa", {}).get(k) is not None for k, _, _ in temporal_defs[:3])
+
+    all_defs = spatial_defs + (temporal_defs if has_temporal else [])
+    n_spatial_d = len(spatial_defs)
+    n_temporal_d = len(temporal_defs) if has_temporal else 0
+    n_cols = max(n_spatial_d, n_temporal_d) if n_temporal_d > 0 else n_spatial_d
+    n_rows = 2 if n_temporal_d > 0 else 1
+
+    fig, axes = plt.subplots(n_rows, n_cols, figsize=(3.2 * n_cols, 4.5 * n_rows),
+                             squeeze=False)
+
+    def _ablation_bar(ax, key, label, domain):
+        vals, errs = [], []
+        for enc in ["vjepa", "vjepa_shuffled"]:
+            if domain == "spatial":
+                v = all_metrics[enc].get("easy", {}).get(key)
+                ci_h = all_metrics[enc].get("easy", {}).get("ci", {}).get(
+                    key, {}).get("ci_half", 0)
+            elif key == "temporal_locality_ratio":
+                v = (all_temporal or {}).get(enc, {}).get(
+                    "temporal_locality", {}).get("ratio")
+                ci_h = 0
+            else:
+                v = (all_temporal or {}).get(enc, {}).get(key)
+                ci_h = (all_temporal or {}).get(enc, {}).get(
+                    f"{key}_ci", {}).get("ci_half", 0)
+                if ci_h == 0 and key == "spearman_rho":
+                    ci_h = (all_temporal or {}).get(enc, {}).get(
+                        "spearman_rho_ci", {}).get("ci_half", 0)
+            vals.append(v if v is not None else 0)
+            errs.append(ci_h)
+
+        normal_v, shuffled_v = vals
+        normal_e, shuffled_e = errs
+        x = np.array([0, 1])
+        ax.bar(x, vals, color=["#2196F3", "#E91E63"], alpha=0.85,
+               yerr=errs, capsize=5, error_kw={"lw": 1.5})
+
+        delta = normal_v - shuffled_v
+        delta_ci = np.sqrt(normal_e**2 + shuffled_e**2)
+        delta_sign = "+" if delta > 0 else ""
+        if key == "temporal_locality_ratio":
+            expected = delta < 0
+        elif domain == "temporal":
+            expected = delta > 0
+        else:
+            expected = delta < 0 or key == "cycle_at_k"
+        delta_color = "#2E7D32" if expected else "#C62828"
+        ci_str = f" \u00b1{delta_ci:.2f}" if delta_ci > 0 else ""
+        ax.annotate(f"\u0394={delta_sign}{delta:.2f}{ci_str}",
+                    xy=(0.5, max(vals) * 1.05), fontsize=7, fontweight="bold",
+                    color=delta_color, ha="center")
+        title_color = "#2E7D32" if domain == "spatial" else "#C62828"
+        ax.set_title(label, fontsize=9, fontweight="bold", color=title_color)
+        ax.set_xticks(x)
+        ax.set_xticklabels(["V-JEPA\n(normal)", "V-JEPA\n(shuffled)"], fontsize=7)
+        ax.tick_params(axis="y", labelsize=8)
+
+    # Top row: spatial
+    for i, (key, label, domain) in enumerate(spatial_defs):
+        _ablation_bar(axes[0][i], key, label, domain)
+    for i in range(n_spatial_d, n_cols):
+        axes[0][i].set_visible(False)
+
+    # Bottom row: temporal
+    if n_temporal_d > 0:
+        for i, (key, label, domain) in enumerate(temporal_defs):
+            _ablation_bar(axes[1][i], key, label, domain)
+        for i in range(n_temporal_d, n_cols):
+            axes[1][i].set_visible(False)
+
+    fig.text(0.02, 0.75, "SPATIAL", fontsize=13, fontweight="bold",
+             color="#2E7D32", rotation=90, va="center")
+    if n_temporal_d > 0:
+        fig.text(0.02, 0.28, "TEMPORAL", fontsize=13, fontweight="bold",
+                 color="#C62828", rotation=90, va="center")
+
+    plt.suptitle("Temporal Order Ablation: Does Frame Order Matter?",
+                 fontsize=13, fontweight="bold", y=1.01)
+    fig.text(0.5, -0.01,
+             "Green \u0394 = expected  |  "
+             "Red \u0394 = unexpected (temporal encoding not helping)",
+             ha="center", fontsize=8, color="#555", style="italic")
+    plt.tight_layout(rect=[0.04, 0.02, 1, 0.98])
+    for ext in [".png", ".pdf"]:
+        plt.savefig(output_dir / f"m08b_temporal_ablation{ext}",
+                    dpi=150 if ext == ".png" else None, bbox_inches="tight")
+    plt.close()
+    print(f"Saved: {output_dir / 'm08b_temporal_ablation.png'}")
+
+
+# ── Normalized Heatmap (Encoders × Metrics) ────────────────────────
+
+def create_heatmap(all_metrics: dict, all_temporal: dict, output_dir: Path):
+    """Encoder × metric heatmap. Spatial columns left, temporal right.
+
+    Cell text shows value ± CI. Color intensity = normalized rank across
+    encoders (per column). Visual: DINOv2 row hot left, V-JEPA hot right.
+    """
+    encoders = [e for e in ENCODER_ORDER if e in all_metrics]
+    if len(encoders) < 2:
+        return
+
+    spatial_defs = [
+        ("prec_at_k", "Prec@K"),
+        ("map_at_k", "mAP@K"),
+        ("cycle_at_k", "Cycle@K"),
+        ("overlap_at_k", "Overlap@K"),
+        ("ndcg_at_k", "nDCG@K"),
+    ]
+    temporal_defs = []
+    if all_temporal and any(
+            all_temporal.get(e, {}).get("spearman_rho") is not None for e in encoders):
+        temporal_defs = [
+            ("spearman_rho", "Spearman \u03c1"),
+            ("temporal_prec_at_k", "Temp Prec@K"),
+            ("motion_retrieval_map", "Motion mAP"),
+        ]
+
+    all_defs = spatial_defs + temporal_defs
+    n_spatial = len(spatial_defs)
+    n_metrics = len(all_defs)
+    n_enc = len(encoders)
+
+    # Build value + CI matrices
+    val_matrix = np.zeros((n_enc, n_metrics))
+    ci_matrix = np.zeros((n_enc, n_metrics))
+
+    for ei, enc in enumerate(encoders):
+        for mi, (key, _) in enumerate(all_defs):
+            if mi < n_spatial:
+                v = all_metrics[enc].get("easy", {}).get(key)
+                ci_h = all_metrics[enc].get("easy", {}).get("ci", {}).get(
+                    key, {}).get("ci_half", 0)
+            else:
+                v = (all_temporal or {}).get(enc, {}).get(key)
+                ci_h = (all_temporal or {}).get(enc, {}).get(
+                    f"{key}_ci", {}).get("ci_half", 0)
+                if ci_h == 0 and key == "spearman_rho":
+                    ci_h = (all_temporal or {}).get(enc, {}).get(
+                        "spearman_rho_ci", {}).get("ci_half", 0)
+            val_matrix[ei, mi] = v if v is not None else 0
+            ci_matrix[ei, mi] = ci_h
+
+    # Normalize per column to [0, 1] for color mapping
+    norm_matrix = np.zeros_like(val_matrix)
+    for mi in range(n_metrics):
+        col = val_matrix[:, mi]
+        cmin, cmax = col.min(), col.max()
+        if cmax > cmin:
+            norm_matrix[:, mi] = (col - cmin) / (cmax - cmin)
+        else:
+            norm_matrix[:, mi] = 0.5
+
+    # Custom colormap: spatial=green shades, temporal=red shades
+    from matplotlib.colors import LinearSegmentedColormap
+    spatial_cmap = LinearSegmentedColormap.from_list("spatial", ["#FFFFFF", "#2E7D32"])
+    temporal_cmap = LinearSegmentedColormap.from_list("temporal", ["#FFFFFF", "#C62828"])
+
+    fig, ax = plt.subplots(1, 1, figsize=(max(10, 1.8 * n_metrics), 0.9 * n_enc + 2))
+
+    # Draw cells with appropriate colormap per column
+    for mi in range(n_metrics):
+        cmap = spatial_cmap if mi < n_spatial else temporal_cmap
+        for ei in range(n_enc):
+            color = cmap(norm_matrix[ei, mi] * 0.85 + 0.05)  # avoid pure white
+            ax.add_patch(plt.Rectangle((mi, n_enc - 1 - ei), 1, 1,
+                                       facecolor=color, edgecolor="white", lw=2))
+            # Cell text: value ± CI
+            v = val_matrix[ei, mi]
+            ci = ci_matrix[ei, mi]
+            key = all_defs[mi][0]
+            if key in ("prec_at_k", "cycle_at_k", "overlap_at_k", "temporal_prec_at_k"):
+                txt = f"{v:.1f}"
+                if ci > 0:
+                    txt += f"\n\u00b1{ci:.1f}"
+            else:
+                txt = f"{v:.3f}"
+                if ci > 0:
+                    txt += f"\n\u00b1{ci:.3f}"
+            text_color = "white" if norm_matrix[ei, mi] > 0.6 else "black"
+            ax.text(mi + 0.5, n_enc - 0.5 - ei, txt, ha="center", va="center",
+                    fontsize=8, fontweight="bold", color=text_color)
+
+    # Separator line between spatial and temporal
+    if temporal_defs:
+        ax.axvline(x=n_spatial, color="#333", linewidth=2, linestyle="-")
+
+    # Labels
+    enc_labels = [ENCODER_LABELS.get(e, e).replace('\n', ' ') for e in encoders]
+    ax.set_yticks(np.arange(n_enc) + 0.5)
+    ax.set_yticklabels(enc_labels[::-1], fontsize=9)
+    ax.set_xticks(np.arange(n_metrics) + 0.5)
+    metric_labels = [d[1] for d in all_defs]
+    xlabels = ax.set_xticklabels(metric_labels, fontsize=9, rotation=30, ha="right")
+    for i, xl in enumerate(xlabels):
+        xl.set_color("#2E7D32" if i < n_spatial else "#C62828")
+        xl.set_fontweight("bold")
+
+    ax.set_xlim(0, n_metrics)
+    ax.set_ylim(0, n_enc)
+
+    # Group headers
+    if temporal_defs:
+        ax.text(n_spatial / 2, n_enc + 0.3, "SPATIAL", ha="center",
+                fontsize=12, fontweight="bold", color="#2E7D32")
+        ax.text(n_spatial + len(temporal_defs) / 2, n_enc + 0.3, "TEMPORAL",
+                ha="center", fontsize=12, fontweight="bold", color="#C62828")
+
+    ax.set_title("Encoder × Metric Performance (normalized per column, 95% CI)",
+                 fontsize=12, fontweight="bold", pad=25)
+    plt.tight_layout()
+    for ext in [".png", ".pdf"]:
+        plt.savefig(output_dir / f"m08b_heatmap{ext}",
+                    dpi=150 if ext == ".png" else None, bbox_inches="tight")
+    plt.close()
+    print(f"Saved: {output_dir / 'm08b_heatmap.png'}")
 
 
 # ── LaTeX Table ──────────────────────────────────────────────────────
@@ -488,13 +812,16 @@ def main():
     # Plots + table (need >= 2 encoders for comparison)
     if len(all_metrics) >= 2:
         create_bar_chart(all_metrics, output_dir)
-        create_radar_plot(all_metrics, output_dir)
+        create_radar_plot(all_metrics, output_dir, all_temporal=all_temporal)
         create_latex_table(all_metrics, output_dir)
         create_grouped_bar_chart(all_metrics, all_temporal, output_dir)
         create_tradeoff_scatter(all_metrics, all_temporal, output_dir)
+        create_ablation_chart(all_metrics, all_temporal, output_dir)
+        create_heatmap(all_metrics, all_temporal, output_dir)
 
         for name in ["m08b_encoder_comparison", "m08b_radar",
-                     "m08b_spatial_temporal_bar", "m08b_tradeoff_scatter"]:
+                     "m08b_spatial_temporal_bar", "m08b_tradeoff_scatter",
+                     "m08b_temporal_ablation", "m08b_heatmap"]:
             png = output_dir / f"{name}.png"
             if png.exists():
                 log_image(wb_run, name, str(png))

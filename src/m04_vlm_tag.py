@@ -27,6 +27,8 @@ from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timezone
 from pathlib import Path
 
+from tqdm import tqdm
+
 os.environ.setdefault("OMP_NUM_THREADS", "1")
 
 # Add src to path for utils import
@@ -981,6 +983,9 @@ def stream_and_tag(backend: VLMBackend, args,
 
     clips_this_run = 0
     start_time = time.time()
+    last_window_time = start_time
+    last_window_count = 0
+    pbar = tqdm(total=clip_limit, desc=f"m04_{backend.model_name}", unit="clip")
 
     try:
         while True:
@@ -1001,19 +1006,29 @@ def stream_and_tag(backend: VLMBackend, args,
                 all_tags.append(record)
 
             clips_this_run += len(batch)
+            pbar.update(len(batch))
 
-            # Progress
-            elapsed = time.time() - start_time
-            rate = clips_this_run / elapsed if elapsed > 0 else 0
+            # Windowed throughput
+            now = time.time()
+            window_elapsed = now - last_window_time
+            window_clips = clips_this_run - last_window_count
+            if window_elapsed > 0:
+                rate = window_clips / window_elapsed
+            else:
+                rate = 0
             remaining = clip_limit - clips_this_run
             eta_min = remaining / rate / 60 if rate > 0 else 0
-            print(f"  [{clips_this_run:,}/{clip_limit:,}] "
-                  f"{rate:.2f} clips/s | ETA {eta_min:.0f} min | {backend.model_name}")
+            pbar.set_postfix_str(
+                f"{rate:.2f} clips/s | ETA {eta_min:.0f} min | {backend.model_name}")
             log_metrics(wb_run, {
                 "clips_tagged": clips_this_run,
                 "throughput_clips_per_s": rate,
                 "eta_min": eta_min,
             })
+            # Reset window every 30s
+            if window_elapsed >= 30:
+                last_window_time = now
+                last_window_count = clips_this_run
 
             # Checkpoint
             if clips_this_run % CHECKPOINT_EVERY < batch_size:
@@ -1030,6 +1045,7 @@ def stream_and_tag(backend: VLMBackend, args,
         print(f"\nInference error: {e}. Saving checkpoint...")
         stop_event.set()
     finally:
+        pbar.close()
         save_checkpoint(all_tags, tags_file)
         stop_event.set()
         producer.join(timeout=10)

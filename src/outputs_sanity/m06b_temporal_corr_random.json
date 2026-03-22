@@ -1,0 +1,17 @@
+{
+  "encoder": "random",
+  "encoder_dim": 1408,
+  "encoder_type": "synthetic",
+  "n_clips_aligned": 0,
+  "k_neighbors": 6,
+  "compute_time_sec": 0.0,
+  "mode": "SANITY",
+  "temporal_locality": {
+    "intra_video_dist": 1.4109,
+    "inter_video_dist": NaN,
+    "ratio": 0.0,
+    "n_intra_pairs": 5,
+    "n_inter_pairs": 0,
+    "n_multi_clip_videos": 1
+  }
+}

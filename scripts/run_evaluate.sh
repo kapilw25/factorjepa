@@ -6,8 +6,8 @@
 # Spatial (9 metrics) + Temporal (5 metrics) evaluation, 5 encoders, 95% CI
 #
 # USAGE:
-#   ./scripts/run_evaluate.sh --SANITY       # Quick validation (~15 min)
-#   ./scripts/run_evaluate.sh --FULL         # 10K POC full run (~7h)
+#   ./scripts/run_evaluate.sh --SANITY 2>&1 | tee logs/ch9_sanity.log        # Quick validation (~2 min cached, ~40 min first run)
+#   ./scripts/run_evaluate.sh --FULL 2>&1 | tee logs/ch9_full_10k_subset.log # 10K POC (~7h first run, ~70 min re-run with m04d only)
 #
 # Features: pre-flight checks, checkpoint/resume, error handling, verification
 # All steps SEQUENTIAL on single GPU. Skips completed steps automatically.
@@ -55,7 +55,7 @@ esac
 
 # ── Setup ─────────────────────────────────────────────────────────────
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-cd "$SCRIPT_DIR"
+cd "$SCRIPT_DIR/.."
 
 LOGDIR="logs"
 mkdir -p "$LOGDIR" "$OUT_DIR"
@@ -141,29 +141,31 @@ verify() {
 ENCODERS=("vjepa" "random" "dinov2" "clip" "vjepa_shuffled")
 
 # ── Time estimates ────────────────────────────────────────────────────
+# Time estimates based on actual RTX PRO 6000 96GB runs (10K POC, Mar 2026)
 if [[ "$MODE" == "SANITY" ]]; then
-    T_M04="~2 min"
-    T_M05="~2 min"
-    T_M05B="~3 min"
-    T_M05C="~2 min"
+    T_M00D="~39 min (one-time, skipped if exists)"
+    T_M04="~15 sec (cached: ~2h first run)"
+    T_M05="~15 sec (cached: ~80 min first run)"
+    T_M05B="~15 sec (cached: ~99 min first run)"
+    T_M05C="~15 sec (cached: ~93 min first run)"
     T_M04D="~1 min"
-    T_M06="~1 min each"
-    T_M06B="~1 min each"
-    T_M07="~1 min each"
-    T_M08="~1 min each"
-    T_M08B="~1 min"
+    T_M06="~10 sec each"
+    T_M06B="~5 sec each"
+    T_M07="~5 sec each"
+    T_M08="~10 sec each"
+    T_M08B="~5 sec"
 else
-    T_M00D="~12 min"
-    T_M04="~1.5-2h"
-    T_M05="~1-2h"
-    T_M05B="~3-5h"
-    T_M05C="~1-2h"
-    T_M04D="~30-50 min"
-    T_M06="~5 min each"
-    T_M06B="~1 min each"
-    T_M07="~2 min each"
-    T_M08="~2 min each"
-    T_M08B="~2 min"
+    T_M00D="~39 min (one-time, skipped if exists)"
+    T_M04="~2h (1.3 clips/s, Qwen3-VL-8B)"
+    T_M05="~80 min (V-JEPA 2 ViT-G, producer-consumer)"
+    T_M05B="~99 min (4 baselines sequential)"
+    T_M05C="~93 min (augmented V-JEPA, deduped clips)"
+    T_M04D="~70 min (PyAV parallel decode + RAFT batch=8, 2.4 clips/s)"
+    T_M06="~30 sec each (FAISS-GPU + bootstrap CI)"
+    T_M06B="~10 sec each (CPU temporal correlation)"
+    T_M07="~5 sec each (cuML GPU UMAP)"
+    T_M08="~30 sec each (matplotlib CPU)"
+    T_M08B="~30 sec"
 fi
 
 # ═══════════════════════════════════════════════════════════════════════
@@ -275,26 +277,26 @@ echo "" | tee -a "$MASTER_LOG"
 # PIPELINE STEPS
 # ═══════════════════════════════════════════════════════════════════════
 
-# ── Step 0: Pre-download subset to local disk (FULL mode only) ──────
+# ── Step 0: Pre-download subset to local disk (both modes) ─────────
+# SANITY streams from local TARs too — HF streaming scans 115K shards
+# for 20 clips (8.4% hit rate) causing minutes-long stalls per clip.
 LOCAL_DATA="data/subset_10k_local"
 LOCAL_FLAG=""
 
-if [[ "$MODE" == "FULL" ]]; then
-    if [[ -d "$LOCAL_DATA" && -f "$LOCAL_DATA/manifest.json" ]]; then
-        log "Local subset already exists: $LOCAL_DATA (skipping download)"
-        LOCAL_FLAG="--local-data $LOCAL_DATA"
-    else
-        run_step 0 "m00d pre-download subset" "$T_M00D" \
-            "$LOGDIR/m00d_download.log" \
-            src/m00d_download_subset.py --subset data/subset_10k.json --no-wandb \
-            || { log "FATAL: m00d failed. Cannot proceed without local data."; exit 1; }
+if [[ -d "$LOCAL_DATA" && -f "$LOCAL_DATA/manifest.json" ]]; then
+    log "Local subset already exists: $LOCAL_DATA (skipping download)"
+    LOCAL_FLAG="--local-data $LOCAL_DATA"
+else
+    run_step 0 "m00d pre-download subset" "$T_M00D" \
+        "$LOGDIR/m00d_download.log" \
+        src/m00d_download_subset.py --subset data/subset_10k.json --no-wandb \
+        || { log "FATAL: m00d failed. Cannot proceed without local data."; exit 1; }
 
-        if [[ -d "$LOCAL_DATA" && -f "$LOCAL_DATA/manifest.json" ]]; then
-            LOCAL_FLAG="--local-data $LOCAL_DATA"
-            log "Local subset ready: $LOCAL_DATA"
-        else
-            log "WARNING: m00d did not produce expected output. Falling back to HF streaming."
-        fi
+    if [[ -d "$LOCAL_DATA" && -f "$LOCAL_DATA/manifest.json" ]]; then
+        LOCAL_FLAG="--local-data $LOCAL_DATA"
+        log "Local subset ready: $LOCAL_DATA"
+    else
+        log "WARNING: m00d did not produce expected output. Falling back to HF streaming."
     fi
 fi
 
@@ -325,9 +327,11 @@ if [[ -f "$TAGS_FILE" && "$TAGS_FILE" != "$CANONICAL_TAGS" ]]; then
 fi
 
 # ── Step 2: V-JEPA embeddings ────────────────────────────────────────
+# --no-dedupe: V-JEPA's cosine similarity shouldn't filter the eval set
+# (circular reasoning). Hard mode ±30s exclusion handles true duplicates.
 run_step 2 "m05 V-JEPA embeddings" "$T_M05" \
     "$LOGDIR/m05_${MODE,,}.log" \
-    src/m05_vjepa_embed.py $MODE_FLAG $SUBSET_FLAG $LOCAL_FLAG --no-wandb \
+    src/m05_vjepa_embed.py $MODE_FLAG $SUBSET_FLAG $LOCAL_FLAG --no-dedupe --no-wandb \
     || { log "FATAL: m05 failed. Steps 3-7 depend on V-JEPA embeddings."; exit 1; }
 
 verify "Step 2 embeddings" "

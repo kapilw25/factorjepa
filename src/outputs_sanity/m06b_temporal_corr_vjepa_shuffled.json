@@ -1,0 +1,23 @@
+{
+  "encoder": "vjepa_shuffled",
+  "encoder_dim": 1408,
+  "encoder_type": "video_shuffled",
+  "n_clips_aligned": 0,
+  "k_neighbors": 6,
+  "compute_time_sec": 0.0,
+  "mode": "SANITY",
+  "temporal_order_sensitivity": {
+    "mean": 31.849037170410156,
+    "std": 2.7476072311401367,
+    "median": 32.63064956665039,
+    "n_clips": 4
+  },
+  "temporal_locality": {
+    "intra_video_dist": 26.2765,
+    "inter_video_dist": NaN,
+    "ratio": 0.0,
+    "n_intra_pairs": 10,
+    "n_inter_pairs": 0,
+    "n_multi_clip_videos": 1
+  }
+}
