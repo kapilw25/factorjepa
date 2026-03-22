@@ -21,10 +21,10 @@ For each file containing a GPU inference or API call loop, verify:
 - Search for: `from tqdm import tqdm` and `tqdm(` in the file
 
 ### 2. Auto-resume / checkpoint
-- [ ] Completed items are saved to disk (JSONL) after EACH iteration, with `f.flush()`
+- [ ] Completed items are saved to disk (checkpoint) periodically
 - [ ] On startup, completed items are loaded and skipped
-- [ ] `--fresh` flag exists to clear checkpoints
-- Search for: `checkpoint`, `completed`, `f.flush()`, `"a"` (append mode)
+- [ ] **OUTPUT-EXISTS GUARD**: At TOP of main(), BEFORE model loading, check if final output file exists AND no partial checkpoint exists → skip entirely with print message. This prevents re-running 60+ min GPU jobs that already completed.
+- Search for: `checkpoint`, `if.*exists.*skip`, `return` early in main()
 
 ### 3. Tee logging
 - [ ] Output goes to both terminal AND a log file

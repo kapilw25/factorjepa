@@ -82,16 +82,18 @@ def compute_true_overlap_at_k(output_dir: Path, k: int) -> float:
     idx_b.add(aug_b)
     _, I_b = idx_b.search(aug_b, k + 1)  # each clip's neighbors in view B
 
-    # Compute IoU of kNN sets (skip self at col 0)
-    total_iou = 0.0
+    # Compute per-clip IoU of kNN sets (skip self at col 0)
+    per_clip_iou = np.zeros(n)
     for i in range(n):
         set_a = set(I_a[i, 1:k + 1].tolist()) - {-1}
         set_b = set(I_b[i, 1:k + 1].tolist()) - {-1}
         union = set_a | set_b
         if union:
-            total_iou += len(set_a & set_b) / len(union)
+            per_clip_iou[i] = len(set_a & set_b) / len(union)
 
-    return (total_iou / n) * 100
+    from utils.bootstrap import bootstrap_ci
+    ci = bootstrap_ci(per_clip_iou * 100)  # percentage scale
+    return float(np.mean(per_clip_iou)) * 100, ci
 
 
 # ── Load taxonomy ────────────────────────────────────────────────────────
@@ -250,15 +252,17 @@ def compute_overlap_at_k(embeddings: np.ndarray, k: int) -> float:
     _, I_a = idx_a.search(emb_a[sample_idx], k + 1)
     _, I_b = idx_b.search(emb_b[sample_idx], k + 1)
 
-    total_iou = 0.0
+    per_clip_iou = np.zeros(sample_n)
     for row in range(sample_n):
         set_a = set(I_a[row, 1:k + 1].tolist()) - {-1}
         set_b = set(I_b[row, 1:k + 1].tolist()) - {-1}
         union = set_a | set_b
         if union:
-            total_iou += len(set_a & set_b) / len(union)
+            per_clip_iou[row] = len(set_a & set_b) / len(union)
 
-    return (total_iou / sample_n * 100)
+    from utils.bootstrap import bootstrap_ci
+    ci = bootstrap_ci(per_clip_iou * 100)
+    return float(np.mean(per_clip_iou)) * 100, ci
 
 
 def compute_silhouette(embeddings: np.ndarray, tags: list,
@@ -519,8 +523,13 @@ def compute_all_metrics(embeddings: np.ndarray, D: np.ndarray, I: np.ndarray,
     cycle, cycle_per_clip = compute_cycle_at_k(I, k)
     print(f"  Cycle@K:     {cycle:.2f}%")
 
-    overlap = compute_overlap_at_k(embeddings, k)
-    print(f"  Overlap@K:   {f'{overlap:.2f}% (dim-split approx)' if overlap is not None else 'SKIPPED (< 100 clips)'}")
+    overlap_result = compute_overlap_at_k(embeddings, k)
+    if overlap_result is not None:
+        overlap, overlap_ci = overlap_result
+        print(f"  Overlap@K:   {overlap:.2f}% \u00b1 {overlap_ci['ci_half']:.2f} (dim-split approx)")
+    else:
+        overlap, overlap_ci = None, None
+        print(f"  Overlap@K:   SKIPPED (< 100 clips)")
 
     sil = compute_silhouette(embeddings, tags)
     print(f"  Silhouette:  {sil:.4f} (scene_type)")
@@ -606,6 +615,7 @@ def compute_all_metrics(embeddings: np.ndarray, D: np.ndarray, I: np.ndarray,
             "map_at_k": ci_map,
             "cycle_at_k": ci_cycle,
             "ndcg_at_k": ci_ndcg,
+            **({"overlap_at_k": overlap_ci} if overlap_ci else {}),
         },
         "per_scene": per_scene,
         "multi_attribute_slices": multi_attr,
@@ -1111,13 +1121,16 @@ def main():
 
     # ── True Overlap@K (replaces dim-split if augmented embeddings exist) ──
     if args.true_overlap:
-        true_ov = compute_true_overlap_at_k(output_dir, k)
-        if true_ov is not None:
-            print(f"\n  True Overlap@K: {true_ov:.2f}% (multi-crop augmentation)")
+        result = compute_true_overlap_at_k(output_dir, k)
+        if result is not None:
+            true_ov, overlap_ci = result
+            print(f"\n  True Overlap@K: {true_ov:.2f}% \u00b1 {overlap_ci['ci_half']:.2f} (multi-crop augmentation)")
             easy["overlap_at_k"] = round(true_ov, 2)
             easy["overlap_method"] = "true_multi_crop"
+            easy.setdefault("ci", {})["overlap_at_k"] = overlap_ci
             hard["overlap_at_k"] = round(true_ov, 2)
             hard["overlap_method"] = "true_multi_crop"
+            hard.setdefault("ci", {})["overlap_at_k"] = overlap_ci
         else:
             print("\n  WARNING: --true-overlap set but overlap_augA/B.npy not found. Run m05c first.")
 

@@ -381,6 +381,15 @@ def main():
     output_dir = get_output_dir(args.subset, sanity=args.SANITY)
     output_dir.mkdir(parents=True, exist_ok=True)
 
+    # Skip if output already exists (motion features are encoder-independent)
+    features_file = output_dir / "motion_features.npy"
+    paths_file = output_dir / "motion_features.paths.npy"
+    checkpoint_file = output_dir / ".m04d_checkpoint.npz"
+    if features_file.exists() and paths_file.exists() and not checkpoint_file.exists():
+        print(f"Motion features already exist: {features_file}")
+        print(f"  Skipping (delete {features_file} to re-run)")
+        return
+
     mode = "SANITY" if args.SANITY else ("POC" if args.subset else "FULL")
     clip_limit = 20 if args.SANITY else None
     wb_run = init_wandb("m04d", mode, config=vars(args),

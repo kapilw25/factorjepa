@@ -2,28 +2,46 @@
   "encoder": "random",
   "encoder_dim": 1408,
   "encoder_type": "synthetic",
-  "n_clips_aligned": 5105,
+  "n_clips_aligned": 10000,
   "k_neighbors": 6,
-  "compute_time_sec": 15.0,
+  "compute_time_sec": 18.2,
   "mode": "POC",
-  "spearman_rho": -0.00022,
+  "spearman_rho": 0.003938,
   "spearman_rho_ci": {
-    "mean": -0.00022,
-    "ci_lo": -0.006079,
-    "ci_hi": 0.005757,
-    "ci_half": 0.005918
+    "mean": 0.003938,
+    "ci_lo": -0.001938,
+    "ci_hi": 0.010027,
+    "ci_half": 0.005982
   },
-  "spearman_pval": 0.9445200551706141,
-  "n_pairs_sampled": 99983,
+  "spearman_pval": 0.21305460508569826,
+  "n_pairs_sampled": 99991,
   "motion_clusters": 4,
-  "temporal_prec_at_k": 24.73,
-  "motion_retrieval_map": 0.528755,
+  "temporal_prec_at_k": 25.0,
+  "temporal_prec_at_k_ci": {
+    "mean": 24.998333,
+    "ci_lo": 24.648333,
+    "ci_hi": 25.348333,
+    "ci_half": 0.35
+  },
+  "motion_retrieval_map": 0.531787,
+  "motion_retrieval_map_ci": {
+    "mean": 0.531787,
+    "ci_lo": 0.525841,
+    "ci_hi": 0.537766,
+    "ci_half": 0.005962
+  },
   "temporal_locality": {
-    "intra_video_dist": 1.4138,
-    "inter_video_dist": 1.4142,
-    "ratio": 0.9998,
-    "n_intra_pairs": 8245,
-    "n_inter_pairs": 25493,
-    "n_multi_clip_videos": 667
+    "intra_video_dist": 1.4141,
+    "inter_video_dist": 1.4141,
+    "ratio": 1.0,
+    "ratio_ci": {
+      "mean": 1.000009,
+      "ci_lo": 0.999755,
+      "ci_hi": 1.000229,
+      "ci_half": 0.000237
+    },
+    "n_intra_pairs": 16915,
+    "n_inter_pairs": 49945,
+    "n_multi_clip_videos": 713
   }
 }

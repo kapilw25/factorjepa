@@ -642,6 +642,10 @@ def create_heatmap(all_metrics: dict, all_temporal: dict, output_dir: Path):
                     ci_h = (all_temporal or {}).get(enc, {}).get(
                         "spearman_rho_ci", {}).get("ci_half", 0)
             val_matrix[ei, mi] = v if v is not None else 0
+            # Scale CI to match display units: cycle_at_k CI is in proportion
+            # (0.008) but value is percentage (76.0) — multiply CI by 100
+            if key == "cycle_at_k" and ci_h > 0 and ci_h < 1:
+                ci_h = ci_h * 100
             ci_matrix[ei, mi] = ci_h
 
     # Normalize per column to [0, 1] for color mapping
