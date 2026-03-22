@@ -159,6 +159,7 @@
     .plot-container img {
       width: 100%;
       border-radius: 4px;
+      cursor: zoom-in;
     }
 
     .plot-caption {
@@ -730,8 +731,8 @@
       </div>
       <div class="column is-5">
         <div class="plot-container">
-          <img src="static/images/m08b_radar.png" alt="Radar chart showing 5-encoder comparison. DINOv2 has the largest polygon area.">
-          <p class="plot-caption">Easy mode, normalized 0&ndash;100%. DINOv2 (green) has the largest polygon; V-JEPA (blue) excels only on Cycle@K.</p>
+          <img src="static/images/m08b_radar.png" alt="Combined radar: 5 spatial axes (green, left) + 3 temporal axes (red, right). V-JEPA bulges toward temporal, DINOv2 toward spatial.">
+          <p class="plot-caption">8-axis radar: <span style="color:#2E7D32;font-weight:bold;">Spatial</span> (left) + <span style="color:#C62828;font-weight:bold;">Temporal</span> (right). V-JEPA (blue) leads temporal metrics; DINOv2 (green) dominates spatial.</p>
         </div>
       </div>
     </div>
@@ -958,10 +959,14 @@
       &rarr; <strong>5 Encoders</strong> (V-JEPA / DINOv2 / CLIP / Shuffled / Random)
       &rarr; <strong>FAISS-GPU kNN</strong> (k=6, Easy+Hard)
       <br>
-      &rarr; <strong>9 Metrics</strong> (Cycle@K, Prec@K, Overlap@K, mAP@K, nDCG@K, Silhouette, ...)
-      &rarr; <strong>cuML UMAP</strong> &rarr; <strong>Plots</strong>
+      &rarr; <strong>9 Spatial Metrics</strong> (Prec@K, mAP@K, Cycle@K, Overlap@K, nDCG@K, ...)
+      + <strong>5 Temporal Metrics</strong> (Spearman &rho;, Temp Prec@K, Motion mAP, Order Sensitivity, Locality)
+      <br>
+      &rarr; <strong>GPU-RAFT Optical Flow</strong> (13D motion features)
+      &rarr; <strong>Bootstrap 95% CI</strong> (BCa, 10K iterations)
+      &rarr; <strong>cuML UMAP</strong> &rarr; <strong>7 Comparison Plots</strong>
     </div>
-    <p class="plot-caption has-text-centered">End-to-end pipeline: from YouTube walking tours to reproducible retrieval benchmarks. Total runtime ~6h 35m on RTX PRO 6000 (96 GB).</p>
+    <p class="plot-caption has-text-centered">End-to-end pipeline: from YouTube walking tours to reproducible retrieval benchmarks. Total runtime ~7h on RTX PRO 6000 (96 GB).</p>
   </div>
 </section>
 
@@ -1003,6 +1008,44 @@
   </div>
 </section>
 
+<!-- ==================== SPATIAL vs TEMPORAL ANALYSIS ==================== -->
+<section class="section">
+  <div class="container" style="max-width: 1100px;">
+    <h2 class="title is-3 has-text-centered">Spatial vs Temporal Analysis</h2>
+
+    <div class="columns">
+      <div class="column is-6">
+        <div class="plot-container">
+          <img src="static/images/m08b_spatial_temporal_bar.png" alt="Two-row bar chart: spatial metrics (top, green) and temporal metrics (bottom, red) per encoder with 95% CI error bars">
+          <p class="plot-caption"><strong>Spatial vs Temporal metrics.</strong> Top row: DINOv2 dominates spatial. Bottom row: V-JEPA leads on Spearman &rho; and Temp Prec@K. All with 95% CI.</p>
+        </div>
+      </div>
+      <div class="column is-6">
+        <div class="plot-container">
+          <img src="static/images/m08b_tradeoff_scatter.png" alt="Scatter plot: X=spatial aggregate score, Y=temporal aggregate score. DINOv2 bottom-right (spatial), V-JEPA top-left (temporal).">
+          <p class="plot-caption"><strong>Spatial-Temporal Tradeoff.</strong> DINOv2/CLIP cluster bottom-right (spatial winners). V-JEPA/Shuffled cluster top-left (temporal winners). Random near origin.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="columns">
+      <div class="column is-6">
+        <div class="plot-container">
+          <img src="static/images/m08b_temporal_ablation.png" alt="Paired bar chart: V-JEPA normal vs shuffled on all spatial and temporal metrics with delta annotations">
+          <p class="plot-caption"><strong>Does frame order matter?</strong> V-JEPA (normal) vs V-JEPA (shuffled). Green &Delta; = expected direction. Red &Delta; = temporal encoding not helping. Overlap@K shows the largest gap (&Delta;=-27.35).</p>
+        </div>
+      </div>
+      <div class="column is-6">
+        <div class="plot-container">
+          <img src="static/images/m08b_heatmap.png" alt="Encoder by metric heatmap with green spatial columns and red temporal columns, showing values with 95% CI">
+          <p class="plot-caption"><strong>Full performance matrix.</strong> Green = spatial columns, red = temporal. Cell intensity = rank within column. Every value includes &plusmn;95% CI. DINOv2 row is darkest green; V-JEPA competitive in red.</p>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</section>
+
 <!-- ==================== SPATIAL-TEMPORAL GAP ==================== -->
 <section class="section">
   <div class="container" style="max-width: 900px;">
@@ -1033,27 +1076,193 @@
       </thead>
       <tbody>
         <tr>
-          <td>Ch 9: Frozen Evaluation</td>
-          <td>5-encoder benchmark on 10K POC (9 metrics, Easy/Hard)</td>
+          <td>Evaluate (Ch 9)</td>
+          <td>5-encoder benchmark on 10K POC &mdash; 9 spatial + 5 temporal metrics, 95% CI, Easy/Hard</td>
           <td class="status-complete">Complete</td>
         </tr>
         <tr>
           <td>Temporal Extension</td>
-          <td>Optical flow features (m04f) + temporal Prec@K + image-baseline control</td>
+          <td>GPU-RAFT motion features (m04d) + 5 temporal correlation metrics (m06b) + spatial-temporal comparison plots</td>
+          <td class="status-complete">Complete</td>
+        </tr>
+        <tr>
+          <td>Pretrain (Ch 10)</td>
+          <td>Continual pretraining on Indian clips using JEPA loss (student-teacher EMA)</td>
           <td class="status-planned">Planned</td>
         </tr>
         <tr>
-          <td>Ch 10: Continual Pretraining</td>
-          <td>Adapt V-JEPA to Indian data using the same JEPA loss (student-teacher)</td>
+          <td>Surgery (Ch 11)</td>
+          <td>Progressive prefix unfreezing with factor datasets (Layout &rarr; Agent &rarr; Interaction)</td>
           <td class="status-planned">Planned</td>
         </tr>
         <tr>
-          <td>Ch 11: Surgery Fine-Tuning</td>
-          <td>Progressive prefix unfreezing with factor datasets (layout / agent / interaction)</td>
+          <td>115K + Scaling Ablation</td>
+          <td>Full 115K run: V-JEPA 2.0 (1B, primary) + V-JEPA 2.1 (2B, ablation)</td>
           <td class="status-planned">Planned</td>
         </tr>
       </tbody>
     </table>
+  </div>
+</section>
+
+<!-- ==================== SYSTEM DESIGN (NEXT STEPS) ==================== -->
+<section class="section">
+  <div class="container" style="max-width: 1100px;">
+    <h2 class="title is-3 has-text-centered">System Design: Next Steps</h2>
+
+    <!-- Diagram 1: Module Pipeline -->
+    <h3 class="title is-4" style="margin-top: 2rem;">Module Pipeline: Evaluate &rarr; Pretrain &rarr; Surgery</h3>
+    <div class="plot-container" style="overflow-x: auto;">
+      <pre class="mermaid">
+flowchart LR
+    subgraph CH9 ["Ch 9 · Evaluate (DONE)"]
+        direction TB
+        m04["m04 · VLM tag"] --> m05["m05 · V-JEPA embed"]
+        m05 --> m05b["m05b · baselines"]
+        m05 --> m05c["m05c · true overlap"]
+        m04d["m04d · motion feat"] --> m06b["m06b · temporal corr"]
+        m05 --> m06["m06 · FAISS metrics"]
+        m06 --> m07["m07 · UMAP"]
+        m07 --> m08["m08 · plots"]
+        m06 --> m08b["m08b · compare"]
+    end
+
+    subgraph CH10 ["Ch 10 · Pretrain (NEXT)"]
+        direction TB
+        m09["m09_pretrain.py\nJEPA loss + EMA\n+ drift control"]
+    end
+
+    subgraph CH11 ["Ch 11 · Surgery (FUTURE)"]
+        direction TB
+        m10["m10 · SAM3"] --> m11["m11 · factor\ndatasets"] --> m12["m12 · surgery"]
+    end
+
+    subgraph REEVAL ["Re-eval · 3-way"]
+        direction TB
+        re05["m05 re-embed"] --> re06["m06 metrics"] --> re08["m08b compare\nfrozen · adapted\n· surgical"]
+    end
+
+    m05 -->|"frozen"| m09
+    m09 -->|"adapted ckpt"| REEVAL
+    m09 -->|"init"| m12
+    m12 -->|"surgical ckpt"| REEVAL
+
+    style m04 fill:#00acc1,color:#fff,font-weight:bold
+    style m05 fill:#43a047,color:#fff,font-weight:bold
+    style m05b fill:#546e7a,color:#fff,font-weight:bold
+    style m05c fill:#2e7d32,color:#fff,font-weight:bold
+    style m04d fill:#00897b,color:#fff,font-weight:bold
+    style m06 fill:#e53935,color:#fff,font-weight:bold
+    style m06b fill:#d81b60,color:#fff,font-weight:bold
+    style m07 fill:#795548,color:#fff,font-weight:bold
+    style m08 fill:#6d4c41,color:#fff,font-weight:bold
+    style m08b fill:#4e342e,color:#fff,font-weight:bold
+    style m09 fill:#7b1fa2,color:#fff,font-weight:bold
+    style m10 fill:#1565c0,color:#fff,font-weight:bold
+    style m11 fill:#0d47a1,color:#fff,font-weight:bold
+    style m12 fill:#0d47a1,color:#fff,font-weight:bold
+    style re05 fill:#bf360c,color:#fff,font-weight:bold
+    style re06 fill:#d84315,color:#fff,font-weight:bold
+    style re08 fill:#b71c1c,color:#fff,font-weight:bold
+      </pre>
+    </div>
+    <p class="plot-caption has-text-centered">Full pipeline from evaluation through domain adaptation. Each chapter re-uses the same m05&rarr;m06&rarr;m08 evaluation pipeline.</p>
+
+    <!-- Diagram 2: Ch10 Training Step -->
+    <h3 class="title is-4" style="margin-top: 2.5rem;">Ch10: JEPA Training Step (Single Iteration)</h3>
+    <div class="plot-container" style="overflow-x: auto;">
+      <pre class="mermaid">
+flowchart LR
+    subgraph DATA ["1 · Data"]
+        CLIP["Indian clip\n10s · 16 frames"] --> AUG["Augment\nRRC 384×384\nsame crop\nall frames"]
+    end
+
+    subgraph MASKING ["2 · Mask"]
+        AUG --> TOKENS["Patchify\n24×24×8\n=4608 tokens"]
+        TOKENS --> MGEN["MaskCollator\n8 small (15%)\n2 large (70%)"]
+        MGEN --> VIS["visible\n~500-1100"]
+        MGEN --> MASKED["masked\n~3500-4100"]
+    end
+
+    subgraph ENCODE ["3 · Encode"]
+        direction TB
+        VIS --> S_ENC["STUDENT\nViT-g · 1B\nvisible only\ntrainable"]
+        AUG2["same clip"] --> T_ENC["TEACHER\nViT-g · 1B\nALL tokens\nno grad"]
+    end
+
+    subgraph PREDICT ["4 · Predict + Loss"]
+        S_ENC --> PREDICTOR["PREDICTOR\n12 blocks\n384-dim"]
+        T_ENC --> SELECT["select masked\npositions"]
+        PREDICTOR --> L1["L1 LOSS\n|pred − target|"]
+        SELECT --> L1
+    end
+
+    subgraph UPDATE ["5 · Update"]
+        L1 --> ADAM["AdamW\n+ grad clip 1.0\n+ drift control"]
+        ADAM --> EMA_UP["EMA teacher\nτ = 0.99925"]
+    end
+
+    style CLIP fill:#5e35b1,color:#fff,font-weight:bold
+    style AUG fill:#00897b,color:#fff,font-weight:bold
+    style TOKENS fill:#795548,color:#fff,font-weight:bold
+    style MGEN fill:#e65100,color:#fff,font-weight:bold
+    style VIS fill:#2e7d32,color:#fff,font-weight:bold
+    style MASKED fill:#c62828,color:#fff,font-weight:bold
+    style S_ENC fill:#1565c0,color:#fff,font-weight:bold
+    style T_ENC fill:#546e7a,color:#fff,font-weight:bold
+    style AUG2 fill:#546e7a,color:#fff,font-weight:bold
+    style PREDICTOR fill:#6a1b9a,color:#fff,font-weight:bold
+    style SELECT fill:#37474f,color:#fff,font-weight:bold
+    style L1 fill:#c62828,color:#fff,font-weight:bold
+    style ADAM fill:#1a237e,color:#fff,font-weight:bold
+    style EMA_UP fill:#9c27b0,color:#fff,font-weight:bold
+      </pre>
+    </div>
+    <p class="plot-caption has-text-centered">One training iteration of V-JEPA continual pretraining. Student sees ~20% visible tokens; teacher sees all. L1 loss at masked positions only. Same JEPA objective as Meta's original pretraining.</p>
+
+    <!-- Diagram 3: Ch11 Surgery Overview -->
+    <h3 class="title is-4" style="margin-top: 2.5rem;">Ch11: Progressive Prefix Unfreezing with Factor Datasets</h3>
+    <div class="plot-container" style="overflow-x: auto;">
+      <pre class="mermaid">
+flowchart TB
+    subgraph SAM ["SAM3 Segmentation (m10)"]
+        direction LR
+        SEG["SAM3\ninstance masks"] --> TRACK["Greedy IoU\ntracklets"] --> AGENT["Agent vs Layout\nmotion filter"]
+    end
+
+    subgraph FACTOR ["Factor Datasets (m11)"]
+        direction LR
+        DL["D_L\nlayout-only\nblur agents"]
+        DA["D_A\nagent-only\nsuppress BG"]
+        DI["D_I\ninteraction\ntube crops"]
+    end
+
+    AGENT --> DL
+    AGENT --> DA
+    AGENT --> DI
+
+    subgraph STAGES ["3-Stage Surgery (m12)"]
+        direction LR
+        S1["Stage 1\nlayers 0→10\n100% D_L\nroads · wires"] --> S2["Stage 2\nlayers 0→20\n90% D_A\nrickshaws · cows"] --> S3["Stage 3\nlayers 0→30\n85% D_I\nagent interactions"]
+    end
+
+    FACTOR --> STAGES
+    S3 --> SURGICAL["V-JEPA\n(surgical)"]
+
+    style SEG fill:#0277bd,color:#fff,font-weight:bold
+    style TRACK fill:#01579b,color:#fff,font-weight:bold
+    style AGENT fill:#004d40,color:#fff,font-weight:bold
+    style DL fill:#1b5e20,color:#fff,font-weight:bold
+    style DA fill:#33691e,color:#fff,font-weight:bold
+    style DI fill:#827717,color:#fff,font-weight:bold
+    style S1 fill:#1565c0,color:#fff,font-weight:bold
+    style S2 fill:#1565c0,color:#fff,font-weight:bold
+    style S3 fill:#0d47a1,color:#fff,font-weight:bold
+    style SURGICAL fill:#4a148c,color:#fff,font-weight:bold
+      </pre>
+    </div>
+    <p class="plot-caption has-text-centered">Ch11 surgery: SAM3 segments each frame into agents (moving) and layout (static). Three factor datasets train progressively deeper layers &mdash; layout first, then agents, then interactions &mdash; with replay mixing to prevent catastrophic forgetting.</p>
+
   </div>
 </section>
 
@@ -1129,9 +1338,38 @@ document.querySelectorAll('#main-tabs li').forEach(tab => {
     tab.classList.add('is-active');
     document.querySelectorAll('.tab-content').forEach(c => c.style.display = 'none');
     document.getElementById('tab-' + target).style.display = 'block';
+    // Re-render mermaid diagrams when factorjepa tab becomes visible
+    if (target === 'factorjepa' && window.mermaid) {
+      mermaid.run({ querySelector: '#tab-factorjepa .mermaid' });
+    }
   });
 });
 </script>
+
+<!-- Mermaid.js for system design diagrams (11KB CDN) -->
+<script src="https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js"></script>
+<script>mermaid.initialize({ startOnLoad: false, theme: 'dark', themeVariables: { fontSize: '14px' } });</script>
+
+<!-- Click-to-fullscreen on mermaid diagrams -->
+<script>
+document.addEventListener('click', function(e) {
+  var svg = e.target.closest('.mermaid svg');
+  if (!svg) return;
+  var overlay = document.createElement('div');
+  overlay.style.cssText = 'position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgba(0,0,0,0.92);z-index:9999;display:flex;align-items:center;justify-content:center;cursor:zoom-out;padding:2rem;';
+  var clone = svg.cloneNode(true);
+  clone.style.cssText = 'max-width:95vw;max-height:90vh;width:auto;height:auto;';
+  overlay.appendChild(clone);
+  overlay.addEventListener('click', function() { overlay.remove(); });
+  document.addEventListener('keydown', function esc(e) { if (e.key === 'Escape') { overlay.remove(); document.removeEventListener('keydown', esc); } });
+  document.body.appendChild(overlay);
+});
+</script>
+<style>.mermaid svg { cursor: zoom-in; }</style>
+
+<!-- Click-to-zoom on all result plots (medium-zoom, 4KB CDN) -->
+<script src="https://cdn.jsdelivr.net/npm/medium-zoom@1.1.0/dist/medium-zoom.min.js"></script>
+<script>mediumZoom('.plot-container img', { margin: 40, background: 'rgba(0,0,0,0.9)' });</script>
 
 </body>
 </html>
