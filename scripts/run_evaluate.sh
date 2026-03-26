@@ -34,8 +34,8 @@ case "$1" in
         MODE="SANITY"
         MODE_FLAG="--SANITY"
         SUBSET_FLAG=""
-        OUT_DIR="src/outputs_sanity"
-        TAGS_FILE="src/outputs_sanity/tags_sanity_qwen.json"
+        OUT_DIR="outputs/sanity"
+        TAGS_FILE="outputs/sanity/tags_sanity_qwen.json"
         BATCH_M04=""
         MIN_CLIPS=5
         ;;
@@ -43,8 +43,8 @@ case "$1" in
         MODE="FULL"
         MODE_FLAG="--FULL"
         SUBSET_FLAG="--subset data/subset_10k.json"
-        OUT_DIR="src/outputs_poc"
-        TAGS_FILE="src/outputs_poc/tags.json"
+        OUT_DIR="outputs/poc"
+        TAGS_FILE="outputs/poc/tags.json"
         BATCH_M04=""
         MIN_CLIPS=1000
         ;;

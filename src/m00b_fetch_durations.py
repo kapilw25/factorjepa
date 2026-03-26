@@ -20,8 +20,9 @@ sys.path.insert(0, str(Path(__file__).parent))
 from utils.config import YT_VIDEOS_JSON
 
 # Paths
+from utils.config import OUTPUTS_DATA_PREP_DIR
 INPUT_JSON = YT_VIDEOS_JSON
-OUTPUT_DIR = Path("outputs_data_prep")
+OUTPUT_DIR = OUTPUTS_DATA_PREP_DIR
 OUTPUT_JSON = OUTPUT_DIR / "video_durations.json"
 
 # Defaults

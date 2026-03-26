@@ -52,8 +52,8 @@ checkpoints/
 *.splat
 
 # Logs
-*.log
-logs/*
+# *.log
+# logs/*
 
 # Weights & Biases
 wandb/

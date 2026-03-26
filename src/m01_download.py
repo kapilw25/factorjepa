@@ -18,11 +18,11 @@ from pathlib import Path
 
 # Add src to path for utils import
 sys.path.insert(0, str(Path(__file__).parent))
-from utils.config import VIDEOS_DIR, YT_VIDEOS_JSON
+from utils.config import VIDEOS_DIR, YT_VIDEOS_JSON, OUTPUTS_DATA_PREP_DIR
 
 # Paths
 INPUT_JSON = YT_VIDEOS_JSON
-DURATIONS_JSON = Path("outputs_data_prep/video_durations.json")
+DURATIONS_JSON = OUTPUTS_DATA_PREP_DIR / "video_durations.json"
 
 # Defaults
 # 480p for prototyping: fits on M1 Mac (70 GB) + HF Private (100 GB limit)

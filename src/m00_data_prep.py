@@ -17,9 +17,10 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent))
 
 # Paths
+from utils.config import OUTPUTS_DATA_PREP_DIR
 RAW_MD = Path("Literature/Prev_work4/YT_videos_raw.md")
 OUTPUT_JSON = Path("src/utils/YT_videos_raw.json")
-OUTPUT_DIR = Path("outputs_data_prep")
+OUTPUT_DIR = OUTPUTS_DATA_PREP_DIR
 
 
 def extract_youtube_id(url: str) -> str:

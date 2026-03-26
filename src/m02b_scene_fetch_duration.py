@@ -20,10 +20,10 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent))
 from utils.config import (
     CLIPS_DIR, CLIP_MIN_DURATION, CLIP_MAX_DURATION, get_video_duration,
-    PROJECT_ROOT,
+    OUTPUTS_DATA_PREP_DIR, PROJECT_ROOT,
 )
 
-OUTPUT_JSON = PROJECT_ROOT / "outputs_data_prep" / "clip_durations.json"
+OUTPUT_JSON = OUTPUTS_DATA_PREP_DIR / "clip_durations.json"
 
 
 def extract_video_id(clip_stem: str) -> str:

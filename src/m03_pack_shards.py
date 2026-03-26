@@ -17,11 +17,11 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent))
 from utils.config import (
-    CLIPS_DIR, SHARDS_DIR, HF_DATASET_REPO, PROJECT_ROOT,
+    CLIPS_DIR, SHARDS_DIR, HF_DATASET_REPO, OUTPUTS_DATA_PREP_DIR,
 )
 from utils.hf_utils import _setup_hf_env, _get_token, generate_readme, upload_readme
 
-CLIP_DURATIONS_JSON = PROJECT_ROOT / "outputs_data_prep" / "clip_durations.json"
+CLIP_DURATIONS_JSON = OUTPUTS_DATA_PREP_DIR / "clip_durations.json"
 CLIPS_PER_SHARD = 1000
 
 

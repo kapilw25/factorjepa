@@ -94,9 +94,12 @@ Research benchmark testing if V-JEPA 2 (Meta's video foundation model, trained o
 | vjepa_shuffled | vjepa2-vitg-fpc64-384 | 1408 | _vjepa_shuffled | video (shuffled) |
 
 ## Output Paths
-- SANITY: src/outputs_sanity/ (--SANITY, 5-20 clips)
-- POC: src/outputs_poc/ (--FULL --subset data/subset_10k.json)
-- Full: src/outputs/ (--FULL, no --subset)
+All outputs consolidated under `outputs/` (symlinks at old locations for backward compat):
+- SANITY: outputs/sanity/ (--SANITY, 5-20 clips)
+- POC: outputs/poc/ (--FULL --subset data/subset_10k.json)
+- Full: outputs/full/ (--FULL, no --subset)
+- Data prep: outputs/data_prep/ (m00-m02b CPU outputs)
+- Profile: outputs/profile/ (VRAM profiler)
 - Bakeoff: src/data/bakeoff/ (--BAKEOFF)
 
 ## Cross-Module Dependencies (run_evaluate.sh order)

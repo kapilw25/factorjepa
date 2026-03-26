@@ -14,15 +14,21 @@ DATA_DIR = SRC_DIR / "data"
 VIDEOS_DIR = DATA_DIR / "videos"
 CLIPS_DIR = DATA_DIR / "clips"
 SHARDS_DIR = DATA_DIR / "shards"
-OUTPUTS_DIR = SRC_DIR / "outputs"
 LOGS_DIR = PROJECT_ROOT / "logs"
+
+# Consolidated output directories (all under outputs/)
+OUTPUTS_ROOT = PROJECT_ROOT / "outputs"
+OUTPUTS_DIR = OUTPUTS_ROOT / "full"
+OUTPUTS_DATA_PREP_DIR = OUTPUTS_ROOT / "data_prep"
+OUTPUTS_PROFILE_DIR = OUTPUTS_ROOT / "profile"
 
 # Input data (canonical copies in src/utils/)
 YT_VIDEOS_JSON = UTILS_DIR / "YT_videos_raw.json"
 TAG_TAXONOMY_JSON = UTILS_DIR / "tag_taxonomy.json"
 
 # Ensure directories exist
-for d in [VIDEOS_DIR, CLIPS_DIR, SHARDS_DIR, OUTPUTS_DIR, LOGS_DIR]:
+for d in [VIDEOS_DIR, CLIPS_DIR, SHARDS_DIR, OUTPUTS_DIR, OUTPUTS_DATA_PREP_DIR,
+          OUTPUTS_PROFILE_DIR, LOGS_DIR]:
     d.mkdir(parents=True, exist_ok=True)
 
 # HuggingFace dataset config
@@ -106,8 +112,8 @@ FAISS_K_NEIGHBORS = 6  # includes self
 
 # POC subset config
 SUBSET_FILE = PROJECT_ROOT / "data" / "subset_10k.json"
-OUTPUTS_SANITY_DIR = SRC_DIR / "outputs_sanity"
-OUTPUTS_POC_DIR = SRC_DIR / "outputs_poc"
+OUTPUTS_SANITY_DIR = OUTPUTS_ROOT / "sanity"
+OUTPUTS_POC_DIR = OUTPUTS_ROOT / "poc"
 BAKEOFF_DIR = DATA_DIR / "bakeoff"
 
 # VLM bake-off config
@@ -155,7 +161,7 @@ def add_encoder_arg(parser):
                         help="Encoder whose embeddings to process (default: vjepa)")
 
 
-# Ensure POC/sanity directories exist
+# Ensure POC/sanity/bakeoff directories exist
 for d in [OUTPUTS_SANITY_DIR, OUTPUTS_POC_DIR, BAKEOFF_DIR]:
     d.mkdir(parents=True, exist_ok=True)
 
