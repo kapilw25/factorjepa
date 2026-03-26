@@ -5,6 +5,7 @@ git_push*
 # Directories
 trash
 venv*
+deps/
 
 # Python
 __pycache__/

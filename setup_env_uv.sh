@@ -167,7 +167,9 @@ setup_base() {
     # Create directories
     echo ""
     echo "Creating directories..."
-    mkdir -p src/data/videos src/data/clips src/data/shards src/data/bakeoff src/outputs src/outputs_poc data logs wheels
+    mkdir -p src/data/videos src/data/clips src/data/shards src/data/bakeoff \
+            outputs/full outputs/poc outputs/sanity outputs/data_prep outputs/profile \
+            data logs wheels deps
 
     echo ""
     echo "Base setup complete."
@@ -206,6 +208,17 @@ if [ "$1" = "--gpu" ]; then
     echo "============================================"
     echo "GPU Setup (Linux + Nvidia ONLY)"
     echo "============================================"
+
+    # Clone vjepa2 training dependency (Ch10 continual pretraining)
+    if [ ! -d "deps/vjepa2/src" ]; then
+        echo ""
+        echo "Cloning facebookresearch/vjepa2 (training dependency)..."
+        rm -rf deps/vjepa2
+        git clone --depth 1 https://github.com/facebookresearch/vjepa2.git deps/vjepa2
+        echo "vjepa2 cloned to deps/vjepa2/"
+    else
+        echo "deps/vjepa2 already present"
+    fi
 
     # Download prebuilt wheels if --from-wheels
     if [ "$FROM_WHEELS" = true ]; then
