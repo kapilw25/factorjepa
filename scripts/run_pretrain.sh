@@ -8,7 +8,12 @@
 #
 # USAGE:
 #   ./scripts/run_pretrain.sh --SANITY 2>&1 | tee logs/ch10_sanity.log
+#
+#   # FULL run (~20h per lambda × 4 = ~80h total). Use tmux to survive SSH disconnects:
+#   tmux new -s ch10
 #   ./scripts/run_pretrain.sh --FULL 2>&1 | tee logs/ch10_full_10k.log
+#   # Ctrl+B, D to detach
+#   # tmux attach -t ch10 to reconnect
 #
 # Features: pre-flight checks, checkpoint/resume, error handling, verification
 # All steps SEQUENTIAL on single GPU. Skips completed steps automatically.

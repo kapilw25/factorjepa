@@ -15,6 +15,7 @@ import time
 from pathlib import Path
 
 import numpy as np
+from tqdm import tqdm
 
 # Add src to path for utils import
 sys.path.insert(0, str(Path(__file__).parent))
