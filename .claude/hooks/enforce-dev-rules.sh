@@ -12,9 +12,17 @@ if [ -z "$COMMAND" ]; then
 fi
 
 # Rule 1: Block pip install / uv pip install
-# Enforcement of: "NEVER install packages directly via pip install or uv pip install"
+# Enforcement of: "NEVER install packages directly — always modify requirements files + run setup script"
+# For reproducibility: all deps must be tracked in requirements.txt or requirements_gpu.txt
 if echo "$COMMAND" | grep -qiE '(^|\s)(pip|uv\s+pip)\s+install'; then
-  echo "BLOCKED: Direct pip/uv install not allowed. Add deps to requirements.txt then run: bash setup_env_uv.sh"
+  echo "BLOCKED: Direct pip/uv install not allowed (breaks reproducibility)."
+  echo ""
+  echo "Required workflow:"
+  echo "  1. Add the package to requirements.txt (CPU/base) or requirements_gpu.txt (GPU-only)"
+  echo "  2. Run: ./setup_env_uv.sh --gpu --from-wheels  (GPU server)"
+  echo "     Or:  ./setup_env_uv.sh --mac                (M1 Mac)"
+  echo ""
+  echo "This ensures every dependency is tracked and reproducible across machines."
   exit 2
 fi
 

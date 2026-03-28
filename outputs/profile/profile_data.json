@@ -1,0 +1,213 @@
+{
+  "gpu": "NVIDIA RTX PRO 6000 Blackwell Workstation Edition",
+  "gpu_total_gb": 94.96856689453125,
+  "config": {
+    "crop": 384,
+    "frames": 16,
+    "tokens": 4608
+  },
+  "no_ckpt": {
+    "1": {
+      "peak_gb": 18.456132888793945,
+      "time_s": 1.5922276973724365,
+      "visible_tokens": [
+        1800,
+        456
+      ],
+      "waterfall": {
+        "baseline": 7.7934722900390625,
+        "data_loaded": 7.8071441650390625,
+        "masks_generated": 7.80721378326416,
+        "teacher_forward": 7.86361026763916,
+        "student_forward_mg0": 14.812268733978271,
+        "predictor_forward_mg0": 15.937937259674072,
+        "student_forward_mg1": 17.270832061767578,
+        "predictor_forward_mg1": 18.32041358947754,
+        "loss_computed": 18.369019508361816,
+        "backward_done": 11.796733379364014
+      }
+    },
+    "2": {
+      "peak_gb": 25.81273078918457,
+      "time_s": 1.207793951034546,
+      "visible_tokens": [
+        1344,
+        776
+      ],
+      "waterfall": {
+        "baseline": 7.8579254150390625,
+        "data_loaded": 7.8852691650390625,
+        "masks_generated": 7.88539981842041,
+        "teacher_forward": 7.93373966217041,
+        "student_forward_mg0": 17.19712781906128,
+        "predictor_forward_mg0": 19.079612731933594,
+        "student_forward_mg1": 23.49126625061035,
+        "predictor_forward_mg1": 25.557653427124023,
+        "loss_computed": 25.649483680725098,
+        "backward_done": 11.86363172531128
+      }
+    },
+    "4": {
+      "peak_gb": 45.006877422332764,
+      "time_s": 1.50162935256958,
+      "visible_tokens": [
+        1952,
+        512
+      ],
+      "waterfall": {
+        "baseline": 7.8579254150390625,
+        "data_loaded": 7.9106597900390625,
+        "masks_generated": 7.910913944244385,
+        "teacher_forward": 8.007593631744385,
+        "student_forward_mg0": 31.06400775909424,
+        "predictor_forward_mg0": 34.87544250488281,
+        "student_forward_mg1": 40.68431615829468,
+        "predictor_forward_mg1": 44.49797010421753,
+        "loss_computed": 44.68741846084595,
+        "backward_done": 12.0128812789917
+      }
+    },
+    "8": {
+      "peak_gb": 66.2955870628357,
+      "time_s": 2.109805107116699,
+      "visible_tokens": [
+        1232,
+        656
+      ],
+      "waterfall": {
+        "baseline": 7.8579254150390625,
+        "data_loaded": 7.9633941650390625,
+        "masks_generated": 7.963863849639893,
+        "teacher_forward": 8.157223224639893,
+        "student_forward_mg0": 36.79491329193115,
+        "predictor_forward_mg0": 43.71489715576172,
+        "student_forward_mg1": 58.29253625869751,
+        "predictor_forward_mg1": 65.42107915878296,
+        "loss_computed": 65.73162126541138,
+        "backward_done": 12.285791397094727
+      }
+    }
+  },
+  "grad_ckpt": {
+    "1": {
+      "peak_gb": 12.05024242401123,
+      "time_s": 1.3054542541503906,
+      "visible_tokens": [
+        2000,
+        960
+      ],
+      "waterfall": {
+        "baseline": 7.8580169677734375,
+        "data_loaded": 7.8716888427734375,
+        "masks_generated": 7.871757984161377,
+        "teacher_forward": 7.895927906036377,
+        "student_forward_mg0": 10.048149108886719,
+        "predictor_forward_mg0": 10.213369369506836,
+        "student_forward_mg1": 10.377435684204102,
+        "predictor_forward_mg1": 10.492086410522461,
+        "loss_computed": 8.609879493713379,
+        "backward_done": 11.795594215393066
+      }
+    },
+    "2": {
+      "peak_gb": 12.259088516235352,
+      "time_s": 1.3280982971191406,
+      "visible_tokens": [
+        1584,
+        960
+      ],
+      "waterfall": {
+        "baseline": 7.8580169677734375,
+        "data_loaded": 7.8853607177734375,
+        "masks_generated": 7.885488510131836,
+        "teacher_forward": 7.933828353881836,
+        "student_forward_mg0": 10.284865856170654,
+        "predictor_forward_mg0": 10.555665493011475,
+        "student_forward_mg1": 10.905685424804688,
+        "predictor_forward_mg1": 11.098430633544922,
+        "loss_computed": 9.208319664001465,
+        "backward_done": 11.864043235778809
+      }
+    },
+    "4": {
+      "peak_gb": 12.555726528167725,
+      "time_s": 1.462315320968628,
+      "visible_tokens": [
+        1280,
+        912
+      ],
+      "waterfall": {
+        "baseline": 7.8580169677734375,
+        "data_loaded": 7.9107513427734375,
+        "masks_generated": 7.910993576049805,
+        "teacher_forward": 8.007673263549805,
+        "student_forward_mg0": 10.600011348724365,
+        "predictor_forward_mg0": 11.042796611785889,
+        "student_forward_mg1": 11.690785884857178,
+        "predictor_forward_mg1": 12.099050045013428,
+        "loss_computed": 10.316452503204346,
+        "backward_done": 12.00211763381958
+      }
+    },
+    "8": {
+      "peak_gb": 14.715717792510986,
+      "time_s": 1.8927595615386963,
+      "visible_tokens": [
+        1288,
+        768
+      ],
+      "waterfall": {
+        "baseline": 7.8580169677734375,
+        "data_loaded": 7.9634857177734375,
+        "masks_generated": 7.96395206451416,
+        "teacher_forward": 8.15731143951416,
+        "student_forward_mg0": 11.443819046020508,
+        "predictor_forward_mg0": 12.25595474243164,
+        "student_forward_mg1": 13.388126850128174,
+        "predictor_forward_mg1": 14.167866230010986,
+        "loss_computed": 12.54539442062378,
+        "backward_done": 12.266017436981201
+      }
+    },
+    "16": {
+      "peak_gb": 18.513014793395996,
+      "time_s": 3.112128257751465,
+      "visible_tokens": [
+        1000,
+        656
+      ],
+      "waterfall": {
+        "baseline": 7.8580169677734375,
+        "data_loaded": 8.068954467773438,
+        "masks_generated": 8.06980037689209,
+        "teacher_forward": 8.45651912689209,
+        "student_forward_mg0": 12.55555772781372,
+        "predictor_forward_mg0": 13.940985202789307,
+        "student_forward_mg1": 15.939433097839355,
+        "predictor_forward_mg1": 17.441481590270996,
+        "loss_computed": 16.125123977661133,
+        "backward_done": 12.774734020233154
+      }
+    },
+    "32": {
+      "peak_gb": 27.787872314453125,
+      "time_s": 6.496654987335205,
+      "visible_tokens": [
+        1232,
+        512
+      ],
+      "waterfall": {
+        "baseline": 7.8580169677734375,
+        "data_loaded": 8.279891967773438,
+        "masks_generated": 8.281641006469727,
+        "teacher_forward": 9.055078506469727,
+        "student_forward_mg0": 16.29445791244507,
+        "predictor_forward_mg0": 19.290130138397217,
+        "student_forward_mg1": 22.738983154296875,
+        "predictor_forward_mg1": 25.639434814453125,
+        "loss_computed": 24.919962882995605,
+        "backward_done": 13.821901798248291
+      }
+    }
+  }
+}

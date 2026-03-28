@@ -476,7 +476,7 @@ python -u src/m08_plot.py --FULL 2>&1 | tee logs/m08_full_115k.log
         # Returns: {"vjepa": int, "image_encoder": int, "transformers": int, "transformers_batch": int}
 
     The pattern is:
-    - Auto-detect: torch.cuda.get_device_properties(0).total_mem (or similar)
+    - Auto-detect: torch.cuda.get_device_properties(0).total_memory (or similar)
     - Linear scaling: scale = actual_vram / baseline_vram
     - Per-workload caps: V-JEPA caps at 64, image_encoder caps at 256
     - Override: --gpu-mem arg to force a specific VRAM value
@@ -492,7 +492,7 @@ python -u src/m08_plot.py --FULL 2>&1 | tee logs/m08_full_115k.log
     # Pseudocode for m04f batch sizing
     def compute_raft_batch_size(gpu_vram_gb=None):
         if gpu_vram_gb is None:
-            gpu_vram_gb = torch.cuda.get_device_properties(0).total_mem / (1024**3)
+            gpu_vram_gb = torch.cuda.get_device_properties(0).total_memory / (1024**3)
 
         # RAFT at 520x360: ~2GB per frame pair in batch
         # Reserve 2GB for model weights + overhead

@@ -1,0 +1,52 @@
+/workspace/factorjepa/venv_walkindia/lib/python3.12/site-packages/timm/models/layers/__init__.py:49: FutureWarning: Importing from timm.models.layers is deprecated, please import via timm.layers
+  warnings.warn(f"Importing from {__name__} is deprecated, please import via timm.layers", FutureWarning)
+GPU: NVIDIA RTX PRO 6000 Blackwell Workstation Edition (95.0 GB)
+Config: ViT-g (1B), 384px, 16f, bf16
+Token grid: 24x24x8 = 4608 tokens
+
+============================================================
+Run 1: WITHOUT gradient checkpointing
+============================================================
+Student: 1.01B params
+Teacher: 1.01B params (frozen)
+Predictor: 22.4M params
+
+ Batch   Peak VRAM     Visible    Status     Time
+-------------------------------------------------------
+/venv/main/lib/python3.12/contextlib.py:105: FutureWarning: `torch.backends.cuda.sdp_kernel()` is deprecated. In the future, this context manager will be removed. Please see `torch.nn.attention.sdpa_kernel()` for the new context manager, with updated signature.
+  self.gen = func(*args, **kwds)
+     1       18.5G  [1800, 456]        OK     1.6s
+     2       25.8G  [1344, 776]        OK     1.2s
+     4       45.0G  [1952, 512]        OK     1.5s
+     8       66.3G  [1232, 656]        OK     2.1s
+    16         OOM           —    FAILED
+
+============================================================
+Run 2: WITH gradient checkpointing
+============================================================
+ Batch   Peak VRAM     Visible    Status     Time
+-------------------------------------------------------
+     1       12.1G  [2000, 960]        OK     1.3s
+     2       12.3G  [1584, 960]        OK     1.3s
+     4       12.6G  [1280, 912]        OK     1.5s
+     8       14.7G  [1288, 768]        OK     1.9s
+    16       18.5G  [1000, 656]        OK     3.1s
+    32       27.8G  [1232, 512]        OK     6.5s
+
+============================================================
+SUMMARY
+============================================================
+GPU: NVIDIA RTX PRO 6000 Blackwell Workstation Edition (95.0 GB)
+
+Max batch (no grad ckpt):   8  (66.3G peak)
+Max batch (grad ckpt):      32  (27.8G peak)
+
+Recommended for m09_pretrain.py:
+  batch_size: 16  (with gradient checkpointing)
+  [1/5] Saved plot1_batch_scaling.png
+  [2/5] Saved plot2_ckpt_savings.png
+  [3/5] Saved plot3_breakdown.png
+  [4/5] Saved plot4_waterfall.png
+  [5/5] Saved plot5_masking_effect.png
+
+All plots saved to /workspace/factorjepa/outputs/profile/

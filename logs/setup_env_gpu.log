@@ -1,0 +1,107 @@
+============================================
+WalkIndia-200K Environment Setup (UV)
+============================================
+Detected OS: Linux
+
+Python 3.12: Python 3.12.13
+UV: uv 0.11.1 (x86_64-unknown-linux-gnu)
+Virtual environment already exists (venv_walkindia)
+
+Installing base requirements (UV - fast)...
+Using Python 3.12.13 environment at: venv_walkindia
+Checked 17 packages in 71ms
+
+Creating directories...
+
+Base setup complete.
+
+============================================
+GPU Setup (Linux + Nvidia ONLY)
+============================================
+deps/vjepa2 already present
+
+=== Downloading prebuilt wheels ===
+Downloading prebuilt sm_120 wheels from: github.com/kapilw25/factorjepa/releases/tag/sm120-cu128-py312
+  Downloading: faiss-1.14.1-cp312-cp312-linux_x86_64.whl
+  Downloading: flash_attn-2.8.3-cp312-cp312-linux_x86_64.whl
+Downloaded 2 wheel(s) to wheels/
+
+Detected GPU: NVIDIA RTX PRO 6000 Blackwell Workstation Edition
+[1/7] Installing PyTorch 2.12.0.dev20260228+cu128 (Blackwell — pinned)...
+Using Python 3.12.13 environment at: venv_walkindia
+Resolved 32 packages in 773ms
+Downloading cuda-bindings (11.6MiB)
+ Downloaded cuda-bindings
+Prepared 1 package in 463ms
+Uninstalled 1 package in 30ms
+Installed 1 package in 105ms
+ - cuda-bindings==12.9.6
+ + cuda-bindings==12.9.4
+
+[2/7] Verifying PyTorch + CUDA...
+PyTorch: 2.12.0.dev20260228+cu128, CUDA: 12.8, GPU: NVIDIA RTX PRO 6000 Blackwell Workstation Edition
+
+[3/7] Installing GPU requirements (UV - fast)...
+Using Python 3.12.13 environment at: venv_walkindia
+Resolved 115 packages in 1.26s
+Downloading decord (13.0MiB)
+Downloading timm (2.4MiB)
+ Downloaded timm
+ Downloaded decord
+Prepared 2 packages in 1.94s
+Uninstalled 1 package in 20ms
+Installed 2 packages in 70ms
+ ~ decord==0.6.0
+ + timm==1.0.26
+
+[4/7] Installing Flash-Attention 2...
+GPU compute capability: sm_120
+Installing FA2 from prebuilt wheel...
+Using Python 3.12.13 environment at: venv_walkindia
+Checked 1 package in 65ms
+
+[5/7] Installing FAISS-GPU (CUDA 12)...
+Installing FAISS-GPU from prebuilt wheel...
+Using Python 3.12.13 environment at: venv_walkindia
+Checked 1 package in 69ms
+Fixed RPATH for FAISS .so files in /workspace/factorjepa/venv_walkindia/lib/python3.12/site-packages/faiss
+
+[6/7] Installing cuML (GPU UMAP)...
+Using Python 3.12.13 environment at: venv_walkindia
+Resolved 53 packages in 1.91s
+Downloading cuda-bindings (7.2MiB)
+ Downloaded cuda-bindings
+Prepared 1 package in 680ms
+Uninstalled 1 package in 53ms
+Installed 1 package in 63ms
+ - cuda-bindings==12.9.4
+ + cuda-bindings==12.9.6
+
+[7/7] Installing wandb...
+Using Python 3.12.13 environment at: venv_walkindia
+Checked 1 package in 67ms
+
+Verifying GPU setup...
+PyTorch:        2.12.0.dev20260228+cu128
+CUDA:           12.8
+GPU:            NVIDIA RTX PRO 6000 Blackwell Workstation Edition
+GPU Arch:       sm_120
+VRAM:           102 GB
+FAISS:          1.14.1 (1 GPU(s) available)
+Flash-Attn:     2.8.3
+Transformers:   4.57.6
+cuML:           26.02.000
+wandb:          0.25.1
+Datasets:       OK
+
+SUCCESS: All GPU components verified
+
+============================================
+GPU Setup Complete! (UV)
+============================================
+
+To activate environment:
+  source venv_walkindia/bin/activate
+
+See each script's docstring for usage (python src/m*.py --help)
+

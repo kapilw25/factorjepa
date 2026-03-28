@@ -374,7 +374,7 @@ def main():
 
     device = torch.device("cuda")
     gpu_name = torch.cuda.get_device_name(device)
-    gpu_total_gb = torch.cuda.get_device_properties(device).total_mem / (1024 ** 3)
+    gpu_total_gb = torch.cuda.get_device_properties(device).total_memory / (1024 ** 3)
     print(f"GPU: {gpu_name} ({gpu_total_gb:.1f} GB)")
     print(f"Config: ViT-g (1B), {CROP_SIZE}px, {NUM_FRAMES}f, bf16")
     print(f"Token grid: {SPATIAL_GRID}x{SPATIAL_GRID}x{TEMPORAL_GRID} = {TOTAL_TOKENS} tokens")

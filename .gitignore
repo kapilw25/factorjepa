@@ -40,6 +40,8 @@ dist/
 build/
 *.egg-info/
 wheels/*.whl
+wheels/*.whl.*
+*.tar
 
 # ML Models (Phase 2+)
 *.pt
