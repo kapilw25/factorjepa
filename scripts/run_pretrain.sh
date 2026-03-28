@@ -1,26 +1,14 @@
 #!/usr/bin/env bash
 # ═══════════════════════════════════════════════════════════════════════
-# Continual Pretrain V-JEPA on Indian Urban Clips (FactorJEPA Ch10)
-#
-# Pipeline: m09 pretrain → m05 re-embed → m06 metrics → m08b compare
-# Trains V-JEPA with JEPA loss on Indian clips, then re-evaluates
-# with the Ch9 eval suite to measure improvement vs frozen baseline.
+# Ch10: V-JEPA continual pretraining + 4-lambda drift control ablation
+# Pipeline: m09 train → m05 re-embed → m06 metrics → m08b compare
+# Needs ~65 GB disk. Auto-downloads data if missing.
 #
 # USAGE:
+#   ./setup_env_uv.sh --gpu --from-wheels   # one-time setup
 #   ./scripts/run_pretrain.sh --SANITY 2>&1 | tee logs/ch10_sanity.log
-#
-#   # FULL run (~20h per lambda × 4 = ~80h total). Use tmux to survive SSH disconnects:
-#   tmux new -s ch10
+#   tmux new -s ch10  # for --FULL (Ctrl+B,D detach / tmux attach -t ch10)
 #   ./scripts/run_pretrain.sh --FULL 2>&1 | tee logs/ch10_full_10k.log
-#   # Ctrl+B, D to detach
-#   # tmux attach -t ch10 to reconnect
-#
-# Features: pre-flight checks, checkpoint/resume, error handling, verification
-# All steps SEQUENTIAL on single GPU. Skips completed steps automatically.
-# Prerequisites:
-#   - ./setup_env_uv.sh --gpu [--from-wheels]
-#   - deps/vjepa2 cloned (setup_env_uv.sh does this)
-#   - Ch9 baseline completed (frozen encoder eval for comparison)
 # ═══════════════════════════════════════════════════════════════════════
 set -euo pipefail
 
