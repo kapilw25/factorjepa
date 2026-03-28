@@ -247,8 +247,8 @@ def producer_thread(cfg: dict, q: queue.Queue, stop_event: threading.Event,
 
 def build_model(cfg: dict, device: torch.device) -> dict:
     """Build student encoder, teacher encoder (EMA), and predictor."""
-    from src.models.vision_transformer import vit_giant_xformers
-    from src.models.predictor import vit_predictor
+    from models.vision_transformer import vit_giant_xformers
+    from models.predictor import vit_predictor
 
     model_cfg = cfg["model"]
     data_cfg = cfg["data"]
@@ -268,17 +268,18 @@ def build_model(cfg: dict, device: torch.device) -> dict:
     )
 
     # Load pretrained weights (Q3: target_encoder key, Q5: strip prefixes)
-    ckpt_path = Path("checkpoints/vjepa2_vitg384.pt")
+    project_root = Path(__file__).parent.parent
+    ckpt_dir = project_root / "checkpoints"
+    ckpt_path = ckpt_dir / "vjepa2_vitg384.pt"
     if ckpt_path.exists():
         print(f"Loading pretrained weights from {ckpt_path}")
         ckpt = torch.load(ckpt_path, map_location="cpu", weights_only=False)
     else:
         print("Downloading pretrained weights via torch.hub...")
-        # Q2: URL is broken in source, use direct download
         url = "https://dl.fbaipublicfiles.com/vjepa2/vitg-384.pt"
-        os.makedirs("checkpoints", exist_ok=True)
+        ckpt_dir.mkdir(parents=True, exist_ok=True)
         ckpt = torch.hub.load_state_dict_from_url(url, map_location="cpu",
-                                                    model_dir="checkpoints")
+                                                    model_dir=str(ckpt_dir))
 
     # Q3: Use target_encoder (EMA teacher = best quality starting point)
     if "target_encoder" in ckpt:
@@ -293,9 +294,23 @@ def build_model(cfg: dict, device: torch.device) -> dict:
                   for k, v in state_dict.items()}
 
     msg = student.load_state_dict(state_dict, strict=False)
-    print(f"Student loaded: {sum(p.numel() for p in student.parameters()):,} params")
+    total_keys = len(list(student.state_dict().keys()))
+    loaded_keys = total_keys - len(msg.missing_keys)
+    load_pct = loaded_keys / max(total_keys, 1) * 100
+    print(f"Student loaded: {sum(p.numel() for p in student.parameters()):,} params "
+          f"({loaded_keys}/{total_keys} keys = {load_pct:.0f}%)")
     if msg.missing_keys:
-        print(f"  Missing keys (expected for RoPE): {msg.missing_keys[:5]}")
+        # pos_embed is expected missing when using RoPE
+        unexpected_missing = [k for k in msg.missing_keys if "pos_embed" not in k]
+        if unexpected_missing:
+            print(f"  WARNING: {len(unexpected_missing)} unexpected missing keys: "
+                  f"{unexpected_missing[:5]}")
+    if load_pct < 90:
+        print(f"FATAL: Only {load_pct:.0f}% of student keys loaded. "
+              f"Checkpoint likely incompatible.")
+        print(f"  Checkpoint keys sample: {list(state_dict.keys())[:3]}")
+        print(f"  Model keys sample:      {list(student.state_dict().keys())[:3]}")
+        sys.exit(1)
     student = student.to(device)
 
     # Teacher (EMA copy, frozen)
@@ -331,7 +346,12 @@ def build_model(cfg: dict, device: torch.device) -> dict:
         pred_state = {k.replace("module.", "").replace("backbone.", ""): v
                       for k, v in ckpt["predictor"].items()}
         pred_msg = predictor.load_state_dict(pred_state, strict=False)
-        print(f"Predictor loaded from checkpoint (missing: {len(pred_msg.missing_keys)} keys)")
+        pred_total = len(list(predictor.state_dict().keys()))
+        pred_loaded = pred_total - len(pred_msg.missing_keys)
+        pred_pct = pred_loaded / max(pred_total, 1) * 100
+        print(f"Predictor loaded from checkpoint ({pred_loaded}/{pred_total} keys = {pred_pct:.0f}%)")
+        if pred_pct < 50:
+            print(f"  WARNING: Predictor only {pred_pct:.0f}% loaded — may train from near-random init")
     else:
         print("Predictor initialized randomly (no pretrained weights)")
 
@@ -359,7 +379,7 @@ def build_model(cfg: dict, device: torch.device) -> dict:
 
 def build_mask_generators(cfg: dict) -> list:
     """Build one _MaskGenerator per mask config."""
-    from src.masks.multiseq_multiblock3d import _MaskGenerator
+    from masks.multiseq_multiblock3d import _MaskGenerator
 
     data_cfg = cfg["data"]
     generators = []
@@ -390,7 +410,7 @@ def compute_jepa_loss(pred_features: list, teacher_output: torch.Tensor,
     teacher_output: teacher forward on full clip (B, N_total, D)
     masks_pred: list of target mask tensors, one per mask generator
     """
-    from src.masks.utils import apply_masks
+    from masks.utils import apply_masks
 
     loss = torch.tensor(0.0, device=teacher_output.device)
     n = 0

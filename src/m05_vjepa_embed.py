@@ -366,12 +366,19 @@ def deduplicate_embeddings(embeddings: np.ndarray, clip_keys: list, threshold: f
 
 # ── GPU Inference ──────────────────────────────────────────────────────
 
-def get_batch_embeddings(model, batched_pixels: torch.Tensor, device: str) -> np.ndarray:
+def get_batch_embeddings(model, batched_pixels: torch.Tensor, device: str,
+                         is_adapted: bool = False) -> np.ndarray:
     """Get V-JEPA 2 embeddings for a batch of processed videos."""
     pixel_values = batched_pixels.to(device)
     with torch.no_grad():
-        outputs = model(pixel_values_videos=pixel_values, skip_predictor=True)
-        embeddings = outputs.last_hidden_state.mean(dim=1).cpu().numpy()
+        if is_adapted:
+            # Native vjepa2 VisionTransformer: forward(x) → (B, N, D) tensor
+            outputs = model(pixel_values)
+            embeddings = outputs.mean(dim=1).cpu().numpy()
+        else:
+            # HF AutoModel: forward(pixel_values_videos=...) → ModelOutput
+            outputs = model(pixel_values_videos=pixel_values, skip_predictor=True)
+            embeddings = outputs.last_hidden_state.mean(dim=1).cpu().numpy()
     return embeddings
 
 
@@ -386,8 +393,13 @@ def orchestrator_main(args):
     (10-min producer timeout), worker exits, orchestrator respawns from checkpoint.
     """
     output_dir = get_output_dir(args.subset, sanity=args.SANITY)
-    embeddings_file = output_dir / "embeddings.npy"
-    checkpoint_file = output_dir / ".m05_checkpoint.npz"
+
+    # Adapted models save to encoder-specific filename (e.g., embeddings_vjepa_adapted.npy)
+    model_path = Path(args.model)
+    is_adapted = model_path.suffix == ".pt" and model_path.exists()
+    embed_suffix = "_vjepa_adapted" if is_adapted else ""
+    embeddings_file = output_dir / f"embeddings{embed_suffix}.npy"
+    checkpoint_file = output_dir / f".m05_checkpoint{embed_suffix}.npz"
 
     print(f"Output: {embeddings_file}")
     if args.subset:
@@ -552,29 +564,47 @@ def worker_main(args):
         model_path = Path(args.model)
         is_adapted = model_path.suffix == ".pt" and model_path.exists()
 
-        # Processor always from base model (adapted uses same input format)
-        base_model_id = VJEPA_MODEL_ID
         if is_adapted:
+            # Adapted encoder: use vjepa2's native VisionTransformer (same keys as m09 training)
+            # HF AutoModel has different key format (split QKV, renamed layers) — incompatible
             ckpt = torch.load(model_path, map_location="cpu", weights_only=False)
-            if isinstance(ckpt, dict) and "model_id" in ckpt:
-                base_model_id = ckpt["model_id"]
+            if isinstance(ckpt, dict) and "student_state_dict" in ckpt:
                 state_dict = ckpt["student_state_dict"]
             else:
-                state_dict = ckpt  # raw state dict fallback
-            print(f"Adapted encoder: loading base architecture from {base_model_id}")
+                state_dict = ckpt
 
-        processor = AutoVideoProcessor.from_pretrained(base_model_id)
-        model = AutoModel.from_pretrained(
-            base_model_id if is_adapted else args.model,
-            torch_dtype=torch.float16,
-            device_map="auto",
-            attn_implementation="flash_attention_2",
-        )
+            # Build native vjepa2 encoder (same architecture as m09 training)
+            VJEPA2_DIR = Path(__file__).parent.parent / "deps" / "vjepa2"
+            sys.path.insert(0, str(VJEPA2_DIR))
+            from models.vision_transformer import vit_giant_xformers
 
-        if is_adapted:
+            model = vit_giant_xformers(
+                img_size=(384, 384), patch_size=16, num_frames=VJEPA_FRAMES_PER_CLIP,
+                tubelet_size=2, use_sdpa=True, use_silu=False, wide_silu=True,
+                uniform_power=False, use_rope=True,
+            )
             msg = model.load_state_dict(state_dict, strict=False)
-            print(f"Loaded adapted weights (missing: {len(msg.missing_keys)}, "
-                  f"unexpected: {len(msg.unexpected_keys)})")
+            loaded = len(state_dict) - len(msg.unexpected_keys)
+            total = len(list(model.state_dict().keys()))
+            print(f"Adapted encoder: loaded {loaded}/{total} params "
+                  f"(missing: {len(msg.missing_keys)}, unexpected: {len(msg.unexpected_keys)})")
+            if loaded < total * 0.9:
+                print(f"FATAL: Only {loaded}/{total} params loaded — key mismatch!")
+                print(f"  Checkpoint keys sample: {list(state_dict.keys())[:3]}")
+                print(f"  Model keys sample:      {list(model.state_dict().keys())[:3]}")
+                sys.exit(1)
+
+            model = model.to(device=device, dtype=torch.float16)
+            processor = AutoVideoProcessor.from_pretrained(VJEPA_MODEL_ID)
+        else:
+            # Standard HF model (frozen baseline)
+            processor = AutoVideoProcessor.from_pretrained(args.model)
+            model = AutoModel.from_pretrained(
+                args.model,
+                torch_dtype=torch.float16,
+                device_map="auto",
+                attn_implementation="flash_attention_2",
+            )
 
         model.eval()
         print("Applying torch.compile (first batch will be slow due to compilation)...")
@@ -625,7 +655,8 @@ def worker_main(args):
             if msg_type == "done":
                 break
 
-            embeddings = get_batch_embeddings(model, batched_pixels, device)
+            embeddings = get_batch_embeddings(model, batched_pixels, device,
+                                                is_adapted=is_adapted)
 
             for emb, key in zip(embeddings, batch_keys):
                 all_embeddings.append(emb)

@@ -373,7 +373,12 @@ def main():
             embeddings, emb_keys, motion_features, motion_keys)
 
         if n_aligned == 0:
-            print("  WARN: No shared keys between embeddings and motion features")
+            print(f"FATAL: No shared keys between embeddings ({len(emb_keys):,} keys) "
+                  f"and motion features ({len(motion_keys):,} keys).")
+            print(f"  First emb key:    {emb_keys[0] if len(emb_keys) > 0 else 'EMPTY'}")
+            print(f"  First motion key: {motion_keys[0] if len(motion_keys) > 0 else 'EMPTY'}")
+            print("  Re-run m04d and m05 with the same --subset to fix.")
+            sys.exit(1)
         else:
             print(f"Aligned: {n_aligned:,} clips "
                   f"(emb={len(emb_keys):,}, motion={len(motion_keys):,})")

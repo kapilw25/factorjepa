@@ -7,22 +7,22 @@
 ## System Design: Ch10 + Ch11 Overview
 
 ```mermaid
-flowchart TB
+flowchart LR
     subgraph INPUT ["Shared Input · Indian Clip Corpus"]
-        direction LR
+        direction TB
         D["WebDataset<br>116 TARs<br>~115K clips"] --> SPLIT["video_id split<br>90% train · 10% val"]
         TAGS["tags.json<br>16 fields × v3"]
     end
 
     subgraph CH10 ["Ch 10 · Continual Pretraining (m09_pretrain.py)"]
-        direction TB
+        direction LR
 
         subgraph LOOP ["Training Step (repeated 2K-10K times)"]
-            direction LR
-            AUG["Video-consistent<br>augmentation<br>RandomResizedCrop<br>384×384"] --> MASK["Spatiotemporal<br>mask sampling<br>8+2 blocks<br>~80% masked"]
+            direction TB
+            AUG["Video-consistent augmentation<br>RandomResizedCrop 384×384"] --> MASK["Spatiotemporal mask sampling<br>8+2 blocks · ~80% masked"]
 
             subgraph FORWARD ["Forward Pass"]
-                direction TB
+                direction LR
                 STU["Student encoder<br>ViT-g 1B · trainable<br>visible tokens only"] --> PRED["Predictor<br>12-layer 384-dim<br>predict masked tokens"]
                 TEA["Teacher encoder<br>ViT-g 1B · frozen<br>ALL tokens · no grad"] --> LOSS["L1 Loss<br>|pred − target|<br>at masked positions"]
                 PRED --> LOSS
@@ -42,15 +42,15 @@ flowchart TB
     end
 
     subgraph CH11 ["Ch 11 · Surgery Fine-Tuning (m10 → m11 → m12)"]
-        direction TB
+        direction LR
 
         subgraph SAM ["m10 · SAM3 Segmentation"]
-            direction LR
+            direction TB
             SEG["SAM3<br>instance masks"] --> TRACK["Greedy IoU<br>tracklets"] --> AGENT["Agent vs Layout<br>motion filter"]
         end
 
         subgraph FACTOR ["m11 · Factor Datasets"]
-            direction LR
+            direction TB
             DL["D_L<br>layout-only<br>blur agents"]
             DA["D_A<br>agent-only<br>suppress BG"]
             DI["D_I<br>interaction<br>tube crops"]
@@ -61,7 +61,7 @@ flowchart TB
         AGENT --> DI
 
         subgraph STAGES ["m12 · Progressive Prefix Unfreezing"]
-            direction LR
+            direction TB
             S1["Stage 1<br>layers 0→10<br>100% D_L"] --> S2["Stage 2<br>layers 0→20<br>90% D_A + 10% D_L"] --> S3["Stage 3<br>layers 0→30<br>85% D_I + mix"]
         end
 
@@ -70,7 +70,7 @@ flowchart TB
     end
 
     subgraph EVAL ["Re-evaluation · 3-way comparison"]
-        direction LR
+        direction TB
         RE["m05 re-embed<br>× 3 encoders"] --> M6["m06 metrics<br>9 spatial<br>5 temporal"] --> M8["m08b plots<br>frozen vs adapted<br>vs surgical"]
     end
 

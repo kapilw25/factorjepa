@@ -108,9 +108,19 @@ def load_taxonomy() -> dict:
 # ── FAISS Index (GPU only) ──────────────────────────────────────────────
 
 def build_faiss_index(embeddings: np.ndarray) -> faiss.Index:
-    """Build FAISS GPU index. Fatal if no GPU."""
+    """Build FAISS GPU index. Fatal if no GPU or bad dimensions."""
+    if embeddings.ndim != 2:
+        print(f"FATAL: embeddings must be 2D, got shape {embeddings.shape}")
+        sys.exit(1)
     d = embeddings.shape[1]
     n = embeddings.shape[0]
+    if d < 10 or d > 10000:
+        print(f"FATAL: Embedding dim={d} looks wrong (expected 768-1664 for known encoders)")
+        sys.exit(1)
+    if np.isnan(embeddings).any():
+        nan_count = np.isnan(embeddings).sum()
+        print(f"FATAL: Embeddings contain {nan_count} NaN values — model output is corrupt")
+        sys.exit(1)
     print(f"Building FAISS GPU index: {n:,} vectors, dim={d}")
 
     if faiss.get_num_gpus() == 0:
@@ -1070,17 +1080,24 @@ def main():
         clip_paths = np.load(paths_file, allow_pickle=True).tolist()
         print(f"Loaded clip paths: {len(clip_paths):,}")
 
-    # Align + key validation
-    n = min(embeddings.shape[0], len(tags))
-    if len(tags) != embeddings.shape[0]:
-        print(f"WARNING: Mismatch {embeddings.shape[0]} emb vs {len(tags)} tags, truncating to {n}")
+    # Align + key validation (MUST happen BEFORE any metric computation)
+    n_emb = embeddings.shape[0]
+    n_tags = len(tags)
+    if n_tags != n_emb:
+        pct_diff = abs(n_tags - n_emb) / max(n_tags, n_emb) * 100
+        print(f"WARNING: {n_emb} embeddings vs {n_tags} tags ({pct_diff:.1f}% difference)")
+        if pct_diff > 5:
+            print(f"FATAL: Embeddings/tags count differs by {pct_diff:.1f}% (>5%). "
+                  "Re-run m04 (tags) or m05 (embeddings) to fix.")
+            sys.exit(1)
+    n = min(n_emb, n_tags)
     embeddings = embeddings[:n]
     tags = tags[:n]
     if clip_paths:
         clip_paths = clip_paths[:n]
         # Verify embedding-tag alignment via clip keys
         tag_keys = [t.get("_clip_key", "") for t in tags]
-        if tag_keys[0]:  # tags have _clip_key field
+        if tag_keys and tag_keys[0]:
             mismatches = sum(1 for p, k in zip(clip_paths, tag_keys) if p != k)
             if mismatches > 0:
                 print(f"FATAL: {mismatches}/{n} key mismatches between embeddings.paths.npy and tags.json")
@@ -1088,6 +1105,9 @@ def main():
                 print(f"  First tag key: {tag_keys[0]}")
                 sys.exit(1)
             print(f"Key alignment verified: {n:,} clips match")
+        else:
+            print(f"WARNING: Tags lack _clip_key field — cannot verify alignment. "
+                  "Results may be wrong if tags and embeddings are from different runs.")
 
     if args.SANITY:
         n = min(100, n)
