@@ -539,22 +539,43 @@ def worker_main(args):
     # Load model
     print(f"\nLoading model: {args.model}")
     try:
-        processor = AutoVideoProcessor.from_pretrained(args.model)
-        try:
-            import flash_attn  # noqa: F401
-        except ImportError:
-            print("FATAL: flash-attn not installed.")
-            print("V-JEPA 2 ViT-G requires Flash Attention 2 for memory-efficient inference.")
-            print("")
-            print("Install via setup_env_uv.sh --gpu (downloads pre-built wheel), or manually:")
-            print("  pip install flash-attn --no-build-isolation")
-            sys.exit(1)
+        import flash_attn  # noqa: F401
+    except ImportError:
+        print("FATAL: flash-attn not installed.")
+        print("V-JEPA 2 ViT-G requires Flash Attention 2 for memory-efficient inference.")
+        print("")
+        print("Install via setup_env_uv.sh --gpu (downloads pre-built wheel), or manually:")
+        print("  pip install flash-attn --no-build-isolation")
+        sys.exit(1)
+
+    try:
+        model_path = Path(args.model)
+        is_adapted = model_path.suffix == ".pt" and model_path.exists()
+
+        # Processor always from base model (adapted uses same input format)
+        base_model_id = VJEPA_MODEL_ID
+        if is_adapted:
+            ckpt = torch.load(model_path, map_location="cpu", weights_only=False)
+            if isinstance(ckpt, dict) and "model_id" in ckpt:
+                base_model_id = ckpt["model_id"]
+                state_dict = ckpt["student_state_dict"]
+            else:
+                state_dict = ckpt  # raw state dict fallback
+            print(f"Adapted encoder: loading base architecture from {base_model_id}")
+
+        processor = AutoVideoProcessor.from_pretrained(base_model_id)
         model = AutoModel.from_pretrained(
-            args.model,
+            base_model_id if is_adapted else args.model,
             torch_dtype=torch.float16,
             device_map="auto",
             attn_implementation="flash_attention_2",
         )
+
+        if is_adapted:
+            msg = model.load_state_dict(state_dict, strict=False)
+            print(f"Loaded adapted weights (missing: {len(msg.missing_keys)}, "
+                  f"unexpected: {len(msg.unexpected_keys)})")
+
         model.eval()
         print("Applying torch.compile (first batch will be slow due to compilation)...")
         model = torch.compile(model)

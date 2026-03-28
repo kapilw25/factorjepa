@@ -134,17 +134,29 @@ METRICS_FILE = OUTPUTS_DIR / "m06_metrics.json"
 
 # Encoder registry (baselines + V-JEPA). suffix="" = backward compat for vjepa.
 ENCODER_REGISTRY = {
-    "vjepa":          {"model_id": VJEPA_MODEL_ID,                       "dim": 1408, "type": "video",         "suffix": ""},
-    "random":         {"model_id": None,                                  "dim": 1408, "type": "synthetic",     "suffix": "_random"},
-    "dinov2":         {"model_id": "facebook/dinov2-giant",              "dim": 1536, "type": "image",          "suffix": "_dinov2"},
-    "clip":           {"model_id": "openai/clip-vit-large-patch14",      "dim": 768,  "type": "image",          "suffix": "_clip"},
-    "vjepa_shuffled": {"model_id": VJEPA_MODEL_ID,                       "dim": 1408, "type": "video_shuffled", "suffix": "_vjepa_shuffled"},
+    "vjepa":          {"model_id": VJEPA_MODEL_ID,                       "dim": 1408, "type": "video",          "suffix": ""},
+    "random":         {"model_id": None,                                  "dim": 1408, "type": "synthetic",      "suffix": "_random"},
+    "dinov2":         {"model_id": "facebook/dinov2-giant",              "dim": 1536, "type": "image",           "suffix": "_dinov2"},
+    "clip":           {"model_id": "openai/clip-vit-large-patch14",      "dim": 768,  "type": "image",           "suffix": "_clip"},
+    "vjepa_shuffled": {"model_id": VJEPA_MODEL_ID,                       "dim": 1408, "type": "video_shuffled",  "suffix": "_vjepa_shuffled"},
+    "vjepa_adapted":  {"model_id": None,                                  "dim": 1408, "type": "video_adapted",   "suffix": "_vjepa_adapted"},
 }
+
+
+def get_encoder_info(encoder: str) -> dict:
+    """Get encoder info from registry, with dynamic fallback for unregistered encoders.
+
+    Supports Ch10 ablation variants like vjepa_lambda0_01 without pre-registration.
+    """
+    if encoder in ENCODER_REGISTRY:
+        return ENCODER_REGISTRY[encoder]
+    # Dynamic fallback: assume V-JEPA dim (1408), infer suffix from name
+    return {"model_id": None, "dim": 1408, "type": "video_adapted", "suffix": f"_{encoder}"}
 
 
 def get_encoder_files(encoder: str, output_dir: Path) -> dict:
     """Return {embeddings, paths, metrics, knn_indices, umap_2d} paths for an encoder."""
-    sfx = ENCODER_REGISTRY[encoder]["suffix"]
+    sfx = get_encoder_info(encoder)["suffix"]
     return {
         "embeddings":  output_dir / f"embeddings{sfx}.npy",
         "paths":       output_dir / f"embeddings{sfx}.paths.npy",
@@ -155,10 +167,13 @@ def get_encoder_files(encoder: str, output_dir: Path) -> dict:
 
 
 def add_encoder_arg(parser):
-    """Add --encoder argument to m05b/m06/m07/m08 parsers."""
+    """Add --encoder argument to m05b/m06/m07/m08 parsers.
+
+    Accepts registered encoders + any custom name (for Ch10 adapted variants).
+    """
     parser.add_argument("--encoder", default="vjepa",
-                        choices=list(ENCODER_REGISTRY.keys()),
-                        help="Encoder whose embeddings to process (default: vjepa)")
+                        help=f"Encoder name (registered: {', '.join(ENCODER_REGISTRY.keys())}; "
+                             "or any custom name for adapted variants)")
 
 
 # Ensure POC/sanity/bakeoff directories exist

@@ -16,6 +16,7 @@ import numpy as np
 sys.path.insert(0, str(Path(__file__).parent))
 from utils.config import (
     ENCODER_REGISTRY, add_subset_arg, get_output_dir, get_encoder_files,
+    get_encoder_info,
 )
 from utils.wandb_utils import add_wandb_args, init_wandb, log_image, finish_wandb
 
@@ -55,10 +56,11 @@ METRICS_DISPLAY = [
 
 # ── Load all available encoder metrics ───────────────────────────────
 
-def load_all_metrics(output_dir: Path) -> dict:
-    """Load m06_metrics_*.json for all available encoders."""
+def load_all_metrics(output_dir: Path, encoder_list: list = None) -> dict:
+    """Load m06_metrics_*.json for specified or all registered encoders."""
     results = {}
-    for name in ENCODER_ORDER:
+    names = encoder_list if encoder_list else ENCODER_ORDER
+    for name in names:
         files = get_encoder_files(name, output_dir)
         if files["metrics"].exists():
             with open(files["metrics"]) as f:
@@ -67,11 +69,12 @@ def load_all_metrics(output_dir: Path) -> dict:
     return results
 
 
-def load_all_temporal(output_dir: Path) -> dict:
-    """Load m06b_temporal_corr_*.json for all available encoders."""
+def load_all_temporal(output_dir: Path, encoder_list: list = None) -> dict:
+    """Load m06b_temporal_corr_*.json for specified or all registered encoders."""
     results = {}
-    for name in ENCODER_ORDER:
-        sfx = ENCODER_REGISTRY[name]["suffix"]
+    names = encoder_list if encoder_list else ENCODER_ORDER
+    for name in names:
+        sfx = get_encoder_info(name)["suffix"]
         temporal_file = output_dir / f"m06b_temporal_corr{sfx}.json"
         if temporal_file.exists():
             with open(temporal_file) as f:
@@ -114,7 +117,7 @@ def print_summary_table(all_metrics: dict):
             print(f"\n--- Hard Mode ---")
         for enc in encoders:
             m = all_metrics[enc].get(mode, {})
-            dim = all_metrics[enc].get("encoder_dim", ENCODER_REGISTRY[enc]["dim"])
+            dim = all_metrics[enc].get("encoder_dim", get_encoder_info(enc)["dim"])
             row = f"{enc:<{name_w}} {dim:>5}"
             for key, _ in METRICS_DISPLAY:
                 val = m.get(key)
@@ -743,7 +746,7 @@ def create_latex_table(all_metrics: dict, output_dir: Path):
 
     for enc in encoders:
         easy = all_metrics[enc].get("easy", {})
-        dim = all_metrics[enc].get("encoder_dim", ENCODER_REGISTRY[enc]["dim"])
+        dim = all_metrics[enc].get("encoder_dim", get_encoder_info(enc)["dim"])
         label = enc.replace("_", r"\_")
 
         ci_data = easy.get("ci", {})
@@ -783,6 +786,10 @@ def main():
         description="Multi-encoder comparison plots + LaTeX table (CPU-only)")
     parser.add_argument("--SANITY", action="store_true", help="Placeholder for consistency")
     parser.add_argument("--FULL", action="store_true", help="Process all available encoders")
+    parser.add_argument("--encoders", type=str, default=None,
+                        help="Comma-separated encoder names to compare "
+                             "(e.g., vjepa,vjepa_adapted,vjepa_lambda0_01). "
+                             "If omitted, uses all registered encoders.")
     add_subset_arg(parser)
     add_wandb_args(parser)
     args = parser.parse_args()
@@ -792,16 +799,29 @@ def main():
         print("\nERROR: Specify --SANITY or --FULL")
         sys.exit(1)
 
+    # Parse custom encoder list
+    encoder_list = None
+    if args.encoders:
+        encoder_list = [e.strip() for e in args.encoders.split(",")]
+        # Auto-assign labels/colors for unregistered encoders
+        _extra_colors = ["#7B1FA2", "#00695C", "#BF360C", "#1A237E",
+                         "#33691E", "#880E4F", "#004D40", "#F57F17"]
+        for i, enc in enumerate(encoder_list):
+            if enc not in ENCODER_LABELS:
+                info = get_encoder_info(enc)
+                ENCODER_LABELS[enc] = enc.replace("_", "\n")
+                ENCODER_COLORS[enc] = _extra_colors[i % len(_extra_colors)]
+
     output_dir = get_output_dir(args.subset, sanity=args.SANITY)
     print(f"Output dir: {output_dir}")
     print(f"Scanning for encoder metrics...")
 
-    all_metrics = load_all_metrics(output_dir)
+    all_metrics = load_all_metrics(output_dir, encoder_list=encoder_list)
     if not all_metrics:
         print("FATAL: No encoder metrics found. Run m06 first.")
         sys.exit(1)
 
-    all_temporal = load_all_temporal(output_dir)
+    all_temporal = load_all_temporal(output_dir, encoder_list=encoder_list)
 
     print(f"\nFound {len(all_metrics)} encoder(s): {', '.join(all_metrics.keys())}")
     if all_temporal:

@@ -422,4 +422,25 @@ flowchart LR
 4. **Validation loop**: Run Cycle@K (hard mode) on held-out video_ids every 2K-5K steps
 5. **Checkpoint selection**: Best Cycle@K, not lowest loss (label-free selection)
 6. **Logging**: Integrate with `utils/wandb_utils.py`
-7. **Config-driven**: All hyperparameters in YAML, script reads config via `--config configs/pretrain/vitg16_indian.yaml`
+7. **Config-driven**: All hyperparameters in YAML, script reads config via `--config`
+
+---
+
+## Lambda Ablation: Drift Control Sweep
+
+Drift control λ trades off adaptation (learning Indian-domain features) vs retention (preserving pretrained knowledge). We sweep 4 values, each producing an isolated checkpoint. See `plan_code_dev.md` for commands.
+
+| Lambda | Strategy | Expected Radar Change |
+|--------|----------|----------------------|
+| 0 | No anchor — max adaptation | Spatial expands, temporal may shrink (forgetting) |
+| 0.001 | Gentle anchor | Usually the sweet spot for continual pretraining |
+| 0.01 | Balanced (default) | Moderate adaptation + moderate forgetting protection |
+| 0.1 | Strong anchor — minimal drift | Radar barely changes from frozen — too conservative |
+
+### Selection criteria
+
+1. **Spatial must improve**: Prec@K > 14.6% (frozen baseline)
+2. **Temporal must NOT regress**: Cycle@K >= 78.7% (frozen baseline)
+3. Maximize the sum of normalized metrics across all 8 radar axes
+
+The winner is the λ whose radar polygon is largest overall — not just biggest on one axis.

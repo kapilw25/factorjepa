@@ -21,6 +21,7 @@ sys.path.insert(0, str(Path(__file__).parent))
 from utils.config import (
     ENCODER_REGISTRY, FAISS_K_NEIGHBORS,
     add_encoder_arg, add_subset_arg, get_output_dir, get_encoder_files,
+    get_encoder_info,
 )
 from utils.wandb_utils import (
     add_wandb_args, init_wandb, log_metrics, finish_wandb,
@@ -313,7 +314,7 @@ def main():
     wb_run = init_wandb("m06b", mode, config=vars(args),
                         enabled=not args.no_wandb)
 
-    enc_info = ENCODER_REGISTRY[args.encoder]
+    enc_info = get_encoder_info(args.encoder)
     enc_files = get_encoder_files(args.encoder, output_dir)
     sfx = enc_info["suffix"]
 

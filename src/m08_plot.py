@@ -20,7 +20,7 @@ import numpy as np
 sys.path.insert(0, str(Path(__file__).parent))
 from utils.config import (
     EMBEDDINGS_FILE, TAGS_FILE, METRICS_FILE, OUTPUTS_DIR,
-    FAISS_K_NEIGHBORS, ENCODER_REGISTRY,
+    FAISS_K_NEIGHBORS, ENCODER_REGISTRY, get_encoder_info,
     add_subset_arg, add_encoder_arg, get_output_dir, get_encoder_files,
 )
 
@@ -473,7 +473,7 @@ def main():
 
     # Resolve file paths — encoder-aware via get_encoder_files()
     enc_files = get_encoder_files(args.encoder, output_dir)
-    enc_sfx = ENCODER_REGISTRY[args.encoder]["suffix"]
+    enc_sfx = get_encoder_info(args.encoder)["suffix"]
     tags_file = output_dir / "tags.json"
     paths_file = enc_files["paths"]
     metrics_file = enc_files["metrics"]

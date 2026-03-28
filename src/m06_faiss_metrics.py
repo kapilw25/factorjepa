@@ -22,7 +22,7 @@ from utils.config import (
     EMBEDDINGS_FILE, TAGS_FILE, METRICS_FILE, OUTPUTS_DIR,
     FAISS_K_NEIGHBORS, TAG_TAXONOMY_JSON,
     check_gpu, add_subset_arg, get_output_dir,
-    add_encoder_arg, get_encoder_files, ENCODER_REGISTRY,
+    add_encoder_arg, get_encoder_files, get_encoder_info, ENCODER_REGISTRY,
 )
 from utils.wandb_utils import (
     add_wandb_args, init_wandb, log_metrics, log_image, log_artifact, finish_wandb,
@@ -1044,7 +1044,7 @@ def main():
     # Tags are shared across all encoders (not encoder-specific)
     tags_file = output_dir / "tags.json"
 
-    enc_info = ENCODER_REGISTRY[args.encoder]
+    enc_info = get_encoder_info(args.encoder)
     print(f"Encoder:     {args.encoder} (dim={enc_info['dim']}, type={enc_info['type']})")
     print(f"Output dir:  {output_dir}")
     print(f"Embeddings:  {emb_file}")
@@ -1182,7 +1182,7 @@ def main():
 
     # ── Plots ────────────────────────────────────────────────────────
     if not args.no_plots:
-        sfx = ENCODER_REGISTRY[args.encoder]["suffix"]
+        sfx = get_encoder_info(args.encoder)["suffix"]
         generate_plots(easy, hard, conf_sweep, D[:, :k + 1], k, output_dir, n, sfx=sfx)
         for plot_name in ["m06_distance_hist", "m06_confidence_sweep",
                           "m06_purity_all_keys", "m06_silhouette_per_key",

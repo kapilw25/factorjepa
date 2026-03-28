@@ -1227,19 +1227,104 @@ Fits comfortably on RTX PRO 6000 (96 GB). Can increase batch_size to 8-16.
 
 ## 10. Open Questions (Resolve Before Coding)
 
-1. **vjepa2 package structure**: What are the actual import paths? Run:
-   ```bash
-   git clone https://github.com/facebookresearch/vjepa2.git deps/vjepa2
-   find deps/vjepa2 -name "*.py" | head -30
-   python -c "import deps.vjepa2.src.models.vision_transformer as m; print(dir(m))"
-   ```
+1. **vjepa2 package structure** — RESOLVED: `sys.path.insert(0, "deps/vjepa2")`, use `vit_giant_xformers` (22 heads). See `plan_code_Q1_Q5_resolved.md`.
 
-2. **Pretrained checkpoint availability**: Does `torch.hub.load("facebookresearch/vjepa2", "vjepa2_vitg")` work? If not, what's the direct download URL?
+2. **Pretrained checkpoint** — RESOLVED: `torch.hub` URL broken (localhost). Direct download: `https://dl.fbaipublicfiles.com/vjepa2/vitg-384.pt`. Returns both encoder + predictor.
 
-3. **Predictor checkpoint**: Does the public checkpoint include predictor weights, or just the encoder? If no predictor weights, we initialize randomly (acceptable for continual pretraining).
+3. **Predictor checkpoint** — RESOLVED: YES, included. `state_dict["predictor"]` exists. Hub loads `target_encoder` (EMA teacher, higher quality) as starting encoder.
 
-4. **MaskCollator API**: What arguments does `MaskCollator.__init__()` take? What does `__call__()` return? Need to verify against actual source.
+4. **MaskCollator API** — RESOLVED: MaskCollator is a DataLoader collate_fn, not standalone. Use `_MaskGenerator(batch_size)` directly → returns `(masks_enc, masks_pred)` tensors.
 
-5. **HF export**: How to convert vjepa2 state_dict keys → HF transformers format for m05 re-embedding? Might need a `convert_vjepa2_to_hf()` utility.
+5. **HF export** — RESOLVED: Keys already compatible after stripping `module.backbone.` prefix (one-liner). No conversion utility needed when skipping wrappers.
 
-6. **Memory**: Does ViT-g with batch_size=4 + AMP + gradient checkpointing fit in 96GB? Need to profile first with a dry run.
+6. **Memory** — RESOLVED via `scripts/profile_vram.py` on RTX PRO 6000 (95 GB):
+
+| Batch | No Grad Ckpt | With Grad Ckpt | Savings |
+|-------|-------------|----------------|---------|
+| 1 | 18.5 GB | 12.1 GB | 35% |
+| 4 | 45.0 GB | 12.6 GB | 72% |
+| 8 | 66.3 GB | 14.7 GB | 78% |
+| 16 | OOM | 18.5 GB | — |
+| 32 | OOM | 27.8 GB | — |
+
+**Decision**: BS=32, grad checkpointing ON (27.8 GB, 70% headroom for val/FAISS).
+
+### Official V-JEPA 2 Source Files Referenced by m09_pretrain.py
+
+| What | File in repo | GitHub |
+|------|-------------|--------|
+| Main training loop (loss, forward, EMA, checkpoint) | `deps/vjepa2/app/vjepa/train.py` | [train.py](https://github.com/facebookresearch/vjepa2/blob/main/app/vjepa/train.py) |
+| Model init (encoder + predictor factory) | `deps/vjepa2/app/vjepa/utils.py` | [utils.py](https://github.com/facebookresearch/vjepa2/blob/main/app/vjepa/utils.py) |
+| ViT encoder (VisionTransformer + vit_giant_xformers) | `deps/vjepa2/src/models/vision_transformer.py` | [vision_transformer.py](https://github.com/facebookresearch/vjepa2/blob/main/src/models/vision_transformer.py) |
+| Predictor (VisionTransformerPredictor) | `deps/vjepa2/src/models/predictor.py` | [predictor.py](https://github.com/facebookresearch/vjepa2/blob/main/src/models/predictor.py) |
+| Mask generator (_MaskGenerator) | `deps/vjepa2/src/masks/multiseq_multiblock3d.py` | [multiseq_multiblock3d.py](https://github.com/facebookresearch/vjepa2/blob/main/src/masks/multiseq_multiblock3d.py) |
+| apply_masks utility | `deps/vjepa2/src/masks/utils.py` | [utils.py](https://github.com/facebookresearch/vjepa2/blob/main/src/masks/utils.py) |
+| Hub/weight loading (checkpoint keys, prefix stripping) | `deps/vjepa2/src/hub/backbones.py` | [backbones.py](https://github.com/facebookresearch/vjepa2/blob/main/src/hub/backbones.py) |
+| ViT-g training config (mask ratios, EMA, LR) | `deps/vjepa2/configs/train/vitg16/pretrain-256px-16f.yaml` | [pretrain-256px-16f.yaml](https://github.com/facebookresearch/vjepa2/blob/main/configs/train/vitg16/pretrain-256px-16f.yaml) |
+| No-wrapper precedent (Droid continual pretraining) | `deps/vjepa2/app/vjepa_droid/train.py` | [train.py](https://github.com/facebookresearch/vjepa2/blob/main/app/vjepa_droid/train.py) |
+
+---
+
+## 11. Lambda Ablation: Drift Control Sweep
+
+`--lambda-reg` CLI flag overrides `drift_control.lambda_reg` in YAML. Each value creates an isolated output directory (dots replaced with underscores in dir/log names):
+
+```
+outputs/poc/
+├── m09_lambda0/          # No drift control
+│   ├── m09_ckpt_final.pt
+│   └── student_encoder.pt
+├── m09_lambda0_001/      # Light anchor
+├── m09_lambda0_01/       # Medium (default)
+└── m09_lambda0_1/        # Strong anchor
+```
+
+### Commands (run sequentially or on 4 GPU instances in parallel)
+
+```bash
+python -u src/m09_pretrain.py --config configs/pretrain/vitg16_indian.yaml \
+    --FULL --subset data/subset_10k.json --local-data data/subset_10k_local \
+    --lambda-reg 0 --no-wandb 2>&1 | tee logs/m09_lambda0.log
+
+python -u src/m09_pretrain.py --config configs/pretrain/vitg16_indian.yaml \
+    --FULL --subset data/subset_10k.json --local-data data/subset_10k_local \
+    --lambda-reg 0.001 --no-wandb 2>&1 | tee logs/m09_lambda0_001.log
+
+python -u src/m09_pretrain.py --config configs/pretrain/vitg16_indian.yaml \
+    --FULL --subset data/subset_10k.json --local-data data/subset_10k_local \
+    --lambda-reg 0.01 --no-wandb 2>&1 | tee logs/m09_lambda0_01.log
+
+python -u src/m09_pretrain.py --config configs/pretrain/vitg16_indian.yaml \
+    --FULL --subset data/subset_10k.json --local-data data/subset_10k_local \
+    --lambda-reg 0.1 --no-wandb 2>&1 | tee logs/m09_lambda0_1.log
+```
+
+### Post-ablation: Re-evaluate each variant
+
+```bash
+# Repeat for each lambda (example: lambda=0.01)
+CKPT="outputs/poc/m09_lambda0_01/student_encoder.pt"
+
+python -u src/m05_vjepa_embed.py --model $CKPT \
+    --FULL --subset data/subset_10k.json --local-data data/subset_10k_local \
+    --no-dedupe --no-wandb 2>&1 | tee logs/m05_adapted_lambda0_01.log
+
+python -u src/m06_faiss_metrics.py --encoder vjepa_adapted \
+    --FULL --subset data/subset_10k.json \
+    --no-wandb 2>&1 | tee logs/m06_adapted_lambda0_01.log
+```
+
+### Compare all variants on one radar
+
+```bash
+python -u src/m08b_compare.py \
+    --encoders vjepa,vjepa_lambda0,vjepa_lambda0_001,vjepa_lambda0_01,vjepa_lambda0_1 \
+    --FULL --subset data/subset_10k.json \
+    --no-wandb 2>&1 | tee logs/m08b_ablation.log
+```
+
+### Selection criteria
+
+1. Spatial must improve: Prec@K > 14.6% (frozen baseline)
+2. Temporal must NOT regress: Cycle@K >= 78.7% (frozen baseline)
+3. Maximize sum of normalized metrics across all 8 radar axes
