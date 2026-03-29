@@ -830,6 +830,86 @@
     </table>
     <p class="plot-caption has-text-centered" style="margin-top: 0.5rem;">Easy mode, k=6. All numbers verified against <code>m06_metrics*.json</code>. Bold = best in column. Purple row = Ch10 continual pretraining result.</p>
 
+    <!-- Ch10: Frozen vs Adapted head-to-head -->
+    <h3 class="title is-4 has-text-centered" style="margin-top: 2.5rem;">Ch10: Frozen vs Adapted V-JEPA</h3>
+    <p class="has-text-centered" style="color: var(--text-secondary); margin-bottom: 1rem;">
+      Continual pretraining: JEPA loss, &lambda;=0.001, 5 epochs on 10K Indian clips (8,982 train)
+    </p>
+
+    <table class="results-table" style="max-width: 750px; margin: 0 auto;">
+      <thead>
+        <tr>
+          <th>Metric</th>
+          <th style="background: #E3F2FD; color: #1565C0;">Frozen V-JEPA</th>
+          <th style="background: #F3E5F5; color: #7B1FA2;">Adapted (&lambda;=0.001)</th>
+          <th>Delta</th>
+          <th>Verdict</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>Prec@K (Easy)</strong></td>
+          <td style="background: #E3F2FD;">36.09%</td>
+          <td style="background: #F3E5F5;">36.14%</td>
+          <td style="color: #2E7D32;">+0.05%</td>
+          <td><span style="color: var(--text-secondary);">No change (noise)</span></td>
+        </tr>
+        <tr>
+          <td><strong>Cycle@K (Easy)</strong></td>
+          <td style="background: #E3F2FD;">76.01%</td>
+          <td style="background: #F3E5F5;">75.31%</td>
+          <td style="color: #C62828;">-0.70%</td>
+          <td><span style="color: #C62828;">Slight regression</span></td>
+        </tr>
+        <tr>
+          <td><strong>mAP@K (Easy)</strong></td>
+          <td style="background: #E3F2FD;">0.2778</td>
+          <td style="background: #F3E5F5;">0.2779</td>
+          <td style="color: #2E7D32;">+0.0001</td>
+          <td><span style="color: var(--text-secondary);">No change</span></td>
+        </tr>
+        <tr>
+          <td><strong>nDCG@K (Easy)</strong></td>
+          <td style="background: #E3F2FD;">0.9502</td>
+          <td style="background: #F3E5F5;">0.9503</td>
+          <td style="color: #2E7D32;">+0.0001</td>
+          <td><span style="color: var(--text-secondary);">No change</span></td>
+        </tr>
+        <tr>
+          <td><strong>Overlap@K (Easy)</strong></td>
+          <td style="background: #E3F2FD;">7.97%</td>
+          <td style="background: #F3E5F5;">36.08%</td>
+          <td style="color: #2E7D32;">+28.1%</td>
+          <td><span style="color: #FF8F00;">Needs investigation*</span></td>
+        </tr>
+        <tr>
+          <td><strong>Silhouette</strong></td>
+          <td style="background: #E3F2FD;">-0.229</td>
+          <td style="background: #F3E5F5;">-0.224</td>
+          <td style="color: #2E7D32;">+0.005</td>
+          <td><span style="color: var(--text-secondary);">No change</span></td>
+        </tr>
+        <tr style="border-top: 2px solid var(--border-tan);">
+          <td><strong>Prec@K (Hard)</strong></td>
+          <td style="background: #E3F2FD;">34.70%</td>
+          <td style="background: #F3E5F5;">34.70%</td>
+          <td>0.00%</td>
+          <td><span style="color: var(--text-secondary);">Identical</span></td>
+        </tr>
+        <tr>
+          <td><strong>Cycle@K (Hard)</strong></td>
+          <td style="background: #E3F2FD;">73.56%</td>
+          <td style="background: #F3E5F5;">72.97%</td>
+          <td style="color: #C62828;">-0.59%</td>
+          <td><span style="color: #C62828;">Slight regression</span></td>
+        </tr>
+      </tbody>
+    </table>
+    <p class="plot-caption has-text-centered" style="margin-top: 0.5rem;">
+      *Overlap@K jump likely reflects different computation method (True Overlap vs dim-split), not adaptation gain.
+      <br><strong>Conclusion:</strong> 10K clips provide insufficient signal for domain adaptation of a 1B-parameter model. Full 115K corpus needed.
+    </p>
+
   </div>
 </section>
 
