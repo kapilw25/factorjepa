@@ -10,8 +10,9 @@ forward pass. ~5-10x faster than sequential.
 USAGE:
     python -u src/m04d_motion_features.py --SANITY --subset data/subset_10k.json \
         --local-data data/subset_10k_local 2>&1 | tee logs/m04d_sanity.log
-    python -u src/m04d_motion_features.py --FULL --subset data/subset_10k.json \
-        --local-data data/subset_10k_local 2>&1 | tee logs/m04d_motion.log
+    python -u src/m04d_motion_features.py --POC --subset data/subset_10k.json \
+        --local-data data/subset_10k_local 2>&1 | tee logs/m04d_poc.log
+    python -u src/m04d_motion_features.py --FULL --local-data data/full_local 2>&1 | tee logs/m04d_full.log
 """
 import argparse
 import io
@@ -33,7 +34,7 @@ sys.path.insert(0, str(Path(__file__).parent))
 from utils.config import (
     HF_DATASET_REPO, check_gpu,
     add_subset_arg, add_local_data_arg, get_output_dir, load_subset,
-    get_pipeline_config, get_sanity_clip_limit,
+    get_pipeline_config, get_sanity_clip_limit, get_total_clips,
 )
 from utils.wandb_utils import (
     add_wandb_args, init_wandb, log_metrics, finish_wandb,
@@ -362,6 +363,7 @@ def main():
         description="GPU-RAFT optical flow motion features (13D per clip)")
     parser.add_argument("--SANITY", action="store_true",
                         help="Process 20 clips only")
+    parser.add_argument("--POC", action="store_true", help="10K subset")
     parser.add_argument("--FULL", action="store_true",
                         help="Process all clips")
     parser.add_argument("--n-pairs", type=int, default=N_FRAME_PAIRS,
@@ -372,9 +374,9 @@ def main():
     add_gpu_mem_arg(parser)
     args = parser.parse_args()
 
-    if not (args.SANITY or args.FULL):
+    if not (args.SANITY or args.POC or args.FULL):
         parser.print_help()
-        print("\nERROR: Specify --SANITY or --FULL")
+        print("\nERROR: Specify --SANITY, --POC, or --FULL")
         sys.exit(1)
 
     check_gpu()
@@ -392,7 +394,7 @@ def main():
         print(f"  Skipping (delete {features_file} to re-run)")
         return
 
-    mode = "SANITY" if args.SANITY else ("POC" if args.subset else "FULL")
+    mode = "SANITY" if args.SANITY else ("POC" if args.POC else "FULL")
     clip_limit = get_sanity_clip_limit("motion") if args.SANITY else None
     wb_run = init_wandb("m04d", mode, config=vars(args),
                         enabled=not args.no_wandb)
@@ -402,13 +404,16 @@ def main():
     print(f"Frame pairs/clip: {args.n_pairs}")
 
     # Load subset keys
-    subset_keys = load_subset(args.subset)
+    subset_keys = load_subset(args.subset) if args.subset else set()
     if subset_keys:
         print(f"Subset: {len(subset_keys):,} keys")
         if clip_limit is None:
             clip_limit = len(subset_keys)
     if clip_limit is None:
-        clip_limit = 999_999_999  # effectively unlimited
+        clip_limit = get_total_clips(local_data=getattr(args, 'local_data', None))
+        if clip_limit == 0:
+            print("FATAL: Cannot determine clip count. Use --subset or --local-data with manifest.json")
+            sys.exit(1)
 
     # Checkpoint
     checkpoint_file = output_dir / ".m04d_checkpoint.npz"

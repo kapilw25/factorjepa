@@ -4,6 +4,7 @@ window, encode each clip once with libx264 CRF 28. No double encoding, no respli
 
 USAGE:
     python -u src/m02_scene_detect.py --SANITY 2>&1 | tee logs/m02_scene_detect_sanity.log
+    python -u src/m02_scene_detect.py --POC 2>&1 | tee logs/m02_scene_detect_poc.log
     caffeinate -s python -u src/m02_scene_detect.py --FULL 2>&1 | tee logs/m02_scene_detect_full.log
     caffeinate -s python -u src/m02_scene_detect.py --FULL --keyframes 2>&1 | tee logs/m02_scene_detect_full_kf.log
 """
@@ -240,13 +241,14 @@ def process_video(video: Path, clips_dir: Path, section_map: dict = None,
 def main():
     parser = argparse.ArgumentParser(description="Greedy scene-aware split → encode → upload")
     parser.add_argument("--SANITY", action="store_true", help="Process 1 video only")
+    parser.add_argument("--POC", action="store_true", help="10K subset")
     parser.add_argument("--FULL", action="store_true", help="Process all videos (auto-polls if m01 still running)")
     parser.add_argument("--keyframes", action="store_true", help="Extract 1 middle-frame JPEG per clip")
     args = parser.parse_args()
 
-    if not (args.SANITY or args.FULL):
+    if not (args.SANITY or args.POC or args.FULL):
         parser.print_help()
-        print("\nERROR: Specify --SANITY or --FULL")
+        print("\nERROR: Specify --SANITY, --POC, or --FULL")
         sys.exit(1)
 
     CLIPS_DIR.mkdir(parents=True, exist_ok=True)
@@ -289,8 +291,9 @@ def main():
         mark_video_processed(vid.stem, clip_count)
         print(f"\nSANITY COMPLETE")
 
-    elif args.FULL:
-        print("=== FULL MODE: Process all videos (auto-polls for new downloads) ===")
+    elif args.POC or args.FULL:
+        mode = "POC" if args.POC else "FULL"
+        print(f"=== {mode} MODE: Process all videos (auto-polls for new downloads) ===")
         print(f"Videos dir: {VIDEOS_DIR}")
         print(f"Clips dir:  {CLIPS_DIR}")
 
@@ -347,7 +350,7 @@ def main():
             processed = get_processed_video_ids()
             print(f"\n\nStopped early. Processed {len(processed)} videos. Finalizing...")
 
-        print(f"\nFULL COMPLETE")
+        print(f"\n{mode} COMPLETE")
 
 
 if __name__ == "__main__":

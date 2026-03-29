@@ -208,13 +208,57 @@ Factor datasets (D_L, D_A, D_I) created via SAM3 segmentation → tracklet minin
 
 ---
 
-## Model Strategy
+## Execution Plan (ordered by priority)
 
-| Phase | Model | Dim | Purpose |
-|-------|-------|-----|---------|
-| 10K POC | V-JEPA 2.0 ViT-g (1B) | 1408 | Validate pipeline works |
-| 115K Primary | V-JEPA 2.0 ViT-g (1B) | 1408 | Main results, proposal-aligned |
-| 115K Ablation | V-JEPA 2.1 ViT-G (2B) | 1664 | Scaling analysis for paper |
+### Step 1: 10K POC — Validate pipeline (DONE)
+
+| Item | Result |
+|------|--------|
+| Model | V-JEPA 2.0 ViT-g (1B), 1408-dim |
+| Data | 10K subset (8,982 train / 1,018 val) |
+| Ablation | λ ∈ {0, 0.001, 0.01, 0.1} × 1 epoch each |
+| Winner | λ=0.001 (jepa_loss=1.4914, selected by lowest loss) |
+| Deep run | λ=0.001 × 5 epochs (400 steps, ~3h GPU) |
+| Adapted vs Frozen | Prec@K: 36.14% vs 36.09% (Δ=+0.05%, **noise**) |
+| Conclusion | **10K clips insufficient for 1B model adaptation** |
+
+### Step 2: 115K Full — Main result (NEXT)
+
+```
+1B model + 10K clips → 0% gain (proven)
+1B model + 115K clips → ???        ← THIS IS NEXT
+```
+
+| Item | Plan |
+|------|------|
+| Model | V-JEPA 2.0 ViT-g (1B), same as POC |
+| Data | 115K full corpus (~104K train / ~11K val) |
+| Lambda | λ=0.001 only (winner from POC, skip sweep) |
+| Epochs | 1 epoch = ~929 steps at BS=112, ~6.4h |
+| Eval | m05 re-embed (115K) → m06 metrics → m08b compare |
+| Command | `./scripts/run_pretrain.sh --FULL` |
+| Total time | ~98h (~4 days) including eval |
+| If it works | Report "115K needed" — clean paper story |
+| If it doesn't | Approach needs rethinking (not just data scale) |
+
+### Step 3: 2B Scaling Ablation (LATER, if time permits)
+
+**Do NOT run before Step 2.** Rationale:
+- V-JEPA 2.1 ViT-G (2B) has different architecture (deep self-supervision) → confounds the data-size experiment
+- Different embedding dim (1664 vs 1408) → all downstream scripts need testing
+- ~2x VRAM → may not fit at BS=112, needs profiler re-run
+- The proposal specifies 2B as "scaling analysis" — an appendix ablation, not the main result
+
+| Item | Plan |
+|------|------|
+| Model | V-JEPA 2.1 ViT-G (2B), 1664-dim |
+| Data | 115K full corpus (same as Step 2) |
+| Purpose | Does scaling model size help when data size is fixed? |
+| Prerequisite | Step 2 must show meaningful gain first |
+
+### Step 4: Ch11 Surgery Fine-Tuning (FUTURE)
+
+Uses best adapted encoder from Step 2 or 3 as starting point. See Surgery section below.
 
 ---
 
@@ -305,14 +349,22 @@ flowchart LR
 
 ---
 
-## Code Organization
+## Code & Commands
 
-### Why flat `src/m*.py` (not subdirectories)
+Code is built and tested on 10K POC. For 115K, see `plan_code_dev.md` for terminal commands.
 
-Researched V-JEPA 2, DINOv2, VideoMAE, timm, MMAction2, SAM 2 repo structures. Two patterns dominate:
+```bash
+# 3-mode CLI:
+./scripts/run_evaluate.sh --SANITY   # quick validation
+./scripts/run_evaluate.sh --POC      # 10K subset (~8h)
+./scripts/run_evaluate.sh --FULL     # 115K full corpus (~100h)
 
-- **V-JEPA 2 / DINOv2**: `app/` (train) + `evals/` (eval) subdirectories — works when train and eval are **independent programs** with separate entry points, data loaders, dependencies
-- **VideoMAE / timm**: Flat scripts with naming convention (`run_mae_pretraining.py`, `run_class_finetuning.py`)
+./scripts/run_pretrain.sh --SANITY   # quick validation
+./scripts/run_pretrain.sh --POC      # 10K subset (~5h)
+./scripts/run_pretrain.sh --FULL     # 115K full corpus (~98h)
+```
+
+### Code Organization (flat `src/m*.py`, decided and implemented)
 
 **Our pipeline is sequential, not independent.** Modules share `config.py`, `gpu_batch.py`, encoder registry, WebDataset streaming, `bootstrap.py`, `wandb_utils.py`. m05 outputs feed m06 which feeds m08. Splitting into subdirectories would break the `m04 → m05 → m06 → m07 → m08` dependency chain that the numbering encodes.
 
@@ -419,47 +471,29 @@ flowchart LR
 
 ---
 
-## Implementation Path
-
-### Training infrastructure from `facebookresearch/vjepa2`
-
-| Their file | Purpose | Our adaptation |
-|-----------|---------|---------------|
-| `app/main.py` | Single-GPU training entry | `src/m09_pretrain.py` (same role) |
-| `app/main_distributed.py` | Multi-GPU DDP | `src/m09_pretrain.py --distributed` (flag, not separate file) |
-| `configs/train/vitg16/pretrain-256px-16f.yaml` | Base pretrain config | `configs/pretrain/vitg16_indian.yaml` |
-| `configs/train/vitg16/cooldown-256px-64f.yaml` | Cooldown config | `configs/pretrain/vitg16_cooldown.yaml` |
-| `src/models/vision_transformer.py` | ViT-g/ViT-G architecture | Import directly from vjepa2 package |
-| `src/masks/` | Spatiotemporal mask sampling | Import directly |
-| `src/datasets/` | Video data loading | Replace with our `_create_stream()` + `--local-data` pattern |
-
-### Our modifications for Indian continual pretraining
-
-1. **Data loader**: Replace their `src/datasets/` with HF WebDataset streaming (existing `_create_stream()` from m05)
-2. **Drift control**: Add regularizer λ·‖θ-θ₀‖² to JEPA loss (Sec 10.4 of proposal)
-3. **Stratified sampling**: Uniform by `video_id`, balanced by v3 taxonomy tags
-4. **Validation loop**: Run Cycle@K (hard mode) on held-out video_ids every 2K-5K steps
-5. **Checkpoint selection**: Best Cycle@K, not lowest loss (label-free selection)
-6. **Logging**: Integrate with `utils/wandb_utils.py`
-7. **Config-driven**: All hyperparameters in YAML, script reads config via `--config`
-
----
-
 ## Lambda Ablation: Drift Control Sweep
 
-Drift control λ trades off adaptation (learning Indian-domain features) vs retention (preserving pretrained knowledge). We sweep 4 values, each producing an isolated checkpoint. See `plan_code_dev.md` for commands.
+Drift control λ trades off adaptation (learning Indian-domain features) vs retention (preserving pretrained knowledge).
 
-| Lambda | Strategy | Expected Radar Change |
-|--------|----------|----------------------|
-| 0 | No anchor — max adaptation | Spatial expands, temporal may shrink (forgetting) |
-| 0.001 | Gentle anchor | Usually the sweet spot for continual pretraining |
-| 0.01 | Balanced (default) | Moderate adaptation + moderate forgetting protection |
-| 0.1 | Strong anchor — minimal drift | Radar barely changes from frozen — too conservative |
+### 10K POC Results (actual, 2026-03-29)
 
-### Selection criteria
+| Lambda | JEPA Loss (1 epoch) | Strategy | Winner? |
+|--------|:---:|----------|:---:|
+| 0 | 1.5531 | No anchor — max adaptation | |
+| **0.001** | **1.4914** (5 epochs) | Gentle anchor | **✓** |
+| 0.01 | 1.5483 | Balanced | |
+| 0.1 | 1.5314 | Strong anchor | |
 
-1. **Spatial must improve**: Prec@K > 14.6% (frozen baseline)
-2. **Temporal must NOT regress**: Cycle@K >= 78.7% (frozen baseline)
-3. Maximize the sum of normalized metrics across all 8 radar axes
+**Finding:** All 4 lambdas produce nearly identical JEPA loss after 1 epoch (within noise). Drift control only differentiates over multiple epochs. Winner selected by lowest `jepa_loss` from `training_summary.json`.
 
-The winner is the λ whose radar polygon is largest overall — not just biggest on one axis.
+### Adapted vs Frozen (10K POC, λ=0.001, 5 epochs)
+
+| Metric | Frozen | Adapted | Delta | Verdict |
+|--------|:---:|:---:|:---:|:---:|
+| Prec@K (Easy) | 36.09% | 36.14% | +0.05% | Noise |
+| Cycle@K (Easy) | 76.01% | 75.31% | -0.70% | Slight regression |
+| mAP@K | 0.2778 | 0.2779 | +0.0001 | No change |
+| Prec@K (Hard) | 34.70% | 34.70% | 0.00% | Identical |
+| Cycle@K (Hard) | 73.56% | 72.97% | -0.59% | Slight regression |
+
+**Conclusion:** 10K clips (8,982 train) produce zero meaningful adaptation on a 1B model. The 115K full corpus is required to test whether continual pretraining works at all.

@@ -4,8 +4,8 @@ GPU-only for DINOv2/CLIP/Shuffled (no CPU fallback). Random is CPU-safe.
 
 USAGE:
     python -u src/m05b_baselines.py --encoder all --SANITY 2>&1 | tee logs/m05b_all_sanity.log
-    python -u src/m05b_baselines.py --encoder all --FULL --subset data/subset_10k.json 2>&1 | tee logs/m05b_all_poc.log
-    python -u src/m05b_baselines.py --encoder dinov2 --FULL --subset data/subset_10k.json 2>&1 | tee logs/m05b_dinov2.log
+    python -u src/m05b_baselines.py --encoder all --POC --subset data/subset_10k.json --local-data data/subset_10k_local 2>&1 | tee logs/m05b_all_poc.log
+    python -u src/m05b_baselines.py --encoder all --FULL --local-data data/full_local 2>&1 | tee logs/m05b_all_full.log
 """
 import argparse
 import os
@@ -648,6 +648,7 @@ def main():
                         choices=ALL_BASELINES + ["all"],
                         help="Baseline encoder to run ('all' = run all 4 sequentially)")
     parser.add_argument("--SANITY", action="store_true", help="Process 5 clips only")
+    parser.add_argument("--POC", action="store_true", help="10K subset")
     parser.add_argument("--FULL", action="store_true", help="Process all clips")
     parser.add_argument("--batch-size", type=int, default=None,
                         help="Override batch size (auto-computed if omitted)")
@@ -657,9 +658,9 @@ def main():
     add_gpu_mem_arg(parser)
     args = parser.parse_args()
 
-    if not (args.SANITY or args.FULL):
+    if not (args.SANITY or args.POC or args.FULL):
         parser.print_help()
-        print("\nERROR: Specify --SANITY or --FULL")
+        print("\nERROR: Specify --SANITY, --POC, or --FULL")
         sys.exit(1)
 
     encoders_to_run = ALL_BASELINES if args.encoder == "all" else [args.encoder]
@@ -700,11 +701,13 @@ def _run_single_encoder(encoder: str, args):
     print(f"Output:   {files['embeddings']}")
     print(f"{'='*60}")
 
-    # Check existing output
-    if files["embeddings"].exists():
-        if not check_output_exists([files["embeddings"], files["paths"]], f"{encoder} embeddings"):
-            print("Using cached embeddings.")
-            return
+    # Output-exists guard
+    from utils.output_guard import verify_or_skip
+    if verify_or_skip(output_dir, {
+        "embeddings": files["embeddings"],
+        "paths": files["paths"],
+    }, label=f"m05b {encoder}"):
+        return
 
     # Determine clip limit + subset
     subset_keys = load_subset(args.subset) if args.subset else set()
@@ -732,7 +735,7 @@ def _run_single_encoder(encoder: str, args):
         if args.SANITY:
             ref_keys = ref_keys[:get_sanity_clip_limit("embed")]
 
-        wb_run = init_wandb("m05b", f"random_{'SANITY' if args.SANITY else 'POC'}",
+        wb_run = init_wandb("m05b", f"random_{'SANITY' if args.SANITY else 'POC' if args.POC else 'FULL'}",
                             config=vars(args), enabled=not args.no_wandb)
         embeddings, keys = generate_random(ref_keys, output_dir, args)
         log_metrics(wb_run, {"total_clips": len(keys), "embedding_dim": embeddings.shape[1]})
@@ -740,7 +743,7 @@ def _run_single_encoder(encoder: str, args):
         finish_wandb(wb_run)
     else:
         check_gpu()
-        mode = f"{encoder}_{'SANITY' if args.SANITY else 'POC' if args.subset else 'FULL'}"
+        mode = f"{encoder}_{'SANITY' if args.SANITY else 'POC' if args.POC else 'FULL'}"
         wb_run = init_wandb("m05b", mode, config=vars(args), enabled=not args.no_wandb)
 
         if encoder == "dinov2":

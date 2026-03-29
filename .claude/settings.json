@@ -8,6 +8,11 @@
             "type": "command",
             "command": ".claude/hooks/enforce-dev-rules.sh",
             "timeout": 5
+          },
+          {
+            "type": "command",
+            "command": ".claude/hooks/protect-checkpoints.sh",
+            "timeout": 5
           }
         ]
       },
@@ -18,6 +23,11 @@
             "type": "command",
             "command": ".claude/hooks/fail-hard-research.sh",
             "timeout": 5
+          },
+          {
+            "type": "command",
+            "command": ".claude/hooks/protect-checkpoints.sh",
+            "timeout": 5
           }
         ]
       },
@@ -27,6 +37,11 @@
           {
             "type": "command",
             "command": ".claude/hooks/fail-hard-research.sh",
+            "timeout": 5
+          },
+          {
+            "type": "command",
+            "command": ".claude/hooks/protect-checkpoints.sh",
             "timeout": 5
           }
         ]

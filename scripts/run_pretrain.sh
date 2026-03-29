@@ -1,14 +1,16 @@
 #!/usr/bin/env bash
 # ═══════════════════════════════════════════════════════════════════════
-# Ch10: V-JEPA continual pretraining + 4-lambda drift control ablation
-# Pipeline: m09 train → m05 re-embed → m06 metrics → m08b compare
-# Needs ~65 GB disk. Auto-downloads data if missing.
+# Ch10: V-JEPA continual pretraining + drift control ablation
+# Phase 1: 4-lambda sweep (train only, select winner by jepa_loss)
+# Phase 2: Winner deep run (m09 → m05 → m06)
+# Phase 3: Full eval (m06b → m05 shuffled → m07 → m08 → m08b)
 #
 # USAGE:
-#   ./setup_env_uv.sh --gpu --from-wheels   # one-time setup
+#   ./setup_env_uv.sh --gpu --from-wheels          # one-time setup
 #   ./scripts/run_pretrain.sh --SANITY 2>&1 | tee logs/ch10_sanity.log
-#   tmux new -s ch10  # for --FULL (Ctrl+B,D detach / tmux attach -t ch10)
-#   ./scripts/run_pretrain.sh --FULL 2>&1 | tee logs/ch10_full_10k.log
+#   ./scripts/run_pretrain.sh --POC 2>&1 | tee logs/ch10_poc.log        # 10K subset (~5h)
+#   tmux new -s ch10
+#   ./scripts/run_pretrain.sh --FULL 2>&1 | tee logs/ch10_full.log      # 115K corpus (~28h+)
 # ═══════════════════════════════════════════════════════════════════════
 set -euo pipefail
 
@@ -21,10 +23,11 @@ SUBSET_FLAG=""
 CONFIG="configs/pretrain/vitg16_indian.yaml"
 
 usage() {
-    echo "Usage: $0 --SANITY | --FULL [--config CONFIG]"
+    echo "Usage: $0 --SANITY | --POC | --FULL [--config CONFIG]"
     echo ""
-    echo "  --SANITY   Quick validation: 50 steps, batch_size=2 (~5 min)"
-    echo "  --FULL     10K POC: 2000-10000 steps on subset (~20h)"
+    echo "  --SANITY   Quick validation (~5 min, 900 train clips from config)"
+    echo "  --POC      10K subset: 1-epoch ablation + 5-epoch winner (~5h)"
+    echo "  --FULL     115K full corpus: no subset, dataset size from manifest (~28h)"
     echo "  --config   Override YAML config (default: $CONFIG)"
     exit 1
 }
@@ -40,11 +43,18 @@ while [[ $# -gt 0 ]]; do
             OUT_DIR="outputs/sanity"
             shift
             ;;
-        --FULL)
-            MODE="FULL"
+        --POC)
+            MODE="POC"
             MODE_FLAG="--FULL"
             SUBSET_FLAG="--subset data/subset_10k.json"
             OUT_DIR="outputs/poc"
+            shift
+            ;;
+        --FULL)
+            MODE="FULL"
+            MODE_FLAG="--FULL"
+            SUBSET_FLAG=""
+            OUT_DIR="outputs/full"
             shift
             ;;
         --config)
@@ -153,15 +163,20 @@ verify() {
 
 # ── Time estimates ────────────────────────────────────────────────────
 if [[ "$MODE" == "SANITY" ]]; then
-    T_M09="~2 min (50 steps, profiler BS)"
-    T_M05_RE="~15 sec (cached)"
+    T_M09="~3 min (8 steps)"
+    T_M05_RE="~30 sec"
     T_M06_RE="~10 sec"
     T_M08B_RE="~5 sec"
-else
-    T_M09="~5-20h (2000-10000 steps, profiler BS)"
-    T_M05_RE="~80 min (re-embed 10K clips with adapted encoder)"
-    T_M06_RE="~30 sec (FAISS-GPU metrics)"
-    T_M08B_RE="~30 sec (frozen vs adapted comparison)"
+elif [[ "$MODE" == "POC" ]]; then
+    T_M09="~35 min/lambda (80 steps)"
+    T_M05_RE="~1h 47min (10K clips at 1.55 clips/s)"
+    T_M06_RE="~1 min"
+    T_M08B_RE="~30 sec"
+else  # FULL
+    T_M09="~6.4h/lambda (929 steps)"
+    T_M05_RE="~20h (115K clips at 1.55 clips/s)"
+    T_M06_RE="~5 min"
+    T_M08B_RE="~30 sec"
 fi
 
 # ── Auto-detect optimal batch size from profiler ─────────────────────
@@ -197,16 +212,27 @@ print(best)
     log "Auto batch size: ${OPTIMAL_BS} (from profiler, <=75% VRAM)"
 fi
 
-# ── Local data ────────────────────────────────────────────────────────
-LOCAL_DATA="data/subset_10k_local"
+# ── Local data (mode-dependent) ──────────────────────────────────────
+if [[ "$MODE" == "FULL" ]]; then
+    LOCAL_DATA="data/full_local"
+else
+    LOCAL_DATA="data/subset_10k_local"
+fi
 LOCAL_FLAG=""
 
 if [[ -d "$LOCAL_DATA" && -f "$LOCAL_DATA/manifest.json" ]]; then
-    log "Local subset exists: $LOCAL_DATA"
+    log "Local data exists: $LOCAL_DATA"
     LOCAL_FLAG="--local-data $LOCAL_DATA"
+elif [[ "$MODE" == "SANITY" ]]; then
+    # SANITY can stream (small clip count)
+    log "No local data — SANITY will use HF streaming"
 else
     log "FATAL: Local data not found at $LOCAL_DATA"
-    log "Run: python -u src/m00d_download_subset.py --FULL --subset data/subset_10k.json"
+    if [[ "$MODE" == "FULL" ]]; then
+        log "Run: python -u src/m00d_download_subset.py --FULL"
+    else
+        log "Run: python -u src/m00d_download_subset.py --FULL --subset data/subset_10k.json"
+    fi
     exit 1
 fi
 
@@ -273,7 +299,7 @@ if os.path.exists(baseline):
     m = json.load(open(baseline))
     print(f'Baseline:   Prec@K={m[\"easy\"][\"prec_at_k\"]:.1f}% (Ch9 frozen)')
 else:
-    errors.append(f'Ch9 baseline not found ({baseline}). Run: ./scripts/run_evaluate.sh --FULL')
+    errors.append(f'Ch9 baseline not found ({baseline}). Run: ./scripts/run_evaluate.sh --POC')
 
 if errors:
     print(f'\nFATAL: {len(errors)} check(s) failed:')
@@ -284,44 +310,62 @@ else:
     print('\nPre-flight: ALL PASSED')
 " 2>&1 | tee -a "$MASTER_LOG"
 
-log "Pre-flight complete. Starting pipeline..."
+log "Pre-flight complete."
+
+# ── Output preflight: check all inputs/outputs before GPU work ────────
+log "=== OUTPUT PREFLIGHT ==="
+python -u src/utils/output_guard.py preflight_pretrain "$OUT_DIR" "$CONFIG" 2>&1 | tee -a "$MASTER_LOG"
+if [[ ${PIPESTATUS[0]} -ne 0 ]]; then
+    log "FATAL: Output preflight failed or aborted."
+    exit 1
+fi
+
+log "Starting pipeline..."
 echo "" | tee -a "$MASTER_LOG"
 
 # ═══════════════════════════════════════════════════════════════════════
-# PIPELINE: Lambda Ablation Sweep (4 values × 3 steps each)
+# TRAINING (λ=0.001, POC winner — no ablation sweep)
+# Lambda ablation was done on 10K POC (all 4 lambdas identical).
+# For FULL, train directly with winner λ=0.001.
 # ═══════════════════════════════════════════════════════════════════════
 
-# Lambda values to sweep (dots → underscores in dir/log names)
-LAMBDAS=("0" "0.001" "0.01" "0.1")
-LAMBDA_DIRS=("lambda0" "lambda0_001" "lambda0_01" "lambda0_1")
-COMPLETED_LAMBDAS=()
+# Read winner epochs from YAML config
+WINNER_EPOCHS=$(python -c "import yaml; print(yaml.safe_load(open('${CONFIG}'))['optimization']['max_epochs']['winner'])")
 
-for idx in "${!LAMBDAS[@]}"; do
-    LAM="${LAMBDAS[$idx]}"
-    LAM_DIR="${LAMBDA_DIRS[$idx]}"
-    LAM_OUT="${OUT_DIR}/m09_${LAM_DIR}"
+# Fixed lambda from POC ablation result
+WINNER_LAMBDA="0.001"
+WINNER_DIR="lambda0_001"
+WINNER_OUT="${OUT_DIR}/m09_${WINNER_DIR}"
 
-    echo "" | tee -a "$MASTER_LOG"
-    log "╔═══════════════════════════════════════════════════════════╗"
-    log "║  ABLATION: lambda=${LAM} (${LAM_DIR})                    "
-    log "╚═══════════════════════════════════════════════════════════╝"
+log "Training: lambda=${WINNER_LAMBDA} (${WINNER_DIR}), ${WINNER_EPOCHS} epochs"
 
-    # ── Phase 1: Train only (no m05/m06 — select winner by jepa_loss) ──
-    run_step "${LAM_DIR}-train" "m09 pretrain (lambda=${LAM})" "$T_M09" \
-        "$LOGDIR/m09_${MODE,,}_${LAM_DIR}.log" \
-        src/m09_pretrain.py --config "$CONFIG" --lambda-reg "$LAM" \
-            $BATCH_FLAG $MODE_FLAG $SUBSET_FLAG $LOCAL_FLAG \
-        || { log "FATAL: m09 lambda=${LAM} failed. Stopping pipeline."; exit 1; }
+# Check if already trained with sufficient epochs
+if [[ -f "${WINNER_OUT}/student_encoder.pt" && -f "${WINNER_OUT}/training_summary.json" ]]; then
+    EXISTING_EPOCHS=$(python -c "import json; s=json.load(open('${WINNER_OUT}/training_summary.json')); print(s['epochs'])")
+    if python -c "exit(0 if float('${EXISTING_EPOCHS}') >= float('${WINNER_EPOCHS}') else 1)"; then
+        log "Student already trained for ${EXISTING_EPOCHS} epochs (>= ${WINNER_EPOCHS}). Skipping."
+    else
+        log "Student has ${EXISTING_EPOCHS} epochs, need ${WINNER_EPOCHS}. Re-training."
+        rm -f "${WINNER_OUT}/student_encoder.pt"
+    fi
+fi
 
-    verify "Training lambda=${LAM}" "
+run_step "train" "m09 pretrain (lambda=${WINNER_LAMBDA}, ${WINNER_EPOCHS} epochs)" "$T_M09" \
+    "$LOGDIR/m09_${MODE,,}_${WINNER_DIR}.log" \
+    src/m09_pretrain.py --config "$CONFIG" --lambda-reg "$WINNER_LAMBDA" \
+        --max-epochs "$WINNER_EPOCHS" \
+        $BATCH_FLAG $MODE_FLAG $SUBSET_FLAG $LOCAL_FLAG \
+    || { log "FATAL: m09 training failed."; exit 1; }
+
+verify "Training" "
 import os, json
-out = '${LAM_OUT}'
+out = '${WINNER_OUT}'
 for f in ['student_encoder.pt', 'training_summary.json', 'loss_log.csv']:
     path = os.path.join(out, f)
     if os.path.exists(path):
         if f.endswith('.json'):
             s = json.load(open(path))
-            print(f'  OK   {f:30s} jepa_loss={s[\"final_jepa_loss\"]:.4f}')
+            print(f'  OK   {f:30s} jepa_loss={s[\"final_jepa_loss\"]:.4f}  epochs={s[\"epochs\"]}')
         elif f.endswith('.pt'):
             size_mb = os.path.getsize(path) / 1e6
             print(f'  OK   {f:30s} {size_mb:.0f} MB')
@@ -331,83 +375,6 @@ for f in ['student_encoder.pt', 'training_summary.json', 'loss_log.csv']:
     else:
         print(f'  MISS {f}')
 "
-
-    COMPLETED_LAMBDAS+=("$LAM_DIR")
-    log "Completed training: lambda=${LAM} (${LAM_DIR})"
-done
-
-# ═══════════════════════════════════════════════════════════════════════
-# WINNER SELECTION + DEEP RUN
-# ═══════════════════════════════════════════════════════════════════════
-
-echo "" | tee -a "$MASTER_LOG"
-log "=== SELECTING ABLATION WINNER ==="
-
-# Read winner_epochs from YAML
-WINNER_EPOCHS=$(python -c "import yaml; print(yaml.safe_load(open('${CONFIG}'))['optimization']['max_epochs']['winner'])")
-
-# Pick the lambda with lowest jepa_loss — reads training_summary.json (no m05/m06 needed)
-WINNER_JSON="${OUT_DIR}/ablation_winner.json"
-python -c "
-import json, os, sys
-
-out = '${OUT_DIR}'
-lambdas = [('0', 'lambda0'), ('0.001', 'lambda0_001'),
-           ('0.01', 'lambda0_01'), ('0.1', 'lambda0_1')]
-
-best_loss = float('inf')
-best_lambda = None
-best_dir = None
-results = {}
-
-for lam_val, lam_dir in lambdas:
-    spath = f'{out}/m09_{lam_dir}/training_summary.json'
-    if not os.path.exists(spath):
-        print(f'FATAL: lambda={lam_val} training_summary.json not found: {spath}')
-        sys.exit(1)
-    s = json.load(open(spath))
-    jepa_loss = s['final_jepa_loss']
-    print(f'  lambda={lam_val}: jepa_loss={jepa_loss:.4f} (steps={s[\"steps\"]}, epochs={s[\"epochs\"]})')
-    results[lam_val] = jepa_loss
-    if jepa_loss < best_loss:
-        best_loss = jepa_loss
-        best_lambda = lam_val
-        best_dir = lam_dir
-
-if best_lambda is None:
-    print('FATAL: No lambda summaries found')
-    sys.exit(1)
-
-winner = {
-    'winner_lambda': best_lambda,
-    'winner_dir': best_dir,
-    'winner_jepa_loss': best_loss,
-    'selection_metric': 'final_jepa_loss (lowest)',
-    'all_results': results,
-}
-with open('${WINNER_JSON}', 'w') as f:
-    json.dump(winner, f, indent=2)
-print(f'  WINNER: lambda={best_lambda} (jepa_loss={best_loss:.4f})')
-print(f'  Saved: ${WINNER_JSON}')
-" 2>&1 | tee -a "$MASTER_LOG"
-
-if [[ ! -f "$WINNER_JSON" ]]; then
-    log "FATAL: Winner selection failed — ${WINNER_JSON} not created."
-    exit 1
-fi
-
-# Read winner from JSON (not stdout)
-WINNER_LAMBDA=$(python -c "import json; print(json.load(open('${WINNER_JSON}'))['winner_lambda'])")
-
-WINNER_DIR="lambda$(echo "$WINNER_LAMBDA" | sed 's/\./_/g')"
-log "Winner: lambda=${WINNER_LAMBDA} (${WINNER_DIR}), deep run: ${WINNER_EPOCHS} epochs"
-
-# Delete the 1-epoch student_encoder so m09 re-trains with more epochs
-WINNER_OUT="${OUT_DIR}/m09_${WINNER_DIR}"
-if [[ -f "${WINNER_OUT}/student_encoder.pt" ]]; then
-    rm -f "${WINNER_OUT}/student_encoder.pt"
-    log "Removed 1-epoch student for re-training"
-fi
 
 # Deep train the winner
 run_step "winner-train" "m09 deep train (lambda=${WINNER_LAMBDA}, ${WINNER_EPOCHS} epochs)" \
@@ -450,19 +417,19 @@ run_step "winner-temporal" "m06b temporal corr (winner)" "~2 min" \
         $MODE_FLAG $SUBSET_FLAG \
     || { log "FATAL: Winner temporal correlation failed."; exit 1; }
 
-# m05+m06 shuffled adapted: DISABLED for speed (enable for full paper run)
-# Uncomment below for temporal ablation (~1h 50min)
+# m05+m06 shuffled adapted: temporal ablation (~1h 50min)
 SHUFFLED_ENCODER="${WINNER_ENCODER}_shuffled"
-# run_step "winner-shuffled" "m05 shuffled adapted (temporal ablation)" "$T_M05_RE" \
-#     "$LOGDIR/m05_${MODE,,}_winner_shuffled.log" \
-#     src/m05_vjepa_embed.py --model "$WINNER_MODEL" --encoder "$SHUFFLED_ENCODER" --shuffle \
-#         $MODE_FLAG $SUBSET_FLAG $LOCAL_FLAG \
-#     || { log "FATAL: Shuffled adapted embed failed."; exit 1; }
-# run_step "winner-shuffled-metrics" "m06 metrics (shuffled adapted)" "$T_M06_RE" \
-#     "$LOGDIR/m06_${MODE,,}_winner_shuffled.log" \
-#     src/m06_faiss_metrics.py --encoder "$SHUFFLED_ENCODER" \
-#         $MODE_FLAG $SUBSET_FLAG \
-#     || { log "FATAL: Shuffled adapted metrics failed."; exit 1; }
+run_step "winner-shuffled" "m05 shuffled adapted (temporal ablation)" "$T_M05_RE" \
+    "$LOGDIR/m05_${MODE,,}_winner_shuffled.log" \
+    src/m05_vjepa_embed.py --model "$WINNER_MODEL" --encoder "$SHUFFLED_ENCODER" --shuffle \
+        $MODE_FLAG $SUBSET_FLAG $LOCAL_FLAG \
+    || { log "FATAL: Shuffled adapted embed failed."; exit 1; }
+
+run_step "winner-shuffled-metrics" "m06 metrics (shuffled adapted)" "$T_M06_RE" \
+    "$LOGDIR/m06_${MODE,,}_winner_shuffled.log" \
+    src/m06_faiss_metrics.py --encoder "$SHUFFLED_ENCODER" \
+        $MODE_FLAG $SUBSET_FLAG \
+    || { log "FATAL: Shuffled adapted metrics failed."; exit 1; }
 
 # m07: UMAP for adapted encoder
 run_step "winner-umap" "m07 UMAP (winner)" "~5 min" \
@@ -480,9 +447,7 @@ run_step "winner-plots" "m08 plots (winner)" "~2 min" \
 
 # m08b: Compare all encoders (frozen + baselines + adapted)
 # Build encoder list: all Ch9 encoders + adapted winner
-COMPARE_LIST="vjepa,random,dinov2,clip,vjepa_shuffled,${WINNER_ENCODER}"
-# Add shuffled adapted when enabled above:
-# COMPARE_LIST="${COMPARE_LIST},${SHUFFLED_ENCODER}"
+COMPARE_LIST="vjepa,random,dinov2,clip,vjepa_shuffled,${WINNER_ENCODER},${SHUFFLED_ENCODER}"
 run_step "final-compare" "m08b comparison (frozen + baselines + adapted)" "~30 sec" \
     "$LOGDIR/m08b_${MODE,,}_ch10.log" \
     src/m08b_compare.py --encoders "$COMPARE_LIST" \

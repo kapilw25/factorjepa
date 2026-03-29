@@ -5,8 +5,8 @@ CPU-only — reads pre-computed .npy files from m04d + m05/m05b.
 
 USAGE:
     python -u src/m06b_temporal_corr.py --encoder vjepa --SANITY 2>&1 | tee logs/m06b_vjepa_sanity.log
-    python -u src/m06b_temporal_corr.py --encoder vjepa --FULL --subset data/subset_10k.json 2>&1 | tee logs/m06b_vjepa.log
-    python -u src/m06b_temporal_corr.py --encoder dinov2 --FULL --subset data/subset_10k.json 2>&1 | tee logs/m06b_dinov2.log
+    python -u src/m06b_temporal_corr.py --encoder vjepa --POC --subset data/subset_10k.json 2>&1 | tee logs/m06b_vjepa_poc.log
+    python -u src/m06b_temporal_corr.py --encoder vjepa --FULL 2>&1 | tee logs/m06b_vjepa_full.log
 """
 import argparse
 import json
@@ -293,6 +293,8 @@ def main():
         description="Temporal correlation: embedding distance vs motion distance (CPU)")
     parser.add_argument("--SANITY", action="store_true",
                         help="Placeholder for consistency")
+    parser.add_argument("--POC", action="store_true",
+                        help="POC subset (~10K clips)")
     parser.add_argument("--FULL", action="store_true",
                         help="Process all available data")
     parser.add_argument("--k", type=int, default=FAISS_K_NEIGHBORS,
@@ -304,13 +306,13 @@ def main():
     add_wandb_args(parser)
     args = parser.parse_args()
 
-    if not (args.SANITY or args.FULL):
+    if not (args.SANITY or args.POC or args.FULL):
         parser.print_help()
-        print("\nERROR: Specify --SANITY or --FULL")
+        print("\nERROR: Specify --SANITY, --POC, or --FULL")
         sys.exit(1)
 
     output_dir = get_output_dir(args.subset, sanity=args.SANITY)
-    mode = "SANITY" if args.SANITY else ("POC" if args.subset else "FULL")
+    mode = "SANITY" if args.SANITY else ("POC" if args.POC else "FULL")
     wb_run = init_wandb("m06b", mode, config=vars(args),
                         enabled=not args.no_wandb)
 

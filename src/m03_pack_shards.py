@@ -5,6 +5,7 @@ Streaming: create shard -> upload -> delete local -> next. Only ~1GB on disk at 
 USAGE:
     tmux
     caffeinate -s python -u src/m03_pack_shards.py --SANITY 2>&1 | tee logs/m03_pack_shards_sanity.log
+    caffeinate -s python -u src/m03_pack_shards.py --POC 2>&1 | tee logs/m03_pack_shards_poc.log
     caffeinate -s python -u src/m03_pack_shards.py --FULL 2>&1 | tee logs/m03_pack_shards_full.log
 """
 import argparse
@@ -108,12 +109,13 @@ def create_shard(shard_idx: int, clips: list, global_offset: int) -> Path:
 def main():
     parser = argparse.ArgumentParser(description="Pack clips into WebDataset TAR shards and upload to HF")
     parser.add_argument("--SANITY", action="store_true", help="Process first 2 shards only")
+    parser.add_argument("--POC", action="store_true", help="10K subset")
     parser.add_argument("--FULL", action="store_true", help="Process all clips")
     args = parser.parse_args()
 
-    if not (args.SANITY or args.FULL):
+    if not (args.SANITY or args.POC or args.FULL):
         parser.print_help()
-        print("\nERROR: Specify --SANITY or --FULL")
+        print("\nERROR: Specify --SANITY, --POC, or --FULL")
         sys.exit(1)
 
     # Step 1: Build manifest

@@ -5,8 +5,8 @@ Plots saved with encoder suffix to avoid overwrite across encoders.
 
 USAGE:
     python -u src/m06_faiss_metrics.py --encoder vjepa --SANITY 2>&1 | tee logs/m06_vjepa_sanity.log
-    python -u src/m06_faiss_metrics.py --encoder vjepa --FULL --subset data/subset_10k.json 2>&1 | tee logs/m06_vjepa_poc.log
-    python -u src/m06_faiss_metrics.py --encoder dinov2 --FULL --subset data/subset_10k.json 2>&1 | tee logs/m06_dinov2_poc.log
+    python -u src/m06_faiss_metrics.py --encoder vjepa --POC --subset data/subset_10k.json 2>&1 | tee logs/m06_vjepa_poc.log
+    python -u src/m06_faiss_metrics.py --encoder vjepa --FULL 2>&1 | tee logs/m06_vjepa_full.log
 """
 import argparse
 import json
@@ -1025,6 +1025,7 @@ def generate_plots(easy: dict, hard: dict, conf_sweep: list,
 def main():
     parser = argparse.ArgumentParser(description="Compute 9 evaluation metrics via FAISS-GPU (Easy/Hard)")
     parser.add_argument("--SANITY", action="store_true", help="Run on first 100 clips")
+    parser.add_argument("--POC", action="store_true", help="POC subset (~10K clips)")
     parser.add_argument("--FULL", action="store_true", help="Run on all clips")
     parser.add_argument("--k", type=int, default=FAISS_K_NEIGHBORS,
                         help=f"Number of neighbors (default: {FAISS_K_NEIGHBORS})")
@@ -1036,14 +1037,14 @@ def main():
     add_wandb_args(parser)
     args = parser.parse_args()
 
-    if not (args.SANITY or args.FULL):
+    if not (args.SANITY or args.POC or args.FULL):
         parser.print_help()
-        print("\nERROR: Specify --SANITY or --FULL")
+        print("\nERROR: Specify --SANITY, --POC, or --FULL")
         sys.exit(1)
 
     check_gpu()
 
-    mode = "SANITY" if args.SANITY else ("POC" if args.subset else "FULL")
+    mode = "SANITY" if args.SANITY else ("POC" if args.POC else "FULL")
     wb_run = init_wandb("m06", mode, config=vars(args),
                         enabled=not args.no_wandb)
 
@@ -1058,6 +1059,16 @@ def main():
     tags_file = output_dir / "tags.json"
 
     enc_info = get_encoder_info(args.encoder)
+
+    # Output-exists guard
+    from utils.output_guard import verify_or_skip
+    if verify_or_skip(output_dir, {
+        "metrics": metrics_file,
+        "knn_indices": enc_files["knn_indices"],
+    }, label=f"m06 {args.encoder}"):
+        finish_wandb(wb_run)
+        return
+
     print(f"Encoder:     {args.encoder} (dim={enc_info['dim']}, type={enc_info['type']})")
     print(f"Output dir:  {output_dir}")
     print(f"Embeddings:  {emb_file}")

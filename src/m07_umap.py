@@ -3,7 +3,7 @@ GPU-only UMAP dimensionality reduction on V-JEPA embeddings via cuML. Outputs um
 
 USAGE:
     python -u src/m07_umap.py --SANITY 2>&1 | tee logs/m07_umap_sanity.log
-    python -u src/m07_umap.py --FULL --subset data/subset_10k.json 2>&1 | tee logs/m07_umap_poc.log
+    python -u src/m07_umap.py --POC --subset data/subset_10k.json 2>&1 | tee logs/m07_umap_poc.log
     python -u src/m07_umap.py --FULL 2>&1 | tee logs/m07_umap_full.log
 """
 import argparse
@@ -33,6 +33,7 @@ except ImportError:
 def main():
     parser = argparse.ArgumentParser(description="GPU UMAP reduction on V-JEPA embeddings (cuML)")
     parser.add_argument("--SANITY", action="store_true", help="First 200 clips only")
+    parser.add_argument("--POC", action="store_true", help="POC subset (~10K clips)")
     parser.add_argument("--FULL", action="store_true", help="All clips")
     parser.add_argument("--n-neighbors", type=int, default=15, help="UMAP n_neighbors")
     parser.add_argument("--min-dist", type=float, default=0.1, help="UMAP min_dist")
@@ -41,9 +42,9 @@ def main():
     add_wandb_args(parser)
     args = parser.parse_args()
 
-    if not (args.SANITY or args.FULL):
+    if not (args.SANITY or args.POC or args.FULL):
         parser.print_help()
-        print("\nERROR: Specify --SANITY or --FULL")
+        print("\nERROR: Specify --SANITY, --POC, or --FULL")
         sys.exit(1)
 
     check_gpu()
@@ -51,12 +52,21 @@ def main():
     output_dir = get_output_dir(args.subset, sanity=args.SANITY)
     output_dir.mkdir(parents=True, exist_ok=True)
 
-    mode = "SANITY" if args.SANITY else ("POC" if args.subset else "FULL")
+    mode = "SANITY" if args.SANITY else ("POC" if args.POC else "FULL")
     wb_run = init_wandb("m07", mode, config=vars(args), enabled=not args.no_wandb)
 
     # Load embeddings (encoder-aware paths)
     enc_files = get_encoder_files(args.encoder, output_dir)
     emb_file = enc_files["embeddings"]
+
+    # Output-exists guard
+    from utils.output_guard import verify_or_skip
+    if verify_or_skip(output_dir, {
+        "umap_2d": enc_files["umap_2d"],
+    }, label=f"m07 {args.encoder}"):
+        finish_wandb(wb_run)
+        return
+
     print(f"Encoder: {args.encoder}")
     if not emb_file.exists():
         print(f"FATAL: embeddings not found: {emb_file}")

@@ -1,14 +1,10 @@
 """
-Pre-download subset clips from HF to local WebDataset TAR shards.
-Eliminates producer starvation bug (8.4% hit rate → 100% hit rate).
-CPU-only — no GPU needed.
-
-Uses direct TAR shard download via huggingface_hub CDN (not streaming API)
-to avoid HF streaming bandwidth throttle.
+Pre-download clips from HF to local WebDataset TAR shards. CPU-only.
 
 USAGE:
-    python -u src/m00d_download_subset.py --subset data/subset_10k.json 2>&1 | tee logs/m00d_download.log
-    python -u src/m00d_download_subset.py --subset data/subset_10k.json --SANITY 2>&1 | tee logs/m00d_sanity.log
+    python -u src/m00d_download_subset.py --SANITY --subset data/subset_10k.json 2>&1 | tee logs/m00d_sanity.log
+    python -u src/m00d_download_subset.py --POC --subset data/subset_10k.json 2>&1 | tee logs/m00d_poc.log
+    python -u src/m00d_download_subset.py --FULL 2>&1 | tee logs/m00d_full.log
 """
 import argparse
 import io
@@ -82,13 +78,9 @@ def _get_clip_key_from_tar(json_bytes: bytes) -> str:
 
 
 def download_subset(args):
-    """Download HF TAR shards via CDN, extract matching subset clips locally."""
+    """Download HF TAR shards via CDN. With --subset: filter clips. Without: download all."""
     from huggingface_hub import HfApi, hf_hub_download
     from tqdm import tqdm
-
-    if not args.subset:
-        print("ERROR: --subset is required (e.g., --subset data/subset_10k.json)")
-        sys.exit(1)
 
     # Load HF_TOKEN from .env
     try:
@@ -97,25 +89,32 @@ def download_subset(args):
     except ImportError:
         pass
 
-    # Load subset keys
-    subset_keys = load_subset(args.subset)
-    if not subset_keys:
-        print("ERROR: subset is empty")
-        sys.exit(1)
-    target_keys = set(subset_keys)
+    # Load subset keys (None = no filtering = download all)
+    subset_keys = load_subset(args.subset) if args.subset else set()
+    target_keys = set(subset_keys) if subset_keys else None
+    full_mode = target_keys is None
 
-    clip_limit = SANITY_CLIP_LIMIT if args.SANITY else len(subset_keys)
+    if args.SANITY:
+        clip_limit = SANITY_CLIP_LIMIT
+    elif subset_keys:
+        clip_limit = len(subset_keys)
+    else:
+        clip_limit = None  # download all shards for full corpus
 
     # Output directory
-    output_dir = _output_dir_from_subset(args.subset)
+    if args.subset:
+        output_dir = _output_dir_from_subset(args.subset)
+    else:
+        output_dir = PROJECT_ROOT / "data" / "full_local"
     output_dir.mkdir(parents=True, exist_ok=True)
     manifest_path = output_dir / "manifest.json"
 
-    print("=== m00d: Pre-download subset to local WebDataset ===")
+    mode_label = "FULL CORPUS" if full_mode else f"SUBSET ({len(subset_keys):,} keys)"
+    print(f"=== m00d: Pre-download {mode_label} to local WebDataset ===")
     print(f"  Method: Direct TAR shard download (CDN, no streaming API)")
     print(f"  Subset: {args.subset} ({len(subset_keys):,} keys)")
     print(f"  Output: {output_dir}")
-    print(f"  Clip limit: {clip_limit:,}")
+    print(f"  Clip limit: {f'{clip_limit:,}' if clip_limit else 'ALL'}")
     print(f"  Clips per shard: {CLIPS_PER_SHARD}")
 
     # Resume: load manifest to find already-saved keys
@@ -140,8 +139,12 @@ def download_subset(args):
     print(f"  TAR shards: {len(tar_files)}")
 
     # Remaining keys to find
-    remaining_keys = target_keys - saved_keys
-    print(f"  Remaining clips to find: {len(remaining_keys):,}")
+    if target_keys is not None:
+        remaining_keys = target_keys - saved_keys
+        print(f"  Remaining clips to find: {len(remaining_keys):,}")
+    else:
+        remaining_keys = None  # full mode: keep all clips
+        print(f"  Full mode: downloading ALL clips from ALL shards")
 
     found = len(saved_keys)
     scanned = 0
@@ -160,8 +163,8 @@ def download_subset(args):
                 pbar.set_postfix({"found": found, "status": "skip"})
                 continue
 
-            # Check if we've found enough
-            if found >= clip_limit:
+            # Check if we've found enough (None = no limit)
+            if clip_limit is not None and found >= clip_limit:
                 print(f"\n  Reached clip limit ({clip_limit:,})")
                 break
 
@@ -200,7 +203,10 @@ def download_subset(args):
                         json_bytes = tar.extractfile(parts["json"]).read()
                         clip_key = _get_clip_key_from_tar(json_bytes)
 
-                        if clip_key not in remaining_keys:
+                        # Filter: subset mode checks remaining_keys, full mode keeps all
+                        if remaining_keys is not None and clip_key not in remaining_keys:
+                            continue
+                        if clip_key in saved_keys:
                             continue
 
                         # Match! Extract mp4
@@ -212,7 +218,8 @@ def download_subset(args):
                         found += 1
                         shard_matches += 1
                         all_saved_keys.append(clip_key)
-                        remaining_keys.discard(clip_key)
+                        if remaining_keys is not None:
+                            remaining_keys.discard(clip_key)
 
                         # Write output shard when buffer full
                         if len(shard_buffer) >= CLIPS_PER_SHARD:
@@ -226,7 +233,7 @@ def download_subset(args):
                                 log_metrics(wb_run, {"clips_saved": len(all_saved_keys),
                                                      "scanned": scanned}, step=scanned)
 
-                        if found >= clip_limit:
+                        if clip_limit is not None and found >= clip_limit:
                             break
 
             except Exception as e:
@@ -283,7 +290,8 @@ def download_subset(args):
 
     elapsed = time.time() - start_time
     print(f"\n=== Download complete ===")
-    print(f"  Clips saved: {len(all_saved_keys):,}/{clip_limit:,}")
+    limit_str = f"{clip_limit:,}" if clip_limit else "ALL"
+    print(f"  Clips saved: {len(all_saved_keys):,}/{limit_str}")
     print(f"  Shards written: {len(shards_written)}")
     print(f"  HF shards processed: {len(processed_hf_shards)}/{len(tar_files)}")
     print(f"  Clips scanned: {scanned:,}")

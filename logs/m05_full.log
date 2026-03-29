@@ -1,0 +1,6 @@
+Using PyAV for video decoding
+Output: /workspace/factorjepa/outputs/poc/embeddings.npy
+[POC] Subset: data/subset_10k.json
+[output_guard] m05 embed: ALL VALID — skipping (cached)
+  OK    embeddings: (10000, 1408)
+  OK    paths: (10000,)

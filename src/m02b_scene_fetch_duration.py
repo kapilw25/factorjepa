@@ -4,6 +4,7 @@ Flags clips outside [4s, 10s] range. JSON mirrors the directory hierarchy.
 
 USAGE:
     python -u src/m02b_scene_fetch_duration.py --SANITY 2>&1 | tee logs/m02b_scene_fetch_duration_sanity.log
+    python -u src/m02b_scene_fetch_duration.py --POC 2>&1 | tee logs/m02b_scene_fetch_duration_poc.log
     python -u src/m02b_scene_fetch_duration.py --FULL 2>&1 | tee logs/m02b_scene_fetch_duration_full.log
     
     # Print clips-per-city table from existing JSON (no scanning)
@@ -60,12 +61,13 @@ def probe_clip(clip_path: Path) -> dict:
 def main():
     parser = argparse.ArgumentParser(description="Fetch durations of all clips")
     parser.add_argument("--SANITY", action="store_true", help="Process 1 section only")
+    parser.add_argument("--POC", action="store_true", help="10K subset")
     parser.add_argument("--FULL", action="store_true", help="Process all clips")
     args = parser.parse_args()
 
-    if not (args.SANITY or args.FULL):
+    if not (args.SANITY or args.POC or args.FULL):
         parser.print_help()
-        print("\nERROR: Specify --SANITY or --FULL")
+        print("\nERROR: Specify --SANITY, --POC, or --FULL")
         sys.exit(1)
 
     all_clips = sorted(CLIPS_DIR.rglob("*.mp4"))

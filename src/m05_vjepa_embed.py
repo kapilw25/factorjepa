@@ -4,8 +4,8 @@ GPU-only (Nvidia CUDA required, no CPU fallback). Streams from HF — no local c
 
 USAGE:
     python -u src/m05_vjepa_embed.py --SANITY 2>&1 | tee logs/m05_vjepa_embed_sanity.log
-    python -u src/m05_vjepa_embed.py --FULL --subset data/subset_10k.json 2>&1 | tee logs/m05_vjepa_embed_poc.log
-    python -u src/m05_vjepa_embed.py --FULL 2>&1 | tee logs/m05_vjepa_embed_full.log
+    python -u src/m05_vjepa_embed.py --POC --subset data/subset_10k.json --local-data data/subset_10k_local 2>&1 | tee logs/m05_vjepa_embed_poc.log
+    python -u src/m05_vjepa_embed.py --FULL --local-data data/full_local 2>&1 | tee logs/m05_vjepa_embed_full.log
 """
 import argparse
 import json
@@ -361,11 +361,13 @@ def orchestrator_main(args):
     if args.subset:
         print(f"[POC] Subset: {args.subset}")
 
-    # Check if embeddings already exist
-    if embeddings_file.exists():
-        if not check_output_exists([embeddings_file, embeddings_file.with_suffix('.paths.npy')], "embeddings"):
-            print("Using cached embeddings.")
-            return
+    # Output-exists guard
+    from utils.output_guard import verify_or_skip
+    if verify_or_skip(output_dir, {
+        "embeddings": embeddings_file,
+        "paths": embeddings_file.with_suffix('.paths.npy'),
+    }, label="m05 embed"):
+        return
 
     # Determine total clips
     subset_keys = load_subset(args.subset) if args.subset else set()
@@ -408,6 +410,8 @@ def orchestrator_main(args):
                 cmd.extend(["--batch-size", str(args.batch_size)])
             if args.SANITY:
                 cmd.append("--SANITY")
+            if args.POC:
+                cmd.append("--POC")
             if args.FULL:
                 cmd.append("--FULL")
             if args.subset:
@@ -483,7 +487,7 @@ def worker_main(args):
         args.batch_size = batch_sizes["vjepa"]
     print(f"Batch size: {args.batch_size}")
 
-    mode = "SANITY" if args.SANITY else ("POC" if args.subset else "FULL")
+    mode = "SANITY" if args.SANITY else ("POC" if args.POC else "FULL")
     wb_run = init_wandb("m05", mode,
                         config={"start_from": args.start_from,
                                 "process_count": args.process_count},
@@ -695,6 +699,7 @@ def main():
     parser = argparse.ArgumentParser(
         description="Generate V-JEPA 2 embeddings (GPU-only, HF WebDataset streaming)")
     parser.add_argument("--SANITY", action="store_true", help="Process 5 clips only")
+    parser.add_argument("--POC", action="store_true", help="10K subset")
     parser.add_argument("--FULL", action="store_true", help="Process all clips")
     parser.add_argument("--model", type=str, default=VJEPA_MODEL_ID, help="Model ID")
     parser.add_argument("--batch-size", type=int, default=None,
@@ -720,9 +725,9 @@ def main():
         worker_main(args)
         return
 
-    if not (args.SANITY or args.FULL):
+    if not (args.SANITY or args.POC or args.FULL):
         parser.print_help()
-        print("\nERROR: Specify --SANITY or --FULL")
+        print("\nERROR: Specify --SANITY, --POC, or --FULL")
         sys.exit(1)
 
     orchestrator_main(args)

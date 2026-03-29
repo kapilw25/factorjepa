@@ -4,7 +4,8 @@ combined radar, LaTeX table with 95% CI. Reads m06_metrics_*.json + m06b_tempora
 
 USAGE:
     python -u src/m08b_compare.py --SANITY 2>&1 | tee logs/m08b_compare_sanity.log
-    python -u src/m08b_compare.py --FULL --subset data/subset_10k.json 2>&1 | tee logs/m08b_compare.log
+    python -u src/m08b_compare.py --POC --subset data/subset_10k.json 2>&1 | tee logs/m08b_compare_poc.log
+    python -u src/m08b_compare.py --FULL 2>&1 | tee logs/m08b_compare_full.log
 """
 import argparse
 import json
@@ -788,6 +789,7 @@ def main():
     parser = argparse.ArgumentParser(
         description="Multi-encoder comparison plots + LaTeX table (CPU-only)")
     parser.add_argument("--SANITY", action="store_true", help="Placeholder for consistency")
+    parser.add_argument("--POC", action="store_true", help="POC subset (~10K clips)")
     parser.add_argument("--FULL", action="store_true", help="Process all available encoders")
     parser.add_argument("--encoders", type=str, default=None,
                         help="Comma-separated encoder names to compare "
@@ -797,9 +799,9 @@ def main():
     add_wandb_args(parser)
     args = parser.parse_args()
 
-    if not (args.SANITY or args.FULL):
+    if not (args.SANITY or args.POC or args.FULL):
         parser.print_help()
-        print("\nERROR: Specify --SANITY or --FULL")
+        print("\nERROR: Specify --SANITY, --POC, or --FULL")
         sys.exit(1)
 
     # Parse custom encoder list
@@ -843,7 +845,7 @@ def main():
     if all_temporal:
         print(f"Found {len(all_temporal)} temporal result(s): {', '.join(all_temporal.keys())}")
 
-    mode = "SANITY" if args.SANITY else ("POC" if args.subset else "FULL")
+    mode = "SANITY" if args.SANITY else ("POC" if args.POC else "FULL")
     wb_run = init_wandb("m08b", mode, config=vars(args), enabled=not args.no_wandb)
 
     # Terminal table

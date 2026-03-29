@@ -1,10 +1,8 @@
 """
 Video-level uniform sampling of 10K clips from 115K for POC runs.
-Each of the 714 original videos contributes ~14 clips (10000/714).
 
 USAGE:
-    python -u src/m00c_sample_subset.py --FULL 2>&1 | tee logs/m00c_sample_subset.log
-    python -u src/m00c_sample_subset.py --FULL --n 5000 2>&1 | tee logs/m00c_sample_subset_5k.log
+    python -u src/m00c_sample_subset.py --POC 2>&1 | tee logs/m00c_sample_subset.log
 """
 import argparse
 import json
@@ -209,8 +207,7 @@ def print_summary(sampled: list, by_video: dict):
 
 def main():
     parser = argparse.ArgumentParser(description="Video-level uniform subset sampling for POC")
-    parser.add_argument("--FULL", action="store_true", required=True,
-                        help="Run full sampling (required flag for consistency)")
+    parser.add_argument("--POC", action="store_true", help="Sample 10K subset from full corpus")
     parser.add_argument("--n", type=int, default=DEFAULT_N,
                         help=f"Number of clips to sample (default: {DEFAULT_N})")
     parser.add_argument("--seed", type=int, default=SEED,

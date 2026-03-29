@@ -1,0 +1,85 @@
+[18:01:41] Ch9 pipeline starting (mode=FULL)
+[18:01:41] Master log: logs/ch9_FULL_20260329_180141.log
+
+[18:01:41] === PRE-FLIGHT: GPU + Package Verification ===
+GPU:            NVIDIA RTX PRO 6000 Blackwell Workstation Edition, VRAM: 102GB
+PyTorch:        2.12.0.dev20260228+cu128
+CUDA:           12.8
+FAISS GPUs:     1
+Flash-Attn:     2.8.3
+Transformers:   4.57.6
+cuML:           26.02.000
+wandb:          0.25.1
+HF_TOKEN:       hf_eATIPAr...
+
+Pre-flight: ALL PASSED
+Subset:         10000 clips from 1559 videos
+[18:01:46] Pre-flight complete.
+[18:01:46] === OUTPUT PREFLIGHT ===
+
+======================================================================
+  PIPELINE PREFLIGHT — checking all inputs/outputs before GPU work
+======================================================================
+  [32mSKIP (cached)[0m                         m00d pre-download subset
+  [32mSKIP (cached)[0m                         m04 VLM tagging (Qwen)
+  [32mSKIP (cached)[0m                         m05 V-JEPA embeddings
+  [32mSKIP (cached)[0m                         m05b random embeddings
+  [32mSKIP (cached)[0m                         m05b dinov2 embeddings
+  [32mSKIP (cached)[0m                         m05b clip embeddings
+  [32mSKIP (cached)[0m                         m05b vjepa_shuffled embeddings
+  [32mSKIP (cached)[0m                         m05c True Overlap augmented
+  [32mSKIP (cached)[0m                         m04d motion features
+  [32mSKIP (cached)[0m                         m06 metrics (vjepa)
+  [32mSKIP (cached)[0m                         m06 metrics (random)
+  [32mSKIP (cached)[0m                         m06 metrics (dinov2)
+  [32mSKIP (cached)[0m                         m06 metrics (clip)
+  [32mSKIP (cached)[0m                         m06 metrics (vjepa_shuffled)
+  [32mSKIP (cached)[0m                         m06b temporal (vjepa)
+  [32mSKIP (cached)[0m                         m06b temporal (random)
+  [32mSKIP (cached)[0m                         m06b temporal (dinov2)
+  [32mSKIP (cached)[0m                         m06b temporal (clip)
+  [32mSKIP (cached)[0m                         m06b temporal (vjepa_shuffled)
+  [32mSKIP (cached)[0m                         m07 UMAP (vjepa)
+  [32mSKIP (cached)[0m                         m07 UMAP (random)
+  [32mSKIP (cached)[0m                         m07 UMAP (dinov2)
+  [32mSKIP (cached)[0m                         m07 UMAP (clip)
+  [32mSKIP (cached)[0m                         m07 UMAP (vjepa_shuffled)
+  [32mSKIP (cached)[0m                         m08b compare (all encoders)
+
+  Steps to run:  0
+  Steps cached:  25
+======================================================================
+[18:01:46] Starting pipeline...
+
+[18:01:46] Local subset already exists: data/subset_10k_local (skipping download)
+
+═══════════════════════════════════════════════════════════════
+  STEP 1: m04 VLM tagging (Qwen)
+  Mode: FULL | Est: ~2h (1.3 clips/s, Qwen3-VL-8B)
+  Started: 2026-03-29 18:01:46
+═══════════════════════════════════════════════════════════════
+[18:01:46] CMD: python -u src/m04_vlm_tag.py --model qwen --FULL --subset data/subset_10k.json --local-data data/subset_10k_local --no-wandb
+Note: Environment variable`HF_TOKEN` is set and is the current active token independently from the token you've just configured.
+HuggingFace: Authenticated
+Traceback (most recent call last):
+  File "/workspace/factorjepa/src/m04_vlm_tag.py", line 556, in <module>
+    LLAVA_NUM_FRAMES = _pcfg["eval"]["llava_num_frames"]
+                       ^^^^^
+NameError: name '_pcfg' is not defined
+[18:01:47] FAILED: m04 VLM tagging (Qwen) (0m 1s) — exit code 0
+[18:01:47] WARNING: m04 failed. Step 5 (m06 metrics) will fail without tags.
+  tags: 10000 clips, 42 fields
+[18:01:48] VERIFY OK: Step 1 tags
+
+═══════════════════════════════════════════════════════════════
+  STEP 2: m05 V-JEPA embeddings
+  Mode: FULL | Est: ~80 min (V-JEPA 2 ViT-G, producer-consumer)
+  Started: 2026-03-29 18:01:48
+═══════════════════════════════════════════════════════════════
+[18:01:48] CMD: python -u src/m05_vjepa_embed.py --FULL --subset data/subset_10k.json --local-data data/subset_10k_local --no-wandb
+Using PyAV for video decoding
+Output: /workspace/factorjepa/outputs/poc/embeddings.npy
+[POC] Subset: data/subset_10k.json
+[output_guard] m05 embed: ALL VALID — skipping (cached)
+  OK    embeddings: (10000, 1408)
+  OK    paths: (10000,)

@@ -82,6 +82,7 @@ Research benchmark testing if V-JEPA 2 (Meta's video foundation model, trained o
 - **utils/hf_utils.py**: HF auth, upload helpers.
 - **utils/wandb_utils.py**: Shared wandb integration. All functions no-op when run=None.
 - **utils/export_metadata.py**: Convert tags.json → per-directory metadata.jsonl.
+- **utils/output_guard.py**: Output verification before GPU work. `verify_or_skip()` for per-script guards (non-interactive, shape-validated). `verify_training_output()` for m09 (epoch-aware). `preflight_pipeline()` for shell scripts (checks ALL steps' inputs/outputs at pipeline start, interactive confirm). CLI: `python -u src/utils/output_guard.py preflight_pretrain|preflight_evaluate <args>`.
 
 ### Config Files
 - **configs/pipeline.yaml**: Single source of truth for clip limits (SANITY per module), streaming params (retries, checkpoint interval, decode workers, prefetch queues), GPU defaults (batch sizes), eval params (FAISS K, temporal pairs), verification thresholds (MIN_CLIPS), data processing (clips/shard, resolution). All `src/m*.py` read from here via `get_pipeline_config()`.
@@ -104,13 +105,21 @@ Ch9 Eval (run_evaluate.sh):
 m00d → m04 → m05 → m05b → m05c → m04d → m06 → m06b → m07 → m08 → m08b
 
 Ch10 Pretrain (run_pretrain.sh):
-For each lambda:  m09 → m05(--encoder vjepa_lambda*) → m06(--encoder vjepa_lambda*)
-Then: m08b compare → winner selection → m09(--max-epochs 5) → m05 → m06
+Phase 1: For each lambda: m09 train only (select winner by jepa_loss from JSON)
+Phase 2: Winner → m09 deep train (5ep) → m05 re-embed → m06 metrics
+Phase 3: m06b temporal → m05 shuffled adapted → m06 shuffled → m07 UMAP → m08 plots → m08b compare (7 encoders)
 ```
 
 ## Current Status
 - **Ch9: COMPLETE** — 5-encoder comparison on 10K POC. Baseline: Prec@K=36.1% (frozen V-JEPA)
-- **Ch10: IN PROGRESS** — m09_pretrain.py built + debugged. Lambda ablation running (1 epoch × 4 lambdas + winner deep run). Pipeline: `run_pretrain.sh --FULL`
+- **Ch10: COMPLETE (10K POC)** — Pipeline validated end-to-end. Key results:
+  - Winner: λ=0.001 (lowest jepa_loss=1.4914, 5 epochs)
+  - Adapted vs Frozen: Prec@K 36.14% vs 36.09% (Δ=+0.05%, **noise**)
+  - Cycle@K: 75.31% vs 76.01% (slight regression)
+  - **Conclusion: 10K clips insufficient for 1B model adaptation. 115K full corpus needed.**
+  - Total GPU time: ~8h (training + re-embedding + metrics)
+  - student_encoder.pt for winner (λ=0.001) was lost due to unguarded deletion — rebuilt with epoch-count protection
+- **Ch10: NEXT** — 115K full corpus (1 epoch, λ=0.001 only, skip ablation sweep)
 - **Ch11: NOT BUILT** — m10/m11/m12 planned, code not started
 
 ## Lessons Learned (Ch10 debugging, 2026-03-28/29)
@@ -125,6 +134,9 @@ Then: m08b compare → winner selection → m09(--max-epochs 5) → m05 → m06
 9. **Epoch vs step training**: Fixed BS × fixed steps = variable clips processed. Fixed: epoch-based (clips = n_train × epochs, independent of BS).
 10. **Per-lambda file paths**: All lambdas wrote to same `embeddings_vjepa_adapted.npy`. Fixed: per-lambda encoder names via `--encoder vjepa_lambda*`.
 11. **Winner stdout parsing**: `2>&1 | tee` mixes stderr into shell variable. Fixed: JSON-to-JSON via `ablation_winner.json`.
+12. **Unguarded checkpoint deletion**: `run_pretrain.sh` deleted 5-epoch student_encoder.pt (3h GPU) without checking epoch count. Fixed: `verify_training_output(min_epochs)` + shell epoch guard + `protect-checkpoints.sh` hook.
+13. **Output preflight**: Pipeline discovered missing inputs 3h into a run. Fixed: `preflight_pipeline()` in `output_guard.py` checks ALL steps' inputs/outputs at pipeline start, before any GPU work. Interactive confirm/abort.
+14. **m05 re-embed dominates pipeline time**: 1.7h per 10K clips (1.55 clips/s). Skipped Phase 1 m05/m06 — winner selected by jepa_loss from JSON instead of Cycle@K. Full m05/m06 only for winner in Phase 2.
 
 ## User Preferences
 - Never be a yes-man — give pros/cons like a Sr. AI/ML Research Engineer

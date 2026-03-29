@@ -108,7 +108,49 @@ Final: m08b_compare.py  — radar plot comparing frozen vs all lambdas
 | Phase | Peak Disk | After Cleanup |
 |-------|-----------|---------------|
 | Pretrained checkpoint | 16 GB | 16 GB (permanent) |
-| 1 lambda training (active) | +40 GB | +20 GB (final + student) |
-| 4 lambdas sequential | 96 GB total | 96 GB total |
+| 1 lambda training (active) | +40 GB | +3.8 GB (student only) |
+| 4 lambdas sequential | ~32 GB total | ~15 GB (4 students) |
 | Re-embedding (m05) | +0.2 GB | +0.2 GB per lambda |
-| **Total** | **97 GB** | **Fits in 150 GB** |
+| **Total** | **~50 GB peak** | **Fits in 150 GB** |
+
+---
+
+## Ch10 POC Results (10K clips, 2026-03-29)
+
+### Lambda Ablation (1 epoch each)
+
+| Lambda | JEPA Loss | Selection |
+|--------|:---------:|:---------:|
+| 0 | 1.5531 | |
+| **0.001** | **1.4914** (5ep) | **Winner** |
+| 0.01 | 1.5483 | |
+| 0.1 | 1.5314 | |
+
+### Adapted vs Frozen (λ=0.001, 5 epochs)
+
+| Metric | Frozen | Adapted | Delta |
+|--------|:------:|:-------:|:-----:|
+| Prec@K (Easy) | 36.09% | 36.14% | +0.05% (noise) |
+| Cycle@K (Easy) | 76.01% | 75.31% | -0.70% |
+| Prec@K (Hard) | 34.70% | 34.70% | 0.00% |
+
+**Conclusion:** 10K clips insufficient for 1B model. 115K full corpus is next.
+
+### GPU Time (actual, measured)
+
+| Step | Duration |
+|------|----------|
+| m09 train (1 epoch, BS=112) | 35 min/lambda |
+| m09 deep train (5 epochs) | 2h 57min |
+| m05 re-embed (10K adapted) | 1h 47min |
+| m06 metrics | 50s |
+| **Total pipeline** | **~5h 22min** |
+| **Wasted (bugs/reruns)** | **~3h** |
+
+### Post-Run Fixes
+
+| Bug | Fix | Prevention |
+|-----|-----|------------|
+| 5-epoch student deleted without epoch check | `verify_training_output(min_epochs)` + shell guard | `protect-checkpoints.sh` hook |
+| Missing inputs discovered mid-pipeline | `preflight_pipeline()` checks ALL steps at start | Integrated in both shell scripts |
+| m05 re-embed dominated ablation time (6.8h for 4 lambdas) | Skip m05/m06 in Phase 1, select by jepa_loss | Winner-only m05/m06 in Phase 2 |

@@ -4,6 +4,7 @@ Orchestrator/worker pattern for VRAM management. HF WebDataset streaming with ch
 
 USAGE:
     python -u src/m04_vlm_tag.py --model qwen --SANITY 2>&1 | tee logs/m04_sanity_qwen.log
+    python -u src/m04_vlm_tag.py --model qwen --POC --subset data/subset_10k.json --local-data data/subset_10k_local 2>&1 | tee logs/m04_poc_qwen.log
     python -u src/m04_vlm_tag.py --model qwen --BAKEOFF --subset data/subset_10k.json 2>&1 | tee logs/m04_bakeoff_qwen_poc.log
     python -u src/m04_vlm_tag.py --model videollama --BAKEOFF --subset data/subset_10k.json 2>&1 | tee logs/m04_bakeoff_videollama_poc.log
     python -u src/m04_vlm_tag.py --model llava --BAKEOFF --subset data/subset_10k.json 2>&1 | tee logs/m04_bakeoff_llava_poc.log
@@ -553,7 +554,7 @@ class VideoLLaMA3Backend(VLMBackend):
 # BACKEND: LLaVA-NeXT-Video-7B (native transformers, batched inference)
 # ═════════════════════════════════════════════════════════════════════════
 
-LLAVA_NUM_FRAMES = _pcfg["eval"]["llava_num_frames"]
+LLAVA_NUM_FRAMES = get_pipeline_config()["eval"]["llava_num_frames"]
 
 
 class LLaVANextBackend(VLMBackend):
@@ -1072,7 +1073,7 @@ def orchestrator_main(args):
         total_clips = get_sanity_clip_limit("vlm_tag")
     elif args.BAKEOFF:
         total_clips = BAKEOFF_CLIP_COUNT
-    elif args.subset and args.FULL:
+    elif args.subset and (args.POC or args.FULL):
         subset_keys = load_subset(args.subset)
         total_clips = len(subset_keys)
     else:
@@ -1111,6 +1112,8 @@ def orchestrator_main(args):
             cmd.append("--SANITY")
         if args.BAKEOFF:
             cmd.append("--BAKEOFF")
+        if args.POC:
+            cmd.append("--POC")
         if args.FULL:
             cmd.append("--FULL")
         if args.subset:
@@ -1153,7 +1156,7 @@ def worker_main(args):
         TRANSFORMERS_BATCH_SIZE = batch_sizes["transformers"]
         args.batch_size = get_batch_size(args.model)
 
-    mode = "SANITY" if args.SANITY else ("BAKEOFF" if args.BAKEOFF else ("POC" if args.subset else "FULL"))
+    mode = "SANITY" if args.SANITY else ("BAKEOFF" if args.BAKEOFF else ("POC" if args.POC else "FULL"))
     wb_run = init_wandb("m04", f"{mode}_{args.model}",
                         config={"model": args.model, "start_from": args.start_from,
                                 "process_count": args.process_count},
@@ -1363,6 +1366,7 @@ def main():
     parser.add_argument("--SANITY", action="store_true", help="Process 20 clips only")
     parser.add_argument("--BAKEOFF", action="store_true",
                         help=f"Bake-off mode: tag first {BAKEOFF_CLIP_COUNT} clips")
+    parser.add_argument("--POC", action="store_true", help="10K subset")
     parser.add_argument("--FULL", action="store_true", help="Process all clips")
     parser.add_argument("--dummy", action="store_true", help="Dummy tags (no GPU)")
     parser.add_argument("--plot-only", action="store_true",
@@ -1386,9 +1390,9 @@ def main():
         worker_main(args)
         return
 
-    if not (args.SANITY or args.BAKEOFF or args.FULL or args.plot_only):
+    if not (args.SANITY or args.BAKEOFF or args.POC or args.FULL or args.plot_only):
         parser.print_help()
-        print("\nERROR: Specify --SANITY, --BAKEOFF, --FULL, or --plot-only")
+        print("\nERROR: Specify --SANITY, --BAKEOFF, --POC, --FULL, or --plot-only")
         sys.exit(1)
 
     tags_file = get_tags_file(args.model, args.BAKEOFF, args.subset, is_sanity=args.SANITY)
@@ -1405,7 +1409,7 @@ def main():
         generate_plot(all_tags, args.model, tags_file.parent)
         return
 
-    print(f"Mode:    {'SANITY' if args.SANITY else 'BAKEOFF' if args.BAKEOFF else 'FULL'}")
+    print(f"Mode:    {'SANITY' if args.SANITY else 'BAKEOFF' if args.BAKEOFF else 'POC' if args.POC else 'FULL'}")
     if args.subset:
         print(f"Subset:  {args.subset}")
 

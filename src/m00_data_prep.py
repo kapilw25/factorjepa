@@ -4,6 +4,7 @@ Re-run whenever raw.md is updated.
 
 USAGE:
     python -u src/m00_data_prep.py --SANITY 2>&1 | tee logs/m00_data_prep_sanity.log
+    python -u src/m00_data_prep.py --POC 2>&1 | tee logs/m00_data_prep_poc.log
     python -u src/m00_data_prep.py --FULL 2>&1 | tee logs/m00_data_prep_full.log
 """
 import argparse
@@ -647,12 +648,13 @@ def print_word_frequency(freq_data: dict):
 def main():
     parser = argparse.ArgumentParser(description="Convert YT_videos_raw.md to JSON with analysis")
     parser.add_argument("--SANITY", action="store_true", help="Parse and show summary only")
-    parser.add_argument("--FULL", action="store_true", help="Full conversion with all outputs")
+    parser.add_argument("--POC", action="store_true", help="10K subset")
+    parser.add_argument("--FULL", action="store_true", help="Full 115K corpus")
     args = parser.parse_args()
 
-    if not (args.SANITY or args.FULL):
+    if not (args.SANITY or args.POC or args.FULL):
         parser.print_help()
-        print("\nERROR: Specify --SANITY or --FULL")
+        print("\nERROR: Specify --SANITY, --POC, or --FULL")
         sys.exit(1)
 
     # Check input file
@@ -700,7 +702,7 @@ def main():
         print_summary_tables(data, matrix_data)
         print("\nSANITY PASSED")
 
-    elif args.FULL:
+    elif args.POC or args.FULL:
         # Save JSON
         OUTPUT_JSON.parent.mkdir(parents=True, exist_ok=True)
         with open(OUTPUT_JSON, 'w', encoding='utf-8') as f:

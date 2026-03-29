@@ -4,7 +4,8 @@ GPU-only. Produces overlap_augA.npy and overlap_augB.npy from same clips.
 
 USAGE:
     python -u src/m05c_true_overlap.py --SANITY 2>&1 | tee logs/m05c_overlap_sanity.log
-    python -u src/m05c_true_overlap.py --FULL --subset data/subset_10k.json 2>&1 | tee logs/m05c_overlap_poc.log
+    python -u src/m05c_true_overlap.py --POC --subset data/subset_10k.json --local-data data/subset_10k_local 2>&1 | tee logs/m05c_overlap_poc.log
+    python -u src/m05c_true_overlap.py --FULL --local-data data/full_local 2>&1 | tee logs/m05c_overlap_full.log
 """
 import argparse
 import os
@@ -229,6 +230,7 @@ def main():
     parser = argparse.ArgumentParser(
         description="Generate augmented V-JEPA embeddings for True Overlap@K")
     parser.add_argument("--SANITY", action="store_true", help="Process 5 clips only")
+    parser.add_argument("--POC", action="store_true", help="10K subset")
     parser.add_argument("--FULL", action="store_true", help="Process all clips")
     parser.add_argument("--batch-size", type=int, default=None)
     add_subset_arg(parser)
@@ -237,9 +239,9 @@ def main():
     add_gpu_mem_arg(parser)
     args = parser.parse_args()
 
-    if not (args.SANITY or args.FULL):
+    if not (args.SANITY or args.POC or args.FULL):
         parser.print_help()
-        print("\nERROR: Specify --SANITY or --FULL")
+        print("\nERROR: Specify --SANITY, --POC, or --FULL")
         sys.exit(1)
 
     check_gpu()
@@ -307,7 +309,7 @@ def main():
     model = torch.compile(model)
     print(f"V-JEPA loaded for augmented inference")
 
-    mode = "SANITY" if args.SANITY else ("POC" if args.subset else "FULL")
+    mode = "SANITY" if args.SANITY else ("POC" if args.POC else "FULL")
     wb_run = init_wandb("m05c", mode, config=vars(args), enabled=not args.no_wandb)
 
     # Resume from checkpoint (stores interleaved A,B embeddings)

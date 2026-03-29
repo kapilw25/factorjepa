@@ -7,8 +7,11 @@ USAGE:
     python -u src/m09_pretrain.py --config configs/pretrain/vitg16_indian.yaml \
         --SANITY 2>&1 | tee logs/m09_pretrain_sanity.log
     python -u src/m09_pretrain.py --config configs/pretrain/vitg16_indian.yaml \
-        --FULL --subset data/subset_10k.json --local-data data/subset_10k_local \
+        --POC --subset data/subset_10k.json --local-data data/subset_10k_local \
         2>&1 | tee logs/m09_pretrain_poc.log
+    python -u src/m09_pretrain.py --config configs/pretrain/vitg16_indian.yaml \
+        --FULL --local-data data/full_local \
+        2>&1 | tee logs/m09_pretrain_full.log
 
 ABLATION (drift control lambda sweep — run sequentially or on 4 GPUs):
     python -u src/m09_pretrain.py --config configs/pretrain/vitg16_indian.yaml \
@@ -92,7 +95,7 @@ def merge_config_with_args(cfg: dict, args) -> dict:
         cfg["data"]["local_data"] = args.local_data
     if args.SANITY:
         mode_key = "sanity"
-    elif args.subset:
+    elif args.POC:
         mode_key = "poc"
     else:
         mode_key = "full"
@@ -618,12 +621,11 @@ def train(cfg: dict, args):
     check_gpu()
     device = torch.device("cuda")
 
-    # Output-exists guard (CLAUDE.md rule #6)
+    # Output-exists guard
+    from utils.output_guard import verify_training_output
     output_dir = Path(cfg["checkpoint"]["output_dir"])
     student_path = output_dir / "student_encoder.pt"
-    if student_path.exists():
-        print(f"Student encoder already exists: {student_path}")
-        print("Delete to re-train, or use for evaluation.")
+    if verify_training_output(output_dir, min_epochs=cfg["optimization"]["max_epochs"]):
         return
 
     output_dir.mkdir(parents=True, exist_ok=True)
@@ -727,7 +729,7 @@ def train(cfg: dict, args):
     prod.start()
 
     # WandB — include lambda in run name for ablation comparison
-    mode = "SANITY" if args.SANITY else ("POC" if args.subset else "FULL")
+    mode = "SANITY" if args.SANITY else ("POC" if args.POC else "FULL")
     lam_val = cfg["drift_control"]["lambda_reg"]
     lam_tag = f"_lambda{f'{lam_val:g}'.replace('.', '_')}"
     wb_run = init_wandb("m09", f"{mode}{lam_tag}", config=cfg, enabled=not args.no_wandb)
@@ -936,6 +938,8 @@ def main():
                         help="YAML config path")
     parser.add_argument("--SANITY", action="store_true",
                         help="Quick validation: 50 steps, batch_size=2")
+    parser.add_argument("--POC", action="store_true",
+                        help="POC subset (~10K clips, 5 epochs)")
     parser.add_argument("--FULL", action="store_true",
                         help="Full training run")
     parser.add_argument("--batch-size", type=int, default=None,
@@ -943,15 +947,15 @@ def main():
     parser.add_argument("--lambda-reg", type=float, default=None,
                         help="Override drift control lambda (ablation: 0, 0.001, 0.01, 0.1)")
     parser.add_argument("--max-epochs", type=int, default=None,
-                        help="Override max epochs (SANITY=1, POC=5, FULL=1)")
+                        help="Override max epochs (SANITY=1, --POC=5, --FULL=1)")
     add_subset_arg(parser)
     add_local_data_arg(parser)
     add_wandb_args(parser)
     args = parser.parse_args()
 
-    if not (args.SANITY or args.FULL):
+    if not (args.SANITY or args.POC or args.FULL):
         parser.print_help()
-        print("\nERROR: Specify --SANITY or --FULL")
+        print("\nERROR: Specify --SANITY, --POC, or --FULL")
         sys.exit(1)
 
     cfg = load_config(args.config)

@@ -4,6 +4,7 @@ CPU-only script (M1 compatible). Skips existing files. Uses aria2c + Chrome cook
 
 USAGE:
     python -u src/m01_download.py --SANITY 2>&1 | tee logs/m01_download_sanity.log
+    python -u src/m01_download.py --POC 2>&1 | tee logs/m01_download_poc.log
     python -u src/m01_download.py --FULL 2>&1 | tee logs/m01_download_full.log
     python -u src/m01_download.py --FULL --res 720 2>&1 | tee logs/m01_download_720p.log
 """
@@ -168,6 +169,7 @@ def estimate_disk_usage(videos: list, max_resolution: int) -> float:
 def main():
     parser = argparse.ArgumentParser(description="Download all 714 YouTube videos at specified resolution")
     parser.add_argument("--SANITY", action="store_true", help=f"Download {SANITY_LIMIT} videos (30s each) for testing")
+    parser.add_argument("--POC", action="store_true", help="10K subset")
     parser.add_argument("--FULL", action="store_true", help="Download all videos (full length)")
     parser.add_argument("--res", type=int, default=DEFAULT_RESOLUTION, help=f"Max resolution height (default: {DEFAULT_RESOLUTION})")
     parser.add_argument("--force", action="store_true", help="Re-download even if file exists")
@@ -175,9 +177,9 @@ def main():
     parser.add_argument("--start", type=int, default=0, help="Start from video index N (for resuming)")
     args = parser.parse_args()
 
-    if not (args.SANITY or args.FULL):
+    if not (args.SANITY or args.POC or args.FULL):
         parser.print_help()
-        print("\nERROR: Specify --SANITY or --FULL")
+        print("\nERROR: Specify --SANITY, --POC, or --FULL")
         sys.exit(1)
 
     # Load input JSON
@@ -273,7 +275,7 @@ def main():
             if not (VIDEOS_DIR / f"{v['id']}.mp4").exists():
                 print(f"  [{v['id']}] {v['title'][:50]}")
 
-    mode = "SANITY" if args.SANITY else "FULL"
+    mode = "SANITY" if args.SANITY else ("POC" if args.POC else "FULL")
     print(f"\n{mode} {'COMPLETED' if fail_count == 0 else 'COMPLETED WITH ERRORS'}")
 
 

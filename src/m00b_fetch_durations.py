@@ -4,6 +4,7 @@ Outputs storage estimates for download planning.
 
 USAGE:
     python -u src/m00b_fetch_durations.py --SANITY 2>&1 | tee logs/m00b_fetch_durations_sanity.log
+    python -u src/m00b_fetch_durations.py --POC 2>&1 | tee logs/m00b_fetch_durations_poc.log
     python -u src/m00b_fetch_durations.py --FULL 2>&1 | tee logs/m00b_fetch_durations_full.log
     python -u src/m00b_fetch_durations.py --FULL --resolution 480 2>&1 | tee logs/m00b_fetch_durations_480p.log
 """
@@ -331,14 +332,15 @@ def print_summary(results: list) -> dict:
 def main():
     parser = argparse.ArgumentParser(description="Fetch YouTube video durations without downloading")
     parser.add_argument("--SANITY", action="store_true", help=f"Fetch durations for {SANITY_LIMIT} videos only")
-    parser.add_argument("--FULL", action="store_true", help="Fetch durations for all videos")
+    parser.add_argument("--POC", action="store_true", help="10K subset")
+    parser.add_argument("--FULL", action="store_true", help="Full 115K corpus")
     parser.add_argument("--workers", type=int, default=DEFAULT_WORKERS, help=f"Parallel workers (default: {DEFAULT_WORKERS})")
     parser.add_argument("--resolution", type=int, default=0, help="Target resolution height (e.g. 480 for 480p). Default: best quality")
     args = parser.parse_args()
 
-    if not (args.SANITY or args.FULL):
+    if not (args.SANITY or args.POC or args.FULL):
         parser.print_help()
-        print("\nERROR: Specify --SANITY or --FULL")
+        print("\nERROR: Specify --SANITY, --POC, or --FULL")
         sys.exit(1)
 
     # Load input JSON
@@ -391,7 +393,7 @@ def main():
         json.dump(output_data, f, indent=2, ensure_ascii=False)
     print(f"\nSaved: {OUTPUT_JSON}")
 
-    mode = "SANITY" if args.SANITY else "FULL"
+    mode = "SANITY" if args.SANITY else ("POC" if args.POC else "FULL")
     print(f"\n{mode} COMPLETED")
 
 

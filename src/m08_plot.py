@@ -5,8 +5,8 @@ Plots saved with encoder suffix to avoid overwrite. No FAISS, no cuML, no torch.
 
 USAGE:
     python -u src/m08_plot.py --encoder vjepa --SANITY 2>&1 | tee logs/m08_plot_vjepa_sanity.log
-    python -u src/m08_plot.py --encoder vjepa --FULL --subset data/subset_10k.json 2>&1 | tee logs/m08_plot_vjepa.log
-    python -u src/m08_plot.py --encoder dinov2 --FULL --subset data/subset_10k.json 2>&1 | tee logs/m08_plot_dinov2.log
+    python -u src/m08_plot.py --encoder vjepa --POC --subset data/subset_10k.json 2>&1 | tee logs/m08_plot_vjepa_poc.log
+    python -u src/m08_plot.py --encoder vjepa --FULL 2>&1 | tee logs/m08_plot_vjepa_full.log
 """
 import argparse
 import json
@@ -450,6 +450,7 @@ def main():
     parser = argparse.ArgumentParser(
         description="CPU-only visualization: UMAP scatter + confusion matrix + kNN grids")
     parser.add_argument("--SANITY", action="store_true", help="Run on first 200 clips")
+    parser.add_argument("--POC", action="store_true", help="POC subset (~10K clips)")
     parser.add_argument("--FULL", action="store_true", help="Run on all clips")
     parser.add_argument("--k", type=int, default=FAISS_K_NEIGHBORS,
                         help=f"kNN neighbors (default: {FAISS_K_NEIGHBORS})")
@@ -459,15 +460,15 @@ def main():
     add_wandb_args(parser)
     args = parser.parse_args()
 
-    if not (args.SANITY or args.FULL):
+    if not (args.SANITY or args.POC or args.FULL):
         parser.print_help()
-        print("\nERROR: Specify --SANITY or --FULL")
+        print("\nERROR: Specify --SANITY, --POC, or --FULL")
         sys.exit(1)
 
     output_dir = get_output_dir(args.subset, sanity=args.SANITY)
     output_dir.mkdir(parents=True, exist_ok=True)
 
-    mode = "SANITY" if args.SANITY else ("POC" if args.subset else "FULL")
+    mode = "SANITY" if args.SANITY else ("POC" if args.POC else "FULL")
     wb_run = init_wandb("m08", mode, config=vars(args), enabled=not args.no_wandb)
 
     print(f"Output dir: {output_dir}")
@@ -475,6 +476,17 @@ def main():
     # Resolve file paths — encoder-aware via get_encoder_files()
     enc_files = get_encoder_files(args.encoder, output_dir)
     enc_sfx = get_encoder_info(args.encoder)["suffix"]
+
+    # Output-exists guard (CPU-only but avoids redundant re-plots)
+    from utils.output_guard import verify_or_skip
+    umap_plot = output_dir / f"m08_umap{enc_sfx}.png"
+    conf_plot = output_dir / f"m08_confusion_matrix{enc_sfx}.png"
+    if verify_or_skip(output_dir, {
+        "umap_plot": umap_plot,
+        "confusion_matrix": conf_plot,
+    }, label=f"m08 {args.encoder}"):
+        finish_wandb(wb_run)
+        return
     tags_file = output_dir / "tags.json"
     paths_file = enc_files["paths"]
     metrics_file = enc_files["metrics"]

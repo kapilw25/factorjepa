@@ -6,8 +6,9 @@
 # Spatial (9 metrics) + Temporal (5 metrics) evaluation, 5 encoders, 95% CI
 #
 # USAGE:
-#   ./scripts/run_evaluate.sh --SANITY 2>&1 | tee logs/ch9_sanity.log        # Quick validation (~2 min cached, ~40 min first run)
-#   ./scripts/run_evaluate.sh --FULL 2>&1 | tee logs/ch9_full_10k_subset.log # 10K POC (~7h first run, ~70 min re-run with m04d only)
+#   ./scripts/run_evaluate.sh --SANITY 2>&1 | tee logs/ch9_sanity.log   # Quick validation (~15 min)
+#   ./scripts/run_evaluate.sh --POC 2>&1 | tee logs/ch9_poc.log         # 10K subset (~8h)
+#   ./scripts/run_evaluate.sh --FULL 2>&1 | tee logs/ch9_full.log       # 115K corpus (~100h+)
 #
 # Features: pre-flight checks, checkpoint/resume, error handling, verification
 # All steps SEQUENTIAL on single GPU. Skips completed steps automatically.
@@ -20,10 +21,11 @@ MODE=""
 SUBSET_FLAG=""
 
 usage() {
-    echo "Usage: $0 --SANITY | --FULL"
+    echo "Usage: $0 --SANITY | --POC | --FULL"
     echo ""
     echo "  --SANITY   Quick validation: 5-20 clips per step (~15 min total)"
-    echo "  --FULL     10K POC: all 10,000 subset clips (~8-12h total)"
+    echo "  --POC      10K subset: full eval pipeline (~8-12h)"
+    echo "  --FULL     115K full corpus: no subset, dataset size from manifest (~48h)"
     exit 1
 }
 
@@ -38,12 +40,20 @@ case "$1" in
         TAGS_FILE="outputs/sanity/tags_sanity_qwen.json"
         BATCH_M04=""
         ;;
-    --FULL)
-        MODE="FULL"
+    --POC)
+        MODE="POC"
         MODE_FLAG="--FULL"
         SUBSET_FLAG="--subset data/subset_10k.json"
         OUT_DIR="outputs/poc"
         TAGS_FILE="outputs/poc/tags.json"
+        BATCH_M04=""
+        ;;
+    --FULL)
+        MODE="FULL"
+        MODE_FLAG="--FULL"
+        SUBSET_FLAG=""
+        OUT_DIR="outputs/full"
+        TAGS_FILE="outputs/full/tags.json"
         BATCH_M04=""
         ;;
     *)
@@ -276,26 +286,45 @@ except FileNotFoundError:
 " 2>&1 | tee -a "$MASTER_LOG"
 fi
 
-log "Pre-flight complete. Starting pipeline..."
+log "Pre-flight complete."
+
+# ── Output preflight: check all inputs/outputs before GPU work ────────
+log "=== OUTPUT PREFLIGHT ==="
+if [[ "$MODE" == "FULL" ]]; then
+    LOCAL_DATA="data/full_local"
+else
+    LOCAL_DATA="data/subset_10k_local"
+fi
+python -u src/utils/output_guard.py preflight_evaluate "$OUT_DIR" "$TAGS_FILE" "$LOCAL_DATA" 2>&1 | tee -a "$MASTER_LOG"
+if [[ ${PIPESTATUS[0]} -ne 0 ]]; then
+    log "FATAL: Output preflight failed or aborted."
+    exit 1
+fi
+
+log "Starting pipeline..."
 echo "" | tee -a "$MASTER_LOG"
 
 # ═══════════════════════════════════════════════════════════════════════
 # PIPELINE STEPS
 # ═══════════════════════════════════════════════════════════════════════
 
-# ── Step 0: Pre-download subset to local disk (both modes) ─────────
-# SANITY streams from local TARs too — HF streaming scans 115K shards
-# for 20 clips (8.4% hit rate) causing minutes-long stalls per clip.
-LOCAL_DATA="data/subset_10k_local"
+# ── Step 0: Pre-download to local disk ────────────────────────────────
+if [[ "$MODE" == "FULL" ]]; then
+    LOCAL_DATA="data/full_local"
+    DOWNLOAD_CMD="src/m00d_download_subset.py --FULL --no-wandb"
+else
+    LOCAL_DATA="data/subset_10k_local"
+    DOWNLOAD_CMD="src/m00d_download_subset.py --FULL --subset data/subset_10k.json --no-wandb"
+fi
 LOCAL_FLAG=""
 
 if [[ -d "$LOCAL_DATA" && -f "$LOCAL_DATA/manifest.json" ]]; then
-    log "Local subset already exists: $LOCAL_DATA (skipping download)"
+    log "Local data already exists: $LOCAL_DATA (skipping download)"
     LOCAL_FLAG="--local-data $LOCAL_DATA"
 else
-    run_step 0 "m00d pre-download subset" "$T_M00D" \
+    run_step 0 "m00d pre-download" "$T_M00D" \
         "$LOGDIR/m00d_download.log" \
-        src/m00d_download_subset.py --subset data/subset_10k.json --no-wandb \
+        $DOWNLOAD_CMD \
         || { log "FATAL: m00d failed. Cannot proceed without local data."; exit 1; }
 
     if [[ -d "$LOCAL_DATA" && -f "$LOCAL_DATA/manifest.json" ]]; then
