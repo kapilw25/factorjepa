@@ -28,11 +28,13 @@ import matplotlib.pyplot as plt
 # ── Encoder display config ───────────────────────────────────────────
 
 ENCODER_LABELS = {
-    "vjepa": "V-JEPA 2\n(ViT-G, 1408d)",
+    "vjepa": "V-JEPA 2\n(frozen, 1408d)",
     "random": "Random\n(1408d)",
     "dinov2": "DINOv2\n(ViT-L, 1024d)",
     "clip": "CLIP\n(ViT-L, 768d)",
-    "vjepa_shuffled": "Shuffled\nV-JEPA (1408d)",
+    "vjepa_shuffled": "Shuffled\nV-JEPA (frozen)",
+    "vjepa_adapted": "V-JEPA 2\n(adapted, 1408d)",
+    "vjepa_surgical": "V-JEPA 2\n(surgical, 1408d)",
 }
 ENCODER_COLORS = {
     "vjepa": "#2196F3",
@@ -40,6 +42,8 @@ ENCODER_COLORS = {
     "dinov2": "#4CAF50",
     "clip": "#FF9800",
     "vjepa_shuffled": "#E91E63",
+    "vjepa_adapted": "#7B1FA2",
+    "vjepa_surgical": "#00695C",
 }
 # Display order: V-JEPA first (main), then baselines
 ENCODER_ORDER = ["vjepa", "random", "dinov2", "clip", "vjepa_shuffled"]
@@ -807,8 +811,22 @@ def main():
                          "#33691E", "#880E4F", "#004D40", "#F57F17"]
         for i, enc in enumerate(encoder_list):
             if enc not in ENCODER_LABELS:
-                ENCODER_LABELS[enc] = enc.replace("_", "\n")
+                # Dynamic labels for lambda encoders and their shuffled variants
+                import re
+                m_shuf = re.match(r'vjepa_lambda(\d+(?:_\d+)*)_shuffled', enc)
+                m_lam = re.match(r'vjepa_lambda(\d+(?:_\d+)*)', enc)
+                if m_shuf:
+                    lam_str = m_shuf.group(1).replace("_", ".", 1)
+                    ENCODER_LABELS[enc] = f"Shuffled Adapted\n(\u03bb={lam_str})"
+                elif m_lam:
+                    lam_str = m_lam.group(1).replace("_", ".", 1)
+                    ENCODER_LABELS[enc] = f"V-JEPA Adapted\n(\u03bb={lam_str})"
+                else:
+                    ENCODER_LABELS[enc] = enc.replace("_", "\n")
                 ENCODER_COLORS[enc] = _extra_colors[i % len(_extra_colors)]
+        # Override ENCODER_ORDER with custom list so all plot functions include them
+        global ENCODER_ORDER
+        ENCODER_ORDER = encoder_list
 
     output_dir = get_output_dir(args.subset, sanity=args.SANITY)
     print(f"Output dir: {output_dir}")

@@ -198,10 +198,18 @@ def load_checkpoint(checkpoint_file: Path) -> tuple:
 
 # ── Producer Thread (HF Stream → Decode → Queue) ──────────────────────
 
-def _process_and_enqueue(processor, batch_tensors, batch_keys, q):
+def _process_and_enqueue(processor, batch_tensors, batch_keys, q,
+                         shuffle_frames: bool = False):
     """Process video tensors through processor and enqueue for GPU inference."""
     processed_list = []
-    for vt in batch_tensors:
+    for vt, key in zip(batch_tensors, batch_keys):
+        if shuffle_frames:
+            # Deterministic shuffle per clip key (same as m05b shuffled baseline)
+            seed = hash(key) % (2**31)
+            rng = torch.Generator()
+            rng.manual_seed(seed)
+            perm = torch.randperm(vt.shape[0], generator=rng)
+            vt = vt[perm]
         processed = processor(vt, return_tensors="pt")
         processed_list.append(processed["pixel_values_videos"])
     batched_pixels = torch.cat(processed_list, dim=0)
@@ -211,7 +219,8 @@ def _process_and_enqueue(processor, batch_tensors, batch_keys, q):
 def _producer_thread(processor, batch_size: int, tmp_dir: str,
                      q: queue.Queue, stop_event: threading.Event,
                      clip_limit: int, subset_keys: set, num_frames: int,
-                     processed_keys: set, local_data: str = None):
+                     processed_keys: set, local_data: str = None,
+                     shuffle_frames: bool = False):
     """Stream from HF (or local shards), filter by subset, decode video tensors in parallel, enqueue."""
     produced = 0
     skipped = 0
@@ -261,7 +270,7 @@ def _producer_thread(processor, batch_size: int, tmp_dir: str,
                     batch_keys = [k for t, k in results if t is not None]
 
                     if batch_tensors:
-                        _process_and_enqueue(processor, batch_tensors, batch_keys, q)
+                        _process_and_enqueue(processor, batch_tensors, batch_keys, q, shuffle_frames)
                         produced += len(batch_tensors)
 
                     pending_bytes = []
@@ -284,7 +293,7 @@ def _producer_thread(processor, batch_size: int, tmp_dir: str,
                 batch_keys = [k for t, k in results if t is not None]
 
                 if batch_tensors:
-                    _process_and_enqueue(processor, batch_tensors, batch_keys, q)
+                    _process_and_enqueue(processor, batch_tensors, batch_keys, q, shuffle_frames)
                     produced += len(batch_tensors)
 
             break  # stream exhausted normally
@@ -413,6 +422,8 @@ def orchestrator_main(args):
                 cmd.extend(["--local-data", args.local_data])
             if getattr(args, 'encoder', None):
                 cmd.extend(["--encoder", args.encoder])
+            if getattr(args, 'shuffle', False):
+                cmd.append("--shuffle")
 
             result = subprocess.run(cmd)
 
@@ -589,7 +600,8 @@ def worker_main(args):
         target=_producer_thread,
         args=(processor, args.batch_size, tmp_dir, q, stop_event,
               clip_limit, subset_keys, VJEPA_FRAMES_PER_CLIP, processed_keys,
-              getattr(args, 'local_data', None)),
+              getattr(args, 'local_data', None),
+              getattr(args, 'shuffle', False)),
         daemon=True,
     )
     producer.start()
@@ -689,6 +701,8 @@ def main():
                         help="Override batch size (auto-computed if omitted)")
     parser.add_argument("--encoder", type=str, default=None,
                         help="Encoder name for output files (e.g., vjepa_lambda0)")
+    parser.add_argument("--shuffle", action="store_true",
+                        help="Shuffle frame order (for temporal ablation)")
     add_subset_arg(parser)
     add_local_data_arg(parser)
     add_wandb_args(parser)

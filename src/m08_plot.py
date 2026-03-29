@@ -140,8 +140,8 @@ def create_umap_plot(emb_2d: np.ndarray, tags: list, output_dir: Path,
 
     ax.set_xlabel('UMAP 1', fontsize=12)
     ax.set_ylabel('UMAP 2', fontsize=12)
-    label = field.replace("_", " ").title()
-    ax.set_title(f'V-JEPA Embeddings (n={len(tags):,}, colored by {field})', fontsize=14)
+    enc_label = enc_sfx.replace("_", " ").strip().title() if enc_sfx else "V-JEPA"
+    ax.set_title(f'{enc_label} Embeddings (n={len(tags):,}, colored by {field})', fontsize=14)
 
     if metrics_data and field == "scene_type":
         easy = metrics_data.get("easy", {})
@@ -259,7 +259,8 @@ def create_umap_grid(emb_2d: np.ndarray, tags: list, output_dir: Path,
     for idx in range(n_panels, len(axes_flat)):
         axes_flat[idx].set_visible(False)
 
-    fig.suptitle(f'V-JEPA UMAP — All Taxonomy Keys (n={len(tags):,})',
+    enc_label = enc_sfx.replace("_", " ").strip().title() if enc_sfx else "V-JEPA"
+    fig.suptitle(f'{enc_label} UMAP — All Taxonomy Keys (n={len(tags):,})',
                  fontsize=15, fontweight='bold')
     plt.tight_layout(rect=[0, 0, 1, 0.97])
     for ext in [".png", ".pdf"]:
@@ -297,7 +298,7 @@ def create_confusion_matrix_grid(knn_indices: np.ndarray, tags: list,
             for j, nt in enumerate(field_values):
                 matrix[i, j] = conf[qt][nt] / total * 100 if total > 0 else 0
 
-        im = ax.imshow(matrix, cmap='Blues')
+        ax.imshow(matrix, cmap='Blues')
         ax.set_xticks(range(len(field_values)))
         ax.set_yticks(range(len(field_values)))
         ax.set_xticklabels(field_values, rotation=45, ha='right', fontsize=7)

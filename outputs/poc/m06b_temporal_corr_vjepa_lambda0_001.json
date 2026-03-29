@@ -1,0 +1,47 @@
+{
+  "encoder": "vjepa_lambda0_001",
+  "encoder_dim": 1408,
+  "encoder_type": "video_adapted",
+  "n_clips_aligned": 10000,
+  "k_neighbors": 6,
+  "compute_time_sec": 25.1,
+  "mode": "POC",
+  "spearman_rho": 0.301356,
+  "spearman_rho_ci": {
+    "mean": 0.301356,
+    "ci_lo": 0.295259,
+    "ci_hi": 0.307044,
+    "ci_half": 0.005893
+  },
+  "spearman_pval": 0.0,
+  "n_pairs_sampled": 99991,
+  "motion_clusters": 4,
+  "temporal_prec_at_k": 43.3,
+  "temporal_prec_at_k_ci": {
+    "mean": 43.301667,
+    "ci_lo": 42.753333,
+    "ci_hi": 43.875,
+    "ci_half": 0.560833
+  },
+  "motion_retrieval_map": 0.706591,
+  "motion_retrieval_map_ci": {
+    "mean": 0.706591,
+    "ci_lo": 0.700886,
+    "ci_hi": 0.712148,
+    "ci_half": 0.005631
+  },
+  "temporal_locality": {
+    "intra_video_dist": 31.7983,
+    "inter_video_dist": 43.043,
+    "ratio": 0.7388,
+    "ratio_ci": {
+      "mean": 0.738756,
+      "ci_lo": 0.734823,
+      "ci_hi": 0.742846,
+      "ci_half": 0.004011
+    },
+    "n_intra_pairs": 16915,
+    "n_inter_pairs": 49945,
+    "n_multi_clip_videos": 713
+  }
+}

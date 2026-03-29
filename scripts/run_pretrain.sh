@@ -437,6 +437,61 @@ run_step "winner-metrics" "m06 metrics (winner lambda=${WINNER_LAMBDA})" "$T_M06
 log "Winner deep run complete: lambda=${WINNER_LAMBDA}, ${WINNER_EPOCHS} epochs"
 
 # ═══════════════════════════════════════════════════════════════════════
+# PHASE 3: FULL EVALUATION (m07 UMAP + m08 plots + m08b comparison)
+# ═══════════════════════════════════════════════════════════════════════
+
+echo "" | tee -a "$MASTER_LOG"
+log "=== PHASE 3: FULL EVALUATION ==="
+
+# m06b: Temporal correlation for adapted encoder (motion features from Ch9 m04d)
+run_step "winner-temporal" "m06b temporal corr (winner)" "~2 min" \
+    "$LOGDIR/m06b_${MODE,,}_winner.log" \
+    src/m06b_temporal_corr.py --encoder "$WINNER_ENCODER" \
+        $MODE_FLAG $SUBSET_FLAG \
+    || { log "FATAL: Winner temporal correlation failed."; exit 1; }
+
+# m05+m06 shuffled adapted: DISABLED for speed (enable for full paper run)
+# Uncomment below for temporal ablation (~1h 50min)
+SHUFFLED_ENCODER="${WINNER_ENCODER}_shuffled"
+# run_step "winner-shuffled" "m05 shuffled adapted (temporal ablation)" "$T_M05_RE" \
+#     "$LOGDIR/m05_${MODE,,}_winner_shuffled.log" \
+#     src/m05_vjepa_embed.py --model "$WINNER_MODEL" --encoder "$SHUFFLED_ENCODER" --shuffle \
+#         $MODE_FLAG $SUBSET_FLAG $LOCAL_FLAG \
+#     || { log "FATAL: Shuffled adapted embed failed."; exit 1; }
+# run_step "winner-shuffled-metrics" "m06 metrics (shuffled adapted)" "$T_M06_RE" \
+#     "$LOGDIR/m06_${MODE,,}_winner_shuffled.log" \
+#     src/m06_faiss_metrics.py --encoder "$SHUFFLED_ENCODER" \
+#         $MODE_FLAG $SUBSET_FLAG \
+#     || { log "FATAL: Shuffled adapted metrics failed."; exit 1; }
+
+# m07: UMAP for adapted encoder
+run_step "winner-umap" "m07 UMAP (winner)" "~5 min" \
+    "$LOGDIR/m07_${MODE,,}_winner.log" \
+    src/m07_umap.py --encoder "$WINNER_ENCODER" \
+        $MODE_FLAG $SUBSET_FLAG \
+    || { log "FATAL: Winner UMAP failed."; exit 1; }
+
+# m08: Plots for adapted encoder
+run_step "winner-plots" "m08 plots (winner)" "~2 min" \
+    "$LOGDIR/m08_${MODE,,}_winner.log" \
+    src/m08_plot.py --encoder "$WINNER_ENCODER" \
+        $MODE_FLAG $SUBSET_FLAG \
+    || { log "FATAL: Winner plots failed."; exit 1; }
+
+# m08b: Compare all encoders (frozen + baselines + adapted)
+# Build encoder list: all Ch9 encoders + adapted winner
+COMPARE_LIST="vjepa,random,dinov2,clip,vjepa_shuffled,${WINNER_ENCODER}"
+# Add shuffled adapted when enabled above:
+# COMPARE_LIST="${COMPARE_LIST},${SHUFFLED_ENCODER}"
+run_step "final-compare" "m08b comparison (frozen + baselines + adapted)" "~30 sec" \
+    "$LOGDIR/m08b_${MODE,,}_ch10.log" \
+    src/m08b_compare.py --encoders "$COMPARE_LIST" \
+        $MODE_FLAG $SUBSET_FLAG \
+    || { log "FATAL: Final comparison failed."; exit 1; }
+
+log "Phase 3 complete: UMAP + plots + comparison for ${WINNER_ENCODER}"
+
+# ═══════════════════════════════════════════════════════════════════════
 # FINAL VERIFICATION
 # ═══════════════════════════════════════════════════════════════════════
 
@@ -486,12 +541,21 @@ if os.path.exists(winner_path):
 
 print()
 print('=== WINNER DEEP RUN (Phase 2) ===')
-# Check winner's full evaluation outputs
 winner_dir = w['winner_dir'] if os.path.exists(winner_path) else None
 if winner_dir:
     enc = f'vjepa_{winner_dir}'
-    check(f'Winner embeddings',  f'{out}/embeddings_{enc}.npy')
-    check(f'Winner metrics',     f'{out}/m06_metrics_{enc}.json')
+    check(f'Winner embeddings',    f'{out}/embeddings_{enc}.npy')
+    check(f'Winner metrics',       f'{out}/m06_metrics_{enc}.json')
+    check(f'Winner knn_indices',   f'{out}/knn_indices_{enc}.npy')
+
+print()
+print('=== FULL EVALUATION (Phase 3) ===')
+if winner_dir:
+    enc = f'vjepa_{winner_dir}'
+    check(f'Winner UMAP',          f'{out}/umap_2d_{enc}.npy')
+    check(f'Winner UMAP plot',     f'{out}/m08_umap_{enc}.png')
+    check(f'Comparison radar',     f'{out}/m08b_radar.png')
+    check(f'Comparison table',     f'{out}/m08b_comparison_table.tex')
 
 print()
 print(f'=== TOTAL: {ok} OK, {fail} MISSING ===')
