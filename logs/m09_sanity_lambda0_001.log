@@ -1,5 +1,0 @@
-Using PyAV for video decoding
-GPU: NVIDIA RTX PRO 6000 Blackwell Workstation Edition
-CUDA version: 12.8
-Student encoder already exists: /workspace/factorjepa/outputs/sanity/m09_lambda0_001/student_encoder.pt
-Delete to re-train, or use for evaluation.

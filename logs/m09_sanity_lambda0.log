@@ -1,86 +1,0 @@
-Using PyAV for video decoding
-GPU: NVIDIA RTX PRO 6000 Blackwell Workstation Edition
-CUDA version: 12.8
-
-=== Building Model ===
-/workspace/factorjepa/venv_walkindia/lib/python3.12/site-packages/timm/models/layers/__init__.py:49: FutureWarning: Importing from timm.models.layers is deprecated, please import via timm.layers
-  warnings.warn(f"Importing from {__name__} is deprecated, please import via timm.layers", FutureWarning)
-Downloading pretrained weights via torch.hub...
-Student loaded: 1,012,173,952 params (484/484 keys = 100%)
-Teacher created (deepcopy of student)
-Predictor loaded from checkpoint (152/152 keys = 100%)
-Predictor: 22,378,240 params
-Mask generators: 2 (blocks: [8, 2])
-Train clips: 900 | Val clips: 100
-Epochs: 1 | Steps/epoch: 8 | Total steps: 8
-Checkpoint every 1 steps (10x per epoch, keep last 2)
-wandb: [wandb.login()] Loaded credentials for https://api.wandb.ai from WANDB_API_KEY.
-wandb: Currently logged in as: kapilw25 (sjsu_llm) to https://api.wandb.ai. Use `wandb login --relogin` to force relogin
-wandb: WARNING Using a boolean value for 'reinit' is deprecated. Use 'return_previous' or 'finish_previous' instead.
-wandb: setting up run s876m19l
-wandb: Tracking run with wandb version 0.25.1
-wandb: Run data is saved locally in /workspace/factorjepa/wandb/run-20260329_012505-s876m19l
-wandb: Run `wandb offline` to turn off syncing.
-wandb: Syncing run m09_SANITY
-wandb: ⭐️ View project at https://wandb.ai/sjsu_llm/walkindia-200k
-wandb: 🚀 View run at https://wandb.ai/sjsu_llm/walkindia-200k/runs/s876m19l
-wandb: run=m09_SANITY url=https://wandb.ai/sjsu_llm/walkindia-200k/runs/s876m19l
-m09_pretrain:   0%|          | 0/8 [00:00<?, ?step/s]
-=== Training: 0 → 8 steps (1 epochs) ===
-Batch size: 112
-Grad checkpointing: True
-Mixed precision: bfloat16
-EMA momentum: 0.99925
-Drift control: lambda=0
-Loss log: /workspace/factorjepa/outputs/sanity/m09_lambda0/loss_log.csv
-/venv/main/lib/python3.12/contextlib.py:105: FutureWarning: `torch.backends.cuda.sdp_kernel()` is deprecated. In the future, this context manager will be removed. Please see `torch.nn.attention.sdpa_kernel()` for the new context manager, with updated signature.
-  self.gen = func(*args, **kwds)
-m09_pretrain:   0%|          | 0/8 [00:41<?, ?step/s, E0 loss=1.6375 drift=0.0000 lr=1.00e-05 grad=1.42 0.02 step/s]m09_pretrain:  12%|█▎        | 1/8 [00:41<04:50, 41.44s/step, E0 loss=1.6375 drift=0.0000 lr=1.00e-05 grad=1.42 0.02 step/s]m09_pretrain:  12%|█▎        | 1/8 [01:23<04:50, 41.44s/step, E0 loss=1.6298 drift=0.0000 lr=9.50e-06 grad=1.66 0.02 step/s]m09_pretrain:  25%|██▌       | 2/8 [01:23<04:10, 41.79s/step, E0 loss=1.6298 drift=0.0000 lr=9.50e-06 grad=1.66 0.02 step/s]m09_pretrain:  25%|██▌       | 2/8 [02:03<04:10, 41.79s/step, E0 loss=1.6187 drift=0.0000 lr=8.12e-06 grad=2.26 0.03 step/s]m09_pretrain:  38%|███▊      | 3/8 [02:03<03:24, 40.81s/step, E0 loss=1.6187 drift=0.0000 lr=8.12e-06 grad=2.26 0.03 step/s]  Cleaned old checkpoint: m09_ckpt_step1.pt
-m09_pretrain:  38%|███▊      | 3/8 [02:47<03:24, 40.81s/step, E0 loss=1.5978 drift=0.0000 lr=6.11e-06 grad=0.89 0.02 step/s]m09_pretrain:  50%|█████     | 4/8 [02:47<02:49, 42.26s/step, E0 loss=1.5978 drift=0.0000 lr=6.11e-06 grad=0.89 0.02 step/s]  Cleaned old checkpoint: m09_ckpt_step2.pt
-m09_pretrain:  50%|█████     | 4/8 [03:34<02:49, 42.26s/step, E0 loss=1.6299 drift=0.0000 lr=3.89e-06 grad=0.53 0.02 step/s]m09_pretrain:  62%|██████▎   | 5/8 [03:34<02:11, 43.97s/step, E0 loss=1.6299 drift=0.0000 lr=3.89e-06 grad=0.53 0.02 step/s]  Cleaned old checkpoint: m09_ckpt_step3.pt
-m09_pretrain:  62%|██████▎   | 5/8 [04:19<02:11, 43.97s/step, E0 loss=1.6164 drift=0.0000 lr=1.88e-06 grad=0.46 0.02 step/s]m09_pretrain:  75%|███████▌  | 6/8 [04:19<01:28, 44.44s/step, E0 loss=1.6164 drift=0.0000 lr=1.88e-06 grad=0.46 0.02 step/s]  Cleaned old checkpoint: m09_ckpt_step4.pt
-  Producer: starting epoch 2
-m09_pretrain:  75%|███████▌  | 6/8 [04:58<01:28, 44.44s/step, E0 loss=1.6050 drift=0.0000 lr=4.95e-07 grad=0.27 0.03 step/s]m09_pretrain:  88%|████████▊ | 7/8 [04:58<00:42, 42.49s/step, E0 loss=1.6050 drift=0.0000 lr=4.95e-07 grad=0.27 0.03 step/s]  Cleaned old checkpoint: m09_ckpt_step5.pt
-m09_pretrain:  88%|████████▊ | 7/8 [05:39<00:42, 42.49s/step, E0 loss=1.5752 drift=0.0000 lr=1.00e-07 grad=0.24 0.02 step/s]m09_pretrain: 100%|██████████| 8/8 [05:39<00:00, 42.08s/step, E0 loss=1.5752 drift=0.0000 lr=1.00e-07 grad=0.24 0.02 step/s]  Cleaned old checkpoint: m09_ckpt_step6.pt
-
---- Epoch 1/1 complete (step 8) ---
-m09_pretrain: 100%|██████████| 8/8 [06:04<00:00, 45.62s/step, E0 loss=1.5752 drift=0.0000 lr=1.00e-07 grad=0.24 0.02 step/s]
-Exported student encoder: /workspace/factorjepa/outputs/sanity/m09_lambda0/student_encoder.pt
-  Cleaned: m09_ckpt_latest.pt
-  Cleaned: m09_ckpt_step7.pt
-  Cleaned: m09_ckpt_step8.pt
-wandb: updating run metadata
-wandb: uploading output.log; uploading config.yaml
-wandb: uploading history steps 7-7, summary, console lines 11-11
-wandb: uploading console lines 18-24
-wandb: 
-wandb: Run history:
-wandb:                  epoch ▁▁▁▁▁▁▁▁
-wandb:         epoch_complete ▁
-wandb:              grad_norm ▅▆█▃▂▂▁▁
-wandb:             loss/drift ▁▁▁▁▁▁▁▁
-wandb:              loss/jepa █▇▆▄▇▆▄▁
-wandb:             loss/total █▇▆▄▇▆▄▁
-wandb:                     lr ██▇▅▄▂▁▁
-wandb: throughput_steps_per_s ▅▅▇▃▁▂█▅
-wandb: 
-wandb: Run summary:
-wandb:                  epoch 0
-wandb:         epoch_complete 1
-wandb:              grad_norm 0.2389
-wandb:             loss/drift 0
-wandb:              loss/jepa 1.57522
-wandb:             loss/total 1.57522
-wandb:                     lr 0.0
-wandb: throughput_steps_per_s 0.02426
-wandb: 
-wandb: 🚀 View run m09_SANITY at: https://wandb.ai/sjsu_llm/walkindia-200k/runs/s876m19l
-wandb: ⭐️ View project at: https://wandb.ai/sjsu_llm/walkindia-200k
-wandb: Synced 5 W&B file(s), 0 media file(s), 0 artifact file(s) and 0 other file(s)
-wandb: Find logs at: ./wandb/run-20260329_012505-s876m19l/logs
-
-=== TRAINING COMPLETE ===
-Steps:        8 (1.0 epochs)
-Clips seen:   896
-Student:      /workspace/factorjepa/outputs/sanity/m09_lambda0/student_encoder.pt
-Loss log:     /workspace/factorjepa/outputs/sanity/m09_lambda0/loss_log.csv

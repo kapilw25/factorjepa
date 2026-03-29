@@ -1,327 +1,0 @@
-[22:37:28] Local subset exists: data/subset_10k_local
-[22:37:28] Ch10 pipeline starting (mode=SANITY)
-[22:37:28] Config: configs/pretrain/vitg16_indian.yaml
-[22:37:28] Master log: logs/ch10_SANITY_20260328_223728.log
-
-[22:37:28] === PRE-FLIGHT ===
-GPU:        NVIDIA RTX PRO 6000 Blackwell Workstation Edition
-VRAM:       102 GB
-PyTorch:    2.12.0.dev20260228+cu128
-vjepa2:     deps/vjepa2/ present
-Flash-Attn: 2.8.3
-FAISS GPUs: 1
-Config:     configs/pretrain/vitg16_indian.yaml
-Baseline:   Prec@K=0.0% (Ch9 frozen)
-
-Pre-flight: ALL PASSED
-[22:37:30] Pre-flight complete. Starting pipeline...
-
-
-[22:37:30] ╔═══════════════════════════════════════════════════════════╗
-[22:37:30] ║  ABLATION: lambda=0 (lambda0)                    
-[22:37:30] ╚═══════════════════════════════════════════════════════════╝
-
-═══════════════════════════════════════════════════════════════
-  STEP lambda0-train: m09 pretrain (lambda=0)
-  Mode: SANITY | Est: ~5 min (50 steps, batch_size=2)
-  Started: 2026-03-28 22:37:30
-═══════════════════════════════════════════════════════════════
-[22:37:30] CMD: python -u src/m09_pretrain.py --config configs/pretrain/vitg16_indian.yaml --lambda-reg 0 --SANITY --local-data data/subset_10k_local --no-wandb
-Using PyAV for video decoding
-GPU: NVIDIA RTX PRO 6000 Blackwell Workstation Edition
-CUDA version: 12.8
-
-=== Building Model ===
-/workspace/factorjepa/venv_walkindia/lib/python3.12/site-packages/timm/models/layers/__init__.py:49: FutureWarning: Importing from timm.models.layers is deprecated, please import via timm.layers
-  warnings.warn(f"Importing from {__name__} is deprecated, please import via timm.layers", FutureWarning)
-Downloading pretrained weights via torch.hub...
-Student loaded: 1,012,173,952 params (484/484 keys = 100%)
-Teacher created (deepcopy of student)
-Predictor loaded from checkpoint (152/152 keys = 100%)
-Predictor: 22,378,240 params
-Mask generators: 2 (blocks: [8, 2])
-m09_pretrain:   0%|          | 0/50 [00:00<?, ?step/s]
-=== Training: 0 → 50 steps ===
-Batch size: 2
-Grad checkpointing: True
-Mixed precision: bfloat16
-EMA momentum: 0.99925
-Drift control: lambda=0
-/venv/main/lib/python3.12/contextlib.py:105: FutureWarning: `torch.backends.cuda.sdp_kernel()` is deprecated. In the future, this context manager will be removed. Please see `torch.nn.attention.sdpa_kernel()` for the new context manager, with updated signature.
-  self.gen = func(*args, **kwds)
-m09_pretrain:   2%|▏         | 1/50 [00:02<02:03,  2.53s/step]m09_pretrain:   4%|▍         | 2/50 [00:03<01:17,  1.62s/step]m09_pretrain:   6%|▌         | 3/50 [00:04<01:03,  1.34s/step]m09_pretrain:   8%|▊         | 4/50 [00:05<00:54,  1.19s/step]m09_pretrain:  10%|█         | 5/50 [00:06<00:49,  1.09s/step]m09_pretrain:  12%|█▏        | 6/50 [00:07<00:46,  1.05s/step]m09_pretrain:  14%|█▍        | 7/50 [00:08<00:43,  1.01s/step]m09_pretrain:  16%|█▌        | 8/50 [00:09<00:45,  1.08s/step]m09_pretrain:  18%|█▊        | 9/50 [00:10<00:42,  1.03s/step]m09_pretrain:  20%|██        | 10/50 [00:11<00:39,  1.01step/s]m09_pretrain:  22%|██▏       | 11/50 [00:12<00:37,  1.03step/s]m09_pretrain:  24%|██▍       | 12/50 [00:13<00:36,  1.05step/s]m09_pretrain:  26%|██▌       | 13/50 [00:14<00:34,  1.07step/s]m09_pretrain:  28%|██▊       | 14/50 [00:15<00:33,  1.08step/s]m09_pretrain:  30%|███       | 15/50 [00:16<00:34,  1.01step/s]m09_pretrain:  32%|███▏      | 16/50 [00:17<00:33,  1.02step/s]m09_pretrain:  34%|███▍      | 17/50 [00:17<00:31,  1.06step/s]m09_pretrain:  36%|███▌      | 18/50 [00:18<00:29,  1.07step/s]m09_pretrain:  38%|███▊      | 19/50 [00:19<00:29,  1.07step/s]m09_pretrain:  40%|████      | 20/50 [00:20<00:27,  1.07step/s]m09_pretrain:  42%|████▏     | 21/50 [00:21<00:27,  1.06step/s]m09_pretrain:  44%|████▍     | 22/50 [00:22<00:26,  1.06step/s]m09_pretrain:  46%|████▌     | 23/50 [00:23<00:26,  1.01step/s]m09_pretrain:  48%|████▊     | 24/50 [00:24<00:25,  1.03step/s]m09_pretrain:  50%|█████     | 25/50 [00:25<00:24,  1.03step/s]m09_pretrain:  50%|█████     | 25/50 [00:58<00:24,  1.03step/s, loss=0.4755 drift=0.0000 lr=5.20e-07 grad=1.51 0.44 step/s]m09_pretrain:  52%|█████▏    | 26/50 [00:58<04:15, 10.66s/step, loss=0.4755 drift=0.0000 lr=5.20e-07 grad=1.51 0.44 step/s]m09_pretrain:  54%|█████▍    | 27/50 [00:59<02:58,  7.76s/step, loss=0.4755 drift=0.0000 lr=5.20e-07 grad=1.51 0.44 step/s]m09_pretrain:  56%|█████▌    | 28/50 [01:00<02:05,  5.71s/step, loss=0.4755 drift=0.0000 lr=5.20e-07 grad=1.51 0.44 step/s]m09_pretrain:  58%|█████▊    | 29/50 [01:01<01:30,  4.30s/step, loss=0.4755 drift=0.0000 lr=5.20e-07 grad=1.51 0.44 step/s]m09_pretrain:  60%|██████    | 30/50 [01:03<01:07,  3.36s/step, loss=0.4755 drift=0.0000 lr=5.20e-07 grad=1.51 0.44 step/s]m09_pretrain:  62%|██████▏   | 31/50 [01:03<00:50,  2.63s/step, loss=0.4755 drift=0.0000 lr=5.20e-07 grad=1.51 0.44 step/s]m09_pretrain:  64%|██████▍   | 32/50 [01:04<00:38,  2.13s/step, loss=0.4755 drift=0.0000 lr=5.20e-07 grad=1.51 0.44 step/s]m09_pretrain:  66%|██████▌   | 33/50 [01:05<00:30,  1.77s/step, loss=0.4755 drift=0.0000 lr=5.20e-07 grad=1.51 0.44 step/s]m09_pretrain:  68%|██████▊   | 34/50 [01:06<00:24,  1.53s/step, loss=0.4755 drift=0.0000 lr=5.20e-07 grad=1.51 0.44 step/s]m09_pretrain:  70%|███████   | 35/50 [01:07<00:20,  1.38s/step, loss=0.4755 drift=0.0000 lr=5.20e-07 grad=1.51 0.44 step/s]m09_pretrain:  72%|███████▏  | 36/50 [01:08<00:17,  1.26s/step, loss=0.4755 drift=0.0000 lr=5.20e-07 grad=1.51 0.44 step/s]m09_pretrain:  74%|███████▍  | 37/50 [01:09<00:15,  1.17s/step, loss=0.4755 drift=0.0000 lr=5.20e-07 grad=1.51 0.44 step/s]m09_pretrain:  76%|███████▌  | 38/50 [01:10<00:13,  1.16s/step, loss=0.4755 drift=0.0000 lr=5.20e-07 grad=1.51 0.44 step/s]m09_pretrain:  78%|███████▊  | 39/50 [01:11<00:12,  1.09s/step, loss=0.4755 drift=0.0000 lr=5.20e-07 grad=1.51 0.44 step/s]m09_pretrain:  80%|████████  | 40/50 [01:12<00:10,  1.04s/step, loss=0.4755 drift=0.0000 lr=5.20e-07 grad=1.51 0.44 step/s]m09_pretrain:  82%|████████▏ | 41/50 [01:13<00:09,  1.02s/step, loss=0.4755 drift=0.0000 lr=5.20e-07 grad=1.51 0.44 step/s]m09_pretrain:  84%|████████▍ | 42/50 [01:14<00:08,  1.01s/step, loss=0.4755 drift=0.0000 lr=5.20e-07 grad=1.51 0.44 step/s]m09_pretrain:  86%|████████▌ | 43/50 [01:15<00:06,  1.01step/s, loss=0.4755 drift=0.0000 lr=5.20e-07 grad=1.51 0.44 step/s]m09_pretrain:  88%|████████▊ | 44/50 [01:16<00:05,  1.01step/s, loss=0.4755 drift=0.0000 lr=5.20e-07 grad=1.51 0.44 step/s]m09_pretrain:  90%|█████████ | 45/50 [01:17<00:05,  1.04s/step, loss=0.4755 drift=0.0000 lr=5.20e-07 grad=1.51 0.44 step/s]m09_pretrain:  92%|█████████▏| 46/50 [01:18<00:03,  1.00step/s, loss=0.4755 drift=0.0000 lr=5.20e-07 grad=1.51 0.44 step/s]m09_pretrain:  94%|█████████▍| 47/50 [01:19<00:02,  1.02step/s, loss=0.4755 drift=0.0000 lr=5.20e-07 grad=1.51 0.44 step/s]m09_pretrain:  96%|█████████▌| 48/50 [01:20<00:01,  1.03step/s, loss=0.4755 drift=0.0000 lr=5.20e-07 grad=1.51 0.44 step/s]m09_pretrain:  98%|█████████▊| 49/50 [01:21<00:00,  1.03step/s, loss=0.4755 drift=0.0000 lr=5.20e-07 grad=1.51 0.44 step/s]m09_pretrain: 100%|██████████| 50/50 [01:22<00:00,  1.03step/s, loss=0.4755 drift=0.0000 lr=5.20e-07 grad=1.51 0.44 step/s]m09_pretrain: 100%|██████████| 50/50 [01:55<00:00,  2.31s/step, loss=0.4755 drift=0.0000 lr=5.20e-07 grad=1.51 0.44 step/s]
-Exported student encoder: /workspace/factorjepa/outputs/sanity/m09_lambda0_0/student_encoder.pt
-
-=== TRAINING COMPLETE ===
-Steps:        50
-Best Cycle@1: 0.0%
-Final ckpt:   /workspace/factorjepa/outputs/sanity/m09_lambda0_0/m09_ckpt_final.pt
-Student:      /workspace/factorjepa/outputs/sanity/m09_lambda0_0/student_encoder.pt
-[22:40:09] PASSED: m09 pretrain (lambda=0) (2m 39s)
-  MISS m09_ckpt_final.pt
-  MISS student_encoder.pt
-[22:40:09] VERIFY OK: Training lambda=0
-[22:40:09] WARNING: student_encoder.pt not found for lambda=0. Skipping re-embed.
-
-═══════════════════════════════════════════════════════════════
-  STEP lambda0-metrics: m06 metrics (lambda=0)
-  Mode: SANITY | Est: ~10 sec
-  Started: 2026-03-28 22:40:09
-═══════════════════════════════════════════════════════════════
-[22:40:09] CMD: python -u src/m06_faiss_metrics.py --encoder vjepa_adapted --SANITY --no-wandb
-GPU: NVIDIA RTX PRO 6000 Blackwell Workstation Edition
-CUDA version: 12.8
-Encoder:     vjepa_adapted (dim=1408, type=video_adapted)
-Output dir:  /workspace/factorjepa/outputs/sanity
-Embeddings:  /workspace/factorjepa/outputs/sanity/embeddings_vjepa_adapted.npy
-Metrics:     /workspace/factorjepa/outputs/sanity/m06_metrics_vjepa_adapted.json
-FATAL: embeddings not found: /workspace/factorjepa/outputs/sanity/embeddings_vjepa_adapted.npy
-[22:40:12] FAILED: m06 metrics (lambda=0) (0m 3s) — exit code 0
-[22:40:12] WARNING: m06 metrics failed for lambda=0.
-[22:40:12] Completed ablation: lambda=0 (lambda0)
-
-[22:40:12] ╔═══════════════════════════════════════════════════════════╗
-[22:40:12] ║  ABLATION: lambda=0.001 (lambda0_001)                    
-[22:40:12] ╚═══════════════════════════════════════════════════════════╝
-
-═══════════════════════════════════════════════════════════════
-  STEP lambda0_001-train: m09 pretrain (lambda=0.001)
-  Mode: SANITY | Est: ~5 min (50 steps, batch_size=2)
-  Started: 2026-03-28 22:40:12
-═══════════════════════════════════════════════════════════════
-[22:40:12] CMD: python -u src/m09_pretrain.py --config configs/pretrain/vitg16_indian.yaml --lambda-reg 0.001 --SANITY --local-data data/subset_10k_local --no-wandb
-Using PyAV for video decoding
-GPU: NVIDIA RTX PRO 6000 Blackwell Workstation Edition
-CUDA version: 12.8
-
-=== Building Model ===
-/workspace/factorjepa/venv_walkindia/lib/python3.12/site-packages/timm/models/layers/__init__.py:49: FutureWarning: Importing from timm.models.layers is deprecated, please import via timm.layers
-  warnings.warn(f"Importing from {__name__} is deprecated, please import via timm.layers", FutureWarning)
-Downloading pretrained weights via torch.hub...
-Student loaded: 1,012,173,952 params (484/484 keys = 100%)
-Teacher created (deepcopy of student)
-Predictor loaded from checkpoint (152/152 keys = 100%)
-Predictor: 22,378,240 params
-Mask generators: 2 (blocks: [8, 2])
-m09_pretrain:   0%|          | 0/50 [00:00<?, ?step/s]
-=== Training: 0 → 50 steps ===
-Batch size: 2
-Grad checkpointing: True
-Mixed precision: bfloat16
-EMA momentum: 0.99925
-Drift control: lambda=0.001
-/venv/main/lib/python3.12/contextlib.py:105: FutureWarning: `torch.backends.cuda.sdp_kernel()` is deprecated. In the future, this context manager will be removed. Please see `torch.nn.attention.sdpa_kernel()` for the new context manager, with updated signature.
-  self.gen = func(*args, **kwds)
-m09_pretrain:   2%|▏         | 1/50 [00:02<02:11,  2.67s/step]m09_pretrain:   4%|▍         | 2/50 [00:03<01:22,  1.71s/step]m09_pretrain:   6%|▌         | 3/50 [00:04<01:05,  1.38s/step]m09_pretrain:   8%|▊         | 4/50 [00:05<00:56,  1.22s/step]m09_pretrain:  10%|█         | 5/50 [00:06<00:51,  1.14s/step]m09_pretrain:  12%|█▏        | 6/50 [00:07<00:47,  1.08s/step]m09_pretrain:  14%|█▍        | 7/50 [00:08<00:48,  1.12s/step]m09_pretrain:  16%|█▌        | 8/50 [00:09<00:45,  1.07s/step]m09_pretrain:  18%|█▊        | 9/50 [00:10<00:41,  1.02s/step]m09_pretrain:  20%|██        | 10/50 [00:11<00:40,  1.00s/step]m09_pretrain:  22%|██▏       | 11/50 [00:12<00:37,  1.03step/s]m09_pretrain:  24%|██▍       | 12/50 [00:13<00:36,  1.03step/s]m09_pretrain:  26%|██▌       | 13/50 [00:14<00:35,  1.03step/s]m09_pretrain:  28%|██▊       | 14/50 [00:15<00:34,  1.03step/s]m09_pretrain:  30%|███       | 15/50 [00:16<00:36,  1.05s/step]m09_pretrain:  32%|███▏      | 16/50 [00:17<00:34,  1.01s/step]m09_pretrain:  34%|███▍      | 17/50 [00:18<00:32,  1.01step/s]m09_pretrain:  36%|███▌      | 18/50 [00:19<00:30,  1.04step/s]m09_pretrain:  38%|███▊      | 19/50 [00:20<00:29,  1.04step/s]m09_pretrain:  40%|████      | 20/50 [00:21<00:29,  1.03step/s]m09_pretrain:  42%|████▏     | 21/50 [00:22<00:28,  1.03step/s]m09_pretrain:  44%|████▍     | 22/50 [00:23<00:29,  1.06s/step]m09_pretrain:  46%|████▌     | 23/50 [00:24<00:27,  1.02s/step]m09_pretrain:  48%|████▊     | 24/50 [00:25<00:26,  1.00s/step]m09_pretrain:  50%|█████     | 25/50 [00:26<00:24,  1.03step/s]m09_pretrain:  50%|█████     | 25/50 [00:58<00:24,  1.03step/s, loss=0.4749 drift=0.0000 lr=5.20e-07 grad=1.62 0.45 step/s]m09_pretrain:  52%|█████▏    | 26/50 [00:58<04:03, 10.14s/step, loss=0.4749 drift=0.0000 lr=5.20e-07 grad=1.62 0.45 step/s]m09_pretrain:  54%|█████▍    | 27/50 [00:58<02:50,  7.39s/step, loss=0.4749 drift=0.0000 lr=5.20e-07 grad=1.62 0.45 step/s]m09_pretrain:  56%|█████▌    | 28/50 [00:59<02:00,  5.46s/step, loss=0.4749 drift=0.0000 lr=5.20e-07 grad=1.62 0.45 step/s]m09_pretrain:  58%|█████▊    | 29/50 [01:01<01:27,  4.17s/step, loss=0.4749 drift=0.0000 lr=5.20e-07 grad=1.62 0.45 step/s]m09_pretrain:  60%|██████    | 30/50 [01:02<01:04,  3.22s/step, loss=0.4749 drift=0.0000 lr=5.20e-07 grad=1.62 0.45 step/s]m09_pretrain:  62%|██████▏   | 31/50 [01:03<00:48,  2.55s/step, loss=0.4749 drift=0.0000 lr=5.20e-07 grad=1.62 0.45 step/s]m09_pretrain:  64%|██████▍   | 32/50 [01:04<00:37,  2.08s/step, loss=0.4749 drift=0.0000 lr=5.20e-07 grad=1.62 0.45 step/s]m09_pretrain:  66%|██████▌   | 33/50 [01:05<00:29,  1.75s/step, loss=0.4749 drift=0.0000 lr=5.20e-07 grad=1.62 0.45 step/s]m09_pretrain:  68%|██████▊   | 34/50 [01:06<00:24,  1.52s/step, loss=0.4749 drift=0.0000 lr=5.20e-07 grad=1.62 0.45 step/s]m09_pretrain:  70%|███████   | 35/50 [01:06<00:20,  1.36s/step, loss=0.4749 drift=0.0000 lr=5.20e-07 grad=1.62 0.45 step/s]m09_pretrain:  72%|███████▏  | 36/50 [01:08<00:18,  1.29s/step, loss=0.4749 drift=0.0000 lr=5.20e-07 grad=1.62 0.45 step/s]m09_pretrain:  74%|███████▍  | 37/50 [01:09<00:15,  1.18s/step, loss=0.4749 drift=0.0000 lr=5.20e-07 grad=1.62 0.45 step/s]m09_pretrain:  76%|███████▌  | 38/50 [01:09<00:13,  1.11s/step, loss=0.4749 drift=0.0000 lr=5.20e-07 grad=1.62 0.45 step/s]m09_pretrain:  78%|███████▊  | 39/50 [01:10<00:11,  1.05s/step, loss=0.4749 drift=0.0000 lr=5.20e-07 grad=1.62 0.45 step/s]m09_pretrain:  80%|████████  | 40/50 [01:11<00:10,  1.02s/step, loss=0.4749 drift=0.0000 lr=5.20e-07 grad=1.62 0.45 step/s]m09_pretrain:  82%|████████▏ | 41/50 [01:12<00:08,  1.00step/s, loss=0.4749 drift=0.0000 lr=5.20e-07 grad=1.62 0.45 step/s]m09_pretrain:  84%|████████▍ | 42/50 [01:13<00:07,  1.02step/s, loss=0.4749 drift=0.0000 lr=5.20e-07 grad=1.62 0.45 step/s]m09_pretrain:  86%|████████▌ | 43/50 [01:14<00:06,  1.01step/s, loss=0.4749 drift=0.0000 lr=5.20e-07 grad=1.62 0.45 step/s]m09_pretrain:  88%|████████▊ | 44/50 [01:15<00:06,  1.03s/step, loss=0.4749 drift=0.0000 lr=5.20e-07 grad=1.62 0.45 step/s]m09_pretrain:  90%|█████████ | 45/50 [01:16<00:05,  1.02s/step, loss=0.4749 drift=0.0000 lr=5.20e-07 grad=1.62 0.45 step/s]m09_pretrain:  92%|█████████▏| 46/50 [01:17<00:04,  1.01s/step, loss=0.4749 drift=0.0000 lr=5.20e-07 grad=1.62 0.45 step/s]m09_pretrain:  94%|█████████▍| 47/50 [01:18<00:02,  1.01step/s, loss=0.4749 drift=0.0000 lr=5.20e-07 grad=1.62 0.45 step/s]m09_pretrain:  96%|█████████▌| 48/50 [01:19<00:01,  1.03step/s, loss=0.4749 drift=0.0000 lr=5.20e-07 grad=1.62 0.45 step/s]m09_pretrain:  98%|█████████▊| 49/50 [01:20<00:00,  1.02step/s, loss=0.4749 drift=0.0000 lr=5.20e-07 grad=1.62 0.45 step/s]m09_pretrain: 100%|██████████| 50/50 [01:21<00:00,  1.01step/s, loss=0.4749 drift=0.0000 lr=5.20e-07 grad=1.62 0.45 step/s]m09_pretrain: 100%|██████████| 50/50 [01:47<00:00,  2.15s/step, loss=0.4749 drift=0.0000 lr=5.20e-07 grad=1.62 0.45 step/s]
-Traceback (most recent call last):
-  File "/workspace/factorjepa/venv_walkindia/lib/python3.12/site-packages/torch/serialization.py", line 1004, in save
-    _save(
-  File "/workspace/factorjepa/venv_walkindia/lib/python3.12/site-packages/torch/serialization.py", line 1313, in _save
-    zip_file.write_record(name, storage, num_bytes)
-RuntimeError: basic_ios::clear: iostream error
-
-During handling of the above exception, another exception occurred:
-
-Traceback (most recent call last):
-  File "/workspace/factorjepa/src/m09_pretrain.py", line 853, in <module>
-    main()
-  File "/workspace/factorjepa/src/m09_pretrain.py", line 849, in main
-    train(cfg, args)
-  File "/workspace/factorjepa/src/m09_pretrain.py", line 787, in train
-    save_training_checkpoint(
-  File "/workspace/factorjepa/src/m09_pretrain.py", line 545, in save_training_checkpoint
-    torch.save({
-  File "/workspace/factorjepa/venv_walkindia/lib/python3.12/site-packages/torch/serialization.py", line 1003, in save
-    with _open_zipfile_writer(f) as opened_zipfile:
-         ^^^^^^^^^^^^^^^^^^^^^^^
-  File "/workspace/factorjepa/venv_walkindia/lib/python3.12/site-packages/torch/serialization.py", line 835, in __exit__
-    self.file_like.write_end_of_file()
-RuntimeError: [enforce fail at inline_container.cc:672] . unexpected pos 15973153984 vs 15973153880
-[22:42:23] FAILED: m09 pretrain (lambda=0.001) (2m 11s) — exit code 0
-[22:42:23] FAILED: m09 lambda=0.001. Skipping to next lambda.
-
-[22:42:23] ╔═══════════════════════════════════════════════════════════╗
-[22:42:23] ║  ABLATION: lambda=0.01 (lambda0_01)                    
-[22:42:23] ╚═══════════════════════════════════════════════════════════╝
-
-═══════════════════════════════════════════════════════════════
-  STEP lambda0_01-train: m09 pretrain (lambda=0.01)
-  Mode: SANITY | Est: ~5 min (50 steps, batch_size=2)
-  Started: 2026-03-28 22:42:23
-═══════════════════════════════════════════════════════════════
-[22:42:23] CMD: python -u src/m09_pretrain.py --config configs/pretrain/vitg16_indian.yaml --lambda-reg 0.01 --SANITY --local-data data/subset_10k_local --no-wandb
-Using PyAV for video decoding
-GPU: NVIDIA RTX PRO 6000 Blackwell Workstation Edition
-CUDA version: 12.8
-
-=== Building Model ===
-/workspace/factorjepa/venv_walkindia/lib/python3.12/site-packages/timm/models/layers/__init__.py:49: FutureWarning: Importing from timm.models.layers is deprecated, please import via timm.layers
-  warnings.warn(f"Importing from {__name__} is deprecated, please import via timm.layers", FutureWarning)
-Downloading pretrained weights via torch.hub...
-Student loaded: 1,012,173,952 params (484/484 keys = 100%)
-Teacher created (deepcopy of student)
-Predictor loaded from checkpoint (152/152 keys = 100%)
-Predictor: 22,378,240 params
-Mask generators: 2 (blocks: [8, 2])
-m09_pretrain:   0%|          | 0/50 [00:00<?, ?step/s]
-=== Training: 0 → 50 steps ===
-Batch size: 2
-Grad checkpointing: True
-Mixed precision: bfloat16
-EMA momentum: 0.99925
-Drift control: lambda=0.01
-/venv/main/lib/python3.12/contextlib.py:105: FutureWarning: `torch.backends.cuda.sdp_kernel()` is deprecated. In the future, this context manager will be removed. Please see `torch.nn.attention.sdpa_kernel()` for the new context manager, with updated signature.
-  self.gen = func(*args, **kwds)
-m09_pretrain:   2%|▏         | 1/50 [00:02<02:04,  2.55s/step]m09_pretrain:   4%|▍         | 2/50 [00:03<01:18,  1.63s/step]m09_pretrain:   6%|▌         | 3/50 [00:04<01:02,  1.32s/step]m09_pretrain:   8%|▊         | 4/50 [00:05<00:56,  1.23s/step]m09_pretrain:  10%|█         | 5/50 [00:06<00:51,  1.14s/step]m09_pretrain:  12%|█▏        | 6/50 [00:07<00:47,  1.09s/step]m09_pretrain:  14%|█▍        | 7/50 [00:08<00:47,  1.11s/step]m09_pretrain:  16%|█▌        | 8/50 [00:09<00:44,  1.06s/step]m09_pretrain:  18%|█▊        | 9/50 [00:10<00:41,  1.02s/step]m09_pretrain:  20%|██        | 10/50 [00:11<00:39,  1.00step/s]m09_pretrain:  22%|██▏       | 11/50 [00:12<00:38,  1.01step/s]m09_pretrain:  24%|██▍       | 12/50 [00:13<00:37,  1.01step/s]m09_pretrain:  26%|██▌       | 13/50 [00:14<00:36,  1.00step/s]m09_pretrain:  28%|██▊       | 14/50 [00:15<00:36,  1.00s/step]m09_pretrain:  30%|███       | 15/50 [00:16<00:37,  1.06s/step]m09_pretrain:  32%|███▏      | 16/50 [00:17<00:35,  1.04s/step]m09_pretrain:  34%|███▍      | 17/50 [00:18<00:33,  1.02s/step]m09_pretrain:  36%|███▌      | 18/50 [00:19<00:31,  1.02step/s]m09_pretrain:  38%|███▊      | 19/50 [00:20<00:30,  1.03step/s]m09_pretrain:  40%|████      | 20/50 [00:21<00:28,  1.04step/s]m09_pretrain:  42%|████▏     | 21/50 [00:22<00:28,  1.03step/s]m09_pretrain:  44%|████▍     | 22/50 [00:23<00:28,  1.03s/step]m09_pretrain:  46%|████▌     | 23/50 [00:24<00:26,  1.00step/s]m09_pretrain:  48%|████▊     | 24/50 [00:25<00:25,  1.02step/s]m09_pretrain:  50%|█████     | 25/50 [00:26<00:24,  1.03step/s]m09_pretrain:  50%|█████     | 25/50 [00:26<00:26,  1.06s/step]
-Traceback (most recent call last):
-  File "/workspace/factorjepa/venv_walkindia/lib/python3.12/site-packages/torch/serialization.py", line 1004, in save
-    _save(
-  File "/workspace/factorjepa/venv_walkindia/lib/python3.12/site-packages/torch/serialization.py", line 1313, in _save
-    zip_file.write_record(name, storage, num_bytes)
-RuntimeError: basic_ios::clear: iostream error
-
-During handling of the above exception, another exception occurred:
-
-Traceback (most recent call last):
-  File "/workspace/factorjepa/src/m09_pretrain.py", line 853, in <module>
-    main()
-  File "/workspace/factorjepa/src/m09_pretrain.py", line 849, in main
-    train(cfg, args)
-  File "/workspace/factorjepa/src/m09_pretrain.py", line 787, in train
-    save_training_checkpoint(
-  File "/workspace/factorjepa/src/m09_pretrain.py", line 545, in save_training_checkpoint
-    torch.save({
-  File "/workspace/factorjepa/venv_walkindia/lib/python3.12/site-packages/torch/serialization.py", line 1003, in save
-    with _open_zipfile_writer(f) as opened_zipfile:
-         ^^^^^^^^^^^^^^^^^^^^^^^
-  File "/workspace/factorjepa/venv_walkindia/lib/python3.12/site-packages/torch/serialization.py", line 835, in __exit__
-    self.file_like.write_end_of_file()
-RuntimeError: [enforce fail at inline_container.cc:672] . unexpected pos 369472 vs 369366
-[22:43:13] FAILED: m09 pretrain (lambda=0.01) (0m 50s) — exit code 0
-[22:43:13] FAILED: m09 lambda=0.01. Skipping to next lambda.
-
-[22:43:13] ╔═══════════════════════════════════════════════════════════╗
-[22:43:13] ║  ABLATION: lambda=0.1 (lambda0_1)                    
-[22:43:13] ╚═══════════════════════════════════════════════════════════╝
-
-═══════════════════════════════════════════════════════════════
-  STEP lambda0_1-train: m09 pretrain (lambda=0.1)
-  Mode: SANITY | Est: ~5 min (50 steps, batch_size=2)
-  Started: 2026-03-28 22:43:13
-═══════════════════════════════════════════════════════════════
-[22:43:13] CMD: python -u src/m09_pretrain.py --config configs/pretrain/vitg16_indian.yaml --lambda-reg 0.1 --SANITY --local-data data/subset_10k_local --no-wandb
-Using PyAV for video decoding
-GPU: NVIDIA RTX PRO 6000 Blackwell Workstation Edition
-CUDA version: 12.8
-
-=== Building Model ===
-/workspace/factorjepa/venv_walkindia/lib/python3.12/site-packages/timm/models/layers/__init__.py:49: FutureWarning: Importing from timm.models.layers is deprecated, please import via timm.layers
-  warnings.warn(f"Importing from {__name__} is deprecated, please import via timm.layers", FutureWarning)
-Downloading pretrained weights via torch.hub...
-Student loaded: 1,012,173,952 params (484/484 keys = 100%)
-Teacher created (deepcopy of student)
-Predictor loaded from checkpoint (152/152 keys = 100%)
-Predictor: 22,378,240 params
-Mask generators: 2 (blocks: [8, 2])
-m09_pretrain:   0%|          | 0/50 [00:00<?, ?step/s]
-=== Training: 0 → 50 steps ===
-Batch size: 2
-Grad checkpointing: True
-Mixed precision: bfloat16
-EMA momentum: 0.99925
-Drift control: lambda=0.1
-/venv/main/lib/python3.12/contextlib.py:105: FutureWarning: `torch.backends.cuda.sdp_kernel()` is deprecated. In the future, this context manager will be removed. Please see `torch.nn.attention.sdpa_kernel()` for the new context manager, with updated signature.
-  self.gen = func(*args, **kwds)
-m09_pretrain:   2%|▏         | 1/50 [00:02<02:00,  2.47s/step]m09_pretrain:   4%|▍         | 2/50 [00:03<01:16,  1.59s/step]m09_pretrain:   6%|▌         | 3/50 [00:04<01:01,  1.31s/step]m09_pretrain:   8%|▊         | 4/50 [00:05<00:52,  1.15s/step]m09_pretrain:  10%|█         | 5/50 [00:06<00:48,  1.07s/step]m09_pretrain:  12%|█▏        | 6/50 [00:07<00:45,  1.04s/step]m09_pretrain:  14%|█▍        | 7/50 [00:08<00:46,  1.08s/step]m09_pretrain:  16%|█▌        | 8/50 [00:09<00:43,  1.04s/step]m09_pretrain:  18%|█▊        | 9/50 [00:10<00:41,  1.01s/step]m09_pretrain:  20%|██        | 10/50 [00:11<00:39,  1.02step/s]m09_pretrain:  22%|██▏       | 11/50 [00:12<00:37,  1.03step/s]m09_pretrain:  24%|██▍       | 12/50 [00:13<00:36,  1.04step/s]m09_pretrain:  26%|██▌       | 13/50 [00:14<00:36,  1.03step/s]m09_pretrain:  28%|██▊       | 14/50 [00:15<00:36,  1.02s/step]m09_pretrain:  30%|███       | 15/50 [00:16<00:34,  1.00step/s]m09_pretrain:  32%|███▏      | 16/50 [00:17<00:33,  1.01step/s]m09_pretrain:  34%|███▍      | 17/50 [00:18<00:31,  1.04step/s]m09_pretrain:  36%|███▌      | 18/50 [00:19<00:31,  1.03step/s]m09_pretrain:  38%|███▊      | 19/50 [00:20<00:30,  1.03step/s]m09_pretrain:  40%|████      | 20/50 [00:20<00:28,  1.04step/s]m09_pretrain:  42%|████▏     | 21/50 [00:21<00:27,  1.04step/s]m09_pretrain:  44%|████▍     | 22/50 [00:23<00:28,  1.01s/step]m09_pretrain:  46%|████▌     | 23/50 [00:23<00:26,  1.02step/s]m09_pretrain:  48%|████▊     | 24/50 [00:24<00:25,  1.02step/s]m09_pretrain:  50%|█████     | 25/50 [00:25<00:24,  1.00step/s]m09_pretrain:  50%|█████     | 25/50 [00:26<00:26,  1.04s/step]
-Traceback (most recent call last):
-  File "/workspace/factorjepa/venv_walkindia/lib/python3.12/site-packages/torch/serialization.py", line 1004, in save
-    _save(
-  File "/workspace/factorjepa/venv_walkindia/lib/python3.12/site-packages/torch/serialization.py", line 1313, in _save
-    zip_file.write_record(name, storage, num_bytes)
-RuntimeError: basic_ios::clear: iostream error
-
-During handling of the above exception, another exception occurred:
-
-Traceback (most recent call last):
-  File "/workspace/factorjepa/src/m09_pretrain.py", line 853, in <module>
-    main()
-  File "/workspace/factorjepa/src/m09_pretrain.py", line 849, in main
-    train(cfg, args)
-  File "/workspace/factorjepa/src/m09_pretrain.py", line 787, in train
-    save_training_checkpoint(
-  File "/workspace/factorjepa/src/m09_pretrain.py", line 545, in save_training_checkpoint
-    torch.save({
-  File "/workspace/factorjepa/venv_walkindia/lib/python3.12/site-packages/torch/serialization.py", line 1003, in save
-    with _open_zipfile_writer(f) as opened_zipfile:
-         ^^^^^^^^^^^^^^^^^^^^^^^
-  File "/workspace/factorjepa/venv_walkindia/lib/python3.12/site-packages/torch/serialization.py", line 835, in __exit__
-    self.file_like.write_end_of_file()
-RuntimeError: [enforce fail at inline_container.cc:672] . unexpected pos 369472 vs 369366
-[22:44:02] FAILED: m09 pretrain (lambda=0.1) (0m 49s) — exit code 0
-[22:44:02] FAILED: m09 lambda=0.1. Skipping to next lambda.
-
-═══════════════════════════════════════════════════════════════
-  STEP compare: m08b ablation comparison (1 lambdas + frozen)
-  Mode: SANITY | Est: ~5 sec
-  Started: 2026-03-28 22:44:02
-═══════════════════════════════════════════════════════════════
-[22:44:02] CMD: python -u src/m08b_compare.py --encoders vjepa,vjepa_lambda0 --SANITY --no-wandb
-Output dir: /workspace/factorjepa/outputs/sanity
-Scanning for encoder metrics...
-  Loaded: vjepa (m06_metrics.json)
-  Loaded temporal: vjepa (m06b_temporal_corr.json)
-
-Found 1 encoder(s): vjepa
-Found 1 temporal result(s): vjepa
-
-================================================================================
-                               ENCODER COMPARISON                               
-================================================================================
-Encoder              Dim  Cycle@K (%) Overlap@K (%)   Prec@K (%)        mAP@K       nDCG@K   Silhouette
--------------------------------------------------------------------------------------------------------
-vjepa               1408       100.00        45.00         0.00       0.0000       0.9931       0.0000
-
---- Easy Mode (above) ---
-
---- Hard Mode ---
-vjepa               1408         0.00        45.00         0.00       0.0000       0.0000       0.0000
-Only 1 encoder found — skipping comparison plots (need >= 2).
-
-=== COMPARISON COMPLETE ===
-[22:44:03] PASSED: m08b ablation comparison (1 lambdas + frozen) (0m 1s)
-
-[22:44:03] === FINAL VERIFICATION: Ch10 Ablation Outputs ===
-=== TRAINING CHECKPOINTS ===
-  MISS lambda=0      final ckpt
-  MISS lambda=0      student enc
-  MISS lambda=0.001  final ckpt
-  MISS lambda=0.001  student enc
-  MISS lambda=0.01   final ckpt
-  MISS lambda=0.01   student enc
-  MISS lambda=0.1    final ckpt
-  MISS lambda=0.1    student enc
-
-=== FROZEN vs ALL LAMBDAS ===
-      lambda   Prec@K  Cycle@K    mAP@K  Delta P
-  --------------------------------------------------
-      frozen     0.0%   100.0%   0.0000        —
-           0 MISSING
-       0.001 MISSING
-        0.01 MISSING
-         0.1 MISSING
-
-=== TOTAL: 0 OK, 12 MISSING ===
-
-═══════════════════════════════════════════════════════════════
-  Ch10 PIPELINE COMPLETE
-═══════════════════════════════════════════════════════════════
-  Mode:       SANITY
-  Config:     configs/pretrain/vitg16_indian.yaml
-  Total:      0h 6m 35s
-  Steps:      2 passed, 4 failed, 6 total
-  Outputs:    outputs/sanity/
-  Master log: logs/ch10_SANITY_20260328_223728.log
-═══════════════════════════════════════════════════════════════
-
-  WARNING: 4 step(s) failed. Check individual logs above.
-  Training has checkpoints — safe to RE-RUN (auto-resume).

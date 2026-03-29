@@ -1,69 +1,0 @@
-[03:00:53] Auto batch size: 112 (from profiler, <=75% VRAM)
-[03:00:53] Local subset exists: data/subset_10k_local
-[03:00:53] Ch10 pipeline starting (mode=FULL)
-[03:00:53] Config: configs/pretrain/vitg16_indian.yaml
-[03:00:53] Master log: logs/ch10_FULL_20260329_030053.log
-
-[03:00:53] === PRE-FLIGHT ===
-GPU:        NVIDIA RTX PRO 6000 Blackwell Workstation Edition
-VRAM:       102 GB
-PyTorch:    2.12.0.dev20260228+cu128
-vjepa2:     deps/vjepa2/ present
-Flash-Attn: 2.8.3
-FAISS GPUs: 1
-Config:     configs/pretrain/vitg16_indian.yaml
-Baseline:   Prec@K=36.1% (Ch9 frozen)
-
-Pre-flight: ALL PASSED
-[03:00:54] Pre-flight complete. Starting pipeline...
-
-
-[03:00:54] ╔═══════════════════════════════════════════════════════════╗
-[03:00:54] ║  ABLATION: lambda=0 (lambda0)                    
-[03:00:54] ╚═══════════════════════════════════════════════════════════╝
-
-═══════════════════════════════════════════════════════════════
-  STEP lambda0-train: m09 pretrain (lambda=0)
-  Mode: FULL | Est: ~5-20h (2000-10000 steps, profiler BS)
-  Started: 2026-03-29 03:00:54
-═══════════════════════════════════════════════════════════════
-[03:00:54] CMD: python -u src/m09_pretrain.py --config configs/pretrain/vitg16_indian.yaml --lambda-reg 0 --batch-size 112 --FULL --subset data/subset_10k.json --local-data data/subset_10k_local
-Using PyAV for video decoding
-GPU: NVIDIA RTX PRO 6000 Blackwell Workstation Edition
-CUDA version: 12.8
-
-=== Building Model ===
-/workspace/factorjepa/venv_walkindia/lib/python3.12/site-packages/timm/models/layers/__init__.py:49: FutureWarning: Importing from timm.models.layers is deprecated, please import via timm.layers
-  warnings.warn(f"Importing from {__name__} is deprecated, please import via timm.layers", FutureWarning)
-Downloading pretrained weights via torch.hub...
-Student loaded: 1,012,173,952 params (484/484 keys = 100%)
-Teacher created (deepcopy of student)
-Predictor loaded from checkpoint (152/152 keys = 100%)
-Predictor: 22,378,240 params
-Mask generators: 2 (blocks: [8, 2])
-[POC] Loaded subset: 10,000 clip keys from subset_10k.json
-Train clips: 8,982 | Val clips: 1,018
-Epochs: 1 | Steps/epoch: 80 | Total steps: 80
-Checkpoint every 8 steps (10x per epoch, keep last 2)
-wandb: [wandb.login()] Loaded credentials for https://api.wandb.ai from WANDB_API_KEY.
-wandb: Currently logged in as: kapilw25 (sjsu_llm) to https://api.wandb.ai. Use `wandb login --relogin` to force relogin
-wandb: WARNING Using a boolean value for 'reinit' is deprecated. Use 'return_previous' or 'finish_previous' instead.
-wandb: setting up run u5p83edk
-wandb: Tracking run with wandb version 0.25.1
-wandb: Run data is saved locally in /workspace/factorjepa/wandb/run-20260329_030119-u5p83edk
-wandb: Run `wandb offline` to turn off syncing.
-wandb: Syncing run m09_POC
-wandb: ⭐️ View project at https://wandb.ai/sjsu_llm/walkindia-200k
-wandb: 🚀 View run at https://wandb.ai/sjsu_llm/walkindia-200k/runs/u5p83edk
-wandb: run=m09_POC url=https://wandb.ai/sjsu_llm/walkindia-200k/runs/u5p83edk
-m09_pretrain:   0%|          | 0/80 [00:00<?, ?step/s]
-=== Training: 0 → 80 steps (1 epochs) ===
-Batch size: 112
-Grad checkpointing: True
-Mixed precision: bfloat16
-EMA momentum: 0.99925
-Drift control: lambda=0
-Loss log: /workspace/factorjepa/outputs/poc/m09_lambda0/loss_log.csv
-/venv/main/lib/python3.12/contextlib.py:105: FutureWarning: `torch.backends.cuda.sdp_kernel()` is deprecated. In the future, this context manager will be removed. Please see `torch.nn.attention.sdpa_kernel()` for the new context manager, with updated signature.
-  self.gen = func(*args, **kwds)
-m09_pretrain:   0%|          | 0/80 [00:42<?, ?step/s, E0 loss=1.6397 drift=0.0000 lr=1.25e-06 grad=1.61 0.02 step/s]m09_pretrain:   1%|▏         | 1/80 [00:42<56:04, 42.59s/step, E0 loss=1.6397 drift=0.0000 lr=1.25e-06 grad=1.61 0.02 step/s]m09_pretrain:   2%|▎         | 2/80 [01:06<40:43, 31.33s/step, E0 loss=1.6397 drift=0.0000 lr=1.25e-06 grad=1.61 0.02 step/s]m09_pretrain:   2%|▎         | 2/80 [01:29<40:43, 31.33s/step, E0 loss=1.6336 drift=0.0000 lr=3.75e-06 grad=1.31 0.04 step/s]m09_pretrain:   4%|▍         | 3/80 [01:29<35:41, 27.81s/step, E0 loss=1.6336 drift=0.0000 lr=3.75e-06 grad=1.31 0.04 step/s]m09_pretrain:   5%|▌         | 4/80 [01:54<33:33, 26.50s/step, E0 loss=1.6336 drift=0.0000 lr=3.75e-06 grad=1.31 0.04 step/s]m09_pretrain:   5%|▌         | 4/80 [02:17<33:33, 26.50s/step, E0 loss=1.6561 drift=0.0000 lr=6.25e-06 grad=2.13 0.04 step/s]m09_pretrain:   6%|▋         | 5/80 [02:17<31:34, 25.26s/step, E0 loss=1.6561 drift=0.0000 lr=6.25e-06 grad=2.13 0.04 step/s]m09_pretrain:   8%|▊         | 6/80 [02:38<29:17, 23.75s/step, E0 loss=1.6561 drift=0.0000 lr=6.25e-06 grad=2.13 0.04 step/s]m09_pretrain:   8%|▊         | 6/80 [02:57<29:17, 23.75s/step, E0 loss=1.6342 drift=0.0000 lr=8.75e-06 grad=0.40 0.05 step/s]m09_pretrain:   9%|▉         | 7/80 [02:57<27:01, 22.22s/step, E0 loss=1.6342 drift=0.0000 lr=8.75e-06 grad=0.40 0.05 step/s]m09_pretrain:  10%|█         | 8/80 [03:20<27:03, 22.54s/step, E0 loss=1.6342 drift=0.0000 lr=8.75e-06 grad=0.40 0.05 step/s]m09_pretrain:  10%|█         | 8/80 [04:00<27:03, 22.54s/step, E0 loss=1.5870 drift=0.0000 lr=1.00e-05 grad=0.45 0.03 step/s]m09_pretrain:  11%|█▏        | 9/80 [04:00<33:22, 28.21s/step, E0 loss=1.5870 drift=0.0000 lr=1.00e-05 grad=0.45 0.03 step/s]m09_pretrain:  12%|█▎        | 10/80 [04:23<30:59, 26.57s/step, E0 loss=1.5870 drift=0.0000 lr=1.00e-05 grad=0.45 0.03 step/s]m09_pretrain:  12%|█▎        | 10/80 [04:46<30:59, 26.57s/step, E0 loss=1.5845 drift=0.0000 lr=9.96e-06 grad=0.63 0.04 step/s]m09_pretrain:  14%|█▍        | 11/80 [04:46<29:16, 25.45s/step, E0 loss=1.5845 drift=0.0000 lr=9.96e-06 grad=0.63 0.04 step/s]m09_pretrain:  15%|█▌        | 12/80 [05:08<27:41, 24.44s/step, E0 loss=1.5845 drift=0.0000 lr=9.96e-06 grad=0.63 0.04 step/s]m09_pretrain:  15%|█▌        | 12/80 [05:31<27:41, 24.44s/step, E0 loss=1.5587 drift=0.0000 lr=9.88e-06 grad=0.22 0.04 step/s]m09_pretrain:  16%|█▋        | 13/80 [05:31<26:45, 23.96s/step, E0 loss=1.5587 drift=0.0000 lr=9.88e-06 grad=0.22 0.04 step/s]m09_pretrain:  18%|█▊        | 14/80 [05:53<25:43, 23.39s/step, E0 loss=1.5587 drift=0.0000 lr=9.88e-06 grad=0.22 0.04 step/s]
