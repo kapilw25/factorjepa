@@ -21,15 +21,15 @@ sys.path.insert(0, str(Path(__file__).parent))
 from utils.config import (
     ENCODER_REGISTRY, FAISS_K_NEIGHBORS,
     add_encoder_arg, add_subset_arg, get_output_dir, get_encoder_files,
-    get_encoder_info,
+    get_encoder_info, get_pipeline_config,
 )
 from utils.wandb_utils import (
     add_wandb_args, init_wandb, log_metrics, finish_wandb,
 )
 from utils.bootstrap import bootstrap_ci
 
-N_SAMPLE_PAIRS = 100_000
-N_MOTION_CLUSTERS = 4
+N_SAMPLE_PAIRS = get_pipeline_config()["eval"]["temporal_sample_pairs"]
+N_MOTION_CLUSTERS = get_pipeline_config()["eval"]["temporal_motion_clusters"]
 
 
 # ── Key alignment ────────────────────────────────────────────────────

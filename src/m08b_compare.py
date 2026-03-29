@@ -171,12 +171,12 @@ def create_bar_chart(all_metrics: dict, output_dir: Path):
             hard_errs.append(hard_ci.get("ci_half", 0))
 
         bar_w = 0.35
-        bars_easy = ax.bar(x - bar_w / 2, easy_vals, bar_w, label="Easy",
-                           color=colors, alpha=0.85,
-                           yerr=easy_errs, capsize=3, error_kw={"lw": 1})
-        bars_hard = ax.bar(x + bar_w / 2, hard_vals, bar_w, label="Hard",
-                           color=colors, alpha=0.45, hatch="//",
-                           yerr=hard_errs, capsize=3, error_kw={"lw": 1})
+        ax.bar(x - bar_w / 2, easy_vals, bar_w, label="Easy",
+               color=colors, alpha=0.85,
+               yerr=easy_errs, capsize=3, error_kw={"lw": 1})
+        ax.bar(x + bar_w / 2, hard_vals, bar_w, label="Hard",
+               color=colors, alpha=0.45, hatch="//",
+               yerr=hard_errs, capsize=3, error_kw={"lw": 1})
 
         ax.set_title(metric_label, fontsize=11, fontweight="bold")
         ax.set_xticks(x)
@@ -442,8 +442,8 @@ def create_tradeoff_scatter(all_metrics: dict, all_temporal: dict, output_dir: P
 
     # Check if temporal has any non-zero values
     if all(v == 0 for v in temporal_scores.values()):
-        print("  WARN: All temporal scores are 0 — skipping tradeoff scatter (need m04d + m06b first)")
-        return
+        print("  FATAL: All temporal scores are 0. Run m04d + m06b first.")
+        sys.exit(1)
 
     fig, ax = plt.subplots(1, 1, figsize=(7, 6))
     for enc in encoders:
@@ -505,7 +505,6 @@ def create_ablation_chart(all_metrics: dict, all_temporal: dict, output_dir: Pat
     has_temporal = all_temporal and any(
         all_temporal.get("vjepa", {}).get(k) is not None for k, _, _ in temporal_defs[:3])
 
-    all_defs = spatial_defs + (temporal_defs if has_temporal else [])
     n_spatial_d = len(spatial_defs)
     n_temporal_d = len(temporal_defs) if has_temporal else 0
     n_cols = max(n_spatial_d, n_temporal_d) if n_temporal_d > 0 else n_spatial_d
@@ -808,7 +807,6 @@ def main():
                          "#33691E", "#880E4F", "#004D40", "#F57F17"]
         for i, enc in enumerate(encoder_list):
             if enc not in ENCODER_LABELS:
-                info = get_encoder_info(enc)
                 ENCODER_LABELS[enc] = enc.replace("_", "\n")
                 ENCODER_COLORS[enc] = _extra_colors[i % len(_extra_colors)]
 

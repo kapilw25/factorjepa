@@ -18,6 +18,7 @@ from pathlib import Path
 # Add src to path for utils import
 sys.path.insert(0, str(Path(__file__).parent))
 from utils.config import YT_VIDEOS_JSON
+from utils.config import get_sanity_clip_limit, get_pipeline_config
 
 # Paths
 from utils.config import OUTPUTS_DATA_PREP_DIR
@@ -26,8 +27,8 @@ OUTPUT_DIR = OUTPUTS_DATA_PREP_DIR
 OUTPUT_JSON = OUTPUT_DIR / "video_durations.json"
 
 # Defaults
-DEFAULT_WORKERS = 10
-SANITY_LIMIT = 5
+DEFAULT_WORKERS = get_pipeline_config()["data"]["data_prep_workers"]
+SANITY_LIMIT = get_sanity_clip_limit("data_prep")
 AVG_CLIP_DURATION = 7.85  # seconds (measured from 500 sampled clips across 168 videos)
 
 

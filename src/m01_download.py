@@ -19,6 +19,7 @@ from pathlib import Path
 # Add src to path for utils import
 sys.path.insert(0, str(Path(__file__).parent))
 from utils.config import VIDEOS_DIR, YT_VIDEOS_JSON, OUTPUTS_DATA_PREP_DIR
+from utils.config import get_sanity_clip_limit, get_pipeline_config
 
 # Paths
 INPUT_JSON = YT_VIDEOS_JSON
@@ -28,8 +29,8 @@ DURATIONS_JSON = OUTPUTS_DATA_PREP_DIR / "video_durations.json"
 # 480p for prototyping: fits on M1 Mac (70 GB) + HF Private (100 GB limit)
 # V-JEPA input=256x256, Qwen3-VL input=360x420 → 480p is sufficient for model accuracy
 # Switch to 2160 (4K) for final HF Public release after arxiv
-DEFAULT_RESOLUTION = 480
-SANITY_LIMIT = 3
+DEFAULT_RESOLUTION = get_pipeline_config()["data"]["download_resolution"]
+SANITY_LIMIT = get_sanity_clip_limit("download")
 
 
 def check_ytdlp_version():

@@ -21,10 +21,11 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent))
 from utils.config import HF_DATASET_REPO, load_subset, add_subset_arg, PROJECT_ROOT
+from utils.config import get_sanity_clip_limit, get_pipeline_config
 from utils.wandb_utils import add_wandb_args, init_wandb, log_metrics, finish_wandb
 
-CLIPS_PER_SHARD = 1000
-SANITY_CLIP_LIMIT = 20
+CLIPS_PER_SHARD = get_pipeline_config()["data"]["clips_per_shard"]
+SANITY_CLIP_LIMIT = get_sanity_clip_limit("download_subset")
 
 
 def _output_dir_from_subset(subset_path: str) -> Path:

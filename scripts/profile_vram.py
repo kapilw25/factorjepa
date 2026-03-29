@@ -22,14 +22,28 @@ from pathlib import Path
 import torch
 import torch.nn.functional as F
 
-# Add vjepa2 to path
+# Import vjepa2 modules (CWD trick avoids src/ namespace collision with our src/)
+import os as _os
+import importlib as _il
 REPO_ROOT = Path(__file__).resolve().parent.parent
+_saved_cwd = _os.getcwd()
+_os.chdir("/tmp")
+_saved_mods = {k: sys.modules.pop(k) for k in list(sys.modules) if k == "src" or k.startswith("src.")}
 sys.path.insert(0, str(REPO_ROOT / "deps" / "vjepa2"))
-
-from src.models.vision_transformer import vit_giant_xformers
-from src.models.predictor import vit_predictor
-from src.masks.multiseq_multiblock3d import _MaskGenerator
-from src.masks.utils import apply_masks
+_il.invalidate_caches()
+_il.import_module("src.models.vision_transformer")
+_il.import_module("src.models.predictor")
+_il.import_module("src.masks.multiseq_multiblock3d")
+_il.import_module("src.masks.utils")
+_os.chdir(_saved_cwd)
+for _k in ["src", "src.utils"]:
+    if _k in _saved_mods:
+        sys.modules[_k] = _saved_mods[_k]
+_il.invalidate_caches()
+vit_giant_xformers = sys.modules["src.models.vision_transformer"].vit_giant_xformers
+vit_predictor = sys.modules["src.models.predictor"].vit_predictor
+_MaskGenerator = sys.modules["src.masks.multiseq_multiblock3d"]._MaskGenerator
+apply_masks = sys.modules["src.masks.utils"].apply_masks
 
 # ── Config (matches plan_code_dev.md + Q1-Q5 corrections) ────────────
 CROP_SIZE = 384
@@ -45,7 +59,7 @@ SPATIAL_GRID = CROP_SIZE // PATCH_SIZE  # 24
 TEMPORAL_GRID = NUM_FRAMES // TUBELET_SIZE  # 8
 TOTAL_TOKENS = SPATIAL_GRID * SPATIAL_GRID * TEMPORAL_GRID  # 4608
 
-BATCH_SIZES = [1, 2, 4, 8, 16, 32, 48, 64, 80, 96, 112, 128, 160, 192, 224, 256]
+BATCH_SIZES = [1, 2, 4, 8, 16, 32, 48, 64, 80, 96, 112, 128, 136, 144, 148, 152, 156, 160, 192, 224, 256]
 DTYPE = torch.bfloat16
 
 

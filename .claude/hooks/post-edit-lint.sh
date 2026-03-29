@@ -75,4 +75,17 @@ if [ $AST_EXIT -ne 0 ]; then
 fi
 echo "AST check PASSED: $BASENAME — $AST_RESULT"
 
+# ── Check 3: ruff (undefined names, unused vars, redefined) ──────────
+RUFF="$HOME/.local/bin/ruff"
+if [ -x "$RUFF" ]; then
+    RUFF_RESULT=$($RUFF check "$FILE_PATH" --select F821,F841,F811 2>&1)
+    RUFF_EXIT=$?
+    if [ $RUFF_EXIT -ne 0 ]; then
+        echo "ruff FAILED: $BASENAME"
+        echo "$RUFF_RESULT"
+        exit 1
+    fi
+    echo "ruff PASSED: $BASENAME"
+fi
+
 exit 0

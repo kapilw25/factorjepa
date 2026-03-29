@@ -1,0 +1,354 @@
+[04:37:46] Auto batch size: 112 (from profiler, <=75% VRAM)
+[04:37:46] Local subset exists: data/subset_10k_local
+[04:37:46] Ch10 pipeline starting (mode=FULL)
+[04:37:46] Config: configs/pretrain/vitg16_indian.yaml
+[04:37:46] Master log: logs/ch10_FULL_20260329_043746.log
+
+[04:37:46] === PRE-FLIGHT ===
+GPU:        NVIDIA RTX PRO 6000 Blackwell Workstation Edition
+VRAM:       102 GB
+PyTorch:    2.12.0.dev20260228+cu128
+vjepa2:     deps/vjepa2/ present
+Flash-Attn: 2.8.3
+FAISS GPUs: 1
+Config:     configs/pretrain/vitg16_indian.yaml
+Baseline:   Prec@K=36.1% (Ch9 frozen)
+
+Pre-flight: ALL PASSED
+[04:37:47] Pre-flight complete. Starting pipeline...
+
+
+[04:37:47] ╔═══════════════════════════════════════════════════════════╗
+[04:37:47] ║  ABLATION: lambda=0 (lambda0)                    
+[04:37:47] ╚═══════════════════════════════════════════════════════════╝
+
+═══════════════════════════════════════════════════════════════
+  STEP lambda0-train: m09 pretrain (lambda=0)
+  Mode: FULL | Est: ~5-20h (2000-10000 steps, profiler BS)
+  Started: 2026-03-29 04:37:48
+═══════════════════════════════════════════════════════════════
+[04:37:48] CMD: python -u src/m09_pretrain.py --config configs/pretrain/vitg16_indian.yaml --lambda-reg 0 --batch-size 112 --FULL --subset data/subset_10k.json --local-data data/subset_10k_local
+Using PyAV for video decoding
+GPU: NVIDIA RTX PRO 6000 Blackwell Workstation Edition
+CUDA version: 12.8
+
+=== Building Model ===
+/workspace/factorjepa/venv_walkindia/lib/python3.12/site-packages/timm/models/layers/__init__.py:49: FutureWarning: Importing from timm.models.layers is deprecated, please import via timm.layers
+  warnings.warn(f"Importing from {__name__} is deprecated, please import via timm.layers", FutureWarning)
+Downloading pretrained weights via torch.hub...
+Student loaded: 1,012,173,952 params (484/484 keys = 100%)
+Teacher created (deepcopy of student)
+Predictor loaded from checkpoint (152/152 keys = 100%)
+Predictor: 22,378,240 params
+Mask generators: 2 (blocks: [8, 2])
+[POC] Loaded subset: 10,000 clip keys from subset_10k.json
+Train clips: 8,982 | Val clips: 1,018
+Epochs: 1 | Steps/epoch: 80 | Total steps: 80
+Checkpoint every 8 steps (10x per epoch, keep last 2)
+wandb: [wandb.login()] Loaded credentials for https://api.wandb.ai from WANDB_API_KEY.
+wandb: Currently logged in as: kapilw25 (sjsu_llm) to https://api.wandb.ai. Use `wandb login --relogin` to force relogin
+wandb: WARNING Using a boolean value for 'reinit' is deprecated. Use 'return_previous' or 'finish_previous' instead.
+wandb: setting up run lu0zbys3
+wandb: Tracking run with wandb version 0.25.1
+wandb: Run data is saved locally in /workspace/factorjepa/wandb/run-20260329_043813-lu0zbys3
+wandb: Run `wandb offline` to turn off syncing.
+wandb: Syncing run m09_POC
+wandb: ⭐️ View project at https://wandb.ai/sjsu_llm/walkindia-200k
+wandb: 🚀 View run at https://wandb.ai/sjsu_llm/walkindia-200k/runs/lu0zbys3
+wandb: run=m09_POC url=https://wandb.ai/sjsu_llm/walkindia-200k/runs/lu0zbys3
+m09_pretrain:   0%|          | 0/80 [00:00<?, ?step/s]
+=== Training: 0 → 80 steps (1 epochs) ===
+Batch size: 112
+Grad checkpointing: True
+Mixed precision: bfloat16
+EMA momentum: 0.99925
+Drift control: lambda=0
+Loss log: /workspace/factorjepa/outputs/poc/m09_lambda0/loss_log.csv
+/venv/main/lib/python3.12/contextlib.py:105: FutureWarning: `torch.backends.cuda.sdp_kernel()` is deprecated. In the future, this context manager will be removed. Please see `torch.nn.attention.sdpa_kernel()` for the new context manager, with updated signature.
+  self.gen = func(*args, **kwds)
+m09_pretrain:   0%|          | 0/80 [00:41<?, ?step/s, E0 loss=1.6418 drift=0.0000 lr=1.25e-06 grad=1.33 0.02 step/s]m09_pretrain:   1%|▏         | 1/80 [00:41<54:22, 41.30s/step, E0 loss=1.6418 drift=0.0000 lr=1.25e-06 grad=1.33 0.02 step/s]m09_pretrain:   2%|▎         | 2/80 [01:03<39:09, 30.12s/step, E0 loss=1.6418 drift=0.0000 lr=1.25e-06 grad=1.33 0.02 step/s]m09_pretrain:   2%|▎         | 2/80 [01:26<39:09, 30.12s/step, E0 loss=1.6371 drift=0.0000 lr=3.75e-06 grad=1.09 0.04 step/s]m09_pretrain:   4%|▍         | 3/80 [01:26<34:32, 26.92s/step, E0 loss=1.6371 drift=0.0000 lr=3.75e-06 grad=1.09 0.04 step/s]m09_pretrain:   5%|▌         | 4/80 [01:47<31:09, 24.60s/step, E0 loss=1.6371 drift=0.0000 lr=3.75e-06 grad=1.09 0.04 step/s]m09_pretrain:   5%|▌         | 4/80 [02:10<31:09, 24.60s/step, E0 loss=1.6605 drift=0.0000 lr=6.25e-06 grad=1.83 0.05 step/s]m09_pretrain:   6%|▋         | 5/80 [02:10<29:45, 23.81s/step, E0 loss=1.6605 drift=0.0000 lr=6.25e-06 grad=1.83 0.05 step/s]m09_pretrain:   8%|▊         | 6/80 [02:31<28:17, 22.95s/step, E0 loss=1.6605 drift=0.0000 lr=6.25e-06 grad=1.83 0.05 step/s]m09_pretrain:   8%|▊         | 6/80 [02:52<28:17, 22.95s/step, E0 loss=1.6326 drift=0.0000 lr=8.75e-06 grad=0.45 0.05 step/s]m09_pretrain:   9%|▉         | 7/80 [02:52<27:20, 22.47s/step, E0 loss=1.6326 drift=0.0000 lr=8.75e-06 grad=0.45 0.05 step/s]m09_pretrain:  10%|█         | 8/80 [03:13<26:13, 21.85s/step, E0 loss=1.6326 drift=0.0000 lr=8.75e-06 grad=0.45 0.05 step/s]m09_pretrain:  10%|█         | 8/80 [03:54<26:13, 21.85s/step, E0 loss=1.5913 drift=0.0000 lr=1.00e-05 grad=0.48 0.03 step/s]m09_pretrain:  11%|█▏        | 9/80 [03:54<32:52, 27.78s/step, E0 loss=1.5913 drift=0.0000 lr=1.00e-05 grad=0.48 0.03 step/s]m09_pretrain:  12%|█▎        | 10/80 [04:17<30:50, 26.43s/step, E0 loss=1.5913 drift=0.0000 lr=1.00e-05 grad=0.48 0.03 step/s]m09_pretrain:  12%|█▎        | 10/80 [04:37<30:50, 26.43s/step, E0 loss=1.5870 drift=0.0000 lr=9.96e-06 grad=0.43 0.05 step/s]m09_pretrain:  14%|█▍        | 11/80 [04:37<28:14, 24.56s/step, E0 loss=1.5870 drift=0.0000 lr=9.96e-06 grad=0.43 0.05 step/s]m09_pretrain:  15%|█▌        | 12/80 [04:59<26:43, 23.58s/step, E0 loss=1.5870 drift=0.0000 lr=9.96e-06 grad=0.43 0.05 step/s]m09_pretrain:  15%|█▌        | 12/80 [05:19<26:43, 23.58s/step, E0 loss=1.5613 drift=0.0000 lr=9.88e-06 grad=0.30 0.05 step/s]m09_pretrain:  16%|█▋        | 13/80 [05:19<25:15, 22.62s/step, E0 loss=1.5613 drift=0.0000 lr=9.88e-06 grad=0.30 0.05 step/s]m09_pretrain:  18%|█▊        | 14/80 [05:40<24:14, 22.04s/step, E0 loss=1.5613 drift=0.0000 lr=9.88e-06 grad=0.30 0.05 step/s]m09_pretrain:  18%|█▊        | 14/80 [06:02<24:14, 22.04s/step, E0 loss=1.5530 drift=0.0000 lr=9.77e-06 grad=0.17 0.05 step/s]m09_pretrain:  19%|█▉        | 15/80 [06:02<23:52, 22.04s/step, E0 loss=1.5530 drift=0.0000 lr=9.77e-06 grad=0.17 0.05 step/s]m09_pretrain:  20%|██        | 16/80 [06:23<23:10, 21.72s/step, E0 loss=1.5530 drift=0.0000 lr=9.77e-06 grad=0.17 0.05 step/s]m09_pretrain:  20%|██        | 16/80 [07:04<23:10, 21.72s/step, E0 loss=1.5850 drift=0.0000 lr=9.62e-06 grad=0.14 0.03 step/s]m09_pretrain:  21%|██▏       | 17/80 [07:04<28:52, 27.50s/step, E0 loss=1.5850 drift=0.0000 lr=9.62e-06 grad=0.14 0.03 step/s]m09_pretrain:  22%|██▎       | 18/80 [07:28<27:15, 26.37s/step, E0 loss=1.5850 drift=0.0000 lr=9.62e-06 grad=0.14 0.03 step/s]m09_pretrain:  22%|██▎       | 18/80 [07:52<27:15, 26.37s/step, E0 loss=1.5604 drift=0.0000 lr=9.44e-06 grad=0.11 0.04 step/s]m09_pretrain:  24%|██▍       | 19/80 [07:52<26:09, 25.74s/step, E0 loss=1.5604 drift=0.0000 lr=9.44e-06 grad=0.11 0.04 step/s]m09_pretrain:  25%|██▌       | 20/80 [08:14<24:35, 24.60s/step, E0 loss=1.5604 drift=0.0000 lr=9.44e-06 grad=0.11 0.04 step/s]m09_pretrain:  25%|██▌       | 20/80 [08:34<24:35, 24.60s/step, E0 loss=1.5673 drift=0.0000 lr=9.22e-06 grad=0.11 0.05 step/s]m09_pretrain:  26%|██▋       | 21/80 [08:34<22:54, 23.30s/step, E0 loss=1.5673 drift=0.0000 lr=9.22e-06 grad=0.11 0.05 step/s]m09_pretrain:  28%|██▊       | 22/80 [08:53<21:18, 22.05s/step, E0 loss=1.5673 drift=0.0000 lr=9.22e-06 grad=0.11 0.05 step/s]m09_pretrain:  28%|██▊       | 22/80 [09:17<21:18, 22.05s/step, E0 loss=1.5286 drift=0.0000 lr=8.97e-06 grad=0.13 0.05 step/s]m09_pretrain:  29%|██▉       | 23/80 [09:17<21:26, 22.57s/step, E0 loss=1.5286 drift=0.0000 lr=8.97e-06 grad=0.13 0.05 step/s]m09_pretrain:  30%|███       | 24/80 [09:40<21:03, 22.56s/step, E0 loss=1.5286 drift=0.0000 lr=8.97e-06 grad=0.13 0.05 step/s]  Cleaned old checkpoint: m09_ckpt_step8.pt
+m09_pretrain:  30%|███       | 24/80 [10:21<21:03, 22.56s/step, E0 loss=1.5518 drift=0.0000 lr=8.69e-06 grad=0.09 0.03 step/s]m09_pretrain:  31%|███▏      | 25/80 [10:21<25:58, 28.34s/step, E0 loss=1.5518 drift=0.0000 lr=8.69e-06 grad=0.09 0.03 step/s]m09_pretrain:  32%|███▎      | 26/80 [10:44<24:02, 26.72s/step, E0 loss=1.5518 drift=0.0000 lr=8.69e-06 grad=0.09 0.03 step/s]m09_pretrain:  32%|███▎      | 26/80 [11:07<24:02, 26.72s/step, E0 loss=1.5587 drift=0.0000 lr=8.38e-06 grad=0.10 0.04 step/s]m09_pretrain:  34%|███▍      | 27/80 [11:07<22:30, 25.48s/step, E0 loss=1.5587 drift=0.0000 lr=8.38e-06 grad=0.10 0.04 step/s]m09_pretrain:  35%|███▌      | 28/80 [11:30<21:28, 24.78s/step, E0 loss=1.5587 drift=0.0000 lr=8.38e-06 grad=0.10 0.04 step/s]m09_pretrain:  35%|███▌      | 28/80 [11:53<21:28, 24.78s/step, E0 loss=1.5579 drift=0.0000 lr=8.04e-06 grad=0.09 0.04 step/s]m09_pretrain:  36%|███▋      | 29/80 [11:53<20:35, 24.23s/step, E0 loss=1.5579 drift=0.0000 lr=8.04e-06 grad=0.09 0.04 step/s]m09_pretrain:  38%|███▊      | 30/80 [12:15<19:36, 23.53s/step, E0 loss=1.5579 drift=0.0000 lr=8.04e-06 grad=0.09 0.04 step/s]m09_pretrain:  38%|███▊      | 30/80 [12:38<19:36, 23.53s/step, E0 loss=1.5508 drift=0.0000 lr=7.69e-06 grad=0.10 0.04 step/s]m09_pretrain:  39%|███▉      | 31/80 [12:38<19:10, 23.49s/step, E0 loss=1.5508 drift=0.0000 lr=7.69e-06 grad=0.10 0.04 step/s]m09_pretrain:  40%|████      | 32/80 [13:02<18:48, 23.50s/step, E0 loss=1.5508 drift=0.0000 lr=7.69e-06 grad=0.10 0.04 step/s]  Cleaned old checkpoint: m09_ckpt_step16.pt
+m09_pretrain:  40%|████      | 32/80 [13:41<18:48, 23.50s/step, E0 loss=1.5451 drift=0.0000 lr=7.31e-06 grad=0.10 0.03 step/s]m09_pretrain:  41%|████▏     | 33/80 [13:41<22:11, 28.33s/step, E0 loss=1.5451 drift=0.0000 lr=7.31e-06 grad=0.10 0.03 step/s]m09_pretrain:  42%|████▎     | 34/80 [14:05<20:36, 26.89s/step, E0 loss=1.5451 drift=0.0000 lr=7.31e-06 grad=0.10 0.03 step/s]m09_pretrain:  42%|████▎     | 34/80 [14:27<20:36, 26.89s/step, E0 loss=1.5523 drift=0.0000 lr=6.91e-06 grad=0.09 0.04 step/s]m09_pretrain:  44%|████▍     | 35/80 [14:27<18:57, 25.28s/step, E0 loss=1.5523 drift=0.0000 lr=6.91e-06 grad=0.09 0.04 step/s]m09_pretrain:  45%|████▌     | 36/80 [14:48<17:48, 24.28s/step, E0 loss=1.5523 drift=0.0000 lr=6.91e-06 grad=0.09 0.04 step/s]m09_pretrain:  45%|████▌     | 36/80 [15:11<17:48, 24.28s/step, E0 loss=1.5427 drift=0.0000 lr=6.50e-06 grad=0.10 0.05 step/s]m09_pretrain:  46%|████▋     | 37/80 [15:11<16:56, 23.65s/step, E0 loss=1.5427 drift=0.0000 lr=6.50e-06 grad=0.10 0.05 step/s]m09_pretrain:  48%|████▊     | 38/80 [15:33<16:11, 23.13s/step, E0 loss=1.5427 drift=0.0000 lr=6.50e-06 grad=0.10 0.05 step/s]m09_pretrain:  48%|████▊     | 38/80 [15:56<16:11, 23.13s/step, E0 loss=1.5496 drift=0.0000 lr=6.08e-06 grad=0.08 0.04 step/s]m09_pretrain:  49%|████▉     | 39/80 [15:56<15:47, 23.10s/step, E0 loss=1.5496 drift=0.0000 lr=6.08e-06 grad=0.08 0.04 step/s]m09_pretrain:  50%|█████     | 40/80 [16:19<15:22, 23.05s/step, E0 loss=1.5496 drift=0.0000 lr=6.08e-06 grad=0.08 0.04 step/s]  Cleaned old checkpoint: m09_ckpt_step24.pt
+m09_pretrain:  50%|█████     | 40/80 [17:00<15:22, 23.05s/step, E0 loss=1.5202 drift=0.0000 lr=5.65e-06 grad=0.12 0.03 step/s]m09_pretrain:  51%|█████▏    | 41/80 [17:00<18:30, 28.47s/step, E0 loss=1.5202 drift=0.0000 lr=5.65e-06 grad=0.12 0.03 step/s]m09_pretrain:  52%|█████▎    | 42/80 [17:22<16:47, 26.52s/step, E0 loss=1.5202 drift=0.0000 lr=5.65e-06 grad=0.12 0.03 step/s]m09_pretrain:  52%|█████▎    | 42/80 [17:45<16:47, 26.52s/step, E0 loss=1.5403 drift=0.0000 lr=5.22e-06 grad=0.09 0.04 step/s]m09_pretrain:  54%|█████▍    | 43/80 [17:45<15:44, 25.54s/step, E0 loss=1.5403 drift=0.0000 lr=5.22e-06 grad=0.09 0.04 step/s]m09_pretrain:  55%|█████▌    | 44/80 [18:08<14:49, 24.72s/step, E0 loss=1.5403 drift=0.0000 lr=5.22e-06 grad=0.09 0.04 step/s]m09_pretrain:  55%|█████▌    | 44/80 [18:27<14:49, 24.72s/step, E0 loss=1.5520 drift=0.0000 lr=4.78e-06 grad=0.11 0.05 step/s]m09_pretrain:  56%|█████▋    | 45/80 [18:27<13:32, 23.20s/step, E0 loss=1.5520 drift=0.0000 lr=4.78e-06 grad=0.11 0.05 step/s]m09_pretrain:  57%|█████▊    | 46/80 [18:50<13:05, 23.11s/step, E0 loss=1.5520 drift=0.0000 lr=4.78e-06 grad=0.11 0.05 step/s]m09_pretrain:  57%|█████▊    | 46/80 [19:14<13:05, 23.11s/step, E0 loss=1.5610 drift=0.0000 lr=4.35e-06 grad=0.08 0.04 step/s]m09_pretrain:  59%|█████▉    | 47/80 [19:14<12:46, 23.22s/step, E0 loss=1.5610 drift=0.0000 lr=4.35e-06 grad=0.08 0.04 step/s]m09_pretrain:  60%|██████    | 48/80 [19:39<12:45, 23.92s/step, E0 loss=1.5610 drift=0.0000 lr=4.35e-06 grad=0.08 0.04 step/s]  Cleaned old checkpoint: m09_ckpt_step32.pt
+m09_pretrain:  60%|██████    | 48/80 [20:19<12:45, 23.92s/step, E0 loss=1.5317 drift=0.0000 lr=3.92e-06 grad=0.10 0.03 step/s]m09_pretrain:  61%|██████▏   | 49/80 [20:19<14:51, 28.75s/step, E0 loss=1.5317 drift=0.0000 lr=3.92e-06 grad=0.10 0.03 step/s]m09_pretrain:  62%|██████▎   | 50/80 [20:42<13:31, 27.05s/step, E0 loss=1.5317 drift=0.0000 lr=3.92e-06 grad=0.10 0.03 step/s]m09_pretrain:  62%|██████▎   | 50/80 [21:07<13:31, 27.05s/step, E0 loss=1.5302 drift=0.0000 lr=3.50e-06 grad=0.06 0.04 step/s]m09_pretrain:  64%|██████▍   | 51/80 [21:07<12:45, 26.39s/step, E0 loss=1.5302 drift=0.0000 lr=3.50e-06 grad=0.06 0.04 step/s]m09_pretrain:  65%|██████▌   | 52/80 [21:27<11:27, 24.56s/step, E0 loss=1.5302 drift=0.0000 lr=3.50e-06 grad=0.06 0.04 step/s]m09_pretrain:  65%|██████▌   | 52/80 [21:51<11:27, 24.56s/step, E0 loss=1.5287 drift=0.0000 lr=3.09e-06 grad=0.11 0.05 step/s]m09_pretrain:  66%|██████▋   | 53/80 [21:51<10:56, 24.31s/step, E0 loss=1.5287 drift=0.0000 lr=3.09e-06 grad=0.11 0.05 step/s]m09_pretrain:  68%|██████▊   | 54/80 [22:15<10:26, 24.10s/step, E0 loss=1.5287 drift=0.0000 lr=3.09e-06 grad=0.11 0.05 step/s]m09_pretrain:  68%|██████▊   | 54/80 [22:37<10:26, 24.10s/step, E0 loss=1.5342 drift=0.0000 lr=2.69e-06 grad=0.08 0.04 step/s]m09_pretrain:  69%|██████▉   | 55/80 [22:37<09:48, 23.54s/step, E0 loss=1.5342 drift=0.0000 lr=2.69e-06 grad=0.08 0.04 step/s]m09_pretrain:  70%|███████   | 56/80 [22:59<09:12, 23.04s/step, E0 loss=1.5342 drift=0.0000 lr=2.69e-06 grad=0.08 0.04 step/s]  Cleaned old checkpoint: m09_ckpt_step40.pt
+m09_pretrain:  70%|███████   | 56/80 [23:46<09:12, 23.04s/step, E0 loss=1.5352 drift=0.0000 lr=2.31e-06 grad=0.08 0.03 step/s]m09_pretrain:  71%|███████▏  | 57/80 [23:46<11:35, 30.25s/step, E0 loss=1.5352 drift=0.0000 lr=2.31e-06 grad=0.08 0.03 step/s]m09_pretrain:  72%|███████▎  | 58/80 [24:08<10:08, 27.64s/step, E0 loss=1.5352 drift=0.0000 lr=2.31e-06 grad=0.08 0.03 step/s]m09_pretrain:  72%|███████▎  | 58/80 [24:34<10:08, 27.64s/step, E0 loss=1.5187 drift=0.0000 lr=1.96e-06 grad=0.12 0.04 step/s]m09_pretrain:  74%|███████▍  | 59/80 [24:34<09:34, 27.38s/step, E0 loss=1.5187 drift=0.0000 lr=1.96e-06 grad=0.12 0.04 step/s]m09_pretrain:  75%|███████▌  | 60/80 [24:57<08:41, 26.09s/step, E0 loss=1.5187 drift=0.0000 lr=1.96e-06 grad=0.12 0.04 step/s]m09_pretrain:  75%|███████▌  | 60/80 [25:22<08:41, 26.09s/step, E0 loss=1.5287 drift=0.0000 lr=1.62e-06 grad=0.13 0.04 step/s]m09_pretrain:  76%|███████▋  | 61/80 [25:22<08:05, 25.53s/step, E0 loss=1.5287 drift=0.0000 lr=1.62e-06 grad=0.13 0.04 step/s]m09_pretrain:  78%|███████▊  | 62/80 [25:46<07:32, 25.12s/step, E0 loss=1.5287 drift=0.0000 lr=1.62e-06 grad=0.13 0.04 step/s]m09_pretrain:  78%|███████▊  | 62/80 [26:09<07:32, 25.12s/step, E0 loss=1.5343 drift=0.0000 lr=1.31e-06 grad=0.08 0.04 step/s]m09_pretrain:  79%|███████▉  | 63/80 [26:09<06:56, 24.53s/step, E0 loss=1.5343 drift=0.0000 lr=1.31e-06 grad=0.08 0.04 step/s]m09_pretrain:  80%|████████  | 64/80 [26:32<06:23, 23.96s/step, E0 loss=1.5343 drift=0.0000 lr=1.31e-06 grad=0.08 0.04 step/s]  Cleaned old checkpoint: m09_ckpt_step48.pt
+m09_pretrain:  80%|████████  | 64/80 [27:14<06:23, 23.96s/step, E0 loss=1.5260 drift=0.0000 lr=1.03e-06 grad=0.07 0.03 step/s]m09_pretrain:  81%|████████▏ | 65/80 [27:14<07:20, 29.39s/step, E0 loss=1.5260 drift=0.0000 lr=1.03e-06 grad=0.07 0.03 step/s]m09_pretrain:  82%|████████▎ | 66/80 [27:37<06:24, 27.47s/step, E0 loss=1.5260 drift=0.0000 lr=1.03e-06 grad=0.07 0.03 step/s]m09_pretrain:  82%|████████▎ | 66/80 [28:01<06:24, 27.47s/step, E0 loss=1.5322 drift=0.0000 lr=7.83e-07 grad=0.07 0.04 step/s]m09_pretrain:  84%|████████▍ | 67/80 [28:01<05:45, 26.57s/step, E0 loss=1.5322 drift=0.0000 lr=7.83e-07 grad=0.07 0.04 step/s]m09_pretrain:  85%|████████▌ | 68/80 [28:24<05:04, 25.39s/step, E0 loss=1.5322 drift=0.0000 lr=7.83e-07 grad=0.07 0.04 step/s]m09_pretrain:  85%|████████▌ | 68/80 [28:46<05:04, 25.39s/step, E0 loss=1.5267 drift=0.0000 lr=5.65e-07 grad=0.08 0.04 step/s]m09_pretrain:  86%|████████▋ | 69/80 [28:46<04:29, 24.50s/step, E0 loss=1.5267 drift=0.0000 lr=5.65e-07 grad=0.08 0.04 step/s]m09_pretrain:  88%|████████▊ | 70/80 [29:09<04:00, 24.00s/step, E0 loss=1.5267 drift=0.0000 lr=5.65e-07 grad=0.08 0.04 step/s]m09_pretrain:  88%|████████▊ | 70/80 [29:33<04:00, 24.00s/step, E0 loss=1.5046 drift=0.0000 lr=3.81e-07 grad=0.07 0.04 step/s]m09_pretrain:  89%|████████▉ | 71/80 [29:33<03:36, 24.09s/step, E0 loss=1.5046 drift=0.0000 lr=3.81e-07 grad=0.07 0.04 step/s]m09_pretrain:  90%|█████████ | 72/80 [29:57<03:11, 23.98s/step, E0 loss=1.5046 drift=0.0000 lr=3.81e-07 grad=0.07 0.04 step/s]  Cleaned old checkpoint: m09_ckpt_step56.pt
+m09_pretrain:  90%|█████████ | 72/80 [30:37<03:11, 23.98s/step, E0 loss=1.5200 drift=0.0000 lr=2.31e-07 grad=0.07 0.03 step/s]m09_pretrain:  91%|█████████▏| 73/80 [30:37<03:22, 28.88s/step, E0 loss=1.5200 drift=0.0000 lr=2.31e-07 grad=0.07 0.03 step/s]m09_pretrain:  92%|█████████▎| 74/80 [31:01<02:43, 27.31s/step, E0 loss=1.5200 drift=0.0000 lr=2.31e-07 grad=0.07 0.03 step/s]m09_pretrain:  92%|█████████▎| 74/80 [31:24<02:43, 27.31s/step, E0 loss=1.5166 drift=0.0000 lr=1.19e-07 grad=0.06 0.04 step/s]m09_pretrain:  94%|█████████▍| 75/80 [31:24<02:10, 26.15s/step, E0 loss=1.5166 drift=0.0000 lr=1.19e-07 grad=0.06 0.04 step/s]m09_pretrain:  95%|█████████▌| 76/80 [31:44<01:36, 24.19s/step, E0 loss=1.5166 drift=0.0000 lr=1.19e-07 grad=0.06 0.04 step/s]  Producer: starting epoch 2
+m09_pretrain:  95%|█████████▌| 76/80 [32:07<01:36, 24.19s/step, E0 loss=1.5310 drift=0.0000 lr=1.00e-07 grad=0.08 0.05 step/s]m09_pretrain:  96%|█████████▋| 77/80 [32:07<01:11, 23.75s/step, E0 loss=1.5310 drift=0.0000 lr=1.00e-07 grad=0.08 0.05 step/s]m09_pretrain:  98%|█████████▊| 78/80 [32:30<00:47, 23.56s/step, E0 loss=1.5310 drift=0.0000 lr=1.00e-07 grad=0.08 0.05 step/s]m09_pretrain:  98%|█████████▊| 78/80 [32:52<00:47, 23.56s/step, E0 loss=1.5366 drift=0.0000 lr=1.00e-07 grad=0.21 0.04 step/s]m09_pretrain:  99%|█████████▉| 79/80 [32:52<00:23, 23.23s/step, E0 loss=1.5366 drift=0.0000 lr=1.00e-07 grad=0.21 0.04 step/s]m09_pretrain: 100%|██████████| 80/80 [33:12<00:00, 22.28s/step, E0 loss=1.5366 drift=0.0000 lr=1.00e-07 grad=0.21 0.04 step/s]  Cleaned old checkpoint: m09_ckpt_step64.pt
+
+--- Epoch 1/1 complete (step 80) ---
+m09_pretrain: 100%|██████████| 80/80 [33:30<00:00, 25.13s/step, E0 loss=1.5366 drift=0.0000 lr=1.00e-07 grad=0.21 0.04 step/s]
+Exported student encoder: /workspace/factorjepa/outputs/poc/m09_lambda0/student_encoder.pt
+  Cleaned: m09_ckpt_latest.pt
+  Cleaned: m09_ckpt_step72.pt
+  Cleaned: m09_ckpt_step80.pt
+wandb: updating run metadata
+wandb: uploading history steps 79-79, summary, console lines 11-11
+wandb: 
+wandb: Run history:
+wandb:                  epoch ▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁
+wandb:         epoch_complete ▁
+wandb:              grad_norm ▇█▆▄▃▂▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▇▁▁▁▁▁▁▁▁▁▁▁
+wandb:             loss/drift ▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁
+wandb:              loss/jepa ▇▇▇█▅▅▄▄▄▅▄▄▂▄▄▄▃▃▃▄▃▂▃▃▃▃▃▂▃▁▂▃▂▂▂▂▂▂▂▃
+wandb:             loss/total ██▅▅▄▅▄▄▄▃▄▄▄▄▄▃▄▄▃▃▄▃▃▃▃▃▄▁▃▂▃▃▃▂▂▂▂▂▃▄
+wandb:                     lr ▃▄▄▅▆█████▇▇▇▇▇▆▆▆▆▆▅▅▅▄▄▃▃▃▃▃▂▂▂▂▁▁▁▁▁▁
+wandb: throughput_steps_per_s ▆▆▇▆▇▆▇▅█▆▂▅▅▆▆▆▆▅▆▆▄▁▅▅▆▅▆▁▆▅▅▅▆▂▆▅▂▅█▅
+wandb: 
+wandb: Run summary:
+wandb:                  epoch 0
+wandb:         epoch_complete 1
+wandb:              grad_norm 0.09093
+wandb:             loss/drift 0
+wandb:              loss/jepa 1.55314
+wandb:             loss/total 1.55314
+wandb:                     lr 0.0
+wandb: throughput_steps_per_s 0.04987
+wandb: 
+wandb: 🚀 View run m09_POC at: https://wandb.ai/sjsu_llm/walkindia-200k/runs/lu0zbys3
+wandb: ⭐️ View project at: https://wandb.ai/sjsu_llm/walkindia-200k
+wandb: Synced 5 W&B file(s), 0 media file(s), 0 artifact file(s) and 0 other file(s)
+wandb: Find logs at: ./wandb/run-20260329_043813-lu0zbys3/logs
+
+=== TRAINING COMPLETE ===
+Steps:        80 (1.0 epochs)
+Clips seen:   8,960
+Student:      /workspace/factorjepa/outputs/poc/m09_lambda0/student_encoder.pt
+Loss log:     /workspace/factorjepa/outputs/poc/m09_lambda0/loss_log.csv
+Summary:      /workspace/factorjepa/outputs/poc/m09_lambda0/training_summary.json
+[05:11:57] PASSED: m09 pretrain (lambda=0) (34m 9s)
+  OK   student_encoder.pt             4049 MB
+  OK   training_summary.json          jepa_loss=1.5531
+  OK   loss_log.csv                   80 steps
+[05:11:57] VERIFY OK: Training lambda=0
+[05:11:57] Completed training: lambda=0 (lambda0)
+
+[05:11:57] ╔═══════════════════════════════════════════════════════════╗
+[05:11:57] ║  ABLATION: lambda=0.001 (lambda0_001)                    
+[05:11:57] ╚═══════════════════════════════════════════════════════════╝
+
+═══════════════════════════════════════════════════════════════
+  STEP lambda0_001-train: m09 pretrain (lambda=0.001)
+  Mode: FULL | Est: ~5-20h (2000-10000 steps, profiler BS)
+  Started: 2026-03-29 05:11:57
+═══════════════════════════════════════════════════════════════
+[05:11:57] CMD: python -u src/m09_pretrain.py --config configs/pretrain/vitg16_indian.yaml --lambda-reg 0.001 --batch-size 112 --FULL --subset data/subset_10k.json --local-data data/subset_10k_local
+Using PyAV for video decoding
+GPU: NVIDIA RTX PRO 6000 Blackwell Workstation Edition
+CUDA version: 12.8
+
+=== Building Model ===
+/workspace/factorjepa/venv_walkindia/lib/python3.12/site-packages/timm/models/layers/__init__.py:49: FutureWarning: Importing from timm.models.layers is deprecated, please import via timm.layers
+  warnings.warn(f"Importing from {__name__} is deprecated, please import via timm.layers", FutureWarning)
+Downloading pretrained weights via torch.hub...
+Student loaded: 1,012,173,952 params (484/484 keys = 100%)
+Teacher created (deepcopy of student)
+Predictor loaded from checkpoint (152/152 keys = 100%)
+Predictor: 22,378,240 params
+Mask generators: 2 (blocks: [8, 2])
+[POC] Loaded subset: 10,000 clip keys from subset_10k.json
+Train clips: 8,982 | Val clips: 1,018
+Epochs: 1 | Steps/epoch: 80 | Total steps: 80
+Checkpoint every 8 steps (10x per epoch, keep last 2)
+wandb: [wandb.login()] Loaded credentials for https://api.wandb.ai from WANDB_API_KEY.
+wandb: Currently logged in as: kapilw25 (sjsu_llm) to https://api.wandb.ai. Use `wandb login --relogin` to force relogin
+wandb: WARNING Using a boolean value for 'reinit' is deprecated. Use 'return_previous' or 'finish_previous' instead.
+wandb: setting up run 2m7vymre
+wandb: Tracking run with wandb version 0.25.1
+wandb: Run data is saved locally in /workspace/factorjepa/wandb/run-20260329_051222-2m7vymre
+wandb: Run `wandb offline` to turn off syncing.
+wandb: Syncing run m09_POC
+wandb: ⭐️ View project at https://wandb.ai/sjsu_llm/walkindia-200k
+wandb: 🚀 View run at https://wandb.ai/sjsu_llm/walkindia-200k/runs/2m7vymre
+wandb: run=m09_POC url=https://wandb.ai/sjsu_llm/walkindia-200k/runs/2m7vymre
+m09_pretrain:   0%|          | 0/80 [00:00<?, ?step/s]
+=== Training: 0 → 80 steps (1 epochs) ===
+Batch size: 112
+Grad checkpointing: True
+Mixed precision: bfloat16
+EMA momentum: 0.99925
+Drift control: lambda=0.001
+Loss log: /workspace/factorjepa/outputs/poc/m09_lambda0_001/loss_log.csv
+/venv/main/lib/python3.12/contextlib.py:105: FutureWarning: `torch.backends.cuda.sdp_kernel()` is deprecated. In the future, this context manager will be removed. Please see `torch.nn.attention.sdpa_kernel()` for the new context manager, with updated signature.
+  self.gen = func(*args, **kwds)
+m09_pretrain:   0%|          | 0/80 [00:44<?, ?step/s, E0 loss=1.6328 drift=0.0000 lr=1.25e-06 grad=1.42 0.02 step/s]m09_pretrain:   1%|▏         | 1/80 [00:44<58:15, 44.24s/step, E0 loss=1.6328 drift=0.0000 lr=1.25e-06 grad=1.42 0.02 step/s]m09_pretrain:   2%|▎         | 2/80 [01:06<40:45, 31.35s/step, E0 loss=1.6328 drift=0.0000 lr=1.25e-06 grad=1.42 0.02 step/s]m09_pretrain:   2%|▎         | 2/80 [01:32<40:45, 31.35s/step, E0 loss=1.6372 drift=0.0000 lr=3.75e-06 grad=1.31 0.04 step/s]m09_pretrain:   4%|▍         | 3/80 [01:32<37:11, 28.98s/step, E0 loss=1.6372 drift=0.0000 lr=3.75e-06 grad=1.31 0.04 step/s]m09_pretrain:   5%|▌         | 4/80 [01:57<34:29, 27.24s/step, E0 loss=1.6372 drift=0.0000 lr=3.75e-06 grad=1.31 0.04 step/s]m09_pretrain:   5%|▌         | 4/80 [02:22<34:29, 27.24s/step, E0 loss=1.6562 drift=0.0000 lr=6.25e-06 grad=2.17 0.04 step/s]m09_pretrain:   6%|▋         | 5/80 [02:22<32:56, 26.35s/step, E0 loss=1.6562 drift=0.0000 lr=6.25e-06 grad=2.17 0.04 step/s]m09_pretrain:   8%|▊         | 6/80 [02:43<30:30, 24.74s/step, E0 loss=1.6562 drift=0.0000 lr=6.25e-06 grad=2.17 0.04 step/s]m09_pretrain:   8%|▊         | 6/80 [03:06<30:30, 24.74s/step, E0 loss=1.6310 drift=0.0001 lr=8.75e-06 grad=0.42 0.05 step/s]m09_pretrain:   9%|▉         | 7/80 [03:06<29:10, 23.99s/step, E0 loss=1.6310 drift=0.0001 lr=8.75e-06 grad=0.42 0.05 step/s]m09_pretrain:  10%|█         | 8/80 [03:30<28:49, 24.02s/step, E0 loss=1.6310 drift=0.0001 lr=8.75e-06 grad=0.42 0.05 step/s]m09_pretrain:  10%|█         | 8/80 [04:12<28:49, 24.02s/step, E0 loss=1.5879 drift=0.0003 lr=1.00e-05 grad=0.45 0.03 step/s]m09_pretrain:  11%|█▏        | 9/80 [04:12<35:12, 29.75s/step, E0 loss=1.5879 drift=0.0003 lr=1.00e-05 grad=0.45 0.03 step/s]m09_pretrain:  12%|█▎        | 10/80 [04:35<32:14, 27.63s/step, E0 loss=1.5879 drift=0.0003 lr=1.00e-05 grad=0.45 0.03 step/s]m09_pretrain:  12%|█▎        | 10/80 [04:58<32:14, 27.63s/step, E0 loss=1.5867 drift=0.0006 lr=9.96e-06 grad=0.43 0.04 step/s]m09_pretrain:  14%|█▍        | 11/80 [04:58<30:05, 26.16s/step, E0 loss=1.5867 drift=0.0006 lr=9.96e-06 grad=0.43 0.04 step/s]m09_pretrain:  15%|█▌        | 12/80 [05:22<29:04, 25.65s/step, E0 loss=1.5867 drift=0.0006 lr=9.96e-06 grad=0.43 0.04 step/s]m09_pretrain:  15%|█▌        | 12/80 [05:46<29:04, 25.65s/step, E0 loss=1.5645 drift=0.0009 lr=9.88e-06 grad=0.28 0.04 step/s]m09_pretrain:  16%|█▋        | 13/80 [05:46<28:07, 25.19s/step, E0 loss=1.5645 drift=0.0009 lr=9.88e-06 grad=0.28 0.04 step/s]m09_pretrain:  18%|█▊        | 14/80 [06:10<27:15, 24.79s/step, E0 loss=1.5645 drift=0.0009 lr=9.88e-06 grad=0.28 0.04 step/s]m09_pretrain:  18%|█▊        | 14/80 [06:33<27:15, 24.79s/step, E0 loss=1.5558 drift=0.0011 lr=9.77e-06 grad=0.21 0.04 step/s]m09_pretrain:  19%|█▉        | 15/80 [06:33<26:09, 24.15s/step, E0 loss=1.5558 drift=0.0011 lr=9.77e-06 grad=0.21 0.04 step/s]m09_pretrain:  20%|██        | 16/80 [06:57<25:42, 24.10s/step, E0 loss=1.5558 drift=0.0011 lr=9.77e-06 grad=0.21 0.04 step/s]m09_pretrain:  20%|██        | 16/80 [07:40<25:42, 24.10s/step, E0 loss=1.5871 drift=0.0013 lr=9.62e-06 grad=0.15 0.03 step/s]m09_pretrain:  21%|██▏       | 17/80 [07:40<31:23, 29.90s/step, E0 loss=1.5871 drift=0.0013 lr=9.62e-06 grad=0.15 0.03 step/s]m09_pretrain:  22%|██▎       | 18/80 [08:04<29:04, 28.13s/step, E0 loss=1.5871 drift=0.0013 lr=9.62e-06 grad=0.15 0.03 step/s]m09_pretrain:  22%|██▎       | 18/80 [08:28<29:04, 28.13s/step, E0 loss=1.5671 drift=0.0014 lr=9.44e-06 grad=0.12 0.04 step/s]m09_pretrain:  24%|██▍       | 19/80 [08:28<27:22, 26.93s/step, E0 loss=1.5671 drift=0.0014 lr=9.44e-06 grad=0.12 0.04 step/s]m09_pretrain:  25%|██▌       | 20/80 [08:51<25:35, 25.60s/step, E0 loss=1.5671 drift=0.0014 lr=9.44e-06 grad=0.12 0.04 step/s]m09_pretrain:  25%|██▌       | 20/80 [09:14<25:35, 25.60s/step, E0 loss=1.5667 drift=0.0016 lr=9.22e-06 grad=0.11 0.04 step/s]m09_pretrain:  26%|██▋       | 21/80 [09:14<24:32, 24.95s/step, E0 loss=1.5667 drift=0.0016 lr=9.22e-06 grad=0.11 0.04 step/s]m09_pretrain:  28%|██▊       | 22/80 [09:38<23:39, 24.47s/step, E0 loss=1.5667 drift=0.0016 lr=9.22e-06 grad=0.11 0.04 step/s]m09_pretrain:  28%|██▊       | 22/80 [10:01<23:39, 24.47s/step, E0 loss=1.5391 drift=0.0017 lr=8.97e-06 grad=0.11 0.04 step/s]m09_pretrain:  29%|██▉       | 23/80 [10:01<22:56, 24.14s/step, E0 loss=1.5391 drift=0.0017 lr=8.97e-06 grad=0.11 0.04 step/s]m09_pretrain:  30%|███       | 24/80 [10:26<22:38, 24.26s/step, E0 loss=1.5391 drift=0.0017 lr=8.97e-06 grad=0.11 0.04 step/s]  Cleaned old checkpoint: m09_ckpt_step8.pt
+m09_pretrain:  30%|███       | 24/80 [11:07<22:38, 24.26s/step, E0 loss=1.5545 drift=0.0017 lr=8.69e-06 grad=0.10 0.03 step/s]m09_pretrain:  31%|███▏      | 25/80 [11:07<27:01, 29.49s/step, E0 loss=1.5545 drift=0.0017 lr=8.69e-06 grad=0.10 0.03 step/s]m09_pretrain:  32%|███▎      | 26/80 [11:31<25:04, 27.86s/step, E0 loss=1.5545 drift=0.0017 lr=8.69e-06 grad=0.10 0.03 step/s]m09_pretrain:  32%|███▎      | 26/80 [11:56<25:04, 27.86s/step, E0 loss=1.5595 drift=0.0018 lr=8.38e-06 grad=0.10 0.04 step/s]m09_pretrain:  34%|███▍      | 27/80 [11:56<23:52, 27.03s/step, E0 loss=1.5595 drift=0.0018 lr=8.38e-06 grad=0.10 0.04 step/s]m09_pretrain:  35%|███▌      | 28/80 [12:21<22:46, 26.27s/step, E0 loss=1.5595 drift=0.0018 lr=8.38e-06 grad=0.10 0.04 step/s]m09_pretrain:  35%|███▌      | 28/80 [12:43<22:46, 26.27s/step, E0 loss=1.5623 drift=0.0019 lr=8.04e-06 grad=0.10 0.04 step/s]m09_pretrain:  36%|███▋      | 29/80 [12:43<21:07, 24.85s/step, E0 loss=1.5623 drift=0.0019 lr=8.04e-06 grad=0.10 0.04 step/s]m09_pretrain:  38%|███▊      | 30/80 [13:05<20:14, 24.28s/step, E0 loss=1.5623 drift=0.0019 lr=8.04e-06 grad=0.10 0.04 step/s]m09_pretrain:  38%|███▊      | 30/80 [13:28<20:14, 24.28s/step, E0 loss=1.5623 drift=0.0019 lr=7.69e-06 grad=0.09 0.04 step/s]m09_pretrain:  39%|███▉      | 31/80 [13:28<19:19, 23.66s/step, E0 loss=1.5623 drift=0.0019 lr=7.69e-06 grad=0.09 0.04 step/s]m09_pretrain:  40%|████      | 32/80 [13:52<18:59, 23.74s/step, E0 loss=1.5623 drift=0.0019 lr=7.69e-06 grad=0.09 0.04 step/s]  Cleaned old checkpoint: m09_ckpt_step16.pt
+m09_pretrain:  40%|████      | 32/80 [14:33<18:59, 23.74s/step, E0 loss=1.5515 drift=0.0019 lr=7.31e-06 grad=0.09 0.03 step/s]m09_pretrain:  41%|████▏     | 33/80 [14:33<22:43, 29.02s/step, E0 loss=1.5515 drift=0.0019 lr=7.31e-06 grad=0.09 0.03 step/s]m09_pretrain:  42%|████▎     | 34/80 [14:58<21:21, 27.86s/step, E0 loss=1.5515 drift=0.0019 lr=7.31e-06 grad=0.09 0.03 step/s]m09_pretrain:  42%|████▎     | 34/80 [15:24<21:21, 27.86s/step, E0 loss=1.5501 drift=0.0019 lr=6.91e-06 grad=0.07 0.04 step/s]m09_pretrain:  44%|████▍     | 35/80 [15:24<20:22, 27.16s/step, E0 loss=1.5501 drift=0.0019 lr=6.91e-06 grad=0.07 0.04 step/s]m09_pretrain:  45%|████▌     | 36/80 [15:47<19:00, 25.92s/step, E0 loss=1.5501 drift=0.0019 lr=6.91e-06 grad=0.07 0.04 step/s]m09_pretrain:  45%|████▌     | 36/80 [16:10<19:00, 25.92s/step, E0 loss=1.5459 drift=0.0019 lr=6.50e-06 grad=0.10 0.04 step/s]m09_pretrain:  46%|████▋     | 37/80 [16:10<18:07, 25.29s/step, E0 loss=1.5459 drift=0.0019 lr=6.50e-06 grad=0.10 0.04 step/s]m09_pretrain:  48%|████▊     | 38/80 [16:35<17:30, 25.00s/step, E0 loss=1.5459 drift=0.0019 lr=6.50e-06 grad=0.10 0.04 step/s]m09_pretrain:  48%|████▊     | 38/80 [16:59<17:30, 25.00s/step, E0 loss=1.5467 drift=0.0019 lr=6.08e-06 grad=0.08 0.04 step/s]m09_pretrain:  49%|████▉     | 39/80 [16:59<16:55, 24.76s/step, E0 loss=1.5467 drift=0.0019 lr=6.08e-06 grad=0.08 0.04 step/s]m09_pretrain:  50%|█████     | 40/80 [17:24<16:28, 24.72s/step, E0 loss=1.5467 drift=0.0019 lr=6.08e-06 grad=0.08 0.04 step/s]  Cleaned old checkpoint: m09_ckpt_step24.pt
+m09_pretrain:  50%|█████     | 40/80 [18:07<16:28, 24.72s/step, E0 loss=1.5178 drift=0.0019 lr=5.65e-06 grad=0.10 0.03 step/s]m09_pretrain:  51%|█████▏    | 41/80 [18:07<19:39, 30.25s/step, E0 loss=1.5178 drift=0.0019 lr=5.65e-06 grad=0.10 0.03 step/s]m09_pretrain:  52%|█████▎    | 42/80 [18:28<17:23, 27.46s/step, E0 loss=1.5178 drift=0.0019 lr=5.65e-06 grad=0.10 0.03 step/s]m09_pretrain:  52%|█████▎    | 42/80 [18:53<17:23, 27.46s/step, E0 loss=1.5419 drift=0.0019 lr=5.22e-06 grad=0.08 0.04 step/s]m09_pretrain:  54%|█████▍    | 43/80 [18:53<16:27, 26.69s/step, E0 loss=1.5419 drift=0.0019 lr=5.22e-06 grad=0.08 0.04 step/s]m09_pretrain:  55%|█████▌    | 44/80 [19:17<15:34, 25.97s/step, E0 loss=1.5419 drift=0.0019 lr=5.22e-06 grad=0.08 0.04 step/s]m09_pretrain:  55%|█████▌    | 44/80 [19:41<15:34, 25.97s/step, E0 loss=1.5415 drift=0.0019 lr=4.78e-06 grad=0.08 0.04 step/s]m09_pretrain:  56%|█████▋    | 45/80 [19:41<14:45, 25.30s/step, E0 loss=1.5415 drift=0.0019 lr=4.78e-06 grad=0.08 0.04 step/s]m09_pretrain:  57%|█████▊    | 46/80 [20:05<14:15, 25.15s/step, E0 loss=1.5415 drift=0.0019 lr=4.78e-06 grad=0.08 0.04 step/s]m09_pretrain:  57%|█████▊    | 46/80 [20:29<14:15, 25.15s/step, E0 loss=1.5618 drift=0.0018 lr=4.35e-06 grad=0.09 0.04 step/s]m09_pretrain:  59%|█████▉    | 47/80 [20:29<13:36, 24.73s/step, E0 loss=1.5618 drift=0.0018 lr=4.35e-06 grad=0.09 0.04 step/s]m09_pretrain:  60%|██████    | 48/80 [20:54<13:10, 24.70s/step, E0 loss=1.5618 drift=0.0018 lr=4.35e-06 grad=0.09 0.04 step/s]  Cleaned old checkpoint: m09_ckpt_step32.pt
+m09_pretrain:  60%|██████    | 48/80 [21:38<13:10, 24.70s/step, E0 loss=1.5248 drift=0.0018 lr=3.92e-06 grad=0.09 0.03 step/s]m09_pretrain:  61%|██████▏   | 49/80 [21:38<15:43, 30.43s/step, E0 loss=1.5248 drift=0.0018 lr=3.92e-06 grad=0.09 0.03 step/s]m09_pretrain:  62%|██████▎   | 50/80 [22:04<14:34, 29.17s/step, E0 loss=1.5248 drift=0.0018 lr=3.92e-06 grad=0.09 0.03 step/s]m09_pretrain:  62%|██████▎   | 50/80 [22:30<14:34, 29.17s/step, E0 loss=1.5273 drift=0.0018 lr=3.50e-06 grad=0.07 0.04 step/s]m09_pretrain:  64%|██████▍   | 51/80 [22:30<13:41, 28.32s/step, E0 loss=1.5273 drift=0.0018 lr=3.50e-06 grad=0.07 0.04 step/s]m09_pretrain:  65%|██████▌   | 52/80 [22:52<12:21, 26.49s/step, E0 loss=1.5273 drift=0.0018 lr=3.50e-06 grad=0.07 0.04 step/s]m09_pretrain:  65%|██████▌   | 52/80 [23:17<12:21, 26.49s/step, E0 loss=1.5292 drift=0.0018 lr=3.09e-06 grad=0.09 0.04 step/s]m09_pretrain:  66%|██████▋   | 53/80 [23:17<11:42, 26.02s/step, E0 loss=1.5292 drift=0.0018 lr=3.09e-06 grad=0.09 0.04 step/s]m09_pretrain:  68%|██████▊   | 54/80 [23:42<11:05, 25.59s/step, E0 loss=1.5292 drift=0.0018 lr=3.09e-06 grad=0.09 0.04 step/s]m09_pretrain:  68%|██████▊   | 54/80 [24:05<11:05, 25.59s/step, E0 loss=1.5366 drift=0.0018 lr=2.69e-06 grad=0.07 0.04 step/s]m09_pretrain:  69%|██████▉   | 55/80 [24:05<10:21, 24.87s/step, E0 loss=1.5366 drift=0.0018 lr=2.69e-06 grad=0.07 0.04 step/s]m09_pretrain:  70%|███████   | 56/80 [24:30<09:57, 24.90s/step, E0 loss=1.5366 drift=0.0018 lr=2.69e-06 grad=0.07 0.04 step/s]  Cleaned old checkpoint: m09_ckpt_step40.pt
+m09_pretrain:  70%|███████   | 56/80 [25:12<09:57, 24.90s/step, E0 loss=1.5361 drift=0.0018 lr=2.31e-06 grad=0.09 0.03 step/s]m09_pretrain:  71%|███████▏  | 57/80 [25:12<11:30, 30.01s/step, E0 loss=1.5361 drift=0.0018 lr=2.31e-06 grad=0.09 0.03 step/s]m09_pretrain:  72%|███████▎  | 58/80 [25:36<10:18, 28.12s/step, E0 loss=1.5361 drift=0.0018 lr=2.31e-06 grad=0.09 0.03 step/s]m09_pretrain:  72%|███████▎  | 58/80 [26:00<10:18, 28.12s/step, E0 loss=1.5233 drift=0.0018 lr=1.96e-06 grad=0.09 0.04 step/s]m09_pretrain:  74%|███████▍  | 59/80 [26:00<09:24, 26.88s/step, E0 loss=1.5233 drift=0.0018 lr=1.96e-06 grad=0.09 0.04 step/s]m09_pretrain:  75%|███████▌  | 60/80 [26:24<08:40, 26.04s/step, E0 loss=1.5233 drift=0.0018 lr=1.96e-06 grad=0.09 0.04 step/s]m09_pretrain:  75%|███████▌  | 60/80 [26:46<08:40, 26.04s/step, E0 loss=1.5383 drift=0.0017 lr=1.62e-06 grad=0.10 0.04 step/s]m09_pretrain:  76%|███████▋  | 61/80 [26:46<07:55, 25.00s/step, E0 loss=1.5383 drift=0.0017 lr=1.62e-06 grad=0.10 0.04 step/s]m09_pretrain:  78%|███████▊  | 62/80 [27:12<07:32, 25.14s/step, E0 loss=1.5383 drift=0.0017 lr=1.62e-06 grad=0.10 0.04 step/s]m09_pretrain:  78%|███████▊  | 62/80 [27:37<07:32, 25.14s/step, E0 loss=1.5329 drift=0.0017 lr=1.31e-06 grad=0.08 0.04 step/s]m09_pretrain:  79%|███████▉  | 63/80 [27:37<07:07, 25.16s/step, E0 loss=1.5329 drift=0.0017 lr=1.31e-06 grad=0.08 0.04 step/s]m09_pretrain:  80%|████████  | 64/80 [28:02<06:42, 25.15s/step, E0 loss=1.5329 drift=0.0017 lr=1.31e-06 grad=0.08 0.04 step/s]  Cleaned old checkpoint: m09_ckpt_step48.pt
+m09_pretrain:  80%|████████  | 64/80 [28:43<06:42, 25.15s/step, E0 loss=1.5284 drift=0.0017 lr=1.03e-06 grad=0.07 0.03 step/s]m09_pretrain:  81%|████████▏ | 65/80 [28:43<07:26, 29.79s/step, E0 loss=1.5284 drift=0.0017 lr=1.03e-06 grad=0.07 0.03 step/s]m09_pretrain:  82%|████████▎ | 66/80 [29:08<06:37, 28.37s/step, E0 loss=1.5284 drift=0.0017 lr=1.03e-06 grad=0.07 0.03 step/s]m09_pretrain:  82%|████████▎ | 66/80 [29:31<06:37, 28.37s/step, E0 loss=1.5314 drift=0.0017 lr=7.83e-07 grad=0.07 0.04 step/s]m09_pretrain:  84%|████████▍ | 67/80 [29:31<05:50, 26.94s/step, E0 loss=1.5314 drift=0.0017 lr=7.83e-07 grad=0.07 0.04 step/s]m09_pretrain:  85%|████████▌ | 68/80 [29:57<05:16, 26.41s/step, E0 loss=1.5314 drift=0.0017 lr=7.83e-07 grad=0.07 0.04 step/s]m09_pretrain:  85%|████████▌ | 68/80 [30:22<05:16, 26.41s/step, E0 loss=1.5219 drift=0.0017 lr=5.65e-07 grad=0.10 0.04 step/s]m09_pretrain:  86%|████████▋ | 69/80 [30:22<04:45, 25.96s/step, E0 loss=1.5219 drift=0.0017 lr=5.65e-07 grad=0.10 0.04 step/s]m09_pretrain:  88%|████████▊ | 70/80 [30:46<04:16, 25.62s/step, E0 loss=1.5219 drift=0.0017 lr=5.65e-07 grad=0.10 0.04 step/s]m09_pretrain:  88%|████████▊ | 70/80 [31:11<04:16, 25.62s/step, E0 loss=1.5077 drift=0.0017 lr=3.81e-07 grad=0.09 0.04 step/s]m09_pretrain:  89%|████████▉ | 71/80 [31:11<03:47, 25.30s/step, E0 loss=1.5077 drift=0.0017 lr=3.81e-07 grad=0.09 0.04 step/s]m09_pretrain:  90%|█████████ | 72/80 [31:35<03:20, 25.07s/step, E0 loss=1.5077 drift=0.0017 lr=3.81e-07 grad=0.09 0.04 step/s]  Cleaned old checkpoint: m09_ckpt_step56.pt
+m09_pretrain:  90%|█████████ | 72/80 [32:17<03:20, 25.07s/step, E0 loss=1.5271 drift=0.0017 lr=2.31e-07 grad=0.07 0.03 step/s]m09_pretrain:  91%|█████████▏| 73/80 [32:17<03:30, 30.08s/step, E0 loss=1.5271 drift=0.0017 lr=2.31e-07 grad=0.07 0.03 step/s]m09_pretrain:  92%|█████████▎| 74/80 [32:40<02:47, 27.84s/step, E0 loss=1.5271 drift=0.0017 lr=2.31e-07 grad=0.07 0.03 step/s]m09_pretrain:  92%|█████████▎| 74/80 [33:05<02:47, 27.84s/step, E0 loss=1.5166 drift=0.0017 lr=1.19e-07 grad=0.07 0.04 step/s]m09_pretrain:  94%|█████████▍| 75/80 [33:05<02:15, 27.08s/step, E0 loss=1.5166 drift=0.0017 lr=1.19e-07 grad=0.07 0.04 step/s]m09_pretrain:  95%|█████████▌| 76/80 [33:25<01:39, 24.98s/step, E0 loss=1.5166 drift=0.0017 lr=1.19e-07 grad=0.07 0.04 step/s]  Producer: starting epoch 2
+m09_pretrain:  95%|█████████▌| 76/80 [33:50<01:39, 24.98s/step, E0 loss=1.5320 drift=0.0017 lr=1.00e-07 grad=0.08 0.04 step/s]m09_pretrain:  96%|█████████▋| 77/80 [33:50<01:14, 24.96s/step, E0 loss=1.5320 drift=0.0017 lr=1.00e-07 grad=0.08 0.04 step/s]m09_pretrain:  98%|█████████▊| 78/80 [34:14<00:49, 24.61s/step, E0 loss=1.5320 drift=0.0017 lr=1.00e-07 grad=0.08 0.04 step/s]m09_pretrain:  98%|█████████▊| 78/80 [34:39<00:49, 24.61s/step, E0 loss=1.5394 drift=0.0017 lr=1.00e-07 grad=0.07 0.04 step/s]m09_pretrain:  99%|█████████▉| 79/80 [34:39<00:24, 24.75s/step, E0 loss=1.5394 drift=0.0017 lr=1.00e-07 grad=0.07 0.04 step/s]m09_pretrain: 100%|██████████| 80/80 [35:04<00:00, 24.90s/step, E0 loss=1.5394 drift=0.0017 lr=1.00e-07 grad=0.07 0.04 step/s]  Cleaned old checkpoint: m09_ckpt_step64.pt
+
+--- Epoch 1/1 complete (step 80) ---
+m09_pretrain: 100%|██████████| 80/80 [35:22<00:00, 26.53s/step, E0 loss=1.5394 drift=0.0017 lr=1.00e-07 grad=0.07 0.04 step/s]
+Exported student encoder: /workspace/factorjepa/outputs/poc/m09_lambda0_001/student_encoder.pt
+  Cleaned: m09_ckpt_latest.pt
+  Cleaned: m09_ckpt_step72.pt
+  Cleaned: m09_ckpt_step80.pt
+wandb: updating run metadata
+wandb: uploading wandb-summary.json; uploading config.yaml; uploading output.log
+wandb: uploading history steps 79-79, summary, console lines 11-11
+wandb: uploading console lines 20-26
+wandb: 
+wandb: Run history:
+wandb:                  epoch ▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁
+wandb:         epoch_complete ▁
+wandb:              grad_norm ▅▅█▆▂▂▃▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁
+wandb:             loss/drift ▁▁▁▁▁▂▂▃▅▅▆▇▇▇▇██████████████▇▇▇▇▇▇▇▇▇▇▇
+wandb:              loss/jepa ▇▇▇█▅▅▃▄▄▄▄▂▃▄▄▃▄▃▃▃▃▃▃▁▃▃▂▂▂▂▁▂▂▂▂▂▃▂▃▂
+wandb:             loss/total ▇█▄▅▄▄▃▄▄▄▂▄▄▃▃▃▃▃▃▂▂▃▂▂▂▂▂▂▃▂▁▃▂▂▁▂▁▁▂▂
+wandb:                     lr ▃▄▄▅▆█████▇▇▇▇▇▇▆▆▅▅▄▄▄▄▄▃▃▃▂▂▂▂▂▂▂▁▁▁▁▁
+wandb: throughput_steps_per_s ▁█▇▇▆█▃▇▇▇▇▃▇▇█▇▇▇▇▇▇▇▇▆▆▆▃▇▇▇▆▃▆▇▆▆▃▇▇▆
+wandb: 
+wandb: Run summary:
+wandb:                  epoch 0
+wandb:         epoch_complete 1
+wandb:              grad_norm 0.08636
+wandb:             loss/drift 0.0017
+wandb:              loss/jepa 1.5306
+wandb:             loss/total 1.5323
+wandb:                     lr 0.0
+wandb: throughput_steps_per_s 0.03964
+wandb: 
+wandb: 🚀 View run m09_POC at: https://wandb.ai/sjsu_llm/walkindia-200k/runs/2m7vymre
+wandb: ⭐️ View project at: https://wandb.ai/sjsu_llm/walkindia-200k
+wandb: Synced 5 W&B file(s), 0 media file(s), 0 artifact file(s) and 0 other file(s)
+wandb: Find logs at: ./wandb/run-20260329_051222-2m7vymre/logs
+
+=== TRAINING COMPLETE ===
+Steps:        80 (1.0 epochs)
+Clips seen:   8,960
+Student:      /workspace/factorjepa/outputs/poc/m09_lambda0_001/student_encoder.pt
+Loss log:     /workspace/factorjepa/outputs/poc/m09_lambda0_001/loss_log.csv
+Summary:      /workspace/factorjepa/outputs/poc/m09_lambda0_001/training_summary.json
+[05:47:58] PASSED: m09 pretrain (lambda=0.001) (36m 1s)
+  OK   student_encoder.pt             4049 MB
+  OK   training_summary.json          jepa_loss=1.5306
+  OK   loss_log.csv                   80 steps
+[05:47:58] VERIFY OK: Training lambda=0.001
+[05:47:58] Completed training: lambda=0.001 (lambda0_001)
+
+[05:47:58] ╔═══════════════════════════════════════════════════════════╗
+[05:47:58] ║  ABLATION: lambda=0.01 (lambda0_01)                    
+[05:47:58] ╚═══════════════════════════════════════════════════════════╝
+
+═══════════════════════════════════════════════════════════════
+  STEP lambda0_01-train: m09 pretrain (lambda=0.01)
+  Mode: FULL | Est: ~5-20h (2000-10000 steps, profiler BS)
+  Started: 2026-03-29 05:47:58
+═══════════════════════════════════════════════════════════════
+[05:47:58] CMD: python -u src/m09_pretrain.py --config configs/pretrain/vitg16_indian.yaml --lambda-reg 0.01 --batch-size 112 --FULL --subset data/subset_10k.json --local-data data/subset_10k_local
+Using PyAV for video decoding
+GPU: NVIDIA RTX PRO 6000 Blackwell Workstation Edition
+CUDA version: 12.8
+
+=== Building Model ===
+/workspace/factorjepa/venv_walkindia/lib/python3.12/site-packages/timm/models/layers/__init__.py:49: FutureWarning: Importing from timm.models.layers is deprecated, please import via timm.layers
+  warnings.warn(f"Importing from {__name__} is deprecated, please import via timm.layers", FutureWarning)
+Downloading pretrained weights via torch.hub...
+Student loaded: 1,012,173,952 params (484/484 keys = 100%)
+Teacher created (deepcopy of student)
+Predictor loaded from checkpoint (152/152 keys = 100%)
+Predictor: 22,378,240 params
+Mask generators: 2 (blocks: [8, 2])
+[POC] Loaded subset: 10,000 clip keys from subset_10k.json
+Train clips: 8,982 | Val clips: 1,018
+Epochs: 1 | Steps/epoch: 80 | Total steps: 80
+Checkpoint every 8 steps (10x per epoch, keep last 2)
+wandb: [wandb.login()] Loaded credentials for https://api.wandb.ai from WANDB_API_KEY.
+wandb: Currently logged in as: kapilw25 (sjsu_llm) to https://api.wandb.ai. Use `wandb login --relogin` to force relogin
+wandb: WARNING Using a boolean value for 'reinit' is deprecated. Use 'return_previous' or 'finish_previous' instead.
+wandb: setting up run nyod7abn
+wandb: Tracking run with wandb version 0.25.1
+wandb: Run data is saved locally in /workspace/factorjepa/wandb/run-20260329_054823-nyod7abn
+wandb: Run `wandb offline` to turn off syncing.
+wandb: Syncing run m09_POC
+wandb: ⭐️ View project at https://wandb.ai/sjsu_llm/walkindia-200k
+wandb: 🚀 View run at https://wandb.ai/sjsu_llm/walkindia-200k/runs/nyod7abn
+wandb: run=m09_POC url=https://wandb.ai/sjsu_llm/walkindia-200k/runs/nyod7abn
+m09_pretrain:   0%|          | 0/80 [00:00<?, ?step/s]
+=== Training: 0 → 80 steps (1 epochs) ===
+Batch size: 112
+Grad checkpointing: True
+Mixed precision: bfloat16
+EMA momentum: 0.99925
+Drift control: lambda=0.01
+Loss log: /workspace/factorjepa/outputs/poc/m09_lambda0_01/loss_log.csv
+/venv/main/lib/python3.12/contextlib.py:105: FutureWarning: `torch.backends.cuda.sdp_kernel()` is deprecated. In the future, this context manager will be removed. Please see `torch.nn.attention.sdpa_kernel()` for the new context manager, with updated signature.
+  self.gen = func(*args, **kwds)
+m09_pretrain:   0%|          | 0/80 [00:42<?, ?step/s, E0 loss=1.6326 drift=0.0000 lr=1.25e-06 grad=1.57 0.02 step/s]m09_pretrain:   1%|▏         | 1/80 [00:42<56:14, 42.72s/step, E0 loss=1.6326 drift=0.0000 lr=1.25e-06 grad=1.57 0.02 step/s]m09_pretrain:   2%|▎         | 2/80 [01:04<39:49, 30.64s/step, E0 loss=1.6326 drift=0.0000 lr=1.25e-06 grad=1.57 0.02 step/s]m09_pretrain:   2%|▎         | 2/80 [01:29<39:49, 30.64s/step, E0 loss=1.6347 drift=0.0000 lr=3.75e-06 grad=1.68 0.04 step/s]m09_pretrain:   4%|▍         | 3/80 [01:29<35:50, 27.93s/step, E0 loss=1.6347 drift=0.0000 lr=3.75e-06 grad=1.68 0.04 step/s]m09_pretrain:   5%|▌         | 4/80 [01:53<33:15, 26.25s/step, E0 loss=1.6347 drift=0.0000 lr=3.75e-06 grad=1.68 0.04 step/s]m09_pretrain:   5%|▌         | 4/80 [02:17<33:15, 26.25s/step, E0 loss=1.6595 drift=0.0002 lr=6.25e-06 grad=1.68 0.04 step/s]m09_pretrain:   6%|▋         | 5/80 [02:17<31:47, 25.43s/step, E0 loss=1.6595 drift=0.0002 lr=6.25e-06 grad=1.68 0.04 step/s]m09_pretrain:   8%|▊         | 6/80 [02:42<31:07, 25.24s/step, E0 loss=1.6595 drift=0.0002 lr=6.25e-06 grad=1.68 0.04 step/s]m09_pretrain:   8%|▊         | 6/80 [03:03<31:07, 25.24s/step, E0 loss=1.6335 drift=0.0009 lr=8.75e-06 grad=0.38 0.04 step/s]m09_pretrain:   9%|▉         | 7/80 [03:03<29:00, 23.84s/step, E0 loss=1.6335 drift=0.0009 lr=8.75e-06 grad=0.38 0.04 step/s]m09_pretrain:  10%|█         | 8/80 [03:27<28:41, 23.91s/step, E0 loss=1.6335 drift=0.0009 lr=8.75e-06 grad=0.38 0.04 step/s]m09_pretrain:  10%|█         | 8/80 [04:06<28:41, 23.91s/step, E0 loss=1.5875 drift=0.0022 lr=1.00e-05 grad=0.39 0.03 step/s]m09_pretrain:  11%|█▏        | 9/80 [04:06<33:53, 28.64s/step, E0 loss=1.5875 drift=0.0022 lr=1.00e-05 grad=0.39 0.03 step/s]m09_pretrain:  12%|█▎        | 10/80 [04:28<31:15, 26.80s/step, E0 loss=1.5875 drift=0.0022 lr=1.00e-05 grad=0.39 0.03 step/s]m09_pretrain:  12%|█▎        | 10/80 [04:54<31:15, 26.80s/step, E0 loss=1.5904 drift=0.0036 lr=9.96e-06 grad=0.64 0.04 step/s]m09_pretrain:  14%|█▍        | 11/80 [04:54<30:17, 26.33s/step, E0 loss=1.5904 drift=0.0036 lr=9.96e-06 grad=0.64 0.04 step/s]m09_pretrain:  15%|█▌        | 12/80 [05:16<28:19, 24.99s/step, E0 loss=1.5904 drift=0.0036 lr=9.96e-06 grad=0.64 0.04 step/s]m09_pretrain:  15%|█▌        | 12/80 [05:39<28:19, 24.99s/step, E0 loss=1.5581 drift=0.0044 lr=9.88e-06 grad=0.27 0.04 step/s]m09_pretrain:  16%|█▋        | 13/80 [05:39<27:30, 24.63s/step, E0 loss=1.5581 drift=0.0044 lr=9.88e-06 grad=0.27 0.04 step/s]m09_pretrain:  18%|█▊        | 14/80 [06:04<26:58, 24.52s/step, E0 loss=1.5581 drift=0.0044 lr=9.88e-06 grad=0.27 0.04 step/s]m09_pretrain:  18%|█▊        | 14/80 [06:30<26:58, 24.52s/step, E0 loss=1.5558 drift=0.0046 lr=9.77e-06 grad=0.16 0.04 step/s]m09_pretrain:  19%|█▉        | 15/80 [06:30<27:14, 25.15s/step, E0 loss=1.5558 drift=0.0046 lr=9.77e-06 grad=0.16 0.04 step/s]m09_pretrain:  20%|██        | 16/80 [06:52<25:46, 24.17s/step, E0 loss=1.5558 drift=0.0046 lr=9.77e-06 grad=0.16 0.04 step/s]m09_pretrain:  20%|██        | 16/80 [07:32<25:46, 24.17s/step, E0 loss=1.5906 drift=0.0046 lr=9.62e-06 grad=0.15 0.03 step/s]m09_pretrain:  21%|██▏       | 17/80 [07:32<30:20, 28.90s/step, E0 loss=1.5906 drift=0.0046 lr=9.62e-06 grad=0.15 0.03 step/s]m09_pretrain:  22%|██▎       | 18/80 [07:55<28:04, 27.17s/step, E0 loss=1.5906 drift=0.0046 lr=9.62e-06 grad=0.15 0.03 step/s]m09_pretrain:  22%|██▎       | 18/80 [08:21<28:04, 27.17s/step, E0 loss=1.5667 drift=0.0045 lr=9.44e-06 grad=0.12 0.04 step/s]m09_pretrain:  24%|██▍       | 19/80 [08:21<27:13, 26.77s/step, E0 loss=1.5667 drift=0.0045 lr=9.44e-06 grad=0.12 0.04 step/s]m09_pretrain:  25%|██▌       | 20/80 [08:44<25:30, 25.52s/step, E0 loss=1.5667 drift=0.0045 lr=9.44e-06 grad=0.12 0.04 step/s]m09_pretrain:  25%|██▌       | 20/80 [09:07<25:30, 25.52s/step, E0 loss=1.5705 drift=0.0043 lr=9.22e-06 grad=0.11 0.04 step/s]m09_pretrain:  26%|██▋       | 21/80 [09:07<24:30, 24.93s/step, E0 loss=1.5705 drift=0.0043 lr=9.22e-06 grad=0.11 0.04 step/s]m09_pretrain:  28%|██▊       | 22/80 [09:30<23:28, 24.28s/step, E0 loss=1.5705 drift=0.0043 lr=9.22e-06 grad=0.11 0.04 step/s]m09_pretrain:  28%|██▊       | 22/80 [09:55<23:28, 24.28s/step, E0 loss=1.5384 drift=0.0042 lr=8.97e-06 grad=0.14 0.04 step/s]m09_pretrain:  29%|██▉       | 23/80 [09:55<23:11, 24.42s/step, E0 loss=1.5384 drift=0.0042 lr=8.97e-06 grad=0.14 0.04 step/s]m09_pretrain:  30%|███       | 24/80 [10:19<22:53, 24.52s/step, E0 loss=1.5384 drift=0.0042 lr=8.97e-06 grad=0.14 0.04 step/s]  Cleaned old checkpoint: m09_ckpt_step8.pt
+m09_pretrain:  30%|███       | 24/80 [11:02<22:53, 24.52s/step, E0 loss=1.5544 drift=0.0040 lr=8.69e-06 grad=0.09 0.03 step/s]m09_pretrain:  31%|███▏      | 25/80 [11:02<27:30, 30.02s/step, E0 loss=1.5544 drift=0.0040 lr=8.69e-06 grad=0.09 0.03 step/s]m09_pretrain:  32%|███▎      | 26/80 [11:27<25:36, 28.46s/step, E0 loss=1.5544 drift=0.0040 lr=8.69e-06 grad=0.09 0.03 step/s]m09_pretrain:  32%|███▎      | 26/80 [11:52<25:36, 28.46s/step, E0 loss=1.5599 drift=0.0038 lr=8.38e-06 grad=0.09 0.04 step/s]m09_pretrain:  34%|███▍      | 27/80 [11:52<24:17, 27.50s/step, E0 loss=1.5599 drift=0.0038 lr=8.38e-06 grad=0.09 0.04 step/s]m09_pretrain:  35%|███▌      | 28/80 [12:16<22:46, 26.28s/step, E0 loss=1.5599 drift=0.0038 lr=8.38e-06 grad=0.09 0.04 step/s]m09_pretrain:  35%|███▌      | 28/80 [12:40<22:46, 26.28s/step, E0 loss=1.5597 drift=0.0036 lr=8.04e-06 grad=0.10 0.04 step/s]m09_pretrain:  36%|███▋      | 29/80 [12:40<21:45, 25.59s/step, E0 loss=1.5597 drift=0.0036 lr=8.04e-06 grad=0.10 0.04 step/s]m09_pretrain:  38%|███▊      | 30/80 [13:03<20:46, 24.93s/step, E0 loss=1.5597 drift=0.0036 lr=8.04e-06 grad=0.10 0.04 step/s]m09_pretrain:  38%|███▊      | 30/80 [13:29<20:46, 24.93s/step, E0 loss=1.5566 drift=0.0034 lr=7.69e-06 grad=0.09 0.04 step/s]m09_pretrain:  39%|███▉      | 31/80 [13:29<20:30, 25.11s/step, E0 loss=1.5566 drift=0.0034 lr=7.69e-06 grad=0.09 0.04 step/s]m09_pretrain:  40%|████      | 32/80 [13:53<19:47, 24.75s/step, E0 loss=1.5566 drift=0.0034 lr=7.69e-06 grad=0.09 0.04 step/s]  Cleaned old checkpoint: m09_ckpt_step16.pt
+m09_pretrain:  40%|████      | 32/80 [14:35<19:47, 24.75s/step, E0 loss=1.5515 drift=0.0032 lr=7.31e-06 grad=0.08 0.03 step/s]m09_pretrain:  41%|████▏     | 33/80 [14:35<23:28, 29.96s/step, E0 loss=1.5515 drift=0.0032 lr=7.31e-06 grad=0.08 0.03 step/s]m09_pretrain:  42%|████▎     | 34/80 [14:58<21:28, 28.02s/step, E0 loss=1.5515 drift=0.0032 lr=7.31e-06 grad=0.08 0.03 step/s]m09_pretrain:  42%|████▎     | 34/80 [15:24<21:28, 28.02s/step, E0 loss=1.5559 drift=0.0030 lr=6.91e-06 grad=0.08 0.04 step/s]m09_pretrain:  44%|████▍     | 35/80 [15:24<20:36, 27.49s/step, E0 loss=1.5559 drift=0.0030 lr=6.91e-06 grad=0.08 0.04 step/s]m09_pretrain:  45%|████▌     | 36/80 [15:48<19:21, 26.40s/step, E0 loss=1.5559 drift=0.0030 lr=6.91e-06 grad=0.08 0.04 step/s]m09_pretrain:  45%|████▌     | 36/80 [16:13<19:21, 26.40s/step, E0 loss=1.5457 drift=0.0028 lr=6.50e-06 grad=0.11 0.04 step/s]m09_pretrain:  46%|████▋     | 37/80 [16:13<18:38, 26.02s/step, E0 loss=1.5457 drift=0.0028 lr=6.50e-06 grad=0.11 0.04 step/s]m09_pretrain:  48%|████▊     | 38/80 [16:38<17:50, 25.48s/step, E0 loss=1.5457 drift=0.0028 lr=6.50e-06 grad=0.11 0.04 step/s]m09_pretrain:  48%|████▊     | 38/80 [17:03<17:50, 25.48s/step, E0 loss=1.5466 drift=0.0027 lr=6.08e-06 grad=0.08 0.04 step/s]m09_pretrain:  49%|████▉     | 39/80 [17:03<17:18, 25.32s/step, E0 loss=1.5466 drift=0.0027 lr=6.08e-06 grad=0.08 0.04 step/s]m09_pretrain:  50%|█████     | 40/80 [17:27<16:47, 25.18s/step, E0 loss=1.5466 drift=0.0027 lr=6.08e-06 grad=0.08 0.04 step/s]  Cleaned old checkpoint: m09_ckpt_step24.pt
+m09_pretrain:  50%|█████     | 40/80 [18:08<16:47, 25.18s/step, E0 loss=1.5203 drift=0.0025 lr=5.65e-06 grad=0.11 0.03 step/s]m09_pretrain:  51%|█████▏    | 41/80 [18:08<19:26, 29.91s/step, E0 loss=1.5203 drift=0.0025 lr=5.65e-06 grad=0.11 0.03 step/s]m09_pretrain:  52%|█████▎    | 42/80 [18:30<17:25, 27.52s/step, E0 loss=1.5203 drift=0.0025 lr=5.65e-06 grad=0.11 0.03 step/s]m09_pretrain:  52%|█████▎    | 42/80 [18:55<17:25, 27.52s/step, E0 loss=1.5443 drift=0.0024 lr=5.22e-06 grad=0.10 0.04 step/s]m09_pretrain:  54%|█████▍    | 43/80 [18:55<16:21, 26.54s/step, E0 loss=1.5443 drift=0.0024 lr=5.22e-06 grad=0.10 0.04 step/s]m09_pretrain:  55%|█████▌    | 44/80 [19:19<15:33, 25.92s/step, E0 loss=1.5443 drift=0.0024 lr=5.22e-06 grad=0.10 0.04 step/s]m09_pretrain:  55%|█████▌    | 44/80 [19:44<15:33, 25.92s/step, E0 loss=1.5429 drift=0.0023 lr=4.78e-06 grad=0.08 0.04 step/s]m09_pretrain:  56%|█████▋    | 45/80 [19:44<14:52, 25.49s/step, E0 loss=1.5429 drift=0.0023 lr=4.78e-06 grad=0.08 0.04 step/s]m09_pretrain:  57%|█████▊    | 46/80 [20:08<14:18, 25.24s/step, E0 loss=1.5429 drift=0.0023 lr=4.78e-06 grad=0.08 0.04 step/s]m09_pretrain:  57%|█████▊    | 46/80 [20:31<14:18, 25.24s/step, E0 loss=1.5677 drift=0.0023 lr=4.35e-06 grad=0.09 0.04 step/s]m09_pretrain:  59%|█████▉    | 47/80 [20:31<13:27, 24.47s/step, E0 loss=1.5677 drift=0.0023 lr=4.35e-06 grad=0.09 0.04 step/s]m09_pretrain:  60%|██████    | 48/80 [20:55<12:59, 24.36s/step, E0 loss=1.5677 drift=0.0023 lr=4.35e-06 grad=0.09 0.04 step/s]  Cleaned old checkpoint: m09_ckpt_step32.pt
+m09_pretrain:  60%|██████    | 48/80 [21:37<12:59, 24.36s/step, E0 loss=1.5354 drift=0.0022 lr=3.92e-06 grad=0.10 0.03 step/s]m09_pretrain:  61%|██████▏   | 49/80 [21:37<15:22, 29.76s/step, E0 loss=1.5354 drift=0.0022 lr=3.92e-06 grad=0.10 0.03 step/s]m09_pretrain:  62%|██████▎   | 50/80 [22:02<14:09, 28.33s/step, E0 loss=1.5354 drift=0.0022 lr=3.92e-06 grad=0.10 0.03 step/s]m09_pretrain:  62%|██████▎   | 50/80 [22:27<14:09, 28.33s/step, E0 loss=1.5302 drift=0.0021 lr=3.50e-06 grad=0.09 0.04 step/s]m09_pretrain:  64%|██████▍   | 51/80 [22:27<13:10, 27.27s/step, E0 loss=1.5302 drift=0.0021 lr=3.50e-06 grad=0.09 0.04 step/s]m09_pretrain:  65%|██████▌   | 52/80 [22:52<12:22, 26.53s/step, E0 loss=1.5302 drift=0.0021 lr=3.50e-06 grad=0.09 0.04 step/s]m09_pretrain:  65%|██████▌   | 52/80 [23:16<12:22, 26.53s/step, E0 loss=1.5262 drift=0.0020 lr=3.09e-06 grad=0.10 0.04 step/s]m09_pretrain:  66%|██████▋   | 53/80 [23:16<11:37, 25.83s/step, E0 loss=1.5262 drift=0.0020 lr=3.09e-06 grad=0.10 0.04 step/s]m09_pretrain:  68%|██████▊   | 54/80 [23:41<11:04, 25.55s/step, E0 loss=1.5262 drift=0.0020 lr=3.09e-06 grad=0.10 0.04 step/s]m09_pretrain:  68%|██████▊   | 54/80 [24:04<11:04, 25.55s/step, E0 loss=1.5361 drift=0.0020 lr=2.69e-06 grad=0.08 0.04 step/s]m09_pretrain:  69%|██████▉   | 55/80 [24:04<10:16, 24.66s/step, E0 loss=1.5361 drift=0.0020 lr=2.69e-06 grad=0.08 0.04 step/s]m09_pretrain:  70%|███████   | 56/80 [24:27<09:40, 24.21s/step, E0 loss=1.5361 drift=0.0020 lr=2.69e-06 grad=0.08 0.04 step/s]  Cleaned old checkpoint: m09_ckpt_step40.pt
+m09_pretrain:  70%|███████   | 56/80 [25:09<09:40, 24.21s/step, E0 loss=1.5396 drift=0.0019 lr=2.31e-06 grad=0.07 0.03 step/s]m09_pretrain:  71%|███████▏  | 57/80 [25:09<11:18, 29.51s/step, E0 loss=1.5396 drift=0.0019 lr=2.31e-06 grad=0.07 0.03 step/s]m09_pretrain:  72%|███████▎  | 58/80 [25:33<10:14, 27.92s/step, E0 loss=1.5396 drift=0.0019 lr=2.31e-06 grad=0.07 0.03 step/s]m09_pretrain:  72%|███████▎  | 58/80 [25:59<10:14, 27.92s/step, E0 loss=1.5178 drift=0.0019 lr=1.96e-06 grad=0.09 0.04 step/s]m09_pretrain:  74%|███████▍  | 59/80 [25:59<09:34, 27.38s/step, E0 loss=1.5178 drift=0.0019 lr=1.96e-06 grad=0.09 0.04 step/s]m09_pretrain:  75%|███████▌  | 60/80 [26:24<08:51, 26.56s/step, E0 loss=1.5178 drift=0.0019 lr=1.96e-06 grad=0.09 0.04 step/s]m09_pretrain:  75%|███████▌  | 60/80 [26:48<08:51, 26.56s/step, E0 loss=1.5303 drift=0.0018 lr=1.62e-06 grad=0.07 0.04 step/s]m09_pretrain:  76%|███████▋  | 61/80 [26:48<08:14, 26.02s/step, E0 loss=1.5303 drift=0.0018 lr=1.62e-06 grad=0.07 0.04 step/s]m09_pretrain:  78%|███████▊  | 62/80 [27:12<07:35, 25.29s/step, E0 loss=1.5303 drift=0.0018 lr=1.62e-06 grad=0.07 0.04 step/s]m09_pretrain:  78%|███████▊  | 62/80 [27:35<07:35, 25.29s/step, E0 loss=1.5362 drift=0.0018 lr=1.31e-06 grad=0.09 0.04 step/s]m09_pretrain:  79%|███████▉  | 63/80 [27:35<06:58, 24.62s/step, E0 loss=1.5362 drift=0.0018 lr=1.31e-06 grad=0.09 0.04 step/s]m09_pretrain:  80%|████████  | 64/80 [27:59<06:28, 24.29s/step, E0 loss=1.5362 drift=0.0018 lr=1.31e-06 grad=0.09 0.04 step/s]  Cleaned old checkpoint: m09_ckpt_step48.pt
+m09_pretrain:  80%|████████  | 64/80 [28:41<06:28, 24.29s/step, E0 loss=1.5292 drift=0.0017 lr=1.03e-06 grad=0.08 0.03 step/s]m09_pretrain:  81%|████████▏ | 65/80 [28:41<07:25, 29.69s/step, E0 loss=1.5292 drift=0.0017 lr=1.03e-06 grad=0.08 0.03 step/s]m09_pretrain:  82%|████████▎ | 66/80 [29:03<06:23, 27.43s/step, E0 loss=1.5292 drift=0.0017 lr=1.03e-06 grad=0.08 0.03 step/s]m09_pretrain:  82%|████████▎ | 66/80 [29:29<06:23, 27.43s/step, E0 loss=1.5319 drift=0.0017 lr=7.83e-07 grad=0.07 0.04 step/s]m09_pretrain:  84%|████████▍ | 67/80 [29:29<05:51, 27.03s/step, E0 loss=1.5319 drift=0.0017 lr=7.83e-07 grad=0.07 0.04 step/s]m09_pretrain:  85%|████████▌ | 68/80 [29:54<05:16, 26.34s/step, E0 loss=1.5319 drift=0.0017 lr=7.83e-07 grad=0.07 0.04 step/s]m09_pretrain:  85%|████████▌ | 68/80 [30:19<05:16, 26.34s/step, E0 loss=1.5246 drift=0.0017 lr=5.65e-07 grad=0.09 0.04 step/s]m09_pretrain:  86%|████████▋ | 69/80 [30:19<04:45, 25.97s/step, E0 loss=1.5246 drift=0.0017 lr=5.65e-07 grad=0.09 0.04 step/s]m09_pretrain:  88%|████████▊ | 70/80 [30:42<04:11, 25.14s/step, E0 loss=1.5246 drift=0.0017 lr=5.65e-07 grad=0.09 0.04 step/s]m09_pretrain:  88%|████████▊ | 70/80 [31:07<04:11, 25.14s/step, E0 loss=1.5138 drift=0.0017 lr=3.81e-07 grad=0.08 0.04 step/s]m09_pretrain:  89%|████████▉ | 71/80 [31:07<03:46, 25.15s/step, E0 loss=1.5138 drift=0.0017 lr=3.81e-07 grad=0.08 0.04 step/s]m09_pretrain:  90%|█████████ | 72/80 [31:30<03:15, 24.45s/step, E0 loss=1.5138 drift=0.0017 lr=3.81e-07 grad=0.08 0.04 step/s]  Cleaned old checkpoint: m09_ckpt_step56.pt
+m09_pretrain:  90%|█████████ | 72/80 [32:12<03:15, 24.45s/step, E0 loss=1.5247 drift=0.0016 lr=2.31e-07 grad=0.08 0.03 step/s]m09_pretrain:  91%|█████████▏| 73/80 [32:12<03:27, 29.64s/step, E0 loss=1.5247 drift=0.0016 lr=2.31e-07 grad=0.08 0.03 step/s]m09_pretrain:  92%|█████████▎| 74/80 [32:34<02:43, 27.32s/step, E0 loss=1.5247 drift=0.0016 lr=2.31e-07 grad=0.08 0.03 step/s]m09_pretrain:  92%|█████████▎| 74/80 [33:00<02:43, 27.32s/step, E0 loss=1.5233 drift=0.0016 lr=1.19e-07 grad=0.07 0.04 step/s]m09_pretrain:  94%|█████████▍| 75/80 [33:00<02:14, 26.97s/step, E0 loss=1.5233 drift=0.0016 lr=1.19e-07 grad=0.07 0.04 step/s]m09_pretrain:  95%|█████████▌| 76/80 [33:22<01:42, 25.51s/step, E0 loss=1.5233 drift=0.0016 lr=1.19e-07 grad=0.07 0.04 step/s]  Producer: starting epoch 2
+m09_pretrain:  95%|█████████▌| 76/80 [33:48<01:42, 25.51s/step, E0 loss=1.5270 drift=0.0016 lr=1.00e-07 grad=0.09 0.04 step/s]m09_pretrain:  96%|█████████▋| 77/80 [33:48<01:16, 25.50s/step, E0 loss=1.5270 drift=0.0016 lr=1.00e-07 grad=0.09 0.04 step/s]m09_pretrain:  98%|█████████▊| 78/80 [34:12<00:50, 25.15s/step, E0 loss=1.5270 drift=0.0016 lr=1.00e-07 grad=0.09 0.04 step/s]m09_pretrain:  98%|█████████▊| 78/80 [34:37<00:50, 25.15s/step, E0 loss=1.5359 drift=0.0016 lr=1.00e-07 grad=0.07 0.04 step/s]m09_pretrain:  99%|█████████▉| 79/80 [34:37<00:25, 25.27s/step, E0 loss=1.5359 drift=0.0016 lr=1.00e-07 grad=0.07 0.04 step/s]m09_pretrain: 100%|██████████| 80/80 [34:59<00:00, 24.30s/step, E0 loss=1.5359 drift=0.0016 lr=1.00e-07 grad=0.07 0.04 step/s]  Cleaned old checkpoint: m09_ckpt_step64.pt
+
+--- Epoch 1/1 complete (step 80) ---
+m09_pretrain: 100%|██████████| 80/80 [35:17<00:00, 26.47s/step, E0 loss=1.5359 drift=0.0016 lr=1.00e-07 grad=0.07 0.04 step/s]
+Exported student encoder: /workspace/factorjepa/outputs/poc/m09_lambda0_01/student_encoder.pt
+  Cleaned: m09_ckpt_latest.pt
+  Cleaned: m09_ckpt_step72.pt
+  Cleaned: m09_ckpt_step80.pt
+wandb: updating run metadata
+wandb: uploading output.log; uploading wandb-summary.json
+wandb: uploading history steps 79-79, summary, console lines 11-11
+wandb: 
+wandb: Run history:
+wandb:                  epoch ▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁
+wandb:         epoch_complete ▁
+wandb:              grad_norm ▇▆█▇▆▃▂▂▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁
+wandb:             loss/drift ▁▁▁▁▂▃▄▆▆▇██▇▇▇▆▆▆▆▅▅▅▅▅▅▄▄▄▄▄▄▄▄▄▄▃▃▃▃▃
+wandb:              loss/jepa ██▅▆▆▄▄▆▅▅▃▃▄▄▄▄▄▄▄▃▂▄▃▃▄▂▃▃▄▂▁▃▃▂▃▁▂▃▂▄
+wandb:             loss/total ▇▇██▆▅▄▄▄▃▄▄▄▃▄▃▃▄▃▃▂▃▃▂▂▄▂▃▁▃▃▃▂▃▂▁▃▂▂▃
+wandb:                     lr ▄███████▇▇▇▇▇▆▆▆▆▅▅▅▄▄▄▃▃▃▃▂▂▂▂▂▂▁▁▁▁▁▁▁
+wandb: throughput_steps_per_s ▇▂▇█▇▅█▂▆▇▆▆▁▆▁▆▆▆▆▁▇▆▇▆▁▆▆▇▆▅▇▁█▆▆▂▆█▆▆
+wandb: 
+wandb: Run summary:
+wandb:                  epoch 0
+wandb:         epoch_complete 1
+wandb:              grad_norm 0.09432
+wandb:             loss/drift 0.00162
+wandb:              loss/jepa 1.5483
+wandb:             loss/total 1.54992
+wandb:                     lr 0.0
+wandb: throughput_steps_per_s 0.0454
+wandb: 
+wandb: 🚀 View run m09_POC at: https://wandb.ai/sjsu_llm/walkindia-200k/runs/nyod7abn
+wandb: ⭐️ View project at: https://wandb.ai/sjsu_llm/walkindia-200k
+wandb: Synced 5 W&B file(s), 0 media file(s), 0 artifact file(s) and 0 other file(s)
+wandb: Find logs at: ./wandb/run-20260329_054823-nyod7abn/logs
+
+=== TRAINING COMPLETE ===
+Steps:        80 (1.0 epochs)
+Clips seen:   8,960
+Student:      /workspace/factorjepa/outputs/poc/m09_lambda0_01/student_encoder.pt
+Loss log:     /workspace/factorjepa/outputs/poc/m09_lambda0_01/loss_log.csv
+Summary:      /workspace/factorjepa/outputs/poc/m09_lambda0_01/training_summary.json
+[06:23:54] PASSED: m09 pretrain (lambda=0.01) (35m 56s)
+  OK   student_encoder.pt             4049 MB
+  OK   training_summary.json          jepa_loss=1.5483
+  OK   loss_log.csv                   80 steps
+[06:23:54] VERIFY OK: Training lambda=0.01
+[06:23:54] Completed training: lambda=0.01 (lambda0_01)
+
+[06:23:54] ╔═══════════════════════════════════════════════════════════╗
+[06:23:54] ║  ABLATION: lambda=0.1 (lambda0_1)                    
+[06:23:54] ╚═══════════════════════════════════════════════════════════╝
+
+═══════════════════════════════════════════════════════════════
+  STEP lambda0_1-train: m09 pretrain (lambda=0.1)
+  Mode: FULL | Est: ~5-20h (2000-10000 steps, profiler BS)
+  Started: 2026-03-29 06:23:54
+═══════════════════════════════════════════════════════════════
+[06:23:54] CMD: python -u src/m09_pretrain.py --config configs/pretrain/vitg16_indian.yaml --lambda-reg 0.1 --batch-size 112 --FULL --subset data/subset_10k.json --local-data data/subset_10k_local
+  File "/workspace/factorjepa/src/m09_pretrain.py", line 731
+    lam_tag = f"_lambda{f'{drift_cfg[\"lambda_reg\"]:g}'.replace('.', '_')}"
+                                      ^
+SyntaxError: unexpected character after line continuation character
+[06:23:54] FAILED: m09 pretrain (lambda=0.1) (0m 0s) — exit code 1
+[06:23:54] FATAL: m09 lambda=0.1 failed. Stopping pipeline.

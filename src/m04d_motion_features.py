@@ -33,6 +33,7 @@ sys.path.insert(0, str(Path(__file__).parent))
 from utils.config import (
     HF_DATASET_REPO, check_gpu,
     add_subset_arg, add_local_data_arg, get_output_dir, load_subset,
+    get_pipeline_config, get_sanity_clip_limit,
 )
 from utils.wandb_utils import (
     add_wandb_args, init_wandb, log_metrics, finish_wandb,
@@ -52,10 +53,11 @@ FEATURE_NAMES = [
     "camera_motion_x", "camera_motion_y",
 ]
 N_FRAME_PAIRS = 16
-CHECKPOINT_INTERVAL = 200
-PRODUCER_QUEUE_SIZE = 8   # preprocessed clip batches buffered ahead
-CLIPS_PER_GPU_BATCH = 8   # clips per RAFT forward (128 pairs; cuDNN disabled for grid_sample overflow PyTorch#88380)
-DECODE_WORKERS = 4         # parallel PyAV decode threads (releases GIL, I/O-bound)
+_pcfg = get_pipeline_config()
+CHECKPOINT_INTERVAL = _pcfg["eval"]["motion_checkpoint_every"]
+PRODUCER_QUEUE_SIZE = _pcfg["streaming"]["producer_queue_motion"]
+CLIPS_PER_GPU_BATCH = _pcfg["gpu"]["motion_batch_size"]
+DECODE_WORKERS = _pcfg["streaming"]["decode_workers_motion"]
 
 
 # ── HF Streaming (reuse m05 pattern) ────────────────────────────────
@@ -391,7 +393,7 @@ def main():
         return
 
     mode = "SANITY" if args.SANITY else ("POC" if args.subset else "FULL")
-    clip_limit = 20 if args.SANITY else None
+    clip_limit = get_sanity_clip_limit("motion") if args.SANITY else None
     wb_run = init_wandb("m04d", mode, config=vars(args),
                         enabled=not args.no_wandb)
 

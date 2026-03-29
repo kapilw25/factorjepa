@@ -24,6 +24,7 @@ from utils.config import (
     FAISS_K_NEIGHBORS, TAG_TAXONOMY_JSON,
     check_gpu, add_subset_arg, get_output_dir,
     add_encoder_arg, get_encoder_files, get_encoder_info, ENCODER_REGISTRY,
+    get_pipeline_config,
 )
 from utils.wandb_utils import (
     add_wandb_args, init_wandb, log_metrics, log_image, log_artifact, finish_wandb,
@@ -41,8 +42,9 @@ except ImportError as e:
     sys.exit(1)
 
 # ── Constants ────────────────────────────────────────────────────────────
-EXCLUSION_WINDOW_SEC = 30
-DEFAULT_CLIP_DURATION_SEC = 10
+_pcfg = get_pipeline_config()
+EXCLUSION_WINDOW_SEC = _pcfg["data"]["exclusion_window_sec"]
+DEFAULT_CLIP_DURATION_SEC = _pcfg["data"]["clip_duration_sec"]
 CONFIDENCE_THRESHOLDS = [0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]
 SLICE_FIELDS = ["time_of_day", "weather", "crowd_density", "traffic_density",
                 "road_surface", "infrastructure_quality", "vegetation", "lighting"]
@@ -67,8 +69,8 @@ def compute_true_overlap_at_k(output_dir: Path, k: int) -> float:
     aug_b = np.load(aug_b_file).astype(np.float32)
 
     if aug_a.shape != aug_b.shape:
-        print(f"WARNING: augA shape {aug_a.shape} != augB shape {aug_b.shape}")
-        return None
+        print(f"FATAL: augA shape {aug_a.shape} != augB shape {aug_b.shape}")
+        sys.exit(1)
 
     n, d = aug_a.shape
     res = faiss.StandardGpuResources()
@@ -282,8 +284,8 @@ def compute_silhouette(embeddings: np.ndarray, tags: list,
     try:
         from sklearn.metrics import silhouette_score
     except ImportError:
-        print("WARNING: sklearn not available, skipping silhouette")
-        return 0.0
+        print("FATAL: sklearn not available. Install: pip install scikit-learn")
+        sys.exit(1)
 
     labels = [t.get(field, "unknown") for t in tags]
     unique = set(labels)
@@ -651,8 +653,8 @@ def generate_plots(easy: dict, hard: dict, conf_sweep: list,
         matplotlib.use("Agg")
         import matplotlib.pyplot as plt
     except ImportError:
-        print("WARNING: matplotlib not available, skipping plots")
-        return
+        print("FATAL: matplotlib not available. Install: pip install matplotlib")
+        sys.exit(1)
 
     output_dir.mkdir(parents=True, exist_ok=True)
 
@@ -1085,11 +1087,9 @@ def main():
     n_tags = len(tags)
     if n_tags != n_emb:
         pct_diff = abs(n_tags - n_emb) / max(n_tags, n_emb) * 100
-        print(f"WARNING: {n_emb} embeddings vs {n_tags} tags ({pct_diff:.1f}% difference)")
-        if pct_diff > 5:
-            print(f"FATAL: Embeddings/tags count differs by {pct_diff:.1f}% (>5%). "
-                  "Re-run m04 (tags) or m05 (embeddings) to fix.")
-            sys.exit(1)
+        print(f"FATAL: {n_emb} embeddings vs {n_tags} tags ({pct_diff:.1f}% difference). "
+              "Re-run m04 (tags) or m05 (embeddings) to fix.")
+        sys.exit(1)
     n = min(n_emb, n_tags)
     embeddings = embeddings[:n]
     tags = tags[:n]
@@ -1137,8 +1137,9 @@ def main():
         D_hard, I_hard = apply_hard_filter(D, I, exclusion, k)
         hard = compute_all_metrics(embeddings, D_hard, I_hard, tags, k, taxonomy, "hard")
     else:
-        print("\nWARNING: No clip paths → Hard mode = Easy mode (no exclusion)")
-        hard = easy
+        print("\nFATAL: No clip paths found — cannot compute Hard mode exclusion.")
+        print("Ensure m05 saved embeddings.paths.npy alongside embeddings.npy")
+        sys.exit(1)
 
     # ── True Overlap@K (replaces dim-split if augmented embeddings exist) ──
     if args.true_overlap:
@@ -1153,7 +1154,8 @@ def main():
             hard["overlap_method"] = "true_multi_crop"
             hard.setdefault("ci", {})["overlap_at_k"] = overlap_ci
         else:
-            print("\n  WARNING: --true-overlap set but overlap_augA/B.npy not found. Run m05c first.")
+            print("\n  FATAL: --true-overlap set but overlap_augA/B.npy not found. Run m05c first.")
+            sys.exit(1)
 
     # ── Confidence sweep ─────────────────────────────────────────────
     conf_sweep = compute_confidence_sweep(I[:, :k + 1], tags, k)

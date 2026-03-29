@@ -7,95 +7,114 @@
 ## System Design: Ch10 + Ch11 Overview
 
 ```mermaid
-flowchart LR
-    subgraph INPUT ["Shared Input · Indian Clip Corpus"]
+flowchart TB
+    subgraph INPUT ["Shared Input"]
         direction TB
-        D["WebDataset<br>116 TARs<br>~115K clips"] --> SPLIT["video_id split<br>90% train · 10% val"]
-        TAGS["tags.json<br>16 fields × v3"]
+        D["WebDataset<br>116 TARs"] --> SPLIT["video_id split<br>90/10"]
+        TAGS["tags.json<br>16 fields"]
     end
 
-    subgraph CH10 ["Ch 10 · Continual Pretraining (m09_pretrain.py)"]
-        direction LR
-
-        subgraph LOOP ["Training Step (repeated 2K-10K times)"]
-            direction TB
-            AUG["Video-consistent augmentation<br>RandomResizedCrop 384×384"] --> MASK["Spatiotemporal mask sampling<br>8+2 blocks · ~80% masked"]
-
-            subgraph FORWARD ["Forward Pass"]
-                direction LR
-                STU["Student encoder<br>ViT-g 1B · trainable<br>visible tokens only"] --> PRED["Predictor<br>12-layer 384-dim<br>predict masked tokens"]
-                TEA["Teacher encoder<br>ViT-g 1B · frozen<br>ALL tokens · no grad"] --> LOSS["L1 Loss<br>|pred − target|<br>at masked positions"]
-                PRED --> LOSS
-            end
-
-            MASK --> FORWARD
-        end
-
-        LOSS --> OPT["AdamW step<br>student + predictor<br>+ grad clip 1.0"]
-        LOSS --> DRIFT["Drift control<br>λ·‖θ−θ₀‖²<br>(optional)"]
-        OPT --> EMA["EMA update<br>θ̄ ← 0.99925·θ̄<br>+ 0.00075·θ"]
-        EMA --> VAL{"Validate<br>every 2K steps?"}
-        VAL -->|"yes"| CYCLE["Cycle@K<br>hard mode<br>FAISS-GPU"]
-        VAL -->|"no"| CKPT["Checkpoint<br>student + teacher<br>+ predictor + opt"]
-        CYCLE --> BEST["Best model<br>selection by<br>Cycle@1"]
-        BEST --> ADAPTED["V-JEPA<br>(adapted)"]
+    subgraph CH10_DATA ["Ch10 · Data + Masking"]
+        direction TB
+        AUG["RRC 384×384<br>h-flip"] --> MASK["8+2 mask blocks<br>~80% masked"]
+        MASK --> VIS["visible tokens"]
+        MASK --> MASKED["masked tokens"]
     end
 
-    subgraph CH11 ["Ch 11 · Surgery Fine-Tuning (m10 → m11 → m12)"]
-        direction LR
+    subgraph CH10_FWD ["Ch10 · Forward Pass"]
+        direction TB
+        STU["Student ViT-g<br>visible only<br>trainable"]
+        TEA["Teacher ViT-g<br>ALL tokens<br>no grad"]
+        STU --> PRED["Predictor<br>12-layer 384-dim"]
+    end
 
-        subgraph SAM ["m10 · SAM3 Segmentation"]
-            direction TB
-            SEG["SAM3<br>instance masks"] --> TRACK["Greedy IoU<br>tracklets"] --> AGENT["Agent vs Layout<br>motion filter"]
-        end
+    subgraph CH10_LOSS ["Ch10 · Loss + Update"]
+        direction TB
+        L1["L1 loss<br>masked positions"]
+        DRIFT["Drift λ·‖θ−θ₀‖²"]
+        OPT["AdamW + grad clip"]
+        EMA["EMA teacher<br>τ=0.99925"]
+    end
 
-        subgraph FACTOR ["m11 · Factor Datasets"]
-            direction TB
-            DL["D_L<br>layout-only<br>blur agents"]
-            DA["D_A<br>agent-only<br>suppress BG"]
-            DI["D_I<br>interaction<br>tube crops"]
-        end
+    subgraph CH10_CKPT ["Ch10 · Selection"]
+        direction TB
+        CKPT["Checkpoint<br>10x per epoch"]
+        WINNER["Winner by<br>jepa_loss"]
+        ADAPTED["V-JEPA<br>(adapted)"]
+    end
 
-        AGENT --> DL
-        AGENT --> DA
-        AGENT --> DI
+    subgraph CH11_SAM ["m10 · Segmentation"]
+        direction TB
+        SEG["SAM3<br>instance masks"]
+        TRACK["Greedy IoU<br>tracklets"]
+        AGENT["Agent vs Layout<br>motion filter"]
+        SEG --> TRACK --> AGENT
+    end
 
-        subgraph STAGES ["m12 · Progressive Prefix Unfreezing"]
-            direction TB
-            S1["Stage 1<br>layers 0→10<br>100% D_L"] --> S2["Stage 2<br>layers 0→20<br>90% D_A + 10% D_L"] --> S3["Stage 3<br>layers 0→30<br>85% D_I + mix"]
-        end
+    subgraph CH11_FACTOR ["m11 · Factor Datasets"]
+        direction TB
+        DL["D_L layout-only<br>blur agents"]
+        DA["D_A agent-only<br>suppress BG"]
+        DI["D_I interaction<br>tube crops"]
+    end
 
-        FACTOR --> STAGES
+    subgraph CH11_SURGERY ["m12 · Prefix Unfreezing"]
+        direction TB
+        S1["Stage 1: layers 0→10<br>100% D_L"]
+        S2["Stage 2: layers 0→20<br>90% D_A + 10% D_L"]
+        S3["Stage 3: layers 0→30<br>85% D_I + mix"]
+        S1 --> S2 --> S3
         S3 --> SURGICAL["V-JEPA<br>(surgical)"]
     end
 
-    subgraph EVAL ["Re-evaluation · 3-way comparison"]
+    subgraph EVAL ["Re-evaluation"]
         direction TB
-        RE["m05 re-embed<br>× 3 encoders"] --> M6["m06 metrics<br>9 spatial<br>5 temporal"] --> M8["m08b plots<br>frozen vs adapted<br>vs surgical"]
+        RE["m05 re-embed<br>× 3 encoders"]
+        M6["m06 metrics<br>spatial + temporal"]
+        M8["m08b radar<br>frozen vs adapted<br>vs surgical"]
+        RE --> M6 --> M8
     end
 
-    INPUT --> CH10
-    TAGS -->|"stratified batch"| CH10
-    INPUT --> CH11
-    TAGS -->|"stratified batch"| CH11
-    CH10 --> CH11
-    CH10 --> EVAL
-    CH11 --> EVAL
+    INPUT --> CH10_DATA
+    TAGS -->|"stratified"| CH10_DATA
+    CH10_DATA --> CH10_FWD
+    VIS --> STU
+    MASKED --> L1
+    TEA --> L1
+    PRED --> L1
+    CH10_FWD --> CH10_LOSS
+    L1 --> OPT
+    DRIFT --> OPT
+    OPT --> EMA
+    CH10_LOSS --> CH10_CKPT
+    CKPT --> WINNER --> ADAPTED
+
+    ADAPTED --> CH11_SAM
+    INPUT --> CH11_SAM
+    AGENT --> DL
+    AGENT --> DA
+    AGENT --> DI
+    CH11_FACTOR --> CH11_SURGERY
+
+    ADAPTED --> EVAL
+    SURGICAL --> EVAL
 
     style D fill:#5e35b1,color:#fff,font-weight:bold
     style SPLIT fill:#7b1fa2,color:#fff,font-weight:bold
     style TAGS fill:#00acc1,color:#fff,font-weight:bold
     style AUG fill:#00897b,color:#fff,font-weight:bold
     style MASK fill:#e65100,color:#fff,font-weight:bold
+    style VIS fill:#2e7d32,color:#fff,font-weight:bold
+    style MASKED fill:#c62828,color:#fff,font-weight:bold
     style STU fill:#1565c0,color:#fff,font-weight:bold
     style TEA fill:#546e7a,color:#fff,font-weight:bold
     style PRED fill:#6a1b9a,color:#fff,font-weight:bold
-    style LOSS fill:#c62828,color:#fff,font-weight:bold
-    style OPT fill:#283593,color:#fff,font-weight:bold
+    style L1 fill:#c62828,color:#fff,font-weight:bold
     style DRIFT fill:#4e342e,color:#fff,font-weight:bold
+    style OPT fill:#283593,color:#fff,font-weight:bold
     style EMA fill:#9c27b0,color:#fff,font-weight:bold
-    style CYCLE fill:#d81b60,color:#fff,font-weight:bold
-    style BEST fill:#ad1457,color:#fff,font-weight:bold
+    style CKPT fill:#ad1457,color:#fff,font-weight:bold
+    style WINNER fill:#d81b60,color:#fff,font-weight:bold
     style ADAPTED fill:#4a148c,color:#fff,font-weight:bold
     style SEG fill:#0277bd,color:#fff,font-weight:bold
     style TRACK fill:#01579b,color:#fff,font-weight:bold

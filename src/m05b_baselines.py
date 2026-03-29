@@ -26,6 +26,7 @@ from utils.config import (
     ENCODER_REGISTRY, VJEPA_EMBEDDING_DIM, VJEPA_FRAMES_PER_CLIP,
     check_gpu, check_output_exists, load_subset, add_subset_arg, add_local_data_arg,
     get_output_dir, get_encoder_files,
+    get_sanity_clip_limit, get_total_clips,
 )
 from utils.gpu_batch import compute_batch_sizes, add_gpu_mem_arg
 from utils.wandb_utils import add_wandb_args, init_wandb, log_metrics, log_artifact, finish_wandb
@@ -708,11 +709,14 @@ def _run_single_encoder(encoder: str, args):
     # Determine clip limit + subset
     subset_keys = load_subset(args.subset) if args.subset else set()
     if args.SANITY:
-        clip_limit = 5
+        clip_limit = get_sanity_clip_limit("embed")
     elif subset_keys:
         clip_limit = len(subset_keys)
     else:
-        clip_limit = 115_687
+        clip_limit = get_total_clips(local_data=getattr(args, 'local_data', None))
+        if clip_limit == 0:
+            print("FATAL: Cannot determine clip count. Use --subset or --local-data with manifest.json")
+            sys.exit(1)
 
     # Random is CPU-safe, others need GPU
     if encoder == "random":
@@ -726,7 +730,7 @@ def _run_single_encoder(encoder: str, args):
             ref_keys = [f"clip_{i:06d}" for i in range(clip_limit)]
 
         if args.SANITY:
-            ref_keys = ref_keys[:5]
+            ref_keys = ref_keys[:get_sanity_clip_limit("embed")]
 
         wb_run = init_wandb("m05b", f"random_{'SANITY' if args.SANITY else 'POC'}",
                             config=vars(args), enabled=not args.no_wandb)

@@ -26,7 +26,9 @@ ABLATION (drift control lambda sweep — run sequentially or on 4 GPUs):
 """
 import argparse
 import copy
+import csv
 import gc
+import glob
 import json
 import os
 import queue
@@ -45,6 +47,7 @@ sys.path.insert(0, str(Path(__file__).parent))
 from utils.config import (
     HF_DATASET_REPO, check_gpu,
     add_subset_arg, add_local_data_arg, get_output_dir, load_subset,
+    get_pipeline_config,
 )
 from utils.wandb_utils import (
     add_wandb_args, init_wandb, log_metrics, finish_wandb,
@@ -53,16 +56,19 @@ from utils.wandb_utils import (
 import torch
 import torch.nn.functional as F
 
-# Add vjepa2 to path (Q1: sys.path, not pip install)
-VJEPA2_DIR = Path(__file__).parent.parent / "deps" / "vjepa2"
-sys.path.insert(0, str(VJEPA2_DIR))
+# vjepa2 imports via shim (avoids src/ namespace collision)
+from utils.vjepa2_imports import (
+    get_vit_giant_xformers, get_vit_predictor,
+    get_mask_generator, get_apply_masks,
+)
 
 # Constants
 DEFAULT_CONFIG = "configs/pretrain/vitg16_indian.yaml"
 CHECKPOINT_PREFIX = "m09_ckpt"
-PREFETCH_QUEUE_SIZE = 2
-DECODE_WORKERS = 4
-MAX_STREAM_RETRIES = 5
+_pcfg = get_pipeline_config()
+PREFETCH_QUEUE_SIZE = _pcfg["streaming"]["prefetch_queue_train"]
+DECODE_WORKERS = _pcfg["streaming"]["decode_workers_train"]
+MAX_STREAM_RETRIES = _pcfg["streaming"]["max_retries"]
 
 # Reuse data loading from m05
 from m05_vjepa_embed import (
@@ -85,14 +91,16 @@ def merge_config_with_args(cfg: dict, args) -> dict:
     if getattr(args, "local_data", None):
         cfg["data"]["local_data"] = args.local_data
     if args.SANITY:
-        cfg["optimization"]["max_steps"] = 50
-        cfg["optimization"]["batch_size"] = 2
-        cfg["validation"]["interval_steps"] = 25
-        cfg["checkpoint"]["save_every_steps"] = 25
+        mode_key = "sanity"
+    elif args.subset:
+        mode_key = "poc"
+    else:
+        mode_key = "full"
+    cfg["optimization"]["max_epochs"] = cfg["optimization"]["max_epochs"][mode_key]
     if args.batch_size is not None:
         cfg["optimization"]["batch_size"] = args.batch_size
-    if args.max_steps is not None:
-        cfg["optimization"]["max_steps"] = args.max_steps
+    if args.max_epochs is not None:
+        cfg["optimization"]["max_epochs"] = args.max_epochs
     if args.lambda_reg is not None:
         cfg["drift_control"]["lambda_reg"] = args.lambda_reg
         if args.lambda_reg == 0:
@@ -101,7 +109,7 @@ def merge_config_with_args(cfg: dict, args) -> dict:
     # Output dir: base/m09_lambda{value}/ for ablation isolation
     base_out = get_output_dir(args.subset, sanity=args.SANITY)
     lam = cfg["drift_control"]["lambda_reg"]
-    lam_str = str(lam).replace(".", "_")  # 0.01 → 0_01 (avoid dots in dir names)
+    lam_str = f"{lam:g}".replace(".", "_")  # 0.0→"0", 0.01→"0_01" (no trailing .0)
     cfg["checkpoint"]["output_dir"] = str(base_out / f"m09_lambda{lam_str}")
     return cfg
 
@@ -148,8 +156,11 @@ def augment_clip_consistent(video_tensor: torch.Tensor, cfg_aug: dict,
 
 def producer_thread(cfg: dict, q: queue.Queue, stop_event: threading.Event,
                     train_keys: set, processed_steps: int):
-    """Stream WebDataset, decode videos, augment, enqueue batches."""
+    """Stream WebDataset, decode videos, augment, enqueue batches (multi-epoch)."""
     from concurrent.futures import ThreadPoolExecutor
+
+    # Prevent ATen thread oversubscription (CLAUDE.md rule #12)
+    torch.set_num_threads(1)
 
     batch_size = cfg["optimization"]["batch_size"]
     num_frames = cfg["data"]["num_frames"]
@@ -157,12 +168,16 @@ def producer_thread(cfg: dict, q: queue.Queue, stop_event: threading.Event,
     local_data = cfg["data"].get("local_data")
     cfg_aug = cfg.get("augmentation", {})
     retries = 0
+    epoch = 0
 
     tmp_dir = tempfile.mkdtemp(prefix="m09_")
 
     try:
         while not stop_event.is_set():
             try:
+                epoch += 1
+                if epoch > 1:
+                    print(f"  Producer: starting epoch {epoch}")
                 ds = _create_stream(0, local_data=local_data)
                 pending_bytes, pending_keys = [], []
 
@@ -194,13 +209,11 @@ def producer_thread(cfg: dict, q: queue.Queue, stop_event: threading.Event,
                         batch_keys = [k for t, k in results if t is not None]
 
                         if batch_tensors:
-                            # Video-consistent augmentation
                             augmented = []
                             for vt in batch_tensors:
                                 aug = augment_clip_consistent(vt, cfg_aug, crop_size)
                                 augmented.append(aug)
 
-                            # Stack: (B, C, T, H, W) — V-JEPA expects channel-first video
                             batch = torch.stack(augmented, dim=0)  # (B, T, C, H, W)
                             batch = batch.permute(0, 2, 1, 3, 4)  # (B, C, T, H, W)
                             q.put(("batch", batch, batch_keys[:]))
@@ -225,7 +238,7 @@ def producer_thread(cfg: dict, q: queue.Queue, stop_event: threading.Event,
                         batch = torch.stack(augmented, dim=0).permute(0, 2, 1, 3, 4)
                         q.put(("batch", batch, batch_keys[:]))
 
-                break  # stream exhausted
+                # Loop to next epoch (don't break — training needs multiple passes)
 
             except (ConnectionError, TimeoutError, OSError) as e:
                 retries += 1
@@ -247,8 +260,8 @@ def producer_thread(cfg: dict, q: queue.Queue, stop_event: threading.Event,
 
 def build_model(cfg: dict, device: torch.device) -> dict:
     """Build student encoder, teacher encoder (EMA), and predictor."""
-    from models.vision_transformer import vit_giant_xformers
-    from models.predictor import vit_predictor
+    vit_giant_xformers = get_vit_giant_xformers()
+    vit_predictor = get_vit_predictor()
 
     model_cfg = cfg["model"]
     data_cfg = cfg["data"]
@@ -358,8 +371,8 @@ def build_model(cfg: dict, device: torch.device) -> dict:
     predictor = predictor.to(device)
     print(f"Predictor: {sum(p.numel() for p in predictor.parameters()):,} params")
 
-    # Save initial params for drift control
-    init_params = {name: p.clone().detach()
+    # Save initial params for drift control (on CPU to save ~4GB VRAM)
+    init_params = {name: p.clone().detach().cpu()
                    for name, p in student.named_parameters()}
 
     del ckpt
@@ -379,7 +392,7 @@ def build_model(cfg: dict, device: torch.device) -> dict:
 
 def build_mask_generators(cfg: dict) -> list:
     """Build one _MaskGenerator per mask config."""
-    from masks.multiseq_multiblock3d import _MaskGenerator
+    _MaskGenerator = get_mask_generator()
 
     data_cfg = cfg["data"]
     generators = []
@@ -410,7 +423,7 @@ def compute_jepa_loss(pred_features: list, teacher_output: torch.Tensor,
     teacher_output: teacher forward on full clip (B, N_total, D)
     masks_pred: list of target mask tensors, one per mask generator
     """
-    from masks.utils import apply_masks
+    apply_masks = get_apply_masks()
 
     loss = torch.tensor(0.0, device=teacher_output.device)
     n = 0
@@ -425,10 +438,11 @@ def compute_jepa_loss(pred_features: list, teacher_output: torch.Tensor,
 def compute_drift_loss(student: torch.nn.Module, init_params: dict,
                        lambda_reg: float) -> torch.Tensor:
     """L2 drift control: lambda * ||theta - theta_0||^2 (Sec 10.4)."""
-    drift = torch.tensor(0.0, device=next(student.parameters()).device)
+    device = next(student.parameters()).device
+    drift = torch.tensor(0.0, device=device)
     for name, param in student.named_parameters():
         if name in init_params:
-            drift += torch.sum((param - init_params[name]) ** 2)
+            drift += torch.sum((param - init_params[name].to(device)) ** 2)
     return lambda_reg * drift
 
 
@@ -474,16 +488,16 @@ def build_optimizer(student, predictor, cfg_opt: dict):
                               eps=cfg_opt["eps"])
 
 
-def build_scheduler(optimizer, cfg_opt: dict):
-    warmup_steps = cfg_opt["warmup_steps"]
-    max_steps = cfg_opt["max_steps"]
+def build_scheduler(optimizer, cfg_opt: dict, total_steps: int):
+    # Cap warmup to 10% of total steps (avoids never leaving warmup on short runs)
+    warmup_steps = min(cfg_opt["warmup_steps"], max(1, total_steps // 10))
     min_lr = cfg_opt["min_lr"]
     base_lr = cfg_opt["lr"]
 
     def lr_lambda(step):
         if step < warmup_steps:
             return step / max(warmup_steps, 1)
-        progress = (step - warmup_steps) / max(max_steps - warmup_steps, 1)
+        progress = (step - warmup_steps) / max(total_steps - warmup_steps, 1)
         return max(min_lr / base_lr, 0.5 * (1 + np.cos(np.pi * progress)))
 
     return torch.optim.lr_scheduler.LambdaLR(optimizer, lr_lambda)
@@ -537,20 +551,35 @@ def run_validation(student, val_clips: list, val_keys: list,
 
 def save_training_checkpoint(path: Path, student, teacher, predictor,
                               optimizer, scheduler, scaler,
-                              step: int, best_metric: float):
+                              step: int, best_metric: float,
+                              full: bool = True):
+    """Save checkpoint. full=True includes optimizer (for resume), False is light (for selection)."""
     path.parent.mkdir(parents=True, exist_ok=True)
     tmp_path = path.with_suffix(".tmp")
-    torch.save({
+    ckpt = {
         "student": student.state_dict(),
         "teacher": teacher.state_dict(),
         "predictor": predictor.state_dict(),
-        "optimizer": optimizer.state_dict(),
-        "scheduler": scheduler.state_dict(),
-        "scaler": scaler.state_dict() if scaler else None,
         "step": step,
         "best_metric": best_metric,
-    }, tmp_path)
+    }
+    if full:
+        ckpt["optimizer"] = optimizer.state_dict()
+        ckpt["scheduler"] = scheduler.state_dict()
+        ckpt["scaler"] = scaler.state_dict() if scaler else None
+    torch.save(ckpt, tmp_path)
     os.replace(tmp_path, path)
+
+
+def cleanup_old_checkpoints(output_dir: Path, keep_n: int = 2):
+    """Delete oldest m09_ckpt_step*.pt files, keeping only the last keep_n."""
+    pattern = str(output_dir / f"{CHECKPOINT_PREFIX}_step*.pt")
+    step_files = sorted(glob.glob(pattern),
+                        key=lambda f: os.path.getmtime(f))
+    if len(step_files) > keep_n:
+        for old_file in step_files[:-keep_n]:
+            os.remove(old_file)
+            print(f"  Cleaned old checkpoint: {Path(old_file).name}")
 
 
 def load_training_checkpoint(path: Path, student, teacher, predictor,
@@ -559,8 +588,10 @@ def load_training_checkpoint(path: Path, student, teacher, predictor,
     student.load_state_dict(ckpt["student"])
     teacher.load_state_dict(ckpt["teacher"])
     predictor.load_state_dict(ckpt["predictor"])
-    optimizer.load_state_dict(ckpt["optimizer"])
-    scheduler.load_state_dict(ckpt["scheduler"])
+    if "optimizer" in ckpt:
+        optimizer.load_state_dict(ckpt["optimizer"])
+    if "scheduler" in ckpt:
+        scheduler.load_state_dict(ckpt["scheduler"])
     if scaler and ckpt.get("scaler"):
         scaler.load_state_dict(ckpt["scaler"])
     return ckpt["step"], ckpt.get("best_metric", 0.0)
@@ -583,15 +614,15 @@ def export_student_for_eval(student, path: Path):
 # ═════════════════════════════════════════════════════════════════════════
 
 def train(cfg: dict, args):
-    """Main training loop (proposal Sec 10.5)."""
+    """Epoch-based training loop (proposal Sec 10.5)."""
     check_gpu()
     device = torch.device("cuda")
 
     # Output-exists guard (CLAUDE.md rule #6)
     output_dir = Path(cfg["checkpoint"]["output_dir"])
-    final_ckpt = output_dir / f"{CHECKPOINT_PREFIX}_final.pt"
-    if final_ckpt.exists():
-        print(f"Final checkpoint already exists: {final_ckpt}")
+    student_path = output_dir / "student_encoder.pt"
+    if student_path.exists():
+        print(f"Student encoder already exists: {student_path}")
         print("Delete to re-train, or use for evaluation.")
         return
 
@@ -608,16 +639,73 @@ def train(cfg: dict, args):
     student.train()
     predictor.train()
 
-    # Build mask generators (Q4: _MaskGenerator, not MaskCollator)
+    # Build mask generators
     mask_generators = build_mask_generators(cfg)
     print(f"Mask generators: {len(mask_generators)} "
           f"(blocks: {[m['num_blocks'] for m in cfg['mask']]})")
 
-    # Optimizer & scheduler
+    # Compute epoch geometry
+    subset_keys = load_subset(args.subset) if args.subset else set()
+    if subset_keys:
+        train_keys, val_key_set = split_by_video_id(
+            list(subset_keys), cfg["data"]["val_fraction"], cfg["data"]["val_seed"])
+    else:
+        train_keys = set()
+        val_key_set = set()
+
+    # SANITY: cap to small clip count from config
+    if args.SANITY:
+        sanity_train = cfg["data"].get("sanity_train_clips", 100)
+        sanity_val = cfg["data"].get("sanity_val_clips", 10)
+        if train_keys:
+            train_keys = set(list(train_keys)[:sanity_train])
+        else:
+            # No subset: collect first N clip keys from data stream for filtering
+            local_data = cfg["data"].get("local_data")
+            ds = _create_stream(0, local_data=local_data)
+            collected = []
+            for example in ds:
+                collected.append(get_clip_key(example))
+                if len(collected) >= sanity_train + sanity_val:
+                    break
+            train_keys = set(collected[:sanity_train])
+            val_key_set = set(collected[sanity_train:sanity_train + sanity_val])
+        val_key_set = set(list(val_key_set)[:sanity_val]) if val_key_set else set()
+
+    # Discover n_train: from subset, local manifest, or fail
+    if train_keys:
+        n_train = len(train_keys)
+    else:
+        # Full dataset: read clip count from local manifest
+        local_data = cfg["data"].get("local_data")
+        manifest_path = Path(local_data) / "manifest.json" if local_data else None
+        if manifest_path and manifest_path.exists():
+            manifest = json.load(open(manifest_path))
+            n_total = manifest.get("n_clips", manifest.get("total_clips"))
+            n_train = int(n_total * (1 - cfg["data"]["val_fraction"]))
+            print(f"Dataset size from manifest: {n_total:,} total, {n_train:,} train")
+        else:
+            print("FATAL: Cannot determine dataset size.")
+            print("Provide --subset <file> or --local-data <dir> with manifest.json")
+            sys.exit(1)
+    batch_size = cfg["optimization"]["batch_size"]
+    max_epochs = cfg["optimization"]["max_epochs"]
+    steps_per_epoch = max(1, n_train // batch_size)
+    total_steps = steps_per_epoch * max_epochs
+    saves_per_epoch = cfg["checkpoint"].get("saves_per_epoch", 5)
+    ckpt_interval = max(1, steps_per_epoch // saves_per_epoch)
+    keep_last_n = cfg["checkpoint"].get("keep_last_n", 2)
+
+    print(f"Train clips: {n_train:,} | Val clips: {len(val_key_set):,}")
+    print(f"Epochs: {max_epochs} | Steps/epoch: {steps_per_epoch:,} | Total steps: {total_steps:,}")
+    print(f"Checkpoint every {ckpt_interval} steps ({saves_per_epoch}x per epoch, keep last {keep_last_n})")
+
+    # Optimizer & scheduler (cosine over total_steps)
     optimizer = build_optimizer(student, predictor, cfg["optimization"])
-    scheduler = build_scheduler(optimizer, cfg["optimization"])
+    scheduler = build_scheduler(optimizer, cfg["optimization"], total_steps)
     mp_cfg = cfg["mixed_precision"]
-    scaler = torch.amp.GradScaler("cuda", enabled=mp_cfg["enabled"])
+    use_scaler = mp_cfg["enabled"] and mp_cfg["dtype"] == "float16"
+    scaler = torch.amp.GradScaler("cuda", enabled=use_scaler)
 
     # Resume from checkpoint
     start_step = 0
@@ -628,16 +716,7 @@ def train(cfg: dict, args):
             ckpt_path, student, teacher, predictor, optimizer, scheduler, scaler)
         print(f"Resumed from step {start_step}, best Cycle@1: {best_cycle_k:.1f}%")
 
-    # Data stream
-    subset_keys = load_subset(args.subset) if args.subset else set()
-    if subset_keys:
-        train_keys, val_key_set = split_by_video_id(
-            list(subset_keys), cfg["data"]["val_fraction"], cfg["data"]["val_seed"])
-        print(f"Train/val split: {len(train_keys):,} / {len(val_key_set):,} clips")
-    else:
-        train_keys = set()
-        val_key_set = set()
-
+    # Data stream (producer loops over epochs automatically)
     q = queue.Queue(maxsize=PREFETCH_QUEUE_SIZE)
     stop_event = threading.Event()
     prod = threading.Thread(
@@ -647,37 +726,50 @@ def train(cfg: dict, args):
     )
     prod.start()
 
-    # WandB
+    # WandB — include lambda in run name for ablation comparison
     mode = "SANITY" if args.SANITY else ("POC" if args.subset else "FULL")
-    wb_run = init_wandb("m09", mode, config=cfg, enabled=not args.no_wandb)
+    lam_val = cfg["drift_control"]["lambda_reg"]
+    lam_tag = f"_lambda{f'{lam_val:g}'.replace('.', '_')}"
+    wb_run = init_wandb("m09", f"{mode}{lam_tag}", config=cfg, enabled=not args.no_wandb)
 
     # Training config
-    max_steps = cfg["optimization"]["max_steps"]
     ema_momentum = cfg["optimization"]["ema_momentum"]
     loss_exp = cfg["optimization"]["loss_exp"]
     drift_cfg = cfg["drift_control"]
-    val_interval = cfg["validation"]["interval_steps"]
-    ckpt_interval = cfg["checkpoint"]["save_every_steps"]
     dtype = getattr(torch, mp_cfg["dtype"])
 
-    pbar = tqdm(total=max_steps, initial=start_step,
+    pbar = tqdm(total=total_steps, initial=start_step,
                 desc="m09_pretrain", unit="step")
 
-    # Windowed throughput (CLAUDE.md rule #11)
+    # CSV loss log
+    csv_path = output_dir / "loss_log.csv"
+    csv_exists = csv_path.exists()
+    csv_file = open(csv_path, "a", newline="")
+    csv_writer = csv.writer(csv_file)
+    if not csv_exists:
+        csv_writer.writerow(["step", "epoch", "loss_jepa", "loss_drift", "loss_total",
+                             "lr", "grad_norm", "throughput"])
+        csv_file.flush()
+
+    # Windowed throughput
     window_start = time.time()
     window_steps = 0
     running_loss = 0.0
 
-    print(f"\n=== Training: {start_step} → {max_steps} steps ===")
-    print(f"Batch size: {cfg['optimization']['batch_size']}")
+    print(f"\n=== Training: {start_step} → {total_steps} steps ({max_epochs} epochs) ===")
+    print(f"Batch size: {batch_size}")
     print(f"Grad checkpointing: {cfg['model'].get('use_activation_checkpointing', False)}")
     print(f"Mixed precision: {mp_cfg['dtype']}")
     print(f"EMA momentum: {ema_momentum}")
     print(f"Drift control: lambda={drift_cfg['lambda_reg'] if drift_cfg['enabled'] else 0}")
+    print(f"Loss log: {csv_path}")
 
     step = start_step
     try:
-        for step in range(start_step, max_steps):
+        for step in range(start_step, total_steps):
+            epoch = step // steps_per_epoch
+            epoch_step = step % steps_per_epoch
+
             # Get batch from producer
             try:
                 msg_type, batch_clips, batch_keys = q.get(timeout=600)
@@ -691,29 +783,25 @@ def train(cfg: dict, args):
             batch_clips = batch_clips.to(device)
             actual_bs = batch_clips.shape[0]
 
-            # Generate masks (Q4: _MaskGenerator directly)
+            # Generate masks
             all_masks_enc, all_masks_pred = [], []
             for mg in mask_generators:
                 m_enc, m_pred = mg(actual_bs)
                 all_masks_enc.append(m_enc.to(device))
                 all_masks_pred.append(m_pred.to(device))
 
-            # Forward pass (mixed precision)
+            # Forward pass
             optimizer.zero_grad()
             with torch.amp.autocast("cuda", dtype=dtype, enabled=mp_cfg["enabled"]):
-                # Teacher: all tokens, no grad
                 with torch.no_grad():
-                    h = teacher(batch_clips)  # (B, N_total, D)
-                    h = F.layer_norm(h, (h.size(-1),))
+                    h = teacher(batch_clips)
 
-                # Student + Predictor per mask generator
                 pred_features = []
                 for i, (m_enc, m_pred) in enumerate(zip(all_masks_enc, all_masks_pred)):
-                    z = student(batch_clips, masks=[m_enc])  # visible tokens only
+                    z = student(batch_clips, masks=[m_enc])
                     p = predictor(z, [m_enc], [m_pred], mask_index=i)
                     pred_features.append(p)
 
-                # Loss
                 jepa_loss = compute_jepa_loss(pred_features, h, all_masks_pred, loss_exp)
 
                 if drift_cfg["enabled"] and drift_cfg["lambda_reg"] > 0:
@@ -737,79 +825,104 @@ def train(cfg: dict, args):
             # EMA teacher update
             update_teacher_ema(student, teacher, ema_momentum)
 
-            # Logging (windowed throughput)
-            running_loss += total_loss.item()
+            # Per-step logging
+            jepa_val = jepa_loss.item()
+            drift_val = drift_loss.item()
+            total_val = total_loss.item()
+            lr_val = scheduler.get_last_lr()[0]
+            gn_val = grad_norm.item() if torch.is_tensor(grad_norm) else grad_norm
+
+            running_loss += total_val
             window_steps += 1
             now = time.time()
             window_elapsed = now - window_start
+            throughput = window_steps / window_elapsed if window_elapsed > 0 else 0
+
+            csv_writer.writerow([step, epoch, f"{jepa_val:.6f}", f"{drift_val:.6f}",
+                                 f"{total_val:.6f}", f"{lr_val:.2e}",
+                                 f"{gn_val:.4f}", f"{throughput:.2f}"])
+            if step % 10 == 0:
+                csv_file.flush()
+
+            log_metrics(wb_run, {
+                "loss/jepa": jepa_val,
+                "loss/drift": drift_val,
+                "loss/total": total_val,
+                "lr": lr_val,
+                "grad_norm": gn_val,
+                "epoch": epoch,
+                "throughput_steps_per_s": throughput,
+            }, step=step)
 
             if window_elapsed >= 30:
-                throughput = window_steps / window_elapsed
                 pbar.set_postfix_str(
-                    f"loss={running_loss/window_steps:.4f} "
-                    f"drift={drift_loss.item():.4f} "
-                    f"lr={scheduler.get_last_lr()[0]:.2e} "
-                    f"grad={grad_norm:.2f} "
+                    f"E{epoch} loss={running_loss/window_steps:.4f} "
+                    f"drift={drift_val:.4f} "
+                    f"lr={lr_val:.2e} "
+                    f"grad={gn_val:.2f} "
                     f"{throughput:.2f} step/s")
-                log_metrics(wb_run, {
-                    "loss/jepa": jepa_loss.item(),
-                    "loss/drift": drift_loss.item(),
-                    "loss/total": total_loss.item(),
-                    "lr": scheduler.get_last_lr()[0],
-                    "grad_norm": grad_norm.item() if torch.is_tensor(grad_norm) else grad_norm,
-                    "throughput_steps_per_s": throughput,
-                }, step=step)
                 window_start = now
                 window_steps = 0
                 running_loss = 0.0
 
             pbar.update(1)
 
-            # Validation
-            if (step + 1) % val_interval == 0 and val_key_set:
-                print(f"\n--- Validation at step {step + 1} ---")
-                # Note: full val requires pre-collected val clips
-                # For now, log loss-based metrics; full Cycle@K in post-training eval
-                log_metrics(wb_run, {"val/step": step + 1}, step=step)
-
-                cycle_1 = 0.0  # Placeholder until val clips are collected
-                if cycle_1 > best_cycle_k:
-                    best_cycle_k = cycle_1
-                    save_training_checkpoint(
-                        output_dir / f"{CHECKPOINT_PREFIX}_best.pt",
-                        student, teacher, predictor, optimizer, scheduler, scaler,
-                        step + 1, best_cycle_k)
-
-            # Periodic checkpoint
+            # Periodic checkpoint (every 20% of epoch)
             if (step + 1) % ckpt_interval == 0:
                 save_training_checkpoint(
                     output_dir / f"{CHECKPOINT_PREFIX}_step{step+1}.pt",
                     student, teacher, predictor, optimizer, scheduler, scaler,
-                    step + 1, best_cycle_k)
+                    step + 1, best_cycle_k, full=False)
                 save_training_checkpoint(
                     ckpt_path, student, teacher, predictor, optimizer, scheduler,
-                    scaler, step + 1, best_cycle_k)
+                    scaler, step + 1, best_cycle_k, full=True)
+                cleanup_old_checkpoints(output_dir, keep_n=keep_last_n)
+
+            # End-of-epoch logging
+            if epoch_step == steps_per_epoch - 1:
+                print(f"\n--- Epoch {epoch + 1}/{max_epochs} complete (step {step + 1}) ---")
+                log_metrics(wb_run, {"epoch_complete": epoch + 1}, step=step)
 
     except KeyboardInterrupt:
         print("\nInterrupted! Saving checkpoint...")
     finally:
         pbar.close()
+        csv_file.close()
         stop_event.set()
 
-    # Save final checkpoint
-    save_training_checkpoint(
-        final_ckpt, student, teacher, predictor, optimizer, scheduler,
-        scaler, step + 1, best_cycle_k)
+    # Export student encoder (the only deliverable)
+    export_student_for_eval(student, student_path)
 
-    # Export student for m05/m06 re-evaluation
-    export_student_for_eval(student, output_dir / "student_encoder.pt")
+    # Cleanup ALL checkpoints — student_encoder.pt is the deliverable
+    for ckpt_file in output_dir.glob(f"{CHECKPOINT_PREFIX}_*.pt"):
+        ckpt_file.unlink()
+        print(f"  Cleaned: {ckpt_file.name}")
+
+    # Save training summary as JSON (for winner selection, not stdout parsing)
+    total_epochs_done = (step + 1) / max(steps_per_epoch, 1)
+    summary = {
+        "steps": step + 1,
+        "epochs": round(total_epochs_done, 2),
+        "clips_seen": (step + 1) * batch_size,
+        "final_jepa_loss": jepa_val,
+        "final_drift_loss": drift_val,
+        "final_total_loss": total_val,
+        "final_lr": lr_val,
+        "final_grad_norm": gn_val,
+        "lambda_reg": drift_cfg["lambda_reg"],
+        "batch_size": batch_size,
+    }
+    summary_path = output_dir / "training_summary.json"
+    with open(summary_path, "w") as f:
+        json.dump(summary, f, indent=2)
 
     finish_wandb(wb_run)
     print(f"\n=== TRAINING COMPLETE ===")
-    print(f"Steps:        {step + 1}")
-    print(f"Best Cycle@1: {best_cycle_k:.1f}%")
-    print(f"Final ckpt:   {final_ckpt}")
-    print(f"Student:      {output_dir / 'student_encoder.pt'}")
+    print(f"Steps:        {step + 1} ({total_epochs_done:.1f} epochs)")
+    print(f"Clips seen:   {(step + 1) * batch_size:,}")
+    print(f"Student:      {student_path}")
+    print(f"Loss log:     {csv_path}")
+    print(f"Summary:      {summary_path}")
 
 
 # ═════════════════════════════════════════════════════════════════════════
@@ -829,8 +942,8 @@ def main():
                         help="Override batch size from config")
     parser.add_argument("--lambda-reg", type=float, default=None,
                         help="Override drift control lambda (ablation: 0, 0.001, 0.01, 0.1)")
-    parser.add_argument("--max-steps", type=int, default=None,
-                        help="Override max training steps from config")
+    parser.add_argument("--max-epochs", type=int, default=None,
+                        help="Override max epochs (SANITY=1, POC=5, FULL=1)")
     add_subset_arg(parser)
     add_local_data_arg(parser)
     add_wandb_args(parser)

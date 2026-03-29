@@ -30,6 +30,7 @@ from utils.config import (
     VJEPA_FRAMES_PER_CLIP, VJEPA_EMBEDDING_DIM,
     check_gpu, DEFAULT_BATCH_SIZE,
     check_output_exists, load_subset, add_subset_arg, add_local_data_arg, get_output_dir,
+    get_pipeline_config, get_sanity_clip_limit, get_total_clips,
 )
 from utils.gpu_batch import compute_batch_sizes, add_gpu_mem_arg
 from utils.wandb_utils import add_wandb_args, init_wandb, log_metrics, log_artifact, finish_wandb
@@ -62,13 +63,12 @@ if not USE_TORCHCODEC:
         sys.exit(1)
 
 # Constants
-DEDUPE_THRESHOLD = 0.95
-MAX_STREAM_RETRIES = 5
-PREFETCH_QUEUE_SIZE = 2
-CHECKPOINT_EVERY = 500
-TOTAL_CLIPS = 115_687
-DECODE_WORKERS = 4
-ENGINE_RESTART_EVERY = 10_000
+_pcfg = get_pipeline_config()
+MAX_STREAM_RETRIES = _pcfg["streaming"]["max_retries"]
+PREFETCH_QUEUE_SIZE = _pcfg["streaming"]["prefetch_queue_embed"]
+CHECKPOINT_EVERY = _pcfg["streaming"]["checkpoint_every"]
+DECODE_WORKERS = _pcfg["streaming"]["decode_workers_embed"]
+ENGINE_RESTART_EVERY = _pcfg["streaming"]["engine_restart_every"]
 
 
 # ── HF Streaming Helpers ──────────────────────────────────────────────
@@ -306,79 +306,24 @@ def _producer_thread(processor, batch_size: int, tmp_dir: str,
     q.put(("done", None, None))
 
 
-# ── Deduplication ──────────────────────────────────────────────────────
-
-def deduplicate_embeddings(embeddings: np.ndarray, clip_keys: list, threshold: float = 0.95) -> tuple:
-    """Remove near-duplicate clips based on cosine similarity (chunked to avoid OOM)."""
-    print(f"\n=== Deduplicating clips (cosine sim > {threshold}) ===")
-    n = len(embeddings)
-
-    norms = np.linalg.norm(embeddings, axis=1, keepdims=True)
-    norms[norms == 0] = 1
-    normalized = embeddings / norms
-
-    keep_mask = np.ones(n, dtype=bool)
-    CHUNK = 2048  # ~2048 x 115K x 4 bytes = ~900 MB per chunk (fits in VRAM)
-    use_gpu = torch.cuda.is_available()
-
-    for i_start in range(0, n, CHUNK):
-        i_end = min(i_start + CHUNK, n)
-        # Only process rows still marked as kept
-        active_rows = [i for i in range(i_start, i_end) if keep_mask[i]]
-        if not active_rows:
-            continue
-
-        if use_gpu:
-            chunk = torch.from_numpy(normalized[active_rows]).cuda()
-        else:
-            chunk = normalized[active_rows]
-
-        # Compare against all columns AFTER the chunk start (avoid double-counting)
-        for j_start in range(i_start, n, CHUNK):
-            j_end = min(j_start + CHUNK, n)
-            if use_gpu:
-                target = torch.from_numpy(normalized[j_start:j_end]).cuda()
-                sim = torch.mm(chunk, target.T).cpu().numpy()
-            else:
-                sim = normalized[active_rows] @ normalized[j_start:j_end].T
-
-            for ci, i in enumerate(active_rows):
-                if not keep_mask[i]:
-                    continue
-                # Only mark duplicates with index > i
-                col_start = max(0, i + 1 - j_start)
-                if col_start >= sim.shape[1]:
-                    continue
-                dupes = np.where(sim[ci, col_start:] > threshold)[0] + j_start + col_start
-                keep_mask[dupes] = False
-
-    keep_indices = np.where(keep_mask)[0]
-    deduped_embeddings = embeddings[keep_indices]
-    deduped_keys = [clip_keys[i] for i in keep_indices]
-    num_removed = n - len(keep_indices)
-
-    print(f"Original clips: {n}")
-    print(f"Removed duplicates: {num_removed}")
-    print(f"Remaining clips: {len(deduped_keys)}")
-
-    return deduped_embeddings, deduped_keys, num_removed
-
-
 # ── GPU Inference ──────────────────────────────────────────────────────
 
 def get_batch_embeddings(model, batched_pixels: torch.Tensor, device: str,
                          is_adapted: bool = False) -> np.ndarray:
     """Get V-JEPA 2 embeddings for a batch of processed videos."""
     pixel_values = batched_pixels.to(device)
-    with torch.no_grad():
+    with torch.no_grad(), torch.amp.autocast("cuda", dtype=torch.float16):
         if is_adapted:
             # Native vjepa2 VisionTransformer: forward(x) → (B, N, D) tensor
+            # HF processor outputs (B, T, C, H, W), native vjepa2 expects (B, C, T, H, W)
+            if pixel_values.ndim == 5 and pixel_values.shape[2] in (1, 3):
+                pixel_values = pixel_values.permute(0, 2, 1, 3, 4)
             outputs = model(pixel_values)
-            embeddings = outputs.mean(dim=1).cpu().numpy()
+            embeddings = outputs.mean(dim=1).float().cpu().numpy()
         else:
             # HF AutoModel: forward(pixel_values_videos=...) → ModelOutput
             outputs = model(pixel_values_videos=pixel_values, skip_predictor=True)
-            embeddings = outputs.last_hidden_state.mean(dim=1).cpu().numpy()
+            embeddings = outputs.last_hidden_state.mean(dim=1).float().cpu().numpy()
     return embeddings
 
 
@@ -394,10 +339,12 @@ def orchestrator_main(args):
     """
     output_dir = get_output_dir(args.subset, sanity=args.SANITY)
 
-    # Adapted models save to encoder-specific filename (e.g., embeddings_vjepa_adapted.npy)
+    # Encoder name determines output filenames (unique per lambda for ablation)
     model_path = Path(args.model)
     is_adapted = model_path.suffix == ".pt" and model_path.exists()
-    embed_suffix = "_vjepa_adapted" if is_adapted else ""
+    encoder_name = getattr(args, 'encoder', None) or ("vjepa_adapted" if is_adapted else "vjepa")
+    from utils.config import get_encoder_info
+    embed_suffix = get_encoder_info(encoder_name)["suffix"]
     embeddings_file = output_dir / f"embeddings{embed_suffix}.npy"
     checkpoint_file = output_dir / f".m05_checkpoint{embed_suffix}.npz"
 
@@ -414,11 +361,14 @@ def orchestrator_main(args):
     # Determine total clips
     subset_keys = load_subset(args.subset) if args.subset else set()
     if args.SANITY:
-        total_clips = 5
+        total_clips = get_sanity_clip_limit("embed")
     elif subset_keys:
         total_clips = len(subset_keys)
     else:
-        total_clips = TOTAL_CLIPS
+        total_clips = get_total_clips(local_data=getattr(args, 'local_data', None))
+        if total_clips == 0:
+            print("FATAL: Cannot determine clip count. Use --subset or --local-data with manifest.json")
+            sys.exit(1)
 
     print(f"Clip limit: {total_clips:,}")
     print(f"Streaming from: {HF_DATASET_REPO}")
@@ -461,6 +411,8 @@ def orchestrator_main(args):
                 cmd.extend(["--model", args.model])
             if getattr(args, 'local_data', None):
                 cmd.extend(["--local-data", args.local_data])
+            if getattr(args, 'encoder', None):
+                cmd.extend(["--encoder", args.encoder])
 
             result = subprocess.run(cmd)
 
@@ -486,11 +438,6 @@ def orchestrator_main(args):
     print(f"\n=== Processing Stats ===")
     print(f"Total clips:     {len(clip_keys):,}")
     print(f"Embedding shape: {embeddings.shape}")
-
-    if not args.no_dedupe:
-        embeddings, clip_keys, num_removed = deduplicate_embeddings(
-            embeddings, clip_keys, args.threshold
-        )
 
     embeddings_file.parent.mkdir(parents=True, exist_ok=True)
     np.save(embeddings_file, embeddings)
@@ -532,7 +479,13 @@ def worker_main(args):
                         enabled=not args.no_wandb)
 
     output_dir = get_output_dir(args.subset, sanity=args.SANITY)
-    checkpoint_file = output_dir / ".m05_checkpoint.npz"
+    # Match orchestrator's encoder-aware checkpoint path
+    model_path = Path(args.model)
+    is_adapted = model_path.suffix == ".pt" and model_path.exists()
+    encoder_name = getattr(args, 'encoder', None) or ("vjepa_adapted" if is_adapted else "vjepa")
+    from utils.config import get_encoder_info
+    embed_suffix = get_encoder_info(encoder_name)["suffix"]
+    checkpoint_file = output_dir / f".m05_checkpoint{embed_suffix}.npz"
     subset_keys = load_subset(args.subset) if args.subset else set()
 
     # Load checkpoint for resume (processed_keys used by producer to skip done clips)
@@ -574,9 +527,8 @@ def worker_main(args):
                 state_dict = ckpt
 
             # Build native vjepa2 encoder (same architecture as m09 training)
-            VJEPA2_DIR = Path(__file__).parent.parent / "deps" / "vjepa2"
-            sys.path.insert(0, str(VJEPA2_DIR))
-            from models.vision_transformer import vit_giant_xformers
+            from utils.vjepa2_imports import get_vit_giant_xformers
+            vit_giant_xformers = get_vit_giant_xformers()
 
             model = vit_giant_xformers(
                 img_size=(384, 384), patch_size=16, num_frames=VJEPA_FRAMES_PER_CLIP,
@@ -607,8 +559,13 @@ def worker_main(args):
             )
 
         model.eval()
-        print("Applying torch.compile (first batch will be slow due to compilation)...")
-        model = torch.compile(model)
+        if not is_adapted:
+            print("Applying torch.compile (first batch will be slow due to compilation)...")
+            model = torch.compile(model)
+        else:
+            # Skip torch.compile for adapted models: dynamo traces with float32
+            # fake tensors against float16 model weights → dtype mismatch crash
+            print("Skipping torch.compile for adapted encoder (float16 dtype conflict)")
         print(f"Model loaded on {device} (dtype: {next(model.parameters()).dtype})")
     except Exception as e:
         print(f"FATAL: Model load failed: {e}")
@@ -664,7 +621,6 @@ def worker_main(args):
                 processed_keys.add(key)
 
             clips_this_run = len(all_embeddings) - resume_count
-            total_target = clip_limit + resume_count
             pbar.update(len(batch_keys))
 
             # Windowed throughput
@@ -731,9 +687,8 @@ def main():
     parser.add_argument("--model", type=str, default=VJEPA_MODEL_ID, help="Model ID")
     parser.add_argument("--batch-size", type=int, default=None,
                         help="Override batch size (auto-computed if omitted)")
-    parser.add_argument("--no-dedupe", action="store_true", help="Skip deduplication")
-    parser.add_argument("--threshold", type=float, default=DEDUPE_THRESHOLD,
-                        help="Dedupe threshold")
+    parser.add_argument("--encoder", type=str, default=None,
+                        help="Encoder name for output files (e.g., vjepa_lambda0)")
     add_subset_arg(parser)
     add_local_data_arg(parser)
     add_wandb_args(parser)

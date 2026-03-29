@@ -1,0 +1,67 @@
+# ═══════════════════════════════════════════════════════════════════════
+# Pipeline config — single source of truth for all src/m*.py scripts
+# No hardcoded clip counts, dataset sizes, or magic numbers in Python.
+# ═══════════════════════════════════════════════════════════════════════
+
+# -- SANITY mode clip limits (per module) --
+# Purpose: validate code runs end-to-end, not model quality
+sanity:
+  download: 3                 # m01: videos to download
+  data_prep: 5                # m00b: durations to fetch
+  download_subset: 20         # m00d: clips to download locally
+  vlm_tag: 20                 # m04: clips to tag
+  motion: 20                  # m04d: clips for motion features
+  embed: 20                   # m05/m05b/m05c: clips to embed
+  pretrain_train: 900         # m09: train clips (8 steps at BS=112)
+  pretrain_val: 100           # m09: val clips
+  default: 20                 # fallback for unlisted modules
+
+# -- BAKEOFF mode --
+bakeoff:
+  clips: 2500                 # m04b: VLM comparison subset
+
+# -- POC subset --
+poc:
+  default_n: 10000            # m00c: default subset size
+
+# -- Data processing --
+data:
+  clips_per_shard: 1000       # m03/m00d: WebDataset shard size
+  data_prep_workers: 10       # m00b: concurrent duration fetchers
+  clip_duration_sec: 10       # m06: default clip length for ±30s exclusion
+  exclusion_window_sec: 30    # m06: hard mode temporal exclusion window
+  download_resolution: 480    # m01: yt-dlp resolution
+
+# -- Streaming & checkpointing --
+streaming:
+  max_retries: 5              # HF stream reconnect attempts
+  checkpoint_every: 500       # clips between checkpoint saves (m04/m05)
+  engine_restart_every: 10000 # m04/m05: worker subprocess restart interval
+  prefetch_queue_vlm: 4       # m04: VLM producer queue depth
+  prefetch_queue_embed: 2     # m05/m05b: embedding producer queue depth
+  prefetch_queue_train: 4     # m09: training producer queue depth
+  decode_workers_embed: 4     # m05/m05b/m05c: video decode threads
+  decode_workers_motion: 4    # m04d: optical flow video decode threads
+  decode_workers_train: 16    # m09: video decode threads (256 CPU cores)
+  augment_workers: 4          # m05c: augmentation thread workers
+  producer_queue_motion: 8    # m04d: preprocessed clip batches buffered ahead
+
+# -- GPU defaults (overridden by profiler/auto-detect) --
+gpu:
+  default_batch_size: 16      # fallback if profiler unavailable
+  default_num_workers: 8      # dataloader workers
+  vlm_batch_size: 4           # m04: transformers sequential inference
+  motion_batch_size: 8        # m04d: optical flow batch
+
+# -- Evaluation --
+eval:
+  faiss_k_neighbors: 6          # m06: kNN neighbors (includes self)
+  temporal_sample_pairs: 100000  # m06b: pairs for temporal correlation
+  temporal_motion_clusters: 4    # m06b: k-means clusters for motion
+  motion_checkpoint_every: 200   # m04d: checkpoint interval
+  llava_num_frames: 16           # m04: LLaVA-NeXT frame count (8-32 range)
+
+# -- Verification thresholds (shell scripts) --
+verify:
+  sanity_min_clips: 5            # run_evaluate.sh / run_pretrain.sh: min clips for SANITY pass
+  full_min_clips: 1000           # run_evaluate.sh / run_pretrain.sh: min clips for FULL pass

@@ -107,8 +107,42 @@ VJEPA_EMBEDDING_DIM = 1408  # ViT-G hidden dimension
 # Qwen3-VL config
 QWEN_MODEL_ID = "Qwen/Qwen3-VL-8B-Instruct"
 
-# FAISS config
-FAISS_K_NEIGHBORS = 6  # includes self
+# ── Pipeline config (clip limits from YAML, not hardcoded) ───────────
+PIPELINE_CONFIG_PATH = PROJECT_ROOT / "configs" / "pipeline.yaml"
+_pipeline_cfg = None
+
+def get_pipeline_config() -> dict:
+    """Load configs/pipeline.yaml (cached). Single source of truth for clip limits."""
+    global _pipeline_cfg
+    if _pipeline_cfg is None:
+        import yaml
+        with open(PIPELINE_CONFIG_PATH) as f:
+            _pipeline_cfg = yaml.safe_load(f)
+    return _pipeline_cfg
+
+
+def get_sanity_clip_limit(module: str) -> int:
+    """Get SANITY clip limit for a module from configs/pipeline.yaml."""
+    cfg = get_pipeline_config()
+    return cfg["sanity"].get(module, cfg["sanity"]["default"])
+
+
+def get_total_clips(local_data: str = None, subset_file: str = None) -> int:
+    """Discover total clip count from data source. Never hardcode."""
+    import json
+    if subset_file:
+        keys = load_subset(subset_file)
+        return len(keys)
+    if local_data:
+        manifest = Path(local_data) / "manifest.json"
+        if manifest.exists():
+            data = json.load(open(manifest))
+            return data.get("n_clips", data.get("total_clips", 0))
+    return 0  # caller must handle 0
+
+
+# FAISS config (after get_pipeline_config is defined)
+FAISS_K_NEIGHBORS = get_pipeline_config()["eval"]["faiss_k_neighbors"]
 
 # POC subset config
 SUBSET_FILE = PROJECT_ROOT / "data" / "subset_10k.json"
@@ -122,7 +156,7 @@ VLM_MODELS = {
     "videollama": "DAMO-NLP-SG/VideoLLaMA3-7B",
     "llava": "llava-hf/LLaVA-NeXT-Video-7B-hf",
 }
-BAKEOFF_CLIP_COUNT = 2500
+BAKEOFF_CLIP_COUNT = get_pipeline_config()["bakeoff"]["clips"]
 
 # Output files
 EMBEDDINGS_FILE = OUTPUTS_DIR / "embeddings.npy"
@@ -438,8 +472,8 @@ def load_embeddings_and_tags() -> tuple:
 # =============================================================================
 # BATCH PROCESSING CONFIG (optimized for A100-40GB)
 # =============================================================================
-DEFAULT_BATCH_SIZE = 16
-DEFAULT_NUM_WORKERS = 8
+DEFAULT_BATCH_SIZE = get_pipeline_config()["gpu"]["default_batch_size"]
+DEFAULT_NUM_WORKERS = get_pipeline_config()["gpu"]["default_num_workers"]
 RAM_CACHE_DIR = Path("/dev/shm/video_clips_cache")
 
 

@@ -19,10 +19,11 @@ sys.path.insert(0, str(Path(__file__).parent))
 from utils.config import (
     CLIPS_DIR, SHARDS_DIR, HF_DATASET_REPO, OUTPUTS_DATA_PREP_DIR,
 )
+from utils.config import get_pipeline_config
 from utils.hf_utils import _setup_hf_env, _get_token, generate_readme, upload_readme
 
 CLIP_DURATIONS_JSON = OUTPUTS_DATA_PREP_DIR / "clip_durations.json"
-CLIPS_PER_SHARD = 1000
+CLIPS_PER_SHARD = get_pipeline_config()["data"]["clips_per_shard"]
 
 
 def build_manifest() -> list:

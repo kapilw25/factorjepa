@@ -413,6 +413,12 @@
             <span>FactorJEPA<span class="tab-subtitle">Evaluation</span></span>
           </a>
         </li>
+        <li data-tab="foundations">
+          <a>
+            <span class="icon"><i class="fas fa-graduation-cap"></i></span>
+            <span>Foundations<span class="tab-subtitle">ML Primer</span></span>
+          </a>
+        </li>
       </ul>
     </div>
   </div>
@@ -1268,6 +1274,190 @@ flowchart TB
 
 </div><!-- end tab-factorjepa -->
 
+<!-- ==================== TAB 3: Foundations (ML Primer) ==================== -->
+<div id="tab-foundations" class="tab-content" style="display: none;">
+
+<section class="section" style="padding-top: 2rem;">
+  <div class="container" style="max-width: 900px;">
+    <h2 class="title is-3 has-text-centered" style="margin-bottom: 0.5rem;">Where Does V-JEPA Fit?</h2>
+    <p class="has-text-centered" style="color: var(--text-secondary); margin-bottom: 2rem;">
+      A visual guide to machine learning paradigms and how V-JEPA 2's training relates to them.
+    </p>
+
+    <!-- ML Taxonomy Tree -->
+    <div style="background: var(--bg-sand); border-radius: 12px; padding: 2rem; margin-bottom: 2rem; border: 1px solid var(--border-tan);">
+      <h3 class="title is-5" style="margin-bottom: 1rem;">Machine Learning Taxonomy</h3>
+      <div class="mermaid" style="text-align: center;">
+mindmap
+  root((Machine<br/>Learning))
+    **Supervised**
+      Classification
+        cat vs dog
+        spam detection
+      Regression
+        price prediction
+        forecasting
+    **Unsupervised**
+      Clustering
+        k-means
+        DBSCAN
+      Dim. Reduction
+        PCA
+        UMAP
+      Association Rules
+        market basket
+    **Self-Supervised** 🎯
+      Contrastive
+        SimCLR
+        MoCo
+      Masked Prediction
+        Pixel-space
+          MAE
+          VideoMAE
+        :::highlight Latent-space
+          :::highlight **V-JEPA 2** ✦
+      Distillation
+        DINO / BYOL
+      Generative
+        GPT pretraining
+    **Reinforcement**
+      RLHF for LLMs
+        PPO / DPO / GRPO
+      Robotics
+        Q-learning / SAC
+      </div>
+    </div>
+
+    <!-- Comparison Table -->
+    <div style="background: white; border-radius: 12px; padding: 2rem; margin-bottom: 2rem; border: 1px solid var(--border-tan);">
+      <h3 class="title is-5" style="margin-bottom: 1rem;">How SSL Methods Compare</h3>
+      <table class="table is-fullwidth is-hoverable" style="font-size: 0.95rem;">
+        <thead>
+          <tr style="background: var(--bg-sand);">
+            <th>Method</th>
+            <th>What It Predicts</th>
+            <th>Needs Labels?</th>
+            <th>Needs Negatives?</th>
+            <th>Used By</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>Contrastive</strong></td>
+            <td>Pull similar views together, push different apart</td>
+            <td>No</td>
+            <td style="color: #c62828;">Yes (hard to scale)</td>
+            <td>SimCLR, MoCo</td>
+          </tr>
+          <tr>
+            <td><strong>Pixel Masked</strong></td>
+            <td>Reconstruct missing pixels</td>
+            <td>No</td>
+            <td>No</td>
+            <td>MAE, VideoMAE</td>
+          </tr>
+          <tr style="background: #FFF3E0;">
+            <td><strong style="color: var(--accent-terracotta);">Latent Masked ✦</strong></td>
+            <td><strong>Predict missing features (not pixels)</strong></td>
+            <td>No</td>
+            <td>No</td>
+            <td><strong>V-JEPA, V-JEPA 2</strong></td>
+          </tr>
+          <tr>
+            <td><strong>Distillation</strong></td>
+            <td>Student matches teacher's output</td>
+            <td>No</td>
+            <td>No</td>
+            <td>DINO, BYOL</td>
+          </tr>
+          <tr>
+            <td><strong>Generative</strong></td>
+            <td>Predict next token / word</td>
+            <td>No</td>
+            <td>No</td>
+            <td>GPT, BERT</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- V-JEPA 2 Explained -->
+    <div style="background: var(--bg-sand); border-radius: 12px; padding: 2rem; margin-bottom: 2rem; border: 1px solid var(--border-tan);">
+      <h3 class="title is-5" style="margin-bottom: 1rem;">V-JEPA 2 in One Picture</h3>
+      <div style="display: flex; gap: 1rem; flex-wrap: wrap; justify-content: center;">
+        <div style="flex: 1; min-width: 250px; background: white; border-radius: 8px; padding: 1.5rem; text-align: center;">
+          <div style="font-size: 2.5rem; margin-bottom: 0.5rem;">🎬</div>
+          <strong>1. Take a video clip</strong>
+          <p style="font-size: 0.85rem; color: var(--text-secondary);">10s Indian street scene, 16 frames</p>
+        </div>
+        <div style="flex: 1; min-width: 250px; background: white; border-radius: 8px; padding: 1.5rem; text-align: center;">
+          <div style="font-size: 2.5rem; margin-bottom: 0.5rem;">🧩</div>
+          <strong>2. Mask 80% of patches</strong>
+          <p style="font-size: 0.85rem; color: var(--text-secondary);">Student only sees 20% of the video</p>
+        </div>
+        <div style="flex: 1; min-width: 250px; background: white; border-radius: 8px; padding: 1.5rem; text-align: center;">
+          <div style="font-size: 2.5rem; margin-bottom: 0.5rem;">🎯</div>
+          <strong>3. Predict what's hidden</strong>
+          <p style="font-size: 0.85rem; color: var(--text-secondary);">In feature space, not pixels &mdash; the key insight</p>
+        </div>
+        <div style="flex: 1; min-width: 250px; background: white; border-radius: 8px; padding: 1.5rem; text-align: center;">
+          <div style="font-size: 2.5rem; margin-bottom: 0.5rem;">🔄</div>
+          <strong>4. Teacher provides targets</strong>
+          <p style="font-size: 0.85rem; color: var(--text-secondary);">EMA copy of student, sees ALL patches</p>
+        </div>
+      </div>
+      <p style="text-align: center; margin-top: 1.5rem; font-size: 1.05rem; color: var(--text-secondary);">
+        <strong>No labels. No rewards. No human feedback.</strong><br>
+        The supervision comes from the video itself.
+      </p>
+    </div>
+
+    <!-- LLM vs V-JEPA comparison -->
+    <div style="background: white; border-radius: 12px; padding: 2rem; border: 1px solid var(--border-tan);">
+      <h3 class="title is-5" style="margin-bottom: 1rem;">If You Know LLMs...</h3>
+      <table class="table is-fullwidth" style="font-size: 0.95rem;">
+        <thead>
+          <tr style="background: var(--bg-sand);">
+            <th></th>
+            <th>LLMs (GPT, LLaMA)</th>
+            <th style="background: #FFF3E0;">V-JEPA 2</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>Input</strong></td>
+            <td>Text tokens</td>
+            <td>Video patch tokens (spatiotemporal)</td>
+          </tr>
+          <tr>
+            <td><strong>Training task</strong></td>
+            <td>Predict next token</td>
+            <td>Predict masked patch features</td>
+          </tr>
+          <tr>
+            <td><strong>Architecture</strong></td>
+            <td>Decoder-only transformer</td>
+            <td>Encoder (student) + predictor + teacher (EMA)</td>
+          </tr>
+          <tr>
+            <td><strong>Fine-tuning</strong></td>
+            <td>SFT → RLHF (PPO/DPO/GRPO)</td>
+            <td>Continual SSL → Surgery (prefix unfreezing)</td>
+          </tr>
+          <tr>
+            <td><strong>Output</strong></td>
+            <td>Generated text</td>
+            <td>Fixed-dim embedding per video clip</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+  </div>
+</section>
+
+</div><!-- end tab-foundations -->
+
 <!-- ==================== BIBTEX ==================== -->
 <section class="section">
   <div class="container" style="max-width: 700px;">
@@ -1338,9 +1528,9 @@ document.querySelectorAll('#main-tabs li').forEach(tab => {
     tab.classList.add('is-active');
     document.querySelectorAll('.tab-content').forEach(c => c.style.display = 'none');
     document.getElementById('tab-' + target).style.display = 'block';
-    // Re-render mermaid diagrams when factorjepa tab becomes visible
-    if (target === 'factorjepa' && window.mermaid) {
-      mermaid.run({ querySelector: '#tab-factorjepa .mermaid' });
+    // Re-render mermaid diagrams when tab with diagrams becomes visible
+    if ((target === 'factorjepa' || target === 'foundations') && window.mermaid) {
+      mermaid.run({ querySelector: '#tab-' + target + ' .mermaid' });
     }
   });
 });

@@ -37,6 +37,7 @@ from utils.config import (
     TAGS_FILE, TAG_TAXONOMY_JSON, HF_DATASET_REPO, OUTPUTS_DIR,
     VLM_MODELS, BAKEOFF_CLIP_COUNT, BAKEOFF_DIR, OUTPUTS_POC_DIR, OUTPUTS_SANITY_DIR,
     check_gpu, check_output_exists, load_subset, add_subset_arg, add_local_data_arg,
+    get_pipeline_config, get_sanity_clip_limit, get_total_clips,
 )
 from utils.gpu_batch import compute_batch_sizes, add_gpu_mem_arg, AdaptiveBatchSizer
 from utils.wandb_utils import (
@@ -552,7 +553,7 @@ class VideoLLaMA3Backend(VLMBackend):
 # BACKEND: LLaVA-NeXT-Video-7B (native transformers, batched inference)
 # ═════════════════════════════════════════════════════════════════════════
 
-LLAVA_NUM_FRAMES = 16  # 8-32 range; 16 balances detail vs VRAM on 24GB
+LLAVA_NUM_FRAMES = _pcfg["eval"]["llava_num_frames"]
 
 
 class LLaVANextBackend(VLMBackend):
@@ -746,12 +747,12 @@ BACKENDS = {
 # ═════════════════════════════════════════════════════════════════════════
 
 # Default (overridden by auto-compute from gpu_batch.compute_batch_sizes)
-TRANSFORMERS_BATCH_SIZE = 4
-CHECKPOINT_EVERY = 500
-ENGINE_RESTART_EVERY = 10_000
-MAX_STREAM_RETRIES = 5
-PREFETCH_QUEUE_SIZE = 4  # Batched generate is faster → producer needs more buffer
-TOTAL_CLIPS = 115_687
+_pcfg = get_pipeline_config()
+TRANSFORMERS_BATCH_SIZE = _pcfg["gpu"]["vlm_batch_size"]
+CHECKPOINT_EVERY = _pcfg["streaming"]["checkpoint_every"]
+ENGINE_RESTART_EVERY = _pcfg["streaming"]["engine_restart_every"]
+MAX_STREAM_RETRIES = _pcfg["streaming"]["max_retries"]
+PREFETCH_QUEUE_SIZE = _pcfg["streaming"]["prefetch_queue_vlm"]
 PROMPT_VERSION = "v1.0"
 
 
@@ -1068,16 +1069,17 @@ def orchestrator_main(args):
     tags_file = get_tags_file(args.model, args.BAKEOFF, args.subset, is_sanity=args.SANITY)
 
     if args.SANITY:
-        total_clips = 20
+        total_clips = get_sanity_clip_limit("vlm_tag")
     elif args.BAKEOFF:
         total_clips = BAKEOFF_CLIP_COUNT
-    else:
-        total_clips = TOTAL_CLIPS
-
-    # For subset+FULL mode: total is subset size minus already-bakeoff'd
-    if args.subset and args.FULL:
+    elif args.subset and args.FULL:
         subset_keys = load_subset(args.subset)
         total_clips = len(subset_keys)
+    else:
+        total_clips = get_total_clips(local_data=getattr(args, 'local_data', None))
+        if total_clips == 0:
+            print("FATAL: Cannot determine clip count. Use --subset or --local-data with manifest.json")
+            sys.exit(1)
 
     all_tags, skip_count = load_checkpoint(tags_file)
     if skip_count >= total_clips:
@@ -1205,7 +1207,7 @@ def stream_and_tag_dummy(args) -> list:
     ds = load_dataset(HF_DATASET_REPO, split="train", streaming=True)
     ds = ds.decode(False)
 
-    clip_limit = 20 if args.SANITY else (BAKEOFF_CLIP_COUNT if args.BAKEOFF else 100)
+    clip_limit = get_sanity_clip_limit("vlm_tag") if args.SANITY else (BAKEOFF_CLIP_COUNT if args.BAKEOFF else 100)
 
     all_tags = []
     for example in ds:
@@ -1409,7 +1411,7 @@ def main():
 
     # Check existing
     if tags_file.exists() and not args.dummy:
-        total = 20 if args.SANITY else (BAKEOFF_CLIP_COUNT if args.BAKEOFF else TOTAL_CLIPS)
+        total = get_sanity_clip_limit("vlm_tag") if args.SANITY else (BAKEOFF_CLIP_COUNT if args.BAKEOFF else get_total_clips(local_data=getattr(args, 'local_data', None)))
         all_tags, count = load_checkpoint(tags_file)
         if count >= total:
             if not check_output_exists([tags_file], "tags"):

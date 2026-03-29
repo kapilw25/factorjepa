@@ -1,0 +1,874 @@
+[23:58:49] Auto batch size: 112 (from profiler, <=75% VRAM)
+[23:58:49] Local subset exists: data/subset_10k_local
+[23:58:49] Ch10 pipeline starting (mode=SANITY)
+[23:58:49] Config: configs/pretrain/vitg16_indian.yaml
+[23:58:49] Master log: logs/ch10_SANITY_20260328_235849.log
+
+[23:58:49] === PRE-FLIGHT ===
+GPU:        NVIDIA RTX PRO 6000 Blackwell Workstation Edition
+VRAM:       102 GB
+PyTorch:    2.12.0.dev20260228+cu128
+vjepa2:     deps/vjepa2/ present
+Flash-Attn: 2.8.3
+FAISS GPUs: 1
+Config:     configs/pretrain/vitg16_indian.yaml
+Baseline:   Prec@K=0.0% (Ch9 frozen)
+
+Pre-flight: ALL PASSED
+[23:58:51] Pre-flight complete. Starting pipeline...
+
+
+[23:58:51] ╔═══════════════════════════════════════════════════════════╗
+[23:58:51] ║  ABLATION: lambda=0 (lambda0)                    
+[23:58:51] ╚═══════════════════════════════════════════════════════════╝
+
+═══════════════════════════════════════════════════════════════
+  STEP lambda0-train: m09 pretrain (lambda=0)
+  Mode: SANITY | Est: ~2 min (50 steps, profiler BS)
+  Started: 2026-03-28 23:58:51
+═══════════════════════════════════════════════════════════════
+[23:58:51] CMD: python -u src/m09_pretrain.py --config configs/pretrain/vitg16_indian.yaml --lambda-reg 0 --batch-size 112 --SANITY --local-data data/subset_10k_local
+Using PyAV for video decoding
+GPU: NVIDIA RTX PRO 6000 Blackwell Workstation Edition
+CUDA version: 12.8
+
+=== Building Model ===
+/workspace/factorjepa/venv_walkindia/lib/python3.12/site-packages/timm/models/layers/__init__.py:49: FutureWarning: Importing from timm.models.layers is deprecated, please import via timm.layers
+  warnings.warn(f"Importing from {__name__} is deprecated, please import via timm.layers", FutureWarning)
+Downloading pretrained weights via torch.hub...
+Student loaded: 1,012,173,952 params (484/484 keys = 100%)
+Teacher created (deepcopy of student)
+Predictor loaded from checkpoint (152/152 keys = 100%)
+Predictor: 22,378,240 params
+Mask generators: 2 (blocks: [8, 2])
+wandb: [wandb.login()] Loaded credentials for https://api.wandb.ai from WANDB_API_KEY.
+wandb: Currently logged in as: kapilw25 (sjsu_llm) to https://api.wandb.ai. Use `wandb login --relogin` to force relogin
+wandb: WARNING Using a boolean value for 'reinit' is deprecated. Use 'return_previous' or 'finish_previous' instead.
+wandb: setting up run n92n60sl
+wandb: Tracking run with wandb version 0.25.1
+wandb: Run data is saved locally in /workspace/factorjepa/wandb/run-20260328_235916-n92n60sl
+wandb: Run `wandb offline` to turn off syncing.
+wandb: Syncing run m09_SANITY
+wandb: ⭐️ View project at https://wandb.ai/sjsu_llm/walkindia-200k
+wandb: 🚀 View run at https://wandb.ai/sjsu_llm/walkindia-200k/runs/n92n60sl
+wandb: run=m09_SANITY url=https://wandb.ai/sjsu_llm/walkindia-200k/runs/n92n60sl
+m09_pretrain:   0%|          | 0/50 [00:00<?, ?step/s]
+=== Training: 0 → 50 steps ===
+Batch size: 112
+Grad checkpointing: True
+Mixed precision: bfloat16
+EMA momentum: 0.99925
+Drift control: lambda=0
+Loss log: /workspace/factorjepa/outputs/sanity/m09_lambda0/loss_log.csv
+/venv/main/lib/python3.12/contextlib.py:105: FutureWarning: `torch.backends.cuda.sdp_kernel()` is deprecated. In the future, this context manager will be removed. Please see `torch.nn.attention.sdpa_kernel()` for the new context manager, with updated signature.
+  self.gen = func(*args, **kwds)
+m09_pretrain:   0%|          | 0/50 [00:40<?, ?step/s, loss=1.6369 drift=0.0000 lr=2.00e-08 grad=1.42 0.02 step/s]m09_pretrain:   2%|▏         | 1/50 [00:40<33:17, 40.77s/step, loss=1.6369 drift=0.0000 lr=2.00e-08 grad=1.42 0.02 step/s]m09_pretrain:   4%|▍         | 2/50 [01:04<24:34, 30.72s/step, loss=1.6369 drift=0.0000 lr=2.00e-08 grad=1.42 0.02 step/s]m09_pretrain:   4%|▍         | 2/50 [01:27<24:34, 30.72s/step, loss=1.6356 drift=0.0000 lr=6.00e-08 grad=1.31 0.04 step/s]m09_pretrain:   6%|▌         | 3/50 [01:27<21:13, 27.09s/step, loss=1.6356 drift=0.0000 lr=6.00e-08 grad=1.31 0.04 step/s]m09_pretrain:   8%|▊         | 4/50 [01:49<19:23, 25.30s/step, loss=1.6356 drift=0.0000 lr=6.00e-08 grad=1.31 0.04 step/s]m09_pretrain:   8%|▊         | 4/50 [02:11<19:23, 25.30s/step, loss=1.6626 drift=0.0000 lr=1.00e-07 grad=1.57 0.05 step/s]m09_pretrain:  10%|█         | 5/50 [02:11<18:00, 24.02s/step, loss=1.6626 drift=0.0000 lr=1.00e-07 grad=1.57 0.05 step/s]m09_pretrain:  12%|█▏        | 6/50 [02:32<16:56, 23.10s/step, loss=1.6626 drift=0.0000 lr=1.00e-07 grad=1.57 0.05 step/s]m09_pretrain:  12%|█▏        | 6/50 [02:52<16:56, 23.10s/step, loss=1.6776 drift=0.0000 lr=1.40e-07 grad=1.38 0.05 step/s]m09_pretrain:  14%|█▍        | 7/50 [02:52<15:45, 22.00s/step, loss=1.6776 drift=0.0000 lr=1.40e-07 grad=1.38 0.05 step/s]m09_pretrain:  16%|█▌        | 8/50 [03:19<16:23, 23.41s/step, loss=1.6776 drift=0.0000 lr=1.40e-07 grad=1.38 0.05 step/s]m09_pretrain:  16%|█▌        | 8/50 [03:41<16:23, 23.41s/step, loss=1.6295 drift=0.0000 lr=1.80e-07 grad=1.21 0.04 step/s]m09_pretrain:  18%|█▊        | 9/50 [03:41<15:49, 23.16s/step, loss=1.6295 drift=0.0000 lr=1.80e-07 grad=1.21 0.04 step/s]m09_pretrain:  20%|██        | 10/50 [04:02<15:02, 22.57s/step, loss=1.6295 drift=0.0000 lr=1.80e-07 grad=1.21 0.04 step/s]m09_pretrain:  20%|██        | 10/50 [04:28<15:02, 22.57s/step, loss=1.6541 drift=0.0000 lr=2.20e-07 grad=1.71 0.04 step/s]m09_pretrain:  22%|██▏       | 11/50 [04:28<15:17, 23.52s/step, loss=1.6541 drift=0.0000 lr=2.20e-07 grad=1.71 0.04 step/s]m09_pretrain:  24%|██▍       | 12/50 [04:49<14:29, 22.89s/step, loss=1.6541 drift=0.0000 lr=2.20e-07 grad=1.71 0.04 step/s]m09_pretrain:  24%|██▍       | 12/50 [05:13<14:29, 22.89s/step, loss=1.6511 drift=0.0000 lr=2.60e-07 grad=1.11 0.04 step/s]m09_pretrain:  26%|██▌       | 13/50 [05:13<14:13, 23.08s/step, loss=1.6511 drift=0.0000 lr=2.60e-07 grad=1.11 0.04 step/s]m09_pretrain:  28%|██▊       | 14/50 [05:36<13:52, 23.12s/step, loss=1.6511 drift=0.0000 lr=2.60e-07 grad=1.11 0.04 step/s]m09_pretrain:  28%|██▊       | 14/50 [05:57<13:52, 23.12s/step, loss=1.6364 drift=0.0000 lr=3.00e-07 grad=1.04 0.05 step/s]m09_pretrain:  30%|███       | 15/50 [05:57<13:01, 22.32s/step, loss=1.6364 drift=0.0000 lr=3.00e-07 grad=1.04 0.05 step/s]m09_pretrain:  32%|███▏      | 16/50 [06:20<12:43, 22.47s/step, loss=1.6364 drift=0.0000 lr=3.00e-07 grad=1.04 0.05 step/s]m09_pretrain:  32%|███▏      | 16/50 [06:42<12:43, 22.47s/step, loss=1.6545 drift=0.0000 lr=3.40e-07 grad=1.16 0.04 step/s]m09_pretrain:  34%|███▍      | 17/50 [06:42<12:22, 22.50s/step, loss=1.6545 drift=0.0000 lr=3.40e-07 grad=1.16 0.04 step/s]m09_pretrain:  36%|███▌      | 18/50 [07:03<11:47, 22.11s/step, loss=1.6545 drift=0.0000 lr=3.40e-07 grad=1.16 0.04 step/s]m09_pretrain:  36%|███▌      | 18/50 [07:28<11:47, 22.11s/step, loss=1.6709 drift=0.0000 lr=3.80e-07 grad=1.41 0.04 step/s]m09_pretrain:  38%|███▊      | 19/50 [07:28<11:48, 22.86s/step, loss=1.6709 drift=0.0000 lr=3.80e-07 grad=1.41 0.04 step/s]m09_pretrain:  40%|████      | 20/50 [07:49<11:06, 22.23s/step, loss=1.6709 drift=0.0000 lr=3.80e-07 grad=1.41 0.04 step/s]m09_pretrain:  40%|████      | 20/50 [08:10<11:06, 22.23s/step, loss=1.6626 drift=0.0000 lr=4.20e-07 grad=1.01 0.05 step/s]m09_pretrain:  42%|████▏     | 21/50 [08:10<10:36, 21.94s/step, loss=1.6626 drift=0.0000 lr=4.20e-07 grad=1.01 0.05 step/s]m09_pretrain:  44%|████▍     | 22/50 [08:33<10:23, 22.26s/step, loss=1.6626 drift=0.0000 lr=4.20e-07 grad=1.01 0.05 step/s]m09_pretrain:  44%|████▍     | 22/50 [08:55<10:23, 22.26s/step, loss=1.6673 drift=0.0000 lr=4.60e-07 grad=1.56 0.04 step/s]m09_pretrain:  46%|████▌     | 23/50 [08:55<10:03, 22.35s/step, loss=1.6673 drift=0.0000 lr=4.60e-07 grad=1.56 0.04 step/s]m09_pretrain:  48%|████▊     | 24/50 [09:16<09:24, 21.72s/step, loss=1.6673 drift=0.0000 lr=4.60e-07 grad=1.56 0.04 step/s]m09_pretrain:  48%|████▊     | 24/50 [09:38<09:24, 21.72s/step, loss=1.6228 drift=0.0000 lr=5.00e-07 grad=1.46 0.05 step/s]m09_pretrain:  50%|█████     | 25/50 [09:38<09:06, 21.87s/step, loss=1.6228 drift=0.0000 lr=5.00e-07 grad=1.46 0.05 step/s]m09_pretrain:  50%|█████     | 25/50 [10:15<09:06, 21.87s/step, loss=1.6234 drift=0.0000 lr=5.20e-07 grad=1.10 0.03 step/s]m09_pretrain:  52%|█████▏    | 26/50 [10:15<10:36, 26.52s/step, loss=1.6234 drift=0.0000 lr=5.20e-07 grad=1.10 0.03 step/s]m09_pretrain:  54%|█████▍    | 27/50 [10:34<09:16, 24.21s/step, loss=1.6234 drift=0.0000 lr=5.20e-07 grad=1.10 0.03 step/s]m09_pretrain:  54%|█████▍    | 27/50 [10:54<09:16, 24.21s/step, loss=1.6665 drift=0.0000 lr=5.60e-07 grad=1.22 0.05 step/s]m09_pretrain:  56%|█████▌    | 28/50 [10:54<08:22, 22.86s/step, loss=1.6665 drift=0.0000 lr=5.60e-07 grad=1.22 0.05 step/s]m09_pretrain:  58%|█████▊    | 29/50 [11:14<07:43, 22.07s/step, loss=1.6665 drift=0.0000 lr=5.60e-07 grad=1.22 0.05 step/s]m09_pretrain:  58%|█████▊    | 29/50 [11:36<07:43, 22.07s/step, loss=1.6596 drift=0.0000 lr=6.00e-07 grad=0.91 0.05 step/s]m09_pretrain:  60%|██████    | 30/50 [11:36<07:19, 21.95s/step, loss=1.6596 drift=0.0000 lr=6.00e-07 grad=0.91 0.05 step/s]m09_pretrain:  62%|██████▏   | 31/50 [11:58<06:57, 21.96s/step, loss=1.6596 drift=0.0000 lr=6.00e-07 grad=0.91 0.05 step/s]m09_pretrain:  62%|██████▏   | 31/50 [12:18<06:57, 21.96s/step, loss=1.6549 drift=0.0000 lr=6.40e-07 grad=1.04 0.05 step/s]m09_pretrain:  64%|██████▍   | 32/50 [12:18<06:23, 21.31s/step, loss=1.6549 drift=0.0000 lr=6.40e-07 grad=1.04 0.05 step/s]m09_pretrain:  66%|██████▌   | 33/50 [12:37<05:54, 20.87s/step, loss=1.6549 drift=0.0000 lr=6.40e-07 grad=1.04 0.05 step/s]m09_pretrain:  66%|██████▌   | 33/50 [12:58<05:54, 20.87s/step, loss=1.6524 drift=0.0000 lr=6.80e-07 grad=1.03 0.05 step/s]m09_pretrain:  68%|██████▊   | 34/50 [12:58<05:34, 20.91s/step, loss=1.6524 drift=0.0000 lr=6.80e-07 grad=1.03 0.05 step/s]m09_pretrain:  70%|███████   | 35/50 [13:19<05:13, 20.93s/step, loss=1.6524 drift=0.0000 lr=6.80e-07 grad=1.03 0.05 step/s]m09_pretrain:  70%|███████   | 35/50 [13:41<05:13, 20.93s/step, loss=1.6439 drift=0.0000 lr=7.20e-07 grad=0.86 0.05 step/s]m09_pretrain:  72%|███████▏  | 36/50 [13:41<04:57, 21.22s/step, loss=1.6439 drift=0.0000 lr=7.20e-07 grad=0.86 0.05 step/s]m09_pretrain:  74%|███████▍  | 37/50 [14:02<04:32, 20.98s/step, loss=1.6439 drift=0.0000 lr=7.20e-07 grad=0.86 0.05 step/s]m09_pretrain:  74%|███████▍  | 37/50 [14:22<04:32, 20.98s/step, loss=1.6565 drift=0.0000 lr=7.60e-07 grad=1.14 0.05 step/s]m09_pretrain:  76%|███████▌  | 38/50 [14:22<04:08, 20.71s/step, loss=1.6565 drift=0.0000 lr=7.60e-07 grad=1.14 0.05 step/s]m09_pretrain:  78%|███████▊  | 39/50 [14:42<03:47, 20.72s/step, loss=1.6565 drift=0.0000 lr=7.60e-07 grad=1.14 0.05 step/s]m09_pretrain:  78%|███████▊  | 39/50 [15:02<03:47, 20.72s/step, loss=1.6326 drift=0.0000 lr=8.00e-07 grad=0.61 0.05 step/s]m09_pretrain:  80%|████████  | 40/50 [15:02<03:24, 20.47s/step, loss=1.6326 drift=0.0000 lr=8.00e-07 grad=0.61 0.05 step/s]m09_pretrain:  82%|████████▏ | 41/50 [15:23<03:05, 20.63s/step, loss=1.6326 drift=0.0000 lr=8.00e-07 grad=0.61 0.05 step/s]m09_pretrain:  82%|████████▏ | 41/50 [15:43<03:05, 20.63s/step, loss=1.6299 drift=0.0000 lr=8.40e-07 grad=0.55 0.05 step/s]m09_pretrain:  84%|████████▍ | 42/50 [15:43<02:43, 20.45s/step, loss=1.6299 drift=0.0000 lr=8.40e-07 grad=0.55 0.05 step/s]m09_pretrain:  86%|████████▌ | 43/50 [16:05<02:25, 20.80s/step, loss=1.6299 drift=0.0000 lr=8.40e-07 grad=0.55 0.05 step/s]m09_pretrain:  86%|████████▌ | 43/50 [16:26<02:25, 20.80s/step, loss=1.6180 drift=0.0000 lr=8.80e-07 grad=0.41 0.05 step/s]m09_pretrain:  88%|████████▊ | 44/50 [16:26<02:04, 20.76s/step, loss=1.6180 drift=0.0000 lr=8.80e-07 grad=0.41 0.05 step/s]m09_pretrain:  90%|█████████ | 45/50 [16:48<01:45, 21.15s/step, loss=1.6180 drift=0.0000 lr=8.80e-07 grad=0.41 0.05 step/s]m09_pretrain:  90%|█████████ | 45/50 [17:08<01:45, 21.15s/step, loss=1.6036 drift=0.0000 lr=9.20e-07 grad=0.92 0.05 step/s]m09_pretrain:  92%|█████████▏| 46/50 [17:08<01:23, 20.95s/step, loss=1.6036 drift=0.0000 lr=9.20e-07 grad=0.92 0.05 step/s]m09_pretrain:  94%|█████████▍| 47/50 [17:30<01:03, 21.18s/step, loss=1.6036 drift=0.0000 lr=9.20e-07 grad=0.92 0.05 step/s]m09_pretrain:  94%|█████████▍| 47/50 [17:50<01:03, 21.18s/step, loss=1.6105 drift=0.0000 lr=9.60e-07 grad=0.36 0.05 step/s]m09_pretrain:  96%|█████████▌| 48/50 [17:50<00:41, 20.73s/step, loss=1.6105 drift=0.0000 lr=9.60e-07 grad=0.36 0.05 step/s]m09_pretrain:  98%|█████████▊| 49/50 [18:09<00:20, 20.39s/step, loss=1.6105 drift=0.0000 lr=9.60e-07 grad=0.36 0.05 step/s]m09_pretrain:  98%|█████████▊| 49/50 [18:31<00:20, 20.39s/step, loss=1.6293 drift=0.0000 lr=1.00e-06 grad=0.33 0.05 step/s]m09_pretrain: 100%|██████████| 50/50 [18:31<00:00, 20.85s/step, loss=1.6293 drift=0.0000 lr=1.00e-06 grad=0.33 0.05 step/s]m09_pretrain: 100%|██████████| 50/50 [18:48<00:00, 22.58s/step, loss=1.6293 drift=0.0000 lr=1.00e-06 grad=0.33 0.05 step/s]
+Exported student encoder: /workspace/factorjepa/outputs/sanity/m09_lambda0/student_encoder.pt
+  Cleaned: m09_ckpt_step25.pt
+  Cleaned: m09_ckpt_latest.pt
+  Cleaned: m09_ckpt_step50.pt
+wandb: updating run metadata
+wandb: uploading output.log; uploading wandb-summary.json; uploading config.yaml
+wandb: 
+wandb: Run history:
+wandb:              grad_norm ▆▇▆█▇▆▅▅▅█▅▄▄▄▅▆▅▄▄▇▆▅▅▅▆▆▄▄▄▄▃▂▂▂▂▁▄▁▁▁
+wandb:             loss/drift ▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁
+wandb:              loss/jepa ▅▄▅█▇▄▄▅▇▆▄▅▅▇█▆▆▇▆▄▄▇▆▇▅▆▆▅▅▅▆▅▄▃▅▁▄▃▃▄
+wandb:             loss/total ▅▄▅▅█▇▄▄▅▇▅▄▅▅█▆▆▆▄▃▇▆▇▅▅▆▅▅▅▅▅▄▃▅▄▁▄▃▃▄
+wandb:                     lr ▁▁▁▁▂▂▂▂▂▂▃▃▃▃▃▄▄▄▄▄▄▅▅▅▅▅▅▆▆▆▆▆▆▇▇▇▇███
+wandb: throughput_steps_per_s ▁▆▆▆▆▇▄▅▇▆▆▆▆▆▆▆▇▇▆▆▇▂█▇▇▇█▇▇▇▇▇▇▇▇▆▇▇▇▇
+wandb: 
+wandb: Run summary:
+wandb:              grad_norm 0.32868
+wandb:             loss/drift 0
+wandb:              loss/jepa 1.63308
+wandb:             loss/total 1.63308
+wandb:                     lr 0.0
+wandb: throughput_steps_per_s 0.04819
+wandb: 
+wandb: 🚀 View run m09_SANITY at: https://wandb.ai/sjsu_llm/walkindia-200k/runs/n92n60sl
+wandb: ⭐️ View project at: https://wandb.ai/sjsu_llm/walkindia-200k
+wandb: Synced 5 W&B file(s), 0 media file(s), 0 artifact file(s) and 0 other file(s)
+wandb: Find logs at: ./wandb/run-20260328_235916-n92n60sl/logs
+
+=== TRAINING COMPLETE ===
+Steps:        50
+Best Cycle@1: 0.0%
+Student:      /workspace/factorjepa/outputs/sanity/m09_lambda0/student_encoder.pt
+Loss log:     /workspace/factorjepa/outputs/sanity/m09_lambda0/loss_log.csv
+[00:18:18] PASSED: m09 pretrain (lambda=0) (19m 27s)
+  MISS m09_ckpt_final.pt
+  OK   student_encoder.pt             4049 MB
+[00:18:18] VERIFY OK: Training lambda=0
+
+═══════════════════════════════════════════════════════════════
+  STEP lambda0-embed: m05 re-embed (lambda=0)
+  Mode: SANITY | Est: ~15 sec (cached)
+  Started: 2026-03-29 00:18:18
+═══════════════════════════════════════════════════════════════
+[00:18:18] CMD: python -u src/m05_vjepa_embed.py --model outputs/sanity/m09_lambda0/student_encoder.pt --SANITY --local-data data/subset_10k_local --no-dedupe
+Using PyAV for video decoding
+Output: /workspace/factorjepa/outputs/sanity/embeddings_vjepa_adapted.npy
+Clip limit: 5
+Streaming from: anonymousML123/walkindia-200k
+
+============================================================
+WORKER 1: embeddings 0 → 5
+============================================================
+Using PyAV for video decoding
+GPU: NVIDIA RTX PRO 6000 Blackwell Workstation Edition
+CUDA version: 12.8
+GPU VRAM: 95 GB | VLM cost model: 16GB fixed + 0.78GB/clip
+  vjepa=37 (linear, scale=2.37x from 40GB)
+  image_encoder=148 (4x vjepa, cap 256)
+  transformers=64 (max batch, est 66GB = 69% VRAM)
+  sub-batch=51 (initial, AdaptiveBatchSizer grows to 64)
+Batch size: 37
+wandb: [wandb.login()] Loaded credentials for https://api.wandb.ai from WANDB_API_KEY.
+wandb: Currently logged in as: kapilw25 (sjsu_llm) to https://api.wandb.ai. Use `wandb login --relogin` to force relogin
+wandb: WARNING Using a boolean value for 'reinit' is deprecated. Use 'return_previous' or 'finish_previous' instead.
+wandb: setting up run ubzd9xyl
+wandb: Tracking run with wandb version 0.25.1
+wandb: Run data is saved locally in /workspace/factorjepa/wandb/run-20260329_001826-ubzd9xyl
+wandb: Run `wandb offline` to turn off syncing.
+wandb: Syncing run m05_SANITY
+wandb: ⭐️ View project at https://wandb.ai/sjsu_llm/walkindia-200k
+wandb: 🚀 View run at https://wandb.ai/sjsu_llm/walkindia-200k/runs/ubzd9xyl
+wandb: run=m05_SANITY url=https://wandb.ai/sjsu_llm/walkindia-200k/runs/ubzd9xyl
+
+Loading model: outputs/sanity/m09_lambda0/student_encoder.pt
+/workspace/factorjepa/venv_walkindia/lib/python3.12/site-packages/timm/models/layers/__init__.py:49: FutureWarning: Importing from timm.models.layers is deprecated, please import via timm.layers
+  warnings.warn(f"Importing from {__name__} is deprecated, please import via timm.layers", FutureWarning)
+Adapted encoder: loaded 484/484 params (missing: 0, unexpected: 0)
+Applying torch.compile (first batch will be slow due to compilation)...
+Model loaded on cuda (dtype: torch.float16)
+
+=== Streaming Config ===
+batch_size:    2
+video_decoder: PyAV
+prefetch:      2 batches
+checkpoint:    every 500 clips
+m05_vjepa:   0%|          | 0/5 [00:00<?, ?clip/s]m05_vjepa:   0%|          | 0/5 [00:01<?, ?clip/s]
+Traceback (most recent call last):
+  File "/workspace/factorjepa/src/m05_vjepa_embed.py", line 767, in <module>
+    main()
+  File "/workspace/factorjepa/src/m05_vjepa_embed.py", line 755, in main
+    worker_main(args)
+  File "/workspace/factorjepa/src/m05_vjepa_embed.py", line 662, in worker_main
+    embeddings = get_batch_embeddings(model, batched_pixels, device,
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/factorjepa/src/m05_vjepa_embed.py", line 377, in get_batch_embeddings
+    outputs = model(pixel_values)
+              ^^^^^^^^^^^^^^^^^^^
+  File "/workspace/factorjepa/venv_walkindia/lib/python3.12/site-packages/torch/_dynamo/eval_frame.py", line 468, in __call__
+    return super().__call__(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/factorjepa/venv_walkindia/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1778, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/factorjepa/venv_walkindia/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1789, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/factorjepa/venv_walkindia/lib/python3.12/site-packages/torch/_dynamo/eval_frame.py", line 1020, in compile_wrapper
+    return fn(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^
+  File "/workspace/factorjepa/venv_walkindia/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1778, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/factorjepa/venv_walkindia/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1789, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/factorjepa/venv_walkindia/lib/python3.12/site-packages/torch/_dynamo/convert_frame.py", line 2332, in __call__
+    result = self._torchdynamo_orig_backend(
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/factorjepa/venv_walkindia/lib/python3.12/site-packages/torch/_dynamo/convert_frame.py", line 2068, in __call__
+    result = self._inner_convert(
+             ^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/factorjepa/venv_walkindia/lib/python3.12/site-packages/torch/_dynamo/convert_frame.py", line 727, in __call__
+    result = _compile(
+             ^^^^^^^^^
+  File "/workspace/factorjepa/venv_walkindia/lib/python3.12/site-packages/torch/_dynamo/convert_frame.py", line 1844, in _compile
+    guarded_code, tracer_output = compile_inner(code, one_graph, hooks)
+                                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/factorjepa/venv_walkindia/lib/python3.12/site-packages/torch/_utils_internal.py", line 96, in wrapper_function
+    return function(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/factorjepa/venv_walkindia/lib/python3.12/site-packages/torch/_dynamo/convert_frame.py", line 1495, in compile_inner
+    return _compile_inner(code, one_graph, hooks)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/factorjepa/venv_walkindia/lib/python3.12/site-packages/torch/_dynamo/convert_frame.py", line 1540, in _compile_inner
+    dynamo_output = compile_frame(
+                    ^^^^^^^^^^^^^^
+  File "/workspace/factorjepa/venv_walkindia/lib/python3.12/site-packages/torch/_dynamo/convert_frame.py", line 1403, in compile_frame
+    bytecode, tracer_output = transform_code_object(code, transform)
+                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/factorjepa/venv_walkindia/lib/python3.12/site-packages/torch/_dynamo/bytecode_transformation.py", line 1608, in transform_code_object
+    tracer_output = transformations(instructions, code_options)
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/factorjepa/venv_walkindia/lib/python3.12/site-packages/torch/_dynamo/convert_frame.py", line 1375, in transform
+    tracer_output = trace_frame(
+                    ^^^^^^^^^^^^
+  File "/workspace/factorjepa/venv_walkindia/lib/python3.12/site-packages/torch/_dynamo/convert_frame.py", line 341, in _fn
+    return fn(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^
+  File "/workspace/factorjepa/venv_walkindia/lib/python3.12/site-packages/torch/_dynamo/convert_frame.py", line 861, in trace_frame
+    run_tracer()
+  File "/workspace/factorjepa/venv_walkindia/lib/python3.12/site-packages/torch/_dynamo/convert_frame.py", line 842, in run_tracer
+    tracer.run()
+  File "/workspace/factorjepa/venv_walkindia/lib/python3.12/site-packages/torch/_dynamo/symbolic_convert.py", line 1791, in run
+    while self.step():
+          ^^^^^^^^^^^
+  File "/workspace/factorjepa/venv_walkindia/lib/python3.12/site-packages/torch/_dynamo/symbolic_convert.py", line 1456, in step
+    self.dispatch_table[inst.opcode](self, inst)
+  File "/workspace/factorjepa/venv_walkindia/lib/python3.12/site-packages/torch/_dynamo/symbolic_convert.py", line 999, in wrapper
+    return inner_fn(self, inst)
+           ^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/factorjepa/venv_walkindia/lib/python3.12/site-packages/torch/_dynamo/symbolic_convert.py", line 4094, in CALL
+    self._call(inst)
+  File "/workspace/factorjepa/venv_walkindia/lib/python3.12/site-packages/torch/_dynamo/symbolic_convert.py", line 4085, in _call
+    self.call_function(fn, args, kwargs)
+  File "/workspace/factorjepa/venv_walkindia/lib/python3.12/site-packages/torch/_dynamo/symbolic_convert.py", line 1357, in call_function
+    self.push(fn.call_function(self, args, kwargs))  # type: ignore[arg-type]
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/factorjepa/venv_walkindia/lib/python3.12/site-packages/torch/_dynamo/variables/lazy.py", line 294, in realize_and_forward
+    return getattr(self.realize(), name)(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/factorjepa/venv_walkindia/lib/python3.12/site-packages/torch/_dynamo/variables/nn_module.py", line 1159, in call_function
+    return variables.UserFunctionVariable(fn, source=source).call_function(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/factorjepa/venv_walkindia/lib/python3.12/site-packages/torch/_dynamo/variables/functions.py", line 715, in call_function
+    return super().call_function(tx, args, kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/factorjepa/venv_walkindia/lib/python3.12/site-packages/torch/_dynamo/variables/functions.py", line 411, in call_function
+    return tx.inline_user_function_return(self, [*self.self_args(), *args], kwargs)  # type: ignore[attr-defined]
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/factorjepa/venv_walkindia/lib/python3.12/site-packages/torch/_dynamo/symbolic_convert.py", line 1384, in inline_user_function_return
+    return InliningInstructionTranslator.inline_call(self, fn, args, kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/factorjepa/venv_walkindia/lib/python3.12/site-packages/torch/_dynamo/symbolic_convert.py", line 5682, in inline_call
+    return tracer.inline_call_()
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/factorjepa/venv_walkindia/lib/python3.12/site-packages/torch/_dynamo/symbolic_convert.py", line 5896, in inline_call_
+    self.run()
+  File "/workspace/factorjepa/venv_walkindia/lib/python3.12/site-packages/torch/_dynamo/symbolic_convert.py", line 1791, in run
+    while self.step():
+          ^^^^^^^^^^^
+  File "/workspace/factorjepa/venv_walkindia/lib/python3.12/site-packages/torch/_dynamo/symbolic_convert.py", line 1456, in step
+    self.dispatch_table[inst.opcode](self, inst)
+  File "/workspace/factorjepa/venv_walkindia/lib/python3.12/site-packages/torch/_dynamo/symbolic_convert.py", line 999, in wrapper
+    return inner_fn(self, inst)
+           ^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/factorjepa/venv_walkindia/lib/python3.12/site-packages/torch/_dynamo/symbolic_convert.py", line 4094, in CALL
+    self._call(inst)
+  File "/workspace/factorjepa/venv_walkindia/lib/python3.12/site-packages/torch/_dynamo/symbolic_convert.py", line 4085, in _call
+    self.call_function(fn, args, kwargs)
+  File "/workspace/factorjepa/venv_walkindia/lib/python3.12/site-packages/torch/_dynamo/symbolic_convert.py", line 1357, in call_function
+    self.push(fn.call_function(self, args, kwargs))  # type: ignore[arg-type]
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/factorjepa/venv_walkindia/lib/python3.12/site-packages/torch/_dynamo/variables/lazy.py", line 294, in realize_and_forward
+    return getattr(self.realize(), name)(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/factorjepa/venv_walkindia/lib/python3.12/site-packages/torch/_dynamo/variables/nn_module.py", line 1159, in call_function
+    return variables.UserFunctionVariable(fn, source=source).call_function(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/factorjepa/venv_walkindia/lib/python3.12/site-packages/torch/_dynamo/variables/functions.py", line 715, in call_function
+    return super().call_function(tx, args, kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/factorjepa/venv_walkindia/lib/python3.12/site-packages/torch/_dynamo/variables/functions.py", line 411, in call_function
+    return tx.inline_user_function_return(self, [*self.self_args(), *args], kwargs)  # type: ignore[attr-defined]
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/factorjepa/venv_walkindia/lib/python3.12/site-packages/torch/_dynamo/symbolic_convert.py", line 1384, in inline_user_function_return
+    return InliningInstructionTranslator.inline_call(self, fn, args, kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/factorjepa/venv_walkindia/lib/python3.12/site-packages/torch/_dynamo/symbolic_convert.py", line 5682, in inline_call
+    return tracer.inline_call_()
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/factorjepa/venv_walkindia/lib/python3.12/site-packages/torch/_dynamo/symbolic_convert.py", line 5896, in inline_call_
+    self.run()
+  File "/workspace/factorjepa/venv_walkindia/lib/python3.12/site-packages/torch/_dynamo/symbolic_convert.py", line 1791, in run
+    while self.step():
+          ^^^^^^^^^^^
+  File "/workspace/factorjepa/venv_walkindia/lib/python3.12/site-packages/torch/_dynamo/symbolic_convert.py", line 1456, in step
+    self.dispatch_table[inst.opcode](self, inst)
+  File "/workspace/factorjepa/venv_walkindia/lib/python3.12/site-packages/torch/_dynamo/symbolic_convert.py", line 999, in wrapper
+    return inner_fn(self, inst)
+           ^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/factorjepa/venv_walkindia/lib/python3.12/site-packages/torch/_dynamo/symbolic_convert.py", line 4094, in CALL
+    self._call(inst)
+  File "/workspace/factorjepa/venv_walkindia/lib/python3.12/site-packages/torch/_dynamo/symbolic_convert.py", line 4085, in _call
+    self.call_function(fn, args, kwargs)
+  File "/workspace/factorjepa/venv_walkindia/lib/python3.12/site-packages/torch/_dynamo/symbolic_convert.py", line 1357, in call_function
+    self.push(fn.call_function(self, args, kwargs))  # type: ignore[arg-type]
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/factorjepa/venv_walkindia/lib/python3.12/site-packages/torch/_dynamo/variables/functions.py", line 1559, in call_function
+    return super().call_function(tx, args, kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/factorjepa/venv_walkindia/lib/python3.12/site-packages/torch/_dynamo/variables/functions.py", line 715, in call_function
+    return super().call_function(tx, args, kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/factorjepa/venv_walkindia/lib/python3.12/site-packages/torch/_dynamo/variables/functions.py", line 411, in call_function
+    return tx.inline_user_function_return(self, [*self.self_args(), *args], kwargs)  # type: ignore[attr-defined]
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/factorjepa/venv_walkindia/lib/python3.12/site-packages/torch/_dynamo/symbolic_convert.py", line 1384, in inline_user_function_return
+    return InliningInstructionTranslator.inline_call(self, fn, args, kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/factorjepa/venv_walkindia/lib/python3.12/site-packages/torch/_dynamo/symbolic_convert.py", line 5682, in inline_call
+    return tracer.inline_call_()
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/factorjepa/venv_walkindia/lib/python3.12/site-packages/torch/_dynamo/symbolic_convert.py", line 5896, in inline_call_
+    self.run()
+  File "/workspace/factorjepa/venv_walkindia/lib/python3.12/site-packages/torch/_dynamo/symbolic_convert.py", line 1791, in run
+    while self.step():
+          ^^^^^^^^^^^
+  File "/workspace/factorjepa/venv_walkindia/lib/python3.12/site-packages/torch/_dynamo/symbolic_convert.py", line 1456, in step
+    self.dispatch_table[inst.opcode](self, inst)
+  File "/workspace/factorjepa/venv_walkindia/lib/python3.12/site-packages/torch/_dynamo/symbolic_convert.py", line 999, in wrapper
+    return inner_fn(self, inst)
+           ^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/factorjepa/venv_walkindia/lib/python3.12/site-packages/torch/_dynamo/symbolic_convert.py", line 4094, in CALL
+    self._call(inst)
+  File "/workspace/factorjepa/venv_walkindia/lib/python3.12/site-packages/torch/_dynamo/symbolic_convert.py", line 4085, in _call
+    self.call_function(fn, args, kwargs)
+  File "/workspace/factorjepa/venv_walkindia/lib/python3.12/site-packages/torch/_dynamo/symbolic_convert.py", line 1357, in call_function
+    self.push(fn.call_function(self, args, kwargs))  # type: ignore[arg-type]
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/factorjepa/venv_walkindia/lib/python3.12/site-packages/torch/_dynamo/variables/lazy.py", line 294, in realize_and_forward
+    return getattr(self.realize(), name)(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/factorjepa/venv_walkindia/lib/python3.12/site-packages/torch/_dynamo/variables/torch.py", line 2304, in call_function
+    tensor_variable = wrap_fx_proxy(
+                      ^^^^^^^^^^^^^^
+  File "/workspace/factorjepa/venv_walkindia/lib/python3.12/site-packages/torch/_dynamo/variables/builder.py", line 2984, in wrap_fx_proxy
+    return wrap_fx_proxy_cls(target_cls=TensorVariable, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/factorjepa/venv_walkindia/lib/python3.12/site-packages/torch/_dynamo/variables/builder.py", line 3059, in wrap_fx_proxy_cls
+    out: VTTypeAlias = _wrap_fx_proxy(
+                       ^^^^^^^^^^^^^^^
+  File "/workspace/factorjepa/venv_walkindia/lib/python3.12/site-packages/torch/_dynamo/variables/builder.py", line 3183, in _wrap_fx_proxy
+    example_value = get_fake_value(proxy.node, tx, allow_non_graph_fake=True)
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/factorjepa/venv_walkindia/lib/python3.12/site-packages/torch/_dynamo/utils.py", line 3616, in get_fake_value
+    return _get_fake_value_impl(node, tx, allow_non_graph_fake)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/factorjepa/venv_walkindia/lib/python3.12/site-packages/torch/_dynamo/utils.py", line 3807, in _get_fake_value_impl
+    _wrap_graph_break_with_torch_runtime_err(
+  File "/workspace/factorjepa/venv_walkindia/lib/python3.12/site-packages/torch/_dynamo/utils.py", line 3605, in _wrap_graph_break_with_torch_runtime_err
+    raise exc.with_traceback(e.__traceback__) from None
+  File "/workspace/factorjepa/venv_walkindia/lib/python3.12/site-packages/torch/_dynamo/utils.py", line 3602, in _wrap_graph_break_with_torch_runtime_err
+    gb_fn()
+  File "/workspace/factorjepa/venv_walkindia/lib/python3.12/site-packages/torch/_dynamo/utils.py", line 3808, in <lambda>
+    lambda: unimplemented(
+            ^^^^^^^^^^^^^^
+  File "/workspace/factorjepa/venv_walkindia/lib/python3.12/site-packages/torch/_dynamo/exc.py", line 629, in unimplemented
+    raise Unsupported(
+torch._dynamo.exc.TorchRuntimeError: RuntimeError when making fake tensor call
+  Explanation: Dynamo failed to run FX node with fake tensors: call_function <built-in method conv3d of type object at 0x7ff9f1ee4180>(*(FakeTensor(..., device='cuda:0', size=(2, 64, 3, 384, 384)), Parameter(FakeTensor(..., device='cuda:0', size=(1408, 3, 2, 16, 16),
+               dtype=torch.float16, requires_grad=True)), Parameter(FakeTensor(..., device='cuda:0', size=(1408,), dtype=torch.float16,
+               requires_grad=True)), (2, 16, 16), (0, 0, 0), (1, 1, 1), 1), **{}): got RuntimeError('Given groups=1, weight of size [1408, 3, 2, 16, 16], expected input[2, 64, 3, 384, 384] to have 3 channels, but got 64 channels instead')
+  Hint: Your code may result in an error when running in eager. Please double check that your code doesn't contain a similar error when actually running eager/uncompiled. You can do this by removing the `torch.compile` call, or by using `torch.compiler.set_stance("force_eager")`. 
+
+  Developer debug context: 
+
+ For more details about this graph break, please visit: https://meta-pytorch.github.io/compile-graph-break-site/gb/gb4315.html
+
+from user code:
+   File "/workspace/factorjepa/deps/vjepa2/src/models/vision_transformer.py", line 188, in forward
+    x = self.patch_embed(x)
+  File "/workspace/factorjepa/deps/vjepa2/src/models/utils/patch_embed.py", line 51, in forward
+    x = self.proj(x).flatten(2).transpose(1, 2)
+  File "/workspace/factorjepa/venv_walkindia/lib/python3.12/site-packages/torch/nn/modules/conv.py", line 723, in forward
+    return self._conv_forward(input, self.weight, self.bias)
+  File "/workspace/factorjepa/venv_walkindia/lib/python3.12/site-packages/torch/nn/modules/conv.py", line 718, in _conv_forward
+    return F.conv3d(
+
+Set TORCHDYNAMO_VERBOSE=1 for the internal stack trace (please do this especially if you're reporting a bug to PyTorch). For even more developer context, set TORCH_LOGS="+dynamo"
+
+[1;34mwandb[0m: 
+[1;34mwandb[0m: 🚀 View run [33mm05_SANITY[0m at: [34mhttps://wandb.ai/sjsu_llm/walkindia-200k/runs/ubzd9xyl[0m
+[1;34mwandb[0m: Find logs at: [1;35mwandb/run-20260329_001826-ubzd9xyl/logs[0m
+Worker failed (exit 1). Resume with same command.
+ERROR: No embeddings collected.
+[00:18:46] FAILED: m05 re-embed (lambda=0) (0m 28s) — exit code 1
+[00:18:46] WARNING: m05 re-embed failed for lambda=0.
+
+═══════════════════════════════════════════════════════════════
+  STEP lambda0-metrics: m06 metrics (lambda=0)
+  Mode: SANITY | Est: ~10 sec
+  Started: 2026-03-29 00:18:46
+═══════════════════════════════════════════════════════════════
+[00:18:46] CMD: python -u src/m06_faiss_metrics.py --encoder vjepa_adapted --SANITY
+GPU: NVIDIA RTX PRO 6000 Blackwell Workstation Edition
+CUDA version: 12.8
+wandb: [wandb.login()] Loaded credentials for https://api.wandb.ai from WANDB_API_KEY.
+wandb: Currently logged in as: kapilw25 (sjsu_llm) to https://api.wandb.ai. Use `wandb login --relogin` to force relogin
+wandb: WARNING Using a boolean value for 'reinit' is deprecated. Use 'return_previous' or 'finish_previous' instead.
+wandb: setting up run uj9rwg5v
+wandb: Tracking run with wandb version 0.25.1
+wandb: Run data is saved locally in /workspace/factorjepa/wandb/run-20260329_001849-uj9rwg5v
+wandb: Run `wandb offline` to turn off syncing.
+wandb: Syncing run m06_SANITY
+wandb: ⭐️ View project at https://wandb.ai/sjsu_llm/walkindia-200k
+wandb: 🚀 View run at https://wandb.ai/sjsu_llm/walkindia-200k/runs/uj9rwg5v
+wandb: run=m06_SANITY url=https://wandb.ai/sjsu_llm/walkindia-200k/runs/uj9rwg5v
+Encoder:     vjepa_adapted (dim=1408, type=video_adapted)
+Output dir:  /workspace/factorjepa/outputs/sanity
+Embeddings:  /workspace/factorjepa/outputs/sanity/embeddings_vjepa_adapted.npy
+Metrics:     /workspace/factorjepa/outputs/sanity/m06_metrics_vjepa_adapted.json
+FATAL: embeddings not found: /workspace/factorjepa/outputs/sanity/embeddings_vjepa_adapted.npy
+[1;34mwandb[0m: 
+[1;34mwandb[0m: 🚀 View run [33mm06_SANITY[0m at: [34mhttps://wandb.ai/sjsu_llm/walkindia-200k/runs/uj9rwg5v[0m
+[1;34mwandb[0m: Find logs at: [1;35mwandb/run-20260329_001849-uj9rwg5v/logs[0m
+[00:18:53] FAILED: m06 metrics (lambda=0) (0m 7s) — exit code 1
+[00:18:53] WARNING: m06 metrics failed for lambda=0.
+[00:18:53] Completed ablation: lambda=0 (lambda0)
+
+[00:18:53] ╔═══════════════════════════════════════════════════════════╗
+[00:18:53] ║  ABLATION: lambda=0.001 (lambda0_001)                    
+[00:18:53] ╚═══════════════════════════════════════════════════════════╝
+
+═══════════════════════════════════════════════════════════════
+  STEP lambda0_001-train: m09 pretrain (lambda=0.001)
+  Mode: SANITY | Est: ~2 min (50 steps, profiler BS)
+  Started: 2026-03-29 00:18:53
+═══════════════════════════════════════════════════════════════
+[00:18:53] CMD: python -u src/m09_pretrain.py --config configs/pretrain/vitg16_indian.yaml --lambda-reg 0.001 --batch-size 112 --SANITY --local-data data/subset_10k_local
+Using PyAV for video decoding
+GPU: NVIDIA RTX PRO 6000 Blackwell Workstation Edition
+CUDA version: 12.8
+
+=== Building Model ===
+/workspace/factorjepa/venv_walkindia/lib/python3.12/site-packages/timm/models/layers/__init__.py:49: FutureWarning: Importing from timm.models.layers is deprecated, please import via timm.layers
+  warnings.warn(f"Importing from {__name__} is deprecated, please import via timm.layers", FutureWarning)
+Downloading pretrained weights via torch.hub...
+Student loaded: 1,012,173,952 params (484/484 keys = 100%)
+Teacher created (deepcopy of student)
+Predictor loaded from checkpoint (152/152 keys = 100%)
+Predictor: 22,378,240 params
+Mask generators: 2 (blocks: [8, 2])
+wandb: [wandb.login()] Loaded credentials for https://api.wandb.ai from WANDB_API_KEY.
+wandb: Currently logged in as: kapilw25 (sjsu_llm) to https://api.wandb.ai. Use `wandb login --relogin` to force relogin
+wandb: WARNING Using a boolean value for 'reinit' is deprecated. Use 'return_previous' or 'finish_previous' instead.
+wandb: setting up run 9m1iqd25
+wandb: Tracking run with wandb version 0.25.1
+wandb: Run data is saved locally in /workspace/factorjepa/wandb/run-20260329_001919-9m1iqd25
+wandb: Run `wandb offline` to turn off syncing.
+wandb: Syncing run m09_SANITY
+wandb: ⭐️ View project at https://wandb.ai/sjsu_llm/walkindia-200k
+wandb: 🚀 View run at https://wandb.ai/sjsu_llm/walkindia-200k/runs/9m1iqd25
+wandb: run=m09_SANITY url=https://wandb.ai/sjsu_llm/walkindia-200k/runs/9m1iqd25
+m09_pretrain:   0%|          | 0/50 [00:00<?, ?step/s]
+=== Training: 0 → 50 steps ===
+Batch size: 112
+Grad checkpointing: True
+Mixed precision: bfloat16
+EMA momentum: 0.99925
+Drift control: lambda=0.001
+Loss log: /workspace/factorjepa/outputs/sanity/m09_lambda0_001/loss_log.csv
+/venv/main/lib/python3.12/contextlib.py:105: FutureWarning: `torch.backends.cuda.sdp_kernel()` is deprecated. In the future, this context manager will be removed. Please see `torch.nn.attention.sdpa_kernel()` for the new context manager, with updated signature.
+  self.gen = func(*args, **kwds)
+m09_pretrain:   0%|          | 0/50 [00:43<?, ?step/s, loss=1.6360 drift=0.0000 lr=2.00e-08 grad=1.43 0.02 step/s]m09_pretrain:   2%|▏         | 1/50 [00:43<35:14, 43.15s/step, loss=1.6360 drift=0.0000 lr=2.00e-08 grad=1.43 0.02 step/s]m09_pretrain:   4%|▍         | 2/50 [01:02<23:31, 29.41s/step, loss=1.6360 drift=0.0000 lr=2.00e-08 grad=1.43 0.02 step/s]m09_pretrain:   4%|▍         | 2/50 [01:28<23:31, 29.41s/step, loss=1.6435 drift=0.0000 lr=6.00e-08 grad=1.37 0.04 step/s]m09_pretrain:   6%|▌         | 3/50 [01:28<21:40, 27.66s/step, loss=1.6435 drift=0.0000 lr=6.00e-08 grad=1.37 0.04 step/s]m09_pretrain:   8%|▊         | 4/50 [01:51<19:53, 25.95s/step, loss=1.6435 drift=0.0000 lr=6.00e-08 grad=1.37 0.04 step/s]m09_pretrain:   8%|▊         | 4/50 [02:16<19:53, 25.95s/step, loss=1.6655 drift=0.0000 lr=1.00e-07 grad=1.74 0.04 step/s]m09_pretrain:  10%|█         | 5/50 [02:16<19:07, 25.50s/step, loss=1.6655 drift=0.0000 lr=1.00e-07 grad=1.74 0.04 step/s]m09_pretrain:  12%|█▏        | 6/50 [02:38<17:51, 24.35s/step, loss=1.6655 drift=0.0000 lr=1.00e-07 grad=1.74 0.04 step/s]m09_pretrain:  12%|█▏        | 6/50 [03:04<17:51, 24.35s/step, loss=1.6746 drift=0.0000 lr=1.40e-07 grad=1.34 0.04 step/s]m09_pretrain:  14%|█▍        | 7/50 [03:04<17:52, 24.93s/step, loss=1.6746 drift=0.0000 lr=1.40e-07 grad=1.34 0.04 step/s]m09_pretrain:  16%|█▌        | 8/50 [03:25<16:35, 23.70s/step, loss=1.6746 drift=0.0000 lr=1.40e-07 grad=1.34 0.04 step/s]m09_pretrain:  16%|█▌        | 8/50 [03:51<16:35, 23.70s/step, loss=1.6304 drift=0.0000 lr=1.80e-07 grad=1.51 0.04 step/s]m09_pretrain:  18%|█▊        | 9/50 [03:51<16:36, 24.31s/step, loss=1.6304 drift=0.0000 lr=1.80e-07 grad=1.51 0.04 step/s]m09_pretrain:  20%|██        | 10/50 [04:12<15:36, 23.41s/step, loss=1.6304 drift=0.0000 lr=1.80e-07 grad=1.51 0.04 step/s]m09_pretrain:  20%|██        | 10/50 [04:39<15:36, 23.41s/step, loss=1.6537 drift=0.0000 lr=2.20e-07 grad=1.76 0.04 step/s]m09_pretrain:  22%|██▏       | 11/50 [04:39<15:45, 24.24s/step, loss=1.6537 drift=0.0000 lr=2.20e-07 grad=1.76 0.04 step/s]m09_pretrain:  24%|██▍       | 12/50 [05:00<14:49, 23.42s/step, loss=1.6537 drift=0.0000 lr=2.20e-07 grad=1.76 0.04 step/s]m09_pretrain:  24%|██▍       | 12/50 [05:27<14:49, 23.42s/step, loss=1.6504 drift=0.0000 lr=2.60e-07 grad=1.44 0.04 step/s]m09_pretrain:  26%|██▌       | 13/50 [05:27<15:07, 24.52s/step, loss=1.6504 drift=0.0000 lr=2.60e-07 grad=1.44 0.04 step/s]m09_pretrain:  28%|██▊       | 14/50 [05:51<14:31, 24.20s/step, loss=1.6504 drift=0.0000 lr=2.60e-07 grad=1.44 0.04 step/s]m09_pretrain:  28%|██▊       | 14/50 [06:15<14:31, 24.20s/step, loss=1.6347 drift=0.0000 lr=3.00e-07 grad=1.11 0.04 step/s]m09_pretrain:  30%|███       | 15/50 [06:15<14:06, 24.19s/step, loss=1.6347 drift=0.0000 lr=3.00e-07 grad=1.11 0.04 step/s]m09_pretrain:  32%|███▏      | 16/50 [06:41<13:58, 24.66s/step, loss=1.6347 drift=0.0000 lr=3.00e-07 grad=1.11 0.04 step/s]m09_pretrain:  32%|███▏      | 16/50 [07:04<13:58, 24.66s/step, loss=1.6519 drift=0.0000 lr=3.40e-07 grad=1.21 0.04 step/s]m09_pretrain:  34%|███▍      | 17/50 [07:04<13:21, 24.29s/step, loss=1.6519 drift=0.0000 lr=3.40e-07 grad=1.21 0.04 step/s]m09_pretrain:  36%|███▌      | 18/50 [07:30<13:10, 24.69s/step, loss=1.6519 drift=0.0000 lr=3.40e-07 grad=1.21 0.04 step/s]m09_pretrain:  36%|███▌      | 18/50 [07:53<13:10, 24.69s/step, loss=1.6728 drift=0.0000 lr=3.80e-07 grad=1.04 0.04 step/s]m09_pretrain:  38%|███▊      | 19/50 [07:53<12:35, 24.36s/step, loss=1.6728 drift=0.0000 lr=3.80e-07 grad=1.04 0.04 step/s]m09_pretrain:  40%|████      | 20/50 [08:15<11:51, 23.71s/step, loss=1.6728 drift=0.0000 lr=3.80e-07 grad=1.04 0.04 step/s]m09_pretrain:  40%|████      | 20/50 [08:39<11:51, 23.71s/step, loss=1.6580 drift=0.0000 lr=4.20e-07 grad=0.99 0.04 step/s]m09_pretrain:  42%|████▏     | 21/50 [08:39<11:29, 23.76s/step, loss=1.6580 drift=0.0000 lr=4.20e-07 grad=0.99 0.04 step/s]m09_pretrain:  44%|████▍     | 22/50 [09:03<11:02, 23.68s/step, loss=1.6580 drift=0.0000 lr=4.20e-07 grad=0.99 0.04 step/s]m09_pretrain:  44%|████▍     | 22/50 [09:27<11:02, 23.68s/step, loss=1.6659 drift=0.0000 lr=4.60e-07 grad=1.56 0.04 step/s]m09_pretrain:  46%|████▌     | 23/50 [09:27<10:43, 23.83s/step, loss=1.6659 drift=0.0000 lr=4.60e-07 grad=1.56 0.04 step/s]m09_pretrain:  48%|████▊     | 24/50 [09:48<10:01, 23.13s/step, loss=1.6659 drift=0.0000 lr=4.60e-07 grad=1.56 0.04 step/s]m09_pretrain:  48%|████▊     | 24/50 [10:11<10:01, 23.13s/step, loss=1.6253 drift=0.0000 lr=5.00e-07 grad=1.11 0.04 step/s]m09_pretrain:  50%|█████     | 25/50 [10:11<09:37, 23.12s/step, loss=1.6253 drift=0.0000 lr=5.00e-07 grad=1.11 0.04 step/s]m09_pretrain:  50%|█████     | 25/50 [10:50<09:37, 23.12s/step, loss=1.6202 drift=0.0000 lr=5.20e-07 grad=1.07 0.03 step/s]m09_pretrain:  52%|█████▏    | 26/50 [10:50<11:07, 27.79s/step, loss=1.6202 drift=0.0000 lr=5.20e-07 grad=1.07 0.03 step/s]m09_pretrain:  54%|█████▍    | 27/50 [11:13<10:07, 26.41s/step, loss=1.6202 drift=0.0000 lr=5.20e-07 grad=1.07 0.03 step/s]m09_pretrain:  54%|█████▍    | 27/50 [11:35<10:07, 26.41s/step, loss=1.6653 drift=0.0000 lr=5.60e-07 grad=1.30 0.04 step/s]m09_pretrain:  56%|█████▌    | 28/50 [11:35<09:07, 24.87s/step, loss=1.6653 drift=0.0000 lr=5.60e-07 grad=1.30 0.04 step/s]m09_pretrain:  58%|█████▊    | 29/50 [11:57<08:25, 24.07s/step, loss=1.6653 drift=0.0000 lr=5.60e-07 grad=1.30 0.04 step/s]m09_pretrain:  58%|█████▊    | 29/50 [12:17<08:25, 24.07s/step, loss=1.6649 drift=0.0000 lr=6.00e-07 grad=0.97 0.05 step/s]m09_pretrain:  60%|██████    | 30/50 [12:17<07:36, 22.81s/step, loss=1.6649 drift=0.0000 lr=6.00e-07 grad=0.97 0.05 step/s]m09_pretrain:  62%|██████▏   | 31/50 [12:38<07:07, 22.48s/step, loss=1.6649 drift=0.0000 lr=6.00e-07 grad=0.97 0.05 step/s]m09_pretrain:  62%|██████▏   | 31/50 [13:01<07:07, 22.48s/step, loss=1.6542 drift=0.0000 lr=6.40e-07 grad=1.19 0.05 step/s]m09_pretrain:  64%|██████▍   | 32/50 [13:01<06:45, 22.55s/step, loss=1.6542 drift=0.0000 lr=6.40e-07 grad=1.19 0.05 step/s]m09_pretrain:  66%|██████▌   | 33/50 [13:22<06:15, 22.06s/step, loss=1.6542 drift=0.0000 lr=6.40e-07 grad=1.19 0.05 step/s]m09_pretrain:  66%|██████▌   | 33/50 [13:43<06:15, 22.06s/step, loss=1.6518 drift=0.0000 lr=6.80e-07 grad=1.09 0.05 step/s]m09_pretrain:  68%|██████▊   | 34/50 [13:43<05:47, 21.72s/step, loss=1.6518 drift=0.0000 lr=6.80e-07 grad=1.09 0.05 step/s]m09_pretrain:  70%|███████   | 35/50 [14:06<05:30, 22.06s/step, loss=1.6518 drift=0.0000 lr=6.80e-07 grad=1.09 0.05 step/s]m09_pretrain:  70%|███████   | 35/50 [14:27<05:30, 22.06s/step, loss=1.6451 drift=0.0000 lr=7.20e-07 grad=0.65 0.05 step/s]m09_pretrain:  72%|███████▏  | 36/50 [14:27<05:04, 21.77s/step, loss=1.6451 drift=0.0000 lr=7.20e-07 grad=0.65 0.05 step/s]m09_pretrain:  74%|███████▍  | 37/50 [14:47<04:37, 21.35s/step, loss=1.6451 drift=0.0000 lr=7.20e-07 grad=0.65 0.05 step/s]m09_pretrain:  74%|███████▍  | 37/50 [15:09<04:37, 21.35s/step, loss=1.6616 drift=0.0000 lr=7.60e-07 grad=1.22 0.05 step/s]m09_pretrain:  76%|███████▌  | 38/50 [15:09<04:16, 21.41s/step, loss=1.6616 drift=0.0000 lr=7.60e-07 grad=1.22 0.05 step/s]m09_pretrain:  78%|███████▊  | 39/50 [15:31<03:57, 21.60s/step, loss=1.6616 drift=0.0000 lr=7.60e-07 grad=1.22 0.05 step/s]m09_pretrain:  78%|███████▊  | 39/50 [15:53<03:57, 21.60s/step, loss=1.6234 drift=0.0001 lr=8.00e-07 grad=0.59 0.05 step/s]m09_pretrain:  80%|████████  | 40/50 [15:53<03:36, 21.69s/step, loss=1.6234 drift=0.0001 lr=8.00e-07 grad=0.59 0.05 step/s]m09_pretrain:  82%|████████▏ | 41/50 [16:15<03:16, 21.82s/step, loss=1.6234 drift=0.0001 lr=8.00e-07 grad=0.59 0.05 step/s]m09_pretrain:  82%|████████▏ | 41/50 [16:36<03:16, 21.82s/step, loss=1.6341 drift=0.0001 lr=8.40e-07 grad=0.62 0.05 step/s]m09_pretrain:  84%|████████▍ | 42/50 [16:36<02:52, 21.62s/step, loss=1.6341 drift=0.0001 lr=8.40e-07 grad=0.62 0.05 step/s]m09_pretrain:  86%|████████▌ | 43/50 [16:59<02:34, 22.04s/step, loss=1.6341 drift=0.0001 lr=8.40e-07 grad=0.62 0.05 step/s]m09_pretrain:  86%|████████▌ | 43/50 [17:20<02:34, 22.04s/step, loss=1.6131 drift=0.0001 lr=8.80e-07 grad=0.42 0.05 step/s]m09_pretrain:  88%|████████▊ | 44/50 [17:20<02:11, 21.85s/step, loss=1.6131 drift=0.0001 lr=8.80e-07 grad=0.42 0.05 step/s]m09_pretrain:  90%|█████████ | 45/50 [17:42<01:49, 21.81s/step, loss=1.6131 drift=0.0001 lr=8.80e-07 grad=0.42 0.05 step/s]m09_pretrain:  90%|█████████ | 45/50 [18:03<01:49, 21.81s/step, loss=1.6067 drift=0.0001 lr=9.20e-07 grad=1.18 0.05 step/s]m09_pretrain:  92%|█████████▏| 46/50 [18:03<01:26, 21.61s/step, loss=1.6067 drift=0.0001 lr=9.20e-07 grad=1.18 0.05 step/s]m09_pretrain:  94%|█████████▍| 47/50 [18:26<01:05, 21.79s/step, loss=1.6067 drift=0.0001 lr=9.20e-07 grad=1.18 0.05 step/s]m09_pretrain:  94%|█████████▍| 47/50 [18:46<01:05, 21.79s/step, loss=1.6143 drift=0.0001 lr=9.60e-07 grad=0.39 0.05 step/s]m09_pretrain:  96%|█████████▌| 48/50 [18:46<00:42, 21.48s/step, loss=1.6143 drift=0.0001 lr=9.60e-07 grad=0.39 0.05 step/s]m09_pretrain:  98%|█████████▊| 49/50 [19:08<00:21, 21.42s/step, loss=1.6143 drift=0.0001 lr=9.60e-07 grad=0.39 0.05 step/s]m09_pretrain:  98%|█████████▊| 49/50 [19:27<00:21, 21.42s/step, loss=1.6277 drift=0.0001 lr=1.00e-06 grad=0.28 0.05 step/s]m09_pretrain: 100%|██████████| 50/50 [19:27<00:00, 20.82s/step, loss=1.6277 drift=0.0001 lr=1.00e-06 grad=0.28 0.05 step/s]m09_pretrain: 100%|██████████| 50/50 [19:45<00:00, 23.70s/step, loss=1.6277 drift=0.0001 lr=1.00e-06 grad=0.28 0.05 step/s]
+Exported student encoder: /workspace/factorjepa/outputs/sanity/m09_lambda0_001/student_encoder.pt
+  Cleaned: m09_ckpt_step25.pt
+  Cleaned: m09_ckpt_latest.pt
+  Cleaned: m09_ckpt_step50.pt
+wandb: updating run metadata
+wandb: uploading output.log; uploading wandb-summary.json; uploading config.yaml
+wandb: uploading wandb-summary.json; uploading config.yaml
+wandb: 
+wandb: Run history:
+wandb:              grad_norm ▆▆▇█▇▆▇▅█▆▄▅▄▅▆▅▄▅▇▅▅▆▅▄▆▅▅▃▃▄▃▂▃▃▂▂▅▁▂▁
+wandb:             loss/drift ▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▂▂▂▂▂▂▂▃▃▃▃▄▄▄▅▅▆▆▇█
+wandb:              loss/jepa ▄▅▅▅█▇▄▄▅▇▄▅▄▄▇▆▆▆▇▇▃▃▇▇▇▅▆▆▅▅▇▄▃▃▄▁▃▃▃▄
+wandb:             loss/total ▄▅▅▅█▇▄▄▅▇▄▅▄▄▇▆▆▆▇▇▃▃▇▇▇▆▆▆▅▆▄▃▃▅▄▁▃▃▃▄
+wandb:                     lr ▁▁▁▁▂▂▂▂▂▃▃▃▃▃▃▄▄▄▄▄▅▅▅▅▅▆▆▆▆▆▆▇▇▇▇▇▇███
+wandb: throughput_steps_per_s ▁█▆▆▆▆▇▆▇▆▆▆▆▅▅▅▇▆▆▆▇▂▆▇▇▇▇▇▇▆█▇▇▇▇▆▇▇▇█
+wandb: 
+wandb: Run summary:
+wandb:              grad_norm 0.27904
+wandb:             loss/drift 0.00012
+wandb:              loss/jepa 1.63498
+wandb:             loss/total 1.6351
+wandb:                     lr 0.0
+wandb: throughput_steps_per_s 0.04912
+wandb: 
+wandb: 🚀 View run m09_SANITY at: https://wandb.ai/sjsu_llm/walkindia-200k/runs/9m1iqd25
+wandb: ⭐️ View project at: https://wandb.ai/sjsu_llm/walkindia-200k
+wandb: Synced 5 W&B file(s), 0 media file(s), 0 artifact file(s) and 0 other file(s)
+wandb: Find logs at: ./wandb/run-20260329_001919-9m1iqd25/logs
+
+=== TRAINING COMPLETE ===
+Steps:        50
+Best Cycle@1: 0.0%
+Student:      /workspace/factorjepa/outputs/sanity/m09_lambda0_001/student_encoder.pt
+Loss log:     /workspace/factorjepa/outputs/sanity/m09_lambda0_001/loss_log.csv
+[00:39:17] PASSED: m09 pretrain (lambda=0.001) (20m 24s)
+  MISS m09_ckpt_final.pt
+  OK   student_encoder.pt             4049 MB
+[00:39:17] VERIFY OK: Training lambda=0.001
+
+═══════════════════════════════════════════════════════════════
+  STEP lambda0_001-embed: m05 re-embed (lambda=0.001)
+  Mode: SANITY | Est: ~15 sec (cached)
+  Started: 2026-03-29 00:39:17
+═══════════════════════════════════════════════════════════════
+[00:39:17] CMD: python -u src/m05_vjepa_embed.py --model outputs/sanity/m09_lambda0_001/student_encoder.pt --SANITY --local-data data/subset_10k_local --no-dedupe
+Using PyAV for video decoding
+Output: /workspace/factorjepa/outputs/sanity/embeddings_vjepa_adapted.npy
+Clip limit: 5
+Streaming from: anonymousML123/walkindia-200k
+
+============================================================
+WORKER 1: embeddings 0 → 5
+============================================================
+Using PyAV for video decoding
+GPU: NVIDIA RTX PRO 6000 Blackwell Workstation Edition
+CUDA version: 12.8
+GPU VRAM: 95 GB | VLM cost model: 16GB fixed + 0.78GB/clip
+  vjepa=37 (linear, scale=2.37x from 40GB)
+  image_encoder=148 (4x vjepa, cap 256)
+  transformers=64 (max batch, est 66GB = 69% VRAM)
+  sub-batch=51 (initial, AdaptiveBatchSizer grows to 64)
+Batch size: 37
+wandb: [wandb.login()] Loaded credentials for https://api.wandb.ai from WANDB_API_KEY.
+wandb: Currently logged in as: kapilw25 (sjsu_llm) to https://api.wandb.ai. Use `wandb login --relogin` to force relogin
+wandb: WARNING Using a boolean value for 'reinit' is deprecated. Use 'return_previous' or 'finish_previous' instead.
+wandb: setting up run knc6v331
+wandb: Tracking run with wandb version 0.25.1
+wandb: Run data is saved locally in /workspace/factorjepa/wandb/run-20260329_003925-knc6v331
+wandb: Run `wandb offline` to turn off syncing.
+wandb: Syncing run m05_SANITY
+wandb: ⭐️ View project at https://wandb.ai/sjsu_llm/walkindia-200k
+wandb: 🚀 View run at https://wandb.ai/sjsu_llm/walkindia-200k/runs/knc6v331
+wandb: run=m05_SANITY url=https://wandb.ai/sjsu_llm/walkindia-200k/runs/knc6v331
+
+Loading model: outputs/sanity/m09_lambda0_001/student_encoder.pt
+/workspace/factorjepa/venv_walkindia/lib/python3.12/site-packages/timm/models/layers/__init__.py:49: FutureWarning: Importing from timm.models.layers is deprecated, please import via timm.layers
+  warnings.warn(f"Importing from {__name__} is deprecated, please import via timm.layers", FutureWarning)
+Adapted encoder: loaded 484/484 params (missing: 0, unexpected: 0)
+Applying torch.compile (first batch will be slow due to compilation)...
+Model loaded on cuda (dtype: torch.float16)
+
+=== Streaming Config ===
+batch_size:    2
+video_decoder: PyAV
+prefetch:      2 batches
+checkpoint:    every 500 clips
+m05_vjepa:   0%|          | 0/5 [00:00<?, ?clip/s]m05_vjepa:   0%|          | 0/5 [00:01<?, ?clip/s]
+Traceback (most recent call last):
+  File "/workspace/factorjepa/src/m05_vjepa_embed.py", line 767, in <module>
+    main()
+  File "/workspace/factorjepa/src/m05_vjepa_embed.py", line 755, in main
+    worker_main(args)
+  File "/workspace/factorjepa/src/m05_vjepa_embed.py", line 662, in worker_main
+    embeddings = get_batch_embeddings(model, batched_pixels, device,
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/factorjepa/src/m05_vjepa_embed.py", line 377, in get_batch_embeddings
+    outputs = model(pixel_values)
+              ^^^^^^^^^^^^^^^^^^^
+  File "/workspace/factorjepa/venv_walkindia/lib/python3.12/site-packages/torch/_dynamo/eval_frame.py", line 468, in __call__
+    return super().__call__(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/factorjepa/venv_walkindia/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1778, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/factorjepa/venv_walkindia/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1789, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/factorjepa/venv_walkindia/lib/python3.12/site-packages/torch/_dynamo/eval_frame.py", line 1020, in compile_wrapper
+    return fn(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^
+  File "/workspace/factorjepa/venv_walkindia/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1778, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/factorjepa/venv_walkindia/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1789, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/factorjepa/venv_walkindia/lib/python3.12/site-packages/torch/_dynamo/convert_frame.py", line 2332, in __call__
+    result = self._torchdynamo_orig_backend(
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/factorjepa/venv_walkindia/lib/python3.12/site-packages/torch/_dynamo/convert_frame.py", line 2068, in __call__
+    result = self._inner_convert(
+             ^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/factorjepa/venv_walkindia/lib/python3.12/site-packages/torch/_dynamo/convert_frame.py", line 727, in __call__
+    result = _compile(
+             ^^^^^^^^^
+  File "/workspace/factorjepa/venv_walkindia/lib/python3.12/site-packages/torch/_dynamo/convert_frame.py", line 1844, in _compile
+    guarded_code, tracer_output = compile_inner(code, one_graph, hooks)
+                                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/factorjepa/venv_walkindia/lib/python3.12/site-packages/torch/_utils_internal.py", line 96, in wrapper_function
+    return function(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/factorjepa/venv_walkindia/lib/python3.12/site-packages/torch/_dynamo/convert_frame.py", line 1495, in compile_inner
+    return _compile_inner(code, one_graph, hooks)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/factorjepa/venv_walkindia/lib/python3.12/site-packages/torch/_dynamo/convert_frame.py", line 1540, in _compile_inner
+    dynamo_output = compile_frame(
+                    ^^^^^^^^^^^^^^
+  File "/workspace/factorjepa/venv_walkindia/lib/python3.12/site-packages/torch/_dynamo/convert_frame.py", line 1403, in compile_frame
+    bytecode, tracer_output = transform_code_object(code, transform)
+                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/factorjepa/venv_walkindia/lib/python3.12/site-packages/torch/_dynamo/bytecode_transformation.py", line 1608, in transform_code_object
+    tracer_output = transformations(instructions, code_options)
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/factorjepa/venv_walkindia/lib/python3.12/site-packages/torch/_dynamo/convert_frame.py", line 1375, in transform
+    tracer_output = trace_frame(
+                    ^^^^^^^^^^^^
+  File "/workspace/factorjepa/venv_walkindia/lib/python3.12/site-packages/torch/_dynamo/convert_frame.py", line 341, in _fn
+    return fn(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^
+  File "/workspace/factorjepa/venv_walkindia/lib/python3.12/site-packages/torch/_dynamo/convert_frame.py", line 861, in trace_frame
+    run_tracer()
+  File "/workspace/factorjepa/venv_walkindia/lib/python3.12/site-packages/torch/_dynamo/convert_frame.py", line 842, in run_tracer
+    tracer.run()
+  File "/workspace/factorjepa/venv_walkindia/lib/python3.12/site-packages/torch/_dynamo/symbolic_convert.py", line 1791, in run
+    while self.step():
+          ^^^^^^^^^^^
+  File "/workspace/factorjepa/venv_walkindia/lib/python3.12/site-packages/torch/_dynamo/symbolic_convert.py", line 1456, in step
+    self.dispatch_table[inst.opcode](self, inst)
+  File "/workspace/factorjepa/venv_walkindia/lib/python3.12/site-packages/torch/_dynamo/symbolic_convert.py", line 999, in wrapper
+    return inner_fn(self, inst)
+           ^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/factorjepa/venv_walkindia/lib/python3.12/site-packages/torch/_dynamo/symbolic_convert.py", line 4094, in CALL
+    self._call(inst)
+  File "/workspace/factorjepa/venv_walkindia/lib/python3.12/site-packages/torch/_dynamo/symbolic_convert.py", line 4085, in _call
+    self.call_function(fn, args, kwargs)
+  File "/workspace/factorjepa/venv_walkindia/lib/python3.12/site-packages/torch/_dynamo/symbolic_convert.py", line 1357, in call_function
+    self.push(fn.call_function(self, args, kwargs))  # type: ignore[arg-type]
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/factorjepa/venv_walkindia/lib/python3.12/site-packages/torch/_dynamo/variables/lazy.py", line 294, in realize_and_forward
+    return getattr(self.realize(), name)(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/factorjepa/venv_walkindia/lib/python3.12/site-packages/torch/_dynamo/variables/nn_module.py", line 1159, in call_function
+    return variables.UserFunctionVariable(fn, source=source).call_function(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/factorjepa/venv_walkindia/lib/python3.12/site-packages/torch/_dynamo/variables/functions.py", line 715, in call_function
+    return super().call_function(tx, args, kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/factorjepa/venv_walkindia/lib/python3.12/site-packages/torch/_dynamo/variables/functions.py", line 411, in call_function
+    return tx.inline_user_function_return(self, [*self.self_args(), *args], kwargs)  # type: ignore[attr-defined]
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/factorjepa/venv_walkindia/lib/python3.12/site-packages/torch/_dynamo/symbolic_convert.py", line 1384, in inline_user_function_return
+    return InliningInstructionTranslator.inline_call(self, fn, args, kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/factorjepa/venv_walkindia/lib/python3.12/site-packages/torch/_dynamo/symbolic_convert.py", line 5682, in inline_call
+    return tracer.inline_call_()
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/factorjepa/venv_walkindia/lib/python3.12/site-packages/torch/_dynamo/symbolic_convert.py", line 5896, in inline_call_
+    self.run()
+  File "/workspace/factorjepa/venv_walkindia/lib/python3.12/site-packages/torch/_dynamo/symbolic_convert.py", line 1791, in run
+    while self.step():
+          ^^^^^^^^^^^
+  File "/workspace/factorjepa/venv_walkindia/lib/python3.12/site-packages/torch/_dynamo/symbolic_convert.py", line 1456, in step
+    self.dispatch_table[inst.opcode](self, inst)
+  File "/workspace/factorjepa/venv_walkindia/lib/python3.12/site-packages/torch/_dynamo/symbolic_convert.py", line 999, in wrapper
+    return inner_fn(self, inst)
+           ^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/factorjepa/venv_walkindia/lib/python3.12/site-packages/torch/_dynamo/symbolic_convert.py", line 4094, in CALL
+    self._call(inst)
+  File "/workspace/factorjepa/venv_walkindia/lib/python3.12/site-packages/torch/_dynamo/symbolic_convert.py", line 4085, in _call
+    self.call_function(fn, args, kwargs)
+  File "/workspace/factorjepa/venv_walkindia/lib/python3.12/site-packages/torch/_dynamo/symbolic_convert.py", line 1357, in call_function
+    self.push(fn.call_function(self, args, kwargs))  # type: ignore[arg-type]
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/factorjepa/venv_walkindia/lib/python3.12/site-packages/torch/_dynamo/variables/lazy.py", line 294, in realize_and_forward
+    return getattr(self.realize(), name)(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/factorjepa/venv_walkindia/lib/python3.12/site-packages/torch/_dynamo/variables/nn_module.py", line 1159, in call_function
+    return variables.UserFunctionVariable(fn, source=source).call_function(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/factorjepa/venv_walkindia/lib/python3.12/site-packages/torch/_dynamo/variables/functions.py", line 715, in call_function
+    return super().call_function(tx, args, kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/factorjepa/venv_walkindia/lib/python3.12/site-packages/torch/_dynamo/variables/functions.py", line 411, in call_function
+    return tx.inline_user_function_return(self, [*self.self_args(), *args], kwargs)  # type: ignore[attr-defined]
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/factorjepa/venv_walkindia/lib/python3.12/site-packages/torch/_dynamo/symbolic_convert.py", line 1384, in inline_user_function_return
+    return InliningInstructionTranslator.inline_call(self, fn, args, kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/factorjepa/venv_walkindia/lib/python3.12/site-packages/torch/_dynamo/symbolic_convert.py", line 5682, in inline_call
+    return tracer.inline_call_()
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/factorjepa/venv_walkindia/lib/python3.12/site-packages/torch/_dynamo/symbolic_convert.py", line 5896, in inline_call_
+    self.run()
+  File "/workspace/factorjepa/venv_walkindia/lib/python3.12/site-packages/torch/_dynamo/symbolic_convert.py", line 1791, in run
+    while self.step():
+          ^^^^^^^^^^^
+  File "/workspace/factorjepa/venv_walkindia/lib/python3.12/site-packages/torch/_dynamo/symbolic_convert.py", line 1456, in step
+    self.dispatch_table[inst.opcode](self, inst)
+  File "/workspace/factorjepa/venv_walkindia/lib/python3.12/site-packages/torch/_dynamo/symbolic_convert.py", line 999, in wrapper
+    return inner_fn(self, inst)
+           ^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/factorjepa/venv_walkindia/lib/python3.12/site-packages/torch/_dynamo/symbolic_convert.py", line 4094, in CALL
+    self._call(inst)
+  File "/workspace/factorjepa/venv_walkindia/lib/python3.12/site-packages/torch/_dynamo/symbolic_convert.py", line 4085, in _call
+    self.call_function(fn, args, kwargs)
+  File "/workspace/factorjepa/venv_walkindia/lib/python3.12/site-packages/torch/_dynamo/symbolic_convert.py", line 1357, in call_function
+    self.push(fn.call_function(self, args, kwargs))  # type: ignore[arg-type]
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/factorjepa/venv_walkindia/lib/python3.12/site-packages/torch/_dynamo/variables/functions.py", line 1559, in call_function
+    return super().call_function(tx, args, kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/factorjepa/venv_walkindia/lib/python3.12/site-packages/torch/_dynamo/variables/functions.py", line 715, in call_function
+    return super().call_function(tx, args, kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/factorjepa/venv_walkindia/lib/python3.12/site-packages/torch/_dynamo/variables/functions.py", line 411, in call_function
+    return tx.inline_user_function_return(self, [*self.self_args(), *args], kwargs)  # type: ignore[attr-defined]
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/factorjepa/venv_walkindia/lib/python3.12/site-packages/torch/_dynamo/symbolic_convert.py", line 1384, in inline_user_function_return
+    return InliningInstructionTranslator.inline_call(self, fn, args, kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/factorjepa/venv_walkindia/lib/python3.12/site-packages/torch/_dynamo/symbolic_convert.py", line 5682, in inline_call
+    return tracer.inline_call_()
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/factorjepa/venv_walkindia/lib/python3.12/site-packages/torch/_dynamo/symbolic_convert.py", line 5896, in inline_call_
+    self.run()
+  File "/workspace/factorjepa/venv_walkindia/lib/python3.12/site-packages/torch/_dynamo/symbolic_convert.py", line 1791, in run
+    while self.step():
+          ^^^^^^^^^^^
+  File "/workspace/factorjepa/venv_walkindia/lib/python3.12/site-packages/torch/_dynamo/symbolic_convert.py", line 1456, in step
+    self.dispatch_table[inst.opcode](self, inst)
+  File "/workspace/factorjepa/venv_walkindia/lib/python3.12/site-packages/torch/_dynamo/symbolic_convert.py", line 999, in wrapper
+    return inner_fn(self, inst)
+           ^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/factorjepa/venv_walkindia/lib/python3.12/site-packages/torch/_dynamo/symbolic_convert.py", line 4094, in CALL
+    self._call(inst)
+  File "/workspace/factorjepa/venv_walkindia/lib/python3.12/site-packages/torch/_dynamo/symbolic_convert.py", line 4085, in _call
+    self.call_function(fn, args, kwargs)
+  File "/workspace/factorjepa/venv_walkindia/lib/python3.12/site-packages/torch/_dynamo/symbolic_convert.py", line 1357, in call_function
+    self.push(fn.call_function(self, args, kwargs))  # type: ignore[arg-type]
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/factorjepa/venv_walkindia/lib/python3.12/site-packages/torch/_dynamo/variables/lazy.py", line 294, in realize_and_forward
+    return getattr(self.realize(), name)(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/factorjepa/venv_walkindia/lib/python3.12/site-packages/torch/_dynamo/variables/torch.py", line 2304, in call_function
+    tensor_variable = wrap_fx_proxy(
+                      ^^^^^^^^^^^^^^
+  File "/workspace/factorjepa/venv_walkindia/lib/python3.12/site-packages/torch/_dynamo/variables/builder.py", line 2984, in wrap_fx_proxy
+    return wrap_fx_proxy_cls(target_cls=TensorVariable, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/factorjepa/venv_walkindia/lib/python3.12/site-packages/torch/_dynamo/variables/builder.py", line 3059, in wrap_fx_proxy_cls
+    out: VTTypeAlias = _wrap_fx_proxy(
+                       ^^^^^^^^^^^^^^^
+  File "/workspace/factorjepa/venv_walkindia/lib/python3.12/site-packages/torch/_dynamo/variables/builder.py", line 3183, in _wrap_fx_proxy
+    example_value = get_fake_value(proxy.node, tx, allow_non_graph_fake=True)
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/factorjepa/venv_walkindia/lib/python3.12/site-packages/torch/_dynamo/utils.py", line 3616, in get_fake_value
+    return _get_fake_value_impl(node, tx, allow_non_graph_fake)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/factorjepa/venv_walkindia/lib/python3.12/site-packages/torch/_dynamo/utils.py", line 3807, in _get_fake_value_impl
+    _wrap_graph_break_with_torch_runtime_err(
+  File "/workspace/factorjepa/venv_walkindia/lib/python3.12/site-packages/torch/_dynamo/utils.py", line 3605, in _wrap_graph_break_with_torch_runtime_err
+    raise exc.with_traceback(e.__traceback__) from None
+  File "/workspace/factorjepa/venv_walkindia/lib/python3.12/site-packages/torch/_dynamo/utils.py", line 3602, in _wrap_graph_break_with_torch_runtime_err
+    gb_fn()
+  File "/workspace/factorjepa/venv_walkindia/lib/python3.12/site-packages/torch/_dynamo/utils.py", line 3808, in <lambda>
+    lambda: unimplemented(
+            ^^^^^^^^^^^^^^
+  File "/workspace/factorjepa/venv_walkindia/lib/python3.12/site-packages/torch/_dynamo/exc.py", line 629, in unimplemented
+    raise Unsupported(
+torch._dynamo.exc.TorchRuntimeError: RuntimeError when making fake tensor call
+  Explanation: Dynamo failed to run FX node with fake tensors: call_function <built-in method conv3d of type object at 0x7f04926e4180>(*(FakeTensor(..., device='cuda:0', size=(2, 64, 3, 384, 384)), Parameter(FakeTensor(..., device='cuda:0', size=(1408, 3, 2, 16, 16),
+               dtype=torch.float16, requires_grad=True)), Parameter(FakeTensor(..., device='cuda:0', size=(1408,), dtype=torch.float16,
+               requires_grad=True)), (2, 16, 16), (0, 0, 0), (1, 1, 1), 1), **{}): got RuntimeError('Given groups=1, weight of size [1408, 3, 2, 16, 16], expected input[2, 64, 3, 384, 384] to have 3 channels, but got 64 channels instead')
+  Hint: Your code may result in an error when running in eager. Please double check that your code doesn't contain a similar error when actually running eager/uncompiled. You can do this by removing the `torch.compile` call, or by using `torch.compiler.set_stance("force_eager")`. 
+
+  Developer debug context: 
+
+ For more details about this graph break, please visit: https://meta-pytorch.github.io/compile-graph-break-site/gb/gb4315.html
+
+from user code:
+   File "/workspace/factorjepa/deps/vjepa2/src/models/vision_transformer.py", line 188, in forward
+    x = self.patch_embed(x)
+  File "/workspace/factorjepa/deps/vjepa2/src/models/utils/patch_embed.py", line 51, in forward
+    x = self.proj(x).flatten(2).transpose(1, 2)
+  File "/workspace/factorjepa/venv_walkindia/lib/python3.12/site-packages/torch/nn/modules/conv.py", line 723, in forward
+    return self._conv_forward(input, self.weight, self.bias)
+  File "/workspace/factorjepa/venv_walkindia/lib/python3.12/site-packages/torch/nn/modules/conv.py", line 718, in _conv_forward
+    return F.conv3d(
+
+Set TORCHDYNAMO_VERBOSE=1 for the internal stack trace (please do this especially if you're reporting a bug to PyTorch). For even more developer context, set TORCH_LOGS="+dynamo"
+
+[1;34mwandb[0m: 
+[1;34mwandb[0m: 🚀 View run [33mm05_SANITY[0m at: [34mhttps://wandb.ai/sjsu_llm/walkindia-200k/runs/knc6v331[0m
+[1;34mwandb[0m: Find logs at: [1;35mwandb/run-20260329_003925-knc6v331/logs[0m
+Worker failed (exit 1). Resume with same command.
+ERROR: No embeddings collected.
+[00:39:45] FAILED: m05 re-embed (lambda=0.001) (0m 28s) — exit code 1
+[00:39:45] WARNING: m05 re-embed failed for lambda=0.001.
+
+═══════════════════════════════════════════════════════════════
+  STEP lambda0_001-metrics: m06 metrics (lambda=0.001)
+  Mode: SANITY | Est: ~10 sec
+  Started: 2026-03-29 00:39:45
+═══════════════════════════════════════════════════════════════
+[00:39:45] CMD: python -u src/m06_faiss_metrics.py --encoder vjepa_adapted --SANITY
+GPU: NVIDIA RTX PRO 6000 Blackwell Workstation Edition
+CUDA version: 12.8
+wandb: [wandb.login()] Loaded credentials for https://api.wandb.ai from WANDB_API_KEY.
+wandb: Currently logged in as: kapilw25 (sjsu_llm) to https://api.wandb.ai. Use `wandb login --relogin` to force relogin
+wandb: WARNING Using a boolean value for 'reinit' is deprecated. Use 'return_previous' or 'finish_previous' instead.
+wandb: setting up run 6pj8xonk
+wandb: Tracking run with wandb version 0.25.1
+wandb: Run data is saved locally in /workspace/factorjepa/wandb/run-20260329_003948-6pj8xonk
+wandb: Run `wandb offline` to turn off syncing.
+wandb: Syncing run m06_SANITY
+wandb: ⭐️ View project at https://wandb.ai/sjsu_llm/walkindia-200k
+wandb: 🚀 View run at https://wandb.ai/sjsu_llm/walkindia-200k/runs/6pj8xonk
+wandb: run=m06_SANITY url=https://wandb.ai/sjsu_llm/walkindia-200k/runs/6pj8xonk
+Encoder:     vjepa_adapted (dim=1408, type=video_adapted)
+Output dir:  /workspace/factorjepa/outputs/sanity
+Embeddings:  /workspace/factorjepa/outputs/sanity/embeddings_vjepa_adapted.npy
+Metrics:     /workspace/factorjepa/outputs/sanity/m06_metrics_vjepa_adapted.json
+FATAL: embeddings not found: /workspace/factorjepa/outputs/sanity/embeddings_vjepa_adapted.npy
+[1;34mwandb[0m: 
+[1;34mwandb[0m: 🚀 View run [33mm06_SANITY[0m at: [34mhttps://wandb.ai/sjsu_llm/walkindia-200k/runs/6pj8xonk[0m
+[1;34mwandb[0m: Find logs at: [1;35mwandb/run-20260329_003948-6pj8xonk/logs[0m
+[00:39:52] FAILED: m06 metrics (lambda=0.001) (0m 7s) — exit code 1
+[00:39:52] WARNING: m06 metrics failed for lambda=0.001.
+[00:39:52] Completed ablation: lambda=0.001 (lambda0_001)
+
+[00:39:52] ╔═══════════════════════════════════════════════════════════╗
+[00:39:52] ║  ABLATION: lambda=0.01 (lambda0_01)                    
+[00:39:52] ╚═══════════════════════════════════════════════════════════╝
+
+═══════════════════════════════════════════════════════════════
+  STEP lambda0_01-train: m09 pretrain (lambda=0.01)
+  Mode: SANITY | Est: ~2 min (50 steps, profiler BS)
+  Started: 2026-03-29 00:39:52
+═══════════════════════════════════════════════════════════════
+[00:39:52] CMD: python -u src/m09_pretrain.py --config configs/pretrain/vitg16_indian.yaml --lambda-reg 0.01 --batch-size 112 --SANITY --local-data data/subset_10k_local
+Using PyAV for video decoding
+GPU: NVIDIA RTX PRO 6000 Blackwell Workstation Edition
+CUDA version: 12.8
+
+=== Building Model ===
+/workspace/factorjepa/venv_walkindia/lib/python3.12/site-packages/timm/models/layers/__init__.py:49: FutureWarning: Importing from timm.models.layers is deprecated, please import via timm.layers
+  warnings.warn(f"Importing from {__name__} is deprecated, please import via timm.layers", FutureWarning)
+Downloading pretrained weights via torch.hub...
+Student loaded: 1,012,173,952 params (484/484 keys = 100%)
+Teacher created (deepcopy of student)
+Predictor loaded from checkpoint (152/152 keys = 100%)
+Predictor: 22,378,240 params
+Mask generators: 2 (blocks: [8, 2])
+wandb: [wandb.login()] Loaded credentials for https://api.wandb.ai from WANDB_API_KEY.
+wandb: Currently logged in as: kapilw25 (sjsu_llm) to https://api.wandb.ai. Use `wandb login --relogin` to force relogin
+wandb: WARNING Using a boolean value for 'reinit' is deprecated. Use 'return_previous' or 'finish_previous' instead.
+wandb: setting up run r5r47fu8
+wandb: Tracking run with wandb version 0.25.1
+wandb: Run data is saved locally in /workspace/factorjepa/wandb/run-20260329_004017-r5r47fu8
+wandb: Run `wandb offline` to turn off syncing.
+wandb: Syncing run m09_SANITY
+wandb: ⭐️ View project at https://wandb.ai/sjsu_llm/walkindia-200k
+wandb: 🚀 View run at https://wandb.ai/sjsu_llm/walkindia-200k/runs/r5r47fu8
+wandb: run=m09_SANITY url=https://wandb.ai/sjsu_llm/walkindia-200k/runs/r5r47fu8
+m09_pretrain:   0%|          | 0/50 [00:00<?, ?step/s]
+=== Training: 0 → 50 steps ===
+Batch size: 112
+Grad checkpointing: True
+Mixed precision: bfloat16
+EMA momentum: 0.99925
+Drift control: lambda=0.01
+Loss log: /workspace/factorjepa/outputs/sanity/m09_lambda0_01/loss_log.csv
+/venv/main/lib/python3.12/contextlib.py:105: FutureWarning: `torch.backends.cuda.sdp_kernel()` is deprecated. In the future, this context manager will be removed. Please see `torch.nn.attention.sdpa_kernel()` for the new context manager, with updated signature.
+  self.gen = func(*args, **kwds)
+m09_pretrain:   0%|          | 0/50 [00:44<?, ?step/s, loss=1.6351 drift=0.0000 lr=2.00e-08 grad=1.39 0.02 step/s]m09_pretrain:   2%|▏         | 1/50 [00:44<36:06, 44.21s/step, loss=1.6351 drift=0.0000 lr=2.00e-08 grad=1.39 0.02 step/s]m09_pretrain:   4%|▍         | 2/50 [01:06<25:06, 31.39s/step, loss=1.6351 drift=0.0000 lr=2.00e-08 grad=1.39 0.02 step/s]m09_pretrain:   4%|▍         | 2/50 [01:27<25:06, 31.39s/step, loss=1.6364 drift=0.0000 lr=6.00e-08 grad=1.33 0.05 step/s]m09_pretrain:   6%|▌         | 3/50 [01:27<20:50, 26.61s/step, loss=1.6364 drift=0.0000 lr=6.00e-08 grad=1.33 0.05 step/s]m09_pretrain:   8%|▊         | 4/50 [01:51<19:28, 25.39s/step, loss=1.6364 drift=0.0000 lr=6.00e-08 grad=1.33 0.05 step/s]m09_pretrain:   8%|▊         | 4/50 [02:13<19:28, 25.39s/step, loss=1.6665 drift=0.0000 lr=1.00e-07 grad=1.55 0.04 step/s]m09_pretrain:  10%|█         | 5/50 [02:13<18:07, 24.16s/step, loss=1.6665 drift=0.0000 lr=1.00e-07 grad=1.55 0.04 step/s]m09_pretrain:  12%|█▏        | 6/50 [02:37<17:43, 24.17s/step, loss=1.6665 drift=0.0000 lr=1.00e-07 grad=1.55 0.04 step/s]m09_pretrain:  12%|█▏        | 6/50 [02:56<17:43, 24.17s/step, loss=1.6746 drift=0.0000 lr=1.40e-07 grad=1.35 0.05 step/s]m09_pretrain:  14%|█▍        | 7/50 [02:56<16:06, 22.49s/step, loss=1.6746 drift=0.0000 lr=1.40e-07 grad=1.35 0.05 step/s]m09_pretrain:  16%|█▌        | 8/50 [03:21<16:15, 23.22s/step, loss=1.6746 drift=0.0000 lr=1.40e-07 grad=1.35 0.05 step/s]m09_pretrain:  16%|█▌        | 8/50 [03:42<16:15, 23.22s/step, loss=1.6325 drift=0.0000 lr=1.80e-07 grad=1.15 0.04 step/s]m09_pretrain:  18%|█▊        | 9/50 [03:42<15:35, 22.82s/step, loss=1.6325 drift=0.0000 lr=1.80e-07 grad=1.15 0.04 step/s]m09_pretrain:  20%|██        | 10/50 [04:06<15:22, 23.05s/step, loss=1.6325 drift=0.0000 lr=1.80e-07 grad=1.15 0.04 step/s]m09_pretrain:  20%|██        | 10/50 [04:30<15:22, 23.05s/step, loss=1.6535 drift=0.0000 lr=2.20e-07 grad=1.72 0.04 step/s]m09_pretrain:  22%|██▏       | 11/50 [04:30<15:14, 23.45s/step, loss=1.6535 drift=0.0000 lr=2.20e-07 grad=1.72 0.04 step/s]m09_pretrain:  24%|██▍       | 12/50 [04:51<14:23, 22.72s/step, loss=1.6535 drift=0.0000 lr=2.20e-07 grad=1.72 0.04 step/s]m09_pretrain:  24%|██▍       | 12/50 [05:13<14:23, 22.72s/step, loss=1.6510 drift=0.0000 lr=2.60e-07 grad=1.44 0.05 step/s]m09_pretrain:  26%|██▌       | 13/50 [05:13<13:45, 22.32s/step, loss=1.6510 drift=0.0000 lr=2.60e-07 grad=1.44 0.05 step/s]m09_pretrain:  28%|██▊       | 14/50 [05:33<12:56, 21.57s/step, loss=1.6510 drift=0.0000 lr=2.60e-07 grad=1.44 0.05 step/s]m09_pretrain:  28%|██▊       | 14/50 [05:56<12:56, 21.57s/step, loss=1.6355 drift=0.0000 lr=3.00e-07 grad=1.08 0.05 step/s]m09_pretrain:  30%|███       | 15/50 [05:56<12:58, 22.23s/step, loss=1.6355 drift=0.0000 lr=3.00e-07 grad=1.08 0.05 step/s]m09_pretrain:  32%|███▏      | 16/50 [06:15<11:55, 21.04s/step, loss=1.6355 drift=0.0000 lr=3.00e-07 grad=1.08 0.05 step/s]m09_pretrain:  32%|███▏      | 16/50 [06:39<11:55, 21.04s/step, loss=1.6588 drift=0.0000 lr=3.40e-07 grad=1.22 0.05 step/s]m09_pretrain:  34%|███▍      | 17/50 [06:39<12:08, 22.09s/step, loss=1.6588 drift=0.0000 lr=3.40e-07 grad=1.22 0.05 step/s]m09_pretrain:  36%|███▌      | 18/50 [07:02<11:54, 22.32s/step, loss=1.6588 drift=0.0000 lr=3.40e-07 grad=1.22 0.05 step/s]m09_pretrain:  36%|███▌      | 18/50 [07:25<11:54, 22.32s/step, loss=1.6700 drift=0.0000 lr=3.80e-07 grad=1.37 0.04 step/s]m09_pretrain:  38%|███▊      | 19/50 [07:25<11:38, 22.52s/step, loss=1.6700 drift=0.0000 lr=3.80e-07 grad=1.37 0.04 step/s]m09_pretrain:  40%|████      | 20/50 [07:47<11:07, 22.26s/step, loss=1.6700 drift=0.0000 lr=3.80e-07 grad=1.37 0.04 step/s]m09_pretrain:  40%|████      | 20/50 [08:04<11:07, 22.26s/step, loss=1.6618 drift=0.0000 lr=4.20e-07 grad=1.00 0.05 step/s]m09_pretrain:  42%|████▏     | 21/50 [08:04<10:01, 20.73s/step, loss=1.6618 drift=0.0000 lr=4.20e-07 grad=1.00 0.05 step/s]m09_pretrain:  44%|████▍     | 22/50 [08:27<09:59, 21.43s/step, loss=1.6618 drift=0.0000 lr=4.20e-07 grad=1.00 0.05 step/s]m09_pretrain:  44%|████▍     | 22/50 [08:53<09:59, 21.43s/step, loss=1.6640 drift=0.0000 lr=4.60e-07 grad=2.05 0.04 step/s]m09_pretrain:  46%|████▌     | 23/50 [08:53<10:18, 22.90s/step, loss=1.6640 drift=0.0000 lr=4.60e-07 grad=2.05 0.04 step/s]

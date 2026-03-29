@@ -1,0 +1,69 @@
+[03:08:21] Auto batch size: 112 (from profiler, <=75% VRAM)
+[03:08:21] Local subset exists: data/subset_10k_local
+[03:08:21] Ch10 pipeline starting (mode=FULL)
+[03:08:21] Config: configs/pretrain/vitg16_indian.yaml
+[03:08:21] Master log: logs/ch10_FULL_20260329_030821.log
+
+[03:08:21] === PRE-FLIGHT ===
+GPU:        NVIDIA RTX PRO 6000 Blackwell Workstation Edition
+VRAM:       102 GB
+PyTorch:    2.12.0.dev20260228+cu128
+vjepa2:     deps/vjepa2/ present
+Flash-Attn: 2.8.3
+FAISS GPUs: 1
+Config:     configs/pretrain/vitg16_indian.yaml
+Baseline:   Prec@K=36.1% (Ch9 frozen)
+
+Pre-flight: ALL PASSED
+[03:08:23] Pre-flight complete. Starting pipeline...
+
+
+[03:08:23] ╔═══════════════════════════════════════════════════════════╗
+[03:08:23] ║  ABLATION: lambda=0 (lambda0)                    
+[03:08:23] ╚═══════════════════════════════════════════════════════════╝
+
+═══════════════════════════════════════════════════════════════
+  STEP lambda0-train: m09 pretrain (lambda=0)
+  Mode: FULL | Est: ~5-20h (2000-10000 steps, profiler BS)
+  Started: 2026-03-29 03:08:23
+═══════════════════════════════════════════════════════════════
+[03:08:23] CMD: python -u src/m09_pretrain.py --config configs/pretrain/vitg16_indian.yaml --lambda-reg 0 --batch-size 112 --FULL --subset data/subset_10k.json --local-data data/subset_10k_local
+Using PyAV for video decoding
+GPU: NVIDIA RTX PRO 6000 Blackwell Workstation Edition
+CUDA version: 12.8
+
+=== Building Model ===
+/workspace/factorjepa/venv_walkindia/lib/python3.12/site-packages/timm/models/layers/__init__.py:49: FutureWarning: Importing from timm.models.layers is deprecated, please import via timm.layers
+  warnings.warn(f"Importing from {__name__} is deprecated, please import via timm.layers", FutureWarning)
+Downloading pretrained weights via torch.hub...
+Student loaded: 1,012,173,952 params (484/484 keys = 100%)
+Teacher created (deepcopy of student)
+Predictor loaded from checkpoint (152/152 keys = 100%)
+Predictor: 22,378,240 params
+Mask generators: 2 (blocks: [8, 2])
+[POC] Loaded subset: 10,000 clip keys from subset_10k.json
+Train clips: 8,982 | Val clips: 1,018
+Epochs: 1 | Steps/epoch: 80 | Total steps: 80
+Checkpoint every 8 steps (10x per epoch, keep last 2)
+wandb: [wandb.login()] Loaded credentials for https://api.wandb.ai from WANDB_API_KEY.
+wandb: Currently logged in as: kapilw25 (sjsu_llm) to https://api.wandb.ai. Use `wandb login --relogin` to force relogin
+wandb: WARNING Using a boolean value for 'reinit' is deprecated. Use 'return_previous' or 'finish_previous' instead.
+wandb: setting up run n6zzj329
+wandb: Tracking run with wandb version 0.25.1
+wandb: Run data is saved locally in /workspace/factorjepa/wandb/run-20260329_030848-n6zzj329
+wandb: Run `wandb offline` to turn off syncing.
+wandb: Syncing run m09_POC
+wandb: ⭐️ View project at https://wandb.ai/sjsu_llm/walkindia-200k
+wandb: 🚀 View run at https://wandb.ai/sjsu_llm/walkindia-200k/runs/n6zzj329
+wandb: run=m09_POC url=https://wandb.ai/sjsu_llm/walkindia-200k/runs/n6zzj329
+m09_pretrain:   0%|          | 0/80 [00:00<?, ?step/s]
+=== Training: 0 → 80 steps (1 epochs) ===
+Batch size: 112
+Grad checkpointing: True
+Mixed precision: bfloat16
+EMA momentum: 0.99925
+Drift control: lambda=0
+Loss log: /workspace/factorjepa/outputs/poc/m09_lambda0/loss_log.csv
+/venv/main/lib/python3.12/contextlib.py:105: FutureWarning: `torch.backends.cuda.sdp_kernel()` is deprecated. In the future, this context manager will be removed. Please see `torch.nn.attention.sdpa_kernel()` for the new context manager, with updated signature.
+  self.gen = func(*args, **kwds)
+m09_pretrain:   0%|          | 0/80 [00:40<?, ?step/s, E0 loss=1.6339 drift=0.0000 lr=1.25e-06 grad=1.57 0.02 step/s]m09_pretrain:   1%|▏         | 1/80 [00:40<53:21, 40.53s/step, E0 loss=1.6339 drift=0.0000 lr=1.25e-06 grad=1.57 0.02 step/s]

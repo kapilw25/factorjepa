@@ -16,11 +16,12 @@ from pathlib import Path
 # Add src to path for utils import
 sys.path.insert(0, str(Path(__file__).parent))
 from utils.config import PROJECT_ROOT, OUTPUTS_DATA_PREP_DIR
+from utils.config import get_pipeline_config
 
 # Paths
 CLIP_DURATIONS_JSON = OUTPUTS_DATA_PREP_DIR / "clip_durations.json"
 OUTPUT_DIR = PROJECT_ROOT / "data"
-DEFAULT_N = 10000
+DEFAULT_N = get_pipeline_config()["poc"]["default_n"]
 SEED = 42
 
 

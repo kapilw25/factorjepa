@@ -37,7 +37,6 @@ case "$1" in
         OUT_DIR="outputs/sanity"
         TAGS_FILE="outputs/sanity/tags_sanity_qwen.json"
         BATCH_M04=""
-        MIN_CLIPS=5
         ;;
     --FULL)
         MODE="FULL"
@@ -46,7 +45,6 @@ case "$1" in
         OUT_DIR="outputs/poc"
         TAGS_FILE="outputs/poc/tags.json"
         BATCH_M04=""
-        MIN_CLIPS=1000
         ;;
     *)
         usage
@@ -56,6 +54,14 @@ esac
 # ── Setup ─────────────────────────────────────────────────────────────
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 cd "$SCRIPT_DIR/.."
+
+# Read MIN_CLIPS from configs/pipeline.yaml
+PIPELINE_YAML="configs/pipeline.yaml"
+if [[ "$MODE" == "SANITY" ]]; then
+    MIN_CLIPS=$(python -c "import yaml; print(yaml.safe_load(open('${PIPELINE_YAML}'))['verify']['sanity_min_clips'])")
+else
+    MIN_CLIPS=$(python -c "import yaml; print(yaml.safe_load(open('${PIPELINE_YAML}'))['verify']['full_min_clips'])")
+fi
 
 LOGDIR="logs"
 mkdir -p "$LOGDIR" "$OUT_DIR"
@@ -327,11 +333,11 @@ if [[ -f "$TAGS_FILE" && "$TAGS_FILE" != "$CANONICAL_TAGS" ]]; then
 fi
 
 # ── Step 2: V-JEPA embeddings ────────────────────────────────────────
-# --no-dedupe: V-JEPA's cosine similarity shouldn't filter the eval set
-# (circular reasoning). Hard mode ±30s exclusion handles true duplicates.
+# No dedup: using V-JEPA's own similarity to filter eval set is circular.
+# Hard mode ±30s exclusion in m06 handles true temporal duplicates.
 run_step 2 "m05 V-JEPA embeddings" "$T_M05" \
     "$LOGDIR/m05_${MODE,,}.log" \
-    src/m05_vjepa_embed.py $MODE_FLAG $SUBSET_FLAG $LOCAL_FLAG --no-dedupe --no-wandb \
+    src/m05_vjepa_embed.py $MODE_FLAG $SUBSET_FLAG $LOCAL_FLAG --no-wandb \
     || { log "FATAL: m05 failed. Steps 3-7 depend on V-JEPA embeddings."; exit 1; }
 
 verify "Step 2 embeddings" "
@@ -367,8 +373,7 @@ for enc, sfx, dim in [('random','_random',1408), ('dinov2','_dinov2',1536),
 run_step 4 "m05c True Overlap augmented embeddings" "$T_M05C" \
     "$LOGDIR/m05c_${MODE,,}.log" \
     src/m05c_true_overlap.py $MODE_FLAG $SUBSET_FLAG $LOCAL_FLAG --no-wandb \
-    || { log "WARNING: m05c failed. True Overlap@K will use dim-split fallback."; }
-    # Non-fatal: m06 falls back to dim-split without augmented embeddings
+    || { log "FATAL: m05c failed."; exit 1; }
 
 verify "Step 4 augmented embeddings" "
 import numpy as np

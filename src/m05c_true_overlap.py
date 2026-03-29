@@ -23,6 +23,7 @@ sys.path.insert(0, str(Path(__file__).parent))
 from utils.config import (
     VJEPA_FRAMES_PER_CLIP, check_gpu, check_output_exists,
     load_subset, add_subset_arg, add_local_data_arg, get_output_dir,
+    get_sanity_clip_limit, get_total_clips, get_pipeline_config,
 )
 from utils.gpu_batch import compute_batch_sizes, add_gpu_mem_arg
 from utils.wandb_utils import add_wandb_args, init_wandb, log_metrics, log_artifact, finish_wandb
@@ -183,7 +184,8 @@ def _decode_and_augment_one(mp4_bytes, key, tmp_dir, num_frames):
 # work (interpolate, gaussian_blur, adjust_*). Safe to thread — each clip uses
 # its own tensors with no shared state. NOT ATen threadpool oversubscription:
 # these are independent clip-level operations, not intra-op parallelism.
-AUGMENT_WORKERS = 4
+_pcfg = get_pipeline_config()
+AUGMENT_WORKERS = _pcfg["streaming"]["augment_workers"]
 
 
 def _decode_augment_enqueue(pending_bytes, pending_keys, tmp_dir,
@@ -263,7 +265,7 @@ def main():
     deduped_paths_file = output_dir / "embeddings.paths.npy"
     if deduped_paths_file.exists() and not args.SANITY:
         deduped_keys = set(np.load(deduped_paths_file, allow_pickle=True).tolist())
-        original_count = len(subset_keys) if subset_keys else 115_687
+        original_count = len(subset_keys) if subset_keys else get_total_clips(local_data=getattr(args, 'local_data', None))
         subset_keys = (subset_keys & deduped_keys) if subset_keys else deduped_keys
         print(f"[DEDUP] Target: {len(subset_keys):,} deduped keys "
               f"(from {original_count:,} in subset → {len(deduped_keys):,} after V-JEPA dedup)")
@@ -271,7 +273,15 @@ def main():
         print("WARNING: embeddings.paths.npy not found — processing full subset "
               "(run m05 first for dedup optimization)")
 
-    clip_limit = 5 if args.SANITY else (len(subset_keys) if subset_keys else 115_687)
+    if args.SANITY:
+        clip_limit = get_sanity_clip_limit("embed")
+    elif subset_keys:
+        clip_limit = len(subset_keys)
+    else:
+        clip_limit = get_total_clips(local_data=getattr(args, 'local_data', None))
+        if clip_limit == 0:
+            print("FATAL: Cannot determine clip count. Use --subset or --local-data with manifest.json")
+            sys.exit(1)
 
     batch_size = args.batch_size or compute_batch_sizes(gpu_vram_gb=args.gpu_mem)["vjepa"]
     if args.SANITY:

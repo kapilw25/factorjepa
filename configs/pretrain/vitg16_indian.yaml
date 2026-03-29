@@ -19,6 +19,8 @@ data:
   tubelet_size: 2
   val_fraction: 0.1                   # 10% of videos held out
   val_seed: 42
+  sanity_train_clips: 900             # SANITY mode: 8 steps at BS=112
+  sanity_val_clips: 100               # SANITY mode: val clips
 
 # -- Model (Q1-Q5 corrected) --
 model:
@@ -60,8 +62,12 @@ optimization:
   eps: 1.0e-8
   grad_clip: 1.0
   ema_momentum: 0.99925              # fixed (V-JEPA 2 default)
-  max_steps: 10000                   # POC: 2000, Full: 10000
-  batch_size: 32                     # profiled: 27.8 GB at BS=32 with grad ckpt
+  max_epochs:
+    sanity: 1                         # just validate code runs
+    poc: 1                            # 1 epoch for ablation sweep
+    full: 1                           # large dataset, 1 epoch enough
+    winner: 5                         # deep run for best lambda after ablation
+  batch_size: 32                     # overridden by profiler auto-detect
   loss_exp: 1.0                      # L1 loss (V-JEPA 2 convention)
 
 # -- Drift Control (Sec 10.4) --
@@ -71,14 +77,14 @@ drift_control:
 
 # -- Validation --
 validation:
-  interval_steps: 2000
+  interval_epochs: 1                  # Cycle@K every epoch (expensive)
   cycle_k: [1, 10]
   faiss_k: 6
 
 # -- Checkpointing --
 checkpoint:
-  save_every_steps: 2000
-  keep_last_n: 5
+  saves_per_epoch: 10                  # checkpoint every 10% of epoch (crash recovery)
+  keep_last_n: 2                      # keep only last 2 checkpoints (~16GB)
   output_dir: null                   # auto-set from --SANITY/--FULL/--subset
 
 # -- Mixed Precision --
