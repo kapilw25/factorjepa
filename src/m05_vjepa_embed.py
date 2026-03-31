@@ -32,6 +32,7 @@ from utils.config import (
     check_output_exists, load_subset, add_subset_arg, add_local_data_arg, get_output_dir,
     get_pipeline_config, get_sanity_clip_limit, get_total_clips,
 )
+from utils.data_download import ensure_local_data
 from utils.gpu_batch import compute_batch_sizes, add_gpu_mem_arg
 from utils.wandb_utils import add_wandb_args, init_wandb, log_metrics, log_artifact, finish_wandb
 
@@ -730,6 +731,7 @@ def main():
         print("\nERROR: Specify --SANITY, --POC, or --FULL")
         sys.exit(1)
 
+    ensure_local_data(args)
     orchestrator_main(args)
 
 

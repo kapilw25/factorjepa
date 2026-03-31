@@ -6,13 +6,17 @@
 # Spatial (9 metrics) + Temporal (5 metrics) evaluation, 5 encoders, 95% CI
 #
 # USAGE:
-#   ./scripts/run_evaluate.sh --SANITY 2>&1 | tee logs/ch9_sanity.log   # Quick validation (~15 min)
-#   ./scripts/run_evaluate.sh --POC 2>&1 | tee logs/ch9_poc.log         # 10K subset (~8h)
-#   ./scripts/run_evaluate.sh --FULL 2>&1 | tee logs/ch9_full.log       # 115K corpus (~100h+)
+#   ./scripts/run_evaluate.sh --SANITY 2>&1 | tee logs/ch9_sanity.log       # Quick validation (~15 min)
+#   ./scripts/run_evaluate.sh --POC 2>&1 | tee logs/ch9_poc.log             # 10K subset (~8h)
+#   ./scripts/run_evaluate.sh --FULL 2>&1 | tee logs/ch9_full.log           # 115K, transformers (~100h+)
+#   ./scripts/run_evaluate.sh --FULL --vllm 2>&1 | tee logs/ch9_full.log    # 115K, vLLM (faster, ~75h)
 #
 # Features: pre-flight checks, checkpoint/resume, error handling, verification
 # All steps SEQUENTIAL on single GPU. Skips completed steps automatically.
 # Prerequisites: ./setup_env_uv.sh --gpu [--from-wheels]
+# Data: each script auto-downloads from HF if missing (~50 min).
+#   Faster: rsync data/ from Mac first (~17 min for POC):
+#     rsync -avhP data/ <gpu-host>:/workspace/factorjepa/data/
 # ═══════════════════════════════════════════════════════════════════════
 set -euo pipefail
 
@@ -20,12 +24,17 @@ set -euo pipefail
 MODE=""
 SUBSET_FLAG=""
 
+USE_VLLM=false
+
 usage() {
-    echo "Usage: $0 --SANITY | --POC | --FULL"
+    echo "Usage: $0 --SANITY | --POC | --FULL [--vllm]"
     echo ""
     echo "  --SANITY   Quick validation: 5-20 clips per step (~15 min total)"
     echo "  --POC      10K subset: full eval pipeline (~8-12h)"
     echo "  --FULL     115K full corpus: no subset, dataset size from manifest (~48h)"
+    echo ""
+    echo "  --vllm     Use vLLM for m04 tagging (3-5x faster, requires venv_vllm)"
+    echo "             Without --vllm: uses transformers (slower but always works)"
     exit 1
 }
 
@@ -60,6 +69,11 @@ case "$1" in
         usage
         ;;
 esac
+
+# Check for --vllm flag (can appear as $2)
+if [[ "${2:-}" == "--vllm" ]]; then
+    USE_VLLM=true
+fi
 
 # ── Setup ─────────────────────────────────────────────────────────────
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
@@ -336,10 +350,38 @@ else
 fi
 
 # ── Step 1: VLM tagging (Qwen) ───────────────────────────────────────
-run_step 1 "m04 VLM tagging (Qwen)" "$T_M04" \
-    "$LOGDIR/m04_${MODE,,}_qwen.log" \
-    src/m04_vlm_tag.py --model qwen $MODE_FLAG $SUBSET_FLAG $LOCAL_FLAG $BATCH_M04 --no-wandb \
-    || { log "WARNING: m04 failed. Step 5 (m06 metrics) will fail without tags."; }
+# --vllm: use venv_vllm/bin/python + m04_vlm_tag_vllm.py (3-5x faster)
+# default: use venv_walkindia python + m04_vlm_tag.py (always works)
+if [[ "$USE_VLLM" == true ]]; then
+    VLLM_PYTHON="venv_vllm/bin/python"
+    if [[ ! -x "$VLLM_PYTHON" ]]; then
+        log "FATAL: --vllm requires venv_vllm. Run: ./setup_env_uv.sh --gpu"
+        exit 1
+    fi
+    STEP_COUNT=$((STEP_COUNT + 1))
+    banner 1 "m04 VLM tagging (Qwen via vLLM)" "$T_M04"
+    log "CMD: $VLLM_PYTHON -u src/m04_vlm_tag_vllm.py $MODE_FLAG $SUBSET_FLAG $LOCAL_FLAG --no-wandb"
+    VLLM_START=$(date +%s)
+    if $VLLM_PYTHON -u src/m04_vlm_tag_vllm.py $MODE_FLAG $SUBSET_FLAG $LOCAL_FLAG --no-wandb \
+        2>&1 | tee "$LOGDIR/m04_vllm_${MODE,,}.log" | tee -a "$MASTER_LOG"; then
+        VLLM_END=$(date +%s)
+        VLLM_ELAPSED=$(( VLLM_END - VLLM_START ))
+        log "PASSED: m04 VLM tagging via vLLM ($((VLLM_ELAPSED/60))m $((VLLM_ELAPSED%60))s)"
+        STEP_PASS=$((STEP_PASS + 1))
+    else
+        VLLM_END=$(date +%s)
+        VLLM_ELAPSED=$(( VLLM_END - VLLM_START ))
+        log "FAILED: m04 vLLM ($((VLLM_ELAPSED/60))m $((VLLM_ELAPSED%60))s). Falling back to transformers..."
+        STEP_FAIL=$((STEP_FAIL + 1))
+        USE_VLLM=false
+    fi
+fi
+if [[ "$USE_VLLM" == false ]]; then
+    run_step 1 "m04 VLM tagging (Qwen via transformers)" "$T_M04" \
+        "$LOGDIR/m04_${MODE,,}_qwen.log" \
+        src/m04_vlm_tag.py --model qwen $MODE_FLAG $SUBSET_FLAG $LOCAL_FLAG $BATCH_M04 --no-wandb \
+        || { log "WARNING: m04 failed. Step 5 (m06 metrics) will fail without tags."; }
+fi
     # Non-fatal: embeddings (Steps 2-4) don't need tags. Only m06 does.
 
 verify "Step 1 tags" "

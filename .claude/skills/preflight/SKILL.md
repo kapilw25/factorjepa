@@ -1,68 +1,92 @@
 ---
 name: preflight
-description: Pipeline code review checklist. Use before running any new pipeline that makes API/VLM/LLM calls. Ensures checkpoint/resume, tee logging, and fail-fast validation are present. Missing any = broken code.
+description: Pipeline code review checklist + 3 automated checks (py_compile, AST, ruff). Run before any GPU job. Missing any = broken code.
 disable-model-invocation: true
-allowed-tools: Read, Grep, Glob
+allowed-tools: Read, Grep, Glob, Bash
 argument-hint: [file-path or module-name]
 ---
 
 # Pipeline Preflight Checklist
 
 Review the specified file (or recently modified pipeline files) against these MANDATORY requirements.
-Every pipeline loop that makes GPU/API/VLM calls MUST have ALL of these. Missing any = broken code.
 
-## Checklist
+## Part A: Automated Checks (run ALL 3, report PASS/FAIL)
 
-For each file containing a GPU inference or API call loop, verify:
+### A1. py_compile (syntax)
+Run: `source venv_walkindia/bin/activate && python3 -m py_compile <file>`
+- PASS if exit code 0
+- FAIL if any syntax error — fix before proceeding
 
-### 1. tqdm progress bar
-- [ ] Loop is wrapped in `tqdm(...)` with `desc=`, `unit=` parameters
+### A2. AST structural check
+Run via inline python:
+- [ ] `main()` function exists
+- [ ] `--SANITY` and/or `--FULL` in argparse
+- [ ] `from tqdm import tqdm` present (GPU scripts m04-m07, m09 only)
+- [ ] `validate_tag_fields` defined AND called (m04 only)
+- [ ] No orphan functions (defined but never called anywhere in file)
+
+### A3. ruff / pyflakes (undefined variables)
+Run: `python3 -m ruff check --select F821,F841,F811 <file>`
+If ruff not installed, use: `python3 -m pyflakes <file>`
+If neither available, manually check:
+- [ ] No undefined variable names (F821)
+- [ ] No unused variables (F841)
+- [ ] No redefined unused names (F811)
+- Search for new functions/variables added — verify each is used
+
+## Part B: Manual Checklist (verify each, report PASS/FAIL/N/A)
+
+### B1. tqdm progress bar
+- [ ] Loop wrapped in `tqdm(...)` with `desc=`, `unit=`
 - [ ] If resuming, tqdm uses `initial=len(completed)` and `total=len(all_items)`
-- Search for: `from tqdm import tqdm` and `tqdm(` in the file
 
-### 2. Auto-resume / checkpoint
-- [ ] Completed items are saved to disk (checkpoint) periodically
-- [ ] On startup, completed items are loaded and skipped
-- [ ] **OUTPUT-EXISTS GUARD**: At TOP of main(), BEFORE model loading, check if final output file exists AND no partial checkpoint exists → skip entirely with print message. This prevents re-running 60+ min GPU jobs that already completed.
-- Search for: `checkpoint`, `if.*exists.*skip`, `return` early in main()
+### B2. Auto-resume / checkpoint
+- [ ] Completed items saved to disk periodically
+- [ ] On startup, completed items loaded and skipped
+- [ ] **OUTPUT-EXISTS GUARD**: at TOP of main(), BEFORE model loading, check if final output exists → skip entirely
 
-### 3. Tee logging
-- [ ] Output goes to both terminal AND a log file
-- [ ] Command format: `python -u src/*.py --args 2>&1 | tee logs/<log_name>.log`
-- [ ] Docstring includes the exact terminal command with tee
+### B3. Tee logging
+- [ ] Docstring includes `python -u src/*.py --args 2>&1 | tee logs/<log_name>.log`
 
-### 4. wandb integration
-- [ ] `add_wandb_args(parser)` adds `--no-wandb` flag
-- [ ] `init_wandb(module, mode, config, enabled)` called after arg parse
-- [ ] `log_metrics()` / `log_image()` / `log_artifact()` at key points
-- [ ] `finish_wandb(run)` in finally block
+### B4. wandb integration
+- [ ] `add_wandb_args(parser)`, `init_wandb()`, `log_metrics()`, `finish_wandb()`
 - [ ] All wandb functions no-op when `run=None`
-- Search for: `from src.utils.wandb_utils import` and `--no-wandb`
 
-### 5. GPU fail-loud (m04/m05/m06/m07 only)
-- [ ] Script calls `check_gpu()` or `torch.cuda.is_available()` early
-- [ ] Exits with clear error if no GPU — NEVER silently falls back to CPU
-- [ ] No `import faiss` without `faiss.StandardGpuResources()` (use GPU FAISS only)
-- [ ] No `from sklearn` for iterative algorithms — use cuML instead
-- Search for: `check_gpu`, `cuda`, `faiss`, `sklearn`, `cuml`
+### B5. GPU fail-loud (m04/m05/m06/m07/m09 only)
+- [ ] `check_gpu()` called early
+- [ ] No silent CPU fallback
+- [ ] No bare `except Exception: pass`
 
-### 6. Auto batch sizing (m04/m05 only)
-- [ ] Uses `compute_batch_sizes()` or `AdaptiveBatchSizer` from `src/utils/gpu_batch.py`
-- [ ] `--gpu-mem` arg to override VRAM detection
-- [ ] `--batch-size` arg to override computed batch size
-- Search for: `gpu_batch`, `AdaptiveBatchSizer`, `--gpu-mem`, `--batch-size`
+### B6. Fail-hard validation
+- [ ] No `.get(key, default)` for config keys that MUST exist
+- [ ] `strict=False` in load_state_dict has param count validation (>90%)
+- [ ] Input shapes/dims validated before computation
+- [ ] NaN check on model outputs
 
-### 7. Dynamic prints only
-- [ ] No static/hardcoded print statements that lie about runtime values
-- [ ] All prints use f-strings or .format() with actual computed values
-- [ ] Progress messages reflect real counts, not placeholder numbers
-- Search for: `print(` — verify each is dynamic
+### B7. Reproducibility
+- [ ] Random seeds set (random, numpy, torch) — training scripts only
+- [ ] `do_sample=False` for VLM inference — m04 only
 
 ## Output Format
 
-For each check, report:
-- PASS: requirement met (with line number evidence)
-- FAIL: requirement missing (with what needs to be added)
-- N/A: not applicable to this module type
+```
+=== PREFLIGHT: <filename> ===
 
-Summarize: X/7 checks passed. List all FAILs with fix instructions.
+AUTOMATED:
+  [A1] py_compile:  PASS/FAIL
+  [A2] AST check:   PASS/FAIL (details)
+  [A3] ruff/undef:  PASS/FAIL (details)
+
+MANUAL:
+  [B1] tqdm:        PASS/FAIL/N/A
+  [B2] checkpoint:  PASS/FAIL/N/A
+  [B3] tee logging: PASS/FAIL/N/A
+  [B4] wandb:       PASS/FAIL/N/A
+  [B5] GPU fail:    PASS/FAIL/N/A
+  [B6] Fail-hard:   PASS/FAIL/N/A
+  [B7] Repro seeds: PASS/FAIL/N/A
+
+TOTAL: X/10 passed. Y FAILs need fixing.
+```
+
+List all FAILs with line numbers and fix instructions.

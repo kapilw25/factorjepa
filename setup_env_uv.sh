@@ -432,15 +432,45 @@ print('')
 print('SUCCESS: All GPU components verified')
 "
 
+    # 8. Setup vLLM venv (separate from venv_walkindia — never mix)
+    echo ""
+    echo "[8/8] Setting up venv_vllm (vLLM + Qwen3-VL)..."
+    if [ -d "venv_vllm" ] && [ -f "venv_vllm/bin/python" ]; then
+        echo "venv_vllm already exists. Skipping."
+    else
+        echo "Creating venv_vllm..."
+        uv venv venv_vllm --python 3.12
+
+        echo "Installing vLLM (nightly, with Blackwell sm_120 support)..."
+        venv_vllm/bin/python -m pip install vllm --extra-index-url https://wheels.vllm.ai/nightly 2>&1 || {
+            echo "WARNING: vLLM install failed. m04_vlm_tag_vllm.py will not work."
+            echo "Fallback: use m04_vlm_tag.py (transformers) instead."
+            echo "Debug: see iter/iter7_training_full/plan_vLLM_Qwen.md"
+        }
+
+        echo "Installing Qwen dependencies into venv_vllm..."
+        venv_vllm/bin/python -m pip install -r requirements_gpu_vllm.txt 2>&1
+    fi
+
+    # Verify vLLM (non-fatal — pipeline works without it)
+    if venv_vllm/bin/python -c "from vllm import LLM; print('vLLM OK')" 2>/dev/null; then
+        echo "vLLM:           OK (venv_vllm)"
+    else
+        echo "vLLM:           NOT AVAILABLE (m04 will use transformers fallback)"
+    fi
+
     echo ""
     echo "============================================"
     echo "GPU Setup Complete! (UV)"
     echo "============================================"
     echo ""
-    echo "To activate environment:"
-    echo "  source venv_walkindia/bin/activate"
+    echo "Two venvs:"
+    echo "  source venv_walkindia/bin/activate   # m04-m09 pipeline (FAISS, cuML, V-JEPA)"
+    echo "  source venv_vllm/bin/activate        # m04 vLLM tagging (optional, 3-5x faster)"
     echo ""
-    echo "See each script's docstring for usage (python src/m*.py --help)"
+    echo "Usage:"
+    echo "  ./scripts/run_evaluate.sh --FULL            # transformers (always works)"
+    echo "  ./scripts/run_evaluate.sh --FULL --vllm     # vLLM (faster, if available)"
     echo ""
     exit 0
 fi

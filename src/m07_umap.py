@@ -93,6 +93,7 @@ def main():
                      min_dist=args.min_dist, random_state=42, verbose=True)
     result = reducer.fit_transform(embeddings)
     emb_2d = result.get() if hasattr(result, 'get') else np.asarray(result)
+    emb_2d = emb_2d.astype(np.float32)  # ensure float32 for downstream compatibility
     elapsed = time.time() - t0
 
     # Save (encoder-aware path)

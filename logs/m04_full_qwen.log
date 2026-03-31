@@ -1,7 +1,0 @@
-Note: Environment variable`HF_TOKEN` is set and is the current active token independently from the token you've just configured.
-HuggingFace: Authenticated
-Traceback (most recent call last):
-  File "/workspace/factorjepa/src/m04_vlm_tag.py", line 556, in <module>
-    LLAVA_NUM_FRAMES = _pcfg["eval"]["llava_num_frames"]
-                       ^^^^^
-NameError: name '_pcfg' is not defined

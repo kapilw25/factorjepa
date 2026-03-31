@@ -26,6 +26,7 @@ from utils.config import (
     load_subset, add_subset_arg, add_local_data_arg, get_output_dir,
     get_sanity_clip_limit, get_total_clips, get_pipeline_config,
 )
+from utils.data_download import ensure_local_data
 from utils.gpu_batch import compute_batch_sizes, add_gpu_mem_arg
 from utils.wandb_utils import add_wandb_args, init_wandb, log_metrics, log_artifact, finish_wandb
 
@@ -244,6 +245,7 @@ def main():
         print("\nERROR: Specify --SANITY, --POC, or --FULL")
         sys.exit(1)
 
+    ensure_local_data(args)
     check_gpu()
     device = "cuda"
 
@@ -261,19 +263,8 @@ def main():
 
     subset_keys = load_subset(args.subset) if args.subset else set()
 
-    # Use deduped keys from V-JEPA embeddings.paths.npy instead of full subset.
-    # m05 deduplicates at cosine sim > 0.95 (e.g. 10K → 5,105). Clips outside
-    # this set have no base embedding — m06 can't use their overlap data.
-    deduped_paths_file = output_dir / "embeddings.paths.npy"
-    if deduped_paths_file.exists() and not args.SANITY:
-        deduped_keys = set(np.load(deduped_paths_file, allow_pickle=True).tolist())
-        original_count = len(subset_keys) if subset_keys else get_total_clips(local_data=getattr(args, 'local_data', None))
-        subset_keys = (subset_keys & deduped_keys) if subset_keys else deduped_keys
-        print(f"[DEDUP] Target: {len(subset_keys):,} deduped keys "
-              f"(from {original_count:,} in subset → {len(deduped_keys):,} after V-JEPA dedup)")
-    elif not args.SANITY:
-        print("WARNING: embeddings.paths.npy not found — processing full subset "
-              "(run m05 first for dedup optimization)")
+    # No deduplication (CLAUDE.md rule #20: using V-JEPA cosine sim to filter
+    # eval clips is circular reasoning. Hard mode ±30s exclusion in m06 handles duplicates.)
 
     if args.SANITY:
         clip_limit = get_sanity_clip_limit("embed")

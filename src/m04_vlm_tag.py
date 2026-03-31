@@ -40,6 +40,7 @@ from utils.config import (
     check_gpu, check_output_exists, load_subset, add_subset_arg, add_local_data_arg,
     get_pipeline_config, get_sanity_clip_limit, get_total_clips,
 )
+from utils.data_download import ensure_local_data
 from utils.gpu_batch import compute_batch_sizes, add_gpu_mem_arg, AdaptiveBatchSizer
 from utils.wandb_utils import (
     add_wandb_args, init_wandb, log_metrics, log_artifact, finish_wandb,
@@ -114,14 +115,32 @@ TAG_PROMPT = build_tag_prompt(TAXONOMY)
 
 
 def parse_json_output(output_text: str) -> dict | None:
+    """Extract and validate JSON from VLM output text. Returns None if unparseable."""
     try:
         start = output_text.find('{')
         end = output_text.rfind('}') + 1
         if start != -1 and end > start:
-            return json.loads(output_text[start:end])
+            parsed = json.loads(output_text[start:end])
+            return validate_tag_fields(parsed)
     except json.JSONDecodeError:
-        pass
+        return None  # caller counts this as dummy tag
     return None
+
+
+def validate_tag_fields(tag: dict) -> dict:
+    """Validate tag fields against taxonomy. Fix invalid values to 'unsure'."""
+    for field, spec in TAXONOMY.items():
+        if field not in tag:
+            tag[field] = spec["default"]
+        elif spec["type"] == "single":
+            if tag[field] not in spec["values"]:
+                tag[field] = "unsure"
+        elif spec["type"] == "multi":
+            if isinstance(tag[field], list):
+                tag[field] = [v for v in tag[field] if v in spec["values"]]
+            else:
+                tag[field] = []
+    return tag
 
 
 def get_dummy_tag() -> dict:
@@ -377,8 +396,7 @@ class QwenBackend(VLMBackend):
             output_ids = self.model.generate(
                 **inputs,
                 max_new_tokens=512,
-                temperature=0.1,
-                do_sample=True,
+                do_sample=False,
                 pad_token_id=self.processor.tokenizer.pad_token_id,
             )
 
@@ -411,7 +429,7 @@ class QwenBackend(VLMBackend):
 
                 with torch.no_grad():
                     output_ids = self.model.generate(
-                        **inputs, max_new_tokens=512, temperature=0.1, do_sample=True
+                        **inputs, max_new_tokens=512, do_sample=False
                     )
                 generated = output_ids[0][inputs["input_ids"].shape[1]:]
                 response = self.processor.decode(generated, skip_special_tokens=True)
@@ -430,8 +448,8 @@ class QwenBackend(VLMBackend):
         try:
             import torch
             torch.cuda.empty_cache()
-        except Exception:
-            pass
+        except (ImportError, RuntimeError) as e:
+            print(f"  WARNING: CUDA cleanup failed in cleanup(): {e}")
 
 
 # ═════════════════════════════════════════════════════════════════════════
@@ -520,7 +538,7 @@ class VideoLLaMA3Backend(VLMBackend):
 
                 with torch.no_grad():
                     output_ids = self.model.generate(
-                        **inputs, max_new_tokens=512, temperature=0.1, do_sample=True
+                        **inputs, max_new_tokens=512, do_sample=False
                     )
                 response = self.processor.batch_decode(
                     output_ids, skip_special_tokens=True
@@ -546,8 +564,8 @@ class VideoLLaMA3Backend(VLMBackend):
         try:
             import torch
             torch.cuda.empty_cache()
-        except Exception:
-            pass
+        except (ImportError, RuntimeError) as e:
+            print(f"  WARNING: CUDA cleanup failed in cleanup(): {e}")
 
 
 # ═════════════════════════════════════════════════════════════════════════
@@ -728,8 +746,8 @@ class LLaVANextBackend(VLMBackend):
         try:
             import torch
             torch.cuda.empty_cache()
-        except Exception:
-            pass
+        except (ImportError, RuntimeError) as e:
+            print(f"  WARNING: CUDA cleanup failed in cleanup(): {e}")
 
 
 # ═════════════════════════════════════════════════════════════════════════
@@ -1139,9 +1157,22 @@ def orchestrator_main(args):
             skip_count = total_clips
             all_tags = new_tags
 
+    # Count dummy tags (clips where VLM returned malformed JSON)
+    dummy_tag = get_dummy_tag()
+    n_dummy = sum(1 for t in all_tags
+                  if t.get("scene_type") == dummy_tag.get("scene_type", "unsure")
+                  and t.get("crowd_density") == dummy_tag.get("crowd_density", "unsure"))
+    dummy_pct = n_dummy / max(len(all_tags), 1) * 100
+
     print(f"\n=== TAGGING COMPLETE ({args.model}) ===")
     print(f"Saved: {tags_file}")
     print(f"Total clips tagged: {len(all_tags):,}")
+    print(f"Dummy tags (VLM parse failures): {n_dummy:,} ({dummy_pct:.1f}%)")
+    if dummy_pct > 5:
+        print(f"FATAL: {dummy_pct:.1f}% dummy tags exceeds 5% threshold.")
+        print("  VLM is producing too much malformed JSON. Check model + prompt.")
+        sys.exit(1)
+
     generate_plot(all_tags, args.model, tags_file.parent)
 
 
@@ -1394,6 +1425,8 @@ def main():
         parser.print_help()
         print("\nERROR: Specify --SANITY, --BAKEOFF, --POC, --FULL, or --plot-only")
         sys.exit(1)
+
+    ensure_local_data(args)
 
     tags_file = get_tags_file(args.model, args.BAKEOFF, args.subset, is_sanity=args.SANITY)
     print(f"Model:   {args.model} ({VLM_MODELS[args.model]})")

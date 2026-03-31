@@ -2,9 +2,10 @@
 Pre-download clips from HF to local WebDataset TAR shards. CPU-only.
 
 USAGE:
-    python -u src/m00d_download_subset.py --SANITY --subset data/subset_10k.json 2>&1 | tee logs/m00d_sanity.log
-    python -u src/m00d_download_subset.py --POC --subset data/subset_10k.json 2>&1 | tee logs/m00d_poc.log
-    python -u src/m00d_download_subset.py --FULL 2>&1 | tee logs/m00d_full.log
+    export HF_HOME=/tmp/hf_cache && python -u src/m00d_download_subset.py --SANITY --subset data/subset_10k.json 2>&1 | tee logs/m00d_sanity.log
+    export HF_HOME=/tmp/hf_cache && python -u src/m00d_download_subset.py --POC --subset data/subset_10k.json 2>&1 | tee logs/m00d_poc.log
+    export HF_HOME=/tmp/hf_cache && python -u src/m00d_download_subset.py --FULL --subset data/val_1k.json --no-wandb 2>&1 | tee logs/m00d_val_1k.log # to create validation data for both [--poc , --full] training runs
+    export HF_HOME=/tmp/hf_cache && python -u src/m00d_download_subset.py --FULL 2>&1 | tee logs/m00d_full.log
 """
 import argparse
 import io

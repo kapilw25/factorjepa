@@ -65,12 +65,23 @@ N_KNN_GRID_ROWS = 8
 
 # ── Video frame extraction ───────────────────────────────────────────────
 
-def extract_frame(clip_path: str, size: int = 128) -> np.ndarray:
+def extract_frame(clip_path: str, size: int = 128, frame_idx: int = None) -> np.ndarray:
     """Extract middle frame from a video clip via ffmpeg. Returns RGB array or None."""
     try:
+        # Use middle frame by default: probe frame count, pick halfway
+        if frame_idx is None:
+            probe = subprocess.run(
+                ["ffprobe", "-v", "error", "-count_frames", "-select_streams", "v:0",
+                 "-show_entries", "stream=nb_read_frames", "-of", "csv=p=0", str(clip_path)],
+                capture_output=True, text=True, timeout=5)
+            try:
+                total = int(probe.stdout.strip())
+                frame_idx = total // 2
+            except (ValueError, AttributeError):
+                frame_idx = 5  # fallback
         cmd = [
             "ffmpeg", "-y", "-i", str(clip_path),
-            "-vf", f"select=eq(n\\,5),scale={size}:{size}:force_original_aspect_ratio=decrease,pad={size}:{size}:(ow-iw)/2:(oh-ih)/2",
+            "-vf", f"select=eq(n\\,{frame_idx}),scale={size}:{size}:force_original_aspect_ratio=decrease,pad={size}:{size}:(ow-iw)/2:(oh-ih)/2",
             "-frames:v", "1", "-f", "rawvideo", "-pix_fmt", "rgb24", "-"
         ]
         result = subprocess.run(cmd, capture_output=True, timeout=10)

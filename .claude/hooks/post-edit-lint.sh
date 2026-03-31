@@ -76,11 +76,19 @@ fi
 echo "AST check PASSED: $BASENAME — $AST_RESULT"
 
 # ── Check 3: ruff (undefined names, unused vars, redefined) ──────────
-RUFF="$HOME/.local/bin/ruff"
-if [ -x "$RUFF" ]; then
-    RUFF_RESULT=$($RUFF check "$FILE_PATH" --select F821,F841,F811 2>&1)
-    RUFF_EXIT=$?
-    if [ $RUFF_EXIT -ne 0 ]; then
+# Try direct ruff, then uvx ruff
+RUFF_CMD=""
+if command -v ruff &>/dev/null; then
+    RUFF_CMD="ruff"
+elif [ -x "$HOME/.local/bin/uvx" ]; then
+    RUFF_CMD="$HOME/.local/bin/uvx ruff"
+elif command -v uvx &>/dev/null; then
+    RUFF_CMD="uvx ruff"
+fi
+
+if [ -n "$RUFF_CMD" ]; then
+    RUFF_RESULT=$($RUFF_CMD check "$FILE_PATH" --select F821,F841,F811 2>&1)
+    if echo "$RUFF_RESULT" | grep -q "^F8"; then
         echo "ruff FAILED: $BASENAME"
         echo "$RUFF_RESULT"
         exit 1

@@ -28,6 +28,7 @@ from utils.config import (
     get_output_dir, get_encoder_files,
     get_sanity_clip_limit, get_total_clips,
 )
+from utils.data_download import ensure_local_data
 from utils.gpu_batch import compute_batch_sizes, add_gpu_mem_arg
 from utils.wandb_utils import add_wandb_args, init_wandb, log_metrics, log_artifact, finish_wandb
 
@@ -663,6 +664,7 @@ def main():
         print("\nERROR: Specify --SANITY, --POC, or --FULL")
         sys.exit(1)
 
+    ensure_local_data(args)
     encoders_to_run = ALL_BASELINES if args.encoder == "all" else [args.encoder]
 
     if args.encoder == "all":

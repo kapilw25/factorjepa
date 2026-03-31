@@ -61,7 +61,7 @@
 
 # HOOKS
 - `.claude/hooks/enforce-dev-rules.sh` (PreToolUse:Bash) — blocks pip install, git state changes, bare python3
-- `.claude/hooks/post-edit-lint.sh` (PostToolUse:Edit,Write) — auto py_compile + AST check on src/m*.py
+- `.claude/hooks/post-edit-lint.sh` (PostToolUse:Edit,Write) — auto py_compile + + ruff check on src/m*.py
 - `.claude/hooks/fail-hard-research.sh` (PreToolUse:Edit,Write) — blocks `|| continue`, `|| true`, WARNING-without-exit, bare `except: pass`
 
 # REFERENCE

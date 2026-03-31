@@ -268,6 +268,7 @@
 
     .roadmap-table td:first-child { font-weight: 600; }
     .roadmap-table .status-complete { color: var(--accent-green); font-weight: 700; }
+    .roadmap-table .status-poc { color: var(--accent-saffron); font-weight: 700; }
     .roadmap-table .status-planned { color: var(--text-secondary); }
 
     .knn-section { margin-bottom: 2rem; }
@@ -1191,182 +1192,21 @@
         </tr>
         <tr>
           <td>Pretrain (Ch 10)</td>
-          <td>Continual pretraining on Indian clips using JEPA loss (student-teacher EMA)</td>
-          <td class="status-planned">Planned</td>
+          <td>JEPA continual pretraining + 4-&lambda; drift control ablation. Pipeline built &amp; validated on 10K POC &mdash; adapted encoder shows no gain at 10K scale (insufficient signal for 1B model)</td>
+          <td class="status-poc">POC validated &mdash; awaiting 115K</td>
         </tr>
         <tr>
           <td>Surgery (Ch 11)</td>
-          <td>Progressive prefix unfreezing with factor datasets (Layout &rarr; Agent &rarr; Interaction)</td>
+          <td>Progressive prefix unfreezing with SAM3 factor datasets (Layout &rarr; Agent &rarr; Interaction)</td>
           <td class="status-planned">Planned</td>
         </tr>
         <tr>
-          <td>115K + Scaling Ablation</td>
-          <td>Full 115K run: V-JEPA 2.0 (1B, primary) + V-JEPA 2.1 (2B, ablation)</td>
-          <td class="status-planned">Planned</td>
+          <td>115K Full Corpus</td>
+          <td>Ch9 eval + Ch10 pretrain on full 115,687 clips (~184 GPU-hours). The 10K POC proved the pipeline; 115K is needed to move a 1B encoder</td>
+          <td class="status-poc">Pipeline ready &mdash; awaiting GPU budget</td>
         </tr>
       </tbody>
     </table>
-  </div>
-</section>
-
-<!-- ==================== SYSTEM DESIGN (NEXT STEPS) ==================== -->
-<section class="section">
-  <div class="container" style="max-width: 1100px;">
-    <h2 class="title is-3 has-text-centered">System Design: Next Steps</h2>
-
-    <!-- Diagram 1: Module Pipeline -->
-    <h3 class="title is-4" style="margin-top: 2rem;">Module Pipeline: Evaluate &rarr; Pretrain &rarr; Surgery</h3>
-    <div class="plot-container" style="overflow-x: auto;">
-      <pre class="mermaid">
-flowchart LR
-    subgraph CH9 ["Ch 9 · Evaluate (DONE)"]
-        direction TB
-        m04["m04 · VLM tag"] --> m05["m05 · V-JEPA embed"]
-        m05 --> m05b["m05b · baselines"]
-        m05 --> m05c["m05c · true overlap"]
-        m04d["m04d · motion feat"] --> m06b["m06b · temporal corr"]
-        m05 --> m06["m06 · FAISS metrics"]
-        m06 --> m07["m07 · UMAP"]
-        m07 --> m08["m08 · plots"]
-        m06 --> m08b["m08b · compare"]
-    end
-
-    subgraph CH10 ["Ch 10 · Pretrain (NEXT)"]
-        direction TB
-        m09["m09_pretrain.py\nJEPA loss + EMA\n+ drift control"]
-    end
-
-    subgraph CH11 ["Ch 11 · Surgery (FUTURE)"]
-        direction TB
-        m10["m10 · SAM3"] --> m11["m11 · factor\ndatasets"] --> m12["m12 · surgery"]
-    end
-
-    subgraph REEVAL ["Re-eval · 3-way"]
-        direction TB
-        re05["m05 re-embed"] --> re06["m06 metrics"] --> re08["m08b compare\nfrozen · adapted\n· surgical"]
-    end
-
-    m05 -->|"frozen"| m09
-    m09 -->|"adapted ckpt"| REEVAL
-    m09 -->|"init"| m12
-    m12 -->|"surgical ckpt"| REEVAL
-
-    style m04 fill:#00acc1,color:#fff,font-weight:bold
-    style m05 fill:#43a047,color:#fff,font-weight:bold
-    style m05b fill:#546e7a,color:#fff,font-weight:bold
-    style m05c fill:#2e7d32,color:#fff,font-weight:bold
-    style m04d fill:#00897b,color:#fff,font-weight:bold
-    style m06 fill:#e53935,color:#fff,font-weight:bold
-    style m06b fill:#d81b60,color:#fff,font-weight:bold
-    style m07 fill:#795548,color:#fff,font-weight:bold
-    style m08 fill:#6d4c41,color:#fff,font-weight:bold
-    style m08b fill:#4e342e,color:#fff,font-weight:bold
-    style m09 fill:#7b1fa2,color:#fff,font-weight:bold
-    style m10 fill:#1565c0,color:#fff,font-weight:bold
-    style m11 fill:#0d47a1,color:#fff,font-weight:bold
-    style m12 fill:#0d47a1,color:#fff,font-weight:bold
-    style re05 fill:#bf360c,color:#fff,font-weight:bold
-    style re06 fill:#d84315,color:#fff,font-weight:bold
-    style re08 fill:#b71c1c,color:#fff,font-weight:bold
-      </pre>
-    </div>
-    <p class="plot-caption has-text-centered">Full pipeline from evaluation through domain adaptation. Each chapter re-uses the same m05&rarr;m06&rarr;m08 evaluation pipeline.</p>
-
-    <!-- Diagram 2: Ch10 Training Step -->
-    <h3 class="title is-4" style="margin-top: 2.5rem;">Ch10: JEPA Training Step (Single Iteration)</h3>
-    <div class="plot-container" style="overflow-x: auto;">
-      <pre class="mermaid">
-flowchart LR
-    subgraph DATA ["1 · Data"]
-        CLIP["Indian clip\n10s · 16 frames"] --> AUG["Augment\nRRC 384×384\nsame crop\nall frames"]
-    end
-
-    subgraph MASKING ["2 · Mask"]
-        AUG --> TOKENS["Patchify\n24×24×8\n=4608 tokens"]
-        TOKENS --> MGEN["MaskCollator\n8 small (15%)\n2 large (70%)"]
-        MGEN --> VIS["visible\n~500-1100"]
-        MGEN --> MASKED["masked\n~3500-4100"]
-    end
-
-    subgraph ENCODE ["3 · Encode"]
-        direction TB
-        VIS --> S_ENC["STUDENT\nViT-g · 1B\nvisible only\ntrainable"]
-        AUG2["same clip"] --> T_ENC["TEACHER\nViT-g · 1B\nALL tokens\nno grad"]
-    end
-
-    subgraph PREDICT ["4 · Predict + Loss"]
-        S_ENC --> PREDICTOR["PREDICTOR\n12 blocks\n384-dim"]
-        T_ENC --> SELECT["select masked\npositions"]
-        PREDICTOR --> L1["L1 LOSS\n|pred − target|"]
-        SELECT --> L1
-    end
-
-    subgraph UPDATE ["5 · Update"]
-        L1 --> ADAM["AdamW\n+ grad clip 1.0\n+ drift control"]
-        ADAM --> EMA_UP["EMA teacher\nτ = 0.99925"]
-    end
-
-    style CLIP fill:#5e35b1,color:#fff,font-weight:bold
-    style AUG fill:#00897b,color:#fff,font-weight:bold
-    style TOKENS fill:#795548,color:#fff,font-weight:bold
-    style MGEN fill:#e65100,color:#fff,font-weight:bold
-    style VIS fill:#2e7d32,color:#fff,font-weight:bold
-    style MASKED fill:#c62828,color:#fff,font-weight:bold
-    style S_ENC fill:#1565c0,color:#fff,font-weight:bold
-    style T_ENC fill:#546e7a,color:#fff,font-weight:bold
-    style AUG2 fill:#546e7a,color:#fff,font-weight:bold
-    style PREDICTOR fill:#6a1b9a,color:#fff,font-weight:bold
-    style SELECT fill:#37474f,color:#fff,font-weight:bold
-    style L1 fill:#c62828,color:#fff,font-weight:bold
-    style ADAM fill:#1a237e,color:#fff,font-weight:bold
-    style EMA_UP fill:#9c27b0,color:#fff,font-weight:bold
-      </pre>
-    </div>
-    <p class="plot-caption has-text-centered">One training iteration of V-JEPA continual pretraining. Student sees ~20% visible tokens; teacher sees all. L1 loss at masked positions only. Same JEPA objective as Meta's original pretraining.</p>
-
-    <!-- Diagram 3: Ch11 Surgery Overview -->
-    <h3 class="title is-4" style="margin-top: 2.5rem;">Ch11: Progressive Prefix Unfreezing with Factor Datasets</h3>
-    <div class="plot-container" style="overflow-x: auto;">
-      <pre class="mermaid">
-flowchart TB
-    subgraph SAM ["SAM3 Segmentation (m10)"]
-        direction LR
-        SEG["SAM3\ninstance masks"] --> TRACK["Greedy IoU\ntracklets"] --> AGENT["Agent vs Layout\nmotion filter"]
-    end
-
-    subgraph FACTOR ["Factor Datasets (m11)"]
-        direction LR
-        DL["D_L\nlayout-only\nblur agents"]
-        DA["D_A\nagent-only\nsuppress BG"]
-        DI["D_I\ninteraction\ntube crops"]
-    end
-
-    AGENT --> DL
-    AGENT --> DA
-    AGENT --> DI
-
-    subgraph STAGES ["3-Stage Surgery (m12)"]
-        direction LR
-        S1["Stage 1\nlayers 0→10\n100% D_L\nroads · wires"] --> S2["Stage 2\nlayers 0→20\n90% D_A\nrickshaws · cows"] --> S3["Stage 3\nlayers 0→30\n85% D_I\nagent interactions"]
-    end
-
-    FACTOR --> STAGES
-    S3 --> SURGICAL["V-JEPA\n(surgical)"]
-
-    style SEG fill:#0277bd,color:#fff,font-weight:bold
-    style TRACK fill:#01579b,color:#fff,font-weight:bold
-    style AGENT fill:#004d40,color:#fff,font-weight:bold
-    style DL fill:#1b5e20,color:#fff,font-weight:bold
-    style DA fill:#33691e,color:#fff,font-weight:bold
-    style DI fill:#827717,color:#fff,font-weight:bold
-    style S1 fill:#1565c0,color:#fff,font-weight:bold
-    style S2 fill:#1565c0,color:#fff,font-weight:bold
-    style S3 fill:#0d47a1,color:#fff,font-weight:bold
-    style SURGICAL fill:#4a148c,color:#fff,font-weight:bold
-      </pre>
-    </div>
-    <p class="plot-caption has-text-centered">Ch11 surgery: SAM3 segments each frame into agents (moving) and layout (static). Three factor datasets train progressively deeper layers &mdash; layout first, then agents, then interactions &mdash; with replay mixing to prevent catastrophic forgetting.</p>
-
   </div>
 </section>
 
@@ -1404,7 +1244,7 @@ mindmap
         UMAP
       Association Rules
         market basket
-    **Self-Supervised** 🎯
+    **Self-Supervised — V-JEPA 2 lives here** 🎯
       Contrastive
         SimCLR
         MoCo
@@ -1419,7 +1259,7 @@ mindmap
       Generative
         GPT pretraining
     **Reinforcement**
-      RLHF for LLMs
+      RL from Human Feedback
         PPO / DPO / GRPO
       Robotics
         Q-learning / SAC
@@ -1428,7 +1268,7 @@ mindmap
 
     <!-- Comparison Table -->
     <div style="background: white; border-radius: 12px; padding: 2rem; margin-bottom: 2rem; border: 1px solid var(--border-tan);">
-      <h3 class="title is-5" style="margin-bottom: 1rem;">How SSL Methods Compare</h3>
+      <h3 class="title is-5" style="margin-bottom: 1rem;">How Self-Supervised Learning Methods Compare</h3>
       <table class="table is-fullwidth is-hoverable" style="font-size: 0.95rem;">
         <thead>
           <tr style="background: var(--bg-sand);">
@@ -1539,8 +1379,8 @@ mindmap
           </tr>
           <tr>
             <td><strong>Fine-tuning</strong></td>
-            <td>SFT → RLHF (PPO/DPO/GRPO)</td>
-            <td>Continual SSL → Surgery (prefix unfreezing)</td>
+            <td>Supervised Fine-Tuning → Reinforcement Learning from Human Feedback (PPO/DPO/GRPO)</td>
+            <td>Continual Self-Supervised Learning → Surgery (prefix unfreezing)</td>
           </tr>
           <tr>
             <td><strong>Output</strong></td>
@@ -1551,6 +1391,148 @@ mindmap
       </table>
     </div>
 
+  </div>
+</section>
+
+<!-- ==================== SYSTEM DESIGN (moved from FactorJEPA tab) ==================== -->
+<section class="section">
+  <div class="container" style="max-width: 1100px;">
+    <h2 class="title is-3 has-text-centered">System Design: Architecture</h2>
+
+    <h3 class="title is-4" style="margin-top: 2rem;">Module Pipeline: Evaluate &rarr; Pretrain &rarr; Surgery</h3>
+    <div class="plot-container" style="overflow-x: auto;">
+      <pre class="mermaid">
+flowchart LR
+    subgraph CH9 ["Ch 9 · Evaluate (DONE)"]
+        direction TB
+        m04["m04 · VLM tag"] --> m05["m05 · V-JEPA embed"]
+        m05 --> m05b["m05b · baselines"]
+        m05 --> m05c["m05c · true overlap"]
+        m04d["m04d · motion feat"] --> m06b["m06b · temporal corr"]
+        m05 --> m06["m06 · FAISS metrics"]
+        m06 --> m07["m07 · UMAP"]
+        m07 --> m08["m08 · plots"]
+        m06 --> m08b["m08b · compare"]
+    end
+    subgraph CH10 ["Ch 10 · Pretrain (POC done)"]
+        direction TB
+        m09["m09_pretrain.py\nJEPA loss + EMA\n+ drift control"]
+    end
+    subgraph CH11 ["Ch 11 · Surgery (FUTURE)"]
+        direction TB
+        m10["m10 · SAM3"] --> m11["m11 · factor\ndatasets"] --> m12["m12 · surgery"]
+    end
+    subgraph REEVAL ["Re-eval · 3-way"]
+        direction TB
+        re05["m05 re-embed"] --> re06["m06 metrics"] --> re08["m08b compare\nfrozen · adapted\n· surgical"]
+    end
+    m05 -->|"frozen"| m09
+    m09 -->|"adapted ckpt"| REEVAL
+    m09 -->|"init"| m12
+    m12 -->|"surgical ckpt"| REEVAL
+    style m04 fill:#00acc1,color:#fff,font-weight:bold
+    style m05 fill:#43a047,color:#fff,font-weight:bold
+    style m05b fill:#546e7a,color:#fff,font-weight:bold
+    style m05c fill:#2e7d32,color:#fff,font-weight:bold
+    style m04d fill:#00897b,color:#fff,font-weight:bold
+    style m06 fill:#e53935,color:#fff,font-weight:bold
+    style m06b fill:#d81b60,color:#fff,font-weight:bold
+    style m07 fill:#795548,color:#fff,font-weight:bold
+    style m08 fill:#6d4c41,color:#fff,font-weight:bold
+    style m08b fill:#4e342e,color:#fff,font-weight:bold
+    style m09 fill:#7b1fa2,color:#fff,font-weight:bold
+    style m10 fill:#1565c0,color:#fff,font-weight:bold
+    style m11 fill:#0d47a1,color:#fff,font-weight:bold
+    style m12 fill:#0d47a1,color:#fff,font-weight:bold
+    style re05 fill:#bf360c,color:#fff,font-weight:bold
+    style re06 fill:#d84315,color:#fff,font-weight:bold
+    style re08 fill:#b71c1c,color:#fff,font-weight:bold
+      </pre>
+    </div>
+    <p class="plot-caption has-text-centered">Full pipeline from evaluation through domain adaptation. Each chapter re-uses the same m05&rarr;m06&rarr;m08 evaluation pipeline.</p>
+
+    <h3 class="title is-4" style="margin-top: 2.5rem;">Ch10: JEPA Training Step (Single Iteration)</h3>
+    <div class="plot-container" style="overflow-x: auto;">
+      <pre class="mermaid">
+flowchart LR
+    subgraph DATA ["1 · Data"]
+        CLIP["Indian clip\n10s · 16 frames"] --> AUG["Augment\nRRC 384×384\nsame crop\nall frames"]
+    end
+    subgraph MASKING ["2 · Mask"]
+        AUG --> TOKENS["Patchify\n24×24×8\n=4608 tokens"]
+        TOKENS --> MGEN["MaskCollator\n8 small (15%)\n2 large (70%)"]
+        MGEN --> VIS["visible\n~500-1100"]
+        MGEN --> MASKED["masked\n~3500-4100"]
+    end
+    subgraph ENCODE ["3 · Encode"]
+        direction TB
+        VIS --> S_ENC["STUDENT\nViT-g · 1B\nvisible only\ntrainable"]
+        AUG2["same clip"] --> T_ENC["TEACHER\nViT-g · 1B\nALL tokens\nno grad"]
+    end
+    subgraph PREDICT ["4 · Predict + Loss"]
+        S_ENC --> PREDICTOR["PREDICTOR\n12 blocks\n384-dim"]
+        T_ENC --> SELECT["select masked\npositions"]
+        PREDICTOR --> L1["L1 LOSS\n|pred − target|"]
+        SELECT --> L1
+    end
+    subgraph UPDATE ["5 · Update"]
+        L1 --> ADAM["AdamW\n+ grad clip 1.0\n+ drift control"]
+        ADAM --> EMA_UP["EMA teacher\nτ = 0.99925"]
+    end
+    style CLIP fill:#5e35b1,color:#fff,font-weight:bold
+    style AUG fill:#00897b,color:#fff,font-weight:bold
+    style TOKENS fill:#795548,color:#fff,font-weight:bold
+    style MGEN fill:#e65100,color:#fff,font-weight:bold
+    style VIS fill:#2e7d32,color:#fff,font-weight:bold
+    style MASKED fill:#c62828,color:#fff,font-weight:bold
+    style S_ENC fill:#1565c0,color:#fff,font-weight:bold
+    style T_ENC fill:#546e7a,color:#fff,font-weight:bold
+    style AUG2 fill:#546e7a,color:#fff,font-weight:bold
+    style PREDICTOR fill:#6a1b9a,color:#fff,font-weight:bold
+    style SELECT fill:#37474f,color:#fff,font-weight:bold
+    style L1 fill:#c62828,color:#fff,font-weight:bold
+    style ADAM fill:#1a237e,color:#fff,font-weight:bold
+    style EMA_UP fill:#9c27b0,color:#fff,font-weight:bold
+      </pre>
+    </div>
+    <p class="plot-caption has-text-centered">One training iteration of V-JEPA continual pretraining. Student sees ~20% visible tokens; teacher sees all. L1 loss at masked positions only.</p>
+
+    <h3 class="title is-4" style="margin-top: 2.5rem;">Ch11: Progressive Prefix Unfreezing with Factor Datasets</h3>
+    <div class="plot-container" style="overflow-x: auto;">
+      <pre class="mermaid">
+flowchart TB
+    subgraph SAM ["SAM3 Segmentation (m10)"]
+        direction LR
+        SEG["SAM3\ninstance masks"] --> TRACK["Greedy IoU\ntracklets"] --> AGENT["Agent vs Layout\nmotion filter"]
+    end
+    subgraph FACTOR ["Factor Datasets (m11)"]
+        direction LR
+        DL["D_L\nlayout-only\nblur agents"]
+        DA["D_A\nagent-only\nsuppress BG"]
+        DI["D_I\ninteraction\ntube crops"]
+    end
+    AGENT --> DL
+    AGENT --> DA
+    AGENT --> DI
+    subgraph STAGES ["3-Stage Surgery (m12)"]
+        direction LR
+        S1["Stage 1\nlayers 0→10\n100% D_L\nroads · wires"] --> S2["Stage 2\nlayers 0→20\n90% D_A\nrickshaws · cows"] --> S3["Stage 3\nlayers 0→30\n85% D_I\nagent interactions"]
+    end
+    FACTOR --> STAGES
+    S3 --> SURGICAL["V-JEPA\n(surgical)"]
+    style SEG fill:#0277bd,color:#fff,font-weight:bold
+    style TRACK fill:#01579b,color:#fff,font-weight:bold
+    style AGENT fill:#004d40,color:#fff,font-weight:bold
+    style DL fill:#1b5e20,color:#fff,font-weight:bold
+    style DA fill:#33691e,color:#fff,font-weight:bold
+    style DI fill:#827717,color:#fff,font-weight:bold
+    style S1 fill:#1565c0,color:#fff,font-weight:bold
+    style S2 fill:#1565c0,color:#fff,font-weight:bold
+    style S3 fill:#0d47a1,color:#fff,font-weight:bold
+    style SURGICAL fill:#4a148c,color:#fff,font-weight:bold
+      </pre>
+    </div>
+    <p class="plot-caption has-text-centered">Ch11 surgery: SAM3 segments each frame into agents and layout. Three factor datasets train progressively deeper layers with replay mixing.</p>
   </div>
 </section>
 
@@ -1653,7 +1635,27 @@ document.addEventListener('click', function(e) {
   document.body.appendChild(overlay);
 });
 </script>
-<style>.mermaid svg { cursor: zoom-in; }</style>
+<style>
+.mermaid svg { cursor: zoom-in; }
+/* Force bold white text on ALL mindmap nodes (including root-level) */
+.mermaid .mindmap-node text,
+.mermaid .mindmap-node foreignObject span,
+.mermaid .mindmap-node foreignObject div,
+.mermaid .mindmap-node > rect + foreignObject span,
+.mermaid [class*="mindmap"] text,
+.mermaid [class*="mindmap"] foreignObject * {
+  fill: #ffffff !important;
+  color: #ffffff !important;
+  font-weight: 700 !important;
+  font-size: 14px !important;
+  text-shadow: 0 1px 4px rgba(0,0,0,0.7);
+}
+/* Darken the 4 root branch backgrounds so white text is readable */
+.mermaid .mindmap-node:nth-child(-n+5) > rect,
+.mermaid .mindmap-node:nth-child(-n+5) > circle {
+  filter: brightness(0.7) !important;
+}
+</style>
 
 <!-- Click-to-zoom on all result plots (medium-zoom, 4KB CDN) -->
 <script src="https://cdn.jsdelivr.net/npm/medium-zoom@1.1.0/dist/medium-zoom.min.js"></script>

@@ -36,6 +36,7 @@ from utils.config import (
     add_subset_arg, add_local_data_arg, get_output_dir, load_subset,
     get_pipeline_config, get_sanity_clip_limit, get_total_clips,
 )
+from utils.data_download import ensure_local_data
 from utils.wandb_utils import (
     add_wandb_args, init_wandb, log_metrics, finish_wandb,
 )
@@ -152,8 +153,10 @@ def load_raft_model(device):
 
     weights = Raft_Large_Weights.C_T_SKHT_V2
     model = raft_large(weights=weights).to(device).eval()
+    print("Applying torch.compile to RAFT (first batch will be slow)...")
+    model = torch.compile(model)
     transforms = weights.transforms()
-    print(f"RAFT-Large loaded on {device} (weights: C_T_SKHT_V2)")
+    print(f"RAFT-Large loaded on {device} (weights: C_T_SKHT_V2, compiled, fp16)")
     return model, transforms
 
 
@@ -163,6 +166,7 @@ def _preprocess_pairs(frame_pairs, transforms):
     Returns (prev_batch, curr_batch) each of shape (N, 3, 360, 520).
     """
     h, w = 360, 520
+    assert h % 8 == 0 and w % 8 == 0, f"RAFT requires h,w divisible by 8, got {h}x{w}"
     prev_list, curr_list = [], []
     for prev_frame, curr_frame in frame_pairs:
         prev_resized = cv2.resize(prev_frame, (w, h))
@@ -379,6 +383,7 @@ def main():
         print("\nERROR: Specify --SANITY, --POC, or --FULL")
         sys.exit(1)
 
+    ensure_local_data(args)
     check_gpu()
 
     # Output routing
@@ -491,10 +496,11 @@ def main():
 
             try:
                 # cuDNN grid_sample overflows at large batch (PyTorch#88380)
-                # Native CUDA fallback works; cuDNN still used for convolutions
-                with _torch.no_grad(), _torch.backends.cudnn.flags(enabled=False):
+                # fp16 autocast: ~2x speedup, ~40% VRAM reduction for RAFT CNN
+                with _torch.no_grad(), _torch.backends.cudnn.flags(enabled=False), \
+                     _torch.amp.autocast("cuda", dtype=_torch.float16):
                     flows = model(prev_sub, curr_sub)
-                all_flows.append(flows[-1].cpu())
+                all_flows.append(flows[-1].float().cpu())  # back to fp32 for numpy
                 sizer.after_batch_success()
                 i = end
             except _torch.cuda.OutOfMemoryError:

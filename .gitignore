@@ -59,7 +59,7 @@ checkpoints/
 # logs/*
 
 # Weights & Biases
-wandb/
+# wandb/
 
 # Data
 data/LEGACY*

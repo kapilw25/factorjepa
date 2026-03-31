@@ -3,6 +3,7 @@ Video-level uniform sampling of 10K clips from 115K for POC runs.
 
 USAGE:
     python -u src/m00c_sample_subset.py --POC 2>&1 | tee logs/m00c_sample_subset.log
+    python -u src/m00c_sample_subset.py --POC --n 1000 --seed 99 --output data/val_1k.json 2>&1 | tee logs/m00c_val_1k_subset.log
 """
 import argparse
 import json
