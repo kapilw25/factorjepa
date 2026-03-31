@@ -1,0 +1,69 @@
+Output dir: /workspace/factorjepa/outputs/sanity
+[output_guard] m08 vjepa: outputs missing or invalid — will re-compute
+  MISS  umap_plot: m08_umap.png
+  MISS  confusion_matrix: m08_confusion_matrix.png
+Encoder: vjepa (suffix='')
+SANITY MODE: 50 clips
+Loaded: 50 clips
+Loaded m06 metrics: m06_metrics.json
+Taxonomy keys for plots: ['scene_type', 'time_of_day', 'weather', 'crowd_density', 'traffic_density', 'traffic_mix', 'pedestrian_vehicle_separation', 'road_surface', 'infrastructure_quality', 'road_encroachment', 'vegetation', 'lighting', 'video_quality']
+Saved: /workspace/factorjepa/outputs/sanity/m08_umap.png
+Saved: /workspace/factorjepa/outputs/sanity/m08_umap_time_of_day.png
+Saved: /workspace/factorjepa/outputs/sanity/m08_umap_weather.png
+Saved: /workspace/factorjepa/outputs/sanity/m08_umap_crowd_density.png
+Saved: /workspace/factorjepa/outputs/sanity/m08_umap_traffic_density.png
+Saved: /workspace/factorjepa/outputs/sanity/m08_umap_traffic_mix.png
+Saved: /workspace/factorjepa/outputs/sanity/m08_umap_pedestrian_vehicle_separation.png
+Saved: /workspace/factorjepa/outputs/sanity/m08_umap_road_surface.png
+Saved: /workspace/factorjepa/outputs/sanity/m08_umap_infrastructure_quality.png
+Saved: /workspace/factorjepa/outputs/sanity/m08_umap_road_encroachment.png
+Saved: /workspace/factorjepa/outputs/sanity/m08_umap_vegetation.png
+Saved: /workspace/factorjepa/outputs/sanity/m08_umap_lighting.png
+Saved: /workspace/factorjepa/outputs/sanity/m08_umap_video_quality.png
+Saved: /workspace/factorjepa/outputs/sanity/m08_umap_grid.png
+Saved: /workspace/factorjepa/outputs/sanity/m08_confusion_matrix.png
+
+Per-class retrieval accuracy:
+  beach_coastal: 69.6%
+  ghat: 0.0%
+  heritage_tourist: 22.2%
+  promenade: 67.9%
+  residential_lane: 10.0%
+  unsure: 0.0%
+Saved: /workspace/factorjepa/outputs/sanity/m08_confusion_matrix_time_of_day.png
+Saved: /workspace/factorjepa/outputs/sanity/m08_confusion_matrix_weather.png
+Saved: /workspace/factorjepa/outputs/sanity/m08_confusion_matrix_crowd_density.png
+Saved: /workspace/factorjepa/outputs/sanity/m08_confusion_matrix_traffic_density.png
+Saved: /workspace/factorjepa/outputs/sanity/m08_confusion_matrix_traffic_mix.png
+Saved: /workspace/factorjepa/outputs/sanity/m08_confusion_matrix_pedestrian_vehicle_separation.png
+Saved: /workspace/factorjepa/outputs/sanity/m08_confusion_matrix_road_surface.png
+Saved: /workspace/factorjepa/outputs/sanity/m08_confusion_matrix_infrastructure_quality.png
+Saved: /workspace/factorjepa/outputs/sanity/m08_confusion_matrix_road_encroachment.png
+Saved: /workspace/factorjepa/outputs/sanity/m08_confusion_matrix_vegetation.png
+Saved: /workspace/factorjepa/outputs/sanity/m08_confusion_matrix_lighting.png
+Saved: /workspace/factorjepa/outputs/sanity/m08_confusion_matrix_video_quality.png
+Saved: /workspace/factorjepa/outputs/sanity/m08_confusion_matrix_grid.png
+Saved: /workspace/factorjepa/outputs/sanity/m08_knn_grid.png
+
+=== MACRO/MICRO REPORTING ===
+
+EASY mode:
+  Macro Prec@K: 28.27%
+  Micro Prec@K: 54.67%
+  Cycle At K: 80.0
+  Prec At K: 54.67
+  Silhouette: -0.0936
+  Map At K: 0.5137
+  Ndcg At K: 0.9783
+
+HARD mode:
+  Macro Prec@K: 27.24%
+  Micro Prec@K: 52.67%
+  Cycle At K: 80.0
+  Prec At K: 52.67
+  Silhouette: -0.0936
+  Map At K: 0.488
+  Ndcg At K: 0.9768
+
+=== VISUALIZATION COMPLETE ===
+Outputs in: /workspace/factorjepa/outputs/sanity

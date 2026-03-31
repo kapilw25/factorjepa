@@ -31,15 +31,27 @@ Goal: vLLM + Qwen3.5-9B for continuous batching → estimated 5-15 clips/s for 1
 
 ---
 
-## Why vLLM Failed Previously (3 Root Causes)
+## Why vLLM Failed Previously (10 Root Causes)
 
-Attempted vLLM 0.11.0, hit 4 cascading errors → abandoned, switched all 3 VLMs to transformers.
+### Round 1: vLLM 0.11.0 (original attempt → abandoned for transformers)
 
 | # | Root Cause | Details |
 |:---:|:---|:---|
 | 1 | **BF16 model too large** | Qwen3-VL-8B BF16 = 17.5 GB weights. With vLLM overhead (KV cache + 4GB multimodal cache + CUDA graphs) → exceeds 24GB |
 | 2 | **No sm_120 in prebuilt wheels** | vLLM PyPI wheels lack Blackwell sm_120 CUDA kernels → runtime crash. [Issue #35432](https://github.com/vllm-project/vllm/issues/35432) |
 | 3 | **PyTorch version mismatch** | vLLM expects stable PyTorch (2.9.1). Blackwell requires nightly (2.12.0.dev+cu128). `pip install vllm` = incompatible |
+
+### Round 2: vLLM 0.18.1 nightly on 96GB RTX PRO 6000 (resolved March 2026)
+
+| # | Root Cause | Fix |
+|:---:|:---|:---|
+| 4 | **`setup_env_uv.sh` skipped install when venv existed** | Old check: `if [ -d "venv_vllm" ]` → skipped even when vLLM wasn't installed. Fix: check `from vllm import LLM` importability |
+| 5 | **`No module named pip` in uv venv** | `uv venv` creates pip-less envs. `python -m pip install` fails. Fix: use `uv pip install --python venv_vllm/bin/python` |
+| 6 | **`no such option: --torch-backend`** | `--torch-backend=auto` is a vLLM custom installer flag, NOT a pip/uv flag. pip 26.0.1 rejects it. Fix: remove flag, install torch first via `requirements_gpu_vllm.txt` |
+| 7 | **Install order: vLLM before torch** | vLLM needs torch present at install time. Old script tried vLLM first (failed), then Qwen deps (which pulled torch). Fix: Qwen+torch deps first, then vLLM |
+| 8 | **`spawn` multiprocessing crash** | vLLM v0.18+ uses `spawn` (not `fork`). `smoke_test_vllm.py` had `LLM()` at module level → child re-imports → infinite recursion. Fix: `if __name__ == '__main__':` guard |
+| 9 | **`total_mem` AttributeError** | `torch.cuda.get_device_properties(0).total_mem` wrong. Fix: `.total_memory` |
+| 10 | **`KeyError: checkpoint_every_vlm`** | `m04_vlm_tag_vllm.py` used non-existent `pipeline.yaml` key `checkpoint_every_vlm`. Correct key: `checkpoint_every`. Smoke test passed but `run_evaluate.sh --vllm` would crash at module-level import. Fix: `_pcfg["streaming"]["checkpoint_every"]` |
 
 ---
 

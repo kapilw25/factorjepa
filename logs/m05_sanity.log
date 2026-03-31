@@ -1,0 +1,48 @@
+Using PyAV for video decoding
+Output: /workspace/factorjepa/outputs/sanity/embeddings.npy
+[output_guard] m05 embed: outputs missing or invalid — will re-compute
+  MISS  embeddings: embeddings.npy
+  MISS  paths: embeddings.paths.npy
+Clip limit: 50
+Streaming from: anonymousML123/walkindia-200k
+
+============================================================
+WORKER 1: embeddings 0 → 50
+============================================================
+Using PyAV for video decoding
+GPU: NVIDIA RTX PRO 6000 Blackwell Workstation Edition
+CUDA version: 12.8
+GPU VRAM: 95 GB | VLM cost model: 16GB fixed + 0.78GB/clip
+  vjepa=37 (linear, scale=2.37x from 40GB)
+  image_encoder=148 (4x vjepa, cap 256)
+  transformers=64 (max batch, est 66GB = 69% VRAM)
+  sub-batch=51 (initial, AdaptiveBatchSizer grows to 64)
+Batch size: 37
+
+Loading model: facebook/vjepa2-vitg-fpc64-384
+`torch_dtype` is deprecated! Use `dtype` instead!
+Applying torch.compile (first batch will be slow due to compilation)...
+Model loaded on cuda (dtype: torch.float16)
+
+=== Streaming Config ===
+batch_size:    2
+video_decoder: PyAV
+prefetch:      2 batches
+checkpoint:    every 500 clips
+m05_vjepa:   0%|          | 0/50 [00:00<?, ?clip/s]Casting fp32 inputs back to torch.float16 for flash-attn compatibility.
+m05_vjepa:   4%|▍         | 2/50 [00:08<03:18,  4.13s/clip]m05_vjepa:   4%|▍         | 2/50 [00:08<03:18,  4.13s/clip, 0.2 clips/s | failed=0]m05_vjepa:   8%|▊         | 4/50 [00:09<01:29,  1.95s/clip, 0.2 clips/s | failed=0]m05_vjepa:   8%|▊         | 4/50 [00:09<01:29,  1.95s/clip, 0.4 clips/s | failed=0]m05_vjepa:  12%|█▏        | 6/50 [00:09<00:55,  1.26s/clip, 0.4 clips/s | failed=0]m05_vjepa:  12%|█▏        | 6/50 [00:09<00:55,  1.26s/clip, 0.6 clips/s | failed=0]m05_vjepa:  16%|█▌        | 8/50 [00:10<00:39,  1.07clip/s, 0.6 clips/s | failed=0]m05_vjepa:  16%|█▌        | 8/50 [00:10<00:39,  1.07clip/s, 0.7 clips/s | failed=0]m05_vjepa:  20%|██        | 10/50 [00:11<00:30,  1.32clip/s, 0.7 clips/s | failed=0]m05_vjepa:  20%|██        | 10/50 [00:11<00:30,  1.32clip/s, 0.9 clips/s | failed=0]m05_vjepa:  24%|██▍       | 12/50 [00:12<00:24,  1.54clip/s, 0.9 clips/s | failed=0]m05_vjepa:  24%|██▍       | 12/50 [00:12<00:24,  1.54clip/s, 1.0 clips/s | failed=0]m05_vjepa:  28%|██▊       | 14/50 [00:13<00:20,  1.73clip/s, 1.0 clips/s | failed=0]m05_vjepa:  28%|██▊       | 14/50 [00:13<00:20,  1.73clip/s, 1.0 clips/s | failed=0]m05_vjepa:  32%|███▏      | 16/50 [00:14<00:18,  1.80clip/s, 1.0 clips/s | failed=0]m05_vjepa:  32%|███▏      | 16/50 [00:14<00:18,  1.80clip/s, 1.1 clips/s | failed=0]m05_vjepa:  36%|███▌      | 18/50 [00:15<00:16,  1.92clip/s, 1.1 clips/s | failed=0]m05_vjepa:  36%|███▌      | 18/50 [00:15<00:16,  1.92clip/s, 1.2 clips/s | failed=0]m05_vjepa:  40%|████      | 20/50 [00:16<00:16,  1.77clip/s, 1.2 clips/s | failed=0]m05_vjepa:  40%|████      | 20/50 [00:16<00:16,  1.77clip/s, 1.2 clips/s | failed=0]m05_vjepa:  44%|████▍     | 22/50 [00:17<00:15,  1.79clip/s, 1.2 clips/s | failed=0]m05_vjepa:  44%|████▍     | 22/50 [00:17<00:15,  1.79clip/s, 1.2 clips/s | failed=0]m05_vjepa:  48%|████▊     | 24/50 [00:18<00:14,  1.75clip/s, 1.2 clips/s | failed=0]m05_vjepa:  48%|████▊     | 24/50 [00:18<00:14,  1.75clip/s, 1.3 clips/s | failed=0]m05_vjepa:  52%|█████▏    | 26/50 [00:20<00:13,  1.82clip/s, 1.3 clips/s | failed=0]m05_vjepa:  52%|█████▏    | 26/50 [00:20<00:13,  1.82clip/s, 1.3 clips/s | failed=0]m05_vjepa:  56%|█████▌    | 28/50 [00:21<00:11,  1.87clip/s, 1.3 clips/s | failed=0]m05_vjepa:  56%|█████▌    | 28/50 [00:21<00:11,  1.87clip/s, 1.3 clips/s | failed=0]m05_vjepa:  60%|██████    | 30/50 [00:21<00:10,  1.91clip/s, 1.3 clips/s | failed=0]m05_vjepa:  60%|██████    | 30/50 [00:21<00:10,  1.91clip/s, 1.4 clips/s | failed=0]m05_vjepa:  64%|██████▍   | 32/50 [00:23<00:09,  1.93clip/s, 1.4 clips/s | failed=0]m05_vjepa:  64%|██████▍   | 32/50 [00:23<00:09,  1.93clip/s, 1.4 clips/s | failed=0]m05_vjepa:  68%|██████▊   | 34/50 [00:24<00:08,  1.95clip/s, 1.4 clips/s | failed=0]m05_vjepa:  68%|██████▊   | 34/50 [00:24<00:08,  1.95clip/s, 1.4 clips/s | failed=0]m05_vjepa:  72%|███████▏  | 36/50 [00:24<00:06,  2.02clip/s, 1.4 clips/s | failed=0]m05_vjepa:  72%|███████▏  | 36/50 [00:24<00:06,  2.02clip/s, 1.4 clips/s | failed=0]m05_vjepa:  76%|███████▌  | 38/50 [00:25<00:05,  2.09clip/s, 1.4 clips/s | failed=0]m05_vjepa:  76%|███████▌  | 38/50 [00:25<00:05,  2.09clip/s, 1.5 clips/s | failed=0]m05_vjepa:  80%|████████  | 40/50 [00:26<00:04,  2.13clip/s, 1.5 clips/s | failed=0]m05_vjepa:  80%|████████  | 40/50 [00:26<00:04,  2.13clip/s, 1.5 clips/s | failed=0]m05_vjepa:  84%|████████▍ | 42/50 [00:27<00:03,  2.07clip/s, 1.5 clips/s | failed=0]m05_vjepa:  84%|████████▍ | 42/50 [00:27<00:03,  2.07clip/s, 1.5 clips/s | failed=0]m05_vjepa:  88%|████████▊ | 44/50 [00:28<00:02,  2.06clip/s, 1.5 clips/s | failed=0]m05_vjepa:  88%|████████▊ | 44/50 [00:28<00:02,  2.06clip/s, 1.5 clips/s | failed=0]m05_vjepa:  92%|█████████▏| 46/50 [00:29<00:01,  2.04clip/s, 1.5 clips/s | failed=0]m05_vjepa:  92%|█████████▏| 46/50 [00:29<00:01,  2.04clip/s, 1.5 clips/s | failed=0]m05_vjepa:  96%|█████████▌| 48/50 [00:31<00:01,  1.80clip/s, 1.5 clips/s | failed=0]m05_vjepa:  96%|█████████▌| 48/50 [00:31<00:01,  1.80clip/s, 1.5 clips/s | failed=0]m05_vjepa: 100%|██████████| 50/50 [00:32<00:00,  1.80clip/s, 1.5 clips/s | failed=0]m05_vjepa: 100%|██████████| 50/50 [00:32<00:00,  1.80clip/s, 1.8 clips/s | failed=0]m05_vjepa: 100%|██████████| 50/50 [00:32<00:00,  1.55clip/s, 1.8 clips/s | failed=0]
+
+Segment done: 50 clips in 32s (1.55 clips/s)
+Worker exiting (GPU memory will be released).
+Checkpoint loaded: 50 embeddings from .m05_checkpoint.npz
+Worker done. Progress: 50/50
+Checkpoint loaded: 50 embeddings from .m05_checkpoint.npz
+
+=== Processing Stats ===
+Total clips:     50
+Embedding shape: (50, 1408)
+
+=== EMBEDDING COMPLETE ===
+Saved: /workspace/factorjepa/outputs/sanity/embeddings.npy
+Shape: (50, 1408)
+Unique clips: 50

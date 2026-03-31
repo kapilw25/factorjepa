@@ -1,0 +1,6 @@
+Using PyAV for video decoding
+Output: /workspace/factorjepa/outputs/full/embeddings.npy
+[output_guard] m05 embed: outputs missing or invalid — will re-compute
+  MISS  embeddings: embeddings.npy
+  MISS  paths: embeddings.paths.npy
+FATAL: Cannot determine clip count. Use --subset or --local-data with manifest.json

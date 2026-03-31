@@ -1,5 +1,5 @@
 {
-  "n_clips": 24,
+  "n_clips": 56,
   "feature_dim": 13,
   "feature_names": [
     "mean_magnitude",
@@ -17,7 +17,7 @@
     "camera_motion_y"
   ],
   "n_frame_pairs": 16,
-  "compute_time_sec": 11.2,
+  "compute_time_sec": 29.9,
   "errors": 0,
   "producer_errors": 0,
   "producer_skipped": 0,

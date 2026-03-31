@@ -1,0 +1,12 @@
+GPU: NVIDIA RTX PRO 6000 Blackwell Workstation Edition
+CUDA version: 12.8
+[output_guard] m07 dinov2: outputs missing or invalid — will re-compute
+  MISS  umap_2d: umap_2d_dinov2.npy
+Encoder: dinov2
+SANITY MODE: 50 clips
+Loaded: 50 clips, dim=1536
+cuML UMAP (n_neighbors=15, min_dist=0.1)...
+[2026-03-31 08:57:30.786] [CUML] [debug] Computing KNN Graph
+[2026-03-31 08:57:30.802] [CUML] [debug] Computing fuzzy simplicial set
+Saved: /workspace/factorjepa/outputs/sanity/umap_2d_dinov2.npy ((50, 2))
+UMAP completed in 0.3s

@@ -253,10 +253,12 @@ if not torch.cuda.is_available():
 print(f'PyTorch: {torch.__version__}, CUDA: {torch.version.cuda}, GPU: {torch.cuda.get_device_name(0)}')
 "
 
-    # 3. Install GPU requirements
+    # 3. Install GPU requirements (includes hf_transfer for fast HF downloads)
     echo ""
     echo "[3/7] Installing GPU requirements (UV - fast)..."
     uv pip install -r requirements_gpu.txt
+    # Enable Rust-based HF transfer (1.5-3x faster downloads per file)
+    export HF_HUB_ENABLE_HF_TRANSFER=1
 
     # 4. Install Flash-Attention 2 (auto-detect GPU arch)
     echo ""
@@ -435,21 +437,32 @@ print('SUCCESS: All GPU components verified')
     # 8. Setup vLLM venv (separate from venv_walkindia — never mix)
     echo ""
     echo "[8/8] Setting up venv_vllm (vLLM + Qwen3-VL)..."
-    if [ -d "venv_vllm" ] && [ -f "venv_vllm/bin/python" ]; then
-        echo "venv_vllm already exists. Skipping."
-    else
+
+    # Create venv if missing
+    if [ ! -d "venv_vllm" ] || [ ! -f "venv_vllm/bin/python" ]; then
         echo "Creating venv_vllm..."
         uv venv venv_vllm --python 3.12
+    fi
 
+    # Install Qwen dependencies first (includes torch — needed before vLLM)
+    if ! venv_vllm/bin/python -c "from qwen_vl_utils import process_vision_info" 2>/dev/null; then
+        echo "Installing Qwen + torch dependencies into venv_vllm..."
+        uv pip install --python venv_vllm/bin/python -r requirements_gpu_vllm.txt 2>&1
+    fi
+
+    # Install vLLM if not importable (handles: fresh venv, or prior failed install)
+    # NOTE: --torch-backend=auto is a vLLM custom installer flag, NOT a pip/uv flag.
+    # We install torch first (via requirements_gpu_vllm.txt), then vLLM via uv.
+    if venv_vllm/bin/python -c "from vllm import LLM" 2>/dev/null; then
+        echo "vLLM already installed in venv_vllm. Skipping."
+    else
         echo "Installing vLLM (nightly, with Blackwell sm_120 support)..."
-        venv_vllm/bin/python -m pip install vllm --extra-index-url https://wheels.vllm.ai/nightly 2>&1 || {
+        uv pip install --python venv_vllm/bin/python \
+            vllm --extra-index-url https://wheels.vllm.ai/nightly 2>&1 || {
             echo "WARNING: vLLM install failed. m04_vlm_tag_vllm.py will not work."
             echo "Fallback: use m04_vlm_tag.py (transformers) instead."
             echo "Debug: see iter/iter7_training_full/plan_vLLM_Qwen.md"
         }
-
-        echo "Installing Qwen dependencies into venv_vllm..."
-        venv_vllm/bin/python -m pip install -r requirements_gpu_vllm.txt 2>&1
     fi
 
     # Verify vLLM (non-fatal — pipeline works without it)

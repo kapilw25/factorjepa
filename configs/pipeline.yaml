@@ -9,9 +9,9 @@ sanity:
   download: 3                 # m01: videos to download
   data_prep: 5                # m00b: durations to fetch
   download_subset: 20         # m00d: clips to download locally
-  vlm_tag: 20                 # m04: clips to tag
-  motion: 20                  # m04d: clips for motion features
-  embed: 20                   # m05/m05b/m05c: clips to embed
+  vlm_tag: 50                 # m04: clips to tag (>= CLIPS_PER_VLLM_BATCH to avoid partial-batch overshoot)
+  motion: 50                  # m04d: clips for motion features (match vlm_tag)
+  embed: 50                   # m05/m05b/m05c: clips to embed (match vlm_tag)
   pretrain_train: 900         # m09: train clips (8 steps at BS=112)
   pretrain_val: 100           # m09: val clips
   default: 20                 # fallback for unlisted modules

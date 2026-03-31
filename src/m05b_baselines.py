@@ -262,12 +262,19 @@ def generate_dinov2(output_dir: Path, args, clip_limit: int, subset_keys: set):
             norms[norms == 0] = 1
             emb /= norms
 
-            for e, k in zip(emb, batch_keys):
+            # Enforce clip limit: truncate batch if it would overshoot
+            remaining = clip_limit - len(all_embeddings)
+            for e, k in zip(emb[:remaining], batch_keys[:remaining]):
                 all_embeddings.append(e)
                 all_keys.append(k)
                 processed_keys.add(k)
 
-            pbar.update(len(batch_keys))
+            pbar.update(min(len(batch_keys), remaining))
+
+            if len(all_embeddings) >= clip_limit:
+                stop_event.set()
+                break
+
             now = time.time()
             window_clips = len(all_embeddings) - last_window_count
             window_time = now - last_window_time
@@ -361,12 +368,19 @@ def generate_clip(output_dir: Path, args, clip_limit: int, subset_keys: set):
             norms[norms == 0] = 1
             emb /= norms
 
-            for e, k in zip(emb, batch_keys):
+            # Enforce clip limit: truncate batch if it would overshoot
+            remaining = clip_limit - len(all_embeddings)
+            for e, k in zip(emb[:remaining], batch_keys[:remaining]):
                 all_embeddings.append(e)
                 all_keys.append(k)
                 processed_keys.add(k)
 
-            pbar.update(len(batch_keys))
+            pbar.update(min(len(batch_keys), remaining))
+
+            if len(all_embeddings) >= clip_limit:
+                stop_event.set()
+                break
+
             now = time.time()
             window_clips = len(all_embeddings) - last_window_count
             window_time = now - last_window_time

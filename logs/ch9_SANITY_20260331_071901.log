@@ -1,0 +1,624 @@
+[07:19:01] Ch9 pipeline starting (mode=SANITY)
+[07:19:01] Master log: logs/ch9_SANITY_20260331_071901.log
+
+[07:19:01] === PRE-FLIGHT: GPU + Package Verification ===
+GPU:            NVIDIA RTX PRO 6000 Blackwell Workstation Edition, VRAM: 102GB
+PyTorch:        2.12.0.dev20260228+cu128
+CUDA:           12.8
+FAISS GPUs:     1
+Flash-Attn:     2.8.3
+Transformers:   4.57.6
+cuML:           26.02.000
+wandb:          0.25.1
+HF_TOKEN:       hf_eATIPAr...
+
+Pre-flight: ALL PASSED
+[07:19:06] Pre-flight complete.
+[07:19:06] === OUTPUT PREFLIGHT ===
+
+======================================================================
+  PIPELINE PREFLIGHT — checking all inputs/outputs before GPU work
+======================================================================
+  [32mSKIP (cached)[0m                         m00d pre-download subset
+  [32mSKIP (cached)[0m                         m04 VLM tagging (Qwen)
+  [32mSKIP (cached)[0m                         m05 V-JEPA embeddings
+  [32mSKIP (cached)[0m                         m05b random embeddings
+  [32mSKIP (cached)[0m                         m05b dinov2 embeddings
+  [32mSKIP (cached)[0m                         m05b clip embeddings
+  [32mSKIP (cached)[0m                         m05b vjepa_shuffled embeddings
+  [32mSKIP (cached)[0m                         m05c True Overlap augmented
+  [32mSKIP (cached)[0m                         m04d motion features
+  [32mSKIP (cached)[0m                         m06 metrics (vjepa)
+  [32mSKIP (cached)[0m                         m06 metrics (random)
+  [32mSKIP (cached)[0m                         m06 metrics (dinov2)
+  [32mSKIP (cached)[0m                         m06 metrics (clip)
+  [32mSKIP (cached)[0m                         m06 metrics (vjepa_shuffled)
+  [32mSKIP (cached)[0m                         m06b temporal (vjepa)
+  [32mSKIP (cached)[0m                         m06b temporal (random)
+  [32mSKIP (cached)[0m                         m06b temporal (dinov2)
+  [32mSKIP (cached)[0m                         m06b temporal (clip)
+  [32mSKIP (cached)[0m                         m06b temporal (vjepa_shuffled)
+  [32mSKIP (cached)[0m                         m07 UMAP (vjepa)
+  [32mSKIP (cached)[0m                         m07 UMAP (random)
+  [32mSKIP (cached)[0m                         m07 UMAP (dinov2)
+  [32mSKIP (cached)[0m                         m07 UMAP (clip)
+  [32mSKIP (cached)[0m                         m07 UMAP (vjepa_shuffled)
+  [32mSKIP (cached)[0m                         m08b compare (all encoders)
+
+  Steps to run:  0
+  Steps cached:  25
+======================================================================
+[07:19:06] Starting pipeline...
+
+[07:19:06] Local data already exists: data/subset_10k_local (skipping download)
+
+═══════════════════════════════════════════════════════════════
+  STEP 1: m04 VLM tagging (Qwen via vLLM)
+  Mode: SANITY | Est: ~15 sec (cached: ~2h first run)
+  Started: 2026-03-31 07:19:06
+═══════════════════════════════════════════════════════════════
+[07:19:06] CMD: venv_vllm/bin/python -u src/m04_vlm_tag_vllm.py --SANITY  --local-data data/subset_10k_local --no-wandb
+GPU: NVIDIA RTX PRO 6000 Blackwell Workstation Edition
+CUDA version: 12.8
+Tags already exist: /workspace/factorjepa/outputs/sanity/tags.json
+[07:19:12] PASSED: m04 VLM tagging via vLLM (0m 6s)
+  tags: 64 clips, 42 fields
+[07:19:12] VERIFY OK: Step 1 tags
+[07:19:12] Symlinked: tags_sanity_qwen.json → tags.json
+
+═══════════════════════════════════════════════════════════════
+  STEP 2: m05 V-JEPA embeddings
+  Mode: SANITY | Est: ~15 sec (cached: ~80 min first run)
+  Started: 2026-03-31 07:19:12
+═══════════════════════════════════════════════════════════════
+[07:19:12] CMD: python -u src/m05_vjepa_embed.py --SANITY --local-data data/subset_10k_local --no-wandb
+Using PyAV for video decoding
+Output: /workspace/factorjepa/outputs/sanity/embeddings.npy
+[output_guard] m05 embed: ALL VALID — skipping (cached)
+  OK    embeddings: (4, 1408)
+  OK    paths: (4,)
+[07:19:19] PASSED: m05 V-JEPA embeddings (0m 7s)
+  embeddings.npy:       (4, 1408)
+  embeddings.paths.npy: 4 keys
+  shape match: True
+[07:19:19] VERIFY OK: Step 2 embeddings
+
+═══════════════════════════════════════════════════════════════
+  STEP 3: m05b baselines (all 4 encoders)
+  Mode: SANITY | Est: ~15 sec (cached: ~99 min first run)
+  Started: 2026-03-31 07:19:19
+═══════════════════════════════════════════════════════════════
+[07:19:19] CMD: python -u src/m05b_baselines.py --encoder all --SANITY --local-data data/subset_10k_local --no-wandb
+Using PyAV for video decoding
+============================================================
+RUNNING ALL 4 BASELINES SEQUENTIALLY
+Order: random → dinov2 → clip → vjepa_shuffled
+============================================================
+
+
+############################################################
+# [1/4] random
+############################################################
+
+============================================================
+BASELINE: random
+Model:    N/A (synthetic)
+Dim:      1408
+Type:     synthetic
+Output:   /workspace/factorjepa/outputs/sanity/embeddings_random.npy
+============================================================
+[output_guard] m05b random: ALL VALID — skipping (cached)
+  OK    embeddings: (4, 1408)
+  OK    paths: (4,)
+
+############################################################
+# [2/4] dinov2
+############################################################
+
+============================================================
+BASELINE: dinov2
+Model:    facebook/dinov2-giant
+Dim:      1536
+Type:     image
+Output:   /workspace/factorjepa/outputs/sanity/embeddings_dinov2.npy
+============================================================
+[output_guard] m05b dinov2: ALL VALID — skipping (cached)
+  OK    embeddings: (8, 1536)
+  OK    paths: (8,)
+
+############################################################
+# [3/4] clip
+############################################################
+
+============================================================
+BASELINE: clip
+Model:    openai/clip-vit-large-patch14
+Dim:      768
+Type:     image
+Output:   /workspace/factorjepa/outputs/sanity/embeddings_clip.npy
+============================================================
+[output_guard] m05b clip: ALL VALID — skipping (cached)
+  OK    embeddings: (8, 768)
+  OK    paths: (8,)
+
+############################################################
+# [4/4] vjepa_shuffled
+############################################################
+
+============================================================
+BASELINE: vjepa_shuffled
+Model:    facebook/vjepa2-vitg-fpc64-384
+Dim:      1408
+Type:     video_shuffled
+Output:   /workspace/factorjepa/outputs/sanity/embeddings_vjepa_shuffled.npy
+============================================================
+[output_guard] m05b vjepa_shuffled: ALL VALID — skipping (cached)
+  OK    embeddings: (6, 1408)
+  OK    paths: (6,)
+
+============================================================
+ALL 4 BASELINES COMPLETE
+Next: python -u src/m06_faiss_metrics.py --encoder <enc> --FULL --subset data/subset_10k.json
+============================================================
+[07:19:24] PASSED: m05b baselines (all 4 encoders) (0m 5s)
+  OK random               (4, 1408)
+  OK dinov2               (8, 1536)
+  OK clip                 (8, 768)
+  OK vjepa_shuffled       (6, 1408)
+[07:19:24] VERIFY OK: Step 3 baselines
+
+═══════════════════════════════════════════════════════════════
+  STEP 4: m05c True Overlap augmented embeddings
+  Mode: SANITY | Est: ~15 sec (cached: ~93 min first run)
+  Started: 2026-03-31 07:19:24
+═══════════════════════════════════════════════════════════════
+[07:19:24] CMD: python -u src/m05c_true_overlap.py --SANITY --local-data data/subset_10k_local --no-wandb
+Using PyAV for video decoding
+GPU: NVIDIA RTX PRO 6000 Blackwell Workstation Edition
+CUDA version: 12.8
+
+==================================================
+Found existing overlap embeddings:
+  /workspace/factorjepa/outputs/sanity/overlap_augA.npy
+  /workspace/factorjepa/outputs/sanity/overlap_augB.npy
+==================================================
+
+Options:
+  [1] Delete existing and re-run
+  [2] Use cached files (skip processing)
+
+Enter choice (1 or 2): Using cached files, skipping processing.
+Using cached augmented embeddings.
+[07:20:04] PASSED: m05c True Overlap augmented embeddings (0m 40s)
+  overlap_augA.npy: (6, 1408)
+  overlap_augB.npy: (6, 1408)
+  overlap_keys.npy: 6 keys
+  shape match: True
+[07:20:04] VERIFY OK: Step 4 augmented embeddings
+
+═══════════════════════════════════════════════════════════════
+  STEP 4.5: m04d GPU-RAFT motion features (13D per clip)
+  Mode: SANITY | Est: ~1 min
+  Started: 2026-03-31 07:20:04
+═══════════════════════════════════════════════════════════════
+[07:20:04] CMD: python -u src/m04d_motion_features.py --SANITY --local-data data/subset_10k_local --no-wandb
+GPU: NVIDIA RTX PRO 6000 Blackwell Workstation Edition
+CUDA version: 12.8
+Motion features already exist: /workspace/factorjepa/outputs/sanity/motion_features.npy
+  Skipping (delete /workspace/factorjepa/outputs/sanity/motion_features.npy to re-run)
+[07:20:06] PASSED: m04d GPU-RAFT motion features (13D per clip) (0m 2s)
+  motion_features.npy: (24, 13) (expect ~N x 13)
+[07:20:06] VERIFY OK: Step 4.5 motion features
+
+═══════════════════════════════════════════════════════════════
+  STEP 5-vjepa: m06 FAISS metrics (vjepa)
+  Mode: SANITY | Est: ~10 sec each
+  Started: 2026-03-31 07:20:06
+═══════════════════════════════════════════════════════════════
+[07:20:06] CMD: python -u src/m06_faiss_metrics.py --encoder vjepa --true-overlap --SANITY --no-wandb
+GPU: NVIDIA RTX PRO 6000 Blackwell Workstation Edition
+CUDA version: 12.8
+[output_guard] m06 vjepa: ALL VALID — skipping (cached)
+  OK    metrics: 10 keys
+  OK    knn_indices: (4, 4)
+[07:20:09] PASSED: m06 FAISS metrics (vjepa) (0m 3s)
+
+═══════════════════════════════════════════════════════════════
+  STEP 5-random: m06 FAISS metrics (random)
+  Mode: SANITY | Est: ~10 sec each
+  Started: 2026-03-31 07:20:09
+═══════════════════════════════════════════════════════════════
+[07:20:09] CMD: python -u src/m06_faiss_metrics.py --encoder random --SANITY --no-wandb
+GPU: NVIDIA RTX PRO 6000 Blackwell Workstation Edition
+CUDA version: 12.8
+[output_guard] m06 random: ALL VALID — skipping (cached)
+  OK    metrics: 10 keys
+  OK    knn_indices: (4, 4)
+[07:20:11] PASSED: m06 FAISS metrics (random) (0m 2s)
+
+═══════════════════════════════════════════════════════════════
+  STEP 5-dinov2: m06 FAISS metrics (dinov2)
+  Mode: SANITY | Est: ~10 sec each
+  Started: 2026-03-31 07:20:11
+═══════════════════════════════════════════════════════════════
+[07:20:11] CMD: python -u src/m06_faiss_metrics.py --encoder dinov2 --SANITY --no-wandb
+GPU: NVIDIA RTX PRO 6000 Blackwell Workstation Edition
+CUDA version: 12.8
+[output_guard] m06 dinov2: ALL VALID — skipping (cached)
+  OK    metrics: 10 keys
+  OK    knn_indices: (8, 7)
+[07:20:13] PASSED: m06 FAISS metrics (dinov2) (0m 2s)
+
+═══════════════════════════════════════════════════════════════
+  STEP 5-clip: m06 FAISS metrics (clip)
+  Mode: SANITY | Est: ~10 sec each
+  Started: 2026-03-31 07:20:13
+═══════════════════════════════════════════════════════════════
+[07:20:13] CMD: python -u src/m06_faiss_metrics.py --encoder clip --SANITY --no-wandb
+GPU: NVIDIA RTX PRO 6000 Blackwell Workstation Edition
+CUDA version: 12.8
+[output_guard] m06 clip: ALL VALID — skipping (cached)
+  OK    metrics: 10 keys
+  OK    knn_indices: (8, 7)
+[07:20:15] PASSED: m06 FAISS metrics (clip) (0m 2s)
+
+═══════════════════════════════════════════════════════════════
+  STEP 5-vjepa_shuffled: m06 FAISS metrics (vjepa_shuffled)
+  Mode: SANITY | Est: ~10 sec each
+  Started: 2026-03-31 07:20:15
+═══════════════════════════════════════════════════════════════
+[07:20:15] CMD: python -u src/m06_faiss_metrics.py --encoder vjepa_shuffled --SANITY --no-wandb
+GPU: NVIDIA RTX PRO 6000 Blackwell Workstation Edition
+CUDA version: 12.8
+[output_guard] m06 vjepa_shuffled: ALL VALID — skipping (cached)
+  OK    metrics: 10 keys
+  OK    knn_indices: (6, 6)
+[07:20:17] PASSED: m06 FAISS metrics (vjepa_shuffled) (0m 2s)
+  OK vjepa                Prec@K=  0.0%  mAP=0.000  overlap=true_multi_crop
+  OK random               Prec@K=  0.0%  mAP=0.000  overlap=dim_split
+  OK dinov2               Prec@K= 41.7%  mAP=0.373  overlap=dim_split
+  OK clip                 Prec@K= 41.7%  mAP=0.393  overlap=dim_split
+  OK vjepa_shuffled       Prec@K= 20.0%  mAP=0.172  overlap=dim_split
+[07:20:18] VERIFY OK: Step 5 metrics (all encoders)
+
+═══════════════════════════════════════════════════════════════
+  STEP 5.5-vjepa: m06b temporal correlation (vjepa)
+  Mode: SANITY | Est: ~5 sec each
+  Started: 2026-03-31 07:20:18
+═══════════════════════════════════════════════════════════════
+[07:20:18] CMD: python -u src/m06b_temporal_corr.py --encoder vjepa --SANITY --no-wandb
+Encoder: vjepa (dim=1408, suffix='')
+Output: /workspace/factorjepa/outputs/sanity
+Motion features: (24, 13)
+Embeddings: (4, 1408)
+kNN indices: (4, 4)
+FATAL: No shared keys between embeddings (4 keys) and motion features (24 keys).
+  First emb key:    goa/walking/04YKvC8kAgI/04YKvC8kAgI-000.mp4
+  First motion key: goa/walking/04YKvC8kAgI/04YKvC8kAgI-008.mp4
+  Re-run m04d and m05 with the same --subset to fix.
+[07:20:18] FAILED: m06b temporal correlation (vjepa) (0m 0s) — exit code 0
+[07:20:18] WARNING: m06b vjepa failed. Skipping.
+
+═══════════════════════════════════════════════════════════════
+  STEP 5.5-random: m06b temporal correlation (random)
+  Mode: SANITY | Est: ~5 sec each
+  Started: 2026-03-31 07:20:18
+═══════════════════════════════════════════════════════════════
+[07:20:18] CMD: python -u src/m06b_temporal_corr.py --encoder random --SANITY --no-wandb
+Encoder: random (dim=1408, suffix='_random')
+Output: /workspace/factorjepa/outputs/sanity
+Motion features: (24, 13)
+Embeddings: (4, 1408)
+kNN indices: (4, 4)
+FATAL: No shared keys between embeddings (4 keys) and motion features (24 keys).
+  First emb key:    goa/walking/04YKvC8kAgI/04YKvC8kAgI-000.mp4
+  First motion key: goa/walking/04YKvC8kAgI/04YKvC8kAgI-008.mp4
+  Re-run m04d and m05 with the same --subset to fix.
+[07:20:19] FAILED: m06b temporal correlation (random) (0m 1s) — exit code 0
+[07:20:19] WARNING: m06b random failed. Skipping.
+
+═══════════════════════════════════════════════════════════════
+  STEP 5.5-dinov2: m06b temporal correlation (dinov2)
+  Mode: SANITY | Est: ~5 sec each
+  Started: 2026-03-31 07:20:19
+═══════════════════════════════════════════════════════════════
+[07:20:19] CMD: python -u src/m06b_temporal_corr.py --encoder dinov2 --SANITY --no-wandb
+Encoder: dinov2 (dim=1536, suffix='_dinov2')
+Output: /workspace/factorjepa/outputs/sanity
+Motion features: (24, 13)
+Embeddings: (8, 1536)
+kNN indices: (8, 7)
+FATAL: No shared keys between embeddings (8 keys) and motion features (24 keys).
+  First emb key:    goa/walking/04YKvC8kAgI/04YKvC8kAgI-000.mp4
+  First motion key: goa/walking/04YKvC8kAgI/04YKvC8kAgI-008.mp4
+  Re-run m04d and m05 with the same --subset to fix.
+[07:20:20] FAILED: m06b temporal correlation (dinov2) (0m 1s) — exit code 0
+[07:20:20] WARNING: m06b dinov2 failed. Skipping.
+
+═══════════════════════════════════════════════════════════════
+  STEP 5.5-clip: m06b temporal correlation (clip)
+  Mode: SANITY | Est: ~5 sec each
+  Started: 2026-03-31 07:20:20
+═══════════════════════════════════════════════════════════════
+[07:20:20] CMD: python -u src/m06b_temporal_corr.py --encoder clip --SANITY --no-wandb
+Encoder: clip (dim=768, suffix='_clip')
+Output: /workspace/factorjepa/outputs/sanity
+Motion features: (24, 13)
+Embeddings: (8, 768)
+kNN indices: (8, 7)
+FATAL: No shared keys between embeddings (8 keys) and motion features (24 keys).
+  First emb key:    goa/walking/04YKvC8kAgI/04YKvC8kAgI-000.mp4
+  First motion key: goa/walking/04YKvC8kAgI/04YKvC8kAgI-008.mp4
+  Re-run m04d and m05 with the same --subset to fix.
+[07:20:20] FAILED: m06b temporal correlation (clip) (0m 0s) — exit code 0
+[07:20:20] WARNING: m06b clip failed. Skipping.
+
+═══════════════════════════════════════════════════════════════
+  STEP 5.5-vjepa_shuffled: m06b temporal correlation (vjepa_shuffled)
+  Mode: SANITY | Est: ~5 sec each
+  Started: 2026-03-31 07:20:20
+═══════════════════════════════════════════════════════════════
+[07:20:20] CMD: python -u src/m06b_temporal_corr.py --encoder vjepa_shuffled --SANITY --no-wandb
+Encoder: vjepa_shuffled (dim=1408, suffix='_vjepa_shuffled')
+Output: /workspace/factorjepa/outputs/sanity
+Motion features: (24, 13)
+Embeddings: (6, 1408)
+kNN indices: (6, 6)
+FATAL: No shared keys between embeddings (6 keys) and motion features (24 keys).
+  First emb key:    goa/walking/04YKvC8kAgI/04YKvC8kAgI-000.mp4
+  First motion key: goa/walking/04YKvC8kAgI/04YKvC8kAgI-008.mp4
+  Re-run m04d and m05 with the same --subset to fix.
+[07:20:21] FAILED: m06b temporal correlation (vjepa_shuffled) (0m 1s) — exit code 0
+[07:20:21] WARNING: m06b vjepa_shuffled failed. Skipping.
+  OK vjepa                rho=N/A  locality=0.0
+  OK random               rho=N/A  locality=0.0
+  OK dinov2               rho=N/A  locality=0.0
+  OK clip                 rho=N/A  locality=0.0
+  OK vjepa_shuffled       rho=N/A  locality=0.0
+[07:20:21] VERIFY OK: Step 5.5 temporal metrics (all encoders)
+
+═══════════════════════════════════════════════════════════════
+  STEP 6-vjepa: m07 UMAP (vjepa)
+  Mode: SANITY | Est: ~5 sec each
+  Started: 2026-03-31 07:20:21
+═══════════════════════════════════════════════════════════════
+[07:20:21] CMD: python -u src/m07_umap.py --encoder vjepa --SANITY --no-wandb
+GPU: NVIDIA RTX PRO 6000 Blackwell Workstation Edition
+CUDA version: 12.8
+[output_guard] m07 vjepa: ALL VALID — skipping (cached)
+  OK    umap_2d: (4, 2)
+[07:20:24] PASSED: m07 UMAP (vjepa) (0m 3s)
+
+═══════════════════════════════════════════════════════════════
+  STEP 6-random: m07 UMAP (random)
+  Mode: SANITY | Est: ~5 sec each
+  Started: 2026-03-31 07:20:24
+═══════════════════════════════════════════════════════════════
+[07:20:24] CMD: python -u src/m07_umap.py --encoder random --SANITY --no-wandb
+GPU: NVIDIA RTX PRO 6000 Blackwell Workstation Edition
+CUDA version: 12.8
+[output_guard] m07 random: ALL VALID — skipping (cached)
+  OK    umap_2d: (4, 2)
+[07:20:28] PASSED: m07 UMAP (random) (0m 4s)
+
+═══════════════════════════════════════════════════════════════
+  STEP 6-dinov2: m07 UMAP (dinov2)
+  Mode: SANITY | Est: ~5 sec each
+  Started: 2026-03-31 07:20:28
+═══════════════════════════════════════════════════════════════
+[07:20:28] CMD: python -u src/m07_umap.py --encoder dinov2 --SANITY --no-wandb
+GPU: NVIDIA RTX PRO 6000 Blackwell Workstation Edition
+CUDA version: 12.8
+[output_guard] m07 dinov2: ALL VALID — skipping (cached)
+  OK    umap_2d: (8, 2)
+[07:20:31] PASSED: m07 UMAP (dinov2) (0m 3s)
+
+═══════════════════════════════════════════════════════════════
+  STEP 6-clip: m07 UMAP (clip)
+  Mode: SANITY | Est: ~5 sec each
+  Started: 2026-03-31 07:20:31
+═══════════════════════════════════════════════════════════════
+[07:20:31] CMD: python -u src/m07_umap.py --encoder clip --SANITY --no-wandb
+GPU: NVIDIA RTX PRO 6000 Blackwell Workstation Edition
+CUDA version: 12.8
+[output_guard] m07 clip: ALL VALID — skipping (cached)
+  OK    umap_2d: (8, 2)
+[07:20:34] PASSED: m07 UMAP (clip) (0m 3s)
+
+═══════════════════════════════════════════════════════════════
+  STEP 6-vjepa_shuffled: m07 UMAP (vjepa_shuffled)
+  Mode: SANITY | Est: ~5 sec each
+  Started: 2026-03-31 07:20:34
+═══════════════════════════════════════════════════════════════
+[07:20:34] CMD: python -u src/m07_umap.py --encoder vjepa_shuffled --SANITY --no-wandb
+GPU: NVIDIA RTX PRO 6000 Blackwell Workstation Edition
+CUDA version: 12.8
+[output_guard] m07 vjepa_shuffled: ALL VALID — skipping (cached)
+  OK    umap_2d: (6, 2)
+[07:20:38] PASSED: m07 UMAP (vjepa_shuffled) (0m 4s)
+  OK vjepa                umap_2d.npy: (4, 2)
+  OK random               umap_2d_random.npy: (4, 2)
+  OK dinov2               umap_2d_dinov2.npy: (8, 2)
+  OK clip                 umap_2d_clip.npy: (8, 2)
+  OK vjepa_shuffled       umap_2d_vjepa_shuffled.npy: (6, 2)
+[07:20:38] VERIFY OK: Step 6 UMAP (all encoders)
+
+═══════════════════════════════════════════════════════════════
+  STEP 7a-vjepa: m08 plots (vjepa)
+  Mode: SANITY | Est: ~10 sec each
+  Started: 2026-03-31 07:20:38
+═══════════════════════════════════════════════════════════════
+[07:20:38] CMD: python -u src/m08_plot.py --encoder vjepa --SANITY --no-wandb
+Output dir: /workspace/factorjepa/outputs/sanity
+[output_guard] m08 vjepa: ALL VALID — skipping (cached)
+  OK    umap_plot: 73 KB
+  OK    confusion_matrix: 83 KB
+[07:20:39] PASSED: m08 plots (vjepa) (0m 1s)
+
+═══════════════════════════════════════════════════════════════
+  STEP 7a-random: m08 plots (random)
+  Mode: SANITY | Est: ~10 sec each
+  Started: 2026-03-31 07:20:39
+═══════════════════════════════════════════════════════════════
+[07:20:39] CMD: python -u src/m08_plot.py --encoder random --SANITY --no-wandb
+Output dir: /workspace/factorjepa/outputs/sanity
+[output_guard] m08 random: ALL VALID — skipping (cached)
+  OK    umap_plot: 72 KB
+  OK    confusion_matrix: 83 KB
+[07:20:39] PASSED: m08 plots (random) (0m 0s)
+
+═══════════════════════════════════════════════════════════════
+  STEP 7a-dinov2: m08 plots (dinov2)
+  Mode: SANITY | Est: ~10 sec each
+  Started: 2026-03-31 07:20:39
+═══════════════════════════════════════════════════════════════
+[07:20:39] CMD: python -u src/m08_plot.py --encoder dinov2 --SANITY --no-wandb
+Output dir: /workspace/factorjepa/outputs/sanity
+[output_guard] m08 dinov2: ALL VALID — skipping (cached)
+  OK    umap_plot: 77 KB
+  OK    confusion_matrix: 89 KB
+[07:20:40] PASSED: m08 plots (dinov2) (0m 1s)
+
+═══════════════════════════════════════════════════════════════
+  STEP 7a-clip: m08 plots (clip)
+  Mode: SANITY | Est: ~10 sec each
+  Started: 2026-03-31 07:20:40
+═══════════════════════════════════════════════════════════════
+[07:20:40] CMD: python -u src/m08_plot.py --encoder clip --SANITY --no-wandb
+Output dir: /workspace/factorjepa/outputs/sanity
+[output_guard] m08 clip: ALL VALID — skipping (cached)
+  OK    umap_plot: 83 KB
+  OK    confusion_matrix: 89 KB
+[07:20:40] PASSED: m08 plots (clip) (0m 0s)
+
+═══════════════════════════════════════════════════════════════
+  STEP 7a-vjepa_shuffled: m08 plots (vjepa_shuffled)
+  Mode: SANITY | Est: ~10 sec each
+  Started: 2026-03-31 07:20:40
+═══════════════════════════════════════════════════════════════
+[07:20:40] CMD: python -u src/m08_plot.py --encoder vjepa_shuffled --SANITY --no-wandb
+Output dir: /workspace/factorjepa/outputs/sanity
+[output_guard] m08 vjepa_shuffled: ALL VALID — skipping (cached)
+  OK    umap_plot: 75 KB
+  OK    confusion_matrix: 88 KB
+[07:20:40] PASSED: m08 plots (vjepa_shuffled) (0m 0s)
+
+═══════════════════════════════════════════════════════════════
+  STEP 7b: m08b multi-encoder comparison
+  Mode: SANITY | Est: ~5 sec
+  Started: 2026-03-31 07:20:40
+═══════════════════════════════════════════════════════════════
+[07:20:40] CMD: python -u src/m08b_compare.py --SANITY --no-wandb
+Output dir: /workspace/factorjepa/outputs/sanity
+Scanning for encoder metrics...
+  Loaded: vjepa (m06_metrics.json)
+  Loaded: random (m06_metrics_random.json)
+  Loaded: dinov2 (m06_metrics_dinov2.json)
+  Loaded: clip (m06_metrics_clip.json)
+  Loaded: vjepa_shuffled (m06_metrics_vjepa_shuffled.json)
+  Loaded temporal: vjepa (m06b_temporal_corr.json)
+  Loaded temporal: random (m06b_temporal_corr_random.json)
+  Loaded temporal: dinov2 (m06b_temporal_corr_dinov2.json)
+  Loaded temporal: clip (m06b_temporal_corr_clip.json)
+  Loaded temporal: vjepa_shuffled (m06b_temporal_corr_vjepa_shuffled.json)
+
+Found 5 encoder(s): vjepa, random, dinov2, clip, vjepa_shuffled
+Found 5 temporal result(s): vjepa, random, dinov2, clip, vjepa_shuffled
+
+================================================================================
+                               ENCODER COMPARISON                               
+================================================================================
+Encoder              Dim  Cycle@K (%) Overlap@K (%)   Prec@K (%)        mAP@K       nDCG@K   Silhouette
+-------------------------------------------------------------------------------------------------------
+vjepa               1408       100.00        45.00         0.00       0.0000       0.9931       0.0000
+random              1408       100.00          N/A         0.00       0.0000       0.9943       0.0000
+dinov2              1536        87.50          N/A        41.67       0.3729       0.9811       0.0969
+clip                 768        87.50          N/A        41.67       0.3934       0.9692       0.0757
+vjepa_shuffled      1408       100.00          N/A        20.00       0.1722       0.9882      -0.0079
+
+--- Easy Mode (above) ---
+
+--- Hard Mode ---
+vjepa               1408         0.00        45.00         0.00       0.0000       0.0000       0.0000
+random              1408         0.00          N/A         0.00       0.0000       0.0000       0.0000
+dinov2              1536       100.00          N/A        10.00       0.0417       0.9919       0.0969
+clip                 768       100.00          N/A        10.00       0.0417       0.9893       0.0757
+vjepa_shuffled      1408       100.00          N/A         0.00       0.0000       1.0000      -0.0079
+Saved: /workspace/factorjepa/outputs/sanity/m08b_encoder_comparison.png
+Saved: /workspace/factorjepa/outputs/sanity/m08b_radar.png
+Saved: /workspace/factorjepa/outputs/sanity/m08b_comparison_table.tex
+Saved: /workspace/factorjepa/outputs/sanity/m08b_spatial_temporal_bar.png
+  FATAL: All temporal scores are 0. Run m04d + m06b first.
+[07:20:43] FAILED: m08b multi-encoder comparison (0m 3s) — exit code 0
+[07:20:43] WARNING: m08b comparison failed.
+
+[07:20:43] === FINAL VERIFICATION: All Ch9 Outputs ===
+=== TAGS (v3 taxonomy) ===
+  OK   tags.json                                64 clips, 42 fields
+
+=== EMBEDDINGS (5 encoders) ===
+  OK   vjepa embeddings                         (4, 1408)
+  OK   vjepa paths                              4 keys
+  OK   random embeddings                        (4, 1408)
+  OK   random paths                             4 keys
+  OK   dinov2 embeddings                        (8, 1536)
+  OK   dinov2 paths                             8 keys
+  OK   clip embeddings                          (8, 768)
+  OK   clip paths                               8 keys
+  OK   vjepa_shuffled embeddings                (6, 1408)
+  OK   vjepa_shuffled paths                     6 keys
+
+=== TRUE OVERLAP ===
+  OK   overlap_augA.npy                         (6, 1408)
+  OK   overlap_augB.npy                         (6, 1408)
+
+=== METRICS (5 encoders) ===
+  Encoder                Prec@K    mAP@K  Cycle@K   nDCG@K
+  ----------------------------------------------------------
+  vjepa                    0.0%   0.0000   100.0%   0.9931
+  random                   0.0%   0.0000   100.0%   0.9943
+  dinov2                  41.7%   0.3729    87.5%   0.9811
+  clip                    41.7%   0.3934    87.5%   0.9692
+  vjepa_shuffled          20.0%   0.1722   100.0%   0.9882
+
+=== UMAP (5 encoders) ===
+  OK   vjepa umap                               (4, 2)
+  OK   random umap                              (4, 2)
+  OK   dinov2 umap                              (8, 2)
+  OK   clip umap                                (8, 2)
+  OK   vjepa_shuffled umap                      (6, 2)
+
+=== MOTION FEATURES (m04d) ===
+  OK   motion_features.npy                      (24, 13)
+
+=== TEMPORAL METRICS (m06b) ===
+  OK   vjepa temporal                           
+  OK   random temporal                          
+  OK   dinov2 temporal                          
+  OK   clip temporal                            
+  OK   vjepa_shuffled temporal                  
+
+=== PLOTS ===
+  OK   plot: m08_umap.png                       
+  OK   plot: m08_confusion_matrix.png           
+  OK   plot: m08_knn_grid.png                   
+  OK   plot: m08b_encoder_comparison.png        
+  OK   plot: m08b_radar.png                     
+  OK   plot: m08b_comparison_table.tex          
+  OK   plot: m08b_spatial_temporal_bar.png      
+  MISS plot: m08b_tradeoff_scatter.png          outputs/sanity/m08b_tradeoff_scatter.png
+
+=== TOTAL: 36 OK, 1 MISSING ===
+
+═══════════════════════════════════════════════════════════════
+  Ch9 PIPELINE COMPLETE
+═══════════════════════════════════════════════════════════════
+  Mode:      SANITY
+  Total:     0h 1m 42s
+  Steps:     20 passed, 6 failed, 26 total
+  Outputs:   outputs/sanity/
+  Master log: logs/ch9_SANITY_20260331_071901.log
+═══════════════════════════════════════════════════════════════
+
+  WARNING: 6 step(s) failed. Check individual logs above.
+  All steps with checkpoints can be RE-RUN safely (auto-resume).

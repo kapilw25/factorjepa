@@ -1,0 +1,20 @@
+GPU: NVIDIA RTX PRO 6000 Blackwell Workstation Edition
+CUDA version: 12.8
+Mode: SANITY
+Output: /workspace/factorjepa/outputs/sanity
+Frame pairs/clip: 16
+Applying torch.compile to RAFT (first batch will be slow)...
+RAFT-Large loaded on cuda (weights: C_T_SKHT_V2, compiled, fp16)
+RAFT batch sizer: AdaptiveBatchSizer(size=128, range=[16, 128], cap=85%, ooms=0)
+Producer-consumer: queue=8, clips/GPU_batch=8
+m04d motion features:   0%|          | 0/50 [00:00<?, ?clip/s]m04d motion features:   2%|▏         | 1/50 [00:16<13:18, 16.29s/clip]m04d motion features:   6%|▌         | 3/50 [00:16<03:20,  4.27s/clip]m04d motion features:  10%|█         | 5/50 [00:16<01:34,  2.10s/clip]m04d motion features:  14%|█▍        | 7/50 [00:16<00:53,  1.23s/clip]m04d motion features:  18%|█▊        | 9/50 [00:18<00:45,  1.12s/clip]m04d motion features:  22%|██▏       | 11/50 [00:18<00:29,  1.34clip/s]m04d motion features:  26%|██▌       | 13/50 [00:18<00:19,  1.94clip/s]m04d motion features:  30%|███       | 15/50 [00:18<00:12,  2.72clip/s]m04d motion features:  34%|███▍      | 17/50 [00:20<00:18,  1.83clip/s]m04d motion features:  38%|███▊      | 19/50 [00:20<00:12,  2.53clip/s]m04d motion features:  42%|████▏     | 21/50 [00:20<00:08,  3.43clip/s]m04d motion features:  46%|████▌     | 23/50 [00:21<00:05,  4.53clip/s]m04d motion features:  50%|█████     | 25/50 [00:22<00:10,  2.29clip/s]m04d motion features:  54%|█████▍    | 27/50 [00:23<00:07,  3.12clip/s]m04d motion features:  58%|█████▊    | 29/50 [00:23<00:05,  4.19clip/s]m04d motion features:  64%|██████▍   | 32/50 [00:23<00:02,  6.11clip/s]m04d motion features:  68%|██████▊   | 34/50 [00:25<00:05,  2.70clip/s]m04d motion features:  74%|███████▍  | 37/50 [00:25<00:03,  3.96clip/s]m04d motion features:  78%|███████▊  | 39/50 [00:25<00:02,  4.99clip/s]m04d motion features:  82%|████████▏ | 41/50 [00:27<00:03,  2.49clip/s]m04d motion features:  86%|████████▌ | 43/50 [00:27<00:02,  3.26clip/s]m04d motion features:  90%|█████████ | 45/50 [00:27<00:01,  4.21clip/s]m04d motion features:  94%|█████████▍| 47/50 [00:27<00:00,  5.37clip/s]m04d motion features:  98%|█████████▊| 49/50 [00:29<00:00,  2.47clip/s]m04d motion features: 51clip [00:29,  3.29clip/s]                      m04d motion features: 53clip [00:29,  4.32clip/s]m04d motion features: 55clip [00:29,  5.58clip/s]m04d motion features: 56clip [00:29,  1.87clip/s]
+
+Saved: /workspace/factorjepa/outputs/sanity/motion_features.npy ((56, 13))
+Saved: /workspace/factorjepa/outputs/sanity/motion_features.paths.npy ((56,))
+Saved: /workspace/factorjepa/outputs/sanity/motion_features_meta.json
+
+============================================================
+m04d COMPLETE: 56 clips, 30s (1.9 clips/s)
+  Errors: 0 (GPU: 0, producer: 0)
+  Skipped: 0
+============================================================

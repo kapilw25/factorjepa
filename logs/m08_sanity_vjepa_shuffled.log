@@ -1,0 +1,69 @@
+Output dir: /workspace/factorjepa/outputs/sanity
+[output_guard] m08 vjepa_shuffled: outputs missing or invalid — will re-compute
+  MISS  umap_plot: m08_umap_vjepa_shuffled.png
+  MISS  confusion_matrix: m08_confusion_matrix_vjepa_shuffled.png
+Encoder: vjepa_shuffled (suffix='_vjepa_shuffled')
+SANITY MODE: 50 clips
+Loaded: 50 clips
+Loaded m06 metrics: m06_metrics_vjepa_shuffled.json
+Taxonomy keys for plots: ['scene_type', 'time_of_day', 'weather', 'crowd_density', 'traffic_density', 'traffic_mix', 'pedestrian_vehicle_separation', 'road_surface', 'infrastructure_quality', 'road_encroachment', 'vegetation', 'lighting', 'video_quality']
+Saved: /workspace/factorjepa/outputs/sanity/m08_umap_vjepa_shuffled.png
+Saved: /workspace/factorjepa/outputs/sanity/m08_umap_vjepa_shuffled_time_of_day.png
+Saved: /workspace/factorjepa/outputs/sanity/m08_umap_vjepa_shuffled_weather.png
+Saved: /workspace/factorjepa/outputs/sanity/m08_umap_vjepa_shuffled_crowd_density.png
+Saved: /workspace/factorjepa/outputs/sanity/m08_umap_vjepa_shuffled_traffic_density.png
+Saved: /workspace/factorjepa/outputs/sanity/m08_umap_vjepa_shuffled_traffic_mix.png
+Saved: /workspace/factorjepa/outputs/sanity/m08_umap_vjepa_shuffled_pedestrian_vehicle_separation.png
+Saved: /workspace/factorjepa/outputs/sanity/m08_umap_vjepa_shuffled_road_surface.png
+Saved: /workspace/factorjepa/outputs/sanity/m08_umap_vjepa_shuffled_infrastructure_quality.png
+Saved: /workspace/factorjepa/outputs/sanity/m08_umap_vjepa_shuffled_road_encroachment.png
+Saved: /workspace/factorjepa/outputs/sanity/m08_umap_vjepa_shuffled_vegetation.png
+Saved: /workspace/factorjepa/outputs/sanity/m08_umap_vjepa_shuffled_lighting.png
+Saved: /workspace/factorjepa/outputs/sanity/m08_umap_vjepa_shuffled_video_quality.png
+Saved: /workspace/factorjepa/outputs/sanity/m08_umap_grid_vjepa_shuffled.png
+Saved: /workspace/factorjepa/outputs/sanity/m08_confusion_matrix_vjepa_shuffled.png
+
+Per-class retrieval accuracy:
+  beach_coastal: 68.1%
+  ghat: 0.0%
+  heritage_tourist: 22.2%
+  promenade: 72.6%
+  residential_lane: 13.3%
+  unsure: 0.0%
+Saved: /workspace/factorjepa/outputs/sanity/m08_confusion_matrix_vjepa_shuffled_time_of_day.png
+Saved: /workspace/factorjepa/outputs/sanity/m08_confusion_matrix_vjepa_shuffled_weather.png
+Saved: /workspace/factorjepa/outputs/sanity/m08_confusion_matrix_vjepa_shuffled_crowd_density.png
+Saved: /workspace/factorjepa/outputs/sanity/m08_confusion_matrix_vjepa_shuffled_traffic_density.png
+Saved: /workspace/factorjepa/outputs/sanity/m08_confusion_matrix_vjepa_shuffled_traffic_mix.png
+Saved: /workspace/factorjepa/outputs/sanity/m08_confusion_matrix_vjepa_shuffled_pedestrian_vehicle_separation.png
+Saved: /workspace/factorjepa/outputs/sanity/m08_confusion_matrix_vjepa_shuffled_road_surface.png
+Saved: /workspace/factorjepa/outputs/sanity/m08_confusion_matrix_vjepa_shuffled_infrastructure_quality.png
+Saved: /workspace/factorjepa/outputs/sanity/m08_confusion_matrix_vjepa_shuffled_road_encroachment.png
+Saved: /workspace/factorjepa/outputs/sanity/m08_confusion_matrix_vjepa_shuffled_vegetation.png
+Saved: /workspace/factorjepa/outputs/sanity/m08_confusion_matrix_vjepa_shuffled_lighting.png
+Saved: /workspace/factorjepa/outputs/sanity/m08_confusion_matrix_vjepa_shuffled_video_quality.png
+Saved: /workspace/factorjepa/outputs/sanity/m08_confusion_matrix_grid_vjepa_shuffled.png
+Saved: /workspace/factorjepa/outputs/sanity/m08_knn_grid_vjepa_shuffled.png
+
+=== MACRO/MICRO REPORTING ===
+
+EASY mode:
+  Macro Prec@K: 29.38%
+  Micro Prec@K: 55.67%
+  Cycle At K: 78.0
+  Prec At K: 55.67
+  Silhouette: -0.0835
+  Map At K: 0.5158
+  Ndcg At K: 0.9726
+
+HARD mode:
+  Macro Prec@K: 27.63%
+  Micro Prec@K: 52.33%
+  Cycle At K: 78.0
+  Prec At K: 52.33
+  Silhouette: -0.0835
+  Map At K: 0.4837
+  Ndcg At K: 0.9718
+
+=== VISUALIZATION COMPLETE ===
+Outputs in: /workspace/factorjepa/outputs/sanity

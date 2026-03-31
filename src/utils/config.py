@@ -137,7 +137,7 @@ def get_total_clips(local_data: str = None, subset_file: str = None) -> int:
         manifest = Path(local_data) / "manifest.json"
         if manifest.exists():
             data = json.load(open(manifest))
-            return data.get("n_clips", data.get("total_clips", 0))
+            return data.get("n", data.get("n_clips", data.get("total_clips", 0)))
     return 0  # caller must handle 0
 
 

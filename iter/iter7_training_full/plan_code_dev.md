@@ -64,65 +64,65 @@ run_pretrain.sh --FULL
 
 ## Combined Duration Table (115K FULL)
 
-> **Basis:** All GPU times extrapolated from 10K POC measured rates.
-> m05: 1.55 clips/s (measured). m09: 25s/step (measured). m04: ~3 clips/min (measured).
+> **Basis:** Measured rates on 115K FULL run (March 2026, RTX PRO 6000 102GB).
+> m00d: 24 min measured (4 workers). m04: 1.15 clips/s measured (transformers, adaptive batch 64).
+> m05: 1.55 clips/s (POC measured). m09: 25s/step (POC measured).
 
-### run_evaluate.sh --FULL (must run FIRST)
+### run_evaluate.sh --FULL (Ch9)
 
-| # | Script | GPU? | What | Rate (measured on 10K) | 115K Est. | Cumulative |
-|:-:|--------|:----:|------|:----------------------:|:---------:|:----------:|
-| 0 | m00d_download_subset.py | CPU | Download 116 TARs | ~30 MB/s | **1.1h** | 1.1h |
-| 1 | m04_vlm_tag.py | GPU | Qwen3-VL tagging | ~3 clips/min | **~35h** | 36h |
-| 2 | m05_vjepa_embed.py | GPU | V-JEPA frozen embed | 1.55 clips/s | **~20.6h** | 57h |
-| 3a | m05b (random) | CPU | Random embeddings | instant | <1 min | 57h |
-| 3b | m05b (dinov2) | GPU | DINOv2 embed | ~5 clips/s | **~6.4h** | 63h |
-| 3c | m05b (clip) | GPU | CLIP embed | ~8 clips/s | **~4h** | 67h |
-| 3d | m05b (shuffled) | GPU | Shuffled V-JEPA embed | 1.55 clips/s | **~20.6h** | 88h |
-| 4 | m05c_true_overlap.py | GPU | Augmented A+B embeds | 1.55 clips/s × 2 | **~11.5h** | 99h |
-| 4.5 | m04d_motion_features.py | GPU | RAFT optical flow | ~4 clips/s | **~8h** | 107h |
-| 5 | m06_faiss_metrics.py ×5 | GPU | FAISS kNN metrics | fast | ~25 min | 107.5h |
-| 5.5 | m06b_temporal_corr.py ×5 | CPU | Temporal correlation | fast | ~50 min | 108h |
-| 6 | m07_umap.py ×5 | GPU | cuML UMAP | fast | ~75 min | 109h |
-| 7 | m08_plot.py ×5 + m08b | CPU | Plots + compare | fast | ~30 min | **110h** |
+| | # | Script | What | Rate | 115K Est. | Cumul. |
+|:-:|:-:|--------|------|:----:|:---------:|:------:|
+| ✅ | 0 | m00d_download_subset.py | Download 116 TARs (8 workers) | 12.3 s/shard (measured) | **24 min** | 0.4h |
+| 🔄 | 1 | m04_vlm_tag.py | Qwen3-VL tagging (transformers, BS=64) | 1.15 clips/s (measured) | **~28h** | 28h |
+| ⏳ | 2 | m05_vjepa_embed.py | V-JEPA frozen embed | 1.55 clips/s (est. from 10K) | **~20.6h** | 49h |
+| ⏳ | 3a | m05b (random) | Random embeddings | instant | <1 min | 49h |
+| ⏳ | 3b | m05b (dinov2) | DINOv2 embed | ~5 clips/s (est. from 10K) | **~6.4h** | 55h |
+| ⏳ | 3c | m05b (clip) | CLIP embed | ~8 clips/s (est. from 10K) | **~4h** | 59h |
+| ⏳ | 3d | m05b (shuffled) | Shuffled V-JEPA embed | 1.55 clips/s (est. from 10K) | **~20.6h** | 80h |
+| ⏳ | 4 | m05c_true_overlap.py | Augmented A+B embeds | 1.55 clips/s × 2 (est. from 10K) | **~11.5h** | 91h |
+| ⏳ | 4.5 | m04d_motion_features.py | RAFT optical flow | ~4 clips/s (est. from 10K) | **~8h** | 99h |
+| ⏳ | 5 | m06_faiss_metrics.py ×5 | FAISS kNN metrics | fast | ~25 min | 100h |
+| ⏳ | 5.5 | m06b_temporal_corr.py ×5 | Temporal correlation | fast | ~50 min | 100h |
+| ⏳ | 6 | m07_umap.py ×5 | cuML UMAP | fast | ~75 min | 101h |
+| ⏳ | 7 | m08_plot.py ×5 + m08b | Plots + compare | fast | ~30 min | **102h** |
 
-### run_pretrain.sh --FULL (run AFTER evaluate)
+### run_pretrain.sh --FULL (Ch10)
 
-| # | Script | GPU? | What | Rate (measured on 10K) | 115K Est. | Cumulative |
-|:-:|--------|:----:|------|:----------------------:|:---------:|:----------:|
-| 1 | m09_pretrain.py | GPU | Train λ=0.001, 5 ep | 25s/step, 929 steps/ep | **~32h** | 32h |
-| 2a | m05_vjepa_embed.py | GPU | Re-embed adapted | 1.55 clips/s | **~20.6h** | 53h |
-| 2b | m06_faiss_metrics.py | GPU | Adapted metrics | fast | ~5 min | 53h |
-| 3a | m06b_temporal_corr.py | CPU | Adapted temporal | fast | ~10 min | 53h |
-| 3b | m05_vjepa_embed.py --shuffle | GPU | Shuffled adapted embed | 1.55 clips/s | **~20.6h** | 74h |
-| 3c | m06_faiss_metrics.py | GPU | Shuffled adapted metrics | fast | ~5 min | 74h |
-| 3d | m07_umap.py | GPU | Adapted UMAP | fast | ~15 min | 74h |
-| 3e | m08_plot.py | CPU | Adapted plots | fast | ~5 min | 74h |
-| 3f | m08b_compare.py | CPU | 7-encoder radar | fast | ~30s | **74h** |
+| | # | Script | What | Rate | 115K Est. | Cumul. |
+|:-:|:-:|--------|------|:----:|:---------:|:------:|
+| ⏳ | 1 | m09_pretrain.py | Train λ=0.001, 5 ep | 25s/step (est. from 10K) | **~32h** | 32h |
+| ⏳ | 2a | m05_vjepa_embed.py | Re-embed adapted | 1.55 clips/s (est. from 10K) | **~20.6h** | 53h |
+| ⏳ | 2b | m06_faiss_metrics.py | Adapted metrics | fast | ~5 min | 53h |
+| ⏳ | 3a | m06b_temporal_corr.py | Adapted temporal | fast | ~10 min | 53h |
+| ⏳ | 3b | m05_vjepa_embed.py --shuffle | Shuffled adapted embed | 1.55 clips/s (est. from 10K) | **~20.6h** | 74h |
+| ⏳ | 3c | m06_faiss_metrics.py | Shuffled adapted metrics | fast | ~5 min | 74h |
+| ⏳ | 3d | m07_umap.py | Adapted UMAP | fast | ~15 min | 74h |
+| ⏳ | 3e | m08_plot.py | Adapted plots | fast | ~5 min | 74h |
+| ⏳ | 3f | m08b_compare.py | 7-encoder radar | fast | ~30s | **74h** |
 
-### Grand Total
+### Grand Total (revised with measured m04 rate)
 
 | Pipeline | Duration |
 |----------|:--------:|
-| run_evaluate.sh --FULL | **~110h** |
+| run_evaluate.sh --FULL | **~102h** |
 | run_pretrain.sh --FULL | **~74h** |
-| **Sequential total** | **~184h (~7.7 days)** |
-| **Parallel (if 2 GPUs)** | **~110h (~4.6 days)** |
+| **Sequential total** | **~176h (~7.3 days)** |
 
 ### Top 5 Bottlenecks (sorted by time)
 
 | Rank | Script | Time | % of Total |
 |:----:|--------|:----:|:----------:|
-| 1 | m04_vlm_tag.py (115K tags) | **35h** | 19% |
-| 2 | m09_pretrain.py (5 epochs) | **32h** | 17% |
-| 3 | m05_vjepa_embed.py (×4 runs total) | **~82h** | 45% |
-| 4 | m05c_true_overlap.py | **11.5h** | 6% |
-| 5 | m04d_motion_features.py | **8h** | 4% |
+| 1 | m05_vjepa_embed.py (×4 runs total) | **~82h** | 47% |
+| 2 | m09_pretrain.py (5 epochs) | **~32h** | 18% |
+| 3 | m04_vlm_tag.py (115K tags) | **~28h** | 16% |
+| 4 | m05c_true_overlap.py | **~11.5h** | 7% |
+| 5 | m04d_motion_features.py | **~8h** | 5% |
 
-**m05 V-JEPA embedding (1.55 clips/s) dominates at 45% of total time.** Any speedup here (torch.compile fix, larger BS, torchcodec) would have the biggest impact.
+**m05 V-JEPA embedding (1.55 clips/s) dominates at 47% of total time.** m04 tagging dropped from #1 to #3 after switching from vLLM (70h) to transformers (28h).
 
 ---
 
-## Terminal Commands
+## Shared Setup (both chapters)
 
 ### Step 1: Spin up GPU, clone repo
 
@@ -130,42 +130,98 @@ run_pretrain.sh --FULL
 git clone https://github.com/kapilw25/factorjepa.git && cd factorjepa
 ```
 
-### Step 2: Setup venv (NOT automatic — scripts fail without it)
+### Step 2: Setup venv ✅
 
 ```bash
+mkdir -p logs && \
 ./setup_env_uv.sh --gpu --from-wheels 2>&1 | tee logs/setup_env_gpu.log
 ```
 
-### Step 3: Rsync data from Mac (FROM YOUR MAC terminal, ~17 min)
+### Step 3: Data download ✅
 
 ```bash
-# Transfers POC 10K (9.7GB) + val 1K (0.9GB) + JSON manifests
+# 3a: Rsync POC 10K + Val 1K from Mac
 rsync -avhP data/ vast_RTXpro6000_96GB:/workspace/factorjepa/data/
+
+# 3b: Download full 115K corpus (~24 min measured, 8 parallel workers)
+source venv_walkindia/bin/activate
+python -u src/m00d_download_subset.py --FULL --no-wandb 2>&1 | tee logs/m00d_full.log
 ```
 
-### Step 3.5: vLLM smoke test (on GPU, ~5 min)
+Output: `data/full_local/` (115,687 clips, 116 shards, 130 GB).
 
-`setup_env_uv.sh` (Step 2) already creates `venv_vllm` automatically. Just verify it works:
+### Step 4: vLLM smoke test ✅
 
 ```bash
-# Smoke test: 1 image + 1 video (~3 min)
 source venv_vllm/bin/activate
 python scripts/smoke_test_vllm.py 2>&1 | tee logs/vllm_smoke.log
 ```
 
-If pass → `--vllm` flag is available for `run_evaluate.sh` (3-5x faster m04 tagging).
-If fail → debug from error, see `iter/iter7_training_full/plan_vLLM_Qwen.md`.
-If vLLM never works → no problem, `run_evaluate.sh` without `--vllm` uses transformers.
+**Status (March 2026):** Passed. vLLM 0.18.1 + Qwen3-VL-8B on RTX PRO 6000 102GB.
+Video: 4232 toks/s input, 31.8 toks/s output. 66 GiB KV cache free.
 
-### Step 4: Sanity check (on GPU, ~5 min each)
+---
+
+## Ch9: Frozen Encoder Evaluation (~110h)
+
+### Ch9-1: SANITY ✅ (26/26 passed, 0 failed)
 
 ```bash
 source venv_walkindia/bin/activate
+
+# With vLLM — 26/26 PASSED (March 2026)
+./scripts/run_evaluate.sh --SANITY --vllm 2>&1 | tee logs/ch9_sanity_vllm.log
+
+# Without vLLM (validates transformers fallback)
 ./scripts/run_evaluate.sh --SANITY 2>&1 | tee logs/ch9_sanity.log
+```
+
+### Ch9-2: FULL 115K run
+
+**Option A: with vLLM (recommended)**
+
+```bash
+tmux new -s ch9
+cd factorjepa/
+source venv_walkindia/bin/activate
+./scripts/run_evaluate.sh --FULL --vllm 2>&1 | tee logs/ch9_full.log
+# Ctrl+B, D to detach | tmux attach -t ch9 to reconnect
+```
+
+**Option B: without vLLM**
+
+```bash
+tmux new -s ch9
+source venv_walkindia/bin/activate
+./scripts/run_evaluate.sh --FULL 2>&1 | tee logs/ch9_full.log
+```
+
+Note: `--vllm` calls `venv_vllm/bin/python src/m04_vlm_tag_vllm.py` for m04 only.
+All other steps (m05-m08b) use `venv_walkindia` python regardless.
+If vLLM fails at runtime, `run_evaluate.sh` auto-falls back to transformers.
+
+### Ch9-3: Push results
+
+```bash
+./git_push.sh "Ch9 full 115K frozen encoder evaluation"
+```
+
+---
+
+## Ch10: Continual Pretraining (~74h)
+
+> **Prerequisites:**
+> - Ch9 FULL complete (Ch9-2) — `outputs/full/m06_metrics.json` needed for m08b comparison
+> - `data/full_local/` + `data/val_1k_local/` exist
+
+### Ch10-1: SANITY (~5 min)
+
+```bash
+source venv_walkindia/bin/activate
 ./scripts/run_pretrain.sh --SANITY 2>&1 | tee logs/ch10_sanity.log
 ```
 
-### Step 5: POC lambda ablation — m09 only (~2h on GPU)
+### Ch10-2: POC lambda ablation (~2h on GPU)
 
 ```bash
 source venv_walkindia/bin/activate
@@ -185,43 +241,23 @@ done
 
 Output: `outputs/poc/m09_lambda{X}/training_summary.json` → compare `final_val_loss` across 4 runs.
 
-### Step 6: Full 115K run on GPU
+### Ch10-3: FULL 115K run
 
-**Option A: with vLLM (if smoke test passed) — ~75h total**
+> **Prerequisites:**
+> - Ch9 FULL complete (Ch9-2) — `outputs/full/m06_metrics.json` needed for m08b comparison
+> - Ch10-2 POC ablation complete — confirms λ=0.001 as winner
 
 ```bash
-tmux new -s full
+tmux new -s ch10
 source venv_walkindia/bin/activate
-
-# --vllm: uses venv_vllm/bin/python for m04 tagging (3-5x faster)
-# If vLLM fails, auto-falls back to transformers
-./scripts/run_evaluate.sh --FULL --vllm 2>&1 | tee logs/ch9_full.log
 ./scripts/run_pretrain.sh --FULL 2>&1 | tee logs/ch10_full.log
-# Ctrl+B, D to detach | tmux attach -t full to reconnect
+# Ctrl+B, D to detach | tmux attach -t ch10 to reconnect
 ```
 
-**Option B: without vLLM (if vLLM fails) — ~184h total**
+### Ch10-4: Push results
 
 ```bash
-tmux new -s full
-source venv_walkindia/bin/activate
-
-# Default: uses m04_vlm_tag.py (transformers) — always works
-./scripts/run_evaluate.sh --FULL 2>&1 | tee logs/ch9_full.log
-./scripts/run_pretrain.sh --FULL 2>&1 | tee logs/ch10_full.log
-```
-
-Note: `--vllm` calls `venv_vllm/bin/python src/m04_vlm_tag_vllm.py` for m04 only.
-All other steps (m05-m08b) use `venv_walkindia` python regardless.
-If vLLM fails at runtime, `run_evaluate.sh` auto-falls back to transformers.
-
-### Step 7: Push results to Mac via git
-
-```bash
-# On GPU:
-./git_push.sh "Ch9+Ch10 full 115K results"
-# On Mac:
-git pull
+./git_push.sh "Ch10 full 115K continual pretraining + evaluation"
 ```
 
 ---
@@ -230,7 +266,7 @@ git pull
 
 | Item | Size |
 |------|:----:|
-| data/full_local/ (115K clips) | ~120 GB |
+| data/full_local/ (115,687 clips) | 130 GB (measured) |
 | checkpoints/vitg-384.pt | 16 GB |
 | Training peak (student+teacher+optimizer) | ~40 GB |
 | Embeddings (7 encoders × 115K × 1408 × 4B) | ~4.2 GB |

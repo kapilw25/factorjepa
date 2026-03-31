@@ -1,0 +1,173 @@
+[09:11:53] Ch9 pipeline starting (mode=FULL)
+[09:11:53] Master log: logs/ch9_FULL_20260331_091153.log
+
+[09:11:53] === PRE-FLIGHT: GPU + Package Verification ===
+GPU:            NVIDIA RTX PRO 6000 Blackwell Workstation Edition, VRAM: 102GB
+PyTorch:        2.12.0.dev20260228+cu128
+CUDA:           12.8
+FAISS GPUs:     1
+Flash-Attn:     2.8.3
+Transformers:   4.57.6
+cuML:           26.02.000
+wandb:          0.25.1
+HF_TOKEN:       hf_eATIPAr...
+
+Pre-flight: ALL PASSED
+Subset:         10000 clips from 1559 videos
+[09:11:58] Pre-flight complete.
+[09:11:58] === OUTPUT PREFLIGHT ===
+
+======================================================================
+  PIPELINE PREFLIGHT — checking all inputs/outputs before GPU work
+======================================================================
+  [32mSKIP (cached)[0m                         m00d pre-download subset
+  [33mWILL RUN[0m ~3h                          m04 VLM tagging (Qwen)
+  [33mWILL RUN[0m ~1h 47min                    m05 V-JEPA embeddings
+  [33mWILL RUN[0m ~1 sec                       m05b random embeddings
+  [33mWILL RUN[0m ~30 min                      m05b dinov2 embeddings
+  [33mWILL RUN[0m ~30 min                      m05b clip embeddings
+  [33mWILL RUN[0m ~30 min                      m05b vjepa_shuffled embeddings
+  [31mBLOCKED (missing input)[0m               m05c True Overlap augmented
+  [33mWILL RUN[0m ~40 min                      m04d motion features
+  [31mBLOCKED (missing input)[0m               m06 metrics (vjepa)
+  [31mBLOCKED (missing input)[0m               m06 metrics (random)
+  [31mBLOCKED (missing input)[0m               m06 metrics (dinov2)
+  [31mBLOCKED (missing input)[0m               m06 metrics (clip)
+  [31mBLOCKED (missing input)[0m               m06 metrics (vjepa_shuffled)
+  [31mBLOCKED (missing input)[0m               m06b temporal (vjepa)
+  [31mBLOCKED (missing input)[0m               m06b temporal (random)
+  [31mBLOCKED (missing input)[0m               m06b temporal (dinov2)
+  [31mBLOCKED (missing input)[0m               m06b temporal (clip)
+  [31mBLOCKED (missing input)[0m               m06b temporal (vjepa_shuffled)
+  [31mBLOCKED (missing input)[0m               m07 UMAP (vjepa)
+  [31mBLOCKED (missing input)[0m               m07 UMAP (random)
+  [31mBLOCKED (missing input)[0m               m07 UMAP (dinov2)
+  [31mBLOCKED (missing input)[0m               m07 UMAP (clip)
+  [31mBLOCKED (missing input)[0m               m07 UMAP (vjepa_shuffled)
+  [31mBLOCKED (missing input)[0m               m08b compare (all encoders)
+
+  Steps to run:  24
+  Steps cached:  1
+
+  [31mMISSING INPUTS (27):[0m
+    m05c True Overlap augmented needs embeddings: outputs/full/embeddings.npy
+    m06 metrics (vjepa) needs embeddings: outputs/full/embeddings.npy
+    m06 metrics (vjepa) needs tags: outputs/full/tags.json
+    m06 metrics (random) needs embeddings: outputs/full/embeddings_random.npy
+    m06 metrics (random) needs tags: outputs/full/tags.json
+    m06 metrics (dinov2) needs embeddings: outputs/full/embeddings_dinov2.npy
+    m06 metrics (dinov2) needs tags: outputs/full/tags.json
+    m06 metrics (clip) needs embeddings: outputs/full/embeddings_clip.npy
+    m06 metrics (clip) needs tags: outputs/full/tags.json
+    m06 metrics (vjepa_shuffled) needs embeddings: outputs/full/embeddings_vjepa_shuffled.npy
+    m06 metrics (vjepa_shuffled) needs tags: outputs/full/tags.json
+    m06b temporal (vjepa) needs embeddings: outputs/full/embeddings.npy
+    m06b temporal (vjepa) needs motion: outputs/full/motion_features.npy
+    m06b temporal (random) needs embeddings: outputs/full/embeddings_random.npy
+    m06b temporal (random) needs motion: outputs/full/motion_features.npy
+    m06b temporal (dinov2) needs embeddings: outputs/full/embeddings_dinov2.npy
+    m06b temporal (dinov2) needs motion: outputs/full/motion_features.npy
+    m06b temporal (clip) needs embeddings: outputs/full/embeddings_clip.npy
+    m06b temporal (clip) needs motion: outputs/full/motion_features.npy
+    m06b temporal (vjepa_shuffled) needs embeddings: outputs/full/embeddings_vjepa_shuffled.npy
+    m06b temporal (vjepa_shuffled) needs motion: outputs/full/motion_features.npy
+    m07 UMAP (vjepa) needs embeddings: outputs/full/embeddings.npy
+    m07 UMAP (random) needs embeddings: outputs/full/embeddings_random.npy
+    m07 UMAP (dinov2) needs embeddings: outputs/full/embeddings_dinov2.npy
+    m07 UMAP (clip) needs embeddings: outputs/full/embeddings_clip.npy
+    m07 UMAP (vjepa_shuffled) needs embeddings: outputs/full/embeddings_vjepa_shuffled.npy
+    m08b compare (all encoders) needs frozen_metrics: outputs/full/m06_metrics.json
+======================================================================
+
+Options:
+  [1] Proceed (run steps marked WILL RUN, skip cached)
+  [2] Abort
+
+Enter choice (1 or 2): [09:12:32] Starting pipeline...
+
+[09:12:32] Local data already exists: data/full_local (skipping download)
+
+═══════════════════════════════════════════════════════════════
+  STEP 1: m04 VLM tagging (Qwen via vLLM)
+  Mode: FULL | Est: ~2h (1.3 clips/s, Qwen3-VL-8B)
+  Started: 2026-03-31 09:12:32
+═══════════════════════════════════════════════════════════════
+[09:12:32] CMD: venv_vllm/bin/python -u src/m04_vlm_tag_vllm.py --FULL  --local-data data/full_local --no-wandb
+GPU: NVIDIA RTX PRO 6000 Blackwell Workstation Edition
+CUDA version: 12.8
+
+=== m04_vlm_tag_vllm: Qwen/Qwen3-VL-8B-Instruct ===
+Mode: FULL | Clips: 0 | Data: data/full_local
+
+Loading vLLM engine...
+INFO 03-31 09:12:36 [utils.py:233] non-default args: {'trust_remote_code': True, 'max_model_len': 8192, 'max_num_seqs': 8, 'disable_log_stats': True, 'enforce_eager': True, 'limit_mm_per_prompt': {'video': 1}, 'mm_processor_kwargs': {'fps': 1}, 'model': 'Qwen/Qwen3-VL-8B-Instruct'}
+INFO 03-31 09:12:37 [model.py:549] Resolved architecture: Qwen3VLForConditionalGeneration
+INFO 03-31 09:12:37 [model.py:1679] Using max model len 8192
+INFO 03-31 09:12:37 [scheduler.py:238] Chunked prefill is enabled with max_num_batched_tokens=16384.
+INFO 03-31 09:12:37 [vllm.py:789] Asynchronous scheduling is enabled.
+WARNING 03-31 09:12:37 [vllm.py:847] Enforce eager set, disabling torch.compile and CUDAGraphs. This is equivalent to setting -cc.mode=none -cc.cudagraph_mode=none
+WARNING 03-31 09:12:37 [vllm.py:858] Inductor compilation was disabled by user settings, optimizations settings that are only active during inductor compilation will be ignored.
+INFO 03-31 09:12:38 [vllm.py:1024] Cudagraph is disabled under eager mode
+INFO 03-31 09:12:38 [compilation.py:290] Enabled custom fusions: norm_quant, act_quant
+WARNING 03-31 09:12:46 [system_utils.py:152] We must use the `spawn` multiprocessing start method. Overriding VLLM_WORKER_MULTIPROC_METHOD to 'spawn'. See https://docs.vllm.ai/en/latest/usage/troubleshooting.html#python-multiprocessing for more information. Reasons: CUDA is initialized
+(EngineCore pid=1755377) INFO 03-31 09:12:51 [core.py:105] Initializing a V1 LLM engine (v0.18.1rc1.dev270+g6cc7abdc6) with config: model='Qwen/Qwen3-VL-8B-Instruct', speculative_config=None, tokenizer='Qwen/Qwen3-VL-8B-Instruct', skip_tokenizer_init=False, tokenizer_mode=auto, revision=None, tokenizer_revision=None, trust_remote_code=True, dtype=torch.bfloat16, max_seq_len=8192, download_dir=None, load_format=auto, tensor_parallel_size=1, pipeline_parallel_size=1, data_parallel_size=1, decode_context_parallel_size=1, dcp_comm_backend=ag_rs, disable_custom_all_reduce=False, quantization=None, enforce_eager=True, enable_return_routed_experts=False, kv_cache_dtype=auto, device_config=cuda, structured_outputs_config=StructuredOutputsConfig(backend='auto', disable_any_whitespace=False, disable_additional_properties=False, reasoning_parser='', reasoning_parser_plugin='', enable_in_reasoning=False), observability_config=ObservabilityConfig(show_hidden_metrics_for_version=None, otlp_traces_endpoint=None, collect_detailed_traces=None, kv_cache_metrics=False, kv_cache_metrics_sample=0.01, cudagraph_metrics=False, enable_layerwise_nvtx_tracing=False, enable_mfu_metrics=False, enable_mm_processor_stats=False, enable_logging_iteration_details=False), seed=0, served_model_name=Qwen/Qwen3-VL-8B-Instruct, enable_prefix_caching=True, enable_chunked_prefill=True, pooler_config=None, compilation_config={'mode': <CompilationMode.NONE: 0>, 'debug_dump_path': None, 'cache_dir': '', 'compile_cache_save_format': 'binary', 'backend': 'inductor', 'custom_ops': ['all'], 'splitting_ops': [], 'compile_mm_encoder': False, 'cudagraph_mm_encoder': False, 'encoder_cudagraph_token_budgets': [], 'encoder_cudagraph_max_images_per_batch': 0, 'compile_sizes': [], 'compile_ranges_endpoints': [16384], 'inductor_compile_config': {'enable_auto_functionalized_v2': False, 'size_asserts': False, 'alignment_asserts': False, 'scalar_asserts': False, 'combo_kernels': True, 'benchmark_combo_kernel': True}, 'inductor_passes': {}, 'cudagraph_mode': <CUDAGraphMode.NONE: 0>, 'cudagraph_num_of_warmups': 0, 'cudagraph_capture_sizes': [], 'cudagraph_copy_inputs': False, 'cudagraph_specialize_lora': True, 'use_inductor_graph_partition': False, 'pass_config': {'fuse_norm_quant': True, 'fuse_act_quant': True, 'fuse_attn_quant': False, 'enable_sp': False, 'fuse_gemm_comms': False, 'fuse_allreduce_rms': False}, 'max_cudagraph_capture_size': 0, 'dynamic_shapes_config': {'type': <DynamicShapesType.BACKED: 'backed'>, 'evaluate_guards': False, 'assume_32_bit_indexing': False}, 'local_cache_dir': None, 'fast_moe_cold_start': True, 'static_all_moe_layers': []}
+(EngineCore pid=1755377) INFO 03-31 09:12:53 [parallel_state.py:1400] world_size=1 rank=0 local_rank=0 distributed_init_method=tcp://172.17.0.3:53679 backend=nccl
+(EngineCore pid=1755377) INFO 03-31 09:12:53 [parallel_state.py:1716] rank 0 in world size 1 is assigned as DP rank 0, PP rank 0, PCP rank 0, TP rank 0, EP rank N/A, EPLB rank N/A
+(EngineCore pid=1755377) INFO 03-31 09:13:00 [gpu_model_runner.py:4738] Starting to load model Qwen/Qwen3-VL-8B-Instruct...
+(EngineCore pid=1755377) INFO 03-31 09:13:00 [cuda.py:390] Using backend AttentionBackendEnum.FLASH_ATTN for vit attention
+(EngineCore pid=1755377) INFO 03-31 09:13:00 [mm_encoder_attention.py:230] Using AttentionBackendEnum.FLASH_ATTN for MMEncoderAttention.
+(EngineCore pid=1755377) INFO 03-31 09:13:00 [vllm.py:789] Asynchronous scheduling is enabled.
+(EngineCore pid=1755377) WARNING 03-31 09:13:00 [vllm.py:847] Enforce eager set, disabling torch.compile and CUDAGraphs. This is equivalent to setting -cc.mode=none -cc.cudagraph_mode=none
+(EngineCore pid=1755377) WARNING 03-31 09:13:00 [vllm.py:858] Inductor compilation was disabled by user settings, optimizations settings that are only active during inductor compilation will be ignored.
+(EngineCore pid=1755377) INFO 03-31 09:13:00 [vllm.py:1024] Cudagraph is disabled under eager mode
+(EngineCore pid=1755377) INFO 03-31 09:13:00 [compilation.py:290] Enabled custom fusions: norm_quant, act_quant
+(EngineCore pid=1755377) INFO 03-31 09:13:00 [cuda.py:334] Using FLASH_ATTN attention backend out of potential backends: ['FLASH_ATTN', 'FLASHINFER', 'TRITON_ATTN', 'FLEX_ATTENTION'].
+(EngineCore pid=1755377) INFO 03-31 09:13:00 [flash_attn.py:619] Using FlashAttention version 2
+(EngineCore pid=1755377) Loading safetensors checkpoint shards:   0% Completed | 0/4 [00:00<?, ?it/s]
+(EngineCore pid=1755377) Loading safetensors checkpoint shards:  25% Completed | 1/4 [00:00<00:00,  3.44it/s]
+(EngineCore pid=1755377) Loading safetensors checkpoint shards:  50% Completed | 2/4 [00:00<00:00,  3.48it/s]
+(EngineCore pid=1755377) Loading safetensors checkpoint shards:  75% Completed | 3/4 [00:00<00:00,  3.48it/s]
+(EngineCore pid=1755377) Loading safetensors checkpoint shards: 100% Completed | 4/4 [00:01<00:00,  4.12it/s]
+(EngineCore pid=1755377) Loading safetensors checkpoint shards: 100% Completed | 4/4 [00:01<00:00,  3.85it/s]
+(EngineCore pid=1755377) 
+(EngineCore pid=1755377) INFO 03-31 09:13:02 [default_loader.py:384] Loading weights took 1.04 seconds
+(EngineCore pid=1755377) INFO 03-31 09:13:03 [gpu_model_runner.py:4823] Model loading took 16.97 GiB memory and 2.152891 seconds
+(EngineCore pid=1755377) INFO 03-31 09:13:03 [gpu_model_runner.py:5762] Encoder cache will be initialized with a budget of 16384 tokens, and profiled with 1 image items of the maximum feature size.
+(EngineCore pid=1755377) INFO 03-31 09:13:08 [gpu_worker.py:436] Available KV cache memory: 66.02 GiB
+(EngineCore pid=1755377) INFO 03-31 09:13:08 [kv_cache_utils.py:1319] GPU KV cache size: 480,768 tokens
+(EngineCore pid=1755377) INFO 03-31 09:13:08 [kv_cache_utils.py:1324] Maximum concurrency for 8,192 tokens per request: 58.69x
+(EngineCore pid=1755377) 2026-03-31 09:13:08,151 - INFO - autotuner.py:446 - flashinfer.jit: [Autotuner]: Autotuning process starts ...
+(EngineCore pid=1755377) 2026-03-31 09:13:08,201 - INFO - autotuner.py:455 - flashinfer.jit: [Autotuner]: Autotuning process ends
+(EngineCore pid=1755377) INFO 03-31 09:13:08 [core.py:283] init engine (profile, create kv cache, warmup model) took 5.60 seconds
+(EngineCore pid=1755377) WARNING 03-31 09:13:09 [vllm.py:847] Enforce eager set, disabling torch.compile and CUDAGraphs. This is equivalent to setting -cc.mode=none -cc.cudagraph_mode=none
+(EngineCore pid=1755377) WARNING 03-31 09:13:09 [vllm.py:858] Inductor compilation was disabled by user settings, optimizations settings that are only active during inductor compilation will be ignored.
+(EngineCore pid=1755377) INFO 03-31 09:13:09 [vllm.py:1024] Cudagraph is disabled under eager mode
+Engine loaded in 35s
+m04_vllm: 0clip [00:00, ?clip/s]m04_vllm: 0clip [00:00, ?clip/s]
+
+=== TAGGING COMPLETE ===
+Model:  Qwen/Qwen3-VL-8B-Instruct (vLLM)
+Clips:  0 | Dummy: 0 (0.0%)
+Time:   0.0 min (0.0 clips/s)
+(EngineCore pid=1755377) INFO 03-31 09:13:12 [core.py:1210] Shutdown initiated (timeout=0)
+(EngineCore pid=1755377) INFO 03-31 09:13:12 [core.py:1233] Shutdown complete
+[rank0]:[W331 09:13:12.765904043 ProcessGroupNCCL.cpp:1553] Warning: WARNING: destroy_process_group() was not called before program exit, which can leak resources. For more info, please see https://pytorch.org/docs/stable/distributed.html#shutdown (function operator())
+[09:13:14] PASSED: m04 VLM tagging via vLLM (0m 42s)
+  tags: 0 clips, 0 fields
+  WARN: only 0 clips (expected >= 1000)
+[09:13:14] VERIFY OK: Step 1 tags
+
+═══════════════════════════════════════════════════════════════
+  STEP 2: m05 V-JEPA embeddings
+  Mode: FULL | Est: ~80 min (V-JEPA 2 ViT-G, producer-consumer)
+  Started: 2026-03-31 09:13:14
+═══════════════════════════════════════════════════════════════
+[09:13:14] CMD: python -u src/m05_vjepa_embed.py --FULL --local-data data/full_local --no-wandb
+Using PyAV for video decoding
+Output: /workspace/factorjepa/outputs/full/embeddings.npy
+[output_guard] m05 embed: outputs missing or invalid — will re-compute
+  MISS  embeddings: embeddings.npy
+  MISS  paths: embeddings.paths.npy
+FATAL: Cannot determine clip count. Use --subset or --local-data with manifest.json
+[09:13:19] FAILED: m05 V-JEPA embeddings (0m 5s) — exit code 0
+[09:13:19] FATAL: m05 failed. Steps 3-7 depend on V-JEPA embeddings.

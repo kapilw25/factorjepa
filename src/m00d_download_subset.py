@@ -1,11 +1,12 @@
 """
 Pre-download clips from HF to local WebDataset TAR shards. CPU-only.
+Parallel download (4 workers) + hf_transfer (Rust multi-stream) = 5-10x faster.
 
 USAGE:
-    export HF_HOME=/tmp/hf_cache && python -u src/m00d_download_subset.py --SANITY --subset data/subset_10k.json 2>&1 | tee logs/m00d_sanity.log
-    export HF_HOME=/tmp/hf_cache && python -u src/m00d_download_subset.py --POC --subset data/subset_10k.json 2>&1 | tee logs/m00d_poc.log
-    export HF_HOME=/tmp/hf_cache && python -u src/m00d_download_subset.py --FULL --subset data/val_1k.json --no-wandb 2>&1 | tee logs/m00d_val_1k.log # to create validation data for both [--poc , --full] training runs
-    export HF_HOME=/tmp/hf_cache && python -u src/m00d_download_subset.py --FULL 2>&1 | tee logs/m00d_full.log
+    python -u src/m00d_download_subset.py --SANITY --subset data/subset_10k.json 2>&1 | tee logs/m00d_sanity.log
+    python -u src/m00d_download_subset.py --POC --subset data/subset_10k.json 2>&1 | tee logs/m00d_poc.log
+    python -u src/m00d_download_subset.py --FULL --subset data/val_1k.json --no-wandb 2>&1 | tee logs/m00d_val_1k.log
+    python -u src/m00d_download_subset.py --FULL --no-wandb 2>&1 | tee logs/m00d_full.log
 """
 import argparse
 import io
@@ -14,7 +15,12 @@ import os
 import sys
 import tarfile
 import time
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
+
+# Disable hf_transfer: its multi-stream per file conflicts with parallel workers
+# (N workers × 8+ streams = CDN throttling/timeouts). Worker-level parallelism is better.
+os.environ["HF_HUB_ENABLE_HF_TRANSFER"] = "0"
 
 sys.path.insert(0, str(Path(__file__).parent))
 from utils.config import HF_DATASET_REPO, load_subset, add_subset_arg, PROJECT_ROOT
@@ -23,6 +29,51 @@ from utils.wandb_utils import add_wandb_args, init_wandb, log_metrics, finish_wa
 
 CLIPS_PER_SHARD = get_pipeline_config()["data"]["clips_per_shard"]
 SANITY_CLIP_LIMIT = get_sanity_clip_limit("download_subset")
+DOWNLOAD_WORKERS = 8  # parallel HF shard downloads (8 × ~400MB = ~3.2GB temp disk)
+
+
+def _download_one_shard(tar_name: str, tmp_dir: Path) -> str:
+    """Download a single HF shard to tmp_dir. Returns local path. Thread-safe."""
+    from huggingface_hub import hf_hub_download
+    return hf_hub_download(
+        HF_DATASET_REPO,
+        filename=tar_name,
+        repo_type="dataset",
+        local_dir=str(tmp_dir),
+    )
+
+
+def _scan_shard(local_tar: str, remaining_keys, saved_keys) -> list:
+    """Scan a downloaded TAR, extract matching clips. Returns (base, mp4_bytes, json_bytes, clip_key) list."""
+    matches = []
+    with tarfile.open(local_tar, "r") as tar:
+        entries = {}
+        for member in tar.getmembers():
+            base = member.name.rsplit(".", 1)[0]
+            ext = member.name.rsplit(".", 1)[-1] if "." in member.name else ""
+            if base not in entries:
+                entries[base] = {}
+            entries[base][ext] = member
+
+        for base, parts in entries.items():
+            if "json" not in parts or "mp4" not in parts:
+                continue
+
+            json_bytes = tar.extractfile(parts["json"]).read()
+            clip_key = _get_clip_key_from_tar(json_bytes)
+
+            if remaining_keys is not None and clip_key not in remaining_keys:
+                continue
+            if clip_key in saved_keys:
+                continue
+
+            mp4_bytes = tar.extractfile(parts["mp4"]).read()
+            if not mp4_bytes:
+                continue
+
+            matches.append((base, mp4_bytes, json_bytes, clip_key))
+
+    return matches
 
 
 def _output_dir_from_subset(subset_path: str) -> Path:
@@ -79,16 +130,23 @@ def _get_clip_key_from_tar(json_bytes: bytes) -> str:
 
 
 def download_subset(args):
-    """Download HF TAR shards via CDN. With --subset: filter clips. Without: download all."""
-    from huggingface_hub import HfApi, hf_hub_download
+    """Download HF TAR shards via CDN with parallel workers + hf_transfer."""
+    from huggingface_hub import HfApi
     from tqdm import tqdm
+
+    # Check hf_transfer availability
+    try:
+        import hf_transfer  # noqa: F401
+        hf_xfer = True
+    except ImportError:
+        hf_xfer = False
 
     # Load HF_TOKEN from .env
     try:
         from dotenv import load_dotenv
         load_dotenv()
     except ImportError:
-        pass
+        hf_xfer = hf_xfer  # no-op to avoid bare except
 
     # Load subset keys (None = no filtering = download all)
     subset_keys = load_subset(args.subset) if args.subset else set()
@@ -112,7 +170,8 @@ def download_subset(args):
 
     mode_label = "FULL CORPUS" if full_mode else f"SUBSET ({len(subset_keys):,} keys)"
     print(f"=== m00d: Pre-download {mode_label} to local WebDataset ===")
-    print(f"  Method: Direct TAR shard download (CDN, no streaming API)")
+    print(f"  Method: Parallel TAR download ({DOWNLOAD_WORKERS} workers, CDN)")
+    print(f"  hf_transfer: {'enabled (Rust multi-stream)' if hf_xfer else 'not installed'}")
     print(f"  Subset: {args.subset} ({len(subset_keys):,} keys)")
     print(f"  Output: {output_dir}")
     print(f"  Clip limit: {f'{clip_limit:,}' if clip_limit else 'ALL'}")
@@ -129,7 +188,8 @@ def download_subset(args):
     # Init wandb
     wb_run = init_wandb("m00d", "download_subset",
                         {"subset": args.subset, "clip_limit": clip_limit,
-                         "method": "cdn_tar_download"},
+                         "method": "parallel_cdn_download",
+                         "workers": DOWNLOAD_WORKERS, "hf_transfer": hf_xfer},
                         enabled=not args.no_wandb)
 
     # List all TAR shards in HF repo
@@ -147,6 +207,10 @@ def download_subset(args):
         remaining_keys = None  # full mode: keep all clips
         print(f"  Full mode: downloading ALL clips from ALL shards")
 
+    # Filter to shards that still need processing
+    pending_shards = [t for t in tar_files if t not in processed_hf_shards]
+    print(f"  Shards to process: {len(pending_shards)} (skipping {len(tar_files) - len(pending_shards)} cached)")
+
     found = len(saved_keys)
     scanned = 0
     out_shard_idx = manifest.get("next_shard_idx", 0)
@@ -154,102 +218,83 @@ def download_subset(args):
     shards_written = list(manifest.get("shards", []))
     all_saved_keys = list(saved_keys)
     start_time = time.time()
+    download_errors = 0
 
-    pbar = tqdm(tar_files, desc="Processing HF shards", unit="shard")
+    # Parallel download + sequential scan pipeline
+    # Each worker holds 1 shard on disk (~400MB), so ~1.6GB temp at peak (4 workers)
+    tmp_dir = Path("/tmp/hf_shard_tmp")
+    tmp_dir.mkdir(parents=True, exist_ok=True)
+
+    pbar = tqdm(total=len(pending_shards), desc="Processing HF shards",
+                unit="shard", initial=0)
 
     try:
-        for tar_name in pbar:
-            # Skip already-processed HF shards
-            if tar_name in processed_hf_shards:
-                pbar.set_postfix({"found": found, "status": "skip"})
-                continue
-
-            # Check if we've found enough (None = no limit)
+        # Process in batches of DOWNLOAD_WORKERS to maintain backpressure
+        for batch_start in range(0, len(pending_shards), DOWNLOAD_WORKERS):
             if clip_limit is not None and found >= clip_limit:
                 print(f"\n  Reached clip limit ({clip_limit:,})")
                 break
 
-            # Download this shard via CDN (to temp dir, deleted after processing)
-            pbar.set_postfix({"found": found, "status": "downloading"})
-            tmp_dir = Path("/tmp/hf_shard_tmp")
-            tmp_dir.mkdir(parents=True, exist_ok=True)
-            local_tar = hf_hub_download(
-                HF_DATASET_REPO,
-                filename=tar_name,
-                repo_type="dataset",
-                local_dir=tmp_dir,
-            )
+            batch = pending_shards[batch_start:batch_start + DOWNLOAD_WORKERS]
 
-            # Scan the TAR for matching clips
-            pbar.set_postfix({"found": found, "status": "scanning"})
-            shard_matches = 0
-            try:
-                with tarfile.open(local_tar, "r") as tar:
-                    # Group entries by key prefix (each clip = .mp4 + .json pair)
-                    entries = {}
-                    for member in tar.getmembers():
-                        base = member.name.rsplit(".", 1)[0]
-                        ext = member.name.rsplit(".", 1)[-1] if "." in member.name else ""
-                        if base not in entries:
-                            entries[base] = {}
-                        entries[base][ext] = member
+            # Submit parallel downloads
+            download_results = {}
+            with ThreadPoolExecutor(max_workers=DOWNLOAD_WORKERS) as pool:
+                futures = {
+                    pool.submit(_download_one_shard, tar_name, tmp_dir): tar_name
+                    for tar_name in batch
+                }
 
-                    for base, parts in entries.items():
-                        if "json" not in parts or "mp4" not in parts:
-                            continue
+                # Collect results as downloads complete (fastest first)
+                for future in as_completed(futures):
+                    tar_name = futures[future]
+                    try:
+                        local_tar = future.result()
+                        download_results[tar_name] = local_tar
+                    except Exception as e:
+                        print(f"  FATAL: download failed for {tar_name}: {e}")
+                        download_errors += 1
 
-                        scanned += 1
+            # Scan each downloaded shard sequentially (safe for shared state)
+            for tar_name, local_tar in download_results.items():
+                matches = _scan_shard(local_tar, remaining_keys, saved_keys)
 
-                        # Read JSON to get clip key
-                        json_bytes = tar.extractfile(parts["json"]).read()
-                        clip_key = _get_clip_key_from_tar(json_bytes)
+                for base, mp4_bytes, json_bytes, clip_key in matches:
+                    if clip_limit is not None and found >= clip_limit:
+                        break
 
-                        # Filter: subset mode checks remaining_keys, full mode keeps all
-                        if remaining_keys is not None and clip_key not in remaining_keys:
-                            continue
-                        if clip_key in saved_keys:
-                            continue
+                    shard_buffer.append((base, mp4_bytes, json_bytes))
+                    found += 1
+                    all_saved_keys.append(clip_key)
+                    saved_keys.add(clip_key)
+                    if remaining_keys is not None:
+                        remaining_keys.discard(clip_key)
 
-                        # Match! Extract mp4
-                        mp4_bytes = tar.extractfile(parts["mp4"]).read()
-                        if not mp4_bytes:
-                            continue
+                    # Write output shard when buffer full
+                    if len(shard_buffer) >= CLIPS_PER_SHARD:
+                        shard_path = _write_shard(output_dir, out_shard_idx, shard_buffer)
+                        shards_written.append(shard_path.name)
+                        out_shard_idx += 1
+                        shard_buffer = []
 
-                        shard_buffer.append((base, mp4_bytes, json_bytes))
-                        found += 1
-                        shard_matches += 1
-                        all_saved_keys.append(clip_key)
-                        if remaining_keys is not None:
-                            remaining_keys.discard(clip_key)
+                        if wb_run:
+                            log_metrics(wb_run, {"clips_saved": len(all_saved_keys),
+                                                 "scanned": scanned}, step=scanned)
 
-                        # Write output shard when buffer full
-                        if len(shard_buffer) >= CLIPS_PER_SHARD:
-                            shard_path = _write_shard(output_dir, out_shard_idx, shard_buffer)
-                            shards_written.append(shard_path.name)
-                            out_shard_idx += 1
-                            shard_buffer = []
-                            print(f"  [checkpoint] shard {out_shard_idx-1}: {len(all_saved_keys):,} clips saved")
+                scanned += len(matches)
 
-                            if wb_run:
-                                log_metrics(wb_run, {"clips_saved": len(all_saved_keys),
-                                                     "scanned": scanned}, step=scanned)
+                # Delete downloaded shard to free disk
+                if os.path.exists(local_tar):
+                    os.remove(local_tar)
 
-                        if clip_limit is not None and found >= clip_limit:
-                            break
+                # Mark this HF shard as processed
+                processed_hf_shards.add(tar_name)
+                pbar.update(1)
 
-            except Exception as e:
-                print(f"  WARN: error reading {tar_name}: {e}")
+                elapsed = time.time() - start_time
+                pbar.set_postfix({"found": found, "elapsed": f"{elapsed/60:.0f}m"})
 
-            # Delete downloaded shard to free disk (only need ~1.5GB at a time)
-            try:
-                os.remove(local_tar)
-            except OSError:
-                pass
-
-            # Mark this HF shard as processed
-            processed_hf_shards.add(tar_name)
-
-            # Update manifest after each HF shard
+            # Checkpoint after each batch of parallel downloads
             manifest = {
                 "n": len(all_saved_keys),
                 "shards": shards_written,
@@ -260,17 +305,14 @@ def download_subset(args):
             }
             _save_manifest(manifest_path, manifest)
 
-            elapsed = time.time() - start_time
-            pbar.set_postfix({
-                "found": found,
-                "matches": shard_matches,
-                "elapsed": f"{elapsed/60:.0f}m",
-            })
-
     except KeyboardInterrupt:
         print("\n  Interrupted! Saving partial progress...")
 
     pbar.close()
+
+    if download_errors > 0:
+        print(f"FATAL: {download_errors} shard download(s) failed")
+        sys.exit(1)
 
     # Write final partial shard
     if shard_buffer:
@@ -298,6 +340,8 @@ def download_subset(args):
     print(f"  Clips scanned: {scanned:,}")
     print(f"  Time: {elapsed/60:.1f} min")
     print(f"  Output: {output_dir}")
+    print(f"  hf_transfer: {'yes' if hf_xfer else 'no'}")
+    print(f"  Workers: {DOWNLOAD_WORKERS}")
 
     # Disk usage
     total_bytes = sum((output_dir / s).stat().st_size for s in shards_written
@@ -306,10 +350,8 @@ def download_subset(args):
 
     # Clean up temp dir
     import shutil
-    tmp_dir = Path("/tmp/hf_shard_tmp")
-    if tmp_dir.exists():
-        shutil.rmtree(tmp_dir, ignore_errors=True)
-        print("  Cleaned temp dir")
+    shutil.rmtree("/tmp/hf_shard_tmp", ignore_errors=True)
+    print("  Cleaned temp dir")
 
     if wb_run:
         log_metrics(wb_run, {"total_clips": len(all_saved_keys),
@@ -330,9 +372,9 @@ def main():
     add_wandb_args(parser)
     args = parser.parse_args()
 
-    if not args.subset:
+    if not args.subset and not args.FULL:
         parser.print_help()
-        print("\nERROR: --subset is required")
+        print("\nERROR: --subset is required (or use --FULL to download entire corpus)")
         sys.exit(1)
 
     download_subset(args)

@@ -1,0 +1,44 @@
+Output dir: /workspace/factorjepa/outputs/sanity
+Scanning for encoder metrics...
+  Loaded: vjepa (m06_metrics.json)
+  Loaded: random (m06_metrics_random.json)
+  Loaded: dinov2 (m06_metrics_dinov2.json)
+  Loaded: clip (m06_metrics_clip.json)
+  Loaded: vjepa_shuffled (m06_metrics_vjepa_shuffled.json)
+  Loaded temporal: vjepa (m06b_temporal_corr.json)
+  Loaded temporal: random (m06b_temporal_corr_random.json)
+  Loaded temporal: dinov2 (m06b_temporal_corr_dinov2.json)
+  Loaded temporal: clip (m06b_temporal_corr_clip.json)
+  Loaded temporal: vjepa_shuffled (m06b_temporal_corr_vjepa_shuffled.json)
+
+Found 5 encoder(s): vjepa, random, dinov2, clip, vjepa_shuffled
+Found 5 temporal result(s): vjepa, random, dinov2, clip, vjepa_shuffled
+
+================================================================================
+                               ENCODER COMPARISON                               
+================================================================================
+Encoder              Dim  Cycle@K (%) Overlap@K (%)   Prec@K (%)        mAP@K       nDCG@K   Silhouette
+-------------------------------------------------------------------------------------------------------
+vjepa               1408        80.00        52.00        54.67       0.5137       0.9783      -0.0936
+random              1408        98.00          N/A        24.00       0.1556       0.9576      -0.0218
+dinov2              1536        84.00          N/A        65.67       0.6003       0.9802       0.0423
+clip                 768        86.00          N/A        64.33       0.5973       0.9840      -0.0261
+vjepa_shuffled      1408        78.00          N/A        55.67       0.5158       0.9726      -0.0835
+
+--- Easy Mode (above) ---
+
+--- Hard Mode ---
+vjepa               1408        80.00        52.00        52.67       0.4880       0.9768      -0.0936
+random              1408        98.00          N/A        22.33       0.1417       0.9580      -0.0218
+dinov2              1536        78.00          N/A        64.67       0.5862       0.9758       0.0423
+clip                 768        84.00          N/A        62.67       0.5794       0.9820      -0.0261
+vjepa_shuffled      1408        78.00          N/A        52.33       0.4837       0.9718      -0.0835
+Saved: /workspace/factorjepa/outputs/sanity/m08b_encoder_comparison.png
+Saved: /workspace/factorjepa/outputs/sanity/m08b_radar.png
+Saved: /workspace/factorjepa/outputs/sanity/m08b_comparison_table.tex
+Saved: /workspace/factorjepa/outputs/sanity/m08b_spatial_temporal_bar.png
+Saved: /workspace/factorjepa/outputs/sanity/m08b_tradeoff_scatter.png
+Saved: /workspace/factorjepa/outputs/sanity/m08b_temporal_ablation.png
+Saved: /workspace/factorjepa/outputs/sanity/m08b_heatmap.png
+
+=== COMPARISON COMPLETE ===

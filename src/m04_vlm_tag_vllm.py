@@ -55,7 +55,7 @@ except ImportError as e:
 # Constants
 MODEL_ID = "Qwen/Qwen3-VL-8B-Instruct"
 _pcfg = get_pipeline_config()
-CHECKPOINT_EVERY = _pcfg["streaming"]["checkpoint_every_vlm"]
+CHECKPOINT_EVERY = _pcfg["streaming"]["checkpoint_every"]
 CLIPS_PER_VLLM_BATCH = 50
 SANITY_CLIP_LIMIT = get_sanity_clip_limit("vlm")
 
@@ -239,7 +239,7 @@ def tag_clips(args):
     print("\nLoading vLLM engine...")
     t0 = time.time()
     llm = LLM(
-        model=MODEL_ID, max_model_len=4096, max_num_seqs=8,
+        model=MODEL_ID, max_model_len=8192, max_num_seqs=8,
         limit_mm_per_prompt={"video": 1}, mm_processor_kwargs={"fps": 1},
         gpu_memory_utilization=0.90, enforce_eager=True, trust_remote_code=True,
     )
@@ -292,7 +292,25 @@ def tag_clips(args):
             pass  # temp file cleanup, non-critical
 
         if len(batch_inputs) >= CLIPS_PER_VLLM_BATCH:
-            outputs = llm.generate(batch_inputs, sampling_params=sampling_params)
+            try:
+                outputs = llm.generate(batch_inputs, sampling_params=sampling_params)
+            except (ValueError, RuntimeError) as e:
+                # Single bad clip (e.g. prompt > max_model_len) kills entire batch.
+                # Log error, tag all clips in batch as dummy, continue pipeline.
+                print("  ERROR: vLLM batch failed ({}). Tagging {} clips as dummy.".format(e, len(batch_inputs)))
+                for key, meta_d in zip(batch_keys, batch_metas):
+                    tag = get_dummy_tag()
+                    tag["_clip_key"] = key
+                    tag["_video_id"] = meta_d.get("video_id", "")
+                    tag["_model"] = MODEL_ID
+                    tag["_backend"] = "vllm_error"
+                    all_tags.append(tag)
+                    processed_keys.add(key)
+                    n_dummy += 1
+                pbar.update(len(batch_inputs))
+                batch_inputs, batch_keys, batch_metas = [], [], []
+                continue
+
             for out, key, meta_d in zip(outputs, batch_keys, batch_metas):
                 tag = parse_json_output(out.outputs[0].text)
                 if tag is None:
@@ -320,17 +338,31 @@ def tag_clips(args):
 
     # Final partial batch
     if batch_inputs:
-        outputs = llm.generate(batch_inputs, sampling_params=sampling_params)
-        for out, key, meta_d in zip(outputs, batch_keys, batch_metas):
-            tag = parse_json_output(out.outputs[0].text)
-            if tag is None:
+        try:
+            outputs = llm.generate(batch_inputs, sampling_params=sampling_params)
+        except (ValueError, RuntimeError) as e:
+            print("  ERROR: vLLM final batch failed ({}). Tagging {} clips as dummy.".format(e, len(batch_inputs)))
+            for key, meta_d in zip(batch_keys, batch_metas):
                 tag = get_dummy_tag()
+                tag["_clip_key"] = key
+                tag["_video_id"] = meta_d.get("video_id", "")
+                tag["_model"] = MODEL_ID
+                tag["_backend"] = "vllm_error"
+                all_tags.append(tag)
                 n_dummy += 1
-            tag["_clip_key"] = key
-            tag["_video_id"] = meta_d.get("video_id", "")
-            tag["_model"] = MODEL_ID
-            tag["_backend"] = "vllm"
-            all_tags.append(tag)
+            outputs = None
+
+        if outputs is not None:
+            for out, key, meta_d in zip(outputs, batch_keys, batch_metas):
+                tag = parse_json_output(out.outputs[0].text)
+                if tag is None:
+                    tag = get_dummy_tag()
+                    n_dummy += 1
+                tag["_clip_key"] = key
+                tag["_video_id"] = meta_d.get("video_id", "")
+                tag["_model"] = MODEL_ID
+                tag["_backend"] = "vllm"
+                all_tags.append(tag)
         pbar.update(len(batch_inputs))
 
     pbar.close()

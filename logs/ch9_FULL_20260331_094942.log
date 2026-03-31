@@ -1,0 +1,142 @@
+[09:49:42] Ch9 pipeline starting (mode=FULL)
+[09:49:42] Master log: logs/ch9_FULL_20260331_094942.log
+
+[09:49:42] === PRE-FLIGHT: GPU + Package Verification ===
+GPU:            NVIDIA RTX PRO 6000 Blackwell Workstation Edition, VRAM: 102GB
+PyTorch:        2.12.0.dev20260228+cu128
+CUDA:           12.8
+FAISS GPUs:     1
+Flash-Attn:     2.8.3
+Transformers:   4.57.6
+cuML:           26.02.000
+wandb:          0.25.1
+HF_TOKEN:       hf_eATIPAr...
+
+Pre-flight: ALL PASSED
+Subset:         10000 clips from 1559 videos
+[09:49:47] Pre-flight complete.
+[09:49:47] === OUTPUT PREFLIGHT ===
+
+======================================================================
+  PIPELINE PREFLIGHT — checking all inputs/outputs before GPU work
+======================================================================
+  [32mSKIP (cached)[0m                         m00d pre-download subset
+  [33mWILL RUN[0m ~3h                          m04 VLM tagging (Qwen)
+  [33mWILL RUN[0m ~1h 47min                    m05 V-JEPA embeddings
+  [33mWILL RUN[0m ~1 sec                       m05b random embeddings
+  [33mWILL RUN[0m ~30 min                      m05b dinov2 embeddings
+  [33mWILL RUN[0m ~30 min                      m05b clip embeddings
+  [33mWILL RUN[0m ~30 min                      m05b vjepa_shuffled embeddings
+  [31mBLOCKED (missing input)[0m               m05c True Overlap augmented
+  [33mWILL RUN[0m ~40 min                      m04d motion features
+  [31mBLOCKED (missing input)[0m               m06 metrics (vjepa)
+  [31mBLOCKED (missing input)[0m               m06 metrics (random)
+  [31mBLOCKED (missing input)[0m               m06 metrics (dinov2)
+  [31mBLOCKED (missing input)[0m               m06 metrics (clip)
+  [31mBLOCKED (missing input)[0m               m06 metrics (vjepa_shuffled)
+  [31mBLOCKED (missing input)[0m               m06b temporal (vjepa)
+  [31mBLOCKED (missing input)[0m               m06b temporal (random)
+  [31mBLOCKED (missing input)[0m               m06b temporal (dinov2)
+  [31mBLOCKED (missing input)[0m               m06b temporal (clip)
+  [31mBLOCKED (missing input)[0m               m06b temporal (vjepa_shuffled)
+  [31mBLOCKED (missing input)[0m               m07 UMAP (vjepa)
+  [31mBLOCKED (missing input)[0m               m07 UMAP (random)
+  [31mBLOCKED (missing input)[0m               m07 UMAP (dinov2)
+  [31mBLOCKED (missing input)[0m               m07 UMAP (clip)
+  [31mBLOCKED (missing input)[0m               m07 UMAP (vjepa_shuffled)
+  [31mBLOCKED (missing input)[0m               m08b compare (all encoders)
+
+  Steps to run:  24
+  Steps cached:  1
+
+  [31mMISSING INPUTS (27):[0m
+    m05c True Overlap augmented needs embeddings: outputs/full/embeddings.npy
+    m06 metrics (vjepa) needs embeddings: outputs/full/embeddings.npy
+    m06 metrics (vjepa) needs tags: outputs/full/tags.json
+    m06 metrics (random) needs embeddings: outputs/full/embeddings_random.npy
+    m06 metrics (random) needs tags: outputs/full/tags.json
+    m06 metrics (dinov2) needs embeddings: outputs/full/embeddings_dinov2.npy
+    m06 metrics (dinov2) needs tags: outputs/full/tags.json
+    m06 metrics (clip) needs embeddings: outputs/full/embeddings_clip.npy
+    m06 metrics (clip) needs tags: outputs/full/tags.json
+    m06 metrics (vjepa_shuffled) needs embeddings: outputs/full/embeddings_vjepa_shuffled.npy
+    m06 metrics (vjepa_shuffled) needs tags: outputs/full/tags.json
+    m06b temporal (vjepa) needs embeddings: outputs/full/embeddings.npy
+    m06b temporal (vjepa) needs motion: outputs/full/motion_features.npy
+    m06b temporal (random) needs embeddings: outputs/full/embeddings_random.npy
+    m06b temporal (random) needs motion: outputs/full/motion_features.npy
+    m06b temporal (dinov2) needs embeddings: outputs/full/embeddings_dinov2.npy
+    m06b temporal (dinov2) needs motion: outputs/full/motion_features.npy
+    m06b temporal (clip) needs embeddings: outputs/full/embeddings_clip.npy
+    m06b temporal (clip) needs motion: outputs/full/motion_features.npy
+    m06b temporal (vjepa_shuffled) needs embeddings: outputs/full/embeddings_vjepa_shuffled.npy
+    m06b temporal (vjepa_shuffled) needs motion: outputs/full/motion_features.npy
+    m07 UMAP (vjepa) needs embeddings: outputs/full/embeddings.npy
+    m07 UMAP (random) needs embeddings: outputs/full/embeddings_random.npy
+    m07 UMAP (dinov2) needs embeddings: outputs/full/embeddings_dinov2.npy
+    m07 UMAP (clip) needs embeddings: outputs/full/embeddings_clip.npy
+    m07 UMAP (vjepa_shuffled) needs embeddings: outputs/full/embeddings_vjepa_shuffled.npy
+    m08b compare (all encoders) needs frozen_metrics: outputs/full/m06_metrics.json
+======================================================================
+
+Options:
+  [1] Proceed (run steps marked WILL RUN, skip cached)
+  [2] Abort
+
+Enter choice (1 or 2): [09:50:23] Starting pipeline...
+
+[09:50:23] Local data already exists: data/full_local (skipping download)
+
+═══════════════════════════════════════════════════════════════
+  STEP 1: m04 VLM tagging (Qwen via transformers)
+  Mode: FULL | Est: ~2h (1.3 clips/s, Qwen3-VL-8B)
+  Started: 2026-03-31 09:50:23
+═══════════════════════════════════════════════════════════════
+[09:50:23] CMD: python -u src/m04_vlm_tag.py --model qwen --FULL --local-data data/full_local --no-wandb
+Note: Environment variable`HF_TOKEN` is set and is the current active token independently from the token you've just configured.
+HuggingFace: Authenticated
+Model:   qwen (Qwen/Qwen3-VL-8B-Instruct)
+Output:  /workspace/factorjepa/outputs/full/tags.json
+Mode:    FULL
+
+============================================================
+WORKER 1 [qwen]: clips 0 → 10,000
+============================================================
+Note: Environment variable`HF_TOKEN` is set and is the current active token independently from the token you've just configured.
+HuggingFace: Authenticated
+GPU: NVIDIA RTX PRO 6000 Blackwell Workstation Edition
+CUDA version: 12.8
+GPU VRAM: 95 GB | VLM cost model: 16GB fixed + 0.78GB/clip
+  vjepa=37 (linear, scale=2.37x from 40GB)
+  image_encoder=148 (4x vjepa, cap 256)
+  transformers=64 (max batch, est 66GB = 69% VRAM)
+  sub-batch=51 (initial, AdaptiveBatchSizer grows to 64)
+/workspace/factorjepa/venv_walkindia/lib/python3.12/site-packages/transformers/utils/hub.py:110: FutureWarning: Using `TRANSFORMERS_CACHE` is deprecated and will be removed in v5 of Transformers. Use `HF_HOME` instead.
+  warnings.warn(
+Loading transformers: Qwen/Qwen3-VL-8B-Instruct
+Loading checkpoint shards:   0%|          | 0/4 [00:00<?, ?it/s]Loading checkpoint shards:  25%|██▌       | 1/4 [00:00<00:02,  1.15it/s]Loading checkpoint shards:  50%|█████     | 2/4 [00:01<00:01,  1.32it/s]Loading checkpoint shards:  75%|███████▌  | 3/4 [00:02<00:00,  1.23it/s]Loading checkpoint shards: 100%|██████████| 4/4 [00:02<00:00,  1.46it/s]Loading checkpoint shards: 100%|██████████| 4/4 [00:02<00:00,  1.37it/s]
+Qwen loaded via transformers (FA2)
+Backend loaded: qwen | batch_size=64 | AdaptiveBatchSizer(size=51, range=[1, 64], cap=85%, ooms=0)
+
+Streaming from: anonymousML123/walkindia-200k
+  backend=qwen  start_from=0  clip_limit=10,000
+m04_qwen:   0%|          | 0/10000 [00:00<?, ?clip/s]qwen-vl-utils using decord to read video.
+Qwen3VL requires frame timestamps to construct prompts, but the `fps` of the input video could not be inferred. Probably `video_metadata` was missing from inputs and you passed pre-sampled frames. Defaulting to `fps=24`. Please provide `video_metadata` for more accurate results.
+The following generation flags are not valid and may be ignored: ['temperature', 'top_p', 'top_k']. Set `TRANSFORMERS_VERBOSITY=info` for more details.
+  AdaptiveBatch: VRAM 43% < 65% → sub-batch 51 → 52
+  AdaptiveBatch: VRAM 43% < 65% → sub-batch 52 → 53
+m04_qwen:   1%|          | 64/10000 [00:55<2:24:32,  1.15clip/s]m04_qwen:   1%|          | 64/10000 [00:55<2:24:32,  1.15clip/s, 1.15 clips/s | ETA 145 min | qwen]  AdaptiveBatch: VRAM 48% < 65% → sub-batch 53 → 54
+  AdaptiveBatch: VRAM 48% < 65% → sub-batch 54 → 55
+m04_qwen:   1%|▏         | 128/10000 [01:51<2:22:32,  1.15clip/s, 1.15 clips/s | ETA 145 min | qwen]m04_qwen:   1%|▏         | 128/10000 [01:51<2:22:32,  1.15clip/s, 1.16 clips/s | ETA 142 min | qwen]  AdaptiveBatch: VRAM 50% < 65% → sub-batch 55 → 56
+  AdaptiveBatch: VRAM 50% < 65% → sub-batch 56 → 57
+m04_qwen:   2%|▏         | 192/10000 [02:45<2:20:27,  1.16clip/s, 1.16 clips/s | ETA 142 min | qwen]m04_qwen:   2%|▏         | 192/10000 [02:45<2:20:27,  1.16clip/s, 1.18 clips/s | ETA 139 min | qwen]  AdaptiveBatch: VRAM 52% < 65% → sub-batch 57 → 58
+  AdaptiveBatch: VRAM 52% < 65% → sub-batch 58 → 59
+m04_qwen:   3%|▎         | 256/10000 [03:41<2:20:13,  1.16clip/s, 1.18 clips/s | ETA 139 min | qwen]m04_qwen:   3%|▎         | 256/10000 [03:41<2:20:13,  1.16clip/s, 1.15 clips/s | ETA 141 min | qwen]  AdaptiveBatch: VRAM 54% < 65% → sub-batch 59 → 60
+  AdaptiveBatch: VRAM 54% < 65% → sub-batch 60 → 61
+m04_qwen:   3%|▎         | 320/10000 [04:36<2:19:39,  1.16clip/s, 1.15 clips/s | ETA 141 min | qwen]m04_qwen:   3%|▎         | 320/10000 [04:36<2:19:39,  1.16clip/s, 1.15 clips/s | ETA 140 min | qwen]  AdaptiveBatch: VRAM 58% < 65% → sub-batch 61 → 62
+  AdaptiveBatch: VRAM 58% < 65% → sub-batch 62 → 63
+m04_qwen:   4%|▍         | 384/10000 [05:34<2:20:42,  1.14clip/s, 1.15 clips/s | ETA 140 min | qwen]m04_qwen:   4%|▍         | 384/10000 [05:34<2:20:42,  1.14clip/s, 1.11 clips/s | ETA 145 min | qwen]  AdaptiveBatch: VRAM 62% < 65% → sub-batch 63 → 64
+m04_qwen:   4%|▍         | 448/10000 [06:29<2:18:36,  1.15clip/s, 1.11 clips/s | ETA 145 min | qwen]m04_qwen:   4%|▍         | 448/10000 [06:29<2:18:36,  1.15clip/s, 1.17 clips/s | ETA 136 min | qwen]m04_qwen:   5%|▌         | 512/10000 [07:14<2:09:35,  1.22clip/s, 1.17 clips/s | ETA 136 min | qwen]m04_qwen:   5%|▌         | 512/10000 [07:14<2:09:35,  1.22clip/s, 1.41 clips/s | ETA 112 min | qwen]  -- checkpoint: 512 tags saved --
+m04_qwen:   6%|▌         | 576/10000 [08:00<2:03:15,  1.27clip/s, 1.41 clips/s | ETA 112 min | qwen]m04_qwen:   6%|▌         | 576/10000 [08:00<2:03:15,  1.27clip/s, 1.41 clips/s | ETA 111 min | qwen]m04_qwen:   6%|▋         | 640/10000 [08:43<1:57:30,  1.33clip/s, 1.41 clips/s | ETA 111 min | qwen]m04_qwen:   6%|▋         | 640/10000 [08:43<1:57:30,  1.33clip/s, 1.46 clips/s | ETA 107 min | qwen]m04_qwen:   7%|▋         | 704/10000 [09:12<1:42:22,  1.51clip/s, 1.46 clips/s | ETA 107 min | qwen]m04_qwen:   7%|▋         | 704/10000 [09:12<1:42:22,  1.51clip/s, 2.22 clips/s | ETA 70 min | qwen] m04_qwen:   8%|▊         | 768/10000 [09:57<1:43:37,  1.48clip/s, 2.22 clips/s | ETA 70 min | qwen]m04_qwen:   8%|▊         | 768/10000 [09:57<1:43:37,  1.48clip/s, 1.73 clips/s | ETA 89 min | qwen]m04_qwen:   8%|▊         | 832/10000 [10:40<1:43:03,  1.48clip/s, 1.73 clips/s | ETA 89 min | qwen]m04_qwen:   8%|▊         | 832/10000 [10:40<1:43:03,  1.48clip/s, 1.48 clips/s | ETA 103 min | qwen]m04_qwen:   9%|▉         | 896/10000 [11:23<1:42:17,  1.48clip/s, 1.48 clips/s | ETA 103 min | qwen]m04_qwen:   9%|▉         | 896/10000 [11:23<1:42:17,  1.48clip/s, 1.49 clips/s | ETA 102 min | qwen]m04_qwen:  10%|▉         | 960/10000 [12:06<1:41:07,  1.49clip/s, 1.49 clips/s | ETA 102 min | qwen]m04_qwen:  10%|▉         | 960/10000 [12:06<1:41:07,  1.49clip/s, 1.51 clips/s | ETA 100 min | qwen]m04_qwen:  10%|█         | 1024/10000 [12:49<1:40:39,  1.49clip/s, 1.51 clips/s | ETA 100 min | qwen]m04_qwen:  10%|█         | 1024/10000 [12:49<1:40:39,  1.49clip/s, 1.48 clips/s | ETA 101 min | qwen]  -- checkpoint: 1,024 tags saved --
+m04_qwen:  11%|█         | 1088/10000 [13:32<1:39:22,  1.49clip/s, 1.48 clips/s | ETA 101 min | qwen]m04_qwen:  11%|█         | 1088/10000 [13:32<1:39:22,  1.49clip/s, 1.51 clips/s | ETA 98 min | qwen] m04_qwen:  12%|█▏        | 1152/10000 [14:13<1:37:54,  1.51clip/s, 1.51 clips/s | ETA 98 min | qwen]m04_qwen:  12%|█▏        | 1152/10000 [14:13<1:37:54,  1.51clip/s, 1.53 clips/s | ETA 96 min | qwen]m04_qwen:  12%|█▏        | 1216/10000 [14:55<1:36:35,  1.52clip/s, 1.53 clips/s | ETA 96 min | qwen]m04_qwen:  12%|█▏        | 1216/10000 [14:55<1:36:35,  1.52clip/s, 1.54 clips/s | ETA 95 min | qwen]m04_qwen:  13%|█▎        | 1280/10000 [15:39<1:37:03,  1.50clip/s, 1.54 clips/s | ETA 95 min | qwen]m04_qwen:  13%|█▎        | 1280/10000 [15:39<1:37:03,  1.50clip/s, 1.46 clips/s | ETA 100 min | qwen]m04_qwen:  13%|█▎        | 1344/10000 [16:22<1:36:47,  1.49clip/s, 1.46 clips/s | ETA 100 min | qwen]m04_qwen:  13%|█▎        | 1344/10000 [16:22<1:36:47,  1.49clip/s, 1.48 clips/s | ETA 98 min | qwen] m04_qwen:  14%|█▍        | 1408/10000 [17:08<1:37:40,  1.47clip/s, 1.48 clips/s | ETA 98 min | qwen]m04_qwen:  14%|█▍        | 1408/10000 [17:08<1:37:40,  1.47clip/s, 1.41 clips/s | ETA 101 min | qwen]m04_qwen:  15%|█▍        | 1472/10000 [17:53<1:38:17,  1.45clip/s, 1.41 clips/s | ETA 101 min | qwen]m04_qwen:  15%|█▍        | 1472/10000 [17:53<1:38:17,  1.45clip/s, 1.40 clips/s | ETA 101 min | qwen]m04_qwen:  15%|█▌        | 1536/10000 [18:38<1:37:50,  1.44clip/s, 1.40 clips/s | ETA 101 min | qwen]m04_qwen:  15%|█▌        | 1536/10000 [18:38<1:37:50,  1.44clip/s, 1.43 clips/s | ETA 98 min | qwen]   -- checkpoint: 1,536 tags saved --
+m04_qwen:  16%|█▌        | 1600/10000 [19:22<1:36:40,  1.45clip/s, 1.43 clips/s | ETA 98 min | qwen]m04_qwen:  16%|█▌        | 1600/10000 [19:22<1:36:40,  1.45clip/s, 1.46 clips/s | ETA 96 min | qwen]m04_qwen:  17%|█▋        | 1664/10000 [20:06<1:35:56,  1.45clip/s, 1.46 clips/s | ETA 96 min | qwen]m04_qwen:  17%|█▋        | 1664/10000 [20:06<1:35:56,  1.45clip/s, 1.45 clips/s | ETA 96 min | qwen]m04_qwen:  17%|█▋        | 1728/10000 [20:51<1:35:52,  1.44clip/s, 1.45 clips/s | ETA 96 min | qwen]m04_qwen:  17%|█▋        | 1728/10000 [20:51<1:35:52,  1.44clip/s, 1.42 clips/s | ETA 97 min | qwen]m04_qwen:  18%|█▊        | 1792/10000 [21:20<1:25:03,  1.61clip/s, 1.42 clips/s | ETA 97 min | qwen]m04_qwen:  18%|█▊        | 1792/10000 [21:20<1:25:03,  1.61clip/s, 2.22 clips/s | ETA 62 min | qwen]m04_qwen:  19%|█▊        | 1856/10000 [21:49<1:17:17,  1.76clip/s, 2.22 clips/s | ETA 62 min | qwen]m04_qwen:  19%|█▊        | 1856/10000 [21:49<1:17:17,  1.76clip/s, 2.23 clips/s | ETA 61 min | qwen]m04_qwen:  19%|█▉        | 1920/10000 [22:37<1:24:20,  1.60clip/s, 2.23 clips/s | ETA 61 min | qwen]m04_qwen:  19%|█▉        | 1920/10000 [22:37<1:24:20,  1.60clip/s, 1.32 clips/s | ETA 102 min | qwen]

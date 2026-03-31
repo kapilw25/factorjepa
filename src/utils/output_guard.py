@@ -531,9 +531,9 @@ if __name__ == "__main__":
 
         if not result["proceed"]:
             sys.exit(1)
-        if result["missing_inputs"]:
-            print("\nFATAL: Missing inputs detected. Fix before running pipeline.")
-            sys.exit(1)
+        # Missing inputs are expected in sequential pipelines — upstream steps
+        # produce outputs that downstream steps need. Each script has its own
+        # input validation and will fail loud if a true dependency is missing.
 
     elif cmd == "preflight_evaluate":
         out_dir = sys.argv[2]
@@ -545,9 +545,9 @@ if __name__ == "__main__":
 
         if not result["proceed"]:
             sys.exit(1)
-        if result["missing_inputs"]:
-            print("\nFATAL: Missing inputs detected. Fix before running pipeline.")
-            sys.exit(1)
+        # Missing inputs are expected in sequential pipelines — upstream steps
+        # produce outputs that downstream steps need. Each script has its own
+        # input validation and will fail loud if a true dependency is missing.
     else:
         print(f"Unknown command: {cmd}")
         sys.exit(1)
