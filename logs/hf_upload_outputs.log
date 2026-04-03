@@ -4872,3 +4872,2165 @@ It seems you are trying to upload a large folder at once. This might take some t
   ...ofile/plot4_waterfall.png: 100%|██████████| 69.7kB / 69.7kB            
   .../plot5_masking_effect.png: 100%|██████████|  132kB /  132kB            
 Upload complete: 31s → https://huggingface.co/datasets/anonymousML123/factorjepa-outputs
+Uploading outputs → anonymousML123/factorjepa-outputs/outputs/
+It seems you are trying to upload a large folder at once. This might take some time and then fail if the folder is too large. For such cases, it is recommended to upload in smaller batches or to use `HfApi().upload_large_folder(...)`/`hf upload-large-folder` instead. For more details, check out https://huggingface.co/docs/huggingface_hub/main/en/guides/upload#upload-a-large-folder.
+Processing Files (0 / 0)      : |          |  0.00B /  0.00B            
+New Data Upload               : |          |  0.00B /  0.00B            [A
+
+  ...beddings_random.paths.npy: 100%|██████████|  555kB /  555kB            [A[A
+
+
+  ...full/embeddings.paths.npy: 100%|██████████| 6.37MB / 6.37MB            [A[A[A
+
+
+
+  ..._prep/clip_durations.json: 100%|██████████| 18.4MB / 18.4MB            [A[A[A[A
+
+
+
+
+  .../full/embeddings_clip.npy:   7%|▋         | 24.0MB /  355MB            [A[A[A[A[A
+
+
+
+
+
+  ...tputs/full/embeddings.npy:   2%|▏         | 15.9MB /  652MB            [A[A[A[A[A[A
+
+
+
+
+
+
+  ...pa/outputs/full/tags.json:  15%|█▌        | 23.9MB /  156MB            [A[A[A[A[A[A[A
+
+
+
+
+
+
+
+  ...ngs_vjepa_lambda0_001.npy:  43%|████▎     | 24.0MB / 56.3MB            [A[A[A[A[A[A[A[A
+
+
+
+
+
+
+
+
+  ...a_shuffled_checkpoint.npz:   4%|▍         | 24.0MB /  540MB            [A[A[A[A[A[A[A[A[A
+
+
+
+
+
+
+
+
+
+  ...ull/embeddings_random.npy:   4%|▎         | 24.0MB /  652MB            [A[A[A[A[A[A[A[A[A[A
+
+
+
+
+
+
+
+
+
+
+  ...embeddings_clip.paths.npy: 100%|██████████| 6.37MB / 6.37MB            [A[A[A[A[A[A[A[A[A[A[A
+
+  ...beddings_random.paths.npy: 100%|██████████|  555kB /  555kB            [A[A
+
+
+  ...full/embeddings.paths.npy: 100%|██████████| 6.37MB / 6.37MB            [A[A[A
+
+
+
+  ..._prep/clip_durations.json: 100%|██████████| 18.4MB / 18.4MB            [A[A[A[A
+
+
+
+
+  .../full/embeddings_clip.npy:   7%|▋         | 24.0MB /  355MB            [A[A[A[A[A
+
+
+
+
+
+  ...tputs/full/embeddings.npy:   2%|▏         | 15.9MB /  652MB            [A[A[A[A[A[A
+
+
+
+
+
+
+  ...pa/outputs/full/tags.json:  15%|█▌        | 23.9MB /  156MB            [A[A[A[A[A[A[A
+
+
+
+
+
+
+
+  ...ngs_vjepa_lambda0_001.npy:  43%|████▎     | 24.0MB / 56.3MB            [A[A[A[A[A[A[A[A
+
+
+
+
+
+
+
+
+  ...a_shuffled_checkpoint.npz:   4%|▍         | 24.0MB /  540MB            [A[A[A[A[A[A[A[A[A
+
+
+
+
+
+
+
+
+
+  ...ull/embeddings_random.npy:   4%|▎         | 24.0MB /  652MB            [A[A[A[A[A[A[A[A[A[A
+
+
+
+
+
+
+
+
+
+
+  [+ 4 files]                 : 100%|██████████| 14.3MB / 14.3MB            [A[A[A[A[A[A[A[A[A[A[AProcessing Files (8 / 14)     :   5%|▍         |  175MB / 3.77GB,   ???B/s  
+
+  .../full/embeddings_clip.npy:  16%|█▌        | 56.0MB /  355MB            [A[A
+
+
+  ...tputs/full/embeddings.npy:   9%|▊         | 56.0MB /  652MB            [A[A[A
+
+
+
+  ...pa/outputs/full/tags.json:  36%|███▌      | 55.9MB /  156MB            [A[A[A[A
+
+
+
+
+  ...ngs_vjepa_lambda0_001.npy:  99%|█████████▉| 56.0MB / 56.3MB            [A[A[A[A[A
+
+
+
+
+
+  ...a_shuffled_checkpoint.npz:  12%|█▏        | 64.0MB /  540MB            [A[A[A[A[A[A
+
+
+
+
+
+
+  ...ull/embeddings_random.npy:  10%|▉         | 64.0MB /  652MB            [A[A[A[A[A[A[A
+
+
+
+
+
+
+
+  ...beddings_dinov2.paths.npy: 100%|██████████| 6.37MB / 6.37MB            [A[A[A[A[A[A[A[A
+
+
+
+
+
+
+
+
+  ..._cycle_per_key_dinov2.png: 100%|██████████|  403kB /  403kB            [A[A[A[A[A[A[A[A[A
+
+
+
+
+
+
+
+
+
+  ...epa_lambda0_001.paths.npy: 100%|██████████|  555kB /  555kB            [A[A[A[A[A[A[A[A[A[A
+
+
+
+
+
+
+
+
+
+
+  [+ 10 files]                :  11%|█         | 84.7MB /  772MB            [A[A[A[A[A[A[A[A[A[A[AProcessing Files (16 / 24)    :  13%|█▎        |  476MB / 3.77GB, 1.50GB/s  
+
+  .../full/embeddings_clip.npy:  27%|██▋       | 96.0MB /  355MB            [A[A
+
+
+  ...tputs/full/embeddings.npy:  14%|█▎        | 88.0MB /  652MB            [A[A[A
+
+
+
+  ...pa/outputs/full/tags.json:  62%|██████▏   | 96.0MB /  156MB            [A[A[A[A
+
+
+
+
+  ...ngs_vjepa_lambda0_001.npy: 100%|██████████| 56.3MB / 56.3MB            [A[A[A[A[A
+
+
+
+
+
+  ...a_shuffled_checkpoint.npz:  19%|█▉        |  104MB /  540MB            [A[A[A[A[A[A
+
+
+
+
+
+
+  ...ull/embeddings_random.npy:  15%|█▍        | 96.0MB /  652MB            [A[A[A[A[A[A[A
+
+
+
+
+
+
+
+  ...ddings_vjepa_shuffled.npy: 100%|██████████| 56.3MB / 56.3MB            [A[A[A[A[A[A[A[A
+
+
+
+
+
+
+
+
+  ...ene_distribution_qwen.png: 100%|██████████|  122kB /  122kB            [A[A[A[A[A[A[A[A[A
+
+
+
+
+
+
+
+
+
+  ...omy_distribution_qwen.png: 100%|██████████|  724kB /  724kB            [A[A[A[A[A[A[A[A[A[A
+
+
+
+
+
+
+
+
+
+
+  [+ 23 files]                :  16%|█▌        |  121MB /  760MB            [A[A[A[A[A[A[A[A[A[A[AProcessing Files (41 / 47)    :  20%|██        |  758MB / 3.77GB, 1.46GB/s  
+
+  .../full/embeddings_clip.npy:  36%|███▌      |  128MB /  355MB            [A[A
+
+
+  ...tputs/full/embeddings.npy:  18%|█▊        |  120MB /  652MB            [A[A[A
+
+
+
+  ...pa/outputs/full/tags.json:  82%|████████▏ |  128MB /  156MB            [A[A[A[A
+
+
+
+
+  ...a_shuffled_checkpoint.npz:  25%|██▌       |  136MB /  540MB            [A[A[A[A[A
+
+
+
+
+
+  ...ull/embeddings_random.npy:  21%|██        |  136MB /  652MB            [A[A[A[A[A[A
+
+
+
+
+
+
+  ...ull/embeddings_dinov2.npy:  16%|█▌        |  112MB /  711MB            [A[A[A[A[A[A[A
+
+
+
+
+
+
+
+  ...s/poc/embeddings_clip.npy: 100%|██████████| 30.7MB / 30.7MB            [A[A[A[A[A[A[A[A
+
+
+
+
+
+
+
+
+  ...omy_distribution_qwen.png: 100%|██████████|  615kB /  615kB            [A[A[A[A[A[A[A[A[A
+
+
+
+
+
+
+
+
+
+  ...ckpoint_vjepa_lambda0.npz: 100%|██████████| 8.63MB / 8.63MB            [A[A[A[A[A[A[A[A[A[A
+
+
+
+
+
+
+
+
+
+
+  [+ 3 files]                 :  70%|██████▉   | 86.8MB /  125MB            [A[A[A[A[A[A[A[A[A[A[AProcessing Files (42 / 50)    :  28%|██▊       | 1.05GB / 3.77GB, 1.45GB/s  
+
+  .../full/embeddings_clip.npy:  45%|████▌     |  160MB /  355MB            [A[A
+
+
+  ...tputs/full/embeddings.npy:  23%|██▎       |  152MB /  652MB            [A[A[A
+
+
+
+  ...pa/outputs/full/tags.json: 100%|██████████|  156MB /  156MB            [A[A[A[A
+
+
+
+
+  ...a_shuffled_checkpoint.npz:  31%|███       |  168MB /  540MB            [A[A[A[A[A
+
+
+
+
+
+  ...ull/embeddings_random.npy:  26%|██▌       |  168MB /  652MB            [A[A[A[A[A[A
+
+
+
+
+
+
+  ...ull/embeddings_dinov2.npy:  20%|██        |  144MB /  711MB            [A[A[A[A[A[A[A
+
+
+
+
+
+
+
+  ...beddings_random.paths.npy: 100%|██████████| 6.37MB / 6.37MB            [A[A[A[A[A[A[A[A
+
+
+
+
+
+
+
+
+  .../poc/embeddings.paths.npy: 100%|██████████|  555kB /  555kB            [A[A[A[A[A[A[A[A[A
+
+
+
+
+
+
+
+
+
+  ...poc/embeddings_dinov2.npy: 100%|██████████| 61.4MB / 61.4MB            [A[A[A[A[A[A[A[A[A[A
+
+
+
+
+
+
+
+
+
+
+  [+ 56 files]                :  61%|██████    | 75.0MB /  123MB            [A[A[A[A[A[A[A[A[A[A[AProcessing Files (100 / 106)  :  34%|███▍      | 1.29GB / 3.77GB, 1.39GB/s  
+
+  .../full/embeddings_clip.npy:  54%|█████▍    |  192MB /  355MB            [A[A
+
+
+  ...tputs/full/embeddings.npy:  28%|██▊       |  184MB /  652MB            [A[A[A
+
+
+
+  ...a_shuffled_checkpoint.npz:  38%|███▊      |  208MB /  540MB            [A[A[A[A
+
+
+
+
+  ...ull/embeddings_random.npy:  31%|███       |  200MB /  652MB            [A[A[A[A[A
+
+
+
+
+
+  ...ull/embeddings_dinov2.npy:  25%|██▍       |  176MB /  711MB            [A[A[A[A[A[A
+
+
+
+
+
+
+  ...poc/embeddings_random.npy:  85%|████████▌ | 48.0MB / 56.3MB            [A[A[A[A[A[A[A
+
+
+
+
+
+
+
+  ..._matrix_crowd_density.png: 100%|██████████| 60.4kB / 60.4kB            [A[A[A[A[A[A[A[A
+
+
+
+
+
+
+
+
+  ..._dinov2_crowd_density.png: 100%|██████████| 60.4kB / 60.4kB            [A[A[A[A[A[A[A[A[A
+
+
+
+
+
+
+
+
+
+  ...nfusion_matrix_dinov2.png: 100%|██████████|  363kB /  363kB            [A[A[A[A[A[A[A[A[A[A
+
+
+
+
+
+
+
+
+
+
+  [+ 145 files]               : 100%|██████████| 66.9MB / 66.9MB            [A[A[A[A[A[A[A[A[A[A[AProcessing Files (245 / 251)  :  42%|████▏     | 1.56GB / 3.77GB, 1.39GB/s  
+
+  .../full/embeddings_clip.npy:  63%|██████▎   |  224MB /  355MB            [A[A
+
+
+  ...tputs/full/embeddings.npy:  34%|███▍      |  224MB /  652MB            [A[A[A
+
+
+
+  ...a_shuffled_checkpoint.npz:  44%|████▍     |  240MB /  540MB            [A[A[A[A
+
+
+
+
+  ...ull/embeddings_random.npy:  37%|███▋      |  240MB /  652MB            [A[A[A[A[A
+
+
+
+
+
+  ...ull/embeddings_dinov2.npy:  29%|██▉       |  208MB /  711MB            [A[A[A[A[A[A
+
+
+
+
+
+
+  ...poc/embeddings_random.npy: 100%|██████████| 56.3MB / 56.3MB            [A[A[A[A[A[A[A
+
+
+
+
+
+
+
+  ...rid_vjepa_lambda0_001.pdf: 100%|██████████| 2.16MB / 2.16MB            [A[A[A[A[A[A[A[A
+
+
+
+
+
+
+
+
+  .../m08_umap_grid_random.pdf: 100%|██████████| 2.25MB / 2.25MB            [A[A[A[A[A[A[A[A[A
+
+
+
+
+
+
+
+
+
+  ...p_grid_vjepa_shuffled.pdf: 100%|██████████| 2.17MB / 2.17MB            [A[A[A[A[A[A[A[A[A[A
+
+
+
+
+
+
+
+
+
+
+  [+ 83 files]                : 100%|██████████| 81.6MB / 81.6MB            [A[A[A[A[A[A[A[A[A[A[AProcessing Files (329 / 334)  :  48%|████▊     | 1.83GB / 3.77GB, 1.38GB/s  
+
+  .../full/embeddings_clip.npy:  74%|███████▍  |  264MB /  355MB            [A[A
+
+
+  ...tputs/full/embeddings.npy:  39%|███▉      |  256MB /  652MB            [A[A[A
+
+
+
+  ...a_shuffled_checkpoint.npz:  50%|█████     |  272MB /  540MB            [A[A[A[A
+
+
+
+
+  ...ull/embeddings_random.npy:  42%|████▏     |  272MB /  652MB            [A[A[A[A[A
+
+
+
+
+
+  ...ull/embeddings_dinov2.npy:  34%|███▍      |  240MB /  711MB            [A[A[A[A[A[A
+
+
+
+
+
+
+  ...epa_shuffled_lighting.pdf: 100%|██████████|  176kB /  176kB            [A[A[A[A[A[A[A
+
+
+
+
+
+
+
+  ...epa_shuffled_lighting.png: 100%|██████████| 1.45MB / 1.45MB            [A[A[A[A[A[A[A[A
+
+
+
+
+
+
+
+
+  ...an_vehicle_separation.pdf: 100%|██████████|  181kB /  181kB            [A[A[A[A[A[A[A[A[A
+
+
+
+
+
+
+
+
+
+  ...nfrastructure_quality.png: 100%|██████████| 1.51MB / 1.51MB            [A[A[A[A[A[A[A[A[A[A
+
+
+
+
+
+
+
+
+
+
+  [+ 119 files]               :  69%|██████▉   |  107MB /  156MB            [A[A[A[A[A[A[A[A[A[A[AProcessing Files (446 / 453)  :  56%|█████▌    | 2.10GB / 3.77GB, 1.37GB/s  
+
+  .../full/embeddings_clip.npy:  83%|████████▎ |  296MB /  355MB            [A[A
+
+
+  ...tputs/full/embeddings.npy:  44%|████▍     |  288MB /  652MB            [A[A[A
+
+
+
+  ...a_shuffled_checkpoint.npz:  56%|█████▌    |  304MB /  540MB            [A[A[A[A
+
+
+
+
+  ...ull/embeddings_random.npy:  47%|████▋     |  304MB /  652MB            [A[A[A[A[A
+
+
+
+
+
+  ...ull/embeddings_dinov2.npy:  38%|███▊      |  272MB /  711MB            [A[A[A[A[A[A
+
+
+
+
+
+
+  ...puts/poc/overlap_augA.npy: 100%|██████████| 56.3MB / 56.3MB            [A[A[A[A[A[A[A
+
+
+
+
+
+
+
+  ...puts/poc/overlap_augB.npy: 100%|██████████| 56.3MB / 56.3MB            [A[A[A[A[A[A[A[A
+
+
+
+
+
+
+
+
+  ...nfusion_matrix_dinov2.png: 100%|██████████|  105kB /  105kB            [A[A[A[A[A[A[A[A[A
+
+
+
+
+
+
+
+
+
+  ..._dinov2_crowd_density.png: 100%|██████████| 51.0kB / 51.0kB            [A[A[A[A[A[A[A[A[A[A
+
+
+
+
+
+
+
+
+
+
+  [+ 148 files]               : 100%|██████████| 14.8MB / 14.8MB            [A[A[A[A[A[A[A[A[A[A[AProcessing Files (596 / 601)  :  62%|██████▏   | 2.32GB / 3.77GB, 1.34GB/s  
+
+  .../full/embeddings_clip.npy:  92%|█████████▏|  328MB /  355MB            [A[A
+
+
+  ...tputs/full/embeddings.npy:  49%|████▉     |  320MB /  652MB            [A[A[A
+
+
+
+  ...a_shuffled_checkpoint.npz:  62%|██████▏   |  336MB /  540MB            [A[A[A[A
+
+
+
+
+  ...ull/embeddings_random.npy:  53%|█████▎    |  344MB /  652MB            [A[A[A[A[A
+
+
+
+
+
+  ...ull/embeddings_dinov2.npy:  44%|████▍     |  312MB /  711MB            [A[A[A[A[A[A
+
+
+
+
+
+
+  ...utputs/sanity/umap_2d.npy: 100%|██████████|   528B /   528B            [A[A[A[A[A[A[A
+
+
+
+
+
+
+
+  ...s/sanity/umap_2d_clip.npy: 100%|██████████|   528B /   528B            [A[A[A[A[A[A[A[A
+
+
+
+
+
+
+
+
+  ...sanity/umap_2d_dinov2.npy: 100%|██████████|   528B /   528B            [A[A[A[A[A[A[A[A[A
+
+
+
+
+
+
+
+
+
+  ...sanity/umap_2d_random.npy: 100%|██████████|   528B /   528B            [A[A[A[A[A[A[A[A[A[A
+
+
+
+
+
+
+
+
+
+
+  ...map_2d_vjepa_shuffled.npy: 100%|██████████|   528B /   528B            [A[A[A[A[A[A[A[A[A[A[AProcessing Files (596 / 601)  :  66%|██████▋   | 2.50GB / 3.77GB, 1.29GB/s  
+
+  .../full/embeddings_clip.npy: 100%|██████████|  355MB /  355MB            [A[A
+
+
+  ...tputs/full/embeddings.npy:  55%|█████▌    |  360MB /  652MB            [A[A[A
+
+
+
+  ...a_shuffled_checkpoint.npz:  70%|██████▉   |  376MB /  540MB            [A[A[A[A
+
+
+
+
+  ...ull/embeddings_random.npy:  58%|█████▊    |  376MB /  652MB            [A[A[A[A[A
+
+
+
+
+
+  ...ull/embeddings_dinov2.npy:  50%|████▉     |  352MB /  711MB            [A[A[A[A[A[A
+
+
+
+
+
+
+  ...utputs/sanity/umap_2d.npy: 100%|██████████|   528B /   528B            [A[A[A[A[A[A[A
+
+
+
+
+
+
+
+  ...s/sanity/umap_2d_clip.npy: 100%|██████████|   528B /   528B            [A[A[A[A[A[A[A[A
+
+
+
+
+
+
+
+
+  ...sanity/umap_2d_dinov2.npy: 100%|██████████|   528B /   528B            [A[A[A[A[A[A[A[A[A
+
+
+
+
+
+
+
+
+
+  ...sanity/umap_2d_random.npy: 100%|██████████|   528B /   528B            [A[A[A[A[A[A[A[A[A[A
+
+
+
+
+
+
+
+
+
+
+  ...map_2d_vjepa_shuffled.npy: 100%|██████████|   528B /   528B            [A[A[A[A[A[A[A[A[A[A[AProcessing Files (597 / 601)  :  71%|███████   | 2.68GB / 3.77GB, 1.25GB/s  
+
+  .../full/embeddings_clip.npy: 100%|██████████|  355MB /  355MB            [A[A
+
+
+  ...tputs/full/embeddings.npy:  64%|██████▍   |  416MB /  652MB            [A[A[A
+
+
+
+  ...a_shuffled_checkpoint.npz:  80%|███████▉  |  432MB /  540MB            [A[A[A[A
+
+
+
+
+  ...ull/embeddings_random.npy:  63%|██████▎   |  408MB /  652MB            [A[A[A[A[A
+
+
+
+
+
+  ...ull/embeddings_dinov2.npy:  55%|█████▌    |  392MB /  711MB            [A[A[A[A[A[A
+
+
+
+
+
+
+  ...utputs/sanity/umap_2d.npy: 100%|██████████|   528B /   528B            [A[A[A[A[A[A[A
+
+
+
+
+
+
+
+  ...s/sanity/umap_2d_clip.npy: 100%|██████████|   528B /   528B            [A[A[A[A[A[A[A[A
+
+
+
+
+
+
+
+
+  ...sanity/umap_2d_dinov2.npy: 100%|██████████|   528B /   528B            [A[A[A[A[A[A[A[A[A
+
+
+
+
+
+
+
+
+
+  ...sanity/umap_2d_random.npy: 100%|██████████|   528B /   528B            [A[A[A[A[A[A[A[A[A[A
+
+
+
+
+
+
+
+
+
+
+  ...map_2d_vjepa_shuffled.npy: 100%|██████████|   528B /   528B            [A[A[A[A[A[A[A[A[A[A[AProcessing Files (597 / 601)  :  76%|███████▌  | 2.86GB / 3.77GB, 1.22GB/s  
+
+  .../full/embeddings_clip.npy: 100%|██████████|  355MB /  355MB            [A[A
+
+
+  ...tputs/full/embeddings.npy:  72%|███████▏  |  472MB /  652MB            [A[A[A
+
+
+
+  ...a_shuffled_checkpoint.npz:  90%|█████████ |  488MB /  540MB            [A[A[A[A
+
+
+
+
+  ...ull/embeddings_random.npy:  70%|██████▉   |  456MB /  652MB            [A[A[A[A[A
+
+
+
+
+
+  ...ull/embeddings_dinov2.npy:  63%|██████▎   |  448MB /  711MB            [A[A[A[A[A[A
+
+
+
+
+
+
+  ...utputs/sanity/umap_2d.npy: 100%|██████████|   528B /   528B            [A[A[A[A[A[A[A
+
+
+
+
+
+
+
+  ...s/sanity/umap_2d_clip.npy: 100%|██████████|   528B /   528B            [A[A[A[A[A[A[A[A
+
+
+
+
+
+
+
+
+  ...sanity/umap_2d_dinov2.npy: 100%|██████████|   528B /   528B            [A[A[A[A[A[A[A[A[A
+
+
+
+
+
+
+
+
+
+  ...sanity/umap_2d_random.npy: 100%|██████████|   528B /   528B            [A[A[A[A[A[A[A[A[A[A
+
+
+
+
+
+
+
+
+
+
+  ...map_2d_vjepa_shuffled.npy: 100%|██████████|   528B /   528B            [A[A[A[A[A[A[A[A[A[A[AProcessing Files (597 / 601)  :  82%|████████▏ | 3.08GB / 3.77GB, 1.21GB/s  
+
+  .../full/embeddings_clip.npy: 100%|██████████|  355MB /  355MB            [A[A
+
+
+  ...tputs/full/embeddings.npy:  79%|███████▊  |  512MB /  652MB            [A[A[A
+
+
+
+  ...a_shuffled_checkpoint.npz:  98%|█████████▊|  528MB /  540MB            [A[A[A[A
+
+
+
+
+  ...ull/embeddings_random.npy:  76%|███████▌  |  496MB /  652MB            [A[A[A[A[A
+
+
+
+
+
+  ...ull/embeddings_dinov2.npy:  69%|██████▊   |  488MB /  711MB            [A[A[A[A[A[A
+
+
+
+
+
+
+  ...utputs/sanity/umap_2d.npy: 100%|██████████|   528B /   528B            [A[A[A[A[A[A[A
+
+
+
+
+
+
+
+  ...s/sanity/umap_2d_clip.npy: 100%|██████████|   528B /   528B            [A[A[A[A[A[A[A[A
+
+
+
+
+
+
+
+
+  ...sanity/umap_2d_dinov2.npy: 100%|██████████|   528B /   528B            [A[A[A[A[A[A[A[A[A
+
+
+
+
+
+
+
+
+
+  ...sanity/umap_2d_random.npy: 100%|██████████|   528B /   528B            [A[A[A[A[A[A[A[A[A[A
+
+
+
+
+
+
+
+
+
+
+  ...map_2d_vjepa_shuffled.npy: 100%|██████████|   528B /   528B            [A[A[A[A[A[A[A[A[A[A[AProcessing Files (597 / 601)  :  86%|████████▌ | 3.24GB / 3.77GB, 1.18GB/s  
+
+  .../full/embeddings_clip.npy: 100%|██████████|  355MB /  355MB            [A[A
+
+
+  ...tputs/full/embeddings.npy:  82%|████████▏ |  536MB /  652MB            [A[A[A
+
+
+
+  ...a_shuffled_checkpoint.npz: 100%|██████████|  540MB /  540MB            [A[A[A[A
+
+
+
+
+  ...ull/embeddings_random.npy:  81%|████████  |  528MB /  652MB            [A[A[A[A[A
+
+
+
+
+
+  ...ull/embeddings_dinov2.npy:  73%|███████▎  |  520MB /  711MB            [A[A[A[A[A[A
+
+
+
+
+
+
+  ...utputs/sanity/umap_2d.npy: 100%|██████████|   528B /   528B            [A[A[A[A[A[A[A
+
+
+
+
+
+
+
+  ...s/sanity/umap_2d_clip.npy: 100%|██████████|   528B /   528B            [A[A[A[A[A[A[A[A
+
+
+
+
+
+
+
+
+  ...sanity/umap_2d_dinov2.npy: 100%|██████████|   528B /   528B            [A[A[A[A[A[A[A[A[A
+
+
+
+
+
+
+
+
+
+  ...sanity/umap_2d_random.npy: 100%|██████████|   528B /   528B            [A[A[A[A[A[A[A[A[A[A
+
+
+
+
+
+
+
+
+
+
+  ...map_2d_vjepa_shuffled.npy: 100%|██████████|   528B /   528B            [A[A[A[A[A[A[A[A[A[A[AProcessing Files (598 / 601)  :  89%|████████▊ | 3.34GB / 3.77GB, 1.13GB/s  
+
+  .../full/embeddings_clip.npy: 100%|██████████|  355MB /  355MB            [A[A
+
+
+  ...tputs/full/embeddings.npy:  87%|████████▋ |  568MB /  652MB            [A[A[A
+
+
+
+  ...a_shuffled_checkpoint.npz: 100%|██████████|  540MB /  540MB            [A[A[A[A
+
+
+
+
+  ...ull/embeddings_random.npy:  85%|████████▍ |  552MB /  652MB            [A[A[A[A[A
+
+
+
+
+
+  ...ull/embeddings_dinov2.npy:  77%|███████▋  |  544MB /  711MB            [A[A[A[A[A[A
+
+
+
+
+
+
+  ...utputs/sanity/umap_2d.npy: 100%|██████████|   528B /   528B            [A[A[A[A[A[A[A
+
+
+
+
+
+
+
+  ...s/sanity/umap_2d_clip.npy: 100%|██████████|   528B /   528B            [A[A[A[A[A[A[A[A
+
+
+
+
+
+
+
+
+  ...sanity/umap_2d_dinov2.npy: 100%|██████████|   528B /   528B            [A[A[A[A[A[A[A[A[A
+
+
+
+
+
+
+
+
+
+  ...sanity/umap_2d_random.npy: 100%|██████████|   528B /   528B            [A[A[A[A[A[A[A[A[A[A
+
+
+
+
+
+
+
+
+
+
+  ...map_2d_vjepa_shuffled.npy: 100%|██████████|   528B /   528B            [A[A[A[A[A[A[A[A[A[A[AProcessing Files (598 / 601)  :  91%|█████████ | 3.42GB / 3.77GB, 1.08GB/s  
+
+  .../full/embeddings_clip.npy: 100%|██████████|  355MB /  355MB            [A[A
+
+
+  ...tputs/full/embeddings.npy:  91%|█████████ |  592MB /  652MB            [A[A[A
+
+
+
+  ...a_shuffled_checkpoint.npz: 100%|██████████|  540MB /  540MB            [A[A[A[A
+
+
+
+
+  ...ull/embeddings_random.npy:  88%|████████▊ |  576MB /  652MB            [A[A[A[A[A
+
+
+
+
+
+  ...ull/embeddings_dinov2.npy:  81%|████████  |  576MB /  711MB            [A[A[A[A[A[A
+
+
+
+
+
+
+  ...utputs/sanity/umap_2d.npy: 100%|██████████|   528B /   528B            [A[A[A[A[A[A[A
+
+
+
+
+
+
+
+  ...s/sanity/umap_2d_clip.npy: 100%|██████████|   528B /   528B            [A[A[A[A[A[A[A[A
+
+
+
+
+
+
+
+
+  ...sanity/umap_2d_dinov2.npy: 100%|██████████|   528B /   528B            [A[A[A[A[A[A[A[A[A
+
+
+
+
+
+
+
+
+
+  ...sanity/umap_2d_random.npy: 100%|██████████|   528B /   528B            [A[A[A[A[A[A[A[A[A[A
+
+
+
+
+
+
+
+
+
+
+  ...map_2d_vjepa_shuffled.npy: 100%|██████████|   528B /   528B            [A[A[A[A[A[A[A[A[A[A[AProcessing Files (598 / 601)  :  93%|█████████▎| 3.50GB / 3.77GB, 1.04GB/s  
+
+  .../full/embeddings_clip.npy: 100%|██████████|  355MB /  355MB            [A[A
+
+
+  ...tputs/full/embeddings.npy:  95%|█████████▍|  616MB /  652MB            [A[A[A
+
+
+
+  ...a_shuffled_checkpoint.npz: 100%|██████████|  540MB /  540MB            [A[A[A[A
+
+
+
+
+  ...ull/embeddings_random.npy:  92%|█████████▏|  600MB /  652MB            [A[A[A[A[A
+
+
+
+
+
+  ...ull/embeddings_dinov2.npy:  84%|████████▍ |  600MB /  711MB            [A[A[A[A[A[A
+
+
+
+
+
+
+  ...utputs/sanity/umap_2d.npy: 100%|██████████|   528B /   528B            [A[A[A[A[A[A[A
+
+
+
+
+
+
+
+  ...s/sanity/umap_2d_clip.npy: 100%|██████████|   528B /   528B            [A[A[A[A[A[A[A[A
+
+
+
+
+
+
+
+
+  ...sanity/umap_2d_dinov2.npy: 100%|██████████|   528B /   528B            [A[A[A[A[A[A[A[A[A
+
+
+
+
+
+
+
+
+
+  ...sanity/umap_2d_random.npy: 100%|██████████|   528B /   528B            [A[A[A[A[A[A[A[A[A[A
+
+
+
+
+
+
+
+
+
+
+  ...map_2d_vjepa_shuffled.npy: 100%|██████████|   528B /   528B            [A[A[A[A[A[A[A[A[A[A[AProcessing Files (598 / 601)  :  95%|█████████▍| 3.57GB / 3.77GB,  999MB/s  
+
+  .../full/embeddings_clip.npy: 100%|██████████|  355MB /  355MB            [A[A
+
+
+  ...tputs/full/embeddings.npy:  98%|█████████▊|  640MB /  652MB            [A[A[A
+
+
+
+  ...a_shuffled_checkpoint.npz: 100%|██████████|  540MB /  540MB            [A[A[A[A
+
+
+
+
+  ...ull/embeddings_random.npy:  96%|█████████▌|  624MB /  652MB            [A[A[A[A[A
+
+
+
+
+
+  ...ull/embeddings_dinov2.npy:  88%|████████▊ |  624MB /  711MB            [A[A[A[A[A[A
+
+
+
+
+
+
+  ...utputs/sanity/umap_2d.npy: 100%|██████████|   528B /   528B            [A[A[A[A[A[A[A
+
+
+
+
+
+
+
+  ...s/sanity/umap_2d_clip.npy: 100%|██████████|   528B /   528B            [A[A[A[A[A[A[A[A
+
+
+
+
+
+
+
+
+  ...sanity/umap_2d_dinov2.npy: 100%|██████████|   528B /   528B            [A[A[A[A[A[A[A[A[A
+
+
+
+
+
+
+
+
+
+  ...sanity/umap_2d_random.npy: 100%|██████████|   528B /   528B            [A[A[A[A[A[A[A[A[A[A
+
+
+
+
+
+
+
+
+
+
+  ...map_2d_vjepa_shuffled.npy: 100%|██████████|   528B /   528B            [A[A[A[A[A[A[A[A[A[A[AProcessing Files (598 / 601)  :  97%|█████████▋| 3.64GB / 3.77GB,  963MB/s  
+
+  .../full/embeddings_clip.npy: 100%|██████████|  355MB /  355MB            [A[A
+
+
+  ...tputs/full/embeddings.npy: 100%|██████████|  652MB /  652MB            [A[A[A
+
+
+
+  ...a_shuffled_checkpoint.npz: 100%|██████████|  540MB /  540MB            [A[A[A[A
+
+
+
+
+  ...ull/embeddings_random.npy: 100%|██████████|  652MB /  652MB            [A[A[A[A[A
+
+
+
+
+
+  ...ull/embeddings_dinov2.npy:  91%|█████████ |  648MB /  711MB            [A[A[A[A[A[A
+
+
+
+
+
+
+  ...utputs/sanity/umap_2d.npy: 100%|██████████|   528B /   528B            [A[A[A[A[A[A[A
+
+
+
+
+
+
+
+  ...s/sanity/umap_2d_clip.npy: 100%|██████████|   528B /   528B            [A[A[A[A[A[A[A[A
+
+
+
+
+
+
+
+
+  ...sanity/umap_2d_dinov2.npy: 100%|██████████|   528B /   528B            [A[A[A[A[A[A[A[A[A
+
+
+
+
+
+
+
+
+
+  ...sanity/umap_2d_random.npy: 100%|██████████|   528B /   528B            [A[A[A[A[A[A[A[A[A[A
+
+
+
+
+
+
+
+
+
+
+  ...map_2d_vjepa_shuffled.npy: 100%|██████████|   528B /   528B            [A[A[A[A[A[A[A[A[A[A[AProcessing Files (600 / 601)  :  98%|█████████▊| 3.71GB / 3.77GB,  929MB/s  
+
+  .../full/embeddings_clip.npy: 100%|██████████|  355MB /  355MB            [A[A
+
+
+  ...tputs/full/embeddings.npy: 100%|██████████|  652MB /  652MB            [A[A[A
+
+
+
+  ...a_shuffled_checkpoint.npz: 100%|██████████|  540MB /  540MB            [A[A[A[A
+
+
+
+
+  ...ull/embeddings_random.npy: 100%|██████████|  652MB /  652MB            [A[A[A[A[A
+
+
+
+
+
+  ...ull/embeddings_dinov2.npy:  96%|█████████▌|  680MB /  711MB            [A[A[A[A[A[A
+
+
+
+
+
+
+  ...utputs/sanity/umap_2d.npy: 100%|██████████|   528B /   528B            [A[A[A[A[A[A[A
+
+
+
+
+
+
+
+  ...s/sanity/umap_2d_clip.npy: 100%|██████████|   528B /   528B            [A[A[A[A[A[A[A[A
+
+
+
+
+
+
+
+
+  ...sanity/umap_2d_dinov2.npy: 100%|██████████|   528B /   528B            [A[A[A[A[A[A[A[A[A
+
+
+
+
+
+
+
+
+
+  ...sanity/umap_2d_random.npy: 100%|██████████|   528B /   528B            [A[A[A[A[A[A[A[A[A[A
+
+
+
+
+
+
+
+
+
+
+  ...map_2d_vjepa_shuffled.npy: 100%|██████████|   528B /   528B            [A[A[A[A[A[A[A[A[A[A[AProcessing Files (600 / 601)  :  99%|█████████▉| 3.74GB / 3.77GB,  891MB/s  
+
+  .../full/embeddings_clip.npy: 100%|██████████|  355MB /  355MB            [A[A
+
+
+  ...tputs/full/embeddings.npy: 100%|██████████|  652MB /  652MB            [A[A[A
+
+
+
+  ...a_shuffled_checkpoint.npz: 100%|██████████|  540MB /  540MB            [A[A[A[A
+
+
+
+
+  ...ull/embeddings_random.npy: 100%|██████████|  652MB /  652MB            [A[A[A[A[A
+
+
+
+
+
+  ...ull/embeddings_dinov2.npy:  99%|█████████▉|  704MB /  711MB            [A[A[A[A[A[A
+
+
+
+
+
+
+  ...utputs/sanity/umap_2d.npy: 100%|██████████|   528B /   528B            [A[A[A[A[A[A[A
+
+
+
+
+
+
+
+  ...s/sanity/umap_2d_clip.npy: 100%|██████████|   528B /   528B            [A[A[A[A[A[A[A[A
+
+
+
+
+
+
+
+
+  ...sanity/umap_2d_dinov2.npy: 100%|██████████|   528B /   528B            [A[A[A[A[A[A[A[A[A
+
+
+
+
+
+
+
+
+
+  ...sanity/umap_2d_random.npy: 100%|██████████|   528B /   528B            [A[A[A[A[A[A[A[A[A[A
+
+
+
+
+
+
+
+
+
+
+  ...map_2d_vjepa_shuffled.npy: 100%|██████████|   528B /   528B            [A[A[A[A[A[A[A[A[A[A[AProcessing Files (600 / 601)  : 100%|█████████▉| 3.76GB / 3.77GB,  854MB/s  
+
+  .../full/embeddings_clip.npy: 100%|██████████|  355MB /  355MB            [A[A
+
+
+  ...tputs/full/embeddings.npy: 100%|██████████|  652MB /  652MB            [A[A[A
+
+
+
+  ...a_shuffled_checkpoint.npz: 100%|██████████|  540MB /  540MB            [A[A[A[A
+
+
+
+
+  ...ull/embeddings_random.npy: 100%|██████████|  652MB /  652MB            [A[A[A[A[A
+
+
+
+
+
+  ...ull/embeddings_dinov2.npy: 100%|██████████|  711MB /  711MB            [A[A[A[A[A[A
+
+
+
+
+
+
+  ...utputs/sanity/umap_2d.npy: 100%|██████████|   528B /   528B            [A[A[A[A[A[A[A
+
+
+
+
+
+
+
+  ...s/sanity/umap_2d_clip.npy: 100%|██████████|   528B /   528B            [A[A[A[A[A[A[A[A
+
+
+
+
+
+
+
+
+  ...sanity/umap_2d_dinov2.npy: 100%|██████████|   528B /   528B            [A[A[A[A[A[A[A[A[A
+
+
+
+
+
+
+
+
+
+  ...sanity/umap_2d_random.npy: 100%|██████████|   528B /   528B            [A[A[A[A[A[A[A[A[A[A
+
+
+
+
+
+
+
+
+
+
+  ...map_2d_vjepa_shuffled.npy: 100%|██████████|   528B /   528B            [A[A[A[A[A[A[A[A[A[A[AProcessing Files (601 / 601)  : 100%|██████████| 3.77GB / 3.77GB,  817MB/s  
+
+  .../full/embeddings_clip.npy: 100%|██████████|  355MB /  355MB            [A[A
+
+
+  ...tputs/full/embeddings.npy: 100%|██████████|  652MB /  652MB            [A[A[A
+
+
+
+  ...a_shuffled_checkpoint.npz: 100%|██████████|  540MB /  540MB            [A[A[A[A
+
+
+
+
+  ...ull/embeddings_random.npy: 100%|██████████|  652MB /  652MB            [A[A[A[A[A
+
+
+
+
+
+  ...ull/embeddings_dinov2.npy: 100%|██████████|  711MB /  711MB            [A[A[A[A[A[A
+
+
+
+
+
+
+  ...utputs/sanity/umap_2d.npy: 100%|██████████|   528B /   528B            [A[A[A[A[A[A[A
+
+
+
+
+
+
+
+  ...s/sanity/umap_2d_clip.npy: 100%|██████████|   528B /   528B            [A[A[A[A[A[A[A[A
+
+
+
+
+
+
+
+
+  ...sanity/umap_2d_dinov2.npy: 100%|██████████|   528B /   528B            [A[A[A[A[A[A[A[A[A
+
+
+
+
+
+
+
+
+
+  ...sanity/umap_2d_random.npy: 100%|██████████|   528B /   528B            [A[A[A[A[A[A[A[A[A[A
+
+
+
+
+
+
+
+
+
+
+  ...map_2d_vjepa_shuffled.npy: 100%|██████████|   528B /   528B            [A[A[A[A[A[A[A[A[A[A[A
+
+  .../full/embeddings_clip.npy: 100%|██████████|  355MB /  355MB            [A[A
+
+
+  ...tputs/full/embeddings.npy: 100%|██████████|  652MB /  652MB            [A[A[A
+
+
+
+  ...a_shuffled_checkpoint.npz: 100%|██████████|  540MB /  540MB            [A[A[A[A
+
+
+
+
+  ...ull/embeddings_random.npy: 100%|██████████|  652MB /  652MB            [A[A[A[A[A
+
+
+
+
+
+  ...ull/embeddings_dinov2.npy: 100%|██████████|  711MB /  711MB            [A[A[A[A[A[A
+
+
+
+
+
+
+  ...utputs/sanity/umap_2d.npy: 100%|██████████|   528B /   528B            [A[A[A[A[A[A[A
+
+
+
+
+
+
+
+  ...s/sanity/umap_2d_clip.npy: 100%|██████████|   528B /   528B            [A[A[A[A[A[A[A[A
+
+
+
+
+
+
+
+
+  ...sanity/umap_2d_dinov2.npy: 100%|██████████|   528B /   528B            [A[A[A[A[A[A[A[A[A
+
+
+
+
+
+
+
+
+
+  ...sanity/umap_2d_random.npy: 100%|██████████|   528B /   528B            [A[A[A[A[A[A[A[A[A[A
+
+
+
+
+
+
+
+
+
+
+  ...map_2d_vjepa_shuffled.npy: 100%|██████████|   528B /   528B            [A[A[A[A[A[A[A[A[A[A[A
+
+  .../full/embeddings_clip.npy: 100%|██████████|  355MB /  355MB            [A[A
+
+
+  ...tputs/full/embeddings.npy: 100%|██████████|  652MB /  652MB            [A[A[A
+
+
+
+  ...a_shuffled_checkpoint.npz: 100%|██████████|  540MB /  540MB            [A[A[A[A
+
+
+
+
+  ...ull/embeddings_random.npy: 100%|██████████|  652MB /  652MB            [A[A[A[A[A
+
+
+
+
+
+  ...ull/embeddings_dinov2.npy: 100%|██████████|  711MB /  711MB            [A[A[A[A[A[A
+
+
+
+
+
+
+  ...utputs/sanity/umap_2d.npy: 100%|██████████|   528B /   528B            [A[A[A[A[A[A[A
+
+
+
+
+
+
+
+  ...s/sanity/umap_2d_clip.npy: 100%|██████████|   528B /   528B            [A[A[A[A[A[A[A[A
+
+
+
+
+
+
+
+
+  ...sanity/umap_2d_dinov2.npy: 100%|██████████|   528B /   528B            [A[A[A[A[A[A[A[A[A
+
+
+
+
+
+
+
+
+
+  ...sanity/umap_2d_random.npy: 100%|██████████|   528B /   528B            [A[A[A[A[A[A[A[A[A[A
+
+
+
+
+
+
+
+
+
+
+  ...map_2d_vjepa_shuffled.npy: 100%|██████████|   528B /   528B            [A[A[A[A[A[A[A[A[A[A[A
+
+  .../full/embeddings_clip.npy: 100%|██████████|  355MB /  355MB            [A[A
+
+
+  ...tputs/full/embeddings.npy: 100%|██████████|  652MB /  652MB            [A[A[A
+
+
+
+  ...a_shuffled_checkpoint.npz: 100%|██████████|  540MB /  540MB            [A[A[A[A
+
+
+
+
+  ...ull/embeddings_random.npy: 100%|██████████|  652MB /  652MB            [A[A[A[A[A
+
+
+
+
+
+  ...ull/embeddings_dinov2.npy: 100%|██████████|  711MB /  711MB            [A[A[A[A[A[A
+
+
+
+
+
+
+  ...utputs/sanity/umap_2d.npy: 100%|██████████|   528B /   528B            [A[A[A[A[A[A[A
+
+
+
+
+
+
+
+  ...s/sanity/umap_2d_clip.npy: 100%|██████████|   528B /   528B            [A[A[A[A[A[A[A[A
+
+
+
+
+
+
+
+
+  ...sanity/umap_2d_dinov2.npy: 100%|██████████|   528B /   528B            [A[A[A[A[A[A[A[A[A
+
+
+
+
+
+
+
+
+
+  ...sanity/umap_2d_random.npy: 100%|██████████|   528B /   528B            [A[A[A[A[A[A[A[A[A[A
+
+
+
+
+
+
+
+
+
+
+  ...map_2d_vjepa_shuffled.npy: 100%|██████████|   528B /   528B            [A[A[A[A[A[A[A[A[A[A[A
+
+  .../full/embeddings_clip.npy: 100%|██████████|  355MB /  355MB            [A[A
+
+
+  ...tputs/full/embeddings.npy: 100%|██████████|  652MB /  652MB            [A[A[A
+
+
+
+  ...a_shuffled_checkpoint.npz: 100%|██████████|  540MB /  540MB            [A[A[A[A
+
+
+
+
+  ...ull/embeddings_random.npy: 100%|██████████|  652MB /  652MB            [A[A[A[A[A
+
+
+
+
+
+  ...ull/embeddings_dinov2.npy: 100%|██████████|  711MB /  711MB            [A[A[A[A[A[A
+
+
+
+
+
+
+  ...utputs/sanity/umap_2d.npy: 100%|██████████|   528B /   528B            [A[A[A[A[A[A[A
+
+
+
+
+
+
+
+  ...s/sanity/umap_2d_clip.npy: 100%|██████████|   528B /   528B            [A[A[A[A[A[A[A[A
+
+
+
+
+
+
+
+
+  ...sanity/umap_2d_dinov2.npy: 100%|██████████|   528B /   528B            [A[A[A[A[A[A[A[A[A
+
+
+
+
+
+
+
+
+
+  ...sanity/umap_2d_random.npy: 100%|██████████|   528B /   528B            [A[A[A[A[A[A[A[A[A[A
+
+
+
+
+
+
+
+
+
+
+  ...map_2d_vjepa_shuffled.npy: 100%|██████████|   528B /   528B            [A[A[A[A[A[A[A[A[A[A[A
+
+  .../full/embeddings_clip.npy: 100%|██████████|  355MB /  355MB            [A[A
+
+
+  ...tputs/full/embeddings.npy: 100%|██████████|  652MB /  652MB            [A[A[A
+
+
+
+  ...a_shuffled_checkpoint.npz: 100%|██████████|  540MB /  540MB            [A[A[A[A
+
+
+
+
+  ...ull/embeddings_random.npy: 100%|██████████|  652MB /  652MB            [A[A[A[A[A
+
+
+
+
+
+  ...ull/embeddings_dinov2.npy: 100%|██████████|  711MB /  711MB            [A[A[A[A[A[A
+
+
+
+
+
+
+  ...utputs/sanity/umap_2d.npy: 100%|██████████|   528B /   528B            [A[A[A[A[A[A[A
+
+
+
+
+
+
+
+  ...s/sanity/umap_2d_clip.npy: 100%|██████████|   528B /   528B            [A[A[A[A[A[A[A[A
+
+
+
+
+
+
+
+
+  ...sanity/umap_2d_dinov2.npy: 100%|██████████|   528B /   528B            [A[A[A[A[A[A[A[A[A
+
+
+
+
+
+
+
+
+
+  ...sanity/umap_2d_random.npy: 100%|██████████|   528B /   528B            [A[A[A[A[A[A[A[A[A[A
+
+
+
+
+
+
+
+
+
+
+  ...map_2d_vjepa_shuffled.npy: 100%|██████████|   528B /   528B            [A[A[A[A[A[A[A[A[A[A[A
+
+  .../full/embeddings_clip.npy: 100%|██████████|  355MB /  355MB            [A[A
+
+
+  ...tputs/full/embeddings.npy: 100%|██████████|  652MB /  652MB            [A[A[A
+
+
+
+  ...a_shuffled_checkpoint.npz: 100%|██████████|  540MB /  540MB            [A[A[A[A
+
+
+
+
+  ...ull/embeddings_random.npy: 100%|██████████|  652MB /  652MB            [A[A[A[A[A
+
+
+
+
+
+  ...ull/embeddings_dinov2.npy: 100%|██████████|  711MB /  711MB            [A[A[A[A[A[A
+
+
+
+
+
+
+  ...utputs/sanity/umap_2d.npy: 100%|██████████|   528B /   528B            [A[A[A[A[A[A[A
+
+
+
+
+
+
+
+  ...s/sanity/umap_2d_clip.npy: 100%|██████████|   528B /   528B            [A[A[A[A[A[A[A[A
+
+
+
+
+
+
+
+
+  ...sanity/umap_2d_dinov2.npy: 100%|██████████|   528B /   528B            [A[A[A[A[A[A[A[A[A
+
+
+
+
+
+
+
+
+
+  ...sanity/umap_2d_random.npy: 100%|██████████|   528B /   528B            [A[A[A[A[A[A[A[A[A[A
+
+
+
+
+
+
+
+
+
+
+  ...map_2d_vjepa_shuffled.npy: 100%|██████████|   528B /   528B            [A[A[A[A[A[A[A[A[A[A[A
+
+  .../full/embeddings_clip.npy: 100%|██████████|  355MB /  355MB            [A[A
+
+
+  ...tputs/full/embeddings.npy: 100%|██████████|  652MB /  652MB            [A[A[A
+
+
+
+  ...a_shuffled_checkpoint.npz: 100%|██████████|  540MB /  540MB            [A[A[A[A
+
+
+
+
+  ...ull/embeddings_random.npy: 100%|██████████|  652MB /  652MB            [A[A[A[A[A
+
+
+
+
+
+  ...ull/embeddings_dinov2.npy: 100%|██████████|  711MB /  711MB            [A[A[A[A[A[A
+
+
+
+
+
+
+  ...utputs/sanity/umap_2d.npy: 100%|██████████|   528B /   528B            [A[A[A[A[A[A[A
+
+
+
+
+
+
+
+  ...s/sanity/umap_2d_clip.npy: 100%|██████████|   528B /   528B            [A[A[A[A[A[A[A[A
+
+
+
+
+
+
+
+
+  ...sanity/umap_2d_dinov2.npy: 100%|██████████|   528B /   528B            [A[A[A[A[A[A[A[A[A
+
+
+
+
+
+
+
+
+
+  ...sanity/umap_2d_random.npy: 100%|██████████|   528B /   528B            [A[A[A[A[A[A[A[A[A[A
+
+
+
+
+
+
+
+
+
+
+  ...map_2d_vjepa_shuffled.npy: 100%|██████████|   528B /   528B            [A[A[A[A[A[A[A[A[A[A[A
+
+  .../full/embeddings_clip.npy: 100%|██████████|  355MB /  355MB            [A[A
+
+
+  ...tputs/full/embeddings.npy: 100%|██████████|  652MB /  652MB            [A[A[A
+
+
+
+  ...a_shuffled_checkpoint.npz: 100%|██████████|  540MB /  540MB            [A[A[A[A
+
+
+
+
+  ...ull/embeddings_random.npy: 100%|██████████|  652MB /  652MB            [A[A[A[A[A
+
+
+
+
+
+  ...ull/embeddings_dinov2.npy: 100%|██████████|  711MB /  711MB            [A[A[A[A[A[A
+
+
+
+
+
+
+  ...utputs/sanity/umap_2d.npy: 100%|██████████|   528B /   528B            [A[A[A[A[A[A[A
+
+
+
+
+
+
+
+  ...s/sanity/umap_2d_clip.npy: 100%|██████████|   528B /   528B            [A[A[A[A[A[A[A[A
+
+
+
+
+
+
+
+
+  ...sanity/umap_2d_dinov2.npy: 100%|██████████|   528B /   528B            [A[A[A[A[A[A[A[A[A
+
+
+
+
+
+
+
+
+
+  ...sanity/umap_2d_random.npy: 100%|██████████|   528B /   528B            [A[A[A[A[A[A[A[A[A[A
+
+
+
+
+
+
+
+
+
+
+  ...map_2d_vjepa_shuffled.npy: 100%|██████████|   528B /   528B            [A[A[A[A[A[A[A[A[A[A[AProcessing Files (601 / 601)  : 100%|██████████| 3.77GB / 3.77GB,  599MB/s  
+New Data Upload               : |          |  0.00B /  0.00B,  0.00B/s  
+  .../full/embeddings_clip.npy: 100%|██████████|  355MB /  355MB            
+  ...tputs/full/embeddings.npy: 100%|██████████|  652MB /  652MB            
+  ...a_shuffled_checkpoint.npz: 100%|██████████|  540MB /  540MB            
+  ...ull/embeddings_random.npy: 100%|██████████|  652MB /  652MB            
+  ...ull/embeddings_dinov2.npy: 100%|██████████|  711MB /  711MB            
+  ...utputs/sanity/umap_2d.npy: 100%|██████████|   528B /   528B            
+  ...s/sanity/umap_2d_clip.npy: 100%|██████████|   528B /   528B            
+  ...sanity/umap_2d_dinov2.npy: 100%|██████████|   528B /   528B            
+  ...sanity/umap_2d_random.npy: 100%|██████████|   528B /   528B            
+  ...map_2d_vjepa_shuffled.npy: 100%|██████████|   528B /   528B            
+No files have been modified since last commit. Skipping to prevent empty commit.
+Upload complete: 12s → https://huggingface.co/datasets/anonymousML123/factorjepa-outputs
