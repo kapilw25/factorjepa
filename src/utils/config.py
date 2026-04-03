@@ -631,3 +631,57 @@ def check_output_exists(output_paths: list, description: str = "output") -> bool
     # See shell script docstring for cache control commands
     print("Using cached files, skipping processing.")
     return False
+
+
+# ═════════════════════════════════════════════════════════════════════════
+# CLI — shell scripts call these instead of inline python -c "..."
+# ═════════════════════════════════════════════════════════════════════════
+
+def _get_nested(d: dict, key_path: str):
+    """Traverse nested dict by dot-separated key path. e.g. 'optimization.max_epochs.full'."""
+    for key in key_path.split("."):
+        d = d[key]
+    return d
+
+
+if __name__ == "__main__":
+    import json
+
+    usage = """Usage:
+  python -u src/utils/config.py get-yaml <yaml_path> <key_path>
+  python -u src/utils/config.py get-json <json_path> <key>
+
+Examples:
+  python -u src/utils/config.py get-yaml configs/pretrain/vitg16_indian.yaml optimization.max_epochs.full
+  python -u src/utils/config.py get-yaml configs/pipeline.yaml verify.sanity_min_clips
+  python -u src/utils/config.py get-json outputs/full/ablation_winner.json winner_lambda
+  python -u src/utils/config.py get-json outputs/full/m09_lambda0_001/training_summary.json epochs
+"""
+
+    if len(sys.argv) < 2:
+        print(usage)
+        sys.exit(1)
+
+    cmd = sys.argv[1]
+
+    if cmd == "get-yaml":
+        if len(sys.argv) != 4:
+            print("Usage: get-yaml <yaml_path> <key_path>")
+            sys.exit(1)
+        import yaml
+        with open(sys.argv[2]) as f:
+            cfg = yaml.safe_load(f)
+        print(_get_nested(cfg, sys.argv[3]))
+
+    elif cmd == "get-json":
+        if len(sys.argv) != 4:
+            print("Usage: get-json <json_path> <key>")
+            sys.exit(1)
+        with open(sys.argv[2]) as f:
+            data = json.load(f)
+        print(data[sys.argv[3]])
+
+    else:
+        print(f"Unknown command: {cmd}")
+        print(usage)
+        sys.exit(1)

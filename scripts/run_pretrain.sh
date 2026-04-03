@@ -85,9 +85,9 @@ cd "$SCRIPT_DIR/.."
 # Read MIN_CLIPS from configs/pipeline.yaml (no hardcoding in shell)
 PIPELINE_YAML="configs/pipeline.yaml"
 if [[ "$MODE" == "SANITY" ]]; then
-    MIN_CLIPS=$(python -c "import yaml; print(yaml.safe_load(open('${PIPELINE_YAML}'))['verify']['sanity_min_clips'])")
+    MIN_CLIPS=$(python -u src/utils/config.py get-yaml "$PIPELINE_YAML" verify.sanity_min_clips)
 else
-    MIN_CLIPS=$(python -c "import yaml; print(yaml.safe_load(open('${PIPELINE_YAML}'))['verify']['full_min_clips'])")
+    MIN_CLIPS=$(python -u src/utils/config.py get-yaml "$PIPELINE_YAML" verify.full_min_clips)
 fi
 
 LOGDIR="logs"
@@ -223,21 +223,7 @@ if [[ ! -f "$PROFILE_JSON" ]]; then
 fi
 
 if [[ -f "$PROFILE_JSON" ]]; then
-    # Read max BS at ≤75% VRAM (conservative: stop at first violation)
-    # Profiler measures isolated peak; real training adds ~10GB overhead
-    # from memory fragmentation, prefetch queue, wandb, optimizer state
-    OPTIMAL_BS=$(python -c "
-import json
-d = json.load(open('${PROFILE_JSON}'))
-gpu_gb = d['gpu_total_gb']
-target = gpu_gb * 0.75
-best = 4
-for bs, info in sorted(d.get('grad_ckpt', {}).items(), key=lambda x: int(x[0])):
-    if info['peak_gb'] > target:
-        break  # stop at first violation (handles non-monotonic VRAM)
-    best = int(bs)
-print(best)
-")
+    OPTIMAL_BS=$(python -u src/utils/gpu_batch.py optimal-bs --profile-json "$PROFILE_JSON")
     BATCH_FLAG="--batch-size $OPTIMAL_BS"
     log "Auto batch size: ${OPTIMAL_BS} (from profiler, <=75% VRAM)"
 fi
@@ -298,70 +284,11 @@ log "Master log: ${MASTER_LOG}"
 echo "" | tee -a "$MASTER_LOG"
 log "=== PRE-FLIGHT ==="
 
-python -c "
-import sys
-errors = []
-
-# GPU
-try:
-    import torch
-    if not torch.cuda.is_available():
-        errors.append('CUDA not available')
-    else:
-        print(f'GPU:        {torch.cuda.get_device_name(0)}')
-        print(f'VRAM:       {torch.cuda.get_device_properties(0).total_memory/1e9:.0f} GB')
-        print(f'PyTorch:    {torch.__version__}')
-except ImportError:
-    errors.append('torch not installed')
-
-# vjepa2 dependency
-import os
-if not os.path.exists('deps/vjepa2/src/models/vision_transformer.py'):
-    errors.append('deps/vjepa2 not found. Run: git clone --depth 1 https://github.com/facebookresearch/vjepa2.git deps/vjepa2')
-else:
-    print('vjepa2:     deps/vjepa2/ present')
-
-# Flash-Attention 2
-try:
-    import flash_attn
-    print(f'Flash-Attn: {flash_attn.__version__}')
-except ImportError:
-    errors.append('flash_attn not installed')
-
-# FAISS-GPU (for validation Cycle@K)
-try:
-    import faiss
-    if faiss.get_num_gpus() == 0:
-        errors.append('FAISS-GPU: 0 GPUs')
-    else:
-        print(f'FAISS GPUs: {faiss.get_num_gpus()}')
-except ImportError:
-    errors.append('faiss not installed')
-
-# Config file
-if not os.path.exists('${CONFIG}'):
-    errors.append('Config not found: ${CONFIG}')
-else:
-    print(f'Config:     ${CONFIG}')
-
-# Ch9 baseline (needed for m08b comparison only — NOT for training)
-baseline = '${OUT_DIR}/m06_metrics.json'
-if os.path.exists(baseline):
-    import json
-    m = json.load(open(baseline))
-    print(f'Baseline:   Prec@K={m[\"easy\"][\"prec_at_k\"]:.1f}% (Ch9 frozen)')
-else:
-    print(f'Baseline:   NOT FOUND ({baseline}) — m08b comparison will fail, training will proceed')
-    print(f'  Fix after Ch9: python -u src/utils/hf_outputs.py download outputs/full')
-
-if errors:
-    print(f'\nFATAL: {len(errors)} check(s) failed:')
-    for e in errors:
-        print(f'  - {e}')
-    sys.exit(1)
-else:
-    print('\nPre-flight: ALL PASSED')
-" 2>&1 | tee -a "$MASTER_LOG"
+python -u src/utils/output_guard.py preflight_gpu pretrain "$CONFIG" "$OUT_DIR" 2>&1 | tee -a "$MASTER_LOG"
+if [[ ${PIPESTATUS[0]} -ne 0 ]]; then
+    log "FATAL: GPU/package pre-flight failed."
+    exit 1
+fi
 
 log "Pre-flight complete."
 
@@ -377,19 +304,12 @@ log "Starting pipeline..."
 echo "" | tee -a "$MASTER_LOG"
 
 # ═══════════════════════════════════════════════════════════════════════
-# TRAINING (λ=0.001, POC winner — no ablation sweep)
-# Lambda ablation was done on 10K POC (all 4 lambdas identical).
-# For FULL, train directly with winner λ=0.001.
+# PHASE 1: TRAINING (winner lambda from ablation_winner.json)
 # ═══════════════════════════════════════════════════════════════════════
 
-# Read epochs from YAML config (mode-aware: SANITY/POC use their key, FULL uses 'full')
-if [[ "$MODE" == "SANITY" ]]; then
-    WINNER_EPOCHS=$(python -c "import yaml; print(yaml.safe_load(open('${CONFIG}'))['optimization']['max_epochs']['sanity'])")
-elif [[ "$MODE" == "POC" ]]; then
-    WINNER_EPOCHS=$(python -c "import yaml; print(yaml.safe_load(open('${CONFIG}'))['optimization']['max_epochs']['poc'])")
-else
-    WINNER_EPOCHS=$(python -c "import yaml; print(yaml.safe_load(open('${CONFIG}'))['optimization']['max_epochs']['full'])")
-fi
+# Read epochs from YAML config (mode-aware)
+EPOCH_KEY="optimization.max_epochs.${MODE,,}"  # sanity, poc, or full
+WINNER_EPOCHS=$(python -u src/utils/config.py get-yaml "$CONFIG" "$EPOCH_KEY")
 
 # Read winner lambda from POC ablation (selected by lowest best_val_loss)
 # Search: outputs/full/ first (copied), then outputs/poc/ (original from ablation)
@@ -402,8 +322,8 @@ for _dir in "${OUT_DIR}" "outputs/poc"; do
 done
 
 if [[ -n "$WINNER_JSON" ]]; then
-    WINNER_LAMBDA=$(python -c "import json; print(json.load(open('${WINNER_JSON}'))['winner_lambda'])")
-    WINNER_DIR=$(python -c "import json; print(json.load(open('${WINNER_JSON}'))['winner_dir'])")
+    WINNER_LAMBDA=$(python -u src/utils/config.py get-json "$WINNER_JSON" winner_lambda)
+    WINNER_DIR=$(python -u src/utils/config.py get-json "$WINNER_JSON" winner_dir)
     log "Winner from ablation: lambda=${WINNER_LAMBDA} (${WINNER_DIR}) [from ${WINNER_JSON}]"
 else
     log "FATAL: ablation_winner.json not found in ${OUT_DIR}/ or outputs/poc/"
@@ -416,7 +336,7 @@ log "Training: lambda=${WINNER_LAMBDA} (${WINNER_DIR}), ${WINNER_EPOCHS} epochs"
 
 # Check if already trained with sufficient epochs
 if [[ -f "${WINNER_OUT}/student_encoder.pt" && -f "${WINNER_OUT}/training_summary.json" ]]; then
-    EXISTING_EPOCHS=$(python -c "import json; s=json.load(open('${WINNER_OUT}/training_summary.json')); print(s['epochs'])")
+    EXISTING_EPOCHS=$(python -u src/utils/config.py get-json "${WINNER_OUT}/training_summary.json" epochs)
     if python -c "exit(0 if float('${EXISTING_EPOCHS}') >= float('${WINNER_EPOCHS}') else 1)"; then
         log "Student already trained for ${EXISTING_EPOCHS} epochs (>= ${WINNER_EPOCHS}). Skipping."
     else
@@ -433,34 +353,11 @@ run_step "train" "m09 pretrain (lambda=${WINNER_LAMBDA}, ${WINNER_EPOCHS} epochs
     || { log "FATAL: m09 training failed."; exit 1; }
 
 verify "Training" "
-import os, json
-out = '${WINNER_OUT}'
-for f in ['student_encoder.pt', 'training_summary.json', 'loss_log.csv']:
-    path = os.path.join(out, f)
-    if os.path.exists(path):
-        if f.endswith('.json'):
-            s = json.load(open(path))
-            print(f'  OK   {f:30s} jepa_loss={s[\"final_jepa_loss\"]:.4f}  epochs={s[\"epochs\"]}')
-        elif f.endswith('.pt'):
-            size_mb = os.path.getsize(path) / 1e6
-            print(f'  OK   {f:30s} {size_mb:.0f} MB')
-        else:
-            lines = sum(1 for _ in open(path)) - 1
-            print(f'  OK   {f:30s} {lines} steps')
-    else:
-        print(f'  MISS {f}')
+from utils.output_guard import verify_training_artifacts
+verify_training_artifacts('${WINNER_OUT}')
 "
 
-# Deep train the winner
-run_step "winner-train" "m09 deep train (lambda=${WINNER_LAMBDA}, ${WINNER_EPOCHS} epochs)" \
-    "~$((WINNER_EPOCHS * 32))min" \
-    "$LOGDIR/m09_${MODE,,}_winner.log" \
-    src/m09_pretrain.py --config "$CONFIG" --lambda-reg "$WINNER_LAMBDA" \
-        --max-epochs "$WINNER_EPOCHS" \
-        $BATCH_FLAG $MODE_FLAG $SUBSET_FLAG $LOCAL_FLAG $VAL_FLAG \
-    || { log "FATAL: Winner deep train failed."; exit 1; }
-
-# Re-embed with deep-trained encoder (same encoder name, overwrites 1-epoch embeddings)
+# Re-embed with trained encoder
 WINNER_MODEL="${WINNER_OUT}/student_encoder.pt"
 WINNER_ENCODER="vjepa_${WINNER_DIR}"
 run_step "winner-embed" "m05 re-embed (winner lambda=${WINNER_LAMBDA})" "$T_M05_RE" \
@@ -476,10 +373,10 @@ run_step "winner-metrics" "m06 metrics (winner lambda=${WINNER_LAMBDA})" "$T_M06
         $MODE_FLAG $SUBSET_FLAG \
     || { log "FATAL: Winner metrics failed."; exit 1; }
 
-log "Winner deep run complete: lambda=${WINNER_LAMBDA}, ${WINNER_EPOCHS} epochs"
+log "Phase 2 complete: train + re-embed + metrics for lambda=${WINNER_LAMBDA}"
 
 # ═══════════════════════════════════════════════════════════════════════
-# PHASE 3: FULL EVALUATION (m07 UMAP + m08 plots + m08b comparison)
+# PHASE 3: FULL EVALUATION (m06b + shuffled + m07 UMAP + m08 plots + m08b)
 # ═══════════════════════════════════════════════════════════════════════
 
 echo "" | tee -a "$MASTER_LOG"
@@ -538,68 +435,7 @@ log "Phase 3 complete: UMAP + plots + comparison for ${WINNER_ENCODER}"
 echo "" | tee -a "$MASTER_LOG"
 log "=== FINAL VERIFICATION: Ch10 Ablation Outputs ==="
 
-python -c "
-import json, os
-
-out = '${OUT_DIR}'
-ok = 0
-fail = 0
-
-def check(label, path):
-    global ok, fail
-    if os.path.exists(path):
-        print(f'  OK   {label}')
-        ok += 1
-    else:
-        print(f'  MISS {label}')
-        fail += 1
-
-lambdas = [('0', 'lambda0'), ('0.001', 'lambda0_001'),
-           ('0.01', 'lambda0_01'), ('0.1', 'lambda0_1')]
-
-print('=== ABLATION TRAINING (Phase 1) ===')
-print(f'  {\"lambda\":>10s} {\"JEPA Loss\":>12s} {\"Steps\":>8s} {\"Student\":>10s}')
-print(f'  ' + '-' * 45)
-for lam_val, lam_dir in lambdas:
-    lam_out = f'{out}/m09_{lam_dir}'
-    spath = f'{lam_out}/training_summary.json'
-    if os.path.exists(spath):
-        s = json.load(open(spath))
-        has_student = 'OK' if os.path.exists(f'{lam_out}/student_encoder.pt') else 'MISS'
-        print(f'  {lam_val:>10s} {s[\"final_jepa_loss\"]:>12.4f} {s[\"steps\"]:>8d} {has_student:>10s}')
-        ok += 1
-    else:
-        print(f'  {lam_val:>10s} MISSING')
-        fail += 1
-
-# Winner info
-winner_path = f'{out}/ablation_winner.json'
-if os.path.exists(winner_path):
-    w = json.load(open(winner_path))
-    print(f'  WINNER: lambda={w[\"winner_lambda\"]} (jepa_loss={w[\"winner_jepa_loss\"]:.4f})')
-    ok += 1
-
-print()
-print('=== WINNER DEEP RUN (Phase 2) ===')
-winner_dir = w['winner_dir'] if os.path.exists(winner_path) else None
-if winner_dir:
-    enc = f'vjepa_{winner_dir}'
-    check(f'Winner embeddings',    f'{out}/embeddings_{enc}.npy')
-    check(f'Winner metrics',       f'{out}/m06_metrics_{enc}.json')
-    check(f'Winner knn_indices',   f'{out}/knn_indices_{enc}.npy')
-
-print()
-print('=== FULL EVALUATION (Phase 3) ===')
-if winner_dir:
-    enc = f'vjepa_{winner_dir}'
-    check(f'Winner UMAP',          f'{out}/umap_2d_{enc}.npy')
-    check(f'Winner UMAP plot',     f'{out}/m08_umap_{enc}.png')
-    check(f'Comparison radar',     f'{out}/m08b_radar.png')
-    check(f'Comparison table',     f'{out}/m08b_comparison_table.tex')
-
-print()
-print(f'=== TOTAL: {ok} OK, {fail} MISSING ===')
-" 2>&1 | tee -a "$MASTER_LOG"
+python -u src/utils/output_guard.py verify_pretrain_final "$OUT_DIR" "$CONFIG" 2>&1 | tee -a "$MASTER_LOG"
 
 # ═══════════════════════════════════════════════════════════════════════
 # SUMMARY

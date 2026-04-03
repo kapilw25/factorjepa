@@ -11,9 +11,9 @@ USAGE:
     python -u src/utils/hf_outputs.py upload-data 2>&1 | tee logs/upload_poc_val.log    # ~15 min upload
     python -u src/utils/hf_outputs.py download-data 2>&1 | tee logs/download_poc_val.log # ~3 min measured
     
-POC/SANITY usage:
-    python -u src/utils/hf_outputs.py upload outputs/poc 2>&1 | tee logs/hf_upload_poc.log                                                                    
-    python -u src/utils/hf_outputs.py upload outputs/sanity 2>&1 | tee logs/hf_upload_sanity.log 
+FULL/POC/SANITY usage:
+    python -u src/utils/hf_outputs.py upload outputs 2>&1 | tee logs/hf_upload_outputs.log                                                                    
+    python -u src/utils/hf_outputs.py download outputs 2>&1 | tee logs/hf_download_outputs.log 
     
 """
 import os

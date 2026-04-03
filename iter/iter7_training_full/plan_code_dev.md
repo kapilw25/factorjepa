@@ -228,16 +228,93 @@ source venv_walkindia/bin/activate
 Ch10 training (m09) does NOT depend on Ch9 outputs. Only the final comparison (m08b) does.
 Spin up a 2nd GPU instance to overlap Ch10 work while Ch9 is still running.
 
+### System Design: Sync Architecture
+
+```
+                         ┌─────────────┐
+                         │   GitHub    │
+                         │  (code)     │
+                         └──────┬──────┘
+                       git push │ │ git pull
+                    ┌───────────┘ └───────────┐
+                    │                         │
+              ┌─────┴─────┐             ┌─────┴─────┐
+              │   GPU 1   │             │   GPU 2   │
+              │  (Ch9)    │             │  (Ch10)   │
+              └─────┬─────┘             └─────┬─────┘
+                    │                         │
+           HF push │                         │ HF push
+                    │    ┌─────────────┐     │
+                    └───►│  HF Hub     │◄────┘
+                         │ (outputs/)  │
+                         └──────┬──────┘
+                                │ HF pull
+                         ┌──────┴──────┐
+                         │  CPU (Mac)  │
+                         │  m08b final │
+                         └─────────────┘
+```
+
+**Two sync channels:**
+- **Code** → GitHub (`git_push.sh` / `git_pull.sh`)
+- **Outputs** → HF Hub (`hf_outputs.py upload/download`, auto-triggered by `git_push.sh`)
+
 ### Dependency Map
 
 ```
-GPU 1:  Ch9 [m04 → m05 → m05b → m05c → m04d → m06 → m06b → m07 → m08] → upload to HF
-GPU 2:  Ch10 [SANITY → POC ablation → ablation_winner.json → m09 FULL → m05 → m06] → upload to HF
+GPU 1 (Ch9):  m04 → m05 → m05b → m05c → m04d → m06 → m06b → m07 → m08
+              └── git_push.sh → code to GitHub + outputs/ to HF
 
-CPU (Mac or any machine):
-  download both Ch9 + Ch10 outputs from HF
-  └── m08b compare (CPU-only, needs m06_metrics from BOTH chapters)
+GPU 2 (Ch10): SANITY → auto-ablation → m09 FULL → m05 → m06 → m06b → m07 → m08
+              └── git_push.sh → code to GitHub + outputs/ to HF
+
+CPU (Mac):    git_pull.sh → code from GitHub + outputs/ from HF
+              └── m08b compare (needs m06_metrics from BOTH chapters)
 ```
+
+### Safe Sync Workflow (Code Divergence)
+
+GPU1 and GPU2 have **separate disks** — codebases can diverge when bugs are fixed.
+
+**Rule: NEVER pull while a pipeline is running.**
+
+Python loads modules at import time, so a running process is safe from on-disk changes.
+But if the pipeline crashes and restarts, it re-reads from disk — pulling mid-run means
+the resumed process uses different code than what started the run.
+
+```
+Timeline:
+─────────────────────────────────────────────────────────────────────
+GPU1: │▓▓▓▓▓▓▓▓▓▓ Ch9 running (DON'T pull) ▓▓▓▓▓▓▓▓▓▓│ done → pull → push
+GPU2: │ setup │▓▓▓▓ Ch10 running ▓▓▓▓│ fix bug → push │▓▓ resume ▓▓│ push
+─────────────────────────────────────────────────────────────────────
+GitHub:        ←── push (GPU2 fix) ──→        ←── push (GPU1 results) ──→
+HF Hub:        ←── push (GPU2 outputs) ──→    ←── push (GPU1 outputs) ──→
+```
+
+**Scenario: GPU2 hits FATAL in m09, fixes code, GPU1 still running Ch9:**
+
+```bash
+# GPU2: fix the bug, push
+vim src/m09_pretrain.py                          # fix the FATAL
+./git_push.sh "fix m09 NaN handling"             # code→GitHub + outputs→HF
+
+# GPU1: Ch9 still running — DO NOTHING (safe, running process uses loaded code)
+
+# GPU1: Ch9 finishes
+./git_pull.sh                                    # code←GitHub + outputs←HF (gets GPU2's fix + Ch10 outputs)
+./git_push.sh "Ch9 full 115K results"            # push Ch9 outputs to HF
+
+# CPU/Mac: after both GPUs finish
+./git_pull.sh                                    # gets everything
+python -u src/m08b_compare.py --FULL             # 7-encoder comparison
+```
+
+**Why this is safe for our project:**
+- Ch9 uses `run_evaluate.sh` → calls m04/m05/m05b/m06/m07/m08 (not m09)
+- Ch10 uses `run_pretrain.sh` → calls m09/m05/m06/m07/m08
+- A fix to `m09_pretrain.py` on GPU2 is **irrelevant** to GPU1's running Ch9 pipeline
+- Shared files (`utils/config.py`, `utils/output_guard.py`) are loaded at import time — safe
 
 ### GPU 2 Setup + Run Order
 
@@ -269,15 +346,14 @@ tmux new -s ch10
 
 ### CPU: Final Comparison (Mac or any machine, no GPU needed)
 
-After BOTH GPU 1 (Ch9) and GPU 2 (Ch10) finish and upload to HF:
+After BOTH GPU 1 (Ch9) and GPU 2 (Ch10) finish and push:
 
 ```bash
-# Download all outputs from HF
-python -u src/utils/hf_outputs.py download outputs/full 2>&1 | tee logs/hf_download_full.log
+./git_pull.sh                                    # code + outputs from HF
 
-# Run m08b comparison with all 7 encoders (CPU-only, ~30s)
 source venv_walkindia/bin/activate
 python -u src/m08b_compare.py --FULL 2>&1 | tee logs/m08b_full.log
+# 7-encoder radar: vjepa, random, dinov2, clip, vjepa_shuffled, vjepa_adapted, vjepa_adapted_shuffled
 ```
 
 ---

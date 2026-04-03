@@ -196,3 +196,54 @@ def add_gpu_mem_arg(parser: argparse.ArgumentParser):
     """Add --gpu-mem override to any argparse parser."""
     parser.add_argument("--gpu-mem", type=float, default=None,
                         help="Override GPU VRAM in GB (auto-detected if omitted)")
+
+
+def get_optimal_batch_size(profile_json: str = "outputs/profile/profile_data.json",
+                           vram_pct: float = 0.75) -> int:
+    """Read profiler results → max batch size at ≤vram_pct of GPU VRAM.
+
+    USAGE (CLI):
+        python -u src/utils/gpu_batch.py optimal-bs
+        python -u src/utils/gpu_batch.py optimal-bs --profile-json outputs/profile/profile_data.json
+    """
+    import json
+    d = json.load(open(profile_json))
+    gpu_gb = d["gpu_total_gb"]
+    target = gpu_gb * vram_pct
+    best = 4
+    for bs, info in sorted(d.get("grad_ckpt", {}).items(), key=lambda x: int(x[0])):
+        if info["peak_gb"] > target:
+            break
+        best = int(bs)
+    return best
+
+
+# ═════════════════════════════════════════════════════════════════════════
+# CLI
+# ═════════════════════════════════════════════════════════════════════════
+
+if __name__ == "__main__":
+    if len(sys.argv) < 2:
+        print("Usage:")
+        print("  python -u src/utils/gpu_batch.py optimal-bs [--profile-json PATH] [--vram-pct 0.75]")
+        sys.exit(1)
+
+    cmd = sys.argv[1]
+
+    if cmd == "optimal-bs":
+        pj = "outputs/profile/profile_data.json"
+        vp = 0.75
+        i = 2
+        while i < len(sys.argv):
+            if sys.argv[i] == "--profile-json":
+                pj = sys.argv[i + 1]
+                i += 2
+            elif sys.argv[i] == "--vram-pct":
+                vp = float(sys.argv[i + 1])
+                i += 2
+            else:
+                i += 1
+        print(get_optimal_batch_size(pj, vp))
+    else:
+        print(f"Unknown command: {cmd}")
+        sys.exit(1)

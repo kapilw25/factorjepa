@@ -517,22 +517,344 @@ def _build_evaluate_steps(out_dir: str, tags_file: str, local_data: str) -> list
     return steps
 
 
+def preflight_gpu_packages(pipeline: str, config: str = "", out_dir: str = ""):
+    """Check GPU + packages before any GPU work. Shared between run_evaluate.sh and run_pretrain.sh.
+
+    USAGE:
+        python -u src/utils/output_guard.py preflight_gpu pretrain configs/pretrain/vitg16_indian.yaml outputs/full
+        python -u src/utils/output_guard.py preflight_gpu evaluate
+    """
+    import os
+    errors = []
+
+    # GPU + torch
+    try:
+        import torch
+        if not torch.cuda.is_available():
+            errors.append("CUDA not available")
+        else:
+            props = torch.cuda.get_device_properties(0)
+            print(f"GPU:            {torch.cuda.get_device_name(0)}, VRAM: {props.total_memory/1e9:.0f}GB")
+            print(f"PyTorch:        {torch.__version__}")
+            print(f"CUDA:           {torch.version.cuda}")
+    except ImportError:
+        errors.append("torch not installed")
+
+    # FAISS-GPU
+    try:
+        import faiss
+        if faiss.get_num_gpus() == 0:
+            errors.append("FAISS-GPU: 0 GPUs detected (need >= 1)")
+        else:
+            print(f"FAISS GPUs:     {faiss.get_num_gpus()}")
+    except ImportError:
+        errors.append("faiss not installed")
+
+    # Flash-Attention 2
+    try:
+        import flash_attn
+        print(f"Flash-Attn:     {flash_attn.__version__}")
+    except ImportError:
+        errors.append("flash_attn not installed (V-JEPA requires FA2)")
+
+    # cuML (m07 UMAP)
+    try:
+        import cuml
+        print(f"cuML:           {cuml.__version__}")
+    except ImportError:
+        errors.append("cuml not installed (m07 UMAP needs cuML)")
+
+    # transformers
+    try:
+        import transformers
+        print(f"Transformers:   {transformers.__version__}")
+    except ImportError:
+        errors.append("transformers not installed")
+
+    # wandb (optional)
+    try:
+        import wandb
+        print(f"wandb:          {wandb.__version__}")
+    except ImportError:
+        print("wandb:          NOT INSTALLED (ok, using --no-wandb)")
+
+    # HF Token
+    try:
+        from dotenv import load_dotenv
+        load_dotenv()
+        t = os.getenv("HF_TOKEN")
+        if t:
+            print(f"HF_TOKEN:       {t[:10]}...")
+        else:
+            errors.append("HF_TOKEN not found in .env (private dataset needs auth)")
+    except ImportError:
+        errors.append("python-dotenv not installed")
+
+    # Pipeline-specific checks
+    if pipeline == "pretrain":
+        # vjepa2 dependency
+        if not os.path.exists("deps/vjepa2/src/models/vision_transformer.py"):
+            errors.append("deps/vjepa2 not found. Run: git clone --depth 1 https://github.com/facebookresearch/vjepa2.git deps/vjepa2")
+        else:
+            print("vjepa2:         deps/vjepa2/ present")
+
+        # Config file
+        if config and not os.path.exists(config):
+            errors.append(f"Config not found: {config}")
+        elif config:
+            print(f"Config:         {config}")
+
+        # Ch9 baseline (needed for m08b only, not training)
+        if out_dir:
+            baseline = os.path.join(out_dir, "m06_metrics.json")
+            if os.path.exists(baseline):
+                m = json.load(open(baseline))
+                print(f"Baseline:       Prec@K={m['easy']['prec_at_k']:.1f}% (Ch9 frozen)")
+            else:
+                print(f"Baseline:       NOT FOUND ({baseline}) — m08b will fail, training will proceed")
+                print(f"  Fix after Ch9: python -u src/utils/hf_outputs.py download outputs/full")
+
+    if errors:
+        print(f"\nFATAL: {len(errors)} check(s) failed:")
+        for e in errors:
+            print(f"  - {e}")
+        sys.exit(1)
+    else:
+        print("\nPre-flight: ALL PASSED")
+
+
+def verify_training_artifacts(output_dir: str):
+    """Check training outputs exist and print summary. Called after m09 training step.
+
+    USAGE:
+        python -u src/utils/output_guard.py verify_training <output_dir>
+    """
+    import os
+    out = output_dir
+    for f in ["student_encoder.pt", "training_summary.json", "loss_log.csv"]:
+        path = os.path.join(out, f)
+        if os.path.exists(path):
+            if f.endswith(".json"):
+                s = json.load(open(path))
+                print(f"  OK   {f:30s} jepa_loss={s['final_jepa_loss']:.4f}  epochs={s['epochs']}")
+            elif f.endswith(".pt"):
+                size_mb = os.path.getsize(path) / 1e6
+                print(f"  OK   {f:30s} {size_mb:.0f} MB")
+            else:
+                lines = sum(1 for _ in open(path)) - 1
+                print(f"  OK   {f:30s} {lines} steps")
+        else:
+            print(f"  MISS {f}")
+
+
+def verify_pretrain_final(output_dir: str, config_path: str):
+    """Final verification of all Ch10 outputs. Reads lambdas from YAML config.
+
+    USAGE:
+        python -u src/utils/output_guard.py verify_pretrain_final outputs/full configs/pretrain/vitg16_indian.yaml
+    """
+    import os
+    import yaml
+
+    out = output_dir
+    ok = 0
+    fail = 0
+
+    def check(label, path):
+        nonlocal ok, fail
+        if os.path.exists(path):
+            print(f"  OK   {label}")
+            ok += 1
+        else:
+            print(f"  MISS {label}")
+            fail += 1
+
+    # Read lambdas from config (not hardcoded)
+    cfg = yaml.safe_load(open(config_path))
+    ablation_lambdas = cfg["drift_control"]["ablation_lambdas"]
+    lambdas = []
+    for lam in ablation_lambdas:
+        lam_str = f"{lam:g}".replace(".", "_")
+        lambdas.append((f"{lam:g}", f"lambda{lam_str}"))
+
+    print("=== ABLATION TRAINING (Phase 1) ===")
+    print(f"  {'lambda':>10s} {'JEPA Loss':>12s} {'Steps':>8s} {'Student':>10s}")
+    print(f"  " + "-" * 45)
+    for lam_val, lam_dir in lambdas:
+        lam_out = os.path.join(out, f"m09_{lam_dir}")
+        spath = os.path.join(lam_out, "training_summary.json")
+        if os.path.exists(spath):
+            s = json.load(open(spath))
+            has_student = "OK" if os.path.exists(os.path.join(lam_out, "student_encoder.pt")) else "MISS"
+            print(f"  {lam_val:>10s} {s['final_jepa_loss']:>12.4f} {s['steps']:>8d} {has_student:>10s}")
+            ok += 1
+        else:
+            print(f"  {lam_val:>10s} MISSING")
+            fail += 1
+
+    # Winner info
+    winner_path = os.path.join(out, "ablation_winner.json")
+    winner_dir = None
+    if os.path.exists(winner_path):
+        w = json.load(open(winner_path))
+        winner_dir = w["winner_dir"]
+        val_loss = w.get("winner_val_loss", "?")
+        print(f"  WINNER: lambda={w['winner_lambda']} (val_loss={val_loss})")
+        ok += 1
+
+    print()
+    print("=== WINNER RUN (Phase 2) ===")
+    if winner_dir:
+        enc = f"vjepa_{winner_dir}"
+        check("Winner embeddings", os.path.join(out, f"embeddings_{enc}.npy"))
+        check("Winner metrics", os.path.join(out, f"m06_metrics_{enc}.json"))
+        check("Winner knn_indices", os.path.join(out, f"knn_indices_{enc}.npy"))
+
+    print()
+    print("=== FULL EVALUATION (Phase 3) ===")
+    if winner_dir:
+        enc = f"vjepa_{winner_dir}"
+        check("Winner UMAP", os.path.join(out, f"umap_2d_{enc}.npy"))
+        check("Winner UMAP plot", os.path.join(out, f"m08_umap_{enc}.png"))
+        check("Comparison radar", os.path.join(out, "m08b_radar.png"))
+        check("Comparison table", os.path.join(out, "m08b_comparison_table.tex"))
+
+    print()
+    print(f"=== TOTAL: {ok} OK, {fail} MISSING ===")
+
+
+def verify_evaluate_final(output_dir: str, tags_file: str):
+    """Final verification of all Ch9 outputs (tags, 5 encoders, overlap, metrics, UMAP, plots).
+
+    USAGE:
+        python -u src/utils/output_guard.py verify_evaluate_final outputs/full outputs/full/tags.json
+    """
+    import os
+
+    out = output_dir
+    ok_count = 0
+    fail_count = 0
+
+    def check(label, path, validator=None):
+        nonlocal ok_count, fail_count
+        if os.path.exists(path):
+            detail = ""
+            if validator:
+                detail = validator(path)
+            print(f"  OK   {label:40s} {detail}")
+            ok_count += 1
+        else:
+            print(f"  MISS {label:40s} {path}")
+            fail_count += 1
+
+    # Tags
+    print("=== TAGS (v3 taxonomy) ===")
+    check("tags.json", tags_file,
+          lambda p: f"{len(json.load(open(p)))} clips, {len(json.load(open(p))[0].keys())} fields")
+
+    # Embeddings (5 encoders)
+    print()
+    print("=== EMBEDDINGS (5 encoders) ===")
+    for enc, sfx, dim in [("vjepa", "", 1408), ("random", "_random", 1408), ("dinov2", "_dinov2", 1536),
+                           ("clip", "_clip", 768), ("vjepa_shuffled", "_vjepa_shuffled", 1408)]:
+        check(f"{enc} embeddings", os.path.join(out, f"embeddings{sfx}.npy"),
+              lambda p: str(np.load(p).shape))
+        check(f"{enc} paths", os.path.join(out, f"embeddings{sfx}.paths.npy"),
+              lambda p: f"{len(np.load(p, allow_pickle=True))} keys")
+
+    # True Overlap
+    print()
+    print("=== TRUE OVERLAP ===")
+    check("overlap_augA.npy", os.path.join(out, "overlap_augA.npy"),
+          lambda p: str(np.load(p).shape))
+    check("overlap_augB.npy", os.path.join(out, "overlap_augB.npy"),
+          lambda p: str(np.load(p).shape))
+
+    # Metrics (5 encoders)
+    print()
+    print("=== METRICS (5 encoders) ===")
+    print(f"  {'Encoder':20s} {'Prec@K':>8s} {'mAP@K':>8s} {'Cycle@K':>8s} {'nDCG@K':>8s}")
+    print("  " + "-" * 58)
+    for enc, sfx in [("vjepa", ""), ("random", "_random"), ("dinov2", "_dinov2"),
+                      ("clip", "_clip"), ("vjepa_shuffled", "_vjepa_shuffled")]:
+        mpath = os.path.join(out, f"m06_metrics{sfx}.json")
+        if os.path.exists(mpath):
+            m = json.load(open(mpath))
+            e = m["easy"]
+            print(f"  {enc:20s} {e['prec_at_k']:7.1f}% {e['map_at_k']:8.4f} {e['cycle_at_k']:7.1f}% {e['ndcg_at_k']:8.4f}")
+            ok_count += 1
+        else:
+            print(f"  {enc:20s} MISSING")
+            fail_count += 1
+
+    # UMAP (5 encoders)
+    print()
+    print("=== UMAP (5 encoders) ===")
+    for enc, sfx in [("vjepa", ""), ("random", "_random"), ("dinov2", "_dinov2"),
+                      ("clip", "_clip"), ("vjepa_shuffled", "_vjepa_shuffled")]:
+        check(f"{enc} umap", os.path.join(out, f"umap_2d{sfx}.npy"),
+              lambda p: str(np.load(p).shape))
+
+    # Motion features
+    print()
+    print("=== MOTION FEATURES (m04d) ===")
+    check("motion_features.npy", os.path.join(out, "motion_features.npy"),
+          lambda p: str(np.load(p).shape))
+
+    # Temporal metrics
+    print()
+    print("=== TEMPORAL METRICS (m06b) ===")
+    for enc, sfx in [("vjepa", ""), ("random", "_random"), ("dinov2", "_dinov2"),
+                      ("clip", "_clip"), ("vjepa_shuffled", "_vjepa_shuffled")]:
+        check(f"{enc} temporal", os.path.join(out, f"m06b_temporal_corr{sfx}.json"))
+
+    # Plots
+    print()
+    print("=== PLOTS ===")
+    for f in ["m08_umap.png", "m08_confusion_matrix.png", "m08_knn_grid.png",
+              "m08b_encoder_comparison.png", "m08b_radar.png", "m08b_comparison_table.tex",
+              "m08b_spatial_temporal_bar.png", "m08b_tradeoff_scatter.png"]:
+        check(f"plot: {f}", os.path.join(out, f))
+
+    print()
+    print(f"=== TOTAL: {ok_count} OK, {fail_count} MISSING ===")
+
+
 if __name__ == "__main__":
+    usage = """Usage:
+  python -u src/utils/output_guard.py preflight_gpu <pretrain|evaluate> [config] [out_dir]
+  python -u src/utils/output_guard.py preflight_pretrain <out_dir> <config> [--non-interactive]
+  python -u src/utils/output_guard.py preflight_evaluate <out_dir> <tags_file> <local_data> [--non-interactive]
+  python -u src/utils/output_guard.py verify_training <output_dir>
+  python -u src/utils/output_guard.py verify_pretrain_final <output_dir> <config>
+  python -u src/utils/output_guard.py verify_evaluate_final <output_dir> <tags_file>
+"""
+
     if len(sys.argv) < 2:
-        print("Usage:")
-        print("  python -u src/utils/output_guard.py preflight_pretrain <out_dir> <config> [--non-interactive]")
-        print("  python -u src/utils/output_guard.py preflight_evaluate <out_dir> <tags_file> <local_data> [--non-interactive]")
+        print(usage)
         sys.exit(1)
 
     cmd = sys.argv[1]
     interactive = "--non-interactive" not in sys.argv
 
-    if cmd == "preflight_pretrain":
+    if cmd == "preflight_gpu":
+        pipeline = sys.argv[2] if len(sys.argv) > 2 else "evaluate"
+        config = sys.argv[3] if len(sys.argv) > 3 else ""
+        out_dir = sys.argv[4] if len(sys.argv) > 4 and not sys.argv[4].startswith("--") else ""
+        preflight_gpu_packages(pipeline, config, out_dir)
+
+    elif cmd == "preflight_pretrain":
         out_dir = sys.argv[2]
         config_path = sys.argv[3]
 
-        lambdas = [("0", "lambda0"), ("0.001", "lambda0_001"),
-                    ("0.01", "lambda0_01"), ("0.1", "lambda0_1")]
+        # Read lambdas from config (not hardcoded)
+        import yaml
+        cfg = yaml.safe_load(open(config_path))
+        ablation_lambdas = cfg["drift_control"]["ablation_lambdas"]
+        lambdas = []
+        for lam in ablation_lambdas:
+            lam_str = f"{lam:g}".replace(".", "_")
+            lambdas.append((f"{lam:g}", f"lambda{lam_str}"))
 
         winner_json = Path(out_dir) / "ablation_winner.json"
         if winner_json.exists():
@@ -550,9 +872,6 @@ if __name__ == "__main__":
 
         if not result["proceed"]:
             sys.exit(1)
-        # Missing inputs are expected in sequential pipelines — upstream steps
-        # produce outputs that downstream steps need. Each script has its own
-        # input validation and will fail loud if a true dependency is missing.
 
     elif cmd == "preflight_evaluate":
         out_dir = sys.argv[2]
@@ -564,9 +883,17 @@ if __name__ == "__main__":
 
         if not result["proceed"]:
             sys.exit(1)
-        # Missing inputs are expected in sequential pipelines — upstream steps
-        # produce outputs that downstream steps need. Each script has its own
-        # input validation and will fail loud if a true dependency is missing.
+
+    elif cmd == "verify_training":
+        verify_training_artifacts(sys.argv[2])
+
+    elif cmd == "verify_pretrain_final":
+        verify_pretrain_final(sys.argv[2], sys.argv[3])
+
+    elif cmd == "verify_evaluate_final":
+        verify_evaluate_final(sys.argv[2], sys.argv[3])
+
     else:
         print(f"Unknown command: {cmd}")
+        print(usage)
         sys.exit(1)
