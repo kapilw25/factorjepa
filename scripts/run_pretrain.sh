@@ -1,20 +1,25 @@
 #!/usr/bin/env bash
 # ═══════════════════════════════════════════════════════════════════════
-# Ch10: V-JEPA continual pretraining + drift control ablation
-# Phase 1: 4-lambda sweep (train only, select winner by jepa_loss)
-# Phase 2: Winner deep run (m09 → m05 → m06)
-# Phase 3: Full eval (m06b → m05 shuffled → m07 → m08 → m08b)
+# Ch10: V-JEPA Continual Pretraining (FactorJEPA)
+# Pipeline: m09(train) → m05(re-embed) → m06 → m06b → m05(shuffled) → m07 → m08 → m08b
 #
 # USAGE:
-#   ./setup_env_uv.sh --gpu --from-wheels          # one-time setup
-#   ./scripts/run_pretrain.sh --SANITY 2>&1 | tee logs/ch10_sanity.log
-#   ./scripts/run_pretrain.sh --POC 2>&1 | tee logs/ch10_poc.log        # 10K subset (~5h)
-#   tmux new -s ch10
-#   ./scripts/run_pretrain.sh --FULL 2>&1 | tee logs/ch10_full.log      # 115K corpus (~28h+)
+#   ./scripts/run_pretrain.sh --SANITY 2>&1 | tee logs/ch10_sanity.log  # ~5 min
+#   ./scripts/run_pretrain.sh --FULL 2>&1 | tee logs/ch10_full.log      # ~67h (115K, 1 epoch)
 #
-# Data: scripts auto-download from HF if missing (~50 min).
-#   Faster: rsync data/ from Mac first (~17 min for POC):
-#     rsync -avhP data/ <gpu-host>:/workspace/factorjepa/data/
+# CACHE CONTROL (output_guard skips completed steps automatically):
+#   Use all cached:    ./scripts/run_pretrain.sh --FULL
+#   Re-run everything: rm -rf outputs/full/m09_* && ./scripts/run_pretrain.sh --FULL
+#   Re-run training:   rm outputs/full/m09_lambda*/student_encoder.pt && ...
+#   Re-run re-embed:   rm outputs/full/embeddings_vjepa_lambda*.npy && ...
+#
+# PREREQUISITES:
+#   1. ./setup_env_uv.sh --gpu --from-wheels
+#   2. rsync -avhP data/ <gpu-host>:/workspace/factorjepa/data/   # from Mac (~17 min)
+#   3. data/full_local/ exists (from m00d or rsync)
+#   4. data/val_1k_local/ exists (for validation during training)
+#   5. Ch9 complete: outputs/full/m06_metrics.json (needed for m08b comparison)
+#   6. tmux new -s ch10   # run inside tmux for long runs
 # ═══════════════════════════════════════════════════════════════════════
 set -euo pipefail
 
@@ -110,6 +115,14 @@ log() {
     echo "$msg" | tee -a "$MASTER_LOG"
 }
 
+# ── GPU watchdog (background, emails alert if GPU < 50% for 5 min) ───
+WATCHDOG_PID=""
+if [[ -f "scripts/gpu_watchdog.py" ]]; then
+    python scripts/gpu_watchdog.py &
+    WATCHDOG_PID=$!
+    log "GPU watchdog started (PID=$WATCHDOG_PID)"
+fi
+
 banner() {
     local step_num="$1"
     local step_name="$2"
@@ -120,6 +133,18 @@ banner() {
     echo "  Mode: ${MODE} | Est: ${est_time}" | tee -a "$MASTER_LOG"
     echo "  Started: $(date '+%Y-%m-%d %H:%M:%S')" | tee -a "$MASTER_LOG"
     echo "═══════════════════════════════════════════════════════════════" | tee -a "$MASTER_LOG"
+}
+
+# Background HF upload — runs between steps, zero GPU idle time
+UPLOAD_PID=""
+bg_upload() {
+    if [[ -n "$UPLOAD_PID" ]]; then
+        wait "$UPLOAD_PID" 2>/dev/null
+        UPLOAD_PID=""
+    fi
+    python -u src/utils/hf_outputs.py upload "$OUT_DIR" >> "$LOGDIR/hf_upload.log" 2>&1 &
+    UPLOAD_PID=$!
+    log "HF upload started in background (PID=$UPLOAD_PID)"
 }
 
 run_step() {
@@ -146,6 +171,7 @@ run_step() {
     if [[ $exit_code -eq 0 ]]; then
         log "PASSED: ${step_name} (${mins}m ${secs}s)"
         STEP_PASS=$((STEP_PASS + 1))
+        bg_upload
         return 0
     else
         log "FAILED: ${step_name} (${mins}m ${secs}s) — exit code ${exit_code}"
@@ -318,14 +344,15 @@ if not os.path.exists('${CONFIG}'):
 else:
     print(f'Config:     ${CONFIG}')
 
-# Ch9 baseline (needed for comparison)
+# Ch9 baseline (needed for m08b comparison only — NOT for training)
 baseline = '${OUT_DIR}/m06_metrics.json'
 if os.path.exists(baseline):
     import json
     m = json.load(open(baseline))
     print(f'Baseline:   Prec@K={m[\"easy\"][\"prec_at_k\"]:.1f}% (Ch9 frozen)')
 else:
-    errors.append(f'Ch9 baseline not found ({baseline}). Run: ./scripts/run_evaluate.sh --POC')
+    print(f'Baseline:   NOT FOUND ({baseline}) — m08b comparison will fail, training will proceed')
+    print(f'  Fix after Ch9: python -u src/utils/hf_outputs.py download outputs/full')
 
 if errors:
     print(f'\nFATAL: {len(errors)} check(s) failed:')
@@ -355,12 +382,34 @@ echo "" | tee -a "$MASTER_LOG"
 # For FULL, train directly with winner λ=0.001.
 # ═══════════════════════════════════════════════════════════════════════
 
-# Read winner epochs from YAML config
-WINNER_EPOCHS=$(python -c "import yaml; print(yaml.safe_load(open('${CONFIG}'))['optimization']['max_epochs']['winner'])")
+# Read epochs from YAML config (mode-aware: SANITY/POC use their key, FULL uses 'full')
+if [[ "$MODE" == "SANITY" ]]; then
+    WINNER_EPOCHS=$(python -c "import yaml; print(yaml.safe_load(open('${CONFIG}'))['optimization']['max_epochs']['sanity'])")
+elif [[ "$MODE" == "POC" ]]; then
+    WINNER_EPOCHS=$(python -c "import yaml; print(yaml.safe_load(open('${CONFIG}'))['optimization']['max_epochs']['poc'])")
+else
+    WINNER_EPOCHS=$(python -c "import yaml; print(yaml.safe_load(open('${CONFIG}'))['optimization']['max_epochs']['full'])")
+fi
 
-# Fixed lambda from POC ablation result
-WINNER_LAMBDA="0.001"
-WINNER_DIR="lambda0_001"
+# Read winner lambda from POC ablation (selected by lowest best_val_loss)
+# Search: outputs/full/ first (copied), then outputs/poc/ (original from ablation)
+WINNER_JSON=""
+for _dir in "${OUT_DIR}" "outputs/poc"; do
+    if [[ -f "${_dir}/ablation_winner.json" ]]; then
+        WINNER_JSON="${_dir}/ablation_winner.json"
+        break
+    fi
+done
+
+if [[ -n "$WINNER_JSON" ]]; then
+    WINNER_LAMBDA=$(python -c "import json; print(json.load(open('${WINNER_JSON}'))['winner_lambda'])")
+    WINNER_DIR=$(python -c "import json; print(json.load(open('${WINNER_JSON}'))['winner_dir'])")
+    log "Winner from ablation: lambda=${WINNER_LAMBDA} (${WINNER_DIR}) [from ${WINNER_JSON}]"
+else
+    log "FATAL: ablation_winner.json not found in ${OUT_DIR}/ or outputs/poc/"
+    log "  Run POC lambda ablation first (Ch10-2) to select winner by best_val_loss."
+    exit 1
+fi
 WINNER_OUT="${OUT_DIR}/m09_${WINNER_DIR}"
 
 log "Training: lambda=${WINNER_LAMBDA} (${WINNER_DIR}), ${WINNER_EPOCHS} epochs"
@@ -572,6 +621,19 @@ echo "  Steps:      ${STEP_PASS} passed, ${STEP_FAIL} failed, ${STEP_COUNT} tota
 echo "  Outputs:    ${OUT_DIR}/" | tee -a "$MASTER_LOG"
 echo "  Master log: ${MASTER_LOG}" | tee -a "$MASTER_LOG"
 echo "═══════════════════════════════════════════════════════════════" | tee -a "$MASTER_LOG"
+
+# Wait for final background upload
+if [[ -n "$UPLOAD_PID" ]]; then
+    log "Waiting for final HF upload..."
+    wait "$UPLOAD_PID" 2>/dev/null
+    log "Final HF upload complete"
+fi
+
+# Kill watchdog
+if [[ -n "$WATCHDOG_PID" ]]; then
+    kill "$WATCHDOG_PID" 2>/dev/null
+    log "GPU watchdog stopped"
+fi
 
 if [[ $STEP_FAIL -gt 0 ]]; then
     echo "" | tee -a "$MASTER_LOG"

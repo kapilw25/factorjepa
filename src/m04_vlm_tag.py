@@ -41,7 +41,7 @@ from utils.config import (
     get_pipeline_config, get_sanity_clip_limit, get_total_clips,
 )
 from utils.data_download import ensure_local_data
-from utils.gpu_batch import compute_batch_sizes, add_gpu_mem_arg, AdaptiveBatchSizer
+from utils.gpu_batch import compute_batch_sizes, add_gpu_mem_arg, AdaptiveBatchSizer, cleanup_temp
 from utils.wandb_utils import (
     add_wandb_args, init_wandb, log_metrics, log_artifact, finish_wandb,
 )
@@ -1178,6 +1178,7 @@ def orchestrator_main(args):
 
 def worker_main(args):
     """Worker subprocess: load backend, process segment, exit."""
+    cleanup_temp()
     check_gpu()
 
     # Auto-compute batch size from VRAM if not explicitly set via --batch-size
@@ -1389,6 +1390,7 @@ def generate_plot(all_tags: list, model_name: str, output_dir: Path = None):
 # ═════════════════════════════════════════════════════════════════════════
 
 def main():
+    cleanup_temp()
     parser = argparse.ArgumentParser(
         description="VLM tagging with bake-off (3 backends, HF WebDataset streaming)")
     parser.add_argument("--model", type=str, required=True,

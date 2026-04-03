@@ -627,33 +627,7 @@ def check_output_exists(output_paths: list, description: str = "output") -> bool
         print(f"  ... and {len(existing) - 5} more")
     print(f"{'='*50}")
 
-    # Prompt user
-    print("\nOptions:")
-    print("  [1] Delete existing and re-run")
-    print("  [2] Use cached files (skip processing)")
-
-    while True:
-        try:
-            choice = input("\nEnter choice (1 or 2): ").strip()
-            if choice == "1":
-                # Delete existing files
-                for p in existing:
-                    if p.is_dir():
-                        shutil.rmtree(p)
-                        print(f"Deleted: {p}/")
-                    else:
-                        p.unlink()
-                        print(f"Deleted: {p}")
-                return True  # Proceed with processing
-            elif choice == "2":
-                print("Using cached files, skipping processing.")
-                return False  # Skip processing
-            else:
-                print("Invalid choice. Enter 1 or 2.")
-        except KeyboardInterrupt:
-            print("\nAborted.")
-            sys.exit(1)
-        except EOFError:
-            # Non-interactive mode - default to using cache
-            print("Non-interactive mode: using cached files.")
-            return False
+    # Auto-use cached (no interactive prompt — use `rm` to force re-run)
+    # See shell script docstring for cache control commands
+    print("Using cached files, skipping processing.")
+    return False

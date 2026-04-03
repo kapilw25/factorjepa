@@ -37,14 +37,14 @@ streaming:
   max_retries: 5              # HF stream reconnect attempts
   checkpoint_every: 500       # clips between checkpoint saves (m04/m05)
   engine_restart_every: 10000 # m04/m05: worker subprocess restart interval
-  prefetch_queue_vlm: 4       # m04: VLM producer queue depth
-  prefetch_queue_embed: 2     # m05/m05b: embedding producer queue depth
-  prefetch_queue_train: 4     # m09: training producer queue depth
-  decode_workers_embed: 4     # m05/m05b/m05c: video decode threads
-  decode_workers_motion: 4    # m04d: optical flow video decode threads
+  prefetch_queue_vlm: 8       # m04: VLM producer queue depth (was 4, GPU starved)
+  prefetch_queue_embed: 8     # m05/m05b/m05c: embedding producer queue depth (was 2, CRITICAL)
+  prefetch_queue_train: 8     # m09: training producer queue depth (was 4, marginal)
+  decode_workers_embed: 8     # m05/m05b/m05c: video decode threads (was 4, doubled for GPU feed)
+  decode_workers_motion: 8    # m04d: optical flow video decode threads (was 4)
   decode_workers_train: 16    # m09: video decode threads (256 CPU cores)
-  augment_workers: 4          # m05c: augmentation thread workers
-  producer_queue_motion: 8    # m04d: preprocessed clip batches buffered ahead
+  augment_workers: 8          # m05c: augmentation thread workers (was 4)
+  producer_queue_motion: 16   # m04d: preprocessed clip batches buffered ahead (was 8)
 
 # -- GPU defaults (overridden by profiler/auto-detect) --
 gpu:

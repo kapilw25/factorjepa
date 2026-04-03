@@ -1,0 +1,1901 @@
+Uploading outputs/full → anonymousML123/factorjepa-outputs/full/
+Processing Files (0 / 0)      : |          |  0.00B /  0.00B            
+New Data Upload               : |          |  0.00B /  0.00B            [A
+
+  ...ene_distribution_qwen.png: 100%|██████████|  106kB /  106kB            [A[A
+
+
+  ...omy_distribution_qwen.png: 100%|██████████|  615kB /  615kB            [A[A[A
+
+
+
+  ...full/embeddings.paths.npy: 100%|██████████| 6.37MB / 6.37MB            [A[A[A[A
+
+
+
+
+  ...beddings_random.paths.npy: 100%|██████████| 6.37MB / 6.37MB            [A[A[A[A[A
+
+
+
+
+
+  ...embeddings_clip.paths.npy: 100%|██████████| 6.37MB / 6.37MB            [A[A[A[A[A[A
+
+
+
+
+
+
+  ...tputs/full/embeddings.npy:   4%|▎         | 24.0MB /  652MB            [A[A[A[A[A[A[A
+
+
+
+
+
+
+
+  ...beddings_dinov2.paths.npy: 100%|██████████| 6.37MB / 6.37MB            [A[A[A[A[A[A[A[A
+
+
+
+
+
+
+
+
+  ...pa/outputs/full/tags.json:  21%|██        | 31.9MB /  156MB            [A[A[A[A[A[A[A[A[A
+
+
+
+
+
+
+
+
+
+  .../full/embeddings_clip.npy:   9%|▉         | 31.9MB /  355MB            [A[A[A[A[A[A[A[A[A[A
+
+
+
+
+
+
+
+
+
+
+  ...ull/embeddings_random.npy:   5%|▍         | 31.9MB /  652MB            [A[A[A[A[A[A[A[A[A[A[A
+
+  ...ene_distribution_qwen.png: 100%|██████████|  106kB /  106kB            [A[A
+
+
+  ...omy_distribution_qwen.png: 100%|██████████|  615kB /  615kB            [A[A[A
+
+
+
+  ...full/embeddings.paths.npy: 100%|██████████| 6.37MB / 6.37MB            [A[A[A[A
+
+
+
+
+  ...beddings_random.paths.npy: 100%|██████████| 6.37MB / 6.37MB            [A[A[A[A[A
+
+
+
+
+
+  ...embeddings_clip.paths.npy: 100%|██████████| 6.37MB / 6.37MB            [A[A[A[A[A[A
+
+
+
+
+
+
+  ...tputs/full/embeddings.npy:   4%|▎         | 24.0MB /  652MB            [A[A[A[A[A[A[A
+
+
+
+
+
+
+
+  ...beddings_dinov2.paths.npy: 100%|██████████| 6.37MB / 6.37MB            [A[A[A[A[A[A[A[A
+
+
+
+
+
+
+
+
+  ...pa/outputs/full/tags.json:  21%|██        | 31.9MB /  156MB            [A[A[A[A[A[A[A[A[A
+
+
+
+
+
+
+
+
+
+  .../full/embeddings_clip.npy:   9%|▉         | 31.9MB /  355MB            [A[A[A[A[A[A[A[A[A[A
+
+
+
+
+
+
+
+
+
+
+  [+ 1 files]                 :   4%|▍         | 55.8MB / 1.36GB            [A[A[A[A[A[A[A[A[A[A[AProcessing Files (6 / 11)     :   7%|▋         |  170MB / 2.55GB,   ???B/s  
+
+  ...omy_distribution_qwen.png: 100%|██████████|  615kB /  615kB            [A[A
+
+
+  ...full/embeddings.paths.npy: 100%|██████████| 6.37MB / 6.37MB            [A[A[A
+
+
+
+  ...beddings_random.paths.npy: 100%|██████████| 6.37MB / 6.37MB            [A[A[A[A
+
+
+
+
+  ...embeddings_clip.paths.npy: 100%|██████████| 6.37MB / 6.37MB            [A[A[A[A[A
+
+
+
+
+
+  ...tputs/full/embeddings.npy:   9%|▊         | 56.0MB /  652MB            [A[A[A[A[A[A
+
+
+
+
+
+
+  ...beddings_dinov2.paths.npy: 100%|██████████| 6.37MB / 6.37MB            [A[A[A[A[A[A[A
+
+
+
+
+
+
+
+  ...pa/outputs/full/tags.json:  41%|████      | 64.0MB /  156MB            [A[A[A[A[A[A[A[A
+
+
+
+
+
+
+
+
+  .../full/embeddings_clip.npy:  20%|██        | 71.9MB /  355MB            [A[A[A[A[A[A[A[A[A
+
+
+
+
+
+
+
+
+
+  ...ull/embeddings_random.npy:  11%|█         | 71.9MB /  652MB            [A[A[A[A[A[A[A[A[A[A
+
+
+
+
+
+
+
+
+
+
+  ...ull/embeddings_dinov2.npy:   8%|▊         | 55.9MB /  711MB            [A[A[A[A[A[A[A[A[A[A[AProcessing Files (6 / 11)     :  14%|█▎        |  346MB / 2.55GB,  880MB/s  
+
+  ...omy_distribution_qwen.png: 100%|██████████|  615kB /  615kB            [A[A
+
+
+  ...full/embeddings.paths.npy: 100%|██████████| 6.37MB / 6.37MB            [A[A[A
+
+
+
+  ...beddings_random.paths.npy: 100%|██████████| 6.37MB / 6.37MB            [A[A[A[A
+
+
+
+
+  ...embeddings_clip.paths.npy: 100%|██████████| 6.37MB / 6.37MB            [A[A[A[A[A
+
+
+
+
+
+  ...tputs/full/embeddings.npy:  16%|█▌        |  104MB /  652MB            [A[A[A[A[A[A
+
+
+
+
+
+
+  ...beddings_dinov2.paths.npy: 100%|██████████| 6.37MB / 6.37MB            [A[A[A[A[A[A[A
+
+
+
+
+
+
+
+  ...pa/outputs/full/tags.json:  72%|███████▏  |  112MB /  156MB            [A[A[A[A[A[A[A[A
+
+
+
+
+
+
+
+
+  .../full/embeddings_clip.npy:  29%|██▉       |  104MB /  355MB            [A[A[A[A[A[A[A[A[A
+
+
+
+
+
+
+
+
+
+  ...ull/embeddings_random.npy:  17%|█▋        |  112MB /  652MB            [A[A[A[A[A[A[A[A[A[A
+
+
+
+
+
+
+
+
+
+
+  ...ull/embeddings_dinov2.npy:  12%|█▏        | 88.0MB /  711MB            [A[A[A[A[A[A[A[A[A[A[AProcessing Files (6 / 11)     :  21%|██▏       |  546MB / 2.55GB,  940MB/s  
+
+  ...omy_distribution_qwen.png: 100%|██████████|  615kB /  615kB            [A[A
+
+
+  ...full/embeddings.paths.npy: 100%|██████████| 6.37MB / 6.37MB            [A[A[A
+
+
+
+  ...beddings_random.paths.npy: 100%|██████████| 6.37MB / 6.37MB            [A[A[A[A
+
+
+
+
+  ...embeddings_clip.paths.npy: 100%|██████████| 6.37MB / 6.37MB            [A[A[A[A[A
+
+
+
+
+
+  ...tputs/full/embeddings.npy:  22%|██▏       |  144MB /  652MB            [A[A[A[A[A[A
+
+
+
+
+
+
+  ...beddings_dinov2.paths.npy: 100%|██████████| 6.37MB / 6.37MB            [A[A[A[A[A[A[A
+
+
+
+
+
+
+
+  ...pa/outputs/full/tags.json:  98%|█████████▊|  152MB /  156MB            [A[A[A[A[A[A[A[A
+
+
+
+
+
+
+
+
+  .../full/embeddings_clip.npy:  38%|███▊      |  136MB /  355MB            [A[A[A[A[A[A[A[A[A
+
+
+
+
+
+
+
+
+
+  ...ull/embeddings_random.npy:  22%|██▏       |  144MB /  652MB            [A[A[A[A[A[A[A[A[A[A
+
+
+
+
+
+
+
+
+
+
+  ...ull/embeddings_dinov2.npy:  18%|█▊        |  128MB /  711MB            [A[A[A[A[A[A[A[A[A[A[AProcessing Files (6 / 11)     :  29%|██▊       |  730MB / 2.55GB,  934MB/s  
+
+  ...omy_distribution_qwen.png: 100%|██████████|  615kB /  615kB            [A[A
+
+
+  ...full/embeddings.paths.npy: 100%|██████████| 6.37MB / 6.37MB            [A[A[A
+
+
+
+  ...beddings_random.paths.npy: 100%|██████████| 6.37MB / 6.37MB            [A[A[A[A
+
+
+
+
+  ...embeddings_clip.paths.npy: 100%|██████████| 6.37MB / 6.37MB            [A[A[A[A[A
+
+
+
+
+
+  ...tputs/full/embeddings.npy:  29%|██▉       |  192MB /  652MB            [A[A[A[A[A[A
+
+
+
+
+
+
+  ...beddings_dinov2.paths.npy: 100%|██████████| 6.37MB / 6.37MB            [A[A[A[A[A[A[A
+
+
+
+
+
+
+
+  ...pa/outputs/full/tags.json: 100%|██████████|  156MB /  156MB            [A[A[A[A[A[A[A[A
+
+
+
+
+
+
+
+
+  .../full/embeddings_clip.npy:  47%|████▋     |  168MB /  355MB            [A[A[A[A[A[A[A[A[A
+
+
+
+
+
+
+
+
+
+  ...ull/embeddings_random.npy:  27%|██▋       |  176MB /  652MB            [A[A[A[A[A[A[A[A[A[A
+
+
+
+
+
+
+
+
+
+
+  ...ull/embeddings_dinov2.npy:  23%|██▎       |  160MB /  711MB            [A[A[A[A[A[A[A[A[A[A[AProcessing Files (7 / 11)     :  34%|███▍      |  878MB / 2.55GB,  885MB/s  
+
+  ...omy_distribution_qwen.png: 100%|██████████|  615kB /  615kB            [A[A
+
+
+  ...full/embeddings.paths.npy: 100%|██████████| 6.37MB / 6.37MB            [A[A[A
+
+
+
+  ...beddings_random.paths.npy: 100%|██████████| 6.37MB / 6.37MB            [A[A[A[A
+
+
+
+
+  ...embeddings_clip.paths.npy: 100%|██████████| 6.37MB / 6.37MB            [A[A[A[A[A
+
+
+
+
+
+  ...tputs/full/embeddings.npy:  34%|███▍      |  224MB /  652MB            [A[A[A[A[A[A
+
+
+
+
+
+
+  ...beddings_dinov2.paths.npy: 100%|██████████| 6.37MB / 6.37MB            [A[A[A[A[A[A[A
+
+
+
+
+
+
+
+  ...pa/outputs/full/tags.json: 100%|██████████|  156MB /  156MB            [A[A[A[A[A[A[A[A
+
+
+
+
+
+
+
+
+  .../full/embeddings_clip.npy:  58%|█████▊    |  208MB /  355MB            [A[A[A[A[A[A[A[A[A
+
+
+
+
+
+
+
+
+
+  ...ull/embeddings_random.npy:  32%|███▏      |  208MB /  652MB            [A[A[A[A[A[A[A[A[A[A
+
+
+
+
+
+
+
+
+
+
+  ...ull/embeddings_dinov2.npy:  27%|██▋       |  192MB /  711MB            [A[A[A[A[A[A[A[A[A[A[AProcessing Files (7 / 11)     :  40%|███▉      | 1.01GB / 2.55GB,  844MB/s  
+
+  ...omy_distribution_qwen.png: 100%|██████████|  615kB /  615kB            [A[A
+
+
+  ...full/embeddings.paths.npy: 100%|██████████| 6.37MB / 6.37MB            [A[A[A
+
+
+
+  ...beddings_random.paths.npy: 100%|██████████| 6.37MB / 6.37MB            [A[A[A[A
+
+
+
+
+  ...embeddings_clip.paths.npy: 100%|██████████| 6.37MB / 6.37MB            [A[A[A[A[A
+
+
+
+
+
+  ...tputs/full/embeddings.npy:  41%|████      |  264MB /  652MB            [A[A[A[A[A[A
+
+
+
+
+
+
+  ...beddings_dinov2.paths.npy: 100%|██████████| 6.37MB / 6.37MB            [A[A[A[A[A[A[A
+
+
+
+
+
+
+
+  ...pa/outputs/full/tags.json: 100%|██████████|  156MB /  156MB            [A[A[A[A[A[A[A[A
+
+
+
+
+
+
+
+
+  .../full/embeddings_clip.npy:  70%|██████▉   |  248MB /  355MB            [A[A[A[A[A[A[A[A[A
+
+
+
+
+
+
+
+
+
+  ...ull/embeddings_random.npy:  37%|███▋      |  240MB /  652MB            [A[A[A[A[A[A[A[A[A[A
+
+
+
+
+
+
+
+
+
+
+  ...ull/embeddings_dinov2.npy:  32%|███▏      |  224MB /  711MB            [A[A[A[A[A[A[A[A[A[A[AProcessing Files (7 / 11)     :  45%|████▌     | 1.16GB / 2.55GB,  823MB/s  
+
+  ...omy_distribution_qwen.png: 100%|██████████|  615kB /  615kB            [A[A
+
+
+  ...full/embeddings.paths.npy: 100%|██████████| 6.37MB / 6.37MB            [A[A[A
+
+
+
+  ...beddings_random.paths.npy: 100%|██████████| 6.37MB / 6.37MB            [A[A[A[A
+
+
+
+
+  ...embeddings_clip.paths.npy: 100%|██████████| 6.37MB / 6.37MB            [A[A[A[A[A
+
+
+
+
+
+  ...tputs/full/embeddings.npy:  45%|████▌     |  296MB /  652MB            [A[A[A[A[A[A
+
+
+
+
+
+
+  ...beddings_dinov2.paths.npy: 100%|██████████| 6.37MB / 6.37MB            [A[A[A[A[A[A[A
+
+
+
+
+
+
+
+  ...pa/outputs/full/tags.json: 100%|██████████|  156MB /  156MB            [A[A[A[A[A[A[A[A
+
+
+
+
+
+
+
+
+  .../full/embeddings_clip.npy:  79%|███████▉  |  280MB /  355MB            [A[A[A[A[A[A[A[A[A
+
+
+
+
+
+
+
+
+
+  ...ull/embeddings_random.npy:  42%|████▏     |  272MB /  652MB            [A[A[A[A[A[A[A[A[A[A
+
+
+
+
+
+
+
+
+
+
+  ...ull/embeddings_dinov2.npy:  37%|███▋      |  264MB /  711MB            [A[A[A[A[A[A[A[A[A[A[AProcessing Files (7 / 11)     :  51%|█████     | 1.29GB / 2.55GB,  803MB/s  
+
+  ...omy_distribution_qwen.png: 100%|██████████|  615kB /  615kB            [A[A
+
+
+  ...full/embeddings.paths.npy: 100%|██████████| 6.37MB / 6.37MB            [A[A[A
+
+
+
+  ...beddings_random.paths.npy: 100%|██████████| 6.37MB / 6.37MB            [A[A[A[A
+
+
+
+
+  ...embeddings_clip.paths.npy: 100%|██████████| 6.37MB / 6.37MB            [A[A[A[A[A
+
+
+
+
+
+  ...tputs/full/embeddings.npy:  50%|█████     |  328MB /  652MB            [A[A[A[A[A[A
+
+
+
+
+
+
+  ...beddings_dinov2.paths.npy: 100%|██████████| 6.37MB / 6.37MB            [A[A[A[A[A[A[A
+
+
+
+
+
+
+
+  ...pa/outputs/full/tags.json: 100%|██████████|  156MB /  156MB            [A[A[A[A[A[A[A[A
+
+
+
+
+
+
+
+
+  .../full/embeddings_clip.npy:  88%|████████▊ |  312MB /  355MB            [A[A[A[A[A[A[A[A[A
+
+
+
+
+
+
+
+
+
+  ...ull/embeddings_random.npy:  47%|████▋     |  304MB /  652MB            [A[A[A[A[A[A[A[A[A[A
+
+
+
+
+
+
+
+
+
+
+  ...ull/embeddings_dinov2.npy:  42%|████▏     |  296MB /  711MB            [A[A[A[A[A[A[A[A[A[A[AProcessing Files (7 / 11)     :  56%|█████▌    | 1.42GB / 2.55GB,  783MB/s  
+
+  ...omy_distribution_qwen.png: 100%|██████████|  615kB /  615kB            [A[A
+
+
+  ...full/embeddings.paths.npy: 100%|██████████| 6.37MB / 6.37MB            [A[A[A
+
+
+
+  ...beddings_random.paths.npy: 100%|██████████| 6.37MB / 6.37MB            [A[A[A[A
+
+
+
+
+  ...embeddings_clip.paths.npy: 100%|██████████| 6.37MB / 6.37MB            [A[A[A[A[A
+
+
+
+
+
+  ...tputs/full/embeddings.npy:  55%|█████▌    |  360MB /  652MB            [A[A[A[A[A[A
+
+
+
+
+
+
+  ...beddings_dinov2.paths.npy: 100%|██████████| 6.37MB / 6.37MB            [A[A[A[A[A[A[A
+
+
+
+
+
+
+
+  ...pa/outputs/full/tags.json: 100%|██████████|  156MB /  156MB            [A[A[A[A[A[A[A[A
+
+
+
+
+
+
+
+
+  .../full/embeddings_clip.npy:  97%|█████████▋|  344MB /  355MB            [A[A[A[A[A[A[A[A[A
+
+
+
+
+
+
+
+
+
+  ...ull/embeddings_random.npy:  53%|█████▎    |  344MB /  652MB            [A[A[A[A[A[A[A[A[A[A
+
+
+
+
+
+
+
+
+
+
+  ...ull/embeddings_dinov2.npy:  46%|████▌     |  328MB /  711MB            [A[A[A[A[A[A[A[A[A[A[AProcessing Files (7 / 11)     :  61%|██████    | 1.56GB / 2.55GB,  771MB/s  
+
+  ...omy_distribution_qwen.png: 100%|██████████|  615kB /  615kB            [A[A
+
+
+  ...full/embeddings.paths.npy: 100%|██████████| 6.37MB / 6.37MB            [A[A[A
+
+
+
+  ...beddings_random.paths.npy: 100%|██████████| 6.37MB / 6.37MB            [A[A[A[A
+
+
+
+
+  ...embeddings_clip.paths.npy: 100%|██████████| 6.37MB / 6.37MB            [A[A[A[A[A
+
+
+
+
+
+  ...tputs/full/embeddings.npy:  60%|██████    |  392MB /  652MB            [A[A[A[A[A[A
+
+
+
+
+
+
+  ...beddings_dinov2.paths.npy: 100%|██████████| 6.37MB / 6.37MB            [A[A[A[A[A[A[A
+
+
+
+
+
+
+
+  ...pa/outputs/full/tags.json: 100%|██████████|  156MB /  156MB            [A[A[A[A[A[A[A[A
+
+
+
+
+
+
+
+
+  .../full/embeddings_clip.npy: 100%|██████████|  355MB /  355MB            [A[A[A[A[A[A[A[A[A
+
+
+
+
+
+
+
+
+
+  ...ull/embeddings_random.npy:  58%|█████▊    |  376MB /  652MB            [A[A[A[A[A[A[A[A[A[A
+
+
+
+
+
+
+
+
+
+
+  ...ull/embeddings_dinov2.npy:  51%|█████     |  360MB /  711MB            [A[A[A[A[A[A[A[A[A[A[AProcessing Files (8 / 11)     :  65%|██████▌   | 1.66GB / 2.55GB,  748MB/s  
+
+  ...omy_distribution_qwen.png: 100%|██████████|  615kB /  615kB            [A[A
+
+
+  ...full/embeddings.paths.npy: 100%|██████████| 6.37MB / 6.37MB            [A[A[A
+
+
+
+  ...beddings_random.paths.npy: 100%|██████████| 6.37MB / 6.37MB            [A[A[A[A
+
+
+
+
+  ...embeddings_clip.paths.npy: 100%|██████████| 6.37MB / 6.37MB            [A[A[A[A[A
+
+
+
+
+
+  ...tputs/full/embeddings.npy:  65%|██████▌   |  424MB /  652MB            [A[A[A[A[A[A
+
+
+
+
+
+
+  ...beddings_dinov2.paths.npy: 100%|██████████| 6.37MB / 6.37MB            [A[A[A[A[A[A[A
+
+
+
+
+
+
+
+  ...pa/outputs/full/tags.json: 100%|██████████|  156MB /  156MB            [A[A[A[A[A[A[A[A
+
+
+
+
+
+
+
+
+  .../full/embeddings_clip.npy: 100%|██████████|  355MB /  355MB            [A[A[A[A[A[A[A[A[A
+
+
+
+
+
+
+
+
+
+  ...ull/embeddings_random.npy:  63%|██████▎   |  408MB /  652MB            [A[A[A[A[A[A[A[A[A[A
+
+
+
+
+
+
+
+
+
+
+  ...ull/embeddings_dinov2.npy:  55%|█████▌    |  392MB /  711MB            [A[A[A[A[A[A[A[A[A[A[AProcessing Files (8 / 11)     :  69%|██████▉   | 1.76GB / 2.55GB,  724MB/s  
+
+  ...omy_distribution_qwen.png: 100%|██████████|  615kB /  615kB            [A[A
+
+
+  ...full/embeddings.paths.npy: 100%|██████████| 6.37MB / 6.37MB            [A[A[A
+
+
+
+  ...beddings_random.paths.npy: 100%|██████████| 6.37MB / 6.37MB            [A[A[A[A
+
+
+
+
+  ...embeddings_clip.paths.npy: 100%|██████████| 6.37MB / 6.37MB            [A[A[A[A[A
+
+
+
+
+
+  ...tputs/full/embeddings.npy:  70%|██████▉   |  456MB /  652MB            [A[A[A[A[A[A
+
+
+
+
+
+
+  ...beddings_dinov2.paths.npy: 100%|██████████| 6.37MB / 6.37MB            [A[A[A[A[A[A[A
+
+
+
+
+
+
+
+  ...pa/outputs/full/tags.json: 100%|██████████|  156MB /  156MB            [A[A[A[A[A[A[A[A
+
+
+
+
+
+
+
+
+  .../full/embeddings_clip.npy: 100%|██████████|  355MB /  355MB            [A[A[A[A[A[A[A[A[A
+
+
+
+
+
+
+
+
+
+  ...ull/embeddings_random.npy:  68%|██████▊   |  440MB /  652MB            [A[A[A[A[A[A[A[A[A[A
+
+
+
+
+
+
+
+
+
+
+  ...ull/embeddings_dinov2.npy:  60%|█████▉    |  424MB /  711MB            [A[A[A[A[A[A[A[A[A[A[AProcessing Files (8 / 11)     :  73%|███████▎  | 1.86GB / 2.55GB,  703MB/s  
+
+  ...omy_distribution_qwen.png: 100%|██████████|  615kB /  615kB            [A[A
+
+
+  ...full/embeddings.paths.npy: 100%|██████████| 6.37MB / 6.37MB            [A[A[A
+
+
+
+  ...beddings_random.paths.npy: 100%|██████████| 6.37MB / 6.37MB            [A[A[A[A
+
+
+
+
+  ...embeddings_clip.paths.npy: 100%|██████████| 6.37MB / 6.37MB            [A[A[A[A[A
+
+
+
+
+
+  ...tputs/full/embeddings.npy:  75%|███████▍  |  488MB /  652MB            [A[A[A[A[A[A
+
+
+
+
+
+
+  ...beddings_dinov2.paths.npy: 100%|██████████| 6.37MB / 6.37MB            [A[A[A[A[A[A[A
+
+
+
+
+
+
+
+  ...pa/outputs/full/tags.json: 100%|██████████|  156MB /  156MB            [A[A[A[A[A[A[A[A
+
+
+
+
+
+
+
+
+  .../full/embeddings_clip.npy: 100%|██████████|  355MB /  355MB            [A[A[A[A[A[A[A[A[A
+
+
+
+
+
+
+
+
+
+  ...ull/embeddings_random.npy:  72%|███████▏  |  472MB /  652MB            [A[A[A[A[A[A[A[A[A[A
+
+
+
+
+
+
+
+
+
+
+  ...ull/embeddings_dinov2.npy:  64%|██████▍   |  456MB /  711MB            [A[A[A[A[A[A[A[A[A[A[AProcessing Files (8 / 11)     :  77%|███████▋  | 1.95GB / 2.55GB,  686MB/s  
+
+  ...omy_distribution_qwen.png: 100%|██████████|  615kB /  615kB            [A[A
+
+
+  ...full/embeddings.paths.npy: 100%|██████████| 6.37MB / 6.37MB            [A[A[A
+
+
+
+  ...beddings_random.paths.npy: 100%|██████████| 6.37MB / 6.37MB            [A[A[A[A
+
+
+
+
+  ...embeddings_clip.paths.npy: 100%|██████████| 6.37MB / 6.37MB            [A[A[A[A[A
+
+
+
+
+
+  ...tputs/full/embeddings.npy:  80%|███████▉  |  520MB /  652MB            [A[A[A[A[A[A
+
+
+
+
+
+
+  ...beddings_dinov2.paths.npy: 100%|██████████| 6.37MB / 6.37MB            [A[A[A[A[A[A[A
+
+
+
+
+
+
+
+  ...pa/outputs/full/tags.json: 100%|██████████|  156MB /  156MB            [A[A[A[A[A[A[A[A
+
+
+
+
+
+
+
+
+  .../full/embeddings_clip.npy: 100%|██████████|  355MB /  355MB            [A[A[A[A[A[A[A[A[A
+
+
+
+
+
+
+
+
+
+  ...ull/embeddings_random.npy:  77%|███████▋  |  504MB /  652MB            [A[A[A[A[A[A[A[A[A[A
+
+
+
+
+
+
+
+
+
+
+  ...ull/embeddings_dinov2.npy:  69%|██████▊   |  488MB /  711MB            [A[A[A[A[A[A[A[A[A[A[AProcessing Files (8 / 11)     :  80%|████████  | 2.05GB / 2.55GB,  671MB/s  
+
+  ...omy_distribution_qwen.png: 100%|██████████|  615kB /  615kB            [A[A
+
+
+  ...full/embeddings.paths.npy: 100%|██████████| 6.37MB / 6.37MB            [A[A[A
+
+
+
+  ...beddings_random.paths.npy: 100%|██████████| 6.37MB / 6.37MB            [A[A[A[A
+
+
+
+
+  ...embeddings_clip.paths.npy: 100%|██████████| 6.37MB / 6.37MB            [A[A[A[A[A
+
+
+
+
+
+  ...tputs/full/embeddings.npy:  85%|████████▍ |  552MB /  652MB            [A[A[A[A[A[A
+
+
+
+
+
+
+  ...beddings_dinov2.paths.npy: 100%|██████████| 6.37MB / 6.37MB            [A[A[A[A[A[A[A
+
+
+
+
+
+
+
+  ...pa/outputs/full/tags.json: 100%|██████████|  156MB /  156MB            [A[A[A[A[A[A[A[A
+
+
+
+
+
+
+
+
+  .../full/embeddings_clip.npy: 100%|██████████|  355MB /  355MB            [A[A[A[A[A[A[A[A[A
+
+
+
+
+
+
+
+
+
+  ...ull/embeddings_random.npy:  82%|████████▏ |  536MB /  652MB            [A[A[A[A[A[A[A[A[A[A
+
+
+
+
+
+
+
+
+
+
+  ...ull/embeddings_dinov2.npy:  73%|███████▎  |  520MB /  711MB            [A[A[A[A[A[A[A[A[A[A[AProcessing Files (8 / 11)     :  84%|████████▍ | 2.15GB / 2.55GB,  659MB/s  
+
+  ...omy_distribution_qwen.png: 100%|██████████|  615kB /  615kB            [A[A
+
+
+  ...full/embeddings.paths.npy: 100%|██████████| 6.37MB / 6.37MB            [A[A[A
+
+
+
+  ...beddings_random.paths.npy: 100%|██████████| 6.37MB / 6.37MB            [A[A[A[A
+
+
+
+
+  ...embeddings_clip.paths.npy: 100%|██████████| 6.37MB / 6.37MB            [A[A[A[A[A
+
+
+
+
+
+  ...tputs/full/embeddings.npy:  90%|████████▉ |  584MB /  652MB            [A[A[A[A[A[A
+
+
+
+
+
+
+  ...beddings_dinov2.paths.npy: 100%|██████████| 6.37MB / 6.37MB            [A[A[A[A[A[A[A
+
+
+
+
+
+
+
+  ...pa/outputs/full/tags.json: 100%|██████████|  156MB /  156MB            [A[A[A[A[A[A[A[A
+
+
+
+
+
+
+
+
+  .../full/embeddings_clip.npy: 100%|██████████|  355MB /  355MB            [A[A[A[A[A[A[A[A[A
+
+
+
+
+
+
+
+
+
+  ...ull/embeddings_random.npy:  88%|████████▊ |  576MB /  652MB            [A[A[A[A[A[A[A[A[A[A
+
+
+
+
+
+
+
+
+
+
+  ...ull/embeddings_dinov2.npy:  78%|███████▊  |  552MB /  711MB            [A[A[A[A[A[A[A[A[A[A[AProcessing Files (8 / 11)     :  88%|████████▊ | 2.25GB / 2.55GB,  650MB/s  
+
+  ...omy_distribution_qwen.png: 100%|██████████|  615kB /  615kB            [A[A
+
+
+  ...full/embeddings.paths.npy: 100%|██████████| 6.37MB / 6.37MB            [A[A[A
+
+
+
+  ...beddings_random.paths.npy: 100%|██████████| 6.37MB / 6.37MB            [A[A[A[A
+
+
+
+
+  ...embeddings_clip.paths.npy: 100%|██████████| 6.37MB / 6.37MB            [A[A[A[A[A
+
+
+
+
+
+  ...tputs/full/embeddings.npy:  95%|█████████▍|  616MB /  652MB            [A[A[A[A[A[A
+
+
+
+
+
+
+  ...beddings_dinov2.paths.npy: 100%|██████████| 6.37MB / 6.37MB            [A[A[A[A[A[A[A
+
+
+
+
+
+
+
+  ...pa/outputs/full/tags.json: 100%|██████████|  156MB /  156MB            [A[A[A[A[A[A[A[A
+
+
+
+
+
+
+
+
+  .../full/embeddings_clip.npy: 100%|██████████|  355MB /  355MB            [A[A[A[A[A[A[A[A[A
+
+
+
+
+
+
+
+
+
+  ...ull/embeddings_random.npy:  93%|█████████▎|  608MB /  652MB            [A[A[A[A[A[A[A[A[A[A
+
+
+
+
+
+
+
+
+
+
+  ...ull/embeddings_dinov2.npy:  82%|████████▏ |  584MB /  711MB            [A[A[A[A[A[A[A[A[A[A[AProcessing Files (8 / 11)     :  92%|█████████▏| 2.35GB / 2.55GB,  640MB/s  
+
+  ...omy_distribution_qwen.png: 100%|██████████|  615kB /  615kB            [A[A
+
+
+  ...full/embeddings.paths.npy: 100%|██████████| 6.37MB / 6.37MB            [A[A[A
+
+
+
+  ...beddings_random.paths.npy: 100%|██████████| 6.37MB / 6.37MB            [A[A[A[A
+
+
+
+
+  ...embeddings_clip.paths.npy: 100%|██████████| 6.37MB / 6.37MB            [A[A[A[A[A
+
+
+
+
+
+  ...tputs/full/embeddings.npy:  99%|█████████▉|  648MB /  652MB            [A[A[A[A[A[A
+
+
+
+
+
+
+  ...beddings_dinov2.paths.npy: 100%|██████████| 6.37MB / 6.37MB            [A[A[A[A[A[A[A
+
+
+
+
+
+
+
+  ...pa/outputs/full/tags.json: 100%|██████████|  156MB /  156MB            [A[A[A[A[A[A[A[A
+
+
+
+
+
+
+
+
+  .../full/embeddings_clip.npy: 100%|██████████|  355MB /  355MB            [A[A[A[A[A[A[A[A[A
+
+
+
+
+
+
+
+
+
+  ...ull/embeddings_random.npy:  98%|█████████▊|  640MB /  652MB            [A[A[A[A[A[A[A[A[A[A
+
+
+
+
+
+
+
+
+
+
+  ...ull/embeddings_dinov2.npy:  87%|████████▋ |  616MB /  711MB            [A[A[A[A[A[A[A[A[A[A[AProcessing Files (8 / 11)     :  96%|█████████▌| 2.44GB / 2.55GB,  631MB/s  
+
+  ...omy_distribution_qwen.png: 100%|██████████|  615kB /  615kB            [A[A
+
+
+  ...full/embeddings.paths.npy: 100%|██████████| 6.37MB / 6.37MB            [A[A[A
+
+
+
+  ...beddings_random.paths.npy: 100%|██████████| 6.37MB / 6.37MB            [A[A[A[A
+
+
+
+
+  ...embeddings_clip.paths.npy: 100%|██████████| 6.37MB / 6.37MB            [A[A[A[A[A
+
+
+
+
+
+  ...tputs/full/embeddings.npy: 100%|██████████|  652MB /  652MB            [A[A[A[A[A[A
+
+
+
+
+
+
+  ...beddings_dinov2.paths.npy: 100%|██████████| 6.37MB / 6.37MB            [A[A[A[A[A[A[A
+
+
+
+
+
+
+
+  ...pa/outputs/full/tags.json: 100%|██████████|  156MB /  156MB            [A[A[A[A[A[A[A[A
+
+
+
+
+
+
+
+
+  .../full/embeddings_clip.npy: 100%|██████████|  355MB /  355MB            [A[A[A[A[A[A[A[A[A
+
+
+
+
+
+
+
+
+
+  ...ull/embeddings_random.npy: 100%|██████████|  652MB /  652MB            [A[A[A[A[A[A[A[A[A[A
+
+
+
+
+
+
+
+
+
+
+  ...ull/embeddings_dinov2.npy:  91%|█████████ |  648MB /  711MB            [A[A[A[A[A[A[A[A[A[A[AProcessing Files (10 / 11)    :  98%|█████████▊| 2.49GB / 2.55GB,  610MB/s  
+
+  ...omy_distribution_qwen.png: 100%|██████████|  615kB /  615kB            [A[A
+
+
+  ...full/embeddings.paths.npy: 100%|██████████| 6.37MB / 6.37MB            [A[A[A
+
+
+
+  ...beddings_random.paths.npy: 100%|██████████| 6.37MB / 6.37MB            [A[A[A[A
+
+
+
+
+  ...embeddings_clip.paths.npy: 100%|██████████| 6.37MB / 6.37MB            [A[A[A[A[A
+
+
+
+
+
+  ...tputs/full/embeddings.npy: 100%|██████████|  652MB /  652MB            [A[A[A[A[A[A
+
+
+
+
+
+
+  ...beddings_dinov2.paths.npy: 100%|██████████| 6.37MB / 6.37MB            [A[A[A[A[A[A[A
+
+
+
+
+
+
+
+  ...pa/outputs/full/tags.json: 100%|██████████|  156MB /  156MB            [A[A[A[A[A[A[A[A
+
+
+
+
+
+
+
+
+  .../full/embeddings_clip.npy: 100%|██████████|  355MB /  355MB            [A[A[A[A[A[A[A[A[A
+
+
+
+
+
+
+
+
+
+  ...ull/embeddings_random.npy: 100%|██████████|  652MB /  652MB            [A[A[A[A[A[A[A[A[A[A
+
+
+
+
+
+
+
+
+
+
+  ...ull/embeddings_dinov2.npy:  96%|█████████▌|  680MB /  711MB            [A[A[A[A[A[A[A[A[A[A[AProcessing Files (10 / 11)    :  99%|█████████▉| 2.52GB / 2.55GB,  588MB/s  
+
+  ...omy_distribution_qwen.png: 100%|██████████|  615kB /  615kB            [A[A
+
+
+  ...full/embeddings.paths.npy: 100%|██████████| 6.37MB / 6.37MB            [A[A[A
+
+
+
+  ...beddings_random.paths.npy: 100%|██████████| 6.37MB / 6.37MB            [A[A[A[A
+
+
+
+
+  ...embeddings_clip.paths.npy: 100%|██████████| 6.37MB / 6.37MB            [A[A[A[A[A
+
+
+
+
+
+  ...tputs/full/embeddings.npy: 100%|██████████|  652MB /  652MB            [A[A[A[A[A[A
+
+
+
+
+
+
+  ...beddings_dinov2.paths.npy: 100%|██████████| 6.37MB / 6.37MB            [A[A[A[A[A[A[A
+
+
+
+
+
+
+
+  ...pa/outputs/full/tags.json: 100%|██████████|  156MB /  156MB            [A[A[A[A[A[A[A[A
+
+
+
+
+
+
+
+
+  .../full/embeddings_clip.npy: 100%|██████████|  355MB /  355MB            [A[A[A[A[A[A[A[A[A
+
+
+
+
+
+
+
+
+
+  ...ull/embeddings_random.npy: 100%|██████████|  652MB /  652MB            [A[A[A[A[A[A[A[A[A[A
+
+
+
+
+
+
+
+
+
+
+  ...ull/embeddings_dinov2.npy: 100%|██████████|  711MB /  711MB            [A[A[A[A[A[A[A[A[A[A[AProcessing Files (11 / 11)    : 100%|██████████| 2.55GB / 2.55GB,  567MB/s  
+
+  ...omy_distribution_qwen.png: 100%|██████████|  615kB /  615kB            [A[A
+
+
+  ...full/embeddings.paths.npy: 100%|██████████| 6.37MB / 6.37MB            [A[A[A
+
+
+
+  ...beddings_random.paths.npy: 100%|██████████| 6.37MB / 6.37MB            [A[A[A[A
+
+
+
+
+  ...embeddings_clip.paths.npy: 100%|██████████| 6.37MB / 6.37MB            [A[A[A[A[A
+
+
+
+
+
+  ...tputs/full/embeddings.npy: 100%|██████████|  652MB /  652MB            [A[A[A[A[A[A
+
+
+
+
+
+
+  ...beddings_dinov2.paths.npy: 100%|██████████| 6.37MB / 6.37MB            [A[A[A[A[A[A[A
+
+
+
+
+
+
+
+  ...pa/outputs/full/tags.json: 100%|██████████|  156MB /  156MB            [A[A[A[A[A[A[A[A
+
+
+
+
+
+
+
+
+  .../full/embeddings_clip.npy: 100%|██████████|  355MB /  355MB            [A[A[A[A[A[A[A[A[A
+
+
+
+
+
+
+
+
+
+  ...ull/embeddings_random.npy: 100%|██████████|  652MB /  652MB            [A[A[A[A[A[A[A[A[A[A
+
+
+
+
+
+
+
+
+
+
+  ...ull/embeddings_dinov2.npy: 100%|██████████|  711MB /  711MB            [A[A[A[A[A[A[A[A[A[A[A
+
+  ...omy_distribution_qwen.png: 100%|██████████|  615kB /  615kB            [A[A
+
+
+  ...full/embeddings.paths.npy: 100%|██████████| 6.37MB / 6.37MB            [A[A[A
+
+
+
+  ...beddings_random.paths.npy: 100%|██████████| 6.37MB / 6.37MB            [A[A[A[A
+
+
+
+
+  ...embeddings_clip.paths.npy: 100%|██████████| 6.37MB / 6.37MB            [A[A[A[A[A
+
+
+
+
+
+  ...tputs/full/embeddings.npy: 100%|██████████|  652MB /  652MB            [A[A[A[A[A[A
+
+
+
+
+
+
+  ...beddings_dinov2.paths.npy: 100%|██████████| 6.37MB / 6.37MB            [A[A[A[A[A[A[A
+
+
+
+
+
+
+
+  ...pa/outputs/full/tags.json: 100%|██████████|  156MB /  156MB            [A[A[A[A[A[A[A[A
+
+
+
+
+
+
+
+
+  .../full/embeddings_clip.npy: 100%|██████████|  355MB /  355MB            [A[A[A[A[A[A[A[A[A
+
+
+
+
+
+
+
+
+
+  ...ull/embeddings_random.npy: 100%|██████████|  652MB /  652MB            [A[A[A[A[A[A[A[A[A[A
+
+
+
+
+
+
+
+
+
+
+  ...ull/embeddings_dinov2.npy: 100%|██████████|  711MB /  711MB            [A[A[A[A[A[A[A[A[A[A[A
+
+  ...omy_distribution_qwen.png: 100%|██████████|  615kB /  615kB            [A[A
+
+
+  ...full/embeddings.paths.npy: 100%|██████████| 6.37MB / 6.37MB            [A[A[A
+
+
+
+  ...beddings_random.paths.npy: 100%|██████████| 6.37MB / 6.37MB            [A[A[A[A
+
+
+
+
+  ...embeddings_clip.paths.npy: 100%|██████████| 6.37MB / 6.37MB            [A[A[A[A[A
+
+
+
+
+
+  ...tputs/full/embeddings.npy: 100%|██████████|  652MB /  652MB            [A[A[A[A[A[A
+
+
+
+
+
+
+  ...beddings_dinov2.paths.npy: 100%|██████████| 6.37MB / 6.37MB            [A[A[A[A[A[A[A
+
+
+
+
+
+
+
+  ...pa/outputs/full/tags.json: 100%|██████████|  156MB /  156MB            [A[A[A[A[A[A[A[A
+
+
+
+
+
+
+
+
+  .../full/embeddings_clip.npy: 100%|██████████|  355MB /  355MB            [A[A[A[A[A[A[A[A[A
+
+
+
+
+
+
+
+
+
+  ...ull/embeddings_random.npy: 100%|██████████|  652MB /  652MB            [A[A[A[A[A[A[A[A[A[A
+
+
+
+
+
+
+
+
+
+
+  ...ull/embeddings_dinov2.npy: 100%|██████████|  711MB /  711MB            [A[A[A[A[A[A[A[A[A[A[A
+
+  ...omy_distribution_qwen.png: 100%|██████████|  615kB /  615kB            [A[A
+
+
+  ...full/embeddings.paths.npy: 100%|██████████| 6.37MB / 6.37MB            [A[A[A
+
+
+
+  ...beddings_random.paths.npy: 100%|██████████| 6.37MB / 6.37MB            [A[A[A[A
+
+
+
+
+  ...embeddings_clip.paths.npy: 100%|██████████| 6.37MB / 6.37MB            [A[A[A[A[A
+
+
+
+
+
+  ...tputs/full/embeddings.npy: 100%|██████████|  652MB /  652MB            [A[A[A[A[A[A
+
+
+
+
+
+
+  ...beddings_dinov2.paths.npy: 100%|██████████| 6.37MB / 6.37MB            [A[A[A[A[A[A[A
+
+
+
+
+
+
+
+  ...pa/outputs/full/tags.json: 100%|██████████|  156MB /  156MB            [A[A[A[A[A[A[A[A
+
+
+
+
+
+
+
+
+  .../full/embeddings_clip.npy: 100%|██████████|  355MB /  355MB            [A[A[A[A[A[A[A[A[A
+
+
+
+
+
+
+
+
+
+  ...ull/embeddings_random.npy: 100%|██████████|  652MB /  652MB            [A[A[A[A[A[A[A[A[A[A
+
+
+
+
+
+
+
+
+
+
+  ...ull/embeddings_dinov2.npy: 100%|██████████|  711MB /  711MB            [A[A[A[A[A[A[A[A[A[A[A
+
+  ...omy_distribution_qwen.png: 100%|██████████|  615kB /  615kB            [A[A
+
+
+  ...full/embeddings.paths.npy: 100%|██████████| 6.37MB / 6.37MB            [A[A[A
+
+
+
+  ...beddings_random.paths.npy: 100%|██████████| 6.37MB / 6.37MB            [A[A[A[A
+
+
+
+
+  ...embeddings_clip.paths.npy: 100%|██████████| 6.37MB / 6.37MB            [A[A[A[A[A
+
+
+
+
+
+  ...tputs/full/embeddings.npy: 100%|██████████|  652MB /  652MB            [A[A[A[A[A[A
+
+
+
+
+
+
+  ...beddings_dinov2.paths.npy: 100%|██████████| 6.37MB / 6.37MB            [A[A[A[A[A[A[A
+
+
+
+
+
+
+
+  ...pa/outputs/full/tags.json: 100%|██████████|  156MB /  156MB            [A[A[A[A[A[A[A[A
+
+
+
+
+
+
+
+
+  .../full/embeddings_clip.npy: 100%|██████████|  355MB /  355MB            [A[A[A[A[A[A[A[A[A
+
+
+
+
+
+
+
+
+
+  ...ull/embeddings_random.npy: 100%|██████████|  652MB /  652MB            [A[A[A[A[A[A[A[A[A[A
+
+
+
+
+
+
+
+
+
+
+  ...ull/embeddings_dinov2.npy: 100%|██████████|  711MB /  711MB            [A[A[A[A[A[A[A[A[A[A[A
+
+  ...omy_distribution_qwen.png: 100%|██████████|  615kB /  615kB            [A[A
+
+
+  ...full/embeddings.paths.npy: 100%|██████████| 6.37MB / 6.37MB            [A[A[A
+
+
+
+  ...beddings_random.paths.npy: 100%|██████████| 6.37MB / 6.37MB            [A[A[A[A
+
+
+
+
+  ...embeddings_clip.paths.npy: 100%|██████████| 6.37MB / 6.37MB            [A[A[A[A[A
+
+
+
+
+
+  ...tputs/full/embeddings.npy: 100%|██████████|  652MB /  652MB            [A[A[A[A[A[A
+
+
+
+
+
+
+  ...beddings_dinov2.paths.npy: 100%|██████████| 6.37MB / 6.37MB            [A[A[A[A[A[A[A
+
+
+
+
+
+
+
+  ...pa/outputs/full/tags.json: 100%|██████████|  156MB /  156MB            [A[A[A[A[A[A[A[A
+
+
+
+
+
+
+
+
+  .../full/embeddings_clip.npy: 100%|██████████|  355MB /  355MB            [A[A[A[A[A[A[A[A[A
+
+
+
+
+
+
+
+
+
+  ...ull/embeddings_random.npy: 100%|██████████|  652MB /  652MB            [A[A[A[A[A[A[A[A[A[A
+
+
+
+
+
+
+
+
+
+
+  ...ull/embeddings_dinov2.npy: 100%|██████████|  711MB /  711MB            [A[A[A[A[A[A[A[A[A[A[AProcessing Files (11 / 11)    : 100%|██████████| 2.55GB / 2.55GB,  458MB/s  
+New Data Upload               : |          |  0.00B /  0.00B,  0.00B/s  
+  ...omy_distribution_qwen.png: 100%|██████████|  615kB /  615kB            
+  ...full/embeddings.paths.npy: 100%|██████████| 6.37MB / 6.37MB            
+  ...beddings_random.paths.npy: 100%|██████████| 6.37MB / 6.37MB            
+  ...embeddings_clip.paths.npy: 100%|██████████| 6.37MB / 6.37MB            
+  ...tputs/full/embeddings.npy: 100%|██████████|  652MB /  652MB            
+  ...beddings_dinov2.paths.npy: 100%|██████████| 6.37MB / 6.37MB            
+  ...pa/outputs/full/tags.json: 100%|██████████|  156MB /  156MB            
+  .../full/embeddings_clip.npy: 100%|██████████|  355MB /  355MB            
+  ...ull/embeddings_random.npy: 100%|██████████|  652MB /  652MB            
+  ...ull/embeddings_dinov2.npy: 100%|██████████|  711MB /  711MB            
+No files have been modified since last commit. Skipping to prevent empty commit.
+Upload complete: 9s → https://huggingface.co/datasets/anonymousML123/factorjepa-outputs

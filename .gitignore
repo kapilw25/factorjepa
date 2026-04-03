@@ -69,9 +69,17 @@ data/subset_10k_local/*
 src/data/videos/*.mp4
 src/data/clips/
 src/data/
-# *.npy — KEPT IN REPO: 29MB total (5,105 clips × 1,408-dim V-JEPA embeddings + kNN indices + UMAP 2D).
-# Generated on RTX PRO 6000 96GB via FAISS-GPU + cuML. Enables CPU-only plotting on M1 Mac (m08_plot.py).
-# Re-generation requires GPU: m05 (V-JEPA embed, ~90 min) → m06 (FAISS kNN) → m07 (cuML UMAP).
+# Compute outputs — backed up to HF via: python -u src/utils/hf_outputs.py upload outputs/<dir>
+outputs/**/*.npy
+outputs/**/*.npz
+outputs/full/*.json
+# Symlinks under src/ point to outputs/ — gitignore both paths
+src/outputs/**/*.npy
+src/outputs/**/*.npz
+src/outputs_poc/**/*.npy
+src/outputs_poc/**/*.npz
+src/outputs_sanity/**/*.npy
+src/outputs_sanity/**/*.npz
 
 # Large binary
 *.mp4

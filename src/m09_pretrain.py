@@ -112,10 +112,17 @@ def merge_config_with_args(cfg: dict, args) -> dict:
         cfg["drift_control"]["lambda_reg"] = args.lambda_reg
         if args.lambda_reg == 0:
             cfg["drift_control"]["enabled"] = False
+    elif args.SANITY:
+        # SANITY: use 0.001 as default (just testing code paths, not real training)
+        cfg["drift_control"]["lambda_reg"] = 0.001
 
     # Output dir: base/m09_lambda{value}/ for ablation isolation
     base_out = get_output_dir(args.subset, sanity=args.SANITY)
     lam = cfg["drift_control"]["lambda_reg"]
+    if lam is None:
+        print("FATAL: lambda_reg is not set. Run ablation first or pass --lambda-reg.")
+        print("  Auto-ablation will run if you omit --lambda-reg in non-SANITY mode.")
+        sys.exit(1)
     lam_str = f"{lam:g}".replace(".", "_")  # 0.0→"0", 0.01→"0_01" (no trailing .0)
     cfg["checkpoint"]["output_dir"] = str(base_out / f"m09_lambda{lam_str}")
     return cfg
@@ -146,8 +153,8 @@ def augment_clip_consistent(video_tensor: torch.Tensor, cfg_aug: dict,
     import torchvision.transforms as TT
 
     T_frames, C, H, W = video_tensor.shape
-    scale = cfg_aug.get("random_resize_scale", [0.3, 1.0])
-    ratio = cfg_aug.get("random_resize_ratio", [0.75, 1.35])
+    scale = cfg_aug["random_resize_scale"]
+    ratio = cfg_aug["random_resize_ratio"]
 
     i, j, h, w = TT.RandomResizedCrop.get_params(
         video_tensor[0], scale=scale, ratio=ratio)
@@ -157,7 +164,7 @@ def augment_clip_consistent(video_tensor: torch.Tensor, cfg_aug: dict,
     video = F.interpolate(video, size=(crop_size, crop_size),
                           mode='bilinear', align_corners=False)
 
-    if torch.rand(1).item() < cfg_aug.get("horizontal_flip", 0.5):
+    if torch.rand(1).item() < cfg_aug["horizontal_flip"]:
         video = video.flip(-1)
 
     return video  # (T, C, crop_size, crop_size)
@@ -174,8 +181,8 @@ def producer_thread(cfg: dict, q: queue.Queue, stop_event: threading.Event,
     batch_size = cfg["optimization"]["batch_size"]
     num_frames = cfg["data"]["num_frames"]
     crop_size = cfg["data"]["crop_size"]
-    local_data = cfg["data"].get("local_data")
-    cfg_aug = cfg.get("augmentation", {})
+    local_data = cfg["data"]["local_data"]
+    cfg_aug = cfg["augmentation"]
     retries = 0
     epoch = 0
 
@@ -252,15 +259,15 @@ def producer_thread(cfg: dict, q: queue.Queue, stop_event: threading.Event,
             except (ConnectionError, TimeoutError, OSError) as e:
                 retries += 1
                 if retries > MAX_STREAM_RETRIES:
-                    print(f"  ERROR: stream failed after {MAX_STREAM_RETRIES} retries: {e}")
+                    print(f"  FATAL: stream failed after {MAX_STREAM_RETRIES} retries: {e}")
                     break
                 wait = min(2 ** retries, 60)
-                print(f"  WARN: stream error ({e}), retry {retries}/{MAX_STREAM_RETRIES} in {wait}s")
+                print(f"  Stream error ({e}), retry {retries}/{MAX_STREAM_RETRIES} in {wait}s")
                 time.sleep(wait)
     finally:
         import shutil
         shutil.rmtree(tmp_dir, ignore_errors=True)
-        q.put(("done", None, None))
+        q.put(("error" if retries > MAX_STREAM_RETRIES else "done", None, None))
 
 
 # ═════════════════════════════════════════════════════════════════════════
@@ -285,8 +292,8 @@ def build_model(cfg: dict, device: torch.device) -> dict:
         use_silu=False,
         wide_silu=True,
         uniform_power=False,
-        use_rope=model_cfg.get("use_rope", True),
-        use_activation_checkpointing=model_cfg.get("use_activation_checkpointing", True),
+        use_rope=model_cfg["use_rope"],
+        use_activation_checkpointing=model_cfg["use_activation_checkpointing"],
     )
 
     # Load pretrained weights (Q3: target_encoder key, Q5: strip prefixes)
@@ -325,9 +332,14 @@ def build_model(cfg: dict, device: torch.device) -> dict:
         # pos_embed is expected missing when using RoPE
         unexpected_missing = [k for k in msg.missing_keys if "pos_embed" not in k]
         if unexpected_missing:
-            print(f"  WARNING: {len(unexpected_missing)} unexpected missing keys: "
-                  f"{unexpected_missing[:5]}")
-    if load_pct < 90:
+            print(f"FATAL: {len(unexpected_missing)} unexpected missing keys in student checkpoint:")
+            for k in unexpected_missing[:10]:
+                print(f"    {k}")
+            print("  These layers will be randomly initialized — training results invalid.")
+            print("  Fix: verify checkpoint matches model architecture.")
+            sys.exit(1)
+    min_student_pct = model_cfg["min_student_load_pct"]
+    if load_pct < min_student_pct:
         print(f"FATAL: Only {load_pct:.0f}% of student keys loaded. "
               f"Checkpoint likely incompatible.")
         print(f"  Checkpoint keys sample: {list(state_dict.keys())[:3]}")
@@ -353,14 +365,14 @@ def build_model(cfg: dict, device: torch.device) -> dict:
         depth=model_cfg["pred_depth"],
         num_heads=model_cfg["pred_num_heads"],
         use_mask_tokens=True,
-        num_mask_tokens=model_cfg.get("num_mask_tokens", 2),
+        num_mask_tokens=model_cfg["num_mask_tokens"],
         zero_init_mask_tokens=True,
-        use_rope=model_cfg.get("use_rope", True),
+        use_rope=model_cfg["use_rope"],
         uniform_power=False,
         use_sdpa=True,
         use_silu=False,
         wide_silu=True,
-        use_activation_checkpointing=model_cfg.get("use_activation_checkpointing", True),
+        use_activation_checkpointing=model_cfg["use_activation_checkpointing"],
     )
 
     # Q3: Load predictor weights if available
@@ -372,10 +384,17 @@ def build_model(cfg: dict, device: torch.device) -> dict:
         pred_loaded = pred_total - len(pred_msg.missing_keys)
         pred_pct = pred_loaded / max(pred_total, 1) * 100
         print(f"Predictor loaded from checkpoint ({pred_loaded}/{pred_total} keys = {pred_pct:.0f}%)")
-        if pred_pct < 50:
-            print(f"  WARNING: Predictor only {pred_pct:.0f}% loaded — may train from near-random init")
+        min_pred_pct = model_cfg["min_predictor_load_pct"]
+        if pred_pct < min_pred_pct:
+            print(f"FATAL: Predictor only {pred_pct:.0f}% loaded ({pred_loaded}/{pred_total} keys).")
+            print("  Near-random predictor init will produce garbage predictions → invalid loss.")
+            print("  Fix: verify checkpoint has 'predictor' key with matching architecture.")
+            sys.exit(1)
     else:
-        print("Predictor initialized randomly (no pretrained weights)")
+        print("FATAL: Checkpoint has no 'predictor' key — predictor would be randomly initialized.")
+        print("  V-JEPA 2 official checkpoint includes predictor weights.")
+        print("  This likely means a wrong/corrupt checkpoint file.")
+        sys.exit(1)
 
     predictor = predictor.to(device)
     print(f"Predictor: {sum(p.numel() for p in predictor.parameters()):,} params")
@@ -499,7 +518,8 @@ def build_optimizer(student, predictor, cfg_opt: dict):
 
 def build_scheduler(optimizer, cfg_opt: dict, total_steps: int):
     # Cap warmup to 10% of total steps (avoids never leaving warmup on short runs)
-    warmup_steps = min(cfg_opt["warmup_steps"], max(1, total_steps // 10))
+    warmup_cap_pct = cfg_opt["warmup_cap_pct"]
+    warmup_steps = min(cfg_opt["warmup_steps"], max(1, total_steps * warmup_cap_pct // 100))
     min_lr = cfg_opt["min_lr"]
     base_lr = cfg_opt["lr"]
 
@@ -519,7 +539,7 @@ def update_weight_decay(optimizer, cfg_opt: dict, step: int, total_steps: int):
     If both are equal (default: 0.04), this is a no-op.
     """
     initial_wd = cfg_opt["weight_decay"]
-    final_wd = cfg_opt.get("final_weight_decay", initial_wd)
+    final_wd = cfg_opt["final_weight_decay"]
     if initial_wd == final_wd:
         return  # no-op: fixed WD
     progress = step / max(total_steps, 1)
@@ -721,7 +741,7 @@ def train(cfg: dict, args):
         if train_keys:
             train_keys = set(list(train_keys)[:sanity_train])
         else:
-            local_data = cfg["data"].get("local_data")
+            local_data = cfg["data"]["local_data"]
             ds = _create_stream(0, local_data=local_data)
             collected = []
             for example in ds:
@@ -738,11 +758,11 @@ def train(cfg: dict, args):
         n_train = len(train_keys)
     else:
         # Full dataset: read clip count from local manifest
-        local_data = cfg["data"].get("local_data")
+        local_data = cfg["data"]["local_data"]
         manifest_path = Path(local_data) / "manifest.json" if local_data else None
         if manifest_path and manifest_path.exists():
             manifest = json.load(open(manifest_path))
-            n_total = manifest.get("n_clips", manifest.get("total_clips"))
+            n_total = manifest.get("n") or manifest.get("n_clips") or manifest.get("total_clips")
             n_train = n_total - len(val_key_set)
             print(f"Dataset size from manifest: {n_total:,} total, {n_train:,} train "
                   f"({len(val_key_set)} val excluded)")
@@ -790,7 +810,7 @@ def train(cfg: dict, args):
         import tempfile as _tmpmod
         _val_tmp = _tmpmod.mkdtemp(prefix="m09_val_")
         # Use --val-local-data if provided, otherwise fall back to --local-data
-        val_local = getattr(args, "val_local_data", None) or cfg["data"].get("local_data")
+        val_local = getattr(args, "val_local_data", None) or cfg["data"]["local_data"]
         _val_ds = _create_stream(0, local_data=val_local)
         _val_batch_buf = []
         for _ex in _val_ds:
@@ -804,7 +824,7 @@ def train(cfg: dict, args):
             _vt = decode_video_bytes(_mp4b, _val_tmp, _ck, cfg["data"]["num_frames"])
             if _vt is None:
                 continue
-            _aug = augment_clip_consistent(_vt, cfg.get("augmentation", {}), cfg["data"]["crop_size"])
+            _aug = augment_clip_consistent(_vt, cfg["augmentation"], cfg["data"]["crop_size"])
             _val_batch_buf.append(_aug)
             val_collected_keys.append(_ck)
             if len(_val_batch_buf) >= batch_size:
@@ -820,7 +840,109 @@ def train(cfg: dict, args):
         _shutil.rmtree(_val_tmp, ignore_errors=True)
         print(f"Val clips collected: {len(val_collected_keys)} in {len(val_batches)} batches")
     else:
-        print("No --val-subset provided — skipping validation during training")
+        if not getattr(args, "SANITY", False):
+            print("No --val-subset provided. Attempting auto-download of val data...")
+            try:
+                from utils.hf_outputs import download_data
+                download_data()
+                # Check if val data now exists
+                val_path = Path("data/val_1k.json")
+                val_local_path = Path("data/val_1k_local")
+                if val_path.exists() and val_local_path.exists():
+                    print(f"Auto-downloaded val data. Loading {val_path}...")
+                    val_key_set = load_val_subset(str(val_path))
+                    args.val_local_data = str(val_local_path)
+                    # Re-run val collection with downloaded data
+                    import tempfile as _tmpmod2
+                    _val_tmp2 = _tmpmod2.mkdtemp(prefix="m09_val_")
+                    _val_ds2 = _create_stream(0, local_data=str(val_local_path))
+                    _val_batch_buf2 = []
+                    for _ex in _val_ds2:
+                        _ck = get_clip_key(_ex)
+                        if _ck not in val_key_set:
+                            continue
+                        _mp4 = _ex.get("mp4", b"")
+                        _mp4b = _mp4["bytes"] if isinstance(_mp4, dict) else _mp4
+                        if not _mp4b:
+                            continue
+                        _vt = decode_video_bytes(_mp4b, _val_tmp2, _ck, cfg["data"]["num_frames"])
+                        if _vt is None:
+                            continue
+                        _aug = augment_clip_consistent(_vt, cfg["augmentation"], cfg["data"]["crop_size"])
+                        _val_batch_buf2.append(_aug)
+                        val_collected_keys.append(_ck)
+                        if len(_val_batch_buf2) >= batch_size:
+                            _batch = torch.stack(_val_batch_buf2, dim=0).permute(0, 2, 1, 3, 4)
+                            val_batches.append(_batch)
+                            _val_batch_buf2 = []
+                        if len(val_collected_keys) >= len(val_key_set):
+                            break
+                    if _val_batch_buf2:
+                        _batch = torch.stack(_val_batch_buf2, dim=0).permute(0, 2, 1, 3, 4)
+                        val_batches.append(_batch)
+                    import shutil as _shutil2
+                    _shutil2.rmtree(_val_tmp2, ignore_errors=True)
+                    print(f"Val clips collected: {len(val_collected_keys)} in {len(val_batches)} batches")
+                else:
+                    print("FATAL: Auto-download failed — val data still missing.")
+                    print("  Fix: python -u src/utils/hf_outputs.py download-data")
+                    sys.exit(1)
+            except Exception as e:
+                print(f"FATAL: Auto-download failed ({e}). Val data required for non-SANITY runs.")
+                print("  Fix: python -u src/utils/hf_outputs.py download-data")
+                sys.exit(1)
+        else:
+            # SANITY mode: still validate with first 50 clips (tests validation code path)
+            print("SANITY mode — auto-downloading val data for validation code path test...")
+            try:
+                from utils.hf_outputs import download_data
+                download_data()
+                val_path = Path("data/val_1k.json")
+                val_local_path = Path("data/val_1k_local")
+                if val_path.exists():
+                    val_key_set = load_val_subset(str(val_path))
+                    # Use only first 50 keys for SANITY speed
+                    sanity_val_cap = cfg["data"]["sanity_val_clips"]
+                    val_key_set = set(list(val_key_set)[:sanity_val_cap])
+                    val_local = str(val_local_path) if val_local_path.exists() else cfg["data"]["local_data"]
+                    import tempfile as _tmpmod3
+                    _val_tmp3 = _tmpmod3.mkdtemp(prefix="m09_val_")
+                    _val_ds3 = _create_stream(0, local_data=val_local)
+                    _val_batch_buf3 = []
+                    for _ex in _val_ds3:
+                        _ck = get_clip_key(_ex)
+                        if _ck not in val_key_set:
+                            continue
+                        _mp4 = _ex.get("mp4", b"")
+                        _mp4b = _mp4["bytes"] if isinstance(_mp4, dict) else _mp4
+                        if not _mp4b:
+                            continue
+                        _vt = decode_video_bytes(_mp4b, _val_tmp3, _ck, cfg["data"]["num_frames"])
+                        if _vt is None:
+                            continue
+                        _aug = augment_clip_consistent(_vt, cfg["augmentation"], cfg["data"]["crop_size"])
+                        _val_batch_buf3.append(_aug)
+                        val_collected_keys.append(_ck)
+                        if len(_val_batch_buf3) >= batch_size:
+                            _batch = torch.stack(_val_batch_buf3, dim=0).permute(0, 2, 1, 3, 4)
+                            val_batches.append(_batch)
+                            _val_batch_buf3 = []
+                        if len(val_collected_keys) >= sanity_val_cap:
+                            break
+                    if _val_batch_buf3:
+                        _batch = torch.stack(_val_batch_buf3, dim=0).permute(0, 2, 1, 3, 4)
+                        val_batches.append(_batch)
+                    import shutil as _shutil3
+                    _shutil3.rmtree(_val_tmp3, ignore_errors=True)
+                    print(f"SANITY val clips: {len(val_collected_keys)} in {len(val_batches)} batches")
+                else:
+                    print("FATAL: SANITY val data download failed — val_1k.json not found after download.")
+                    print("  Fix: python -u src/utils/hf_outputs.py download-data")
+                    sys.exit(1)
+            except Exception as e:
+                print(f"FATAL: SANITY val data auto-download failed ({e})")
+                print("  Fix: python -u src/utils/hf_outputs.py download-data")
+                sys.exit(1)
 
     # Data stream (producer loops over epochs automatically)
     q = queue.Queue(maxsize=PREFETCH_QUEUE_SIZE)
@@ -864,7 +986,7 @@ def train(cfg: dict, args):
 
     print(f"\n=== Training: {start_step} → {total_steps} steps ({max_epochs} epochs) ===")
     print(f"Batch size: {batch_size}")
-    print(f"Grad checkpointing: {cfg['model'].get('use_activation_checkpointing', False)}")
+    print(f"Grad checkpointing: {cfg['model']['use_activation_checkpointing']}")
     print(f"Mixed precision: {mp_cfg['dtype']}")
     print(f"EMA momentum: {ema_momentum}")
     print(f"Drift control: lambda={drift_cfg['lambda_reg'] if drift_cfg['enabled'] else 0}")
@@ -880,10 +1002,21 @@ def train(cfg: dict, args):
             try:
                 msg_type, batch_clips, batch_keys = q.get(timeout=600)
             except queue.Empty:
-                print(f"\nProducer timeout at step {step}. Saving checkpoint...")
+                print(f"Producer timeout at step {step}/{total_steps}. "
+                      f"GPU idle for 10 min — saving checkpoint and stopping gracefully.")
                 break
+            if msg_type == "error":
+                print(f"FATAL: Producer stream failed at step {step}/{total_steps}. "
+                      f"Data source unreachable after {MAX_STREAM_RETRIES} retries.")
+                print(f"  Checkpoint saved. Check network/disk and resume.")
+                sys.exit(1)
             if msg_type == "done":
-                print(f"\nData exhausted at step {step}.")
+                pct_done = (step + 1) / total_steps * 100
+                if pct_done < 95:
+                    print(f"\n  Data exhausted at step {step}/{total_steps} ({pct_done:.0f}%). "
+                          f"Training {100-pct_done:.0f}% incomplete — finishing with available data.")
+                else:
+                    print(f"\nData exhausted at step {step}/{total_steps} ({pct_done:.0f}%).")
                 break
 
             batch_clips = batch_clips.to(device)
@@ -935,15 +1068,31 @@ def train(cfg: dict, args):
             update_teacher_ema(student, teacher, ema_momentum)
 
             # Periodic GC (every 50 steps, matches Meta's sync_gc pattern)
-            if step % 50 == 0:
+            if step % cfg["optimization"]["gc_interval"] == 0:
                 gc.collect()
 
-            # Per-step logging
+            # Per-step logging + NaN/Inf guard
             jepa_val = jepa_loss.item()
             drift_val = drift_loss.item()
             total_val = total_loss.item()
             lr_val = scheduler.get_last_lr()[0]
             gn_val = grad_norm.item() if torch.is_tensor(grad_norm) else grad_norm
+
+            import math
+            if math.isnan(jepa_val) or math.isinf(jepa_val):
+                nan_strikes = getattr(main, '_nan_strikes', 0) + 1
+                main._nan_strikes = nan_strikes
+                print(f"  NaN/Inf loss at step {step} (strike {nan_strikes}/3). "
+                      f"GradScaler will auto-adjust.")
+                if nan_strikes >= cfg["optimization"]["nan_tolerance"]:
+                    print(f"FATAL: 3 consecutive NaN/Inf losses. Model diverged.")
+                    print(f"  Debug: check loss_log.csv for divergence point.")
+                    sys.exit(1)
+            else:
+                main._nan_strikes = 0  # reset on valid loss
+
+            if math.isnan(gn_val) or math.isinf(gn_val):
+                print(f"  Gradient norm {gn_val} at step {step} — GradScaler auto-skipped this step.")
 
             running_loss += total_val
             window_steps += 1
@@ -1019,14 +1168,23 @@ def train(cfg: dict, args):
                 log_metrics(wb_run, {"epoch_complete": epoch + 1}, step=step)
 
     except KeyboardInterrupt:
-        print("\nInterrupted! Saving checkpoint...")
+        print("\nInterrupted! Saving checkpoint (model NOT exported — training incomplete).")
+        pbar.close()
+        csv_file.close()
+        stop_event.set()
+        gc.enable()
+        save_training_checkpoint(
+            ckpt_path, student, teacher, predictor, optimizer, scheduler,
+            scaler, step + 1, best_val_loss, full=True)
+        print(f"  Checkpoint saved at step {step + 1}/{total_steps}. Resume with same command.")
+        sys.exit(0)  # user-initiated, not an error
     finally:
         pbar.close()
         csv_file.close()
         stop_event.set()
-        gc.enable()  # re-enable auto GC
+        gc.enable()
 
-    # Export student encoder (the only deliverable)
+    # Export student encoder (the only deliverable — only reached if training completed)
     export_student_for_eval(student, student_path)
 
     # Cleanup ALL checkpoints — student_encoder.pt is the deliverable
@@ -1043,6 +1201,7 @@ def train(cfg: dict, args):
         "final_jepa_loss": jepa_val,
         "final_drift_loss": drift_val,
         "final_total_loss": total_val,
+        "best_val_loss": best_val_loss,
         "final_lr": lr_val,
         "final_grad_norm": gn_val,
         "lambda_reg": drift_cfg["lambda_reg"],
@@ -1103,8 +1262,135 @@ def main():
     cfg = load_config(args.config)
     cfg = merge_config_with_args(cfg, args)
 
+    # Auto-ablation: if no --lambda-reg specified, find or run ablation
+    if args.lambda_reg is None and not args.SANITY:
+        out_dir = Path(cfg["checkpoint"]["output_dir"]).parent
+        winner_json = out_dir / "ablation_winner.json"
+
+        if winner_json.exists():
+            w = json.load(open(winner_json))
+            cfg["drift_control"]["lambda_reg"] = float(w["winner_lambda"])
+            lam_str = f"{float(w['winner_lambda']):g}".replace(".", "_")
+            cfg["checkpoint"]["output_dir"] = str(out_dir / f"m09_lambda{lam_str}")
+            print(f"Using ablation winner: lambda={w['winner_lambda']} "
+                  f"(best_val_loss={w.get('winner_val_loss', '?')}) from {winner_json}")
+        else:
+            print(f"\n{'='*60}")
+            print(f"  AUTO-ABLATION: No {winner_json} found.")
+            print(f"  Running 4 lambda sweep on data/subset_10k_local (~2h)")
+            print(f"  Ablation outputs → {out_dir}/m09_lambda*/")
+            print(f"{'='*60}\n")
+
+            drift_cfg = cfg["drift_control"]
+            ablation_lambdas = drift_cfg["ablation_lambdas"]
+
+            for lam in ablation_lambdas:
+                lam_str = f"{lam:g}".replace(".", "_")
+                lam_out = out_dir / f"m09_lambda{lam_str}"
+
+                # Skip if already trained with valid val_loss
+                summary_path = lam_out / "training_summary.json"
+                if summary_path.exists():
+                    s = json.load(open(summary_path))
+                    if s.get("best_val_loss") is not None and s["best_val_loss"] != float("inf"):
+                        print(f"  lambda={lam}: already trained (val_loss={s['best_val_loss']:.4f}), skipping")
+                        continue
+
+                print(f"\n--- Ablation: lambda={lam} ---")
+                import subprocess
+                mode_flag = "--SANITY" if args.SANITY else ("--POC" if args.POC else "--FULL")
+                ablation_cmd = [
+                    sys.executable, "-u", os.path.abspath(__file__),
+                    "--config", args.config,
+                    mode_flag,
+                    "--subset", drift_cfg["ablation_subset"],
+                    "--val-subset", drift_cfg["ablation_val_subset"],
+                    "--local-data", drift_cfg["ablation_local_data"],
+                    "--val-local-data", drift_cfg["ablation_val_local_data"],
+                    "--lambda-reg", str(lam),
+                    "--max-epochs", str(drift_cfg["ablation_epochs"]),
+                    "--no-wandb",
+                ]
+                result = subprocess.run(ablation_cmd)
+                if result.returncode != 0:
+                    print(f"FATAL: Ablation failed for lambda={lam}")
+                    sys.exit(1)
+
+            select_ablation_winner(str(out_dir), [str(l) for l in ablation_lambdas])
+
+            if not winner_json.exists():
+                print("FATAL: ablation_winner.json not created after ablation")
+                sys.exit(1)
+            w = json.load(open(winner_json))
+            cfg["drift_control"]["lambda_reg"] = float(w["winner_lambda"])
+            lam_str = f"{float(w['winner_lambda']):g}".replace(".", "_")
+            cfg["checkpoint"]["output_dir"] = str(out_dir / f"m09_lambda{lam_str}")
+            print(f"\nProceeding with winner: lambda={w['winner_lambda']} "
+                  f"(best_val_loss={w['winner_val_loss']:.4f})")
+
     train(cfg, args)
 
 
+def select_ablation_winner(output_dir: str, lambdas=None):
+    """Compare best_val_loss across lambda ablation runs → write ablation_winner.json.
+
+    USAGE:
+        python -u src/m09_pretrain.py --select-winner outputs/poc 2>&1 | tee logs/m09_select_winner.log
+    """
+    if lambdas is None:
+        cfg = load_config(DEFAULT_CONFIG)
+        lambdas = [str(l) for l in cfg["drift_control"]["ablation_lambdas"]]
+
+    out = Path(output_dir)
+    results = {}
+
+    print(f"\n=== Lambda Ablation Winner Selection ===")
+    print(f"Output dir: {out}")
+    print(f"Selection metric: best_val_loss (lowest wins)\n")
+
+    for lam in lambdas:
+        lam_dir = "lambda" + lam.replace(".", "_")
+        summary_path = out / f"m09_{lam_dir}" / "training_summary.json"
+        if not summary_path.exists():
+            print(f"  lambda={lam}: MISSING ({summary_path})")
+            continue
+        s = json.load(open(summary_path))
+        val_loss = s.get("best_val_loss")
+        if val_loss is None or val_loss == float("inf"):
+            print(f"  lambda={lam}: NO VALID val_loss (was validation run?)")
+            continue
+        results[lam] = {"val_loss": val_loss, "dir": lam_dir,
+                        "jepa_loss": s.get("final_jepa_loss"),
+                        "epochs": s.get("epochs"), "steps": s.get("steps")}
+        print(f"  lambda={lam}: best_val_loss={val_loss:.4f} "
+              f"(jepa_loss={s.get('final_jepa_loss', '?'):.4f}, "
+              f"{s.get('epochs', '?')} epochs, {s.get('steps', '?')} steps)")
+
+    if not results:
+        print("\nFATAL: No valid ablation results found. Run POC ablation first.")
+        sys.exit(1)
+
+    winner = min(results, key=lambda k: results[k]["val_loss"])
+    winner_info = {
+        "winner_lambda": winner,
+        "winner_dir": results[winner]["dir"],
+        "winner_val_loss": results[winner]["val_loss"],
+        "selection_metric": "best_val_loss (lowest)",
+        "all_results": {k: v["val_loss"] for k, v in results.items()},
+    }
+
+    winner_path = out / "ablation_winner.json"
+    with open(winner_path, "w") as f:
+        json.dump(winner_info, f, indent=2)
+
+    print(f"\n  Winner: lambda={winner} (best_val_loss={results[winner]['val_loss']:.4f})")
+    print(f"  Saved: {winner_path}")
+    print(f"  run_pretrain.sh --FULL will read this automatically.")
+
+
 if __name__ == "__main__":
-    main()
+    # Check for --select-winner subcommand before argparse
+    if len(sys.argv) >= 3 and sys.argv[1] == "--select-winner":
+        select_ablation_winner(sys.argv[2])
+    else:
+        main()

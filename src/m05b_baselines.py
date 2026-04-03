@@ -28,8 +28,8 @@ from utils.config import (
     get_output_dir, get_encoder_files,
     get_sanity_clip_limit, get_total_clips,
 )
-from utils.data_download import ensure_local_data
-from utils.gpu_batch import compute_batch_sizes, add_gpu_mem_arg
+from utils.data_download import ensure_local_data, iter_clips_parallel
+from utils.gpu_batch import compute_batch_sizes, add_gpu_mem_arg, cuda_cleanup, cleanup_temp
 from utils.wandb_utils import add_wandb_args, init_wandb, log_metrics, log_artifact, finish_wandb
 
 # Reuse HF streaming + video decode from m05
@@ -91,103 +91,172 @@ def _extract_middle_frame(video_tensor, num_frames: int):
     return Image.fromarray(frame.astype(np.uint8))
 
 
+def _decode_and_extract_frame(mp4_bytes: bytes, clip_key: str,
+                               tmp_dir: str, num_frames: int):
+    """Extract middle frame via decord (single-frame seek, no full decode).
+
+    5-10x faster than PyAV full decode for image encoders (CLIP/DINOv2)
+    that only need 1 frame per clip. Falls back to PyAV on decord failure.
+    """
+    from PIL import Image
+    import io
+
+    try:
+        from decord import VideoReader
+        vr = VideoReader(io.BytesIO(mp4_bytes))
+        mid_idx = len(vr) // 2
+        frame = vr[mid_idx].asnumpy()  # (H, W, C) uint8
+        return Image.fromarray(frame), clip_key
+    except Exception:
+        # Fallback: full PyAV decode (slower but more robust)
+        tensor = decode_video_bytes(mp4_bytes, tmp_dir, clip_key, num_frames)
+        if tensor is None:
+            return None, clip_key
+        return _extract_middle_frame(tensor, num_frames), clip_key
+
+
 def _producer_image_baseline(processor, batch_size: int, tmp_dir: str,
                               q: queue.Queue, stop_event: threading.Event,
                               clip_limit: int, subset_keys: set,
                               processed_keys: set, num_frames: int,
                               local_data: str = None):
-    """Stream from HF (or local shards), decode, extract middle frame, preprocess, enqueue tensors."""
+    """Parallel TAR reading + parallel decode for image encoders (CLIP/DINOv2).
+
+    8 threads read TARs concurrently → shared clip queue → DECODE_WORKERS threads
+    decode + extract middle frame → processor batches → GPU consumer queue.
+    """
     produced = 0
-    retries = 0
 
-    while produced < clip_limit and not stop_event.is_set():
-        try:
-            ds = _create_stream(0, local_data=local_data)
-            pending_bytes = []
-            pending_keys = []
+    if local_data:
+        # Parallel TAR reader: 8 threads reading different TARs simultaneously
+        clip_q, tar_stop, reader = iter_clips_parallel(
+            local_data, subset_keys=subset_keys, processed_keys=processed_keys)
+    else:
+        # Fallback: HF streaming (no parallel TAR reading)
+        clip_q, tar_stop, _reader = None, None, None
 
-            for example in ds:
-                if stop_event.is_set():
+    try:
+        if clip_q is not None:
+            # Fast path: parallel TAR reading → parallel decode → batch
+            pending = []  # list of (mp4_bytes, clip_key)
+
+            while produced < clip_limit and not stop_event.is_set():
+                try:
+                    item = clip_q.get(timeout=120)
+                except queue.Empty:
+                    print("  Parallel TAR reader timeout (2 min), flushing remaining")
                     break
 
-                clip_key = get_clip_key(example)
+                if item is None:  # sentinel: all TARs exhausted
+                    break
 
-                if subset_keys and clip_key not in subset_keys:
-                    continue
-                if clip_key in processed_keys:
-                    continue
+                clip_key, mp4_bytes = item
+                pending.append((mp4_bytes, clip_key))
 
-                mp4_data = example.get("mp4", b"")
-                mp4_bytes = mp4_data["bytes"] if isinstance(mp4_data, dict) else mp4_data
-                if not mp4_bytes:
-                    continue
-
-                pending_bytes.append(mp4_bytes)
-                pending_keys.append(clip_key)
-
-                if len(pending_bytes) >= batch_size:
+                if len(pending) >= batch_size:
+                    # Parallel decode + frame extraction
                     with ThreadPoolExecutor(max_workers=DECODE_WORKERS) as pool:
                         futures = [
-                            pool.submit(decode_video_bytes, b, tmp_dir, k, num_frames)
-                            for b, k in zip(pending_bytes, pending_keys)
+                            pool.submit(_decode_and_extract_frame, b, k, tmp_dir, num_frames)
+                            for b, k in pending
                         ]
-                        results = [(f.result(), k) for f, k in zip(futures, pending_keys)]
+                        results = [f.result() for f in futures]
 
-                    frames = []
-                    keys = []
-                    for tensor, key in results:
-                        if tensor is not None:
-                            frames.append(_extract_middle_frame(tensor, num_frames))
-                            keys.append(key)
+                    frames = [img for img, _ in results if img is not None]
+                    keys = [k for img, k in results if img is not None]
 
                     if frames:
                         inputs = processor(images=frames, return_tensors="pt")
                         q.put(("batch", inputs, keys[:]))
                         produced += len(frames)
 
-                    pending_bytes = []
-                    pending_keys = []
-                    retries = 0
+                    pending = []
 
                     if produced >= clip_limit:
                         break
 
             # Final partial batch
-            if pending_bytes and not stop_event.is_set():
+            if pending and not stop_event.is_set():
                 with ThreadPoolExecutor(max_workers=DECODE_WORKERS) as pool:
                     futures = [
-                        pool.submit(decode_video_bytes, b, tmp_dir, k, num_frames)
-                        for b, k in zip(pending_bytes, pending_keys)
+                        pool.submit(_decode_and_extract_frame, b, k, tmp_dir, num_frames)
+                        for b, k in pending
                     ]
-                    results = [(f.result(), k) for f, k in zip(futures, pending_keys)]
+                    results = [f.result() for f in futures]
 
-                frames = []
-                keys = []
-                for tensor, key in results:
-                    if tensor is not None:
-                        frames.append(_extract_middle_frame(tensor, num_frames))
-                        keys.append(key)
+                frames = [img for img, _ in results if img is not None]
+                keys = [k for img, k in results if img is not None]
 
                 if frames:
                     inputs = processor(images=frames, return_tensors="pt")
                     q.put(("batch", inputs, keys[:]))
                     produced += len(frames)
 
-            break  # stream exhausted
+        else:
+            # HF streaming fallback (no local data)
+            retries = 0
+            while produced < clip_limit and not stop_event.is_set():
+                try:
+                    ds = _create_stream(0, local_data=local_data)
+                    pending_bytes = []
+                    pending_keys = []
 
-        except (ConnectionError, TimeoutError, OSError) as e:
-            retries += 1
-            if retries > MAX_STREAM_RETRIES:
-                print(f"  ERROR: stream failed after {MAX_STREAM_RETRIES} retries: {e}")
-                break
-            wait = min(2 ** retries, 60)
-            print(f"  WARN: stream error ({e}), retry {retries}/{MAX_STREAM_RETRIES} in {wait}s")
-            time.sleep(wait)
-        except Exception as e:
-            print(f"  ERROR: unexpected producer error: {e}")
-            import traceback
-            traceback.print_exc()
-            break
+                    for example in ds:
+                        if stop_event.is_set():
+                            break
+
+                        clip_key = get_clip_key(example)
+                        if subset_keys and clip_key not in subset_keys:
+                            continue
+                        if clip_key in processed_keys:
+                            continue
+
+                        mp4_data = example.get("mp4", b"")
+                        mp4_bytes = mp4_data["bytes"] if isinstance(mp4_data, dict) else mp4_data
+                        if not mp4_bytes:
+                            continue
+
+                        pending_bytes.append(mp4_bytes)
+                        pending_keys.append(clip_key)
+
+                        if len(pending_bytes) >= batch_size:
+                            with ThreadPoolExecutor(max_workers=DECODE_WORKERS) as pool:
+                                futures = [
+                                    pool.submit(decode_video_bytes, b, tmp_dir, k, num_frames)
+                                    for b, k in zip(pending_bytes, pending_keys)
+                                ]
+                                results = [(f.result(), k) for f, k in zip(futures, pending_keys)]
+
+                            frames = [_extract_middle_frame(t, num_frames) for t, k in results if t is not None]
+                            keys = [k for t, k in results if t is not None]
+
+                            if frames:
+                                inputs = processor(images=frames, return_tensors="pt")
+                                q.put(("batch", inputs, keys[:]))
+                                produced += len(frames)
+
+                            pending_bytes, pending_keys = [], []
+                            if produced >= clip_limit:
+                                break
+
+                    break  # stream exhausted
+
+                except (ConnectionError, TimeoutError, OSError) as e:
+                    retries += 1
+                    if retries > MAX_STREAM_RETRIES:
+                        print(f"  ERROR: stream failed after {MAX_STREAM_RETRIES} retries: {e}")
+                        break
+                    wait = min(2 ** retries, 60)
+                    print(f"  WARN: stream error ({e}), retry {retries}/{MAX_STREAM_RETRIES}")
+                    time.sleep(wait)
+
+    except Exception as e:
+        print(f"  ERROR: unexpected producer error: {e}")
+        import traceback
+        traceback.print_exc()
+    finally:
+        if tar_stop:
+            tar_stop.set()
 
     q.put(("done", None, None))
 
@@ -243,7 +312,7 @@ def generate_dinov2(output_dir: Path, args, clip_limit: int, subset_keys: set):
     try:
         while True:
             try:
-                msg_type, batch_inputs, batch_keys = q.get(timeout=600)
+                msg_type, batch_inputs, batch_keys = q.get(timeout=60)
             except queue.Empty:
                 print("\nProducer timeout (10 min). Saving checkpoint...")
                 break
@@ -351,7 +420,7 @@ def generate_clip(output_dir: Path, args, clip_limit: int, subset_keys: set):
     try:
         while True:
             try:
-                msg_type, batch_inputs, batch_keys = q.get(timeout=600)
+                msg_type, batch_inputs, batch_keys = q.get(timeout=60)
             except queue.Empty:
                 print("\nProducer timeout (10 min). Saving checkpoint...")
                 break
@@ -587,7 +656,7 @@ def generate_shuffled_vjepa(output_dir: Path, args, clip_limit: int, subset_keys
     try:
         while True:
             try:
-                msg_type, batched_pixels, batch_keys = q.get(timeout=600)
+                msg_type, batched_pixels, batch_keys = q.get(timeout=60)
             except queue.Empty:
                 print("\nProducer timeout (10 min). Saving checkpoint...")
                 break
@@ -656,6 +725,7 @@ def _finalize(all_embeddings: list, all_keys: list, files: dict, checkpoint_file
 # ── Main ─────────────────────────────────────────────────────────────
 
 def main():
+    cleanup_temp()
     parser = argparse.ArgumentParser(
         description="Generate baseline embeddings: Random, DINOv2, CLIP, Shuffled V-JEPA")
     ALL_BASELINES = ["random", "dinov2", "clip", "vjepa_shuffled"]
@@ -694,6 +764,10 @@ def main():
             print(f"{'#'*60}\n")
 
         _run_single_encoder(encoder, args)
+
+        # Cleanup CUDA between encoders to prevent cross-encoder fragmentation
+        if len(encoders_to_run) > 1:
+            cuda_cleanup()
 
     if args.encoder == "all":
         print(f"\n{'='*60}")

@@ -381,11 +381,75 @@ m05 deduplicates V-JEPA embeddings (cosine sim > 0.95): 10,000 → 5,105 unique 
 | Risk | Mitigation |
 |------|-----------|
 | **OOM** | AdaptiveBatchSizer geometric backoff (halve on OOM, never cliff to 1) + proactive shrink at >85% VRAM |
-| **OOM cleanup** | Cleanup outside `except` block (fairseq pattern) |
+| **OOM cleanup** | Cleanup outside `except` block (fairseq pattern) + shared `cuda_cleanup()` in `gpu_batch.py` |
 | **HF stream stall** | ENGINE_RESTART_EVERY + atomic checkpoint + fresh worker subprocess |
 | **torchcodec ABI** | Uninstalled — decord is default video reader. torchcodec needs stable PyTorch (not nightly 2.12.0) |
 | **Batched quality drift** | Minor padding effects for Qwen3-VL. Acceptable for tagging |
 | **VideoLLaMA3 batch incompat** | Degrades to sub-batch=1 gracefully |
+
+---
+
+## Death Spiral Fixes (March 31, 2026 — 115K FULL Run)
+
+### BUG 5: CUDA Memory Fragmentation Death Spiral (Worker 3 of m04)
+
+**Discovered:** Worker 3 of m04 (clip 20K→30K). AdaptiveBatchSizer shrank 64→1 over ~2000 clips.
+
+```
+Worker 3, clip 3584: batch=64, VRAM 86% > 85% cap → 64→63
+Worker 3, clip 3648: 63→62
+...monotonic shrink, every batch overshoots 85%...
+Worker 3, clip 4992: 14→13→12→11→10→9
+Worker 3, clip 5056: 8→7→6→5→4→3→2→1  ← DEATH SPIRAL
+Worker 3, clip 5696: batch=1, 0.10 clips/s (was 1.4 clips/s)
+```
+
+**Root cause:** `PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True` was set in `run_pretrain.sh` but missing from `run_evaluate.sh`. Without it, CUDA allocator fragments over time — `mem_get_info()` reports 86% used even though most is fragmented (reserved but unusable).
+
+**Fix:** Added `export PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True` to `run_evaluate.sh` line 24.
+
+**Verification:** After fix, Worker 1 of the restarted run: VRAM stays at 39-45%, batch stable at 64, 1.4 clips/s sustained. No 86% cap hits.
+
+### BUG 6: _oom_count Never Resets — Growth Permanently Blocked
+
+**Root cause:** `AdaptiveBatchSizer._oom_count` incremented on OOM but never reset. Growth condition (`_oom_count == 0`) permanently false after a single transient OOM. Batch stays halved for entire 10K-clip worker segment.
+
+**Fix:** Added `OOM_COOLDOWN = 50` in `gpu_batch.py`. After 50 consecutive successes, `_oom_count` resets to 0, allowing growth. `_consecutive_ok` counter resets on each OOM.
+
+### BUG 7: m05b 4 Encoders in 1 Process — Cross-Encoder Fragmentation
+
+**Root cause:** `--encoder all` runs random→DINOv2→CLIP→shuffled in a single process. Each encoder loads/unloads a different model, fragmenting CUDA address space. By encoder 4, allocator is degraded.
+
+**Fix (two layers):**
+1. `run_evaluate.sh`: Changed `--encoder all` to per-encoder loop (4 separate `run_step` calls). Each encoder gets a fresh process.
+2. `m05b_baselines.py`: Added `cuda_cleanup()` between encoder runs (gc.collect + empty_cache + reset_peak_memory_stats) as defense-in-depth.
+
+### BUG 8: m05c No OOM Recovery on Forward Pass
+
+**Root cause:** `get_batch_embeddings()` in m05c had no try/except. A single OOM crashes the step, requiring full restart from checkpoint.
+
+**Fix:** Added try/except `torch.cuda.OutOfMemoryError` → `cuda_cleanup()` → retry with half batch (split pixels_a/pixels_b at midpoint, process each half separately).
+
+### Shared Utility: `cuda_cleanup()` in `gpu_batch.py`
+
+```python
+def cuda_cleanup():
+    """Force CUDA memory cleanup. Call between encoder runs or after OOM recovery."""
+    gc.collect()
+    torch.cuda.empty_cache()
+    torch.cuda.reset_peak_memory_stats()
+```
+
+Used by: m05b (between encoders), m05c (after OOM), available for all GPU scripts.
+
+### Summary Table
+
+| Bug | Severity | Where | Fix | Verified |
+|:---:|:--------:|-------|-----|:--------:|
+| 5 | CRITICAL | `run_evaluate.sh` | `PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True` | Yes — VRAM 39-45% stable |
+| 6 | HIGH | `gpu_batch.py` | `OOM_COOLDOWN=50` consecutive successes → reset `_oom_count` | Yes — py_compile + ruff |
+| 7 | CRITICAL | `run_evaluate.sh` + `m05b` | Per-encoder loop + `cuda_cleanup()` between runs | Yes — py_compile + ruff |
+| 8 | HIGH | `m05c_true_overlap.py` | try/except OOM → cleanup → retry half batch | Yes — py_compile + ruff |
 
 ---
 

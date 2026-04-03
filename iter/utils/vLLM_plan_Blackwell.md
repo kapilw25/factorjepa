@@ -31,7 +31,7 @@ Goal: vLLM + Qwen3.5-9B for continuous batching → estimated 5-15 clips/s for 1
 
 ---
 
-## Why vLLM Failed Previously (10 Root Causes)
+## Why vLLM Failed Previously (14 Root Causes)
 
 ### Round 1: vLLM 0.11.0 (original attempt → abandoned for transformers)
 
@@ -41,7 +41,7 @@ Goal: vLLM + Qwen3.5-9B for continuous batching → estimated 5-15 clips/s for 1
 | 2 | **No sm_120 in prebuilt wheels** | vLLM PyPI wheels lack Blackwell sm_120 CUDA kernels → runtime crash. [Issue #35432](https://github.com/vllm-project/vllm/issues/35432) |
 | 3 | **PyTorch version mismatch** | vLLM expects stable PyTorch (2.9.1). Blackwell requires nightly (2.12.0.dev+cu128). `pip install vllm` = incompatible |
 
-### Round 2: vLLM 0.18.1 nightly on 96GB RTX PRO 6000 (resolved March 2026)
+### Round 2: vLLM 0.18.1 nightly — install + smoke test (resolved March 2026)
 
 | # | Root Cause | Fix |
 |:---:|:---|:---|
@@ -51,7 +51,16 @@ Goal: vLLM + Qwen3.5-9B for continuous batching → estimated 5-15 clips/s for 1
 | 7 | **Install order: vLLM before torch** | vLLM needs torch present at install time. Old script tried vLLM first (failed), then Qwen deps (which pulled torch). Fix: Qwen+torch deps first, then vLLM |
 | 8 | **`spawn` multiprocessing crash** | vLLM v0.18+ uses `spawn` (not `fork`). `smoke_test_vllm.py` had `LLM()` at module level → child re-imports → infinite recursion. Fix: `if __name__ == '__main__':` guard |
 | 9 | **`total_mem` AttributeError** | `torch.cuda.get_device_properties(0).total_mem` wrong. Fix: `.total_memory` |
-| 10 | **`KeyError: checkpoint_every_vlm`** | `m04_vlm_tag_vllm.py` used non-existent `pipeline.yaml` key `checkpoint_every_vlm`. Correct key: `checkpoint_every`. Smoke test passed but `run_evaluate.sh --vllm` would crash at module-level import. Fix: `_pcfg["streaming"]["checkpoint_every"]` |
+| 10 | **HTTP 403 on remote test image** | Wikimedia blocks automated requests. Fix: local PIL-generated synthetic test image |
+
+### Round 3: vLLM pipeline integration — SANITY + FULL (March 2026)
+
+| # | Root Cause | Fix |
+|:---:|:---|:---|
+| 11 | **`max_model_len=4096` too small for video** | Video tokens + prompt > 4096 → `ValueError: decoder prompt longer than max_model_len`. Fix: bumped to 8192 |
+| 12 | **`KeyError: checkpoint_every_vlm`** | `m04_vlm_tag_vllm.py` used non-existent pipeline.yaml key. Fix: `checkpoint_every` |
+| 13 | **No try-except on `llm.generate()`** | One bad clip in 50-clip batch → entire script crash. Fix: try-except → dummy-tag failed batches |
+| 14 | **vLLM 2.5x SLOWER than transformers for offline batch** | 0.45 clips/s vs 1.15 clips/s. Root cause: double preprocessing (`process_vision_info` + vLLM internal re-rendering). Decision: abandoned vLLM for m04, use transformers for FULL run |
 
 ---
 

@@ -1,5 +1,4 @@
 # V-JEPA 2 ViT-g Continual Pretraining on Indian Urban Clips
-# Ref: proposal Sec 10.3-10.5, plan_code_dev.md, Q1_Q5_resolved.md
 #
 # USAGE:
 #   python -u src/m09_pretrain.py --config configs/pretrain/vitg16_indian.yaml \
@@ -33,6 +32,8 @@ model:
   num_mask_tokens: 2                  # one per mask generator (8-small + 2-large)
   use_rope: true                      # RoPE, not sincos pos_embed
   use_activation_checkpointing: true  # 78% VRAM savings (profiled)
+  min_student_load_pct: 90            # FATAL if <N% of student keys loaded from checkpoint
+  min_predictor_load_pct: 50          # FATAL if <N% of predictor keys loaded from checkpoint
 
 # -- Masking (V-JEPA 2 config, verified from source) --
 mask:
@@ -58,22 +59,31 @@ optimization:
   warmup_steps: 500
   min_lr: 1.0e-7
   weight_decay: 0.04
+  final_weight_decay: 0.04            # same as weight_decay → fixed WD (change to ramp WD over training)
   betas: [0.9, 0.999]
   eps: 1.0e-8
   grad_clip: 1.0
   ema_momentum: 0.99925              # fixed (V-JEPA 2 default)
+  warmup_cap_pct: 10                  # warmup capped at N% of total steps (prevents warmup > training)
+  gc_interval: 50                     # manual GC every N steps (matches Meta's sync_gc pattern)
+  nan_tolerance: 3                    # consecutive NaN/Inf losses before FATAL (1=instant crash, 3=gold standard)
   max_epochs:
     sanity: 1                         # just validate code runs
     poc: 1                            # 1 epoch for ablation sweep
-    full: 1                           # large dataset, 1 epoch enough
-    winner: 5                         # deep run for best lambda after ablation
+    full: 1                           # large dataset, 1 epoch sufficient
   batch_size: 32                     # overridden by profiler auto-detect
   loss_exp: 1.0                      # L1 loss (V-JEPA 2 convention)
 
 # -- Drift Control (Sec 10.4) --
 drift_control:
   enabled: true
-  lambda_reg: 0.01                   # ablate: [0, 0.001, 0.01, 0.1]
+  lambda_reg: null                   # MUST be set via --lambda-reg or ablation_winner.json (no default)
+  ablation_lambdas: [0, 0.001, 0.01, 0.1]   # lambda sweep values for auto-ablation
+  ablation_epochs: 1                          # epochs per lambda during ablation (fast)
+  ablation_subset: "data/subset_10k.json"     # 10K clips for ablation (regardless of --POC/--FULL)
+  ablation_val_subset: "data/val_1k.json"
+  ablation_local_data: "data/subset_10k_local"
+  ablation_val_local_data: "data/val_1k_local"
 
 # -- Validation --
 validation:

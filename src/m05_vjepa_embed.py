@@ -33,7 +33,7 @@ from utils.config import (
     get_pipeline_config, get_sanity_clip_limit, get_total_clips,
 )
 from utils.data_download import ensure_local_data
-from utils.gpu_batch import compute_batch_sizes, add_gpu_mem_arg
+from utils.gpu_batch import compute_batch_sizes, add_gpu_mem_arg, cleanup_temp
 from utils.wandb_utils import add_wandb_args, init_wandb, log_metrics, log_artifact, finish_wandb
 
 try:
@@ -480,6 +480,7 @@ def orchestrator_main(args):
 
 def worker_main(args):
     """Worker subprocess: load V-JEPA, process segment, save checkpoint, exit."""
+    cleanup_temp()
     check_gpu()
     device = "cuda"
 
@@ -621,7 +622,7 @@ def worker_main(args):
     try:
         while True:
             try:
-                msg_type, batched_pixels, batch_keys = q.get(timeout=600)
+                msg_type, batched_pixels, batch_keys = q.get(timeout=60)
             except queue.Empty:
                 print("\nProducer timeout (10 min). Saving checkpoint...")
                 break
@@ -697,6 +698,7 @@ def worker_main(args):
 # ── Main ───────────────────────────────────────────────────────────────
 
 def main():
+    cleanup_temp()
     parser = argparse.ArgumentParser(
         description="Generate V-JEPA 2 embeddings (GPU-only, HF WebDataset streaming)")
     parser.add_argument("--SANITY", action="store_true", help="Process 5 clips only")

@@ -1,12 +1,21 @@
 """
 Auto-download WebDataset shards from HF if local data dir is missing.
+Parallel TAR iterator for GPU-starved image encoders (CLIP/DINOv2).
 Reuses m00d_download_subset.py logic. Called by GPU scripts before data streaming.
 
 Usage:
-    from utils.data_download import ensure_local_data
-    ensure_local_data(args)  # downloads if --local-data dir missing, no-op if exists
+    from utils.data_download import ensure_local_data, iter_clips_parallel
+    ensure_local_data(args)
+    for clip_key, mp4_bytes in iter_clips_parallel(local_data, num_readers=8):
+        ...
 """
+import io
+import json
+import queue
 import sys
+import tarfile
+import threading
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
 
@@ -80,3 +89,102 @@ def ensure_local_data(args) -> str:
 
     print(f"\nDownload complete: {local_data}")
     return local_data
+
+
+# ═════════════════════════════════════════════════════════════════════════
+# PARALLEL TAR READER — feeds GPU-starved image encoders (CLIP/DINOv2)
+# ═════════════════════════════════════════════════════════════════════════
+
+TAR_READER_THREADS = 8  # concurrent TAR file readers (I/O-bound, GIL-safe)
+
+
+def _get_clip_key(json_bytes: bytes) -> str:
+    """Extract clip key from JSON sidecar bytes."""
+    try:
+        meta = json.loads(json_bytes)
+    except (json.JSONDecodeError, UnicodeDecodeError):
+        return ""
+    return "{}/{}/{}".format(
+        meta.get("section", ""), meta.get("video_id", ""), meta.get("source_file", ""))
+
+
+def _read_one_tar(tar_path: Path, out_q: queue.Queue,
+                  subset_keys: set, processed_keys: set,
+                  stop_event: threading.Event):
+    """Read a single TAR, extract (clip_key, mp4_bytes) pairs into shared queue. Thread-safe."""
+    try:
+        with tarfile.open(tar_path, "r") as tar:
+            entries = {}
+            for member in tar.getmembers():
+                base = member.name.rsplit(".", 1)[0]
+                ext = member.name.rsplit(".", 1)[-1] if "." in member.name else ""
+                if base not in entries:
+                    entries[base] = {}
+                entries[base][ext] = member
+
+            for base, parts in entries.items():
+                if stop_event.is_set():
+                    return
+                if "json" not in parts or "mp4" not in parts:
+                    continue
+
+                json_bytes = tar.extractfile(parts["json"]).read()
+                clip_key = _get_clip_key(json_bytes)
+
+                if subset_keys and clip_key not in subset_keys:
+                    continue
+                if clip_key in processed_keys:
+                    continue
+
+                mp4_bytes = tar.extractfile(parts["mp4"]).read()
+                if not mp4_bytes:
+                    continue
+
+                out_q.put((clip_key, mp4_bytes))
+    except (tarfile.TarError, OSError) as e:
+        print(f"  ERROR: failed reading {tar_path.name}: {e}")
+
+
+def iter_clips_parallel(local_data: str, subset_keys: set = None,
+                        processed_keys: set = None,
+                        num_readers: int = TAR_READER_THREADS,
+                        max_queue: int = 256) -> "queue.Queue":
+    """Start parallel TAR readers, return queue of (clip_key, mp4_bytes) pairs.
+
+    Reads num_readers TARs concurrently (I/O-bound, GIL released during read).
+    Returns (queue, stop_event, reader_thread) — caller must set stop_event when done.
+
+    Usage:
+        clip_q, stop, reader = iter_clips_parallel("data/full_local", num_readers=8)
+        while True:
+            item = clip_q.get(timeout=60)
+            if item is None: break  # sentinel: all TARs exhausted
+            clip_key, mp4_bytes = item
+    """
+    tar_files = sorted(Path(local_data).glob("*.tar"))
+    clip_q = queue.Queue(maxsize=max_queue)
+    stop_event = threading.Event()
+
+    def _reader_main():
+        """Dispatch TAR files to thread pool, send sentinel when done."""
+        with ThreadPoolExecutor(max_workers=num_readers) as pool:
+            futures = []
+            for tar_path in tar_files:
+                if stop_event.is_set():
+                    break
+                f = pool.submit(_read_one_tar, tar_path, clip_q,
+                                subset_keys or set(), processed_keys or set(),
+                                stop_event)
+                futures.append(f)
+            # Wait for all readers to finish
+            for f in futures:
+                f.result()
+        clip_q.put(None)  # sentinel: all TARs exhausted
+
+    reader = threading.Thread(target=_reader_main, daemon=True)
+    reader.start()
+
+    print(f"  Parallel TAR reader: {num_readers} threads, {len(tar_files)} TARs, "
+          f"queue={max_queue}")
+
+    return clip_q, stop_event, reader

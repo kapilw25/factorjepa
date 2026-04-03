@@ -27,7 +27,7 @@ from utils.config import (
     get_sanity_clip_limit, get_total_clips, get_pipeline_config,
 )
 from utils.data_download import ensure_local_data
-from utils.gpu_batch import compute_batch_sizes, add_gpu_mem_arg
+from utils.gpu_batch import compute_batch_sizes, add_gpu_mem_arg, cuda_cleanup, cleanup_temp
 from utils.wandb_utils import add_wandb_args, init_wandb, log_metrics, log_artifact, finish_wandb
 
 from m05_vjepa_embed import (
@@ -228,6 +228,7 @@ def _decode_augment_enqueue(pending_bytes, pending_keys, tmp_dir,
 # ── Main ──────────────────────────────────────────────────────────────
 
 def main():
+    cleanup_temp()
     parser = argparse.ArgumentParser(
         description="Generate augmented V-JEPA embeddings for True Overlap@K")
     parser.add_argument("--SANITY", action="store_true", help="Process 5 clips only")
@@ -341,7 +342,7 @@ def main():
     try:
         while True:
             try:
-                msg_type, pixels_a, pixels_b, batch_keys = q.get(timeout=600)
+                msg_type, pixels_a, pixels_b, batch_keys = q.get(timeout=60)
             except queue.Empty:
                 print("\nProducer timeout (10 min). Saving checkpoint...")
                 break
@@ -349,8 +350,20 @@ def main():
             if msg_type == "done":
                 break
 
-            emb_a = get_batch_embeddings(model, pixels_a, device)
-            emb_b = get_batch_embeddings(model, pixels_b, device)
+            try:
+                emb_a = get_batch_embeddings(model, pixels_a, device)
+                emb_b = get_batch_embeddings(model, pixels_b, device)
+            except torch.cuda.OutOfMemoryError:
+                cuda_cleanup()
+                print(f"  OOM on overlap batch ({len(batch_keys)} clips), retrying with half")
+                mid = len(batch_keys) // 2
+                emb_a1 = get_batch_embeddings(model, pixels_a[:mid], device)
+                emb_b1 = get_batch_embeddings(model, pixels_b[:mid], device)
+                cuda_cleanup()
+                emb_a2 = get_batch_embeddings(model, pixels_a[mid:], device)
+                emb_b2 = get_batch_embeddings(model, pixels_b[mid:], device)
+                emb_a = np.concatenate([emb_a1, emb_a2])
+                emb_b = np.concatenate([emb_b1, emb_b2])
 
             for ea, eb, k in zip(emb_a, emb_b, batch_keys):
                 all_emb_a.append(ea)

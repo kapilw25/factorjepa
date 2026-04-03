@@ -108,6 +108,8 @@ class AdaptiveBatchSizer:
             sizer.after_batch_success()  # adjusts based on VRAM pressure
     """
 
+    OOM_COOLDOWN = 50  # consecutive successes needed to reset _oom_count
+
     def __init__(self, initial_size: int, min_size: int = 1,
                  max_size: int | None = None, memory_cap: float = 0.85):
         self.current_size = initial_size
@@ -115,6 +117,7 @@ class AdaptiveBatchSizer:
         self.max_size = max_size or initial_size
         self.memory_cap = memory_cap
         self._oom_count = 0
+        self._consecutive_ok = 0
 
     @property
     def size(self) -> int:
@@ -125,6 +128,14 @@ class AdaptiveBatchSizer:
         import torch
         free, total = torch.cuda.mem_get_info(0)
         used_ratio = 1.0 - (free / total)
+
+        # OOM cooldown: after N consecutive successes, allow growth again
+        self._consecutive_ok += 1
+        if self._oom_count > 0 and self._consecutive_ok >= self.OOM_COOLDOWN:
+            print(f"  AdaptiveBatch: {self._consecutive_ok} consecutive OK batches "
+                  f"→ resetting OOM count (was {self._oom_count})")
+            self._oom_count = 0
+            self._consecutive_ok = 0
 
         if used_ratio > self.memory_cap:
             # Above cap — shrink by 1
@@ -144,6 +155,7 @@ class AdaptiveBatchSizer:
     def on_oom(self) -> bool:
         """On OOM: halve sub-batch size. Returns False if already at min (give up)."""
         self._oom_count += 1
+        self._consecutive_ok = 0
         new = max(self.min_size, self.current_size // 2)
         if new == self.current_size and self.current_size <= self.min_size:
             print(f"  AdaptiveBatch: OOM #{self._oom_count} at min "
@@ -158,6 +170,26 @@ class AdaptiveBatchSizer:
         return (f"AdaptiveBatchSizer(size={self.current_size}, "
                 f"range=[{self.min_size}, {self.max_size}], "
                 f"cap={self.memory_cap:.0%}, ooms={self._oom_count})")
+
+
+def cuda_cleanup():
+    """Force CUDA memory cleanup. Call between encoder runs or after OOM recovery."""
+    import gc
+    import torch
+    gc.collect()
+    if torch.cuda.is_available():
+        torch.cuda.empty_cache()
+        torch.cuda.reset_peak_memory_stats()
+
+
+def cleanup_temp():
+    """Clean stale temp files from prior steps. Call at start of every GPU script main()."""
+    import shutil
+    from pathlib import Path
+    for d in Path("/tmp").glob("hf_*"):
+        shutil.rmtree(d, ignore_errors=True)
+    for d in Path("/tmp").glob("m0*"):
+        shutil.rmtree(d, ignore_errors=True)
 
 
 def add_gpu_mem_arg(parser: argparse.ArgumentParser):

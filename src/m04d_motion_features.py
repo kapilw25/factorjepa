@@ -40,7 +40,7 @@ from utils.data_download import ensure_local_data
 from utils.wandb_utils import (
     add_wandb_args, init_wandb, log_metrics, finish_wandb,
 )
-from utils.gpu_batch import add_gpu_mem_arg, AdaptiveBatchSizer
+from utils.gpu_batch import add_gpu_mem_arg, AdaptiveBatchSizer, cleanup_temp
 
 # Lazy imports — torch + torchvision loaded after check_gpu()
 torch = None
@@ -363,6 +363,7 @@ def load_checkpoint(checkpoint_file):
 # ── Main ─────────────────────────────────────────────────────────────
 
 def main():
+    cleanup_temp()
     parser = argparse.ArgumentParser(
         description="GPU-RAFT optical flow motion features (13D per clip)")
     parser.add_argument("--SANITY", action="store_true",

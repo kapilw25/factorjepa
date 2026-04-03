@@ -1,24 +1,29 @@
 #!/usr/bin/env bash
 # ═══════════════════════════════════════════════════════════════════════
-# Evaluate Frozen V-JEPA on Indian Urban Walking Clips (FactorJEPA Ch9)
-#
-# Pipeline: m04 → m05 → m05b → m05c → m04d → m06 → m06b → m07 → m08 → m08b
-# Spatial (9 metrics) + Temporal (5 metrics) evaluation, 5 encoders, 95% CI
+# Ch9: Frozen Encoder Evaluation (FactorJEPA)
+# Pipeline: m04 → m05 → m05b(×4) → m05c → m04d → m06(×5) → m06b(×5) → m07(×5) → m08(×5) → m08b
 #
 # USAGE:
-#   ./scripts/run_evaluate.sh --SANITY 2>&1 | tee logs/ch9_sanity.log       # Quick validation (~15 min)
-#   ./scripts/run_evaluate.sh --POC 2>&1 | tee logs/ch9_poc.log             # 10K subset (~8h)
-#   ./scripts/run_evaluate.sh --FULL 2>&1 | tee logs/ch9_full.log           # 115K, transformers (~100h+)
-#   ./scripts/run_evaluate.sh --FULL --vllm 2>&1 | tee logs/ch9_full.log    # 115K, vLLM (faster, ~75h)
+#   ./scripts/run_evaluate.sh --SANITY 2>&1 | tee logs/ch9_sanity.log   # ~15 min
+#   ./scripts/run_evaluate.sh --POC 2>&1 | tee logs/ch9_sanity.log   # ~<time ??> min
+#   ./scripts/run_evaluate.sh --FULL 2>&1 | tee logs/ch9_full.log       # ~77h (115K clips)
 #
-# Features: pre-flight checks, checkpoint/resume, error handling, verification
-# All steps SEQUENTIAL on single GPU. Skips completed steps automatically.
-# Prerequisites: ./setup_env_uv.sh --gpu [--from-wheels]
-# Data: each script auto-downloads from HF if missing (~50 min).
-#   Faster: rsync data/ from Mac first (~17 min for POC):
-#     rsync -avhP data/ <gpu-host>:/workspace/factorjepa/data/
+# CACHE CONTROL (output_guard skips completed steps automatically):
+#   Use all cached:    ./scripts/run_evaluate.sh --FULL
+#   Re-run everything: rm -rf outputs/full && ./scripts/run_evaluate.sh --FULL
+#   Re-run one step:   rm outputs/full/embeddings.npy && ./scripts/run_evaluate.sh --FULL
+#   Re-run baselines:  rm outputs/full/embeddings_{random,dinov2,clip,vjepa_shuffled}.npy && ...
+#
+# PREREQUISITES:
+#   1. ./setup_env_uv.sh --gpu --from-wheels
+#   2. rsync -avhP data/ <gpu-host>:/workspace/factorjepa/data/    # for "--poc" & "val" dataset   # from Mac (~17 min)
+#   3. python -u src/m00d_download_subset.py --FULL --no-wandb     # 115K clips (~24 min)
+#   4. tmux new -s ch9   # run inside tmux for long runs
 # ═══════════════════════════════════════════════════════════════════════
 set -euo pipefail
+
+# Reduce CUDA memory fragmentation (prevents batch size death spiral on long runs)
+export PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
 
 # ── Parse args ────────────────────────────────────────────────────────
 MODE=""
@@ -87,6 +92,23 @@ else
     MIN_CLIPS=$(python -c "import yaml; print(yaml.safe_load(open('${PIPELINE_YAML}'))['verify']['full_min_clips'])")
 fi
 
+# ── Data pre-check (FAIL LOUD if missing) ────────────────────────────
+if [[ "$MODE" == "FULL" ]]; then
+    if [[ ! -d "data/full_local" || ! -f "data/full_local/manifest.json" ]]; then
+        echo "FATAL: data/full_local/ (115K clips, 130GB) not found. Fix with:"
+        echo "  python -u src/m00d_download_subset.py --FULL --no-wandb   # full 115K from walkindia-200k (~24 min)"
+        exit 1
+    fi
+elif [[ "$MODE" == "POC" ]]; then
+    if [[ ! -d "data/subset_10k_local" || ! -f "data/subset_10k_local/manifest.json" ]]; then
+        echo "FATAL: data/subset_10k_local/ (10K clips, 10.5GB) not found. Fix with ONE of:"
+        echo "  python -u src/utils/hf_outputs.py download-data                                       # poc 10K + val 1K from factorjepa-outputs (~3 min, measured)"
+        echo "  rsync -avhP data/ <gpu-host>:/workspace/factorjepa/data/                              # poc 10K + val 1K from Mac (~17 min)"
+        echo "  python -u src/m00d_download_subset.py --FULL --subset data/subset_10k.json --no-wandb  # poc 10K from walkindia-200k (~50 min, downloads all 116 TARs)"
+        exit 1
+    fi
+fi
+
 LOGDIR="logs"
 mkdir -p "$LOGDIR" "$OUT_DIR"
 
@@ -112,6 +134,14 @@ log() {
     echo "$msg" | tee -a "$MASTER_LOG"
 }
 
+# ── GPU watchdog (background, emails alert if GPU < 50% for 5 min) ───
+WATCHDOG_PID=""
+if [[ -f "scripts/gpu_watchdog.py" ]]; then
+    python scripts/gpu_watchdog.py &
+    WATCHDOG_PID=$!
+    log "GPU watchdog started (PID=$WATCHDOG_PID, threshold=50%, window=5min)"
+fi
+
 banner() {
     local step_num="$1"
     local step_name="$2"
@@ -122,6 +152,20 @@ banner() {
     echo "  Mode: ${MODE} | Est: ${est_time}" | tee -a "$MASTER_LOG"
     echo "  Started: $(date '+%Y-%m-%d %H:%M:%S')" | tee -a "$MASTER_LOG"
     echo "═══════════════════════════════════════════════════════════════" | tee -a "$MASTER_LOG"
+}
+
+# Background HF upload — runs between steps, zero GPU idle time
+UPLOAD_PID=""
+bg_upload() {
+    # Wait for any previous upload to finish before starting new one
+    if [[ -n "$UPLOAD_PID" ]]; then
+        wait "$UPLOAD_PID" 2>/dev/null
+        UPLOAD_PID=""
+    fi
+    # Start new background upload (CPU + network only, no GPU)
+    python -u src/utils/hf_outputs.py upload "$OUT_DIR" >> "$LOGDIR/hf_upload.log" 2>&1 &
+    UPLOAD_PID=$!
+    log "HF upload started in background (PID=$UPLOAD_PID)"
 }
 
 run_step() {
@@ -144,6 +188,7 @@ run_step() {
         local secs=$(( elapsed % 60 ))
         log "PASSED: ${step_name} (${mins}m ${secs}s)"
         STEP_PASS=$((STEP_PASS + 1))
+        bg_upload  # Upload new outputs while next GPU step loads model
         return 0
     else
         local step_end=$(date +%s)
@@ -420,11 +465,14 @@ print(f'  embeddings.paths.npy: {len(paths)} keys')
 print(f'  shape match: {emb.shape[0] == len(paths)}')
 "
 
-# ── Step 3: Baseline embeddings (all 4) ──────────────────────────────
-run_step 3 "m05b baselines (all 4 encoders)" "$T_M05B" \
-    "$LOGDIR/m05b_${MODE,,}_all.log" \
-    src/m05b_baselines.py --encoder all $MODE_FLAG $SUBSET_FLAG $LOCAL_FLAG --no-wandb \
-    || { log "WARNING: m05b failed. Some baseline metrics will be missing."; }
+# ── Step 3: Baseline embeddings (per-encoder fresh process to avoid CUDA fragmentation)
+BASELINE_ENCODERS=("random" "dinov2" "clip" "vjepa_shuffled")
+for benc in "${BASELINE_ENCODERS[@]}"; do
+    run_step "3-${benc}" "m05b ${benc} embeddings" "$T_M05B" \
+        "$LOGDIR/m05b_${MODE,,}_${benc}.log" \
+        src/m05b_baselines.py --encoder "$benc" $MODE_FLAG $SUBSET_FLAG $LOCAL_FLAG --no-wandb \
+        || { log "WARNING: m05b ${benc} failed. Skipping."; }
+done
     # Non-fatal: V-JEPA metrics still work without baselines
 
 verify "Step 3 baselines" "
@@ -674,6 +722,19 @@ echo "  Steps:     ${STEP_PASS} passed, ${STEP_FAIL} failed, ${STEP_COUNT} total
 echo "  Outputs:   ${OUT_DIR}/" | tee -a "$MASTER_LOG"
 echo "  Master log: ${MASTER_LOG}" | tee -a "$MASTER_LOG"
 echo "═══════════════════════════════════════════════════════════════" | tee -a "$MASTER_LOG"
+
+# Wait for final background upload
+if [[ -n "$UPLOAD_PID" ]]; then
+    log "Waiting for final HF upload..."
+    wait "$UPLOAD_PID" 2>/dev/null
+    log "Final HF upload complete"
+fi
+
+# Kill watchdog
+if [[ -n "$WATCHDOG_PID" ]]; then
+    kill "$WATCHDOG_PID" 2>/dev/null
+    log "GPU watchdog stopped"
+fi
 
 if [[ $STEP_FAIL -gt 0 ]]; then
     echo "" | tee -a "$MASTER_LOG"

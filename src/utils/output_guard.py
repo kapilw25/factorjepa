@@ -97,6 +97,26 @@ def verify_or_skip(
         details.append(f"  FAIL  clip count {clip_count} < min {min_clips}")
         all_ok = False
 
+    # If files missing, attempt HF download before giving up
+    if not all_ok:
+        missing_files = [Path(p) for desc, p in required_files.items() if not Path(p).exists()]
+        if missing_files:
+            try:
+                from utils.hf_outputs import download_outputs
+                print(f"{prefix}attempting HF download for {len(missing_files)} missing file(s)...")
+                if download_outputs(str(output_dir)):
+                    # Re-check after download
+                    still_missing = [f for f in missing_files if not f.exists()]
+                    if not still_missing:
+                        print(f"{prefix}HF download recovered all missing files")
+                        return verify_or_skip(output_dir, required_files, min_clips, label)
+                    else:
+                        print(f"{prefix}{len(still_missing)} file(s) still missing after HF download")
+            except ImportError:
+                print(f"{prefix}hf_outputs not available, skipping HF download")
+            except Exception as e:
+                print(f"{prefix}HF download failed: {e}")
+
     # Print summary
     if all_ok:
         print(f"{prefix}ALL VALID — skipping (cached)")
@@ -200,7 +220,6 @@ def preflight_pipeline(steps: list, interactive: bool = True) -> dict:
     will_run = []
     will_skip = []
     missing_inputs = []
-    total_time = ""
 
     print("\n" + "=" * 70)
     print("  PIPELINE PREFLIGHT — checking all inputs/outputs before GPU work")

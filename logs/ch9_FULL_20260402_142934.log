@@ -1,0 +1,218 @@
+[14:29:34] GPU watchdog started (PID=1313291, threshold=50%, window=5min)
+[14:29:34] Ch9 pipeline starting (mode=FULL)
+[14:29:34] Master log: logs/ch9_FULL_20260402_142934.log
+
+[14:29:34] === PRE-FLIGHT: GPU + Package Verification ===
+GPU:            NVIDIA RTX PRO 6000 Blackwell Workstation Edition, VRAM: 102GB
+PyTorch:        2.12.0.dev20260228+cu128
+CUDA:           12.8
+FAISS GPUs:     1
+Flash-Attn:     2.8.3
+Transformers:   4.57.6
+cuML:           26.02.000
+wandb:          0.25.1
+HF_TOKEN:       hf_eATIPAr...
+
+Pre-flight: ALL PASSED
+Subset:         10000 clips from 1559 videos
+[14:29:39] Pre-flight complete.
+[14:29:39] === OUTPUT PREFLIGHT ===
+
+======================================================================
+  PIPELINE PREFLIGHT — checking all inputs/outputs before GPU work
+======================================================================
+  [32mSKIP (cached)[0m                         m00d pre-download subset
+  [32mSKIP (cached)[0m                         m04 VLM tagging (Qwen)
+  [32mSKIP (cached)[0m                         m05 V-JEPA embeddings
+  [32mSKIP (cached)[0m                         m05b random embeddings
+  [32mSKIP (cached)[0m                         m05b dinov2 embeddings
+  [33mWILL RUN[0m ~30 min                      m05b clip embeddings
+  [33mWILL RUN[0m ~30 min                      m05b vjepa_shuffled embeddings
+  [33mWILL RUN[0m ~1h                          m05c True Overlap augmented
+  [33mWILL RUN[0m ~40 min                      m04d motion features
+  [33mWILL RUN[0m ~1 min                       m06 metrics (vjepa)
+  [33mWILL RUN[0m ~1 min                       m06 metrics (random)
+  [33mWILL RUN[0m ~1 min                       m06 metrics (dinov2)
+  [31mBLOCKED (missing input)[0m               m06 metrics (clip)
+  [31mBLOCKED (missing input)[0m               m06 metrics (vjepa_shuffled)
+  [31mBLOCKED (missing input)[0m               m06b temporal (vjepa)
+  [31mBLOCKED (missing input)[0m               m06b temporal (random)
+  [31mBLOCKED (missing input)[0m               m06b temporal (dinov2)
+  [31mBLOCKED (missing input)[0m               m06b temporal (clip)
+  [31mBLOCKED (missing input)[0m               m06b temporal (vjepa_shuffled)
+  [33mWILL RUN[0m ~3 min                       m07 UMAP (vjepa)
+  [33mWILL RUN[0m ~3 min                       m07 UMAP (random)
+  [33mWILL RUN[0m ~3 min                       m07 UMAP (dinov2)
+  [31mBLOCKED (missing input)[0m               m07 UMAP (clip)
+  [31mBLOCKED (missing input)[0m               m07 UMAP (vjepa_shuffled)
+  [31mBLOCKED (missing input)[0m               m08b compare (all encoders)
+
+  Steps to run:  20
+  Steps cached:  5
+
+  [31mMISSING INPUTS (12):[0m
+    m06 metrics (clip) needs embeddings: outputs/full/embeddings_clip.npy
+    m06 metrics (vjepa_shuffled) needs embeddings: outputs/full/embeddings_vjepa_shuffled.npy
+    m06b temporal (vjepa) needs motion: outputs/full/motion_features.npy
+    m06b temporal (random) needs motion: outputs/full/motion_features.npy
+    m06b temporal (dinov2) needs motion: outputs/full/motion_features.npy
+    m06b temporal (clip) needs embeddings: outputs/full/embeddings_clip.npy
+    m06b temporal (clip) needs motion: outputs/full/motion_features.npy
+    m06b temporal (vjepa_shuffled) needs embeddings: outputs/full/embeddings_vjepa_shuffled.npy
+    m06b temporal (vjepa_shuffled) needs motion: outputs/full/motion_features.npy
+    m07 UMAP (clip) needs embeddings: outputs/full/embeddings_clip.npy
+    m07 UMAP (vjepa_shuffled) needs embeddings: outputs/full/embeddings_vjepa_shuffled.npy
+    m08b compare (all encoders) needs frozen_metrics: outputs/full/m06_metrics.json
+======================================================================
+
+Options:
+  [1] Proceed (run steps marked WILL RUN, skip cached)
+  [2] Abort
+
+Enter choice (1 or 2): [14:30:09] Starting pipeline...
+
+[14:30:09] Local data already exists: data/full_local (skipping download)
+
+═══════════════════════════════════════════════════════════════
+  STEP 1: m04 VLM tagging (Qwen via transformers)
+  Mode: FULL | Est: ~2h (1.3 clips/s, Qwen3-VL-8B)
+  Started: 2026-04-02 14:30:09
+═══════════════════════════════════════════════════════════════
+[14:30:09] CMD: python -u src/m04_vlm_tag.py --model qwen --FULL --local-data data/full_local --no-wandb
+Note: Environment variable`HF_TOKEN` is set and is the current active token independently from the token you've just configured.
+HuggingFace: Authenticated
+Model:   qwen (Qwen/Qwen3-VL-8B-Instruct)
+Output:  /workspace/factorjepa/outputs/full/tags.json
+Mode:    FULL
+
+==================================================
+Found existing tags:
+  /workspace/factorjepa/outputs/full/tags.json
+==================================================
+
+Options:
+  [1] Delete existing and re-run
+  [2] Use cached files (skip processing)
+
+Enter choice (1 or 2): Using cached files, skipping processing.
+Loaded 115,687 cached tags (complete)
+
+Scene type distribution (qwen):
+  market: 25719
+  residential_lane: 19371
+  commercial: 17159
+  transit: 12048
+  promenade: 10968
+  highway: 8513
+  heritage_tourist: 5583
+  junction: 5249
+  flyover_underpass: 4774
+  ghat: 2051
+  beach_coastal: 1869
+  skyline_aerial: 1040
+  bazaar: 910
+  unsure: 433
+Saved: /workspace/factorjepa/outputs/full/m04_scene_distribution_qwen.png
+Saved: /workspace/factorjepa/outputs/full/m04_scene_distribution_qwen.pdf
+Saved: /workspace/factorjepa/outputs/full/m04_taxonomy_distribution_qwen.png
+Saved: /workspace/factorjepa/outputs/full/m04_taxonomy_distribution_qwen.pdf
+[14:30:21] PASSED: m04 VLM tagging (Qwen via transformers) (0m 12s)
+[14:30:21] HF upload started in background (PID=1313785)
+  tags: 115687 clips, 42 fields
+[14:30:23] VERIFY OK: Step 1 tags
+
+═══════════════════════════════════════════════════════════════
+  STEP 2: m05 V-JEPA embeddings
+  Mode: FULL | Est: ~80 min (V-JEPA 2 ViT-G, producer-consumer)
+  Started: 2026-04-02 14:30:23
+═══════════════════════════════════════════════════════════════
+[14:30:23] CMD: python -u src/m05_vjepa_embed.py --FULL --local-data data/full_local --no-wandb
+Using PyAV for video decoding
+Output: /workspace/factorjepa/outputs/full/embeddings.npy
+[output_guard] m05 embed: ALL VALID — skipping (cached)
+  OK    embeddings: (115687, 1408)
+  OK    paths: (115687,)
+[14:30:30] PASSED: m05 V-JEPA embeddings (0m 7s)
+[14:30:57] HF upload started in background (PID=1314122)
+  embeddings.npy:       (115687, 1408)
+  embeddings.paths.npy: 115687 keys
+  shape match: True
+[14:30:59] VERIFY OK: Step 2 embeddings
+
+═══════════════════════════════════════════════════════════════
+  STEP 3-random: m05b random embeddings
+  Mode: FULL | Est: ~99 min (4 baselines sequential)
+  Started: 2026-04-02 14:30:59
+═══════════════════════════════════════════════════════════════
+[14:30:59] CMD: python -u src/m05b_baselines.py --encoder random --FULL --local-data data/full_local --no-wandb
+Using PyAV for video decoding
+============================================================
+BASELINE: random
+Model:    N/A (synthetic)
+Dim:      1408
+Type:     synthetic
+Output:   /workspace/factorjepa/outputs/full/embeddings_random.npy
+============================================================
+[output_guard] m05b random: ALL VALID — skipping (cached)
+  OK    embeddings: (115687, 1408)
+  OK    paths: (115687,)
+[14:31:06] PASSED: m05b random embeddings (0m 7s)
+[14:31:06] HF upload started in background (PID=1314429)
+
+═══════════════════════════════════════════════════════════════
+  STEP 3-dinov2: m05b dinov2 embeddings
+  Mode: FULL | Est: ~99 min (4 baselines sequential)
+  Started: 2026-04-02 14:31:06
+═══════════════════════════════════════════════════════════════
+[14:31:06] CMD: python -u src/m05b_baselines.py --encoder dinov2 --FULL --local-data data/full_local --no-wandb
+Using PyAV for video decoding
+============================================================
+BASELINE: dinov2
+Model:    facebook/dinov2-giant
+Dim:      1536
+Type:     image
+Output:   /workspace/factorjepa/outputs/full/embeddings_dinov2.npy
+============================================================
+[output_guard] m05b dinov2: ALL VALID — skipping (cached)
+  OK    embeddings: (115687, 1536)
+  OK    paths: (115687,)
+[14:31:13] PASSED: m05b dinov2 embeddings (0m 7s)
+[14:31:14] HF upload started in background (PID=1314661)
+
+═══════════════════════════════════════════════════════════════
+  STEP 3-clip: m05b clip embeddings
+  Mode: FULL | Est: ~99 min (4 baselines sequential)
+  Started: 2026-04-02 14:31:14
+═══════════════════════════════════════════════════════════════
+[14:31:14] CMD: python -u src/m05b_baselines.py --encoder clip --FULL --local-data data/full_local --no-wandb
+Using PyAV for video decoding
+============================================================
+BASELINE: clip
+Model:    openai/clip-vit-large-patch14
+Dim:      768
+Type:     image
+Output:   /workspace/factorjepa/outputs/full/embeddings_clip.npy
+============================================================
+[output_guard] m05b clip: attempting HF download for 2 missing file(s)...
+Downloading anonymousML123/factorjepa-outputs/full/ → /workspace/factorjepa/outputs/full
+Fetching 11 files:   0%|          | 0/11 [00:00<?, ?it/s]Fetching 11 files:   9%|▉         | 1/11 [00:01<00:10,  1.00s/it]Fetching 11 files: 100%|██████████| 11/11 [00:01<00:00, 10.63it/s]
+Download complete: 1s
+[output_guard] m05b clip: 2 file(s) still missing after HF download
+[output_guard] m05b clip: outputs missing or invalid — will re-compute
+  MISS  embeddings: embeddings_clip.npy
+  MISS  paths: embeddings_clip.paths.npy
+GPU: NVIDIA RTX PRO 6000 Blackwell Workstation Edition
+CUDA version: 12.8
+Loading model: openai/clip-vit-large-patch14
+Using a slow image processor as `use_fast` is unset and a slow processor was saved with this model. `use_fast=True` will be the default behavior in v4.52, even if the model was saved with a slow processor. This will result in minor differences in outputs. You'll still be able to use a slow processor with `use_fast=False`.
+`torch_dtype` is deprecated! Use `dtype` instead!
+Applying torch.compile (first batch will be slow due to compilation)...
+CLIP loaded (dim=768, dtype=float16, SDPA+compiled)
+Checkpoint loaded: 66,600 embeddings from .m05b_clip_checkpoint.npz
+GPU VRAM: 95 GB | VLM cost model: 16GB fixed + 0.78GB/clip
+  vjepa=37 (linear, scale=2.37x from 40GB)
+  image_encoder=148 (4x vjepa, cap 256)
+  transformers=64 (max batch, est 66GB = 69% VRAM)
+  sub-batch=51 (initial, AdaptiveBatchSizer grows to 64)
+m05b clip:  58%|█████▊    | 66600/115687 [00:00<?, ?clip/s]  Parallel TAR reader: 8 threads, 116 TARs, queue=256
+m05b clip:  58%|█████▊    | 66748/115687 [00:25<2:17:49,  5.92clip/s]m05b clip:  58%|█████▊    | 66748/115687 [00:25<2:17:49,  5.92clip/s, rate=5.9/s]m05b clip:  58%|█████▊    | 66896/115687 [00:42<1:51:31,  7.29clip/s, rate=5.9/s]m05b clip:  58%|█████▊    | 66896/115687 [00:42<1:51:31,  7.29clip/s, rate=8.7/s]m05b clip:  58%|█████▊    | 67044/115687 [00:58<1:40:45,  8.05clip/s, rate=8.7/s]m05b clip:  58%|█████▊    | 67044/115687 [00:58<1:40:45,  8.05clip/s, rate=9.2/s]m05b clip:  58%|█████▊    | 67192/115687 [01:14<1:35:59,  8.42clip/s, rate=9.2/s]m05b clip:  58%|█████▊    | 67192/115687 [01:14<1:35:59,  8.42clip/s, rate=9.1/s]m05b clip:  58%|█████▊    | 67340/115687 [01:29<1:31:41,  8.79clip/s, rate=9.1/s]m05b clip:  58%|█████▊    | 67340/115687 [01:29<1:31:41,  8.79clip/s, rate=9.5/s]m05b clip:  58%|█████▊    | 67488/115687 [01:45<1:29:41,  8.96clip/s, rate=9.5/s]m05b clip:  58%|█████▊    | 67488/115687 [01:45<1:29:41,  8.96clip/s, rate=9.3/s]m05b clip:  58%|█████▊    | 67636/115687 [02:00<1:26:37,  9.25clip/s, rate=9.3/s]m05b clip:  58%|█████▊    | 67636/115687 [02:00<1:26:37,  9.25clip/s, rate=9.9/s]m05b clip:  59%|█████▊    | 67784/115687 [02:16<1:26:04,  9.27clip/s, rate=9.9/s]m05b clip:  59%|█████▊    | 67784/115687 [02:16<1:26:04,  9.27clip/s, rate=9.3/s]m05b clip:  59%|█████▊    | 67932/115687 [02:32<1:25:43,  9.28clip/s, rate=9.3/s]m05b clip:  59%|█████▊    | 67932/115687 [02:32<1:25:43,  9.28clip/s, rate=9.3/s]m05b clip:  59%|█████▉    | 68080/115687 [02:49<1:26:33,  9.17clip/s, rate=9.3/s]m05b clip:  59%|█████▉    | 68080/115687 [02:49<1:26:33,  9.17clip/s, rate=8.9/s]m05b clip:  59%|█████▉    | 68228/115687 [03:05<1:26:51,  9.11clip/s, rate=8.9/s]m05b clip:  59%|█████▉    | 68228/115687 [03:05<1:26:51,  9.11clip/s, rate=9.0/s]m05b clip:  59%|█████▉    | 68376/115687 [03:21<1:26:36,  9.11clip/s, rate=9.0/s]m05b clip:  59%|█████▉    | 68376/115687 [03:21<1:26:36,  9.11clip/s, rate=9.1/s]m05b clip:  59%|█████▉    | 68524/115687 [03:38<1:26:21,  9.10clip/s, rate=9.1/s]m05b clip:  59%|█████▉    | 68524/115687 [03:38<1:26:21,  9.10clip/s, rate=9.1/s]m05b clip:  59%|█████▉    | 68672/115687 [03:54<1:26:02,  9.11clip/s, rate=9.1/s]m05b clip:  59%|█████▉    | 68672/115687 [03:54<1:26:02,  9.11clip/s, rate=9.1/s]m05b clip:  59%|█████▉    | 68820/115687 [04:10<1:25:11,  9.17clip/s, rate=9.1/s]m05b clip:  59%|█████▉    | 68820/115687 [04:10<1:25:11,  9.17clip/s, rate=9.3/s]m05b clip:  60%|█████▉    | 68968/115687 [04:26<1:25:13,  9.14clip/s, rate=9.3/s]m05b clip:  60%|█████▉    | 68968/115687 [04:26<1:25:13,  9.14clip/s, rate=9.1/s]m05b clip:  60%|█████▉    | 69116/115687 [04:42<1:24:16,  9.21clip/s, rate=9.1/s]m05b clip:  60%|█████▉    | 69116/115687 [04:42<1:24:16,  9.21clip/s, rate=9.4/s]m05b clip:  60%|█████▉    | 69264/115687 [04:59<1:24:54,  9.11clip/s, rate=9.4/s]m05b clip:  60%|█████▉    | 69264/115687 [04:59<1:24:54,  9.11clip/s, rate=8.9/s]m05b clip:  60%|█████▉    | 69412/115687 [05:15<1:24:28,  9.13clip/s, rate=8.9/s]m05b clip:  60%|█████▉    | 69412/115687 [05:15<1:24:28,  9.13clip/s, rate=9.2/s]m05b clip:  60%|██████    | 69560/115687 [05:31<1:23:53,  9.16clip/s, rate=9.2/s]m05b clip:  60%|██████    | 69560/115687 [05:31<1:23:53,  9.16clip/s, rate=9.2/s]m05b clip:  60%|██████    | 69708/115687 [05:48<1:25:29,  8.96clip/s, rate=9.2/s]m05b clip:  60%|██████    | 69708/115687 [05:48<1:25:29,  8.96clip/s, rate=8.5/s]m05b clip:  60%|██████    | 69856/115687 [06:03<1:23:09,  9.18clip/s, rate=8.5/s]m05b clip:  60%|██████    | 69856/115687 [06:03<1:23:09,  9.18clip/s, rate=9.7/s]m05b clip:  61%|██████    | 70004/115687 [06:20<1:23:11,  9.15clip/s, rate=9.7/s]m05b clip:  61%|██████    | 70004/115687 [06:20<1:23:11,  9.15clip/s, rate=9.1/s]m05b clip:  61%|██████    | 70152/115687 [06:36<1:23:01,  9.14clip/s, rate=9.1/s]m05b clip:  61%|██████    | 70152/115687 [06:36<1:23:01,  9.14clip/s, rate=9.1/s]m05b clip:  61%|██████    | 70300/115687 [06:52<1:22:23,  9.18clip/s, rate=9.1/s]m05b clip:  61%|██████    | 70300/115687 [06:52<1:22:23,  9.18clip/s, rate=9.3/s]m05b clip:  61%|██████    | 70448/115687 [07:08<1:21:56,  9.20clip/s, rate=9.3/s]m05b clip:  61%|██████    | 70448/115687 [07:08<1:21:56,  9.20clip/s, rate=9.3/s]m05b clip:  61%|██████    | 70596/115687 [07:24<1:21:53,  9.18clip/s, rate=9.3/s]m05b clip:  61%|██████    | 70596/115687 [07:24<1:21:53,  9.18clip/s, rate=9.1/s]m05b clip:  61%|██████    | 70744/115687 [07:41<1:22:15,  9.11clip/s, rate=9.1/s]m05b clip:  61%|██████    | 70744/115687 [07:41<1:22:15,  9.11clip/s, rate=8.9/s]m05b clip:  61%|██████▏   | 70892/115687 [07:57<1:22:05,  9.10clip/s, rate=8.9/s]m05b clip:  61%|██████▏   | 70892/115687 [07:57<1:22:05,  9.10clip/s, rate=9.1/s]m05b clip:  61%|██████▏   | 71040/115687 [08:14<1:22:23,  9.03clip/s, rate=9.1/s]m05b clip:  61%|██████▏   | 71040/115687 [08:14<1:22:23,  9.03clip/s, rate=8.9/s]m05b clip:  62%|██████▏   | 71188/115687 [08:30<1:21:55,  9.05clip/s, rate=8.9/s]m05b clip:  62%|██████▏   | 71188/115687 [08:30<1:21:55,  9.05clip/s, rate=9.1/s]m05b clip:  62%|██████▏   | 71336/115687 [08:45<1:20:26,  9.19clip/s, rate=9.1/s]m05b clip:  62%|██████▏   | 71336/115687 [08:45<1:20:26,  9.19clip/s, rate=9.5/s]m05b clip:  62%|██████▏   | 71484/115687 [09:01<1:19:55,  9.22clip/s, rate=9.5/s]m05b clip:  62%|██████▏   | 71484/115687 [09:01<1:19:55,  9.22clip/s, rate=9.3/s]m05b clip:  62%|██████▏   | 71632/115687 [09:17<1:18:33,  9.35clip/s, rate=9.3/s]m05b clip:  62%|██████▏   | 71632/115687 [09:17<1:18:33,  9.35clip/s, rate=9.7/s]m05b clip:  62%|██████▏   | 71780/115687 [09:32<1:18:12,  9.36clip/s, rate=9.7/s]m05b clip:  62%|██████▏   | 71780/115687 [09:32<1:18:12,  9.36clip/s, rate=9.4/s]m05b clip:  62%|██████▏   | 71928/115687 [09:48<1:17:29,  9.41clip/s, rate=9.4/s]m05b clip:  62%|██████▏   | 71928/115687 [09:48<1:17:29,  9.41clip/s, rate=9.5/s]m05b clip:  62%|██████▏   | 72076/115687 [10:05<1:18:34,  9.25clip/s, rate=9.5/s]m05b clip:  62%|██████▏   | 72076/115687 [10:05<1:18:34,  9.25clip/s, rate=8.9/s]m05b clip:  62%|██████▏   | 72224/115687 [10:19<1:16:48,  9.43clip/s, rate=8.9/s]m05b clip:  62%|██████▏   | 72224/115687 [10:19<1:16:48,  9.43clip/s, rate=9.9/s]m05b clip:  63%|██████▎   | 72372/115687 [10:36<1:17:09,  9.36clip/s, rate=9.9/s]m05b clip:  63%|██████▎   | 72372/115687 [10:36<1:17:09,  9.36clip/s, rate=9.2/s]m05b clip:  63%|██████▎   | 72520/115687 [10:50<1:14:41,  9.63clip/s, rate=9.2/s]m05b clip:  63%|██████▎   | 72520/115687 [10:50<1:14:41,  9.63clip/s, rate=10.3/s]

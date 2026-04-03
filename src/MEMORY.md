@@ -122,6 +122,18 @@ Phase 3: m06b temporal → m05 shuffled adapted → m06 shuffled → m07 UMAP �
 - **Ch10: NEXT** — 115K full corpus (1 epoch, λ=0.001 only, skip ablation sweep)
 - **Ch11: NOT BUILT** — m10/m11/m12 planned, code not started
 
+## Data Download Times (measured, RTX PRO 6000 instance, April 2026)
+
+| Command | What it does | Time |
+|---------|-------------|:----:|
+| `m00d --FULL --no-wandb` | Downloads ALL 116 TARs from walkindia-200k, keeps all 115K clips | **24 min** |
+| `m00d --FULL --subset data/subset_10k.json` | Downloads ALL 116 TARs, opens each, filters to 10K clips | **~50 min** (NOT 5 min — scans all 116 TARs) |
+| `m00d --FULL --subset data/val_1k.json` | Downloads ALL 116 TARs, opens each, filters to 1K clips | **~50 min** (15 min if TARs cached) |
+| `rsync data/ from Mac` | Transfers pre-filtered 10K (10 TARs) + val 1K (1 TAR) | **~17 min** (network limited) |
+| `hf_outputs.py download-data` | Downloads poc 10K + val 1K from factorjepa-outputs | **~3 min** (measured, pre-filtered 11 TARs) |
+
+**Key insight:** m00d always downloads ALL 116 TARs regardless of subset size. For POC/val data, rsync from Mac or hf_outputs download-data is 10-25x faster because the TARs are pre-filtered.
+
 ## Lessons Learned (Ch10 debugging, 2026-03-28/29)
 1. **vjepa2 namespace collision**: Our `src/utils/__init__.py` shadows vjepa2's `src/utils/` (regular pkg wins over namespace). Fixed with CWD-based import shim.
 2. **Disk management**: Each full checkpoint = 16GB (student+teacher+predictor+optimizer). 4 lambdas × 4 checkpoints = 256GB → disk full. Fixed: light checkpoints + cleanup.
