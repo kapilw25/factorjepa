@@ -1,0 +1,4 @@
+wandb: run=m06_SANITY url=https://wandb.ai/sjsu_llm/walkindia-200k/runs/wv2ynwfu
+[output_guard] m06 vjepa_lambda0_01: ALL VALID — skipping (cached)
+  OK    metrics: 10 keys
+  OK    knn_indices: (64, 7)

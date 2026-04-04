@@ -1,0 +1,977 @@
+[11:11:44] GPU watchdog started (PID=3964187)
+[11:11:44] Auto batch size: 148
+[11:11:44] Local data exists: data/full_local
+[11:11:44] Val data: data/val_1k.json + data/val_1k_local
+[11:11:44] Ch10 pipeline starting (mode=FULL)
+[11:11:44] Config: configs/pretrain/vitg16_indian.yaml
+[11:11:44] Master log: logs/ch10_FULL_20260404_111144.log
+
+[11:11:44] === PRE-FLIGHT ===
+GPU:            NVIDIA RTX PRO 6000 Blackwell Workstation Edition, VRAM: 102GB
+PyTorch:        2.12.0.dev20260228+cu128
+CUDA:           12.8
+FAISS GPUs:     1
+Flash-Attn:     2.8.3
+cuML:           26.02.000
+Transformers:   4.57.6
+wandb:          0.25.1
+HF_TOKEN:       hf_eATIPAr...
+vjepa2:         deps/vjepa2/ present
+Config:         configs/pretrain/vitg16_indian.yaml
+Baseline:       NOT FOUND (outputs/full/m06_metrics.json) — m08b will fail, training will proceed
+  Fix after Ch9: python -u src/utils/hf_outputs.py download outputs/full
+
+Pre-flight: ALL PASSED
+[11:11:49] Pre-flight complete.
+[11:11:49] === OUTPUT PREFLIGHT ===
+
+======================================================================
+  PIPELINE PREFLIGHT — checking all inputs/outputs before GPU work
+======================================================================
+  [33mWILL RUN[0m ~33 min                      m09 train (λ=0)
+  [32mSKIP (cached)[0m                         m09 train (λ=0.001)
+  [33mWILL RUN[0m ~33 min                      m09 train (λ=0.01)
+  [33mWILL RUN[0m ~33 min                      m09 train (λ=0.1)
+  [32mSKIP (cached)[0m                         m09 deep train (vjepa_lambda0_001, 5ep)
+  [33mWILL RUN[0m ~1h 47min                    m05 re-embed (vjepa_lambda0_001)
+  [31mBLOCKED (missing input)[0m               m06 metrics (vjepa_lambda0_001)
+  [31mBLOCKED (missing input)[0m               m06b temporal (vjepa_lambda0_001)
+  [33mWILL RUN[0m ~1h 47min                    m05 shuffled (vjepa_lambda0_001_shuffled)
+  [31mBLOCKED (missing input)[0m               m07 UMAP (vjepa_lambda0_001)
+  [31mBLOCKED (missing input)[0m               m08b compare (all encoders)
+
+  Steps to run:  9
+  Steps cached:  2
+
+  [31mMISSING INPUTS (5):[0m
+    m06 metrics (vjepa_lambda0_001) needs embeddings: outputs/full/embeddings_vjepa_lambda0_001.npy
+    m06b temporal (vjepa_lambda0_001) needs embeddings: outputs/full/embeddings_vjepa_lambda0_001.npy
+    m07 UMAP (vjepa_lambda0_001) needs embeddings: outputs/full/embeddings_vjepa_lambda0_001.npy
+    m08b compare (all encoders) needs frozen_metrics: outputs/full/m06_metrics.json
+    m08b compare (all encoders) needs adapted_metrics: outputs/full/m06_metrics_vjepa_lambda0_001.json
+======================================================================
+
+Options:
+  [1] Proceed (run steps marked WILL RUN, skip cached)
+  [2] Abort
+
+Enter choice (1 or 2): [11:11:55] Starting pipeline...
+
+[11:11:55] Winner from ablation: lambda=0.001 (lambda0_001) [from outputs/full/ablation/ablation_winner.json]
+[11:11:55] Training: lambda=0.001 (lambda0_001), 1 epochs
+[11:11:55] Student already trained for 1.0 epochs (>= 1). Skipping.
+
+═══════════════════════════════════════════════════════════════
+  STEP train: m09 pretrain (lambda=0.001, 1 epochs)
+  Mode: FULL | Est: ~6.4h/lambda (929 steps)
+  Started: 2026-04-04 11:11:55
+═══════════════════════════════════════════════════════════════
+[11:11:55] CMD: python -u src/m09_pretrain.py --config configs/pretrain/vitg16_indian.yaml --lambda-reg 0.001 --max-epochs 1 --batch-size 148 --FULL --local-data data/full_local --val-subset data/val_1k.json --val-local-data data/val_1k_local
+Using PyAV for video decoding
+GPU: NVIDIA RTX PRO 6000 Blackwell Workstation Edition
+CUDA version: 12.8
+[output_guard] Training output valid — skipping
+  OK    student_encoder.pt: 4049 MB
+  OK    epochs=1.0, steps=1023, jepa_loss=0.482092946767807
+[11:11:58] PASSED: m09 pretrain (lambda=0.001, 1 epochs) (0m 3s)
+[11:11:58] HF upload started in background (PID=3964381)
+  OK   student_encoder.pt             4049 MB
+  OK   training_summary.json          jepa_loss=0.4821  epochs=1.0
+  OK   loss_log.csv                   523 steps
+[11:11:58] VERIFY OK: Training
+
+═══════════════════════════════════════════════════════════════
+  STEP winner-embed: m05 re-embed (winner lambda=0.001)
+  Mode: FULL | Est: ~20h (115K clips at 1.55 clips/s)
+  Started: 2026-04-04 11:11:58
+═══════════════════════════════════════════════════════════════
+[11:11:58] CMD: python -u src/m05_vjepa_embed.py --model outputs/full/m09_lambda0_001/student_encoder.pt --encoder vjepa_lambda0_001 --FULL --local-data data/full_local
+Using PyAV for video decoding
+Output: /workspace/factorjepa/outputs/full/embeddings_vjepa_lambda0_001.npy
+[output_guard] m05 embed: attempting HF download for 2 missing file(s)...
+Downloading anonymousML123/factorjepa-outputs//workspace/factorjepa/outputs/full/ → /workspace/factorjepa/outputs/full
+Fetching 0 files: 0it [00:00, ?it/s]Fetching 0 files: 0it [00:00, ?it/s]
+
+Download complete: 0s
+  Files: 0 new, 0 updated, 66 unchanged
+  Downloaded: 0.00 GB
+[output_guard] m05 embed: 2 file(s) still missing after HF download
+[output_guard] m05 embed: outputs missing or invalid — will re-compute
+  MISS  embeddings: embeddings_vjepa_lambda0_001.npy
+  MISS  paths: embeddings_vjepa_lambda0_001.paths.npy
+Clip limit: 115,687
+Streaming from: anonymousML123/walkindia-200k
+
+============================================================
+WORKER 1: embeddings 0 → 10,000
+============================================================
+/workspace/factorjepa/venv_walkindia/lib/python3.12/site-packages/transformers/utils/hub.py:110: FutureWarning: Using `TRANSFORMERS_CACHE` is deprecated and will be removed in v5 of Transformers. Use `HF_HOME` instead.
+  warnings.warn(
+Using PyAV for video decoding
+GPU: NVIDIA RTX PRO 6000 Blackwell Workstation Edition
+CUDA version: 12.8
+Batch size: 176 (from inference/vjepa2 profiler)
+wandb: [wandb.login()] Loaded credentials for https://api.wandb.ai from WANDB_API_KEY.
+wandb: Currently logged in as: kapilw25 (sjsu_llm) to https://api.wandb.ai. Use `wandb login --relogin` to force relogin
+wandb: WARNING Using a boolean value for 'reinit' is deprecated. Use 'return_previous' or 'finish_previous' instead.
+wandb: setting up run z1sfduzl
+wandb: Tracking run with wandb version 0.25.1
+wandb: Run data is saved locally in /workspace/factorjepa/wandb/run-20260404_111205-z1sfduzl
+wandb: Run `wandb offline` to turn off syncing.
+wandb: Syncing run m05_FULL
+wandb: ⭐️ View project at https://wandb.ai/sjsu_llm/walkindia-200k
+wandb: 🚀 View run at https://wandb.ai/sjsu_llm/walkindia-200k/runs/z1sfduzl
+wandb: run=m05_FULL url=https://wandb.ai/sjsu_llm/walkindia-200k/runs/z1sfduzl
+
+Loading model: outputs/full/m09_lambda0_001/student_encoder.pt
+Adapted model: num_frames=16 (from training config)
+/workspace/factorjepa/venv_walkindia/lib/python3.12/site-packages/timm/models/layers/__init__.py:49: FutureWarning: Importing from timm.models.layers is deprecated, please import via timm.layers
+  warnings.warn(f"Importing from {__name__} is deprecated, please import via timm.layers", FutureWarning)
+Adapted encoder: loaded 484/484 params (missing: 0, unexpected: 0)
+Applying torch.compile...
+Warmup: compiling inductor graph...
+Model loaded on cuda (dtype: torch.float16)
+
+=== Streaming Config ===
+batch_size:    176
+video_decoder: PyAV
+prefetch:      8 batches
+checkpoint:    every 500 clips
+m05_vjepa:   0%|          | 0/10000 [00:00<?, ?clip/s]  Parallel TAR reader: 8 threads, 116 TARs, queue=256
+m05_vjepa:   2%|▏         | 176/10000 [01:41<1:34:27,  1.73clip/s]m05_vjepa:   2%|▏         | 176/10000 [01:41<1:34:27,  1.73clip/s, 1.7 clips/s | failed=0]m05_vjepa:   4%|▎         | 352/10000 [01:52<44:10,  3.64clip/s, 1.7 clips/s | failed=0]  m05_vjepa:   4%|▎         | 352/10000 [01:52<44:10,  3.64clip/s, 15.8 clips/s | failed=0]m05_vjepa:   5%|▌         | 528/10000 [02:03<28:09,  5.61clip/s, 15.8 clips/s | failed=0]m05_vjepa:   5%|▌         | 528/10000 [02:03<28:09,  5.61clip/s, 15.8 clips/s | failed=0]m05_vjepa:   7%|▋         | 704/10000 [02:15<20:38,  7.51clip/s, 15.8 clips/s | failed=0]m05_vjepa:   7%|▋         | 704/10000 [02:15<20:38,  7.51clip/s, 15.7 clips/s | failed=0]m05_vjepa:   9%|▉         | 880/10000 [02:26<16:29,  9.21clip/s, 15.7 clips/s | failed=0]m05_vjepa:   9%|▉         | 880/10000 [02:26<16:29,  9.21clip/s, 15.5 clips/s | failed=0]m05_vjepa:  11%|█         | 1056/10000 [02:37<13:57, 10.68clip/s, 15.5 clips/s | failed=0]m05_vjepa:  11%|█         | 1056/10000 [02:37<13:57, 10.68clip/s, 15.5 clips/s | failed=0]m05_vjepa:  11%|█         | 1056/10000 [02:48<13:57, 10.68clip/s, 15.5 clips/s | failed=0]m05_vjepa:  12%|█▏        | 1232/10000 [02:49<12:17, 11.88clip/s, 15.5 clips/s | failed=0]m05_vjepa:  12%|█▏        | 1232/10000 [02:49<12:17, 11.88clip/s, 15.5 clips/s | failed=0]m05_vjepa:  14%|█▍        | 1408/10000 [03:00<11:11, 12.80clip/s, 15.5 clips/s | failed=0]m05_vjepa:  14%|█▍        | 1408/10000 [03:00<11:11, 12.80clip/s, 15.4 clips/s | failed=0]m05_vjepa:  16%|█▌        | 1584/10000 [03:12<10:24, 13.48clip/s, 15.4 clips/s | failed=0]m05_vjepa:  16%|█▌        | 1584/10000 [03:12<10:24, 13.48clip/s, 15.3 clips/s | failed=0]m05_vjepa:  18%|█▊        | 1760/10000 [03:23<09:49, 13.97clip/s, 15.3 clips/s | failed=0]m05_vjepa:  18%|█▊        | 1760/10000 [03:23<09:49, 13.97clip/s, 15.3 clips/s | failed=0]m05_vjepa:  19%|█▉        | 1936/10000 [03:35<09:24, 14.29clip/s, 15.3 clips/s | failed=0]m05_vjepa:  19%|█▉        | 1936/10000 [03:35<09:24, 14.29clip/s, 15.1 clips/s | failed=0]m05_vjepa:  21%|██        | 2112/10000 [03:47<09:03, 14.51clip/s, 15.1 clips/s | failed=0]m05_vjepa:  21%|██        | 2112/10000 [03:47<09:03, 14.51clip/s, 15.1 clips/s | failed=0]m05_vjepa:  21%|██        | 2112/10000 [03:58<09:03, 14.51clip/s, 15.1 clips/s | failed=0]m05_vjepa:  23%|██▎       | 2288/10000 [03:58<08:45, 14.68clip/s, 15.1 clips/s | failed=0]m05_vjepa:  23%|██▎       | 2288/10000 [03:58<08:45, 14.68clip/s, 15.1 clips/s | failed=0]m05_vjepa:  25%|██▍       | 2464/10000 [04:10<08:29, 14.79clip/s, 15.1 clips/s | failed=0]m05_vjepa:  25%|██▍       | 2464/10000 [04:10<08:29, 14.79clip/s, 15.0 clips/s | failed=0]m05_vjepa:  26%|██▋       | 2640/10000 [04:22<08:15, 14.86clip/s, 15.0 clips/s | failed=0]m05_vjepa:  26%|██▋       | 2640/10000 [04:22<08:15, 14.86clip/s, 15.0 clips/s | failed=0]m05_vjepa:  28%|██▊       | 2816/10000 [04:34<08:02, 14.90clip/s, 15.0 clips/s | failed=0]m05_vjepa:  28%|██▊       | 2816/10000 [04:34<08:02, 14.90clip/s, 15.0 clips/s | failed=0]m05_vjepa:  30%|██▉       | 2992/10000 [04:45<07:49, 14.92clip/s, 15.0 clips/s | failed=0]m05_vjepa:  30%|██▉       | 2992/10000 [04:45<07:49, 14.92clip/s, 15.0 clips/s | failed=0]m05_vjepa:  32%|███▏      | 3168/10000 [04:57<07:38, 14.89clip/s, 15.0 clips/s | failed=0]m05_vjepa:  32%|███▏      | 3168/10000 [04:57<07:38, 14.89clip/s, 14.9 clips/s | failed=0]m05_vjepa:  32%|███▏      | 3168/10000 [05:08<07:38, 14.89clip/s, 14.9 clips/s | failed=0]m05_vjepa:  33%|███▎      | 3344/10000 [05:09<07:27, 14.88clip/s, 14.9 clips/s | failed=0]m05_vjepa:  33%|███▎      | 3344/10000 [05:09<07:27, 14.88clip/s, 14.9 clips/s | failed=0]m05_vjepa:  35%|███▌      | 3520/10000 [05:21<07:15, 14.87clip/s, 14.9 clips/s | failed=0]m05_vjepa:  35%|███▌      | 3520/10000 [05:21<07:15, 14.87clip/s, 14.8 clips/s | failed=0]m05_vjepa:  37%|███▋      | 3696/10000 [05:33<07:03, 14.88clip/s, 14.8 clips/s | failed=0]m05_vjepa:  37%|███▋      | 3696/10000 [05:33<07:03, 14.88clip/s, 14.9 clips/s | failed=0]m05_vjepa:  39%|███▊      | 3872/10000 [05:45<06:51, 14.88clip/s, 14.9 clips/s | failed=0]m05_vjepa:  39%|███▊      | 3872/10000 [05:45<06:51, 14.88clip/s, 14.9 clips/s | failed=0]m05_vjepa:  40%|████      | 4048/10000 [05:56<06:40, 14.87clip/s, 14.9 clips/s | failed=0]m05_vjepa:  40%|████      | 4048/10000 [05:56<06:40, 14.87clip/s, 14.9 clips/s | failed=0]m05_vjepa:  40%|████      | 4048/10000 [06:08<06:40, 14.87clip/s, 14.9 clips/s | failed=0]m05_vjepa:  42%|████▏     | 4224/10000 [06:08<06:28, 14.85clip/s, 14.9 clips/s | failed=0]m05_vjepa:  42%|████▏     | 4224/10000 [06:08<06:28, 14.85clip/s, 14.8 clips/s | failed=0]m05_vjepa:  44%|████▍     | 4400/10000 [06:20<06:18, 14.81clip/s, 14.8 clips/s | failed=0]m05_vjepa:  44%|████▍     | 4400/10000 [06:20<06:18, 14.81clip/s, 14.8 clips/s | failed=0]m05_vjepa:  46%|████▌     | 4576/10000 [06:32<06:06, 14.80clip/s, 14.8 clips/s | failed=0]m05_vjepa:  46%|████▌     | 4576/10000 [06:32<06:06, 14.80clip/s, 14.8 clips/s | failed=0]m05_vjepa:  48%|████▊     | 4752/10000 [06:44<05:54, 14.80clip/s, 14.8 clips/s | failed=0]m05_vjepa:  48%|████▊     | 4752/10000 [06:44<05:54, 14.80clip/s, 14.8 clips/s | failed=0]m05_vjepa:  49%|████▉     | 4928/10000 [06:56<05:42, 14.79clip/s, 14.8 clips/s | failed=0]m05_vjepa:  49%|████▉     | 4928/10000 [06:56<05:42, 14.79clip/s, 14.8 clips/s | failed=0]m05_vjepa:  51%|█████     | 5104/10000 [07:08<05:32, 14.74clip/s, 14.8 clips/s | failed=0]m05_vjepa:  51%|█████     | 5104/10000 [07:08<05:32, 14.74clip/s, 14.6 clips/s | failed=0]m05_vjepa:  51%|█████     | 5104/10000 [07:18<05:32, 14.74clip/s, 14.6 clips/s | failed=0]m05_vjepa:  53%|█████▎    | 5280/10000 [07:20<05:20, 14.75clip/s, 14.6 clips/s | failed=0]m05_vjepa:  53%|█████▎    | 5280/10000 [07:20<05:20, 14.75clip/s, 14.7 clips/s | failed=0]m05_vjepa:  55%|█████▍    | 5456/10000 [07:32<05:07, 14.76clip/s, 14.7 clips/s | failed=0]m05_vjepa:  55%|█████▍    | 5456/10000 [07:32<05:07, 14.76clip/s, 14.7 clips/s | failed=0]m05_vjepa:  56%|█████▋    | 5632/10000 [07:44<04:56, 14.73clip/s, 14.7 clips/s | failed=0]m05_vjepa:  56%|█████▋    | 5632/10000 [07:44<04:56, 14.73clip/s, 14.7 clips/s | failed=0]m05_vjepa:  58%|█████▊    | 5808/10000 [07:56<04:44, 14.74clip/s, 14.7 clips/s | failed=0]m05_vjepa:  58%|█████▊    | 5808/10000 [07:56<04:44, 14.74clip/s, 14.7 clips/s | failed=0]m05_vjepa:  60%|█████▉    | 5984/10000 [08:08<04:32, 14.72clip/s, 14.7 clips/s | failed=0]m05_vjepa:  60%|█████▉    | 5984/10000 [08:08<04:32, 14.72clip/s, 14.7 clips/s | failed=0]m05_vjepa:  60%|█████▉    | 5984/10000 [08:18<04:32, 14.72clip/s, 14.7 clips/s | failed=0]m05_vjepa:  62%|██████▏   | 6160/10000 [08:20<04:21, 14.68clip/s, 14.7 clips/s | failed=0]m05_vjepa:  62%|██████▏   | 6160/10000 [08:20<04:21, 14.68clip/s, 14.6 clips/s | failed=0]m05_vjepa:  63%|██████▎   | 6336/10000 [08:32<04:09, 14.70clip/s, 14.6 clips/s | failed=0]m05_vjepa:  63%|██████▎   | 6336/10000 [08:32<04:09, 14.70clip/s, 14.7 clips/s | failed=0]m05_vjepa:  65%|██████▌   | 6512/10000 [08:44<03:57, 14.68clip/s, 14.7 clips/s | failed=0]m05_vjepa:  65%|██████▌   | 6512/10000 [08:44<03:57, 14.68clip/s, 14.7 clips/s | failed=0]m05_vjepa:  67%|██████▋   | 6688/10000 [08:56<03:45, 14.69clip/s, 14.7 clips/s | failed=0]m05_vjepa:  67%|██████▋   | 6688/10000 [08:56<03:45, 14.69clip/s, 14.7 clips/s | failed=0]m05_vjepa:  69%|██████▊   | 6864/10000 [09:08<03:33, 14.71clip/s, 14.7 clips/s | failed=0]m05_vjepa:  69%|██████▊   | 6864/10000 [09:08<03:33, 14.71clip/s, 14.7 clips/s | failed=0]m05_vjepa:  69%|██████▊   | 6864/10000 [09:18<03:33, 14.71clip/s, 14.7 clips/s | failed=0]m05_vjepa:  70%|███████   | 7040/10000 [09:20<03:21, 14.67clip/s, 14.7 clips/s | failed=0]m05_vjepa:  70%|███████   | 7040/10000 [09:20<03:21, 14.67clip/s, 14.7 clips/s | failed=0]m05_vjepa:  72%|███████▏  | 7216/10000 [09:32<03:09, 14.67clip/s, 14.7 clips/s | failed=0]m05_vjepa:  72%|███████▏  | 7216/10000 [09:32<03:09, 14.67clip/s, 14.7 clips/s | failed=0]m05_vjepa:  74%|███████▍  | 7392/10000 [09:44<02:57, 14.70clip/s, 14.7 clips/s | failed=0]m05_vjepa:  74%|███████▍  | 7392/10000 [09:44<02:57, 14.70clip/s, 14.7 clips/s | failed=0]m05_vjepa:  76%|███████▌  | 7568/10000 [09:56<02:45, 14.71clip/s, 14.7 clips/s | failed=0]m05_vjepa:  76%|███████▌  | 7568/10000 [09:56<02:45, 14.71clip/s, 14.7 clips/s | failed=0]m05_vjepa:  77%|███████▋  | 7744/10000 [10:08<02:33, 14.71clip/s, 14.7 clips/s | failed=0]m05_vjepa:  77%|███████▋  | 7744/10000 [10:08<02:33, 14.71clip/s, 14.7 clips/s | failed=0]m05_vjepa:  77%|███████▋  | 7744/10000 [10:18<02:33, 14.71clip/s, 14.7 clips/s | failed=0]m05_vjepa:  79%|███████▉  | 7920/10000 [10:19<02:21, 14.72clip/s, 14.7 clips/s | failed=0]m05_vjepa:  79%|███████▉  | 7920/10000 [10:19<02:21, 14.72clip/s, 14.7 clips/s | failed=0]m05_vjepa:  81%|████████  | 8096/10000 [10:31<02:09, 14.72clip/s, 14.7 clips/s | failed=0]m05_vjepa:  81%|████████  | 8096/10000 [10:31<02:09, 14.72clip/s, 14.7 clips/s | failed=0]m05_vjepa:  83%|████████▎ | 8272/10000 [10:43<01:57, 14.73clip/s, 14.7 clips/s | failed=0]m05_vjepa:  83%|████████▎ | 8272/10000 [10:43<01:57, 14.73clip/s, 14.8 clips/s | failed=0]m05_vjepa:  84%|████████▍ | 8448/10000 [10:55<01:45, 14.74clip/s, 14.8 clips/s | failed=0]m05_vjepa:  84%|████████▍ | 8448/10000 [10:55<01:45, 14.74clip/s, 14.7 clips/s | failed=0]m05_vjepa:  86%|████████▌ | 8624/10000 [11:07<01:33, 14.76clip/s, 14.7 clips/s | failed=0]m05_vjepa:  86%|████████▌ | 8624/10000 [11:07<01:33, 14.76clip/s, 14.8 clips/s | failed=0]m05_vjepa:  86%|████████▌ | 8624/10000 [11:19<01:33, 14.76clip/s, 14.8 clips/s | failed=0]m05_vjepa:  88%|████████▊ | 8800/10000 [11:19<01:21, 14.77clip/s, 14.8 clips/s | failed=0]m05_vjepa:  88%|████████▊ | 8800/10000 [11:19<01:21, 14.77clip/s, 14.8 clips/s | failed=0]m05_vjepa:  90%|████████▉ | 8976/10000 [11:31<01:09, 14.77clip/s, 14.8 clips/s | failed=0]m05_vjepa:  90%|████████▉ | 8976/10000 [11:31<01:09, 14.77clip/s, 14.8 clips/s | failed=0]m05_vjepa:  92%|█████████▏| 9152/10000 [11:43<00:57, 14.78clip/s, 14.8 clips/s | failed=0]m05_vjepa:  92%|█████████▏| 9152/10000 [11:43<00:57, 14.78clip/s, 14.8 clips/s | failed=0]m05_vjepa:  93%|█████████▎| 9328/10000 [11:55<00:45, 14.78clip/s, 14.8 clips/s | failed=0]m05_vjepa:  93%|█████████▎| 9328/10000 [11:55<00:45, 14.78clip/s, 14.8 clips/s | failed=0]m05_vjepa:  95%|█████████▌| 9504/10000 [12:07<00:33, 14.79clip/s, 14.8 clips/s | failed=0]m05_vjepa:  95%|█████████▌| 9504/10000 [12:07<00:33, 14.79clip/s, 14.8 clips/s | failed=0]m05_vjepa:  97%|█████████▋| 9680/10000 [12:19<00:21, 14.79clip/s, 14.8 clips/s | failed=0]m05_vjepa:  97%|█████████▋| 9680/10000 [12:19<00:21, 14.79clip/s, 14.8 clips/s | failed=0]m05_vjepa:  97%|█████████▋| 9680/10000 [12:29<00:21, 14.79clip/s, 14.8 clips/s | failed=0]m05_vjepa:  99%|█████████▊| 9856/10000 [12:30<00:09, 14.79clip/s, 14.8 clips/s | failed=0]m05_vjepa:  99%|█████████▊| 9856/10000 [12:30<00:09, 14.79clip/s, 14.8 clips/s | failed=0]m05_vjepa: 10032clip [12:42, 14.78clip/s, 14.8 clips/s | failed=0]                        m05_vjepa: 10032clip [12:42, 14.78clip/s, 14.8 clips/s | failed=0]m05_vjepa: 10032clip [12:43, 13.15clip/s, 14.8 clips/s | failed=0]
+
+Segment done: 10,032 clips in 763s (13.14 clips/s)
+wandb: uploading history steps 56-56, summary, console lines 16-16
+wandb: uploading console lines 18-19
+wandb: 
+wandb: Run history:
+wandb:        clips_processed ▁▁▁▂▂▂▂▂▃▃▃▃▃▃▃▄▄▄▄▄▅▅▅▅▅▅▆▆▆▆▆▇▇▇▇▇▇▇▇█
+wandb:                 failed ▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁
+wandb: throughput_clips_per_s ▁███████████████▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇
+wandb: 
+wandb: Run summary:
+wandb:        clips_processed 10032
+wandb:                 failed 0
+wandb: throughput_clips_per_s 14.78394
+wandb: 
+wandb: 🚀 View run m05_FULL at: https://wandb.ai/sjsu_llm/walkindia-200k/runs/z1sfduzl
+wandb: ⭐️ View project at: https://wandb.ai/sjsu_llm/walkindia-200k
+wandb: Synced 5 W&B file(s), 0 media file(s), 0 artifact file(s) and 0 other file(s)
+wandb: Find logs at: ./wandb/run-20260404_111205-z1sfduzl/logs
+Worker exiting (GPU memory will be released).
+Checkpoint loaded: 10,032 embeddings from .m05_checkpoint_vjepa_lambda0_001.npz
+Worker done. Progress: 10,032/115,687
+
+============================================================
+WORKER 2: embeddings 10,032 → 20,032
+============================================================
+/workspace/factorjepa/venv_walkindia/lib/python3.12/site-packages/transformers/utils/hub.py:110: FutureWarning: Using `TRANSFORMERS_CACHE` is deprecated and will be removed in v5 of Transformers. Use `HF_HOME` instead.
+  warnings.warn(
+Using PyAV for video decoding
+GPU: NVIDIA RTX PRO 6000 Blackwell Workstation Edition
+CUDA version: 12.8
+Batch size: 176 (from inference/vjepa2 profiler)
+wandb: [wandb.login()] Loaded credentials for https://api.wandb.ai from WANDB_API_KEY.
+wandb: Currently logged in as: kapilw25 (sjsu_llm) to https://api.wandb.ai. Use `wandb login --relogin` to force relogin
+wandb: WARNING Using a boolean value for 'reinit' is deprecated. Use 'return_previous' or 'finish_previous' instead.
+wandb: setting up run pa4kj17m
+wandb: Tracking run with wandb version 0.25.1
+wandb: Run data is saved locally in /workspace/factorjepa/wandb/run-20260404_112552-pa4kj17m
+wandb: Run `wandb offline` to turn off syncing.
+wandb: Syncing run m05_FULL
+wandb: ⭐️ View project at https://wandb.ai/sjsu_llm/walkindia-200k
+wandb: 🚀 View run at https://wandb.ai/sjsu_llm/walkindia-200k/runs/pa4kj17m
+wandb: run=m05_FULL url=https://wandb.ai/sjsu_llm/walkindia-200k/runs/pa4kj17m
+Checkpoint loaded: 10,032 embeddings from .m05_checkpoint_vjepa_lambda0_001.npz
+
+Loading model: outputs/full/m09_lambda0_001/student_encoder.pt
+Adapted model: num_frames=16 (from training config)
+/workspace/factorjepa/venv_walkindia/lib/python3.12/site-packages/timm/models/layers/__init__.py:49: FutureWarning: Importing from timm.models.layers is deprecated, please import via timm.layers
+  warnings.warn(f"Importing from {__name__} is deprecated, please import via timm.layers", FutureWarning)
+Adapted encoder: loaded 484/484 params (missing: 0, unexpected: 0)
+Applying torch.compile...
+Warmup: compiling inductor graph...
+Model loaded on cuda (dtype: torch.float16)
+
+=== Streaming Config ===
+batch_size:    176
+video_decoder: PyAV
+prefetch:      8 batches
+checkpoint:    every 500 clips
+m05_vjepa:   0%|          | 0/10000 [00:00<?, ?clip/s]  Parallel TAR reader: 8 threads, 116 TARs, queue=256
+m05_vjepa:   2%|▏         | 176/10000 [00:30<28:32,  5.74clip/s]m05_vjepa:   2%|▏         | 176/10000 [00:30<28:32,  5.74clip/s, 5.7 clips/s | failed=0]m05_vjepa:   4%|▎         | 352/10000 [00:42<17:46,  9.05clip/s, 5.7 clips/s | failed=0]m05_vjepa:   4%|▎         | 352/10000 [00:42<17:46,  9.05clip/s, 15.2 clips/s | failed=0]m05_vjepa:   5%|▌         | 528/10000 [00:53<14:15, 11.08clip/s, 15.2 clips/s | failed=0]m05_vjepa:   5%|▌         | 528/10000 [00:53<14:15, 11.08clip/s, 15.2 clips/s | failed=0]m05_vjepa:   7%|▋         | 704/10000 [01:05<12:32, 12.35clip/s, 15.2 clips/s | failed=0]m05_vjepa:   7%|▋         | 704/10000 [01:05<12:32, 12.35clip/s, 15.1 clips/s | failed=0]m05_vjepa:   9%|▉         | 880/10000 [01:17<11:32, 13.17clip/s, 15.1 clips/s | failed=0]m05_vjepa:   9%|▉         | 880/10000 [01:17<11:32, 13.17clip/s, 14.9 clips/s | failed=0]m05_vjepa:   9%|▉         | 880/10000 [01:29<11:32, 13.17clip/s, 14.9 clips/s | failed=0]m05_vjepa:  11%|█         | 1056/10000 [01:29<10:54, 13.66clip/s, 14.9 clips/s | failed=0]m05_vjepa:  11%|█         | 1056/10000 [01:29<10:54, 13.66clip/s, 14.8 clips/s | failed=0]m05_vjepa:  12%|█▏        | 1232/10000 [01:41<10:25, 14.02clip/s, 14.8 clips/s | failed=0]m05_vjepa:  12%|█▏        | 1232/10000 [01:41<10:25, 14.02clip/s, 14.8 clips/s | failed=0]m05_vjepa:  14%|█▍        | 1408/10000 [01:53<10:02, 14.27clip/s, 14.8 clips/s | failed=0]m05_vjepa:  14%|█▍        | 1408/10000 [01:53<10:02, 14.27clip/s, 14.8 clips/s | failed=0]m05_vjepa:  16%|█▌        | 1584/10000 [02:05<09:42, 14.44clip/s, 14.8 clips/s | failed=0]m05_vjepa:  16%|█▌        | 1584/10000 [02:05<09:42, 14.44clip/s, 14.8 clips/s | failed=0]m05_vjepa:  18%|█▊        | 1760/10000 [02:16<09:26, 14.54clip/s, 14.8 clips/s | failed=0]m05_vjepa:  18%|█▊        | 1760/10000 [02:16<09:26, 14.54clip/s, 14.8 clips/s | failed=0]m05_vjepa:  19%|█▉        | 1936/10000 [02:28<09:12, 14.60clip/s, 14.8 clips/s | failed=0]m05_vjepa:  19%|█▉        | 1936/10000 [02:28<09:12, 14.60clip/s, 14.7 clips/s | failed=0]m05_vjepa:  19%|█▉        | 1936/10000 [02:39<09:12, 14.60clip/s, 14.7 clips/s | failed=0]m05_vjepa:  21%|██        | 2112/10000 [02:40<09:00, 14.60clip/s, 14.7 clips/s | failed=0]m05_vjepa:  21%|██        | 2112/10000 [02:40<09:00, 14.60clip/s, 14.7 clips/s | failed=0]m05_vjepa:  23%|██▎       | 2288/10000 [02:52<08:48, 14.60clip/s, 14.7 clips/s | failed=0]m05_vjepa:  23%|██▎       | 2288/10000 [02:52<08:48, 14.60clip/s, 14.6 clips/s | failed=0]m05_vjepa:  25%|██▍       | 2464/10000 [03:04<08:34, 14.64clip/s, 14.6 clips/s | failed=0]m05_vjepa:  25%|██▍       | 2464/10000 [03:04<08:34, 14.64clip/s, 14.7 clips/s | failed=0]m05_vjepa:  26%|██▋       | 2640/10000 [03:16<08:21, 14.67clip/s, 14.7 clips/s | failed=0]m05_vjepa:  26%|██▋       | 2640/10000 [03:16<08:21, 14.67clip/s, 14.7 clips/s | failed=0]m05_vjepa:  28%|██▊       | 2816/10000 [03:28<08:09, 14.68clip/s, 14.7 clips/s | failed=0]m05_vjepa:  28%|██▊       | 2816/10000 [03:28<08:09, 14.68clip/s, 14.7 clips/s | failed=0]m05_vjepa:  28%|██▊       | 2816/10000 [03:39<08:09, 14.68clip/s, 14.7 clips/s | failed=0]m05_vjepa:  30%|██▉       | 2992/10000 [03:40<07:58, 14.65clip/s, 14.7 clips/s | failed=0]m05_vjepa:  30%|██▉       | 2992/10000 [03:40<07:58, 14.65clip/s, 14.6 clips/s | failed=0]m05_vjepa:  32%|███▏      | 3168/10000 [03:52<07:45, 14.66clip/s, 14.6 clips/s | failed=0]m05_vjepa:  32%|███▏      | 3168/10000 [03:52<07:45, 14.66clip/s, 14.6 clips/s | failed=0]m05_vjepa:  33%|███▎      | 3344/10000 [04:05<07:36, 14.59clip/s, 14.6 clips/s | failed=0]m05_vjepa:  33%|███▎      | 3344/10000 [04:05<07:36, 14.59clip/s, 14.6 clips/s | failed=0]m05_vjepa:  35%|███▌      | 3520/10000 [04:17<07:22, 14.64clip/s, 14.6 clips/s | failed=0]m05_vjepa:  35%|███▌      | 3520/10000 [04:17<07:22, 14.64clip/s, 14.7 clips/s | failed=0]m05_vjepa:  37%|███▋      | 3696/10000 [04:28<07:09, 14.67clip/s, 14.7 clips/s | failed=0]m05_vjepa:  37%|███▋      | 3696/10000 [04:28<07:09, 14.67clip/s, 14.7 clips/s | failed=0]m05_vjepa:  37%|███▋      | 3696/10000 [04:39<07:09, 14.67clip/s, 14.7 clips/s | failed=0]m05_vjepa:  39%|███▊      | 3872/10000 [04:40<06:57, 14.69clip/s, 14.7 clips/s | failed=0]m05_vjepa:  39%|███▊      | 3872/10000 [04:40<06:57, 14.69clip/s, 14.7 clips/s | failed=0]m05_vjepa:  40%|████      | 4048/10000 [04:52<06:44, 14.71clip/s, 14.7 clips/s | failed=0]m05_vjepa:  40%|████      | 4048/10000 [04:52<06:44, 14.71clip/s, 14.8 clips/s | failed=0]m05_vjepa:  42%|████▏     | 4224/10000 [05:04<06:32, 14.71clip/s, 14.8 clips/s | failed=0]m05_vjepa:  42%|████▏     | 4224/10000 [05:04<06:32, 14.71clip/s, 14.7 clips/s | failed=0]m05_vjepa:  44%|████▍     | 4400/10000 [05:16<06:21, 14.69clip/s, 14.7 clips/s | failed=0]m05_vjepa:  44%|████▍     | 4400/10000 [05:16<06:21, 14.69clip/s, 14.7 clips/s | failed=0]m05_vjepa:  46%|████▌     | 4576/10000 [05:28<06:09, 14.69clip/s, 14.7 clips/s | failed=0]m05_vjepa:  46%|████▌     | 4576/10000 [05:28<06:09, 14.69clip/s, 14.7 clips/s | failed=0]m05_vjepa:  46%|████▌     | 4576/10000 [05:39<06:09, 14.69clip/s, 14.7 clips/s | failed=0]m05_vjepa:  48%|████▊     | 4752/10000 [05:40<05:56, 14.71clip/s, 14.7 clips/s | failed=0]m05_vjepa:  48%|████▊     | 4752/10000 [05:40<05:56, 14.71clip/s, 14.7 clips/s | failed=0]m05_vjepa:  49%|████▉     | 4928/10000 [05:52<05:44, 14.72clip/s, 14.7 clips/s | failed=0]m05_vjepa:  49%|████▉     | 4928/10000 [05:52<05:44, 14.72clip/s, 14.7 clips/s | failed=0]m05_vjepa:  51%|█████     | 5104/10000 [06:04<05:32, 14.73clip/s, 14.7 clips/s | failed=0]m05_vjepa:  51%|█████     | 5104/10000 [06:04<05:32, 14.73clip/s, 14.7 clips/s | failed=0]m05_vjepa:  53%|█████▎    | 5280/10000 [06:16<05:20, 14.71clip/s, 14.7 clips/s | failed=0]m05_vjepa:  53%|█████▎    | 5280/10000 [06:16<05:20, 14.71clip/s, 14.7 clips/s | failed=0]m05_vjepa:  55%|█████▍    | 5456/10000 [06:28<05:09, 14.69clip/s, 14.7 clips/s | failed=0]m05_vjepa:  55%|█████▍    | 5456/10000 [06:28<05:09, 14.69clip/s, 14.7 clips/s | failed=0]m05_vjepa:  55%|█████▍    | 5456/10000 [06:39<05:09, 14.69clip/s, 14.7 clips/s | failed=0]m05_vjepa:  56%|█████▋    | 5632/10000 [06:40<04:57, 14.69clip/s, 14.7 clips/s | failed=0]m05_vjepa:  56%|█████▋    | 5632/10000 [06:40<04:57, 14.69clip/s, 14.7 clips/s | failed=0]m05_vjepa:  58%|█████▊    | 5808/10000 [06:52<04:45, 14.70clip/s, 14.7 clips/s | failed=0]m05_vjepa:  58%|█████▊    | 5808/10000 [06:52<04:45, 14.70clip/s, 14.7 clips/s | failed=0]m05_vjepa:  60%|█████▉    | 5984/10000 [07:04<04:32, 14.71clip/s, 14.7 clips/s | failed=0]m05_vjepa:  60%|█████▉    | 5984/10000 [07:04<04:32, 14.71clip/s, 14.7 clips/s | failed=0]m05_vjepa:  62%|██████▏   | 6160/10000 [07:16<04:20, 14.72clip/s, 14.7 clips/s | failed=0]m05_vjepa:  62%|██████▏   | 6160/10000 [07:16<04:20, 14.72clip/s, 14.7 clips/s | failed=0]m05_vjepa:  63%|██████▎   | 6336/10000 [07:28<04:09, 14.71clip/s, 14.7 clips/s | failed=0]m05_vjepa:  63%|██████▎   | 6336/10000 [07:28<04:09, 14.71clip/s, 14.7 clips/s | failed=0]m05_vjepa:  63%|██████▎   | 6336/10000 [07:39<04:09, 14.71clip/s, 14.7 clips/s | failed=0]m05_vjepa:  65%|██████▌   | 6512/10000 [07:40<03:57, 14.68clip/s, 14.7 clips/s | failed=0]m05_vjepa:  65%|██████▌   | 6512/10000 [07:40<03:57, 14.68clip/s, 14.7 clips/s | failed=0]m05_vjepa:  67%|██████▋   | 6688/10000 [07:52<03:45, 14.67clip/s, 14.7 clips/s | failed=0]m05_vjepa:  67%|██████▋   | 6688/10000 [07:52<03:45, 14.67clip/s, 14.7 clips/s | failed=0]m05_vjepa:  69%|██████▊   | 6864/10000 [08:04<03:33, 14.70clip/s, 14.7 clips/s | failed=0]m05_vjepa:  69%|██████▊   | 6864/10000 [08:04<03:33, 14.70clip/s, 14.7 clips/s | failed=0]m05_vjepa:  70%|███████   | 7040/10000 [08:16<03:21, 14.72clip/s, 14.7 clips/s | failed=0]m05_vjepa:  70%|███████   | 7040/10000 [08:16<03:21, 14.72clip/s, 14.7 clips/s | failed=0]m05_vjepa:  72%|███████▏  | 7216/10000 [08:28<03:09, 14.71clip/s, 14.7 clips/s | failed=0]m05_vjepa:  72%|███████▏  | 7216/10000 [08:28<03:09, 14.71clip/s, 14.7 clips/s | failed=0]m05_vjepa:  72%|███████▏  | 7216/10000 [08:39<03:09, 14.71clip/s, 14.7 clips/s | failed=0]m05_vjepa:  74%|███████▍  | 7392/10000 [08:40<02:57, 14.69clip/s, 14.7 clips/s | failed=0]m05_vjepa:  74%|███████▍  | 7392/10000 [08:40<02:57, 14.69clip/s, 14.7 clips/s | failed=0]m05_vjepa:  76%|███████▌  | 7568/10000 [08:52<02:45, 14.71clip/s, 14.7 clips/s | failed=0]m05_vjepa:  76%|███████▌  | 7568/10000 [08:52<02:45, 14.71clip/s, 14.7 clips/s | failed=0]m05_vjepa:  77%|███████▋  | 7744/10000 [09:04<02:33, 14.70clip/s, 14.7 clips/s | failed=0]m05_vjepa:  77%|███████▋  | 7744/10000 [09:04<02:33, 14.70clip/s, 14.7 clips/s | failed=0]m05_vjepa:  79%|███████▉  | 7920/10000 [09:16<02:21, 14.72clip/s, 14.7 clips/s | failed=0]m05_vjepa:  79%|███████▉  | 7920/10000 [09:16<02:21, 14.72clip/s, 14.7 clips/s | failed=0]m05_vjepa:  81%|████████  | 8096/10000 [09:28<02:09, 14.73clip/s, 14.7 clips/s | failed=0]m05_vjepa:  81%|████████  | 8096/10000 [09:28<02:09, 14.73clip/s, 14.7 clips/s | failed=0]m05_vjepa:  81%|████████  | 8096/10000 [09:39<02:09, 14.73clip/s, 14.7 clips/s | failed=0]m05_vjepa:  83%|████████▎ | 8272/10000 [09:40<01:57, 14.72clip/s, 14.7 clips/s | failed=0]m05_vjepa:  83%|████████▎ | 8272/10000 [09:40<01:57, 14.72clip/s, 14.7 clips/s | failed=0]m05_vjepa:  84%|████████▍ | 8448/10000 [09:52<01:45, 14.69clip/s, 14.7 clips/s | failed=0]m05_vjepa:  84%|████████▍ | 8448/10000 [09:52<01:45, 14.69clip/s, 14.6 clips/s | failed=0]m05_vjepa:  86%|████████▌ | 8624/10000 [10:03<01:33, 14.73clip/s, 14.6 clips/s | failed=0]m05_vjepa:  86%|████████▌ | 8624/10000 [10:03<01:33, 14.73clip/s, 14.7 clips/s | failed=0]m05_vjepa:  88%|████████▊ | 8800/10000 [10:15<01:21, 14.76clip/s, 14.7 clips/s | failed=0]m05_vjepa:  88%|████████▊ | 8800/10000 [10:15<01:21, 14.76clip/s, 14.8 clips/s | failed=0]m05_vjepa:  90%|████████▉ | 8976/10000 [10:27<01:09, 14.78clip/s, 14.8 clips/s | failed=0]m05_vjepa:  90%|████████▉ | 8976/10000 [10:27<01:09, 14.78clip/s, 14.8 clips/s | failed=0]m05_vjepa:  90%|████████▉ | 8976/10000 [10:39<01:09, 14.78clip/s, 14.8 clips/s | failed=0]m05_vjepa:  92%|█████████▏| 9152/10000 [10:39<00:57, 14.79clip/s, 14.8 clips/s | failed=0]m05_vjepa:  92%|█████████▏| 9152/10000 [10:39<00:57, 14.79clip/s, 14.8 clips/s | failed=0]m05_vjepa:  93%|█████████▎| 9328/10000 [10:51<00:45, 14.81clip/s, 14.8 clips/s | failed=0]m05_vjepa:  93%|█████████▎| 9328/10000 [10:51<00:45, 14.81clip/s, 14.9 clips/s | failed=0]m05_vjepa:  95%|█████████▌| 9504/10000 [11:03<00:33, 14.82clip/s, 14.9 clips/s | failed=0]m05_vjepa:  95%|█████████▌| 9504/10000 [11:03<00:33, 14.82clip/s, 14.8 clips/s | failed=0]m05_vjepa:  97%|█████████▋| 9680/10000 [11:15<00:21, 14.81clip/s, 14.8 clips/s | failed=0]m05_vjepa:  97%|█████████▋| 9680/10000 [11:15<00:21, 14.81clip/s, 14.8 clips/s | failed=0]m05_vjepa:  99%|█████████▊| 9856/10000 [11:27<00:09, 14.83clip/s, 14.8 clips/s | failed=0]m05_vjepa:  99%|█████████▊| 9856/10000 [11:27<00:09, 14.83clip/s, 14.9 clips/s | failed=0]m05_vjepa: 10032clip [11:38, 14.84clip/s, 14.9 clips/s | failed=0]                        m05_vjepa: 10032clip [11:38, 14.84clip/s, 14.9 clips/s | failed=0]m05_vjepa: 10032clip [11:39, 14.35clip/s, 14.9 clips/s | failed=0]
+
+Segment done: 10,032 clips in 699s (14.35 clips/s)
+wandb: updating run metadata
+wandb: uploading history steps 56-56, summary, console lines 17-17
+wandb: uploading console lines 19-20
+wandb: 
+wandb: Run history:
+wandb:        clips_processed ▁▁▁▁▂▂▂▂▂▃▃▃▃▃▃▄▄▄▄▅▅▅▅▅▅▆▆▆▆▆▇▇▇▇▇▇▇▇██
+wandb:                 failed ▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁
+wandb: throughput_clips_per_s ▁███████████████████████████████████████
+wandb: 
+wandb: Run summary:
+wandb:        clips_processed 20064
+wandb:                 failed 0
+wandb: throughput_clips_per_s 14.85915
+wandb: 
+wandb: 🚀 View run m05_FULL at: https://wandb.ai/sjsu_llm/walkindia-200k/runs/pa4kj17m
+wandb: ⭐️ View project at: https://wandb.ai/sjsu_llm/walkindia-200k
+wandb: Synced 5 W&B file(s), 0 media file(s), 0 artifact file(s) and 0 other file(s)
+wandb: Find logs at: ./wandb/run-20260404_112552-pa4kj17m/logs
+Worker exiting (GPU memory will be released).
+Checkpoint loaded: 20,064 embeddings from .m05_checkpoint_vjepa_lambda0_001.npz
+Worker done. Progress: 20,064/115,687
+
+============================================================
+WORKER 3: embeddings 20,064 → 30,064
+============================================================
+/workspace/factorjepa/venv_walkindia/lib/python3.12/site-packages/transformers/utils/hub.py:110: FutureWarning: Using `TRANSFORMERS_CACHE` is deprecated and will be removed in v5 of Transformers. Use `HF_HOME` instead.
+  warnings.warn(
+Using PyAV for video decoding
+GPU: NVIDIA RTX PRO 6000 Blackwell Workstation Edition
+CUDA version: 12.8
+Batch size: 176 (from inference/vjepa2 profiler)
+wandb: [wandb.login()] Loaded credentials for https://api.wandb.ai from WANDB_API_KEY.
+wandb: Currently logged in as: kapilw25 (sjsu_llm) to https://api.wandb.ai. Use `wandb login --relogin` to force relogin
+wandb: WARNING Using a boolean value for 'reinit' is deprecated. Use 'return_previous' or 'finish_previous' instead.
+wandb: setting up run 50vgfwfa
+wandb: Tracking run with wandb version 0.25.1
+wandb: Run data is saved locally in /workspace/factorjepa/wandb/run-20260404_113755-50vgfwfa
+wandb: Run `wandb offline` to turn off syncing.
+wandb: Syncing run m05_FULL
+wandb: ⭐️ View project at https://wandb.ai/sjsu_llm/walkindia-200k
+wandb: 🚀 View run at https://wandb.ai/sjsu_llm/walkindia-200k/runs/50vgfwfa
+wandb: run=m05_FULL url=https://wandb.ai/sjsu_llm/walkindia-200k/runs/50vgfwfa
+Checkpoint loaded: 20,064 embeddings from .m05_checkpoint_vjepa_lambda0_001.npz
+
+Loading model: outputs/full/m09_lambda0_001/student_encoder.pt
+Adapted model: num_frames=16 (from training config)
+/workspace/factorjepa/venv_walkindia/lib/python3.12/site-packages/timm/models/layers/__init__.py:49: FutureWarning: Importing from timm.models.layers is deprecated, please import via timm.layers
+  warnings.warn(f"Importing from {__name__} is deprecated, please import via timm.layers", FutureWarning)
+Adapted encoder: loaded 484/484 params (missing: 0, unexpected: 0)
+Applying torch.compile...
+Warmup: compiling inductor graph...
+Model loaded on cuda (dtype: torch.float16)
+
+=== Streaming Config ===
+batch_size:    176
+video_decoder: PyAV
+prefetch:      8 batches
+checkpoint:    every 500 clips
+m05_vjepa:   0%|          | 0/10000 [00:00<?, ?clip/s]  Parallel TAR reader: 8 threads, 116 TARs, queue=256
+m05_vjepa:   2%|▏         | 176/10000 [00:30<28:32,  5.74clip/s]m05_vjepa:   2%|▏         | 176/10000 [00:30<28:32,  5.74clip/s, 5.7 clips/s | failed=0]m05_vjepa:   4%|▎         | 352/10000 [00:42<17:46,  9.04clip/s, 5.7 clips/s | failed=0]m05_vjepa:   4%|▎         | 352/10000 [00:42<17:46,  9.04clip/s, 15.2 clips/s | failed=0]m05_vjepa:   5%|▌         | 528/10000 [00:53<14:15, 11.07clip/s, 15.2 clips/s | failed=0]m05_vjepa:   5%|▌         | 528/10000 [00:53<14:15, 11.07clip/s, 15.1 clips/s | failed=0]m05_vjepa:   7%|▋         | 704/10000 [01:05<12:33, 12.34clip/s, 15.1 clips/s | failed=0]m05_vjepa:   7%|▋         | 704/10000 [01:05<12:33, 12.34clip/s, 15.1 clips/s | failed=0]m05_vjepa:   9%|▉         | 880/10000 [01:17<11:35, 13.11clip/s, 15.1 clips/s | failed=0]m05_vjepa:   9%|▉         | 880/10000 [01:17<11:35, 13.11clip/s, 14.7 clips/s | failed=0]m05_vjepa:   9%|▉         | 880/10000 [01:29<11:35, 13.11clip/s, 14.7 clips/s | failed=0]m05_vjepa:  11%|█         | 1056/10000 [01:29<10:58, 13.59clip/s, 14.7 clips/s | failed=0]m05_vjepa:  11%|█         | 1056/10000 [01:29<10:58, 13.59clip/s, 14.7 clips/s | failed=0]m05_vjepa:  12%|█▏        | 1232/10000 [01:41<10:28, 13.96clip/s, 14.7 clips/s | failed=0]m05_vjepa:  12%|█▏        | 1232/10000 [01:41<10:28, 13.96clip/s, 14.7 clips/s | failed=0]m05_vjepa:  14%|█▍        | 1408/10000 [01:53<10:04, 14.22clip/s, 14.7 clips/s | failed=0]m05_vjepa:  14%|█▍        | 1408/10000 [01:53<10:04, 14.22clip/s, 14.8 clips/s | failed=0]m05_vjepa:  16%|█▌        | 1584/10000 [02:05<09:44, 14.39clip/s, 14.8 clips/s | failed=0]m05_vjepa:  16%|█▌        | 1584/10000 [02:05<09:44, 14.39clip/s, 14.8 clips/s | failed=0]m05_vjepa:  18%|█▊        | 1760/10000 [02:17<09:28, 14.51clip/s, 14.8 clips/s | failed=0]m05_vjepa:  18%|█▊        | 1760/10000 [02:17<09:28, 14.51clip/s, 14.8 clips/s | failed=0]m05_vjepa:  18%|█▊        | 1760/10000 [02:29<09:28, 14.51clip/s, 14.8 clips/s | failed=0]m05_vjepa:  19%|█▉        | 1936/10000 [02:29<09:15, 14.53clip/s, 14.8 clips/s | failed=0]m05_vjepa:  19%|█▉        | 1936/10000 [02:29<09:15, 14.53clip/s, 14.6 clips/s | failed=0]m05_vjepa:  21%|██        | 2112/10000 [02:41<09:01, 14.57clip/s, 14.6 clips/s | failed=0]m05_vjepa:  21%|██        | 2112/10000 [02:41<09:01, 14.57clip/s, 14.6 clips/s | failed=0]m05_vjepa:  23%|██▎       | 2288/10000 [02:53<08:47, 14.61clip/s, 14.6 clips/s | failed=0]m05_vjepa:  23%|██▎       | 2288/10000 [02:53<08:47, 14.61clip/s, 14.7 clips/s | failed=0]m05_vjepa:  25%|██▍       | 2464/10000 [03:05<08:34, 14.65clip/s, 14.7 clips/s | failed=0]m05_vjepa:  25%|██▍       | 2464/10000 [03:05<08:34, 14.65clip/s, 14.7 clips/s | failed=0]m05_vjepa:  26%|██▋       | 2640/10000 [03:17<08:22, 14.66clip/s, 14.7 clips/s | failed=0]m05_vjepa:  26%|██▋       | 2640/10000 [03:17<08:22, 14.66clip/s, 14.7 clips/s | failed=0]m05_vjepa:  28%|██▊       | 2816/10000 [03:29<08:09, 14.68clip/s, 14.7 clips/s | failed=0]m05_vjepa:  28%|██▊       | 2816/10000 [03:29<08:09, 14.68clip/s, 14.7 clips/s | failed=0]m05_vjepa:  28%|██▊       | 2816/10000 [03:39<08:09, 14.68clip/s, 14.7 clips/s | failed=0]m05_vjepa:  30%|██▉       | 2992/10000 [03:41<07:57, 14.66clip/s, 14.7 clips/s | failed=0]m05_vjepa:  30%|██▉       | 2992/10000 [03:41<07:57, 14.66clip/s, 14.6 clips/s | failed=0]m05_vjepa:  32%|███▏      | 3168/10000 [03:53<07:46, 14.66clip/s, 14.6 clips/s | failed=0]m05_vjepa:  32%|███▏      | 3168/10000 [03:53<07:46, 14.66clip/s, 14.6 clips/s | failed=0]m05_vjepa:  33%|███▎      | 3344/10000 [04:05<07:33, 14.68clip/s, 14.6 clips/s | failed=0]m05_vjepa:  33%|███▎      | 3344/10000 [04:05<07:33, 14.68clip/s, 14.7 clips/s | failed=0]m05_vjepa:  35%|███▌      | 3520/10000 [04:17<07:21, 14.67clip/s, 14.7 clips/s | failed=0]m05_vjepa:  35%|███▌      | 3520/10000 [04:17<07:21, 14.67clip/s, 14.7 clips/s | failed=0]m05_vjepa:  37%|███▋      | 3696/10000 [04:29<07:09, 14.68clip/s, 14.7 clips/s | failed=0]m05_vjepa:  37%|███▋      | 3696/10000 [04:29<07:09, 14.68clip/s, 14.7 clips/s | failed=0]m05_vjepa:  37%|███▋      | 3696/10000 [04:39<07:09, 14.68clip/s, 14.7 clips/s | failed=0]m05_vjepa:  39%|███▊      | 3872/10000 [04:41<06:56, 14.70clip/s, 14.7 clips/s | failed=0]m05_vjepa:  39%|███▊      | 3872/10000 [04:41<06:56, 14.70clip/s, 14.7 clips/s | failed=0]m05_vjepa:  40%|████      | 4048/10000 [04:53<06:45, 14.69clip/s, 14.7 clips/s | failed=0]m05_vjepa:  40%|████      | 4048/10000 [04:53<06:45, 14.69clip/s, 14.7 clips/s | failed=0]m05_vjepa:  42%|████▏     | 4224/10000 [05:05<06:33, 14.68clip/s, 14.7 clips/s | failed=0]m05_vjepa:  42%|████▏     | 4224/10000 [05:05<06:33, 14.68clip/s, 14.7 clips/s | failed=0]m05_vjepa:  44%|████▍     | 4400/10000 [05:17<06:20, 14.70clip/s, 14.7 clips/s | failed=0]m05_vjepa:  44%|████▍     | 4400/10000 [05:17<06:20, 14.70clip/s, 14.7 clips/s | failed=0]m05_vjepa:  46%|████▌     | 4576/10000 [05:28<06:08, 14.72clip/s, 14.7 clips/s | failed=0]m05_vjepa:  46%|████▌     | 4576/10000 [05:28<06:08, 14.72clip/s, 14.8 clips/s | failed=0]m05_vjepa:  46%|████▌     | 4576/10000 [05:39<06:08, 14.72clip/s, 14.8 clips/s | failed=0]m05_vjepa:  48%|████▊     | 4752/10000 [05:40<05:56, 14.71clip/s, 14.8 clips/s | failed=0]m05_vjepa:  48%|████▊     | 4752/10000 [05:40<05:56, 14.71clip/s, 14.7 clips/s | failed=0]m05_vjepa:  49%|████▉     | 4928/10000 [05:52<05:44, 14.73clip/s, 14.7 clips/s | failed=0]m05_vjepa:  49%|████▉     | 4928/10000 [05:52<05:44, 14.73clip/s, 14.7 clips/s | failed=0]m05_vjepa:  51%|█████     | 5104/10000 [06:04<05:32, 14.72clip/s, 14.7 clips/s | failed=0]m05_vjepa:  51%|█████     | 5104/10000 [06:04<05:32, 14.72clip/s, 14.7 clips/s | failed=0]m05_vjepa:  53%|█████▎    | 5280/10000 [06:16<05:21, 14.70clip/s, 14.7 clips/s | failed=0]m05_vjepa:  53%|█████▎    | 5280/10000 [06:16<05:21, 14.70clip/s, 14.7 clips/s | failed=0]m05_vjepa:  55%|█████▍    | 5456/10000 [06:28<05:08, 14.71clip/s, 14.7 clips/s | failed=0]m05_vjepa:  55%|█████▍    | 5456/10000 [06:28<05:08, 14.71clip/s, 14.7 clips/s | failed=0]m05_vjepa:  55%|█████▍    | 5456/10000 [06:39<05:08, 14.71clip/s, 14.7 clips/s | failed=0]m05_vjepa:  56%|█████▋    | 5632/10000 [06:40<04:57, 14.70clip/s, 14.7 clips/s | failed=0]m05_vjepa:  56%|█████▋    | 5632/10000 [06:40<04:57, 14.70clip/s, 14.7 clips/s | failed=0]m05_vjepa:  58%|█████▊    | 5808/10000 [06:52<04:44, 14.72clip/s, 14.7 clips/s | failed=0]m05_vjepa:  58%|█████▊    | 5808/10000 [06:52<04:44, 14.72clip/s, 14.7 clips/s | failed=0]m05_vjepa:  60%|█████▉    | 5984/10000 [07:04<04:32, 14.72clip/s, 14.7 clips/s | failed=0]m05_vjepa:  60%|█████▉    | 5984/10000 [07:04<04:32, 14.72clip/s, 14.7 clips/s | failed=0]m05_vjepa:  62%|██████▏   | 6160/10000 [07:16<04:21, 14.70clip/s, 14.7 clips/s | failed=0]m05_vjepa:  62%|██████▏   | 6160/10000 [07:16<04:21, 14.70clip/s, 14.6 clips/s | failed=0]m05_vjepa:  63%|██████▎   | 6336/10000 [07:28<04:09, 14.68clip/s, 14.6 clips/s | failed=0]m05_vjepa:  63%|██████▎   | 6336/10000 [07:28<04:09, 14.68clip/s, 14.6 clips/s | failed=0]m05_vjepa:  63%|██████▎   | 6336/10000 [07:39<04:09, 14.68clip/s, 14.6 clips/s | failed=0]m05_vjepa:  65%|██████▌   | 6512/10000 [07:40<03:57, 14.66clip/s, 14.6 clips/s | failed=0]m05_vjepa:  65%|██████▌   | 6512/10000 [07:40<03:57, 14.66clip/s, 14.6 clips/s | failed=0]m05_vjepa:  67%|██████▋   | 6688/10000 [07:52<03:45, 14.67clip/s, 14.6 clips/s | failed=0]m05_vjepa:  67%|██████▋   | 6688/10000 [07:52<03:45, 14.67clip/s, 14.7 clips/s | failed=0]m05_vjepa:  69%|██████▊   | 6864/10000 [08:04<03:33, 14.69clip/s, 14.7 clips/s | failed=0]m05_vjepa:  69%|██████▊   | 6864/10000 [08:04<03:33, 14.69clip/s, 14.7 clips/s | failed=0]m05_vjepa:  70%|███████   | 7040/10000 [08:16<03:21, 14.70clip/s, 14.7 clips/s | failed=0]m05_vjepa:  70%|███████   | 7040/10000 [08:16<03:21, 14.70clip/s, 14.7 clips/s | failed=0]m05_vjepa:  72%|███████▏  | 7216/10000 [08:28<03:09, 14.68clip/s, 14.7 clips/s | failed=0]m05_vjepa:  72%|███████▏  | 7216/10000 [08:28<03:09, 14.68clip/s, 14.6 clips/s | failed=0]m05_vjepa:  72%|███████▏  | 7216/10000 [08:39<03:09, 14.68clip/s, 14.6 clips/s | failed=0]m05_vjepa:  74%|███████▍  | 7392/10000 [08:40<02:57, 14.67clip/s, 14.6 clips/s | failed=0]m05_vjepa:  74%|███████▍  | 7392/10000 [08:40<02:57, 14.67clip/s, 14.6 clips/s | failed=0]m05_vjepa:  76%|███████▌  | 7568/10000 [08:52<02:45, 14.68clip/s, 14.6 clips/s | failed=0]m05_vjepa:  76%|███████▌  | 7568/10000 [08:52<02:45, 14.68clip/s, 14.7 clips/s | failed=0]m05_vjepa:  77%|███████▋  | 7744/10000 [09:04<02:33, 14.68clip/s, 14.7 clips/s | failed=0]m05_vjepa:  77%|███████▋  | 7744/10000 [09:04<02:33, 14.68clip/s, 14.7 clips/s | failed=0]m05_vjepa:  79%|███████▉  | 7920/10000 [09:16<02:21, 14.69clip/s, 14.7 clips/s | failed=0]m05_vjepa:  79%|███████▉  | 7920/10000 [09:16<02:21, 14.69clip/s, 14.7 clips/s | failed=0]m05_vjepa:  81%|████████  | 8096/10000 [09:28<02:09, 14.70clip/s, 14.7 clips/s | failed=0]m05_vjepa:  81%|████████  | 8096/10000 [09:28<02:09, 14.70clip/s, 14.7 clips/s | failed=0]m05_vjepa:  81%|████████  | 8096/10000 [09:39<02:09, 14.70clip/s, 14.7 clips/s | failed=0]m05_vjepa:  83%|████████▎ | 8272/10000 [09:40<01:57, 14.69clip/s, 14.7 clips/s | failed=0]m05_vjepa:  83%|████████▎ | 8272/10000 [09:40<01:57, 14.69clip/s, 14.7 clips/s | failed=0]m05_vjepa:  84%|████████▍ | 8448/10000 [09:52<01:45, 14.68clip/s, 14.7 clips/s | failed=0]m05_vjepa:  84%|████████▍ | 8448/10000 [09:52<01:45, 14.68clip/s, 14.7 clips/s | failed=0]m05_vjepa:  86%|████████▌ | 8624/10000 [10:04<01:34, 14.61clip/s, 14.7 clips/s | failed=0]m05_vjepa:  86%|████████▌ | 8624/10000 [10:04<01:34, 14.61clip/s, 14.6 clips/s | failed=0]m05_vjepa:  88%|████████▊ | 8800/10000 [10:16<01:21, 14.64clip/s, 14.6 clips/s | failed=0]m05_vjepa:  88%|████████▊ | 8800/10000 [10:16<01:21, 14.64clip/s, 14.7 clips/s | failed=0]m05_vjepa:  90%|████████▉ | 8976/10000 [10:28<01:09, 14.68clip/s, 14.7 clips/s | failed=0]m05_vjepa:  90%|████████▉ | 8976/10000 [10:28<01:09, 14.68clip/s, 14.7 clips/s | failed=0]m05_vjepa:  90%|████████▉ | 8976/10000 [10:39<01:09, 14.68clip/s, 14.7 clips/s | failed=0]m05_vjepa:  92%|█████████▏| 9152/10000 [10:40<00:57, 14.70clip/s, 14.7 clips/s | failed=0]m05_vjepa:  92%|█████████▏| 9152/10000 [10:40<00:57, 14.70clip/s, 14.7 clips/s | failed=0]m05_vjepa:  93%|█████████▎| 9328/10000 [10:52<00:45, 14.73clip/s, 14.7 clips/s | failed=0]m05_vjepa:  93%|█████████▎| 9328/10000 [10:52<00:45, 14.73clip/s, 14.8 clips/s | failed=0]m05_vjepa:  95%|█████████▌| 9504/10000 [11:04<00:33, 14.75clip/s, 14.8 clips/s | failed=0]m05_vjepa:  95%|█████████▌| 9504/10000 [11:04<00:33, 14.75clip/s, 14.8 clips/s | failed=0]m05_vjepa:  97%|█████████▋| 9680/10000 [11:16<00:21, 14.74clip/s, 14.8 clips/s | failed=0]m05_vjepa:  97%|█████████▋| 9680/10000 [11:16<00:21, 14.74clip/s, 14.8 clips/s | failed=0]m05_vjepa:  99%|█████████▊| 9856/10000 [11:28<00:09, 14.76clip/s, 14.8 clips/s | failed=0]m05_vjepa:  99%|█████████▊| 9856/10000 [11:28<00:09, 14.76clip/s, 14.8 clips/s | failed=0]m05_vjepa:  99%|█████████▊| 9856/10000 [11:39<00:09, 14.76clip/s, 14.8 clips/s | failed=0]m05_vjepa: 10032clip [11:40, 14.76clip/s, 14.8 clips/s | failed=0]                        m05_vjepa: 10032clip [11:40, 14.76clip/s, 14.8 clips/s | failed=0]m05_vjepa: 10032clip [11:40, 14.32clip/s, 14.8 clips/s | failed=0]
+
+Segment done: 10,032 clips in 701s (14.32 clips/s)
+wandb: updating run metadata
+wandb: uploading wandb-summary.json; uploading config.yaml; uploading output.log
+wandb: uploading console lines 19-20
+wandb: 
+wandb: Run history:
+wandb:        clips_processed ▁▁▁▂▂▂▂▃▃▃▃▃▃▄▄▄▄▅▅▅▅▅▅▅▅▆▆▆▆▆▇▇▇▇▇▇▇▇██
+wandb:                 failed ▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁
+wandb: throughput_clips_per_s ▁███████████████████████████████████████
+wandb: 
+wandb: Run summary:
+wandb:        clips_processed 30096
+wandb:                 failed 0
+wandb: throughput_clips_per_s 14.78311
+wandb: 
+wandb: 🚀 View run m05_FULL at: https://wandb.ai/sjsu_llm/walkindia-200k/runs/50vgfwfa
+wandb: ⭐️ View project at: https://wandb.ai/sjsu_llm/walkindia-200k
+wandb: Synced 5 W&B file(s), 0 media file(s), 0 artifact file(s) and 0 other file(s)
+wandb: Find logs at: ./wandb/run-20260404_113755-50vgfwfa/logs
+Worker exiting (GPU memory will be released).
+Checkpoint loaded: 30,096 embeddings from .m05_checkpoint_vjepa_lambda0_001.npz
+Worker done. Progress: 30,096/115,687
+
+============================================================
+WORKER 4: embeddings 30,096 → 40,096
+============================================================
+/workspace/factorjepa/venv_walkindia/lib/python3.12/site-packages/transformers/utils/hub.py:110: FutureWarning: Using `TRANSFORMERS_CACHE` is deprecated and will be removed in v5 of Transformers. Use `HF_HOME` instead.
+  warnings.warn(
+Using PyAV for video decoding
+GPU: NVIDIA RTX PRO 6000 Blackwell Workstation Edition
+CUDA version: 12.8
+Batch size: 176 (from inference/vjepa2 profiler)
+wandb: [wandb.login()] Loaded credentials for https://api.wandb.ai from WANDB_API_KEY.
+wandb: Currently logged in as: kapilw25 (sjsu_llm) to https://api.wandb.ai. Use `wandb login --relogin` to force relogin
+wandb: WARNING Using a boolean value for 'reinit' is deprecated. Use 'return_previous' or 'finish_previous' instead.
+wandb: setting up run 45abdb29
+wandb: Tracking run with wandb version 0.25.1
+wandb: Run data is saved locally in /workspace/factorjepa/wandb/run-20260404_115000-45abdb29
+wandb: Run `wandb offline` to turn off syncing.
+wandb: Syncing run m05_FULL
+wandb: ⭐️ View project at https://wandb.ai/sjsu_llm/walkindia-200k
+wandb: 🚀 View run at https://wandb.ai/sjsu_llm/walkindia-200k/runs/45abdb29
+wandb: run=m05_FULL url=https://wandb.ai/sjsu_llm/walkindia-200k/runs/45abdb29
+Checkpoint loaded: 30,096 embeddings from .m05_checkpoint_vjepa_lambda0_001.npz
+
+Loading model: outputs/full/m09_lambda0_001/student_encoder.pt
+Adapted model: num_frames=16 (from training config)
+/workspace/factorjepa/venv_walkindia/lib/python3.12/site-packages/timm/models/layers/__init__.py:49: FutureWarning: Importing from timm.models.layers is deprecated, please import via timm.layers
+  warnings.warn(f"Importing from {__name__} is deprecated, please import via timm.layers", FutureWarning)
+Adapted encoder: loaded 484/484 params (missing: 0, unexpected: 0)
+Applying torch.compile...
+Warmup: compiling inductor graph...
+Model loaded on cuda (dtype: torch.float16)
+
+=== Streaming Config ===
+batch_size:    176
+video_decoder: PyAV
+prefetch:      8 batches
+checkpoint:    every 500 clips
+m05_vjepa:   0%|          | 0/10000 [00:00<?, ?clip/s]  Parallel TAR reader: 8 threads, 116 TARs, queue=256
+m05_vjepa:   2%|▏         | 176/10000 [00:31<29:08,  5.62clip/s]m05_vjepa:   2%|▏         | 176/10000 [00:31<29:08,  5.62clip/s, 5.6 clips/s | failed=0]m05_vjepa:   4%|▎         | 352/10000 [00:42<18:01,  8.92clip/s, 5.6 clips/s | failed=0]m05_vjepa:   4%|▎         | 352/10000 [00:42<18:01,  8.92clip/s, 15.1 clips/s | failed=0]m05_vjepa:   5%|▌         | 528/10000 [00:54<14:24, 10.95clip/s, 15.1 clips/s | failed=0]m05_vjepa:   5%|▌         | 528/10000 [00:54<14:24, 10.95clip/s, 15.1 clips/s | failed=0]m05_vjepa:   7%|▋         | 704/10000 [01:06<12:40, 12.23clip/s, 15.1 clips/s | failed=0]m05_vjepa:   7%|▋         | 704/10000 [01:06<12:40, 12.23clip/s, 15.0 clips/s | failed=0]m05_vjepa:   9%|▉         | 880/10000 [01:18<11:37, 13.07clip/s, 15.0 clips/s | failed=0]m05_vjepa:   9%|▉         | 880/10000 [01:18<11:37, 13.07clip/s, 14.9 clips/s | failed=0]m05_vjepa:   9%|▉         | 880/10000 [01:29<11:37, 13.07clip/s, 14.9 clips/s | failed=0]m05_vjepa:  11%|█         | 1056/10000 [01:30<10:58, 13.58clip/s, 14.9 clips/s | failed=0]m05_vjepa:  11%|█         | 1056/10000 [01:30<10:58, 13.58clip/s, 14.8 clips/s | failed=0]m05_vjepa:  12%|█▏        | 1232/10000 [01:42<10:29, 13.92clip/s, 14.8 clips/s | failed=0]m05_vjepa:  12%|█▏        | 1232/10000 [01:42<10:29, 13.92clip/s, 14.8 clips/s | failed=0]m05_vjepa:  14%|█▍        | 1408/10000 [01:54<10:05, 14.19clip/s, 14.8 clips/s | failed=0]m05_vjepa:  14%|█▍        | 1408/10000 [01:54<10:05, 14.19clip/s, 14.8 clips/s | failed=0]m05_vjepa:  16%|█▌        | 1584/10000 [02:06<09:46, 14.34clip/s, 14.8 clips/s | failed=0]m05_vjepa:  16%|█▌        | 1584/10000 [02:06<09:46, 14.34clip/s, 14.7 clips/s | failed=0]m05_vjepa:  18%|█▊        | 1760/10000 [02:18<09:29, 14.46clip/s, 14.7 clips/s | failed=0]m05_vjepa:  18%|█▊        | 1760/10000 [02:18<09:29, 14.46clip/s, 14.7 clips/s | failed=0]m05_vjepa:  18%|█▊        | 1760/10000 [02:29<09:29, 14.46clip/s, 14.7 clips/s | failed=0]m05_vjepa:  19%|█▉        | 1936/10000 [02:30<09:16, 14.49clip/s, 14.7 clips/s | failed=0]m05_vjepa:  19%|█▉        | 1936/10000 [02:30<09:16, 14.49clip/s, 14.6 clips/s | failed=0]m05_vjepa:  21%|██        | 2112/10000 [02:42<09:02, 14.54clip/s, 14.6 clips/s | failed=0]m05_vjepa:  21%|██        | 2112/10000 [02:42<09:02, 14.54clip/s, 14.6 clips/s | failed=0]m05_vjepa:  23%|██▎       | 2288/10000 [02:54<08:50, 14.54clip/s, 14.6 clips/s | failed=0]m05_vjepa:  23%|██▎       | 2288/10000 [02:54<08:50, 14.54clip/s, 14.6 clips/s | failed=0]m05_vjepa:  25%|██▍       | 2464/10000 [03:06<08:36, 14.58clip/s, 14.6 clips/s | failed=0]m05_vjepa:  25%|██▍       | 2464/10000 [03:06<08:36, 14.58clip/s, 14.7 clips/s | failed=0]m05_vjepa:  26%|██▋       | 2640/10000 [03:18<08:24, 14.59clip/s, 14.7 clips/s | failed=0]m05_vjepa:  26%|██▋       | 2640/10000 [03:18<08:24, 14.59clip/s, 14.6 clips/s | failed=0]m05_vjepa:  26%|██▋       | 2640/10000 [03:29<08:24, 14.59clip/s, 14.6 clips/s | failed=0]m05_vjepa:  28%|██▊       | 2816/10000 [03:30<08:11, 14.63clip/s, 14.6 clips/s | failed=0]m05_vjepa:  28%|██▊       | 2816/10000 [03:30<08:11, 14.63clip/s, 14.7 clips/s | failed=0]m05_vjepa:  30%|██▉       | 2992/10000 [03:42<07:58, 14.64clip/s, 14.7 clips/s | failed=0]m05_vjepa:  30%|██▉       | 2992/10000 [03:42<07:58, 14.64clip/s, 14.7 clips/s | failed=0]m05_vjepa:  32%|███▏      | 3168/10000 [03:54<07:46, 14.63clip/s, 14.7 clips/s | failed=0]m05_vjepa:  32%|███▏      | 3168/10000 [03:54<07:46, 14.63clip/s, 14.6 clips/s | failed=0]m05_vjepa:  33%|███▎      | 3344/10000 [04:06<07:34, 14.63clip/s, 14.6 clips/s | failed=0]m05_vjepa:  33%|███▎      | 3344/10000 [04:06<07:34, 14.63clip/s, 14.6 clips/s | failed=0]m05_vjepa:  35%|███▌      | 3520/10000 [04:18<07:21, 14.66clip/s, 14.6 clips/s | failed=0]m05_vjepa:  35%|███▌      | 3520/10000 [04:18<07:21, 14.66clip/s, 14.7 clips/s | failed=0]m05_vjepa:  35%|███▌      | 3520/10000 [04:29<07:21, 14.66clip/s, 14.7 clips/s | failed=0]m05_vjepa:  37%|███▋      | 3696/10000 [04:30<07:10, 14.65clip/s, 14.7 clips/s | failed=0]m05_vjepa:  37%|███▋      | 3696/10000 [04:30<07:10, 14.65clip/s, 14.7 clips/s | failed=0]m05_vjepa:  39%|███▊      | 3872/10000 [04:42<06:57, 14.67clip/s, 14.7 clips/s | failed=0]m05_vjepa:  39%|███▊      | 3872/10000 [04:42<06:57, 14.67clip/s, 14.7 clips/s | failed=0]m05_vjepa:  40%|████      | 4048/10000 [04:54<06:45, 14.68clip/s, 14.7 clips/s | failed=0]m05_vjepa:  40%|████      | 4048/10000 [04:54<06:45, 14.68clip/s, 14.7 clips/s | failed=0]m05_vjepa:  42%|████▏     | 4224/10000 [05:06<06:33, 14.66clip/s, 14.7 clips/s | failed=0]m05_vjepa:  42%|████▏     | 4224/10000 [05:06<06:33, 14.66clip/s, 14.7 clips/s | failed=0]m05_vjepa:  44%|████▍     | 4400/10000 [05:18<06:21, 14.68clip/s, 14.7 clips/s | failed=0]m05_vjepa:  44%|████▍     | 4400/10000 [05:18<06:21, 14.68clip/s, 14.7 clips/s | failed=0]m05_vjepa:  44%|████▍     | 4400/10000 [05:29<06:21, 14.68clip/s, 14.7 clips/s | failed=0]m05_vjepa:  46%|████▌     | 4576/10000 [05:30<06:09, 14.69clip/s, 14.7 clips/s | failed=0]m05_vjepa:  46%|████▌     | 4576/10000 [05:30<06:09, 14.69clip/s, 14.7 clips/s | failed=0]m05_vjepa:  48%|████▊     | 4752/10000 [05:42<05:57, 14.67clip/s, 14.7 clips/s | failed=0]m05_vjepa:  48%|████▊     | 4752/10000 [05:42<05:57, 14.67clip/s, 14.7 clips/s | failed=0]m05_vjepa:  49%|████▉     | 4928/10000 [05:54<05:45, 14.67clip/s, 14.7 clips/s | failed=0]m05_vjepa:  49%|████▉     | 4928/10000 [05:54<05:45, 14.67clip/s, 14.7 clips/s | failed=0]m05_vjepa:  51%|█████     | 5104/10000 [06:06<05:33, 14.68clip/s, 14.7 clips/s | failed=0]m05_vjepa:  51%|█████     | 5104/10000 [06:06<05:33, 14.68clip/s, 14.7 clips/s | failed=0]m05_vjepa:  53%|█████▎    | 5280/10000 [06:18<05:21, 14.68clip/s, 14.7 clips/s | failed=0]m05_vjepa:  53%|█████▎    | 5280/10000 [06:18<05:21, 14.68clip/s, 14.7 clips/s | failed=0]m05_vjepa:  53%|█████▎    | 5280/10000 [06:29<05:21, 14.68clip/s, 14.7 clips/s | failed=0]m05_vjepa:  55%|█████▍    | 5456/10000 [06:30<05:09, 14.69clip/s, 14.7 clips/s | failed=0]m05_vjepa:  55%|█████▍    | 5456/10000 [06:30<05:09, 14.69clip/s, 14.7 clips/s | failed=0]m05_vjepa:  56%|█████▋    | 5632/10000 [06:42<04:57, 14.68clip/s, 14.7 clips/s | failed=0]m05_vjepa:  56%|█████▋    | 5632/10000 [06:42<04:57, 14.68clip/s, 14.6 clips/s | failed=0]m05_vjepa:  58%|█████▊    | 5808/10000 [06:54<04:45, 14.69clip/s, 14.6 clips/s | failed=0]m05_vjepa:  58%|█████▊    | 5808/10000 [06:54<04:45, 14.69clip/s, 14.7 clips/s | failed=0]m05_vjepa:  60%|█████▉    | 5984/10000 [07:06<04:33, 14.70clip/s, 14.7 clips/s | failed=0]m05_vjepa:  60%|█████▉    | 5984/10000 [07:06<04:33, 14.70clip/s, 14.7 clips/s | failed=0]m05_vjepa:  62%|██████▏   | 6160/10000 [07:18<04:21, 14.67clip/s, 14.7 clips/s | failed=0]m05_vjepa:  62%|██████▏   | 6160/10000 [07:18<04:21, 14.67clip/s, 14.6 clips/s | failed=0]m05_vjepa:  62%|██████▏   | 6160/10000 [07:29<04:21, 14.67clip/s, 14.6 clips/s | failed=0]m05_vjepa:  63%|██████▎   | 6336/10000 [07:30<04:09, 14.68clip/s, 14.6 clips/s | failed=0]m05_vjepa:  63%|██████▎   | 6336/10000 [07:30<04:09, 14.68clip/s, 14.7 clips/s | failed=0]m05_vjepa:  65%|██████▌   | 6512/10000 [07:42<03:57, 14.69clip/s, 14.7 clips/s | failed=0]m05_vjepa:  65%|██████▌   | 6512/10000 [07:42<03:57, 14.69clip/s, 14.7 clips/s | failed=0]m05_vjepa:  67%|██████▋   | 6688/10000 [07:54<03:45, 14.69clip/s, 14.7 clips/s | failed=0]m05_vjepa:  67%|██████▋   | 6688/10000 [07:54<03:45, 14.69clip/s, 14.7 clips/s | failed=0]m05_vjepa:  69%|██████▊   | 6864/10000 [08:06<03:33, 14.70clip/s, 14.7 clips/s | failed=0]m05_vjepa:  69%|██████▊   | 6864/10000 [08:06<03:33, 14.70clip/s, 14.7 clips/s | failed=0]m05_vjepa:  70%|███████   | 7040/10000 [08:17<03:21, 14.71clip/s, 14.7 clips/s | failed=0]m05_vjepa:  70%|███████   | 7040/10000 [08:17<03:21, 14.71clip/s, 14.7 clips/s | failed=0]m05_vjepa:  70%|███████   | 7040/10000 [08:29<03:21, 14.71clip/s, 14.7 clips/s | failed=0]m05_vjepa:  72%|███████▏  | 7216/10000 [08:29<03:09, 14.70clip/s, 14.7 clips/s | failed=0]m05_vjepa:  72%|███████▏  | 7216/10000 [08:29<03:09, 14.70clip/s, 14.7 clips/s | failed=0]m05_vjepa:  74%|███████▍  | 7392/10000 [08:41<02:57, 14.68clip/s, 14.7 clips/s | failed=0]m05_vjepa:  74%|███████▍  | 7392/10000 [08:41<02:57, 14.68clip/s, 14.7 clips/s | failed=0]m05_vjepa:  76%|███████▌  | 7568/10000 [08:53<02:45, 14.68clip/s, 14.7 clips/s | failed=0]m05_vjepa:  76%|███████▌  | 7568/10000 [08:53<02:45, 14.68clip/s, 14.7 clips/s | failed=0]m05_vjepa:  77%|███████▋  | 7744/10000 [09:05<02:33, 14.68clip/s, 14.7 clips/s | failed=0]m05_vjepa:  77%|███████▋  | 7744/10000 [09:05<02:33, 14.68clip/s, 14.7 clips/s | failed=0]m05_vjepa:  79%|███████▉  | 7920/10000 [09:17<02:21, 14.69clip/s, 14.7 clips/s | failed=0]m05_vjepa:  79%|███████▉  | 7920/10000 [09:17<02:21, 14.69clip/s, 14.7 clips/s | failed=0]m05_vjepa:  79%|███████▉  | 7920/10000 [09:29<02:21, 14.69clip/s, 14.7 clips/s | failed=0]m05_vjepa:  81%|████████  | 8096/10000 [09:29<02:09, 14.67clip/s, 14.7 clips/s | failed=0]m05_vjepa:  81%|████████  | 8096/10000 [09:29<02:09, 14.67clip/s, 14.7 clips/s | failed=0]m05_vjepa:  83%|████████▎ | 8272/10000 [09:41<01:57, 14.68clip/s, 14.7 clips/s | failed=0]m05_vjepa:  83%|████████▎ | 8272/10000 [09:41<01:57, 14.68clip/s, 14.7 clips/s | failed=0]m05_vjepa:  84%|████████▍ | 8448/10000 [09:53<01:45, 14.66clip/s, 14.7 clips/s | failed=0]m05_vjepa:  84%|████████▍ | 8448/10000 [09:53<01:45, 14.66clip/s, 14.7 clips/s | failed=0]m05_vjepa:  86%|████████▌ | 8624/10000 [10:05<01:33, 14.68clip/s, 14.7 clips/s | failed=0]m05_vjepa:  86%|████████▌ | 8624/10000 [10:05<01:33, 14.68clip/s, 14.7 clips/s | failed=0]m05_vjepa:  88%|████████▊ | 8800/10000 [10:17<01:21, 14.72clip/s, 14.7 clips/s | failed=0]m05_vjepa:  88%|████████▊ | 8800/10000 [10:17<01:21, 14.72clip/s, 14.8 clips/s | failed=0]m05_vjepa:  88%|████████▊ | 8800/10000 [10:29<01:21, 14.72clip/s, 14.8 clips/s | failed=0]m05_vjepa:  90%|████████▉ | 8976/10000 [10:29<01:09, 14.75clip/s, 14.8 clips/s | failed=0]m05_vjepa:  90%|████████▉ | 8976/10000 [10:29<01:09, 14.75clip/s, 14.8 clips/s | failed=0]m05_vjepa:  92%|█████████▏| 9152/10000 [10:41<00:57, 14.74clip/s, 14.8 clips/s | failed=0]m05_vjepa:  92%|█████████▏| 9152/10000 [10:41<00:57, 14.74clip/s, 14.8 clips/s | failed=0]m05_vjepa:  93%|█████████▎| 9328/10000 [10:53<00:45, 14.76clip/s, 14.8 clips/s | failed=0]m05_vjepa:  93%|█████████▎| 9328/10000 [10:53<00:45, 14.76clip/s, 14.8 clips/s | failed=0]m05_vjepa:  95%|█████████▌| 9504/10000 [11:05<00:33, 14.79clip/s, 14.8 clips/s | failed=0]m05_vjepa:  95%|█████████▌| 9504/10000 [11:05<00:33, 14.79clip/s, 14.8 clips/s | failed=0]m05_vjepa:  97%|█████████▋| 9680/10000 [11:17<00:21, 14.77clip/s, 14.8 clips/s | failed=0]m05_vjepa:  97%|█████████▋| 9680/10000 [11:17<00:21, 14.77clip/s, 14.8 clips/s | failed=0]m05_vjepa:  99%|█████████▊| 9856/10000 [11:29<00:09, 14.78clip/s, 14.8 clips/s | failed=0]m05_vjepa:  99%|█████████▊| 9856/10000 [11:29<00:09, 14.78clip/s, 14.8 clips/s | failed=0]m05_vjepa:  99%|█████████▊| 9856/10000 [11:39<00:09, 14.78clip/s, 14.8 clips/s | failed=0]m05_vjepa: 10032clip [11:41, 14.78clip/s, 14.8 clips/s | failed=0]                        m05_vjepa: 10032clip [11:41, 14.78clip/s, 14.8 clips/s | failed=0]m05_vjepa: 10032clip [11:41, 14.30clip/s, 14.8 clips/s | failed=0]
+
+Segment done: 10,032 clips in 702s (14.30 clips/s)
+wandb: updating run metadata
+wandb: uploading history steps 56-56, summary, console lines 17-17
+wandb: uploading console lines 19-20
+wandb: 
+wandb: Run history:
+wandb:        clips_processed ▁▁▁▁▁▂▂▂▂▂▃▃▃▃▃▃▃▄▄▄▄▄▅▅▅▅▅▅▆▆▆▇▇▇▇▇▇███
+wandb:                 failed ▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁
+wandb: throughput_clips_per_s █▇▇▅▄▄▃▁▂▁▂▃▂▃▂▂▂▃▂▂▂▂▃▁▂▂▃▂▂▂▃▂▂▂▄▄▄▄▄▄
+wandb: 
+wandb: Run summary:
+wandb:        clips_processed 40128
+wandb:                 failed 0
+wandb: throughput_clips_per_s 14.79592
+wandb: 
+wandb: 🚀 View run m05_FULL at: https://wandb.ai/sjsu_llm/walkindia-200k/runs/45abdb29
+wandb: ⭐️ View project at: https://wandb.ai/sjsu_llm/walkindia-200k
+wandb: Synced 5 W&B file(s), 0 media file(s), 0 artifact file(s) and 0 other file(s)
+wandb: Find logs at: ./wandb/run-20260404_115000-45abdb29/logs
+Worker exiting (GPU memory will be released).
+Checkpoint loaded: 40,128 embeddings from .m05_checkpoint_vjepa_lambda0_001.npz
+Worker done. Progress: 40,128/115,687
+
+============================================================
+WORKER 5: embeddings 40,128 → 50,128
+============================================================
+/workspace/factorjepa/venv_walkindia/lib/python3.12/site-packages/transformers/utils/hub.py:110: FutureWarning: Using `TRANSFORMERS_CACHE` is deprecated and will be removed in v5 of Transformers. Use `HF_HOME` instead.
+  warnings.warn(
+Using PyAV for video decoding
+GPU: NVIDIA RTX PRO 6000 Blackwell Workstation Edition
+CUDA version: 12.8
+Batch size: 176 (from inference/vjepa2 profiler)
+wandb: [wandb.login()] Loaded credentials for https://api.wandb.ai from WANDB_API_KEY.
+wandb: Currently logged in as: kapilw25 (sjsu_llm) to https://api.wandb.ai. Use `wandb login --relogin` to force relogin
+wandb: WARNING Using a boolean value for 'reinit' is deprecated. Use 'return_previous' or 'finish_previous' instead.
+wandb: setting up run y2wpx8ol
+wandb: Tracking run with wandb version 0.25.1
+wandb: Run data is saved locally in /workspace/factorjepa/wandb/run-20260404_120206-y2wpx8ol
+wandb: Run `wandb offline` to turn off syncing.
+wandb: Syncing run m05_FULL
+wandb: ⭐️ View project at https://wandb.ai/sjsu_llm/walkindia-200k
+wandb: 🚀 View run at https://wandb.ai/sjsu_llm/walkindia-200k/runs/y2wpx8ol
+wandb: run=m05_FULL url=https://wandb.ai/sjsu_llm/walkindia-200k/runs/y2wpx8ol
+Checkpoint loaded: 40,128 embeddings from .m05_checkpoint_vjepa_lambda0_001.npz
+
+Loading model: outputs/full/m09_lambda0_001/student_encoder.pt
+Adapted model: num_frames=16 (from training config)
+/workspace/factorjepa/venv_walkindia/lib/python3.12/site-packages/timm/models/layers/__init__.py:49: FutureWarning: Importing from timm.models.layers is deprecated, please import via timm.layers
+  warnings.warn(f"Importing from {__name__} is deprecated, please import via timm.layers", FutureWarning)
+Adapted encoder: loaded 484/484 params (missing: 0, unexpected: 0)
+Applying torch.compile...
+Warmup: compiling inductor graph...
+Model loaded on cuda (dtype: torch.float16)
+
+=== Streaming Config ===
+batch_size:    176
+video_decoder: PyAV
+prefetch:      8 batches
+checkpoint:    every 500 clips
+m05_vjepa:   0%|          | 0/10000 [00:00<?, ?clip/s]  Parallel TAR reader: 8 threads, 116 TARs, queue=256
+m05_vjepa:   2%|▏         | 176/10000 [00:32<30:02,  5.45clip/s]m05_vjepa:   2%|▏         | 176/10000 [00:32<30:02,  5.45clip/s, 5.5 clips/s | failed=0]m05_vjepa:   4%|▎         | 352/10000 [00:43<18:23,  8.75clip/s, 5.5 clips/s | failed=0]m05_vjepa:   4%|▎         | 352/10000 [00:43<18:23,  8.75clip/s, 15.2 clips/s | failed=0]m05_vjepa:   5%|▌         | 528/10000 [00:55<14:35, 10.82clip/s, 15.2 clips/s | failed=0]m05_vjepa:   5%|▌         | 528/10000 [00:55<14:35, 10.82clip/s, 15.1 clips/s | failed=0]m05_vjepa:   7%|▋         | 704/10000 [01:07<12:47, 12.11clip/s, 15.1 clips/s | failed=0]m05_vjepa:   7%|▋         | 704/10000 [01:07<12:47, 12.11clip/s, 15.0 clips/s | failed=0]m05_vjepa:   7%|▋         | 704/10000 [01:19<12:47, 12.11clip/s, 15.0 clips/s | failed=0]m05_vjepa:   9%|▉         | 880/10000 [01:19<11:44, 12.95clip/s, 15.0 clips/s | failed=0]m05_vjepa:   9%|▉         | 880/10000 [01:19<11:44, 12.95clip/s, 14.8 clips/s | failed=0]m05_vjepa:  11%|█         | 1056/10000 [01:31<11:01, 13.52clip/s, 14.8 clips/s | failed=0]m05_vjepa:  11%|█         | 1056/10000 [01:31<11:01, 13.52clip/s, 14.8 clips/s | failed=0]m05_vjepa:  12%|█▏        | 1232/10000 [01:43<10:30, 13.91clip/s, 14.8 clips/s | failed=0]m05_vjepa:  12%|█▏        | 1232/10000 [01:43<10:30, 13.91clip/s, 14.8 clips/s | failed=0]m05_vjepa:  14%|█▍        | 1408/10000 [01:55<10:07, 14.14clip/s, 14.8 clips/s | failed=0]m05_vjepa:  14%|█▍        | 1408/10000 [01:55<10:07, 14.14clip/s, 14.6 clips/s | failed=0]m05_vjepa:  16%|█▌        | 1584/10000 [02:07<09:49, 14.28clip/s, 14.6 clips/s | failed=0]m05_vjepa:  16%|█▌        | 1584/10000 [02:07<09:49, 14.28clip/s, 14.6 clips/s | failed=0]m05_vjepa:  18%|█▊        | 1760/10000 [02:19<09:31, 14.41clip/s, 14.6 clips/s | failed=0]m05_vjepa:  18%|█▊        | 1760/10000 [02:19<09:31, 14.41clip/s, 14.7 clips/s | failed=0]m05_vjepa:  18%|█▊        | 1760/10000 [02:29<09:31, 14.41clip/s, 14.7 clips/s | failed=0]m05_vjepa:  19%|█▉        | 1936/10000 [02:31<09:17, 14.47clip/s, 14.7 clips/s | failed=0]m05_vjepa:  19%|█▉        | 1936/10000 [02:31<09:17, 14.47clip/s, 14.6 clips/s | failed=0]m05_vjepa:  21%|██        | 2112/10000 [02:43<09:03, 14.51clip/s, 14.6 clips/s | failed=0]m05_vjepa:  21%|██        | 2112/10000 [02:43<09:03, 14.51clip/s, 14.6 clips/s | failed=0]m05_vjepa:  23%|██▎       | 2288/10000 [02:55<08:49, 14.56clip/s, 14.6 clips/s | failed=0]m05_vjepa:  23%|██▎       | 2288/10000 [02:55<08:49, 14.56clip/s, 14.6 clips/s | failed=0]m05_vjepa:  25%|██▍       | 2464/10000 [03:07<08:35, 14.61clip/s, 14.6 clips/s | failed=0]m05_vjepa:  25%|██▍       | 2464/10000 [03:07<08:35, 14.61clip/s, 14.7 clips/s | failed=0]m05_vjepa:  26%|██▋       | 2640/10000 [03:19<08:23, 14.61clip/s, 14.7 clips/s | failed=0]m05_vjepa:  26%|██▋       | 2640/10000 [03:19<08:23, 14.61clip/s, 14.7 clips/s | failed=0]m05_vjepa:  26%|██▋       | 2640/10000 [03:29<08:23, 14.61clip/s, 14.7 clips/s | failed=0]m05_vjepa:  28%|██▊       | 2816/10000 [03:31<08:11, 14.61clip/s, 14.7 clips/s | failed=0]m05_vjepa:  28%|██▊       | 2816/10000 [03:31<08:11, 14.61clip/s, 14.6 clips/s | failed=0]m05_vjepa:  30%|██▉       | 2992/10000 [03:43<07:58, 14.64clip/s, 14.6 clips/s | failed=0]m05_vjepa:  30%|██▉       | 2992/10000 [03:43<07:58, 14.64clip/s, 14.7 clips/s | failed=0]m05_vjepa:  32%|███▏      | 3168/10000 [03:55<07:46, 14.63clip/s, 14.7 clips/s | failed=0]m05_vjepa:  32%|███▏      | 3168/10000 [03:55<07:46, 14.63clip/s, 14.7 clips/s | failed=0]m05_vjepa:  33%|███▎      | 3344/10000 [04:07<07:34, 14.66clip/s, 14.7 clips/s | failed=0]m05_vjepa:  33%|███▎      | 3344/10000 [04:07<07:34, 14.66clip/s, 14.7 clips/s | failed=0]m05_vjepa:  35%|███▌      | 3520/10000 [04:19<07:22, 14.66clip/s, 14.7 clips/s | failed=0]m05_vjepa:  35%|███▌      | 3520/10000 [04:19<07:22, 14.66clip/s, 14.7 clips/s | failed=0]m05_vjepa:  35%|███▌      | 3520/10000 [04:29<07:22, 14.66clip/s, 14.7 clips/s | failed=0]m05_vjepa:  37%|███▋      | 3696/10000 [04:31<07:09, 14.67clip/s, 14.7 clips/s | failed=0]m05_vjepa:  37%|███▋      | 3696/10000 [04:31<07:09, 14.67clip/s, 14.7 clips/s | failed=0]m05_vjepa:  39%|███▊      | 3872/10000 [04:43<06:57, 14.68clip/s, 14.7 clips/s | failed=0]m05_vjepa:  39%|███▊      | 3872/10000 [04:43<06:57, 14.68clip/s, 14.7 clips/s | failed=0]m05_vjepa:  40%|████      | 4048/10000 [04:55<06:45, 14.69clip/s, 14.7 clips/s | failed=0]m05_vjepa:  40%|████      | 4048/10000 [04:55<06:45, 14.69clip/s, 14.7 clips/s | failed=0]m05_vjepa:  42%|████▏     | 4224/10000 [05:07<06:32, 14.71clip/s, 14.7 clips/s | failed=0]m05_vjepa:  42%|████▏     | 4224/10000 [05:07<06:32, 14.71clip/s, 14.7 clips/s | failed=0]m05_vjepa:  44%|████▍     | 4400/10000 [05:19<06:21, 14.68clip/s, 14.7 clips/s | failed=0]m05_vjepa:  44%|████▍     | 4400/10000 [05:19<06:21, 14.68clip/s, 14.7 clips/s | failed=0]m05_vjepa:  44%|████▍     | 4400/10000 [05:29<06:21, 14.68clip/s, 14.7 clips/s | failed=0]m05_vjepa:  46%|████▌     | 4576/10000 [05:31<06:09, 14.69clip/s, 14.7 clips/s | failed=0]m05_vjepa:  46%|████▌     | 4576/10000 [05:31<06:09, 14.69clip/s, 14.7 clips/s | failed=0]m05_vjepa:  48%|████▊     | 4752/10000 [05:43<05:56, 14.71clip/s, 14.7 clips/s | failed=0]m05_vjepa:  48%|████▊     | 4752/10000 [05:43<05:56, 14.71clip/s, 14.7 clips/s | failed=0]m05_vjepa:  49%|████▉     | 4928/10000 [05:55<05:44, 14.73clip/s, 14.7 clips/s | failed=0]m05_vjepa:  49%|████▉     | 4928/10000 [05:55<05:44, 14.73clip/s, 14.7 clips/s | failed=0]m05_vjepa:  51%|█████     | 5104/10000 [06:07<05:33, 14.70clip/s, 14.7 clips/s | failed=0]m05_vjepa:  51%|█████     | 5104/10000 [06:07<05:33, 14.70clip/s, 14.6 clips/s | failed=0]m05_vjepa:  53%|█████▎    | 5280/10000 [06:19<05:21, 14.70clip/s, 14.6 clips/s | failed=0]m05_vjepa:  53%|█████▎    | 5280/10000 [06:19<05:21, 14.70clip/s, 14.7 clips/s | failed=0]m05_vjepa:  53%|█████▎    | 5280/10000 [06:29<05:21, 14.70clip/s, 14.7 clips/s | failed=0]m05_vjepa:  55%|█████▍    | 5456/10000 [06:30<05:08, 14.71clip/s, 14.7 clips/s | failed=0]m05_vjepa:  55%|█████▍    | 5456/10000 [06:30<05:08, 14.71clip/s, 14.7 clips/s | failed=0]m05_vjepa:  56%|█████▋    | 5632/10000 [06:42<04:57, 14.68clip/s, 14.7 clips/s | failed=0]m05_vjepa:  56%|█████▋    | 5632/10000 [06:42<04:57, 14.68clip/s, 14.6 clips/s | failed=0]m05_vjepa:  58%|█████▊    | 5808/10000 [06:55<04:45, 14.66clip/s, 14.6 clips/s | failed=0]m05_vjepa:  58%|█████▊    | 5808/10000 [06:55<04:45, 14.66clip/s, 14.6 clips/s | failed=0]m05_vjepa:  60%|█████▉    | 5984/10000 [07:06<04:33, 14.68clip/s, 14.6 clips/s | failed=0]m05_vjepa:  60%|█████▉    | 5984/10000 [07:06<04:33, 14.68clip/s, 14.7 clips/s | failed=0]m05_vjepa:  62%|██████▏   | 6160/10000 [07:18<04:21, 14.68clip/s, 14.7 clips/s | failed=0]m05_vjepa:  62%|██████▏   | 6160/10000 [07:18<04:21, 14.68clip/s, 14.7 clips/s | failed=0]m05_vjepa:  62%|██████▏   | 6160/10000 [07:29<04:21, 14.68clip/s, 14.7 clips/s | failed=0]m05_vjepa:  63%|██████▎   | 6336/10000 [07:31<04:09, 14.66clip/s, 14.7 clips/s | failed=0]m05_vjepa:  63%|██████▎   | 6336/10000 [07:31<04:09, 14.66clip/s, 14.7 clips/s | failed=0]m05_vjepa:  65%|██████▌   | 6512/10000 [07:43<03:58, 14.65clip/s, 14.7 clips/s | failed=0]m05_vjepa:  65%|██████▌   | 6512/10000 [07:43<03:58, 14.65clip/s, 14.6 clips/s | failed=0]m05_vjepa:  67%|██████▋   | 6688/10000 [07:55<03:46, 14.65clip/s, 14.6 clips/s | failed=0]m05_vjepa:  67%|██████▋   | 6688/10000 [07:55<03:46, 14.65clip/s, 14.6 clips/s | failed=0]m05_vjepa:  69%|██████▊   | 6864/10000 [08:07<03:33, 14.66clip/s, 14.6 clips/s | failed=0]m05_vjepa:  69%|██████▊   | 6864/10000 [08:07<03:33, 14.66clip/s, 14.7 clips/s | failed=0]m05_vjepa:  70%|███████   | 7040/10000 [08:19<03:21, 14.67clip/s, 14.7 clips/s | failed=0]m05_vjepa:  70%|███████   | 7040/10000 [08:19<03:21, 14.67clip/s, 14.7 clips/s | failed=0]m05_vjepa:  70%|███████   | 7040/10000 [08:29<03:21, 14.67clip/s, 14.7 clips/s | failed=0]m05_vjepa:  72%|███████▏  | 7216/10000 [08:31<03:09, 14.66clip/s, 14.7 clips/s | failed=0]m05_vjepa:  72%|███████▏  | 7216/10000 [08:31<03:09, 14.66clip/s, 14.6 clips/s | failed=0]m05_vjepa:  74%|███████▍  | 7392/10000 [08:43<02:57, 14.66clip/s, 14.6 clips/s | failed=0]m05_vjepa:  74%|███████▍  | 7392/10000 [08:43<02:57, 14.66clip/s, 14.6 clips/s | failed=0]m05_vjepa:  76%|███████▌  | 7568/10000 [08:55<02:45, 14.66clip/s, 14.6 clips/s | failed=0]m05_vjepa:  76%|███████▌  | 7568/10000 [08:55<02:45, 14.66clip/s, 14.6 clips/s | failed=0]m05_vjepa:  77%|███████▋  | 7744/10000 [09:07<02:33, 14.66clip/s, 14.6 clips/s | failed=0]m05_vjepa:  77%|███████▋  | 7744/10000 [09:07<02:33, 14.66clip/s, 14.7 clips/s | failed=0]m05_vjepa:  79%|███████▉  | 7920/10000 [09:19<02:21, 14.67clip/s, 14.7 clips/s | failed=0]m05_vjepa:  79%|███████▉  | 7920/10000 [09:19<02:21, 14.67clip/s, 14.7 clips/s | failed=0]m05_vjepa:  79%|███████▉  | 7920/10000 [09:29<02:21, 14.67clip/s, 14.7 clips/s | failed=0]m05_vjepa:  81%|████████  | 8096/10000 [09:31<02:09, 14.65clip/s, 14.7 clips/s | failed=0]m05_vjepa:  81%|████████  | 8096/10000 [09:31<02:09, 14.65clip/s, 14.7 clips/s | failed=0]m05_vjepa:  83%|████████▎ | 8272/10000 [09:43<01:57, 14.66clip/s, 14.7 clips/s | failed=0]m05_vjepa:  83%|████████▎ | 8272/10000 [09:43<01:57, 14.66clip/s, 14.7 clips/s | failed=0]m05_vjepa:  84%|████████▍ | 8448/10000 [09:55<01:45, 14.66clip/s, 14.7 clips/s | failed=0]m05_vjepa:  84%|████████▍ | 8448/10000 [09:55<01:45, 14.66clip/s, 14.7 clips/s | failed=0]m05_vjepa:  86%|████████▌ | 8624/10000 [10:07<01:33, 14.68clip/s, 14.7 clips/s | failed=0]m05_vjepa:  86%|████████▌ | 8624/10000 [10:07<01:33, 14.68clip/s, 14.7 clips/s | failed=0]m05_vjepa:  88%|████████▊ | 8800/10000 [10:18<01:21, 14.72clip/s, 14.7 clips/s | failed=0]m05_vjepa:  88%|████████▊ | 8800/10000 [10:18<01:21, 14.72clip/s, 14.8 clips/s | failed=0]m05_vjepa:  88%|████████▊ | 8800/10000 [10:29<01:21, 14.72clip/s, 14.8 clips/s | failed=0]m05_vjepa:  90%|████████▉ | 8976/10000 [10:30<01:09, 14.74clip/s, 14.8 clips/s | failed=0]m05_vjepa:  90%|████████▉ | 8976/10000 [10:30<01:09, 14.74clip/s, 14.8 clips/s | failed=0]m05_vjepa:  92%|█████████▏| 9152/10000 [10:42<00:57, 14.72clip/s, 14.8 clips/s | failed=0]m05_vjepa:  92%|█████████▏| 9152/10000 [10:42<00:57, 14.72clip/s, 14.8 clips/s | failed=0]m05_vjepa:  93%|█████████▎| 9328/10000 [10:54<00:45, 14.74clip/s, 14.8 clips/s | failed=0]m05_vjepa:  93%|█████████▎| 9328/10000 [10:54<00:45, 14.74clip/s, 14.8 clips/s | failed=0]m05_vjepa:  95%|█████████▌| 9504/10000 [11:06<00:33, 14.76clip/s, 14.8 clips/s | failed=0]m05_vjepa:  95%|█████████▌| 9504/10000 [11:06<00:33, 14.76clip/s, 14.8 clips/s | failed=0]m05_vjepa:  97%|█████████▋| 9680/10000 [11:18<00:21, 14.73clip/s, 14.8 clips/s | failed=0]m05_vjepa:  97%|█████████▋| 9680/10000 [11:18<00:21, 14.73clip/s, 14.8 clips/s | failed=0]m05_vjepa:  97%|█████████▋| 9680/10000 [11:29<00:21, 14.73clip/s, 14.8 clips/s | failed=0]m05_vjepa:  99%|█████████▊| 9856/10000 [11:30<00:09, 14.74clip/s, 14.8 clips/s | failed=0]m05_vjepa:  99%|█████████▊| 9856/10000 [11:30<00:09, 14.74clip/s, 14.8 clips/s | failed=0]m05_vjepa: 10032clip [11:42, 14.73clip/s, 14.8 clips/s | failed=0]                        m05_vjepa: 10032clip [11:42, 14.73clip/s, 14.7 clips/s | failed=0]m05_vjepa: 10032clip [11:42, 14.28clip/s, 14.7 clips/s | failed=0]
+
+Segment done: 10,032 clips in 703s (14.27 clips/s)
+wandb: updating run metadata
+wandb: uploading output.log; uploading wandb-summary.json; uploading config.yaml
+wandb: uploading console lines 19-20
+wandb: 
+wandb: Run history:
+wandb:        clips_processed ▁▁▁▁▂▂▂▂▂▂▃▃▃▃▃▄▄▄▄▄▅▅▅▅▅▆▆▆▆▆▆▆▇▇▇▇▇███
+wandb:                 failed ▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁
+wandb: throughput_clips_per_s ▁███████████████████████████████████████
+wandb: 
+wandb: Run summary:
+wandb:        clips_processed 50160
+wandb:                 failed 0
+wandb: throughput_clips_per_s 14.73476
+wandb: 
+wandb: 🚀 View run m05_FULL at: https://wandb.ai/sjsu_llm/walkindia-200k/runs/y2wpx8ol
+wandb: ⭐️ View project at: https://wandb.ai/sjsu_llm/walkindia-200k
+wandb: Synced 5 W&B file(s), 0 media file(s), 0 artifact file(s) and 0 other file(s)
+wandb: Find logs at: ./wandb/run-20260404_120206-y2wpx8ol/logs
+Worker exiting (GPU memory will be released).
+Checkpoint loaded: 50,160 embeddings from .m05_checkpoint_vjepa_lambda0_001.npz
+Worker done. Progress: 50,160/115,687
+
+============================================================
+WORKER 6: embeddings 50,160 → 60,160
+============================================================
+/workspace/factorjepa/venv_walkindia/lib/python3.12/site-packages/transformers/utils/hub.py:110: FutureWarning: Using `TRANSFORMERS_CACHE` is deprecated and will be removed in v5 of Transformers. Use `HF_HOME` instead.
+  warnings.warn(
+Using PyAV for video decoding
+GPU: NVIDIA RTX PRO 6000 Blackwell Workstation Edition
+CUDA version: 12.8
+Batch size: 176 (from inference/vjepa2 profiler)
+wandb: [wandb.login()] Loaded credentials for https://api.wandb.ai from WANDB_API_KEY.
+wandb: Currently logged in as: kapilw25 (sjsu_llm) to https://api.wandb.ai. Use `wandb login --relogin` to force relogin
+wandb: WARNING Using a boolean value for 'reinit' is deprecated. Use 'return_previous' or 'finish_previous' instead.
+wandb: setting up run v5qbw3b4
+wandb: Tracking run with wandb version 0.25.1
+wandb: Run data is saved locally in /workspace/factorjepa/wandb/run-20260404_121413-v5qbw3b4
+wandb: Run `wandb offline` to turn off syncing.
+wandb: Syncing run m05_FULL
+wandb: ⭐️ View project at https://wandb.ai/sjsu_llm/walkindia-200k
+wandb: 🚀 View run at https://wandb.ai/sjsu_llm/walkindia-200k/runs/v5qbw3b4
+wandb: run=m05_FULL url=https://wandb.ai/sjsu_llm/walkindia-200k/runs/v5qbw3b4
+Checkpoint loaded: 50,160 embeddings from .m05_checkpoint_vjepa_lambda0_001.npz
+
+Loading model: outputs/full/m09_lambda0_001/student_encoder.pt
+Adapted model: num_frames=16 (from training config)
+/workspace/factorjepa/venv_walkindia/lib/python3.12/site-packages/timm/models/layers/__init__.py:49: FutureWarning: Importing from timm.models.layers is deprecated, please import via timm.layers
+  warnings.warn(f"Importing from {__name__} is deprecated, please import via timm.layers", FutureWarning)
+Adapted encoder: loaded 484/484 params (missing: 0, unexpected: 0)
+Applying torch.compile...
+Warmup: compiling inductor graph...
+Model loaded on cuda (dtype: torch.float16)
+
+=== Streaming Config ===
+batch_size:    176
+video_decoder: PyAV
+prefetch:      8 batches
+checkpoint:    every 500 clips
+m05_vjepa:   0%|          | 0/10000 [00:00<?, ?clip/s]  Parallel TAR reader: 8 threads, 116 TARs, queue=256
+m05_vjepa:   2%|▏         | 176/10000 [00:31<29:07,  5.62clip/s]m05_vjepa:   2%|▏         | 176/10000 [00:31<29:07,  5.62clip/s, 5.6 clips/s | failed=0]m05_vjepa:   4%|▎         | 352/10000 [00:42<18:01,  8.92clip/s, 5.6 clips/s | failed=0]m05_vjepa:   4%|▎         | 352/10000 [00:42<18:01,  8.92clip/s, 15.1 clips/s | failed=0]m05_vjepa:   5%|▌         | 528/10000 [00:54<14:27, 10.92clip/s, 15.1 clips/s | failed=0]m05_vjepa:   5%|▌         | 528/10000 [00:54<14:27, 10.92clip/s, 15.0 clips/s | failed=0]m05_vjepa:   7%|▋         | 704/10000 [01:06<12:45, 12.14clip/s, 15.0 clips/s | failed=0]m05_vjepa:   7%|▋         | 704/10000 [01:06<12:45, 12.14clip/s, 14.9 clips/s | failed=0]m05_vjepa:   9%|▉         | 880/10000 [01:18<11:41, 13.01clip/s, 14.9 clips/s | failed=0]m05_vjepa:   9%|▉         | 880/10000 [01:18<11:41, 13.01clip/s, 14.9 clips/s | failed=0]m05_vjepa:   9%|▉         | 880/10000 [01:29<11:41, 13.01clip/s, 14.9 clips/s | failed=0]m05_vjepa:  11%|█         | 1056/10000 [01:30<10:59, 13.56clip/s, 14.9 clips/s | failed=0]m05_vjepa:  11%|█         | 1056/10000 [01:30<10:59, 13.56clip/s, 14.8 clips/s | failed=0]m05_vjepa:  12%|█▏        | 1232/10000 [01:42<10:30, 13.90clip/s, 14.8 clips/s | failed=0]m05_vjepa:  12%|█▏        | 1232/10000 [01:42<10:30, 13.90clip/s, 14.8 clips/s | failed=0]m05_vjepa:  14%|█▍        | 1408/10000 [01:54<10:06, 14.17clip/s, 14.8 clips/s | failed=0]m05_vjepa:  14%|█▍        | 1408/10000 [01:54<10:06, 14.17clip/s, 14.8 clips/s | failed=0]m05_vjepa:  16%|█▌        | 1584/10000 [02:06<09:47, 14.32clip/s, 14.8 clips/s | failed=0]m05_vjepa:  16%|█▌        | 1584/10000 [02:06<09:47, 14.32clip/s, 14.7 clips/s | failed=0]m05_vjepa:  18%|█▊        | 1760/10000 [02:18<09:32, 14.40clip/s, 14.7 clips/s | failed=0]m05_vjepa:  18%|█▊        | 1760/10000 [02:18<09:32, 14.40clip/s, 14.7 clips/s | failed=0]m05_vjepa:  18%|█▊        | 1760/10000 [02:29<09:32, 14.40clip/s, 14.7 clips/s | failed=0]m05_vjepa:  19%|█▉        | 1936/10000 [02:30<09:16, 14.50clip/s, 14.7 clips/s | failed=0]m05_vjepa:  19%|█▉        | 1936/10000 [02:30<09:16, 14.50clip/s, 14.7 clips/s | failed=0]m05_vjepa:  21%|██        | 2112/10000 [02:42<09:02, 14.53clip/s, 14.7 clips/s | failed=0]m05_vjepa:  21%|██        | 2112/10000 [02:42<09:02, 14.53clip/s, 14.7 clips/s | failed=0]m05_vjepa:  23%|██▎       | 2288/10000 [02:54<08:48, 14.58clip/s, 14.7 clips/s | failed=0]m05_vjepa:  23%|██▎       | 2288/10000 [02:54<08:48, 14.58clip/s, 14.7 clips/s | failed=0]m05_vjepa:  25%|██▍       | 2464/10000 [03:06<08:37, 14.56clip/s, 14.7 clips/s | failed=0]m05_vjepa:  25%|██▍       | 2464/10000 [03:06<08:37, 14.56clip/s, 14.5 clips/s | failed=0]m05_vjepa:  26%|██▋       | 2640/10000 [03:18<08:25, 14.57clip/s, 14.5 clips/s | failed=0]m05_vjepa:  26%|██▋       | 2640/10000 [03:18<08:25, 14.57clip/s, 14.5 clips/s | failed=0]m05_vjepa:  26%|██▋       | 2640/10000 [03:29<08:25, 14.57clip/s, 14.5 clips/s | failed=0]m05_vjepa:  28%|██▊       | 2816/10000 [03:30<08:11, 14.62clip/s, 14.5 clips/s | failed=0]m05_vjepa:  28%|██▊       | 2816/10000 [03:30<08:11, 14.62clip/s, 14.6 clips/s | failed=0]m05_vjepa:  30%|██▉       | 2992/10000 [03:42<07:58, 14.66clip/s, 14.6 clips/s | failed=0]m05_vjepa:  30%|██▉       | 2992/10000 [03:42<07:58, 14.66clip/s, 14.7 clips/s | failed=0]m05_vjepa:  32%|███▏      | 3168/10000 [03:54<07:46, 14.66clip/s, 14.7 clips/s | failed=0]m05_vjepa:  32%|███▏      | 3168/10000 [03:54<07:46, 14.66clip/s, 14.7 clips/s | failed=0]m05_vjepa:  33%|███▎      | 3344/10000 [04:06<07:33, 14.67clip/s, 14.7 clips/s | failed=0]m05_vjepa:  33%|███▎      | 3344/10000 [04:06<07:33, 14.67clip/s, 14.7 clips/s | failed=0]m05_vjepa:  35%|███▌      | 3520/10000 [04:18<07:21, 14.66clip/s, 14.7 clips/s | failed=0]m05_vjepa:  35%|███▌      | 3520/10000 [04:18<07:21, 14.66clip/s, 14.7 clips/s | failed=0]m05_vjepa:  35%|███▌      | 3520/10000 [04:29<07:21, 14.66clip/s, 14.7 clips/s | failed=0]m05_vjepa:  37%|███▋      | 3696/10000 [04:30<07:08, 14.70clip/s, 14.7 clips/s | failed=0]m05_vjepa:  37%|███▋      | 3696/10000 [04:30<07:08, 14.70clip/s, 14.7 clips/s | failed=0]m05_vjepa:  39%|███▊      | 3872/10000 [04:42<06:56, 14.71clip/s, 14.7 clips/s | failed=0]m05_vjepa:  39%|███▊      | 3872/10000 [04:42<06:56, 14.71clip/s, 14.7 clips/s | failed=0]m05_vjepa:  40%|████      | 4048/10000 [04:54<06:45, 14.70clip/s, 14.7 clips/s | failed=0]m05_vjepa:  40%|████      | 4048/10000 [04:54<06:45, 14.70clip/s, 14.7 clips/s | failed=0]m05_vjepa:  42%|████▏     | 4224/10000 [05:06<06:32, 14.71clip/s, 14.7 clips/s | failed=0]m05_vjepa:  42%|████▏     | 4224/10000 [05:06<06:32, 14.71clip/s, 14.7 clips/s | failed=0]m05_vjepa:  44%|████▍     | 4400/10000 [05:18<06:21, 14.67clip/s, 14.7 clips/s | failed=0]m05_vjepa:  44%|████▍     | 4400/10000 [05:18<06:21, 14.67clip/s, 14.7 clips/s | failed=0]m05_vjepa:  44%|████▍     | 4400/10000 [05:29<06:21, 14.67clip/s, 14.7 clips/s | failed=0]m05_vjepa:  46%|████▌     | 4576/10000 [05:30<06:10, 14.64clip/s, 14.7 clips/s | failed=0]m05_vjepa:  46%|████▌     | 4576/10000 [05:30<06:10, 14.64clip/s, 14.6 clips/s | failed=0]m05_vjepa:  48%|████▊     | 4752/10000 [05:42<05:57, 14.68clip/s, 14.6 clips/s | failed=0]m05_vjepa:  48%|████▊     | 4752/10000 [05:42<05:57, 14.68clip/s, 14.7 clips/s | failed=0]m05_vjepa:  49%|████▉     | 4928/10000 [05:54<05:45, 14.70clip/s, 14.7 clips/s | failed=0]m05_vjepa:  49%|████▉     | 4928/10000 [05:54<05:45, 14.70clip/s, 14.7 clips/s | failed=0]m05_vjepa:  51%|█████     | 5104/10000 [06:06<05:33, 14.70clip/s, 14.7 clips/s | failed=0]m05_vjepa:  51%|█████     | 5104/10000 [06:06<05:33, 14.70clip/s, 14.7 clips/s | failed=0]m05_vjepa:  53%|█████▎    | 5280/10000 [06:18<05:21, 14.67clip/s, 14.7 clips/s | failed=0]m05_vjepa:  53%|█████▎    | 5280/10000 [06:18<05:21, 14.67clip/s, 14.6 clips/s | failed=0]m05_vjepa:  53%|█████▎    | 5280/10000 [06:29<05:21, 14.67clip/s, 14.6 clips/s | failed=0]m05_vjepa:  55%|█████▍    | 5456/10000 [06:30<05:10, 14.61clip/s, 14.6 clips/s | failed=0]m05_vjepa:  55%|█████▍    | 5456/10000 [06:30<05:10, 14.61clip/s, 14.6 clips/s | failed=0]m05_vjepa:  56%|█████▋    | 5632/10000 [06:42<04:58, 14.64clip/s, 14.6 clips/s | failed=0]m05_vjepa:  56%|█████▋    | 5632/10000 [06:42<04:58, 14.64clip/s, 14.7 clips/s | failed=0]m05_vjepa:  58%|█████▊    | 5808/10000 [06:54<04:45, 14.67clip/s, 14.7 clips/s | failed=0]m05_vjepa:  58%|█████▊    | 5808/10000 [06:54<04:45, 14.67clip/s, 14.7 clips/s | failed=0]m05_vjepa:  60%|█████▉    | 5984/10000 [07:06<04:33, 14.70clip/s, 14.7 clips/s | failed=0]m05_vjepa:  60%|█████▉    | 5984/10000 [07:06<04:33, 14.70clip/s, 14.7 clips/s | failed=0]m05_vjepa:  62%|██████▏   | 6160/10000 [07:18<04:21, 14.68clip/s, 14.7 clips/s | failed=0]m05_vjepa:  62%|██████▏   | 6160/10000 [07:18<04:21, 14.68clip/s, 14.6 clips/s | failed=0]m05_vjepa:  62%|██████▏   | 6160/10000 [07:29<04:21, 14.68clip/s, 14.6 clips/s | failed=0]m05_vjepa:  63%|██████▎   | 6336/10000 [07:30<04:10, 14.64clip/s, 14.6 clips/s | failed=0]m05_vjepa:  63%|██████▎   | 6336/10000 [07:30<04:10, 14.64clip/s, 14.6 clips/s | failed=0]m05_vjepa:  65%|██████▌   | 6512/10000 [07:42<03:57, 14.67clip/s, 14.6 clips/s | failed=0]m05_vjepa:  65%|██████▌   | 6512/10000 [07:42<03:57, 14.67clip/s, 14.6 clips/s | failed=0]m05_vjepa:  67%|██████▋   | 6688/10000 [07:54<03:45, 14.66clip/s, 14.6 clips/s | failed=0]m05_vjepa:  67%|██████▋   | 6688/10000 [07:54<03:45, 14.66clip/s, 14.6 clips/s | failed=0]m05_vjepa:  69%|██████▊   | 6864/10000 [08:06<03:34, 14.65clip/s, 14.6 clips/s | failed=0]m05_vjepa:  69%|██████▊   | 6864/10000 [08:06<03:34, 14.65clip/s, 14.6 clips/s | failed=0]m05_vjepa:  70%|███████   | 7040/10000 [08:18<03:22, 14.64clip/s, 14.6 clips/s | failed=0]m05_vjepa:  70%|███████   | 7040/10000 [08:18<03:22, 14.64clip/s, 14.6 clips/s | failed=0]m05_vjepa:  70%|███████   | 7040/10000 [08:29<03:22, 14.64clip/s, 14.6 clips/s | failed=0]m05_vjepa:  72%|███████▏  | 7216/10000 [08:30<03:10, 14.64clip/s, 14.6 clips/s | failed=0]m05_vjepa:  72%|███████▏  | 7216/10000 [08:30<03:10, 14.64clip/s, 14.7 clips/s | failed=0]m05_vjepa:  74%|███████▍  | 7392/10000 [08:42<02:57, 14.66clip/s, 14.7 clips/s | failed=0]m05_vjepa:  74%|███████▍  | 7392/10000 [08:42<02:57, 14.66clip/s, 14.7 clips/s | failed=0]m05_vjepa:  76%|███████▌  | 7568/10000 [08:54<02:45, 14.66clip/s, 14.7 clips/s | failed=0]m05_vjepa:  76%|███████▌  | 7568/10000 [08:54<02:45, 14.66clip/s, 14.7 clips/s | failed=0]m05_vjepa:  77%|███████▋  | 7744/10000 [09:06<02:33, 14.68clip/s, 14.7 clips/s | failed=0]m05_vjepa:  77%|███████▋  | 7744/10000 [09:06<02:33, 14.68clip/s, 14.7 clips/s | failed=0]m05_vjepa:  79%|███████▉  | 7920/10000 [09:18<02:21, 14.68clip/s, 14.7 clips/s | failed=0]m05_vjepa:  79%|███████▉  | 7920/10000 [09:18<02:21, 14.68clip/s, 14.7 clips/s | failed=0]m05_vjepa:  79%|███████▉  | 7920/10000 [09:29<02:21, 14.68clip/s, 14.7 clips/s | failed=0]m05_vjepa:  81%|████████  | 8096/10000 [09:30<02:09, 14.65clip/s, 14.7 clips/s | failed=0]m05_vjepa:  81%|████████  | 8096/10000 [09:30<02:09, 14.65clip/s, 14.7 clips/s | failed=0]m05_vjepa:  83%|████████▎ | 8272/10000 [09:42<01:57, 14.65clip/s, 14.7 clips/s | failed=0]m05_vjepa:  83%|████████▎ | 8272/10000 [09:42<01:57, 14.65clip/s, 14.7 clips/s | failed=0]m05_vjepa:  84%|████████▍ | 8448/10000 [09:54<01:45, 14.66clip/s, 14.7 clips/s | failed=0]m05_vjepa:  84%|████████▍ | 8448/10000 [09:54<01:45, 14.66clip/s, 14.7 clips/s | failed=0]m05_vjepa:  86%|████████▌ | 8624/10000 [10:06<01:33, 14.68clip/s, 14.7 clips/s | failed=0]m05_vjepa:  86%|████████▌ | 8624/10000 [10:06<01:33, 14.68clip/s, 14.7 clips/s | failed=0]m05_vjepa:  88%|████████▊ | 8800/10000 [10:18<01:21, 14.72clip/s, 14.7 clips/s | failed=0]m05_vjepa:  88%|████████▊ | 8800/10000 [10:18<01:21, 14.72clip/s, 14.8 clips/s | failed=0]m05_vjepa:  88%|████████▊ | 8800/10000 [10:29<01:21, 14.72clip/s, 14.8 clips/s | failed=0]m05_vjepa:  90%|████████▉ | 8976/10000 [10:30<01:09, 14.75clip/s, 14.8 clips/s | failed=0]m05_vjepa:  90%|████████▉ | 8976/10000 [10:30<01:09, 14.75clip/s, 14.8 clips/s | failed=0]m05_vjepa:  92%|█████████▏| 9152/10000 [10:42<00:57, 14.73clip/s, 14.8 clips/s | failed=0]m05_vjepa:  92%|█████████▏| 9152/10000 [10:42<00:57, 14.73clip/s, 14.8 clips/s | failed=0]m05_vjepa:  93%|█████████▎| 9328/10000 [10:54<00:45, 14.76clip/s, 14.8 clips/s | failed=0]m05_vjepa:  93%|█████████▎| 9328/10000 [10:54<00:45, 14.76clip/s, 14.8 clips/s | failed=0]m05_vjepa:  95%|█████████▌| 9504/10000 [11:05<00:33, 14.77clip/s, 14.8 clips/s | failed=0]m05_vjepa:  95%|█████████▌| 9504/10000 [11:05<00:33, 14.77clip/s, 14.8 clips/s | failed=0]m05_vjepa:  97%|█████████▋| 9680/10000 [11:17<00:21, 14.75clip/s, 14.8 clips/s | failed=0]m05_vjepa:  97%|█████████▋| 9680/10000 [11:17<00:21, 14.75clip/s, 14.8 clips/s | failed=0]m05_vjepa:  97%|█████████▋| 9680/10000 [11:29<00:21, 14.75clip/s, 14.8 clips/s | failed=0]m05_vjepa:  99%|█████████▊| 9856/10000 [11:29<00:09, 14.76clip/s, 14.8 clips/s | failed=0]m05_vjepa:  99%|█████████▊| 9856/10000 [11:29<00:09, 14.76clip/s, 14.8 clips/s | failed=0]m05_vjepa: 10032clip [11:41, 14.73clip/s, 14.8 clips/s | failed=0]                        m05_vjepa: 10032clip [11:41, 14.73clip/s, 14.7 clips/s | failed=0]m05_vjepa: 10032clip [11:42, 14.29clip/s, 14.7 clips/s | failed=0]
+
+Segment done: 10,032 clips in 702s (14.28 clips/s)
+wandb: updating run metadata
+wandb: uploading history steps 55-56, summary, console lines 17-17
+wandb: uploading console lines 19-20
+wandb: 
+wandb: Run history:
+wandb:        clips_processed ▁▁▁▁▁▂▂▂▂▂▃▃▃▃▃▃▃▄▄▄▅▅▅▅▅▆▆▆▆▆▆▇▇▇▇▇▇▇██
+wandb:                 failed ▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁
+wandb: throughput_clips_per_s ▁███████████████████████████████████████
+wandb: 
+wandb: Run summary:
+wandb:        clips_processed 60192
+wandb:                 failed 0
+wandb: throughput_clips_per_s 14.72376
+wandb: 
+wandb: 🚀 View run m05_FULL at: https://wandb.ai/sjsu_llm/walkindia-200k/runs/v5qbw3b4
+wandb: ⭐️ View project at: https://wandb.ai/sjsu_llm/walkindia-200k
+wandb: Synced 5 W&B file(s), 0 media file(s), 0 artifact file(s) and 0 other file(s)
+wandb: Find logs at: ./wandb/run-20260404_121413-v5qbw3b4/logs
+Worker exiting (GPU memory will be released).
+Checkpoint loaded: 60,192 embeddings from .m05_checkpoint_vjepa_lambda0_001.npz
+Worker done. Progress: 60,192/115,687
+
+============================================================
+WORKER 7: embeddings 60,192 → 70,192
+============================================================
+/workspace/factorjepa/venv_walkindia/lib/python3.12/site-packages/transformers/utils/hub.py:110: FutureWarning: Using `TRANSFORMERS_CACHE` is deprecated and will be removed in v5 of Transformers. Use `HF_HOME` instead.
+  warnings.warn(
+Using PyAV for video decoding
+GPU: NVIDIA RTX PRO 6000 Blackwell Workstation Edition
+CUDA version: 12.8
+Batch size: 176 (from inference/vjepa2 profiler)
+wandb: [wandb.login()] Loaded credentials for https://api.wandb.ai from WANDB_API_KEY.
+wandb: Currently logged in as: kapilw25 (sjsu_llm) to https://api.wandb.ai. Use `wandb login --relogin` to force relogin
+wandb: WARNING Using a boolean value for 'reinit' is deprecated. Use 'return_previous' or 'finish_previous' instead.
+wandb: setting up run a6d0b7gg
+wandb: Tracking run with wandb version 0.25.1
+wandb: Run data is saved locally in /workspace/factorjepa/wandb/run-20260404_122620-a6d0b7gg
+wandb: Run `wandb offline` to turn off syncing.
+wandb: Syncing run m05_FULL
+wandb: ⭐️ View project at https://wandb.ai/sjsu_llm/walkindia-200k
+wandb: 🚀 View run at https://wandb.ai/sjsu_llm/walkindia-200k/runs/a6d0b7gg
+wandb: run=m05_FULL url=https://wandb.ai/sjsu_llm/walkindia-200k/runs/a6d0b7gg
+Checkpoint loaded: 60,192 embeddings from .m05_checkpoint_vjepa_lambda0_001.npz
+
+Loading model: outputs/full/m09_lambda0_001/student_encoder.pt
+Adapted model: num_frames=16 (from training config)
+/workspace/factorjepa/venv_walkindia/lib/python3.12/site-packages/timm/models/layers/__init__.py:49: FutureWarning: Importing from timm.models.layers is deprecated, please import via timm.layers
+  warnings.warn(f"Importing from {__name__} is deprecated, please import via timm.layers", FutureWarning)
+Adapted encoder: loaded 484/484 params (missing: 0, unexpected: 0)
+Applying torch.compile...
+Warmup: compiling inductor graph...
+Model loaded on cuda (dtype: torch.float16)
+
+=== Streaming Config ===
+batch_size:    176
+video_decoder: PyAV
+prefetch:      8 batches
+checkpoint:    every 500 clips
+m05_vjepa:   0%|          | 0/10000 [00:00<?, ?clip/s]  Parallel TAR reader: 8 threads, 116 TARs, queue=256
+m05_vjepa:   2%|▏         | 176/10000 [00:32<30:12,  5.42clip/s]m05_vjepa:   2%|▏         | 176/10000 [00:32<30:12,  5.42clip/s, 5.4 clips/s | failed=0]m05_vjepa:   4%|▎         | 352/10000 [00:44<18:26,  8.72clip/s, 5.4 clips/s | failed=0]m05_vjepa:   4%|▎         | 352/10000 [00:44<18:26,  8.72clip/s, 15.2 clips/s | failed=0]m05_vjepa:   5%|▌         | 528/10000 [00:55<14:38, 10.78clip/s, 15.2 clips/s | failed=0]m05_vjepa:   5%|▌         | 528/10000 [00:55<14:38, 10.78clip/s, 15.1 clips/s | failed=0]m05_vjepa:   7%|▋         | 704/10000 [01:07<12:49, 12.08clip/s, 15.1 clips/s | failed=0]m05_vjepa:   7%|▋         | 704/10000 [01:07<12:49, 12.08clip/s, 15.0 clips/s | failed=0]m05_vjepa:   7%|▋         | 704/10000 [01:19<12:49, 12.08clip/s, 15.0 clips/s | failed=0]m05_vjepa:   9%|▉         | 880/10000 [01:19<11:44, 12.94clip/s, 15.0 clips/s | failed=0]m05_vjepa:   9%|▉         | 880/10000 [01:19<11:44, 12.94clip/s, 14.8 clips/s | failed=0]m05_vjepa:  11%|█         | 1056/10000 [01:31<11:01, 13.51clip/s, 14.8 clips/s | failed=0]m05_vjepa:  11%|█         | 1056/10000 [01:31<11:01, 13.51clip/s, 14.8 clips/s | failed=0]m05_vjepa:  12%|█▏        | 1232/10000 [01:43<10:30, 13.92clip/s, 14.8 clips/s | failed=0]m05_vjepa:  12%|█▏        | 1232/10000 [01:43<10:30, 13.92clip/s, 14.8 clips/s | failed=0]m05_vjepa:  14%|█▍        | 1408/10000 [01:55<10:05, 14.18clip/s, 14.8 clips/s | failed=0]m05_vjepa:  14%|█▍        | 1408/10000 [01:55<10:05, 14.18clip/s, 14.8 clips/s | failed=0]m05_vjepa:  16%|█▌        | 1584/10000 [02:07<09:47, 14.32clip/s, 14.8 clips/s | failed=0]m05_vjepa:  16%|█▌        | 1584/10000 [02:07<09:47, 14.32clip/s, 14.7 clips/s | failed=0]m05_vjepa:  16%|█▌        | 1584/10000 [02:19<09:47, 14.32clip/s, 14.7 clips/s | failed=0]m05_vjepa:  18%|█▊        | 1760/10000 [02:19<09:33, 14.38clip/s, 14.7 clips/s | failed=0]m05_vjepa:  18%|█▊        | 1760/10000 [02:19<09:33, 14.38clip/s, 14.6 clips/s | failed=0]m05_vjepa:  19%|█▉        | 1936/10000 [02:31<09:16, 14.48clip/s, 14.6 clips/s | failed=0]m05_vjepa:  19%|█▉        | 1936/10000 [02:31<09:16, 14.48clip/s, 14.7 clips/s | failed=0]m05_vjepa:  21%|██        | 2112/10000 [02:43<09:02, 14.53clip/s, 14.7 clips/s | failed=0]m05_vjepa:  21%|██        | 2112/10000 [02:43<09:02, 14.53clip/s, 14.7 clips/s | failed=0]m05_vjepa:  23%|██▎       | 2288/10000 [02:55<08:50, 14.54clip/s, 14.7 clips/s | failed=0]m05_vjepa:  23%|██▎       | 2288/10000 [02:55<08:50, 14.54clip/s, 14.6 clips/s | failed=0]m05_vjepa:  25%|██▍       | 2464/10000 [03:07<08:37, 14.55clip/s, 14.6 clips/s | failed=0]m05_vjepa:  25%|██▍       | 2464/10000 [03:07<08:37, 14.55clip/s, 14.6 clips/s | failed=0]m05_vjepa:  25%|██▍       | 2464/10000 [03:19<08:37, 14.55clip/s, 14.6 clips/s | failed=0]m05_vjepa:  26%|██▋       | 2640/10000 [03:19<08:24, 14.59clip/s, 14.6 clips/s | failed=0]m05_vjepa:  26%|██▋       | 2640/10000 [03:19<08:24, 14.59clip/s, 14.6 clips/s | failed=0]m05_vjepa:  28%|██▊       | 2816/10000 [03:31<08:11, 14.62clip/s, 14.6 clips/s | failed=0]m05_vjepa:  28%|██▊       | 2816/10000 [03:31<08:11, 14.62clip/s, 14.7 clips/s | failed=0]m05_vjepa:  30%|██▉       | 2992/10000 [03:43<07:59, 14.63clip/s, 14.7 clips/s | failed=0]m05_vjepa:  30%|██▉       | 2992/10000 [03:43<07:59, 14.63clip/s, 14.6 clips/s | failed=0]m05_vjepa:  32%|███▏      | 3168/10000 [03:55<07:46, 14.63clip/s, 14.6 clips/s | failed=0]m05_vjepa:  32%|███▏      | 3168/10000 [03:55<07:46, 14.63clip/s, 14.6 clips/s | failed=0]m05_vjepa:  33%|███▎      | 3344/10000 [04:07<07:33, 14.66clip/s, 14.6 clips/s | failed=0]m05_vjepa:  33%|███▎      | 3344/10000 [04:07<07:33, 14.66clip/s, 14.7 clips/s | failed=0]m05_vjepa:  33%|███▎      | 3344/10000 [04:19<07:33, 14.66clip/s, 14.7 clips/s | failed=0]m05_vjepa:  35%|███▌      | 3520/10000 [04:19<07:21, 14.67clip/s, 14.7 clips/s | failed=0]m05_vjepa:  35%|███▌      | 3520/10000 [04:19<07:21, 14.67clip/s, 14.7 clips/s | failed=0]m05_vjepa:  37%|███▋      | 3696/10000 [04:31<07:09, 14.69clip/s, 14.7 clips/s | failed=0]m05_vjepa:  37%|███▋      | 3696/10000 [04:31<07:09, 14.69clip/s, 14.7 clips/s | failed=0]m05_vjepa:  39%|███▊      | 3872/10000 [04:43<06:56, 14.72clip/s, 14.7 clips/s | failed=0]m05_vjepa:  39%|███▊      | 3872/10000 [04:43<06:56, 14.72clip/s, 14.7 clips/s | failed=0]m05_vjepa:  40%|████      | 4048/10000 [04:55<06:45, 14.69clip/s, 14.7 clips/s | failed=0]m05_vjepa:  40%|████      | 4048/10000 [04:55<06:45, 14.69clip/s, 14.6 clips/s | failed=0]m05_vjepa:  42%|████▏     | 4224/10000 [05:07<06:33, 14.68clip/s, 14.6 clips/s | failed=0]m05_vjepa:  42%|████▏     | 4224/10000 [05:07<06:33, 14.68clip/s, 14.6 clips/s | failed=0]m05_vjepa:  44%|████▍     | 4400/10000 [05:19<06:21, 14.69clip/s, 14.6 clips/s | failed=0]m05_vjepa:  44%|████▍     | 4400/10000 [05:19<06:21, 14.69clip/s, 14.7 clips/s | failed=0]m05_vjepa:  44%|████▍     | 4400/10000 [05:29<06:21, 14.69clip/s, 14.7 clips/s | failed=0]m05_vjepa:  46%|████▌     | 4576/10000 [05:31<06:09, 14.68clip/s, 14.7 clips/s | failed=0]m05_vjepa:  46%|████▌     | 4576/10000 [05:31<06:09, 14.68clip/s, 14.7 clips/s | failed=0]m05_vjepa:  48%|████▊     | 4752/10000 [05:43<05:57, 14.70clip/s, 14.7 clips/s | failed=0]m05_vjepa:  48%|████▊     | 4752/10000 [05:43<05:57, 14.70clip/s, 14.7 clips/s | failed=0]m05_vjepa:  49%|████▉     | 4928/10000 [05:55<05:44, 14.70clip/s, 14.7 clips/s | failed=0]m05_vjepa:  49%|████▉     | 4928/10000 [05:55<05:44, 14.70clip/s, 14.7 clips/s | failed=0]m05_vjepa:  51%|█████     | 5104/10000 [06:07<05:33, 14.67clip/s, 14.7 clips/s | failed=0]m05_vjepa:  51%|█████     | 5104/10000 [06:07<05:33, 14.67clip/s, 14.6 clips/s | failed=0]m05_vjepa:  53%|█████▎    | 5280/10000 [06:19<05:22, 14.65clip/s, 14.6 clips/s | failed=0]m05_vjepa:  53%|█████▎    | 5280/10000 [06:19<05:22, 14.65clip/s, 14.6 clips/s | failed=0]m05_vjepa:  53%|█████▎    | 5280/10000 [06:29<05:22, 14.65clip/s, 14.6 clips/s | failed=0]m05_vjepa:  55%|█████▍    | 5456/10000 [06:31<05:09, 14.68clip/s, 14.6 clips/s | failed=0]m05_vjepa:  55%|█████▍    | 5456/10000 [06:31<05:09, 14.68clip/s, 14.6 clips/s | failed=0]m05_vjepa:  56%|█████▋    | 5632/10000 [06:43<04:57, 14.67clip/s, 14.6 clips/s | failed=0]m05_vjepa:  56%|█████▋    | 5632/10000 [06:43<04:57, 14.67clip/s, 14.7 clips/s | failed=0]m05_vjepa:  58%|█████▊    | 5808/10000 [06:55<04:45, 14.69clip/s, 14.7 clips/s | failed=0]m05_vjepa:  58%|█████▊    | 5808/10000 [06:55<04:45, 14.69clip/s, 14.7 clips/s | failed=0]m05_vjepa:  60%|█████▉    | 5984/10000 [07:07<04:33, 14.69clip/s, 14.7 clips/s | failed=0]m05_vjepa:  60%|█████▉    | 5984/10000 [07:07<04:33, 14.69clip/s, 14.7 clips/s | failed=0]m05_vjepa:  62%|██████▏   | 6160/10000 [07:19<04:21, 14.67clip/s, 14.7 clips/s | failed=0]m05_vjepa:  62%|██████▏   | 6160/10000 [07:19<04:21, 14.67clip/s, 14.6 clips/s | failed=0]m05_vjepa:  62%|██████▏   | 6160/10000 [07:29<04:21, 14.67clip/s, 14.6 clips/s | failed=0]m05_vjepa:  63%|██████▎   | 6336/10000 [07:31<04:11, 14.59clip/s, 14.6 clips/s | failed=0]m05_vjepa:  63%|██████▎   | 6336/10000 [07:31<04:11, 14.59clip/s, 14.5 clips/s | failed=0]m05_vjepa:  65%|██████▌   | 6512/10000 [07:43<03:58, 14.60clip/s, 14.5 clips/s | failed=0]m05_vjepa:  65%|██████▌   | 6512/10000 [07:43<03:58, 14.60clip/s, 14.6 clips/s | failed=0]m05_vjepa:  67%|██████▋   | 6688/10000 [07:55<03:46, 14.64clip/s, 14.6 clips/s | failed=0]m05_vjepa:  67%|██████▋   | 6688/10000 [07:55<03:46, 14.64clip/s, 14.7 clips/s | failed=0]m05_vjepa:  69%|██████▊   | 6864/10000 [08:07<03:33, 14.67clip/s, 14.7 clips/s | failed=0]m05_vjepa:  69%|██████▊   | 6864/10000 [08:07<03:33, 14.67clip/s, 14.7 clips/s | failed=0]m05_vjepa:  70%|███████   | 7040/10000 [08:19<03:21, 14.66clip/s, 14.7 clips/s | failed=0]m05_vjepa:  70%|███████   | 7040/10000 [08:19<03:21, 14.66clip/s, 14.7 clips/s | failed=0]m05_vjepa:  70%|███████   | 7040/10000 [08:29<03:21, 14.66clip/s, 14.7 clips/s | failed=0]m05_vjepa:  72%|███████▏  | 7216/10000 [08:31<03:10, 14.62clip/s, 14.7 clips/s | failed=0]m05_vjepa:  72%|███████▏  | 7216/10000 [08:31<03:10, 14.62clip/s, 14.5 clips/s | failed=0]m05_vjepa:  74%|███████▍  | 7392/10000 [08:43<02:58, 14.59clip/s, 14.5 clips/s | failed=0]m05_vjepa:  74%|███████▍  | 7392/10000 [08:43<02:58, 14.59clip/s, 14.5 clips/s | failed=0]m05_vjepa:  76%|███████▌  | 7568/10000 [08:55<02:46, 14.61clip/s, 14.5 clips/s | failed=0]m05_vjepa:  76%|███████▌  | 7568/10000 [08:55<02:46, 14.61clip/s, 14.6 clips/s | failed=0]m05_vjepa:  77%|███████▋  | 7744/10000 [09:07<02:34, 14.61clip/s, 14.6 clips/s | failed=0]m05_vjepa:  77%|███████▋  | 7744/10000 [09:07<02:34, 14.61clip/s, 14.6 clips/s | failed=0]m05_vjepa:  77%|███████▋  | 7744/10000 [09:19<02:34, 14.61clip/s, 14.6 clips/s | failed=0]m05_vjepa:  79%|███████▉  | 7920/10000 [09:19<02:22, 14.62clip/s, 14.6 clips/s | failed=0]m05_vjepa:  79%|███████▉  | 7920/10000 [09:19<02:22, 14.62clip/s, 14.6 clips/s | failed=0]m05_vjepa:  81%|████████  | 8096/10000 [09:31<02:10, 14.61clip/s, 14.6 clips/s | failed=0]m05_vjepa:  81%|████████  | 8096/10000 [09:31<02:10, 14.61clip/s, 14.6 clips/s | failed=0]m05_vjepa:  83%|████████▎ | 8272/10000 [09:43<01:58, 14.64clip/s, 14.6 clips/s | failed=0]m05_vjepa:  83%|████████▎ | 8272/10000 [09:43<01:58, 14.64clip/s, 14.7 clips/s | failed=0]m05_vjepa:  84%|████████▍ | 8448/10000 [09:55<01:45, 14.67clip/s, 14.7 clips/s | failed=0]m05_vjepa:  84%|████████▍ | 8448/10000 [09:55<01:45, 14.67clip/s, 14.7 clips/s | failed=0]m05_vjepa:  86%|████████▌ | 8624/10000 [10:07<01:33, 14.68clip/s, 14.7 clips/s | failed=0]m05_vjepa:  86%|████████▌ | 8624/10000 [10:07<01:33, 14.68clip/s, 14.7 clips/s | failed=0]m05_vjepa:  86%|████████▌ | 8624/10000 [10:19<01:33, 14.68clip/s, 14.7 clips/s | failed=0]m05_vjepa:  88%|████████▊ | 8800/10000 [10:19<01:21, 14.68clip/s, 14.7 clips/s | failed=0]m05_vjepa:  88%|████████▊ | 8800/10000 [10:19<01:21, 14.68clip/s, 14.7 clips/s | failed=0]m05_vjepa:  90%|████████▉ | 8976/10000 [10:31<01:09, 14.71clip/s, 14.7 clips/s | failed=0]m05_vjepa:  90%|████████▉ | 8976/10000 [10:31<01:09, 14.71clip/s, 14.7 clips/s | failed=0]m05_vjepa:  92%|█████████▏| 9152/10000 [10:43<00:57, 14.68clip/s, 14.7 clips/s | failed=0]m05_vjepa:  92%|█████████▏| 9152/10000 [10:43<00:57, 14.68clip/s, 14.7 clips/s | failed=0]m05_vjepa:  93%|█████████▎| 9328/10000 [10:55<00:45, 14.71clip/s, 14.7 clips/s | failed=0]m05_vjepa:  93%|█████████▎| 9328/10000 [10:55<00:45, 14.71clip/s, 14.8 clips/s | failed=0]m05_vjepa:  95%|█████████▌| 9504/10000 [11:07<00:33, 14.70clip/s, 14.8 clips/s | failed=0]m05_vjepa:  95%|█████████▌| 9504/10000 [11:07<00:33, 14.70clip/s, 14.7 clips/s | failed=0]m05_vjepa:  97%|█████████▋| 9680/10000 [11:19<00:21, 14.72clip/s, 14.7 clips/s | failed=0]m05_vjepa:  97%|█████████▋| 9680/10000 [11:19<00:21, 14.72clip/s, 14.7 clips/s | failed=0]m05_vjepa:  97%|█████████▋| 9680/10000 [11:29<00:21, 14.72clip/s, 14.7 clips/s | failed=0]m05_vjepa:  99%|█████████▊| 9856/10000 [11:31<00:09, 14.74clip/s, 14.7 clips/s | failed=0]m05_vjepa:  99%|█████████▊| 9856/10000 [11:31<00:09, 14.74clip/s, 14.8 clips/s | failed=0]m05_vjepa: 10032clip [11:43, 14.71clip/s, 14.8 clips/s | failed=0]                        m05_vjepa: 10032clip [11:43, 14.71clip/s, 14.7 clips/s | failed=0]m05_vjepa: 10032clip [11:43, 14.26clip/s, 14.7 clips/s | failed=0]
+
+Segment done: 10,032 clips in 704s (14.25 clips/s)
+wandb: updating run metadata
+wandb: uploading history steps 55-56, summary, console lines 17-17
+wandb: 
+wandb: Run history:
+wandb:        clips_processed ▁▁▁▂▂▂▂▂▂▃▃▃▃▃▃▄▄▄▅▅▅▅▅▅▅▆▆▆▆▆▇▇▇▇▇▇▇███
+wandb:                 failed ▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁
+wandb: throughput_clips_per_s ▁███████████████████████████████████████
+wandb: 
+wandb: Run summary:
+wandb:        clips_processed 70224
+wandb:                 failed 0
+wandb: throughput_clips_per_s 14.71185
+wandb: 
+wandb: 🚀 View run m05_FULL at: https://wandb.ai/sjsu_llm/walkindia-200k/runs/a6d0b7gg
+wandb: ⭐️ View project at: https://wandb.ai/sjsu_llm/walkindia-200k
+wandb: Synced 5 W&B file(s), 0 media file(s), 0 artifact file(s) and 0 other file(s)
+wandb: Find logs at: ./wandb/run-20260404_122620-a6d0b7gg/logs
+Worker exiting (GPU memory will be released).
+Checkpoint loaded: 70,224 embeddings from .m05_checkpoint_vjepa_lambda0_001.npz
+Worker done. Progress: 70,224/115,687
+
+============================================================
+WORKER 8: embeddings 70,224 → 80,224
+============================================================
+/workspace/factorjepa/venv_walkindia/lib/python3.12/site-packages/transformers/utils/hub.py:110: FutureWarning: Using `TRANSFORMERS_CACHE` is deprecated and will be removed in v5 of Transformers. Use `HF_HOME` instead.
+  warnings.warn(
+Using PyAV for video decoding
+GPU: NVIDIA RTX PRO 6000 Blackwell Workstation Edition
+CUDA version: 12.8
+Batch size: 176 (from inference/vjepa2 profiler)
+wandb: [wandb.login()] Loaded credentials for https://api.wandb.ai from WANDB_API_KEY.
+wandb: Currently logged in as: kapilw25 (sjsu_llm) to https://api.wandb.ai. Use `wandb login --relogin` to force relogin
+wandb: WARNING Using a boolean value for 'reinit' is deprecated. Use 'return_previous' or 'finish_previous' instead.
+wandb: setting up run 0jjj4r9n
+wandb: Tracking run with wandb version 0.25.1
+wandb: Run data is saved locally in /workspace/factorjepa/wandb/run-20260404_123828-0jjj4r9n
+wandb: Run `wandb offline` to turn off syncing.
+wandb: Syncing run m05_FULL
+wandb: ⭐️ View project at https://wandb.ai/sjsu_llm/walkindia-200k
+wandb: 🚀 View run at https://wandb.ai/sjsu_llm/walkindia-200k/runs/0jjj4r9n
+wandb: run=m05_FULL url=https://wandb.ai/sjsu_llm/walkindia-200k/runs/0jjj4r9n
+Checkpoint loaded: 70,224 embeddings from .m05_checkpoint_vjepa_lambda0_001.npz
+
+Loading model: outputs/full/m09_lambda0_001/student_encoder.pt
+Adapted model: num_frames=16 (from training config)
+/workspace/factorjepa/venv_walkindia/lib/python3.12/site-packages/timm/models/layers/__init__.py:49: FutureWarning: Importing from timm.models.layers is deprecated, please import via timm.layers
+  warnings.warn(f"Importing from {__name__} is deprecated, please import via timm.layers", FutureWarning)
+Adapted encoder: loaded 484/484 params (missing: 0, unexpected: 0)
+Applying torch.compile...
+Warmup: compiling inductor graph...
+Model loaded on cuda (dtype: torch.float16)
+
+=== Streaming Config ===
+batch_size:    176
+video_decoder: PyAV
+prefetch:      8 batches
+checkpoint:    every 500 clips
+m05_vjepa:   0%|          | 0/10000 [00:00<?, ?clip/s]  Parallel TAR reader: 8 threads, 116 TARs, queue=256
+m05_vjepa:   2%|▏         | 176/10000 [00:33<30:58,  5.29clip/s]m05_vjepa:   2%|▏         | 176/10000 [00:33<30:58,  5.29clip/s, 5.3 clips/s | failed=0]m05_vjepa:   4%|▎         | 352/10000 [00:44<18:45,  8.57clip/s, 5.3 clips/s | failed=0]m05_vjepa:   4%|▎         | 352/10000 [00:44<18:45,  8.57clip/s, 15.2 clips/s | failed=0]m05_vjepa:   5%|▌         | 528/10000 [00:56<14:49, 10.65clip/s, 15.2 clips/s | failed=0]m05_vjepa:   5%|▌         | 528/10000 [00:56<14:49, 10.65clip/s, 15.1 clips/s | failed=0]m05_vjepa:   7%|▋         | 704/10000 [01:08<12:53, 12.01clip/s, 15.1 clips/s | failed=0]m05_vjepa:   7%|▋         | 704/10000 [01:08<12:53, 12.01clip/s, 15.0 clips/s | failed=0]m05_vjepa:   7%|▋         | 704/10000 [01:19<12:53, 12.01clip/s, 15.0 clips/s | failed=0]m05_vjepa:   9%|▉         | 880/10000 [01:20<11:48, 12.86clip/s, 15.0 clips/s | failed=0]m05_vjepa:   9%|▉         | 880/10000 [01:20<11:48, 12.86clip/s, 14.7 clips/s | failed=0]m05_vjepa:  11%|█         | 1056/10000 [01:32<11:05, 13.44clip/s, 14.7 clips/s | failed=0]m05_vjepa:  11%|█         | 1056/10000 [01:32<11:05, 13.44clip/s, 14.7 clips/s | failed=0]m05_vjepa:  12%|█▏        | 1232/10000 [01:44<10:32, 13.87clip/s, 14.7 clips/s | failed=0]m05_vjepa:  12%|█▏        | 1232/10000 [01:44<10:32, 13.87clip/s, 14.8 clips/s | failed=0]m05_vjepa:  14%|█▍        | 1408/10000 [01:56<10:07, 14.14clip/s, 14.8 clips/s | failed=0]m05_vjepa:  14%|█▍        | 1408/10000 [01:56<10:07, 14.14clip/s, 14.8 clips/s | failed=0]m05_vjepa:  16%|█▌        | 1584/10000 [02:08<09:48, 14.31clip/s, 14.8 clips/s | failed=0]m05_vjepa:  16%|█▌        | 1584/10000 [02:08<09:48, 14.31clip/s, 14.7 clips/s | failed=0]m05_vjepa:  16%|█▌        | 1584/10000 [02:19<09:48, 14.31clip/s, 14.7 clips/s | failed=0]m05_vjepa:  18%|█▊        | 1760/10000 [02:20<09:30, 14.44clip/s, 14.7 clips/s | failed=0]m05_vjepa:  18%|█▊        | 1760/10000 [02:20<09:30, 14.44clip/s, 14.7 clips/s | failed=0]m05_vjepa:  19%|█▉        | 1936/10000 [02:32<09:15, 14.52clip/s, 14.7 clips/s | failed=0]m05_vjepa:  19%|█▉        | 1936/10000 [02:32<09:15, 14.52clip/s, 14.7 clips/s | failed=0]m05_vjepa:  21%|██        | 2112/10000 [02:44<09:02, 14.53clip/s, 14.7 clips/s | failed=0]m05_vjepa:  21%|██        | 2112/10000 [02:44<09:02, 14.53clip/s, 14.6 clips/s | failed=0]m05_vjepa:  23%|██▎       | 2288/10000 [02:56<08:50, 14.54clip/s, 14.6 clips/s | failed=0]m05_vjepa:  23%|██▎       | 2288/10000 [02:56<08:50, 14.54clip/s, 14.6 clips/s | failed=0]m05_vjepa:  25%|██▍       | 2464/10000 [03:08<08:37, 14.57clip/s, 14.6 clips/s | failed=0]m05_vjepa:  25%|██▍       | 2464/10000 [03:08<08:37, 14.57clip/s, 14.6 clips/s | failed=0]m05_vjepa:  25%|██▍       | 2464/10000 [03:19<08:37, 14.57clip/s, 14.6 clips/s | failed=0]m05_vjepa:  26%|██▋       | 2640/10000 [03:20<08:23, 14.61clip/s, 14.6 clips/s | failed=0]m05_vjepa:  26%|██▋       | 2640/10000 [03:20<08:23, 14.61clip/s, 14.7 clips/s | failed=0]m05_vjepa:  28%|██▊       | 2816/10000 [03:32<08:10, 14.64clip/s, 14.7 clips/s | failed=0]m05_vjepa:  28%|██▊       | 2816/10000 [03:32<08:10, 14.64clip/s, 14.7 clips/s | failed=0]m05_vjepa:  30%|██▉       | 2992/10000 [03:44<07:58, 14.64clip/s, 14.7 clips/s | failed=0]m05_vjepa:  30%|██▉       | 2992/10000 [03:44<07:58, 14.64clip/s, 14.6 clips/s | failed=0]m05_vjepa:  32%|███▏      | 3168/10000 [03:56<07:47, 14.62clip/s, 14.6 clips/s | failed=0]m05_vjepa:  32%|███▏      | 3168/10000 [03:56<07:47, 14.62clip/s, 14.6 clips/s | failed=0]m05_vjepa:  33%|███▎      | 3344/10000 [04:08<07:35, 14.60clip/s, 14.6 clips/s | failed=0]m05_vjepa:  33%|███▎      | 3344/10000 [04:08<07:35, 14.60clip/s, 14.6 clips/s | failed=0]m05_vjepa:  33%|███▎      | 3344/10000 [04:19<07:35, 14.60clip/s, 14.6 clips/s | failed=0]m05_vjepa:  35%|███▌      | 3520/10000 [04:20<07:23, 14.60clip/s, 14.6 clips/s | failed=0]m05_vjepa:  35%|███▌      | 3520/10000 [04:20<07:23, 14.60clip/s, 14.6 clips/s | failed=0]m05_vjepa:  37%|███▋      | 3696/10000 [04:32<07:10, 14.64clip/s, 14.6 clips/s | failed=0]m05_vjepa:  37%|███▋      | 3696/10000 [04:32<07:10, 14.64clip/s, 14.7 clips/s | failed=0]m05_vjepa:  39%|███▊      | 3872/10000 [04:44<06:57, 14.66clip/s, 14.7 clips/s | failed=0]m05_vjepa:  39%|███▊      | 3872/10000 [04:44<06:57, 14.66clip/s, 14.7 clips/s | failed=0]m05_vjepa:  40%|████      | 4048/10000 [04:56<06:46, 14.66clip/s, 14.7 clips/s | failed=0]m05_vjepa:  40%|████      | 4048/10000 [04:56<06:46, 14.66clip/s, 14.6 clips/s | failed=0]m05_vjepa:  42%|████▏     | 4224/10000 [05:08<06:33, 14.68clip/s, 14.6 clips/s | failed=0]m05_vjepa:  42%|████▏     | 4224/10000 [05:08<06:33, 14.68clip/s, 14.7 clips/s | failed=0]m05_vjepa:  42%|████▏     | 4224/10000 [05:19<06:33, 14.68clip/s, 14.7 clips/s | failed=0]m05_vjepa:  44%|████▍     | 4400/10000 [05:20<06:21, 14.67clip/s, 14.7 clips/s | failed=0]m05_vjepa:  44%|████▍     | 4400/10000 [05:20<06:21, 14.67clip/s, 14.7 clips/s | failed=0]m05_vjepa:  46%|████▌     | 4576/10000 [05:32<06:10, 14.65clip/s, 14.7 clips/s | failed=0]m05_vjepa:  46%|████▌     | 4576/10000 [05:32<06:10, 14.65clip/s, 14.6 clips/s | failed=0]m05_vjepa:  48%|████▊     | 4752/10000 [05:44<05:57, 14.67clip/s, 14.6 clips/s | failed=0]m05_vjepa:  48%|████▊     | 4752/10000 [05:44<05:57, 14.67clip/s, 14.7 clips/s | failed=0]m05_vjepa:  49%|████▉     | 4928/10000 [05:56<05:45, 14.68clip/s, 14.7 clips/s | failed=0]m05_vjepa:  49%|████▉     | 4928/10000 [05:56<05:45, 14.68clip/s, 14.7 clips/s | failed=0]m05_vjepa:  51%|█████     | 5104/10000 [06:08<05:33, 14.67clip/s, 14.7 clips/s | failed=0]m05_vjepa:  51%|█████     | 5104/10000 [06:08<05:33, 14.67clip/s, 14.7 clips/s | failed=0]m05_vjepa:  51%|█████     | 5104/10000 [06:19<05:33, 14.67clip/s, 14.7 clips/s | failed=0]m05_vjepa:  53%|█████▎    | 5280/10000 [06:20<05:21, 14.69clip/s, 14.7 clips/s | failed=0]m05_vjepa:  53%|█████▎    | 5280/10000 [06:20<05:21, 14.69clip/s, 14.7 clips/s | failed=0]m05_vjepa:  55%|█████▍    | 5456/10000 [06:32<05:09, 14.66clip/s, 14.7 clips/s | failed=0]m05_vjepa:  55%|█████▍    | 5456/10000 [06:32<05:09, 14.66clip/s, 14.7 clips/s | failed=0]m05_vjepa:  56%|█████▋    | 5632/10000 [06:44<04:58, 14.62clip/s, 14.7 clips/s | failed=0]m05_vjepa:  56%|█████▋    | 5632/10000 [06:44<04:58, 14.62clip/s, 14.5 clips/s | failed=0]m05_vjepa:  58%|█████▊    | 5808/10000 [06:56<04:46, 14.65clip/s, 14.5 clips/s | failed=0]m05_vjepa:  58%|█████▊    | 5808/10000 [06:56<04:46, 14.65clip/s, 14.6 clips/s | failed=0]m05_vjepa:  60%|█████▉    | 5984/10000 [07:08<04:34, 14.66clip/s, 14.6 clips/s | failed=0]m05_vjepa:  60%|█████▉    | 5984/10000 [07:08<04:34, 14.66clip/s, 14.6 clips/s | failed=0]m05_vjepa:  60%|█████▉    | 5984/10000 [07:19<04:34, 14.66clip/s, 14.6 clips/s | failed=0]m05_vjepa:  62%|██████▏   | 6160/10000 [07:20<04:21, 14.67clip/s, 14.6 clips/s | failed=0]m05_vjepa:  62%|██████▏   | 6160/10000 [07:20<04:21, 14.67clip/s, 14.7 clips/s | failed=0]m05_vjepa:  63%|██████▎   | 6336/10000 [07:32<04:09, 14.66clip/s, 14.7 clips/s | failed=0]m05_vjepa:  63%|██████▎   | 6336/10000 [07:32<04:09, 14.66clip/s, 14.7 clips/s | failed=0]m05_vjepa:  65%|██████▌   | 6512/10000 [07:44<03:58, 14.64clip/s, 14.7 clips/s | failed=0]m05_vjepa:  65%|██████▌   | 6512/10000 [07:44<03:58, 14.64clip/s, 14.6 clips/s | failed=0]m05_vjepa:  67%|██████▋   | 6688/10000 [07:56<03:45, 14.67clip/s, 14.6 clips/s | failed=0]m05_vjepa:  67%|██████▋   | 6688/10000 [07:56<03:45, 14.67clip/s, 14.7 clips/s | failed=0]m05_vjepa:  69%|██████▊   | 6864/10000 [08:08<03:33, 14.69clip/s, 14.7 clips/s | failed=0]m05_vjepa:  69%|██████▊   | 6864/10000 [08:08<03:33, 14.69clip/s, 14.7 clips/s | failed=0]m05_vjepa:  69%|██████▊   | 6864/10000 [08:19<03:33, 14.69clip/s, 14.7 clips/s | failed=0]m05_vjepa:  70%|███████   | 7040/10000 [08:20<03:21, 14.69clip/s, 14.7 clips/s | failed=0]m05_vjepa:  70%|███████   | 7040/10000 [08:20<03:21, 14.69clip/s, 14.7 clips/s | failed=0]m05_vjepa:  72%|███████▏  | 7216/10000 [08:32<03:09, 14.70clip/s, 14.7 clips/s | failed=0]m05_vjepa:  72%|███████▏  | 7216/10000 [08:32<03:09, 14.70clip/s, 14.7 clips/s | failed=0]m05_vjepa:  74%|███████▍  | 7392/10000 [08:44<02:57, 14.72clip/s, 14.7 clips/s | failed=0]m05_vjepa:  74%|███████▍  | 7392/10000 [08:44<02:57, 14.72clip/s, 14.8 clips/s | failed=0]m05_vjepa:  76%|███████▌  | 7568/10000 [08:56<02:45, 14.68clip/s, 14.8 clips/s | failed=0]m05_vjepa:  76%|███████▌  | 7568/10000 [08:56<02:45, 14.68clip/s, 14.7 clips/s | failed=0]m05_vjepa:  77%|███████▋  | 7744/10000 [09:08<02:33, 14.67clip/s, 14.7 clips/s | failed=0]m05_vjepa:  77%|███████▋  | 7744/10000 [09:08<02:33, 14.67clip/s, 14.7 clips/s | failed=0]m05_vjepa:  77%|███████▋  | 7744/10000 [09:19<02:33, 14.67clip/s, 14.7 clips/s | failed=0]m05_vjepa:  79%|███████▉  | 7920/10000 [09:20<02:21, 14.69clip/s, 14.7 clips/s | failed=0]m05_vjepa:  79%|███████▉  | 7920/10000 [09:20<02:21, 14.69clip/s, 14.7 clips/s | failed=0]m05_vjepa:  81%|████████  | 8096/10000 [09:32<02:09, 14.69clip/s, 14.7 clips/s | failed=0]m05_vjepa:  81%|████████  | 8096/10000 [09:32<02:09, 14.69clip/s, 14.7 clips/s | failed=0]m05_vjepa:  83%|████████▎ | 8272/10000 [09:44<01:57, 14.71clip/s, 14.7 clips/s | failed=0]m05_vjepa:  83%|████████▎ | 8272/10000 [09:44<01:57, 14.71clip/s, 14.7 clips/s | failed=0]m05_vjepa:  84%|████████▍ | 8448/10000 [09:56<01:45, 14.72clip/s, 14.7 clips/s | failed=0]m05_vjepa:  84%|████████▍ | 8448/10000 [09:56<01:45, 14.72clip/s, 14.7 clips/s | failed=0]m05_vjepa:  86%|████████▌ | 8624/10000 [10:08<01:33, 14.66clip/s, 14.7 clips/s | failed=0]m05_vjepa:  86%|████████▌ | 8624/10000 [10:08<01:33, 14.66clip/s, 14.7 clips/s | failed=0]m05_vjepa:  86%|████████▌ | 8624/10000 [10:19<01:33, 14.66clip/s, 14.7 clips/s | failed=0]m05_vjepa:  88%|████████▊ | 8800/10000 [10:19<01:21, 14.72clip/s, 14.7 clips/s | failed=0]m05_vjepa:  88%|████████▊ | 8800/10000 [10:19<01:21, 14.72clip/s, 14.8 clips/s | failed=0]m05_vjepa:  90%|████████▉ | 8976/10000 [10:31<01:09, 14.72clip/s, 14.8 clips/s | failed=0]m05_vjepa:  90%|████████▉ | 8976/10000 [10:31<01:09, 14.72clip/s, 14.8 clips/s | failed=0]m05_vjepa:  92%|█████████▏| 9152/10000 [10:43<00:57, 14.75clip/s, 14.8 clips/s | failed=0]m05_vjepa:  92%|█████████▏| 9152/10000 [10:43<00:57, 14.75clip/s, 14.8 clips/s | failed=0]m05_vjepa:  93%|█████████▎| 9328/10000 [10:55<00:45, 14.75clip/s, 14.8 clips/s | failed=0]m05_vjepa:  93%|█████████▎| 9328/10000 [10:55<00:45, 14.75clip/s, 14.8 clips/s | failed=0]m05_vjepa:  95%|█████████▌| 9504/10000 [11:07<00:33, 14.73clip/s, 14.8 clips/s | failed=0]m05_vjepa:  95%|█████████▌| 9504/10000 [11:07<00:33, 14.73clip/s, 14.7 clips/s | failed=0]m05_vjepa:  95%|█████████▌| 9504/10000 [11:19<00:33, 14.73clip/s, 14.7 clips/s | failed=0]m05_vjepa:  97%|█████████▋| 9680/10000 [11:19<00:21, 14.75clip/s, 14.7 clips/s | failed=0]m05_vjepa:  97%|█████████▋| 9680/10000 [11:19<00:21, 14.75clip/s, 14.7 clips/s | failed=0]m05_vjepa:  99%|█████████▊| 9856/10000 [11:31<00:09, 14.77clip/s, 14.7 clips/s | failed=0]m05_vjepa:  99%|█████████▊| 9856/10000 [11:31<00:09, 14.77clip/s, 14.8 clips/s | failed=0]m05_vjepa: 10032clip [11:43, 14.73clip/s, 14.8 clips/s | failed=0]                        m05_vjepa: 10032clip [11:43, 14.73clip/s, 14.7 clips/s | failed=0]m05_vjepa: 10032clip [11:43, 14.26clip/s, 14.7 clips/s | failed=0]
+
+Segment done: 10,032 clips in 704s (14.25 clips/s)
+wandb: updating run metadata
+wandb: uploading console lines 19-20
+wandb: 
+wandb: Run history:
+wandb:        clips_processed ▁▁▁▂▂▂▂▂▂▂▃▃▃▃▃▃▄▄▄▄▄▄▅▅▅▅▅▆▆▆▆▇▇▇▇▇▇███
+wandb:                 failed ▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁
+wandb: throughput_clips_per_s ▁███████████████████████████████████████
+wandb: 
+wandb: Run summary:
+wandb:        clips_processed 80256
+wandb:                 failed 0
+wandb: throughput_clips_per_s 14.72355
+wandb: 
+wandb: 🚀 View run m05_FULL at: https://wandb.ai/sjsu_llm/walkindia-200k/runs/0jjj4r9n
+wandb: ⭐️ View project at: https://wandb.ai/sjsu_llm/walkindia-200k
+wandb: Synced 5 W&B file(s), 0 media file(s), 0 artifact file(s) and 0 other file(s)
+wandb: Find logs at: ./wandb/run-20260404_123828-0jjj4r9n/logs
+Worker exiting (GPU memory will be released).
+Checkpoint loaded: 80,256 embeddings from .m05_checkpoint_vjepa_lambda0_001.npz
+Worker done. Progress: 80,256/115,687
+
+============================================================
+WORKER 9: embeddings 80,256 → 90,256
+============================================================
+/workspace/factorjepa/venv_walkindia/lib/python3.12/site-packages/transformers/utils/hub.py:110: FutureWarning: Using `TRANSFORMERS_CACHE` is deprecated and will be removed in v5 of Transformers. Use `HF_HOME` instead.
+  warnings.warn(
+Using PyAV for video decoding
+GPU: NVIDIA RTX PRO 6000 Blackwell Workstation Edition
+CUDA version: 12.8
+Batch size: 176 (from inference/vjepa2 profiler)
+wandb: [wandb.login()] Loaded credentials for https://api.wandb.ai from WANDB_API_KEY.
+wandb: Currently logged in as: kapilw25 (sjsu_llm) to https://api.wandb.ai. Use `wandb login --relogin` to force relogin
+wandb: WARNING Using a boolean value for 'reinit' is deprecated. Use 'return_previous' or 'finish_previous' instead.
+wandb: setting up run 042hmvd6
+wandb: Tracking run with wandb version 0.25.1
+wandb: Run data is saved locally in /workspace/factorjepa/wandb/run-20260404_125037-042hmvd6
+wandb: Run `wandb offline` to turn off syncing.
+wandb: Syncing run m05_FULL
+wandb: ⭐️ View project at https://wandb.ai/sjsu_llm/walkindia-200k
+wandb: 🚀 View run at https://wandb.ai/sjsu_llm/walkindia-200k/runs/042hmvd6
+wandb: run=m05_FULL url=https://wandb.ai/sjsu_llm/walkindia-200k/runs/042hmvd6
+Checkpoint loaded: 80,256 embeddings from .m05_checkpoint_vjepa_lambda0_001.npz
+
+Loading model: outputs/full/m09_lambda0_001/student_encoder.pt
+Adapted model: num_frames=16 (from training config)
+/workspace/factorjepa/venv_walkindia/lib/python3.12/site-packages/timm/models/layers/__init__.py:49: FutureWarning: Importing from timm.models.layers is deprecated, please import via timm.layers
+  warnings.warn(f"Importing from {__name__} is deprecated, please import via timm.layers", FutureWarning)
+Adapted encoder: loaded 484/484 params (missing: 0, unexpected: 0)
+Applying torch.compile...
+Warmup: compiling inductor graph...
+Model loaded on cuda (dtype: torch.float16)
+
+=== Streaming Config ===
+batch_size:    176
+video_decoder: PyAV
+prefetch:      8 batches
+checkpoint:    every 500 clips
+m05_vjepa:   0%|          | 0/10000 [00:00<?, ?clip/s]  Parallel TAR reader: 8 threads, 116 TARs, queue=256
+m05_vjepa:   2%|▏         | 176/10000 [00:35<32:37,  5.02clip/s]m05_vjepa:   2%|▏         | 176/10000 [00:35<32:37,  5.02clip/s, 5.0 clips/s | failed=0]m05_vjepa:   4%|▎         | 352/10000 [00:46<19:25,  8.28clip/s, 5.0 clips/s | failed=0]m05_vjepa:   4%|▎         | 352/10000 [00:46<19:25,  8.28clip/s, 15.2 clips/s | failed=0]m05_vjepa:   5%|▌         | 528/10000 [00:58<15:11, 10.39clip/s, 15.2 clips/s | failed=0]m05_vjepa:   5%|▌         | 528/10000 [00:58<15:11, 10.39clip/s, 15.0 clips/s | failed=0]m05_vjepa:   5%|▌         | 528/10000 [01:09<15:11, 10.39clip/s, 15.0 clips/s | failed=0]m05_vjepa:   7%|▋         | 704/10000 [01:10<13:07, 11.81clip/s, 15.0 clips/s | failed=0]m05_vjepa:   7%|▋         | 704/10000 [01:10<13:07, 11.81clip/s, 15.0 clips/s | failed=0]m05_vjepa:   9%|▉         | 880/10000 [01:22<11:53, 12.78clip/s, 15.0 clips/s | failed=0]m05_vjepa:   9%|▉         | 880/10000 [01:22<11:53, 12.78clip/s, 14.9 clips/s | failed=0]m05_vjepa:  11%|█         | 1056/10000 [01:33<11:07, 13.41clip/s, 14.9 clips/s | failed=0]m05_vjepa:  11%|█         | 1056/10000 [01:33<11:07, 13.41clip/s, 14.9 clips/s | failed=0]m05_vjepa:  12%|█▏        | 1232/10000 [01:45<10:35, 13.80clip/s, 14.9 clips/s | failed=0]m05_vjepa:  12%|█▏        | 1232/10000 [01:45<10:35, 13.80clip/s, 14.8 clips/s | failed=0]m05_vjepa:  14%|█▍        | 1408/10000 [01:57<10:09, 14.10clip/s, 14.8 clips/s | failed=0]m05_vjepa:  14%|█▍        | 1408/10000 [01:57<10:09, 14.10clip/s, 14.8 clips/s | failed=0]m05_vjepa:  14%|█▍        | 1408/10000 [02:09<10:09, 14.10clip/s, 14.8 clips/s | failed=0]m05_vjepa:  16%|█▌        | 1584/10000 [02:09<09:49, 14.28clip/s, 14.8 clips/s | failed=0]m05_vjepa:  16%|█▌        | 1584/10000 [02:09<09:49, 14.28clip/s, 14.7 clips/s | failed=0]m05_vjepa:  18%|█▊        | 1760/10000 [02:21<09:33, 14.37clip/s, 14.7 clips/s | failed=0]m05_vjepa:  18%|█▊        | 1760/10000 [02:21<09:33, 14.37clip/s, 14.7 clips/s | failed=0]m05_vjepa:  19%|█▉        | 1936/10000 [02:33<09:18, 14.44clip/s, 14.7 clips/s | failed=0]m05_vjepa:  19%|█▉        | 1936/10000 [02:33<09:18, 14.44clip/s, 14.6 clips/s | failed=0]m05_vjepa:  21%|██        | 2112/10000 [02:45<09:03, 14.52clip/s, 14.6 clips/s | failed=0]m05_vjepa:  21%|██        | 2112/10000 [02:45<09:03, 14.52clip/s, 14.7 clips/s | failed=0]m05_vjepa:  23%|██▎       | 2288/10000 [02:57<08:49, 14.57clip/s, 14.7 clips/s | failed=0]m05_vjepa:  23%|██▎       | 2288/10000 [02:57<08:49, 14.57clip/s, 14.7 clips/s | failed=0]m05_vjepa:  23%|██▎       | 2288/10000 [03:09<08:49, 14.57clip/s, 14.7 clips/s | failed=0]m05_vjepa:  25%|██▍       | 2464/10000 [03:09<08:37, 14.57clip/s, 14.7 clips/s | failed=0]m05_vjepa:  25%|██▍       | 2464/10000 [03:09<08:37, 14.57clip/s, 14.6 clips/s | failed=0]m05_vjepa:  26%|██▋       | 2640/10000 [03:21<08:24, 14.59clip/s, 14.6 clips/s | failed=0]m05_vjepa:  26%|██▋       | 2640/10000 [03:21<08:24, 14.59clip/s, 14.6 clips/s | failed=0]m05_vjepa:  28%|██▊       | 2816/10000 [03:33<08:10, 14.64clip/s, 14.6 clips/s | failed=0]m05_vjepa:  28%|██▊       | 2816/10000 [03:33<08:10, 14.64clip/s, 14.7 clips/s | failed=0]m05_vjepa:  30%|██▉       | 2992/10000 [03:45<07:58, 14.65clip/s, 14.7 clips/s | failed=0]m05_vjepa:  30%|██▉       | 2992/10000 [03:45<07:58, 14.65clip/s, 14.7 clips/s | failed=0]m05_vjepa:  32%|███▏      | 3168/10000 [03:57<07:45, 14.67clip/s, 14.7 clips/s | failed=0]m05_vjepa:  32%|███▏      | 3168/10000 [03:57<07:45, 14.67clip/s, 14.7 clips/s | failed=0]m05_vjepa:  32%|███▏      | 3168/10000 [04:09<07:45, 14.67clip/s, 14.7 clips/s | failed=0]m05_vjepa:  33%|███▎      | 3344/10000 [04:09<07:33, 14.66clip/s, 14.7 clips/s | failed=0]m05_vjepa:  33%|███▎      | 3344/10000 [04:09<07:33, 14.66clip/s, 14.7 clips/s | failed=0]m05_vjepa:  35%|███▌      | 3520/10000 [04:21<07:22, 14.65clip/s, 14.7 clips/s | failed=0]m05_vjepa:  35%|███▌      | 3520/10000 [04:21<07:22, 14.65clip/s, 14.6 clips/s | failed=0]m05_vjepa:  37%|███▋      | 3696/10000 [04:33<07:09, 14.68clip/s, 14.6 clips/s | failed=0]m05_vjepa:  37%|███▋      | 3696/10000 [04:33<07:09, 14.68clip/s, 14.7 clips/s | failed=0]m05_vjepa:  39%|███▊      | 3872/10000 [04:45<06:56, 14.70clip/s, 14.7 clips/s | failed=0]m05_vjepa:  39%|███▊      | 3872/10000 [04:45<06:56, 14.70clip/s, 14.7 clips/s | failed=0]m05_vjepa:  40%|████      | 4048/10000 [04:57<06:45, 14.68clip/s, 14.7 clips/s | failed=0]m05_vjepa:  40%|████      | 4048/10000 [04:57<06:45, 14.68clip/s, 14.6 clips/s | failed=0]m05_vjepa:  40%|████      | 4048/10000 [05:09<06:45, 14.68clip/s, 14.6 clips/s | failed=0]m05_vjepa:  42%|████▏     | 4224/10000 [05:09<06:33, 14.68clip/s, 14.6 clips/s | failed=0]m05_vjepa:  42%|████▏     | 4224/10000 [05:09<06:33, 14.68clip/s, 14.7 clips/s | failed=0]m05_vjepa:  44%|████▍     | 4400/10000 [05:21<06:20, 14.70clip/s, 14.7 clips/s | failed=0]m05_vjepa:  44%|████▍     | 4400/10000 [05:21<06:20, 14.70clip/s, 14.7 clips/s | failed=0]m05_vjepa:  46%|████▌     | 4576/10000 [05:33<06:09, 14.67clip/s, 14.7 clips/s | failed=0]m05_vjepa:  46%|████▌     | 4576/10000 [05:33<06:09, 14.67clip/s, 14.6 clips/s | failed=0]m05_vjepa:  48%|████▊     | 4752/10000 [05:45<05:57, 14.66clip/s, 14.6 clips/s | failed=0]m05_vjepa:  48%|████▊     | 4752/10000 [05:45<05:57, 14.66clip/s, 14.6 clips/s | failed=0]m05_vjepa:  49%|████▉     | 4928/10000 [05:57<05:45, 14.67clip/s, 14.6 clips/s | failed=0]m05_vjepa:  49%|████▉     | 4928/10000 [05:57<05:45, 14.67clip/s, 14.6 clips/s | failed=0]m05_vjepa:  49%|████▉     | 4928/10000 [06:09<05:45, 14.67clip/s, 14.6 clips/s | failed=0]m05_vjepa:  51%|█████     | 5104/10000 [06:09<05:33, 14.68clip/s, 14.6 clips/s | failed=0]m05_vjepa:  51%|█████     | 5104/10000 [06:09<05:33, 14.68clip/s, 14.7 clips/s | failed=0]m05_vjepa:  53%|█████▎    | 5280/10000 [06:21<05:21, 14.69clip/s, 14.7 clips/s | failed=0]m05_vjepa:  53%|█████▎    | 5280/10000 [06:21<05:21, 14.69clip/s, 14.7 clips/s | failed=0]m05_vjepa:  55%|█████▍    | 5456/10000 [06:33<05:09, 14.66clip/s, 14.7 clips/s | failed=0]m05_vjepa:  55%|█████▍    | 5456/10000 [06:33<05:09, 14.66clip/s, 14.7 clips/s | failed=0]m05_vjepa:  56%|█████▋    | 5632/10000 [06:45<04:57, 14.69clip/s, 14.7 clips/s | failed=0]m05_vjepa:  56%|█████▋    | 5632/10000 [06:45<04:57, 14.69clip/s, 14.8 clips/s | failed=0]m05_vjepa:  58%|█████▊    | 5808/10000 [06:57<04:45, 14.70clip/s, 14.8 clips/s | failed=0]m05_vjepa:  58%|█████▊    | 5808/10000 [06:57<04:45, 14.70clip/s, 14.7 clips/s | failed=0]m05_vjepa:  58%|█████▊    | 5808/10000 [07:09<04:45, 14.70clip/s, 14.7 clips/s | failed=0]m05_vjepa:  60%|█████▉    | 5984/10000 [07:09<04:33, 14.67clip/s, 14.7 clips/s | failed=0]m05_vjepa:  60%|█████▉    | 5984/10000 [07:09<04:33, 14.67clip/s, 14.7 clips/s | failed=0]m05_vjepa:  62%|██████▏   | 6160/10000 [07:21<04:21, 14.68clip/s, 14.7 clips/s | failed=0]m05_vjepa:  62%|██████▏   | 6160/10000 [07:21<04:21, 14.68clip/s, 14.7 clips/s | failed=0]m05_vjepa:  63%|██████▎   | 6336/10000 [07:33<04:09, 14.68clip/s, 14.7 clips/s | failed=0]m05_vjepa:  63%|██████▎   | 6336/10000 [07:33<04:09, 14.68clip/s, 14.7 clips/s | failed=0]m05_vjepa:  65%|██████▌   | 6512/10000 [07:45<03:59, 14.56clip/s, 14.7 clips/s | failed=0]m05_vjepa:  65%|██████▌   | 6512/10000 [07:45<03:59, 14.56clip/s, 14.6 clips/s | failed=0]m05_vjepa:  67%|██████▋   | 6688/10000 [07:57<03:46, 14.60clip/s, 14.6 clips/s | failed=0]m05_vjepa:  67%|██████▋   | 6688/10000 [07:57<03:46, 14.60clip/s, 14.7 clips/s | failed=0]m05_vjepa:  67%|██████▋   | 6688/10000 [08:09<03:46, 14.60clip/s, 14.7 clips/s | failed=0]m05_vjepa:  69%|██████▊   | 6864/10000 [08:09<03:34, 14.62clip/s, 14.7 clips/s | failed=0]m05_vjepa:  69%|██████▊   | 6864/10000 [08:09<03:34, 14.62clip/s, 14.7 clips/s | failed=0]m05_vjepa:  70%|███████   | 7040/10000 [08:21<03:22, 14.62clip/s, 14.7 clips/s | failed=0]m05_vjepa:  70%|███████   | 7040/10000 [08:21<03:22, 14.62clip/s, 14.7 clips/s | failed=0]m05_vjepa:  72%|███████▏  | 7216/10000 [08:33<03:10, 14.63clip/s, 14.7 clips/s | failed=0]m05_vjepa:  72%|███████▏  | 7216/10000 [08:33<03:10, 14.63clip/s, 14.7 clips/s | failed=0]m05_vjepa:  74%|███████▍  | 7392/10000 [08:45<02:58, 14.64clip/s, 14.7 clips/s | failed=0]m05_vjepa:  74%|███████▍  | 7392/10000 [08:45<02:58, 14.64clip/s, 14.7 clips/s | failed=0]m05_vjepa:  76%|███████▌  | 7568/10000 [08:57<02:46, 14.65clip/s, 14.7 clips/s | failed=0]m05_vjepa:  76%|███████▌  | 7568/10000 [08:57<02:46, 14.65clip/s, 14.7 clips/s | failed=0]m05_vjepa:  76%|███████▌  | 7568/10000 [09:09<02:46, 14.65clip/s, 14.7 clips/s | failed=0]m05_vjepa:  77%|███████▋  | 7744/10000 [09:09<02:34, 14.64clip/s, 14.7 clips/s | failed=0]m05_vjepa:  77%|███████▋  | 7744/10000 [09:09<02:34, 14.64clip/s, 14.6 clips/s | failed=0]m05_vjepa:  79%|███████▉  | 7920/10000 [09:22<02:22, 14.63clip/s, 14.6 clips/s | failed=0]m05_vjepa:  79%|███████▉  | 7920/10000 [09:22<02:22, 14.63clip/s, 14.6 clips/s | failed=0]m05_vjepa:  81%|████████  | 8096/10000 [09:34<02:10, 14.65clip/s, 14.6 clips/s | failed=0]m05_vjepa:  81%|████████  | 8096/10000 [09:34<02:10, 14.65clip/s, 14.6 clips/s | failed=0]m05_vjepa:  83%|████████▎ | 8272/10000 [09:46<01:57, 14.65clip/s, 14.6 clips/s | failed=0]m05_vjepa:  83%|████████▎ | 8272/10000 [09:46<01:57, 14.65clip/s, 14.7 clips/s | failed=0]m05_vjepa:  84%|████████▍ | 8448/10000 [09:58<01:45, 14.64clip/s, 14.7 clips/s | failed=0]m05_vjepa:  84%|████████▍ | 8448/10000 [09:58<01:45, 14.64clip/s, 14.6 clips/s | failed=0]m05_vjepa:  84%|████████▍ | 8448/10000 [10:09<01:45, 14.64clip/s, 14.6 clips/s | failed=0]m05_vjepa:  86%|████████▌ | 8624/10000 [10:09<01:33, 14.68clip/s, 14.6 clips/s | failed=0]m05_vjepa:  86%|████████▌ | 8624/10000 [10:09<01:33, 14.68clip/s, 14.7 clips/s | failed=0]m05_vjepa:  88%|████████▊ | 8800/10000 [10:21<01:21, 14.70clip/s, 14.7 clips/s | failed=0]m05_vjepa:  88%|████████▊ | 8800/10000 [10:21<01:21, 14.70clip/s, 14.7 clips/s | failed=0]m05_vjepa:  90%|████████▉ | 8976/10000 [10:33<01:09, 14.69clip/s, 14.7 clips/s | failed=0]m05_vjepa:  90%|████████▉ | 8976/10000 [10:33<01:09, 14.69clip/s, 14.7 clips/s | failed=0]m05_vjepa:  92%|█████████▏| 9152/10000 [10:45<00:57, 14.72clip/s, 14.7 clips/s | failed=0]m05_vjepa:  92%|█████████▏| 9152/10000 [10:45<00:57, 14.72clip/s, 14.7 clips/s | failed=0]m05_vjepa:  93%|█████████▎| 9328/10000 [10:57<00:45, 14.74clip/s, 14.7 clips/s | failed=0]m05_vjepa:  93%|█████████▎| 9328/10000 [10:57<00:45, 14.74clip/s, 14.8 clips/s | failed=0]m05_vjepa:  93%|█████████▎| 9328/10000 [11:09<00:45, 14.74clip/s, 14.8 clips/s | failed=0]m05_vjepa:  95%|█████████▌| 9504/10000 [11:09<00:33, 14.71clip/s, 14.8 clips/s | failed=0]m05_vjepa:  95%|█████████▌| 9504/10000 [11:09<00:33, 14.71clip/s, 14.7 clips/s | failed=0]m05_vjepa:  97%|█████████▋| 9680/10000 [11:21<00:21, 14.73clip/s, 14.7 clips/s | failed=0]m05_vjepa:  97%|█████████▋| 9680/10000 [11:21<00:21, 14.73clip/s, 14.7 clips/s | failed=0]m05_vjepa:  99%|█████████▊| 9856/10000 [11:33<00:09, 14.74clip/s, 14.7 clips/s | failed=0]m05_vjepa:  99%|█████████▊| 9856/10000 [11:33<00:09, 14.74clip/s, 14.8 clips/s | failed=0]m05_vjepa: 10032clip [11:45, 14.71clip/s, 14.8 clips/s | failed=0]                        m05_vjepa: 10032clip [11:45, 14.71clip/s, 14.7 clips/s | failed=0]m05_vjepa: 10032clip [11:45, 14.21clip/s, 14.7 clips/s | failed=0]
+
+Segment done: 10,032 clips in 706s (14.21 clips/s)
+wandb: updating run metadata
+wandb: uploading output.log; uploading wandb-summary.json
+wandb: uploading console lines 19-20
+wandb: 
+wandb: Run history:
+wandb:        clips_processed ▁▁▁▁▂▂▂▂▂▂▃▃▃▃▃▃▄▄▄▄▄▄▅▅▅▅▅▆▆▆▇▇▇▇▇▇▇███
+wandb:                 failed ▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁
+wandb: throughput_clips_per_s █▆▆▄▄▂▁▂▂▁▂▂▂▂▃▂▁▁▂▂▂▃▃▂▂▂▂▂▂▂▂▂▂▂▂▂▃▄▃▂
+wandb: 
+wandb: Run summary:
+wandb:        clips_processed 90288
+wandb:                 failed 0
+wandb: throughput_clips_per_s 14.69967
+wandb: 
+wandb: 🚀 View run m05_FULL at: https://wandb.ai/sjsu_llm/walkindia-200k/runs/042hmvd6
+wandb: ⭐️ View project at: https://wandb.ai/sjsu_llm/walkindia-200k
+wandb: Synced 5 W&B file(s), 0 media file(s), 0 artifact file(s) and 0 other file(s)
+wandb: Find logs at: ./wandb/run-20260404_125037-042hmvd6/logs
+Worker exiting (GPU memory will be released).
+Checkpoint loaded: 90,288 embeddings from .m05_checkpoint_vjepa_lambda0_001.npz
+Worker done. Progress: 90,288/115,687
+
+============================================================
+WORKER 10: embeddings 90,288 → 100,288
+============================================================
+/workspace/factorjepa/venv_walkindia/lib/python3.12/site-packages/transformers/utils/hub.py:110: FutureWarning: Using `TRANSFORMERS_CACHE` is deprecated and will be removed in v5 of Transformers. Use `HF_HOME` instead.
+  warnings.warn(
+Using PyAV for video decoding
+GPU: NVIDIA RTX PRO 6000 Blackwell Workstation Edition
+CUDA version: 12.8
+Batch size: 176 (from inference/vjepa2 profiler)
+wandb: [wandb.login()] Loaded credentials for https://api.wandb.ai from WANDB_API_KEY.
+wandb: Currently logged in as: kapilw25 (sjsu_llm) to https://api.wandb.ai. Use `wandb login --relogin` to force relogin
+wandb: WARNING Using a boolean value for 'reinit' is deprecated. Use 'return_previous' or 'finish_previous' instead.
+wandb: setting up run janfrz4o
+wandb: Tracking run with wandb version 0.25.1
+wandb: Run data is saved locally in /workspace/factorjepa/wandb/run-20260404_130248-janfrz4o
+wandb: Run `wandb offline` to turn off syncing.
+wandb: Syncing run m05_FULL
+wandb: ⭐️ View project at https://wandb.ai/sjsu_llm/walkindia-200k
+wandb: 🚀 View run at https://wandb.ai/sjsu_llm/walkindia-200k/runs/janfrz4o
+wandb: run=m05_FULL url=https://wandb.ai/sjsu_llm/walkindia-200k/runs/janfrz4o
+Checkpoint loaded: 90,288 embeddings from .m05_checkpoint_vjepa_lambda0_001.npz
+
+Loading model: outputs/full/m09_lambda0_001/student_encoder.pt
+Adapted model: num_frames=16 (from training config)
+/workspace/factorjepa/venv_walkindia/lib/python3.12/site-packages/timm/models/layers/__init__.py:49: FutureWarning: Importing from timm.models.layers is deprecated, please import via timm.layers
+  warnings.warn(f"Importing from {__name__} is deprecated, please import via timm.layers", FutureWarning)
+Adapted encoder: loaded 484/484 params (missing: 0, unexpected: 0)
+Applying torch.compile...
+Warmup: compiling inductor graph...
+Model loaded on cuda (dtype: torch.float16)
+
+=== Streaming Config ===
+batch_size:    176
+video_decoder: PyAV
+prefetch:      8 batches
+checkpoint:    every 500 clips
+m05_vjepa:   0%|          | 0/10000 [00:00<?, ?clip/s]  Parallel TAR reader: 8 threads, 116 TARs, queue=256
+m05_vjepa:   2%|▏         | 176/10000 [00:35<32:42,  5.01clip/s]m05_vjepa:   2%|▏         | 176/10000 [00:35<32:42,  5.01clip/s, 5.0 clips/s | failed=0]m05_vjepa:   4%|▎         | 352/10000 [00:46<19:27,  8.26clip/s, 5.0 clips/s | failed=0]m05_vjepa:   4%|▎         | 352/10000 [00:46<19:27,  8.26clip/s, 15.2 clips/s | failed=0]m05_vjepa:   5%|▌         | 528/10000 [00:58<15:11, 10.39clip/s, 15.2 clips/s | failed=0]m05_vjepa:   5%|▌         | 528/10000 [00:58<15:11, 10.39clip/s, 15.1 clips/s | failed=0]m05_vjepa:   5%|▌         | 528/10000 [01:09<15:11, 10.39clip/s, 15.1 clips/s | failed=0]m05_vjepa:   7%|▋         | 704/10000 [01:10<13:08, 11.78clip/s, 15.1 clips/s | failed=0]m05_vjepa:   7%|▋         | 704/10000 [01:10<13:08, 11.78clip/s, 15.0 clips/s | failed=0]m05_vjepa:   9%|▉         | 880/10000 [01:22<11:57, 12.71clip/s, 15.0 clips/s | failed=0]m05_vjepa:   9%|▉         | 880/10000 [01:22<11:57, 12.71clip/s, 14.8 clips/s | failed=0]m05_vjepa:  11%|█         | 1056/10000 [01:34<11:10, 13.35clip/s, 14.8 clips/s | failed=0]m05_vjepa:  11%|█         | 1056/10000 [01:34<11:10, 13.35clip/s, 14.8 clips/s | failed=0]m05_vjepa:  12%|█▏        | 1232/10000 [01:46<10:36, 13.78clip/s, 14.8 clips/s | failed=0]m05_vjepa:  12%|█▏        | 1232/10000 [01:46<10:36, 13.78clip/s, 14.8 clips/s | failed=0]m05_vjepa:  14%|█▍        | 1408/10000 [01:58<10:10, 14.07clip/s, 14.8 clips/s | failed=0]m05_vjepa:  14%|█▍        | 1408/10000 [01:58<10:10, 14.07clip/s, 14.7 clips/s | failed=0]m05_vjepa:  14%|█▍        | 1408/10000 [02:09<10:10, 14.07clip/s, 14.7 clips/s | failed=0]m05_vjepa:  16%|█▌        | 1584/10000 [02:10<09:50, 14.24clip/s, 14.7 clips/s | failed=0]m05_vjepa:  16%|█▌        | 1584/10000 [02:10<09:50, 14.24clip/s, 14.7 clips/s | failed=0]m05_vjepa:  18%|█▊        | 1760/10000 [02:22<09:32, 14.38clip/s, 14.7 clips/s | failed=0]m05_vjepa:  18%|█▊        | 1760/10000 [02:22<09:32, 14.38clip/s, 14.7 clips/s | failed=0]m05_vjepa:  19%|█▉        | 1936/10000 [02:34<09:18, 14.45clip/s, 14.7 clips/s | failed=0]m05_vjepa:  19%|█▉        | 1936/10000 [02:34<09:18, 14.45clip/s, 14.6 clips/s | failed=0]m05_vjepa:  21%|██        | 2112/10000 [02:46<09:02, 14.53clip/s, 14.6 clips/s | failed=0]m05_vjepa:  21%|██        | 2112/10000 [02:46<09:02, 14.53clip/s, 14.7 clips/s | failed=0]m05_vjepa:  23%|██▎       | 2288/10000 [02:58<08:50, 14.54clip/s, 14.7 clips/s | failed=0]m05_vjepa:  23%|██▎       | 2288/10000 [02:58<08:50, 14.54clip/s, 14.6 clips/s | failed=0]m05_vjepa:  23%|██▎       | 2288/10000 [03:09<08:50, 14.54clip/s, 14.6 clips/s | failed=0]m05_vjepa:  25%|██▍       | 2464/10000 [03:10<08:38, 14.55clip/s, 14.6 clips/s | failed=0]m05_vjepa:  25%|██▍       | 2464/10000 [03:10<08:38, 14.55clip/s, 14.6 clips/s | failed=0]m05_vjepa:  26%|██▋       | 2640/10000 [03:22<08:24, 14.59clip/s, 14.6 clips/s | failed=0]m05_vjepa:  26%|██▋       | 2640/10000 [03:22<08:24, 14.59clip/s, 14.6 clips/s | failed=0]m05_vjepa:  28%|██▊       | 2816/10000 [03:34<08:12, 14.57clip/s, 14.6 clips/s | failed=0]m05_vjepa:  28%|██▊       | 2816/10000 [03:34<08:12, 14.57clip/s, 14.6 clips/s | failed=0]m05_vjepa:  30%|██▉       | 2992/10000 [03:46<08:00, 14.59clip/s, 14.6 clips/s | failed=0]m05_vjepa:  30%|██▉       | 2992/10000 [03:46<08:00, 14.59clip/s, 14.6 clips/s | failed=0]m05_vjepa:  32%|███▏      | 3168/10000 [03:58<07:46, 14.64clip/s, 14.6 clips/s | failed=0]m05_vjepa:  32%|███▏      | 3168/10000 [03:58<07:46, 14.64clip/s, 14.7 clips/s | failed=0]m05_vjepa:  32%|███▏      | 3168/10000 [04:09<07:46, 14.64clip/s, 14.7 clips/s | failed=0]m05_vjepa:  33%|███▎      | 3344/10000 [04:10<07:35, 14.62clip/s, 14.7 clips/s | failed=0]m05_vjepa:  33%|███▎      | 3344/10000 [04:10<07:35, 14.62clip/s, 14.6 clips/s | failed=0]m05_vjepa:  35%|███▌      | 3520/10000 [04:22<07:23, 14.63clip/s, 14.6 clips/s | failed=0]m05_vjepa:  35%|███▌      | 3520/10000 [04:22<07:23, 14.63clip/s, 14.6 clips/s | failed=0]m05_vjepa:  37%|███▋      | 3696/10000 [04:34<07:09, 14.67clip/s, 14.6 clips/s | failed=0]m05_vjepa:  37%|███▋      | 3696/10000 [04:34<07:09, 14.67clip/s, 14.7 clips/s | failed=0]m05_vjepa:  39%|███▊      | 3872/10000 [04:46<06:57, 14.69clip/s, 14.7 clips/s | failed=0]m05_vjepa:  39%|███▊      | 3872/10000 [04:46<06:57, 14.69clip/s, 14.7 clips/s | failed=0]m05_vjepa:  40%|████      | 4048/10000 [04:58<06:45, 14.67clip/s, 14.7 clips/s | failed=0]m05_vjepa:  40%|████      | 4048/10000 [04:58<06:45, 14.67clip/s, 14.6 clips/s | failed=0]m05_vjepa:  40%|████      | 4048/10000 [05:09<06:45, 14.67clip/s, 14.6 clips/s | failed=0]m05_vjepa:  42%|████▏     | 4224/10000 [05:10<06:33, 14.67clip/s, 14.6 clips/s | failed=0]m05_vjepa:  42%|████▏     | 4224/10000 [05:10<06:33, 14.67clip/s, 14.6 clips/s | failed=0]m05_vjepa:  44%|████▍     | 4400/10000 [05:22<06:21, 14.67clip/s, 14.6 clips/s | failed=0]m05_vjepa:  44%|████▍     | 4400/10000 [05:22<06:21, 14.67clip/s, 14.7 clips/s | failed=0]m05_vjepa:  46%|████▌     | 4576/10000 [05:34<06:09, 14.69clip/s, 14.7 clips/s | failed=0]m05_vjepa:  46%|████▌     | 4576/10000 [05:34<06:09, 14.69clip/s, 14.7 clips/s | failed=0]m05_vjepa:  48%|████▊     | 4752/10000 [05:46<05:57, 14.69clip/s, 14.7 clips/s | failed=0]m05_vjepa:  48%|████▊     | 4752/10000 [05:46<05:57, 14.69clip/s, 14.7 clips/s | failed=0]m05_vjepa:  49%|████▉     | 4928/10000 [05:58<05:45, 14.67clip/s, 14.7 clips/s | failed=0]m05_vjepa:  49%|████▉     | 4928/10000 [05:58<05:45, 14.67clip/s, 14.7 clips/s | failed=0]m05_vjepa:  49%|████▉     | 4928/10000 [06:09<05:45, 14.67clip/s, 14.7 clips/s | failed=0]m05_vjepa:  51%|█████     | 5104/10000 [06:10<05:33, 14.67clip/s, 14.7 clips/s | failed=0]m05_vjepa:  51%|█████     | 5104/10000 [06:10<05:33, 14.67clip/s, 14.7 clips/s | failed=0]m05_vjepa:  53%|█████▎    | 5280/10000 [06:22<05:21, 14.69clip/s, 14.7 clips/s | failed=0]m05_vjepa:  53%|█████▎    | 5280/10000 [06:22<05:21, 14.69clip/s, 14.7 clips/s | failed=0]m05_vjepa:  55%|█████▍    | 5456/10000 [06:34<05:09, 14.68clip/s, 14.7 clips/s | failed=0]m05_vjepa:  55%|█████▍    | 5456/10000 [06:34<05:09, 14.68clip/s, 14.7 clips/s | failed=0]m05_vjepa:  56%|█████▋    | 5632/10000 [06:46<04:57, 14.67clip/s, 14.7 clips/s | failed=0]m05_vjepa:  56%|█████▋    | 5632/10000 [06:46<04:57, 14.67clip/s, 14.6 clips/s | failed=0]m05_vjepa:  58%|█████▊    | 5808/10000 [06:58<04:45, 14.66clip/s, 14.6 clips/s | failed=0]m05_vjepa:  58%|█████▊    | 5808/10000 [06:58<04:45, 14.66clip/s, 14.6 clips/s | failed=0]m05_vjepa:  58%|█████▊    | 5808/10000 [07:09<04:45, 14.66clip/s, 14.6 clips/s | failed=0]m05_vjepa:  60%|█████▉    | 5984/10000 [07:10<04:33, 14.67clip/s, 14.6 clips/s | failed=0]m05_vjepa:  60%|█████▉    | 5984/10000 [07:10<04:33, 14.67clip/s, 14.7 clips/s | failed=0]m05_vjepa:  62%|██████▏   | 6160/10000 [07:22<04:21, 14.68clip/s, 14.7 clips/s | failed=0]m05_vjepa:  62%|██████▏   | 6160/10000 [07:22<04:21, 14.68clip/s, 14.7 clips/s | failed=0]m05_vjepa:  63%|██████▎   | 6336/10000 [07:34<04:09, 14.68clip/s, 14.7 clips/s | failed=0]m05_vjepa:  63%|██████▎   | 6336/10000 [07:34<04:09, 14.68clip/s, 14.7 clips/s | failed=0]m05_vjepa:  65%|██████▌   | 6512/10000 [07:46<03:57, 14.67clip/s, 14.7 clips/s | failed=0]m05_vjepa:  65%|██████▌   | 6512/10000 [07:46<03:57, 14.67clip/s, 14.7 clips/s | failed=0]m05_vjepa:  67%|██████▋   | 6688/10000 [07:58<03:45, 14.69clip/s, 14.7 clips/s | failed=0]m05_vjepa:  67%|██████▋   | 6688/10000 [07:58<03:45, 14.69clip/s, 14.7 clips/s | failed=0]m05_vjepa:  67%|██████▋   | 6688/10000 [08:09<03:45, 14.69clip/s, 14.7 clips/s | failed=0]m05_vjepa:  69%|██████▊   | 6864/10000 [08:10<03:33, 14.69clip/s, 14.7 clips/s | failed=0]m05_vjepa:  69%|██████▊   | 6864/10000 [08:10<03:33, 14.69clip/s, 14.7 clips/s | failed=0]m05_vjepa:  70%|███████   | 7040/10000 [08:22<03:21, 14.68clip/s, 14.7 clips/s | failed=0]m05_vjepa:  70%|███████   | 7040/10000 [08:22<03:21, 14.68clip/s, 14.7 clips/s | failed=0]m05_vjepa:  72%|███████▏  | 7216/10000 [08:34<03:09, 14.70clip/s, 14.7 clips/s | failed=0]m05_vjepa:  72%|███████▏  | 7216/10000 [08:34<03:09, 14.70clip/s, 14.7 clips/s | failed=0]m05_vjepa:  74%|███████▍  | 7392/10000 [08:46<02:57, 14.68clip/s, 14.7 clips/s | failed=0]m05_vjepa:  74%|███████▍  | 7392/10000 [08:46<02:57, 14.68clip/s, 14.7 clips/s | failed=0]m05_vjepa:  76%|███████▌  | 7568/10000 [08:58<02:45, 14.69clip/s, 14.7 clips/s | failed=0]m05_vjepa:  76%|███████▌  | 7568/10000 [08:58<02:45, 14.69clip/s, 14.7 clips/s | failed=0]m05_vjepa:  76%|███████▌  | 7568/10000 [09:09<02:45, 14.69clip/s, 14.7 clips/s | failed=0]m05_vjepa:  77%|███████▋  | 7744/10000 [09:10<02:33, 14.69clip/s, 14.7 clips/s | failed=0]m05_vjepa:  77%|███████▋  | 7744/10000 [09:10<02:33, 14.69clip/s, 14.7 clips/s | failed=0]m05_vjepa:  79%|███████▉  | 7920/10000 [09:21<02:21, 14.69clip/s, 14.7 clips/s | failed=0]m05_vjepa:  79%|███████▉  | 7920/10000 [09:22<02:21, 14.69clip/s, 14.7 clips/s | failed=0]m05_vjepa:  81%|████████  | 8096/10000 [09:33<02:09, 14.70clip/s, 14.7 clips/s | failed=0]m05_vjepa:  81%|████████  | 8096/10000 [09:33<02:09, 14.70clip/s, 14.7 clips/s | failed=0]m05_vjepa:  83%|████████▎ | 8272/10000 [09:45<01:57, 14.67clip/s, 14.7 clips/s | failed=0]m05_vjepa:  83%|████████▎ | 8272/10000 [09:45<01:57, 14.67clip/s, 14.6 clips/s | failed=0]m05_vjepa:  84%|████████▍ | 8448/10000 [09:57<01:45, 14.67clip/s, 14.6 clips/s | failed=0]m05_vjepa:  84%|████████▍ | 8448/10000 [09:57<01:45, 14.67clip/s, 14.6 clips/s | failed=0]m05_vjepa:  84%|████████▍ | 8448/10000 [10:09<01:45, 14.67clip/s, 14.6 clips/s | failed=0]m05_vjepa:  86%|████████▌ | 8624/10000 [10:09<01:33, 14.71clip/s, 14.6 clips/s | failed=0]m05_vjepa:  86%|████████▌ | 8624/10000 [10:09<01:33, 14.71clip/s, 14.7 clips/s | failed=0]m05_vjepa:  88%|████████▊ | 8800/10000 [10:21<01:21, 14.74clip/s, 14.7 clips/s | failed=0]m05_vjepa:  88%|████████▊ | 8800/10000 [10:21<01:21, 14.74clip/s, 14.8 clips/s | failed=0]m05_vjepa:  90%|████████▉ | 8976/10000 [10:33<01:09, 14.72clip/s, 14.8 clips/s | failed=0]m05_vjepa:  90%|████████▉ | 8976/10000 [10:33<01:09, 14.72clip/s, 14.7 clips/s | failed=0]m05_vjepa:  92%|█████████▏| 9152/10000 [10:45<00:57, 14.74clip/s, 14.7 clips/s | failed=0]m05_vjepa:  92%|█████████▏| 9152/10000 [10:45<00:57, 14.74clip/s, 14.8 clips/s | failed=0]m05_vjepa:  93%|█████████▎| 9328/10000 [10:57<00:45, 14.75clip/s, 14.8 clips/s | failed=0]m05_vjepa:  93%|█████████▎| 9328/10000 [10:57<00:45, 14.75clip/s, 14.8 clips/s | failed=0]m05_vjepa:  93%|█████████▎| 9328/10000 [11:09<00:45, 14.75clip/s, 14.8 clips/s | failed=0]m05_vjepa:  95%|█████████▌| 9504/10000 [11:09<00:33, 14.72clip/s, 14.8 clips/s | failed=0]m05_vjepa:  95%|█████████▌| 9504/10000 [11:09<00:33, 14.72clip/s, 14.7 clips/s | failed=0]m05_vjepa:  97%|█████████▋| 9680/10000 [11:21<00:21, 14.74clip/s, 14.7 clips/s | failed=0]m05_vjepa:  97%|█████████▋| 9680/10000 [11:21<00:21, 14.74clip/s, 14.7 clips/s | failed=0]m05_vjepa:  99%|█████████▊| 9856/10000 [11:33<00:09, 14.75clip/s, 14.7 clips/s | failed=0]m05_vjepa:  99%|█████████▊| 9856/10000 [11:33<00:09, 14.75clip/s, 14.8 clips/s | failed=0]m05_vjepa: 10032clip [11:45, 14.73clip/s, 14.8 clips/s | failed=0]                        m05_vjepa: 10032clip [11:45, 14.73clip/s, 14.7 clips/s | failed=0]m05_vjepa: 10032clip [11:45, 14.22clip/s, 14.7 clips/s | failed=0]
+
+Segment done: 10,032 clips in 706s (14.21 clips/s)
+wandb: updating run metadata
+wandb: uploading history steps 56-56, summary, console lines 17-17
+wandb: 
+wandb: Run history:
+wandb:        clips_processed ▁▁▁▁▁▂▂▂▂▃▃▃▃▃▃▄▄▄▄▄▅▅▅▅▅▆▆▆▆▆▇▇▇▇▇▇▇███
+wandb:                 failed ▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁
+wandb: throughput_clips_per_s ▁███████████████████████████████████████
+wandb: 
+wandb: Run summary:
+wandb:        clips_processed 100320
+wandb:                 failed 0
+wandb: throughput_clips_per_s 14.72844
+wandb: 
+wandb: 🚀 View run m05_FULL at: https://wandb.ai/sjsu_llm/walkindia-200k/runs/janfrz4o
+wandb: ⭐️ View project at: https://wandb.ai/sjsu_llm/walkindia-200k
+wandb: Synced 5 W&B file(s), 0 media file(s), 0 artifact file(s) and 0 other file(s)
+wandb: Find logs at: ./wandb/run-20260404_130248-janfrz4o/logs
+Worker exiting (GPU memory will be released).
+Checkpoint loaded: 100,320 embeddings from .m05_checkpoint_vjepa_lambda0_001.npz
+Worker done. Progress: 100,320/115,687
+
+============================================================
+WORKER 11: embeddings 100,320 → 110,320
+============================================================
+/workspace/factorjepa/venv_walkindia/lib/python3.12/site-packages/transformers/utils/hub.py:110: FutureWarning: Using `TRANSFORMERS_CACHE` is deprecated and will be removed in v5 of Transformers. Use `HF_HOME` instead.
+  warnings.warn(
+Using PyAV for video decoding
+GPU: NVIDIA RTX PRO 6000 Blackwell Workstation Edition
+CUDA version: 12.8
+Batch size: 176 (from inference/vjepa2 profiler)
+wandb: [wandb.login()] Loaded credentials for https://api.wandb.ai from WANDB_API_KEY.
+wandb: Currently logged in as: kapilw25 (sjsu_llm) to https://api.wandb.ai. Use `wandb login --relogin` to force relogin
+wandb: WARNING Using a boolean value for 'reinit' is deprecated. Use 'return_previous' or 'finish_previous' instead.
+wandb: setting up run twrejumm
+wandb: Tracking run with wandb version 0.25.1
+wandb: Run data is saved locally in /workspace/factorjepa/wandb/run-20260404_131458-twrejumm
+wandb: Run `wandb offline` to turn off syncing.
+wandb: Syncing run m05_FULL
+wandb: ⭐️ View project at https://wandb.ai/sjsu_llm/walkindia-200k
+wandb: 🚀 View run at https://wandb.ai/sjsu_llm/walkindia-200k/runs/twrejumm
+wandb: run=m05_FULL url=https://wandb.ai/sjsu_llm/walkindia-200k/runs/twrejumm
+Checkpoint loaded: 100,320 embeddings from .m05_checkpoint_vjepa_lambda0_001.npz
+
+Loading model: outputs/full/m09_lambda0_001/student_encoder.pt
+Adapted model: num_frames=16 (from training config)
+/workspace/factorjepa/venv_walkindia/lib/python3.12/site-packages/timm/models/layers/__init__.py:49: FutureWarning: Importing from timm.models.layers is deprecated, please import via timm.layers
+  warnings.warn(f"Importing from {__name__} is deprecated, please import via timm.layers", FutureWarning)
+Adapted encoder: loaded 484/484 params (missing: 0, unexpected: 0)
+Applying torch.compile...
+Warmup: compiling inductor graph...
+Model loaded on cuda (dtype: torch.float16)
+
+=== Streaming Config ===
+batch_size:    176
+video_decoder: PyAV
+prefetch:      8 batches
+checkpoint:    every 500 clips
+m05_vjepa:   0%|          | 0/10000 [00:00<?, ?clip/s]  Parallel TAR reader: 8 threads, 116 TARs, queue=256
+m05_vjepa:   2%|▏         | 176/10000 [00:35<32:54,  4.98clip/s]m05_vjepa:   2%|▏         | 176/10000 [00:35<32:54,  4.98clip/s, 5.0 clips/s | failed=0]m05_vjepa:   4%|▎         | 352/10000 [00:46<19:31,  8.23clip/s, 5.0 clips/s | failed=0]m05_vjepa:   4%|▎         | 352/10000 [00:46<19:31,  8.23clip/s, 15.2 clips/s | failed=0]m05_vjepa:   5%|▌         | 528/10000 [00:58<15:15, 10.35clip/s, 15.2 clips/s | failed=0]m05_vjepa:   5%|▌         | 528/10000 [00:58<15:15, 10.35clip/s, 15.0 clips/s | failed=0]m05_vjepa:   5%|▌         | 528/10000 [01:09<15:15, 10.35clip/s, 15.0 clips/s | failed=0]m05_vjepa:   7%|▋         | 704/10000 [01:10<13:11, 11.75clip/s, 15.0 clips/s | failed=0]m05_vjepa:   7%|▋         | 704/10000 [01:10<13:11, 11.75clip/s, 15.0 clips/s | failed=0]m05_vjepa:   9%|▉         | 880/10000 [01:22<11:58, 12.70clip/s, 15.0 clips/s | failed=0]m05_vjepa:   9%|▉         | 880/10000 [01:22<11:58, 12.70clip/s, 14.8 clips/s | failed=0]m05_vjepa:  11%|█         | 1056/10000 [01:34<11:09, 13.35clip/s, 14.8 clips/s | failed=0]m05_vjepa:  11%|█         | 1056/10000 [01:34<11:09, 13.35clip/s, 14.8 clips/s | failed=0]m05_vjepa:  12%|█▏        | 1232/10000 [01:46<10:35, 13.80clip/s, 14.8 clips/s | failed=0]m05_vjepa:  12%|█▏        | 1232/10000 [01:46<10:35, 13.80clip/s, 14.8 clips/s | failed=0]m05_vjepa:  14%|█▍        | 1408/10000 [01:58<10:10, 14.06clip/s, 14.8 clips/s | failed=0]m05_vjepa:  14%|█▍        | 1408/10000 [01:58<10:10, 14.06clip/s, 14.7 clips/s | failed=0]m05_vjepa:  14%|█▍        | 1408/10000 [02:09<10:10, 14.06clip/s, 14.7 clips/s | failed=0]m05_vjepa:  16%|█▌        | 1584/10000 [02:10<09:49, 14.26clip/s, 14.7 clips/s | failed=0]m05_vjepa:  16%|█▌        | 1584/10000 [02:10<09:49, 14.26clip/s, 14.7 clips/s | failed=0]m05_vjepa:  18%|█▊        | 1760/10000 [02:22<09:32, 14.40clip/s, 14.7 clips/s | failed=0]m05_vjepa:  18%|█▊        | 1760/10000 [02:22<09:32, 14.40clip/s, 14.7 clips/s | failed=0]m05_vjepa:  19%|█▉        | 1936/10000 [02:34<09:17, 14.46clip/s, 14.7 clips/s | failed=0]m05_vjepa:  19%|█▉        | 1936/10000 [02:34<09:17, 14.46clip/s, 14.6 clips/s | failed=0]m05_vjepa:  21%|██        | 2112/10000 [02:46<09:02, 14.54clip/s, 14.6 clips/s | failed=0]m05_vjepa:  21%|██        | 2112/10000 [02:46<09:02, 14.54clip/s, 14.7 clips/s | failed=0]m05_vjepa:  23%|██▎       | 2288/10000 [02:58<08:49, 14.56clip/s, 14.7 clips/s | failed=0]m05_vjepa:  23%|██▎       | 2288/10000 [02:58<08:49, 14.56clip/s, 14.6 clips/s | failed=0]m05_vjepa:  23%|██▎       | 2288/10000 [03:09<08:49, 14.56clip/s, 14.6 clips/s | failed=0]m05_vjepa:  25%|██▍       | 2464/10000 [03:10<08:36, 14.59clip/s, 14.6 clips/s | failed=0]m05_vjepa:  25%|██▍       | 2464/10000 [03:10<08:36, 14.59clip/s, 14.7 clips/s | failed=0]m05_vjepa:  26%|██▋       | 2640/10000 [03:22<08:23, 14.63clip/s, 14.7 clips/s | failed=0]m05_vjepa:  26%|██▋       | 2640/10000 [03:22<08:23, 14.63clip/s, 14.7 clips/s | failed=0]m05_vjepa:  28%|██▊       | 2816/10000 [03:34<08:11, 14.61clip/s, 14.7 clips/s | failed=0]m05_vjepa:  28%|██▊       | 2816/10000 [03:34<08:11, 14.61clip/s, 14.7 clips/s | failed=0]m05_vjepa:  30%|██▉       | 2992/10000 [03:46<07:58, 14.63clip/s, 14.7 clips/s | failed=0]m05_vjepa:  30%|██▉       | 2992/10000 [03:46<07:58, 14.63clip/s, 14.7 clips/s | failed=0]m05_vjepa:  32%|███▏      | 3168/10000 [03:58<07:45, 14.67clip/s, 14.7 clips/s | failed=0]m05_vjepa:  32%|███▏      | 3168/10000 [03:58<07:45, 14.67clip/s, 14.7 clips/s | failed=0]m05_vjepa:  32%|███▏      | 3168/10000 [04:09<07:45, 14.67clip/s, 14.7 clips/s | failed=0]m05_vjepa:  33%|███▎      | 3344/10000 [04:10<07:34, 14.66clip/s, 14.7 clips/s | failed=0]m05_vjepa:  33%|███▎      | 3344/10000 [04:10<07:34, 14.66clip/s, 14.7 clips/s | failed=0]m05_vjepa:  35%|███▌      | 3520/10000 [04:22<07:24, 14.57clip/s, 14.7 clips/s | failed=0]m05_vjepa:  35%|███▌      | 3520/10000 [04:22<07:24, 14.57clip/s, 14.4 clips/s | failed=0]m05_vjepa:  37%|███▋      | 3696/10000 [04:34<07:11, 14.62clip/s, 14.4 clips/s | failed=0]m05_vjepa:  37%|███▋      | 3696/10000 [04:34<07:11, 14.62clip/s, 14.6 clips/s | failed=0]m05_vjepa:  39%|███▊      | 3872/10000 [04:46<06:58, 14.63clip/s, 14.6 clips/s | failed=0]m05_vjepa:  39%|███▊      | 3872/10000 [04:46<06:58, 14.63clip/s, 14.6 clips/s | failed=0]m05_vjepa:  40%|████      | 4048/10000 [04:58<06:46, 14.63clip/s, 14.6 clips/s | failed=0]m05_vjepa:  40%|████      | 4048/10000 [04:58<06:46, 14.63clip/s, 14.6 clips/s | failed=0]m05_vjepa:  40%|████      | 4048/10000 [05:09<06:46, 14.63clip/s, 14.6 clips/s | failed=0]m05_vjepa:  42%|████▏     | 4224/10000 [05:10<06:33, 14.68clip/s, 14.6 clips/s | failed=0]m05_vjepa:  42%|████▏     | 4224/10000 [05:10<06:33, 14.68clip/s, 14.7 clips/s | failed=0]m05_vjepa:  44%|████▍     | 4400/10000 [05:22<06:21, 14.68clip/s, 14.7 clips/s | failed=0]m05_vjepa:  44%|████▍     | 4400/10000 [05:22<06:21, 14.68clip/s, 14.7 clips/s | failed=0]m05_vjepa:  46%|████▌     | 4576/10000 [05:34<06:09, 14.67clip/s, 14.7 clips/s | failed=0]m05_vjepa:  46%|████▌     | 4576/10000 [05:34<06:09, 14.67clip/s, 14.7 clips/s | failed=0]m05_vjepa:  48%|████▊     | 4752/10000 [05:46<05:58, 14.65clip/s, 14.7 clips/s | failed=0]m05_vjepa:  48%|████▊     | 4752/10000 [05:46<05:58, 14.65clip/s, 14.6 clips/s | failed=0]m05_vjepa:  49%|████▉     | 4928/10000 [05:58<05:46, 14.65clip/s, 14.6 clips/s | failed=0]m05_vjepa:  49%|████▉     | 4928/10000 [05:58<05:46, 14.65clip/s, 14.6 clips/s | failed=0]m05_vjepa:  49%|████▉     | 4928/10000 [06:09<05:46, 14.65clip/s, 14.6 clips/s | failed=0]m05_vjepa:  51%|█████     | 5104/10000 [06:10<05:33, 14.66clip/s, 14.6 clips/s | failed=0]m05_vjepa:  51%|█████     | 5104/10000 [06:10<05:33, 14.66clip/s, 14.7 clips/s | failed=0]m05_vjepa:  53%|█████▎    | 5280/10000 [06:22<05:21, 14.68clip/s, 14.7 clips/s | failed=0]m05_vjepa:  53%|█████▎    | 5280/10000 [06:22<05:21, 14.68clip/s, 14.7 clips/s | failed=0]m05_vjepa:  55%|█████▍    | 5456/10000 [06:34<05:09, 14.66clip/s, 14.7 clips/s | failed=0]m05_vjepa:  55%|█████▍    | 5456/10000 [06:34<05:09, 14.66clip/s, 14.7 clips/s | failed=0]m05_vjepa:  56%|█████▋    | 5632/10000 [06:46<04:58, 14.65clip/s, 14.7 clips/s | failed=0]m05_vjepa:  56%|█████▋    | 5632/10000 [06:46<04:58, 14.65clip/s, 14.6 clips/s | failed=0]m05_vjepa:  58%|█████▊    | 5808/10000 [06:58<04:45, 14.66clip/s, 14.6 clips/s | failed=0]m05_vjepa:  58%|█████▊    | 5808/10000 [06:58<04:45, 14.66clip/s, 14.7 clips/s | failed=0]m05_vjepa:  58%|█████▊    | 5808/10000 [07:09<04:45, 14.66clip/s, 14.7 clips/s | failed=0]m05_vjepa:  60%|█████▉    | 5984/10000 [07:10<04:34, 14.64clip/s, 14.7 clips/s | failed=0]m05_vjepa:  60%|█████▉    | 5984/10000 [07:10<04:34, 14.64clip/s, 14.6 clips/s | failed=0]m05_vjepa:  62%|██████▏   | 6160/10000 [07:22<04:21, 14.67clip/s, 14.6 clips/s | failed=0]m05_vjepa:  62%|██████▏   | 6160/10000 [07:22<04:21, 14.67clip/s, 14.7 clips/s | failed=0]m05_vjepa:  63%|██████▎   | 6336/10000 [07:34<04:09, 14.69clip/s, 14.7 clips/s | failed=0]m05_vjepa:  63%|██████▎   | 6336/10000 [07:34<04:09, 14.69clip/s, 14.7 clips/s | failed=0]m05_vjepa:  65%|██████▌   | 6512/10000 [07:46<03:57, 14.67clip/s, 14.7 clips/s | failed=0]m05_vjepa:  65%|██████▌   | 6512/10000 [07:46<03:57, 14.67clip/s, 14.7 clips/s | failed=0]m05_vjepa:  67%|██████▋   | 6688/10000 [07:58<03:45, 14.68clip/s, 14.7 clips/s | failed=0]m05_vjepa:  67%|██████▋   | 6688/10000 [07:58<03:45, 14.68clip/s, 14.7 clips/s | failed=0]m05_vjepa:  67%|██████▋   | 6688/10000 [08:09<03:45, 14.68clip/s, 14.7 clips/s | failed=0]m05_vjepa:  69%|██████▊   | 6864/10000 [08:10<03:33, 14.67clip/s, 14.7 clips/s | failed=0]m05_vjepa:  69%|██████▊   | 6864/10000 [08:10<03:33, 14.67clip/s, 14.7 clips/s | failed=0]m05_vjepa:  70%|███████   | 7040/10000 [08:22<03:21, 14.69clip/s, 14.7 clips/s | failed=0]m05_vjepa:  70%|███████   | 7040/10000 [08:22<03:21, 14.69clip/s, 14.7 clips/s | failed=0]m05_vjepa:  72%|███████▏  | 7216/10000 [08:34<03:09, 14.71clip/s, 14.7 clips/s | failed=0]m05_vjepa:  72%|███████▏  | 7216/10000 [08:34<03:09, 14.71clip/s, 14.8 clips/s | failed=0]m05_vjepa:  74%|███████▍  | 7392/10000 [08:46<02:57, 14.67clip/s, 14.8 clips/s | failed=0]m05_vjepa:  74%|███████▍  | 7392/10000 [08:46<02:57, 14.67clip/s, 14.7 clips/s | failed=0]m05_vjepa:  76%|███████▌  | 7568/10000 [08:58<02:45, 14.68clip/s, 14.7 clips/s | failed=0]m05_vjepa:  76%|███████▌  | 7568/10000 [08:58<02:45, 14.68clip/s, 14.7 clips/s | failed=0]m05_vjepa:  76%|███████▌  | 7568/10000 [09:09<02:45, 14.68clip/s, 14.7 clips/s | failed=0]m05_vjepa:  77%|███████▋  | 7744/10000 [09:10<02:33, 14.68clip/s, 14.7 clips/s | failed=0]m05_vjepa:  77%|███████▋  | 7744/10000 [09:10<02:33, 14.68clip/s, 14.7 clips/s | failed=0]m05_vjepa:  79%|███████▉  | 7920/10000 [09:22<02:21, 14.65clip/s, 14.7 clips/s | failed=0]m05_vjepa:  79%|███████▉  | 7920/10000 [09:22<02:21, 14.65clip/s, 14.6 clips/s | failed=0]m05_vjepa:  81%|████████  | 8096/10000 [09:34<02:09, 14.66clip/s, 14.6 clips/s | failed=0]m05_vjepa:  81%|████████  | 8096/10000 [09:34<02:09, 14.66clip/s, 14.7 clips/s | failed=0]m05_vjepa:  83%|████████▎ | 8272/10000 [09:46<01:57, 14.67clip/s, 14.7 clips/s | failed=0]m05_vjepa:  83%|████████▎ | 8272/10000 [09:46<01:57, 14.67clip/s, 14.7 clips/s | failed=0]m05_vjepa:  84%|████████▍ | 8448/10000 [09:58<01:45, 14.65clip/s, 14.7 clips/s | failed=0]m05_vjepa:  84%|████████▍ | 8448/10000 [09:58<01:45, 14.65clip/s, 14.6 clips/s | failed=0]m05_vjepa:  84%|████████▍ | 8448/10000 [10:09<01:45, 14.65clip/s, 14.6 clips/s | failed=0]m05_vjepa:  86%|████████▌ | 8624/10000 [10:10<01:33, 14.70clip/s, 14.6 clips/s | failed=0]m05_vjepa:  86%|████████▌ | 8624/10000 [10:10<01:33, 14.70clip/s, 14.7 clips/s | failed=0]m05_vjepa:  88%|████████▊ | 8800/10000 [10:22<01:21, 14.73clip/s, 14.7 clips/s | failed=0]m05_vjepa:  88%|████████▊ | 8800/10000 [10:22<01:21, 14.73clip/s, 14.8 clips/s | failed=0]m05_vjepa:  90%|████████▉ | 8976/10000 [10:34<01:09, 14.71clip/s, 14.8 clips/s | failed=0]m05_vjepa:  90%|████████▉ | 8976/10000 [10:34<01:09, 14.71clip/s, 14.7 clips/s | failed=0]m05_vjepa:  92%|█████████▏| 9152/10000 [10:46<00:57, 14.70clip/s, 14.7 clips/s | failed=0]m05_vjepa:  92%|█████████▏| 9152/10000 [10:46<00:57, 14.70clip/s, 14.7 clips/s | failed=0]m05_vjepa:  93%|█████████▎| 9328/10000 [10:58<00:45, 14.71clip/s, 14.7 clips/s | failed=0]m05_vjepa:  93%|█████████▎| 9328/10000 [10:58<00:45, 14.71clip/s, 14.7 clips/s | failed=0]m05_vjepa:  93%|█████████▎| 9328/10000 [11:09<00:45, 14.71clip/s, 14.7 clips/s | failed=0]m05_vjepa:  95%|█████████▌| 9504/10000 [11:10<00:33, 14.70clip/s, 14.7 clips/s | failed=0]m05_vjepa:  95%|█████████▌| 9504/10000 [11:10<00:33, 14.70clip/s, 14.7 clips/s | failed=0]m05_vjepa:  97%|█████████▋| 9680/10000 [11:21<00:21, 14.72clip/s, 14.7 clips/s | failed=0]m05_vjepa:  97%|█████████▋| 9680/10000 [11:21<00:21, 14.72clip/s, 14.7 clips/s | failed=0]m05_vjepa:  99%|█████████▊| 9856/10000 [11:33<00:09, 14.70clip/s, 14.7 clips/s | failed=0]m05_vjepa:  99%|█████████▊| 9856/10000 [11:33<00:09, 14.70clip/s, 14.7 clips/s | failed=0]m05_vjepa: 10032clip [11:45, 14.73clip/s, 14.7 clips/s | failed=0]                        m05_vjepa: 10032clip [11:45, 14.73clip/s, 14.7 clips/s | failed=0]m05_vjepa: 10032clip [11:46, 14.21clip/s, 14.7 clips/s | failed=0]
+
+Segment done: 10,032 clips in 707s (14.20 clips/s)
+wandb: updating run metadata
+wandb: uploading wandb-summary.json; uploading output.log
+wandb: uploading console lines 19-20
+wandb: 
+wandb: Run history:
+wandb:        clips_processed ▁▁▁▁▁▂▃▃▃▃▃▃▃▃▄▄▄▄▄▄▅▅▅▅▅▅▆▆▆▆▆▇▇▇▇▇▇▇██
+wandb:                 failed ▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁
+wandb: throughput_clips_per_s ▁███████████████████████████████████████
+wandb: 
+wandb: Run summary:
+wandb:        clips_processed 110352
+wandb:                 failed 0
+wandb: throughput_clips_per_s 14.72562
+wandb: 
+wandb: 🚀 View run m05_FULL at: https://wandb.ai/sjsu_llm/walkindia-200k/runs/twrejumm
+wandb: ⭐️ View project at: https://wandb.ai/sjsu_llm/walkindia-200k
+wandb: Synced 5 W&B file(s), 0 media file(s), 0 artifact file(s) and 0 other file(s)
+wandb: Find logs at: ./wandb/run-20260404_131458-twrejumm/logs
+Worker exiting (GPU memory will be released).
+Checkpoint loaded: 110,352 embeddings from .m05_checkpoint_vjepa_lambda0_001.npz
+Worker done. Progress: 110,352/115,687
+
+============================================================
+WORKER 12: embeddings 110,352 → 115,687
+============================================================
+/workspace/factorjepa/venv_walkindia/lib/python3.12/site-packages/transformers/utils/hub.py:110: FutureWarning: Using `TRANSFORMERS_CACHE` is deprecated and will be removed in v5 of Transformers. Use `HF_HOME` instead.
+  warnings.warn(
+Using PyAV for video decoding
+GPU: NVIDIA RTX PRO 6000 Blackwell Workstation Edition
+CUDA version: 12.8
+Batch size: 176 (from inference/vjepa2 profiler)
+wandb: [wandb.login()] Loaded credentials for https://api.wandb.ai from WANDB_API_KEY.
+wandb: Currently logged in as: kapilw25 (sjsu_llm) to https://api.wandb.ai. Use `wandb login --relogin` to force relogin
+wandb: WARNING Using a boolean value for 'reinit' is deprecated. Use 'return_previous' or 'finish_previous' instead.
+wandb: setting up run bkofcb41
+wandb: Tracking run with wandb version 0.25.1
+wandb: Run data is saved locally in /workspace/factorjepa/wandb/run-20260404_132709-bkofcb41
+wandb: Run `wandb offline` to turn off syncing.
+wandb: Syncing run m05_FULL
+wandb: ⭐️ View project at https://wandb.ai/sjsu_llm/walkindia-200k
+wandb: 🚀 View run at https://wandb.ai/sjsu_llm/walkindia-200k/runs/bkofcb41
+wandb: run=m05_FULL url=https://wandb.ai/sjsu_llm/walkindia-200k/runs/bkofcb41
+Checkpoint loaded: 110,352 embeddings from .m05_checkpoint_vjepa_lambda0_001.npz
+
+Loading model: outputs/full/m09_lambda0_001/student_encoder.pt
+Adapted model: num_frames=16 (from training config)
+/workspace/factorjepa/venv_walkindia/lib/python3.12/site-packages/timm/models/layers/__init__.py:49: FutureWarning: Importing from timm.models.layers is deprecated, please import via timm.layers
+  warnings.warn(f"Importing from {__name__} is deprecated, please import via timm.layers", FutureWarning)
+Adapted encoder: loaded 484/484 params (missing: 0, unexpected: 0)
+Applying torch.compile...
+Warmup: compiling inductor graph...
+Model loaded on cuda (dtype: torch.float16)
+
+=== Streaming Config ===
+batch_size:    176
+video_decoder: PyAV
+prefetch:      8 batches
+checkpoint:    every 500 clips
+m05_vjepa:   0%|          | 0/5335 [00:00<?, ?clip/s]  Parallel TAR reader: 8 threads, 116 TARs, queue=256
+m05_vjepa:   3%|▎         | 176/5335 [00:35<17:16,  4.98clip/s]m05_vjepa:   3%|▎         | 176/5335 [00:35<17:16,  4.98clip/s, 5.0 clips/s | failed=0]m05_vjepa:   7%|▋         | 352/5335 [00:46<10:05,  8.22clip/s, 5.0 clips/s | failed=0]m05_vjepa:   7%|▋         | 352/5335 [00:46<10:05,  8.22clip/s, 15.1 clips/s | failed=0]m05_vjepa:  10%|▉         | 528/5335 [00:58<07:43, 10.37clip/s, 15.1 clips/s | failed=0]m05_vjepa:  10%|▉         | 528/5335 [00:58<07:43, 10.37clip/s, 15.1 clips/s | failed=0]m05_vjepa:  10%|▉         | 528/5335 [01:09<07:43, 10.37clip/s, 15.1 clips/s | failed=0]m05_vjepa:  13%|█▎        | 704/5335 [01:10<06:34, 11.74clip/s, 15.1 clips/s | failed=0]m05_vjepa:  13%|█▎        | 704/5335 [01:10<06:34, 11.74clip/s, 15.0 clips/s | failed=0]m05_vjepa:  16%|█▋        | 880/5335 [01:22<05:51, 12.67clip/s, 15.0 clips/s | failed=0]m05_vjepa:  16%|█▋        | 880/5335 [01:22<05:51, 12.67clip/s, 14.7 clips/s | failed=0]m05_vjepa:  20%|█▉        | 1056/5335 [01:34<05:21, 13.33clip/s, 14.7 clips/s | failed=0]m05_vjepa:  20%|█▉        | 1056/5335 [01:34<05:21, 13.33clip/s, 14.8 clips/s | failed=0]m05_vjepa:  23%|██▎       | 1232/5335 [01:46<04:57, 13.77clip/s, 14.8 clips/s | failed=0]m05_vjepa:  23%|██▎       | 1232/5335 [01:46<04:57, 13.77clip/s, 14.8 clips/s | failed=0]m05_vjepa:  26%|██▋       | 1408/5335 [01:58<04:39, 14.05clip/s, 14.8 clips/s | failed=0]m05_vjepa:  26%|██▋       | 1408/5335 [01:58<04:39, 14.05clip/s, 14.7 clips/s | failed=0]m05_vjepa:  26%|██▋       | 1408/5335 [02:09<04:39, 14.05clip/s, 14.7 clips/s | failed=0]m05_vjepa:  30%|██▉       | 1584/5335 [02:10<04:23, 14.23clip/s, 14.7 clips/s | failed=0]m05_vjepa:  30%|██▉       | 1584/5335 [02:10<04:23, 14.23clip/s, 14.7 clips/s | failed=0]m05_vjepa:  33%|███▎      | 1760/5335 [02:22<04:09, 14.32clip/s, 14.7 clips/s | failed=0]m05_vjepa:  33%|███▎      | 1760/5335 [02:22<04:09, 14.32clip/s, 14.6 clips/s | failed=0]m05_vjepa:  36%|███▋      | 1936/5335 [02:34<03:55, 14.42clip/s, 14.6 clips/s | failed=0]m05_vjepa:  36%|███▋      | 1936/5335 [02:34<03:55, 14.42clip/s, 14.6 clips/s | failed=0]m05_vjepa:  40%|███▉      | 2112/5335 [02:46<03:42, 14.48clip/s, 14.6 clips/s | failed=0]m05_vjepa:  40%|███▉      | 2112/5335 [02:46<03:42, 14.48clip/s, 14.6 clips/s | failed=0]m05_vjepa:  43%|████▎     | 2288/5335 [02:58<03:30, 14.50clip/s, 14.6 clips/s | failed=0]m05_vjepa:  43%|████▎     | 2288/5335 [02:58<03:30, 14.50clip/s, 14.6 clips/s | failed=0]m05_vjepa:  43%|████▎     | 2288/5335 [03:09<03:30, 14.50clip/s, 14.6 clips/s | failed=0]m05_vjepa:  46%|████▌     | 2464/5335 [03:10<03:18, 14.49clip/s, 14.6 clips/s | failed=0]m05_vjepa:  46%|████▌     | 2464/5335 [03:10<03:18, 14.49clip/s, 14.5 clips/s | failed=0]m05_vjepa:  49%|████▉     | 2640/5335 [03:22<03:05, 14.56clip/s, 14.5 clips/s | failed=0]m05_vjepa:  49%|████▉     | 2640/5335 [03:22<03:05, 14.56clip/s, 14.6 clips/s | failed=0]m05_vjepa:  53%|█████▎    | 2816/5335 [03:34<02:52, 14.60clip/s, 14.6 clips/s | failed=0]m05_vjepa:  53%|█████▎    | 2816/5335 [03:34<02:52, 14.60clip/s, 14.6 clips/s | failed=0]m05_vjepa:  56%|█████▌    | 2992/5335 [03:46<02:40, 14.59clip/s, 14.6 clips/s | failed=0]m05_vjepa:  56%|█████▌    | 2992/5335 [03:46<02:40, 14.59clip/s, 14.6 clips/s | failed=0]m05_vjepa:  59%|█████▉    | 3168/5335 [03:58<02:28, 14.63clip/s, 14.6 clips/s | failed=0]m05_vjepa:  59%|█████▉    | 3168/5335 [03:58<02:28, 14.63clip/s, 14.6 clips/s | failed=0]m05_vjepa:  59%|█████▉    | 3168/5335 [04:09<02:28, 14.63clip/s, 14.6 clips/s | failed=0]m05_vjepa:  63%|██████▎   | 3344/5335 [04:10<02:15, 14.64clip/s, 14.6 clips/s | failed=0]m05_vjepa:  63%|██████▎   | 3344/5335 [04:10<02:15, 14.64clip/s, 14.7 clips/s | failed=0]m05_vjepa:  66%|██████▌   | 3520/5335 [04:22<02:04, 14.62clip/s, 14.7 clips/s | failed=0]m05_vjepa:  66%|██████▌   | 3520/5335 [04:22<02:04, 14.62clip/s, 14.6 clips/s | failed=0]m05_vjepa:  69%|██████▉   | 3696/5335 [04:34<01:51, 14.65clip/s, 14.6 clips/s | failed=0]m05_vjepa:  69%|██████▉   | 3696/5335 [04:34<01:51, 14.65clip/s, 14.6 clips/s | failed=0]m05_vjepa:  73%|███████▎  | 3872/5335 [04:46<01:39, 14.64clip/s, 14.6 clips/s | failed=0]m05_vjepa:  73%|███████▎  | 3872/5335 [04:46<01:39, 14.64clip/s, 14.6 clips/s | failed=0]m05_vjepa:  76%|███████▌  | 4048/5335 [04:58<01:27, 14.66clip/s, 14.6 clips/s | failed=0]m05_vjepa:  76%|███████▌  | 4048/5335 [04:58<01:27, 14.66clip/s, 14.7 clips/s | failed=0]m05_vjepa:  76%|███████▌  | 4048/5335 [05:09<01:27, 14.66clip/s, 14.7 clips/s | failed=0]m05_vjepa:  79%|███████▉  | 4224/5335 [05:10<01:15, 14.64clip/s, 14.7 clips/s | failed=0]m05_vjepa:  79%|███████▉  | 4224/5335 [05:10<01:15, 14.64clip/s, 14.6 clips/s | failed=0]m05_vjepa:  82%|████████▏ | 4400/5335 [05:22<01:03, 14.65clip/s, 14.6 clips/s | failed=0]m05_vjepa:  82%|████████▏ | 4400/5335 [05:22<01:03, 14.65clip/s, 14.7 clips/s | failed=0]m05_vjepa:  86%|████████▌ | 4576/5335 [05:34<00:51, 14.70clip/s, 14.7 clips/s | failed=0]m05_vjepa:  86%|████████▌ | 4576/5335 [05:34<00:51, 14.70clip/s, 14.8 clips/s | failed=0]m05_vjepa:  89%|████████▉ | 4752/5335 [05:46<00:39, 14.73clip/s, 14.8 clips/s | failed=0]m05_vjepa:  89%|████████▉ | 4752/5335 [05:46<00:39, 14.73clip/s, 14.8 clips/s | failed=0]m05_vjepa:  92%|█████████▏| 4928/5335 [05:58<00:27, 14.72clip/s, 14.8 clips/s | failed=0]m05_vjepa:  92%|█████████▏| 4928/5335 [05:58<00:27, 14.72clip/s, 14.8 clips/s | failed=0]m05_vjepa:  92%|█████████▏| 4928/5335 [06:09<00:27, 14.72clip/s, 14.8 clips/s | failed=0]m05_vjepa:  96%|█████████▌| 5104/5335 [06:10<00:15, 14.74clip/s, 14.8 clips/s | failed=0]m05_vjepa:  96%|█████████▌| 5104/5335 [06:10<00:15, 14.74clip/s, 14.8 clips/s | failed=0]m05_vjepa:  99%|█████████▉| 5280/5335 [06:22<00:03, 14.76clip/s, 14.8 clips/s | failed=0]m05_vjepa:  99%|█████████▉| 5280/5335 [06:22<00:03, 14.76clip/s, 14.8 clips/s | failed=0]m05_vjepa: 100%|██████████| 5335/5335 [06:26<00:00, 14.55clip/s, 14.8 clips/s | failed=0]m05_vjepa: 100%|██████████| 5335/5335 [06:26<00:00, 14.55clip/s, 14.6 clips/s | failed=0]m05_vjepa: 100%|██████████| 5335/5335 [06:26<00:00, 13.80clip/s, 14.6 clips/s | failed=0]
+
+Segment done: 5,335 clips in 387s (13.78 clips/s)
+wandb: updating run metadata
+wandb: uploading output.log; uploading wandb-summary.json; uploading config.yaml
+wandb: uploading history steps 29-30, summary, console lines 17-17
+wandb: 
+wandb: Run history:
+wandb:        clips_processed ▁▁▁▂▂▂▂▃▃▃▃▄▄▄▄▅▅▅▅▆▆▆▆▆▇▇▇▇███
+wandb:                 failed ▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁
+wandb: throughput_clips_per_s ▁██████████████████████████████
+wandb: 
+wandb: Run summary:
+wandb:        clips_processed 115687
+wandb:                 failed 0
+wandb: throughput_clips_per_s 14.55084
+wandb: 
+wandb: 🚀 View run m05_FULL at: https://wandb.ai/sjsu_llm/walkindia-200k/runs/bkofcb41
+wandb: ⭐️ View project at: https://wandb.ai/sjsu_llm/walkindia-200k
+wandb: Synced 5 W&B file(s), 0 media file(s), 0 artifact file(s) and 0 other file(s)
+wandb: Find logs at: ./wandb/run-20260404_132709-bkofcb41/logs
+Worker exiting (GPU memory will be released).
+Checkpoint loaded: 115,687 embeddings from .m05_checkpoint_vjepa_lambda0_001.npz
+Worker done. Progress: 115,687/115,687
+Checkpoint loaded: 115,687 embeddings from .m05_checkpoint_vjepa_lambda0_001.npz
+
+=== Processing Stats ===
+Total clips:     115,687
+Embedding shape: (115687, 1408)
+
+=== EMBEDDING COMPLETE ===
+Saved: /workspace/factorjepa/outputs/full/embeddings_vjepa_lambda0_001.npy
+Shape: (115687, 1408)
+Unique clips: 115687
+wandb: [wandb.login()] Loaded credentials for https://api.wandb.ai from WANDB_API_KEY.
+wandb: Currently logged in as: kapilw25 (sjsu_llm) to https://api.wandb.ai. Use `wandb login --relogin` to force relogin
+wandb: WARNING Using a boolean value for 'reinit' is deprecated. Use 'return_previous' or 'finish_previous' instead.
+wandb: setting up run ekz2z95w
+wandb: Tracking run with wandb version 0.25.1
+wandb: Run data is saved locally in /workspace/factorjepa/wandb/run-20260404_133358-ekz2z95w
+wandb: Run `wandb offline` to turn off syncing.
+wandb: Syncing run m05_COMPLETE
+wandb: ⭐️ View project at https://wandb.ai/sjsu_llm/walkindia-200k
+wandb: 🚀 View run at https://wandb.ai/sjsu_llm/walkindia-200k/runs/ekz2z95w
+wandb: run=m05_COMPLETE url=https://wandb.ai/sjsu_llm/walkindia-200k/runs/ekz2z95w
+wandb: updating run metadata; uploading artifact embeddings; uploading artifact paths
+wandb: uploading artifact embeddings; uploading artifact paths
+wandb: uploading artifact embeddings; uploading artifact paths; uploading wandb-metadata.json
+wandb: uploading artifact embeddings; uploading artifact paths
+wandb: uploading artifact embeddings
+wandb: uploading artifact embeddings; uploading history steps 0-0, summary, console lines 0-0
+wandb: uploading artifact embeddings
+wandb: 
+wandb: Run history:
+wandb: embedding_dim ▁
+wandb:   total_clips ▁
+wandb: 
+wandb: Run summary:
+wandb: embedding_dim 1408
+wandb:   total_clips 115687
+wandb: 
+wandb: 🚀 View run m05_COMPLETE at: https://wandb.ai/sjsu_llm/walkindia-200k/runs/ekz2z95w
+wandb: ⭐️ View project at: https://wandb.ai/sjsu_llm/walkindia-200k
+wandb: Synced 5 W&B file(s), 0 media file(s), 4 artifact file(s) and 0 other file(s)
+wandb: Find logs at: ./wandb/run-20260404_133358-ekz2z95w/logs
+[13:34:35] PASSED: m05 re-embed (winner lambda=0.001) (142m 37s)
+[13:34:35] HF upload started in background (PID=2448517)
+
+═══════════════════════════════════════════════════════════════
+  STEP winner-metrics: m06 metrics (winner lambda=0.001)
+  Mode: FULL | Est: ~5 min
+  Started: 2026-04-04 13:34:35
+═══════════════════════════════════════════════════════════════
+[13:34:35] CMD: python -u src/m06_faiss_metrics.py --encoder vjepa_lambda0_001 --FULL
+GPU: NVIDIA RTX PRO 6000 Blackwell Workstation Edition
+CUDA version: 12.8
+wandb: [wandb.login()] Loaded credentials for https://api.wandb.ai from WANDB_API_KEY.
+wandb: Currently logged in as: kapilw25 (sjsu_llm) to https://api.wandb.ai. Use `wandb login --relogin` to force relogin
+wandb: WARNING Using a boolean value for 'reinit' is deprecated. Use 'return_previous' or 'finish_previous' instead.
+wandb: setting up run va71b56g
+wandb: Tracking run with wandb version 0.25.1
+wandb: Run data is saved locally in /workspace/factorjepa/wandb/run-20260404_133437-va71b56g
+wandb: Run `wandb offline` to turn off syncing.
+wandb: Syncing run m06_FULL
+wandb: ⭐️ View project at https://wandb.ai/sjsu_llm/walkindia-200k
+wandb: 🚀 View run at https://wandb.ai/sjsu_llm/walkindia-200k/runs/va71b56g
+wandb: run=m06_FULL url=https://wandb.ai/sjsu_llm/walkindia-200k/runs/va71b56g
+[output_guard] m06 vjepa_lambda0_001: attempting HF download for 2 missing file(s)...
+Downloading anonymousML123/factorjepa-outputs//workspace/factorjepa/outputs/full/ → /workspace/factorjepa/outputs/full
+
+Download complete: 0s
+  Files: 0 new, 0 updated, 68 unchanged
+  Downloaded: 0.00 GB
+[output_guard] m06 vjepa_lambda0_001: 2 file(s) still missing after HF download
+[output_guard] m06 vjepa_lambda0_001: outputs missing or invalid — will re-compute
+  MISS  metrics: m06_metrics_vjepa_lambda0_001.json
+  MISS  knn_indices: knn_indices_vjepa_lambda0_001.npy
+Encoder:     vjepa_lambda0_001 (dim=1408, type=video_adapted)
+Output dir:  /workspace/factorjepa/outputs/full
+Embeddings:  /workspace/factorjepa/outputs/full/embeddings_vjepa_lambda0_001.npy
+Metrics:     /workspace/factorjepa/outputs/full/m06_metrics_vjepa_lambda0_001.json
+Loaded embeddings: (115687, 1408)
+Loaded tags: 115,687
+Loaded clip paths: 115,687
+WARNING: Tags lack _clip_key field — cannot verify alignment. Results may be wrong if tags and embeddings are from different runs.
+Building FAISS GPU index: 115,687 vectors, dim=1408
+FAISS GPU index built: 115,687 vectors
+
+Searching 30 neighbors (k=6, extra for Hard mode)...
+m06_modes:   0%|          | 0/2 [00:00<?, ?mode/s]
+==================================================
+EASY MODE (k=6)
+==================================================
+  Cycle@K:     78.12%
+  DimConsist@K: 35.90% ± 0.63 (dim-split, NOT augmentation invariance)
+  Silhouette:  -0.0551 (scene_type)
+  Prec@K:      21.86%
+  mAP@K:       0.1449
+  nDCG@K:      0.9244
+  Computing per-key breakdowns for 13 fields...
+
+m06_easy_perkey:   0%|          | 0/65 [00:00<?, ?field/s][A
+m06_easy_perkey:   2%|▏         | 1/65 [00:00<00:45,  1.41field/s][A
+m06_easy_perkey:   3%|▎         | 2/65 [00:01<00:52,  1.20field/s][A
+m06_easy_perkey:   5%|▍         | 3/65 [00:02<00:53,  1.17field/s][A
+m06_easy_perkey:   6%|▌         | 4/65 [00:03<00:51,  1.19field/s][A
+m06_easy_perkey:   8%|▊         | 5/65 [00:04<00:47,  1.26field/s][A
+m06_easy_perkey:   9%|▉         | 6/65 [00:04<00:45,  1.28field/s][A
+m06_easy_perkey:  11%|█         | 7/65 [00:05<00:45,  1.27field/s][A
+m06_easy_perkey:  12%|█▏        | 8/65 [00:06<00:43,  1.30field/s][A
+m06_easy_perkey:  14%|█▍        | 9/65 [00:07<00:43,  1.29field/s][A
+m06_easy_perkey:  15%|█▌        | 10/65 [00:07<00:41,  1.31field/s][A
+m06_easy_perkey:  17%|█▋        | 11/65 [00:08<00:40,  1.33field/s][A
+m06_easy_perkey:  18%|█▊        | 12/65 [00:09<00:43,  1.23field/s][A
+m06_easy_perkey:  20%|██        | 13/65 [00:10<00:44,  1.18field/s][A  Silhouette per-key: video_quality=-0.0081, infrastructure_quality=-0.0109, vegetation=-0.0169 ...
+
+m06_easy_perkey:  32%|███▏      | 21/65 [00:10<00:08,  4.98field/s][A  Prec@K per-key: time_of_day=82.08%, lighting=79.08%, pedestrian_vehicle_separation=66.30% ...
+
+m06_easy_perkey:  45%|████▍     | 29/65 [00:10<00:03,  9.77field/s][A
+m06_easy_perkey:  55%|█████▌    | 36/65 [00:10<00:01, 14.72field/s][A  mAP@K per-key: time_of_day=0.7714, lighting=0.7354, pedestrian_vehicle_separation=0.5741 ...
+
+m06_easy_perkey:  63%|██████▎   | 41/65 [00:10<00:01, 16.83field/s][A
+m06_easy_perkey:  69%|██████▉   | 45/65 [00:11<00:01, 16.23field/s][A
+m06_easy_perkey:  75%|███████▌  | 49/65 [00:11<00:01, 15.66field/s][A
+m06_easy_perkey:  80%|████████  | 52/65 [00:11<00:00, 15.29field/s][A  Cycle@K per-key: computed for 13 fields
+
+m06_easy_perkey:  85%|████████▍ | 55/65 [00:12<00:01,  8.45field/s][A
+m06_easy_perkey:  88%|████████▊ | 57/65 [00:13<00:01,  6.87field/s][A
+m06_easy_perkey:  91%|█████████ | 59/65 [00:13<00:01,  5.91field/s][A
+m06_easy_perkey:  94%|█████████▍| 61/65 [00:14<00:00,  5.11field/s][A
+m06_easy_perkey:  95%|█████████▌| 62/65 [00:14<00:00,  4.76field/s][A
+m06_easy_perkey:  97%|█████████▋| 63/65 [00:14<00:00,  4.38field/s][A
+m06_easy_perkey:  98%|█████████▊| 64/65 [00:15<00:00,  4.06field/s][A
+m06_easy_perkey: 100%|██████████| 65/65 [00:15<00:00,  3.77field/s][Am06_easy_perkey: 100%|██████████| 65/65 [00:15<00:00,  4.19field/s]
+  Macro avg:   15.25%
+  Micro avg:   21.86%
+  Bootstrap 95% CI (BCa, 10K iterations)...
+[13:42:32] FAILED: m06 metrics (winner lambda=0.001) (7m 57s) — exit code 137
+[13:42:32] FATAL: Winner metrics failed.

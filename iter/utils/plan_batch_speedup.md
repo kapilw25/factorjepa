@@ -348,6 +348,119 @@ m05 deduplicates V-JEPA embeddings (cosine sim > 0.95): 10,000 → 5,105 unique 
 
 **Ordering dependency:** m05 must complete before m05c (already enforced by `run_ch9_overnight.sh` step ordering).
 
+---
+
+## BUG 5: m06 Bootstrap CI — Python For-Loop Bottleneck (April 3, 2026)
+
+**Discovered:** m06 FAISS metrics for vjepa encoder took **113 minutes** on 115K clips. GPU utilization was 0% for ~2 hours. m06 for random encoder took **67 minutes**.
+
+**Root cause:** `per_clip_prec_at_k()`, `per_clip_map_at_k()`, `per_clip_cycle_at_k()`, `per_clip_ndcg_at_k()` in `bootstrap.py` used Python for-loops with `dict.get()` over 115K clips for bootstrap CI computation. CPU-bound pure Python while GPU sat idle.
+
+**Fix:** NumPy vectorization in `src/utils/bootstrap.py`:
+- `encode_tags_to_labels()`: converts tags list-of-dicts to NumPy int arrays (uses `pd.factorize`)
+- All per_clip_* functions: replaced Python loops with `np.take`, broadcasting (`a[:, None] == b[None, :]`), `np.cumsum`
+- Pre-encode tag labels once via `encode_tags_to_labels()`, pass `label_arrays` to all metric functions
+
+**Impact:** Estimated 113 min → ~5-15 min per encoder at 115K scale (vectorization speedup). Not yet validated at full 115K scale on this GPU — will be measured when current Ch10 run reaches m06.
+
+---
+
+## BUGS 6-12: Adapted V-JEPA Embedding OOM (April 4, 2026)
+
+### Context
+
+Ch9 (frozen V-JEPA via HF AutoModel) worked out of the box. Ch10 (adapted V-JEPA from `student_encoder.pt` via native vjepa2 VisionTransformer) OOM'd 8 consecutive times before reaching 15.3 clips/s.
+
+### 7 Issues Fixed
+
+**1. `VJEPA_FRAMES_PER_CLIP=64` instead of `num_frames=16` (ROOT CAUSE)**
+- **Impact:** 4x token count (4608 → 18432), 3x VRAM (30GB → 89GB), 4x CPU queue (5GB → 152GB)
+- **Fix:** Read `num_frames` from `configs/pretrain/vitg16_indian.yaml` for adapted models
+- **Affected:** model creation, warmup tensor, producer video decode (3 code sites)
+
+**2. `torch.backends.cuda.sdp_kernel()` graph breaks**
+- **Impact:** torch.compile can't optimize memory across 40 transformer blocks
+- **Fix:** `torch.backends.cuda.sdp_kernel = contextlib.nullcontext` — the bare `sdp_kernel()` call is a no-op (confirmed PyTorch Issue #130098, all 7 call sites in vjepa2 use no args)
+
+**3. Float32 input to compiled model (dtype mismatch recompilation)**
+- **Impact:** Warmup compiled graph with float16, real data arrived as float32 → recompilation → both graphs in memory
+- **Fix:** `batched_pixels.to(device=device, dtype=torch.float16)` — matches profiler
+
+**4. Wrong warmup tensor permute**
+- **Impact:** Created `(B, C, T, H, W)` then permuted to `(B, T, C, H, W)` → Conv3D saw 64 channels instead of 3
+- **Fix:** Removed the permute — warmup tensor was already in correct `(B, C, T, H, W)` format
+
+**5. Missing torch.compile warmup**
+- **Impact:** First real batch paid full compilation cost + potentially different inductor graph
+- **Fix:** Added BS=2 warmup pass after `torch.compile()`, matching profiler pattern
+
+**6. CPU SIGKILL from cgroup memory limit (120GB)**
+- **Impact:** Producer filled 8 × 176 clips × 64 frames = 152GB → exceeded cgroup limit → worker SIGKILL'd
+- **Fix:** Resolved by fix #1 (16 frames → 5GB queue). Also added `inference_adapted_chunk` config as fallback.
+
+**7. OOM retry didn't free GPU memory**
+- **Impact:** After first OOM, `empty_cache()` didn't free inductor artifacts → retry also OOM'd
+- **Fix:** Added OOM retry with batch splitting in `get_batch_embeddings` (safety net, no longer needed after other fixes)
+
+### Why Frozen Model Worked Without Any of These Fixes
+
+| Aspect | Frozen (HF AutoModel) | Adapted (native vjepa2) |
+|--------|----------------------|------------------------|
+| Frame count | Handled internally by HF | Must match training config manually |
+| Attention | `attn_implementation="flash_attention_2"` (no graph breaks) | `sdp_kernel()` context manager (graph breaks) |
+| torch.compile | Works out of the box | Needed sdp_kernel monkey-patch |
+| Input dtype | HF handles casting | Must cast to float16 explicitly |
+| Model loading | `AutoModel.from_pretrained()` | Manual `vit_giant_xformers()` + `load_state_dict()` |
+
+### Result
+
+- **Before:** OOM at BS=176 (89GB GPU + 152GB CPU)
+- **After:** 15.3 clips/s at BS=176, ~30GB VRAM, ~2.1h for 115K clips
+
+---
+
+## m05c True Overlap@K — 36h → ~4.7h (April 4, 2026)
+
+### Why 40h
+
+m05c embeds each clip **twice** (view A + view B augmentations) through V-JEPA ViT-G at **64 frames**:
+- 115K clips × 2 views = 230K forward passes
+- Frozen V-JEPA at 64 frames ≈ 1.8 clips/s (measured Ch9)
+- 230K / 1.8 = 128K seconds ≈ **35-40h**
+
+### Speedup options evaluated
+
+| Optimization | Speedup | 115K Time | Paper-safe? |
+|---|---|---|---|
+| Baseline (64f, no compile) | 1x | ~36h | Yes |
+| + torch.compile (already in code) | ~2x | ~18h | Yes |
+| + ToMe token merging (Meta, ICLR 2023) | ~2x more | ~9h | **No** — V-JEPA uses RoPE (position re-encoded per layer). Merging tokens corrupts position IDs in subsequent RoPE layers. No published validation for ToMe + RoPE. |
+| + Subsample 30K clips (stat. sufficient for CI) | ~3.8x | **~4.7h** | Yes (common practice — DINO/BYOL use 50K ImageNet val) |
+| torch.compile + subsample (implemented) | ~7.6x | **~4.7h** | Yes |
+
+### Key research findings
+
+1. **No shortcut exists** — True Overlap@K IS double-embedding by definition (kNN IoU between two augmented views). Any proxy measures something different.
+
+2. **Dim-split Overlap@K in m06 is NOT the same thing** — it measures dimensional redundancy (are the first 704 dims and last 704 dims redundant?), NOT augmentation invariance (does cropping/color jitter change the neighborhood?). The JSON key `overlap_at_k` is used for both, which is confusing. Should be renamed to `dim_consistency_at_k` if kept alongside True Overlap.
+
+3. **ToMe (Token Merging) rejected for V-JEPA** — V-JEPA uses RoPE (Rotary Position Encoding) which re-encodes position at every layer. ToMe assumes position-agnostic tokens after initial embedding. After merging, remaining tokens carry wrong position IDs → corrupted embeddings. This is an open research problem (no published solution for ToMe + RoPE).
+
+4. **Subsample is statistically sound** — 30K clips gives bootstrap 95% CI width of ~0.3% for Overlap@K (vs ~0.2% at 115K). The CI speaks for itself in the paper. Common practice in SSL papers.
+
+### Decision: Drop m05c, use dim-split consistently
+
+**Problem discovered:** The POC radar plot mixed True Overlap (7.97% for frozen V-JEPA via m05c) with dim-split (60.9% for DINOv2, 47% for CLIP, etc.) under the same "Overlap@K" label. These are fundamentally different metrics — comparing them on the same axis is misleading.
+
+**Options evaluated:**
+1. Run m05c for ALL encoders — expensive (~4.7h × 6 encoders = ~28h), complex
+2. Use dim-split for ALL encoders (renamed to DimConsist@K) — consistent, zero cost
+3. Drop the overlap axis entirely — loses information
+
+**Chose option 2:** Renamed dim-split from `overlap_at_k` → `dim_consistency_at_k` in m06 JSON output. Removed `--true-overlap-encoder` from run_frozen.sh. m05c skipped (code preserved for future use). All encoders now use the same metric on the radar — scientifically cleaner even if weaker than True Overlap.
+
+---
+
 ## Future Work
 
 ### HF Stream Resilience

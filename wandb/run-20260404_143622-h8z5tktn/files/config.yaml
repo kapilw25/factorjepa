@@ -1,0 +1,52 @@
+_wandb:
+    value:
+        cli_version: 0.25.1
+        e:
+            wjjm6nij8pksom6z8zx70051xhukwpvm:
+                args:
+                    - --encoder
+                    - random
+                    - --SANITY
+                codePath: src/m08_plot.py
+                codePathLocal: src/m08_plot.py
+                email: kapilw25@gmail.com
+                executable: /workspace/factorjepa/venv_walkindia/bin/python
+                git:
+                    commit: 945d9c312d7b9890220fa9a55d115935f0b24a26
+                    remote: https://github.com/kapilw25/factorjepa.git
+                host: 2d5319172a4c
+                os: Linux-6.8.0-106-generic-x86_64-with-glibc2.39
+                program: /workspace/factorjepa/src/m08_plot.py
+                python: CPython 3.12.13
+                root: /workspace/factorjepa
+                startedAt: "2026-04-04T14:36:22.253278Z"
+                writerId: wjjm6nij8pksom6z8zx70051xhukwpvm
+        m: []
+        python_version: 3.12.13
+        t:
+            "3":
+                - 2
+                - 13
+                - 16
+            "4": 3.12.13
+            "5": 0.25.1
+            "10":
+                - 20
+            "12": 0.25.1
+            "13": linux-x86_64
+FULL:
+    value: false
+POC:
+    value: false
+SANITY:
+    value: true
+encoder:
+    value: random
+k:
+    value: 6
+no_grid:
+    value: false
+no_wandb:
+    value: false
+subset:
+    value: null

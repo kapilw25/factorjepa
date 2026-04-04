@@ -1,0 +1,21 @@
+GPU: NVIDIA RTX PRO 6000 Blackwell Workstation Edition
+CUDA version: 12.8
+wandb: [wandb.login()] Loaded credentials for https://api.wandb.ai from WANDB_API_KEY.
+wandb: Currently logged in as: kapilw25 (sjsu_llm) to https://api.wandb.ai. Use `wandb login --relogin` to force relogin
+wandb: WARNING Using a boolean value for 'reinit' is deprecated. Use 'return_previous' or 'finish_previous' instead.
+wandb: setting up run g1z4n6ir
+wandb: Tracking run with wandb version 0.25.1
+wandb: Run data is saved locally in /workspace/factorjepa/wandb/run-20260404_143822-g1z4n6ir
+wandb: Run `wandb offline` to turn off syncing.
+wandb: Syncing run m07_SANITY
+wandb: ⭐️ View project at https://wandb.ai/sjsu_llm/walkindia-200k
+wandb: 🚀 View run at https://wandb.ai/sjsu_llm/walkindia-200k/runs/g1z4n6ir
+wandb: run=m07_SANITY url=https://wandb.ai/sjsu_llm/walkindia-200k/runs/g1z4n6ir
+[output_guard] m07 vjepa: ALL VALID — skipping (cached)
+  OK    umap_2d: (50, 2)
+wandb: updating run metadata; uploading console lines 0-0
+wandb: uploading summary, console lines 1-2
+wandb: 🚀 View run m07_SANITY at: https://wandb.ai/sjsu_llm/walkindia-200k/runs/g1z4n6ir
+wandb: ⭐️ View project at: https://wandb.ai/sjsu_llm/walkindia-200k
+wandb: Synced 5 W&B file(s), 0 media file(s), 0 artifact file(s) and 0 other file(s)
+wandb: Find logs at: ./wandb/run-20260404_143822-g1z4n6ir/logs

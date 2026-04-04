@@ -10,6 +10,7 @@ USAGE:
 """
 import argparse
 import json
+import os
 import sys
 import time
 from pathlib import Path
@@ -19,6 +20,7 @@ from tqdm import tqdm
 
 # Add src to path for utils import
 sys.path.insert(0, str(Path(__file__).parent))
+from utils.progress import make_pbar
 from utils.config import (
     EMBEDDINGS_FILE, TAGS_FILE, METRICS_FILE, OUTPUTS_DIR,
     FAISS_K_NEIGHBORS, TAG_TAXONOMY_JSON,
@@ -85,14 +87,17 @@ def compute_true_overlap_at_k(output_dir: Path, k: int) -> float:
     idx_b.add(aug_b)
     _, I_b = idx_b.search(aug_b, k + 1)  # each clip's neighbors in view B
 
-    # Compute per-clip IoU of kNN sets (skip self at col 0)
-    per_clip_iou = np.zeros(n)
-    for i in range(n):
-        set_a = set(I_a[i, 1:k + 1].tolist()) - {-1}
-        set_b = set(I_b[i, 1:k + 1].tolist()) - {-1}
-        union = set_a | set_b
-        if union:
-            per_clip_iou[i] = len(set_a & set_b) / len(union)
+    # Compute per-clip IoU of kNN sets (skip self at col 0) — vectorized
+    nn_a = I_a[:, 1:k + 1]  # (N, k)
+    nn_b = I_b[:, 1:k + 1]  # (N, k)
+    # Count intersection: for each clip, how many of nn_a appear in nn_b
+    # Broadcasting: (N, k, 1) == (N, 1, k) → (N, k, k) → any over last dim → sum
+    intersection = (nn_a[:, :, None] == nn_b[:, None, :]).any(axis=2).sum(axis=1)  # (N,)
+    # Union = k + k - intersection (each set has exactly k valid neighbors)
+    valid_a = (nn_a != -1).sum(axis=1)
+    valid_b = (nn_b != -1).sum(axis=1)
+    union = valid_a + valid_b - intersection
+    per_clip_iou = np.where(union > 0, intersection / union, 0.0).astype(np.float64)
 
     from utils.bootstrap import bootstrap_ci
     ci = bootstrap_ci(per_clip_iou * 100)  # percentage scale
@@ -192,26 +197,38 @@ def build_exclusion_mask(clip_metadata: list, window_sec: float = 30,
 
 def apply_hard_filter(distances: np.ndarray, indices: np.ndarray,
                       exclusion: dict, k: int) -> tuple:
-    """Filter kNN results by exclusion mask, keeping top-k valid neighbors."""
+    """Filter kNN results by exclusion mask, keeping top-k valid neighbors.
+    Semi-vectorized: builds exclusion mask per clip, then uses NumPy selection."""
     n = indices.shape[0]
+    n_cols = indices.shape[1]
     hard_D = np.full((n, k + 1), np.inf, dtype=np.float32)
     hard_I = np.full((n, k + 1), -1, dtype=np.int64)
 
+    # Build boolean mask: True = keep this neighbor
+    keep_mask = np.ones((n, n_cols), dtype=bool)
+    self_mask = (indices == np.arange(n)[:, None])  # identify self-neighbors
+
+    # Mark excluded neighbors per clip (only clips with exclusions)
+    for i, excluded in exclusion.items():
+        if excluded:
+            for j_pos in range(n_cols):
+                if indices[i, j_pos] in excluded:
+                    keep_mask[i, j_pos] = False
+
+    # Self-neighbor goes to col 0
+    self_col = self_mask.argmax(axis=1)  # first True in each row
+    hard_D[:, 0] = distances[np.arange(n), self_col]
+    hard_I[:, 0] = indices[np.arange(n), self_col]
+
+    # For non-self, non-excluded neighbors: pick top-k by distance order
+    keep_mask &= ~self_mask  # exclude self from candidate pool
     for i in range(n):
-        excluded = exclusion.get(i, set())
-        kept = 0
-        for j_pos in range(indices.shape[1]):
-            neighbor = indices[i, j_pos]
-            if neighbor == i:
-                hard_D[i, 0] = distances[i, j_pos]
-                hard_I[i, 0] = neighbor
-                continue
-            if neighbor not in excluded and kept < k:
-                hard_D[i, kept + 1] = distances[i, j_pos]
-                hard_I[i, kept + 1] = neighbor
-                kept += 1
-            if kept >= k:
-                break
+        valid_cols = np.where(keep_mask[i])[0]
+        top_k = valid_cols[:k]  # already sorted by distance (FAISS returns sorted)
+        n_kept = len(top_k)
+        if n_kept > 0:
+            hard_D[i, 1:n_kept + 1] = distances[i, top_k]
+            hard_I[i, 1:n_kept + 1] = indices[i, top_k]
 
     return hard_D, hard_I
 
@@ -219,16 +236,20 @@ def apply_hard_filter(distances: np.ndarray, indices: np.ndarray,
 # ── Label-Free Metrics (3) ──────────────────────────────────────────────
 
 def compute_cycle_at_k(indices: np.ndarray, k: int) -> tuple:
-    """Cycle@K: % of clips where kNN(A)=B implies B's kNN includes A.
+    """Cycle@K: % of clips where kNN(A)=B implies B's kNN includes A. Vectorized.
     Returns (global_score, per_clip_bool_array) for groupby analysis."""
     n = indices.shape[0]
+    nearest = indices[:, 1]  # (N,) — nearest neighbor of each clip
+    valid = (nearest >= 0) & (nearest < n)
+
     per_clip = np.full(n, -1, dtype=np.int8)  # -1=invalid, 0=fail, 1=success
 
-    for i in range(n):
-        nearest = indices[i, 1]
-        if nearest < 0 or nearest >= n:
-            continue
-        per_clip[i] = 1 if i in set(indices[nearest, 1:k + 1].tolist()) else 0
+    valid_idx = np.where(valid)[0]
+    nearest_valid = nearest[valid_idx]
+    # For each valid clip i, check if i is in nearest[i]'s top-k neighbors
+    nn_neighbors = indices[nearest_valid, 1:k + 1]  # (n_valid, k)
+    reciprocal = (nn_neighbors == valid_idx[:, None]).any(axis=1)  # (n_valid,)
+    per_clip[valid_idx] = reciprocal.astype(np.int8)
 
     valid_mask = per_clip >= 0
     global_score = (per_clip[valid_mask].sum() / valid_mask.sum() * 100) if valid_mask.sum() > 0 else 0.0
@@ -265,13 +286,14 @@ def compute_overlap_at_k(embeddings: np.ndarray, k: int) -> float:
     _, I_a = idx_a.search(emb_a[sample_idx], k + 1)
     _, I_b = idx_b.search(emb_b[sample_idx], k + 1)
 
-    per_clip_iou = np.zeros(sample_n)
-    for row in range(sample_n):
-        set_a = set(I_a[row, 1:k + 1].tolist()) - {-1}
-        set_b = set(I_b[row, 1:k + 1].tolist()) - {-1}
-        union = set_a | set_b
-        if union:
-            per_clip_iou[row] = len(set_a & set_b) / len(union)
+    # Vectorized IoU: broadcast comparison (sample_n, k, 1) == (sample_n, 1, k)
+    nn_a = I_a[:, 1:k + 1]  # (sample_n, k)
+    nn_b = I_b[:, 1:k + 1]  # (sample_n, k)
+    intersection = (nn_a[:, :, None] == nn_b[:, None, :]).any(axis=2).sum(axis=1)
+    valid_a = (nn_a != -1).sum(axis=1)
+    valid_b = (nn_b != -1).sum(axis=1)
+    union = valid_a + valid_b - intersection
+    per_clip_iou = np.where(union > 0, intersection / union, 0.0).astype(np.float64)
 
     from utils.bootstrap import bootstrap_ci
     ci = bootstrap_ci(per_clip_iou * 100)
@@ -312,78 +334,27 @@ def compute_silhouette(embeddings: np.ndarray, tags: list,
 # ── Pseudo-Label Metrics (3) ────────────────────────────────────────────
 
 def compute_prec_at_k(indices: np.ndarray, tags: list, k: int,
-                      field: str = "scene_type") -> float:
-    """Prec@K: % of kNN neighbors with same tag value."""
-    correct = 0
-    total = 0
-    n_tags = len(tags)
-
-    for i, neighbors in enumerate(indices):
-        my_val = tags[i].get(field, "unknown")
-        for j in neighbors[1:k + 1]:
-            if 0 <= j < n_tags:
-                if tags[j].get(field, "unknown") == my_val:
-                    correct += 1
-                total += 1
-
-    return (correct / total * 100) if total > 0 else 0.0
+                      field: str = "scene_type",
+                      label_arrays: dict = None) -> float:
+    """Prec@K: % of kNN neighbors with same tag value. Vectorized."""
+    scores = per_clip_prec_at_k(indices, tags, k, field=field, label_arrays=label_arrays)
+    return float(np.mean(scores)) if len(scores) > 0 else 0.0
 
 
 def compute_map_at_k(indices: np.ndarray, tags: list, k: int,
-                     field: str = "scene_type") -> float:
-    """mAP@K: Mean Average Precision using `field` as relevance."""
-    n = indices.shape[0]
-    n_tags = len(tags)
-    total_ap = 0.0
-
-    for i in range(n):
-        my_val = tags[i].get(field, "unknown")
-        hits = 0
-        ap_sum = 0.0
-
-        for rank in range(1, k + 1):
-            j = indices[i, rank]
-            if j < 0 or j >= n_tags:
-                continue
-            if tags[j].get(field, "unknown") == my_val:
-                hits += 1
-                ap_sum += hits / rank
-
-        total_ap += ap_sum / k
-
-    return total_ap / n if n > 0 else 0.0
+                     field: str = "scene_type",
+                     label_arrays: dict = None) -> float:
+    """mAP@K: Mean Average Precision using `field` as relevance. Vectorized."""
+    scores = per_clip_map_at_k(indices, tags, k, field=field, label_arrays=label_arrays)
+    return float(np.mean(scores)) if len(scores) > 0 else 0.0
 
 
 def compute_ndcg_at_k(indices: np.ndarray, tags: list, k: int,
                       taxonomy: dict) -> float:
-    """nDCG@K: graded relevance from multi-field tag overlap (single-value fields)."""
-    single_fields = [f for f, spec in taxonomy.items() if spec["type"] == "single"]
-    n_fields = len(single_fields)
-    n = indices.shape[0]
-    n_tags = len(tags)
-    total_ndcg = 0.0
-    valid = 0
-
-    for i in range(n):
-        grades = []
-        for rank in range(1, k + 1):
-            j = indices[i, rank]
-            if j < 0 or j >= n_tags:
-                grades.append(0.0)
-                continue
-            matching = sum(1 for f in single_fields
-                          if tags[i].get(f) is not None and tags[i].get(f) == tags[j].get(f))
-            grades.append(matching / n_fields)
-
-        dcg = sum(g / np.log2(r + 2) for r, g in enumerate(grades))
-        ideal = sorted(grades, reverse=True)
-        idcg = sum(g / np.log2(r + 2) for r, g in enumerate(ideal))
-
-        if idcg > 0:
-            total_ndcg += dcg / idcg
-            valid += 1
-
-    return total_ndcg / valid if valid > 0 else 0.0
+    """nDCG@K: graded relevance from multi-field tag overlap. Vectorized."""
+    scores = per_clip_ndcg_at_k(indices, tags, k, taxonomy, label_arrays=None)
+    valid = scores[~np.isnan(scores)]
+    return float(np.mean(valid)) if len(valid) > 0 else 0.0
 
 
 # ── Analysis Metrics (3) ────────────────────────────────────────────────
@@ -532,6 +503,10 @@ def compute_all_metrics(embeddings: np.ndarray, D: np.ndarray, I: np.ndarray,
 
     t0 = time.time()
 
+    # Pre-encode all tag fields to NumPy int arrays ONCE (eliminates dict lookups in loops)
+    from utils.bootstrap import encode_tags_to_labels
+    label_arrays = encode_tags_to_labels(tags, single_fields + ["scene_type"])
+
     # ── Global metrics ──
     cycle, cycle_per_clip = compute_cycle_at_k(I, k)
     print(f"  Cycle@K:     {cycle:.2f}%")
@@ -539,45 +514,50 @@ def compute_all_metrics(embeddings: np.ndarray, D: np.ndarray, I: np.ndarray,
     overlap_result = compute_overlap_at_k(embeddings, k)
     if overlap_result is not None:
         overlap, overlap_ci = overlap_result
-        print(f"  Overlap@K:   {overlap:.2f}% \u00b1 {overlap_ci['ci_half']:.2f} (dim-split approx)")
+        print(f"  DimConsist@K: {overlap:.2f}% \u00b1 {overlap_ci['ci_half']:.2f} (dim-split, NOT augmentation invariance)")
     else:
         overlap, overlap_ci = None, None
-        print(f"  Overlap@K:   SKIPPED (< 100 clips)")
+        print(f"  DimConsist@K: SKIPPED (< 100 clips)")
 
     sil = compute_silhouette(embeddings, tags)
     print(f"  Silhouette:  {sil:.4f} (scene_type)")
 
-    prec = compute_prec_at_k(I, tags, k)
+    prec = compute_prec_at_k(I, tags, k, label_arrays=label_arrays)
     print(f"  Prec@K:      {prec:.2f}%")
 
-    map_k = compute_map_at_k(I, tags, k)
+    map_k = compute_map_at_k(I, tags, k, label_arrays=label_arrays)
     print(f"  mAP@K:       {map_k:.4f}")
 
     ndcg = compute_ndcg_at_k(I, tags, k, taxonomy)
     print(f"  nDCG@K:      {ndcg:.4f}")
 
     # ── Per-key breakdowns (Step 11: repeat for all single-value fields) ──
-    print(f"  Computing per-key breakdowns for {len(single_fields)} fields...")
+    n_fields = len(single_fields)
+    print(f"  Computing per-key breakdowns for {n_fields} fields...")
+    pbar_keys = make_pbar(total=n_fields * 5, desc=f"m06_{mode}_perkey", unit="field")
 
     # Silhouette per-key: which dimension does V-JEPA cluster by?
     silhouette_per_key = {}
     for field in single_fields:
         s = compute_silhouette(embeddings, tags, field=field)
         silhouette_per_key[field] = round(s, 4)
+        pbar_keys.update(1)
     sil_sorted = sorted(silhouette_per_key.items(), key=lambda x: x[1], reverse=True)
     print(f"  Silhouette per-key: {', '.join(f'{f}={v:.4f}' for f, v in sil_sorted[:3])} ...")
 
     # Prec@K per-key: retrieval purity using each field as match criterion
     prec_per_key = {}
     for field in single_fields:
-        prec_per_key[field] = round(compute_prec_at_k(I, tags, k, field=field), 2)
+        prec_per_key[field] = round(compute_prec_at_k(I, tags, k, field=field, label_arrays=label_arrays), 2)
+        pbar_keys.update(1)
     prec_sorted = sorted(prec_per_key.items(), key=lambda x: x[1], reverse=True)
     print(f"  Prec@K per-key: {', '.join(f'{f}={v:.2f}%' for f, v in prec_sorted[:3])} ...")
 
     # mAP@K per-key: ranking quality using each field as relevance
     map_per_key = {}
     for field in single_fields:
-        map_per_key[field] = round(compute_map_at_k(I, tags, k, field=field), 4)
+        map_per_key[field] = round(compute_map_at_k(I, tags, k, field=field, label_arrays=label_arrays), 4)
+        pbar_keys.update(1)
     map_sorted = sorted(map_per_key.items(), key=lambda x: x[1], reverse=True)
     print(f"  mAP@K per-key: {', '.join(f'{f}={v:.4f}' for f, v in map_sorted[:3])} ...")
 
@@ -585,12 +565,15 @@ def compute_all_metrics(embeddings: np.ndarray, D: np.ndarray, I: np.ndarray,
     cycle_per_key = {}
     for field in single_fields:
         cycle_per_key[field] = compute_cycle_per_key(cycle_per_clip, tags, field)
+        pbar_keys.update(1)
     print(f"  Cycle@K per-key: computed for {len(cycle_per_key)} fields")
 
     # mAP@K per-value: mAP@K broken down by each value within each field
     map_per_value = {}
     for field in single_fields:
         map_per_value[field] = compute_map_per_key(I, tags, k, field)
+        pbar_keys.update(1)
+    pbar_keys.close()
 
     per_scene = compute_per_scene_purity(I, tags, k)
     multi_attr = compute_multi_attribute_slices(I, tags, k)
@@ -600,10 +583,10 @@ def compute_all_metrics(embeddings: np.ndarray, D: np.ndarray, I: np.ndarray,
 
     # ── Bootstrap 95% CI on global metrics ──
     print(f"  Bootstrap 95% CI (BCa, 10K iterations)...")
-    pc_prec = per_clip_prec_at_k(I, tags, k)
-    pc_map = per_clip_map_at_k(I, tags, k)
+    pc_prec = per_clip_prec_at_k(I, tags, k, label_arrays=label_arrays)
+    pc_map = per_clip_map_at_k(I, tags, k, label_arrays=label_arrays)
     pc_cycle = per_clip_cycle_at_k(I, k)
-    pc_ndcg = per_clip_ndcg_at_k(I, tags, k, taxonomy)
+    pc_ndcg = per_clip_ndcg_at_k(I, tags, k, taxonomy, label_arrays=label_arrays)
 
     ci_prec = bootstrap_ci(pc_prec)
     ci_map = bootstrap_ci(pc_map)
@@ -618,7 +601,7 @@ def compute_all_metrics(embeddings: np.ndarray, D: np.ndarray, I: np.ndarray,
 
     return {
         "cycle_at_k": round(cycle, 2),
-        "overlap_at_k": round(overlap, 2) if overlap is not None else None,
+        "dim_consistency_at_k": round(overlap, 2) if overlap is not None else None,
         "silhouette": round(sil, 4),
         "prec_at_k": round(prec, 2),
         "map_at_k": round(map_k, 4),
@@ -628,7 +611,7 @@ def compute_all_metrics(embeddings: np.ndarray, D: np.ndarray, I: np.ndarray,
             "map_at_k": ci_map,
             "cycle_at_k": ci_cycle,
             "ndcg_at_k": ci_ndcg,
-            **({"overlap_at_k": overlap_ci} if overlap_ci else {}),
+            **({"dim_consistency_at_k": overlap_ci} if overlap_ci else {}),
         },
         "per_scene": per_scene,
         "multi_attribute_slices": multi_attr,
@@ -979,8 +962,11 @@ def generate_plots(easy: dict, hard: dict, conf_sweep: list,
 
     # ── Plot 10: Radar — Easy vs Hard ────────────────────────────────
     radar_keys = ["cycle_at_k", "prec_at_k"]
+    # Prefer true overlap (augmentation invariance) over dim-split (dimensional consistency)
     if easy.get("overlap_at_k") is not None:
         radar_keys.append("overlap_at_k")
+    elif easy.get("dim_consistency_at_k") is not None:
+        radar_keys.append("dim_consistency_at_k")
     # silhouette is [-1,1], scale to [0,100] for radar only
     radar_labels, re, rh = [], [], []
     for m in radar_keys:
@@ -1138,8 +1124,11 @@ def main():
     print(f"\nSearching {k_search} neighbors (k={k}, extra for Hard mode)...")
     D, I = index.search(embeddings, k_search + 1)
 
+    pbar_mode = make_pbar(total=2, desc="m06_modes", unit="mode")
+
     # ── Easy mode ────────────────────────────────────────────────────
     easy = compute_all_metrics(embeddings, D[:, :k + 1], I[:, :k + 1], tags, k, taxonomy, "easy")
+    pbar_mode.update(1)
 
     # ── Hard mode ────────────────────────────────────────────────────
     if clip_paths:
@@ -1151,6 +1140,8 @@ def main():
         print("\nFATAL: No clip paths found — cannot compute Hard mode exclusion.")
         print("Ensure m05 saved embeddings.paths.npy alongside embeddings.npy")
         sys.exit(1)
+    pbar_mode.update(1)
+    pbar_mode.close()
 
     # ── True Overlap@K (replaces dim-split if augmented embeddings exist) ──
     if args.true_overlap:
@@ -1174,7 +1165,7 @@ def main():
 
     # wandb: log all metrics
     for prefix, m in [("easy", easy), ("hard", hard)]:
-        for metric in ["cycle_at_k", "overlap_at_k", "silhouette", "prec_at_k", "map_at_k", "ndcg_at_k"]:
+        for metric in ["cycle_at_k", "overlap_at_k", "dim_consistency_at_k", "silhouette", "prec_at_k", "map_at_k", "ndcg_at_k"]:
             v = m.get(metric)
             if v is not None:
                 log_metrics(wb_run, {f"{prefix}/{metric}": v})
@@ -1231,11 +1222,13 @@ def main():
     print(f"{'='*60}")
     print(f"{'Metric':<20} {'Easy':>10} {'Hard':>10}")
     print(f"{'-'*42}")
-    for m in ["cycle_at_k", "overlap_at_k", "silhouette", "prec_at_k", "map_at_k", "ndcg_at_k"]:
+    for m in ["cycle_at_k", "overlap_at_k", "dim_consistency_at_k", "silhouette", "prec_at_k", "map_at_k", "ndcg_at_k"]:
         ev = easy.get(m)
         hv = hard.get(m)
+        if ev is None and hv is None:
+            continue
         label = m.replace("_", " ").title()
-        fmt = ".2f" if m in ("cycle_at_k", "overlap_at_k", "prec_at_k") else ".4f"
+        fmt = ".2f" if m in ("cycle_at_k", "overlap_at_k", "dim_consistency_at_k", "prec_at_k") else ".4f"
         ev_s = f"{ev:{fmt}}" if ev is not None else "N/A"
         hv_s = f"{hv:{fmt}}" if hv is not None else "N/A"
         print(f"  {label:<18} {ev_s:>10} {hv_s:>10}")
@@ -1245,6 +1238,11 @@ def main():
 
     log_artifact(wb_run, "metrics", str(metrics_file))
     finish_wandb(wb_run)
+
+    # Force exit: CUDA atexit cleanup can deadlock on futex_wait_queue
+    sys.stdout.flush()
+    sys.stderr.flush()
+    os._exit(0)
 
 
 if __name__ == "__main__":

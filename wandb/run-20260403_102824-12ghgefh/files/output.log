@@ -1,0 +1,76 @@
+wandb: run=m08_SANITY url=https://wandb.ai/sjsu_llm/walkindia-200k/runs/12ghgefh
+Output dir: /workspace/factorjepa/outputs/sanity
+[output_guard] m08 vjepa_lambda0_01: attempting HF download for 2 missing file(s)...
+Downloading anonymousML123/factorjepa-outputs//workspace/factorjepa/outputs/sanity/ → /workspace/factorjepa/outputs/sanity
+Download complete: 0s
+[output_guard] m08 vjepa_lambda0_01: 2 file(s) still missing after HF download
+[output_guard] m08 vjepa_lambda0_01: outputs missing or invalid — will re-compute
+  MISS  umap_plot: m08_umap_vjepa_lambda0_01.png
+  MISS  confusion_matrix: m08_confusion_matrix_vjepa_lambda0_01.png
+Encoder: vjepa_lambda0_01 (suffix='_vjepa_lambda0_01')
+SANITY MODE: 64 clips
+Loaded: 64 clips
+Loaded m06 metrics: m06_metrics_vjepa_lambda0_01.json
+Taxonomy keys for plots: ['scene_type', 'time_of_day', 'weather', 'crowd_density', 'traffic_density', 'traffic_mix', 'pedestrian_vehicle_separation', 'road_surface', 'infrastructure_quality', 'road_encroachment', 'vegetation', 'lighting', 'video_quality']
+Saved: /workspace/factorjepa/outputs/sanity/m08_umap_vjepa_lambda0_01.png
+Saved: /workspace/factorjepa/outputs/sanity/m08_umap_vjepa_lambda0_01_time_of_day.png
+Saved: /workspace/factorjepa/outputs/sanity/m08_umap_vjepa_lambda0_01_weather.png
+Saved: /workspace/factorjepa/outputs/sanity/m08_umap_vjepa_lambda0_01_crowd_density.png
+Saved: /workspace/factorjepa/outputs/sanity/m08_umap_vjepa_lambda0_01_traffic_density.png
+Saved: /workspace/factorjepa/outputs/sanity/m08_umap_vjepa_lambda0_01_traffic_mix.png
+Saved: /workspace/factorjepa/outputs/sanity/m08_umap_vjepa_lambda0_01_pedestrian_vehicle_separation.png
+Saved: /workspace/factorjepa/outputs/sanity/m08_umap_vjepa_lambda0_01_road_surface.png
+Saved: /workspace/factorjepa/outputs/sanity/m08_umap_vjepa_lambda0_01_infrastructure_quality.png
+Saved: /workspace/factorjepa/outputs/sanity/m08_umap_vjepa_lambda0_01_road_encroachment.png
+Saved: /workspace/factorjepa/outputs/sanity/m08_umap_vjepa_lambda0_01_vegetation.png
+Saved: /workspace/factorjepa/outputs/sanity/m08_umap_vjepa_lambda0_01_lighting.png
+Saved: /workspace/factorjepa/outputs/sanity/m08_umap_vjepa_lambda0_01_video_quality.png
+Saved: /workspace/factorjepa/outputs/sanity/m08_umap_grid_vjepa_lambda0_01.png
+Saved: /workspace/factorjepa/outputs/sanity/m08_confusion_matrix_vjepa_lambda0_01.png
+
+Per-class retrieval accuracy:
+  beach_coastal: 63.7%
+  commercial: 11.1%
+  ghat: 0.0%
+  heritage_tourist: 19.0%
+  junction: 8.3%
+  market: 0.0%
+  promenade: 56.7%
+  residential_lane: 7.1%
+Saved: /workspace/factorjepa/outputs/sanity/m08_confusion_matrix_vjepa_lambda0_01_time_of_day.png
+Saved: /workspace/factorjepa/outputs/sanity/m08_confusion_matrix_vjepa_lambda0_01_weather.png
+Saved: /workspace/factorjepa/outputs/sanity/m08_confusion_matrix_vjepa_lambda0_01_crowd_density.png
+Saved: /workspace/factorjepa/outputs/sanity/m08_confusion_matrix_vjepa_lambda0_01_traffic_density.png
+Saved: /workspace/factorjepa/outputs/sanity/m08_confusion_matrix_vjepa_lambda0_01_traffic_mix.png
+Saved: /workspace/factorjepa/outputs/sanity/m08_confusion_matrix_vjepa_lambda0_01_pedestrian_vehicle_separation.png
+Saved: /workspace/factorjepa/outputs/sanity/m08_confusion_matrix_vjepa_lambda0_01_road_surface.png
+Saved: /workspace/factorjepa/outputs/sanity/m08_confusion_matrix_vjepa_lambda0_01_infrastructure_quality.png
+Saved: /workspace/factorjepa/outputs/sanity/m08_confusion_matrix_vjepa_lambda0_01_road_encroachment.png
+Saved: /workspace/factorjepa/outputs/sanity/m08_confusion_matrix_vjepa_lambda0_01_vegetation.png
+Saved: /workspace/factorjepa/outputs/sanity/m08_confusion_matrix_vjepa_lambda0_01_lighting.png
+Saved: /workspace/factorjepa/outputs/sanity/m08_confusion_matrix_vjepa_lambda0_01_video_quality.png
+Saved: /workspace/factorjepa/outputs/sanity/m08_confusion_matrix_grid_vjepa_lambda0_01.png
+Saved: /workspace/factorjepa/outputs/sanity/m08_knn_grid_vjepa_lambda0_01.png
+
+=== MACRO/MICRO REPORTING ===
+
+EASY mode:
+  Macro Prec@K: 20.75%
+  Micro Prec@K: 44.79%
+  Cycle At K: 79.69
+  Prec At K: 44.79
+  Silhouette: -0.1993
+  Map At K: 0.3987
+  Ndcg At K: 0.9705
+
+HARD mode:
+  Macro Prec@K: 20.04%
+  Micro Prec@K: 43.23%
+  Cycle At K: 81.25
+  Prec At K: 43.23
+  Silhouette: -0.1993
+  Map At K: 0.3781
+  Ndcg At K: 0.9709
+
+=== VISUALIZATION COMPLETE ===
+Outputs in: /workspace/factorjepa/outputs/sanity

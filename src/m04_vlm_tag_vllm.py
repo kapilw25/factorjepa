@@ -19,6 +19,7 @@ import argparse
 import gc
 import json
 import os
+import shutil
 import sys
 import tarfile
 import tempfile
@@ -177,7 +178,6 @@ def iter_clips_from_local(local_data, subset_keys=None, processed_keys=None):
                         f.write(mp4_bytes)
                     yield clip_key, mp4_path, json.loads(json_bytes)
     finally:
-        import shutil
         shutil.rmtree(tmp_dir, ignore_errors=True)
 
 

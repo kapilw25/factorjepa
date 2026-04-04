@@ -6,58 +6,59 @@
 
 ## System Design: What Calls What
 
-### run_evaluate.sh --FULL (Ch9: frozen encoder evaluation)
+### Architecture: 4 scripts, clear responsibilities
 
 ```
-run_evaluate.sh --FULL
+scripts/
+├── run_frozen.sh     → Ch9:  Tags + Embeddings (5 frozen encoders + motion)
+├── run_pretrain.sh   → Ch10: Training + Embeddings (2 adapted encoders)
+├── run_surgery.sh    → Ch11: Surgical training + Embeddings (TBD)
+└── run_eval.sh       → ALL:  Evaluation (auto-detects all available encoders)
+```
+
+No cross-chapter dependency for evaluation — run_eval.sh evaluates whatever
+embeddings exist, in one shot. m08b radar includes all available encoders.
+
+### run_frozen.sh --FULL (Ch9: tags + embeddings only)
+
+```
+run_frozen.sh --FULL
 │
-├── PREFLIGHT: output_guard.py preflight_evaluate
-│
+├── PREFLIGHT
 ├── m00d_download_subset.py ──→ data/full_local/ (130GB, one-time)
-│
-├── m04_vlm_tag.py ──→ tags.json                (17.6h measured)
-│
-├── m05_vjepa_embed.py ──→ embeddings.npy        ⚠️ BIGGEST BOTTLENECK (17.4h)
-│
+├── m04_vlm_tag.py ──→ tags.json                (17.6h)
+├── m05_vjepa_embed.py ──→ embeddings.npy        (17.4h)
 ├── m05b_baselines.py ──→ embeddings_{dinov2,clip,random,shuffled}.npy
-│
-├── m05c_true_overlap.py ──→ overlap_augA/B.npy
-│
-├── m04d_motion_features.py ──→ motion_features.npy
-│
-├── FOR EACH encoder (vjepa, random, dinov2, clip, vjepa_shuffled):
-│   ├── m06_faiss_metrics.py ──→ m06_metrics_{enc}.json
-│   ├── m06b_temporal_corr.py ──→ m06b_temporal_corr_{enc}.json
-│   ├── m07_umap.py ──→ umap_2d_{enc}.npy
-│   └── m08_plot.py ──→ plots
-│
-└── m08b_compare.py ──→ m08b_radar.png (5 frozen encoders)
+└── m04d_motion_features.py ──→ motion_features.npy
 ```
 
-### run_pretrain.sh --FULL (Ch10: continual pretraining + eval)
+### run_pretrain.sh --FULL (Ch10: training + embeddings only)
 
 ```
 run_pretrain.sh --FULL
 │
-├── PREFLIGHT: output_guard.py preflight_pretrain
+├── PREFLIGHT
+├── PHASE 1: m09 train (ablation + winner)
+│   └── student_encoder.pt + training_summary.json
+└── PHASE 2: m05 embeddings (both use same adapted model)
+    ├── m05 adapted ──→ embeddings_vjepa_<winner>.npy          (~2.2h)
+    └── m05 shuffled ──→ embeddings_vjepa_<winner>_shuffled.npy (~2.2h)
+```
+
+### run_eval.sh --FULL (ALL chapters: evaluation)
+
+```
+run_eval.sh --FULL
 │
-├── PHASE 1: Train with winner λ (from Ch10-2 POC ablation)
-│   └── m09_pretrain.py --lambda-reg <winner> --max-epochs 1
-│       └── student_encoder.pt + training_summary.json
+├── Auto-detect all embeddings in outputs/full/
+│   (vjepa, random, dinov2, clip, vjepa_shuffled, vjepa_lambda0_001, ...)
 │
-├── PHASE 2: Re-embed + Metrics
-│   ├── m05_vjepa_embed.py --model adapted --encoder vjepa_<winner>
-│   │   └── embeddings_vjepa_<winner>.npy             ⚠️ BOTTLENECK
-│   └── m06_faiss_metrics.py --encoder vjepa_<winner>
-│       └── m06_metrics_vjepa_<winner>.json
-│
-└── PHASE 3: Full Evaluation
-    ├── m06b_temporal_corr.py (adapted)
-    ├── m05_vjepa_embed.py --shuffle (shuffled adapted) ⚠️ BOTTLENECK
-    ├── m06_faiss_metrics.py (shuffled adapted)
-    ├── m07_umap.py (adapted)
-    ├── m08_plot.py (adapted)
-    └── m08b_compare.py (7 encoders) ──→ m08b_radar.png
+└── FOR EACH encoder:
+    ├── m06_faiss_metrics.py ──→ m06_metrics_{enc}.json
+    ├── m06b_temporal_corr.py ──→ m06b_temporal_corr_{enc}.json
+    ├── m07_umap.py ──→ umap_2d_{enc}.npy
+    └── m08_plot.py ──→ plots
+    └── m08b_compare.py ──→ m08b_radar.png (all available encoders)
 ```
 
 ---
@@ -70,43 +71,49 @@ run_pretrain.sh --FULL
 
 ### run_evaluate.sh --FULL (Ch9)
 
-| | # | Script | What | Rate | 115K Est. | Cumul. |
+| | # | Script | What | Rate | 115K Time | Cumul. |
 |:-:|:-:|--------|------|:----:|:---------:|:------:|
 | ✅ | 0 | m00d_download_subset.py | Download 116 TARs (8 workers) | 12.3 s/shard | **24 min** | 0.4h |
 | ✅ | 1 | m04_vlm_tag.py | Qwen3-VL tagging (transformers, BS=64) | 1.43 clips/s | **17h 36m** | 18h |
 | ✅ | 2 | m05_vjepa_embed.py | V-JEPA frozen embed (12 workers) | 1.80 clips/s | **17h 24m** | 35h |
 | ✅ | 3a | m05b (random) | Random embeddings | instant | **14s** | 35h |
 | ✅ | 3b | m05b (dinov2) | DINOv2 embed | 7.9 clips/s | **4h 4m** | 39h |
-| ✅ | 3c | m05b (clip) | CLIP embed (decord + parallel TAR, 21x speedup) | 72 clips/s | **~27 min** (was 4h) | 39.5h |
-| 🔄 | 3d | m05b (shuffled) | Shuffled V-JEPA embed (GPU-bound) | 1.8 clips/s | **~17.8h** | 57h |
-| ⏳ | 4 | m05c_true_overlap.py | Augmented A+B embeds | ~1.8 clips/s × 2 | **~10h** | 67h |
-| ⏳ | 4.5 | m04d_motion_features.py | RAFT optical flow | ~4 clips/s (est. from 10K) | **~8h** | 75h |
-| ⏳ | 5 | m06_faiss_metrics.py ×5 | FAISS kNN metrics | fast | ~25 min | 75h |
-| ⏳ | 5.5 | m06b_temporal_corr.py ×5 | Temporal correlation | fast | ~50 min | 76h |
-| ⏳ | 6 | m07_umap.py ×5 | cuML UMAP | fast | ~75 min | 77h |
-| ⏳ | 7 | m08_plot.py ×5 + m08b | Plots + compare | fast | ~30 min | **77h** |
+| ✅ | 3c | m05b (clip) | CLIP embed (decord + parallel TAR, 21x speedup) | 72 clips/s | **27 min** | 39.5h |
+| ✅ | 3d | m05b (shuffled) | Shuffled V-JEPA embed (GPU-bound) | 1.02 clips/s | **18h 56m** | 58.5h |
+| ✅ | 4.5 | m04d_motion_features.py | RAFT optical flow | 3.5→0.9 clips/s (producer starvation at 90%+) | **10h 55m** | **69.4h** |
 
-### run_pretrain.sh --FULL (Ch10)
+### run_pretrain.sh --FULL (Ch10: training + embeddings only)
 
-| | # | Script | What | Rate | 115K Est. | Cumul. |
+> **Measured (April 3-4 2026, RTX PRO 6000 102GB, BS=112):**
+> Ablation: 4 lambdas × 281 steps × 6.2s/step = 2h 44m total (BS=32, fix applied for BS=112 next run).
+> Winner: λ=0.001 (best_val_loss=1.6263). Winner training: 1,023 steps, ~6.2s/step.
+
+| | # | Phase | Script | What | Rate | 115K Est. | Cumul. |
+|:-:|:-:|:-----:|--------|------|:----:|:---------:|:------:|
+| ✅ | 0 | 1 | m09 ablation (4λ on 10K) | Lambda sweep → winner | 6.2s/step, BS=32 | **2h 44m** (measured) | 2.7h |
+| ✅ | 1 | 1 | m09_pretrain.py | Train λ=0.001, **1 ep**, 115K | ~21s/step, 1023 steps, BS=112 | **~6h** (measured, incl OOM recovery) | 8.7h |
+| ✅ | 2a | 2 | m05_vjepa_embed.py | Re-embed adapted | 14.7 clips/s (measured, torch.compile + sdp_kernel patch) | **~2.2h** | 11h |
+| ⏳ | 2b | 2 | m05_vjepa_embed.py --shuffle | Shuffled adapted embed | ~14.7 clips/s | **~2.2h** | **13.2h** |
+
+### run_eval.sh --FULL (evaluation for ALL available encoders)
+
+| | # | Script | What | Rate | Est. (7 encoders) | Cumul. |
 |:-:|:-:|--------|------|:----:|:---------:|:------:|
-| ⏳ | 1 | m09_pretrain.py | Train λ=&lt;winner&gt;, **1 ep** | 25s/step (est. from 10K), 3615 steps | **~25h** | 25h |
-| ⏳ | 2a | m05_vjepa_embed.py | Re-embed adapted | ~1.80 clips/s | **~17.8h** | 43h |
-| ⏳ | 2b | m06_faiss_metrics.py | Adapted metrics | fast | ~5 min | 43h |
-| ⏳ | 3a | m06b_temporal_corr.py | Adapted temporal | fast | ~10 min | 43h |
-| ⏳ | 3b | m05_vjepa_embed.py --shuffle | Shuffled adapted embed | ~1.80 clips/s | **~17.8h** | 61h |
-| ⏳ | 3c | m06_faiss_metrics.py | Shuffled adapted metrics | fast | ~5 min | 61h |
-| ⏳ | 3d | m07_umap.py | Adapted UMAP | fast | ~15 min | 61h |
-| ⏳ | 3e | m08_plot.py | Adapted plots | fast | ~5 min | 61h |
-| ⏳ | 3f | m08b_compare.py | 7-encoder radar (CPU, needs Ch9 metrics) | fast | ~30s | **61h** |
+| ⏳ | 1 | m06 ×7 | FAISS kNN metrics | vectorized (was 113m/enc pre-fix) | **~35-105 min** | 1.5h |
+| ⏳ | 2 | m06b ×7 | Temporal correlation | fast | ~70 min | 2.5h |
+| ⏳ | 3 | m07 ×7 | cuML UMAP | fast | ~100 min | 4h |
+| ⏳ | 4 | m08 ×7 | Plots | fast | ~35 min | 4.5h |
+| ⏳ | 5 | m08b | Radar comparison (all encoders) | fast | ~30s | **4.5h** |
 
-### Grand Total (all measured except Ch10)
+### Grand Total (measured + estimated)
 
 | Pipeline | Duration |
 |----------|:--------:|
-| run_evaluate.sh --FULL (Ch9) | **~77h** |
-| run_pretrain.sh --FULL (Ch10, 1 epoch) | **~61h** |
-| **Sequential total** | **~138h (~5.8 days)** |
+| run_frozen.sh --FULL (Ch9: tags + embeddings) | **~69h** |
+| run_pretrain.sh --FULL (Ch10: train + embeddings) | **~13h** (was ~40h before num_frames fix + sdp_kernel patch) |
+| run_eval.sh --FULL (ALL: eval 7 encoders) | **~4.5h** |
+| **Sequential total** | **~87h (~3.6 days)** |
+| **Parallel (2×GPU shared disk)** | **~69h (~2.9 days)** (Ch9 ∥ Ch10, then eval) |
 
 ### Code Hardening (April 3 2026)
 
@@ -130,14 +137,14 @@ run_pretrain.sh --FULL
 git clone https://github.com/kapilw25/factorjepa.git && cd factorjepa
 ```
 
-### Step 2: Setup venv ✅
+### Step 2: Setup venv 
 
 ```bash
 mkdir -p logs && \
 ./setup_env_uv.sh --gpu --from-wheels 2>&1 | tee logs/setup_env_gpu.log
 ```
 
-### Step 3: Data download ✅
+### Step 3: Data download 
 
 ```bash
 source venv_walkindia/bin/activate
@@ -158,44 +165,46 @@ Output: `data/full_local/` (115,687 clips, 116 shards, 130 GB).
 > tagging (1.43 clips/s vs 0.45 clips/s) due to vLLM's double-preprocessing overhead.
 > Use transformers (`run_evaluate.sh --FULL` without `--vllm`) for production runs.
 
-## Ch9: Frozen Encoder Evaluation (~77h)
+## SANITY: Both Chapters Together (~10 min)
 
-### Ch9-1: SANITY ✅ (26/26 passed, 0 failed)
+> **IMPORTANT:** Run Ch9 + Ch10 SANITY sequentially in one shot.
+> Ch10's m06 metrics step requires tags from Ch9's m04 — if run separately,
+> stale/mismatched outputs cause `FATAL: N embeddings vs M tags` errors.
+> Running both back-to-back from a clean `outputs/sanity/` guarantees
+> aligned clip counts across the entire pipeline (m04 tags → m05 embeds →
+> m06 metrics → m09 train → m05 re-embed → m06 adapted metrics).
 
 ```bash
 source venv_walkindia/bin/activate
-./scripts/run_evaluate.sh --SANITY 2>&1 | tee logs/ch9_sanity.log
-```
-
-### Ch9-2: FULL 115K run
-
-```bash
-tmux new -s ch9
-source venv_walkindia/bin/activate
-./scripts/run_evaluate.sh --FULL 2>&1 | tee logs/ch9_full.log
-# Ctrl+B, D to detach | tmux attach -t ch9 to reconnect
-```
-
-### Ch9-3: Push results
-
-```bash
-./git_push.sh "Ch9 full 115K frozen encoder evaluation"
+rm -rf outputs/sanity/
+./scripts/run_evaluate.sh --SANITY 2>&1 | tee logs/ch9_sanity.log && \
+./scripts/run_pretrain.sh --SANITY 2>&1 | tee logs/ch10_sanity.log
 ```
 
 ---
 
-## Ch10: Continual Pretraining (~61h)
+## Ch9: Frozen Encoder Evaluation (~77h)
+
+### Ch9-1: SANITY ✅ (included in combined SANITY above)
+
+### Ch9-2: FULL 115K run (tags + embeddings only)
+
+```bash
+tmux new -s ch9
+source venv_walkindia/bin/activate
+./scripts/run_frozen.sh --FULL 2>&1 | tee logs/ch9_full.log
+# Ctrl+B, D to detach | tmux attach -t ch9 to reconnect
+```
+
+---
+
+## Ch10: Continual Pretraining (training + embeddings only)
 
 > **Prerequisites:**
 > - `data/full_local/` + `data/val_1k_local/` exist
-> - Ch9's `m06_metrics.json` needed only for m08b at the end (NOT for training)
+> - No Ch9 dependency for training or embedding (only run_eval.sh needs tags)
 
-### Ch10-1: SANITY (~5 min)
-
-```bash
-source venv_walkindia/bin/activate
-./scripts/run_pretrain.sh --SANITY 2>&1 | tee logs/ch10_sanity.log
-```
+### Ch10-1: SANITY ✅ (included in combined SANITY above)
 
 ### Ch10-2 + Ch10-3: Ablation + FULL training (automated)
 
@@ -203,10 +212,7 @@ source venv_walkindia/bin/activate
 1. Trains 4 lambdas [0, 0.001, 0.01, 0.1] on `data/subset_10k_local` (10K clips, 1 epoch each, ~2h)
 2. Selects winner by lowest `best_val_loss` → saves `ablation_winner.json`
 3. Continues with winner lambda on full 115K data (1 epoch, ~25h)
-
-> **Prerequisites:**
-> - `data/full_local/` + `data/subset_10k_local/` + `data/val_1k.json` exist
-> - Ch9's `m06_metrics.json` needed only for m08b at the end
+4. Creates adapted + shuffled adapted embeddings (~4.4h)
 
 ```bash
 tmux new -s ch10
@@ -215,145 +221,120 @@ source venv_walkindia/bin/activate
 # Ctrl+B, D to detach | tmux attach -t ch10 to reconnect
 ```
 
-### Ch10-4: Push results
+---
+
+## Evaluation: All Encoders (~4.5h)
+
+> **Prerequisites:** Ch9 (run_frozen.sh) + Ch10 (run_pretrain.sh) complete.
+> run_eval.sh auto-detects all available embeddings — no encoder list needed.
 
 ```bash
-./git_push.sh "Ch10 full 115K continual pretraining + evaluation"
+tmux new -s eval
+source venv_walkindia/bin/activate
+./scripts/run_eval.sh --FULL 2>&1 | tee logs/eval_full.log
+# Evaluates all 7 encoders: m06→m06b→m07→m08→m08b
+```
+
+### Push all results
+
+```bash
+./git_push.sh "Full 115K evaluation: 7 encoders, metrics + plots + radar"
 ```
 
 ---
 
-## 2-GPU Parallel Strategy
+## 2×GPU Shared-Disk Strategy (Recommended)
 
-Ch10 training (m09) does NOT depend on Ch9 outputs. Only the final comparison (m08b) does.
-Spin up a 2nd GPU instance to overlap Ch10 work while Ch9 is still running.
+> **Why shared disk over 2 separate 1×GPU instances:**
+> - Separate disks require git_push/pull + HF upload/download to sync code and outputs — the #1 source of bugs (stale manifests, wrong output dirs, code divergence).
+> - Shared disk: `outputs/full/` is ONE directory. Ch9 writes tags/motion, Ch10 reads them directly. Zero sync overhead.
+> - Parallel on 2×GPU finishes in ~68h vs ~108h sequential. At $1.20/hr per GPU: parallel costs $1.20×2×68h=$163 vs sequential $1.20×108h=$130. **$33 more but 40h faster.**
+> - Code fixes apply to both pipelines instantly — no "pull while running" risk.
 
-### System Design: Sync Architecture
+### Architecture (shared disk)
 
 ```
-                         ┌─────────────┐
-                         │   GitHub    │
-                         │  (code)     │
-                         └──────┬──────┘
-                       git push │ │ git pull
-                    ┌───────────┘ └───────────┐
-                    │                         │
-              ┌─────┴─────┐             ┌─────┴─────┐
-              │   GPU 1   │             │   GPU 2   │
-              │  (Ch9)    │             │  (Ch10)   │
-              └─────┬─────┘             └─────┬─────┘
-                    │                         │
-           HF push │                         │ HF push
-                    │    ┌─────────────┐     │
-                    └───►│  HF Hub     │◄────┘
-                         │ (outputs/)  │
-                         └──────┬──────┘
-                                │ HF pull
-                         ┌──────┴──────┐
-                         │  CPU (Mac)  │
-                         │  m08b final │
-                         └─────────────┘
+┌──────────────────────────────────────────────┐
+│            2×GPU Instance (shared disk)       │
+│                                              │
+│  GPU 0 (Ch9):  run_frozen.sh --FULL          │
+│  GPU 1 (Ch10): run_pretrain.sh --FULL        │
+│  After both:   run_eval.sh --FULL (1 GPU)    │
+│                                              │
+│  Shared: outputs/full/, data/full_local/     │
+│          configs/, src/ (one codebase)        │
+└──────────────────────────────────────────────┘
 ```
 
-**Two sync channels:**
-- **Code** → GitHub (`git_push.sh` / `git_pull.sh`)
-- **Outputs** → HF Hub (`hf_outputs.py upload/download`, auto-triggered by `git_push.sh`)
+### Cross-Chapter Dependencies (simplified)
+
+With the 3-script architecture, dependencies are clean:
+
+```
+run_frozen.sh:   m04(tags) → m05/m05b(embeds) → m04d(motion)   [NO eval dependency]
+run_pretrain.sh: m09(train) → m05(adapted embeds)               [NO eval dependency]
+run_eval.sh:     reads ALL embeddings + tags + motion → eval     [runs AFTER both]
+```
+
+Ch9 and Ch10 are fully independent — they only produce embeddings.
+run_eval.sh needs Ch9's tags.json + motion_features.npy for m06/m06b metrics.
+No cross-chapter dependency during GPU-heavy embedding work.
 
 ### Dependency Map
 
 ```
-GPU 1 (Ch9):  m04 → m05 → m05b → m05c → m04d → m06 → m06b → m07 → m08
-              └── git_push.sh → code to GitHub + outputs/ to HF
+GPU 0 (Ch9):  m04 → m05 → m05b → m04d
+              ↓ writes tags.json, embeddings, motion_features.npy
 
-GPU 2 (Ch10): SANITY → auto-ablation → m09 FULL → m05 → m06 → m06b → m07 → m08
-              └── git_push.sh → code to GitHub + outputs/ to HF
+GPU 1 (Ch10): m09(ablation) → m09(115K train) → m05(adapted) → m05(shuffled)
+              ↓ writes adapted embeddings
 
-CPU (Mac):    git_pull.sh → code from GitHub + outputs/ from HF
-              └── m08b compare (needs m06_metrics from BOTH chapters)
+After both:   run_eval.sh → m06 ×7 → m06b ×7 → m07 ×7 → m08 ×7 → m08b
+              ↑ reads ALL embeddings from same outputs/full/ directory
 ```
 
-### Safe Sync Workflow (Code Divergence)
-
-GPU1 and GPU2 have **separate disks** — codebases can diverge when bugs are fixed.
-
-**Rule: NEVER pull while a pipeline is running.**
-
-Python loads modules at import time, so a running process is safe from on-disk changes.
-But if the pipeline crashes and restarts, it re-reads from disk — pulling mid-run means
-the resumed process uses different code than what started the run.
-
-```
-Timeline:
-─────────────────────────────────────────────────────────────────────
-GPU1: │▓▓▓▓▓▓▓▓▓▓ Ch9 running (DON'T pull) ▓▓▓▓▓▓▓▓▓▓│ done → pull → push
-GPU2: │ setup │▓▓▓▓ Ch10 running ▓▓▓▓│ fix bug → push │▓▓ resume ▓▓│ push
-─────────────────────────────────────────────────────────────────────
-GitHub:        ←── push (GPU2 fix) ──→        ←── push (GPU1 results) ──→
-HF Hub:        ←── push (GPU2 outputs) ──→    ←── push (GPU1 outputs) ──→
-```
-
-**Scenario: GPU2 hits FATAL in m09, fixes code, GPU1 still running Ch9:**
+### Setup + Run (2×GPU shared-disk instance)
 
 ```bash
-# GPU2: fix the bug, push
-vim src/m09_pretrain.py                          # fix the FATAL
-./git_push.sh "fix m09 NaN handling"             # code→GitHub + outputs→HF
-
-# GPU1: Ch9 still running — DO NOTHING (safe, running process uses loaded code)
-
-# GPU1: Ch9 finishes
-./git_pull.sh                                    # code←GitHub + outputs←HF (gets GPU2's fix + Ch10 outputs)
-./git_push.sh "Ch9 full 115K results"            # push Ch9 outputs to HF
-
-# CPU/Mac: after both GPUs finish
-./git_pull.sh                                    # gets everything
-python -u src/m08b_compare.py --FULL             # 7-encoder comparison
-```
-
-**Why this is safe for our project:**
-- Ch9 uses `run_evaluate.sh` → calls m04/m05/m05b/m06/m07/m08 (not m09)
-- Ch10 uses `run_pretrain.sh` → calls m09/m05/m06/m07/m08
-- A fix to `m09_pretrain.py` on GPU2 is **irrelevant** to GPU1's running Ch9 pipeline
-- Shared files (`utils/config.py`, `utils/output_guard.py`) are loaded at import time — safe
-
-### GPU 2 Setup + Run Order
-
-```bash
-# 1. Clone + setup (~15 min)
+# 1. Clone + setup (~30 min)
 git clone https://github.com/kapilw25/factorjepa.git && cd factorjepa
 ./setup_env_uv.sh --gpu --from-wheels 2>&1 | tee logs/setup_env_gpu.log
 
 # 2. Copy .env (credentials — not in git)
-# FROM GPU 1 or local Mac:
-scp .env gpu2:/workspace/factorjepa/
+scp .env <from-old-instance>:/workspace/factorjepa/
 
-# 3. Download POC + val data from HF (~3 min, measured)
+# 3. Download data
 source venv_walkindia/bin/activate
 python -u src/utils/hf_outputs.py download-data 2>&1 | tee logs/download_poc_val.log
-
-# 4. Download full 115K corpus from HF (~24 min, 8 parallel workers)
 python -u src/m00d_download_subset.py --FULL --no-wandb 2>&1 | tee logs/m00d_full.log
 
-# 5. Ch10-1: SANITY (~5 min)
-./scripts/run_pretrain.sh --SANITY 2>&1 | tee logs/ch10_sanity.log
+# 4. Verify both GPUs visible
+nvidia-smi -L
+# GPU 0: NVIDIA RTX PRO 6000 ...
+# GPU 1: NVIDIA RTX PRO 6000 ...
 
-# 6. Ch10-2+3: FULL (auto-ablation on 10K + train winner on 115K, ~61h total)
+# 5. Run Ch9 + Ch10 in parallel (CUDA_VISIBLE_DEVICES pins each to its own GPU)
+tmux new -s ch9
+CUDA_VISIBLE_DEVICES=0 ./scripts/run_frozen.sh --FULL 2>&1 | tee logs/ch9_full.log
+# Ctrl+B, D to detach
+
 tmux new -s ch10
-./scripts/run_pretrain.sh --FULL 2>&1 | tee logs/ch10_full.log
-# Ablation (~2h) + winner training (~25h) + re-embed (~18h) + metrics
-# bg_upload pushes outputs to HF after each step
+CUDA_VISIBLE_DEVICES=1 ./scripts/run_pretrain.sh --FULL 2>&1 | tee logs/ch10_full.log
+# Ctrl+B, D to detach
+
+# Monitor: tmux attach -t ch9 / tmux attach -t ch10
+
+# 6. After BOTH complete: run evaluation on all 7 encoders
+./scripts/run_eval.sh --FULL 2>&1 | tee logs/eval_full.log
 ```
 
-### CPU: Final Comparison (Mac or any machine, no GPU needed)
-
-After BOTH GPU 1 (Ch9) and GPU 2 (Ch10) finish and push:
+### SANITY (run before FULL to validate code paths)
 
 ```bash
-./git_pull.sh                                    # code + outputs from HF
-
 source venv_walkindia/bin/activate
-python -u src/m08b_compare.py --FULL 2>&1 | tee logs/m08b_full.log
-# 7-encoder radar: vjepa, random, dinov2, clip, vjepa_shuffled, vjepa_adapted, vjepa_adapted_shuffled
+rm -rf outputs/sanity/
+CUDA_VISIBLE_DEVICES=0 ./scripts/run_evaluate.sh --SANITY 2>&1 | tee logs/ch9_sanity.log && \
+CUDA_VISIBLE_DEVICES=0 ./scripts/run_pretrain.sh --SANITY 2>&1 | tee logs/ch10_sanity.log
 ```
 
 ---
@@ -380,7 +361,7 @@ python -u src/m08b_compare.py --FULL 2>&1 | tee logs/m08b_full.log
 | m05b (dinov2) | embeddings_dinov2.npy + paths (1536d) | ~680 MB |
 | m05b (clip) | embeddings_clip.npy + paths (768d) | ~340 MB |
 | m05b (shuffled) | embeddings_vjepa_shuffled.npy + paths | ~620 MB |
-| m05c_true_overlap.py | overlap_augA/B.npy + keys | ~1.2 GB |
+| ~~m05c_true_overlap.py~~ | ~~overlap_augA/B.npy + keys~~ | ~~1.2 GB~~ (SKIPPED — dim-split in m06 sufficient) |
 | m04d_motion_features.py | motion_features.npy + paths (13d) | ~6 MB |
 | m06_faiss_metrics.py ×5 | m06_metrics_*.json + knn_indices_*.npy | ~2.7 GB |
 | m06b_temporal_corr.py ×5 | m06b_temporal_corr_*.json | <1 MB |

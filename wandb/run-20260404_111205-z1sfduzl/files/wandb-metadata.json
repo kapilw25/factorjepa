@@ -1,0 +1,54 @@
+{
+  "os": "Linux-6.8.0-106-generic-x86_64-with-glibc2.39",
+  "python": "CPython 3.12.13",
+  "startedAt": "2026-04-04T11:12:05.827448Z",
+  "args": [
+    "--_worker",
+    "--start-from",
+    "0",
+    "--process-count",
+    "10000",
+    "--FULL",
+    "--model",
+    "outputs/full/m09_lambda0_001/student_encoder.pt",
+    "--local-data",
+    "data/full_local",
+    "--encoder",
+    "vjepa_lambda0_001"
+  ],
+  "program": "/workspace/factorjepa/src/m05_vjepa_embed.py",
+  "codePath": "src/m05_vjepa_embed.py",
+  "codePathLocal": "src/m05_vjepa_embed.py",
+  "git": {
+    "remote": "https://github.com/kapilw25/factorjepa.git",
+    "commit": "945d9c312d7b9890220fa9a55d115935f0b24a26"
+  },
+  "email": "kapilw25@gmail.com",
+  "root": "/workspace/factorjepa",
+  "host": "2d5319172a4c",
+  "executable": "/workspace/factorjepa/venv_walkindia/bin/python",
+  "cpu_count": 8,
+  "cpu_count_logical": 16,
+  "gpu": "NVIDIA RTX PRO 6000 Blackwell Workstation Edition",
+  "gpu_count": 1,
+  "disk": {
+    "/": {
+      "total": "34359738368",
+      "used": "1762131968"
+    }
+  },
+  "memory": {
+    "total": "134098214912"
+  },
+  "gpu_nvidia": [
+    {
+      "name": "NVIDIA RTX PRO 6000 Blackwell Workstation Edition",
+      "memoryTotal": "102641958912",
+      "cudaCores": 24064,
+      "architecture": "Blackwell",
+      "uuid": "GPU-385fd64a-daf1-e235-0f52-ff35f2f5a5dd"
+    }
+  ],
+  "cudaVersion": "13.0",
+  "writerId": "kj3fa7nqldgu9djmehno2jlic9e6bbyz"
+}

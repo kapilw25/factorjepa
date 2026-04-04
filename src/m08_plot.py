@@ -18,6 +18,7 @@ from pathlib import Path
 import numpy as np
 
 sys.path.insert(0, str(Path(__file__).parent))
+from utils.progress import make_pbar
 from utils.config import (
     EMBEDDINGS_FILE, TAGS_FILE, METRICS_FILE, OUTPUTS_DIR,
     FAISS_K_NEIGHBORS, ENCODER_REGISTRY, get_encoder_info,
@@ -560,22 +561,30 @@ def main():
     print(f"Taxonomy keys for plots: {plot_keys}")
 
     # 1. UMAP scatters (individual per key + combined 3x3 grid)
+    n_plot_steps = len(plot_keys) * 2 + 2 + (0 if args.no_grid else 1)
+    pbar = make_pbar(total=n_plot_steps, desc="m08_plot", unit="plot")
     for fk in plot_keys:
         create_umap_plot(emb_2d, tags, output_dir, metrics_data, field=fk,
                          enc_sfx=enc_sfx)
+        pbar.update(1)
     create_umap_grid(emb_2d, tags, output_dir, plot_keys, enc_sfx=enc_sfx)
+    pbar.update(1)
 
     # 2. Confusion matrices (individual per key + combined 3x3 grid)
     for fk in plot_keys:
         create_confusion_matrix(knn_indices, tags, output_dir, k=k, field=fk,
                                 enc_sfx=enc_sfx)
+        pbar.update(1)
     create_confusion_matrix_grid(knn_indices, tags, output_dir, k=k,
                                  plot_keys=plot_keys, enc_sfx=enc_sfx)
+    pbar.update(1)
 
     # 3. kNN neighbor grid (scene_type only — visual design is scene-specific)
     if not args.no_grid:
         create_knn_grid(knn_indices, tags, clip_paths, output_dir, k=k,
                         enc_sfx=enc_sfx)
+        pbar.update(1)
+    pbar.close()
 
     # 4. Macro/micro summary
     print("\n=== MACRO/MICRO REPORTING ===")

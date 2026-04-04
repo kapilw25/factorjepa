@@ -1,0 +1,1 @@
+{"val/jepa_loss":1.6314620754935525,"_runtime":684.584696945,"grad_norm":0.05136360973119736,"loss/drift":0,"epoch":0,"loss/jepa":0.47675639390945435,"throughput_steps_per_s":0.15079327367895487,"_wandb":{"runtime":684},"val/epoch_pct":19.463087248322147,"_timestamp":1.7752141228822336e+09,"_step":86,"loss/total":0.47675639390945435,"lr":8.89612058491279e-06}

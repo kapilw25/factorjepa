@@ -14,6 +14,7 @@ from pathlib import Path
 
 # Add src to path for utils import
 sys.path.insert(0, str(Path(__file__).parent))
+from utils.progress import make_pbar
 from utils.config import PROJECT_ROOT, OUTPUTS_DATA_PREP_DIR
 from utils.config import get_pipeline_config
 
@@ -184,11 +185,6 @@ def print_summary(sampled: list, by_video: dict):
 
     print(f"\nBy Tier:")
     for tier in sorted(tier_counts.keys()):
-        orig_clips = sum(
-            len(by_video[v]) for v in by_video
-            for c in by_video[v][:1]
-            if c["section"].startswith(tier)
-        )
         print(f"  {tier:15s}  {tier_counts[tier]:5d} clips")
 
     print(f"\nBy Tour Type:")
@@ -241,11 +237,15 @@ def main():
     by_video = load_clips_by_video(clip_durations)
     print(f"Videos: {len(by_video)}")
 
+    pbar = make_pbar(total=3, desc="m00c_sample", unit="step")
+
     # Uniform sample
     sampled = uniform_sample(by_video, args.n, args.seed)
+    pbar.update(1)
 
     # Summary
     print_summary(sampled, by_video)
+    pbar.update(1)
 
     # Output
     output_data = {
@@ -262,6 +262,8 @@ def main():
     with open(output_path, "w") as f:
         json.dump(output_data, f, indent=2)
 
+    pbar.update(1)
+    pbar.close()
     print(f"\nWritten: {output_path} ({len(sampled):,} clip keys)")
 
 

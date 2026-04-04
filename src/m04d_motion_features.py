@@ -15,6 +15,7 @@ USAGE:
     python -u src/m04d_motion_features.py --FULL --local-data data/full_local 2>&1 | tee logs/m04d_full.log
 """
 import argparse
+import gc
 import io
 import json
 import os
@@ -36,7 +37,7 @@ from utils.config import (
     add_subset_arg, add_local_data_arg, get_output_dir, load_subset,
     get_pipeline_config, get_sanity_clip_limit, get_total_clips,
 )
-from utils.data_download import ensure_local_data
+from utils.data_download import ensure_local_data, iter_clips_parallel
 from utils.wandb_utils import (
     add_wandb_args, init_wandb, log_metrics, finish_wandb,
 )
@@ -241,93 +242,85 @@ def _producer_thread(q: queue.Queue, stop_event: threading.Event,
         prev_b, curr_b = _preprocess_pairs(pairs, transforms)
         return (prev_b, curr_b, prev_b.shape[0]), key
 
+    tar_stop = None
+
+    def _flush_batch(batch):
+        """Parallel-decode a batch and enqueue for GPU."""
+        nonlocal produced, errors
+        pending_prevs, pending_currs = [], []
+        pending_keys, pending_n_pairs = [], []
+        with ThreadPoolExecutor(max_workers=DECODE_WORKERS) as pool:
+            futures = [pool.submit(_decode_one, b, k, n_pairs) for b, k in batch]
+            for fut in futures:
+                result, key = fut.result()
+                if result is None:
+                    errors += 1
+                else:
+                    prev_b, curr_b, n_p = result
+                    pending_prevs.append(prev_b)
+                    pending_currs.append(curr_b)
+                    pending_keys.append(key)
+                    pending_n_pairs.append(n_p)
+        if pending_keys:
+            cat_prev = torch.cat(pending_prevs, dim=0)
+            cat_curr = torch.cat(pending_currs, dim=0)
+            q.put(("batch", cat_prev, cat_curr,
+                    pending_keys[:], pending_n_pairs[:]))
+            produced += len(pending_keys)
+
     try:
-        ds = _create_stream(local_data=local_data)
+        batch_bytes = []  # (mp4_bytes, clip_key)
 
-        # Collect raw bytes for a batch, then parallel-decode
-        batch_bytes = []   # (mp4_bytes, clip_key)
-
-        for example in ds:
-            if stop_event.is_set() or produced >= clip_limit:
-                break
-
-            clip_key = get_clip_key(example)
-
-            if subset_keys and clip_key not in subset_keys:
-                skipped += 1
-                continue
-
-            if clip_key in processed_keys:
-                skipped += 1
-                continue
-
-            mp4_data = example.get("mp4", b"")
-            mp4_bytes = mp4_data["bytes"] if isinstance(mp4_data, dict) else mp4_data
-            if isinstance(mp4_bytes, str):
-                mp4_bytes = mp4_bytes.encode()
-            if not mp4_bytes or len(mp4_bytes) < 1000:
-                errors += 1
-                continue
-
-            batch_bytes.append((mp4_bytes, clip_key))
-
-            # When we have enough clips, parallel-decode and enqueue
-            if len(batch_bytes) >= CLIPS_PER_GPU_BATCH:
-                pending_prevs, pending_currs = [], []
-                pending_keys, pending_n_pairs = [], []
-
-                with ThreadPoolExecutor(max_workers=DECODE_WORKERS) as pool:
-                    futures = [pool.submit(_decode_one, b, k, n_pairs)
-                               for b, k in batch_bytes]
-                    for fut in futures:
-                        result, key = fut.result()
-                        if result is None:
-                            errors += 1
-                        else:
-                            prev_b, curr_b, n_p = result
-                            pending_prevs.append(prev_b)
-                            pending_currs.append(curr_b)
-                            pending_keys.append(key)
-                            pending_n_pairs.append(n_p)
-
-                if pending_keys:
-                    cat_prev = torch.cat(pending_prevs, dim=0)
-                    cat_curr = torch.cat(pending_currs, dim=0)
-                    q.put(("batch", cat_prev, cat_curr,
-                            pending_keys[:], pending_n_pairs[:]))
-                    produced += len(pending_keys)
-
-                batch_bytes = []
+        if local_data:
+            # Fast path: parallel TAR readers (8 threads, skip processed keys at TAR level)
+            clip_q, tar_stop, _reader = iter_clips_parallel(
+                local_data, subset_keys=subset_keys, processed_keys=processed_keys)
+            while not stop_event.is_set() and produced < clip_limit:
+                item = clip_q.get(timeout=120)
+                if item is None:
+                    break
+                clip_key, mp4_bytes = item
+                if not mp4_bytes or len(mp4_bytes) < 1000:
+                    errors += 1
+                    continue
+                batch_bytes.append((mp4_bytes, clip_key))
+                if len(batch_bytes) >= CLIPS_PER_GPU_BATCH:
+                    _flush_batch(batch_bytes)
+                    batch_bytes = []
+        else:
+            # Fallback: sequential HF streaming
+            ds = _create_stream(local_data=local_data)
+            for example in ds:
+                if stop_event.is_set() or produced >= clip_limit:
+                    break
+                clip_key = get_clip_key(example)
+                if subset_keys and clip_key not in subset_keys:
+                    skipped += 1
+                    continue
+                if clip_key in processed_keys:
+                    skipped += 1
+                    continue
+                mp4_data = example.get("mp4", b"")
+                mp4_bytes = mp4_data["bytes"] if isinstance(mp4_data, dict) else mp4_data
+                if isinstance(mp4_bytes, str):
+                    mp4_bytes = mp4_bytes.encode()
+                if not mp4_bytes or len(mp4_bytes) < 1000:
+                    errors += 1
+                    continue
+                batch_bytes.append((mp4_bytes, clip_key))
+                if len(batch_bytes) >= CLIPS_PER_GPU_BATCH:
+                    _flush_batch(batch_bytes)
+                    batch_bytes = []
 
         # Flush remaining partial batch
         if batch_bytes and not stop_event.is_set():
-            pending_prevs, pending_currs = [], []
-            pending_keys, pending_n_pairs = [], []
-
-            with ThreadPoolExecutor(max_workers=DECODE_WORKERS) as pool:
-                futures = [pool.submit(_decode_one, b, k, n_pairs)
-                           for b, k in batch_bytes]
-                for fut in futures:
-                    result, key = fut.result()
-                    if result is None:
-                        errors += 1
-                    else:
-                        prev_b, curr_b, n_p = result
-                        pending_prevs.append(prev_b)
-                        pending_currs.append(curr_b)
-                        pending_keys.append(key)
-                        pending_n_pairs.append(n_p)
-
-            if pending_keys:
-                cat_prev = torch.cat(pending_prevs, dim=0)
-                cat_curr = torch.cat(pending_currs, dim=0)
-                q.put(("batch", cat_prev, cat_curr,
-                        pending_keys[:], pending_n_pairs[:]))
-                produced += len(pending_keys)
+            _flush_batch(batch_bytes)
 
     except Exception as e:
         print(f"\n  PRODUCER ERROR: {e}")
     finally:
+        if tar_stop:
+            tar_stop.set()
         q.put(("done", errors, skipped))
 
 
@@ -505,7 +498,6 @@ def main():
                 sizer.after_batch_success()
                 i = end
             except _torch.cuda.OutOfMemoryError:
-                import gc
                 gc.collect()
                 _torch.cuda.empty_cache()
                 if sizer.on_oom():
@@ -602,6 +594,11 @@ def main():
         print(f"Removed checkpoint: {checkpoint_file.name}")
 
     finish_wandb(wb_run)
+
+    # Force exit: torch.compile + CUDA atexit cleanup deadlocks on futex_wait_queue
+    sys.stdout.flush()
+    sys.stderr.flush()
+    os._exit(0)
 
 
 if __name__ == "__main__":

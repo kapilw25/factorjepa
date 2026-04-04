@@ -1,0 +1,104 @@
+_wandb:
+    value:
+        cli_version: 0.25.1
+        e:
+            ts794blgu70led4tva46jg8og6a55tnk:
+                args:
+                    - --model
+                    - outputs/full/m09_lambda0_001/student_encoder.pt
+                    - --encoder
+                    - vjepa_lambda0_001
+                    - --FULL
+                    - --local-data
+                    - data/full_local
+                codePath: src/m05_vjepa_embed.py
+                codePathLocal: src/m05_vjepa_embed.py
+                cpu_count: 8
+                cpu_count_logical: 16
+                cudaVersion: "13.0"
+                disk:
+                    /:
+                        total: "34359738368"
+                        used: "1855348736"
+                email: kapilw25@gmail.com
+                executable: /workspace/factorjepa/venv_walkindia/bin/python
+                git:
+                    commit: 945d9c312d7b9890220fa9a55d115935f0b24a26
+                    remote: https://github.com/kapilw25/factorjepa.git
+                gpu: NVIDIA RTX PRO 6000 Blackwell Workstation Edition
+                gpu_count: 1
+                gpu_nvidia:
+                    - architecture: Blackwell
+                      cudaCores: 24064
+                      memoryTotal: "102641958912"
+                      name: NVIDIA RTX PRO 6000 Blackwell Workstation Edition
+                      uuid: GPU-385fd64a-daf1-e235-0f52-ff35f2f5a5dd
+                host: 2d5319172a4c
+                memory:
+                    total: "134098214912"
+                os: Linux-6.8.0-106-generic-x86_64-with-glibc2.39
+                program: /workspace/factorjepa/src/m05_vjepa_embed.py
+                python: CPython 3.12.13
+                root: /workspace/factorjepa
+                startedAt: "2026-04-04T13:33:58.203343Z"
+                writerId: ts794blgu70led4tva46jg8og6a55tnk
+        m: []
+        python_version: 3.12.13
+        t:
+            "1":
+                - 1
+                - 5
+                - 11
+                - 41
+                - 49
+                - 51
+                - 53
+                - 71
+            "2":
+                - 1
+                - 5
+                - 11
+                - 41
+                - 49
+                - 51
+                - 53
+                - 71
+            "3":
+                - 2
+                - 13
+                - 16
+            "4": 3.12.13
+            "5": 0.25.1
+            "6": 4.57.6
+            "10":
+                - 20
+            "12": 0.25.1
+            "13": linux-x86_64
+_worker:
+    value: false
+FULL:
+    value: true
+POC:
+    value: false
+SANITY:
+    value: false
+batch_size:
+    value: null
+encoder:
+    value: vjepa_lambda0_001
+gpu_mem:
+    value: null
+local_data:
+    value: data/full_local
+model:
+    value: outputs/full/m09_lambda0_001/student_encoder.pt
+no_wandb:
+    value: false
+process_count:
+    value: 10000
+shuffle:
+    value: false
+start_from:
+    value: 0
+subset:
+    value: null

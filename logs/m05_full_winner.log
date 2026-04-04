@@ -1,0 +1,5 @@
+Using PyAV for video decoding
+Output: /workspace/factorjepa/outputs/full/embeddings_vjepa_lambda0_001.npy
+[output_guard] m05 embed: ALL VALID — skipping (cached)
+  OK    embeddings: (115687, 1408)
+  OK    paths: (115687,)

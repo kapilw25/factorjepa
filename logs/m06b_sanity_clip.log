@@ -1,33 +1,9 @@
 Encoder: clip (dim=768, suffix='_clip')
 Output: /workspace/factorjepa/outputs/sanity
-Motion features: (56, 13)
-Embeddings: (50, 768)
-kNN indices: (50, 7)
-Aligned: 50 clips (emb=50, motion=56)
-
-Computing Spearman correlation (+ bootstrap 95% CI)...
-  Spearman rho = 0.4295 ± 0.0050 (p = 0.00e+00, 98,026 pairs)
-
-Computing Temporal Prec@K (k=6, + bootstrap 95% CI)...
-  Temporal Prec@K = 43.0% ± 7.5
-
-Computing Motion Retrieval mAP (k=6, clusters=4, + bootstrap 95% CI)...
-  Motion Retrieval mAP = 0.8395 ± 0.0883
-
-Computing Temporal Locality...
-  Intra-video dist: 0.6399
-  Inter-video dist: 0.7965
-  Ratio (lower=better): 0.8035 (4 videos)
-
-Saved: /workspace/factorjepa/outputs/sanity/m06b_temporal_corr_clip.json
-
-============================================================
-m06b TEMPORAL CORRELATION — clip
-============================================================
-  Spearman rho:          0.4295 ± 0.0050
-  Temporal Prec@K:       43.0% ± 7.5
-  Motion Retrieval mAP:  0.8395 ± 0.0883
-  Temporal Locality:     0.8035 (intra/inter ratio)
-  Clips aligned:         50
-  Compute time:          17.5s
-============================================================
+Motion features: (64, 13)
+Embeddings: (64, 768)
+kNN indices: (64, 7)
+FATAL: No shared keys between embeddings (64 keys) and motion features (64 keys).
+  First emb key:    tier1/mumbai/walking/jgVNtbAJm2I/jgVNtbAJm2I-087.mp4
+  First motion key: goa/walking/04YKvC8kAgI/04YKvC8kAgI-008.mp4
+  Re-run m04d and m05 with the same --subset to fix.

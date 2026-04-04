@@ -1,1087 +1,0 @@
-[08:08:01] Ch9 pipeline starting (mode=SANITY)
-[08:08:01] Master log: logs/ch9_SANITY_20260331_080801.log
-
-[08:08:01] === PRE-FLIGHT: GPU + Package Verification ===
-GPU:            NVIDIA RTX PRO 6000 Blackwell Workstation Edition, VRAM: 102GB
-PyTorch:        2.12.0.dev20260228+cu128
-CUDA:           12.8
-FAISS GPUs:     1
-Flash-Attn:     2.8.3
-Transformers:   4.57.6
-cuML:           26.02.000
-wandb:          0.25.1
-HF_TOKEN:       hf_eATIPAr...
-
-Pre-flight: ALL PASSED
-[08:08:06] Pre-flight complete.
-[08:08:06] === OUTPUT PREFLIGHT ===
-
-======================================================================
-  PIPELINE PREFLIGHT — checking all inputs/outputs before GPU work
-======================================================================
-  [32mSKIP (cached)[0m                         m00d pre-download subset
-  [33mWILL RUN[0m ~3h                          m04 VLM tagging (Qwen)
-  [33mWILL RUN[0m ~1h 47min                    m05 V-JEPA embeddings
-  [33mWILL RUN[0m ~1 sec                       m05b random embeddings
-  [33mWILL RUN[0m ~30 min                      m05b dinov2 embeddings
-  [33mWILL RUN[0m ~30 min                      m05b clip embeddings
-  [33mWILL RUN[0m ~30 min                      m05b vjepa_shuffled embeddings
-  [31mBLOCKED (missing input)[0m               m05c True Overlap augmented
-  [33mWILL RUN[0m ~40 min                      m04d motion features
-  [31mBLOCKED (missing input)[0m               m06 metrics (vjepa)
-  [31mBLOCKED (missing input)[0m               m06 metrics (random)
-  [31mBLOCKED (missing input)[0m               m06 metrics (dinov2)
-  [31mBLOCKED (missing input)[0m               m06 metrics (clip)
-  [31mBLOCKED (missing input)[0m               m06 metrics (vjepa_shuffled)
-  [31mBLOCKED (missing input)[0m               m06b temporal (vjepa)
-  [31mBLOCKED (missing input)[0m               m06b temporal (random)
-  [31mBLOCKED (missing input)[0m               m06b temporal (dinov2)
-  [31mBLOCKED (missing input)[0m               m06b temporal (clip)
-  [31mBLOCKED (missing input)[0m               m06b temporal (vjepa_shuffled)
-  [31mBLOCKED (missing input)[0m               m07 UMAP (vjepa)
-  [31mBLOCKED (missing input)[0m               m07 UMAP (random)
-  [31mBLOCKED (missing input)[0m               m07 UMAP (dinov2)
-  [31mBLOCKED (missing input)[0m               m07 UMAP (clip)
-  [31mBLOCKED (missing input)[0m               m07 UMAP (vjepa_shuffled)
-  [31mBLOCKED (missing input)[0m               m08b compare (all encoders)
-
-  Steps to run:  24
-  Steps cached:  1
-
-  [31mMISSING INPUTS (27):[0m
-    m05c True Overlap augmented needs embeddings: outputs/sanity/embeddings.npy
-    m06 metrics (vjepa) needs embeddings: outputs/sanity/embeddings.npy
-    m06 metrics (vjepa) needs tags: outputs/sanity/tags_sanity_qwen.json
-    m06 metrics (random) needs embeddings: outputs/sanity/embeddings_random.npy
-    m06 metrics (random) needs tags: outputs/sanity/tags_sanity_qwen.json
-    m06 metrics (dinov2) needs embeddings: outputs/sanity/embeddings_dinov2.npy
-    m06 metrics (dinov2) needs tags: outputs/sanity/tags_sanity_qwen.json
-    m06 metrics (clip) needs embeddings: outputs/sanity/embeddings_clip.npy
-    m06 metrics (clip) needs tags: outputs/sanity/tags_sanity_qwen.json
-    m06 metrics (vjepa_shuffled) needs embeddings: outputs/sanity/embeddings_vjepa_shuffled.npy
-    m06 metrics (vjepa_shuffled) needs tags: outputs/sanity/tags_sanity_qwen.json
-    m06b temporal (vjepa) needs embeddings: outputs/sanity/embeddings.npy
-    m06b temporal (vjepa) needs motion: outputs/sanity/motion_features.npy
-    m06b temporal (random) needs embeddings: outputs/sanity/embeddings_random.npy
-    m06b temporal (random) needs motion: outputs/sanity/motion_features.npy
-    m06b temporal (dinov2) needs embeddings: outputs/sanity/embeddings_dinov2.npy
-    m06b temporal (dinov2) needs motion: outputs/sanity/motion_features.npy
-    m06b temporal (clip) needs embeddings: outputs/sanity/embeddings_clip.npy
-    m06b temporal (clip) needs motion: outputs/sanity/motion_features.npy
-    m06b temporal (vjepa_shuffled) needs embeddings: outputs/sanity/embeddings_vjepa_shuffled.npy
-    m06b temporal (vjepa_shuffled) needs motion: outputs/sanity/motion_features.npy
-    m07 UMAP (vjepa) needs embeddings: outputs/sanity/embeddings.npy
-    m07 UMAP (random) needs embeddings: outputs/sanity/embeddings_random.npy
-    m07 UMAP (dinov2) needs embeddings: outputs/sanity/embeddings_dinov2.npy
-    m07 UMAP (clip) needs embeddings: outputs/sanity/embeddings_clip.npy
-    m07 UMAP (vjepa_shuffled) needs embeddings: outputs/sanity/embeddings_vjepa_shuffled.npy
-    m08b compare (all encoders) needs frozen_metrics: outputs/sanity/m06_metrics.json
-======================================================================
-
-Options:
-  [1] Proceed (run steps marked WILL RUN, skip cached)
-  [2] Abort
-
-Enter choice (1 or 2): [08:08:41] Starting pipeline...
-
-[08:08:41] Local data already exists: data/subset_10k_local (skipping download)
-
-═══════════════════════════════════════════════════════════════
-  STEP 1: m04 VLM tagging (Qwen via vLLM)
-  Mode: SANITY | Est: ~15 sec (cached: ~2h first run)
-  Started: 2026-03-31 08:08:41
-═══════════════════════════════════════════════════════════════
-[08:08:41] CMD: venv_vllm/bin/python -u src/m04_vlm_tag_vllm.py --SANITY  --local-data data/subset_10k_local --no-wandb
-GPU: NVIDIA RTX PRO 6000 Blackwell Workstation Edition
-CUDA version: 12.8
-
-=== m04_vlm_tag_vllm: Qwen/Qwen3-VL-8B-Instruct ===
-Mode: SANITY | Clips: 20 | Data: data/subset_10k_local
-
-Loading vLLM engine...
-INFO 03-31 08:08:46 [utils.py:233] non-default args: {'trust_remote_code': True, 'max_model_len': 8192, 'max_num_seqs': 8, 'disable_log_stats': True, 'enforce_eager': True, 'limit_mm_per_prompt': {'video': 1}, 'mm_processor_kwargs': {'fps': 1}, 'model': 'Qwen/Qwen3-VL-8B-Instruct'}
-INFO 03-31 08:08:49 [model.py:549] Resolved architecture: Qwen3VLForConditionalGeneration
-INFO 03-31 08:08:49 [model.py:1679] Using max model len 8192
-INFO 03-31 08:08:49 [scheduler.py:238] Chunked prefill is enabled with max_num_batched_tokens=16384.
-INFO 03-31 08:08:49 [vllm.py:789] Asynchronous scheduling is enabled.
-WARNING 03-31 08:08:49 [vllm.py:847] Enforce eager set, disabling torch.compile and CUDAGraphs. This is equivalent to setting -cc.mode=none -cc.cudagraph_mode=none
-WARNING 03-31 08:08:49 [vllm.py:858] Inductor compilation was disabled by user settings, optimizations settings that are only active during inductor compilation will be ignored.
-INFO 03-31 08:08:50 [vllm.py:1024] Cudagraph is disabled under eager mode
-INFO 03-31 08:08:50 [compilation.py:290] Enabled custom fusions: norm_quant, act_quant
-WARNING 03-31 08:09:00 [system_utils.py:152] We must use the `spawn` multiprocessing start method. Overriding VLLM_WORKER_MULTIPROC_METHOD to 'spawn'. See https://docs.vllm.ai/en/latest/usage/troubleshooting.html#python-multiprocessing for more information. Reasons: CUDA is initialized
-(EngineCore pid=375286) INFO 03-31 08:09:04 [core.py:105] Initializing a V1 LLM engine (v0.18.1rc1.dev270+g6cc7abdc6) with config: model='Qwen/Qwen3-VL-8B-Instruct', speculative_config=None, tokenizer='Qwen/Qwen3-VL-8B-Instruct', skip_tokenizer_init=False, tokenizer_mode=auto, revision=None, tokenizer_revision=None, trust_remote_code=True, dtype=torch.bfloat16, max_seq_len=8192, download_dir=None, load_format=auto, tensor_parallel_size=1, pipeline_parallel_size=1, data_parallel_size=1, decode_context_parallel_size=1, dcp_comm_backend=ag_rs, disable_custom_all_reduce=False, quantization=None, enforce_eager=True, enable_return_routed_experts=False, kv_cache_dtype=auto, device_config=cuda, structured_outputs_config=StructuredOutputsConfig(backend='auto', disable_any_whitespace=False, disable_additional_properties=False, reasoning_parser='', reasoning_parser_plugin='', enable_in_reasoning=False), observability_config=ObservabilityConfig(show_hidden_metrics_for_version=None, otlp_traces_endpoint=None, collect_detailed_traces=None, kv_cache_metrics=False, kv_cache_metrics_sample=0.01, cudagraph_metrics=False, enable_layerwise_nvtx_tracing=False, enable_mfu_metrics=False, enable_mm_processor_stats=False, enable_logging_iteration_details=False), seed=0, served_model_name=Qwen/Qwen3-VL-8B-Instruct, enable_prefix_caching=True, enable_chunked_prefill=True, pooler_config=None, compilation_config={'mode': <CompilationMode.NONE: 0>, 'debug_dump_path': None, 'cache_dir': '', 'compile_cache_save_format': 'binary', 'backend': 'inductor', 'custom_ops': ['all'], 'splitting_ops': [], 'compile_mm_encoder': False, 'cudagraph_mm_encoder': False, 'encoder_cudagraph_token_budgets': [], 'encoder_cudagraph_max_images_per_batch': 0, 'compile_sizes': [], 'compile_ranges_endpoints': [16384], 'inductor_compile_config': {'enable_auto_functionalized_v2': False, 'size_asserts': False, 'alignment_asserts': False, 'scalar_asserts': False, 'combo_kernels': True, 'benchmark_combo_kernel': True}, 'inductor_passes': {}, 'cudagraph_mode': <CUDAGraphMode.NONE: 0>, 'cudagraph_num_of_warmups': 0, 'cudagraph_capture_sizes': [], 'cudagraph_copy_inputs': False, 'cudagraph_specialize_lora': True, 'use_inductor_graph_partition': False, 'pass_config': {'fuse_norm_quant': True, 'fuse_act_quant': True, 'fuse_attn_quant': False, 'enable_sp': False, 'fuse_gemm_comms': False, 'fuse_allreduce_rms': False}, 'max_cudagraph_capture_size': 0, 'dynamic_shapes_config': {'type': <DynamicShapesType.BACKED: 'backed'>, 'evaluate_guards': False, 'assume_32_bit_indexing': False}, 'local_cache_dir': None, 'fast_moe_cold_start': True, 'static_all_moe_layers': []}
-(EngineCore pid=375286) INFO 03-31 08:09:07 [parallel_state.py:1400] world_size=1 rank=0 local_rank=0 distributed_init_method=tcp://172.17.0.3:39773 backend=nccl
-(EngineCore pid=375286) INFO 03-31 08:09:07 [parallel_state.py:1716] rank 0 in world size 1 is assigned as DP rank 0, PP rank 0, PCP rank 0, TP rank 0, EP rank N/A, EPLB rank N/A
-(EngineCore pid=375286) INFO 03-31 08:09:16 [gpu_model_runner.py:4738] Starting to load model Qwen/Qwen3-VL-8B-Instruct...
-(EngineCore pid=375286) INFO 03-31 08:09:17 [cuda.py:390] Using backend AttentionBackendEnum.FLASH_ATTN for vit attention
-(EngineCore pid=375286) INFO 03-31 08:09:17 [mm_encoder_attention.py:230] Using AttentionBackendEnum.FLASH_ATTN for MMEncoderAttention.
-(EngineCore pid=375286) INFO 03-31 08:09:17 [vllm.py:789] Asynchronous scheduling is enabled.
-(EngineCore pid=375286) WARNING 03-31 08:09:17 [vllm.py:847] Enforce eager set, disabling torch.compile and CUDAGraphs. This is equivalent to setting -cc.mode=none -cc.cudagraph_mode=none
-(EngineCore pid=375286) WARNING 03-31 08:09:17 [vllm.py:858] Inductor compilation was disabled by user settings, optimizations settings that are only active during inductor compilation will be ignored.
-(EngineCore pid=375286) INFO 03-31 08:09:17 [vllm.py:1024] Cudagraph is disabled under eager mode
-(EngineCore pid=375286) INFO 03-31 08:09:17 [compilation.py:290] Enabled custom fusions: norm_quant, act_quant
-(EngineCore pid=375286) INFO 03-31 08:09:17 [cuda.py:334] Using FLASH_ATTN attention backend out of potential backends: ['FLASH_ATTN', 'FLASHINFER', 'TRITON_ATTN', 'FLEX_ATTENTION'].
-(EngineCore pid=375286) INFO 03-31 08:09:17 [flash_attn.py:619] Using FlashAttention version 2
-(EngineCore pid=375286) Loading safetensors checkpoint shards:   0% Completed | 0/4 [00:00<?, ?it/s]
-(EngineCore pid=375286) Loading safetensors checkpoint shards:  25% Completed | 1/4 [00:00<00:01,  1.99it/s]
-(EngineCore pid=375286) Loading safetensors checkpoint shards:  50% Completed | 2/4 [00:01<00:01,  1.89it/s]
-(EngineCore pid=375286) Loading safetensors checkpoint shards:  75% Completed | 3/4 [00:01<00:00,  1.84it/s]
-(EngineCore pid=375286) Loading safetensors checkpoint shards: 100% Completed | 4/4 [00:01<00:00,  2.23it/s]
-(EngineCore pid=375286) Loading safetensors checkpoint shards: 100% Completed | 4/4 [00:01<00:00,  2.09it/s]
-(EngineCore pid=375286) 
-(EngineCore pid=375286) INFO 03-31 08:09:20 [default_loader.py:384] Loading weights took 1.92 seconds
-(EngineCore pid=375286) INFO 03-31 08:09:20 [gpu_model_runner.py:4823] Model loading took 16.97 GiB memory and 3.065010 seconds
-(EngineCore pid=375286) INFO 03-31 08:09:21 [gpu_model_runner.py:5762] Encoder cache will be initialized with a budget of 16384 tokens, and profiled with 1 image items of the maximum feature size.
-(EngineCore pid=375286) INFO 03-31 08:09:25 [gpu_worker.py:436] Available KV cache memory: 66.02 GiB
-(EngineCore pid=375286) INFO 03-31 08:09:25 [kv_cache_utils.py:1319] GPU KV cache size: 480,768 tokens
-(EngineCore pid=375286) INFO 03-31 08:09:25 [kv_cache_utils.py:1324] Maximum concurrency for 8,192 tokens per request: 58.69x
-(EngineCore pid=375286) 2026-03-31 08:09:25,713 - INFO - autotuner.py:446 - flashinfer.jit: [Autotuner]: Autotuning process starts ...
-(EngineCore pid=375286) 2026-03-31 08:09:25,762 - INFO - autotuner.py:455 - flashinfer.jit: [Autotuner]: Autotuning process ends
-(EngineCore pid=375286) INFO 03-31 08:09:26 [core.py:283] init engine (profile, create kv cache, warmup model) took 5.46 seconds
-(EngineCore pid=375286) WARNING 03-31 08:09:26 [vllm.py:847] Enforce eager set, disabling torch.compile and CUDAGraphs. This is equivalent to setting -cc.mode=none -cc.cudagraph_mode=none
-(EngineCore pid=375286) WARNING 03-31 08:09:26 [vllm.py:858] Inductor compilation was disabled by user settings, optimizations settings that are only active during inductor compilation will be ignored.
-(EngineCore pid=375286) INFO 03-31 08:09:26 [vllm.py:1024] Cudagraph is disabled under eager mode
-Engine loaded in 46s
-m04_vllm:   0%|          | 0/20 [00:00<?, ?clip/s]qwen-vl-utils using torchvision to read video.
-/workspace/factorjepa/venv_vllm/lib/python3.12/site-packages/torchvision/io/_video_deprecation_warning.py:9: UserWarning: The video decoding and encoding capabilities of torchvision are deprecated from version 0.22 and will be removed in version 0.24. We recommend that you migrate to TorchCodec, where we'll consolidate the future decoding/encoding capabilities of PyTorch: https://github.com/pytorch/torchcodec
-  warnings.warn(
-
-Rendering prompts:   0%|          | 0/50 [00:00<?, ?it/s][A
-Rendering prompts:   2%|▏         | 1/50 [00:06<05:06,  6.26s/it][A
-Rendering prompts:   4%|▍         | 2/50 [00:06<02:18,  2.89s/it][A
-Rendering prompts:   6%|▌         | 3/50 [00:07<01:26,  1.84s/it][A
-Rendering prompts:   8%|▊         | 4/50 [00:07<01:01,  1.34s/it][A
-Rendering prompts:  10%|█         | 5/50 [00:08<00:47,  1.05s/it][A
-Rendering prompts:  12%|█▏        | 6/50 [00:09<00:39,  1.13it/s][A
-Rendering prompts:  14%|█▍        | 7/50 [00:09<00:33,  1.27it/s][A
-Rendering prompts:  16%|█▌        | 8/50 [00:10<00:30,  1.39it/s][A
-Rendering prompts:  18%|█▊        | 9/50 [00:10<00:27,  1.51it/s][A
-Rendering prompts:  20%|██        | 10/50 [00:11<00:25,  1.58it/s][A
-Rendering prompts:  22%|██▏       | 11/50 [00:11<00:20,  1.90it/s][A
-Rendering prompts:  24%|██▍       | 12/50 [00:12<00:20,  1.83it/s][A
-Rendering prompts:  26%|██▌       | 13/50 [00:12<00:19,  1.88it/s][A
-Rendering prompts:  28%|██▊       | 14/50 [00:13<00:19,  1.85it/s][A
-Rendering prompts:  30%|███       | 15/50 [00:13<00:16,  2.07it/s][A
-Rendering prompts:  32%|███▏      | 16/50 [00:14<00:17,  1.97it/s][A
-Rendering prompts:  34%|███▍      | 17/50 [00:14<00:13,  2.39it/s][A
-Rendering prompts:  36%|███▌      | 18/50 [00:14<00:14,  2.21it/s][A
-Rendering prompts:  38%|███▊      | 19/50 [00:15<00:15,  2.06it/s][A
-Rendering prompts:  40%|████      | 20/50 [00:16<00:15,  1.96it/s][A
-Rendering prompts:  42%|████▏     | 21/50 [00:16<00:13,  2.08it/s][A
-Rendering prompts:  44%|████▍     | 22/50 [00:17<00:14,  1.98it/s][A
-Rendering prompts:  46%|████▌     | 23/50 [00:17<00:14,  1.91it/s][A
-Rendering prompts:  48%|████▊     | 24/50 [00:18<00:13,  1.88it/s][A
-Rendering prompts:  50%|█████     | 25/50 [00:18<00:13,  1.85it/s][A
-Rendering prompts:  52%|█████▏    | 26/50 [00:19<00:12,  1.93it/s][A
-Rendering prompts:  54%|█████▍    | 27/50 [00:19<00:12,  1.88it/s][A
-Rendering prompts:  56%|█████▌    | 28/50 [00:20<00:11,  1.85it/s][A
-Rendering prompts:  58%|█████▊    | 29/50 [00:20<00:11,  1.83it/s][A
-Rendering prompts:  60%|██████    | 30/50 [00:21<00:11,  1.81it/s][A
-Rendering prompts:  62%|██████▏   | 31/50 [00:21<00:10,  1.80it/s][A
-Rendering prompts:  64%|██████▍   | 32/50 [00:22<00:10,  1.79it/s][A
-Rendering prompts:  66%|██████▌   | 33/50 [00:23<00:09,  1.79it/s][A
-Rendering prompts:  68%|██████▊   | 34/50 [00:23<00:08,  1.78it/s][A
-Rendering prompts:  70%|███████   | 35/50 [00:24<00:08,  1.78it/s][A
-Rendering prompts:  72%|███████▏  | 36/50 [00:24<00:07,  1.89it/s][A
-Rendering prompts:  74%|███████▍  | 37/50 [00:25<00:06,  2.12it/s][A
-Rendering prompts:  76%|███████▌  | 38/50 [00:25<00:05,  2.08it/s][A
-Rendering prompts:  78%|███████▊  | 39/50 [00:26<00:05,  1.98it/s][A
-Rendering prompts:  80%|████████  | 40/50 [00:26<00:04,  2.20it/s][A
-Rendering prompts:  82%|████████▏ | 41/50 [00:26<00:03,  2.64it/s][A
-Rendering prompts:  84%|████████▍ | 42/50 [00:27<00:03,  2.49it/s][A
-Rendering prompts:  86%|████████▌ | 43/50 [00:27<00:03,  2.31it/s][A
-Rendering prompts:  88%|████████▊ | 44/50 [00:28<00:02,  2.12it/s][A
-Rendering prompts:  90%|█████████ | 45/50 [00:28<00:02,  2.01it/s][A
-Rendering prompts:  92%|█████████▏| 46/50 [00:29<00:01,  2.06it/s][A
-Rendering prompts:  94%|█████████▍| 47/50 [00:29<00:01,  2.03it/s][A
-Rendering prompts:  96%|█████████▌| 48/50 [00:30<00:00,  2.02it/s][A
-Rendering prompts:  98%|█████████▊| 49/50 [00:30<00:00,  2.37it/s][A
-Rendering prompts: 100%|██████████| 50/50 [00:30<00:00,  2.23it/s][ARendering prompts: 100%|██████████| 50/50 [00:30<00:00,  1.62it/s]
-
-Processed prompts:   0%|          | 0/50 [00:00<?, ?it/s, est. speed input: 0.00 toks/s, output: 0.00 toks/s][A
-Processed prompts:  34%|███▍      | 17/50 [00:06<00:11,  2.77it/s, est. speed input: 11449.34 toks/s, output: 942.14 toks/s][A
-Processed prompts:  36%|███▌      | 18/50 [00:06<00:11,  2.80it/s, est. speed input: 11615.25 toks/s, output: 948.79 toks/s][A
-Processed prompts:  38%|███▊      | 19/50 [00:06<00:11,  2.77it/s, est. speed input: 11616.01 toks/s, output: 943.98 toks/s][A
-Processed prompts:  40%|████      | 20/50 [00:07<00:10,  2.78it/s, est. speed input: 11636.09 toks/s, output: 948.11 toks/s][A
-Processed prompts:  42%|████▏     | 21/50 [00:07<00:10,  2.83it/s, est. speed input: 11761.37 toks/s, output: 952.14 toks/s][A
-Processed prompts:  44%|████▍     | 22/50 [00:07<00:09,  2.81it/s, est. speed input: 11650.91 toks/s, output: 950.90 toks/s][A
-Processed prompts:  46%|████▌     | 23/50 [00:08<00:11,  2.37it/s, est. speed input: 11267.69 toks/s, output: 916.93 toks/s][A
-Processed prompts:  48%|████▊     | 24/50 [00:09<00:11,  2.30it/s, est. speed input: 11178.30 toks/s, output: 904.69 toks/s][A
-Processed prompts:  50%|█████     | 25/50 [00:13<00:37,  1.51s/it, est. speed input: 7614.35 toks/s, output: 612.09 toks/s] [A
-Processed prompts:  52%|█████▏    | 26/50 [00:14<00:30,  1.26s/it, est. speed input: 7643.59 toks/s, output: 610.75 toks/s][A
-Processed prompts:  54%|█████▍    | 27/50 [00:14<00:23,  1.01s/it, est. speed input: 7787.64 toks/s, output: 618.73 toks/s][A
-Processed prompts:  56%|█████▌    | 28/50 [00:15<00:18,  1.20it/s, est. speed input: 7905.47 toks/s, output: 624.66 toks/s][A
-Processed prompts:  58%|█████▊    | 29/50 [00:15<00:14,  1.46it/s, est. speed input: 7991.20 toks/s, output: 633.82 toks/s][A
-Processed prompts:  60%|██████    | 30/50 [00:15<00:12,  1.63it/s, est. speed input: 8066.91 toks/s, output: 637.92 toks/s][A
-Processed prompts:  64%|██████▍   | 32/50 [00:16<00:08,  2.02it/s, est. speed input: 8283.96 toks/s, output: 649.15 toks/s][A
-Processed prompts:  66%|██████▌   | 33/50 [00:22<00:29,  1.75s/it, est. speed input: 6393.15 toks/s, output: 498.92 toks/s][A
-Processed prompts:  68%|██████▊   | 34/50 [00:22<00:22,  1.42s/it, est. speed input: 6468.45 toks/s, output: 502.83 toks/s][A
-Processed prompts:  70%|███████   | 35/50 [00:22<00:16,  1.11s/it, est. speed input: 6557.01 toks/s, output: 510.54 toks/s][A
-Processed prompts:  72%|███████▏  | 36/50 [00:23<00:12,  1.10it/s, est. speed input: 6582.18 toks/s, output: 515.94 toks/s][A
-Processed prompts:  74%|███████▍  | 37/50 [00:23<00:09,  1.32it/s, est. speed input: 6671.97 toks/s, output: 521.80 toks/s][A
-Processed prompts:  76%|███████▌  | 38/50 [00:24<00:08,  1.37it/s, est. speed input: 6665.63 toks/s, output: 521.14 toks/s][A
-Processed prompts:  78%|███████▊  | 39/50 [00:24<00:06,  1.60it/s, est. speed input: 6752.85 toks/s, output: 526.78 toks/s][A
-Processed prompts:  80%|████████  | 40/50 [00:25<00:05,  1.68it/s, est. speed input: 6733.92 toks/s, output: 529.46 toks/s][A
-Processed prompts:  82%|████████▏ | 41/50 [00:29<00:15,  1.73s/it, est. speed input: 5804.21 toks/s, output: 461.79 toks/s][A
-Processed prompts:  84%|████████▍ | 42/50 [00:30<00:10,  1.33s/it, est. speed input: 5857.71 toks/s, output: 467.01 toks/s][A
-Processed prompts:  86%|████████▌ | 43/50 [00:30<00:07,  1.03s/it, est. speed input: 5935.46 toks/s, output: 473.09 toks/s][A
-Processed prompts:  88%|████████▊ | 44/50 [00:30<00:04,  1.25it/s, est. speed input: 6038.11 toks/s, output: 480.26 toks/s][A
-Processed prompts:  90%|█████████ | 45/50 [00:30<00:03,  1.66it/s, est. speed input: 6160.60 toks/s, output: 489.05 toks/s][A
-Processed prompts:  92%|█████████▏| 46/50 [00:31<00:02,  2.00it/s, est. speed input: 6232.24 toks/s, output: 495.69 toks/s][A
-Processed prompts:  94%|█████████▍| 47/50 [00:31<00:01,  2.40it/s, est. speed input: 6324.50 toks/s, output: 502.43 toks/s][A
-Processed prompts:  96%|█████████▌| 48/50 [00:31<00:00,  2.99it/s, est. speed input: 6430.38 toks/s, output: 511.02 toks/s][A
-Processed prompts:  98%|█████████▊| 49/50 [00:35<00:01,  1.33s/it, est. speed input: 5838.03 toks/s, output: 467.40 toks/s][A
-Processed prompts: 100%|██████████| 50/50 [00:35<00:00,  1.02it/s, est. speed input: 5929.54 toks/s, output: 474.58 toks/s][A
-Processed prompts: 100%|██████████| 50/50 [00:35<00:00,  1.02it/s, est. speed input: 5929.54 toks/s, output: 474.58 toks/s][AProcessed prompts: 100%|██████████| 50/50 [00:35<00:00,  1.42it/s, est. speed input: 5929.54 toks/s, output: 474.58 toks/s]
-m04_vllm: 50clip [01:58,  2.38s/clip]             m04_vllm: 50clip [01:58,  2.38s/clip, 0.4 clips/s | dummy=0]m04_vllm: 50clip [01:58,  2.38s/clip, 0.4 clips/s | dummy=0]
-
-=== TAGGING COMPLETE ===
-Model:  Qwen/Qwen3-VL-8B-Instruct (vLLM)
-Clips:  50 | Dummy: 0 (0.0%)
-Time:   2.0 min (0.4 clips/s)
-(EngineCore pid=375286) INFO 03-31 08:11:30 [core.py:1210] Shutdown initiated (timeout=0)
-(EngineCore pid=375286) INFO 03-31 08:11:30 [core.py:1233] Shutdown complete
-[rank0]:[W331 08:11:30.249896670 ProcessGroupNCCL.cpp:1553] Warning: WARNING: destroy_process_group() was not called before program exit, which can leak resources. For more info, please see https://pytorch.org/docs/stable/distributed.html#shutdown (function operator())
-[08:11:32] PASSED: m04 VLM tagging via vLLM (2m 51s)
-  tags: NOT FOUND or corrupt ([Errno 2] No such file or directory: 'outputs/sanity/tags_sanity_qwen.json')
-[08:11:32] VERIFY OK: Step 1 tags
-
-═══════════════════════════════════════════════════════════════
-  STEP 2: m05 V-JEPA embeddings
-  Mode: SANITY | Est: ~15 sec (cached: ~80 min first run)
-  Started: 2026-03-31 08:11:32
-═══════════════════════════════════════════════════════════════
-[08:11:32] CMD: python -u src/m05_vjepa_embed.py --SANITY --local-data data/subset_10k_local --no-wandb
-Using PyAV for video decoding
-Output: /workspace/factorjepa/outputs/sanity/embeddings.npy
-[output_guard] m05 embed: outputs missing or invalid — will re-compute
-  MISS  embeddings: embeddings.npy
-  MISS  paths: embeddings.paths.npy
-Clip limit: 20
-Streaming from: anonymousML123/walkindia-200k
-
-============================================================
-WORKER 1: embeddings 0 → 20
-============================================================
-Using PyAV for video decoding
-GPU: NVIDIA RTX PRO 6000 Blackwell Workstation Edition
-CUDA version: 12.8
-GPU VRAM: 95 GB | VLM cost model: 16GB fixed + 0.78GB/clip
-  vjepa=37 (linear, scale=2.37x from 40GB)
-  image_encoder=148 (4x vjepa, cap 256)
-  transformers=64 (max batch, est 66GB = 69% VRAM)
-  sub-batch=51 (initial, AdaptiveBatchSizer grows to 64)
-Batch size: 37
-
-Loading model: facebook/vjepa2-vitg-fpc64-384
-`torch_dtype` is deprecated! Use `dtype` instead!
-Applying torch.compile (first batch will be slow due to compilation)...
-Model loaded on cuda (dtype: torch.float16)
-
-=== Streaming Config ===
-batch_size:    2
-video_decoder: PyAV
-prefetch:      2 batches
-checkpoint:    every 500 clips
-m05_vjepa:   0%|          | 0/20 [00:00<?, ?clip/s]Casting fp32 inputs back to torch.float16 for flash-attn compatibility.
-m05_vjepa:  10%|█         | 2/20 [00:12<01:51,  6.19s/clip]m05_vjepa:  10%|█         | 2/20 [00:12<01:51,  6.19s/clip, 0.2 clips/s | failed=0]m05_vjepa:  20%|██        | 4/20 [00:13<00:44,  2.80s/clip, 0.2 clips/s | failed=0]m05_vjepa:  20%|██        | 4/20 [00:13<00:44,  2.80s/clip, 0.3 clips/s | failed=0]m05_vjepa:  30%|███       | 6/20 [00:14<00:24,  1.72s/clip, 0.3 clips/s | failed=0]m05_vjepa:  30%|███       | 6/20 [00:14<00:24,  1.72s/clip, 0.4 clips/s | failed=0]m05_vjepa:  40%|████      | 8/20 [00:14<00:14,  1.21s/clip, 0.4 clips/s | failed=0]m05_vjepa:  40%|████      | 8/20 [00:14<00:14,  1.21s/clip, 0.5 clips/s | failed=0]m05_vjepa:  50%|█████     | 10/20 [00:15<00:09,  1.07clip/s, 0.5 clips/s | failed=0]m05_vjepa:  50%|█████     | 10/20 [00:15<00:09,  1.07clip/s, 0.6 clips/s | failed=0]m05_vjepa:  60%|██████    | 12/20 [00:16<00:06,  1.31clip/s, 0.6 clips/s | failed=0]m05_vjepa:  60%|██████    | 12/20 [00:16<00:06,  1.31clip/s, 0.7 clips/s | failed=0]m05_vjepa:  70%|███████   | 14/20 [00:17<00:03,  1.52clip/s, 0.7 clips/s | failed=0]m05_vjepa:  70%|███████   | 14/20 [00:17<00:03,  1.52clip/s, 0.8 clips/s | failed=0]m05_vjepa:  80%|████████  | 16/20 [00:18<00:02,  1.71clip/s, 0.8 clips/s | failed=0]m05_vjepa:  80%|████████  | 16/20 [00:18<00:02,  1.71clip/s, 0.9 clips/s | failed=0]m05_vjepa:  90%|█████████ | 18/20 [00:19<00:01,  1.85clip/s, 0.9 clips/s | failed=0]m05_vjepa:  90%|█████████ | 18/20 [00:19<00:01,  1.85clip/s, 0.9 clips/s | failed=0]m05_vjepa: 100%|██████████| 20/20 [00:20<00:00,  1.96clip/s, 0.9 clips/s | failed=0]m05_vjepa: 100%|██████████| 20/20 [00:20<00:00,  1.96clip/s, 1.0 clips/s | failed=0]m05_vjepa: 100%|██████████| 20/20 [00:20<00:00,  1.01s/clip, 1.0 clips/s | failed=0]
-
-Segment done: 20 clips in 20s (0.99 clips/s)
-Worker exiting (GPU memory will be released).
-Checkpoint loaded: 20 embeddings from .m05_checkpoint.npz
-Worker done. Progress: 20/20
-Checkpoint loaded: 20 embeddings from .m05_checkpoint.npz
-
-=== Processing Stats ===
-Total clips:     20
-Embedding shape: (20, 1408)
-
-=== EMBEDDING COMPLETE ===
-Saved: /workspace/factorjepa/outputs/sanity/embeddings.npy
-Shape: (20, 1408)
-Unique clips: 20
-[08:12:07] PASSED: m05 V-JEPA embeddings (0m 35s)
-  embeddings.npy:       (20, 1408)
-  embeddings.paths.npy: 20 keys
-  shape match: True
-[08:12:07] VERIFY OK: Step 2 embeddings
-
-═══════════════════════════════════════════════════════════════
-  STEP 3: m05b baselines (all 4 encoders)
-  Mode: SANITY | Est: ~15 sec (cached: ~99 min first run)
-  Started: 2026-03-31 08:12:07
-═══════════════════════════════════════════════════════════════
-[08:12:07] CMD: python -u src/m05b_baselines.py --encoder all --SANITY --local-data data/subset_10k_local --no-wandb
-Using PyAV for video decoding
-============================================================
-RUNNING ALL 4 BASELINES SEQUENTIALLY
-Order: random → dinov2 → clip → vjepa_shuffled
-============================================================
-
-
-############################################################
-# [1/4] random
-############################################################
-
-============================================================
-BASELINE: random
-Model:    N/A (synthetic)
-Dim:      1408
-Type:     synthetic
-Output:   /workspace/factorjepa/outputs/sanity/embeddings_random.npy
-============================================================
-[output_guard] m05b random: outputs missing or invalid — will re-compute
-  MISS  embeddings: embeddings_random.npy
-  MISS  paths: embeddings_random.paths.npy
-Using 20 clip keys from V-JEPA embeddings.paths.npy
-Generating 20 random embeddings (dim=1408, seed=42)
-Saved: /workspace/factorjepa/outputs/sanity/embeddings_random.npy ((20, 1408))
-Saved: /workspace/factorjepa/outputs/sanity/embeddings_random.paths.npy (20 keys)
-
-=== BASELINE COMPLETE: random ===
-Clips:     20
-Dim:       1408
-Next step: python -u src/m06_faiss_metrics.py --encoder random --FULL --subset data/subset_10k.json
-
-############################################################
-# [2/4] dinov2
-############################################################
-
-============================================================
-BASELINE: dinov2
-Model:    facebook/dinov2-giant
-Dim:      1536
-Type:     image
-Output:   /workspace/factorjepa/outputs/sanity/embeddings_dinov2.npy
-============================================================
-[output_guard] m05b dinov2: outputs missing or invalid — will re-compute
-  MISS  embeddings: embeddings_dinov2.npy
-  MISS  paths: embeddings_dinov2.paths.npy
-GPU: NVIDIA RTX PRO 6000 Blackwell Workstation Edition
-CUDA version: 12.8
-Loading model: facebook/dinov2-giant
-Using a slow image processor as `use_fast` is unset and a slow processor was saved with this model. `use_fast=True` will be the default behavior in v4.52, even if the model was saved with a slow processor. This will result in minor differences in outputs. You'll still be able to use a slow processor with `use_fast=False`.
-`torch_dtype` is deprecated! Use `dtype` instead!
-Applying torch.compile (first batch will be slow due to compilation)...
-DINOv2 loaded (dim=1536, dtype=float16, FA2+compiled)
-GPU VRAM: 95 GB | VLM cost model: 16GB fixed + 0.78GB/clip
-  vjepa=37 (linear, scale=2.37x from 40GB)
-  image_encoder=148 (4x vjepa, cap 256)
-  transformers=64 (max batch, est 66GB = 69% VRAM)
-  sub-batch=51 (initial, AdaptiveBatchSizer grows to 64)
-m05b dinov2:   0%|          | 0/20 [00:00<?, ?clip/s]m05b dinov2:  20%|██        | 4/20 [00:06<00:27,  1.72s/clip]m05b dinov2:  20%|██        | 4/20 [00:06<00:27,  1.72s/clip, rate=0.6/s]m05b dinov2:  40%|████      | 8/20 [00:06<00:20,  1.72s/clip, rate=204.2/s]m05b dinov2:  60%|██████    | 12/20 [00:08<00:04,  1.78clip/s, rate=204.2/s]m05b dinov2:  60%|██████    | 12/20 [00:08<00:04,  1.78clip/s, rate=3.3/s]  m05b dinov2:  80%|████████  | 16/20 [00:08<00:01,  2.33clip/s, rate=3.3/s]m05b dinov2:  80%|████████  | 16/20 [00:08<00:01,  2.33clip/s, rate=5.5/s]m05b dinov2: 100%|██████████| 20/20 [00:09<00:00,  2.99clip/s, rate=5.5/s]m05b dinov2: 100%|██████████| 20/20 [00:09<00:00,  2.99clip/s, rate=7.0/s]m05b dinov2: 100%|██████████| 20/20 [00:09<00:00,  2.12clip/s, rate=7.0/s]
-
-Saved: /workspace/factorjepa/outputs/sanity/embeddings_dinov2.npy ((20, 1536))
-Saved: /workspace/factorjepa/outputs/sanity/embeddings_dinov2.paths.npy (20 keys)
-
-=== BASELINE COMPLETE: dinov2 ===
-Clips:     20
-Dim:       1536
-Next step: python -u src/m06_faiss_metrics.py --encoder dinov2 --FULL --subset data/subset_10k.json
-
-############################################################
-# [3/4] clip
-############################################################
-
-============================================================
-BASELINE: clip
-Model:    openai/clip-vit-large-patch14
-Dim:      768
-Type:     image
-Output:   /workspace/factorjepa/outputs/sanity/embeddings_clip.npy
-============================================================
-[output_guard] m05b clip: outputs missing or invalid — will re-compute
-  MISS  embeddings: embeddings_clip.npy
-  MISS  paths: embeddings_clip.paths.npy
-GPU: NVIDIA RTX PRO 6000 Blackwell Workstation Edition
-CUDA version: 12.8
-Loading model: openai/clip-vit-large-patch14
-Using a slow image processor as `use_fast` is unset and a slow processor was saved with this model. `use_fast=True` will be the default behavior in v4.52, even if the model was saved with a slow processor. This will result in minor differences in outputs. You'll still be able to use a slow processor with `use_fast=False`.
-`torch_dtype` is deprecated! Use `dtype` instead!
-Applying torch.compile (first batch will be slow due to compilation)...
-CLIP loaded (dim=768, dtype=float16, SDPA+compiled)
-GPU VRAM: 95 GB | VLM cost model: 16GB fixed + 0.78GB/clip
-  vjepa=37 (linear, scale=2.37x from 40GB)
-  image_encoder=148 (4x vjepa, cap 256)
-  transformers=64 (max batch, est 66GB = 69% VRAM)
-  sub-batch=51 (initial, AdaptiveBatchSizer grows to 64)
-m05b clip:   0%|          | 0/20 [00:00<?, ?clip/s]m05b clip:  20%|██        | 4/20 [00:05<00:20,  1.30s/clip]m05b clip:  20%|██        | 4/20 [00:05<00:20,  1.30s/clip, rate=0.8/s]m05b clip:  40%|████      | 8/20 [00:06<00:08,  1.36clip/s, rate=0.8/s]m05b clip:  40%|████      | 8/20 [00:06<00:08,  1.36clip/s, rate=2.9/s]m05b clip:  60%|██████    | 12/20 [00:07<00:03,  2.07clip/s, rate=2.9/s]m05b clip:  60%|██████    | 12/20 [00:07<00:03,  2.07clip/s, rate=5.5/s]m05b clip:  80%|████████  | 16/20 [00:08<00:01,  2.71clip/s, rate=5.5/s]m05b clip:  80%|████████  | 16/20 [00:08<00:01,  2.71clip/s, rate=5.2/s]m05b clip: 100%|██████████| 20/20 [00:09<00:00,  2.92clip/s, rate=5.2/s]m05b clip: 100%|██████████| 20/20 [00:09<00:00,  2.92clip/s, rate=3.4/s]m05b clip: 100%|██████████| 20/20 [00:09<00:00,  2.16clip/s, rate=3.4/s]
-
-Saved: /workspace/factorjepa/outputs/sanity/embeddings_clip.npy ((20, 768))
-Saved: /workspace/factorjepa/outputs/sanity/embeddings_clip.paths.npy (20 keys)
-
-=== BASELINE COMPLETE: clip ===
-Clips:     20
-Dim:       768
-Next step: python -u src/m06_faiss_metrics.py --encoder clip --FULL --subset data/subset_10k.json
-
-############################################################
-# [4/4] vjepa_shuffled
-############################################################
-
-============================================================
-BASELINE: vjepa_shuffled
-Model:    facebook/vjepa2-vitg-fpc64-384
-Dim:      1408
-Type:     video_shuffled
-Output:   /workspace/factorjepa/outputs/sanity/embeddings_vjepa_shuffled.npy
-============================================================
-[output_guard] m05b vjepa_shuffled: outputs missing or invalid — will re-compute
-  MISS  embeddings: embeddings_vjepa_shuffled.npy
-  MISS  paths: embeddings_vjepa_shuffled.paths.npy
-GPU: NVIDIA RTX PRO 6000 Blackwell Workstation Edition
-CUDA version: 12.8
-Loading model: facebook/vjepa2-vitg-fpc64-384
-V-JEPA loaded for shuffled inference (dim=1408, dtype=torch.float16)
-GPU VRAM: 95 GB | VLM cost model: 16GB fixed + 0.78GB/clip
-  vjepa=37 (linear, scale=2.37x from 40GB)
-  image_encoder=148 (4x vjepa, cap 256)
-  transformers=64 (max batch, est 66GB = 69% VRAM)
-  sub-batch=51 (initial, AdaptiveBatchSizer grows to 64)
-m05b vjepa_shuffled:   0%|          | 0/20 [00:00<?, ?clip/s]Casting fp32 inputs back to torch.float16 for flash-attn compatibility.
-m05b vjepa_shuffled:  10%|█         | 2/20 [00:07<01:04,  3.60s/clip]m05b vjepa_shuffled:  10%|█         | 2/20 [00:07<01:04,  3.60s/clip, rate=0.3/s]m05b vjepa_shuffled:  20%|██        | 4/20 [00:08<00:27,  1.73s/clip, rate=0.3/s]m05b vjepa_shuffled:  20%|██        | 4/20 [00:08<00:27,  1.73s/clip, rate=2.3/s]m05b vjepa_shuffled:  30%|███       | 6/20 [00:09<00:16,  1.19s/clip, rate=2.3/s]m05b vjepa_shuffled:  30%|███       | 6/20 [00:09<00:16,  1.19s/clip, rate=1.9/s]m05b vjepa_shuffled:  40%|████      | 8/20 [00:10<00:10,  1.12clip/s, rate=1.9/s]m05b vjepa_shuffled:  40%|████      | 8/20 [00:10<00:10,  1.12clip/s, rate=2.3/s]m05b vjepa_shuffled:  50%|█████     | 10/20 [00:10<00:07,  1.36clip/s, rate=2.3/s]m05b vjepa_shuffled:  50%|█████     | 10/20 [00:10<00:07,  1.36clip/s, rate=2.2/s]m05b vjepa_shuffled:  60%|██████    | 12/20 [00:11<00:05,  1.56clip/s, rate=2.2/s]m05b vjepa_shuffled:  60%|██████    | 12/20 [00:11<00:05,  1.56clip/s, rate=2.2/s]m05b vjepa_shuffled:  70%|███████   | 14/20 [00:12<00:03,  1.64clip/s, rate=2.2/s]m05b vjepa_shuffled:  70%|███████   | 14/20 [00:12<00:03,  1.64clip/s, rate=1.8/s]m05b vjepa_shuffled:  80%|████████  | 16/20 [00:13<00:02,  1.80clip/s, rate=1.8/s]m05b vjepa_shuffled:  80%|████████  | 16/20 [00:13<00:02,  1.80clip/s, rate=2.3/s]m05b vjepa_shuffled:  90%|█████████ | 18/20 [00:14<00:01,  1.85clip/s, rate=2.3/s]m05b vjepa_shuffled:  90%|█████████ | 18/20 [00:14<00:01,  1.85clip/s, rate=2.0/s]m05b vjepa_shuffled: 100%|██████████| 20/20 [00:15<00:00,  1.85clip/s, rate=2.0/s]m05b vjepa_shuffled: 100%|██████████| 20/20 [00:15<00:00,  1.85clip/s, rate=1.8/s]m05b vjepa_shuffled: 100%|██████████| 20/20 [00:15<00:00,  1.26clip/s, rate=1.8/s]
-
-Saved: /workspace/factorjepa/outputs/sanity/embeddings_vjepa_shuffled.npy ((20, 1408))
-Saved: /workspace/factorjepa/outputs/sanity/embeddings_vjepa_shuffled.paths.npy (20 keys)
-
-=== BASELINE COMPLETE: vjepa_shuffled ===
-Clips:     20
-Dim:       1408
-Next step: python -u src/m06_faiss_metrics.py --encoder vjepa_shuffled --FULL --subset data/subset_10k.json
-
-============================================================
-ALL 4 BASELINES COMPLETE
-Next: python -u src/m06_faiss_metrics.py --encoder <enc> --FULL --subset data/subset_10k.json
-============================================================
-[08:12:56] PASSED: m05b baselines (all 4 encoders) (0m 49s)
-  OK random               (20, 1408)
-  OK dinov2               (20, 1536)
-  OK clip                 (20, 768)
-  OK vjepa_shuffled       (20, 1408)
-[08:12:56] VERIFY OK: Step 3 baselines
-
-═══════════════════════════════════════════════════════════════
-  STEP 4: m05c True Overlap augmented embeddings
-  Mode: SANITY | Est: ~15 sec (cached: ~93 min first run)
-  Started: 2026-03-31 08:12:56
-═══════════════════════════════════════════════════════════════
-[08:12:56] CMD: python -u src/m05c_true_overlap.py --SANITY --local-data data/subset_10k_local --no-wandb
-Using PyAV for video decoding
-GPU: NVIDIA RTX PRO 6000 Blackwell Workstation Edition
-CUDA version: 12.8
-GPU VRAM: 95 GB | VLM cost model: 16GB fixed + 0.78GB/clip
-  vjepa=37 (linear, scale=2.37x from 40GB)
-  image_encoder=148 (4x vjepa, cap 256)
-  transformers=64 (max batch, est 66GB = 69% VRAM)
-  sub-batch=51 (initial, AdaptiveBatchSizer grows to 64)
-Loading V-JEPA: facebook/vjepa2-vitg-fpc64-384
-`torch_dtype` is deprecated! Use `dtype` instead!
-V-JEPA loaded for augmented inference
-m05c true overlap:   0%|          | 0/20 [00:00<?, ?clip/s]Casting fp32 inputs back to torch.float16 for flash-attn compatibility.
-m05c true overlap:  10%|█         | 2/20 [00:10<01:33,  5.21s/clip]m05c true overlap:  10%|█         | 2/20 [00:10<01:33,  5.21s/clip, rate=0.2/s]m05c true overlap:  20%|██        | 4/20 [00:12<00:42,  2.65s/clip, rate=0.2/s]m05c true overlap:  20%|██        | 4/20 [00:12<00:42,  2.65s/clip, rate=1.2/s]m05c true overlap:  30%|███       | 6/20 [00:14<00:26,  1.91s/clip, rate=1.2/s]m05c true overlap:  30%|███       | 6/20 [00:14<00:26,  1.91s/clip, rate=1.0/s]m05c true overlap:  40%|████      | 8/20 [00:17<00:20,  1.75s/clip, rate=1.0/s]m05c true overlap:  40%|████      | 8/20 [00:17<00:20,  1.75s/clip, rate=0.7/s]m05c true overlap:  50%|█████     | 10/20 [00:19<00:15,  1.58s/clip, rate=0.7/s]m05c true overlap:  50%|█████     | 10/20 [00:19<00:15,  1.58s/clip, rate=0.8/s]m05c true overlap:  60%|██████    | 12/20 [00:22<00:12,  1.58s/clip, rate=0.8/s]m05c true overlap:  60%|██████    | 12/20 [00:22<00:12,  1.58s/clip, rate=0.6/s]m05c true overlap:  70%|███████   | 14/20 [00:25<00:09,  1.56s/clip, rate=0.6/s]m05c true overlap:  70%|███████   | 14/20 [00:25<00:09,  1.56s/clip, rate=0.7/s]m05c true overlap:  80%|████████  | 16/20 [00:28<00:06,  1.53s/clip, rate=0.7/s]m05c true overlap:  80%|████████  | 16/20 [00:28<00:06,  1.53s/clip, rate=0.7/s]m05c true overlap:  90%|█████████ | 18/20 [00:32<00:03,  1.56s/clip, rate=0.7/s]m05c true overlap:  90%|█████████ | 18/20 [00:32<00:03,  1.56s/clip, rate=0.6/s]m05c true overlap: 100%|██████████| 20/20 [00:34<00:00,  1.51s/clip, rate=0.6/s]m05c true overlap: 100%|██████████| 20/20 [00:34<00:00,  1.51s/clip, rate=0.7/s]m05c true overlap: 100%|██████████| 20/20 [00:34<00:00,  1.75s/clip, rate=0.7/s]
-
-Saved: /workspace/factorjepa/outputs/sanity/overlap_augA.npy ((20, 1408))
-Saved: /workspace/factorjepa/outputs/sanity/overlap_augB.npy ((20, 1408))
-Saved: /workspace/factorjepa/outputs/sanity/overlap_keys.npy (20 keys)
-
-Next: python -u src/m06_faiss_metrics.py --true-overlap --FULL --subset data/subset_10k.json
-[08:13:38] PASSED: m05c True Overlap augmented embeddings (0m 42s)
-  overlap_augA.npy: (20, 1408)
-  overlap_augB.npy: (20, 1408)
-  overlap_keys.npy: 20 keys
-  shape match: True
-[08:13:38] VERIFY OK: Step 4 augmented embeddings
-
-═══════════════════════════════════════════════════════════════
-  STEP 4.5: m04d GPU-RAFT motion features (13D per clip)
-  Mode: SANITY | Est: ~1 min
-  Started: 2026-03-31 08:13:38
-═══════════════════════════════════════════════════════════════
-[08:13:38] CMD: python -u src/m04d_motion_features.py --SANITY --local-data data/subset_10k_local --no-wandb
-GPU: NVIDIA RTX PRO 6000 Blackwell Workstation Edition
-CUDA version: 12.8
-Mode: SANITY
-Output: /workspace/factorjepa/outputs/sanity
-Frame pairs/clip: 16
-Applying torch.compile to RAFT (first batch will be slow)...
-RAFT-Large loaded on cuda (weights: C_T_SKHT_V2, compiled, fp16)
-RAFT batch sizer: AdaptiveBatchSizer(size=128, range=[16, 128], cap=85%, ooms=0)
-Producer-consumer: queue=8, clips/GPU_batch=8
-m04d motion features:   0%|          | 0/20 [00:00<?, ?clip/s]m04d motion features:   5%|▌         | 1/20 [00:15<05:03, 16.00s/clip]m04d motion features:  15%|█▌        | 3/20 [00:16<01:11,  4.20s/clip]m04d motion features:  25%|██▌       | 5/20 [00:16<00:31,  2.07s/clip]m04d motion features:  35%|███▌      | 7/20 [00:16<00:15,  1.22s/clip]m04d motion features:  45%|████▌     | 9/20 [00:18<00:12,  1.11s/clip]m04d motion features:  55%|█████▌    | 11/20 [00:18<00:06,  1.34clip/s]m04d motion features:  65%|██████▌   | 13/20 [00:18<00:03,  1.94clip/s]m04d motion features:  75%|███████▌  | 15/20 [00:18<00:01,  2.71clip/s]m04d motion features:  85%|████████▌ | 17/20 [00:20<00:01,  1.83clip/s]m04d motion features:  95%|█████████▌| 19/20 [00:20<00:00,  2.54clip/s]m04d motion features: 21clip [00:20,  3.45clip/s]                      m04d motion features: 23clip [00:20,  4.56clip/s]m04d motion features: 24clip [00:20,  1.15clip/s]
-
-Saved: /workspace/factorjepa/outputs/sanity/motion_features.npy ((24, 13))
-Saved: /workspace/factorjepa/outputs/sanity/motion_features.paths.npy ((24,))
-Saved: /workspace/factorjepa/outputs/sanity/motion_features_meta.json
-
-============================================================
-m04d COMPLETE: 24 clips, 21s (1.2 clips/s)
-  Errors: 0 (GPU: 0, producer: 0)
-  Skipped: 0
-============================================================
-[08:14:04] PASSED: m04d GPU-RAFT motion features (13D per clip) (0m 26s)
-  motion_features.npy: (24, 13) (expect ~N x 13)
-[08:14:04] VERIFY OK: Step 4.5 motion features
-
-═══════════════════════════════════════════════════════════════
-  STEP 5-vjepa: m06 FAISS metrics (vjepa)
-  Mode: SANITY | Est: ~10 sec each
-  Started: 2026-03-31 08:14:04
-═══════════════════════════════════════════════════════════════
-[08:14:04] CMD: python -u src/m06_faiss_metrics.py --encoder vjepa --true-overlap --SANITY --no-wandb
-GPU: NVIDIA RTX PRO 6000 Blackwell Workstation Edition
-CUDA version: 12.8
-[output_guard] m06 vjepa: outputs missing or invalid — will re-compute
-  MISS  metrics: m06_metrics.json
-  MISS  knn_indices: knn_indices.npy
-Encoder:     vjepa (dim=1408, type=video)
-Output dir:  /workspace/factorjepa/outputs/sanity
-Embeddings:  /workspace/factorjepa/outputs/sanity/embeddings.npy
-Metrics:     /workspace/factorjepa/outputs/sanity/m06_metrics.json
-Loaded embeddings: (20, 1408)
-Loaded tags: 50
-Loaded clip paths: 20
-FATAL: 20 embeddings vs 50 tags (60.0% difference). Re-run m04 (tags) or m05 (embeddings) to fix.
-[08:14:06] FAILED: m06 FAISS metrics (vjepa) (0m 2s) — exit code 0
-[08:14:06] WARNING: m06 vjepa failed. Skipping.
-
-═══════════════════════════════════════════════════════════════
-  STEP 5-random: m06 FAISS metrics (random)
-  Mode: SANITY | Est: ~10 sec each
-  Started: 2026-03-31 08:14:06
-═══════════════════════════════════════════════════════════════
-[08:14:06] CMD: python -u src/m06_faiss_metrics.py --encoder random --SANITY --no-wandb
-GPU: NVIDIA RTX PRO 6000 Blackwell Workstation Edition
-CUDA version: 12.8
-[output_guard] m06 random: outputs missing or invalid — will re-compute
-  MISS  metrics: m06_metrics_random.json
-  MISS  knn_indices: knn_indices_random.npy
-Encoder:     random (dim=1408, type=synthetic)
-Output dir:  /workspace/factorjepa/outputs/sanity
-Embeddings:  /workspace/factorjepa/outputs/sanity/embeddings_random.npy
-Metrics:     /workspace/factorjepa/outputs/sanity/m06_metrics_random.json
-Loaded embeddings: (20, 1408)
-Loaded tags: 50
-Loaded clip paths: 20
-FATAL: 20 embeddings vs 50 tags (60.0% difference). Re-run m04 (tags) or m05 (embeddings) to fix.
-[08:14:08] FAILED: m06 FAISS metrics (random) (0m 2s) — exit code 0
-[08:14:08] WARNING: m06 random failed. Skipping.
-
-═══════════════════════════════════════════════════════════════
-  STEP 5-dinov2: m06 FAISS metrics (dinov2)
-  Mode: SANITY | Est: ~10 sec each
-  Started: 2026-03-31 08:14:08
-═══════════════════════════════════════════════════════════════
-[08:14:08] CMD: python -u src/m06_faiss_metrics.py --encoder dinov2 --SANITY --no-wandb
-GPU: NVIDIA RTX PRO 6000 Blackwell Workstation Edition
-CUDA version: 12.8
-[output_guard] m06 dinov2: outputs missing or invalid — will re-compute
-  MISS  metrics: m06_metrics_dinov2.json
-  MISS  knn_indices: knn_indices_dinov2.npy
-Encoder:     dinov2 (dim=1536, type=image)
-Output dir:  /workspace/factorjepa/outputs/sanity
-Embeddings:  /workspace/factorjepa/outputs/sanity/embeddings_dinov2.npy
-Metrics:     /workspace/factorjepa/outputs/sanity/m06_metrics_dinov2.json
-Loaded embeddings: (20, 1536)
-Loaded tags: 50
-Loaded clip paths: 20
-FATAL: 20 embeddings vs 50 tags (60.0% difference). Re-run m04 (tags) or m05 (embeddings) to fix.
-[08:14:11] FAILED: m06 FAISS metrics (dinov2) (0m 3s) — exit code 0
-[08:14:11] WARNING: m06 dinov2 failed. Skipping.
-
-═══════════════════════════════════════════════════════════════
-  STEP 5-clip: m06 FAISS metrics (clip)
-  Mode: SANITY | Est: ~10 sec each
-  Started: 2026-03-31 08:14:11
-═══════════════════════════════════════════════════════════════
-[08:14:11] CMD: python -u src/m06_faiss_metrics.py --encoder clip --SANITY --no-wandb
-GPU: NVIDIA RTX PRO 6000 Blackwell Workstation Edition
-CUDA version: 12.8
-[output_guard] m06 clip: outputs missing or invalid — will re-compute
-  MISS  metrics: m06_metrics_clip.json
-  MISS  knn_indices: knn_indices_clip.npy
-Encoder:     clip (dim=768, type=image)
-Output dir:  /workspace/factorjepa/outputs/sanity
-Embeddings:  /workspace/factorjepa/outputs/sanity/embeddings_clip.npy
-Metrics:     /workspace/factorjepa/outputs/sanity/m06_metrics_clip.json
-Loaded embeddings: (20, 768)
-Loaded tags: 50
-Loaded clip paths: 20
-FATAL: 20 embeddings vs 50 tags (60.0% difference). Re-run m04 (tags) or m05 (embeddings) to fix.
-[08:14:13] FAILED: m06 FAISS metrics (clip) (0m 2s) — exit code 0
-[08:14:13] WARNING: m06 clip failed. Skipping.
-
-═══════════════════════════════════════════════════════════════
-  STEP 5-vjepa_shuffled: m06 FAISS metrics (vjepa_shuffled)
-  Mode: SANITY | Est: ~10 sec each
-  Started: 2026-03-31 08:14:13
-═══════════════════════════════════════════════════════════════
-[08:14:13] CMD: python -u src/m06_faiss_metrics.py --encoder vjepa_shuffled --SANITY --no-wandb
-GPU: NVIDIA RTX PRO 6000 Blackwell Workstation Edition
-CUDA version: 12.8
-[output_guard] m06 vjepa_shuffled: outputs missing or invalid — will re-compute
-  MISS  metrics: m06_metrics_vjepa_shuffled.json
-  MISS  knn_indices: knn_indices_vjepa_shuffled.npy
-Encoder:     vjepa_shuffled (dim=1408, type=video_shuffled)
-Output dir:  /workspace/factorjepa/outputs/sanity
-Embeddings:  /workspace/factorjepa/outputs/sanity/embeddings_vjepa_shuffled.npy
-Metrics:     /workspace/factorjepa/outputs/sanity/m06_metrics_vjepa_shuffled.json
-Loaded embeddings: (20, 1408)
-Loaded tags: 50
-Loaded clip paths: 20
-FATAL: 20 embeddings vs 50 tags (60.0% difference). Re-run m04 (tags) or m05 (embeddings) to fix.
-[08:14:15] FAILED: m06 FAISS metrics (vjepa_shuffled) (0m 2s) — exit code 0
-[08:14:15] WARNING: m06 vjepa_shuffled failed. Skipping.
-  MISSING vjepa                m06_metrics.json
-  MISSING random               m06_metrics_random.json
-  MISSING dinov2               m06_metrics_dinov2.json
-  MISSING clip                 m06_metrics_clip.json
-  MISSING vjepa_shuffled       m06_metrics_vjepa_shuffled.json
-[08:14:15] VERIFY OK: Step 5 metrics (all encoders)
-
-═══════════════════════════════════════════════════════════════
-  STEP 5.5-vjepa: m06b temporal correlation (vjepa)
-  Mode: SANITY | Est: ~5 sec each
-  Started: 2026-03-31 08:14:15
-═══════════════════════════════════════════════════════════════
-[08:14:15] CMD: python -u src/m06b_temporal_corr.py --encoder vjepa --SANITY --no-wandb
-Encoder: vjepa (dim=1408, suffix='')
-Output: /workspace/factorjepa/outputs/sanity
-Motion features: (24, 13)
-Embeddings: (20, 1408)
-  WARN: knn_indices.npy not found — skipping temporal_prec_at_k
-Aligned: 20 clips (emb=20, motion=24)
-
-Computing Spearman correlation (+ bootstrap 95% CI)...
-  Spearman rho = 0.2085 ± 0.0059 (p = 0.00e+00, 95,092 pairs)
-
-Computing Temporal Order Sensitivity...
-  Order sensitivity: mean=31.92, median=31.66 (20 clips)
-
-Computing Temporal Locality...
-  Intra-video dist: 32.7504
-  Inter-video dist: 39.8723
-  Ratio (lower=better): 0.8214 (2 videos)
-
-Saved: /workspace/factorjepa/outputs/sanity/m06b_temporal_corr.json
-
-============================================================
-m06b TEMPORAL CORRELATION — vjepa
-============================================================
-  Spearman rho:          0.2085 ± 0.0059
-  Order Sensitivity:     31.92 (mean L2)
-  Temporal Locality:     0.8214 (intra/inter ratio)
-  Clips aligned:         20
-  Compute time:          14.0s
-============================================================
-[08:14:30] PASSED: m06b temporal correlation (vjepa) (0m 15s)
-
-═══════════════════════════════════════════════════════════════
-  STEP 5.5-random: m06b temporal correlation (random)
-  Mode: SANITY | Est: ~5 sec each
-  Started: 2026-03-31 08:14:30
-═══════════════════════════════════════════════════════════════
-[08:14:30] CMD: python -u src/m06b_temporal_corr.py --encoder random --SANITY --no-wandb
-Encoder: random (dim=1408, suffix='_random')
-Output: /workspace/factorjepa/outputs/sanity
-Motion features: (24, 13)
-Embeddings: (20, 1408)
-  WARN: knn_indices_random.npy not found — skipping temporal_prec_at_k
-Aligned: 20 clips (emb=20, motion=24)
-
-Computing Spearman correlation (+ bootstrap 95% CI)...
-  Spearman rho = -0.0630 ± 0.0065 (p = 2.91e-84, 95,092 pairs)
-
-Computing Temporal Locality...
-  Intra-video dist: 1.4128
-  Inter-video dist: 1.4160
-  Ratio (lower=better): 0.9977 (2 videos)
-
-Saved: /workspace/factorjepa/outputs/sanity/m06b_temporal_corr_random.json
-
-============================================================
-m06b TEMPORAL CORRELATION — random
-============================================================
-  Spearman rho:          -0.0630 ± 0.0065
-  Temporal Locality:     0.9977 (intra/inter ratio)
-  Clips aligned:         20
-  Compute time:          13.9s
-============================================================
-[08:14:45] PASSED: m06b temporal correlation (random) (0m 15s)
-
-═══════════════════════════════════════════════════════════════
-  STEP 5.5-dinov2: m06b temporal correlation (dinov2)
-  Mode: SANITY | Est: ~5 sec each
-  Started: 2026-03-31 08:14:45
-═══════════════════════════════════════════════════════════════
-[08:14:45] CMD: python -u src/m06b_temporal_corr.py --encoder dinov2 --SANITY --no-wandb
-Encoder: dinov2 (dim=1536, suffix='_dinov2')
-Output: /workspace/factorjepa/outputs/sanity
-Motion features: (24, 13)
-Embeddings: (20, 1536)
-  WARN: knn_indices_dinov2.npy not found — skipping temporal_prec_at_k
-Aligned: 20 clips (emb=20, motion=24)
-
-Computing Spearman correlation (+ bootstrap 95% CI)...
-  Spearman rho = 0.2736 ± 0.0063 (p = 0.00e+00, 95,092 pairs)
-
-Computing Temporal Locality...
-  Intra-video dist: 1.0672
-  Inter-video dist: 1.2582
-  Ratio (lower=better): 0.8482 (2 videos)
-
-Saved: /workspace/factorjepa/outputs/sanity/m06b_temporal_corr_dinov2.json
-
-============================================================
-m06b TEMPORAL CORRELATION — dinov2
-============================================================
-  Spearman rho:          0.2736 ± 0.0063
-  Temporal Locality:     0.8482 (intra/inter ratio)
-  Clips aligned:         20
-  Compute time:          14.1s
-============================================================
-[08:15:00] PASSED: m06b temporal correlation (dinov2) (0m 15s)
-
-═══════════════════════════════════════════════════════════════
-  STEP 5.5-clip: m06b temporal correlation (clip)
-  Mode: SANITY | Est: ~5 sec each
-  Started: 2026-03-31 08:15:00
-═══════════════════════════════════════════════════════════════
-[08:15:00] CMD: python -u src/m06b_temporal_corr.py --encoder clip --SANITY --no-wandb
-Encoder: clip (dim=768, suffix='_clip')
-Output: /workspace/factorjepa/outputs/sanity
-Motion features: (24, 13)
-Embeddings: (20, 768)
-  WARN: knn_indices_clip.npy not found — skipping temporal_prec_at_k
-Aligned: 20 clips (emb=20, motion=24)
-
-Computing Spearman correlation (+ bootstrap 95% CI)...
-  Spearman rho = 0.4311 ± 0.0050 (p = 0.00e+00, 95,092 pairs)
-
-Computing Temporal Locality...
-  Intra-video dist: 0.6378
-  Inter-video dist: 0.7699
-  Ratio (lower=better): 0.8284 (2 videos)
-
-Saved: /workspace/factorjepa/outputs/sanity/m06b_temporal_corr_clip.json
-
-============================================================
-m06b TEMPORAL CORRELATION — clip
-============================================================
-  Spearman rho:          0.4311 ± 0.0050
-  Temporal Locality:     0.8284 (intra/inter ratio)
-  Clips aligned:         20
-  Compute time:          14.3s
-============================================================
-[08:15:15] PASSED: m06b temporal correlation (clip) (0m 15s)
-
-═══════════════════════════════════════════════════════════════
-  STEP 5.5-vjepa_shuffled: m06b temporal correlation (vjepa_shuffled)
-  Mode: SANITY | Est: ~5 sec each
-  Started: 2026-03-31 08:15:15
-═══════════════════════════════════════════════════════════════
-[08:15:15] CMD: python -u src/m06b_temporal_corr.py --encoder vjepa_shuffled --SANITY --no-wandb
-Encoder: vjepa_shuffled (dim=1408, suffix='_vjepa_shuffled')
-Output: /workspace/factorjepa/outputs/sanity
-Motion features: (24, 13)
-Embeddings: (20, 1408)
-  WARN: knn_indices_vjepa_shuffled.npy not found — skipping temporal_prec_at_k
-Aligned: 20 clips (emb=20, motion=24)
-
-Computing Spearman correlation (+ bootstrap 95% CI)...
-  Spearman rho = 0.2883 ± 0.0055 (p = 0.00e+00, 95,092 pairs)
-
-Computing Temporal Order Sensitivity...
-  Order sensitivity: mean=31.92, median=31.66 (20 clips)
-
-Computing Temporal Locality...
-  Intra-video dist: 27.3590
-  Inter-video dist: 34.1192
-  Ratio (lower=better): 0.8019 (2 videos)
-
-Saved: /workspace/factorjepa/outputs/sanity/m06b_temporal_corr_vjepa_shuffled.json
-
-============================================================
-m06b TEMPORAL CORRELATION — vjepa_shuffled
-============================================================
-  Spearman rho:          0.2883 ± 0.0055
-  Order Sensitivity:     31.92 (mean L2)
-  Temporal Locality:     0.8019 (intra/inter ratio)
-  Clips aligned:         20
-  Compute time:          15.4s
-============================================================
-[08:15:31] PASSED: m06b temporal correlation (vjepa_shuffled) (0m 16s)
-  OK vjepa                rho=0.208469  locality=0.8214
-  OK random               rho=-0.063012  locality=0.9977
-  OK dinov2               rho=0.273648  locality=0.8482
-  OK clip                 rho=0.431072  locality=0.8284
-  OK vjepa_shuffled       rho=0.288341  locality=0.8019
-[08:15:31] VERIFY OK: Step 5.5 temporal metrics (all encoders)
-
-═══════════════════════════════════════════════════════════════
-  STEP 6-vjepa: m07 UMAP (vjepa)
-  Mode: SANITY | Est: ~5 sec each
-  Started: 2026-03-31 08:15:31
-═══════════════════════════════════════════════════════════════
-[08:15:31] CMD: python -u src/m07_umap.py --encoder vjepa --SANITY --no-wandb
-GPU: NVIDIA RTX PRO 6000 Blackwell Workstation Edition
-CUDA version: 12.8
-[output_guard] m07 vjepa: outputs missing or invalid — will re-compute
-  MISS  umap_2d: umap_2d.npy
-Encoder: vjepa
-SANITY MODE: 20 clips
-Loaded: 20 clips, dim=1408
-cuML UMAP (n_neighbors=15, min_dist=0.1)...
-[2026-03-31 08:15:33.935] [CUML] [debug] Computing KNN Graph
-[2026-03-31 08:15:33.949] [CUML] [debug] Computing fuzzy simplicial set
-Saved: /workspace/factorjepa/outputs/sanity/umap_2d.npy ((20, 2))
-UMAP completed in 0.3s
-[08:15:34] PASSED: m07 UMAP (vjepa) (0m 3s)
-
-═══════════════════════════════════════════════════════════════
-  STEP 6-random: m07 UMAP (random)
-  Mode: SANITY | Est: ~5 sec each
-  Started: 2026-03-31 08:15:34
-═══════════════════════════════════════════════════════════════
-[08:15:34] CMD: python -u src/m07_umap.py --encoder random --SANITY --no-wandb
-GPU: NVIDIA RTX PRO 6000 Blackwell Workstation Edition
-CUDA version: 12.8
-[output_guard] m07 random: outputs missing or invalid — will re-compute
-  MISS  umap_2d: umap_2d_random.npy
-Encoder: random
-SANITY MODE: 20 clips
-Loaded: 20 clips, dim=1408
-cuML UMAP (n_neighbors=15, min_dist=0.1)...
-[2026-03-31 08:15:37.350] [CUML] [debug] Computing KNN Graph
-[2026-03-31 08:15:37.363] [CUML] [debug] Computing fuzzy simplicial set
-Saved: /workspace/factorjepa/outputs/sanity/umap_2d_random.npy ((20, 2))
-UMAP completed in 0.3s
-[08:15:38] PASSED: m07 UMAP (random) (0m 4s)
-
-═══════════════════════════════════════════════════════════════
-  STEP 6-dinov2: m07 UMAP (dinov2)
-  Mode: SANITY | Est: ~5 sec each
-  Started: 2026-03-31 08:15:38
-═══════════════════════════════════════════════════════════════
-[08:15:38] CMD: python -u src/m07_umap.py --encoder dinov2 --SANITY --no-wandb
-GPU: NVIDIA RTX PRO 6000 Blackwell Workstation Edition
-CUDA version: 12.8
-[output_guard] m07 dinov2: outputs missing or invalid — will re-compute
-  MISS  umap_2d: umap_2d_dinov2.npy
-Encoder: dinov2
-SANITY MODE: 20 clips
-Loaded: 20 clips, dim=1536
-cuML UMAP (n_neighbors=15, min_dist=0.1)...
-[2026-03-31 08:15:40.862] [CUML] [debug] Computing KNN Graph
-[2026-03-31 08:15:40.877] [CUML] [debug] Computing fuzzy simplicial set
-Saved: /workspace/factorjepa/outputs/sanity/umap_2d_dinov2.npy ((20, 2))
-UMAP completed in 0.3s
-[08:15:41] PASSED: m07 UMAP (dinov2) (0m 3s)
-
-═══════════════════════════════════════════════════════════════
-  STEP 6-clip: m07 UMAP (clip)
-  Mode: SANITY | Est: ~5 sec each
-  Started: 2026-03-31 08:15:41
-═══════════════════════════════════════════════════════════════
-[08:15:41] CMD: python -u src/m07_umap.py --encoder clip --SANITY --no-wandb
-GPU: NVIDIA RTX PRO 6000 Blackwell Workstation Edition
-CUDA version: 12.8
-[output_guard] m07 clip: outputs missing or invalid — will re-compute
-  MISS  umap_2d: umap_2d_clip.npy
-Encoder: clip
-SANITY MODE: 20 clips
-Loaded: 20 clips, dim=768
-cuML UMAP (n_neighbors=15, min_dist=0.1)...
-[2026-03-31 08:15:44.495] [CUML] [debug] Computing KNN Graph
-[2026-03-31 08:15:44.510] [CUML] [debug] Computing fuzzy simplicial set
-Saved: /workspace/factorjepa/outputs/sanity/umap_2d_clip.npy ((20, 2))
-UMAP completed in 0.3s
-[08:15:45] PASSED: m07 UMAP (clip) (0m 4s)
-
-═══════════════════════════════════════════════════════════════
-  STEP 6-vjepa_shuffled: m07 UMAP (vjepa_shuffled)
-  Mode: SANITY | Est: ~5 sec each
-  Started: 2026-03-31 08:15:45
-═══════════════════════════════════════════════════════════════
-[08:15:45] CMD: python -u src/m07_umap.py --encoder vjepa_shuffled --SANITY --no-wandb
-GPU: NVIDIA RTX PRO 6000 Blackwell Workstation Edition
-CUDA version: 12.8
-[output_guard] m07 vjepa_shuffled: outputs missing or invalid — will re-compute
-  MISS  umap_2d: umap_2d_vjepa_shuffled.npy
-Encoder: vjepa_shuffled
-SANITY MODE: 20 clips
-Loaded: 20 clips, dim=1408
-cuML UMAP (n_neighbors=15, min_dist=0.1)...
-[2026-03-31 08:15:48.156] [CUML] [debug] Computing KNN Graph
-[2026-03-31 08:15:48.173] [CUML] [debug] Computing fuzzy simplicial set
-Saved: /workspace/factorjepa/outputs/sanity/umap_2d_vjepa_shuffled.npy ((20, 2))
-UMAP completed in 0.3s
-[08:15:49] PASSED: m07 UMAP (vjepa_shuffled) (0m 4s)
-  OK vjepa                umap_2d.npy: (20, 2)
-  OK random               umap_2d_random.npy: (20, 2)
-  OK dinov2               umap_2d_dinov2.npy: (20, 2)
-  OK clip                 umap_2d_clip.npy: (20, 2)
-  OK vjepa_shuffled       umap_2d_vjepa_shuffled.npy: (20, 2)
-[08:15:49] VERIFY OK: Step 6 UMAP (all encoders)
-
-═══════════════════════════════════════════════════════════════
-  STEP 7a-vjepa: m08 plots (vjepa)
-  Mode: SANITY | Est: ~10 sec each
-  Started: 2026-03-31 08:15:49
-═══════════════════════════════════════════════════════════════
-[08:15:49] CMD: python -u src/m08_plot.py --encoder vjepa --SANITY --no-wandb
-Output dir: /workspace/factorjepa/outputs/sanity
-[output_guard] m08 vjepa: outputs missing or invalid — will re-compute
-  MISS  umap_plot: m08_umap.png
-  MISS  confusion_matrix: m08_confusion_matrix.png
-Encoder: vjepa (suffix='')
-FATAL: kNN indices not found: /workspace/factorjepa/outputs/sanity/knn_indices.npy
-  Run m06_faiss_metrics.py first.
-[08:15:49] FAILED: m08 plots (vjepa) (0m 0s) — exit code 0
-[08:15:49] WARNING: m08 vjepa plots failed.
-
-═══════════════════════════════════════════════════════════════
-  STEP 7a-random: m08 plots (random)
-  Mode: SANITY | Est: ~10 sec each
-  Started: 2026-03-31 08:15:49
-═══════════════════════════════════════════════════════════════
-[08:15:49] CMD: python -u src/m08_plot.py --encoder random --SANITY --no-wandb
-Output dir: /workspace/factorjepa/outputs/sanity
-[output_guard] m08 random: outputs missing or invalid — will re-compute
-  MISS  umap_plot: m08_umap_random.png
-  MISS  confusion_matrix: m08_confusion_matrix_random.png
-Encoder: random (suffix='_random')
-FATAL: kNN indices not found: /workspace/factorjepa/outputs/sanity/knn_indices_random.npy
-  Run m06_faiss_metrics.py first.
-[08:15:50] FAILED: m08 plots (random) (0m 1s) — exit code 0
-[08:15:50] WARNING: m08 random plots failed.
-
-═══════════════════════════════════════════════════════════════
-  STEP 7a-dinov2: m08 plots (dinov2)
-  Mode: SANITY | Est: ~10 sec each
-  Started: 2026-03-31 08:15:50
-═══════════════════════════════════════════════════════════════
-[08:15:50] CMD: python -u src/m08_plot.py --encoder dinov2 --SANITY --no-wandb
-Output dir: /workspace/factorjepa/outputs/sanity
-[output_guard] m08 dinov2: outputs missing or invalid — will re-compute
-  MISS  umap_plot: m08_umap_dinov2.png
-  MISS  confusion_matrix: m08_confusion_matrix_dinov2.png
-Encoder: dinov2 (suffix='_dinov2')
-FATAL: kNN indices not found: /workspace/factorjepa/outputs/sanity/knn_indices_dinov2.npy
-  Run m06_faiss_metrics.py first.
-[08:15:50] FAILED: m08 plots (dinov2) (0m 0s) — exit code 0
-[08:15:50] WARNING: m08 dinov2 plots failed.
-
-═══════════════════════════════════════════════════════════════
-  STEP 7a-clip: m08 plots (clip)
-  Mode: SANITY | Est: ~10 sec each
-  Started: 2026-03-31 08:15:50
-═══════════════════════════════════════════════════════════════
-[08:15:50] CMD: python -u src/m08_plot.py --encoder clip --SANITY --no-wandb
-Output dir: /workspace/factorjepa/outputs/sanity
-[output_guard] m08 clip: outputs missing or invalid — will re-compute
-  MISS  umap_plot: m08_umap_clip.png
-  MISS  confusion_matrix: m08_confusion_matrix_clip.png
-Encoder: clip (suffix='_clip')
-FATAL: kNN indices not found: /workspace/factorjepa/outputs/sanity/knn_indices_clip.npy
-  Run m06_faiss_metrics.py first.
-[08:15:50] FAILED: m08 plots (clip) (0m 0s) — exit code 0
-[08:15:50] WARNING: m08 clip plots failed.
-
-═══════════════════════════════════════════════════════════════
-  STEP 7a-vjepa_shuffled: m08 plots (vjepa_shuffled)
-  Mode: SANITY | Est: ~10 sec each
-  Started: 2026-03-31 08:15:50
-═══════════════════════════════════════════════════════════════
-[08:15:50] CMD: python -u src/m08_plot.py --encoder vjepa_shuffled --SANITY --no-wandb
-Output dir: /workspace/factorjepa/outputs/sanity
-[output_guard] m08 vjepa_shuffled: outputs missing or invalid — will re-compute
-  MISS  umap_plot: m08_umap_vjepa_shuffled.png
-  MISS  confusion_matrix: m08_confusion_matrix_vjepa_shuffled.png
-Encoder: vjepa_shuffled (suffix='_vjepa_shuffled')
-FATAL: kNN indices not found: /workspace/factorjepa/outputs/sanity/knn_indices_vjepa_shuffled.npy
-  Run m06_faiss_metrics.py first.
-[08:15:51] FAILED: m08 plots (vjepa_shuffled) (0m 1s) — exit code 0
-[08:15:51] WARNING: m08 vjepa_shuffled plots failed.
-
-═══════════════════════════════════════════════════════════════
-  STEP 7b: m08b multi-encoder comparison
-  Mode: SANITY | Est: ~5 sec
-  Started: 2026-03-31 08:15:51
-═══════════════════════════════════════════════════════════════
-[08:15:51] CMD: python -u src/m08b_compare.py --SANITY --no-wandb
-Output dir: /workspace/factorjepa/outputs/sanity
-Scanning for encoder metrics...
-FATAL: No encoder metrics found. Run m06 first.
-[08:15:51] FAILED: m08b multi-encoder comparison (0m 0s) — exit code 0
-[08:15:51] WARNING: m08b comparison failed.
-
-[08:15:51] === FINAL VERIFICATION: All Ch9 Outputs ===
-=== TAGS (v3 taxonomy) ===
-  MISS tags.json                                outputs/sanity/tags_sanity_qwen.json
-
-=== EMBEDDINGS (5 encoders) ===
-  OK   vjepa embeddings                         (20, 1408)
-  OK   vjepa paths                              20 keys
-  OK   random embeddings                        (20, 1408)
-  OK   random paths                             20 keys
-  OK   dinov2 embeddings                        (20, 1536)
-  OK   dinov2 paths                             20 keys
-  OK   clip embeddings                          (20, 768)
-  OK   clip paths                               20 keys
-  OK   vjepa_shuffled embeddings                (20, 1408)
-  OK   vjepa_shuffled paths                     20 keys
-
-=== TRUE OVERLAP ===
-  OK   overlap_augA.npy                         (20, 1408)
-  OK   overlap_augB.npy                         (20, 1408)
-
-=== METRICS (5 encoders) ===
-  Encoder                Prec@K    mAP@K  Cycle@K   nDCG@K
-  ----------------------------------------------------------
-  vjepa                MISSING
-  random               MISSING
-  dinov2               MISSING
-  clip                 MISSING
-  vjepa_shuffled       MISSING
-
-=== UMAP (5 encoders) ===
-  OK   vjepa umap                               (20, 2)
-  OK   random umap                              (20, 2)
-  OK   dinov2 umap                              (20, 2)
-  OK   clip umap                                (20, 2)
-  OK   vjepa_shuffled umap                      (20, 2)
-
-=== MOTION FEATURES (m04d) ===
-  OK   motion_features.npy                      (24, 13)
-
-=== TEMPORAL METRICS (m06b) ===
-  OK   vjepa temporal                           
-  OK   random temporal                          
-  OK   dinov2 temporal                          
-  OK   clip temporal                            
-  OK   vjepa_shuffled temporal                  
-
-=== PLOTS ===
-  MISS plot: m08_umap.png                       outputs/sanity/m08_umap.png
-  MISS plot: m08_confusion_matrix.png           outputs/sanity/m08_confusion_matrix.png
-  MISS plot: m08_knn_grid.png                   outputs/sanity/m08_knn_grid.png
-  MISS plot: m08b_encoder_comparison.png        outputs/sanity/m08b_encoder_comparison.png
-  MISS plot: m08b_radar.png                     outputs/sanity/m08b_radar.png
-  MISS plot: m08b_comparison_table.tex          outputs/sanity/m08b_comparison_table.tex
-  MISS plot: m08b_spatial_temporal_bar.png      outputs/sanity/m08b_spatial_temporal_bar.png
-  MISS plot: m08b_tradeoff_scatter.png          outputs/sanity/m08b_tradeoff_scatter.png
-
-=== TOTAL: 23 OK, 14 MISSING ===
-
-═══════════════════════════════════════════════════════════════
-  Ch9 PIPELINE COMPLETE
-═══════════════════════════════════════════════════════════════
-  Mode:      SANITY
-  Total:     0h 7m 50s
-  Steps:     15 passed, 11 failed, 26 total
-  Outputs:   outputs/sanity/
-  Master log: logs/ch9_SANITY_20260331_080801.log
-═══════════════════════════════════════════════════════════════
-
-  WARNING: 11 step(s) failed. Check individual logs above.
-  All steps with checkpoints can be RE-RUN safely (auto-resume).

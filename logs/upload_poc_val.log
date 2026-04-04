@@ -1,4703 +1,0 @@
-  Uploading data/subset_10k.json → data/subset_10k.json
-No files have been modified since last commit. Skipping to prevent empty commit.
-  Uploading data/val_1k.json → data/val_1k.json
-No files have been modified since last commit. Skipping to prevent empty commit.
-  Uploading data/subset_10k_local/ → data/subset_10k_local/ (11 files)
-Processing Files (0 / 0)      : |          |  0.00B /  0.00B            
-New Data Upload               : |          |  0.00B /  0.00B            [A
-
-  ...0k_local/subset-00005.tar:   2%|▏         | 23.9MB /  974MB            [A[A
-
-
-  ...0k_local/subset-00000.tar:   1%|▏         | 15.9MB / 1.13GB            [A[A[A
-
-
-
-  ...0k_local/subset-00007.tar:   2%|▏         | 16.0MB /  987MB            [A[A[A[A
-
-
-
-
-  ...0k_local/subset-00002.tar:   2%|▏         | 24.0MB / 1.08GB            [A[A[A[A[A
-
-
-
-
-
-  ...0k_local/subset-00009.tar:   2%|▏         | 16.0MB /  991MB            [A[A[A[A[A[A
-
-
-
-
-
-
-  ...0k_local/subset-00004.tar:   1%|▏         | 15.9MB / 1.06GB            [A[A[A[A[A[A[A
-
-
-
-
-
-
-
-  ...0k_local/subset-00006.tar:   2%|▏         | 16.0MB /  954MB            [A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-  ...0k_local/subset-00008.tar:   2%|▏         | 15.9MB /  915MB            [A[A[A[A[A[A[A[A[A
-
-  ...0k_local/subset-00005.tar:   2%|▏         | 23.9MB /  974MB            [A[A
-
-
-  ...0k_local/subset-00000.tar:   1%|▏         | 15.9MB / 1.13GB            [A[A[A
-
-
-
-  ...0k_local/subset-00007.tar:   2%|▏         | 16.0MB /  987MB            [A[A[A[A
-
-
-
-
-  ...0k_local/subset-00002.tar:   2%|▏         | 24.0MB / 1.08GB            [A[A[A[A[A
-
-
-
-
-
-  ...0k_local/subset-00009.tar:   2%|▏         | 16.0MB /  991MB            [A[A[A[A[A[A
-
-
-
-
-
-
-  ...0k_local/subset-00004.tar:   1%|▏         | 15.9MB / 1.06GB            [A[A[A[A[A[A[A
-
-
-
-
-
-
-
-  ...0k_local/subset-00006.tar:   2%|▏         | 16.0MB /  954MB            [A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-  ...0k_local/subset-00008.tar:   2%|▏         | 15.9MB /  915MB            [A[A[A[A[A[A[A[A[AProcessing Files (0 / 8)      :   1%|▏         |  144MB / 10.4GB,   ???B/s  
-
-  ...0k_local/subset-00005.tar:   6%|▌         | 55.9MB /  974MB            [A[A
-
-
-  ...0k_local/subset-00000.tar:   4%|▍         | 48.0MB / 1.13GB            [A[A[A
-
-
-
-  ...0k_local/subset-00007.tar:   5%|▍         | 47.9MB /  987MB            [A[A[A[A
-
-
-
-
-  ...0k_local/subset-00002.tar:   5%|▌         | 55.9MB / 1.08GB            [A[A[A[A[A
-
-
-
-
-
-  ...0k_local/subset-00009.tar:   6%|▌         | 56.0MB /  991MB            [A[A[A[A[A[A
-
-
-
-
-
-
-  ...0k_local/subset-00004.tar:   5%|▍         | 48.0MB / 1.06GB            [A[A[A[A[A[A[A
-
-
-
-
-
-
-
-  ...0k_local/subset-00006.tar:   5%|▌         | 48.0MB /  954MB            [A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-  ...0k_local/subset-00008.tar:   5%|▌         | 48.0MB /  915MB            [A[A[A[A[A[A[A[A[AProcessing Files (0 / 8)      :   4%|▍         |  408MB / 10.4GB, 1.32GB/s  
-
-  ...0k_local/subset-00005.tar:   9%|▉         | 88.0MB /  974MB            [A[A
-
-
-  ...0k_local/subset-00000.tar:   8%|▊         | 88.0MB / 1.13GB            [A[A[A
-
-
-
-  ...0k_local/subset-00007.tar:   9%|▉         | 88.0MB /  987MB            [A[A[A[A
-
-
-
-
-  ...0k_local/subset-00002.tar:   8%|▊         | 87.9MB / 1.08GB            [A[A[A[A[A
-
-
-
-
-
-  ...0k_local/subset-00009.tar:   9%|▉         | 87.9MB /  991MB            [A[A[A[A[A[A
-
-
-
-
-
-
-  ...0k_local/subset-00004.tar:   8%|▊         | 88.0MB / 1.06GB            [A[A[A[A[A[A[A
-
-
-
-
-
-
-
-  ...0k_local/subset-00006.tar:   9%|▉         | 88.0MB /  954MB            [A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-  ...0k_local/subset-00008.tar:   9%|▊         | 79.9MB /  915MB            [A[A[A[A[A[A[A[A[AProcessing Files (0 / 8)      :   7%|▋         |  696MB / 10.4GB, 1.38GB/s  
-
-  ...0k_local/subset-00005.tar:  13%|█▎        |  128MB /  974MB            [A[A
-
-
-  ...0k_local/subset-00000.tar:  11%|█         |  120MB / 1.13GB            [A[A[A
-
-
-
-  ...0k_local/subset-00007.tar:  12%|█▏        |  120MB /  987MB            [A[A[A[A
-
-
-
-
-  ...0k_local/subset-00002.tar:  11%|█         |  120MB / 1.08GB            [A[A[A[A[A
-
-
-
-
-
-  ...0k_local/subset-00009.tar:  12%|█▏        |  120MB /  991MB            [A[A[A[A[A[A
-
-
-
-
-
-
-  ...0k_local/subset-00004.tar:  11%|█▏        |  120MB / 1.06GB            [A[A[A[A[A[A[A
-
-
-
-
-
-
-
-  ...0k_local/subset-00006.tar:  13%|█▎        |  120MB /  954MB            [A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-  ...0k_local/subset-00008.tar:  14%|█▍        |  128MB /  915MB            [A[A[A[A[A[A[A[A[AProcessing Files (0 / 8)      :   9%|▉         |  975MB / 10.4GB, 1.39GB/s  
-
-  ...0k_local/subset-00005.tar:  16%|█▋        |  160MB /  974MB            [A[A
-
-
-  ...0k_local/subset-00000.tar:  14%|█▍        |  160MB / 1.13GB            [A[A[A
-
-
-
-  ...0k_local/subset-00007.tar:  16%|█▌        |  160MB /  987MB            [A[A[A[A
-
-
-
-
-  ...0k_local/subset-00002.tar:  15%|█▍        |  160MB / 1.08GB            [A[A[A[A[A
-
-
-
-
-
-  ...0k_local/subset-00009.tar:  16%|█▌        |  160MB /  991MB            [A[A[A[A[A[A
-
-
-
-
-
-
-  ...0k_local/subset-00004.tar:  14%|█▍        |  152MB / 1.06GB            [A[A[A[A[A[A[A
-
-
-
-
-
-
-
-  ...0k_local/subset-00006.tar:  17%|█▋        |  160MB /  954MB            [A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-  ...0k_local/subset-00008.tar:  17%|█▋        |  160MB /  915MB            [A[A[A[A[A[A[A[A[AProcessing Files (0 / 8)      :  12%|█▏        | 1.27GB / 10.4GB, 1.41GB/s  
-
-  ...0k_local/subset-00005.tar:  21%|██        |  200MB /  974MB            [A[A
-
-
-  ...0k_local/subset-00000.tar:  17%|█▋        |  192MB / 1.13GB            [A[A[A
-
-
-
-  ...0k_local/subset-00007.tar:  19%|█▉        |  192MB /  987MB            [A[A[A[A
-
-
-
-
-  ...0k_local/subset-00002.tar:  18%|█▊        |  192MB / 1.08GB            [A[A[A[A[A
-
-
-
-
-
-  ...0k_local/subset-00009.tar:  19%|█▉        |  192MB /  991MB            [A[A[A[A[A[A
-
-
-
-
-
-
-  ...0k_local/subset-00004.tar:  17%|█▋        |  184MB / 1.06GB            [A[A[A[A[A[A[A
-
-
-
-
-
-
-
-  ...0k_local/subset-00006.tar:  21%|██        |  200MB /  954MB            [A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-  ...0k_local/subset-00008.tar:  21%|██        |  192MB /  915MB            [A[A[A[A[A[A[A[A[AProcessing Files (0 / 8)      :  15%|█▍        | 1.54GB / 10.4GB, 1.40GB/s  
-
-  ...0k_local/subset-00005.tar:  24%|██▍       |  232MB /  974MB            [A[A
-
-
-  ...0k_local/subset-00000.tar:  20%|██        |  232MB / 1.13GB            [A[A[A
-
-
-
-  ...0k_local/subset-00007.tar:  23%|██▎       |  224MB /  987MB            [A[A[A[A
-
-
-
-
-  ...0k_local/subset-00002.tar:  21%|██        |  224MB / 1.08GB            [A[A[A[A[A
-
-
-
-
-
-  ...0k_local/subset-00009.tar:  24%|██▍       |  240MB /  991MB            [A[A[A[A[A[A
-
-
-
-
-
-
-  ...0k_local/subset-00004.tar:  20%|██        |  216MB / 1.06GB            [A[A[A[A[A[A[A
-
-
-
-
-
-
-
-  ...0k_local/subset-00006.tar:  24%|██▍       |  232MB /  954MB            [A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-  ...0k_local/subset-00008.tar:  24%|██▍       |  224MB /  915MB            [A[A[A[A[A[A[A[A[AProcessing Files (0 / 8)      :  17%|█▋        | 1.82GB / 10.4GB, 1.40GB/s  
-
-  ...0k_local/subset-00005.tar:  27%|██▋       |  264MB /  974MB            [A[A
-
-
-  ...0k_local/subset-00000.tar:  23%|██▎       |  264MB / 1.13GB            [A[A[A
-
-
-
-  ...0k_local/subset-00007.tar:  27%|██▋       |  264MB /  987MB            [A[A[A[A
-
-
-
-
-  ...0k_local/subset-00002.tar:  24%|██▍       |  264MB / 1.08GB            [A[A[A[A[A
-
-
-
-
-
-  ...0k_local/subset-00009.tar:  27%|██▋       |  272MB /  991MB            [A[A[A[A[A[A
-
-
-
-
-
-
-  ...0k_local/subset-00004.tar:  24%|██▍       |  256MB / 1.06GB            [A[A[A[A[A[A[A
-
-
-
-
-
-
-
-  ...0k_local/subset-00006.tar:  28%|██▊       |  264MB /  954MB            [A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-  ...0k_local/subset-00008.tar:  28%|██▊       |  256MB /  915MB            [A[A[A[A[A[A[A[A[AProcessing Files (0 / 8)      :  20%|██        | 2.10GB / 10.4GB, 1.40GB/s  
-
-  ...0k_local/subset-00005.tar:  31%|███       |  304MB /  974MB            [A[A
-
-
-  ...0k_local/subset-00000.tar:  27%|██▋       |  304MB / 1.13GB            [A[A[A
-
-
-
-  ...0k_local/subset-00007.tar:  30%|██▉       |  296MB /  987MB            [A[A[A[A
-
-
-
-
-  ...0k_local/subset-00002.tar:  27%|██▋       |  296MB / 1.08GB            [A[A[A[A[A
-
-
-
-
-
-  ...0k_local/subset-00009.tar:  31%|███▏      |  312MB /  991MB            [A[A[A[A[A[A
-
-
-
-
-
-
-  ...0k_local/subset-00004.tar:  27%|██▋       |  288MB / 1.06GB            [A[A[A[A[A[A[A
-
-
-
-
-
-
-
-  ...0k_local/subset-00006.tar:  32%|███▏      |  304MB /  954MB            [A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-  ...0k_local/subset-00008.tar:  32%|███▏      |  296MB /  915MB            [A[A[A[A[A[A[A[A[AProcessing Files (0 / 8)      :  23%|██▎       | 2.40GB / 10.4GB, 1.41GB/s  
-
-  ...0k_local/subset-00005.tar:  34%|███▍      |  336MB /  974MB            [A[A
-
-
-  ...0k_local/subset-00000.tar:  30%|██▉       |  336MB / 1.13GB            [A[A[A
-
-
-
-  ...0k_local/subset-00007.tar:  34%|███▍      |  336MB /  987MB            [A[A[A[A
-
-
-
-
-  ...0k_local/subset-00002.tar:  30%|███       |  328MB / 1.08GB            [A[A[A[A[A
-
-
-
-
-
-  ...0k_local/subset-00009.tar:  35%|███▍      |  344MB /  991MB            [A[A[A[A[A[A
-
-
-
-
-
-
-  ...0k_local/subset-00004.tar:  31%|███       |  328MB / 1.06GB            [A[A[A[A[A[A[A
-
-
-
-
-
-
-
-  ...0k_local/subset-00006.tar:  35%|███▌      |  336MB /  954MB            [A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-  ...0k_local/subset-00008.tar:  36%|███▌      |  328MB /  915MB            [A[A[A[A[A[A[A[A[AProcessing Files (0 / 8)      :  26%|██▌       | 2.67GB / 10.4GB, 1.40GB/s  
-
-  ...0k_local/subset-00005.tar:  38%|███▊      |  368MB /  974MB            [A[A
-
-
-  ...0k_local/subset-00000.tar:  33%|███▎      |  368MB / 1.13GB            [A[A[A
-
-
-
-  ...0k_local/subset-00007.tar:  37%|███▋      |  368MB /  987MB            [A[A[A[A
-
-
-
-
-  ...0k_local/subset-00002.tar:  34%|███▍      |  368MB / 1.08GB            [A[A[A[A[A
-
-
-
-
-
-  ...0k_local/subset-00009.tar:  38%|███▊      |  376MB /  991MB            [A[A[A[A[A[A
-
-
-
-
-
-
-  ...0k_local/subset-00004.tar:  34%|███▍      |  360MB / 1.06GB            [A[A[A[A[A[A[A
-
-
-
-
-
-
-
-  ...0k_local/subset-00006.tar:  39%|███▊      |  368MB /  954MB            [A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-  ...0k_local/subset-00008.tar:  39%|███▉      |  360MB /  915MB            [A[A[A[A[A[A[A[A[AProcessing Files (0 / 8)      :  28%|██▊       | 2.94GB / 10.4GB, 1.40GB/s  
-
-  ...0k_local/subset-00005.tar:  42%|████▏     |  408MB /  974MB            [A[A
-
-
-  ...0k_local/subset-00000.tar:  36%|███▌      |  408MB / 1.13GB            [A[A[A
-
-
-
-  ...0k_local/subset-00007.tar:  41%|████      |  400MB /  987MB            [A[A[A[A
-
-
-
-
-  ...0k_local/subset-00002.tar:  37%|███▋      |  400MB / 1.08GB            [A[A[A[A[A
-
-
-
-
-
-  ...0k_local/subset-00009.tar:  41%|████      |  408MB /  991MB            [A[A[A[A[A[A
-
-
-
-
-
-
-  ...0k_local/subset-00004.tar:  37%|███▋      |  392MB / 1.06GB            [A[A[A[A[A[A[A
-
-
-
-
-
-
-
-  ...0k_local/subset-00006.tar:  42%|████▏     |  400MB /  954MB            [A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-  ...0k_local/subset-00008.tar:  43%|████▎     |  392MB /  915MB            [A[A[A[A[A[A[A[A[AProcessing Files (0 / 8)      :  31%|███       | 3.21GB / 10.4GB, 1.39GB/s  
-
-  ...0k_local/subset-00005.tar:  45%|████▌     |  440MB /  974MB            [A[A
-
-
-  ...0k_local/subset-00000.tar:  39%|███▉      |  440MB / 1.13GB            [A[A[A
-
-
-
-  ...0k_local/subset-00007.tar:  44%|████▎     |  432MB /  987MB            [A[A[A[A
-
-
-
-
-  ...0k_local/subset-00002.tar:  40%|███▉      |  432MB / 1.08GB            [A[A[A[A[A
-
-
-
-
-
-  ...0k_local/subset-00009.tar:  46%|████▌     |  456MB /  991MB            [A[A[A[A[A[A
-
-
-
-
-
-
-  ...0k_local/subset-00004.tar:  41%|████      |  432MB / 1.06GB            [A[A[A[A[A[A[A
-
-
-
-
-
-
-
-  ...0k_local/subset-00006.tar:  45%|████▌     |  432MB /  954MB            [A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-  ...0k_local/subset-00008.tar:  46%|████▋     |  424MB /  915MB            [A[A[A[A[A[A[A[A[AProcessing Files (0 / 8)      :  33%|███▎      | 3.49GB / 10.4GB, 1.39GB/s  
-
-  ...0k_local/subset-00005.tar:  48%|████▊     |  472MB /  974MB            [A[A
-
-
-  ...0k_local/subset-00000.tar:  42%|████▏     |  472MB / 1.13GB            [A[A[A
-
-
-
-  ...0k_local/subset-00007.tar:  48%|████▊     |  472MB /  987MB            [A[A[A[A
-
-
-
-
-  ...0k_local/subset-00002.tar:  43%|████▎     |  464MB / 1.08GB            [A[A[A[A[A
-
-
-
-
-
-  ...0k_local/subset-00009.tar:  49%|████▉     |  488MB /  991MB            [A[A[A[A[A[A
-
-
-
-
-
-
-  ...0k_local/subset-00004.tar:  44%|████▎     |  464MB / 1.06GB            [A[A[A[A[A[A[A
-
-
-
-
-
-
-
-  ...0k_local/subset-00006.tar:  49%|████▉     |  472MB /  954MB            [A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-  ...0k_local/subset-00008.tar:  51%|█████     |  464MB /  915MB            [A[A[A[A[A[A[A[A[AProcessing Files (0 / 8)      :  36%|███▌      | 3.77GB / 10.4GB, 1.39GB/s  
-
-  ...0k_local/subset-00005.tar:  53%|█████▎    |  512MB /  974MB            [A[A
-
-
-  ...0k_local/subset-00000.tar:  45%|████▍     |  504MB / 1.13GB            [A[A[A
-
-
-
-  ...0k_local/subset-00007.tar:  51%|█████     |  504MB /  987MB            [A[A[A[A
-
-
-
-
-  ...0k_local/subset-00002.tar:  47%|████▋     |  504MB / 1.08GB            [A[A[A[A[A
-
-
-
-
-
-  ...0k_local/subset-00009.tar:  52%|█████▏    |  520MB /  991MB            [A[A[A[A[A[A
-
-
-
-
-
-
-  ...0k_local/subset-00004.tar:  47%|████▋     |  504MB / 1.06GB            [A[A[A[A[A[A[A
-
-
-
-
-
-
-
-  ...0k_local/subset-00006.tar:  53%|█████▎    |  504MB /  954MB            [A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-  ...0k_local/subset-00008.tar:  55%|█████▌    |  504MB /  915MB            [A[A[A[A[A[A[A[A[AProcessing Files (0 / 8)      :  39%|███▉      | 4.06GB / 10.4GB, 1.40GB/s  
-
-  ...0k_local/subset-00005.tar:  57%|█████▋    |  552MB /  974MB            [A[A
-
-
-  ...0k_local/subset-00000.tar:  47%|████▋     |  536MB / 1.13GB            [A[A[A
-
-
-
-  ...0k_local/subset-00007.tar:  55%|█████▌    |  544MB /  987MB            [A[A[A[A
-
-
-
-
-  ...0k_local/subset-00002.tar:  50%|████▉     |  536MB / 1.08GB            [A[A[A[A[A
-
-
-
-
-
-  ...0k_local/subset-00009.tar:  57%|█████▋    |  568MB /  991MB            [A[A[A[A[A[A
-
-
-
-
-
-
-  ...0k_local/subset-00004.tar:  50%|█████     |  536MB / 1.06GB            [A[A[A[A[A[A[A
-
-
-
-
-
-
-
-  ...0k_local/subset-00006.tar:  57%|█████▋    |  544MB /  954MB            [A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-  ...0k_local/subset-00008.tar:  59%|█████▉    |  544MB /  915MB            [A[A[A[A[A[A[A[A[AProcessing Files (0 / 8)      :  42%|████▏     | 4.36GB / 10.4GB, 1.41GB/s  
-
-  ...0k_local/subset-00005.tar:  60%|█████▉    |  584MB /  974MB            [A[A
-
-
-  ...0k_local/subset-00000.tar:  51%|█████     |  576MB / 1.13GB            [A[A[A
-
-
-
-  ...0k_local/subset-00007.tar:  58%|█████▊    |  576MB /  987MB            [A[A[A[A
-
-
-
-
-  ...0k_local/subset-00002.tar:  53%|█████▎    |  568MB / 1.08GB            [A[A[A[A[A
-
-
-
-
-
-  ...0k_local/subset-00009.tar:  61%|██████    |  600MB /  991MB            [A[A[A[A[A[A
-
-
-
-
-
-
-  ...0k_local/subset-00004.tar:  53%|█████▎    |  568MB / 1.06GB            [A[A[A[A[A[A[A
-
-
-
-
-
-
-
-  ...0k_local/subset-00006.tar:  60%|██████    |  576MB /  954MB            [A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-  ...0k_local/subset-00008.tar:  63%|██████▎   |  576MB /  915MB            [A[A[A[A[A[A[A[A[AProcessing Files (0 / 8)      :  44%|████▍     | 4.62GB / 10.4GB, 1.40GB/s  
-
-  ...0k_local/subset-00005.tar:  64%|██████▍   |  624MB /  974MB            [A[A
-
-
-  ...0k_local/subset-00000.tar:  54%|█████▎    |  608MB / 1.13GB            [A[A[A
-
-
-
-  ...0k_local/subset-00007.tar:  62%|██████▏   |  608MB /  987MB            [A[A[A[A
-
-
-
-
-  ...0k_local/subset-00002.tar:  56%|█████▌    |  608MB / 1.08GB            [A[A[A[A[A
-
-
-
-
-
-  ...0k_local/subset-00009.tar:  64%|██████▍   |  632MB /  991MB            [A[A[A[A[A[A
-
-
-
-
-
-
-  ...0k_local/subset-00004.tar:  56%|█████▋    |  600MB / 1.06GB            [A[A[A[A[A[A[A
-
-
-
-
-
-
-
-  ...0k_local/subset-00006.tar:  64%|██████▎   |  608MB /  954MB            [A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-  ...0k_local/subset-00008.tar:  66%|██████▋   |  608MB /  915MB            [A[A[A[A[A[A[A[A[AProcessing Files (0 / 8)      :  47%|████▋     | 4.90GB / 10.4GB, 1.40GB/s  
-
-  ...0k_local/subset-00005.tar:  67%|██████▋   |  656MB /  974MB            [A[A
-
-
-  ...0k_local/subset-00000.tar:  57%|█████▋    |  648MB / 1.13GB            [A[A[A
-
-
-
-  ...0k_local/subset-00007.tar:  66%|██████▌   |  648MB /  987MB            [A[A[A[A
-
-
-
-
-  ...0k_local/subset-00002.tar:  59%|█████▉    |  640MB / 1.08GB            [A[A[A[A[A
-
-
-
-
-
-  ...0k_local/subset-00009.tar:  67%|██████▋   |  664MB /  991MB            [A[A[A[A[A[A
-
-
-
-
-
-
-  ...0k_local/subset-00004.tar:  59%|█████▉    |  632MB / 1.06GB            [A[A[A[A[A[A[A
-
-
-
-
-
-
-
-  ...0k_local/subset-00006.tar:  68%|██████▊   |  648MB /  954MB            [A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-  ...0k_local/subset-00008.tar:  70%|██████▉   |  640MB /  915MB            [A[A[A[A[A[A[A[A[AProcessing Files (0 / 8)      :  50%|████▉     | 5.18GB / 10.4GB, 1.40GB/s  
-
-  ...0k_local/subset-00005.tar:  71%|███████▏  |  696MB /  974MB            [A[A
-
-
-  ...0k_local/subset-00000.tar:  60%|██████    |  680MB / 1.13GB            [A[A[A
-
-
-
-  ...0k_local/subset-00007.tar:  69%|██████▉   |  680MB /  987MB            [A[A[A[A
-
-
-
-
-  ...0k_local/subset-00002.tar:  63%|██████▎   |  680MB / 1.08GB            [A[A[A[A[A
-
-
-
-
-
-  ...0k_local/subset-00009.tar:  71%|███████   |  704MB /  991MB            [A[A[A[A[A[A
-
-
-
-
-
-
-  ...0k_local/subset-00004.tar:  63%|██████▎   |  672MB / 1.06GB            [A[A[A[A[A[A[A
-
-
-
-
-
-
-
-  ...0k_local/subset-00006.tar:  71%|███████▏  |  680MB /  954MB            [A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-  ...0k_local/subset-00008.tar:  73%|███████▎  |  672MB /  915MB            [A[A[A[A[A[A[A[A[AProcessing Files (0 / 8)      :  52%|█████▏    | 5.46GB / 10.4GB, 1.40GB/s  
-
-  ...0k_local/subset-00005.tar:  75%|███████▍  |  728MB /  974MB            [A[A
-
-
-  ...0k_local/subset-00000.tar:  63%|██████▎   |  712MB / 1.13GB            [A[A[A
-
-
-
-  ...0k_local/subset-00007.tar:  72%|███████▏  |  712MB /  987MB            [A[A[A[A
-
-
-
-
-  ...0k_local/subset-00002.tar:  66%|██████▌   |  712MB / 1.08GB            [A[A[A[A[A
-
-
-
-
-
-  ...0k_local/subset-00009.tar:  74%|███████▍  |  736MB /  991MB            [A[A[A[A[A[A
-
-
-
-
-
-
-  ...0k_local/subset-00004.tar:  66%|██████▌   |  704MB / 1.06GB            [A[A[A[A[A[A[A
-
-
-
-
-
-
-
-  ...0k_local/subset-00006.tar:  75%|███████▌  |  720MB /  954MB            [A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-  ...0k_local/subset-00008.tar:  78%|███████▊  |  712MB /  915MB            [A[A[A[A[A[A[A[A[AProcessing Files (0 / 8)      :  55%|█████▍    | 5.74GB / 10.4GB, 1.40GB/s  
-
-  ...0k_local/subset-00005.tar:  78%|███████▊  |  760MB /  974MB            [A[A
-
-
-  ...0k_local/subset-00000.tar:  66%|██████▌   |  744MB / 1.13GB            [A[A[A
-
-
-
-  ...0k_local/subset-00007.tar:  75%|███████▌  |  744MB /  987MB            [A[A[A[A
-
-
-
-
-  ...0k_local/subset-00002.tar:  69%|██████▉   |  744MB / 1.08GB            [A[A[A[A[A
-
-
-
-
-
-  ...0k_local/subset-00009.tar:  78%|███████▊  |  768MB /  991MB            [A[A[A[A[A[A
-
-
-
-
-
-
-  ...0k_local/subset-00004.tar:  69%|██████▉   |  736MB / 1.06GB            [A[A[A[A[A[A[A
-
-
-
-
-
-
-
-  ...0k_local/subset-00006.tar:  79%|███████▉  |  752MB /  954MB            [A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-  ...0k_local/subset-00008.tar:  81%|████████▏ |  744MB /  915MB            [A[A[A[A[A[A[A[A[AProcessing Files (0 / 8)      :  57%|█████▋    | 5.99GB / 10.4GB, 1.39GB/s  
-
-  ...0k_local/subset-00005.tar:  81%|████████▏ |  792MB /  974MB            [A[A
-
-
-  ...0k_local/subset-00000.tar:  69%|██████▊   |  776MB / 1.13GB            [A[A[A
-
-
-
-  ...0k_local/subset-00007.tar:  79%|███████▉  |  784MB /  987MB            [A[A[A[A
-
-
-
-
-  ...0k_local/subset-00002.tar:  72%|███████▏  |  776MB / 1.08GB            [A[A[A[A[A
-
-
-
-
-
-  ...0k_local/subset-00009.tar:  81%|████████  |  800MB /  991MB            [A[A[A[A[A[A
-
-
-
-
-
-
-  ...0k_local/subset-00004.tar:  72%|███████▏  |  768MB / 1.06GB            [A[A[A[A[A[A[A
-
-
-
-
-
-
-
-  ...0k_local/subset-00006.tar:  82%|████████▏ |  784MB /  954MB            [A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-  ...0k_local/subset-00008.tar:  85%|████████▍ |  776MB /  915MB            [A[A[A[A[A[A[A[A[AProcessing Files (0 / 8)      :  60%|█████▉    | 6.26GB / 10.4GB, 1.39GB/s  
-
-  ...0k_local/subset-00005.tar:  85%|████████▍ |  824MB /  974MB            [A[A
-
-
-  ...0k_local/subset-00000.tar:  72%|███████▏  |  816MB / 1.13GB            [A[A[A
-
-
-
-  ...0k_local/subset-00007.tar:  83%|████████▎ |  816MB /  987MB            [A[A[A[A
-
-
-
-
-  ...0k_local/subset-00002.tar:  75%|███████▌  |  816MB / 1.08GB            [A[A[A[A[A
-
-
-
-
-
-  ...0k_local/subset-00009.tar:  84%|████████▍ |  832MB /  991MB            [A[A[A[A[A[A
-
-
-
-
-
-
-  ...0k_local/subset-00004.tar:  76%|███████▌  |  808MB / 1.06GB            [A[A[A[A[A[A[A
-
-
-
-
-
-
-
-  ...0k_local/subset-00006.tar:  86%|████████▋ |  824MB /  954MB            [A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-  ...0k_local/subset-00008.tar:  88%|████████▊ |  808MB /  915MB            [A[A[A[A[A[A[A[A[AProcessing Files (0 / 8)      :  63%|██████▎   | 6.54GB / 10.4GB, 1.39GB/s  
-
-  ...0k_local/subset-00005.tar:  89%|████████▉ |  872MB /  974MB            [A[A
-
-
-  ...0k_local/subset-00000.tar:  75%|███████▍  |  848MB / 1.13GB            [A[A[A
-
-
-
-  ...0k_local/subset-00007.tar:  86%|████████▌ |  848MB /  987MB            [A[A[A[A
-
-
-
-
-  ...0k_local/subset-00002.tar:  78%|███████▊  |  848MB / 1.08GB            [A[A[A[A[A
-
-
-
-
-
-  ...0k_local/subset-00009.tar:  88%|████████▊ |  872MB /  991MB            [A[A[A[A[A[A
-
-
-
-
-
-
-  ...0k_local/subset-00004.tar:  79%|███████▉  |  840MB / 1.06GB            [A[A[A[A[A[A[A
-
-
-
-
-
-
-
-  ...0k_local/subset-00006.tar:  91%|█████████▏|  872MB /  954MB            [A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-  ...0k_local/subset-00008.tar:  92%|█████████▏|  840MB /  915MB            [A[A[A[A[A[A[A[A[AProcessing Files (0 / 8)      :  65%|██████▌   | 6.84GB / 10.4GB, 1.39GB/s  
-
-  ...0k_local/subset-00005.tar:  94%|█████████▎|  912MB /  974MB            [A[A
-
-
-  ...0k_local/subset-00000.tar:  78%|███████▊  |  888MB / 1.13GB            [A[A[A
-
-
-
-  ...0k_local/subset-00007.tar:  90%|████████▉ |  888MB /  987MB            [A[A[A[A
-
-
-
-
-  ...0k_local/subset-00002.tar:  84%|████████▎ |  904MB / 1.08GB            [A[A[A[A[A
-
-
-
-
-
-  ...0k_local/subset-00009.tar:  92%|█████████▏|  912MB /  991MB            [A[A[A[A[A[A
-
-
-
-
-
-
-  ...0k_local/subset-00004.tar:  83%|████████▎ |  880MB / 1.06GB            [A[A[A[A[A[A[A
-
-
-
-
-
-
-
-  ...0k_local/subset-00006.tar:  96%|█████████▌|  912MB /  954MB            [A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-  ...0k_local/subset-00008.tar:  96%|█████████▌|  880MB /  915MB            [A[A[A[A[A[A[A[A[AProcessing Files (0 / 8)      :  69%|██████▊   | 7.18GB / 10.4GB, 1.41GB/s  
-
-
-
-
-
-
-
-
-
-  ...0k_local/subset-00003.tar:   1%|          | 7.97MB / 1.14GB            [A[A[A[A[A[A[A[A[A[A
-
-  ...0k_local/subset-00005.tar:  98%|█████████▊|  952MB /  974MB            [A[A
-
-
-  ...0k_local/subset-00000.tar:  83%|████████▎ |  936MB / 1.13GB            [A[A[A
-
-
-
-  ...0k_local/subset-00007.tar:  95%|█████████▍|  936MB /  987MB            [A[A[A[A
-
-
-
-
-  ...0k_local/subset-00002.tar:  87%|████████▋ |  936MB / 1.08GB            [A[A[A[A[A
-
-
-
-
-
-  ...0k_local/subset-00009.tar:  97%|█████████▋|  960MB /  991MB            [A[A[A[A[A[A
-
-
-
-
-
-
-  ...0k_local/subset-00004.tar:  87%|████████▋ |  928MB / 1.06GB            [A[A[A[A[A[A[A
-
-
-
-
-
-
-
-  ...0k_local/subset-00006.tar: 100%|██████████|  954MB /  954MB            [A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-  ...0k_local/subset-00008.tar: 100%|██████████|  915MB /  915MB            [A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-  ...0k_local/subset-00003.tar:   1%|          | 7.97MB / 1.14GB            [A[A[A[A[A[A[A[A[A[AProcessing Files (2 / 9)      :  72%|███████▏  | 7.52GB / 10.4GB, 1.42GB/s  
-
-
-
-
-
-
-
-
-
-
-  ...0k_local/subset-00001.tar:   3%|▎         | 39.9MB / 1.21GB            [A[A[A[A[A[A[A[A[A[A[A
-
-  ...0k_local/subset-00005.tar: 100%|██████████|  974MB /  974MB            [A[A
-
-
-  ...0k_local/subset-00000.tar:  86%|████████▌ |  968MB / 1.13GB            [A[A[A
-
-
-
-  ...0k_local/subset-00007.tar:  99%|█████████▉|  976MB /  987MB            [A[A[A[A
-
-
-
-
-  ...0k_local/subset-00002.tar:  90%|████████▉ |  968MB / 1.08GB            [A[A[A[A[A
-
-
-
-
-
-  ...0k_local/subset-00009.tar: 100%|██████████|  991MB /  991MB            [A[A[A[A[A[A
-
-
-
-
-
-
-  ...0k_local/subset-00004.tar:  91%|█████████ |  968MB / 1.06GB            [A[A[A[A[A[A[A
-
-
-
-
-
-
-
-  ...0k_local/subset-00006.tar: 100%|██████████|  954MB /  954MB            [A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-  ...0k_local/subset-00008.tar: 100%|██████████|  915MB /  915MB            [A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-  ...0k_local/subset-00003.tar:   3%|▎         | 40.0MB / 1.14GB            [A[A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-
-  ...0k_local/subset-00001.tar:   3%|▎         | 39.9MB / 1.21GB            [A[A[A[A[A[A[A[A[A[A[AProcessing Files (4 / 10)     :  75%|███████▍  | 7.79GB / 10.4GB, 1.42GB/s  
-
-  ...0k_local/subset-00005.tar: 100%|██████████|  974MB /  974MB            [A[A
-
-
-  ...0k_local/subset-00000.tar:  88%|████████▊ | 1.00GB / 1.13GB            [A[A[A
-
-
-
-  ...0k_local/subset-00007.tar: 100%|██████████|  987MB /  987MB            [A[A[A[A
-
-
-
-
-  ...0k_local/subset-00002.tar:  92%|█████████▏| 1.00GB / 1.08GB            [A[A[A[A[A
-
-
-
-
-
-  ...0k_local/subset-00009.tar: 100%|██████████|  991MB /  991MB            [A[A[A[A[A[A
-
-
-
-
-
-
-  ...0k_local/subset-00004.tar:  94%|█████████▍| 1.00GB / 1.06GB            [A[A[A[A[A[A[A
-
-
-
-
-
-
-
-  ...0k_local/subset-00006.tar: 100%|██████████|  954MB /  954MB            [A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-  ...0k_local/subset-00008.tar: 100%|██████████|  915MB /  915MB            [A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-  ...0k_local/subset-00003.tar:   7%|▋         | 79.9MB / 1.14GB            [A[A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-
-  ...0k_local/subset-00001.tar:   7%|▋         | 80.0MB / 1.21GB            [A[A[A[A[A[A[A[A[A[A[AProcessing Files (5 / 10)     :  76%|███████▋  | 7.98GB / 10.4GB, 1.40GB/s  
-
-  ...0k_local/subset-00005.tar: 100%|██████████|  974MB /  974MB            [A[A
-
-
-  ...0k_local/subset-00000.tar:  92%|█████████▏| 1.04GB / 1.13GB            [A[A[A
-
-
-
-  ...0k_local/subset-00007.tar: 100%|██████████|  987MB /  987MB            [A[A[A[A
-
-
-
-
-  ...0k_local/subset-00002.tar:  95%|█████████▌| 1.03GB / 1.08GB            [A[A[A[A[A
-
-
-
-
-
-  ...0k_local/subset-00009.tar: 100%|██████████|  991MB /  991MB            [A[A[A[A[A[A
-
-
-
-
-
-
-  ...0k_local/subset-00004.tar:  98%|█████████▊| 1.04GB / 1.06GB            [A[A[A[A[A[A[A
-
-
-
-
-
-
-
-  ...0k_local/subset-00006.tar: 100%|██████████|  954MB /  954MB            [A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-  ...0k_local/subset-00008.tar: 100%|██████████|  915MB /  915MB            [A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-  ...0k_local/subset-00003.tar:  10%|▉         |  112MB / 1.14GB            [A[A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-
-  ...0k_local/subset-00001.tar:  10%|▉         |  120MB / 1.21GB            [A[A[A[A[A[A[A[A[A[A[AProcessing Files (5 / 10)     :  78%|███████▊  | 8.17GB / 10.4GB, 1.38GB/s  
-
-  ...0k_local/subset-00005.tar: 100%|██████████|  974MB /  974MB            [A[A
-
-
-  ...0k_local/subset-00000.tar:  95%|█████████▍| 1.07GB / 1.13GB            [A[A[A
-
-
-
-  ...0k_local/subset-00007.tar: 100%|██████████|  987MB /  987MB            [A[A[A[A
-
-
-
-
-  ...0k_local/subset-00002.tar:  99%|█████████▉| 1.07GB / 1.08GB            [A[A[A[A[A
-
-
-
-
-
-  ...0k_local/subset-00009.tar: 100%|██████████|  991MB /  991MB            [A[A[A[A[A[A
-
-
-
-
-
-
-  ...0k_local/subset-00004.tar: 100%|██████████| 1.06GB / 1.06GB            [A[A[A[A[A[A[A
-
-
-
-
-
-
-
-  ...0k_local/subset-00006.tar: 100%|██████████|  954MB /  954MB            [A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-  ...0k_local/subset-00008.tar: 100%|██████████|  915MB /  915MB            [A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-  ...0k_local/subset-00003.tar:  13%|█▎        |  144MB / 1.14GB            [A[A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-
-  ...0k_local/subset-00001.tar:  13%|█▎        |  152MB / 1.21GB            [A[A[A[A[A[A[A[A[A[A[AProcessing Files (6 / 10)     :  80%|███████▉  | 8.32GB / 10.4GB, 1.36GB/s  
-
-  ...0k_local/subset-00005.tar: 100%|██████████|  974MB /  974MB            [A[A
-
-
-  ...0k_local/subset-00000.tar:  98%|█████████▊| 1.10GB / 1.13GB            [A[A[A
-
-
-
-  ...0k_local/subset-00007.tar: 100%|██████████|  987MB /  987MB            [A[A[A[A
-
-
-
-
-  ...0k_local/subset-00002.tar: 100%|██████████| 1.08GB / 1.08GB            [A[A[A[A[A
-
-
-
-
-
-  ...0k_local/subset-00009.tar: 100%|██████████|  991MB /  991MB            [A[A[A[A[A[A
-
-
-
-
-
-
-  ...0k_local/subset-00004.tar: 100%|██████████| 1.06GB / 1.06GB            [A[A[A[A[A[A[A
-
-
-
-
-
-
-
-  ...0k_local/subset-00006.tar: 100%|██████████|  954MB /  954MB            [A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-  ...0k_local/subset-00008.tar: 100%|██████████|  915MB /  915MB            [A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-  ...0k_local/subset-00003.tar:  16%|█▌        |  184MB / 1.14GB            [A[A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-
-  ...0k_local/subset-00001.tar:  15%|█▌        |  184MB / 1.21GB            [A[A[A[A[A[A[A[A[A[A[AProcessing Files (7 / 10)     :  81%|████████  | 8.44GB / 10.4GB, 1.34GB/s  
-
-  ...0k_local/subset-00005.tar: 100%|██████████|  974MB /  974MB            [A[A
-
-
-  ...0k_local/subset-00000.tar: 100%|██████████| 1.13GB / 1.13GB            [A[A[A
-
-
-
-  ...0k_local/subset-00007.tar: 100%|██████████|  987MB /  987MB            [A[A[A[A
-
-
-
-
-  ...0k_local/subset-00002.tar: 100%|██████████| 1.08GB / 1.08GB            [A[A[A[A[A
-
-
-
-
-
-  ...0k_local/subset-00009.tar: 100%|██████████|  991MB /  991MB            [A[A[A[A[A[A
-
-
-
-
-
-
-  ...0k_local/subset-00004.tar: 100%|██████████| 1.06GB / 1.06GB            [A[A[A[A[A[A[A
-
-
-
-
-
-
-
-  ...0k_local/subset-00006.tar: 100%|██████████|  954MB /  954MB            [A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-  ...0k_local/subset-00008.tar: 100%|██████████|  915MB /  915MB            [A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-  ...0k_local/subset-00003.tar:  19%|█▉        |  216MB / 1.14GB            [A[A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-
-  ...0k_local/subset-00001.tar:  18%|█▊        |  216MB / 1.21GB            [A[A[A[A[A[A[A[A[A[A[AProcessing Files (8 / 10)     :  82%|████████▏ | 8.53GB / 10.4GB, 1.31GB/s  
-
-  ...0k_local/subset-00005.tar: 100%|██████████|  974MB /  974MB            [A[A
-
-
-  ...0k_local/subset-00000.tar: 100%|██████████| 1.13GB / 1.13GB            [A[A[A
-
-
-
-  ...0k_local/subset-00007.tar: 100%|██████████|  987MB /  987MB            [A[A[A[A
-
-
-
-
-  ...0k_local/subset-00002.tar: 100%|██████████| 1.08GB / 1.08GB            [A[A[A[A[A
-
-
-
-
-
-  ...0k_local/subset-00009.tar: 100%|██████████|  991MB /  991MB            [A[A[A[A[A[A
-
-
-
-
-
-
-  ...0k_local/subset-00004.tar: 100%|██████████| 1.06GB / 1.06GB            [A[A[A[A[A[A[A
-
-
-
-
-
-
-
-  ...0k_local/subset-00006.tar: 100%|██████████|  954MB /  954MB            [A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-  ...0k_local/subset-00008.tar: 100%|██████████|  915MB /  915MB            [A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-  ...0k_local/subset-00003.tar:  22%|██▏       |  248MB / 1.14GB            [A[A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-
-  ...0k_local/subset-00001.tar:  21%|██        |  256MB / 1.21GB            [A[A[A[A[A[A[A[A[A[A[AProcessing Files (8 / 10)     :  82%|████████▏ | 8.60GB / 10.4GB, 1.28GB/s  
-
-  ...0k_local/subset-00005.tar: 100%|██████████|  974MB /  974MB            [A[A
-
-
-  ...0k_local/subset-00000.tar: 100%|██████████| 1.13GB / 1.13GB            [A[A[A
-
-
-
-  ...0k_local/subset-00007.tar: 100%|██████████|  987MB /  987MB            [A[A[A[A
-
-
-
-
-  ...0k_local/subset-00002.tar: 100%|██████████| 1.08GB / 1.08GB            [A[A[A[A[A
-
-
-
-
-
-  ...0k_local/subset-00009.tar: 100%|██████████|  991MB /  991MB            [A[A[A[A[A[A
-
-
-
-
-
-
-  ...0k_local/subset-00004.tar: 100%|██████████| 1.06GB / 1.06GB            [A[A[A[A[A[A[A
-
-
-
-
-
-
-
-  ...0k_local/subset-00006.tar: 100%|██████████|  954MB /  954MB            [A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-  ...0k_local/subset-00008.tar: 100%|██████████|  915MB /  915MB            [A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-  ...0k_local/subset-00003.tar:  24%|██▍       |  280MB / 1.14GB            [A[A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-
-  ...0k_local/subset-00001.tar:  24%|██▍       |  288MB / 1.21GB            [A[A[A[A[A[A[A[A[A[A[AProcessing Files (8 / 10)     :  83%|████████▎ | 8.67GB / 10.4GB, 1.25GB/s  
-
-  ...0k_local/subset-00005.tar: 100%|██████████|  974MB /  974MB            [A[A
-
-
-  ...0k_local/subset-00000.tar: 100%|██████████| 1.13GB / 1.13GB            [A[A[A
-
-
-
-  ...0k_local/subset-00007.tar: 100%|██████████|  987MB /  987MB            [A[A[A[A
-
-
-
-
-  ...0k_local/subset-00002.tar: 100%|██████████| 1.08GB / 1.08GB            [A[A[A[A[A
-
-
-
-
-
-  ...0k_local/subset-00009.tar: 100%|██████████|  991MB /  991MB            [A[A[A[A[A[A
-
-
-
-
-
-
-  ...0k_local/subset-00004.tar: 100%|██████████| 1.06GB / 1.06GB            [A[A[A[A[A[A[A
-
-
-
-
-
-
-
-  ...0k_local/subset-00006.tar: 100%|██████████|  954MB /  954MB            [A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-  ...0k_local/subset-00008.tar: 100%|██████████|  915MB /  915MB            [A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-  ...0k_local/subset-00003.tar:  28%|██▊       |  320MB / 1.14GB            [A[A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-
-  ...0k_local/subset-00001.tar:  26%|██▋       |  320MB / 1.21GB            [A[A[A[A[A[A[A[A[A[A[AProcessing Files (8 / 10)     :  84%|████████▎ | 8.74GB / 10.4GB, 1.23GB/s  
-
-  ...0k_local/subset-00005.tar: 100%|██████████|  974MB /  974MB            [A[A
-
-
-  ...0k_local/subset-00000.tar: 100%|██████████| 1.13GB / 1.13GB            [A[A[A
-
-
-
-  ...0k_local/subset-00007.tar: 100%|██████████|  987MB /  987MB            [A[A[A[A
-
-
-
-
-  ...0k_local/subset-00002.tar: 100%|██████████| 1.08GB / 1.08GB            [A[A[A[A[A
-
-
-
-
-
-  ...0k_local/subset-00009.tar: 100%|██████████|  991MB /  991MB            [A[A[A[A[A[A
-
-
-
-
-
-
-  ...0k_local/subset-00004.tar: 100%|██████████| 1.06GB / 1.06GB            [A[A[A[A[A[A[A
-
-
-
-
-
-
-
-  ...0k_local/subset-00006.tar: 100%|██████████|  954MB /  954MB            [A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-  ...0k_local/subset-00008.tar: 100%|██████████|  915MB /  915MB            [A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-  ...0k_local/subset-00003.tar:  31%|███▏      |  360MB / 1.14GB            [A[A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-
-  ...0k_local/subset-00001.tar:  29%|██▉       |  352MB / 1.21GB            [A[A[A[A[A[A[A[A[A[A[AProcessing Files (8 / 10)     :  84%|████████▍ | 8.81GB / 10.4GB, 1.20GB/s  
-
-  ...0k_local/subset-00005.tar: 100%|██████████|  974MB /  974MB            [A[A
-
-
-  ...0k_local/subset-00000.tar: 100%|██████████| 1.13GB / 1.13GB            [A[A[A
-
-
-
-  ...0k_local/subset-00007.tar: 100%|██████████|  987MB /  987MB            [A[A[A[A
-
-
-
-
-  ...0k_local/subset-00002.tar: 100%|██████████| 1.08GB / 1.08GB            [A[A[A[A[A
-
-
-
-
-
-  ...0k_local/subset-00009.tar: 100%|██████████|  991MB /  991MB            [A[A[A[A[A[A
-
-
-
-
-
-
-  ...0k_local/subset-00004.tar: 100%|██████████| 1.06GB / 1.06GB            [A[A[A[A[A[A[A
-
-
-
-
-
-
-
-  ...0k_local/subset-00006.tar: 100%|██████████|  954MB /  954MB            [A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-  ...0k_local/subset-00008.tar: 100%|██████████|  915MB /  915MB            [A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-  ...0k_local/subset-00003.tar:  34%|███▍      |  392MB / 1.14GB            [A[A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-
-  ...0k_local/subset-00001.tar:  32%|███▏      |  392MB / 1.21GB            [A[A[A[A[A[A[A[A[A[A[AProcessing Files (8 / 10)     :  85%|████████▌ | 8.88GB / 10.4GB, 1.18GB/s  
-
-  ...0k_local/subset-00005.tar: 100%|██████████|  974MB /  974MB            [A[A
-
-
-  ...0k_local/subset-00000.tar: 100%|██████████| 1.13GB / 1.13GB            [A[A[A
-
-
-
-  ...0k_local/subset-00007.tar: 100%|██████████|  987MB /  987MB            [A[A[A[A
-
-
-
-
-  ...0k_local/subset-00002.tar: 100%|██████████| 1.08GB / 1.08GB            [A[A[A[A[A
-
-
-
-
-
-  ...0k_local/subset-00009.tar: 100%|██████████|  991MB /  991MB            [A[A[A[A[A[A
-
-
-
-
-
-
-  ...0k_local/subset-00004.tar: 100%|██████████| 1.06GB / 1.06GB            [A[A[A[A[A[A[A
-
-
-
-
-
-
-
-  ...0k_local/subset-00006.tar: 100%|██████████|  954MB /  954MB            [A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-  ...0k_local/subset-00008.tar: 100%|██████████|  915MB /  915MB            [A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-  ...0k_local/subset-00003.tar:  37%|███▋      |  424MB / 1.14GB            [A[A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-
-  ...0k_local/subset-00001.tar:  35%|███▌      |  424MB / 1.21GB            [A[A[A[A[A[A[A[A[A[A[AProcessing Files (8 / 10)     :  86%|████████▌ | 8.95GB / 10.4GB, 1.16GB/s  
-
-  ...0k_local/subset-00005.tar: 100%|██████████|  974MB /  974MB            [A[A
-
-
-  ...0k_local/subset-00000.tar: 100%|██████████| 1.13GB / 1.13GB            [A[A[A
-
-
-
-  ...0k_local/subset-00007.tar: 100%|██████████|  987MB /  987MB            [A[A[A[A
-
-
-
-
-  ...0k_local/subset-00002.tar: 100%|██████████| 1.08GB / 1.08GB            [A[A[A[A[A
-
-
-
-
-
-  ...0k_local/subset-00009.tar: 100%|██████████|  991MB /  991MB            [A[A[A[A[A[A
-
-
-
-
-
-
-  ...0k_local/subset-00004.tar: 100%|██████████| 1.06GB / 1.06GB            [A[A[A[A[A[A[A
-
-
-
-
-
-
-
-  ...0k_local/subset-00006.tar: 100%|██████████|  954MB /  954MB            [A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-  ...0k_local/subset-00008.tar: 100%|██████████|  915MB /  915MB            [A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-  ...0k_local/subset-00003.tar:  40%|███▉      |  456MB / 1.14GB            [A[A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-
-  ...0k_local/subset-00001.tar:  38%|███▊      |  456MB / 1.21GB            [A[A[A[A[A[A[A[A[A[A[AProcessing Files (8 / 10)     :  86%|████████▌ | 9.01GB / 10.4GB, 1.14GB/s  
-
-  ...0k_local/subset-00005.tar: 100%|██████████|  974MB /  974MB            [A[A
-
-
-  ...0k_local/subset-00000.tar: 100%|██████████| 1.13GB / 1.13GB            [A[A[A
-
-
-
-  ...0k_local/subset-00007.tar: 100%|██████████|  987MB /  987MB            [A[A[A[A
-
-
-
-
-  ...0k_local/subset-00002.tar: 100%|██████████| 1.08GB / 1.08GB            [A[A[A[A[A
-
-
-
-
-
-  ...0k_local/subset-00009.tar: 100%|██████████|  991MB /  991MB            [A[A[A[A[A[A
-
-
-
-
-
-
-  ...0k_local/subset-00004.tar: 100%|██████████| 1.06GB / 1.06GB            [A[A[A[A[A[A[A
-
-
-
-
-
-
-
-  ...0k_local/subset-00006.tar: 100%|██████████|  954MB /  954MB            [A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-  ...0k_local/subset-00008.tar: 100%|██████████|  915MB /  915MB            [A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-  ...0k_local/subset-00003.tar:  43%|████▎     |  496MB / 1.14GB            [A[A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-
-  ...0k_local/subset-00001.tar:  40%|████      |  488MB / 1.21GB            [A[A[A[A[A[A[A[A[A[A[AProcessing Files (8 / 10)     :  87%|████████▋ | 9.08GB / 10.4GB, 1.12GB/s  
-
-  ...0k_local/subset-00005.tar: 100%|██████████|  974MB /  974MB            [A[A
-
-
-  ...0k_local/subset-00000.tar: 100%|██████████| 1.13GB / 1.13GB            [A[A[A
-
-
-
-  ...0k_local/subset-00007.tar: 100%|██████████|  987MB /  987MB            [A[A[A[A
-
-
-
-
-  ...0k_local/subset-00002.tar: 100%|██████████| 1.08GB / 1.08GB            [A[A[A[A[A
-
-
-
-
-
-  ...0k_local/subset-00009.tar: 100%|██████████|  991MB /  991MB            [A[A[A[A[A[A
-
-
-
-
-
-
-  ...0k_local/subset-00004.tar: 100%|██████████| 1.06GB / 1.06GB            [A[A[A[A[A[A[A
-
-
-
-
-
-
-
-  ...0k_local/subset-00006.tar: 100%|██████████|  954MB /  954MB            [A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-  ...0k_local/subset-00008.tar: 100%|██████████|  915MB /  915MB            [A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-  ...0k_local/subset-00003.tar:  48%|████▊     |  544MB / 1.14GB            [A[A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-
-  ...0k_local/subset-00001.tar:  44%|████▍     |  536MB / 1.21GB            [A[A[A[A[A[A[A[A[A[A[AProcessing Files (8 / 10)     :  88%|████████▊ | 9.18GB / 10.4GB, 1.10GB/s  
-
-  ...0k_local/subset-00005.tar: 100%|██████████|  974MB /  974MB            [A[A
-
-
-  ...0k_local/subset-00000.tar: 100%|██████████| 1.13GB / 1.13GB            [A[A[A
-
-
-
-  ...0k_local/subset-00007.tar: 100%|██████████|  987MB /  987MB            [A[A[A[A
-
-
-
-
-  ...0k_local/subset-00002.tar: 100%|██████████| 1.08GB / 1.08GB            [A[A[A[A[A
-
-
-
-
-
-  ...0k_local/subset-00009.tar: 100%|██████████|  991MB /  991MB            [A[A[A[A[A[A
-
-
-
-
-
-
-  ...0k_local/subset-00004.tar: 100%|██████████| 1.06GB / 1.06GB            [A[A[A[A[A[A[A
-
-
-
-
-
-
-
-  ...0k_local/subset-00006.tar: 100%|██████████|  954MB /  954MB            [A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-  ...0k_local/subset-00008.tar: 100%|██████████|  915MB /  915MB            [A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-  ...0k_local/subset-00003.tar:  52%|█████▏    |  592MB / 1.14GB            [A[A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-
-  ...0k_local/subset-00001.tar:  48%|████▊     |  576MB / 1.21GB            [A[A[A[A[A[A[A[A[A[A[AProcessing Files (8 / 10)     :  89%|████████▊ | 9.27GB / 10.4GB, 1.09GB/s  
-
-  ...0k_local/subset-00005.tar: 100%|██████████|  974MB /  974MB            [A[A
-
-
-  ...0k_local/subset-00000.tar: 100%|██████████| 1.13GB / 1.13GB            [A[A[A
-
-
-
-  ...0k_local/subset-00007.tar: 100%|██████████|  987MB /  987MB            [A[A[A[A
-
-
-
-
-  ...0k_local/subset-00002.tar: 100%|██████████| 1.08GB / 1.08GB            [A[A[A[A[A
-
-
-
-
-
-  ...0k_local/subset-00009.tar: 100%|██████████|  991MB /  991MB            [A[A[A[A[A[A
-
-
-
-
-
-
-  ...0k_local/subset-00004.tar: 100%|██████████| 1.06GB / 1.06GB            [A[A[A[A[A[A[A
-
-
-
-
-
-
-
-  ...0k_local/subset-00006.tar: 100%|██████████|  954MB /  954MB            [A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-  ...0k_local/subset-00008.tar: 100%|██████████|  915MB /  915MB            [A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-  ...0k_local/subset-00003.tar:  55%|█████▌    |  632MB / 1.14GB            [A[A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-
-  ...0k_local/subset-00001.tar:  52%|█████▏    |  624MB / 1.21GB            [A[A[A[A[A[A[A[A[A[A[AProcessing Files (8 / 10)     :  90%|████████▉ | 9.35GB / 10.4GB, 1.07GB/s  
-
-  ...0k_local/subset-00005.tar: 100%|██████████|  974MB /  974MB            [A[A
-
-
-  ...0k_local/subset-00000.tar: 100%|██████████| 1.13GB / 1.13GB            [A[A[A
-
-
-
-  ...0k_local/subset-00007.tar: 100%|██████████|  987MB /  987MB            [A[A[A[A
-
-
-
-
-  ...0k_local/subset-00002.tar: 100%|██████████| 1.08GB / 1.08GB            [A[A[A[A[A
-
-
-
-
-
-  ...0k_local/subset-00009.tar: 100%|██████████|  991MB /  991MB            [A[A[A[A[A[A
-
-
-
-
-
-
-  ...0k_local/subset-00004.tar: 100%|██████████| 1.06GB / 1.06GB            [A[A[A[A[A[A[A
-
-
-
-
-
-
-
-  ...0k_local/subset-00006.tar: 100%|██████████|  954MB /  954MB            [A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-  ...0k_local/subset-00008.tar: 100%|██████████|  915MB /  915MB            [A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-  ...0k_local/subset-00003.tar:  59%|█████▉    |  672MB / 1.14GB            [A[A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-
-  ...0k_local/subset-00001.tar:  55%|█████▍    |  664MB / 1.21GB            [A[A[A[A[A[A[A[A[A[A[AProcessing Files (8 / 10)     :  90%|█████████ | 9.43GB / 10.4GB, 1.06GB/s  
-
-  ...0k_local/subset-00005.tar: 100%|██████████|  974MB /  974MB            [A[A
-
-
-  ...0k_local/subset-00000.tar: 100%|██████████| 1.13GB / 1.13GB            [A[A[A
-
-
-
-  ...0k_local/subset-00007.tar: 100%|██████████|  987MB /  987MB            [A[A[A[A
-
-
-
-
-  ...0k_local/subset-00002.tar: 100%|██████████| 1.08GB / 1.08GB            [A[A[A[A[A
-
-
-
-
-
-  ...0k_local/subset-00009.tar: 100%|██████████|  991MB /  991MB            [A[A[A[A[A[A
-
-
-
-
-
-
-  ...0k_local/subset-00004.tar: 100%|██████████| 1.06GB / 1.06GB            [A[A[A[A[A[A[A
-
-
-
-
-
-
-
-  ...0k_local/subset-00006.tar: 100%|██████████|  954MB /  954MB            [A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-  ...0k_local/subset-00008.tar: 100%|██████████|  915MB /  915MB            [A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-  ...0k_local/subset-00003.tar:  61%|██████    |  696MB / 1.14GB            [A[A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-
-  ...0k_local/subset-00001.tar:  58%|█████▊    |  696MB / 1.21GB            [A[A[A[A[A[A[A[A[A[A[AProcessing Files (8 / 10)     :  91%|█████████ | 9.49GB / 10.4GB, 1.04GB/s  
-
-  ...0k_local/subset-00005.tar: 100%|██████████|  974MB /  974MB            [A[A
-
-
-  ...0k_local/subset-00000.tar: 100%|██████████| 1.13GB / 1.13GB            [A[A[A
-
-
-
-  ...0k_local/subset-00007.tar: 100%|██████████|  987MB /  987MB            [A[A[A[A
-
-
-
-
-  ...0k_local/subset-00002.tar: 100%|██████████| 1.08GB / 1.08GB            [A[A[A[A[A
-
-
-
-
-
-  ...0k_local/subset-00009.tar: 100%|██████████|  991MB /  991MB            [A[A[A[A[A[A
-
-
-
-
-
-
-  ...0k_local/subset-00004.tar: 100%|██████████| 1.06GB / 1.06GB            [A[A[A[A[A[A[A
-
-
-
-
-
-
-
-  ...0k_local/subset-00006.tar: 100%|██████████|  954MB /  954MB            [A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-  ...0k_local/subset-00008.tar: 100%|██████████|  915MB /  915MB            [A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-  ...0k_local/subset-00003.tar:  64%|██████▎   |  728MB / 1.14GB            [A[A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-
-  ...0k_local/subset-00001.tar:  60%|█████▉    |  720MB / 1.21GB            [A[A[A[A[A[A[A[A[A[A[AProcessing Files (8 / 10)     :  91%|█████████▏| 9.55GB / 10.4GB, 1.02GB/s  
-
-  ...0k_local/subset-00005.tar: 100%|██████████|  974MB /  974MB            [A[A
-
-
-  ...0k_local/subset-00000.tar: 100%|██████████| 1.13GB / 1.13GB            [A[A[A
-
-
-
-  ...0k_local/subset-00007.tar: 100%|██████████|  987MB /  987MB            [A[A[A[A
-
-
-
-
-  ...0k_local/subset-00002.tar: 100%|██████████| 1.08GB / 1.08GB            [A[A[A[A[A
-
-
-
-
-
-  ...0k_local/subset-00009.tar: 100%|██████████|  991MB /  991MB            [A[A[A[A[A[A
-
-
-
-
-
-
-  ...0k_local/subset-00004.tar: 100%|██████████| 1.06GB / 1.06GB            [A[A[A[A[A[A[A
-
-
-
-
-
-
-
-  ...0k_local/subset-00006.tar: 100%|██████████|  954MB /  954MB            [A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-  ...0k_local/subset-00008.tar: 100%|██████████|  915MB /  915MB            [A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-  ...0k_local/subset-00003.tar:  66%|██████▌   |  752MB / 1.14GB            [A[A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-
-  ...0k_local/subset-00001.tar:  62%|██████▏   |  752MB / 1.21GB            [A[A[A[A[A[A[A[A[A[A[AProcessing Files (8 / 10)     :  92%|█████████▏| 9.60GB / 10.4GB, 1.01GB/s  
-
-  ...0k_local/subset-00005.tar: 100%|██████████|  974MB /  974MB            [A[A
-
-
-  ...0k_local/subset-00000.tar: 100%|██████████| 1.13GB / 1.13GB            [A[A[A
-
-
-
-  ...0k_local/subset-00007.tar: 100%|██████████|  987MB /  987MB            [A[A[A[A
-
-
-
-
-  ...0k_local/subset-00002.tar: 100%|██████████| 1.08GB / 1.08GB            [A[A[A[A[A
-
-
-
-
-
-  ...0k_local/subset-00009.tar: 100%|██████████|  991MB /  991MB            [A[A[A[A[A[A
-
-
-
-
-
-
-  ...0k_local/subset-00004.tar: 100%|██████████| 1.06GB / 1.06GB            [A[A[A[A[A[A[A
-
-
-
-
-
-
-
-  ...0k_local/subset-00006.tar: 100%|██████████|  954MB /  954MB            [A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-  ...0k_local/subset-00008.tar: 100%|██████████|  915MB /  915MB            [A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-  ...0k_local/subset-00003.tar:  69%|██████▊   |  784MB / 1.14GB            [A[A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-
-  ...0k_local/subset-00001.tar:  64%|██████▍   |  776MB / 1.21GB            [A[A[A[A[A[A[A[A[A[A[AProcessing Files (8 / 10)     :  92%|█████████▏| 9.66GB / 10.4GB,  991MB/s  
-
-  ...0k_local/subset-00005.tar: 100%|██████████|  974MB /  974MB            [A[A
-
-
-  ...0k_local/subset-00000.tar: 100%|██████████| 1.13GB / 1.13GB            [A[A[A
-
-
-
-  ...0k_local/subset-00007.tar: 100%|██████████|  987MB /  987MB            [A[A[A[A
-
-
-
-
-  ...0k_local/subset-00002.tar: 100%|██████████| 1.08GB / 1.08GB            [A[A[A[A[A
-
-
-
-
-
-  ...0k_local/subset-00009.tar: 100%|██████████|  991MB /  991MB            [A[A[A[A[A[A
-
-
-
-
-
-
-  ...0k_local/subset-00004.tar: 100%|██████████| 1.06GB / 1.06GB            [A[A[A[A[A[A[A
-
-
-
-
-
-
-
-  ...0k_local/subset-00006.tar: 100%|██████████|  954MB /  954MB            [A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-  ...0k_local/subset-00008.tar: 100%|██████████|  915MB /  915MB            [A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-  ...0k_local/subset-00003.tar:  72%|███████▏  |  824MB / 1.14GB            [A[A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-
-  ...0k_local/subset-00001.tar:  67%|██████▋   |  808MB / 1.21GB            [A[A[A[A[A[A[A[A[A[A[AProcessing Files (8 / 10)     :  93%|█████████▎| 9.73GB / 10.4GB,  978MB/s  
-
-  ...0k_local/subset-00005.tar: 100%|██████████|  974MB /  974MB            [A[A
-
-
-  ...0k_local/subset-00000.tar: 100%|██████████| 1.13GB / 1.13GB            [A[A[A
-
-
-
-  ...0k_local/subset-00007.tar: 100%|██████████|  987MB /  987MB            [A[A[A[A
-
-
-
-
-  ...0k_local/subset-00002.tar: 100%|██████████| 1.08GB / 1.08GB            [A[A[A[A[A
-
-
-
-
-
-  ...0k_local/subset-00009.tar: 100%|██████████|  991MB /  991MB            [A[A[A[A[A[A
-
-
-
-
-
-
-  ...0k_local/subset-00004.tar: 100%|██████████| 1.06GB / 1.06GB            [A[A[A[A[A[A[A
-
-
-
-
-
-
-
-  ...0k_local/subset-00006.tar: 100%|██████████|  954MB /  954MB            [A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-  ...0k_local/subset-00008.tar: 100%|██████████|  915MB /  915MB            [A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-  ...0k_local/subset-00003.tar:  74%|███████▍  |  848MB / 1.14GB            [A[A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-
-  ...0k_local/subset-00001.tar:  69%|██████▉   |  832MB / 1.21GB            [A[A[A[A[A[A[A[A[A[A[AProcessing Files (8 / 10)     :  94%|█████████▎| 9.78GB / 10.4GB,  963MB/s  
-
-  ...0k_local/subset-00005.tar: 100%|██████████|  974MB /  974MB            [A[A
-
-
-  ...0k_local/subset-00000.tar: 100%|██████████| 1.13GB / 1.13GB            [A[A[A
-
-
-
-  ...0k_local/subset-00007.tar: 100%|██████████|  987MB /  987MB            [A[A[A[A
-
-
-
-
-  ...0k_local/subset-00002.tar: 100%|██████████| 1.08GB / 1.08GB            [A[A[A[A[A
-
-
-
-
-
-  ...0k_local/subset-00009.tar: 100%|██████████|  991MB /  991MB            [A[A[A[A[A[A
-
-
-
-
-
-
-  ...0k_local/subset-00004.tar: 100%|██████████| 1.06GB / 1.06GB            [A[A[A[A[A[A[A
-
-
-
-
-
-
-
-  ...0k_local/subset-00006.tar: 100%|██████████|  954MB /  954MB            [A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-  ...0k_local/subset-00008.tar: 100%|██████████|  915MB /  915MB            [A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-  ...0k_local/subset-00003.tar:  77%|███████▋  |  880MB / 1.14GB            [A[A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-
-  ...0k_local/subset-00001.tar:  72%|███████▏  |  864MB / 1.21GB            [A[A[A[A[A[A[A[A[A[A[AProcessing Files (8 / 10)     :  94%|█████████▍| 9.84GB / 10.4GB,  951MB/s  
-
-  ...0k_local/subset-00005.tar: 100%|██████████|  974MB /  974MB            [A[A
-
-
-  ...0k_local/subset-00000.tar: 100%|██████████| 1.13GB / 1.13GB            [A[A[A
-
-
-
-  ...0k_local/subset-00007.tar: 100%|██████████|  987MB /  987MB            [A[A[A[A
-
-
-
-
-  ...0k_local/subset-00002.tar: 100%|██████████| 1.08GB / 1.08GB            [A[A[A[A[A
-
-
-
-
-
-  ...0k_local/subset-00009.tar: 100%|██████████|  991MB /  991MB            [A[A[A[A[A[A
-
-
-
-
-
-
-  ...0k_local/subset-00004.tar: 100%|██████████| 1.06GB / 1.06GB            [A[A[A[A[A[A[A
-
-
-
-
-
-
-
-  ...0k_local/subset-00006.tar: 100%|██████████|  954MB /  954MB            [A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-  ...0k_local/subset-00008.tar: 100%|██████████|  915MB /  915MB            [A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-  ...0k_local/subset-00003.tar:  80%|███████▉  |  912MB / 1.14GB            [A[A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-
-  ...0k_local/subset-00001.tar:  74%|███████▍  |  896MB / 1.21GB            [A[A[A[A[A[A[A[A[A[A[AProcessing Files (8 / 10)     :  95%|█████████▍| 9.91GB / 10.4GB,  931MB/s  
-
-  ...0k_local/subset-00005.tar: 100%|██████████|  974MB /  974MB            [A[A
-
-
-  ...0k_local/subset-00000.tar: 100%|██████████| 1.13GB / 1.13GB            [A[A[A
-
-
-
-  ...0k_local/subset-00007.tar: 100%|██████████|  987MB /  987MB            [A[A[A[A
-
-
-
-
-  ...0k_local/subset-00002.tar: 100%|██████████| 1.08GB / 1.08GB            [A[A[A[A[A
-
-
-
-
-
-  ...0k_local/subset-00009.tar: 100%|██████████|  991MB /  991MB            [A[A[A[A[A[A
-
-
-
-
-
-
-  ...0k_local/subset-00004.tar: 100%|██████████| 1.06GB / 1.06GB            [A[A[A[A[A[A[A
-
-
-
-
-
-
-
-  ...0k_local/subset-00006.tar: 100%|██████████|  954MB /  954MB            [A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-  ...0k_local/subset-00008.tar: 100%|██████████|  915MB /  915MB            [A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-  ...0k_local/subset-00003.tar:  82%|████████▏ |  936MB / 1.14GB            [A[A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-
-  ...0k_local/subset-00001.tar:  76%|███████▌  |  920MB / 1.21GB            [A[A[A[A[A[A[A[A[A[A[AProcessing Files (8 / 10)     :  95%|█████████▌| 9.95GB / 10.4GB,  908MB/s  
-
-  ...0k_local/subset-00005.tar: 100%|██████████|  974MB /  974MB            [A[A
-
-
-  ...0k_local/subset-00000.tar: 100%|██████████| 1.13GB / 1.13GB            [A[A[A
-
-
-
-  ...0k_local/subset-00007.tar: 100%|██████████|  987MB /  987MB            [A[A[A[A
-
-
-
-
-  ...0k_local/subset-00002.tar: 100%|██████████| 1.08GB / 1.08GB            [A[A[A[A[A
-
-
-
-
-
-  ...0k_local/subset-00009.tar: 100%|██████████|  991MB /  991MB            [A[A[A[A[A[A
-
-
-
-
-
-
-  ...0k_local/subset-00004.tar: 100%|██████████| 1.06GB / 1.06GB            [A[A[A[A[A[A[A
-
-
-
-
-
-
-
-  ...0k_local/subset-00006.tar: 100%|██████████|  954MB /  954MB            [A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-  ...0k_local/subset-00008.tar: 100%|██████████|  915MB /  915MB            [A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-  ...0k_local/subset-00003.tar:  85%|████████▍ |  968MB / 1.14GB            [A[A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-
-  ...0k_local/subset-00001.tar:  79%|███████▉  |  952MB / 1.21GB            [A[A[A[A[A[A[A[A[A[A[AProcessing Files (8 / 10)     :  96%|█████████▌| 10.0GB / 10.4GB,  887MB/s  
-
-  ...0k_local/subset-00005.tar: 100%|██████████|  974MB /  974MB            [A[A
-
-
-  ...0k_local/subset-00000.tar: 100%|██████████| 1.13GB / 1.13GB            [A[A[A
-
-
-
-  ...0k_local/subset-00007.tar: 100%|██████████|  987MB /  987MB            [A[A[A[A
-
-
-
-
-  ...0k_local/subset-00002.tar: 100%|██████████| 1.08GB / 1.08GB            [A[A[A[A[A
-
-
-
-
-
-  ...0k_local/subset-00009.tar: 100%|██████████|  991MB /  991MB            [A[A[A[A[A[A
-
-
-
-
-
-
-  ...0k_local/subset-00004.tar: 100%|██████████| 1.06GB / 1.06GB            [A[A[A[A[A[A[A
-
-
-
-
-
-
-
-  ...0k_local/subset-00006.tar: 100%|██████████|  954MB /  954MB            [A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-  ...0k_local/subset-00008.tar: 100%|██████████|  915MB /  915MB            [A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-  ...0k_local/subset-00003.tar:  87%|████████▋ | 1.00GB / 1.14GB            [A[A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-
-  ...0k_local/subset-00001.tar:  81%|████████  |  976MB / 1.21GB            [A[A[A[A[A[A[A[A[A[A[AProcessing Files (8 / 10)     :  96%|█████████▋| 10.1GB / 10.4GB,  863MB/s  
-
-  ...0k_local/subset-00005.tar: 100%|██████████|  974MB /  974MB            [A[A
-
-
-  ...0k_local/subset-00000.tar: 100%|██████████| 1.13GB / 1.13GB            [A[A[A
-
-
-
-  ...0k_local/subset-00007.tar: 100%|██████████|  987MB /  987MB            [A[A[A[A
-
-
-
-
-  ...0k_local/subset-00002.tar: 100%|██████████| 1.08GB / 1.08GB            [A[A[A[A[A
-
-
-
-
-
-  ...0k_local/subset-00009.tar: 100%|██████████|  991MB /  991MB            [A[A[A[A[A[A
-
-
-
-
-
-
-  ...0k_local/subset-00004.tar: 100%|██████████| 1.06GB / 1.06GB            [A[A[A[A[A[A[A
-
-
-
-
-
-
-
-  ...0k_local/subset-00006.tar: 100%|██████████|  954MB /  954MB            [A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-  ...0k_local/subset-00008.tar: 100%|██████████|  915MB /  915MB            [A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-  ...0k_local/subset-00003.tar:  90%|████████▉ | 1.02GB / 1.14GB            [A[A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-
-  ...0k_local/subset-00001.tar:  83%|████████▎ | 1.01GB / 1.21GB            [A[A[A[A[A[A[A[A[A[A[AProcessing Files (8 / 10)     :  97%|█████████▋| 10.1GB / 10.4GB,  842MB/s  
-
-  ...0k_local/subset-00005.tar: 100%|██████████|  974MB /  974MB            [A[A
-
-
-  ...0k_local/subset-00000.tar: 100%|██████████| 1.13GB / 1.13GB            [A[A[A
-
-
-
-  ...0k_local/subset-00007.tar: 100%|██████████|  987MB /  987MB            [A[A[A[A
-
-
-
-
-  ...0k_local/subset-00002.tar: 100%|██████████| 1.08GB / 1.08GB            [A[A[A[A[A
-
-
-
-
-
-  ...0k_local/subset-00009.tar: 100%|██████████|  991MB /  991MB            [A[A[A[A[A[A
-
-
-
-
-
-
-  ...0k_local/subset-00004.tar: 100%|██████████| 1.06GB / 1.06GB            [A[A[A[A[A[A[A
-
-
-
-
-
-
-
-  ...0k_local/subset-00006.tar: 100%|██████████|  954MB /  954MB            [A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-  ...0k_local/subset-00008.tar: 100%|██████████|  915MB /  915MB            [A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-  ...0k_local/subset-00003.tar:  92%|█████████▏| 1.06GB / 1.14GB            [A[A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-
-  ...0k_local/subset-00001.tar:  86%|████████▌ | 1.04GB / 1.21GB            [A[A[A[A[A[A[A[A[A[A[AProcessing Files (8 / 10)     :  98%|█████████▊| 10.2GB / 10.4GB,  821MB/s  
-
-  ...0k_local/subset-00005.tar: 100%|██████████|  974MB /  974MB            [A[A
-
-
-  ...0k_local/subset-00000.tar: 100%|██████████| 1.13GB / 1.13GB            [A[A[A
-
-
-
-  ...0k_local/subset-00007.tar: 100%|██████████|  987MB /  987MB            [A[A[A[A
-
-
-
-
-  ...0k_local/subset-00002.tar: 100%|██████████| 1.08GB / 1.08GB            [A[A[A[A[A
-
-
-
-
-
-  ...0k_local/subset-00009.tar: 100%|██████████|  991MB /  991MB            [A[A[A[A[A[A
-
-
-
-
-
-
-  ...0k_local/subset-00004.tar: 100%|██████████| 1.06GB / 1.06GB            [A[A[A[A[A[A[A
-
-
-
-
-
-
-
-  ...0k_local/subset-00006.tar: 100%|██████████|  954MB /  954MB            [A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-  ...0k_local/subset-00008.tar: 100%|██████████|  915MB /  915MB            [A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-  ...0k_local/subset-00003.tar:  94%|█████████▍| 1.08GB / 1.14GB            [A[A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-
-  ...0k_local/subset-00001.tar:  88%|████████▊ | 1.06GB / 1.21GB            [A[A[A[A[A[A[A[A[A[A[AProcessing Files (8 / 10)     :  98%|█████████▊| 10.2GB / 10.4GB,  798MB/s  
-
-  ...0k_local/subset-00005.tar: 100%|██████████|  974MB /  974MB            [A[A
-
-
-  ...0k_local/subset-00000.tar: 100%|██████████| 1.13GB / 1.13GB            [A[A[A
-
-
-
-  ...0k_local/subset-00007.tar: 100%|██████████|  987MB /  987MB            [A[A[A[A
-
-
-
-
-  ...0k_local/subset-00002.tar: 100%|██████████| 1.08GB / 1.08GB            [A[A[A[A[A
-
-
-
-
-
-  ...0k_local/subset-00009.tar: 100%|██████████|  991MB /  991MB            [A[A[A[A[A[A
-
-
-
-
-
-
-  ...0k_local/subset-00004.tar: 100%|██████████| 1.06GB / 1.06GB            [A[A[A[A[A[A[A
-
-
-
-
-
-
-
-  ...0k_local/subset-00006.tar: 100%|██████████|  954MB /  954MB            [A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-  ...0k_local/subset-00008.tar: 100%|██████████|  915MB /  915MB            [A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-  ...0k_local/subset-00003.tar:  97%|█████████▋| 1.10GB / 1.14GB            [A[A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-
-  ...0k_local/subset-00001.tar:  91%|█████████ | 1.10GB / 1.21GB            [A[A[A[A[A[A[A[A[A[A[AProcessing Files (8 / 10)     :  99%|█████████▊| 10.3GB / 10.4GB,  774MB/s  
-
-  ...0k_local/subset-00005.tar: 100%|██████████|  974MB /  974MB            [A[A
-
-
-  ...0k_local/subset-00000.tar: 100%|██████████| 1.13GB / 1.13GB            [A[A[A
-
-
-
-  ...0k_local/subset-00007.tar: 100%|██████████|  987MB /  987MB            [A[A[A[A
-
-
-
-
-  ...0k_local/subset-00002.tar: 100%|██████████| 1.08GB / 1.08GB            [A[A[A[A[A
-
-
-
-
-
-  ...0k_local/subset-00009.tar: 100%|██████████|  991MB /  991MB            [A[A[A[A[A[A
-
-
-
-
-
-
-  ...0k_local/subset-00004.tar: 100%|██████████| 1.06GB / 1.06GB            [A[A[A[A[A[A[A
-
-
-
-
-
-
-
-  ...0k_local/subset-00006.tar: 100%|██████████|  954MB /  954MB            [A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-  ...0k_local/subset-00008.tar: 100%|██████████|  915MB /  915MB            [A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-  ...0k_local/subset-00003.tar:  99%|█████████▉| 1.14GB / 1.14GB            [A[A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-
-  ...0k_local/subset-00001.tar:  93%|█████████▎| 1.12GB / 1.21GB            [A[A[A[A[A[A[A[A[A[A[AProcessing Files (8 / 10)     :  99%|█████████▉| 10.4GB / 10.4GB,  753MB/s  
-
-  ...0k_local/subset-00005.tar: 100%|██████████|  974MB /  974MB            [A[A
-
-
-  ...0k_local/subset-00000.tar: 100%|██████████| 1.13GB / 1.13GB            [A[A[A
-
-
-
-  ...0k_local/subset-00007.tar: 100%|██████████|  987MB /  987MB            [A[A[A[A
-
-
-
-
-  ...0k_local/subset-00002.tar: 100%|██████████| 1.08GB / 1.08GB            [A[A[A[A[A
-
-
-
-
-
-  ...0k_local/subset-00009.tar: 100%|██████████|  991MB /  991MB            [A[A[A[A[A[A
-
-
-
-
-
-
-  ...0k_local/subset-00004.tar: 100%|██████████| 1.06GB / 1.06GB            [A[A[A[A[A[A[A
-
-
-
-
-
-
-
-  ...0k_local/subset-00006.tar: 100%|██████████|  954MB /  954MB            [A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-  ...0k_local/subset-00008.tar: 100%|██████████|  915MB /  915MB            [A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-  ...0k_local/subset-00003.tar: 100%|██████████| 1.14GB / 1.14GB            [A[A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-
-  ...0k_local/subset-00001.tar:  95%|█████████▍| 1.14GB / 1.21GB            [A[A[A[A[A[A[A[A[A[A[AProcessing Files (9 / 10)     :  99%|█████████▉| 10.4GB / 10.4GB,  730MB/s  
-
-  ...0k_local/subset-00005.tar: 100%|██████████|  974MB /  974MB            [A[A
-
-
-  ...0k_local/subset-00000.tar: 100%|██████████| 1.13GB / 1.13GB            [A[A[A
-
-
-
-  ...0k_local/subset-00007.tar: 100%|██████████|  987MB /  987MB            [A[A[A[A
-
-
-
-
-  ...0k_local/subset-00002.tar: 100%|██████████| 1.08GB / 1.08GB            [A[A[A[A[A
-
-
-
-
-
-  ...0k_local/subset-00009.tar: 100%|██████████|  991MB /  991MB            [A[A[A[A[A[A
-
-
-
-
-
-
-  ...0k_local/subset-00004.tar: 100%|██████████| 1.06GB / 1.06GB            [A[A[A[A[A[A[A
-
-
-
-
-
-
-
-  ...0k_local/subset-00006.tar: 100%|██████████|  954MB /  954MB            [A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-  ...0k_local/subset-00008.tar: 100%|██████████|  915MB /  915MB            [A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-  ...0k_local/subset-00003.tar: 100%|██████████| 1.14GB / 1.14GB            [A[A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-
-  ...0k_local/subset-00001.tar:  97%|█████████▋| 1.18GB / 1.21GB            [A[A[A[A[A[A[A[A[A[A[AProcessing Files (9 / 10)     : 100%|█████████▉| 10.4GB / 10.4GB,  707MB/s  
-
-  ...0k_local/subset-00005.tar: 100%|██████████|  974MB /  974MB            [A[A
-
-
-  ...0k_local/subset-00000.tar: 100%|██████████| 1.13GB / 1.13GB            [A[A[A
-
-
-
-  ...0k_local/subset-00007.tar: 100%|██████████|  987MB /  987MB            [A[A[A[A
-
-
-
-
-  ...0k_local/subset-00002.tar: 100%|██████████| 1.08GB / 1.08GB            [A[A[A[A[A
-
-
-
-
-
-  ...0k_local/subset-00009.tar: 100%|██████████|  991MB /  991MB            [A[A[A[A[A[A
-
-
-
-
-
-
-  ...0k_local/subset-00004.tar: 100%|██████████| 1.06GB / 1.06GB            [A[A[A[A[A[A[A
-
-
-
-
-
-
-
-  ...0k_local/subset-00006.tar: 100%|██████████|  954MB /  954MB            [A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-  ...0k_local/subset-00008.tar: 100%|██████████|  915MB /  915MB            [A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-  ...0k_local/subset-00003.tar: 100%|██████████| 1.14GB / 1.14GB            [A[A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-
-  ...0k_local/subset-00001.tar:  99%|█████████▉| 1.20GB / 1.21GB            [A[A[A[A[A[A[A[A[A[A[AProcessing Files (9 / 10)     : 100%|█████████▉| 10.4GB / 10.4GB,  682MB/s  
-
-  ...0k_local/subset-00005.tar: 100%|██████████|  974MB /  974MB            [A[A
-
-
-  ...0k_local/subset-00000.tar: 100%|██████████| 1.13GB / 1.13GB            [A[A[A
-
-
-
-  ...0k_local/subset-00007.tar: 100%|██████████|  987MB /  987MB            [A[A[A[A
-
-
-
-
-  ...0k_local/subset-00002.tar: 100%|██████████| 1.08GB / 1.08GB            [A[A[A[A[A
-
-
-
-
-
-  ...0k_local/subset-00009.tar: 100%|██████████|  991MB /  991MB            [A[A[A[A[A[A
-
-
-
-
-
-
-  ...0k_local/subset-00004.tar: 100%|██████████| 1.06GB / 1.06GB            [A[A[A[A[A[A[A
-
-
-
-
-
-
-
-  ...0k_local/subset-00006.tar: 100%|██████████|  954MB /  954MB            [A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-  ...0k_local/subset-00008.tar: 100%|██████████|  915MB /  915MB            [A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-  ...0k_local/subset-00003.tar: 100%|██████████| 1.14GB / 1.14GB            [A[A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-
-  ...0k_local/subset-00001.tar: 100%|██████████| 1.21GB / 1.21GB            [A[A[A[A[A[A[A[A[A[A[AProcessing Files (10 / 10)    : 100%|██████████| 10.4GB / 10.4GB,  655MB/s  
-
-  ...0k_local/subset-00005.tar: 100%|██████████|  974MB /  974MB            [A[A
-
-
-  ...0k_local/subset-00000.tar: 100%|██████████| 1.13GB / 1.13GB            [A[A[A
-
-
-
-  ...0k_local/subset-00007.tar: 100%|██████████|  987MB /  987MB            [A[A[A[A
-
-
-
-
-  ...0k_local/subset-00002.tar: 100%|██████████| 1.08GB / 1.08GB            [A[A[A[A[A
-
-
-
-
-
-  ...0k_local/subset-00009.tar: 100%|██████████|  991MB /  991MB            [A[A[A[A[A[A
-
-
-
-
-
-
-  ...0k_local/subset-00004.tar: 100%|██████████| 1.06GB / 1.06GB            [A[A[A[A[A[A[A
-
-
-
-
-
-
-
-  ...0k_local/subset-00006.tar: 100%|██████████|  954MB /  954MB            [A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-  ...0k_local/subset-00008.tar: 100%|██████████|  915MB /  915MB            [A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-  ...0k_local/subset-00003.tar: 100%|██████████| 1.14GB / 1.14GB            [A[A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-
-  ...0k_local/subset-00001.tar: 100%|██████████| 1.21GB / 1.21GB            [A[A[A[A[A[A[A[A[A[A[A
-
-  ...0k_local/subset-00005.tar: 100%|██████████|  974MB /  974MB            [A[A
-
-
-  ...0k_local/subset-00000.tar: 100%|██████████| 1.13GB / 1.13GB            [A[A[A
-
-
-
-  ...0k_local/subset-00007.tar: 100%|██████████|  987MB /  987MB            [A[A[A[A
-
-
-
-
-  ...0k_local/subset-00002.tar: 100%|██████████| 1.08GB / 1.08GB            [A[A[A[A[A
-
-
-
-
-
-  ...0k_local/subset-00009.tar: 100%|██████████|  991MB /  991MB            [A[A[A[A[A[A
-
-
-
-
-
-
-  ...0k_local/subset-00004.tar: 100%|██████████| 1.06GB / 1.06GB            [A[A[A[A[A[A[A
-
-
-
-
-
-
-
-  ...0k_local/subset-00006.tar: 100%|██████████|  954MB /  954MB            [A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-  ...0k_local/subset-00008.tar: 100%|██████████|  915MB /  915MB            [A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-  ...0k_local/subset-00003.tar: 100%|██████████| 1.14GB / 1.14GB            [A[A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-
-  ...0k_local/subset-00001.tar: 100%|██████████| 1.21GB / 1.21GB            [A[A[A[A[A[A[A[A[A[A[A
-
-  ...0k_local/subset-00005.tar: 100%|██████████|  974MB /  974MB            [A[A
-
-
-  ...0k_local/subset-00000.tar: 100%|██████████| 1.13GB / 1.13GB            [A[A[A
-
-
-
-  ...0k_local/subset-00007.tar: 100%|██████████|  987MB /  987MB            [A[A[A[A
-
-
-
-
-  ...0k_local/subset-00002.tar: 100%|██████████| 1.08GB / 1.08GB            [A[A[A[A[A
-
-
-
-
-
-  ...0k_local/subset-00009.tar: 100%|██████████|  991MB /  991MB            [A[A[A[A[A[A
-
-
-
-
-
-
-  ...0k_local/subset-00004.tar: 100%|██████████| 1.06GB / 1.06GB            [A[A[A[A[A[A[A
-
-
-
-
-
-
-
-  ...0k_local/subset-00006.tar: 100%|██████████|  954MB /  954MB            [A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-  ...0k_local/subset-00008.tar: 100%|██████████|  915MB /  915MB            [A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-  ...0k_local/subset-00003.tar: 100%|██████████| 1.14GB / 1.14GB            [A[A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-
-  ...0k_local/subset-00001.tar: 100%|██████████| 1.21GB / 1.21GB            [A[A[A[A[A[A[A[A[A[A[A
-
-  ...0k_local/subset-00005.tar: 100%|██████████|  974MB /  974MB            [A[A
-
-
-  ...0k_local/subset-00000.tar: 100%|██████████| 1.13GB / 1.13GB            [A[A[A
-
-
-
-  ...0k_local/subset-00007.tar: 100%|██████████|  987MB /  987MB            [A[A[A[A
-
-
-
-
-  ...0k_local/subset-00002.tar: 100%|██████████| 1.08GB / 1.08GB            [A[A[A[A[A
-
-
-
-
-
-  ...0k_local/subset-00009.tar: 100%|██████████|  991MB /  991MB            [A[A[A[A[A[A
-
-
-
-
-
-
-  ...0k_local/subset-00004.tar: 100%|██████████| 1.06GB / 1.06GB            [A[A[A[A[A[A[A
-
-
-
-
-
-
-
-  ...0k_local/subset-00006.tar: 100%|██████████|  954MB /  954MB            [A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-  ...0k_local/subset-00008.tar: 100%|██████████|  915MB /  915MB            [A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-  ...0k_local/subset-00003.tar: 100%|██████████| 1.14GB / 1.14GB            [A[A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-
-  ...0k_local/subset-00001.tar: 100%|██████████| 1.21GB / 1.21GB            [A[A[A[A[A[A[A[A[A[A[A
-
-  ...0k_local/subset-00005.tar: 100%|██████████|  974MB /  974MB            [A[A
-
-
-  ...0k_local/subset-00000.tar: 100%|██████████| 1.13GB / 1.13GB            [A[A[A
-
-
-
-  ...0k_local/subset-00007.tar: 100%|██████████|  987MB /  987MB            [A[A[A[A
-
-
-
-
-  ...0k_local/subset-00002.tar: 100%|██████████| 1.08GB / 1.08GB            [A[A[A[A[A
-
-
-
-
-
-  ...0k_local/subset-00009.tar: 100%|██████████|  991MB /  991MB            [A[A[A[A[A[A
-
-
-
-
-
-
-  ...0k_local/subset-00004.tar: 100%|██████████| 1.06GB / 1.06GB            [A[A[A[A[A[A[A
-
-
-
-
-
-
-
-  ...0k_local/subset-00006.tar: 100%|██████████|  954MB /  954MB            [A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-  ...0k_local/subset-00008.tar: 100%|██████████|  915MB /  915MB            [A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-  ...0k_local/subset-00003.tar: 100%|██████████| 1.14GB / 1.14GB            [A[A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-
-  ...0k_local/subset-00001.tar: 100%|██████████| 1.21GB / 1.21GB            [A[A[A[A[A[A[A[A[A[A[A
-
-  ...0k_local/subset-00005.tar: 100%|██████████|  974MB /  974MB            [A[A
-
-
-  ...0k_local/subset-00000.tar: 100%|██████████| 1.13GB / 1.13GB            [A[A[A
-
-
-
-  ...0k_local/subset-00007.tar: 100%|██████████|  987MB /  987MB            [A[A[A[A
-
-
-
-
-  ...0k_local/subset-00002.tar: 100%|██████████| 1.08GB / 1.08GB            [A[A[A[A[A
-
-
-
-
-
-  ...0k_local/subset-00009.tar: 100%|██████████|  991MB /  991MB            [A[A[A[A[A[A
-
-
-
-
-
-
-  ...0k_local/subset-00004.tar: 100%|██████████| 1.06GB / 1.06GB            [A[A[A[A[A[A[A
-
-
-
-
-
-
-
-  ...0k_local/subset-00006.tar: 100%|██████████|  954MB /  954MB            [A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-  ...0k_local/subset-00008.tar: 100%|██████████|  915MB /  915MB            [A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-  ...0k_local/subset-00003.tar: 100%|██████████| 1.14GB / 1.14GB            [A[A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-
-  ...0k_local/subset-00001.tar: 100%|██████████| 1.21GB / 1.21GB            [A[A[A[A[A[A[A[A[A[A[A
-
-  ...0k_local/subset-00005.tar: 100%|██████████|  974MB /  974MB            [A[A
-
-
-  ...0k_local/subset-00000.tar: 100%|██████████| 1.13GB / 1.13GB            [A[A[A
-
-
-
-  ...0k_local/subset-00007.tar: 100%|██████████|  987MB /  987MB            [A[A[A[A
-
-
-
-
-  ...0k_local/subset-00002.tar: 100%|██████████| 1.08GB / 1.08GB            [A[A[A[A[A
-
-
-
-
-
-  ...0k_local/subset-00009.tar: 100%|██████████|  991MB /  991MB            [A[A[A[A[A[A
-
-
-
-
-
-
-  ...0k_local/subset-00004.tar: 100%|██████████| 1.06GB / 1.06GB            [A[A[A[A[A[A[A
-
-
-
-
-
-
-
-  ...0k_local/subset-00006.tar: 100%|██████████|  954MB /  954MB            [A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-  ...0k_local/subset-00008.tar: 100%|██████████|  915MB /  915MB            [A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-  ...0k_local/subset-00003.tar: 100%|██████████| 1.14GB / 1.14GB            [A[A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-
-  ...0k_local/subset-00001.tar: 100%|██████████| 1.21GB / 1.21GB            [A[A[A[A[A[A[A[A[A[A[A
-
-  ...0k_local/subset-00005.tar: 100%|██████████|  974MB /  974MB            [A[A
-
-
-  ...0k_local/subset-00000.tar: 100%|██████████| 1.13GB / 1.13GB            [A[A[A
-
-
-
-  ...0k_local/subset-00007.tar: 100%|██████████|  987MB /  987MB            [A[A[A[A
-
-
-
-
-  ...0k_local/subset-00002.tar: 100%|██████████| 1.08GB / 1.08GB            [A[A[A[A[A
-
-
-
-
-
-  ...0k_local/subset-00009.tar: 100%|██████████|  991MB /  991MB            [A[A[A[A[A[A
-
-
-
-
-
-
-  ...0k_local/subset-00004.tar: 100%|██████████| 1.06GB / 1.06GB            [A[A[A[A[A[A[A
-
-
-
-
-
-
-
-  ...0k_local/subset-00006.tar: 100%|██████████|  954MB /  954MB            [A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-  ...0k_local/subset-00008.tar: 100%|██████████|  915MB /  915MB            [A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-  ...0k_local/subset-00003.tar: 100%|██████████| 1.14GB / 1.14GB            [A[A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-
-  ...0k_local/subset-00001.tar: 100%|██████████| 1.21GB / 1.21GB            [A[A[A[A[A[A[A[A[A[A[A
-
-  ...0k_local/subset-00005.tar: 100%|██████████|  974MB /  974MB            [A[A
-
-
-  ...0k_local/subset-00000.tar: 100%|██████████| 1.13GB / 1.13GB            [A[A[A
-
-
-
-  ...0k_local/subset-00007.tar: 100%|██████████|  987MB /  987MB            [A[A[A[A
-
-
-
-
-  ...0k_local/subset-00002.tar: 100%|██████████| 1.08GB / 1.08GB            [A[A[A[A[A
-
-
-
-
-
-  ...0k_local/subset-00009.tar: 100%|██████████|  991MB /  991MB            [A[A[A[A[A[A
-
-
-
-
-
-
-  ...0k_local/subset-00004.tar: 100%|██████████| 1.06GB / 1.06GB            [A[A[A[A[A[A[A
-
-
-
-
-
-
-
-  ...0k_local/subset-00006.tar: 100%|██████████|  954MB /  954MB            [A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-  ...0k_local/subset-00008.tar: 100%|██████████|  915MB /  915MB            [A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-  ...0k_local/subset-00003.tar: 100%|██████████| 1.14GB / 1.14GB            [A[A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-
-  ...0k_local/subset-00001.tar: 100%|██████████| 1.21GB / 1.21GB            [A[A[A[A[A[A[A[A[A[A[A
-
-  ...0k_local/subset-00005.tar: 100%|██████████|  974MB /  974MB            [A[A
-
-
-  ...0k_local/subset-00000.tar: 100%|██████████| 1.13GB / 1.13GB            [A[A[A
-
-
-
-  ...0k_local/subset-00007.tar: 100%|██████████|  987MB /  987MB            [A[A[A[A
-
-
-
-
-  ...0k_local/subset-00002.tar: 100%|██████████| 1.08GB / 1.08GB            [A[A[A[A[A
-
-
-
-
-
-  ...0k_local/subset-00009.tar: 100%|██████████|  991MB /  991MB            [A[A[A[A[A[A
-
-
-
-
-
-
-  ...0k_local/subset-00004.tar: 100%|██████████| 1.06GB / 1.06GB            [A[A[A[A[A[A[A
-
-
-
-
-
-
-
-  ...0k_local/subset-00006.tar: 100%|██████████|  954MB /  954MB            [A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-  ...0k_local/subset-00008.tar: 100%|██████████|  915MB /  915MB            [A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-  ...0k_local/subset-00003.tar: 100%|██████████| 1.14GB / 1.14GB            [A[A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-
-  ...0k_local/subset-00001.tar: 100%|██████████| 1.21GB / 1.21GB            [A[A[A[A[A[A[A[A[A[A[A
-
-  ...0k_local/subset-00005.tar: 100%|██████████|  974MB /  974MB            [A[A
-
-
-  ...0k_local/subset-00000.tar: 100%|██████████| 1.13GB / 1.13GB            [A[A[A
-
-
-
-  ...0k_local/subset-00007.tar: 100%|██████████|  987MB /  987MB            [A[A[A[A
-
-
-
-
-  ...0k_local/subset-00002.tar: 100%|██████████| 1.08GB / 1.08GB            [A[A[A[A[A
-
-
-
-
-
-  ...0k_local/subset-00009.tar: 100%|██████████|  991MB /  991MB            [A[A[A[A[A[A
-
-
-
-
-
-
-  ...0k_local/subset-00004.tar: 100%|██████████| 1.06GB / 1.06GB            [A[A[A[A[A[A[A
-
-
-
-
-
-
-
-  ...0k_local/subset-00006.tar: 100%|██████████|  954MB /  954MB            [A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-  ...0k_local/subset-00008.tar: 100%|██████████|  915MB /  915MB            [A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-  ...0k_local/subset-00003.tar: 100%|██████████| 1.14GB / 1.14GB            [A[A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-
-  ...0k_local/subset-00001.tar: 100%|██████████| 1.21GB / 1.21GB            [A[A[A[A[A[A[A[A[A[A[A
-
-  ...0k_local/subset-00005.tar: 100%|██████████|  974MB /  974MB            [A[A
-
-
-  ...0k_local/subset-00000.tar: 100%|██████████| 1.13GB / 1.13GB            [A[A[A
-
-
-
-  ...0k_local/subset-00007.tar: 100%|██████████|  987MB /  987MB            [A[A[A[A
-
-
-
-
-  ...0k_local/subset-00002.tar: 100%|██████████| 1.08GB / 1.08GB            [A[A[A[A[A
-
-
-
-
-
-  ...0k_local/subset-00009.tar: 100%|██████████|  991MB /  991MB            [A[A[A[A[A[A
-
-
-
-
-
-
-  ...0k_local/subset-00004.tar: 100%|██████████| 1.06GB / 1.06GB            [A[A[A[A[A[A[A
-
-
-
-
-
-
-
-  ...0k_local/subset-00006.tar: 100%|██████████|  954MB /  954MB            [A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-  ...0k_local/subset-00008.tar: 100%|██████████|  915MB /  915MB            [A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-  ...0k_local/subset-00003.tar: 100%|██████████| 1.14GB / 1.14GB            [A[A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-
-  ...0k_local/subset-00001.tar: 100%|██████████| 1.21GB / 1.21GB            [A[A[A[A[A[A[A[A[A[A[A
-
-  ...0k_local/subset-00005.tar: 100%|██████████|  974MB /  974MB            [A[A
-
-
-  ...0k_local/subset-00000.tar: 100%|██████████| 1.13GB / 1.13GB            [A[A[A
-
-
-
-  ...0k_local/subset-00007.tar: 100%|██████████|  987MB /  987MB            [A[A[A[A
-
-
-
-
-  ...0k_local/subset-00002.tar: 100%|██████████| 1.08GB / 1.08GB            [A[A[A[A[A
-
-
-
-
-
-  ...0k_local/subset-00009.tar: 100%|██████████|  991MB /  991MB            [A[A[A[A[A[A
-
-
-
-
-
-
-  ...0k_local/subset-00004.tar: 100%|██████████| 1.06GB / 1.06GB            [A[A[A[A[A[A[A
-
-
-
-
-
-
-
-  ...0k_local/subset-00006.tar: 100%|██████████|  954MB /  954MB            [A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-  ...0k_local/subset-00008.tar: 100%|██████████|  915MB /  915MB            [A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-  ...0k_local/subset-00003.tar: 100%|██████████| 1.14GB / 1.14GB            [A[A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-
-  ...0k_local/subset-00001.tar: 100%|██████████| 1.21GB / 1.21GB            [A[A[A[A[A[A[A[A[A[A[A
-
-  ...0k_local/subset-00005.tar: 100%|██████████|  974MB /  974MB            [A[A
-
-
-  ...0k_local/subset-00000.tar: 100%|██████████| 1.13GB / 1.13GB            [A[A[A
-
-
-
-  ...0k_local/subset-00007.tar: 100%|██████████|  987MB /  987MB            [A[A[A[A
-
-
-
-
-  ...0k_local/subset-00002.tar: 100%|██████████| 1.08GB / 1.08GB            [A[A[A[A[A
-
-
-
-
-
-  ...0k_local/subset-00009.tar: 100%|██████████|  991MB /  991MB            [A[A[A[A[A[A
-
-
-
-
-
-
-  ...0k_local/subset-00004.tar: 100%|██████████| 1.06GB / 1.06GB            [A[A[A[A[A[A[A
-
-
-
-
-
-
-
-  ...0k_local/subset-00006.tar: 100%|██████████|  954MB /  954MB            [A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-  ...0k_local/subset-00008.tar: 100%|██████████|  915MB /  915MB            [A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-  ...0k_local/subset-00003.tar: 100%|██████████| 1.14GB / 1.14GB            [A[A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-
-  ...0k_local/subset-00001.tar: 100%|██████████| 1.21GB / 1.21GB            [A[A[A[A[A[A[A[A[A[A[AProcessing Files (10 / 10)    : 100%|██████████| 10.4GB / 10.4GB,  266MB/s  
-New Data Upload               : |          |  0.00B /  0.00B,  0.00B/s  
-  ...0k_local/subset-00005.tar: 100%|██████████|  974MB /  974MB            
-  ...0k_local/subset-00000.tar: 100%|██████████| 1.13GB / 1.13GB            
-  ...0k_local/subset-00007.tar: 100%|██████████|  987MB /  987MB            
-  ...0k_local/subset-00002.tar: 100%|██████████| 1.08GB / 1.08GB            
-  ...0k_local/subset-00009.tar: 100%|██████████|  991MB /  991MB            
-  ...0k_local/subset-00004.tar: 100%|██████████| 1.06GB / 1.06GB            
-  ...0k_local/subset-00006.tar: 100%|██████████|  954MB /  954MB            
-  ...0k_local/subset-00008.tar: 100%|██████████|  915MB /  915MB            
-  ...0k_local/subset-00003.tar: 100%|██████████| 1.14GB / 1.14GB            
-  ...0k_local/subset-00001.tar: 100%|██████████| 1.21GB / 1.21GB            
-No files have been modified since last commit. Skipping to prevent empty commit.
-  Uploading data/val_1k_local/ → data/val_1k_local/ (2 files)
-Processing Files (0 / 0)      : |          |  0.00B /  0.00B            
-New Data Upload               : |          |  0.00B /  0.00B            [A
-
-  ...1k_local/subset-00000.tar:  13%|█▎        | 39.9MB /  308MB            [A[A
-
-  ...1k_local/subset-00000.tar:  13%|█▎        | 39.9MB /  308MB            [A[AProcessing Files (0 / 1)      :  13%|█▎        | 39.9MB /  308MB,   ???B/s  
-
-  ...1k_local/subset-00000.tar:  23%|██▎       | 72.0MB /  308MB            [A[AProcessing Files (0 / 1)      :  23%|██▎       | 72.0MB /  308MB,  160MB/s  
-
-  ...1k_local/subset-00000.tar:  34%|███▍      |  104MB /  308MB            [A[AProcessing Files (0 / 1)      :  34%|███▍      |  104MB /  308MB,  160MB/s  
-
-  ...1k_local/subset-00000.tar:  44%|████▍     |  136MB /  308MB            [A[AProcessing Files (0 / 1)      :  44%|████▍     |  136MB /  308MB,  160MB/s  
-
-  ...1k_local/subset-00000.tar:  55%|█████▍    |  168MB /  308MB            [A[AProcessing Files (0 / 1)      :  55%|█████▍    |  168MB /  308MB,  160MB/s  
-
-  ...1k_local/subset-00000.tar:  68%|██████▊   |  208MB /  308MB            [A[AProcessing Files (0 / 1)      :  68%|██████▊   |  208MB /  308MB,  168MB/s  
-
-  ...1k_local/subset-00000.tar:  78%|███████▊  |  240MB /  308MB            [A[AProcessing Files (0 / 1)      :  78%|███████▊  |  240MB /  308MB,  167MB/s  
-
-  ...1k_local/subset-00000.tar:  88%|████████▊ |  272MB /  308MB            [A[AProcessing Files (0 / 1)      :  88%|████████▊ |  272MB /  308MB,  166MB/s  
-
-  ...1k_local/subset-00000.tar:  99%|█████████▊|  304MB /  308MB            [A[AProcessing Files (0 / 1)      :  99%|█████████▊|  304MB /  308MB,  165MB/s  
-
-  ...1k_local/subset-00000.tar: 100%|██████████|  308MB /  308MB            [A[AProcessing Files (1 / 1)      : 100%|██████████|  308MB /  308MB,  149MB/s  
-
-  ...1k_local/subset-00000.tar: 100%|██████████|  308MB /  308MB            [A[A
-
-  ...1k_local/subset-00000.tar: 100%|██████████|  308MB /  308MB            [A[A
-
-  ...1k_local/subset-00000.tar: 100%|██████████|  308MB /  308MB            [A[A
-
-  ...1k_local/subset-00000.tar: 100%|██████████|  308MB /  308MB            [A[A
-
-  ...1k_local/subset-00000.tar: 100%|██████████|  308MB /  308MB            [A[A
-
-  ...1k_local/subset-00000.tar: 100%|██████████|  308MB /  308MB            [A[AProcessing Files (1 / 1)      : 100%|██████████|  308MB /  308MB, 95.8MB/s  
-New Data Upload               : |          |  0.00B /  0.00B,  0.00B/s  
-  ...1k_local/subset-00000.tar: 100%|██████████|  308MB /  308MB            
-No files have been modified since last commit. Skipping to prevent empty commit.
-Data upload complete → https://huggingface.co/datasets/anonymousML123/factorjepa-outputs

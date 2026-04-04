@@ -17,6 +17,7 @@ import time
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent))
+from utils.progress import make_pbar
 from utils.config import (
     CLIPS_DIR, SHARDS_DIR, HF_DATASET_REPO, OUTPUTS_DATA_PREP_DIR,
 )
@@ -164,6 +165,7 @@ def main():
     total_size_uploaded = 0
     total_clips_uploaded = 0
     start = time.time()
+    pbar = make_pbar(total=total_shards, desc="m03_shards", unit="shard")
 
     for shard_idx in range(total_shards):
         shard_start = time.time()
@@ -206,6 +208,9 @@ def main():
             print(f"  [{shard_idx + 1}/{total_shards}] ERROR uploading {shard_name}: {e}")
             print(f"  Shard kept at: {shard_path}")
             print(f"  Re-run to retry (already-uploaded shards will be overwritten)")
+        pbar.update(1)
+
+    pbar.close()
 
     # Step 4: Upload README
     print(f"\nStep 4: Uploading README.md...")

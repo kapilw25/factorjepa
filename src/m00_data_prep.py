@@ -16,6 +16,7 @@ from pathlib import Path
 
 # Add src to path for utils import
 sys.path.insert(0, str(Path(__file__).parent))
+from utils.progress import make_pbar
 
 # Paths
 from utils.config import OUTPUTS_DATA_PREP_DIR
@@ -79,8 +80,6 @@ def parse_markdown(md_content: str) -> dict:
         "Chandigarh", "Indore", "Bhopal", "Coimbatore", "Nagpur",
         "Visakhapatnam", "Surat", "Thiruvananthapuram", "Mysuru"
     ]
-
-    monument_names = []
 
     while i < len(lines):
         line = lines[i].strip()
@@ -452,8 +451,6 @@ def create_city_matrix(data: dict) -> dict:
     cities_tier2 = ["jaipur", "varanasi", "lucknow", "ahmedabad", "pune", "kochi",
                     "chandigarh", "indore", "bhopal", "coimbatore", "nagpur",
                     "visakhapatnam", "surat", "thiruvananthapuram", "mysuru"]
-    cities_other = ["goa"]
-
     matrix = {}
 
     # Tier 1 cities
@@ -668,7 +665,9 @@ def main():
 
     # Task 1 & 2: Parse and convert to JSON
     print("\n=== Parsing markdown to JSON ===")
+    pbar = make_pbar(total=5, desc="m00_data_prep", unit="step")
     data = parse_markdown(md_content)
+    pbar.update(1)  # parse
 
     # Print metadata summary
     meta = data["metadata"]
@@ -686,16 +685,22 @@ def main():
     print("\n=== Checking for duplicate YouTube IDs ===")
     dup_data = find_duplicate_ids(data)
     print(f"Checked {dup_data['total_videos']} videos, found {dup_data['duplicate_count']} duplicates")
+    pbar.update(1)  # duplicates
 
     # Task 4: Word frequency
     print("\n=== Extracting titles for word frequency ===")
     titles = get_all_titles(data)
     print(f"Extracted {len(titles)} titles")
     freq_data = word_frequency_analysis(titles)
+    pbar.update(1)  # word frequency
 
     # Task 5: City matrix
     print("\n=== Creating city matrix ===")
     matrix_data = create_city_matrix(data)
+    pbar.update(1)  # city matrix
+
+    pbar.update(1)  # output
+    pbar.close()
 
     if args.SANITY:
         print("\n--- SANITY MODE: Summary only ---")

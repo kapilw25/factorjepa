@@ -30,14 +30,20 @@ ABLATION (drift control lambda sweep — run sequentially or on 4 GPUs):
         --FULL --subset data/subset_10k.json --local-data data/subset_10k_local \
         --lambda-reg 0.1 2>&1 | tee logs/m09_lambda0_1.log
 """
+import os
+os.environ.setdefault("OMP_NUM_THREADS", "1")   # Must be before torch import
+os.environ.setdefault("MKL_NUM_THREADS", "1")   # Prevent OpenMP thread explosion in workers
+
 import argparse
 import copy
 import csv
 import gc
 import glob
 import json
-import os
+import math
 import queue
+import random
+import shutil
 import sys
 import tempfile
 import threading
@@ -55,7 +61,7 @@ from utils.config import (
     add_subset_arg, add_local_data_arg, get_output_dir, load_subset,
     get_pipeline_config,
 )
-from utils.data_download import ensure_local_data
+from utils.data_download import ensure_local_data, iter_clips_parallel
 from utils.wandb_utils import (
     add_wandb_args, init_wandb, log_metrics, finish_wandb,
 )
@@ -116,13 +122,16 @@ def merge_config_with_args(cfg: dict, args) -> dict:
         # SANITY: use 0.001 as default (just testing code paths, not real training)
         cfg["drift_control"]["lambda_reg"] = 0.001
 
-    # Output dir: base/m09_lambda{value}/ for ablation isolation
+    # Output dir: explicit --output-dir, or auto from mode + lambda
+    if getattr(args, "output_dir", None):
+        cfg["checkpoint"]["output_dir"] = args.output_dir
+        return cfg
     base_out = get_output_dir(args.subset, sanity=args.SANITY)
     lam = cfg["drift_control"]["lambda_reg"]
     if lam is None:
-        print("FATAL: lambda_reg is not set. Run ablation first or pass --lambda-reg.")
-        print("  Auto-ablation will run if you omit --lambda-reg in non-SANITY mode.")
-        sys.exit(1)
+        # Auto-ablation in main() will set lambda_reg and output_dir later
+        cfg["checkpoint"]["output_dir"] = str(base_out / "m09_pending_ablation")
+        return cfg
     lam_str = f"{lam:g}".replace(".", "_")  # 0.0→"0", 0.01→"0_01" (no trailing .0)
     cfg["checkpoint"]["output_dir"] = str(base_out / f"m09_lambda{lam_str}")
     return cfg
@@ -188,84 +197,86 @@ def producer_thread(cfg: dict, q: queue.Queue, stop_event: threading.Event,
 
     tmp_dir = tempfile.mkdtemp(prefix="m09_")
 
+    def _decode_batch(pool, pending_bytes, pending_keys):
+        """Decode + augment a batch using the shared thread pool."""
+        futures = [
+            pool.submit(decode_video_bytes, b, tmp_dir, k, num_frames)
+            for b, k in zip(pending_bytes, pending_keys)
+        ]
+        results = [(f.result(), k) for f, k in zip(futures, pending_keys)]
+
+        batch_tensors = [t for t, k in results if t is not None]
+        batch_keys = [k for t, k in results if t is not None]
+
+        if batch_tensors:
+            augmented = [augment_clip_consistent(vt, cfg_aug, crop_size)
+                         for vt in batch_tensors]
+            batch = torch.stack(augmented, dim=0).permute(0, 2, 1, 3, 4)
+            q.put(("batch", batch, batch_keys[:]))
+
     try:
-        while not stop_event.is_set():
-            try:
-                epoch += 1
-                if epoch > 1:
-                    print(f"  Producer: starting epoch {epoch}")
-                ds = _create_stream(0, local_data=local_data)
-                pending_bytes, pending_keys = [], []
+        # Single thread pool for entire producer lifetime (avoids thread exhaustion —
+        # creating per-batch leaks threads: CPython #98467, ffmpeg spawns 16 internal
+        # threads per decoder when thread_count=0)
+        with ThreadPoolExecutor(max_workers=DECODE_WORKERS) as pool:
+            while not stop_event.is_set():
+                try:
+                    epoch += 1
+                    if epoch > 1:
+                        print(f"  Producer: starting epoch {epoch}")
+                    pending_bytes, pending_keys = [], []
 
-                for example in ds:
-                    if stop_event.is_set():
+                    if local_data:
+                        # Fast path: parallel TAR readers (8 threads per epoch)
+                        clip_q, tar_stop, _reader = iter_clips_parallel(
+                            local_data, subset_keys=train_keys or None)
+                        while not stop_event.is_set():
+                            item = clip_q.get(timeout=120)
+                            if item is None:
+                                break
+                            clip_key, mp4_bytes = item
+                            if not mp4_bytes:
+                                continue
+                            pending_bytes.append(mp4_bytes)
+                            pending_keys.append(clip_key)
+                            if len(pending_bytes) >= batch_size:
+                                _decode_batch(pool, pending_bytes, pending_keys)
+                                pending_bytes, pending_keys = [], []
+                        tar_stop.set()
+                    else:
+                        # Fallback: sequential HF streaming
+                        ds = _create_stream(0, local_data=local_data)
+                        for example in ds:
+                            if stop_event.is_set():
+                                break
+                            clip_key = get_clip_key(example)
+                            if train_keys and clip_key not in train_keys:
+                                continue
+                            mp4_data = example.get("mp4", b"")
+                            mp4_bytes = mp4_data["bytes"] if isinstance(mp4_data, dict) else mp4_data
+                            if not mp4_bytes:
+                                continue
+                            pending_bytes.append(mp4_bytes)
+                            pending_keys.append(clip_key)
+                            if len(pending_bytes) >= batch_size:
+                                _decode_batch(pool, pending_bytes, pending_keys)
+                                pending_bytes, pending_keys = [], []
+
+                    # Handle final partial batch
+                    if pending_bytes and not stop_event.is_set():
+                        _decode_batch(pool, pending_bytes, pending_keys)
+
+                    # Loop to next epoch (don't break — training needs multiple passes)
+
+                except (ConnectionError, TimeoutError, OSError) as e:
+                    retries += 1
+                    if retries > MAX_STREAM_RETRIES:
+                        print(f"  FATAL: stream failed after {MAX_STREAM_RETRIES} retries: {e}")
                         break
-
-                    clip_key = get_clip_key(example)
-                    if train_keys and clip_key not in train_keys:
-                        continue
-
-                    mp4_data = example.get("mp4", b"")
-                    mp4_bytes = mp4_data["bytes"] if isinstance(mp4_data, dict) else mp4_data
-                    if not mp4_bytes:
-                        continue
-
-                    pending_bytes.append(mp4_bytes)
-                    pending_keys.append(clip_key)
-
-                    if len(pending_bytes) >= batch_size:
-                        with ThreadPoolExecutor(max_workers=DECODE_WORKERS) as pool:
-                            futures = [
-                                pool.submit(decode_video_bytes, b, tmp_dir, k, num_frames)
-                                for b, k in zip(pending_bytes, pending_keys)
-                            ]
-                            results = [(f.result(), k) for f, k in zip(futures, pending_keys)]
-
-                        batch_tensors = [t for t, k in results if t is not None]
-                        batch_keys = [k for t, k in results if t is not None]
-
-                        if batch_tensors:
-                            augmented = []
-                            for vt in batch_tensors:
-                                aug = augment_clip_consistent(vt, cfg_aug, crop_size)
-                                augmented.append(aug)
-
-                            batch = torch.stack(augmented, dim=0)  # (B, T, C, H, W)
-                            batch = batch.permute(0, 2, 1, 3, 4)  # (B, C, T, H, W)
-                            q.put(("batch", batch, batch_keys[:]))
-
-                        pending_bytes, pending_keys = [], []
-                        retries = 0
-
-                # Handle final partial batch
-                if pending_bytes and not stop_event.is_set():
-                    with ThreadPoolExecutor(max_workers=DECODE_WORKERS) as pool:
-                        futures = [
-                            pool.submit(decode_video_bytes, b, tmp_dir, k, num_frames)
-                            for b, k in zip(pending_bytes, pending_keys)
-                        ]
-                        results = [(f.result(), k) for f, k in zip(futures, pending_keys)]
-
-                    batch_tensors = [t for t, k in results if t is not None]
-                    batch_keys = [k for t, k in results if t is not None]
-                    if batch_tensors:
-                        augmented = [augment_clip_consistent(vt, cfg_aug, crop_size)
-                                     for vt in batch_tensors]
-                        batch = torch.stack(augmented, dim=0).permute(0, 2, 1, 3, 4)
-                        q.put(("batch", batch, batch_keys[:]))
-
-                # Loop to next epoch (don't break — training needs multiple passes)
-
-            except (ConnectionError, TimeoutError, OSError) as e:
-                retries += 1
-                if retries > MAX_STREAM_RETRIES:
-                    print(f"  FATAL: stream failed after {MAX_STREAM_RETRIES} retries: {e}")
-                    break
-                wait = min(2 ** retries, 60)
-                print(f"  Stream error ({e}), retry {retries}/{MAX_STREAM_RETRIES} in {wait}s")
-                time.sleep(wait)
+                    wait = min(2 ** retries, 60)
+                    print(f"  Stream error ({e}), retry {retries}/{MAX_STREAM_RETRIES} in {wait}s")
+                    time.sleep(wait)
     finally:
-        import shutil
         shutil.rmtree(tmp_dir, ignore_errors=True)
         q.put(("error" if retries > MAX_STREAM_RETRIES else "done", None, None))
 
@@ -680,7 +691,6 @@ def train(cfg: dict, args):
     device = torch.device("cuda")
 
     # Reproducibility seeds (matches Meta's train.py lines 45-48, 152-154)
-    import random
     seed = cfg["data"]["seed"]
     random.seed(seed)
     np.random.seed(seed)
@@ -807,8 +817,7 @@ def train(cfg: dict, args):
 
     if val_key_set:
         print(f"\nCollecting {len(val_key_set)} val clips into memory...")
-        import tempfile as _tmpmod
-        _val_tmp = _tmpmod.mkdtemp(prefix="m09_val_")
+        _val_tmp = tempfile.mkdtemp(prefix="m09_val_")
         # Use --val-local-data if provided, otherwise fall back to --local-data
         val_local = getattr(args, "val_local_data", None) or cfg["data"]["local_data"]
         _val_ds = _create_stream(0, local_data=val_local)
@@ -836,8 +845,7 @@ def train(cfg: dict, args):
         if _val_batch_buf:
             _batch = torch.stack(_val_batch_buf, dim=0).permute(0, 2, 1, 3, 4)
             val_batches.append(_batch)
-        import shutil as _shutil
-        _shutil.rmtree(_val_tmp, ignore_errors=True)
+        shutil.rmtree(_val_tmp, ignore_errors=True)
         print(f"Val clips collected: {len(val_collected_keys)} in {len(val_batches)} batches")
     else:
         if not getattr(args, "SANITY", False):
@@ -853,8 +861,7 @@ def train(cfg: dict, args):
                     val_key_set = load_val_subset(str(val_path))
                     args.val_local_data = str(val_local_path)
                     # Re-run val collection with downloaded data
-                    import tempfile as _tmpmod2
-                    _val_tmp2 = _tmpmod2.mkdtemp(prefix="m09_val_")
+                    _val_tmp2 = tempfile.mkdtemp(prefix="m09_val_")
                     _val_ds2 = _create_stream(0, local_data=str(val_local_path))
                     _val_batch_buf2 = []
                     for _ex in _val_ds2:
@@ -880,8 +887,7 @@ def train(cfg: dict, args):
                     if _val_batch_buf2:
                         _batch = torch.stack(_val_batch_buf2, dim=0).permute(0, 2, 1, 3, 4)
                         val_batches.append(_batch)
-                    import shutil as _shutil2
-                    _shutil2.rmtree(_val_tmp2, ignore_errors=True)
+                    shutil.rmtree(_val_tmp2, ignore_errors=True)
                     print(f"Val clips collected: {len(val_collected_keys)} in {len(val_batches)} batches")
                 else:
                     print("FATAL: Auto-download failed — val data still missing.")
@@ -905,8 +911,7 @@ def train(cfg: dict, args):
                     sanity_val_cap = cfg["data"]["sanity_val_clips"]
                     val_key_set = set(list(val_key_set)[:sanity_val_cap])
                     val_local = str(val_local_path) if val_local_path.exists() else cfg["data"]["local_data"]
-                    import tempfile as _tmpmod3
-                    _val_tmp3 = _tmpmod3.mkdtemp(prefix="m09_val_")
+                    _val_tmp3 = tempfile.mkdtemp(prefix="m09_val_")
                     _val_ds3 = _create_stream(0, local_data=val_local)
                     _val_batch_buf3 = []
                     for _ex in _val_ds3:
@@ -932,8 +937,7 @@ def train(cfg: dict, args):
                     if _val_batch_buf3:
                         _batch = torch.stack(_val_batch_buf3, dim=0).permute(0, 2, 1, 3, 4)
                         val_batches.append(_batch)
-                    import shutil as _shutil3
-                    _shutil3.rmtree(_val_tmp3, ignore_errors=True)
+                    shutil.rmtree(_val_tmp3, ignore_errors=True)
                     print(f"SANITY val clips: {len(val_collected_keys)} in {len(val_batches)} batches")
                 else:
                     print("FATAL: SANITY val data download failed — val_1k.json not found after download.")
@@ -969,14 +973,25 @@ def train(cfg: dict, args):
     pbar = tqdm(total=total_steps, initial=start_step,
                 desc="m09_pretrain", unit="step")
 
-    # CSV loss log
+    # JSONL loss log — crash-safe (fsync after every write, survives OOM/SIGKILL)
+    # Each line is a self-contained JSON record. Partial last line = only that step lost.
+    jsonl_path = output_dir / "loss_log.jsonl"
+    jsonl_file = open(jsonl_path, "a")
+
+    def _log_step(record: dict):
+        """Write one JSON record + flush + fsync (Detectron2 pattern)."""
+        jsonl_file.write(json.dumps(record) + "\n")
+        jsonl_file.flush()
+        os.fsync(jsonl_file.fileno())
+
+    # Also keep CSV for backward compat (plots, wandb upload)
     csv_path = output_dir / "loss_log.csv"
     csv_exists = csv_path.exists()
     csv_file = open(csv_path, "a", newline="")
     csv_writer = csv.writer(csv_file)
     if not csv_exists:
         csv_writer.writerow(["step", "epoch", "loss_jepa", "loss_drift", "loss_total",
-                             "lr", "grad_norm", "throughput"])
+                             "lr", "grad_norm", "throughput", "val_loss"])
         csv_file.flush()
 
     # Windowed throughput
@@ -1078,7 +1093,6 @@ def train(cfg: dict, args):
             lr_val = scheduler.get_last_lr()[0]
             gn_val = grad_norm.item() if torch.is_tensor(grad_norm) else grad_norm
 
-            import math
             if math.isnan(jepa_val) or math.isinf(jepa_val):
                 nan_strikes = getattr(main, '_nan_strikes', 0) + 1
                 main._nan_strikes = nan_strikes
@@ -1100,9 +1114,17 @@ def train(cfg: dict, args):
             window_elapsed = now - window_start
             throughput = window_steps / window_elapsed if window_elapsed > 0 else 0
 
+            step_record = {
+                "step": step, "epoch": epoch,
+                "loss_jepa": round(jepa_val, 6), "loss_drift": round(drift_val, 6),
+                "loss_total": round(total_val, 6), "lr": lr_val,
+                "grad_norm": round(gn_val, 4), "throughput": round(throughput, 2),
+            }
+            _log_step(step_record)  # JSONL: crash-safe (fsync per write)
+
             csv_writer.writerow([step, epoch, f"{jepa_val:.6f}", f"{drift_val:.6f}",
                                  f"{total_val:.6f}", f"{lr_val:.2e}",
-                                 f"{gn_val:.4f}", f"{throughput:.2f}"])
+                                 f"{gn_val:.4f}", f"{throughput:.2f}", ""])
             if step % 10 == 0:
                 csv_file.flush()
 
@@ -1153,6 +1175,27 @@ def train(cfg: dict, args):
                     "val/epoch_pct": pct,
                 }, step=step)
 
+                # Write val_loss to JSONL (crash-safe) + CSV
+                _log_step({"step": step, "epoch": epoch, "val_loss": round(val_loss, 6),
+                           "epoch_pct": round(pct, 1)})
+                csv_writer.writerow([step, epoch, "", "", "",
+                                     "", "", "", f"{val_loss:.6f}"])
+                csv_file.flush()
+
+                # Live training plots (regenerate on each validation)
+                try:
+                    from utils.plots import plot_training_curves
+                    plot_training_curves(
+                        runs=[{"csv_path": str(csv_path),
+                               "label": f"V-JEPA 2.0 (\u03bb={drift_cfg['lambda_reg']})",
+                               "color": "blue",
+                               "batch_size": batch_size}],
+                        output_dir=str(output_dir),
+                        title_prefix=f"{n_train:,} clips, ",
+                    )
+                except Exception:
+                    pass  # non-fatal: plot failure must never stop training
+
                 # Best model selection by lowest val loss
                 if val_loss < best_val_loss:
                     best_val_loss = val_loss
@@ -1171,6 +1214,7 @@ def train(cfg: dict, args):
         print("\nInterrupted! Saving checkpoint (model NOT exported — training incomplete).")
         pbar.close()
         csv_file.close()
+        jsonl_file.close()
         stop_event.set()
         gc.enable()
         save_training_checkpoint(
@@ -1181,6 +1225,7 @@ def train(cfg: dict, args):
     finally:
         pbar.close()
         csv_file.close()
+        jsonl_file.close()
         stop_event.set()
         gc.enable()
 
@@ -1241,6 +1286,8 @@ def main():
                         help="Override drift control lambda (ablation: 0, 0.001, 0.01, 0.1)")
     parser.add_argument("--max-epochs", type=int, default=None,
                         help="Override max epochs (SANITY=1, --POC=5, --FULL=1)")
+    parser.add_argument("--output-dir", type=str, default=None,
+                        help="Override output directory (used by ablation to write to ablation/ subdir)")
     parser.add_argument("--val-subset", type=str, default=None,
                         help="Path to val subset JSON (e.g., data/val_1k.json). "
                              "These clips are excluded from training and used for periodic val loss.")
@@ -1263,9 +1310,10 @@ def main():
     cfg = merge_config_with_args(cfg, args)
 
     # Auto-ablation: if no --lambda-reg specified, find or run ablation
-    if args.lambda_reg is None and not args.SANITY:
+    if args.lambda_reg is None:
         out_dir = Path(cfg["checkpoint"]["output_dir"]).parent
-        winner_json = out_dir / "ablation_winner.json"
+        ablation_dir = out_dir / "ablation"
+        winner_json = ablation_dir / "ablation_winner.json"
 
         if winner_json.exists():
             w = json.load(open(winner_json))
@@ -1275,10 +1323,12 @@ def main():
             print(f"Using ablation winner: lambda={w['winner_lambda']} "
                   f"(best_val_loss={w.get('winner_val_loss', '?')}) from {winner_json}")
         else:
+            ablation_dir = out_dir / "ablation"
             print(f"\n{'='*60}")
             print(f"  AUTO-ABLATION: No {winner_json} found.")
             print(f"  Running 4 lambda sweep on data/subset_10k_local (~2h)")
-            print(f"  Ablation outputs → {out_dir}/m09_lambda*/")
+            print(f"  Ablation (10K) → {ablation_dir}/m09_lambda*/")
+            print(f"  Full training  → {out_dir}/m09_lambda<winner>/")
             print(f"{'='*60}\n")
 
             drift_cfg = cfg["drift_control"]
@@ -1286,7 +1336,7 @@ def main():
 
             for lam in ablation_lambdas:
                 lam_str = f"{lam:g}".replace(".", "_")
-                lam_out = out_dir / f"m09_lambda{lam_str}"
+                lam_out = ablation_dir / f"m09_lambda{lam_str}"
 
                 # Skip if already trained with valid val_loss
                 summary_path = lam_out / "training_summary.json"
@@ -1303,20 +1353,21 @@ def main():
                     sys.executable, "-u", os.path.abspath(__file__),
                     "--config", args.config,
                     mode_flag,
-                    "--subset", drift_cfg["ablation_subset"],
-                    "--val-subset", drift_cfg["ablation_val_subset"],
                     "--local-data", drift_cfg["ablation_local_data"],
+                    "--val-subset", drift_cfg["ablation_val_subset"],
                     "--val-local-data", drift_cfg["ablation_val_local_data"],
                     "--lambda-reg", str(lam),
                     "--max-epochs", str(drift_cfg["ablation_epochs"]),
-                    "--no-wandb",
+                    "--output-dir", str(lam_out),
                 ]
+                if args.batch_size is not None:
+                    ablation_cmd += ["--batch-size", str(args.batch_size)]
                 result = subprocess.run(ablation_cmd)
                 if result.returncode != 0:
                     print(f"FATAL: Ablation failed for lambda={lam}")
                     sys.exit(1)
 
-            select_ablation_winner(str(out_dir), [str(l) for l in ablation_lambdas])
+            select_ablation_winner(str(ablation_dir), [str(l) for l in ablation_lambdas])
 
             if not winner_json.exists():
                 print("FATAL: ablation_winner.json not created after ablation")
@@ -1387,6 +1438,26 @@ def select_ablation_winner(output_dir: str, lambdas=None):
     print(f"  Saved: {winner_path}")
     print(f"  run_pretrain.sh --FULL will read this automatically.")
 
+    # Plot val_loss curves for all lambdas (publication quality)
+    try:
+        from utils.plots import plot_val_loss_curves
+        plot_val_loss_curves(out, lambdas, winner)
+    except Exception as e:
+        print(f"  WARN: ablation plot failed ({e}), continuing")
+
+    # TODO: V-JEPA 2.1 comparison — after training both versions, generate comparison plots:
+    # from utils.plots import plot_training_curves
+    # plot_training_curves(
+    #     runs=[
+    #         {"csv_path": "outputs/full/m09_lambda0_001/loss_log.csv",
+    #          "label": "V-JEPA 2.0", "color": "blue"},
+    #         {"csv_path": "outputs/full_v21/m09_lambda0_001/loss_log.csv",
+    #          "label": "V-JEPA 2.1", "color": "red"},
+    #     ],
+    #     output_dir="outputs/full/comparison",
+    #     title_prefix="115K Clips, ",
+    # )
+
 
 if __name__ == "__main__":
     # Check for --select-winner subcommand before argparse
@@ -1394,3 +1465,8 @@ if __name__ == "__main__":
         select_ablation_winner(sys.argv[2])
     else:
         main()
+
+    # Force exit: CUDA atexit cleanup can deadlock on futex_wait_queue
+    sys.stdout.flush()
+    sys.stderr.flush()
+    os._exit(0)

@@ -18,6 +18,7 @@ import numpy as np
 from scipy import stats
 
 sys.path.insert(0, str(Path(__file__).parent))
+from utils.progress import make_pbar
 from utils.config import (
     ENCODER_REGISTRY, FAISS_K_NEIGHBORS,
     add_encoder_arg, add_subset_arg, get_output_dir, get_encoder_files,
@@ -83,15 +84,23 @@ def compute_spearman_correlation(embeddings, motion_features,
 
     rho, pval = stats.spearmanr(emb_dist, mot_dist)
 
-    # Bootstrap 95% CI on rho
-    boot_rhos = np.empty(n_boot)
-    n_dist = len(emb_dist)
-    for i in range(n_boot):
-        idx = rng.integers(0, n_dist, n_dist)
-        boot_rhos[i], _ = stats.spearmanr(emb_dist[idx], mot_dist[idx])
+    # Bootstrap 95% CI on rho via scipy (vectorized C implementation, replaces Python loop)
+    from scipy.stats import bootstrap as scipy_bootstrap
 
-    ci_lo = float(np.percentile(boot_rhos, 2.5))
-    ci_hi = float(np.percentile(boot_rhos, 97.5))
+    def _spearman_stat(e, m):
+        return stats.spearmanr(e, m)[0]
+
+    result = scipy_bootstrap(
+        (emb_dist, mot_dist),
+        statistic=_spearman_stat,
+        n_resamples=n_boot,
+        confidence_level=0.95,
+        method="percentile",  # BCa not supported for paired-sample stats
+        random_state=rng,
+        paired=True,
+    )
+    ci_lo = float(result.confidence_interval.low)
+    ci_hi = float(result.confidence_interval.high)
     ci_dict = {
         "mean": round(float(rho), 6),
         "ci_lo": round(ci_lo, 6),
@@ -361,6 +370,7 @@ def main():
         print(f"  WARN: {knn_file.name} not found — skipping temporal_prec_at_k")
 
     t_start = time.time()
+    pbar = make_pbar(total=5, desc="m06b_temporal", unit="step")
 
     # ── Motion-based metrics (1-3): require m04d ──────────────────
     rho, pval, actual_pairs, rho_ci = None, None, 0, None
@@ -412,6 +422,8 @@ def main():
                 ci_str = f" \u00b1 {motion_map_ci['ci_half']:.4f}" if motion_map_ci else ""
                 print(f"  Motion Retrieval mAP = {motion_map:.4f}{ci_str}")
 
+    pbar.update(3)  # spearman + temporal_prec + motion_map done
+
     # ── Temporal Order Sensitivity (V-JEPA only) ─────────────────
     order_sensitivity = None
     if args.encoder in ("vjepa", "vjepa_shuffled"):
@@ -437,9 +449,13 @@ def main():
         else:
             print("  WARN: Need both vjepa + vjepa_shuffled embeddings for order sensitivity")
 
+    pbar.update(1)  # order_sensitivity done
+
     # ── Temporal Locality (all encoders) ───────────────────────────
     print("\nComputing Temporal Locality...")
     locality = compute_temporal_locality(embeddings, emb_keys)
+    pbar.update(1)  # locality done
+    pbar.close()
     if locality:
         print(f"  Intra-video dist: {locality['intra_video_dist']:.4f}")
         print(f"  Inter-video dist: {locality['inter_video_dist']:.4f}")

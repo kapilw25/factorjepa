@@ -1,0 +1,15 @@
+wandb: run=m07_SANITY url=https://wandb.ai/sjsu_llm/walkindia-200k/runs/y4f9mawf
+[output_guard] m07 vjepa_lambda0_01: attempting HF download for 1 missing file(s)...
+Downloading anonymousML123/factorjepa-outputs//workspace/factorjepa/outputs/sanity/ → /workspace/factorjepa/outputs/sanity
+Download complete: 0s
+[output_guard] m07 vjepa_lambda0_01: 1 file(s) still missing after HF download
+[output_guard] m07 vjepa_lambda0_01: outputs missing or invalid — will re-compute
+  MISS  umap_2d: umap_2d_vjepa_lambda0_01.npy
+Encoder: vjepa_lambda0_01
+SANITY MODE: 64 clips
+Loaded: 64 clips, dim=1408
+cuML UMAP (n_neighbors=15, min_dist=0.1)...
+[2026-04-03 10:27:56.611] [CUML] [debug] Computing KNN Graph
+[2026-04-03 10:27:56.631] [CUML] [debug] Computing fuzzy simplicial set
+Saved: /workspace/factorjepa/outputs/sanity/umap_2d_vjepa_lambda0_01.npy ((64, 2))
+UMAP completed in 0.3s

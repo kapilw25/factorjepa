@@ -1,5 +1,9 @@
 GPU: NVIDIA RTX PRO 6000 Blackwell Workstation Edition
 CUDA version: 12.8
+[output_guard] m06 random: attempting HF download for 2 missing file(s)...
+Downloading anonymousML123/factorjepa-outputs//workspace/factorjepa/outputs/sanity/ → /workspace/factorjepa/outputs/sanity
+Download complete: 0s
+[output_guard] m06 random: 2 file(s) still missing after HF download
 [output_guard] m06 random: outputs missing or invalid — will re-compute
   MISS  metrics: m06_metrics_random.json
   MISS  knn_indices: knn_indices_random.npy
@@ -7,67 +11,75 @@ Encoder:     random (dim=1408, type=synthetic)
 Output dir:  /workspace/factorjepa/outputs/sanity
 Embeddings:  /workspace/factorjepa/outputs/sanity/embeddings_random.npy
 Metrics:     /workspace/factorjepa/outputs/sanity/m06_metrics_random.json
-Loaded embeddings: (50, 1408)
-Loaded tags: 50
-Loaded clip paths: 50
-Key alignment verified: 50 clips match
-SANITY MODE: 50 clips
-Building FAISS GPU index: 50 vectors, dim=1408
-FAISS GPU index built: 50 vectors
+Loaded embeddings: (64, 1408)
+Loaded tags: 64
+Loaded clip paths: 64
+WARNING: Tags lack _clip_key field — cannot verify alignment. Results may be wrong if tags and embeddings are from different runs.
+SANITY MODE: 64 clips
+Building FAISS GPU index: 64 vectors, dim=1408
+FAISS GPU index built: 64 vectors
 
 Searching 30 neighbors (k=6, extra for Hard mode)...
 
 ==================================================
 EASY MODE (k=6)
 ==================================================
-  Cycle@K:     98.00%
+  Cycle@K:     100.00%
   Overlap@K:   SKIPPED (< 100 clips)
-  Silhouette:  -0.0218 (scene_type)
-  Prec@K:      24.00%
-  mAP@K:       0.1556
-  nDCG@K:      0.9576
+  Silhouette:  -0.0282 (scene_type)
+  Prec@K:      20.83%
+  mAP@K:       0.1271
+  nDCG@K:      0.9448
   Computing per-key breakdowns for 13 fields...
-  Silhouette per-key: traffic_mix=0.0026, pedestrian_vehicle_separation=0.0021, road_encroachment=0.0021 ...
-  Prec@K per-key: time_of_day=100.00%, crowd_density=100.00%, traffic_density=100.00% ...
-  mAP@K per-key: time_of_day=1.0000, crowd_density=1.0000, traffic_density=1.0000 ...
+  Silhouette per-key: pedestrian_vehicle_separation=0.0017, time_of_day=0.0000, lighting=0.0000 ...
+  Prec@K per-key: time_of_day=100.00%, lighting=100.00%, traffic_density=92.71% ...
+  mAP@K per-key: time_of_day=1.0000, lighting=1.0000, traffic_density=0.9097 ...
   Cycle@K per-key: computed for 13 fields
-  Macro avg:   10.33%
-  Micro avg:   24.00%
+  Macro avg:   8.26%
+  Micro avg:   20.83%
   Bootstrap 95% CI (BCa, 10K iterations)...
-  Prec@K:  24.00% ± 6.17
-  mAP@K:   0.1556 ± 0.0505
-  Cycle@K: 0.98% ± 0.05
-  nDCG@K:  0.9576 ± 0.0077
-  [0.4s]
-Hard mode exclusion: 18 clips affected (avg 1.3 excluded neighbors)
+/workspace/factorjepa/venv_walkindia/lib/python3.12/site-packages/scipy/stats/_resampling.py:155: RuntimeWarning: invalid value encountered in scalar divide
+  a_hat = 1/6 * sum(nums) / sum(dens)**(3/2)
+/workspace/factorjepa/venv_walkindia/lib/python3.12/site-packages/scipy/_lib/_util.py:365: DegenerateDataWarning: The BCa confidence interval cannot be calculated. This problem is known to occur when the distribution is degenerate or the statistic is np.min.
+  return fun(*args, **kwargs)
+  Prec@K:  20.83% ± 4.95
+  mAP@K:   0.1271 ± 0.0385
+  Cycle@K: 1.00% ± nan
+  nDCG@K:  0.9448 ± 0.0099
+  [0.3s]
+Hard mode exclusion: 24 clips affected (avg 1.2 excluded neighbors)
 
 ==================================================
 HARD MODE (k=6)
 ==================================================
-  Cycle@K:     98.00%
+  Cycle@K:     100.00%
   Overlap@K:   SKIPPED (< 100 clips)
-  Silhouette:  -0.0218 (scene_type)
-  Prec@K:      22.33%
-  mAP@K:       0.1417
-  nDCG@K:      0.9580
+  Silhouette:  -0.0282 (scene_type)
+  Prec@K:      19.79%
+  mAP@K:       0.1193
+  nDCG@K:      0.9466
   Computing per-key breakdowns for 13 fields...
-  Silhouette per-key: traffic_mix=0.0026, pedestrian_vehicle_separation=0.0021, road_encroachment=0.0021 ...
-  Prec@K per-key: time_of_day=100.00%, crowd_density=100.00%, traffic_density=100.00% ...
-  mAP@K per-key: time_of_day=1.0000, crowd_density=1.0000, traffic_density=1.0000 ...
+  Silhouette per-key: pedestrian_vehicle_separation=0.0017, time_of_day=0.0000, lighting=0.0000 ...
+  Prec@K per-key: time_of_day=100.00%, lighting=100.00%, traffic_density=92.71% ...
+  mAP@K per-key: time_of_day=1.0000, lighting=1.0000, traffic_density=0.9092 ...
   Cycle@K per-key: computed for 13 fields
-  Macro avg:   9.65%
-  Micro avg:   22.33%
+  Macro avg:   7.90%
+  Micro avg:   19.79%
   Bootstrap 95% CI (BCa, 10K iterations)...
-  Prec@K:  22.33% ± 5.83
-  mAP@K:   0.1417 ± 0.0493
-  Cycle@K: 0.98% ± 0.05
-  nDCG@K:  0.9580 ± 0.0077
+/workspace/factorjepa/venv_walkindia/lib/python3.12/site-packages/scipy/stats/_resampling.py:155: RuntimeWarning: invalid value encountered in scalar divide
+  a_hat = 1/6 * sum(nums) / sum(dens)**(3/2)
+/workspace/factorjepa/venv_walkindia/lib/python3.12/site-packages/scipy/_lib/_util.py:365: DegenerateDataWarning: The BCa confidence interval cannot be calculated. This problem is known to occur when the distribution is degenerate or the statistic is np.min.
+  return fun(*args, **kwargs)
+  Prec@K:  19.79% ± 4.82
+  mAP@K:   0.1193 ± 0.0378
+  Cycle@K: 1.00% ± nan
+  nDCG@K:  0.9466 ± 0.0097
   [0.0s]
 
 Confidence sweep: 7 thresholds
 
 Saved: /workspace/factorjepa/outputs/sanity/m06_metrics_random.json
-Saved: /workspace/factorjepa/outputs/sanity/knn_indices_random.npy ((50, 7))
+Saved: /workspace/factorjepa/outputs/sanity/knn_indices_random.npy ((64, 7))
 Saved: /workspace/factorjepa/outputs/sanity/m06_distance_hist.png
 Saved: /workspace/factorjepa/outputs/sanity/m06_confidence_sweep.png
 Saved: /workspace/factorjepa/outputs/sanity/m06_purity_all_keys.png
@@ -83,12 +95,12 @@ Saved: /workspace/factorjepa/outputs/sanity/m06_radar.png
 ============================================================
 Metric                     Easy       Hard
 ------------------------------------------
-  Cycle At K              98.00      98.00
+  Cycle At K             100.00     100.00
   Overlap At K              N/A        N/A
-  Silhouette            -0.0218    -0.0218
-  Prec At K               24.00      22.33
-  Map At K               0.1556     0.1417
-  Ndcg At K              0.9576     0.9580
+  Silhouette            -0.0282    -0.0282
+  Prec At K               20.83      19.79
+  Map At K               0.1271     0.1193
+  Ndcg At K              0.9448     0.9466
 
-  Macro Prec@K:  Easy=10.33%  Hard=9.65%
-  Micro Prec@K:  Easy=24.00%  Hard=22.33%
+  Macro Prec@K:  Easy=8.26%  Hard=7.90%
+  Micro Prec@K:  Easy=20.83%  Hard=19.79%

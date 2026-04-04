@@ -12,8 +12,8 @@ if [ "$TOOL" != "Edit" ] && [ "$TOOL" != "Write" ]; then
   exit 0
 fi
 
-# Only act on src/m*.py pipeline files
-if ! echo "$FILE_PATH" | grep -qE 'src/m[0-9].*\.py$'; then
+# Only act on Python files under src/ (pipeline modules + utils)
+if ! echo "$FILE_PATH" | grep -qE 'src/.*\.py$'; then
   exit 0
 fi
 
@@ -27,8 +27,32 @@ if ! python3 -m py_compile "$FILE_PATH" 2>&1; then
 fi
 echo "py_compile PASSED: $BASENAME"
 
-# ── Check 2: AST structural check ────────────────────────────────────
-# Verify: main() exists, argparse has --SANITY/--FULL, no bare imports
+# ── Check 2: AST structural check (src/m*.py only, skip utils) ───────
+# Verify: main() exists, argparse has --SANITY/--FULL, tqdm for GPU scripts
+if ! echo "$FILE_PATH" | grep -qE 'src/m[0-9].*\.py$'; then
+  # For utils/*.py: skip AST structural checks (no main/argparse required)
+  echo "AST check SKIPPED: $BASENAME (utils file — no main/argparse required)"
+  # Jump to ruff check
+  RUFF_CMD=""
+  if command -v ruff &>/dev/null; then
+      RUFF_CMD="ruff"
+  elif [ -x "$HOME/.local/bin/uvx" ]; then
+      RUFF_CMD="$HOME/.local/bin/uvx ruff"
+  elif command -v uvx &>/dev/null; then
+      RUFF_CMD="uvx ruff"
+  fi
+  if [ -n "$RUFF_CMD" ]; then
+      RUFF_RESULT=$($RUFF_CMD check "$FILE_PATH" --select F821,F841,F811 2>&1)
+      if echo "$RUFF_RESULT" | grep -q "^F8"; then
+          echo "ruff FAILED: $BASENAME"
+          echo "$RUFF_RESULT"
+          exit 1
+      fi
+      echo "ruff PASSED: $BASENAME"
+  fi
+  exit 0
+fi
+
 AST_RESULT=$(python3 -c "
 import ast, sys
 

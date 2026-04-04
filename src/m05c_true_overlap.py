@@ -10,6 +10,7 @@ USAGE:
 import argparse
 import os
 import queue
+import shutil
 import sys
 import tempfile
 import threading
@@ -26,7 +27,7 @@ from utils.config import (
     load_subset, add_subset_arg, add_local_data_arg, get_output_dir,
     get_sanity_clip_limit, get_total_clips, get_pipeline_config,
 )
-from utils.data_download import ensure_local_data
+from utils.data_download import ensure_local_data, iter_clips_parallel
 from utils.gpu_batch import compute_batch_sizes, add_gpu_mem_arg, cuda_cleanup, cleanup_temp
 from utils.wandb_utils import add_wandb_args, init_wandb, log_metrics, log_artifact, finish_wandb
 
@@ -103,63 +104,85 @@ def _producer_overlap(processor, batch_size: int, tmp_dir: str,
     """Stream clips (HF or local shards), produce two augmented views per clip."""
     produced = 0
     retries = 0
+    tar_stop = None
 
-    while produced < clip_limit and not stop_event.is_set():
-        try:
-            ds = _create_stream(0, local_data=local_data)
-            pending_bytes = []
-            pending_keys = []
+    try:
+        pending_bytes = []
+        pending_keys = []
 
-            for example in ds:
-                if stop_event.is_set():
+        if local_data:
+            # Fast path: parallel TAR readers (8 threads, skip processed keys at TAR level)
+            clip_q, tar_stop, _reader = iter_clips_parallel(
+                local_data, subset_keys=subset_keys, processed_keys=processed_keys)
+            while produced < clip_limit and not stop_event.is_set():
+                item = clip_q.get(timeout=120)
+                if item is None:
                     break
-
-                clip_key = get_clip_key(example)
-                if subset_keys and clip_key not in subset_keys:
-                    continue
-                if clip_key in processed_keys:
-                    continue
-
-                mp4_data = example.get("mp4", b"")
-                mp4_bytes = mp4_data["bytes"] if isinstance(mp4_data, dict) else mp4_data
+                clip_key, mp4_bytes = item
                 if not mp4_bytes:
                     continue
-
                 pending_bytes.append(mp4_bytes)
                 pending_keys.append(clip_key)
-
                 if len(pending_bytes) >= batch_size:
                     _decode_augment_enqueue(
                         pending_bytes, pending_keys, tmp_dir, num_frames,
                         processor, q)
                     produced += len(pending_bytes)
-                    pending_bytes = []
-                    pending_keys = []
-                    retries = 0
+                    pending_bytes, pending_keys = [], []
                     if produced >= clip_limit:
                         break
+        else:
+            # Fallback: sequential HF streaming
+            while produced < clip_limit and not stop_event.is_set():
+                try:
+                    ds = _create_stream(0, local_data=local_data)
+                    for example in ds:
+                        if stop_event.is_set():
+                            break
+                        clip_key = get_clip_key(example)
+                        if subset_keys and clip_key not in subset_keys:
+                            continue
+                        if clip_key in processed_keys:
+                            continue
+                        mp4_data = example.get("mp4", b"")
+                        mp4_bytes = mp4_data["bytes"] if isinstance(mp4_data, dict) else mp4_data
+                        if not mp4_bytes:
+                            continue
+                        pending_bytes.append(mp4_bytes)
+                        pending_keys.append(clip_key)
+                        if len(pending_bytes) >= batch_size:
+                            _decode_augment_enqueue(
+                                pending_bytes, pending_keys, tmp_dir, num_frames,
+                                processor, q)
+                            produced += len(pending_bytes)
+                            pending_bytes, pending_keys = [], []
+                            retries = 0
+                            if produced >= clip_limit:
+                                break
+                    break  # stream exhausted
+                except (ConnectionError, TimeoutError, OSError) as e:
+                    retries += 1
+                    if retries > MAX_STREAM_RETRIES:
+                        print(f"  ERROR: stream failed after {MAX_STREAM_RETRIES} retries: {e}")
+                        break
+                    wait = min(2 ** retries, 60)
+                    print(f"  WARN: stream error ({e}), retry {retries}/{MAX_STREAM_RETRIES} in {wait}s")
+                    time.sleep(wait)
 
-            if pending_bytes and not stop_event.is_set():
-                _decode_augment_enqueue(
-                    pending_bytes, pending_keys, tmp_dir, num_frames,
-                    processor, q)
-                produced += len(pending_bytes)
+        # Flush remaining partial batch
+        if pending_bytes and not stop_event.is_set():
+            _decode_augment_enqueue(
+                pending_bytes, pending_keys, tmp_dir, num_frames,
+                processor, q)
+            produced += len(pending_bytes)
 
-            break  # stream exhausted
-
-        except (ConnectionError, TimeoutError, OSError) as e:
-            retries += 1
-            if retries > MAX_STREAM_RETRIES:
-                print(f"  ERROR: stream failed after {MAX_STREAM_RETRIES} retries: {e}")
-                break
-            wait = min(2 ** retries, 60)
-            print(f"  WARN: stream error ({e}), retry {retries}/{MAX_STREAM_RETRIES} in {wait}s")
-            time.sleep(wait)
-        except Exception as e:
-            print(f"  ERROR: unexpected producer error: {e}")
-            import traceback
-            traceback.print_exc()
-            break
+    except Exception as e:
+        print(f"  ERROR: unexpected producer error: {e}")
+        import traceback
+        traceback.print_exc()
+    finally:
+        if tar_stop:
+            tar_stop.set()
 
     q.put(("done", None, None, None))
 
@@ -277,6 +300,16 @@ def main():
             print("FATAL: Cannot determine clip count. Use --subset or --local-data with manifest.json")
             sys.exit(1)
 
+    # Subsample for FULL mode: 30K clips is statistically sufficient for bootstrap CI.
+    # Reduces 115K×2 views from ~18h to ~4.7h with torch.compile.
+    # Common practice in SSL papers (DINO/BYOL use 50K ImageNet val).
+    if args.FULL and not subset_keys:
+        overlap_subsample = get_pipeline_config()["eval"]["overlap_subsample"]
+        if clip_limit > overlap_subsample:
+            print(f"Subsampling: {clip_limit:,} → {overlap_subsample:,} clips "
+                  f"(sufficient for bootstrap CI, saves {clip_limit - overlap_subsample:,} clips)")
+            clip_limit = overlap_subsample
+
     batch_size = args.batch_size or compute_batch_sizes(gpu_vram_gb=args.gpu_mem)["vjepa"]
     if args.SANITY:
         batch_size = min(batch_size, 2)
@@ -298,8 +331,15 @@ def main():
         device_map="auto", attn_implementation="flash_attention_2",
     )
     model.eval()
+
+    # TODO: ToMe (Token Merging, Meta ICLR 2023) for ~2x additional inference speedup.
+    # pip install tome && tome.patch.hf(model) — merges similar tokens mid-ViT without retraining.
+    # Validated on ViT-L/H (0.2% accuracy drop). Needs validation on ViT-G before enabling.
+    # Would bring FULL time from ~4.7h → ~2.4h. Paper-safe (same model, same metric).
+    # Reference: github.com/facebookresearch/ToMe, arxiv.org/abs/2210.09461
+
     model = torch.compile(model)
-    print(f"V-JEPA loaded for augmented inference")
+    print(f"V-JEPA loaded for augmented inference (torch.compile ON)")
 
     mode = "SANITY" if args.SANITY else ("POC" if args.POC else "FULL")
     wb_run = init_wandb("m05c", mode, config=vars(args), enabled=not args.no_wandb)
@@ -392,7 +432,6 @@ def main():
         stop_event.set()
         _save_overlap_checkpoint(all_emb_a, all_emb_b, all_keys, checkpoint_file)
         producer.join(timeout=10)
-        import shutil
         shutil.rmtree(tmp_dir, ignore_errors=True)
         try:
             tmp_base.rmdir()
@@ -431,6 +470,11 @@ def main():
     log_artifact(wb_run, "overlap_augA", str(aug_a_file))
     log_artifact(wb_run, "overlap_augB", str(aug_b_file))
     finish_wandb(wb_run)
+
+    # Force exit: torch.compile + CUDA atexit cleanup deadlocks on futex_wait_queue
+    sys.stdout.flush()
+    sys.stderr.flush()
+    os._exit(0)
 
 
 def _save_overlap_checkpoint(emb_a, emb_b, keys, checkpoint_file):

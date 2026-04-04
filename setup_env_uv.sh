@@ -22,7 +22,7 @@ set -e  # Exit on error
 mkdir -p logs  # Ensure logs/ exists early (for tee piping)
 
 # ============================================================================
-# Pinned versions (Blackwell sm_120 + CUDA 12.8 + Python 3.12)
+# Pinned versions (Blackwell sm_120 + CUDA 13.0 + Python 3.12)
 # ============================================================================
 TORCH_VERSION="2.12.0.dev20260228"  # PyTorch nightly cu128 — pinned for FA2 wheel compat
 RELEASE_TAG="sm120-cu128-py312"     # GitHub release tag for prebuilt FA2 + FAISS wheels

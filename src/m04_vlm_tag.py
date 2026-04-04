@@ -14,6 +14,7 @@ USAGE:
 """
 import argparse
 import gc
+import io
 import json
 import os
 import queue
@@ -40,7 +41,7 @@ from utils.config import (
     check_gpu, check_output_exists, load_subset, add_subset_arg, add_local_data_arg,
     get_pipeline_config, get_sanity_clip_limit, get_total_clips,
 )
-from utils.data_download import ensure_local_data
+from utils.data_download import ensure_local_data, iter_clips_parallel
 from utils.gpu_batch import compute_batch_sizes, add_gpu_mem_arg, AdaptiveBatchSizer, cleanup_temp
 from utils.wandb_utils import (
     add_wandb_args, init_wandb, log_metrics, log_artifact, finish_wandb,
@@ -605,7 +606,6 @@ class LLaVANextBackend(VLMBackend):
         """PyAV frame decode (CPU-heavy). Runs in ThreadPoolExecutor. No temp files."""
         try:
             import av
-            import io
             import numpy as np
 
             mp4_data = example["mp4"]
@@ -893,6 +893,17 @@ def _create_stream(skip_count: int, local_data: str = None):
     return ds
 
 
+def _clip_key_to_example(clip_key: str, mp4_bytes: bytes) -> dict:
+    """Build synthetic HF example dict from parallel TAR reader output.
+    add_provenance() + preprocess_batch() need {"mp4", "json", "__key__"}.
+    """
+    parts = clip_key.split("/", 2)
+    meta = {"section": parts[0] if len(parts) > 0 else "",
+            "video_id": parts[1] if len(parts) > 1 else "",
+            "source_file": parts[2] if len(parts) > 2 else ""}
+    return {"mp4": mp4_bytes, "json": meta, "__key__": clip_key}
+
+
 def _producer_thread(backend, start_from, batch_size, tmp_dir,
                      q, stop_event, clip_limit, subset_keys,
                      already_tagged_keys=None, local_data=None):
@@ -904,62 +915,79 @@ def _producer_thread(backend, start_from, batch_size, tmp_dir,
     produced = 0
     retries = 0
     skipped = 0
+    tar_stop = None
 
-    while produced < clip_limit and not stop_event.is_set():
-        try:
-            ds = _create_stream(start_from + produced + skipped, local_data=local_data)
-            batch = []
+    try:
+        batch = []
 
-            for example in ds:
-                if stop_event.is_set():
+        if local_data:
+            # Fast path: parallel TAR readers (8 threads, skip processed keys at TAR level)
+            clip_q, tar_stop, _reader = iter_clips_parallel(
+                local_data, subset_keys=subset_keys,
+                processed_keys=already_tagged_keys or set())
+            while produced < clip_limit and not stop_event.is_set():
+                item = clip_q.get(timeout=120)
+                if item is None:
                     break
-
-                # Subset filtering
-                if subset_keys:
-                    clip_key = get_clip_key(example)
-                    if clip_key not in subset_keys:
-                        skipped += 1
-                        continue
-
-                # Dedup on resume — skip already-tagged clips
-                if already_tagged_keys:
-                    ck = get_clip_key(example)
-                    if ck in already_tagged_keys:
-                        skipped += 1
-                        continue
-
-                batch.append(example)
-
+                clip_key, mp4_bytes = item
+                if not mp4_bytes:
+                    continue
+                batch.append(_clip_key_to_example(clip_key, mp4_bytes))
                 if len(batch) >= batch_size:
                     preprocessed = backend.preprocess_batch(batch, tmp_dir)
                     q.put(("batch", batch, preprocessed))
                     produced += len(batch)
                     batch = []
-                    retries = 0
-
                     if produced >= clip_limit:
                         break
+        else:
+            # Fallback: sequential HF streaming
+            while produced < clip_limit and not stop_event.is_set():
+                try:
+                    ds = _create_stream(start_from + produced + skipped, local_data=local_data)
+                    for example in ds:
+                        if stop_event.is_set():
+                            break
+                        if subset_keys:
+                            clip_key = get_clip_key(example)
+                            if clip_key not in subset_keys:
+                                skipped += 1
+                                continue
+                        if already_tagged_keys:
+                            ck = get_clip_key(example)
+                            if ck in already_tagged_keys:
+                                skipped += 1
+                                continue
+                        batch.append(example)
+                        if len(batch) >= batch_size:
+                            preprocessed = backend.preprocess_batch(batch, tmp_dir)
+                            q.put(("batch", batch, preprocessed))
+                            produced += len(batch)
+                            batch = []
+                            retries = 0
+                            if produced >= clip_limit:
+                                break
+                    break  # stream exhausted
+                except (ConnectionError, TimeoutError, OSError) as e:
+                    retries += 1
+                    if retries > MAX_STREAM_RETRIES:
+                        print(f"  ERROR: stream failed after {MAX_STREAM_RETRIES} retries: {e}")
+                        break
+                    wait = min(2 ** retries, 60)
+                    print(f"  WARN: stream error ({e}), retry {retries}/{MAX_STREAM_RETRIES} in {wait}s")
+                    time.sleep(wait)
 
-            # Final partial batch
-            if batch and not stop_event.is_set():
-                preprocessed = backend.preprocess_batch(batch, tmp_dir)
-                q.put(("batch", batch, preprocessed))
-                produced += len(batch)
+        # Flush remaining partial batch
+        if batch and not stop_event.is_set():
+            preprocessed = backend.preprocess_batch(batch, tmp_dir)
+            q.put(("batch", batch, preprocessed))
+            produced += len(batch)
 
-            break  # stream exhausted
-
-        except (ConnectionError, TimeoutError, OSError) as e:
-            retries += 1
-            if retries > MAX_STREAM_RETRIES:
-                print(f"  ERROR: stream failed after {MAX_STREAM_RETRIES} retries: {e}")
-                break
-            wait = min(2 ** retries, 60)
-            print(f"  WARN: stream error ({e}), retry {retries}/{MAX_STREAM_RETRIES} in {wait}s")
-            time.sleep(wait)
-
-        except Exception as e:
-            print(f"  ERROR: unexpected producer error: {e}")
-            break
+    except Exception as e:
+        print(f"  ERROR: unexpected producer error: {e}")
+    finally:
+        if tar_stop:
+            tar_stop.set()
 
     q.put(("done", None, None))
 
@@ -1223,6 +1251,11 @@ def worker_main(args):
     log_artifact(wb_run, f"tags_{args.model}", str(tags_file))
     finish_wandb(wb_run)
     print("Worker exiting (GPU memory will be released).")
+
+    # Force exit: CUDA atexit cleanup can deadlock on futex_wait_queue
+    sys.stdout.flush()
+    sys.stderr.flush()
+    os._exit(0)
 
 
 # ═════════════════════════════════════════════════════════════════════════

@@ -1,0 +1,481 @@
+{
+  "gpu": "NVIDIA RTX PRO 6000 Blackwell Workstation Edition",
+  "gpu_total_gb": 94.96844482421875,
+  "config": {
+    "crop": 384,
+    "frames": 16,
+    "tokens": 4608
+  },
+  "training": {
+    "optimal_bs": 148,
+    "optimal_throughput": 5.880210041862835,
+    "peak_gb_at_optimal": 71.00973606109619,
+    "selection_method": "max_throughput_under_75pct_vram"
+  },
+  "no_ckpt": {
+    "1": {
+      "peak_gb": 20.43917751312256,
+      "time_s": 0.5637001991271973,
+      "throughput": 1.773992632162177,
+      "visible_tokens": [
+        2056,
+        1128
+      ],
+      "waterfall": {
+        "baseline": 7.6891021728515625,
+        "data_loaded": 7.7022857666015625,
+        "masks_generated": 7.70235538482666,
+        "teacher_forward": 7.72652530670166,
+        "student_forward_mg0": 15.169847011566162,
+        "predictor_forward_mg0": 16.22818899154663,
+        "student_forward_mg1": 19.31257915496826,
+        "predictor_forward_mg1": 20.325892448425293,
+        "loss_computed": 20.36616325378418,
+        "backward_done": 11.613830089569092
+      }
+    },
+    "2": {
+      "peak_gb": 26.830488204956055,
+      "time_s": 0.6994822025299072,
+      "throughput": 2.8592578807099636,
+      "visible_tokens": [
+        1464,
+        960
+      ],
+      "waterfall": {
+        "baseline": 7.6891021728515625,
+        "data_loaded": 7.7154693603515625,
+        "masks_generated": 7.715595245361328,
+        "teacher_forward": 7.763935089111328,
+        "student_forward_mg0": 17.57158899307251,
+        "predictor_forward_mg0": 19.39298963546753,
+        "student_forward_mg1": 24.661673545837402,
+        "predictor_forward_mg1": 26.60466194152832,
+        "loss_computed": 26.68546772003174,
+        "backward_done": 11.682396411895752
+      }
+    },
+    "4": {
+      "peak_gb": 40.89209747314453,
+      "time_s": 1.0088586807250977,
+      "throughput": 3.9648764256308695,
+      "visible_tokens": [
+        1584,
+        576
+      ],
+      "waterfall": {
+        "baseline": 7.6891021728515625,
+        "data_loaded": 7.7418365478515625,
+        "masks_generated": 7.74207878112793,
+        "teacher_forward": 7.83875846862793,
+        "student_forward_mg0": 26.863681316375732,
+        "predictor_forward_mg0": 30.689122676849365,
+        "student_forward_mg1": 37.089080810546875,
+        "predictor_forward_mg1": 40.470394134521484,
+        "loss_computed": 40.618170738220215,
+        "backward_done": 11.807573795318604
+      }
+    },
+    "8": {
+      "peak_gb": 56.60168790817261,
+      "time_s": 1.6770594120025635,
+      "throughput": 4.770254376645645,
+      "visible_tokens": [
+        1320,
+        192
+      ],
+      "waterfall": {
+        "baseline": 7.6891021728515625,
+        "data_loaded": 7.7945709228515625,
+        "masks_generated": 7.795002460479736,
+        "teacher_forward": 7.988361835479736,
+        "student_forward_mg0": 38.45601177215576,
+        "predictor_forward_mg0": 45.535799980163574,
+        "student_forward_mg1": 50.054893016815186,
+        "predictor_forward_mg1": 55.81189680099487,
+        "loss_computed": 56.08606195449829,
+        "backward_done": 12.04378604888916
+      }
+    }
+  },
+  "grad_ckpt": {
+    "1": {
+      "peak_gb": 11.843561172485352,
+      "time_s": 0.6530001163482666,
+      "throughput": 1.5313932952910332,
+      "visible_tokens": [
+        1856,
+        928
+      ],
+      "waterfall": {
+        "baseline": 7.6891021728515625,
+        "data_loaded": 7.7022857666015625,
+        "masks_generated": 7.702354907989502,
+        "teacher_forward": 7.726524829864502,
+        "student_forward_mg0": 9.857205867767334,
+        "predictor_forward_mg0": 10.013209819793701,
+        "student_forward_mg1": 10.175700664520264,
+        "predictor_forward_mg1": 10.28615140914917,
+        "loss_computed": 8.40908670425415,
+        "backward_done": 11.614354133605957
+      }
+    },
+    "2": {
+      "peak_gb": 12.108222007751465,
+      "time_s": 0.7404305934906006,
+      "throughput": 2.70113096025845,
+      "visible_tokens": [
+        1864,
+        480
+      ],
+      "waterfall": {
+        "baseline": 7.6891021728515625,
+        "data_loaded": 7.7154693603515625,
+        "masks_generated": 7.715590953826904,
+        "teacher_forward": 7.763930797576904,
+        "student_forward_mg0": 10.142382144927979,
+        "predictor_forward_mg0": 10.381300926208496,
+        "student_forward_mg1": 10.573248863220215,
+        "predictor_forward_mg1": 10.778468132019043,
+        "loss_computed": 8.951589584350586,
+        "backward_done": 11.68088150024414
+      }
+    },
+    "4": {
+      "peak_gb": 12.342143058776855,
+      "time_s": 0.9761812686920166,
+      "throughput": 4.097599624462773,
+      "visible_tokens": [
+        1208,
+        992
+      ],
+      "waterfall": {
+        "baseline": 7.6891021728515625,
+        "data_loaded": 7.7418365478515625,
+        "masks_generated": 7.742074966430664,
+        "teacher_forward": 7.838754653930664,
+        "student_forward_mg0": 10.380368709564209,
+        "predictor_forward_mg0": 10.814016342163086,
+        "student_forward_mg1": 11.503254413604736,
+        "predictor_forward_mg1": 11.896774768829346,
+        "loss_computed": 10.117564678192139,
+        "backward_done": 11.812017917633057
+      }
+    },
+    "8": {
+      "peak_gb": 14.387305736541748,
+      "time_s": 1.6698870658874512,
+      "throughput": 4.790743136721314,
+      "visible_tokens": [
+        1464,
+        624
+      ],
+      "waterfall": {
+        "baseline": 7.6891021728515625,
+        "data_loaded": 7.7945709228515625,
+        "masks_generated": 7.795003414154053,
+        "teacher_forward": 7.988362789154053,
+        "student_forward_mg0": 11.444508075714111,
+        "predictor_forward_mg0": 12.156373023986816,
+        "student_forward_mg1": 13.05375623703003,
+        "predictor_forward_mg1": 13.831397533416748,
+        "loss_computed": 12.249910831451416,
+        "backward_done": 12.077020645141602
+      }
+    },
+    "16": {
+      "peak_gb": 18.330102920532227,
+      "time_s": 3.0254414081573486,
+      "throughput": 5.2884845024134295,
+      "visible_tokens": [
+        1336,
+        272
+      ],
+      "waterfall": {
+        "baseline": 7.6891021728515625,
+        "data_loaded": 7.9000396728515625,
+        "masks_generated": 7.900903701782227,
+        "teacher_forward": 8.287622451782227,
+        "student_forward_mg0": 13.057143688201904,
+        "predictor_forward_mg0": 14.570470333099365,
+        "student_forward_mg1": 15.777688980102539,
+        "predictor_forward_mg1": 17.207544326782227,
+        "loss_computed": 15.936238288879395,
+        "backward_done": 12.5854172706604
+      }
+    },
+    "32": {
+      "peak_gb": 26.815685272216797,
+      "time_s": 6.1620118618011475,
+      "throughput": 5.193109120475865,
+      "visible_tokens": [
+        1256,
+        352
+      ],
+      "waterfall": {
+        "baseline": 7.6891021728515625,
+        "data_loaded": 8.110977172851562,
+        "masks_generated": 8.112665176391602,
+        "teacher_forward": 8.886102676391602,
+        "student_forward_mg0": 16.217916011810303,
+        "predictor_forward_mg0": 19.135806560516357,
+        "student_forward_mg1": 21.877918243408203,
+        "predictor_forward_mg1": 24.672618865966797,
+        "loss_computed": 23.976691246032715,
+        "backward_done": 13.602842807769775
+      }
+    },
+    "48": {
+      "peak_gb": 35.03802013397217,
+      "time_s": 9.303534507751465,
+      "throughput": 5.1593294956887235,
+      "visible_tokens": [
+        1192,
+        352
+      ],
+      "waterfall": {
+        "baseline": 7.6891021728515625,
+        "data_loaded": 8.321914672851562,
+        "masks_generated": 8.324435234069824,
+        "teacher_forward": 9.484591484069824,
+        "student_forward_mg0": 19.15308427810669,
+        "predictor_forward_mg0": 23.481947422027588,
+        "student_forward_mg1": 27.635397911071777,
+        "predictor_forward_mg1": 31.823420524597168,
+        "loss_computed": 31.731740951538086,
+        "backward_done": 14.632697582244873
+      }
+    },
+    "64": {
+      "peak_gb": 40.951974868774414,
+      "time_s": 11.841516017913818,
+      "throughput": 5.4047133748061436,
+      "visible_tokens": [
+        1096,
+        96
+      ],
+      "waterfall": {
+        "baseline": 7.6891021728515625,
+        "data_loaded": 8.532852172851562,
+        "masks_generated": 8.536041259765625,
+        "teacher_forward": 10.082916259765625,
+        "student_forward_mg0": 21.572402477264404,
+        "predictor_forward_mg0": 26.99641180038452,
+        "student_forward_mg1": 30.374921798706055,
+        "predictor_forward_mg1": 35.82295036315918,
+        "loss_computed": 36.5047082901001,
+        "backward_done": 15.636875629425049
+      }
+    },
+    "80": {
+      "peak_gb": 50.16990280151367,
+      "time_s": 15.192951679229736,
+      "throughput": 5.265599581243182,
+      "visible_tokens": [
+        952,
+        320
+      ],
+      "waterfall": {
+        "baseline": 7.6891021728515625,
+        "data_loaded": 8.743789672851562,
+        "masks_generated": 8.74777603149414,
+        "teacher_forward": 10.68136978149414,
+        "student_forward_mg0": 23.121629238128662,
+        "predictor_forward_mg0": 29.392226696014404,
+        "student_forward_mg1": 35.770782470703125,
+        "predictor_forward_mg1": 43.08378601074219,
+        "loss_computed": 44.530253410339355,
+        "backward_done": 16.784523487091064
+      }
+    },
+    "96": {
+      "peak_gb": 58.216548919677734,
+      "time_s": 18.38660192489624,
+      "throughput": 5.221193148801025,
+      "visible_tokens": [
+        1112,
+        256
+      ],
+      "waterfall": {
+        "baseline": 7.6891021728515625,
+        "data_loaded": 8.954727172851562,
+        "masks_generated": 8.959287643432617,
+        "teacher_forward": 11.279600143432617,
+        "student_forward_mg0": 27.76474905014038,
+        "predictor_forward_mg0": 35.01647901535034,
+        "student_forward_mg1": 41.4420166015625,
+        "predictor_forward_mg1": 49.7681884765625,
+        "loss_computed": 51.77123546600342,
+        "backward_done": 17.67950677871704
+      }
+    },
+    "112": {
+      "peak_gb": 67.53545475006104,
+      "time_s": 20.34721064567566,
+      "throughput": 5.5044399918178994,
+      "visible_tokens": [
+        1096,
+        272
+      ],
+      "waterfall": {
+        "baseline": 7.6891021728515625,
+        "data_loaded": 9.165664672851562,
+        "masks_generated": 9.17110538482666,
+        "teacher_forward": 11.87813663482666,
+        "student_forward_mg0": 30.571043491363525,
+        "predictor_forward_mg0": 39.07534837722778,
+        "student_forward_mg1": 46.8632173538208,
+        "predictor_forward_mg1": 56.9171724319458,
+        "loss_computed": 59.75273895263672,
+        "backward_done": 18.810452938079834
+      }
+    },
+    "128": {
+      "peak_gb": 75.81910133361816,
+      "time_s": 25.059714794158936,
+      "throughput": 5.10779955204578,
+      "visible_tokens": [
+        1080,
+        240
+      ],
+      "waterfall": {
+        "baseline": 7.6891021728515625,
+        "data_loaded": 9.376602172851562,
+        "masks_generated": 9.383018493652344,
+        "teacher_forward": 12.476768493652344,
+        "student_forward_mg0": 33.31297254562378,
+        "predictor_forward_mg0": 44.17750310897827,
+        "student_forward_mg1": 53.330305099487305,
+        "predictor_forward_mg1": 64.22596549987793,
+        "loss_computed": 67.24683475494385,
+        "backward_done": 19.706509113311768
+      }
+    },
+    "136": {
+      "peak_gb": 75.13476419448853,
+      "time_s": 24.76633906364441,
+      "throughput": 5.491324319291111,
+      "visible_tokens": [
+        776,
+        352
+      ],
+      "waterfall": {
+        "baseline": 7.6891021728515625,
+        "data_loaded": 9.482070922851562,
+        "masks_generated": 9.488393783569336,
+        "teacher_forward": 12.775503158569336,
+        "student_forward_mg0": 29.590956687927246,
+        "predictor_forward_mg0": 39.25402784347534,
+        "student_forward_mg1": 50.4799919128418,
+        "predictor_forward_mg1": 62.485872745513916,
+        "loss_computed": 66.02673101425171,
+        "backward_done": 20.296122074127197
+      }
+    },
+    "144": {
+      "peak_gb": 80.5821123123169,
+      "time_s": 27.18247938156128,
+      "throughput": 5.297530000066134,
+      "visible_tokens": [
+        1024,
+        192
+      ],
+      "waterfall": {
+        "baseline": 7.6891021728515625,
+        "data_loaded": 9.587539672851562,
+        "masks_generated": 9.59439754486084,
+        "teacher_forward": 13.07486629486084,
+        "student_forward_mg0": 35.26472330093384,
+        "predictor_forward_mg0": 46.910377979278564,
+        "student_forward_mg1": 56.12557315826416,
+        "predictor_forward_mg1": 67.84963321685791,
+        "loss_computed": 71.30086135864258,
+        "backward_done": 20.554362773895264
+      }
+    },
+    "148": {
+      "peak_gb": 71.00973606109619,
+      "time_s": 25.169168949127197,
+      "throughput": 5.880210041862835,
+      "visible_tokens": [
+        560,
+        112
+      ],
+      "waterfall": {
+        "baseline": 7.6891021728515625,
+        "data_loaded": 9.640274047851562,
+        "masks_generated": 9.64664363861084,
+        "teacher_forward": 13.22379207611084,
+        "student_forward_mg0": 27.331876754760742,
+        "predictor_forward_mg0": 37.370359897613525,
+        "student_forward_mg1": 45.41298151016235,
+        "predictor_forward_mg1": 57.46655750274658,
+        "loss_computed": 61.296783447265625,
+        "backward_done": 20.807101726531982
+      }
+    },
+    "152": {
+      "peak_gb": 79.79372501373291,
+      "time_s": 27.76069664955139,
+      "throughput": 5.475366915997632,
+      "visible_tokens": [
+        816,
+        192
+      ],
+      "waterfall": {
+        "baseline": 7.6891021728515625,
+        "data_loaded": 9.693008422851562,
+        "masks_generated": 9.699739933013916,
+        "teacher_forward": 13.373568058013916,
+        "student_forward_mg0": 32.71102523803711,
+        "predictor_forward_mg0": 42.699406147003174,
+        "student_forward_mg1": 51.55912494659424,
+        "predictor_forward_mg1": 64.8312349319458,
+        "loss_computed": 69.3845443725586,
+        "backward_done": 21.28409481048584
+      }
+    },
+    "156": {
+      "peak_gb": 81.94992351531982,
+      "time_s": 29.291799545288086,
+      "throughput": 5.325722639840144,
+      "visible_tokens": [
+        752,
+        240
+      ],
+      "waterfall": {
+        "baseline": 7.6891021728515625,
+        "data_loaded": 9.745742797851562,
+        "masks_generated": 9.752837657928467,
+        "teacher_forward": 13.523345470428467,
+        "student_forward_mg0": 32.063095569610596,
+        "predictor_forward_mg0": 43.061524391174316,
+        "student_forward_mg1": 53.758280754089355,
+        "predictor_forward_mg1": 67.15846920013428,
+        "loss_computed": 71.50247383117676,
+        "backward_done": 21.491527557373047
+      }
+    },
+    "160": {
+      "peak_gb": 89.27564239501953,
+      "time_s": 28.26815438270569,
+      "throughput": 5.66007946022423,
+      "visible_tokens": [
+        1000,
+        240
+      ],
+      "waterfall": {
+        "baseline": 7.6891021728515625,
+        "data_loaded": 9.798477172851562,
+        "masks_generated": 9.806001663208008,
+        "teacher_forward": 13.673189163208008,
+        "student_forward_mg0": 37.63569402694702,
+        "predictor_forward_mg0": 49.599345684051514,
+        "student_forward_mg1": 60.261539459228516,
+        "predictor_forward_mg1": 74.0221061706543,
+        "loss_computed": 78.56030941009521,
+        "backward_done": 21.74686288833618
+      }
+    }
+  }
+}

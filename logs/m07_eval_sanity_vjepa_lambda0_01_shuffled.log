@@ -1,0 +1,39 @@
+GPU: NVIDIA RTX PRO 6000 Blackwell Workstation Edition
+CUDA version: 12.8
+wandb: [wandb.login()] Loaded credentials for https://api.wandb.ai from WANDB_API_KEY.
+wandb: Currently logged in as: kapilw25 (sjsu_llm) to https://api.wandb.ai. Use `wandb login --relogin` to force relogin
+wandb: WARNING Using a boolean value for 'reinit' is deprecated. Use 'return_previous' or 'finish_previous' instead.
+wandb: setting up run k35excyk
+wandb: Tracking run with wandb version 0.25.1
+wandb: Run data is saved locally in /workspace/factorjepa/wandb/run-20260404_144123-k35excyk
+wandb: Run `wandb offline` to turn off syncing.
+wandb: Syncing run m07_SANITY
+wandb: ⭐️ View project at https://wandb.ai/sjsu_llm/walkindia-200k
+wandb: 🚀 View run at https://wandb.ai/sjsu_llm/walkindia-200k/runs/k35excyk
+wandb: run=m07_SANITY url=https://wandb.ai/sjsu_llm/walkindia-200k/runs/k35excyk
+[output_guard] m07 vjepa_lambda0_01_shuffled: attempting HF download for 1 missing file(s)...
+Downloading anonymousML123/factorjepa-outputs//workspace/factorjepa/outputs/sanity/ → /workspace/factorjepa/outputs/sanity
+
+Download complete: 0s
+  Files: 0 new, 0 updated, 635 unchanged
+  Downloaded: 0.00 GB
+[output_guard] m07 vjepa_lambda0_01_shuffled: 1 file(s) still missing after HF download
+[output_guard] m07 vjepa_lambda0_01_shuffled: outputs missing or invalid — will re-compute
+  MISS  umap_2d: umap_2d_vjepa_lambda0_01_shuffled.npy
+Encoder: vjepa_lambda0_01_shuffled
+SANITY MODE: 64 clips
+Loaded: 64 clips, dim=1408
+cuML UMAP (n_neighbors=15, min_dist=0.1)...
+m07_umap:   0%|          | 0/1 [00:00<?, ?run/s][2026-04-04 14:41:25.647] [CUML] [debug] Computing KNN Graph
+[2026-04-04 14:41:25.666] [CUML] [debug] Computing fuzzy simplicial set
+m07_umap: 100%|██████████| 1/1 [00:00<00:00,  2.99run/s]m07_umap: 100%|██████████| 1/1 [00:00<00:00,  2.99run/s]
+Saved: /workspace/factorjepa/outputs/sanity/umap_2d_vjepa_lambda0_01_shuffled.npy ((64, 2))
+UMAP completed in 0.3s
+wandb: updating run metadata; uploading artifact umap_2d
+wandb: uploading artifact umap_2d
+wandb: uploading requirements.txt; uploading output.log; uploading wandb-summary.json; uploading config.yaml
+wandb: uploading summary, console lines 1-18
+wandb: 🚀 View run m07_SANITY at: https://wandb.ai/sjsu_llm/walkindia-200k/runs/k35excyk
+wandb: ⭐️ View project at: https://wandb.ai/sjsu_llm/walkindia-200k
+wandb: Synced 5 W&B file(s), 0 media file(s), 2 artifact file(s) and 0 other file(s)
+wandb: Find logs at: ./wandb/run-20260404_144123-k35excyk/logs

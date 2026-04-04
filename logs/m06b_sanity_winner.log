@@ -1,0 +1,77 @@
+wandb: [wandb.login()] Loaded credentials for https://api.wandb.ai from WANDB_API_KEY.
+wandb: Currently logged in as: kapilw25 (sjsu_llm) to https://api.wandb.ai. Use `wandb login --relogin` to force relogin
+wandb: WARNING Using a boolean value for 'reinit' is deprecated. Use 'return_previous' or 'finish_previous' instead.
+wandb: setting up run g9ai0umw
+wandb: Tracking run with wandb version 0.25.1
+wandb: Run data is saved locally in /workspace/factorjepa/wandb/run-20260403_102554-g9ai0umw
+wandb: Run `wandb offline` to turn off syncing.
+wandb: Syncing run m06b_SANITY
+wandb: ⭐️ View project at https://wandb.ai/sjsu_llm/walkindia-200k
+wandb: 🚀 View run at https://wandb.ai/sjsu_llm/walkindia-200k/runs/g9ai0umw
+wandb: run=m06b_SANITY url=https://wandb.ai/sjsu_llm/walkindia-200k/runs/g9ai0umw
+Encoder: vjepa_lambda0_01 (dim=1408, suffix='_vjepa_lambda0_01')
+Output: /workspace/factorjepa/outputs/sanity
+Motion features: (64, 13)
+Embeddings: (64, 1408)
+kNN indices: (64, 7)
+Aligned: 64 clips (emb=64, motion=64)
+
+Computing Spearman correlation (+ bootstrap 95% CI)...
+  Spearman rho = 0.4953 ± 0.0046 (p = 0.00e+00, 98,475 pairs)
+
+Computing Temporal Prec@K (k=6, + bootstrap 95% CI)...
+  Temporal Prec@K = 44.0% ± 6.8
+
+Computing Motion Retrieval mAP (k=6, clusters=4, + bootstrap 95% CI)...
+  Motion Retrieval mAP = 0.7813 ± 0.0766
+
+Computing Temporal Locality...
+  Intra-video dist: 38.7433
+  Inter-video dist: 44.5416
+  Ratio (lower=better): 0.8698 (5 videos)
+
+Saved: /workspace/factorjepa/outputs/sanity/m06b_temporal_corr_vjepa_lambda0_01.json
+
+============================================================
+m06b TEMPORAL CORRELATION — vjepa_lambda0_01
+============================================================
+  Spearman rho:          0.4953 ± 0.0046
+  Temporal Prec@K:       44.0% ± 6.8
+  Motion Retrieval mAP:  0.7813 ± 0.0766
+  Temporal Locality:     0.8698 (intra/inter ratio)
+  Clips aligned:         64
+  Compute time:          13.1s
+============================================================
+wandb: updating run metadata
+wandb: uploading output.log; uploading wandb-summary.json; uploading config.yaml
+wandb: uploading history steps 0-0, summary, console lines 2-33
+wandb: 
+wandb: Run history:
+wandb:     compute_time_sec ▁
+wandb:          encoder_dim ▁
+wandb:          k_neighbors ▁
+wandb:      motion_clusters ▁
+wandb: motion_retrieval_map ▁
+wandb:      n_clips_aligned ▁
+wandb:      n_pairs_sampled ▁
+wandb:        spearman_pval ▁
+wandb:         spearman_rho ▁
+wandb:   temporal_prec_at_k ▁
+wandb: 
+wandb: Run summary:
+wandb:     compute_time_sec 13.1
+wandb:              encoder vjepa_lambda0_01
+wandb:          encoder_dim 1408
+wandb:         encoder_type video_adapted
+wandb:          k_neighbors 6
+wandb:                 mode SANITY
+wandb:      motion_clusters 4
+wandb: motion_retrieval_map 0.78133
+wandb:      n_clips_aligned 64
+wandb:      n_pairs_sampled 98475
+wandb:                   +3 ...
+wandb: 
+wandb: 🚀 View run m06b_SANITY at: https://wandb.ai/sjsu_llm/walkindia-200k/runs/g9ai0umw
+wandb: ⭐️ View project at: https://wandb.ai/sjsu_llm/walkindia-200k
+wandb: Synced 5 W&B file(s), 0 media file(s), 0 artifact file(s) and 0 other file(s)
+wandb: Find logs at: ./wandb/run-20260403_102554-g9ai0umw/logs

@@ -1,0 +1,35 @@
+wandb: run=m06b_SANITY url=https://wandb.ai/sjsu_llm/walkindia-200k/runs/2pwhxa2u
+Encoder: random (dim=1408, suffix='_random')
+Output: /workspace/factorjepa/outputs/sanity
+Motion features: (56, 13)
+Embeddings: (50, 1408)
+kNN indices: (50, 7)
+m06b_temporal: 100%|██████████| 5/5 [00:12<00:00,  2.57s/step]
+Aligned: 50 clips (emb=50, motion=56)
+
+Computing Spearman correlation (+ bootstrap 95% CI)...
+  Spearman rho = 0.0151 ± 0.0060 (p = 2.33e-06, 98,026 pairs)
+
+Computing Temporal Prec@K (k=6, + bootstrap 95% CI)...
+  Temporal Prec@K = 28.3% ± 4.0
+
+Computing Motion Retrieval mAP (k=6, clusters=4, + bootstrap 95% CI)...
+  Motion Retrieval mAP = 0.5966 ± 0.0832
+
+Computing Temporal Locality...
+  Intra-video dist: 1.4132
+  Inter-video dist: 1.4162
+  Ratio (lower=better): 0.9979 (4 videos)
+
+Saved: /workspace/factorjepa/outputs/sanity/m06b_temporal_corr_random.json
+
+============================================================
+m06b TEMPORAL CORRELATION — random
+============================================================
+  Spearman rho:          0.0151 ± 0.0060
+  Temporal Prec@K:       28.3% ± 4.0
+  Motion Retrieval mAP:  0.5966 ± 0.0832
+  Temporal Locality:     0.9979 (intra/inter ratio)
+  Clips aligned:         50
+  Compute time:          12.8s
+============================================================

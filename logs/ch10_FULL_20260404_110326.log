@@ -1,0 +1,143 @@
+[11:03:26] GPU watchdog started (PID=3623245)
+[11:03:26] Auto batch size: 148
+[11:03:26] Local data exists: data/full_local
+[11:03:26] Val data: data/val_1k.json + data/val_1k_local
+[11:03:26] Ch10 pipeline starting (mode=FULL)
+[11:03:26] Config: configs/pretrain/vitg16_indian.yaml
+[11:03:26] Master log: logs/ch10_FULL_20260404_110326.log
+
+[11:03:26] === PRE-FLIGHT ===
+GPU:            NVIDIA RTX PRO 6000 Blackwell Workstation Edition, VRAM: 102GB
+PyTorch:        2.12.0.dev20260228+cu128
+CUDA:           12.8
+FAISS GPUs:     1
+Flash-Attn:     2.8.3
+cuML:           26.02.000
+Transformers:   4.57.6
+wandb:          0.25.1
+HF_TOKEN:       hf_eATIPAr...
+vjepa2:         deps/vjepa2/ present
+Config:         configs/pretrain/vitg16_indian.yaml
+Baseline:       NOT FOUND (outputs/full/m06_metrics.json) — m08b will fail, training will proceed
+  Fix after Ch9: python -u src/utils/hf_outputs.py download outputs/full
+
+Pre-flight: ALL PASSED
+[11:03:29] Pre-flight complete.
+[11:03:29] === OUTPUT PREFLIGHT ===
+
+======================================================================
+  PIPELINE PREFLIGHT — checking all inputs/outputs before GPU work
+======================================================================
+  [33mWILL RUN[0m ~33 min                      m09 train (λ=0)
+  [32mSKIP (cached)[0m                         m09 train (λ=0.001)
+  [33mWILL RUN[0m ~33 min                      m09 train (λ=0.01)
+  [33mWILL RUN[0m ~33 min                      m09 train (λ=0.1)
+  [32mSKIP (cached)[0m                         m09 deep train (vjepa_lambda0_001, 5ep)
+  [33mWILL RUN[0m ~1h 47min                    m05 re-embed (vjepa_lambda0_001)
+  [31mBLOCKED (missing input)[0m               m06 metrics (vjepa_lambda0_001)
+  [31mBLOCKED (missing input)[0m               m06b temporal (vjepa_lambda0_001)
+  [33mWILL RUN[0m ~1h 47min                    m05 shuffled (vjepa_lambda0_001_shuffled)
+  [31mBLOCKED (missing input)[0m               m07 UMAP (vjepa_lambda0_001)
+  [31mBLOCKED (missing input)[0m               m08b compare (all encoders)
+
+  Steps to run:  9
+  Steps cached:  2
+
+  [31mMISSING INPUTS (5):[0m
+    m06 metrics (vjepa_lambda0_001) needs embeddings: outputs/full/embeddings_vjepa_lambda0_001.npy
+    m06b temporal (vjepa_lambda0_001) needs embeddings: outputs/full/embeddings_vjepa_lambda0_001.npy
+    m07 UMAP (vjepa_lambda0_001) needs embeddings: outputs/full/embeddings_vjepa_lambda0_001.npy
+    m08b compare (all encoders) needs frozen_metrics: outputs/full/m06_metrics.json
+    m08b compare (all encoders) needs adapted_metrics: outputs/full/m06_metrics_vjepa_lambda0_001.json
+======================================================================
+
+Options:
+  [1] Proceed (run steps marked WILL RUN, skip cached)
+  [2] Abort
+
+Enter choice (1 or 2): [11:03:33] Starting pipeline...
+
+[11:03:33] Winner from ablation: lambda=0.001 (lambda0_001) [from outputs/full/ablation/ablation_winner.json]
+[11:03:33] Training: lambda=0.001 (lambda0_001), 1 epochs
+[11:03:33] Student already trained for 1.0 epochs (>= 1). Skipping.
+
+═══════════════════════════════════════════════════════════════
+  STEP train: m09 pretrain (lambda=0.001, 1 epochs)
+  Mode: FULL | Est: ~6.4h/lambda (929 steps)
+  Started: 2026-04-04 11:03:33
+═══════════════════════════════════════════════════════════════
+[11:03:33] CMD: python -u src/m09_pretrain.py --config configs/pretrain/vitg16_indian.yaml --lambda-reg 0.001 --max-epochs 1 --batch-size 148 --FULL --local-data data/full_local --val-subset data/val_1k.json --val-local-data data/val_1k_local
+Using PyAV for video decoding
+GPU: NVIDIA RTX PRO 6000 Blackwell Workstation Edition
+CUDA version: 12.8
+[output_guard] Training output valid — skipping
+  OK    student_encoder.pt: 4049 MB
+  OK    epochs=1.0, steps=1023, jepa_loss=0.482092946767807
+[11:03:36] PASSED: m09 pretrain (lambda=0.001, 1 epochs) (0m 3s)
+[11:03:36] HF upload started in background (PID=3623426)
+  OK   student_encoder.pt             4049 MB
+  OK   training_summary.json          jepa_loss=0.4821  epochs=1.0
+  OK   loss_log.csv                   523 steps
+[11:03:36] VERIFY OK: Training
+
+═══════════════════════════════════════════════════════════════
+  STEP winner-embed: m05 re-embed (winner lambda=0.001)
+  Mode: FULL | Est: ~20h (115K clips at 1.55 clips/s)
+  Started: 2026-04-04 11:03:36
+═══════════════════════════════════════════════════════════════
+[11:03:36] CMD: python -u src/m05_vjepa_embed.py --model outputs/full/m09_lambda0_001/student_encoder.pt --encoder vjepa_lambda0_001 --FULL --local-data data/full_local
+Using PyAV for video decoding
+Output: /workspace/factorjepa/outputs/full/embeddings_vjepa_lambda0_001.npy
+[output_guard] m05 embed: attempting HF download for 2 missing file(s)...
+Downloading anonymousML123/factorjepa-outputs//workspace/factorjepa/outputs/full/ → /workspace/factorjepa/outputs/full
+Fetching 0 files: 0it [00:00, ?it/s]Fetching 0 files: 0it [00:00, ?it/s]
+
+Download complete: 0s
+  Files: 0 new, 0 updated, 66 unchanged
+  Downloaded: 0.00 GB
+[output_guard] m05 embed: 2 file(s) still missing after HF download
+[output_guard] m05 embed: outputs missing or invalid — will re-compute
+  MISS  embeddings: embeddings_vjepa_lambda0_001.npy
+  MISS  paths: embeddings_vjepa_lambda0_001.paths.npy
+Clip limit: 115,687
+Streaming from: anonymousML123/walkindia-200k
+
+============================================================
+WORKER 1: embeddings 0 → 10,000
+============================================================
+/workspace/factorjepa/venv_walkindia/lib/python3.12/site-packages/transformers/utils/hub.py:110: FutureWarning: Using `TRANSFORMERS_CACHE` is deprecated and will be removed in v5 of Transformers. Use `HF_HOME` instead.
+  warnings.warn(
+Using PyAV for video decoding
+GPU: NVIDIA RTX PRO 6000 Blackwell Workstation Edition
+CUDA version: 12.8
+Batch size: 176 (from inference/vjepa2 profiler)
+wandb: [wandb.login()] Loaded credentials for https://api.wandb.ai from WANDB_API_KEY.
+wandb: Currently logged in as: kapilw25 (sjsu_llm) to https://api.wandb.ai. Use `wandb login --relogin` to force relogin
+wandb: WARNING Using a boolean value for 'reinit' is deprecated. Use 'return_previous' or 'finish_previous' instead.
+wandb: setting up run n12hjs91
+wandb: Tracking run with wandb version 0.25.1
+wandb: Run data is saved locally in /workspace/factorjepa/wandb/run-20260404_110343-n12hjs91
+wandb: Run `wandb offline` to turn off syncing.
+wandb: Syncing run m05_FULL
+wandb: ⭐️ View project at https://wandb.ai/sjsu_llm/walkindia-200k
+wandb: 🚀 View run at https://wandb.ai/sjsu_llm/walkindia-200k/runs/n12hjs91
+wandb: run=m05_FULL url=https://wandb.ai/sjsu_llm/walkindia-200k/runs/n12hjs91
+
+Loading model: outputs/full/m09_lambda0_001/student_encoder.pt
+/workspace/factorjepa/venv_walkindia/lib/python3.12/site-packages/timm/models/layers/__init__.py:49: FutureWarning: Importing from timm.models.layers is deprecated, please import via timm.layers
+  warnings.warn(f"Importing from {__name__} is deprecated, please import via timm.layers", FutureWarning)
+Adapted encoder: loaded 484/484 params (missing: 0, unexpected: 0)
+Applying torch.compile...
+Warmup: compiling inductor graph...
+Model loaded on cuda (dtype: torch.float16)
+
+=== Streaming Config ===
+batch_size:    176
+video_decoder: PyAV
+prefetch:      8 batches
+checkpoint:    every 500 clips
+m05_vjepa:   0%|          | 0/10000 [00:00<?, ?clip/s]  Parallel TAR reader: 8 threads, 116 TARs, queue=256
+Worker failed (exit -9). Resume with same command.
+ERROR: No embeddings collected.
+[11:07:24] FAILED: m05 re-embed (winner lambda=0.001) (3m 48s) — exit code 1
+[11:07:24] FATAL: Winner re-embed failed.

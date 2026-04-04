@@ -7,6 +7,7 @@ USAGE:
     python -u src/m07_umap.py --FULL 2>&1 | tee logs/m07_umap_full.log
 """
 import argparse
+import os
 import sys
 import time
 from pathlib import Path
@@ -15,6 +16,7 @@ import numpy as np
 from tqdm import tqdm
 
 sys.path.insert(0, str(Path(__file__).parent))
+from utils.progress import make_pbar
 from utils.config import (
     EMBEDDINGS_FILE, check_gpu,
     add_subset_arg, get_output_dir,
@@ -88,6 +90,7 @@ def main():
 
     # Run cuML GPU UMAP
     print(f"cuML UMAP (n_neighbors={n_neighbors}, min_dist={args.min_dist})...")
+    pbar = make_pbar(total=1, desc="m07_umap", unit="run")
     t0 = time.time()
     reducer = cuUMAP(n_components=2, n_neighbors=n_neighbors,
                      min_dist=args.min_dist, random_state=42, verbose=True)
@@ -95,6 +98,8 @@ def main():
     emb_2d = result.get() if hasattr(result, 'get') else np.asarray(result)
     emb_2d = emb_2d.astype(np.float32)  # ensure float32 for downstream compatibility
     elapsed = time.time() - t0
+    pbar.update(1)
+    pbar.close()
 
     # Save (encoder-aware path)
     out_path = enc_files["umap_2d"]
@@ -104,6 +109,11 @@ def main():
 
     log_artifact(wb_run, "umap_2d", str(out_path))
     finish_wandb(wb_run)
+
+    # Force exit: CUDA atexit cleanup can deadlock on futex_wait_queue
+    sys.stdout.flush()
+    sys.stderr.flush()
+    os._exit(0)
 
 
 if __name__ == "__main__":

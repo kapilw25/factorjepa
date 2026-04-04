@@ -19,6 +19,7 @@ from pathlib import Path
 
 # Add src to path for utils import
 sys.path.insert(0, str(Path(__file__).parent))
+from utils.progress import make_pbar
 from utils.config import VIDEOS_DIR, YT_VIDEOS_JSON, OUTPUTS_DATA_PREP_DIR
 from utils.config import get_sanity_clip_limit, get_pipeline_config
 
@@ -226,6 +227,7 @@ def main():
     fail_count = 0
     skip_count = 0
     start_time = time.time()
+    pbar = make_pbar(total=len(videos), desc="m01_download", unit="video")
 
     for i, video in enumerate(videos, 1):
         vid_id = video["id"]
@@ -254,6 +256,9 @@ def main():
                 skip_count += 1
         else:
             fail_count += 1
+        pbar.update(1)
+
+    pbar.close()
 
     # Summary
     elapsed = time.time() - start_time

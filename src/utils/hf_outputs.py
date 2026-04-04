@@ -3,6 +3,10 @@ Upload/download compute outputs + POC/val data to HuggingFace Hub.
 Repo: anonymousML123/factorjepa-outputs (public, gated, auto-created on first upload).
 
 USAGE:
+    # FULL/POC/SANITY usage:
+    python -u src/utils/hf_outputs.py upload outputs 2>&1 | tee logs/hf_upload_outputs.log                                                                    
+    python -u src/utils/hf_outputs.py download outputs 2>&1 | tee logs/hf_download_outputs.log 
+    
     # Upload/download: Compute outputs (embeddings, metrics, plots from outputs/full/)
     python -u src/utils/hf_outputs.py upload outputs/full 2>&1 | tee logs/hf_upload.log
     python -u src/utils/hf_outputs.py download outputs/full 2>&1 | tee logs/hf_download.log
@@ -11,9 +15,7 @@ USAGE:
     python -u src/utils/hf_outputs.py upload-data 2>&1 | tee logs/upload_poc_val.log    # ~15 min upload
     python -u src/utils/hf_outputs.py download-data 2>&1 | tee logs/download_poc_val.log # ~3 min measured
     
-FULL/POC/SANITY usage:
-    python -u src/utils/hf_outputs.py upload outputs 2>&1 | tee logs/hf_upload_outputs.log                                                                    
-    python -u src/utils/hf_outputs.py download outputs 2>&1 | tee logs/hf_download_outputs.log 
+
     
 """
 import os
@@ -62,6 +64,71 @@ def _ensure_repo(token):
     print(f"Created: https://huggingface.co/datasets/{HF_OUTPUTS_REPO} (public, gated)")
 
 
+def _mirror_cleanup(api, local_path: Path, subfolder: str):
+    """Delete remote HF files that no longer exist locally (exact mirror).
+
+    Prevents download from pulling back stale files (e.g., 73GB of old checkpoints
+    that caused OOM during training). Scans all files under subfolder on HF,
+    compares with local disk, deletes remote-only files.
+    """
+    try:
+        # List all files on HF under this subfolder (recursive)
+        remote_files = []
+        for item in api.list_repo_tree(
+                HF_OUTPUTS_REPO, path_in_repo=subfolder, repo_type="dataset",
+                recursive=True):
+            if hasattr(item, 'rpath') and not hasattr(item, 'tree_id'):
+                remote_files.append(item.rpath)
+
+        if not remote_files:
+            return
+
+        # Find remote files not present locally
+        stale = []
+        for hf_path in remote_files:
+            rel = hf_path[len(subfolder):].lstrip("/") if hf_path.startswith(subfolder) else hf_path
+            local_file = local_path / rel
+            if not local_file.exists():
+                stale.append(hf_path)
+
+        if stale:
+            print(f"  Mirror cleanup: deleting {len(stale)} stale file(s) from HF")
+            for path in stale:
+                try:
+                    api.delete_file(path_in_repo=path, repo_id=HF_OUTPUTS_REPO, repo_type="dataset")
+                    print(f"    DEL {path}")
+                except Exception as e:
+                    print(f"    SKIP {path}: {e}")
+        else:
+            print(f"  Mirror: HF in sync ({len(remote_files)} files, 0 stale)")
+    except Exception as e:
+        # Non-fatal: cleanup failure shouldn't block upload
+        print(f"  WARN: mirror cleanup failed ({e}), continuing with upload")
+
+
+_CHECKPOINT_AGE_THRESHOLD = 120  # seconds — skip checkpoints modified within this window
+
+
+def _stale_checkpoint_ignores(output_path: Path) -> list:
+    """Return ignore patterns for checkpoint files currently being written.
+
+    Checkpoints older than 60s are safe to upload (no active writer).
+    Checkpoints younger than 60s are actively being written → skip to avoid LFS errors.
+    """
+    now = time.time()
+    ignore = []
+    for ckpt in output_path.rglob(".*checkpoint*"):
+        age = now - ckpt.stat().st_mtime
+        if age < _CHECKPOINT_AGE_THRESHOLD:
+            # Relative to output_path for ignore_patterns
+            rel = str(ckpt.relative_to(output_path))
+            ignore.append(rel)
+            print(f"  Skip active checkpoint: {rel} (modified {age:.0f}s ago)")
+        else:
+            print(f"  Include checkpoint: {ckpt.name} (idle {age:.0f}s)")
+    return ignore
+
+
 def upload_outputs(output_dir: str, subfolder: str = None):
     """Upload output directory to HF. Uses upload_folder with built-in dedup.
 
@@ -88,6 +155,11 @@ def upload_outputs(output_dir: str, subfolder: str = None):
 
     api = HfApi(token=token)
 
+    # Mirror: delete remote files not present locally before uploading.
+    # Without this, HF accumulates stale files (old checkpoints, renamed metrics,
+    # deleted plots). Download then pulls them all back → OOM (73GB incident).
+    _mirror_cleanup(api, output_path, subfolder)
+
     # Upload with dedup — HF only uploads files whose hash changed
     print(f"Uploading {output_dir} → {HF_OUTPUTS_REPO}/{subfolder}/")
     t0 = time.time()
@@ -98,7 +170,7 @@ def upload_outputs(output_dir: str, subfolder: str = None):
         repo_type="dataset",
         path_in_repo=subfolder,
         allow_patterns=["*.npy", "*.npz", "*.json", "*.csv", "*.png", "*.pdf", "*.tex", "*.pt"],
-        ignore_patterns=[".*", "tmp_*"],  # skip checkpoints and temp dirs
+        ignore_patterns=["tmp_*"] + _stale_checkpoint_ignores(output_path),
     )
 
     elapsed = time.time() - t0
@@ -127,6 +199,14 @@ def download_outputs(output_dir: str, subfolder: str = None):
         subfolder = str(Path(output_dir))  # "outputs/full" — mirrors HF layout
 
     print(f"Downloading {HF_OUTPUTS_REPO}/{subfolder}/ → {output_dir}")
+
+    # Snapshot before download: track what files exist
+    output_path = Path(output_dir)
+    before = set()
+    if output_path.exists():
+        before = {str(p.relative_to(output_path)): p.stat().st_size
+                  for p in output_path.rglob("*") if p.is_file()}
+
     t0 = time.time()
 
     snapshot_download(
@@ -138,7 +218,33 @@ def download_outputs(output_dir: str, subfolder: str = None):
     )
 
     elapsed = time.time() - t0
-    print(f"Download complete: {elapsed:.0f}s")
+
+    # Diff: what changed
+    after = {}
+    if output_path.exists():
+        after = {str(p.relative_to(output_path)): p.stat().st_size
+                 for p in output_path.rglob("*") if p.is_file()}
+
+    new_files = set(after.keys()) - set(before.keys())
+    updated_files = {f for f in set(after.keys()) & set(before.keys())
+                     if after[f] != before.get(f, 0)}
+    unchanged = len(after) - len(new_files) - len(updated_files)
+
+    print(f"\nDownload complete: {elapsed:.0f}s")
+    print(f"  Files: {len(new_files)} new, {len(updated_files)} updated, {unchanged} unchanged")
+    total_bytes = sum(after[f] for f in new_files | updated_files)
+    print(f"  Downloaded: {total_bytes / 1e9:.2f} GB")
+    if new_files:
+        for f in sorted(new_files)[:10]:
+            print(f"  NEW  {f} ({after[f] / 1e6:.1f} MB)")
+        if len(new_files) > 10:
+            print(f"  ... and {len(new_files) - 10} more new files")
+    if updated_files:
+        for f in sorted(updated_files)[:10]:
+            print(f"  UPD  {f} ({after[f] / 1e6:.1f} MB)")
+        if len(updated_files) > 10:
+            print(f"  ... and {len(updated_files) - 10} more updated files")
+
     return True
 
 

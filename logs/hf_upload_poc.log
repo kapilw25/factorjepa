@@ -1,2884 +1,0 @@
-Uploading outputs/poc → anonymousML123/factorjepa-outputs/outputs/poc/
-It seems you are trying to upload a large folder at once. This might take some time and then fail if the folder is too large. For such cases, it is recommended to upload in smaller batches or to use `HfApi().upload_large_folder(...)`/`hf upload-large-folder` instead. For more details, check out https://huggingface.co/docs/huggingface_hub/main/en/guides/upload#upload-a-large-folder.
-Processing Files (0 / 0)      : |          |  0.00B /  0.00B            
-New Data Upload               : |          |  0.00B /  0.00B            [A
-
-  ...poc/embeddings_random.npy:  85%|████████▍ | 47.8MB / 56.3MB            [A[A
-
-
-  ...s/poc/embeddings_clip.npy:   0%|          | 13.2kB / 30.7MB            [A[A[A
-
-  ...poc/embeddings_random.npy:  85%|████████▍ | 47.8MB / 56.3MB            [A[A
-
-
-  ...s/poc/embeddings_clip.npy:   0%|          | 13.2kB / 30.7MB            [A[A[AProcessing Files (0 / 2)      :   8%|▊         | 47.8MB /  625MB, 79.7MB/s  
-
-  ...poc/embeddings_random.npy: 100%|█████████▉| 56.1MB / 56.3MB            [A[A
-
-
-  ...s/poc/embeddings_clip.npy:   0%|          | 13.2kB / 30.7MB            [A[A[AProcessing Files (0 / 2)      :   9%|▉         | 56.1MB /  625MB, 70.1MB/s  
-
-  ...poc/embeddings_random.npy: 100%|█████████▉| 56.1MB / 56.3MB            [A[A
-
-
-  ...s/poc/embeddings_clip.npy:   0%|          | 13.2kB / 30.7MB            [A[A[A
-
-
-
-  ...utputs/poc/embeddings.npy:   1%|▏         |  759kB / 56.3MB            [A[A[A[A
-
-  ...poc/embeddings_random.npy: 100%|█████████▉| 56.1MB / 56.3MB            [A[A
-
-
-  ...s/poc/embeddings_clip.npy:   0%|          | 13.2kB / 30.7MB            [A[A[A
-
-
-
-  ...utputs/poc/embeddings.npy:   1%|▏         |  759kB / 56.3MB            [A[A[A[AProcessing Files (0 / 3)      :   9%|▉         | 56.9MB /  625MB, 47.4MB/s  
-New Data Upload               :   0%|          |  759kB /  230MB,  632kB/s  [A
-
-  ...poc/embeddings_random.npy: 100%|█████████▉| 56.1MB / 56.3MB            [A[A
-
-
-  ...s/poc/embeddings_clip.npy:   0%|          | 13.2kB / 30.7MB            [A[A[A
-
-
-
-  ...utputs/poc/embeddings.npy:   1%|▏         |  759kB / 56.3MB            [A[A[A[A
-
-  ...poc/embeddings_random.npy: 100%|█████████▉| 56.1MB / 56.3MB            [A[A
-
-
-  ...s/poc/embeddings_clip.npy:   0%|          | 13.2kB / 30.7MB            [A[A[A
-
-
-
-  ...utputs/poc/embeddings.npy:   3%|▎         | 1.52MB / 56.3MB            [A[A[A[AProcessing Files (0 / 3)      :   9%|▉         | 57.6MB /  625MB, 36.0MB/s  
-New Data Upload               :   1%|          | 1.52MB /  230MB,  948kB/s  [A
-
-  ...poc/embeddings_random.npy: 100%|█████████▉| 56.1MB / 56.3MB            [A[A
-
-
-  ...s/poc/embeddings_clip.npy:   0%|          | 13.2kB / 30.7MB            [A[A[A
-
-
-
-  ...utputs/poc/embeddings.npy:  13%|█▎        | 7.59MB / 56.3MB            [A[A[A[AProcessing Files (0 / 3)      :  10%|█         | 63.7MB /  625MB, 35.4MB/s  
-New Data Upload               :   3%|▎         | 7.59MB /  230MB, 4.22MB/s  [A
-
-  ...poc/embeddings_random.npy: 100%|█████████▉| 56.1MB / 56.3MB            [A[A
-
-
-  ...s/poc/embeddings_clip.npy:   0%|          | 13.2kB / 30.7MB            [A[A[A
-
-
-
-  ...utputs/poc/embeddings.npy:  18%|█▊        | 9.86MB / 56.3MB            [A[A[A[AProcessing Files (0 / 3)      :  11%|█         | 66.0MB /  625MB, 33.0MB/s  
-New Data Upload               :   4%|▍         | 9.86MB /  230MB, 4.93MB/s  [A
-
-  ...poc/embeddings_random.npy: 100%|█████████▉| 56.1MB / 56.3MB            [A[A
-
-
-  ...s/poc/embeddings_clip.npy:   0%|          | 13.2kB / 30.7MB            [A[A[A
-
-
-
-  ...utputs/poc/embeddings.npy:  32%|███▏      | 18.2MB / 56.3MB            [A[A[A[AProcessing Files (0 / 3)      :  12%|█▏        | 74.3MB /  625MB, 33.8MB/s  
-New Data Upload               :   8%|▊         | 18.2MB /  230MB, 8.28MB/s  [A
-
-  ...poc/embeddings_random.npy: 100%|█████████▉| 56.1MB / 56.3MB            [A[A
-
-
-  ...s/poc/embeddings_clip.npy:   0%|          | 13.2kB / 30.7MB            [A[A[A
-
-
-
-  ...utputs/poc/embeddings.npy:  48%|████▊     | 27.3MB / 56.3MB            [A[A[A[AProcessing Files (0 / 3)      :  13%|█▎        | 83.4MB /  625MB, 34.8MB/s  
-New Data Upload               :  12%|█▏        | 27.3MB /  230MB, 11.4MB/s  [A
-
-  ...poc/embeddings_random.npy: 100%|█████████▉| 56.1MB / 56.3MB            [A[A
-
-
-  ...s/poc/embeddings_clip.npy:   0%|          | 13.2kB / 30.7MB            [A[A[A
-
-
-
-  ...utputs/poc/embeddings.npy:  65%|██████▍   | 36.4MB / 56.3MB            [A[A[A[AProcessing Files (0 / 3)      :  15%|█▍        | 92.5MB /  625MB, 35.6MB/s  
-New Data Upload               :  16%|█▌        | 36.4MB /  230MB, 14.0MB/s  [A
-
-  ...poc/embeddings_random.npy: 100%|█████████▉| 56.1MB / 56.3MB            [A[A
-
-
-  ...s/poc/embeddings_clip.npy:   0%|          | 13.2kB / 30.7MB            [A[A[A
-
-
-
-  ...utputs/poc/embeddings.npy:  71%|███████▏  | 40.2MB / 56.3MB            [A[A[A[AProcessing Files (0 / 3)      :  15%|█▌        | 96.3MB /  625MB, 34.4MB/s  
-New Data Upload               :  17%|█▋        | 40.2MB /  230MB, 14.4MB/s  [A
-
-  ...poc/embeddings_random.npy: 100%|█████████▉| 56.1MB / 56.3MB            [A[A
-
-
-  ...s/poc/embeddings_clip.npy:   0%|          | 13.2kB / 30.7MB            [A[A[A
-
-
-
-  ...utputs/poc/embeddings.npy:  88%|████████▊ | 49.3MB / 56.3MB            [A[A[A[AProcessing Files (0 / 3)      :  17%|█▋        |  105MB /  625MB, 35.2MB/s  
-New Data Upload               :  21%|██▏       | 49.3MB /  230MB, 16.4MB/s  [A
-
-  ...poc/embeddings_random.npy: 100%|█████████▉| 56.1MB / 56.3MB            [A[A
-
-
-  ...s/poc/embeddings_clip.npy:   0%|          | 13.2kB / 30.7MB            [A[A[A
-
-
-
-  ...utputs/poc/embeddings.npy: 100%|█████████▉| 56.1MB / 56.3MB            [A[A[A[AProcessing Files (0 / 3)      :  18%|█▊        |  112MB /  625MB, 35.1MB/s  
-New Data Upload               :  24%|██▍       | 56.1MB /  230MB, 17.5MB/s  [A
-
-  ...poc/embeddings_random.npy: 100%|█████████▉| 56.1MB / 56.3MB            [A[A
-
-
-  ...s/poc/embeddings_clip.npy:   0%|          | 13.2kB / 30.7MB            [A[A[A
-
-
-
-  ...utputs/poc/embeddings.npy: 100%|█████████▉| 56.1MB / 56.3MB            [A[A[A[A
-
-  ...poc/embeddings_random.npy: 100%|█████████▉| 56.1MB / 56.3MB            [A[A
-
-
-  ...s/poc/embeddings_clip.npy:   0%|          | 13.2kB / 30.7MB            [A[A[A
-
-
-
-  ...utputs/poc/embeddings.npy: 100%|█████████▉| 56.1MB / 56.3MB            [A[A[A[A
-
-  ...poc/embeddings_random.npy: 100%|█████████▉| 56.1MB / 56.3MB            [A[A
-
-
-  ...s/poc/embeddings_clip.npy:   0%|          | 13.2kB / 30.7MB            [A[A[A
-
-
-
-  ...utputs/poc/embeddings.npy: 100%|█████████▉| 56.1MB / 56.3MB            [A[A[A[A
-
-  ...poc/embeddings_random.npy: 100%|█████████▉| 56.1MB / 56.3MB            [A[A
-
-
-  ...s/poc/embeddings_clip.npy:   0%|          | 13.2kB / 30.7MB            [A[A[A
-
-
-
-  ...utputs/poc/embeddings.npy: 100%|██████████| 56.3MB / 56.3MB            [A[A[A[AProcessing Files (1 / 3)      :  18%|█▊        |  112MB /  625MB, 28.1MB/s  
-New Data Upload               :  24%|██▍       | 56.3MB /  230MB, 14.1MB/s  [A
-
-
-
-
-  ...ngs_vjepa_lambda0_001.npy:   1%|          |  540kB / 56.3MB            [A[A[A[A[A
-
-
-
-
-
-  ...poc/embeddings_dinov2.npy:   1%|          |  552kB / 61.4MB            [A[A[A[A[A[A
-
-  ...poc/embeddings_random.npy: 100%|█████████▉| 56.1MB / 56.3MB            [A[A
-
-
-  ...s/poc/embeddings_clip.npy:   0%|          | 13.2kB / 30.7MB            [A[A[A
-
-
-
-  ...utputs/poc/embeddings.npy: 100%|██████████| 56.3MB / 56.3MB            [A[A[A[A
-
-
-
-
-  ...ngs_vjepa_lambda0_001.npy:   1%|          |  540kB / 56.3MB            [A[A[A[A[A
-
-
-
-
-
-  ...poc/embeddings_dinov2.npy:   1%|          |  552kB / 61.4MB            [A[A[A[A[A[AProcessing Files (1 / 5)      :  18%|█▊        |  114MB /  625MB, 27.0MB/s  
-New Data Upload               :  25%|██▍       | 57.4MB /  230MB, 13.7MB/s  [A
-
-  ...poc/embeddings_random.npy: 100%|█████████▉| 56.1MB / 56.3MB            [A[A
-
-
-  ...s/poc/embeddings_clip.npy:   0%|          | 13.2kB / 30.7MB            [A[A[A
-
-
-
-  ...utputs/poc/embeddings.npy: 100%|██████████| 56.3MB / 56.3MB            [A[A[A[A
-
-
-
-
-  ...ngs_vjepa_lambda0_001.npy:   1%|          |  540kB / 56.3MB            [A[A[A[A[A
-
-
-
-
-
-  ...poc/embeddings_dinov2.npy:   1%|          |  552kB / 61.4MB            [A[A[A[A[A[A
-
-  ...poc/embeddings_random.npy: 100%|█████████▉| 56.1MB / 56.3MB            [A[A
-
-
-  ...s/poc/embeddings_clip.npy:   0%|          | 13.2kB / 30.7MB            [A[A[A
-
-
-
-  ...utputs/poc/embeddings.npy: 100%|██████████| 56.3MB / 56.3MB            [A[A[A[A
-
-
-
-
-  ...ngs_vjepa_lambda0_001.npy:   6%|▌         | 3.24MB / 56.3MB            [A[A[A[A[A
-
-
-
-
-
-  ...poc/embeddings_dinov2.npy:   5%|▌         | 3.31MB / 61.4MB            [A[A[A[A[A[AProcessing Files (1 / 5)      :  19%|█▉        |  119MB /  625MB, 25.9MB/s  
-New Data Upload               :  21%|██        | 62.9MB /  297MB, 13.7MB/s  [A
-
-
-
-
-
-
-  ...ddings_vjepa_shuffled.npy:   1%|▏         |  761kB / 56.3MB            [A[A[A[A[A[A[A
-
-  ...poc/embeddings_random.npy: 100%|█████████▉| 56.1MB / 56.3MB            [A[A
-
-
-  ...s/poc/embeddings_clip.npy:   0%|          | 13.2kB / 30.7MB            [A[A[A
-
-
-
-  ...utputs/poc/embeddings.npy: 100%|██████████| 56.3MB / 56.3MB            [A[A[A[A
-
-
-
-
-  ...ngs_vjepa_lambda0_001.npy:  11%|█         | 5.94MB / 56.3MB            [A[A[A[A[A
-
-
-
-
-
-  ...poc/embeddings_dinov2.npy:  11%|█         | 6.62MB / 61.4MB            [A[A[A[A[A[A
-
-
-
-
-
-
-  ...ddings_vjepa_shuffled.npy:   1%|▏         |  761kB / 56.3MB            [A[A[A[A[A[A[AProcessing Files (1 / 6)      :  20%|██        |  126MB /  625MB, 26.2MB/s  
-New Data Upload               :  23%|██▎       | 69.6MB /  297MB, 14.5MB/s  [A
-
-  ...poc/embeddings_random.npy: 100%|█████████▉| 56.1MB / 56.3MB            [A[A
-
-
-  ...s/poc/embeddings_clip.npy:   0%|          | 13.2kB / 30.7MB            [A[A[A
-
-
-
-  ...utputs/poc/embeddings.npy: 100%|██████████| 56.3MB / 56.3MB            [A[A[A[A
-
-
-
-
-  ...ngs_vjepa_lambda0_001.npy:  22%|██▏       | 12.4MB / 56.3MB            [A[A[A[A[A
-
-
-
-
-
-  ...poc/embeddings_dinov2.npy:  21%|██        | 12.7MB / 61.4MB            [A[A[A[A[A[A
-
-
-
-
-
-
-  ...ddings_vjepa_shuffled.npy:   1%|▏         |  761kB / 56.3MB            [A[A[A[A[A[A[AProcessing Files (1 / 6)      :  22%|██▏       |  138MB /  625MB, 27.7MB/s  
-New Data Upload               :  28%|██▊       | 82.2MB /  297MB, 16.4MB/s  [A
-
-  ...poc/embeddings_random.npy: 100%|█████████▉| 56.1MB / 56.3MB            [A[A
-
-
-  ...s/poc/embeddings_clip.npy:   0%|          | 13.2kB / 30.7MB            [A[A[A
-
-
-
-  ...utputs/poc/embeddings.npy: 100%|██████████| 56.3MB / 56.3MB            [A[A[A[A
-
-
-
-
-  ...ngs_vjepa_lambda0_001.npy:  33%|███▎      | 18.4MB / 56.3MB            [A[A[A[A[A
-
-
-
-
-
-  ...poc/embeddings_dinov2.npy:  31%|███       | 18.8MB / 61.4MB            [A[A[A[A[A[A
-
-
-
-
-
-
-  ...ddings_vjepa_shuffled.npy:   7%|▋         | 3.80MB / 56.3MB            [A[A[A[A[A[A[AProcessing Files (1 / 6)      :  25%|██▍       |  153MB /  625MB, 29.5MB/s  
-New Data Upload               :  33%|███▎      | 97.3MB /  297MB, 18.7MB/s  [A
-
-
-
-
-
-
-
-  .../poc/embeddings.paths.npy:   1%|          | 5.03kB /  555kB            [A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-  ...embeddings_clip.paths.npy:   1%|          | 5.03kB /  555kB            [A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-  ...beddings_dinov2.paths.npy:   1%|          | 5.03kB /  555kB            [A[A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-
-  ...beddings_random.paths.npy:   1%|          | 5.03kB /  555kB            [A[A[A[A[A[A[A[A[A[A[A
-
-  ...poc/embeddings_random.npy: 100%|█████████▉| 56.1MB / 56.3MB            [A[A
-
-
-  ...s/poc/embeddings_clip.npy:   1%|          |  291kB / 30.7MB            [A[A[A
-
-
-
-  ...utputs/poc/embeddings.npy: 100%|██████████| 56.3MB / 56.3MB            [A[A[A[A
-
-
-
-
-  ...ngs_vjepa_lambda0_001.npy:  41%|████      | 23.2MB / 56.3MB            [A[A[A[A[A
-
-
-
-
-
-  ...poc/embeddings_dinov2.npy:  40%|████      | 24.8MB / 61.4MB            [A[A[A[A[A[A
-
-
-
-
-
-
-  ...ddings_vjepa_shuffled.npy:  12%|█▏        | 6.85MB / 56.3MB            [A[A[A[A[A[A[A
-
-
-
-
-
-
-
-  .../poc/embeddings.paths.npy:   1%|          | 5.03kB /  555kB            [A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-  ...embeddings_clip.paths.npy:   1%|          | 5.03kB /  555kB            [A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-  ...beddings_dinov2.paths.npy:   1%|          | 5.03kB /  555kB            [A[A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-
-  [+ 169 files]               :   1%|          |  308kB / 34.0MB            [A[A[A[A[A[A[A[A[A[A[AProcessing Files (1 / 179)    :  27%|██▋       |  168MB /  625MB, 31.1MB/s  
-New Data Upload               :  38%|███▊      |  112MB /  297MB, 20.7MB/s  [A
-
-  ...poc/embeddings_random.npy: 100%|█████████▉| 56.1MB / 56.3MB            [A[A
-
-
-  ...s/poc/embeddings_clip.npy:   1%|          |  291kB / 30.7MB            [A[A[A
-
-
-
-  ...ngs_vjepa_lambda0_001.npy:  52%|█████▏    | 29.2MB / 56.3MB            [A[A[A[A
-
-
-
-
-  ...poc/embeddings_dinov2.npy:  50%|█████     | 30.9MB / 61.4MB            [A[A[A[A[A
-
-
-
-
-
-  ...ddings_vjepa_shuffled.npy:  27%|██▋       | 15.2MB / 56.3MB            [A[A[A[A[A[A
-
-
-
-
-
-
-  .../poc/embeddings.paths.npy:   1%|          | 5.03kB /  555kB            [A[A[A[A[A[A[A
-
-
-
-
-
-
-
-  ...embeddings_clip.paths.npy:   1%|          | 5.03kB /  555kB            [A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-  ...beddings_dinov2.paths.npy:   1%|          | 5.03kB /  555kB            [A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-  ...beddings_random.paths.npy:   1%|          | 5.03kB /  555kB            [A[A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-
-  [+ 168 files]               :   1%|          |  303kB / 33.5MB            [A[A[A[A[A[A[A[A[A[A[AProcessing Files (1 / 179)    :  30%|███       |  188MB /  625MB, 33.6MB/s  
-New Data Upload               :  36%|███▋      |  132MB /  362MB, 23.6MB/s  [A
-
-  ...poc/embeddings_random.npy: 100%|█████████▉| 56.1MB / 56.3MB            [A[A
-
-
-  ...s/poc/embeddings_clip.npy:   4%|▎         | 1.13MB / 30.7MB            [A[A[A
-
-
-
-  ...ngs_vjepa_lambda0_001.npy:  63%|██████▎   | 35.7MB / 56.3MB            [A[A[A[A
-
-
-
-
-  ...poc/embeddings_dinov2.npy:  57%|█████▋    | 35.3MB / 61.4MB            [A[A[A[A[A
-
-
-
-
-
-  ...ddings_vjepa_shuffled.npy:  38%|███▊      | 21.3MB / 56.3MB            [A[A[A[A[A[A
-
-
-
-
-
-
-  .../poc/embeddings.paths.npy:   4%|▎         | 20.1kB /  555kB            [A[A[A[A[A[A[A
-
-
-
-
-
-
-
-  ...embeddings_clip.paths.npy:   4%|▎         | 20.1kB /  555kB            [A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-  ...beddings_dinov2.paths.npy:   4%|▎         | 20.1kB /  555kB            [A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-  ...beddings_random.paths.npy:   4%|▎         | 20.1kB /  555kB            [A[A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-
-  [+ 168 files]               :   4%|▎         | 1.21MB / 33.5MB            [A[A[A[A[A[A[A[A[A[A[AProcessing Files (1 / 179)    :  33%|███▎      |  207MB /  625MB, 35.7MB/s  
-New Data Upload               :  42%|████▏     |  151MB /  362MB, 26.0MB/s  [A
-
-  ...poc/embeddings_random.npy: 100%|█████████▉| 56.1MB / 56.3MB            [A[A
-
-
-  ...s/poc/embeddings_clip.npy:  10%|█         | 3.07MB / 30.7MB            [A[A[A
-
-
-
-  ...ngs_vjepa_lambda0_001.npy:  76%|███████▌  | 42.7MB / 56.3MB            [A[A[A[A
-
-
-
-
-  ...poc/embeddings_dinov2.npy:  67%|██████▋   | 41.4MB / 61.4MB            [A[A[A[A[A
-
-
-
-
-
-  ...ddings_vjepa_shuffled.npy:  54%|█████▍    | 30.4MB / 56.3MB            [A[A[A[A[A[A
-
-
-
-
-
-
-  .../poc/embeddings.paths.npy:  10%|▉         | 55.3kB /  555kB            [A[A[A[A[A[A[A
-
-
-
-
-
-
-
-  ...embeddings_clip.paths.npy:  10%|▉         | 55.3kB /  555kB            [A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-  ...beddings_dinov2.paths.npy:  10%|▉         | 55.3kB /  555kB            [A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-  ...beddings_random.paths.npy:  10%|▉         | 55.3kB /  555kB            [A[A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-
-  [+ 238 files]               :   4%|▍         | 3.86MB / 98.8MB            [A[A[A[A[A[A[A[A[A[A[AProcessing Files (1 / 249)    :  37%|███▋      |  234MB /  625MB, 39.0MB/s  
-New Data Upload               :  49%|████▉     |  178MB /  362MB, 29.7MB/s  [A
-
-  ...poc/embeddings_random.npy: 100%|█████████▉| 56.2MB / 56.3MB            [A[A
-
-
-  ...s/poc/embeddings_clip.npy:  17%|█▋        | 5.30MB / 30.7MB            [A[A[A
-
-
-
-  ...ngs_vjepa_lambda0_001.npy:  84%|████████▍ | 47.5MB / 56.3MB            [A[A[A[A
-
-
-
-
-  ...poc/embeddings_dinov2.npy:  77%|███████▋  | 47.5MB / 61.4MB            [A[A[A[A[A
-
-
-
-
-
-  ...ddings_vjepa_shuffled.npy:  66%|██████▌   | 37.3MB / 56.3MB            [A[A[A[A[A[A
-
-
-
-
-
-
-  .../poc/embeddings.paths.npy:  17%|█▋        | 95.5kB /  555kB            [A[A[A[A[A[A[A
-
-
-
-
-
-
-
-  ...embeddings_clip.paths.npy:  17%|█▋        | 95.5kB /  555kB            [A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-  ...beddings_dinov2.paths.npy:  17%|█▋        | 95.5kB /  555kB            [A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-  ...beddings_random.paths.npy:  17%|█▋        | 95.5kB /  555kB            [A[A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-
-  [+ 238 files]               :   7%|▋         | 6.82MB / 98.8MB            [A[A[A[A[A[A[A[A[A[A[AProcessing Files (1 / 249)    :  41%|████      |  257MB /  625MB, 41.5MB/s  
-New Data Upload               :  56%|█████▌    |  201MB /  362MB, 32.4MB/s  [A
-
-  ...poc/embeddings_random.npy: 100%|█████████▉| 56.2MB / 56.3MB            [A[A
-
-
-  ...s/poc/embeddings_clip.npy:  27%|██▋       | 8.36MB / 30.7MB            [A[A[A
-
-
-
-  ...ngs_vjepa_lambda0_001.npy:  95%|█████████▍| 53.5MB / 56.3MB            [A[A[A[A
-
-
-
-
-  ...poc/embeddings_dinov2.npy:  87%|████████▋ | 53.5MB / 61.4MB            [A[A[A[A[A
-
-
-
-
-
-  ...ddings_vjepa_shuffled.npy:  81%|████████  | 45.7MB / 56.3MB            [A[A[A[A[A[A
-
-
-
-
-
-
-  .../poc/embeddings.paths.npy:  27%|██▋       |  151kB /  555kB            [A[A[A[A[A[A[A
-
-
-
-
-
-
-
-  ...embeddings_clip.paths.npy:  27%|██▋       |  151kB /  555kB            [A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-  ...beddings_dinov2.paths.npy:  27%|██▋       |  151kB /  555kB            [A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-  ...beddings_random.paths.npy:  27%|██▋       |  151kB /  555kB            [A[A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-
-  [+ 238 files]               :  12%|█▏        | 11.7MB / 98.8MB            [A[A[A[A[A[A[A[A[A[A[AProcessing Files (1 / 249)    :  46%|████▌     |  286MB /  625MB, 44.7MB/s  
-New Data Upload               :  63%|██████▎   |  230MB /  362MB, 35.9MB/s  [A
-
-  ...poc/embeddings_random.npy: 100%|█████████▉| 56.2MB / 56.3MB            [A[A
-
-
-  ...s/poc/embeddings_clip.npy:  35%|███▌      | 10.9MB / 30.7MB            [A[A[A
-
-
-
-  ...ngs_vjepa_lambda0_001.npy: 100%|█████████▉| 56.2MB / 56.3MB            [A[A[A[A
-
-
-
-
-  ...poc/embeddings_dinov2.npy:  95%|█████████▌| 58.5MB / 61.4MB            [A[A[A[A[A
-
-
-
-
-
-  ...ddings_vjepa_shuffled.npy:  92%|█████████▏| 51.7MB / 56.3MB            [A[A[A[A[A[A
-
-
-
-
-
-
-  .../poc/embeddings.paths.npy:  35%|███▌      |  196kB /  555kB            [A[A[A[A[A[A[A
-
-
-
-
-
-
-
-  ...embeddings_clip.paths.npy:  35%|███▌      |  196kB /  555kB            [A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-  ...beddings_dinov2.paths.npy:  35%|███▌      |  196kB /  555kB            [A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-  ...beddings_random.paths.npy:  35%|███▌      |  196kB /  555kB            [A[A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-
-  [+ 238 files]               :  17%|█▋        | 16.6MB / 98.8MB            [A[A[A[A[A[A[A[A[A[A[AProcessing Files (1 / 249)    :  49%|████▉     |  307MB /  625MB, 46.5MB/s  
-New Data Upload               :  69%|██████▉   |  251MB /  362MB, 38.0MB/s  [A
-
-  ...poc/embeddings_random.npy: 100%|█████████▉| 56.2MB / 56.3MB            [A[A
-
-
-  ...s/poc/embeddings_clip.npy:  44%|████▍     | 13.6MB / 30.7MB            [A[A[A
-
-
-
-  ...ngs_vjepa_lambda0_001.npy: 100%|█████████▉| 56.2MB / 56.3MB            [A[A[A[A
-
-
-
-
-  ...poc/embeddings_dinov2.npy: 100%|█████████▉| 61.2MB / 61.4MB            [A[A[A[A[A
-
-
-
-
-
-  ...ddings_vjepa_shuffled.npy: 100%|█████████▉| 56.3MB / 56.3MB            [A[A[A[A[A[A
-
-
-
-
-
-
-  .../poc/embeddings.paths.npy:  44%|████▍     |  246kB /  555kB            [A[A[A[A[A[A[A
-
-
-
-
-
-
-
-  ...embeddings_clip.paths.npy:  44%|████▍     |  246kB /  555kB            [A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-  ...beddings_dinov2.paths.npy:  44%|████▍     |  246kB /  555kB            [A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-  ...beddings_random.paths.npy:  44%|████▍     |  246kB /  555kB            [A[A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-
-  [+ 238 files]               :  26%|██▌       | 25.4MB / 98.8MB            [A[A[A[A[A[A[A[A[A[A[AProcessing Files (1 / 249)    :  52%|█████▏    |  326MB /  625MB, 48.0MB/s  
-New Data Upload               :  63%|██████▎   |  270MB /  429MB, 39.7MB/s  [A
-
-  ...poc/embeddings_random.npy: 100%|█████████▉| 56.2MB / 56.3MB            [A[A
-
-
-  ...s/poc/embeddings_clip.npy:  55%|█████▌    | 17.0MB / 30.7MB            [A[A[A
-
-
-
-  ...ngs_vjepa_lambda0_001.npy: 100%|█████████▉| 56.2MB / 56.3MB            [A[A[A[A
-
-
-
-
-  ...poc/embeddings_dinov2.npy: 100%|█████████▉| 61.2MB / 61.4MB            [A[A[A[A[A
-
-
-
-
-
-  ...ddings_vjepa_shuffled.npy: 100%|█████████▉| 56.3MB / 56.3MB            [A[A[A[A[A[A
-
-
-
-
-
-
-  .../poc/embeddings.paths.npy:  55%|█████▌    |  307kB /  555kB            [A[A[A[A[A[A[A
-
-
-
-
-
-
-
-  ...embeddings_clip.paths.npy:  55%|█████▌    |  307kB /  555kB            [A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-  ...beddings_dinov2.paths.npy:  55%|█████▌    |  307kB /  555kB            [A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-  ...beddings_random.paths.npy:  55%|█████▌    |  307kB /  555kB            [A[A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-
-  [+ 240 files]               :  35%|███▌      | 35.0MB / 99.9MB            [A[A[A[A[A[A[A[A[A[A[AProcessing Files (1 / 251)    :  54%|█████▍    |  339MB /  625MB, 48.5MB/s  
-New Data Upload               :  66%|██████▌   |  283MB /  429MB, 40.4MB/s  [A
-
-  ...poc/embeddings_random.npy: 100%|█████████▉| 56.2MB / 56.3MB            [A[A
-
-
-  ...s/poc/embeddings_clip.npy:  63%|██████▎   | 19.5MB / 30.7MB            [A[A[A
-
-
-
-  ...ngs_vjepa_lambda0_001.npy: 100%|█████████▉| 56.2MB / 56.3MB            [A[A[A[A
-
-
-
-
-  ...poc/embeddings_dinov2.npy: 100%|█████████▉| 61.2MB / 61.4MB            [A[A[A[A[A
-
-
-
-
-
-  ...ddings_vjepa_shuffled.npy: 100%|█████████▉| 56.3MB / 56.3MB            [A[A[A[A[A[A
-
-
-
-
-
-
-  .../poc/embeddings.paths.npy:  63%|██████▎   |  352kB /  555kB            [A[A[A[A[A[A[A
-
-
-
-
-
-
-
-  ...embeddings_clip.paths.npy:  63%|██████▎   |  352kB /  555kB            [A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-  ...beddings_dinov2.paths.npy:  63%|██████▎   |  352kB /  555kB            [A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-  ...beddings_random.paths.npy:  63%|██████▎   |  352kB /  555kB            [A[A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-
-  [+ 316 files]               :  27%|██▋       | 44.1MB /  166MB            [A[A[A[A[A[A[A[A[A[A[AProcessing Files (1 / 327)    :  56%|█████▌    |  351MB /  625MB, 48.8MB/s  
-New Data Upload               :  69%|██████▊   |  294MB /  429MB, 40.9MB/s  [A
-
-  ...poc/embeddings_random.npy: 100%|█████████▉| 56.3MB / 56.3MB            [A[A
-
-
-  ...s/poc/embeddings_clip.npy:  72%|███████▏  | 22.0MB / 30.7MB            [A[A[A
-
-
-
-  ...ngs_vjepa_lambda0_001.npy: 100%|██████████| 56.3MB / 56.3MB            [A[A[A[A
-
-
-
-
-  ...poc/embeddings_dinov2.npy: 100%|█████████▉| 61.2MB / 61.4MB            [A[A[A[A[A
-
-
-
-
-
-  ...ddings_vjepa_shuffled.npy: 100%|██████████| 56.3MB / 56.3MB            [A[A[A[A[A[A
-
-
-
-
-
-
-  .../poc/embeddings.paths.npy:  72%|███████▏  |  397kB /  555kB            [A[A[A[A[A[A[A
-
-
-
-
-
-
-
-  ...embeddings_clip.paths.npy:  72%|███████▏  |  397kB /  555kB            [A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-  ...beddings_dinov2.paths.npy:  72%|███████▏  |  397kB /  555kB            [A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-  ...beddings_random.paths.npy:  72%|███████▏  |  397kB /  555kB            [A[A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-
-  [+ 316 files]               :  32%|███▏      | 53.3MB /  166MB            [A[A[A[A[A[A[A[A[A[A[AProcessing Files (3 / 327)    :  58%|█████▊    |  363MB /  625MB, 49.1MB/s  
-New Data Upload               :  57%|█████▋    |  306MB /  541MB, 41.4MB/s  [A
-
-  ...poc/embeddings_random.npy: 100%|█████████▉| 56.3MB / 56.3MB            [A[A
-
-
-  ...s/poc/embeddings_clip.npy:  82%|████████▏ | 25.1MB / 30.7MB            [A[A[A
-
-
-
-  ...poc/embeddings_dinov2.npy: 100%|██████████| 61.4MB / 61.4MB            [A[A[A[A
-
-
-
-
-  .../poc/embeddings.paths.npy:  82%|████████▏ |  452kB /  555kB            [A[A[A[A[A
-
-
-
-
-
-  ...embeddings_clip.paths.npy:  82%|████████▏ |  452kB /  555kB            [A[A[A[A[A[A
-
-
-
-
-
-
-  ...beddings_dinov2.paths.npy:  82%|████████▏ |  452kB /  555kB            [A[A[A[A[A[A[A
-
-
-
-
-
-
-
-  ...beddings_random.paths.npy:  82%|████████▏ |  452kB /  555kB            [A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-  ...epa_lambda0_001.paths.npy:  82%|████████▏ |  452kB /  555kB            [A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-  ..._vjepa_shuffled.paths.npy:  82%|████████▏ |  452kB /  555kB            [A[A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-
-  [+ 315 files]               :  30%|███       | 67.5MB /  221MB            [A[A[A[A[A[A[A[A[A[A[AProcessing Files (4 / 328)    :  61%|██████    |  382MB /  625MB, 50.3MB/s  
-New Data Upload               :  57%|█████▋    |  325MB /  568MB, 42.7MB/s  [A
-
-  ...poc/embeddings_random.npy: 100%|█████████▉| 56.3MB / 56.3MB            [A[A
-
-
-  ...s/poc/embeddings_clip.npy:  92%|█████████▏| 28.4MB / 30.7MB            [A[A[A
-
-
-
-  .../poc/embeddings.paths.npy:  92%|█████████▏|  513kB /  555kB            [A[A[A[A
-
-
-
-
-  ...embeddings_clip.paths.npy:  92%|█████████▏|  513kB /  555kB            [A[A[A[A[A
-
-
-
-
-
-  ...beddings_dinov2.paths.npy:  92%|█████████▏|  513kB /  555kB            [A[A[A[A[A[A
-
-
-
-
-
-
-  ...beddings_random.paths.npy:  92%|█████████▏|  513kB /  555kB            [A[A[A[A[A[A[A
-
-
-
-
-
-
-
-  ...epa_lambda0_001.paths.npy:  92%|█████████▏|  513kB /  555kB            [A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-  ..._vjepa_shuffled.paths.npy:  92%|█████████▏|  513kB /  555kB            [A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-  ...tputs/poc/knn_indices.npy:  92%|█████████▏|  518kB /  560kB            [A[A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-
-  [+ 342 files]               :  28%|██▊       | 85.3MB /  304MB            [A[A[A[A[A[A[A[A[A[A[AProcessing Files (4 / 356)    :  65%|██████▍   |  404MB /  625MB, 51.8MB/s  
-New Data Upload               :  61%|██████    |  347MB /  568MB, 44.5MB/s  [A
-
-  ...poc/embeddings_random.npy: 100%|█████████▉| 56.3MB / 56.3MB            [A[A
-
-
-  ...s/poc/embeddings_clip.npy: 100%|█████████▉| 30.6MB / 30.7MB            [A[A[A
-
-
-
-  .../poc/embeddings.paths.npy: 100%|█████████▉|  553kB /  555kB            [A[A[A[A
-
-
-
-
-  ...embeddings_clip.paths.npy: 100%|█████████▉|  553kB /  555kB            [A[A[A[A[A
-
-
-
-
-
-  ...beddings_dinov2.paths.npy: 100%|█████████▉|  553kB /  555kB            [A[A[A[A[A[A
-
-
-
-
-
-
-  ...beddings_random.paths.npy: 100%|█████████▉|  553kB /  555kB            [A[A[A[A[A[A[A
-
-
-
-
-
-
-
-  ...epa_lambda0_001.paths.npy: 100%|█████████▉|  553kB /  555kB            [A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-  ..._vjepa_shuffled.paths.npy: 100%|█████████▉|  553kB /  555kB            [A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-  ...tputs/poc/knn_indices.npy: 100%|█████████▉|  558kB /  560kB            [A[A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-
-  [+ 342 files]               :  34%|███▍      |  104MB /  304MB            [A[A[A[A[A[A[A[A[A[A[AProcessing Files (4 / 356)    :  68%|██████▊   |  425MB /  625MB, 53.1MB/s  
-New Data Upload               :  65%|██████▍   |  367MB /  568MB, 45.9MB/s  [A
-
-  ...poc/embeddings_random.npy: 100%|█████████▉| 56.3MB / 56.3MB            [A[A
-
-
-  ...s/poc/embeddings_clip.npy: 100%|█████████▉| 30.6MB / 30.7MB            [A[A[A
-
-
-
-  .../poc/embeddings.paths.npy: 100%|█████████▉|  553kB /  555kB            [A[A[A[A
-
-
-
-
-  ...embeddings_clip.paths.npy: 100%|█████████▉|  553kB /  555kB            [A[A[A[A[A
-
-
-
-
-
-  ...beddings_dinov2.paths.npy: 100%|█████████▉|  553kB /  555kB            [A[A[A[A[A[A
-
-
-
-
-
-
-  ...beddings_random.paths.npy: 100%|█████████▉|  553kB /  555kB            [A[A[A[A[A[A[A
-
-
-
-
-
-
-
-  ...epa_lambda0_001.paths.npy: 100%|█████████▉|  553kB /  555kB            [A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-  ..._vjepa_shuffled.paths.npy: 100%|█████████▉|  553kB /  555kB            [A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-  ...tputs/poc/knn_indices.npy: 100%|█████████▉|  558kB /  560kB            [A[A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-
-  [+ 342 files]               :  42%|████▏     |  128MB /  304MB            [A[A[A[A[A[A[A[A[A[A[AProcessing Files (4 / 356)    :  72%|███████▏  |  449MB /  625MB, 54.7MB/s  
-New Data Upload               :  69%|██████▉   |  392MB /  568MB, 47.8MB/s  [A
-
-  ...poc/embeddings_random.npy: 100%|█████████▉| 56.3MB / 56.3MB            [A[A
-
-
-  ...s/poc/embeddings_clip.npy: 100%|█████████▉| 30.6MB / 30.7MB            [A[A[A
-
-
-
-  .../poc/embeddings.paths.npy: 100%|█████████▉|  553kB /  555kB            [A[A[A[A
-
-
-
-
-  ...embeddings_clip.paths.npy: 100%|█████████▉|  553kB /  555kB            [A[A[A[A[A
-
-
-
-
-
-  ...beddings_dinov2.paths.npy: 100%|█████████▉|  553kB /  555kB            [A[A[A[A[A[A
-
-
-
-
-
-
-  ...beddings_random.paths.npy: 100%|█████████▉|  553kB /  555kB            [A[A[A[A[A[A[A
-
-
-
-
-
-
-
-  ...epa_lambda0_001.paths.npy: 100%|█████████▉|  553kB /  555kB            [A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-  ..._vjepa_shuffled.paths.npy: 100%|█████████▉|  553kB /  555kB            [A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-  ...tputs/poc/knn_indices.npy: 100%|█████████▉|  558kB /  560kB            [A[A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-
-  [+ 342 files]               :  51%|█████     |  155MB /  304MB            [A[A[A[A[A[A[A[A[A[A[AProcessing Files (4 / 356)    :  76%|███████▌  |  476MB /  625MB, 56.7MB/s  
-New Data Upload               :  74%|███████▎  |  419MB /  568MB, 49.8MB/s  [A
-
-  ...poc/embeddings_random.npy: 100%|█████████▉| 56.3MB / 56.3MB            [A[A
-
-
-  ...s/poc/embeddings_clip.npy: 100%|█████████▉| 30.6MB / 30.7MB            [A[A[A
-
-
-
-  .../poc/embeddings.paths.npy: 100%|█████████▉|  553kB /  555kB            [A[A[A[A
-
-
-
-
-  ...embeddings_clip.paths.npy: 100%|█████████▉|  553kB /  555kB            [A[A[A[A[A
-
-
-
-
-
-  ...beddings_dinov2.paths.npy: 100%|█████████▉|  553kB /  555kB            [A[A[A[A[A[A
-
-
-
-
-
-
-  ...beddings_random.paths.npy: 100%|█████████▉|  553kB /  555kB            [A[A[A[A[A[A[A
-
-
-
-
-
-
-
-  ...epa_lambda0_001.paths.npy: 100%|█████████▉|  553kB /  555kB            [A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-  ..._vjepa_shuffled.paths.npy: 100%|█████████▉|  553kB /  555kB            [A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-  ...tputs/poc/knn_indices.npy: 100%|█████████▉|  558kB /  560kB            [A[A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-
-  [+ 342 files]               :  61%|██████    |  185MB /  304MB            [A[A[A[A[A[A[A[A[A[A[AProcessing Files (4 / 356)    :  81%|████████  |  506MB /  625MB, 58.8MB/s  
-New Data Upload               :  79%|███████▉  |  449MB /  568MB, 52.2MB/s  [A
-
-  ...poc/embeddings_random.npy: 100%|█████████▉| 56.3MB / 56.3MB            [A[A
-
-
-  ...s/poc/embeddings_clip.npy: 100%|█████████▉| 30.6MB / 30.7MB            [A[A[A
-
-
-
-  .../poc/embeddings.paths.npy: 100%|█████████▉|  553kB /  555kB            [A[A[A[A
-
-
-
-
-  ...embeddings_clip.paths.npy: 100%|█████████▉|  553kB /  555kB            [A[A[A[A[A
-
-
-
-
-
-  ...beddings_dinov2.paths.npy: 100%|█████████▉|  553kB /  555kB            [A[A[A[A[A[A
-
-
-
-
-
-
-  ...beddings_random.paths.npy: 100%|█████████▉|  553kB /  555kB            [A[A[A[A[A[A[A
-
-
-
-
-
-
-
-  ...epa_lambda0_001.paths.npy: 100%|█████████▉|  553kB /  555kB            [A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-  ..._vjepa_shuffled.paths.npy: 100%|█████████▉|  553kB /  555kB            [A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-  ...tputs/poc/knn_indices.npy: 100%|█████████▉|  558kB /  560kB            [A[A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-
-  [+ 342 files]               :  70%|███████   |  213MB /  304MB            [A[A[A[A[A[A[A[A[A[A[AProcessing Files (4 / 356)    :  86%|████████▌ |  535MB /  625MB, 60.7MB/s  
-New Data Upload               :  84%|████████▍ |  477MB /  568MB, 54.2MB/s  [A
-
-  ...poc/embeddings_random.npy: 100%|█████████▉| 56.3MB / 56.3MB            [A[A
-
-
-  ...s/poc/embeddings_clip.npy: 100%|█████████▉| 30.6MB / 30.7MB            [A[A[A
-
-
-
-  .../poc/embeddings.paths.npy: 100%|█████████▉|  553kB /  555kB            [A[A[A[A
-
-
-
-
-  ...embeddings_clip.paths.npy: 100%|█████████▉|  553kB /  555kB            [A[A[A[A[A
-
-
-
-
-
-  ...beddings_dinov2.paths.npy: 100%|█████████▉|  553kB /  555kB            [A[A[A[A[A[A
-
-
-
-
-
-
-  ...beddings_random.paths.npy: 100%|█████████▉|  553kB /  555kB            [A[A[A[A[A[A[A
-
-
-
-
-
-
-
-  ...epa_lambda0_001.paths.npy: 100%|█████████▉|  553kB /  555kB            [A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-  ..._vjepa_shuffled.paths.npy: 100%|█████████▉|  553kB /  555kB            [A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-  ...tputs/poc/knn_indices.npy: 100%|█████████▉|  558kB /  560kB            [A[A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-
-  [+ 342 files]               :  80%|███████▉  |  242MB /  304MB            [A[A[A[A[A[A[A[A[A[A[AProcessing Files (4 / 356)    :  90%|█████████ |  563MB /  625MB, 62.6MB/s  
-New Data Upload               :  89%|████████▉ |  506MB /  568MB, 56.2MB/s  [A
-
-  ...poc/embeddings_random.npy: 100%|██████████| 56.3MB / 56.3MB            [A[A
-
-
-  ...s/poc/embeddings_clip.npy: 100%|██████████| 30.7MB / 30.7MB            [A[A[A
-
-
-
-  .../poc/embeddings.paths.npy: 100%|██████████|  555kB /  555kB            [A[A[A[A
-
-
-
-
-  ...embeddings_clip.paths.npy: 100%|██████████|  555kB /  555kB            [A[A[A[A[A
-
-
-
-
-
-  ...beddings_dinov2.paths.npy: 100%|██████████|  555kB /  555kB            [A[A[A[A[A[A
-
-
-
-
-
-
-  ...beddings_random.paths.npy: 100%|██████████|  555kB /  555kB            [A[A[A[A[A[A[A
-
-
-
-
-
-
-
-  ...epa_lambda0_001.paths.npy: 100%|██████████|  555kB /  555kB            [A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-  ..._vjepa_shuffled.paths.npy: 100%|██████████|  555kB /  555kB            [A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-  ...tputs/poc/knn_indices.npy: 100%|██████████|  560kB /  560kB            [A[A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-
-  [+ 342 files]               :  83%|████████▎ |  252MB /  304MB            [A[A[A[A[A[A[A[A[A[A[AProcessing Files (181 / 356)  :  92%|█████████▏|  574MB /  625MB, 62.4MB/s  
-New Data Upload               :  91%|█████████ |  516MB /  568MB, 56.1MB/s  [A
-
-  ...08_umap_clip_lighting.png: 100%|█████████▉|  606kB /  609kB            [A[A
-
-
-  ...an_vehicle_separation.pdf: 100%|█████████▉|  175kB /  175kB            [A[A[A
-
-
-
-  ...an_vehicle_separation.png: 100%|█████████▉|  622kB /  625kB            [A[A[A[A
-
-
-
-
-  ...lip_road_encroachment.pdf: 100%|█████████▉|  174kB /  175kB            [A[A[A[A[A
-
-
-
-
-
-  ...lip_road_encroachment.png: 100%|█████████▉|  622kB /  625kB            [A[A[A[A[A[A
-
-
-
-
-
-
-  ...map_clip_road_surface.pdf: 100%|█████████▉|  179kB /  179kB            [A[A[A[A[A[A[A
-
-
-
-
-
-
-
-  ...map_clip_road_surface.png: 100%|█████████▉|  623kB /  625kB            [A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-  ...umap_clip_time_of_day.pdf: 100%|█████████▉|  169kB /  170kB            [A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-  ...umap_clip_time_of_day.png: 100%|█████████▉|  608kB /  610kB            [A[A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-
-  [+ 165 files]               :  86%|████████▋ |  231MB /  267MB            [A[A[A[A[A[A[A[A[A[A[AProcessing Files (181 / 356)  :  94%|█████████▍|  589MB /  625MB, 62.6MB/s  
-New Data Upload               :  94%|█████████▎|  532MB /  568MB, 56.5MB/s  [A
-
-  ...08_umap_clip_lighting.png: 100%|█████████▉|  606kB /  609kB            [A[A
-
-
-  ...an_vehicle_separation.pdf: 100%|█████████▉|  175kB /  175kB            [A[A[A
-
-
-
-  ...an_vehicle_separation.png: 100%|█████████▉|  622kB /  625kB            [A[A[A[A
-
-
-
-
-  ...lip_road_encroachment.pdf: 100%|█████████▉|  174kB /  175kB            [A[A[A[A[A
-
-
-
-
-
-  ...lip_road_encroachment.png: 100%|█████████▉|  622kB /  625kB            [A[A[A[A[A[A
-
-
-
-
-
-
-  ...map_clip_road_surface.pdf: 100%|█████████▉|  179kB /  179kB            [A[A[A[A[A[A[A
-
-
-
-
-
-
-
-  ...map_clip_road_surface.png: 100%|█████████▉|  623kB /  625kB            [A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-  ...umap_clip_time_of_day.pdf: 100%|█████████▉|  169kB /  170kB            [A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-  ...umap_clip_time_of_day.png: 100%|█████████▉|  608kB /  610kB            [A[A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-
-  [+ 165 files]               :  92%|█████████▏|  245MB /  267MB            [A[A[A[A[A[A[A[A[A[A[AProcessing Files (208 / 356)  :  97%|█████████▋|  603MB /  625MB, 62.9MB/s  
-New Data Upload               :  96%|█████████▌|  546MB /  568MB, 56.9MB/s  [A
-
-  ...08_umap_clip_lighting.png: 100%|█████████▉|  606kB /  609kB            [A[A
-
-
-  ...an_vehicle_separation.pdf: 100%|█████████▉|  175kB /  175kB            [A[A[A
-
-
-
-  ...an_vehicle_separation.png: 100%|█████████▉|  622kB /  625kB            [A[A[A[A
-
-
-
-
-  ...lip_road_encroachment.pdf: 100%|█████████▉|  174kB /  175kB            [A[A[A[A[A
-
-
-
-
-
-  ...lip_road_encroachment.png: 100%|█████████▉|  622kB /  625kB            [A[A[A[A[A[A
-
-
-
-
-
-
-  ...map_clip_road_surface.pdf: 100%|█████████▉|  179kB /  179kB            [A[A[A[A[A[A[A
-
-
-
-
-
-
-
-  ...map_clip_road_surface.png: 100%|█████████▉|  623kB /  625kB            [A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-  ...umap_clip_time_of_day.pdf: 100%|█████████▉|  169kB /  170kB            [A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-  ...umap_clip_time_of_day.png: 100%|█████████▉|  608kB /  610kB            [A[A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-
-  [+ 138 files]               :  96%|█████████▌|  231MB /  240MB            [A[A[A[A[A[A[A[A[A[A[AProcessing Files (209 / 356)  :  98%|█████████▊|  616MB /  625MB, 62.8MB/s  
-New Data Upload               :  98%|█████████▊|  558MB /  568MB, 57.0MB/s  [A
-
-  ...08_umap_clip_lighting.png: 100%|██████████|  609kB /  609kB            [A[A
-
-
-  ...an_vehicle_separation.pdf: 100%|██████████|  175kB /  175kB            [A[A[A
-
-
-
-  ...an_vehicle_separation.png: 100%|██████████|  625kB /  625kB            [A[A[A[A
-
-
-
-
-  ...lip_road_encroachment.pdf: 100%|██████████|  175kB /  175kB            [A[A[A[A[A
-
-
-
-
-
-  ...lip_road_encroachment.png: 100%|██████████|  625kB /  625kB            [A[A[A[A[A[A
-
-
-
-
-
-
-  ...map_clip_road_surface.pdf: 100%|██████████|  179kB /  179kB            [A[A[A[A[A[A[A
-
-
-
-
-
-
-
-  ...map_clip_road_surface.png: 100%|██████████|  625kB /  625kB            [A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-  ...umap_clip_time_of_day.pdf: 100%|██████████|  170kB /  170kB            [A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-  ...umap_clip_time_of_day.png: 100%|██████████|  610kB /  610kB            [A[A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-
-  [+ 137 files]               :  98%|█████████▊|  181MB /  184MB            [A[A[A[A[A[A[A[A[A[A[AProcessing Files (279 / 356)  : 100%|█████████▉|  622MB /  625MB, 62.2MB/s  
-New Data Upload               :  99%|█████████▉|  565MB /  568MB, 56.5MB/s  [A
-
-  ...nfrastructure_quality.png:  99%|█████████▉| 1.93MB / 1.95MB            [A[A
-
-
-  ..._umap_random_lighting.pdf:  99%|█████████▉|  181kB /  183kB            [A[A[A
-
-
-
-  ..._umap_random_lighting.png:  99%|█████████▉| 1.86MB / 1.87MB            [A[A[A[A
-
-
-
-
-  ...an_vehicle_separation.pdf:  99%|█████████▉|  187kB /  188kB            [A[A[A[A[A
-
-
-
-
-
-  ...an_vehicle_separation.png:  99%|█████████▉| 1.88MB / 1.89MB            [A[A[A[A[A[A
-
-
-
-
-
-
-  ...dom_road_encroachment.pdf:  99%|█████████▉|  186kB /  187kB            [A[A[A[A[A[A[A
-
-
-
-
-
-
-
-  ...dom_road_encroachment.png:  99%|█████████▉| 1.91MB / 1.92MB            [A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-  ...p_random_road_surface.pdf:  99%|█████████▉|  191kB /  192kB            [A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-  ...p_random_road_surface.png:  99%|█████████▉| 1.88MB / 1.89MB            [A[A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-
-  [+ 67 files]                :  99%|█████████▉|  111MB /  112MB            [A[A[A[A[A[A[A[A[A[A[AProcessing Files (279 / 356)  : 100%|█████████▉|  624MB /  625MB, 61.2MB/s  
-New Data Upload               : 100%|█████████▉|  567MB /  568MB, 55.6MB/s  [A
-
-  ...nfrastructure_quality.png:  99%|█████████▉| 1.93MB / 1.95MB            [A[A
-
-
-  ..._umap_random_lighting.pdf:  99%|█████████▉|  181kB /  183kB            [A[A[A
-
-
-
-  ..._umap_random_lighting.png:  99%|█████████▉| 1.86MB / 1.87MB            [A[A[A[A
-
-
-
-
-  ...an_vehicle_separation.pdf:  99%|█████████▉|  187kB /  188kB            [A[A[A[A[A
-
-
-
-
-
-  ...an_vehicle_separation.png:  99%|█████████▉| 1.88MB / 1.89MB            [A[A[A[A[A[A
-
-
-
-
-
-
-  ...dom_road_encroachment.pdf:  99%|█████████▉|  186kB /  187kB            [A[A[A[A[A[A[A
-
-
-
-
-
-
-
-  ...dom_road_encroachment.png:  99%|█████████▉| 1.91MB / 1.92MB            [A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-  ...p_random_road_surface.pdf:  99%|█████████▉|  191kB /  192kB            [A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-  ...p_random_road_surface.png:  99%|█████████▉| 1.88MB / 1.89MB            [A[A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-
-  [+ 67 files]                :  99%|█████████▉|  111MB /  112MB            [A[A[A[A[A[A[A[A[A[A[A
-
-  ...nfrastructure_quality.png:  99%|█████████▉| 1.93MB / 1.95MB            [A[A
-
-
-  ..._umap_random_lighting.pdf:  99%|█████████▉|  181kB /  183kB            [A[A[A
-
-
-
-  ..._umap_random_lighting.png:  99%|█████████▉| 1.86MB / 1.87MB            [A[A[A[A
-
-
-
-
-  ...an_vehicle_separation.pdf:  99%|█████████▉|  187kB /  188kB            [A[A[A[A[A
-
-
-
-
-
-  ...an_vehicle_separation.png:  99%|█████████▉| 1.88MB / 1.89MB            [A[A[A[A[A[A
-
-
-
-
-
-
-  ...dom_road_encroachment.pdf:  99%|█████████▉|  186kB /  187kB            [A[A[A[A[A[A[A
-
-
-
-
-
-
-
-  ...dom_road_encroachment.png:  99%|█████████▉| 1.91MB / 1.92MB            [A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-  ...p_random_road_surface.pdf:  99%|█████████▉|  191kB /  192kB            [A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-  ...p_random_road_surface.png:  99%|█████████▉| 1.88MB / 1.89MB            [A[A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-
-  [+ 67 files]                :  99%|█████████▉|  111MB /  112MB            [A[A[A[A[A[A[A[A[A[A[A
-
-  ...nfrastructure_quality.png:  99%|█████████▉| 1.93MB / 1.95MB            [A[A
-
-
-  ..._umap_random_lighting.pdf:  99%|█████████▉|  181kB /  183kB            [A[A[A
-
-
-
-  ..._umap_random_lighting.png:  99%|█████████▉| 1.86MB / 1.87MB            [A[A[A[A
-
-
-
-
-  ...an_vehicle_separation.pdf:  99%|█████████▉|  187kB /  188kB            [A[A[A[A[A
-
-
-
-
-
-  ...an_vehicle_separation.png:  99%|█████████▉| 1.88MB / 1.89MB            [A[A[A[A[A[A
-
-
-
-
-
-
-  ...dom_road_encroachment.pdf:  99%|█████████▉|  186kB /  187kB            [A[A[A[A[A[A[A
-
-
-
-
-
-
-
-  ...dom_road_encroachment.png:  99%|█████████▉| 1.91MB / 1.92MB            [A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-  ...p_random_road_surface.pdf:  99%|█████████▉|  191kB /  192kB            [A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-  ...p_random_road_surface.png:  99%|█████████▉| 1.88MB / 1.89MB            [A[A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-
-  [+ 67 files]                :  99%|█████████▉|  111MB /  112MB            [A[A[A[A[A[A[A[A[A[A[A
-
-  ...nfrastructure_quality.png: 100%|██████████| 1.95MB / 1.95MB            [A[A
-
-
-  ..._umap_random_lighting.pdf: 100%|██████████|  183kB /  183kB            [A[A[A
-
-
-
-  ..._umap_random_lighting.png: 100%|██████████| 1.87MB / 1.87MB            [A[A[A[A
-
-
-
-
-  ...an_vehicle_separation.pdf: 100%|██████████|  188kB /  188kB            [A[A[A[A[A
-
-
-
-
-
-  ...an_vehicle_separation.png: 100%|██████████| 1.89MB / 1.89MB            [A[A[A[A[A[A
-
-
-
-
-
-
-  ...dom_road_encroachment.pdf: 100%|██████████|  187kB /  187kB            [A[A[A[A[A[A[A
-
-
-
-
-
-
-
-  ...dom_road_encroachment.png: 100%|██████████| 1.92MB / 1.92MB            [A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-  ...p_random_road_surface.pdf: 100%|██████████|  192kB /  192kB            [A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-  ...p_random_road_surface.png: 100%|██████████| 1.89MB / 1.89MB            [A[A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-
-  [+ 67 files]                : 100%|██████████|  112MB /  112MB            [A[A[A[A[A[A[A[A[A[A[AProcessing Files (356 / 356)  : 100%|██████████|  625MB /  625MB, 55.8MB/s  
-New Data Upload               : 100%|██████████|  568MB /  568MB, 55.7MB/s  [A
-
-  ...epa_shuffled_lighting.pdf: 100%|██████████|  176kB /  176kB            [A[A
-
-
-  ...epa_shuffled_lighting.png: 100%|██████████| 1.45MB / 1.45MB            [A[A[A
-
-
-
-  ...an_vehicle_separation.pdf: 100%|██████████|  181kB /  181kB            [A[A[A[A
-
-
-
-
-  ...an_vehicle_separation.png: 100%|██████████| 1.48MB / 1.48MB            [A[A[A[A[A
-
-
-
-
-
-  ...led_road_encroachment.pdf: 100%|██████████|  181kB /  181kB            [A[A[A[A[A[A
-
-
-
-
-
-
-  ...led_road_encroachment.png: 100%|██████████| 1.48MB / 1.48MB            [A[A[A[A[A[A[A
-
-
-
-
-
-
-
-  ...shuffled_road_surface.pdf: 100%|██████████|  185kB /  185kB            [A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-  ...shuffled_road_surface.png: 100%|██████████| 1.47MB / 1.47MB            [A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-  ..._shuffled_time_of_day.pdf: 100%|██████████|  175kB /  175kB            [A[A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-
-  ...puts/poc/overlap_augA.npy: 100%|██████████| 56.3MB / 56.3MB            [A[A[A[A[A[A[A[A[A[A[A
-
-  ...epa_shuffled_lighting.pdf: 100%|██████████|  176kB /  176kB            [A[A
-
-
-  ...epa_shuffled_lighting.png: 100%|██████████| 1.45MB / 1.45MB            [A[A[A
-
-
-
-  ...an_vehicle_separation.pdf: 100%|██████████|  181kB /  181kB            [A[A[A[A
-
-
-
-
-  ...an_vehicle_separation.png: 100%|██████████| 1.48MB / 1.48MB            [A[A[A[A[A
-
-
-
-
-
-  ...led_road_encroachment.pdf: 100%|██████████|  181kB /  181kB            [A[A[A[A[A[A
-
-
-
-
-
-
-  ...led_road_encroachment.png: 100%|██████████| 1.48MB / 1.48MB            [A[A[A[A[A[A[A
-
-
-
-
-
-
-
-  ...shuffled_road_surface.pdf: 100%|██████████|  185kB /  185kB            [A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-  ...shuffled_road_surface.png: 100%|██████████| 1.47MB / 1.47MB            [A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-  ..._shuffled_time_of_day.pdf: 100%|██████████|  175kB /  175kB            [A[A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-
-  ...puts/poc/overlap_augA.npy: 100%|██████████| 56.3MB / 56.3MB            [A[A[A[A[A[A[A[A[A[A[A
-
-  ...epa_shuffled_lighting.pdf: 100%|██████████|  176kB /  176kB            [A[A
-
-
-  ...epa_shuffled_lighting.png: 100%|██████████| 1.45MB / 1.45MB            [A[A[A
-
-
-
-  ...an_vehicle_separation.pdf: 100%|██████████|  181kB /  181kB            [A[A[A[A
-
-
-
-
-  ...an_vehicle_separation.png: 100%|██████████| 1.48MB / 1.48MB            [A[A[A[A[A
-
-
-
-
-
-  ...led_road_encroachment.pdf: 100%|██████████|  181kB /  181kB            [A[A[A[A[A[A
-
-
-
-
-
-
-  ...led_road_encroachment.png: 100%|██████████| 1.48MB / 1.48MB            [A[A[A[A[A[A[A
-
-
-
-
-
-
-
-  ...shuffled_road_surface.pdf: 100%|██████████|  185kB /  185kB            [A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-  ...shuffled_road_surface.png: 100%|██████████| 1.47MB / 1.47MB            [A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-  ..._shuffled_time_of_day.pdf: 100%|██████████|  175kB /  175kB            [A[A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-
-  ...puts/poc/overlap_augA.npy: 100%|██████████| 56.3MB / 56.3MB            [A[A[A[A[A[A[A[A[A[A[A
-
-  ...epa_shuffled_lighting.pdf: 100%|██████████|  176kB /  176kB            [A[A
-
-
-  ...epa_shuffled_lighting.png: 100%|██████████| 1.45MB / 1.45MB            [A[A[A
-
-
-
-  ...an_vehicle_separation.pdf: 100%|██████████|  181kB /  181kB            [A[A[A[A
-
-
-
-
-  ...an_vehicle_separation.png: 100%|██████████| 1.48MB / 1.48MB            [A[A[A[A[A
-
-
-
-
-
-  ...led_road_encroachment.pdf: 100%|██████████|  181kB /  181kB            [A[A[A[A[A[A
-
-
-
-
-
-
-  ...led_road_encroachment.png: 100%|██████████| 1.48MB / 1.48MB            [A[A[A[A[A[A[A
-
-
-
-
-
-
-
-  ...shuffled_road_surface.pdf: 100%|██████████|  185kB /  185kB            [A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-  ...shuffled_road_surface.png: 100%|██████████| 1.47MB / 1.47MB            [A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-  ..._shuffled_time_of_day.pdf: 100%|██████████|  175kB /  175kB            [A[A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-
-  ...puts/poc/overlap_augA.npy: 100%|██████████| 56.3MB / 56.3MB            [A[A[A[A[A[A[A[A[A[A[A
-
-  ...epa_shuffled_lighting.pdf: 100%|██████████|  176kB /  176kB            [A[A
-
-
-  ...epa_shuffled_lighting.png: 100%|██████████| 1.45MB / 1.45MB            [A[A[A
-
-
-
-  ...an_vehicle_separation.pdf: 100%|██████████|  181kB /  181kB            [A[A[A[A
-
-
-
-
-  ...an_vehicle_separation.png: 100%|██████████| 1.48MB / 1.48MB            [A[A[A[A[A
-
-
-
-
-
-  ...led_road_encroachment.pdf: 100%|██████████|  181kB /  181kB            [A[A[A[A[A[A
-
-
-
-
-
-
-  ...led_road_encroachment.png: 100%|██████████| 1.48MB / 1.48MB            [A[A[A[A[A[A[A
-
-
-
-
-
-
-
-  ...shuffled_road_surface.pdf: 100%|██████████|  185kB /  185kB            [A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-  ...shuffled_road_surface.png: 100%|██████████| 1.47MB / 1.47MB            [A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-  ..._shuffled_time_of_day.pdf: 100%|██████████|  175kB /  175kB            [A[A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-
-  ...puts/poc/overlap_augA.npy: 100%|██████████| 56.3MB / 56.3MB            [A[A[A[A[A[A[A[A[A[A[A
-
-  ...epa_shuffled_lighting.pdf: 100%|██████████|  176kB /  176kB            [A[A
-
-
-  ...epa_shuffled_lighting.png: 100%|██████████| 1.45MB / 1.45MB            [A[A[A
-
-
-
-  ...an_vehicle_separation.pdf: 100%|██████████|  181kB /  181kB            [A[A[A[A
-
-
-
-
-  ...an_vehicle_separation.png: 100%|██████████| 1.48MB / 1.48MB            [A[A[A[A[A
-
-
-
-
-
-  ...led_road_encroachment.pdf: 100%|██████████|  181kB /  181kB            [A[A[A[A[A[A
-
-
-
-
-
-
-  ...led_road_encroachment.png: 100%|██████████| 1.48MB / 1.48MB            [A[A[A[A[A[A[A
-
-
-
-
-
-
-
-  ...shuffled_road_surface.pdf: 100%|██████████|  185kB /  185kB            [A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-  ...shuffled_road_surface.png: 100%|██████████| 1.47MB / 1.47MB            [A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-  ..._shuffled_time_of_day.pdf: 100%|██████████|  175kB /  175kB            [A[A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-
-  ...puts/poc/overlap_augA.npy: 100%|██████████| 56.3MB / 56.3MB            [A[A[A[A[A[A[A[A[A[A[A
-
-  ...epa_shuffled_lighting.pdf: 100%|██████████|  176kB /  176kB            [A[A
-
-
-  ...epa_shuffled_lighting.png: 100%|██████████| 1.45MB / 1.45MB            [A[A[A
-
-
-
-  ...an_vehicle_separation.pdf: 100%|██████████|  181kB /  181kB            [A[A[A[A
-
-
-
-
-  ...an_vehicle_separation.png: 100%|██████████| 1.48MB / 1.48MB            [A[A[A[A[A
-
-
-
-
-
-  ...led_road_encroachment.pdf: 100%|██████████|  181kB /  181kB            [A[A[A[A[A[A
-
-
-
-
-
-
-  ...led_road_encroachment.png: 100%|██████████| 1.48MB / 1.48MB            [A[A[A[A[A[A[A
-
-
-
-
-
-
-
-  ...shuffled_road_surface.pdf: 100%|██████████|  185kB /  185kB            [A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-  ...shuffled_road_surface.png: 100%|██████████| 1.47MB / 1.47MB            [A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-  ..._shuffled_time_of_day.pdf: 100%|██████████|  175kB /  175kB            [A[A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-
-  ...puts/poc/overlap_augA.npy: 100%|██████████| 56.3MB / 56.3MB            [A[A[A[A[A[A[A[A[A[A[A
-
-  ...epa_shuffled_lighting.pdf: 100%|██████████|  176kB /  176kB            [A[A
-
-
-  ...epa_shuffled_lighting.png: 100%|██████████| 1.45MB / 1.45MB            [A[A[A
-
-
-
-  ...an_vehicle_separation.pdf: 100%|██████████|  181kB /  181kB            [A[A[A[A
-
-
-
-
-  ...an_vehicle_separation.png: 100%|██████████| 1.48MB / 1.48MB            [A[A[A[A[A
-
-
-
-
-
-  ...led_road_encroachment.pdf: 100%|██████████|  181kB /  181kB            [A[A[A[A[A[A
-
-
-
-
-
-
-  ...led_road_encroachment.png: 100%|██████████| 1.48MB / 1.48MB            [A[A[A[A[A[A[A
-
-
-
-
-
-
-
-  ...shuffled_road_surface.pdf: 100%|██████████|  185kB /  185kB            [A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-  ...shuffled_road_surface.png: 100%|██████████| 1.47MB / 1.47MB            [A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-  ..._shuffled_time_of_day.pdf: 100%|██████████|  175kB /  175kB            [A[A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-
-  ...puts/poc/overlap_augA.npy: 100%|██████████| 56.3MB / 56.3MB            [A[A[A[A[A[A[A[A[A[A[A
-
-  ...epa_shuffled_lighting.pdf: 100%|██████████|  176kB /  176kB            [A[A
-
-
-  ...epa_shuffled_lighting.png: 100%|██████████| 1.45MB / 1.45MB            [A[A[A
-
-
-
-  ...an_vehicle_separation.pdf: 100%|██████████|  181kB /  181kB            [A[A[A[A
-
-
-
-
-  ...an_vehicle_separation.png: 100%|██████████| 1.48MB / 1.48MB            [A[A[A[A[A
-
-
-
-
-
-  ...led_road_encroachment.pdf: 100%|██████████|  181kB /  181kB            [A[A[A[A[A[A
-
-
-
-
-
-
-  ...led_road_encroachment.png: 100%|██████████| 1.48MB / 1.48MB            [A[A[A[A[A[A[A
-
-
-
-
-
-
-
-  ...shuffled_road_surface.pdf: 100%|██████████|  185kB /  185kB            [A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-  ...shuffled_road_surface.png: 100%|██████████| 1.47MB / 1.47MB            [A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-  ..._shuffled_time_of_day.pdf: 100%|██████████|  175kB /  175kB            [A[A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-
-  ...puts/poc/overlap_augA.npy: 100%|██████████| 56.3MB / 56.3MB            [A[A[A[A[A[A[A[A[A[A[AProcessing Files (356 / 356)  : 100%|██████████|  625MB /  625MB, 53.3MB/s  
-New Data Upload               : 100%|██████████|  568MB /  568MB, 53.1MB/s  
-  ...epa_shuffled_lighting.pdf: 100%|██████████|  176kB /  176kB            
-  ...epa_shuffled_lighting.png: 100%|██████████| 1.45MB / 1.45MB            
-  ...an_vehicle_separation.pdf: 100%|██████████|  181kB /  181kB            
-  ...an_vehicle_separation.png: 100%|██████████| 1.48MB / 1.48MB            
-  ...led_road_encroachment.pdf: 100%|██████████|  181kB /  181kB            
-  ...led_road_encroachment.png: 100%|██████████| 1.48MB / 1.48MB            
-  ...shuffled_road_surface.pdf: 100%|██████████|  185kB /  185kB            
-  ...shuffled_road_surface.png: 100%|██████████| 1.47MB / 1.47MB            
-  ..._shuffled_time_of_day.pdf: 100%|██████████|  175kB /  175kB            
-  ...puts/poc/overlap_augA.npy: 100%|██████████| 56.3MB / 56.3MB            
-Upload complete: 24s → https://huggingface.co/datasets/anonymousML123/factorjepa-outputs

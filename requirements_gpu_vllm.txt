@@ -1,6 +1,0 @@
-# vLLM + Qwen3-VL dependencies (installed in venv_vllm, NOT venv_walkindia)
-# These deps (including torch) are installed first via: uv pip install -r requirements_gpu_vllm.txt
-# Then vLLM nightly via: uv pip install vllm --extra-index-url https://wheels.vllm.ai/nightly
-qwen-vl-utils>=0.0.14
-transformers
-accelerate

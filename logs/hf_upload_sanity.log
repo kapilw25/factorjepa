@@ -1,1224 +1,0 @@
-Uploading outputs/sanity → anonymousML123/factorjepa-outputs/outputs/sanity/
-It seems you are trying to upload a large folder at once. This might take some time and then fail if the folder is too large. For such cases, it is recommended to upload in smaller batches or to use `HfApi().upload_large_folder(...)`/`hf upload-large-folder` instead. For more details, check out https://huggingface.co/docs/huggingface_hub/main/en/guides/upload#upload-a-large-folder.
-Processing Files (0 / 0)      : |          |  0.00B /  0.00B            
-New Data Upload               : |          |  0.00B /  0.00B            [A
-
-  ...ity/embeddings_random.npy:  21%|██        | 58.6kB /  282kB            [A[A
-
-  ...ity/embeddings_random.npy:  21%|██        | 58.6kB /  282kB            [A[AProcessing Files (0 / 1)      :   0%|          | 58.6kB / 24.7MB, 73.2kB/s  
-
-  ...ity/embeddings_random.npy:  21%|██        | 58.6kB /  282kB            [A[A
-
-  ...ity/embeddings_random.npy:  21%|██        | 58.6kB /  282kB            [A[A
-
-  ...ity/embeddings_random.npy:  21%|██        | 58.6kB /  282kB            [A[A
-
-  ...ity/embeddings_random.npy:  21%|██        | 58.6kB /  282kB            [A[A
-
-  ...ity/embeddings_random.npy:  21%|██        | 58.6kB /  282kB            [A[A
-
-  ...ity/embeddings_random.npy:  21%|██        | 58.6kB /  282kB            [A[A
-
-  ...ity/embeddings_random.npy:  21%|██        | 58.6kB /  282kB            [A[A
-
-  ...ity/embeddings_random.npy:  21%|██        | 58.6kB /  282kB            [A[A
-
-  ...ity/embeddings_random.npy:  21%|██        | 58.6kB /  282kB            [A[A
-
-  ...ity/embeddings_random.npy:  21%|██        | 58.6kB /  282kB            [A[A
-
-  ...ity/embeddings_random.npy:  21%|██        | 58.6kB /  282kB            [A[A
-
-  ...ity/embeddings_random.npy:  21%|██        | 58.6kB /  282kB            [A[A
-
-  ...ity/embeddings_random.npy:  21%|██        | 58.6kB /  282kB            [A[A
-
-  ...ity/embeddings_random.npy:  21%|██        | 58.6kB /  282kB            [A[A
-
-
-  ...uts/sanity/embeddings.npy:   2%|▏         | 6.67kB /  282kB            [A[A[A
-
-
-
-  ...nity/embeddings.paths.npy:   2%|▏         |  60.0B / 2.58kB            [A[A[A[A
-
-
-
-
-  ...anity/embeddings_clip.npy:   2%|▏         | 3.64kB /  154kB            [A[A[A[A[A
-
-
-
-
-
-  ...embeddings_clip.paths.npy:   2%|▏         |  60.0B / 2.58kB            [A[A[A[A[A[A
-
-
-
-
-
-
-  ...ity/embeddings_dinov2.npy:   2%|▏         | 7.27kB /  307kB            [A[A[A[A[A[A[A
-
-
-
-
-
-
-
-  ...beddings_dinov2.paths.npy:   2%|▏         |  60.0B / 2.58kB            [A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-  ...beddings_random.paths.npy:   2%|▏         |  60.0B / 2.58kB            [A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-  ...ddings_vjepa_shuffled.npy:   2%|▏         | 6.67kB /  282kB            [A[A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-
-  ..._vjepa_shuffled.paths.npy:   2%|▏         |  60.0B / 2.58kB            [A[A[A[A[A[A[A[A[A[A[A
-
-  ...ity/embeddings_random.npy:  23%|██▎       | 63.9kB /  282kB            [A[A
-
-
-  ...uts/sanity/embeddings.npy:   2%|▏         | 6.67kB /  282kB            [A[A[A
-
-
-
-  ...nity/embeddings.paths.npy:   2%|▏         |  60.0B / 2.58kB            [A[A[A[A
-
-
-
-
-  ...anity/embeddings_clip.npy:   2%|▏         | 3.64kB /  154kB            [A[A[A[A[A
-
-
-
-
-
-  ...embeddings_clip.paths.npy:   2%|▏         |  60.0B / 2.58kB            [A[A[A[A[A[A
-
-
-
-
-
-
-  ...ity/embeddings_dinov2.npy:   2%|▏         | 7.27kB /  307kB            [A[A[A[A[A[A[A
-
-
-
-
-
-
-
-  ...beddings_dinov2.paths.npy:   2%|▏         |  60.0B / 2.58kB            [A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-  ...beddings_random.paths.npy:   2%|▏         |  60.0B / 2.58kB            [A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-  ...ddings_vjepa_shuffled.npy:   2%|▏         | 6.67kB /  282kB            [A[A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-
-  [+ 216 files]               :   2%|▏         |  554kB / 23.4MB            [A[A[A[A[A[A[A[A[A[A[AProcessing Files (0 / 226)    :   3%|▎         |  642kB / 24.7MB,  169kB/s  
-New Data Upload               :   2%|▏         |  584kB / 24.7MB,  154kB/s  [A
-
-  ...ity/embeddings_random.npy:  23%|██▎       | 63.9kB /  282kB            [A[A
-
-
-  ...uts/sanity/embeddings.npy:   2%|▏         | 6.67kB /  282kB            [A[A[A
-
-
-
-  ...nity/embeddings.paths.npy:   2%|▏         |  60.0B / 2.58kB            [A[A[A[A
-
-
-
-
-  ...anity/embeddings_clip.npy:   2%|▏         | 3.64kB /  154kB            [A[A[A[A[A
-
-
-
-
-
-  ...embeddings_clip.paths.npy:   2%|▏         |  60.0B / 2.58kB            [A[A[A[A[A[A
-
-
-
-
-
-
-  ...ity/embeddings_dinov2.npy:   2%|▏         | 7.27kB /  307kB            [A[A[A[A[A[A[A
-
-
-
-
-
-
-
-  ...beddings_dinov2.paths.npy:   2%|▏         |  60.0B / 2.58kB            [A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-  ...beddings_random.paths.npy:   2%|▏         |  60.0B / 2.58kB            [A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-  ...ddings_vjepa_shuffled.npy:   2%|▏         | 6.67kB /  282kB            [A[A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-
-  [+ 216 files]               :   2%|▏         |  554kB / 23.4MB            [A[A[A[A[A[A[A[A[A[A[A
-
-  ...ity/embeddings_random.npy:  25%|██▍       | 69.1kB /  282kB            [A[A
-
-
-  ...uts/sanity/embeddings.npy:   5%|▍         | 13.3kB /  282kB            [A[A[A
-
-
-
-  ...nity/embeddings.paths.npy:   5%|▍         |   121B / 2.58kB            [A[A[A[A
-
-
-
-
-  ...anity/embeddings_clip.npy:   5%|▍         | 7.28kB /  154kB            [A[A[A[A[A
-
-
-
-
-
-  ...embeddings_clip.paths.npy:   5%|▍         |   121B / 2.58kB            [A[A[A[A[A[A
-
-
-
-
-
-
-  ...ity/embeddings_dinov2.npy:   5%|▍         | 14.5kB /  307kB            [A[A[A[A[A[A[A
-
-
-
-
-
-
-
-  ...beddings_dinov2.paths.npy:   5%|▍         |   121B / 2.58kB            [A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-  ...beddings_random.paths.npy:   5%|▍         |   121B / 2.58kB            [A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-  ...ddings_vjepa_shuffled.npy:   5%|▍         | 13.3kB /  282kB            [A[A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-
-  [+ 216 files]               :   5%|▍         | 1.11MB / 23.4MB            [A[A[A[A[A[A[A[A[A[A[AProcessing Files (0 / 226)    :   5%|▍         | 1.23MB / 24.7MB,  292kB/s  
-New Data Upload               :   5%|▍         | 1.17MB / 24.7MB,  278kB/s  [A
-
-  ...ity/embeddings_random.npy:  38%|███▊      |  106kB /  282kB            [A[A
-
-
-  ...uts/sanity/embeddings.npy:  21%|██▏       | 60.0kB /  282kB            [A[A[A
-
-
-
-  ...nity/embeddings.paths.npy:  21%|██▏       |   548B / 2.58kB            [A[A[A[A
-
-
-
-
-  ...anity/embeddings_clip.npy:  21%|██▏       | 32.7kB /  154kB            [A[A[A[A[A
-
-
-
-
-
-  ...embeddings_clip.paths.npy:  21%|██▏       |   548B / 2.58kB            [A[A[A[A[A[A
-
-
-
-
-
-
-  ...ity/embeddings_dinov2.npy:  21%|██▏       | 65.5kB /  307kB            [A[A[A[A[A[A[A
-
-
-
-
-
-
-
-  ...beddings_dinov2.paths.npy:  21%|██▏       |   548B / 2.58kB            [A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-  ...beddings_random.paths.npy:  21%|██▏       |   548B / 2.58kB            [A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-  ...ddings_vjepa_shuffled.npy:  21%|██▏       | 60.0kB /  282kB            [A[A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-
-  [+ 216 files]               :  21%|██▏       | 4.99MB / 23.4MB            [A[A[A[A[A[A[A[A[A[A[AProcessing Files (0 / 226)    :  21%|██▏       | 5.31MB / 24.7MB, 1.21MB/s  
-New Data Upload               :  21%|██▏       | 5.25MB / 24.7MB, 1.19MB/s  [A
-
-  ...ity/embeddings_random.npy:  60%|██████    |  169kB /  282kB            [A[A
-
-
-  ...uts/sanity/embeddings.npy:  50%|████▉     |  140kB /  282kB            [A[A[A
-
-
-
-  ...nity/embeddings.paths.npy:  50%|████▉     | 1.28kB / 2.58kB            [A[A[A[A
-
-
-
-
-  ...anity/embeddings_clip.npy:  50%|████▉     | 76.4kB /  154kB            [A[A[A[A[A
-
-
-
-
-
-  ...embeddings_clip.paths.npy:  50%|████▉     | 1.28kB / 2.58kB            [A[A[A[A[A[A
-
-
-
-
-
-
-  ...ity/embeddings_dinov2.npy:  50%|████▉     |  153kB /  307kB            [A[A[A[A[A[A[A
-
-
-
-
-
-
-
-  ...beddings_dinov2.paths.npy:  50%|████▉     | 1.28kB / 2.58kB            [A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-  ...beddings_random.paths.npy:  50%|████▉     | 1.28kB / 2.58kB            [A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-  ...ddings_vjepa_shuffled.npy:  50%|████▉     |  140kB /  282kB            [A[A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-
-  [+ 216 files]               :  50%|████▉     | 11.6MB / 23.4MB            [A[A[A[A[A[A[A[A[A[A[AProcessing Files (0 / 226)    :  50%|████▉     | 12.3MB / 24.7MB, 2.68MB/s  
-New Data Upload               :  50%|████▉     | 12.3MB / 24.7MB, 2.67MB/s  [A
-
-  ...ity/embeddings_random.npy:  81%|████████  |  228kB /  282kB            [A[A
-
-
-  ...uts/sanity/embeddings.npy:  76%|███████▌  |  213kB /  282kB            [A[A[A
-
-
-
-  ...nity/embeddings.paths.npy:  76%|███████▌  | 1.95kB / 2.58kB            [A[A[A[A
-
-
-
-
-  ...anity/embeddings_clip.npy:  76%|███████▌  |  116kB /  154kB            [A[A[A[A[A
-
-
-
-
-
-  ...embeddings_clip.paths.npy:  76%|███████▌  | 1.95kB / 2.58kB            [A[A[A[A[A[A
-
-
-
-
-
-
-  ...ity/embeddings_dinov2.npy:  76%|███████▌  |  233kB /  307kB            [A[A[A[A[A[A[A
-
-
-
-
-
-
-
-  ...beddings_dinov2.paths.npy:  76%|███████▌  | 1.95kB / 2.58kB            [A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-  ...beddings_random.paths.npy:  76%|███████▌  | 1.95kB / 2.58kB            [A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-  ...ddings_vjepa_shuffled.npy:  76%|███████▌  |  213kB /  282kB            [A[A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-
-  [+ 216 files]               :  76%|███████▌  | 17.7MB / 23.4MB            [A[A[A[A[A[A[A[A[A[A[AProcessing Files (0 / 226)    :  76%|███████▌  | 18.7MB / 24.7MB, 3.90MB/s  
-New Data Upload               :  76%|███████▌  | 18.7MB / 24.7MB, 3.89MB/s  [A
-
-  ...ity/embeddings_random.npy:  98%|█████████▊|  275kB /  282kB            [A[A
-
-
-  ...uts/sanity/embeddings.npy:  97%|█████████▋|  273kB /  282kB            [A[A[A
-
-
-
-  ...nity/embeddings.paths.npy:  97%|█████████▋| 2.50kB / 2.58kB            [A[A[A[A
-
-
-
-
-  ...anity/embeddings_clip.npy:  97%|█████████▋|  149kB /  154kB            [A[A[A[A[A
-
-
-
-
-
-  ...embeddings_clip.paths.npy:  97%|█████████▋| 2.50kB / 2.58kB            [A[A[A[A[A[A
-
-
-
-
-
-
-  ...ity/embeddings_dinov2.npy:  97%|█████████▋|  298kB /  307kB            [A[A[A[A[A[A[A
-
-
-
-
-
-
-
-  ...beddings_dinov2.paths.npy:  97%|█████████▋| 2.50kB / 2.58kB            [A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-  ...beddings_random.paths.npy:  97%|█████████▋| 2.50kB / 2.58kB            [A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-  ...ddings_vjepa_shuffled.npy:  97%|█████████▋|  273kB /  282kB            [A[A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-
-  [+ 216 files]               :  97%|█████████▋| 22.7MB / 23.4MB            [A[A[A[A[A[A[A[A[A[A[AProcessing Files (0 / 226)    :  97%|█████████▋| 24.0MB / 24.7MB, 4.80MB/s  
-New Data Upload               :  97%|█████████▋| 23.9MB / 24.7MB, 4.79MB/s  [A
-
-  ...ity/embeddings_random.npy: 100%|█████████▉|  280kB /  282kB            [A[A
-
-
-  ...uts/sanity/embeddings.npy:  99%|█████████▉|  280kB /  282kB            [A[A[A
-
-
-
-  ...nity/embeddings.paths.npy:  99%|█████████▉| 2.56kB / 2.58kB            [A[A[A[A
-
-
-
-
-  ...anity/embeddings_clip.npy:  99%|█████████▉|  153kB /  154kB            [A[A[A[A[A
-
-
-
-
-
-  ...embeddings_clip.paths.npy:  99%|█████████▉| 2.56kB / 2.58kB            [A[A[A[A[A[A
-
-
-
-
-
-
-  ...ity/embeddings_dinov2.npy:  99%|█████████▉|  306kB /  307kB            [A[A[A[A[A[A[A
-
-
-
-
-
-
-
-  ...beddings_dinov2.paths.npy:  99%|█████████▉| 2.56kB / 2.58kB            [A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-  ...beddings_random.paths.npy:  99%|█████████▉| 2.56kB / 2.58kB            [A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-  ...ddings_vjepa_shuffled.npy:  99%|█████████▉|  280kB /  282kB            [A[A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-
-  [+ 216 files]               :  99%|█████████▉| 23.3MB / 23.4MB            [A[A[A[A[A[A[A[A[A[A[AProcessing Files (0 / 226)    :  99%|█████████▉| 24.6MB / 24.7MB, 4.73MB/s  
-New Data Upload               :  99%|█████████▉| 24.5MB / 24.7MB, 4.72MB/s  [A
-
-  ...ity/embeddings_random.npy: 100%|█████████▉|  280kB /  282kB            [A[A
-
-
-  ...uts/sanity/embeddings.npy:  99%|█████████▉|  280kB /  282kB            [A[A[A
-
-
-
-  ...nity/embeddings.paths.npy:  99%|█████████▉| 2.56kB / 2.58kB            [A[A[A[A
-
-
-
-
-  ...anity/embeddings_clip.npy:  99%|█████████▉|  153kB /  154kB            [A[A[A[A[A
-
-
-
-
-
-  ...embeddings_clip.paths.npy:  99%|█████████▉| 2.56kB / 2.58kB            [A[A[A[A[A[A
-
-
-
-
-
-
-  ...ity/embeddings_dinov2.npy:  99%|█████████▉|  306kB /  307kB            [A[A[A[A[A[A[A
-
-
-
-
-
-
-
-  ...beddings_dinov2.paths.npy:  99%|█████████▉| 2.56kB / 2.58kB            [A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-  ...beddings_random.paths.npy:  99%|█████████▉| 2.56kB / 2.58kB            [A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-  ...ddings_vjepa_shuffled.npy:  99%|█████████▉|  280kB /  282kB            [A[A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-
-  [+ 216 files]               :  99%|█████████▉| 23.3MB / 23.4MB            [A[A[A[A[A[A[A[A[A[A[A
-
-  ...ity/embeddings_random.npy: 100%|██████████|  282kB /  282kB            [A[A
-
-
-  ...uts/sanity/embeddings.npy: 100%|██████████|  282kB /  282kB            [A[A[A
-
-
-
-  ...nity/embeddings.paths.npy: 100%|██████████| 2.58kB / 2.58kB            [A[A[A[A
-
-
-
-
-  ...anity/embeddings_clip.npy: 100%|██████████|  154kB /  154kB            [A[A[A[A[A
-
-
-
-
-
-  ...embeddings_clip.paths.npy: 100%|██████████| 2.58kB / 2.58kB            [A[A[A[A[A[A
-
-
-
-
-
-
-  ...ity/embeddings_dinov2.npy: 100%|██████████|  307kB /  307kB            [A[A[A[A[A[A[A
-
-
-
-
-
-
-
-  ...beddings_dinov2.paths.npy: 100%|██████████| 2.58kB / 2.58kB            [A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-  ...beddings_random.paths.npy: 100%|██████████| 2.58kB / 2.58kB            [A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-  ...ddings_vjepa_shuffled.npy: 100%|██████████|  282kB /  282kB            [A[A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-
-  [+ 216 files]               : 100%|██████████| 23.4MB / 23.4MB            [A[A[A[A[A[A[A[A[A[A[AProcessing Files (226 / 226)  : 100%|██████████| 24.7MB / 24.7MB, 4.42MB/s  
-New Data Upload               : 100%|██████████| 24.7MB / 24.7MB, 4.40MB/s  [A
-
-  ...anity/motion_features.npy: 100%|██████████| 3.04kB / 3.04kB            [A[A
-
-
-  ...motion_features.paths.npy: 100%|██████████| 2.85kB / 2.85kB            [A[A[A
-
-
-
-  ...s/sanity/overlap_augA.npy: 100%|██████████|  282kB /  282kB            [A[A[A[A
-
-
-
-
-  ...s/sanity/overlap_augB.npy: 100%|██████████|  282kB /  282kB            [A[A[A[A[A
-
-
-
-
-
-  ...s/sanity/overlap_keys.npy: 100%|██████████| 2.58kB / 2.58kB            [A[A[A[A[A[A
-
-
-
-
-
-
-  ...utputs/sanity/umap_2d.npy: 100%|██████████|   528B /   528B            [A[A[A[A[A[A[A
-
-
-
-
-
-
-
-  ...s/sanity/umap_2d_clip.npy: 100%|██████████|   528B /   528B            [A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-  ...sanity/umap_2d_dinov2.npy: 100%|██████████|   528B /   528B            [A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-  ...sanity/umap_2d_random.npy: 100%|██████████|   528B /   528B            [A[A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-
-  ...map_2d_vjepa_shuffled.npy: 100%|██████████|   528B /   528B            [A[A[A[A[A[A[A[A[A[A[A
-
-  ...anity/motion_features.npy: 100%|██████████| 3.04kB / 3.04kB            [A[A
-
-
-  ...motion_features.paths.npy: 100%|██████████| 2.85kB / 2.85kB            [A[A[A
-
-
-
-  ...s/sanity/overlap_augA.npy: 100%|██████████|  282kB /  282kB            [A[A[A[A
-
-
-
-
-  ...s/sanity/overlap_augB.npy: 100%|██████████|  282kB /  282kB            [A[A[A[A[A
-
-
-
-
-
-  ...s/sanity/overlap_keys.npy: 100%|██████████| 2.58kB / 2.58kB            [A[A[A[A[A[A
-
-
-
-
-
-
-  ...utputs/sanity/umap_2d.npy: 100%|██████████|   528B /   528B            [A[A[A[A[A[A[A
-
-
-
-
-
-
-
-  ...s/sanity/umap_2d_clip.npy: 100%|██████████|   528B /   528B            [A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-  ...sanity/umap_2d_dinov2.npy: 100%|██████████|   528B /   528B            [A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-  ...sanity/umap_2d_random.npy: 100%|██████████|   528B /   528B            [A[A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-
-  ...map_2d_vjepa_shuffled.npy: 100%|██████████|   528B /   528B            [A[A[A[A[A[A[A[A[A[A[A
-
-  ...anity/motion_features.npy: 100%|██████████| 3.04kB / 3.04kB            [A[A
-
-
-  ...motion_features.paths.npy: 100%|██████████| 2.85kB / 2.85kB            [A[A[A
-
-
-
-  ...s/sanity/overlap_augA.npy: 100%|██████████|  282kB /  282kB            [A[A[A[A
-
-
-
-
-  ...s/sanity/overlap_augB.npy: 100%|██████████|  282kB /  282kB            [A[A[A[A[A
-
-
-
-
-
-  ...s/sanity/overlap_keys.npy: 100%|██████████| 2.58kB / 2.58kB            [A[A[A[A[A[A
-
-
-
-
-
-
-  ...utputs/sanity/umap_2d.npy: 100%|██████████|   528B /   528B            [A[A[A[A[A[A[A
-
-
-
-
-
-
-
-  ...s/sanity/umap_2d_clip.npy: 100%|██████████|   528B /   528B            [A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-  ...sanity/umap_2d_dinov2.npy: 100%|██████████|   528B /   528B            [A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-  ...sanity/umap_2d_random.npy: 100%|██████████|   528B /   528B            [A[A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-
-  ...map_2d_vjepa_shuffled.npy: 100%|██████████|   528B /   528B            [A[A[A[A[A[A[A[A[A[A[A
-
-  ...anity/motion_features.npy: 100%|██████████| 3.04kB / 3.04kB            [A[A
-
-
-  ...motion_features.paths.npy: 100%|██████████| 2.85kB / 2.85kB            [A[A[A
-
-
-
-  ...s/sanity/overlap_augA.npy: 100%|██████████|  282kB /  282kB            [A[A[A[A
-
-
-
-
-  ...s/sanity/overlap_augB.npy: 100%|██████████|  282kB /  282kB            [A[A[A[A[A
-
-
-
-
-
-  ...s/sanity/overlap_keys.npy: 100%|██████████| 2.58kB / 2.58kB            [A[A[A[A[A[A
-
-
-
-
-
-
-  ...utputs/sanity/umap_2d.npy: 100%|██████████|   528B /   528B            [A[A[A[A[A[A[A
-
-
-
-
-
-
-
-  ...s/sanity/umap_2d_clip.npy: 100%|██████████|   528B /   528B            [A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-  ...sanity/umap_2d_dinov2.npy: 100%|██████████|   528B /   528B            [A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-  ...sanity/umap_2d_random.npy: 100%|██████████|   528B /   528B            [A[A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-
-  ...map_2d_vjepa_shuffled.npy: 100%|██████████|   528B /   528B            [A[A[A[A[A[A[A[A[A[A[A
-
-  ...anity/motion_features.npy: 100%|██████████| 3.04kB / 3.04kB            [A[A
-
-
-  ...motion_features.paths.npy: 100%|██████████| 2.85kB / 2.85kB            [A[A[A
-
-
-
-  ...s/sanity/overlap_augA.npy: 100%|██████████|  282kB /  282kB            [A[A[A[A
-
-
-
-
-  ...s/sanity/overlap_augB.npy: 100%|██████████|  282kB /  282kB            [A[A[A[A[A
-
-
-
-
-
-  ...s/sanity/overlap_keys.npy: 100%|██████████| 2.58kB / 2.58kB            [A[A[A[A[A[A
-
-
-
-
-
-
-  ...utputs/sanity/umap_2d.npy: 100%|██████████|   528B /   528B            [A[A[A[A[A[A[A
-
-
-
-
-
-
-
-  ...s/sanity/umap_2d_clip.npy: 100%|██████████|   528B /   528B            [A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-  ...sanity/umap_2d_dinov2.npy: 100%|██████████|   528B /   528B            [A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-  ...sanity/umap_2d_random.npy: 100%|██████████|   528B /   528B            [A[A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-
-  ...map_2d_vjepa_shuffled.npy: 100%|██████████|   528B /   528B            [A[A[A[A[A[A[A[A[A[A[A
-
-  ...anity/motion_features.npy: 100%|██████████| 3.04kB / 3.04kB            [A[A
-
-
-  ...motion_features.paths.npy: 100%|██████████| 2.85kB / 2.85kB            [A[A[A
-
-
-
-  ...s/sanity/overlap_augA.npy: 100%|██████████|  282kB /  282kB            [A[A[A[A
-
-
-
-
-  ...s/sanity/overlap_augB.npy: 100%|██████████|  282kB /  282kB            [A[A[A[A[A
-
-
-
-
-
-  ...s/sanity/overlap_keys.npy: 100%|██████████| 2.58kB / 2.58kB            [A[A[A[A[A[A
-
-
-
-
-
-
-  ...utputs/sanity/umap_2d.npy: 100%|██████████|   528B /   528B            [A[A[A[A[A[A[A
-
-
-
-
-
-
-
-  ...s/sanity/umap_2d_clip.npy: 100%|██████████|   528B /   528B            [A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-  ...sanity/umap_2d_dinov2.npy: 100%|██████████|   528B /   528B            [A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-  ...sanity/umap_2d_random.npy: 100%|██████████|   528B /   528B            [A[A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-
-  ...map_2d_vjepa_shuffled.npy: 100%|██████████|   528B /   528B            [A[A[A[A[A[A[A[A[A[A[A
-
-  ...anity/motion_features.npy: 100%|██████████| 3.04kB / 3.04kB            [A[A
-
-
-  ...motion_features.paths.npy: 100%|██████████| 2.85kB / 2.85kB            [A[A[A
-
-
-
-  ...s/sanity/overlap_augA.npy: 100%|██████████|  282kB /  282kB            [A[A[A[A
-
-
-
-
-  ...s/sanity/overlap_augB.npy: 100%|██████████|  282kB /  282kB            [A[A[A[A[A
-
-
-
-
-
-  ...s/sanity/overlap_keys.npy: 100%|██████████| 2.58kB / 2.58kB            [A[A[A[A[A[A
-
-
-
-
-
-
-  ...utputs/sanity/umap_2d.npy: 100%|██████████|   528B /   528B            [A[A[A[A[A[A[A
-
-
-
-
-
-
-
-  ...s/sanity/umap_2d_clip.npy: 100%|██████████|   528B /   528B            [A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-  ...sanity/umap_2d_dinov2.npy: 100%|██████████|   528B /   528B            [A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-  ...sanity/umap_2d_random.npy: 100%|██████████|   528B /   528B            [A[A[A[A[A[A[A[A[A[A
-
-
-
-
-
-
-
-
-
-
-  ...map_2d_vjepa_shuffled.npy: 100%|██████████|   528B /   528B            [A[A[A[A[A[A[A[A[A[A[AProcessing Files (226 / 226)  : 100%|██████████| 24.7MB / 24.7MB, 3.64MB/s  
-New Data Upload               : 100%|██████████| 24.7MB / 24.7MB, 3.63MB/s  
-  ...anity/motion_features.npy: 100%|██████████| 3.04kB / 3.04kB            
-  ...motion_features.paths.npy: 100%|██████████| 2.85kB / 2.85kB            
-  ...s/sanity/overlap_augA.npy: 100%|██████████|  282kB /  282kB            
-  ...s/sanity/overlap_augB.npy: 100%|██████████|  282kB /  282kB            
-  ...s/sanity/overlap_keys.npy: 100%|██████████| 2.58kB / 2.58kB            
-  ...utputs/sanity/umap_2d.npy: 100%|██████████|   528B /   528B            
-  ...s/sanity/umap_2d_clip.npy: 100%|██████████|   528B /   528B            
-  ...sanity/umap_2d_dinov2.npy: 100%|██████████|   528B /   528B            
-  ...sanity/umap_2d_random.npy: 100%|██████████|   528B /   528B            
-  ...map_2d_vjepa_shuffled.npy: 100%|██████████|   528B /   528B            
-Upload complete: 15s → https://huggingface.co/datasets/anonymousML123/factorjepa-outputs

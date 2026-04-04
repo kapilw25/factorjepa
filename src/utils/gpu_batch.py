@@ -1,5 +1,8 @@
 """Auto-compute batch sizes based on available GPU VRAM. GPU-only, no CPU fallback."""
 import argparse
+import gc
+import json
+import shutil
 import sys
 
 # ═════════════════════════════════════════════════════════════════════════
@@ -174,7 +177,6 @@ class AdaptiveBatchSizer:
 
 def cuda_cleanup():
     """Force CUDA memory cleanup. Call between encoder runs or after OOM recovery."""
-    import gc
     import torch
     gc.collect()
     if torch.cuda.is_available():
@@ -184,7 +186,6 @@ def cuda_cleanup():
 
 def cleanup_temp():
     """Clean stale temp files from prior steps. Call at start of every GPU script main()."""
-    import shutil
     from pathlib import Path
     for d in Path("/tmp").glob("hf_*"):
         shutil.rmtree(d, ignore_errors=True)
@@ -206,7 +207,6 @@ def get_optimal_batch_size(profile_json: str = "outputs/profile/profile_data.jso
         python -u src/utils/gpu_batch.py optimal-bs
         python -u src/utils/gpu_batch.py optimal-bs --profile-json outputs/profile/profile_data.json
     """
-    import json
     d = json.load(open(profile_json))
     gpu_gb = d["gpu_total_gb"]
     target = gpu_gb * vram_pct

@@ -15,6 +15,7 @@ import time
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent))
+from utils.progress import make_pbar
 from utils.config import (
     VIDEOS_DIR, CLIPS_DIR, CLIP_MIN_DURATION, CLIP_MAX_DURATION, REENCODE_CRF,
     get_all_videos, get_video_duration,
@@ -324,12 +325,15 @@ def main():
                     print(f"\n[Cycle {cycle}] {len(new_videos)} new/stale videos "
                           f"(downloaded: {len(all_videos)}, processed: {len(processed)})")
                     batch_clips = 0
+                    pbar_scene = make_pbar(total=len(new_videos), desc="m02_scene", unit="video")
                     for i, video in enumerate(new_videos, 1):
                         print(f"\n  [{i}/{len(new_videos)}] {video.name}")
                         clip_count = process_video(video, CLIPS_DIR, section_map, keyframes=args.keyframes)
                         batch_clips += clip_count
                         mark_video_processed(video.stem, clip_count)
+                        pbar_scene.update(1)
 
+                    pbar_scene.close()
                     total_processed += len(new_videos)
                     print(f"\n[Cycle {cycle}] Done: {len(new_videos)} videos -> {batch_clips} clips")
                 else:

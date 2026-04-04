@@ -4,7 +4,7 @@
   "encoder_type": "image",
   "n_clips_aligned": 50,
   "k_neighbors": 6,
-  "compute_time_sec": 17.5,
+  "compute_time_sec": 12.6,
   "mode": "SANITY",
   "spearman_rho": 0.429485,
   "spearman_rho_ci": {

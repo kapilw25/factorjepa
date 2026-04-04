@@ -1,8 +1,10 @@
 """
 Common configuration for WalkIndia-200k pipeline.
 """
+import json
 import os
 import re
+import shutil
 import sys
 from pathlib import Path
 
@@ -60,7 +62,6 @@ def ensure_clips_exist() -> bool:
     repos_to_try = HF_DATASET_REPOS + [HF_DATASET_REPO]
 
     try:
-        import shutil
         from huggingface_hub import snapshot_download
 
         for repo in repos_to_try:
@@ -129,7 +130,6 @@ def get_sanity_clip_limit(module: str) -> int:
 
 def get_total_clips(local_data: str = None, subset_file: str = None) -> int:
     """Discover total clip count from data source. Never hardcode."""
-    import json
     if subset_file:
         keys = load_subset(subset_file)
         return len(keys)
@@ -234,7 +234,6 @@ def load_subset(subset_path: str = None) -> set:
     if subset_path is None:
         return set()
 
-    import json
     p = Path(subset_path)
     if not p.exists():
         print(f"ERROR: Subset file not found: {p}")
@@ -344,8 +343,6 @@ def build_video_section_map() -> dict:
 
     Returns dict like: {"qABnYGIilHE": "tier1/bangalore/drive", ...}
     """
-    import json
-
     if not YT_VIDEOS_JSON.exists():
         print(f"WARNING: {YT_VIDEOS_JSON} not found, cannot build section map")
         return {}
@@ -405,7 +402,6 @@ PROCESSED_VIDEOS_FILE = CLIPS_DIR / ".processed.json"
 
 def get_processed_video_ids() -> dict:
     """Get dict of {video_id: clip_count} already processed by m02."""
-    import json
     if not PROCESSED_VIDEOS_FILE.exists():
         # Migrate from old .processed.txt if it exists
         old_file = CLIPS_DIR / ".processed.txt"
@@ -424,7 +420,6 @@ def get_processed_video_ids() -> dict:
 
 def mark_video_processed(video_id: str, clip_count: int):
     """Record that a video has been processed with its clip count."""
-    import json
     PROCESSED_VIDEOS_FILE.parent.mkdir(parents=True, exist_ok=True)
     processed = get_processed_video_ids()
     processed[video_id] = clip_count
@@ -437,7 +432,6 @@ def load_embeddings_and_tags() -> tuple:
     Load embeddings and tags, verify alignment.
     Returns (embeddings, tags) or exits on error.
     """
-    import json
     import numpy as np
 
     # Load embeddings
@@ -489,7 +483,6 @@ def setup_ram_cache(clip_paths: list, use_cache: bool = True, cache_subdir: str 
     Returns:
         Tuple of (cached_paths, cache_enabled)
     """
-    import shutil
     from tqdm import tqdm
 
     cache_dir = Path(f"/dev/shm/{cache_subdir}_cache")
@@ -540,7 +533,6 @@ def setup_ram_cache(clip_paths: list, use_cache: bool = True, cache_subdir: str 
 
 def cleanup_ram_cache(cache_subdir: str = "clips"):
     """Remove RAM cache after processing."""
-    import shutil
     cache_dir = Path(f"/dev/shm/{cache_subdir}_cache")
     if cache_dir.exists():
         shutil.rmtree(cache_dir)
@@ -598,8 +590,6 @@ def check_output_exists(output_paths: list, description: str = "output") -> bool
         True if should process (delete and re-run)
         False if should skip (use cached files)
     """
-    import shutil
-
     # Convert to Path objects and check existence
     existing = []
     for p in output_paths:
@@ -645,8 +635,6 @@ def _get_nested(d: dict, key_path: str):
 
 
 if __name__ == "__main__":
-    import json
-
     usage = """Usage:
   python -u src/utils/config.py get-yaml <yaml_path> <key_path>
   python -u src/utils/config.py get-json <json_path> <key>

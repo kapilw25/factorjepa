@@ -76,4 +76,61 @@
 #     - Shared queue feeds decoder + processor → GPU consumer
 #     - Prevents GPU starvation on fast models (CLIP/DINOv2)
 #
+# ── Comparison plot (Ch10 vs Ch11 on same axes) ──────────────────────
+#
+#   Both Ch10 (continual pretraining) and Ch11 (surgical fine-tuning) use
+#   the same V-JEPA latent-prediction loss (L1 on masked tokens).
+#   Same y-axis → directly comparable on one plot.
+#
+#   from utils.plots import plot_training_curves
+#   plot_training_curves(
+#       runs=[
+#           {"csv_path": "outputs/full/m09_lambda0_001/loss_log.csv",
+#            "label": "Continual Pretraining (Ch10)", "color": "blue"},
+#           {"csv_path": "outputs/full/m09_surgical/loss_log.csv",
+#            "label": "Surgical Fine-tuning (Ch11)", "color": "red"},
+#       ],
+#       output_dir="outputs/full/comparison",
+#       title_prefix="115K Clips, ",
+#   )
+#
+# ── Paper novelty ────────────────────────────────────────────────────
+#
+#   The novelty is NOT pretraining or surgical individually — both are
+#   known. The novelty is:
+#
+#   1. Factor-decomposed inputs — isolating layout/agents/interactions
+#      as separate video "factors" (hence "FactorJEPA") fed to the
+#      surgical pipeline
+#   2. Comparing full continual pretraining (Ch10) vs. structured
+#      curriculum surgical fine-tuning (Ch11) using the SAME
+#      self-supervised V-JEPA loss on the SAME Indian urban dataset
+#   3. Testing whether structured depth control + factor curriculum
+#      can match brute-force pretraining with fewer trainable params
+#
+#   The comparison plot is the key result figure — it directly shows
+#   whether surgical fine-tuning achieves the same loss reduction as
+#   full pretraining with less compute.
+#
+# ── Token budget (same for Ch10 and Ch11) ────────────────────────────
+#
+#   From profile_data.json at BS=112, total tokens per clip = 4608:
+#     Mask gen 1 (8 small blocks): ~1024 visible = 22% of 4608
+#     Mask gen 2 (2 large blocks): ~112 visible  = 2.4% of 4608
+#
+#   Student processes CONTEXT (visible) tokens; teacher sees ALL tokens.
+#
+#   Ch10 (continual pretraining): student sees ~22% — same V-JEPA 2
+#   masking ratio, unchanged.
+#
+#   Ch11 (surgical fine-tuning): SAME masking, SAME loss, SAME ~22%
+#   visible tokens. The difference is NOT token count:
+#     1. What's trainable: progressive prefix unfreezing (layers 0→n_s)
+#     2. What's fed: factor-patched clips (layout/agent/interaction)
+#
+#   Surgical efficiency = fewer trainable params (prefix only), not
+#   fewer tokens. Comparison plot is valid: identical loss function,
+#   masking, and token count — only input distribution and trainable
+#   depth differ.
+#
 # ═══════════════════════════════════════════════════════════════════════

@@ -15,6 +15,7 @@ from pathlib import Path
 import numpy as np
 
 sys.path.insert(0, str(Path(__file__).parent))
+from utils.progress import make_pbar
 from utils.config import (
     ENCODER_REGISTRY, add_subset_arg, get_output_dir, get_encoder_files,
     get_encoder_info,
@@ -853,13 +854,22 @@ def main():
 
     # Plots + table (need >= 2 encoders for comparison)
     if len(all_metrics) >= 2:
+        pbar = make_pbar(total=7, desc="m08b_compare", unit="plot")
         create_bar_chart(all_metrics, output_dir)
+        pbar.update(1)
         create_radar_plot(all_metrics, output_dir, all_temporal=all_temporal)
+        pbar.update(1)
         create_latex_table(all_metrics, output_dir)
+        pbar.update(1)
         create_grouped_bar_chart(all_metrics, all_temporal, output_dir)
+        pbar.update(1)
         create_tradeoff_scatter(all_metrics, all_temporal, output_dir)
+        pbar.update(1)
         create_ablation_chart(all_metrics, all_temporal, output_dir)
+        pbar.update(1)
         create_heatmap(all_metrics, all_temporal, output_dir)
+        pbar.update(1)
+        pbar.close()
 
         for name in ["m08b_encoder_comparison", "m08b_radar",
                      "m08b_spatial_temporal_bar", "m08b_tradeoff_scatter",

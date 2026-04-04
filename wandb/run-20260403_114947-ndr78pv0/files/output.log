@@ -1,0 +1,62 @@
+wandb: run=m09_FULL_lambda0_001 url=https://wandb.ai/sjsu_llm/walkindia-200k/runs/ndr78pv0
+m09_pretrain:   0%|          | 0/281 [00:00<?, ?step/s]/venv/main/lib/python3.12/contextlib.py:105: FutureWarning: `torch.backends.cuda.sdp_kernel()` is deprecated. In the future, this context manager will be removed. Please see `torch.nn.attention.sdpa_kernel()` for the new context manager, with updated signature.
+
+=== Training: 0 → 281 steps (1 epochs) ===
+Batch size: 32
+Grad checkpointing: True
+Mixed precision: bfloat16
+EMA momentum: 0.99925
+Drift control: lambda=0.001
+Loss log: /workspace/factorjepa/outputs/full/m09_lambda0_001/loss_log.csv
+  self.gen = func(*args, **kwds)
+m09_pretrain:  80%|███████▉  | 224/281 [30:48<05:57,  6.27s/step, E0 loss=0.4823 drift=0.0010 lr=1.28e-06 grad=0.05 0.16 step/s]  
+
+--- Checkpoint at 10% of epoch 1 (step 28) ---
+  Step 28 | Val JEPA loss: 1.6341 (11 batches)
+  New best val loss: 1.6341
+
+--- Checkpoint at 20% of epoch 1 (step 56) ---
+  Step 56 | Val JEPA loss: 1.6330 (11 batches)
+  New best val loss: 1.6330
+
+--- Checkpoint at 30% of epoch 1 (step 84) ---
+  Cleaned old checkpoint: m09_ckpt_step28.pt
+  Step 84 | Val JEPA loss: 1.6310 (11 batches)
+  New best val loss: 1.6310
+
+--- Checkpoint at 40% of epoch 1 (step 112) ---
+  Cleaned old checkpoint: m09_ckpt_step56.pt
+  Step 112 | Val JEPA loss: 1.6320 (11 batches)
+
+--- Checkpoint at 50% of epoch 1 (step 140) ---
+  Cleaned old checkpoint: m09_ckpt_step84.pt
+  Step 140 | Val JEPA loss: 1.6338 (11 batches)
+
+--- Checkpoint at 60% of epoch 1 (step 168) ---
+  Cleaned old checkpoint: m09_ckpt_step112.pt
+  Step 168 | Val JEPA loss: 1.6296 (11 batches)
+  New best val loss: 1.6296
+
+--- Checkpoint at 70% of epoch 1 (step 196) ---
+  Cleaned old checkpoint: m09_ckpt_step140.pt
+  Step 196 | Val JEPA loss: 1.6316 (11 batches)
+
+--- Checkpoint at 80% of epoch 1 (step 224) ---
+  Cleaned old checkpoint: m09_ckpt_step168.pt
+  Step 224 | Val JEPA loss: 1.6263 (11 batches)
+  New best val loss: 1.6263
+
+--- Checkpoint at 90% of epoch 1 (step 252) ---
+  Cleaned old checkpoint: m09_ckpt_step196.pt
+  Step 252 | Val JEPA loss: 1.6277 (11 batches)
+
+--- Checkpoint at 100% of epoch 1 (step 280) ---
+  Cleaned old checkpoint: m09_ckpt_step224.pt
+  Step 280 | Val JEPA loss: 1.6315 (11 batches)
+
+--- Epoch 1/1 complete (step 281) ---
+Exported student encoder: /workspace/factorjepa/outputs/full/m09_lambda0_001/student_encoder.pt
+  Cleaned: m09_ckpt_latest.pt
+  Cleaned: m09_ckpt_best.pt
+  Cleaned: m09_ckpt_step252.pt
+  Cleaned: m09_ckpt_step280.pt

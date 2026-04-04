@@ -1,0 +1,1475 @@
+[09:50:37] GPU watchdog started (PID=1434420)
+[09:50:38] Auto batch size: 112 (from profiler, <=75% VRAM)
+[09:50:38] Local data exists: data/subset_10k_local
+[09:50:38] Ch10 pipeline starting (mode=SANITY)
+[09:50:38] Config: configs/pretrain/vitg16_indian.yaml
+GPU Watchdog: threshold=50%, window=5min, interval=30s, cooldown=30min
+Alert: kapilw25@gmail.com | Checks for alert: 10 consecutive
+[09:50:38] Master log: logs/ch10_SANITY_20260403_095037.log
+
+[09:50:38] === PRE-FLIGHT ===
+GPU:            NVIDIA RTX PRO 6000 Blackwell Workstation Edition, VRAM: 102GB
+PyTorch:        2.12.0.dev20260228+cu128
+CUDA:           12.8
+FAISS GPUs:     1
+Flash-Attn:     2.8.3
+cuML:           26.02.000
+Transformers:   4.57.6
+wandb:          0.25.1
+HF_TOKEN:       hf_eATIPAr...
+vjepa2:         deps/vjepa2/ present
+Config:         configs/pretrain/vitg16_indian.yaml
+Baseline:       Prec@K=45.3% (Ch9 frozen)
+
+Pre-flight: ALL PASSED
+[09:50:41] Pre-flight complete.
+[09:50:41] === OUTPUT PREFLIGHT ===
+
+======================================================================
+  PIPELINE PREFLIGHT — checking all inputs/outputs before GPU work
+======================================================================
+  [33mWILL RUN[0m ~33 min                      m09 train (λ=0)
+  [33mWILL RUN[0m ~33 min                      m09 train (λ=0.001)
+  [33mWILL RUN[0m ~33 min                      m09 train (λ=0.01)
+  [33mWILL RUN[0m ~33 min                      m09 train (λ=0.1)
+  [33mWILL RUN[0m ~165 min                     m09 deep train (vjepa_lambda0_001, 5ep)
+  [31mBLOCKED (missing input)[0m               m05 re-embed (vjepa_lambda0_001)
+  [31mBLOCKED (missing input)[0m               m06 metrics (vjepa_lambda0_001)
+  [31mBLOCKED (missing input)[0m               m06b temporal (vjepa_lambda0_001)
+  [31mBLOCKED (missing input)[0m               m05 shuffled (vjepa_lambda0_001_shuffled)
+  [31mBLOCKED (missing input)[0m               m07 UMAP (vjepa_lambda0_001)
+  [32mSKIP (cached)[0m                         m08b compare (all encoders)
+
+  Steps to run:  10
+  Steps cached:  1
+
+  [31mMISSING INPUTS (6):[0m
+    m05 re-embed (vjepa_lambda0_001) needs student: outputs/sanity/m09_lambda0_001/student_encoder.pt
+    m06 metrics (vjepa_lambda0_001) needs embeddings: outputs/sanity/embeddings_vjepa_lambda0_001.npy
+    m06b temporal (vjepa_lambda0_001) needs embeddings: outputs/sanity/embeddings_vjepa_lambda0_001.npy
+    m05 shuffled (vjepa_lambda0_001_shuffled) needs student: outputs/sanity/m09_lambda0_001/student_encoder.pt
+    m07 UMAP (vjepa_lambda0_001) needs embeddings: outputs/sanity/embeddings_vjepa_lambda0_001.npy
+    m08b compare (all encoders) needs adapted_metrics: outputs/sanity/m06_metrics_vjepa_lambda0_001.json
+======================================================================
+
+Options:
+  [1] Proceed (run steps marked WILL RUN, skip cached)
+  [2] Abort
+
+Enter choice (1 or 2): [09:50:50] Starting pipeline...
+
+[09:50:50] No ablation_winner.json found. m09 will auto-ablate + select winner + train.
+
+═══════════════════════════════════════════════════════════════
+  STEP train: m09 pretrain (auto-ablation + winner)
+  Mode: SANITY | Est: ~3 min (8 steps)
+  Started: 2026-04-03 09:50:50
+═══════════════════════════════════════════════════════════════
+[09:50:50] CMD: python -u src/m09_pretrain.py --config configs/pretrain/vitg16_indian.yaml --max-epochs 1 --batch-size 112 --SANITY --local-data data/subset_10k_local
+Using PyAV for video decoding
+
+============================================================
+  AUTO-ABLATION: No /workspace/factorjepa/outputs/sanity/ablation_winner.json found.
+  Running 4 lambda sweep on data/subset_10k_local (~2h)
+  Ablation outputs → /workspace/factorjepa/outputs/sanity/m09_lambda*/
+============================================================
+
+
+--- Ablation: lambda=0 ---
+Using PyAV for video decoding
+GPU: NVIDIA RTX PRO 6000 Blackwell Workstation Edition
+CUDA version: 12.8
+[output_guard] student_encoder.pt not found — will train
+
+=== Building Model ===
+/workspace/factorjepa/venv_walkindia/lib/python3.12/site-packages/timm/models/layers/__init__.py:49: FutureWarning: Importing from timm.models.layers is deprecated, please import via timm.layers
+  warnings.warn(f"Importing from {__name__} is deprecated, please import via timm.layers", FutureWarning)
+Downloading pretrained weights via torch.hub...
+Student loaded: 1,012,173,952 params (484/484 keys = 100%)
+Teacher created (deepcopy of student)
+Predictor loaded from checkpoint (152/152 keys = 100%)
+Predictor: 22,378,240 params
+Mask generators: 2 (blocks: [8, 2])
+[POC] Loaded subset: 10,000 clip keys from subset_10k.json
+[VAL] Loaded val subset: 1,000 clips from val_1k.json
+Excluding 434 val clips from training set
+Train clips: 900 | Val clips: 100
+Epochs: 1 | Steps/epoch: 28 | Total steps: 28
+Checkpoint every 2 steps (10x/epoch, keep last 2)
+Validation every 2 steps (10x/epoch, 100 val clips)
+
+Collecting 100 val clips into memory...
+Val clips collected: 35 in 2 batches
+m09_pretrain:   0%|          | 0/28 [00:00<?, ?step/s]
+=== Training: 0 → 28 steps (1 epochs) ===
+Batch size: 32
+Grad checkpointing: True
+Mixed precision: bfloat16
+EMA momentum: 0.99925
+Drift control: lambda=0
+Loss log: /workspace/factorjepa/outputs/sanity/m09_lambda0/loss_log.csv
+/venv/main/lib/python3.12/contextlib.py:105: FutureWarning: `torch.backends.cuda.sdp_kernel()` is deprecated. In the future, this context manager will be removed. Please see `torch.nn.attention.sdpa_kernel()` for the new context manager, with updated signature.
+  self.gen = func(*args, **kwds)
+m09_pretrain:   4%|▎         | 1/28 [00:11<05:22, 11.94s/step][09:51:38] GPU recovered: 100% (was low for 60s)
+m09_pretrain:   7%|▋         | 2/28 [00:17<03:35,  8.29s/step]
+--- Checkpoint at 7% of epoch 1 (step 2) ---
+  Step 2 | Val JEPA loss: 1.6421 (2 batches)
+  New best val loss: 1.6421
+m09_pretrain:   7%|▋         | 2/28 [00:42<03:35,  8.29s/step, E0 loss=0.4953 drift=0.0000 lr=9.96e-06 grad=1.02 0.07 step/s]m09_pretrain:  11%|█         | 3/28 [00:42<06:34, 15.80s/step, E0 loss=0.4953 drift=0.0000 lr=9.96e-06 grad=1.02 0.07 step/s]m09_pretrain:  14%|█▍        | 4/28 [00:48<04:43, 11.80s/step, E0 loss=0.4953 drift=0.0000 lr=9.96e-06 grad=1.02 0.07 step/s]
+--- Checkpoint at 14% of epoch 1 (step 4) ---
+  Step 4 | Val JEPA loss: 1.6422 (2 batches)
+m09_pretrain:  18%|█▊        | 5/28 [01:09<05:54, 15.40s/step, E0 loss=0.4953 drift=0.0000 lr=9.96e-06 grad=1.02 0.07 step/s][09:52:38] GPU recovered: 100% (was low for 30s)
+m09_pretrain:  18%|█▊        | 5/28 [01:17<05:54, 15.40s/step, E0 loss=0.4899 drift=0.0000 lr=9.43e-06 grad=0.32 0.09 step/s]m09_pretrain:  21%|██▏       | 6/28 [01:17<04:37, 12.62s/step, E0 loss=0.4899 drift=0.0000 lr=9.43e-06 grad=0.32 0.09 step/s]
+--- Checkpoint at 21% of epoch 1 (step 6) ---
+  Cleaned old checkpoint: m09_ckpt_step2.pt
+  Step 6 | Val JEPA loss: 1.6393 (2 batches)
+  New best val loss: 1.6393
+m09_pretrain:  25%|██▌       | 7/28 [01:41<05:47, 16.56s/step, E0 loss=0.4899 drift=0.0000 lr=9.43e-06 grad=0.32 0.09 step/s]m09_pretrain:  25%|██▌       | 7/28 [01:47<05:47, 16.56s/step, E0 loss=0.4906 drift=0.0000 lr=8.74e-06 grad=0.16 0.07 step/s]m09_pretrain:  29%|██▊       | 8/28 [01:47<04:21, 13.06s/step, E0 loss=0.4906 drift=0.0000 lr=8.74e-06 grad=0.16 0.07 step/s]
+--- Checkpoint at 29% of epoch 1 (step 8) ---
+  Cleaned old checkpoint: m09_ckpt_step4.pt
+  Step 8 | Val JEPA loss: 1.6343 (2 batches)
+  New best val loss: 1.6343
+m09_pretrain:  32%|███▏      | 9/28 [02:16<05:42, 18.05s/step, E0 loss=0.4906 drift=0.0000 lr=8.74e-06 grad=0.16 0.07 step/s]m09_pretrain:  32%|███▏      | 9/28 [02:21<05:42, 18.05s/step, E0 loss=0.4877 drift=0.0000 lr=7.84e-06 grad=0.11 0.06 step/s]m09_pretrain:  36%|███▌      | 10/28 [02:21<04:15, 14.18s/step, E0 loss=0.4877 drift=0.0000 lr=7.84e-06 grad=0.11 0.06 step/s]
+--- Checkpoint at 36% of epoch 1 (step 10) ---
+  Cleaned old checkpoint: m09_ckpt_step6.pt
+  Step 10 | Val JEPA loss: 1.6239 (2 batches)
+  New best val loss: 1.6239
+m09_pretrain:  39%|███▉      | 11/28 [02:51<05:18, 18.76s/step, E0 loss=0.4877 drift=0.0000 lr=7.84e-06 grad=0.11 0.06 step/s]m09_pretrain:  39%|███▉      | 11/28 [02:56<05:18, 18.76s/step, E0 loss=0.4936 drift=0.0000 lr=6.77e-06 grad=0.07 0.06 step/s]m09_pretrain:  43%|████▎     | 12/28 [02:56<03:55, 14.70s/step, E0 loss=0.4936 drift=0.0000 lr=6.77e-06 grad=0.07 0.06 step/s]
+--- Checkpoint at 43% of epoch 1 (step 12) ---
+  Cleaned old checkpoint: m09_ckpt_step8.pt
+[09:54:38] GPU recovered: 100% (was low for 30s)
+  Step 12 | Val JEPA loss: 1.6281 (2 batches)
+m09_pretrain:  46%|████▋     | 13/28 [03:21<04:27, 17.85s/step, E0 loss=0.4936 drift=0.0000 lr=6.77e-06 grad=0.07 0.06 step/s]m09_pretrain:  46%|████▋     | 13/28 [03:27<04:27, 17.85s/step, E0 loss=0.4855 drift=0.0000 lr=5.60e-06 grad=0.07 0.06 step/s]m09_pretrain:  50%|█████     | 14/28 [03:27<03:18, 14.17s/step, E0 loss=0.4855 drift=0.0000 lr=5.60e-06 grad=0.07 0.06 step/s]
+--- Checkpoint at 50% of epoch 1 (step 14) ---
+  Cleaned old checkpoint: m09_ckpt_step10.pt
+  Step 14 | Val JEPA loss: 1.6264 (2 batches)
+m09_pretrain:  54%|█████▎    | 15/28 [03:48<03:32, 16.33s/step, E0 loss=0.4855 drift=0.0000 lr=5.60e-06 grad=0.07 0.06 step/s]m09_pretrain:  57%|█████▋    | 16/28 [03:53<02:36, 13.01s/step, E0 loss=0.4855 drift=0.0000 lr=5.60e-06 grad=0.07 0.06 step/s]
+--- Checkpoint at 57% of epoch 1 (step 16) ---
+  Cleaned old checkpoint: m09_ckpt_step12.pt
+  Step 16 | Val JEPA loss: 1.6285 (2 batches)
+m09_pretrain:  57%|█████▋    | 16/28 [04:18<02:36, 13.01s/step, E0 loss=0.4880 drift=0.0000 lr=3.80e-06 grad=0.11 0.06 step/s]m09_pretrain:  61%|██████    | 17/28 [04:18<03:02, 16.55s/step, E0 loss=0.4880 drift=0.0000 lr=3.80e-06 grad=0.11 0.06 step/s]m09_pretrain:  64%|██████▍   | 18/28 [04:23<02:11, 13.19s/step, E0 loss=0.4880 drift=0.0000 lr=3.80e-06 grad=0.11 0.06 step/s]
+--- Checkpoint at 64% of epoch 1 (step 18) ---
+  Cleaned old checkpoint: m09_ckpt_step14.pt
+  Step 18 | Val JEPA loss: 1.6238 (2 batches)
+  New best val loss: 1.6238
+m09_pretrain:  64%|██████▍   | 18/28 [04:53<02:11, 13.19s/step, E0 loss=0.4878 drift=0.0000 lr=2.68e-06 grad=0.09 0.06 step/s]m09_pretrain:  68%|██████▊   | 19/28 [04:53<02:43, 18.13s/step, E0 loss=0.4878 drift=0.0000 lr=2.68e-06 grad=0.09 0.06 step/s]m09_pretrain:  71%|███████▏  | 20/28 [04:58<01:53, 14.24s/step, E0 loss=0.4878 drift=0.0000 lr=2.68e-06 grad=0.09 0.06 step/s]
+--- Checkpoint at 71% of epoch 1 (step 20) ---
+  Cleaned old checkpoint: m09_ckpt_step16.pt
+  Step 20 | Val JEPA loss: 1.6216 (2 batches)
+  New best val loss: 1.6216
+  Producer: starting epoch 2
+m09_pretrain:  75%|███████▌  | 21/28 [05:21<01:57, 16.74s/step, E0 loss=0.4878 drift=0.0000 lr=2.68e-06 grad=0.09 0.06 step/s]m09_pretrain:  75%|███████▌  | 21/28 [05:26<01:57, 16.74s/step, E0 loss=0.4916 drift=0.0000 lr=1.26e-06 grad=0.06 0.09 step/s]m09_pretrain:  79%|███████▊  | 22/28 [05:26<01:19, 13.23s/step, E0 loss=0.4916 drift=0.0000 lr=1.26e-06 grad=0.06 0.09 step/s]
+--- Checkpoint at 79% of epoch 1 (step 22) ---
+  Cleaned old checkpoint: m09_ckpt_step18.pt
+  Step 22 | Val JEPA loss: 1.6299 (2 batches)
+m09_pretrain:  82%|████████▏ | 23/28 [05:47<01:17, 15.45s/step, E0 loss=0.4916 drift=0.0000 lr=1.26e-06 grad=0.06 0.09 step/s]m09_pretrain:  86%|████████▌ | 24/28 [05:53<00:50, 12.63s/step, E0 loss=0.4916 drift=0.0000 lr=1.26e-06 grad=0.06 0.09 step/s]
+--- Checkpoint at 86% of epoch 1 (step 24) ---
+  Cleaned old checkpoint: m09_ckpt_step20.pt
+  Step 24 | Val JEPA loss: 1.6304 (2 batches)
+m09_pretrain:  86%|████████▌ | 24/28 [06:18<00:50, 12.63s/step, E0 loss=0.4825 drift=0.0000 lr=3.25e-07 grad=0.06 0.06 step/s]m09_pretrain:  89%|████████▉ | 25/28 [06:18<00:49, 16.38s/step, E0 loss=0.4825 drift=0.0000 lr=3.25e-07 grad=0.06 0.06 step/s]m09_pretrain:  93%|█████████▎| 26/28 [06:23<00:26, 13.10s/step, E0 loss=0.4825 drift=0.0000 lr=3.25e-07 grad=0.06 0.06 step/s]
+--- Checkpoint at 93% of epoch 1 (step 26) ---
+  Cleaned old checkpoint: m09_ckpt_step22.pt
+  Step 26 | Val JEPA loss: 1.6249 (2 batches)
+m09_pretrain:  96%|█████████▋| 27/28 [06:47<00:16, 16.41s/step, E0 loss=0.4825 drift=0.0000 lr=3.25e-07 grad=0.06 0.06 step/s]m09_pretrain:  96%|█████████▋| 27/28 [06:53<00:16, 16.41s/step, E0 loss=0.4868 drift=0.0000 lr=1.00e-07 grad=0.06 0.08 step/s]m09_pretrain: 100%|██████████| 28/28 [06:53<00:00, 13.34s/step, E0 loss=0.4868 drift=0.0000 lr=1.00e-07 grad=0.06 0.08 step/s]
+--- Checkpoint at 100% of epoch 1 (step 28) ---
+  Cleaned old checkpoint: m09_ckpt_step24.pt
+  Step 28 | Val JEPA loss: 1.6314 (2 batches)
+
+--- Epoch 1/1 complete (step 28) ---
+m09_pretrain: 100%|██████████| 28/28 [07:12<00:00, 15.46s/step, E0 loss=0.4868 drift=0.0000 lr=1.00e-07 grad=0.06 0.08 step/s]
+Exported student encoder: /workspace/factorjepa/outputs/sanity/m09_lambda0/student_encoder.pt
+  Cleaned: m09_ckpt_latest.pt
+  Cleaned: m09_ckpt_best.pt
+  Cleaned: m09_ckpt_step26.pt
+  Cleaned: m09_ckpt_step28.pt
+
+=== TRAINING COMPLETE ===
+Steps:        28 (1.0 epochs)
+Clips seen:   896
+Student:      /workspace/factorjepa/outputs/sanity/m09_lambda0/student_encoder.pt
+Loss log:     /workspace/factorjepa/outputs/sanity/m09_lambda0/loss_log.csv
+Summary:      /workspace/factorjepa/outputs/sanity/m09_lambda0/training_summary.json
+
+--- Ablation: lambda=0.001 ---
+Using PyAV for video decoding
+GPU: NVIDIA RTX PRO 6000 Blackwell Workstation Edition
+CUDA version: 12.8
+[output_guard] student_encoder.pt not found — will train
+
+=== Building Model ===
+/workspace/factorjepa/venv_walkindia/lib/python3.12/site-packages/timm/models/layers/__init__.py:49: FutureWarning: Importing from timm.models.layers is deprecated, please import via timm.layers
+  warnings.warn(f"Importing from {__name__} is deprecated, please import via timm.layers", FutureWarning)
+Downloading pretrained weights via torch.hub...
+Student loaded: 1,012,173,952 params (484/484 keys = 100%)
+Teacher created (deepcopy of student)
+Predictor loaded from checkpoint (152/152 keys = 100%)
+Predictor: 22,378,240 params
+Mask generators: 2 (blocks: [8, 2])
+[POC] Loaded subset: 10,000 clip keys from subset_10k.json
+[VAL] Loaded val subset: 1,000 clips from val_1k.json
+Excluding 434 val clips from training set
+Train clips: 900 | Val clips: 100
+Epochs: 1 | Steps/epoch: 28 | Total steps: 28
+Checkpoint every 2 steps (10x/epoch, keep last 2)
+Validation every 2 steps (10x/epoch, 100 val clips)
+
+Collecting 100 val clips into memory...
+Val clips collected: 35 in 2 batches
+m09_pretrain:   0%|          | 0/28 [00:00<?, ?step/s]
+=== Training: 0 → 28 steps (1 epochs) ===
+Batch size: 32
+Grad checkpointing: True
+Mixed precision: bfloat16
+EMA momentum: 0.99925
+Drift control: lambda=0.001
+Loss log: /workspace/factorjepa/outputs/sanity/m09_lambda0_001/loss_log.csv
+/venv/main/lib/python3.12/contextlib.py:105: FutureWarning: `torch.backends.cuda.sdp_kernel()` is deprecated. In the future, this context manager will be removed. Please see `torch.nn.attention.sdpa_kernel()` for the new context manager, with updated signature.
+  self.gen = func(*args, **kwds)
+m09_pretrain:   4%|▎         | 1/28 [00:12<05:29, 12.20s/step]m09_pretrain:   7%|▋         | 2/28 [00:19<03:55,  9.07s/step]
+--- Checkpoint at 7% of epoch 1 (step 2) ---
+  Step 2 | Val JEPA loss: 1.6518 (2 batches)
+  New best val loss: 1.6518
+m09_pretrain:   7%|▋         | 2/28 [00:46<03:55,  9.07s/step, E0 loss=0.4929 drift=0.0000 lr=9.96e-06 grad=0.95 0.06 step/s]m09_pretrain:  11%|█         | 3/28 [00:46<07:19, 17.56s/step, E0 loss=0.4929 drift=0.0000 lr=9.96e-06 grad=0.95 0.06 step/s][10:00:08] GPU recovered: 99% (was low for 60s)
+m09_pretrain:  14%|█▍        | 4/28 [00:52<05:10, 12.93s/step, E0 loss=0.4929 drift=0.0000 lr=9.96e-06 grad=0.95 0.06 step/s]
+--- Checkpoint at 14% of epoch 1 (step 4) ---
+  Step 4 | Val JEPA loss: 1.6556 (2 batches)
+m09_pretrain:  18%|█▊        | 5/28 [01:13<06:07, 15.97s/step, E0 loss=0.4929 drift=0.0000 lr=9.96e-06 grad=0.95 0.06 step/s]m09_pretrain:  18%|█▊        | 5/28 [01:20<06:07, 15.97s/step, E0 loss=0.4873 drift=0.0002 lr=9.43e-06 grad=0.25 0.09 step/s]m09_pretrain:  21%|██▏       | 6/28 [01:20<04:39, 12.72s/step, E0 loss=0.4873 drift=0.0002 lr=9.43e-06 grad=0.25 0.09 step/s]
+--- Checkpoint at 21% of epoch 1 (step 6) ---
+  Cleaned old checkpoint: m09_ckpt_step2.pt
+  Step 6 | Val JEPA loss: 1.6434 (2 batches)
+  New best val loss: 1.6434
+m09_pretrain:  25%|██▌       | 7/28 [01:49<06:22, 18.22s/step, E0 loss=0.4873 drift=0.0002 lr=9.43e-06 grad=0.25 0.09 step/s][10:01:08] GPU recovered: 100% (was low for 30s)
+m09_pretrain:  25%|██▌       | 7/28 [01:55<06:22, 18.22s/step, E0 loss=0.4907 drift=0.0004 lr=8.74e-06 grad=0.13 0.06 step/s]m09_pretrain:  29%|██▊       | 8/28 [01:55<04:46, 14.33s/step, E0 loss=0.4907 drift=0.0004 lr=8.74e-06 grad=0.13 0.06 step/s]
+--- Checkpoint at 29% of epoch 1 (step 8) ---
+  Cleaned old checkpoint: m09_ckpt_step4.pt
+  Step 8 | Val JEPA loss: 1.6494 (2 batches)
+m09_pretrain:  32%|███▏      | 9/28 [02:17<05:13, 16.52s/step, E0 loss=0.4907 drift=0.0004 lr=8.74e-06 grad=0.13 0.06 step/s]m09_pretrain:  36%|███▌      | 10/28 [02:23<04:00, 13.34s/step, E0 loss=0.4907 drift=0.0004 lr=8.74e-06 grad=0.13 0.06 step/s]
+--- Checkpoint at 36% of epoch 1 (step 10) ---
+  Cleaned old checkpoint: m09_ckpt_step6.pt
+  Step 10 | Val JEPA loss: 1.6425 (2 batches)
+  New best val loss: 1.6425
+m09_pretrain:  36%|███▌      | 10/28 [02:47<04:00, 13.34s/step, E0 loss=0.4900 drift=0.0005 lr=7.32e-06 grad=0.07 0.06 step/s]m09_pretrain:  39%|███▉      | 11/28 [02:47<04:40, 16.50s/step, E0 loss=0.4900 drift=0.0005 lr=7.32e-06 grad=0.07 0.06 step/s]m09_pretrain:  43%|████▎     | 12/28 [02:52<03:29, 13.11s/step, E0 loss=0.4900 drift=0.0005 lr=7.32e-06 grad=0.07 0.06 step/s]
+--- Checkpoint at 43% of epoch 1 (step 12) ---
+  Cleaned old checkpoint: m09_ckpt_step8.pt
+  Step 12 | Val JEPA loss: 1.6435 (2 batches)
+m09_pretrain:  43%|████▎     | 12/28 [03:18<03:29, 13.11s/step, E0 loss=0.4916 drift=0.0006 lr=6.20e-06 grad=0.12 0.06 step/s]m09_pretrain:  46%|████▋     | 13/28 [03:18<04:17, 17.16s/step, E0 loss=0.4916 drift=0.0006 lr=6.20e-06 grad=0.12 0.06 step/s]m09_pretrain:  50%|█████     | 14/28 [03:24<03:13, 13.80s/step, E0 loss=0.4916 drift=0.0006 lr=6.20e-06 grad=0.12 0.06 step/s]
+--- Checkpoint at 50% of epoch 1 (step 14) ---
+  Cleaned old checkpoint: m09_ckpt_step10.pt
+  Step 14 | Val JEPA loss: 1.6442 (2 batches)
+m09_pretrain:  54%|█████▎    | 15/28 [03:46<03:27, 15.99s/step, E0 loss=0.4916 drift=0.0006 lr=6.20e-06 grad=0.12 0.06 step/s]m09_pretrain:  54%|█████▎    | 15/28 [03:52<03:27, 15.99s/step, E0 loss=0.4890 drift=0.0007 lr=4.40e-06 grad=0.07 0.09 step/s]m09_pretrain:  57%|█████▋    | 16/28 [03:52<02:36, 13.00s/step, E0 loss=0.4890 drift=0.0007 lr=4.40e-06 grad=0.07 0.09 step/s]
+--- Checkpoint at 57% of epoch 1 (step 16) ---
+  Cleaned old checkpoint: m09_ckpt_step12.pt
+  Step 16 | Val JEPA loss: 1.6435 (2 batches)
+m09_pretrain:  61%|██████    | 17/28 [04:18<03:07, 17.00s/step, E0 loss=0.4890 drift=0.0007 lr=4.40e-06 grad=0.07 0.09 step/s]m09_pretrain:  61%|██████    | 17/28 [04:24<03:07, 17.00s/step, E0 loss=0.4897 drift=0.0007 lr=3.23e-06 grad=0.07 0.06 step/s]m09_pretrain:  64%|██████▍   | 18/28 [04:24<02:18, 13.82s/step, E0 loss=0.4897 drift=0.0007 lr=3.23e-06 grad=0.07 0.06 step/s]
+--- Checkpoint at 64% of epoch 1 (step 18) ---
+  Cleaned old checkpoint: m09_ckpt_step14.pt
+  Step 18 | Val JEPA loss: 1.6554 (2 batches)
+m09_pretrain:  68%|██████▊   | 19/28 [04:44<02:19, 15.55s/step, E0 loss=0.4897 drift=0.0007 lr=3.23e-06 grad=0.07 0.06 step/s]m09_pretrain:  71%|███████▏  | 20/28 [04:50<01:41, 12.71s/step, E0 loss=0.4897 drift=0.0007 lr=3.23e-06 grad=0.07 0.06 step/s]
+--- Checkpoint at 71% of epoch 1 (step 20) ---
+  Cleaned old checkpoint: m09_ckpt_step16.pt
+  Step 20 | Val JEPA loss: 1.6511 (2 batches)
+  Producer: starting epoch 2
+m09_pretrain:  71%|███████▏  | 20/28 [05:13<01:41, 12.71s/step, E0 loss=0.4857 drift=0.0008 lr=1.68e-06 grad=0.07 0.06 step/s]m09_pretrain:  75%|███████▌  | 21/28 [05:13<01:50, 15.85s/step, E0 loss=0.4857 drift=0.0008 lr=1.68e-06 grad=0.07 0.06 step/s]m09_pretrain:  79%|███████▊  | 22/28 [05:19<01:17, 12.87s/step, E0 loss=0.4857 drift=0.0008 lr=1.68e-06 grad=0.07 0.06 step/s]
+--- Checkpoint at 79% of epoch 1 (step 22) ---
+  Cleaned old checkpoint: m09_ckpt_step18.pt
+  Step 22 | Val JEPA loss: 1.6411 (2 batches)
+  New best val loss: 1.6411
+m09_pretrain:  82%|████████▏ | 23/28 [05:43<01:20, 16.12s/step, E0 loss=0.4857 drift=0.0008 lr=1.68e-06 grad=0.07 0.06 step/s]m09_pretrain:  82%|████████▏ | 23/28 [05:48<01:20, 16.12s/step, E0 loss=0.4906 drift=0.0008 lr=5.73e-07 grad=0.06 0.09 step/s]m09_pretrain:  86%|████████▌ | 24/28 [05:48<00:51, 12.87s/step, E0 loss=0.4906 drift=0.0008 lr=5.73e-07 grad=0.06 0.09 step/s]
+--- Checkpoint at 86% of epoch 1 (step 24) ---
+  Cleaned old checkpoint: m09_ckpt_step20.pt
+  Step 24 | Val JEPA loss: 1.6448 (2 batches)
+m09_pretrain:  89%|████████▉ | 25/28 [06:09<00:45, 15.33s/step, E0 loss=0.4906 drift=0.0008 lr=5.73e-07 grad=0.06 0.09 step/s]m09_pretrain:  93%|█████████▎| 26/28 [06:16<00:25, 12.73s/step, E0 loss=0.4906 drift=0.0008 lr=5.73e-07 grad=0.06 0.09 step/s]
+--- Checkpoint at 93% of epoch 1 (step 26) ---
+  Cleaned old checkpoint: m09_ckpt_step22.pt
+  Step 26 | Val JEPA loss: 1.6420 (2 batches)
+m09_pretrain:  93%|█████████▎| 26/28 [06:37<00:25, 12.73s/step, E0 loss=0.4845 drift=0.0008 lr=1.00e-07 grad=0.05 0.06 step/s]m09_pretrain:  96%|█████████▋| 27/28 [06:37<00:15, 15.42s/step, E0 loss=0.4845 drift=0.0008 lr=1.00e-07 grad=0.05 0.06 step/s]m09_pretrain: 100%|██████████| 28/28 [06:44<00:00, 12.75s/step, E0 loss=0.4845 drift=0.0008 lr=1.00e-07 grad=0.05 0.06 step/s]
+--- Checkpoint at 100% of epoch 1 (step 28) ---
+  Cleaned old checkpoint: m09_ckpt_step24.pt
+  Step 28 | Val JEPA loss: 1.6449 (2 batches)
+
+--- Epoch 1/1 complete (step 28) ---
+m09_pretrain: 100%|██████████| 28/28 [06:59<00:00, 14.96s/step, E0 loss=0.4845 drift=0.0008 lr=1.00e-07 grad=0.05 0.06 step/s]
+Exported student encoder: /workspace/factorjepa/outputs/sanity/m09_lambda0_001/student_encoder.pt
+  Cleaned: m09_ckpt_latest.pt
+  Cleaned: m09_ckpt_best.pt
+  Cleaned: m09_ckpt_step26.pt
+  Cleaned: m09_ckpt_step28.pt
+
+=== TRAINING COMPLETE ===
+Steps:        28 (1.0 epochs)
+Clips seen:   896
+Student:      /workspace/factorjepa/outputs/sanity/m09_lambda0_001/student_encoder.pt
+Loss log:     /workspace/factorjepa/outputs/sanity/m09_lambda0_001/loss_log.csv
+Summary:      /workspace/factorjepa/outputs/sanity/m09_lambda0_001/training_summary.json
+
+--- Ablation: lambda=0.01 ---
+Using PyAV for video decoding
+GPU: NVIDIA RTX PRO 6000 Blackwell Workstation Edition
+CUDA version: 12.8
+[output_guard] student_encoder.pt not found — will train
+
+=== Building Model ===
+/workspace/factorjepa/venv_walkindia/lib/python3.12/site-packages/timm/models/layers/__init__.py:49: FutureWarning: Importing from timm.models.layers is deprecated, please import via timm.layers
+  warnings.warn(f"Importing from {__name__} is deprecated, please import via timm.layers", FutureWarning)
+Downloading pretrained weights via torch.hub...
+Student loaded: 1,012,173,952 params (484/484 keys = 100%)
+Teacher created (deepcopy of student)
+Predictor loaded from checkpoint (152/152 keys = 100%)
+Predictor: 22,378,240 params
+Mask generators: 2 (blocks: [8, 2])
+[POC] Loaded subset: 10,000 clip keys from subset_10k.json
+[VAL] Loaded val subset: 1,000 clips from val_1k.json
+Excluding 434 val clips from training set
+Train clips: 900 | Val clips: 100
+Epochs: 1 | Steps/epoch: 28 | Total steps: 28
+Checkpoint every 2 steps (10x/epoch, keep last 2)
+Validation every 2 steps (10x/epoch, 100 val clips)
+
+Collecting 100 val clips into memory...
+Val clips collected: 33 in 2 batches
+m09_pretrain:   0%|          | 0/28 [00:00<?, ?step/s]
+=== Training: 0 → 28 steps (1 epochs) ===
+Batch size: 32
+Grad checkpointing: True
+Mixed precision: bfloat16
+EMA momentum: 0.99925
+Drift control: lambda=0.01
+Loss log: /workspace/factorjepa/outputs/sanity/m09_lambda0_01/loss_log.csv
+/venv/main/lib/python3.12/contextlib.py:105: FutureWarning: `torch.backends.cuda.sdp_kernel()` is deprecated. In the future, this context manager will be removed. Please see `torch.nn.attention.sdpa_kernel()` for the new context manager, with updated signature.
+  self.gen = func(*args, **kwds)
+m09_pretrain:   4%|▎         | 1/28 [00:13<06:14, 13.88s/step]m09_pretrain:   7%|▋         | 2/28 [00:20<04:11,  9.66s/step]
+--- Checkpoint at 7% of epoch 1 (step 2) ---
+  Step 2 | Val JEPA loss: 1.6070 (2 batches)
+  New best val loss: 1.6070
+m09_pretrain:   7%|▋         | 2/28 [00:47<04:11,  9.66s/step, E0 loss=0.4924 drift=0.0001 lr=9.96e-06 grad=0.84 0.06 step/s]m09_pretrain:  11%|█         | 3/28 [00:47<07:23, 17.74s/step, E0 loss=0.4924 drift=0.0001 lr=9.96e-06 grad=0.84 0.06 step/s]m09_pretrain:  14%|█▍        | 4/28 [00:53<05:11, 12.99s/step, E0 loss=0.4924 drift=0.0001 lr=9.96e-06 grad=0.84 0.06 step/s]
+--- Checkpoint at 14% of epoch 1 (step 4) ---
+  Step 4 | Val JEPA loss: 1.6046 (2 batches)
+[10:08:08] GPU recovered: 99% (was low for 240s)
+  New best val loss: 1.6046
+m09_pretrain:  14%|█▍        | 4/28 [01:22<05:11, 12.99s/step, E0 loss=0.4907 drift=0.0011 lr=9.68e-06 grad=0.23 0.06 step/s]m09_pretrain:  18%|█▊        | 5/28 [01:22<07:09, 18.68s/step, E0 loss=0.4907 drift=0.0011 lr=9.68e-06 grad=0.23 0.06 step/s]m09_pretrain:  21%|██▏       | 6/28 [01:28<05:17, 14.42s/step, E0 loss=0.4907 drift=0.0011 lr=9.68e-06 grad=0.23 0.06 step/s]
+--- Checkpoint at 21% of epoch 1 (step 6) ---
+  Cleaned old checkpoint: m09_ckpt_step2.pt
+  Step 6 | Val JEPA loss: 1.6025 (2 batches)
+  New best val loss: 1.6025
+m09_pretrain:  21%|██▏       | 6/28 [01:55<05:17, 14.42s/step, E0 loss=0.4912 drift=0.0017 lr=9.11e-06 grad=0.18 0.06 step/s]m09_pretrain:  25%|██▌       | 7/28 [01:55<06:25, 18.36s/step, E0 loss=0.4912 drift=0.0017 lr=9.11e-06 grad=0.18 0.06 step/s]m09_pretrain:  29%|██▊       | 8/28 [02:01<04:51, 14.57s/step, E0 loss=0.4912 drift=0.0017 lr=9.11e-06 grad=0.18 0.06 step/s]
+--- Checkpoint at 29% of epoch 1 (step 8) ---
+  Cleaned old checkpoint: m09_ckpt_step4.pt
+  Step 8 | Val JEPA loss: 1.5997 (2 batches)
+  New best val loss: 1.5997
+m09_pretrain:  29%|██▊       | 8/28 [02:25<04:51, 14.57s/step, E0 loss=0.4873 drift=0.0019 lr=8.32e-06 grad=0.15 0.06 step/s]m09_pretrain:  32%|███▏      | 9/28 [02:25<05:35, 17.65s/step, E0 loss=0.4873 drift=0.0019 lr=8.32e-06 grad=0.15 0.06 step/s]m09_pretrain:  36%|███▌      | 10/28 [02:32<04:13, 14.10s/step, E0 loss=0.4873 drift=0.0019 lr=8.32e-06 grad=0.15 0.06 step/s]
+--- Checkpoint at 36% of epoch 1 (step 10) ---
+  Cleaned old checkpoint: m09_ckpt_step6.pt
+  Step 10 | Val JEPA loss: 1.5975 (2 batches)
+  New best val loss: 1.5975
+m09_pretrain:  36%|███▌      | 10/28 [02:55<04:13, 14.10s/step, E0 loss=0.4916 drift=0.0019 lr=7.32e-06 grad=0.12 0.07 step/s]m09_pretrain:  39%|███▉      | 11/28 [02:55<04:50, 17.09s/step, E0 loss=0.4916 drift=0.0019 lr=7.32e-06 grad=0.12 0.07 step/s]m09_pretrain:  43%|████▎     | 12/28 [03:01<03:37, 13.57s/step, E0 loss=0.4916 drift=0.0019 lr=7.32e-06 grad=0.12 0.07 step/s]
+--- Checkpoint at 43% of epoch 1 (step 12) ---
+  Cleaned old checkpoint: m09_ckpt_step8.pt
+  Step 12 | Val JEPA loss: 1.5992 (2 batches)
+m09_pretrain:  43%|████▎     | 12/28 [03:27<03:37, 13.57s/step, E0 loss=0.4958 drift=0.0019 lr=6.20e-06 grad=0.07 0.06 step/s]m09_pretrain:  46%|████▋     | 13/28 [03:27<04:20, 17.36s/step, E0 loss=0.4958 drift=0.0019 lr=6.20e-06 grad=0.07 0.06 step/s]m09_pretrain:  50%|█████     | 14/28 [03:33<03:14, 13.87s/step, E0 loss=0.4958 drift=0.0019 lr=6.20e-06 grad=0.07 0.06 step/s]
+--- Checkpoint at 50% of epoch 1 (step 14) ---
+  Cleaned old checkpoint: m09_ckpt_step10.pt
+  Step 14 | Val JEPA loss: 1.5993 (2 batches)
+m09_pretrain:  54%|█████▎    | 15/28 [03:51<03:17, 15.21s/step, E0 loss=0.4958 drift=0.0019 lr=6.20e-06 grad=0.07 0.06 step/s]m09_pretrain:  57%|█████▋    | 16/28 [03:57<02:28, 12.35s/step, E0 loss=0.4958 drift=0.0019 lr=6.20e-06 grad=0.07 0.06 step/s]
+--- Checkpoint at 57% of epoch 1 (step 16) ---
+  Cleaned old checkpoint: m09_ckpt_step12.pt
+  Step 16 | Val JEPA loss: 1.5991 (2 batches)
+m09_pretrain:  57%|█████▋    | 16/28 [04:23<02:28, 12.35s/step, E0 loss=0.4915 drift=0.0017 lr=3.80e-06 grad=0.08 0.07 step/s]m09_pretrain:  61%|██████    | 17/28 [04:23<02:59, 16.36s/step, E0 loss=0.4915 drift=0.0017 lr=3.80e-06 grad=0.08 0.07 step/s]m09_pretrain:  64%|██████▍   | 18/28 [04:29<02:13, 13.39s/step, E0 loss=0.4915 drift=0.0017 lr=3.80e-06 grad=0.08 0.07 step/s]
+--- Checkpoint at 64% of epoch 1 (step 18) ---
+  Cleaned old checkpoint: m09_ckpt_step14.pt
+[10:11:39] GPU recovered: 100% (was low for 150s)
+  Step 18 | Val JEPA loss: 1.6007 (2 batches)
+m09_pretrain:  68%|██████▊   | 19/28 [04:49<02:18, 15.44s/step, E0 loss=0.4915 drift=0.0017 lr=3.80e-06 grad=0.08 0.07 step/s]m09_pretrain:  68%|██████▊   | 19/28 [04:55<02:18, 15.44s/step, E0 loss=0.4885 drift=0.0016 lr=2.16e-06 grad=0.06 0.09 step/s]m09_pretrain:  71%|███████▏  | 20/28 [04:55<01:40, 12.61s/step, E0 loss=0.4885 drift=0.0016 lr=2.16e-06 grad=0.06 0.09 step/s]
+--- Checkpoint at 71% of epoch 1 (step 20) ---
+  Cleaned old checkpoint: m09_ckpt_step16.pt
+  Step 20 | Val JEPA loss: 1.5987 (2 batches)
+  Producer: starting epoch 2
+m09_pretrain:  75%|███████▌  | 21/28 [05:18<01:48, 15.54s/step, E0 loss=0.4885 drift=0.0016 lr=2.16e-06 grad=0.06 0.09 step/s]m09_pretrain:  79%|███████▊  | 22/28 [05:24<01:16, 12.75s/step, E0 loss=0.4885 drift=0.0016 lr=2.16e-06 grad=0.06 0.09 step/s]
+--- Checkpoint at 79% of epoch 1 (step 22) ---
+  Cleaned old checkpoint: m09_ckpt_step18.pt
+  Step 22 | Val JEPA loss: 1.6003 (2 batches)
+m09_pretrain:  79%|███████▊  | 22/28 [05:49<01:16, 12.75s/step, E0 loss=0.4867 drift=0.0015 lr=8.85e-07 grad=0.08 0.06 step/s]m09_pretrain:  82%|████████▏ | 23/28 [05:49<01:22, 16.45s/step, E0 loss=0.4867 drift=0.0015 lr=8.85e-07 grad=0.08 0.06 step/s]m09_pretrain:  86%|████████▌ | 24/28 [05:54<00:52, 13.10s/step, E0 loss=0.4867 drift=0.0015 lr=8.85e-07 grad=0.08 0.06 step/s]
+--- Checkpoint at 86% of epoch 1 (step 24) ---
+  Cleaned old checkpoint: m09_ckpt_step20.pt
+  Step 24 | Val JEPA loss: 1.5944 (2 batches)
+  New best val loss: 1.5944
+m09_pretrain:  86%|████████▌ | 24/28 [06:24<00:52, 13.10s/step, E0 loss=0.4875 drift=0.0014 lr=3.25e-07 grad=0.08 0.06 step/s]m09_pretrain:  89%|████████▉ | 25/28 [06:24<00:54, 18.13s/step, E0 loss=0.4875 drift=0.0014 lr=3.25e-07 grad=0.08 0.06 step/s]m09_pretrain:  93%|█████████▎| 26/28 [06:31<00:29, 14.80s/step, E0 loss=0.4875 drift=0.0014 lr=3.25e-07 grad=0.08 0.06 step/s]
+--- Checkpoint at 93% of epoch 1 (step 26) ---
+  Cleaned old checkpoint: m09_ckpt_step22.pt
+  Step 26 | Val JEPA loss: 1.5949 (2 batches)
+m09_pretrain:  96%|█████████▋| 27/28 [06:52<00:16, 16.72s/step, E0 loss=0.4875 drift=0.0014 lr=3.25e-07 grad=0.08 0.06 step/s]m09_pretrain:  96%|█████████▋| 27/28 [06:58<00:16, 16.72s/step, E0 loss=0.4856 drift=0.0014 lr=1.00e-07 grad=0.10 0.09 step/s]m09_pretrain: 100%|██████████| 28/28 [06:58<00:00, 13.53s/step, E0 loss=0.4856 drift=0.0014 lr=1.00e-07 grad=0.10 0.09 step/s]
+--- Checkpoint at 100% of epoch 1 (step 28) ---
+  Cleaned old checkpoint: m09_ckpt_step24.pt
+[10:14:09] GPU recovered: 100% (was low for 30s)
+  Step 28 | Val JEPA loss: 1.6028 (2 batches)
+
+--- Epoch 1/1 complete (step 28) ---
+m09_pretrain: 100%|██████████| 28/28 [07:14<00:00, 15.50s/step, E0 loss=0.4856 drift=0.0014 lr=1.00e-07 grad=0.10 0.09 step/s]
+Exported student encoder: /workspace/factorjepa/outputs/sanity/m09_lambda0_01/student_encoder.pt
+  Cleaned: m09_ckpt_latest.pt
+  Cleaned: m09_ckpt_best.pt
+  Cleaned: m09_ckpt_step26.pt
+  Cleaned: m09_ckpt_step28.pt
+
+=== TRAINING COMPLETE ===
+Steps:        28 (1.0 epochs)
+Clips seen:   896
+Student:      /workspace/factorjepa/outputs/sanity/m09_lambda0_01/student_encoder.pt
+Loss log:     /workspace/factorjepa/outputs/sanity/m09_lambda0_01/loss_log.csv
+Summary:      /workspace/factorjepa/outputs/sanity/m09_lambda0_01/training_summary.json
+
+--- Ablation: lambda=0.1 ---
+Using PyAV for video decoding
+GPU: NVIDIA RTX PRO 6000 Blackwell Workstation Edition
+CUDA version: 12.8
+[output_guard] student_encoder.pt not found — will train
+
+=== Building Model ===
+/workspace/factorjepa/venv_walkindia/lib/python3.12/site-packages/timm/models/layers/__init__.py:49: FutureWarning: Importing from timm.models.layers is deprecated, please import via timm.layers
+  warnings.warn(f"Importing from {__name__} is deprecated, please import via timm.layers", FutureWarning)
+Downloading pretrained weights via torch.hub...
+Student loaded: 1,012,173,952 params (484/484 keys = 100%)
+Teacher created (deepcopy of student)
+Predictor loaded from checkpoint (152/152 keys = 100%)
+Predictor: 22,378,240 params
+Mask generators: 2 (blocks: [8, 2])
+[POC] Loaded subset: 10,000 clip keys from subset_10k.json
+[VAL] Loaded val subset: 1,000 clips from val_1k.json
+Excluding 434 val clips from training set
+Train clips: 900 | Val clips: 100
+Epochs: 1 | Steps/epoch: 28 | Total steps: 28
+Checkpoint every 2 steps (10x/epoch, keep last 2)
+Validation every 2 steps (10x/epoch, 100 val clips)
+
+Collecting 100 val clips into memory...
+Val clips collected: 31 in 1 batches
+m09_pretrain:   0%|          | 0/28 [00:00<?, ?step/s]
+=== Training: 0 → 28 steps (1 epochs) ===
+Batch size: 32
+Grad checkpointing: True
+Mixed precision: bfloat16
+EMA momentum: 0.99925
+Drift control: lambda=0.1
+Loss log: /workspace/factorjepa/outputs/sanity/m09_lambda0_1/loss_log.csv
+/venv/main/lib/python3.12/contextlib.py:105: FutureWarning: `torch.backends.cuda.sdp_kernel()` is deprecated. In the future, this context manager will be removed. Please see `torch.nn.attention.sdpa_kernel()` for the new context manager, with updated signature.
+  self.gen = func(*args, **kwds)
+m09_pretrain:   4%|▎         | 1/28 [00:13<06:02, 13.41s/step]m09_pretrain:   7%|▋         | 2/28 [00:20<04:05,  9.43s/step]
+--- Checkpoint at 7% of epoch 1 (step 2) ---
+  Step 2 | Val JEPA loss: 1.6375 (1 batches)
+  New best val loss: 1.6375
+m09_pretrain:   7%|▋         | 2/28 [00:44<04:05,  9.43s/step, E0 loss=0.4912 drift=0.0010 lr=9.96e-06 grad=1.00 0.07 step/s]m09_pretrain:  11%|█         | 3/28 [00:44<06:44, 16.19s/step, E0 loss=0.4912 drift=0.0010 lr=9.96e-06 grad=1.00 0.07 step/s][10:15:39] GPU recovered: 99% (was low for 60s)
+m09_pretrain:  14%|█▍        | 4/28 [00:50<04:55, 12.31s/step, E0 loss=0.4912 drift=0.0010 lr=9.96e-06 grad=1.00 0.07 step/s]
+--- Checkpoint at 14% of epoch 1 (step 4) ---
+  Step 4 | Val JEPA loss: 1.6435 (1 batches)
+m09_pretrain:  18%|█▊        | 5/28 [01:10<05:46, 15.08s/step, E0 loss=0.4912 drift=0.0010 lr=9.96e-06 grad=1.00 0.07 step/s]m09_pretrain:  18%|█▊        | 5/28 [01:17<05:46, 15.08s/step, E0 loss=0.4937 drift=0.0030 lr=9.43e-06 grad=0.22 0.09 step/s]m09_pretrain:  21%|██▏       | 6/28 [01:17<04:30, 12.27s/step, E0 loss=0.4937 drift=0.0030 lr=9.43e-06 grad=0.22 0.09 step/s]
+--- Checkpoint at 21% of epoch 1 (step 6) ---
+  Cleaned old checkpoint: m09_ckpt_step2.pt
+  Step 6 | Val JEPA loss: 1.6309 (1 batches)
+  New best val loss: 1.6309
+m09_pretrain:  25%|██▌       | 7/28 [01:39<05:26, 15.56s/step, E0 loss=0.4937 drift=0.0030 lr=9.43e-06 grad=0.22 0.09 step/s]m09_pretrain:  29%|██▊       | 8/28 [01:46<04:17, 12.88s/step, E0 loss=0.4937 drift=0.0030 lr=9.43e-06 grad=0.22 0.09 step/s]
+--- Checkpoint at 29% of epoch 1 (step 8) ---
+  Cleaned old checkpoint: m09_ckpt_step4.pt
+  Step 8 | Val JEPA loss: 1.6329 (1 batches)
+m09_pretrain:  29%|██▊       | 8/28 [02:07<04:17, 12.88s/step, E0 loss=0.4881 drift=0.0024 lr=8.32e-06 grad=0.13 0.06 step/s]m09_pretrain:  32%|███▏      | 9/28 [02:07<04:52, 15.39s/step, E0 loss=0.4881 drift=0.0024 lr=8.32e-06 grad=0.13 0.06 step/s]m09_pretrain:  36%|███▌      | 10/28 [02:14<03:46, 12.56s/step, E0 loss=0.4881 drift=0.0024 lr=8.32e-06 grad=0.13 0.06 step/s]
+--- Checkpoint at 36% of epoch 1 (step 10) ---
+  Cleaned old checkpoint: m09_ckpt_step6.pt
+  Step 10 | Val JEPA loss: 1.6324 (1 batches)
+m09_pretrain:  39%|███▉      | 11/28 [02:34<04:15, 15.02s/step, E0 loss=0.4881 drift=0.0024 lr=8.32e-06 grad=0.13 0.06 step/s]m09_pretrain:  39%|███▉      | 11/28 [02:41<04:15, 15.02s/step, E0 loss=0.4935 drift=0.0021 lr=6.77e-06 grad=0.10 0.09 step/s]m09_pretrain:  43%|████▎     | 12/28 [02:41<03:18, 12.38s/step, E0 loss=0.4935 drift=0.0021 lr=6.77e-06 grad=0.10 0.09 step/s]
+--- Checkpoint at 43% of epoch 1 (step 12) ---
+  Cleaned old checkpoint: m09_ckpt_step8.pt
+  Step 12 | Val JEPA loss: 1.6364 (1 batches)
+m09_pretrain:  46%|████▋     | 13/28 [03:05<04:02, 16.16s/step, E0 loss=0.4935 drift=0.0021 lr=6.77e-06 grad=0.10 0.09 step/s]m09_pretrain:  46%|████▋     | 13/28 [03:11<04:02, 16.16s/step, E0 loss=0.4919 drift=0.0018 lr=5.60e-06 grad=0.08 0.07 step/s]m09_pretrain:  50%|█████     | 14/28 [03:11<03:02, 13.06s/step, E0 loss=0.4919 drift=0.0018 lr=5.60e-06 grad=0.08 0.07 step/s]
+--- Checkpoint at 50% of epoch 1 (step 14) ---
+  Cleaned old checkpoint: m09_ckpt_step10.pt
+  Step 14 | Val JEPA loss: 1.6321 (1 batches)
+m09_pretrain:  54%|█████▎    | 15/28 [03:31<03:14, 14.98s/step, E0 loss=0.4919 drift=0.0018 lr=5.60e-06 grad=0.08 0.07 step/s]m09_pretrain:  57%|█████▋    | 16/28 [03:37<02:28, 12.40s/step, E0 loss=0.4919 drift=0.0018 lr=5.60e-06 grad=0.08 0.07 step/s]
+--- Checkpoint at 57% of epoch 1 (step 16) ---
+  Cleaned old checkpoint: m09_ckpt_step12.pt
+  Step 16 | Val JEPA loss: 1.6328 (1 batches)
+[10:18:39] GPU recovered: 100% (was low for 150s)
+m09_pretrain:  57%|█████▋    | 16/28 [03:55<02:28, 12.40s/step, E0 loss=0.4898 drift=0.0014 lr=3.80e-06 grad=0.07 0.07 step/s]m09_pretrain:  61%|██████    | 17/28 [03:55<02:34, 14.07s/step, E0 loss=0.4898 drift=0.0014 lr=3.80e-06 grad=0.07 0.07 step/s]m09_pretrain:  64%|██████▍   | 18/28 [04:02<01:57, 11.78s/step, E0 loss=0.4898 drift=0.0014 lr=3.80e-06 grad=0.07 0.07 step/s]
+--- Checkpoint at 64% of epoch 1 (step 18) ---
+  Cleaned old checkpoint: m09_ckpt_step14.pt
+  Step 18 | Val JEPA loss: 1.6335 (1 batches)
+m09_pretrain:  64%|██████▍   | 18/28 [04:26<01:57, 11.78s/step, E0 loss=0.4858 drift=0.0012 lr=2.68e-06 grad=0.07 0.06 step/s]m09_pretrain:  68%|██████▊   | 19/28 [04:26<02:21, 15.74s/step, E0 loss=0.4858 drift=0.0012 lr=2.68e-06 grad=0.07 0.06 step/s]m09_pretrain:  71%|███████▏  | 20/28 [04:33<01:42, 12.86s/step, E0 loss=0.4858 drift=0.0012 lr=2.68e-06 grad=0.07 0.06 step/s]
+--- Checkpoint at 71% of epoch 1 (step 20) ---
+  Cleaned old checkpoint: m09_ckpt_step16.pt
+  Step 20 | Val JEPA loss: 1.6405 (1 batches)
+  Producer: starting epoch 2
+m09_pretrain:  75%|███████▌  | 21/28 [04:51<01:42, 14.61s/step, E0 loss=0.4858 drift=0.0012 lr=2.68e-06 grad=0.07 0.06 step/s]m09_pretrain:  75%|███████▌  | 21/28 [04:58<01:42, 14.61s/step, E0 loss=0.4862 drift=0.0010 lr=1.26e-06 grad=0.07 0.09 step/s]m09_pretrain:  79%|███████▊  | 22/28 [04:58<01:13, 12.33s/step, E0 loss=0.4862 drift=0.0010 lr=1.26e-06 grad=0.07 0.09 step/s]
+--- Checkpoint at 79% of epoch 1 (step 22) ---
+  Cleaned old checkpoint: m09_ckpt_step18.pt
+  Step 22 | Val JEPA loss: 1.6349 (1 batches)
+m09_pretrain:  82%|████████▏ | 23/28 [05:17<01:11, 14.38s/step, E0 loss=0.4862 drift=0.0010 lr=1.26e-06 grad=0.07 0.09 step/s]m09_pretrain:  86%|████████▌ | 24/28 [05:24<00:47, 11.93s/step, E0 loss=0.4862 drift=0.0010 lr=1.26e-06 grad=0.07 0.09 step/s]
+--- Checkpoint at 86% of epoch 1 (step 24) ---
+  Cleaned old checkpoint: m09_ckpt_step20.pt
+  Step 24 | Val JEPA loss: 1.6419 (1 batches)
+m09_pretrain:  86%|████████▌ | 24/28 [05:44<00:47, 11.93s/step, E0 loss=0.4903 drift=0.0008 lr=3.25e-07 grad=0.08 0.07 step/s]m09_pretrain:  89%|████████▉ | 25/28 [05:44<00:43, 14.54s/step, E0 loss=0.4903 drift=0.0008 lr=3.25e-07 grad=0.08 0.07 step/s]m09_pretrain:  93%|█████████▎| 26/28 [05:50<00:23, 11.99s/step, E0 loss=0.4903 drift=0.0008 lr=3.25e-07 grad=0.08 0.07 step/s]
+--- Checkpoint at 93% of epoch 1 (step 26) ---
+  Cleaned old checkpoint: m09_ckpt_step22.pt
+  Step 26 | Val JEPA loss: 1.6274 (1 batches)
+  New best val loss: 1.6274
+m09_pretrain:  93%|█████████▎| 26/28 [06:15<00:23, 11.99s/step, E0 loss=0.4870 drift=0.0007 lr=1.00e-07 grad=0.07 0.06 step/s]m09_pretrain:  96%|█████████▋| 27/28 [06:15<00:15, 15.92s/step, E0 loss=0.4870 drift=0.0007 lr=1.00e-07 grad=0.07 0.06 step/s]m09_pretrain: 100%|██████████| 28/28 [06:22<00:00, 13.15s/step, E0 loss=0.4870 drift=0.0007 lr=1.00e-07 grad=0.07 0.06 step/s]
+--- Checkpoint at 100% of epoch 1 (step 28) ---
+  Cleaned old checkpoint: m09_ckpt_step24.pt
+  Step 28 | Val JEPA loss: 1.6326 (1 batches)
+
+--- Epoch 1/1 complete (step 28) ---
+m09_pretrain: 100%|██████████| 28/28 [06:36<00:00, 14.16s/step, E0 loss=0.4870 drift=0.0007 lr=1.00e-07 grad=0.07 0.06 step/s]
+Exported student encoder: /workspace/factorjepa/outputs/sanity/m09_lambda0_1/student_encoder.pt
+  Cleaned: m09_ckpt_latest.pt
+  Cleaned: m09_ckpt_best.pt
+  Cleaned: m09_ckpt_step26.pt
+  Cleaned: m09_ckpt_step28.pt
+
+=== TRAINING COMPLETE ===
+Steps:        28 (1.0 epochs)
+Clips seen:   896
+Student:      /workspace/factorjepa/outputs/sanity/m09_lambda0_1/student_encoder.pt
+Loss log:     /workspace/factorjepa/outputs/sanity/m09_lambda0_1/loss_log.csv
+Summary:      /workspace/factorjepa/outputs/sanity/m09_lambda0_1/training_summary.json
+
+=== Lambda Ablation Winner Selection ===
+Output dir: /workspace/factorjepa/outputs/sanity
+Selection metric: best_val_loss (lowest wins)
+
+  lambda=0: best_val_loss=1.6216 (jepa_loss=0.4825, 1.0 epochs, 28 steps)
+  lambda=0.001: best_val_loss=1.6411 (jepa_loss=0.4875, 1.0 epochs, 28 steps)
+  lambda=0.01: best_val_loss=1.5944 (jepa_loss=0.4847, 1.0 epochs, 28 steps)
+  lambda=0.1: best_val_loss=1.6274 (jepa_loss=0.4847, 1.0 epochs, 28 steps)
+
+  Winner: lambda=0.01 (best_val_loss=1.5944)
+  Saved: /workspace/factorjepa/outputs/sanity/ablation_winner.json
+  run_pretrain.sh --FULL will read this automatically.
+
+Proceeding with winner: lambda=0.01 (best_val_loss=1.5944)
+GPU: NVIDIA RTX PRO 6000 Blackwell Workstation Edition
+CUDA version: 12.8
+[output_guard] Training output valid — skipping
+  OK    student_encoder.pt: 4049 MB
+  OK    epochs=1.0, steps=28, jepa_loss=0.484702467918396
+[10:21:29] PASSED: m09 pretrain (auto-ablation + winner) (30m 39s)
+[10:21:29] HF upload started in background (PID=2582905)
+[10:21:29] Auto-ablation winner: lambda=0.01 (lambda0_01)
+  OK   student_encoder.pt             4049 MB
+  OK   training_summary.json          jepa_loss=0.4847  epochs=1.0
+  OK   loss_log.csv                   28 steps
+[10:21:29] VERIFY OK: Training
+
+═══════════════════════════════════════════════════════════════
+  STEP winner-embed: m05 re-embed (winner lambda=0.01)
+  Mode: SANITY | Est: ~30 sec
+  Started: 2026-04-03 10:21:29
+═══════════════════════════════════════════════════════════════
+[10:21:29] CMD: python -u src/m05_vjepa_embed.py --model outputs/sanity/m09_lambda0_01/student_encoder.pt --encoder vjepa_lambda0_01 --SANITY --local-data data/subset_10k_local
+Using PyAV for video decoding
+Output: /workspace/factorjepa/outputs/sanity/embeddings_vjepa_lambda0_01.npy
+[output_guard] m05 embed: attempting HF download for 2 missing file(s)...
+Downloading anonymousML123/factorjepa-outputs//workspace/factorjepa/outputs/sanity/ → /workspace/factorjepa/outputs/sanity
+Fetching 0 files: 0it [00:00, ?it/s]Fetching 0 files: 0it [00:00, ?it/s]
+Download complete: 0s
+[output_guard] m05 embed: 2 file(s) still missing after HF download
+[output_guard] m05 embed: outputs missing or invalid — will re-compute
+  MISS  embeddings: embeddings_vjepa_lambda0_01.npy
+  MISS  paths: embeddings_vjepa_lambda0_01.paths.npy
+Clip limit: 64
+Streaming from: anonymousML123/walkindia-200k
+
+============================================================
+WORKER 1: embeddings 0 → 64
+============================================================
+/workspace/factorjepa/venv_walkindia/lib/python3.12/site-packages/transformers/utils/hub.py:110: FutureWarning: Using `TRANSFORMERS_CACHE` is deprecated and will be removed in v5 of Transformers. Use `HF_HOME` instead.
+  warnings.warn(
+Using PyAV for video decoding
+GPU: NVIDIA RTX PRO 6000 Blackwell Workstation Edition
+CUDA version: 12.8
+GPU VRAM: 95 GB | VLM cost model: 16GB fixed + 0.78GB/clip
+  vjepa=37 (linear, scale=2.37x from 40GB)
+  image_encoder=148 (4x vjepa, cap 256)
+  transformers=64 (max batch, est 66GB = 69% VRAM)
+  sub-batch=51 (initial, AdaptiveBatchSizer grows to 64)
+Batch size: 37
+wandb: [wandb.login()] Loaded credentials for https://api.wandb.ai from WANDB_API_KEY.
+wandb: Currently logged in as: kapilw25 (sjsu_llm) to https://api.wandb.ai. Use `wandb login --relogin` to force relogin
+wandb: WARNING Using a boolean value for 'reinit' is deprecated. Use 'return_previous' or 'finish_previous' instead.
+wandb: setting up run ty9dnez2
+wandb: Tracking run with wandb version 0.25.1
+wandb: Run data is saved locally in /workspace/factorjepa/wandb/run-20260403_102136-ty9dnez2
+wandb: Run `wandb offline` to turn off syncing.
+wandb: Syncing run m05_SANITY
+wandb: ⭐️ View project at https://wandb.ai/sjsu_llm/walkindia-200k
+wandb: 🚀 View run at https://wandb.ai/sjsu_llm/walkindia-200k/runs/ty9dnez2
+wandb: run=m05_SANITY url=https://wandb.ai/sjsu_llm/walkindia-200k/runs/ty9dnez2
+
+Loading model: outputs/sanity/m09_lambda0_01/student_encoder.pt
+/workspace/factorjepa/venv_walkindia/lib/python3.12/site-packages/timm/models/layers/__init__.py:49: FutureWarning: Importing from timm.models.layers is deprecated, please import via timm.layers
+  warnings.warn(f"Importing from {__name__} is deprecated, please import via timm.layers", FutureWarning)
+Adapted encoder: loaded 484/484 params (missing: 0, unexpected: 0)
+Skipping torch.compile for adapted encoder (float16 dtype conflict)
+Model loaded on cuda (dtype: torch.float16)
+
+=== Streaming Config ===
+batch_size:    2
+video_decoder: PyAV
+prefetch:      8 batches
+checkpoint:    every 500 clips
+m05_vjepa:   0%|          | 0/64 [00:00<?, ?clip/s]/venv/main/lib/python3.12/contextlib.py:105: FutureWarning: `torch.backends.cuda.sdp_kernel()` is deprecated. In the future, this context manager will be removed. Please see `torch.nn.attention.sdpa_kernel()` for the new context manager, with updated signature.
+  self.gen = func(*args, **kwds)
+m05_vjepa:   3%|▎         | 2/64 [00:02<01:17,  1.25s/clip]m05_vjepa:   3%|▎         | 2/64 [00:02<01:17,  1.25s/clip, 0.8 clips/s | failed=0]m05_vjepa:   6%|▋         | 4/64 [00:03<00:48,  1.25clip/s, 0.8 clips/s | failed=0]m05_vjepa:   6%|▋         | 4/64 [00:03<00:48,  1.25clip/s, 1.2 clips/s | failed=0]m05_vjepa:   9%|▉         | 6/64 [00:04<00:38,  1.51clip/s, 1.2 clips/s | failed=0]m05_vjepa:   9%|▉         | 6/64 [00:04<00:38,  1.51clip/s, 1.3 clips/s | failed=0]m05_vjepa:  12%|█▎        | 8/64 [00:05<00:33,  1.68clip/s, 1.3 clips/s | failed=0]m05_vjepa:  12%|█▎        | 8/64 [00:05<00:33,  1.68clip/s, 1.5 clips/s | failed=0]m05_vjepa:  16%|█▌        | 10/64 [00:06<00:30,  1.79clip/s, 1.5 clips/s | failed=0]m05_vjepa:  16%|█▌        | 10/64 [00:06<00:30,  1.79clip/s, 1.6 clips/s | failed=0]m05_vjepa:  19%|█▉        | 12/64 [00:07<00:27,  1.87clip/s, 1.6 clips/s | failed=0]m05_vjepa:  19%|█▉        | 12/64 [00:07<00:27,  1.87clip/s, 1.6 clips/s | failed=0]m05_vjepa:  22%|██▏       | 14/64 [00:08<00:26,  1.91clip/s, 1.6 clips/s | failed=0]m05_vjepa:  22%|██▏       | 14/64 [00:08<00:26,  1.91clip/s, 1.7 clips/s | failed=0]m05_vjepa:  25%|██▌       | 16/64 [00:09<00:24,  1.95clip/s, 1.7 clips/s | failed=0]m05_vjepa:  25%|██▌       | 16/64 [00:09<00:24,  1.95clip/s, 1.7 clips/s | failed=0]m05_vjepa:  28%|██▊       | 18/64 [00:10<00:23,  1.97clip/s, 1.7 clips/s | failed=0]m05_vjepa:  28%|██▊       | 18/64 [00:10<00:23,  1.97clip/s, 1.7 clips/s | failed=0]m05_vjepa:  31%|███▏      | 20/64 [00:11<00:22,  1.98clip/s, 1.7 clips/s | failed=0]m05_vjepa:  31%|███▏      | 20/64 [00:11<00:22,  1.98clip/s, 1.8 clips/s | failed=0]m05_vjepa:  34%|███▍      | 22/64 [00:12<00:21,  1.99clip/s, 1.8 clips/s | failed=0]m05_vjepa:  34%|███▍      | 22/64 [00:12<00:21,  1.99clip/s, 1.8 clips/s | failed=0]m05_vjepa:  38%|███▊      | 24/64 [00:13<00:20,  2.00clip/s, 1.8 clips/s | failed=0]m05_vjepa:  38%|███▊      | 24/64 [00:13<00:20,  2.00clip/s, 1.8 clips/s | failed=0]m05_vjepa:  41%|████      | 26/64 [00:14<00:19,  2.00clip/s, 1.8 clips/s | failed=0]m05_vjepa:  41%|████      | 26/64 [00:14<00:19,  2.00clip/s, 1.8 clips/s | failed=0]m05_vjepa:  44%|████▍     | 28/64 [00:15<00:17,  2.00clip/s, 1.8 clips/s | failed=0]m05_vjepa:  44%|████▍     | 28/64 [00:15<00:17,  2.00clip/s, 1.8 clips/s | failed=0]m05_vjepa:  47%|████▋     | 30/64 [00:16<00:16,  2.01clip/s, 1.8 clips/s | failed=0]m05_vjepa:  47%|████▋     | 30/64 [00:16<00:16,  2.01clip/s, 1.8 clips/s | failed=0]m05_vjepa:  50%|█████     | 32/64 [00:17<00:15,  2.01clip/s, 1.8 clips/s | failed=0]m05_vjepa:  50%|█████     | 32/64 [00:17<00:15,  2.01clip/s, 1.8 clips/s | failed=0]m05_vjepa:  53%|█████▎    | 34/64 [00:18<00:14,  2.01clip/s, 1.8 clips/s | failed=0]m05_vjepa:  53%|█████▎    | 34/64 [00:18<00:14,  2.01clip/s, 1.9 clips/s | failed=0]m05_vjepa:  56%|█████▋    | 36/64 [00:19<00:13,  2.00clip/s, 1.9 clips/s | failed=0]m05_vjepa:  56%|█████▋    | 36/64 [00:19<00:13,  2.00clip/s, 1.9 clips/s | failed=0]m05_vjepa:  59%|█████▉    | 38/64 [00:20<00:13,  1.99clip/s, 1.9 clips/s | failed=0]m05_vjepa:  59%|█████▉    | 38/64 [00:20<00:13,  1.99clip/s, 1.9 clips/s | failed=0]m05_vjepa:  62%|██████▎   | 40/64 [00:21<00:12,  1.99clip/s, 1.9 clips/s | failed=0]m05_vjepa:  62%|██████▎   | 40/64 [00:21<00:12,  1.99clip/s, 1.9 clips/s | failed=0]m05_vjepa:  66%|██████▌   | 42/64 [00:22<00:11,  2.00clip/s, 1.9 clips/s | failed=0]m05_vjepa:  66%|██████▌   | 42/64 [00:22<00:11,  2.00clip/s, 1.9 clips/s | failed=0][10:22:09] GPU recovered: 100% (was low for 30s)
+m05_vjepa:  69%|██████▉   | 44/64 [00:23<00:10,  2.00clip/s, 1.9 clips/s | failed=0]m05_vjepa:  69%|██████▉   | 44/64 [00:23<00:10,  2.00clip/s, 1.9 clips/s | failed=0]m05_vjepa:  72%|███████▏  | 46/64 [00:24<00:09,  2.00clip/s, 1.9 clips/s | failed=0]m05_vjepa:  72%|███████▏  | 46/64 [00:24<00:09,  2.00clip/s, 1.9 clips/s | failed=0]m05_vjepa:  75%|███████▌  | 48/64 [00:25<00:08,  2.00clip/s, 1.9 clips/s | failed=0]m05_vjepa:  75%|███████▌  | 48/64 [00:25<00:08,  2.00clip/s, 1.9 clips/s | failed=0]m05_vjepa:  78%|███████▊  | 50/64 [00:26<00:07,  2.00clip/s, 1.9 clips/s | failed=0]m05_vjepa:  78%|███████▊  | 50/64 [00:26<00:07,  2.00clip/s, 1.9 clips/s | failed=0]m05_vjepa:  81%|████████▏ | 52/64 [00:27<00:06,  1.99clip/s, 1.9 clips/s | failed=0]m05_vjepa:  81%|████████▏ | 52/64 [00:27<00:06,  1.99clip/s, 1.9 clips/s | failed=0]m05_vjepa:  84%|████████▍ | 54/64 [00:28<00:05,  1.99clip/s, 1.9 clips/s | failed=0]m05_vjepa:  84%|████████▍ | 54/64 [00:28<00:05,  1.99clip/s, 1.9 clips/s | failed=0]m05_vjepa:  88%|████████▊ | 56/64 [00:29<00:04,  1.99clip/s, 1.9 clips/s | failed=0]m05_vjepa:  88%|████████▊ | 56/64 [00:29<00:04,  1.99clip/s, 1.9 clips/s | failed=0]m05_vjepa:  91%|█████████ | 58/64 [00:30<00:03,  1.99clip/s, 1.9 clips/s | failed=0]m05_vjepa:  91%|█████████ | 58/64 [00:30<00:03,  1.99clip/s, 1.9 clips/s | failed=0]m05_vjepa:  94%|█████████▍| 60/64 [00:31<00:02,  1.99clip/s, 1.9 clips/s | failed=0]m05_vjepa:  94%|█████████▍| 60/64 [00:31<00:02,  1.99clip/s, 2.0 clips/s | failed=0]m05_vjepa:  97%|█████████▋| 62/64 [00:32<00:01,  1.99clip/s, 2.0 clips/s | failed=0]m05_vjepa:  97%|█████████▋| 62/64 [00:32<00:01,  1.99clip/s, 2.0 clips/s | failed=0]m05_vjepa: 100%|██████████| 64/64 [00:33<00:00,  1.99clip/s, 2.0 clips/s | failed=0]m05_vjepa: 100%|██████████| 64/64 [00:33<00:00,  1.99clip/s, 2.0 clips/s | failed=0]m05_vjepa: 100%|██████████| 64/64 [00:33<00:00,  1.92clip/s, 2.0 clips/s | failed=0]
+
+Segment done: 64 clips in 33s (1.92 clips/s)
+wandb: updating run metadata
+wandb: uploading output.log; uploading wandb-summary.json; uploading config.yaml
+wandb: uploading history steps 19-31, summary, console lines 16-18
+wandb: 
+wandb: Run history:
+wandb:        clips_processed ▁▁▁▂▂▂▂▃▃▃▃▃▄▄▄▄▅▅▅▅▆▆▆▆▆▇▇▇▇███
+wandb:                 failed ▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁
+wandb: throughput_clips_per_s ▁▃▄▅▅▆▆▆▆▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇█████
+wandb: 
+wandb: Run summary:
+wandb:        clips_processed 64
+wandb:                 failed 0
+wandb: throughput_clips_per_s 1.98941
+wandb: 
+wandb: 🚀 View run m05_SANITY at: https://wandb.ai/sjsu_llm/walkindia-200k/runs/ty9dnez2
+wandb: ⭐️ View project at: https://wandb.ai/sjsu_llm/walkindia-200k
+wandb: Synced 5 W&B file(s), 0 media file(s), 0 artifact file(s) and 0 other file(s)
+wandb: Find logs at: ./wandb/run-20260403_102136-ty9dnez2/logs
+Worker exiting (GPU memory will be released).
+Checkpoint loaded: 64 embeddings from .m05_checkpoint_vjepa_lambda0_01.npz
+Worker done. Progress: 64/64
+Checkpoint loaded: 64 embeddings from .m05_checkpoint_vjepa_lambda0_01.npz
+
+=== Processing Stats ===
+Total clips:     64
+Embedding shape: (64, 1408)
+
+=== EMBEDDING COMPLETE ===
+Saved: /workspace/factorjepa/outputs/sanity/embeddings_vjepa_lambda0_01.npy
+Shape: (64, 1408)
+Unique clips: 64
+wandb: [wandb.login()] Loaded credentials for https://api.wandb.ai from WANDB_API_KEY.
+wandb: Currently logged in as: kapilw25 (sjsu_llm) to https://api.wandb.ai. Use `wandb login --relogin` to force relogin
+wandb: WARNING Using a boolean value for 'reinit' is deprecated. Use 'return_previous' or 'finish_previous' instead.
+wandb: setting up run 1dreoj1i
+wandb: Tracking run with wandb version 0.25.1
+wandb: Run data is saved locally in /workspace/factorjepa/wandb/run-20260403_102222-1dreoj1i
+wandb: Run `wandb offline` to turn off syncing.
+wandb: Syncing run m05_COMPLETE
+wandb: ⭐️ View project at https://wandb.ai/sjsu_llm/walkindia-200k
+wandb: 🚀 View run at https://wandb.ai/sjsu_llm/walkindia-200k/runs/1dreoj1i
+wandb: run=m05_COMPLETE url=https://wandb.ai/sjsu_llm/walkindia-200k/runs/1dreoj1i
+wandb: updating run metadata; uploading artifact embeddings; uploading artifact paths
+wandb: uploading artifact embeddings; uploading artifact paths
+wandb: uploading artifact embeddings
+wandb: uploading history steps 0-0, summary, console lines 0-0
+wandb: 
+wandb: Run history:
+wandb: embedding_dim ▁
+wandb:   total_clips ▁
+wandb: 
+wandb: Run summary:
+wandb: embedding_dim 1408
+wandb:   total_clips 64
+wandb: 
+wandb: 🚀 View run m05_COMPLETE at: https://wandb.ai/sjsu_llm/walkindia-200k/runs/1dreoj1i
+wandb: ⭐️ View project at: https://wandb.ai/sjsu_llm/walkindia-200k
+wandb: Synced 5 W&B file(s), 0 media file(s), 4 artifact file(s) and 0 other file(s)
+wandb: Find logs at: ./wandb/run-20260403_102222-1dreoj1i/logs
+[10:22:29] PASSED: m05 re-embed (winner lambda=0.01) (1m 0s)
+[10:25:23] HF upload started in background (PID=2645976)
+
+═══════════════════════════════════════════════════════════════
+  STEP winner-metrics: m06 metrics (winner lambda=0.01)
+  Mode: SANITY | Est: ~10 sec
+  Started: 2026-04-03 10:25:23
+═══════════════════════════════════════════════════════════════
+[10:25:23] CMD: python -u src/m06_faiss_metrics.py --encoder vjepa_lambda0_01 --SANITY
+GPU: NVIDIA RTX PRO 6000 Blackwell Workstation Edition
+CUDA version: 12.8
+wandb: [wandb.login()] Loaded credentials for https://api.wandb.ai from WANDB_API_KEY.
+wandb: Currently logged in as: kapilw25 (sjsu_llm) to https://api.wandb.ai. Use `wandb login --relogin` to force relogin
+wandb: WARNING Using a boolean value for 'reinit' is deprecated. Use 'return_previous' or 'finish_previous' instead.
+wandb: setting up run 1brjb1hh
+wandb: Tracking run with wandb version 0.25.1
+wandb: Run data is saved locally in /workspace/factorjepa/wandb/run-20260403_102525-1brjb1hh
+wandb: Run `wandb offline` to turn off syncing.
+wandb: Syncing run m06_SANITY
+wandb: ⭐️ View project at https://wandb.ai/sjsu_llm/walkindia-200k
+wandb: 🚀 View run at https://wandb.ai/sjsu_llm/walkindia-200k/runs/1brjb1hh
+wandb: run=m06_SANITY url=https://wandb.ai/sjsu_llm/walkindia-200k/runs/1brjb1hh
+[output_guard] m06 vjepa_lambda0_01: attempting HF download for 2 missing file(s)...
+Downloading anonymousML123/factorjepa-outputs//workspace/factorjepa/outputs/sanity/ → /workspace/factorjepa/outputs/sanity
+Download complete: 0s
+[output_guard] m06 vjepa_lambda0_01: 2 file(s) still missing after HF download
+[output_guard] m06 vjepa_lambda0_01: outputs missing or invalid — will re-compute
+  MISS  metrics: m06_metrics_vjepa_lambda0_01.json
+  MISS  knn_indices: knn_indices_vjepa_lambda0_01.npy
+Encoder:     vjepa_lambda0_01 (dim=1408, type=video_adapted)
+Output dir:  /workspace/factorjepa/outputs/sanity
+Embeddings:  /workspace/factorjepa/outputs/sanity/embeddings_vjepa_lambda0_01.npy
+Metrics:     /workspace/factorjepa/outputs/sanity/m06_metrics_vjepa_lambda0_01.json
+Loaded embeddings: (64, 1408)
+Loaded tags: 64
+Loaded clip paths: 64
+WARNING: Tags lack _clip_key field — cannot verify alignment. Results may be wrong if tags and embeddings are from different runs.
+SANITY MODE: 64 clips
+Building FAISS GPU index: 64 vectors, dim=1408
+FAISS GPU index built: 64 vectors
+
+Searching 30 neighbors (k=6, extra for Hard mode)...
+
+==================================================
+EASY MODE (k=6)
+==================================================
+  Cycle@K:     79.69%
+  Overlap@K:   SKIPPED (< 100 clips)
+  Silhouette:  -0.1993 (scene_type)
+  Prec@K:      44.79%
+  mAP@K:       0.3987
+  nDCG@K:      0.9705
+  Computing per-key breakdowns for 13 fields...
+  Silhouette per-key: pedestrian_vehicle_separation=0.0591, infrastructure_quality=0.0160, time_of_day=0.0000 ...
+  Prec@K per-key: time_of_day=100.00%, lighting=100.00%, traffic_density=94.27% ...
+  mAP@K per-key: time_of_day=1.0000, lighting=1.0000, traffic_density=0.9228 ...
+  Cycle@K per-key: computed for 13 fields
+  Macro avg:   20.75%
+  Micro avg:   44.79%
+  Bootstrap 95% CI (BCa, 10K iterations)...
+  Prec@K:  44.79% ± 8.33
+  mAP@K:   0.3987 ± 0.0858
+  Cycle@K: 0.80% ± 0.09
+  nDCG@K:  0.9705 ± 0.0072
+  [0.3s]
+Hard mode exclusion: 24 clips affected (avg 1.2 excluded neighbors)
+
+==================================================
+HARD MODE (k=6)
+==================================================
+  Cycle@K:     81.25%
+  Overlap@K:   SKIPPED (< 100 clips)
+  Silhouette:  -0.1993 (scene_type)
+  Prec@K:      43.23%
+  mAP@K:       0.3781
+  nDCG@K:      0.9709
+  Computing per-key breakdowns for 13 fields...
+  Silhouette per-key: pedestrian_vehicle_separation=0.0591, infrastructure_quality=0.0160, time_of_day=0.0000 ...
+  Prec@K per-key: time_of_day=100.00%, lighting=100.00%, traffic_density=94.01% ...
+  mAP@K per-key: time_of_day=1.0000, lighting=1.0000, traffic_density=0.9207 ...
+  Cycle@K per-key: computed for 13 fields
+  Macro avg:   20.04%
+  Micro avg:   43.23%
+  Bootstrap 95% CI (BCa, 10K iterations)...
+  Prec@K:  43.23% ± 8.46
+  mAP@K:   0.3781 ± 0.0881
+  Cycle@K: 0.81% ± 0.09
+  nDCG@K:  0.9709 ± 0.0068
+  [0.0s]
+
+Confidence sweep: 7 thresholds
+
+Saved: /workspace/factorjepa/outputs/sanity/m06_metrics_vjepa_lambda0_01.json
+Saved: /workspace/factorjepa/outputs/sanity/knn_indices_vjepa_lambda0_01.npy ((64, 7))
+Saved: /workspace/factorjepa/outputs/sanity/m06_distance_hist.png
+Saved: /workspace/factorjepa/outputs/sanity/m06_confidence_sweep.png
+Saved: /workspace/factorjepa/outputs/sanity/m06_purity_all_keys.png
+Saved: /workspace/factorjepa/outputs/sanity/m06_silhouette_per_key.png
+Saved: /workspace/factorjepa/outputs/sanity/m06_map_per_key.png
+Saved: /workspace/factorjepa/outputs/sanity/m06_cycle_per_key.png
+Saved: /workspace/factorjepa/outputs/sanity/m06_map_per_value.png
+Saved: /workspace/factorjepa/outputs/sanity/m06_metrics_by_key.png
+Saved: /workspace/factorjepa/outputs/sanity/m06_radar.png
+
+============================================================
+                     EVALUATION SUMMARY                     
+============================================================
+Metric                     Easy       Hard
+------------------------------------------
+  Cycle At K              79.69      81.25
+  Overlap At K              N/A        N/A
+  Silhouette            -0.1993    -0.1993
+  Prec At K               44.79      43.23
+  Map At K               0.3987     0.3781
+  Ndcg At K              0.9705     0.9709
+
+  Macro Prec@K:  Easy=20.75%  Hard=20.04%
+  Micro Prec@K:  Easy=44.79%  Hard=43.23%
+wandb: uploading artifact metrics; updating run metadata
+wandb: uploading artifact metrics
+wandb: uploading media/images/m06_silhouette_per_key_vjepa_lambda0_01_22_427fae5f87f6c60b65ee.png; uploading media/images/m06_map_per_key_vjepa_lambda0_01_23_9a576759f6f3b29269d7.png; uploading media/images/m06_cycle_per_key_vjepa_lambda0_01_24_51f207dd99f78d6e0552.png; uploading media/images/m06_metrics_by_key_vjepa_lambda0_01_26_2652d0d060518fcea8bd.png; uploading media/images/m06_radar_vjepa_lambda0_01_27_477b4b9020e2f30ec89d.png (+ 7 more)
+wandb: uploading media/images/m06_metrics_by_key_vjepa_lambda0_01_26_2652d0d060518fcea8bd.png; uploading media/images/m06_radar_vjepa_lambda0_01_27_477b4b9020e2f30ec89d.png; uploading media/images/m06_purity_all_keys_vjepa_lambda0_01_21_0b25a6213e6bdb6daa74.png; uploading media/images/m06_map_per_value_vjepa_lambda0_01_25_283e63091df6589c651a.png
+wandb: uploading history steps 0-27, summary, console lines 1-96
+wandb: 
+wandb: Run history:
+wandb:  confidence_sweep/coverage ▁▁▁▁▁▁▁
+wandb: confidence_sweep/prec_at_k ▁▁▁▁▁▁▁
+wandb: confidence_sweep/threshold ▁▂▃▅▆▇█
+wandb:            easy/cycle_at_k ▁
+wandb:       easy/macro_prec_at_k ▁
+wandb:              easy/map_at_k ▁
+wandb:       easy/micro_prec_at_k ▁
+wandb:             easy/ndcg_at_k ▁
+wandb:             easy/prec_at_k ▁
+wandb:            easy/silhouette ▁
+wandb:                         +7 ...
+wandb: 
+wandb: Run summary:
+wandb:  confidence_sweep/coverage 1
+wandb: confidence_sweep/prec_at_k 44.79
+wandb: confidence_sweep/threshold 0.9
+wandb:            easy/cycle_at_k 79.69
+wandb:       easy/macro_prec_at_k 20.75
+wandb:              easy/map_at_k 0.3987
+wandb:       easy/micro_prec_at_k 44.79
+wandb:             easy/ndcg_at_k 0.9705
+wandb:             easy/prec_at_k 44.79
+wandb:            easy/silhouette -0.1993
+wandb:                         +7 ...
+wandb: 
+wandb: 🚀 View run m06_SANITY at: https://wandb.ai/sjsu_llm/walkindia-200k/runs/1brjb1hh
+wandb: ⭐️ View project at: https://wandb.ai/sjsu_llm/walkindia-200k
+wandb: Synced 5 W&B file(s), 9 media file(s), 2 artifact file(s) and 0 other file(s)
+wandb: Find logs at: ./wandb/run-20260403_102525-1brjb1hh/logs
+[10:25:38] PASSED: m06 metrics (winner lambda=0.01) (0m 15s)
+[10:25:53] HF upload started in background (PID=2646232)
+[10:25:53] Phase 2 complete: train + re-embed + metrics for lambda=0.01
+
+[10:25:53] === PHASE 3: FULL EVALUATION ===
+
+═══════════════════════════════════════════════════════════════
+  STEP winner-temporal: m06b temporal corr (winner)
+  Mode: SANITY | Est: ~2 min
+  Started: 2026-04-03 10:25:53
+═══════════════════════════════════════════════════════════════
+[10:25:53] CMD: python -u src/m06b_temporal_corr.py --encoder vjepa_lambda0_01 --SANITY
+wandb: [wandb.login()] Loaded credentials for https://api.wandb.ai from WANDB_API_KEY.
+wandb: Currently logged in as: kapilw25 (sjsu_llm) to https://api.wandb.ai. Use `wandb login --relogin` to force relogin
+wandb: WARNING Using a boolean value for 'reinit' is deprecated. Use 'return_previous' or 'finish_previous' instead.
+wandb: setting up run g9ai0umw
+wandb: Tracking run with wandb version 0.25.1
+wandb: Run data is saved locally in /workspace/factorjepa/wandb/run-20260403_102554-g9ai0umw
+wandb: Run `wandb offline` to turn off syncing.
+wandb: Syncing run m06b_SANITY
+wandb: ⭐️ View project at https://wandb.ai/sjsu_llm/walkindia-200k
+wandb: 🚀 View run at https://wandb.ai/sjsu_llm/walkindia-200k/runs/g9ai0umw
+wandb: run=m06b_SANITY url=https://wandb.ai/sjsu_llm/walkindia-200k/runs/g9ai0umw
+Encoder: vjepa_lambda0_01 (dim=1408, suffix='_vjepa_lambda0_01')
+Output: /workspace/factorjepa/outputs/sanity
+Motion features: (64, 13)
+Embeddings: (64, 1408)
+kNN indices: (64, 7)
+Aligned: 64 clips (emb=64, motion=64)
+
+Computing Spearman correlation (+ bootstrap 95% CI)...
+  Spearman rho = 0.4953 ± 0.0046 (p = 0.00e+00, 98,475 pairs)
+
+Computing Temporal Prec@K (k=6, + bootstrap 95% CI)...
+  Temporal Prec@K = 44.0% ± 6.8
+
+Computing Motion Retrieval mAP (k=6, clusters=4, + bootstrap 95% CI)...
+  Motion Retrieval mAP = 0.7813 ± 0.0766
+
+Computing Temporal Locality...
+  Intra-video dist: 38.7433
+  Inter-video dist: 44.5416
+  Ratio (lower=better): 0.8698 (5 videos)
+
+Saved: /workspace/factorjepa/outputs/sanity/m06b_temporal_corr_vjepa_lambda0_01.json
+
+============================================================
+m06b TEMPORAL CORRELATION — vjepa_lambda0_01
+============================================================
+  Spearman rho:          0.4953 ± 0.0046
+  Temporal Prec@K:       44.0% ± 6.8
+  Motion Retrieval mAP:  0.7813 ± 0.0766
+  Temporal Locality:     0.8698 (intra/inter ratio)
+  Clips aligned:         64
+  Compute time:          13.1s
+============================================================
+wandb: updating run metadata
+wandb: uploading output.log; uploading wandb-summary.json; uploading config.yaml
+wandb: uploading history steps 0-0, summary, console lines 2-33
+wandb: 
+wandb: Run history:
+wandb:     compute_time_sec ▁
+wandb:          encoder_dim ▁
+wandb:          k_neighbors ▁
+wandb:      motion_clusters ▁
+wandb: motion_retrieval_map ▁
+wandb:      n_clips_aligned ▁
+wandb:      n_pairs_sampled ▁
+wandb:        spearman_pval ▁
+wandb:         spearman_rho ▁
+wandb:   temporal_prec_at_k ▁
+wandb: 
+wandb: Run summary:
+wandb:     compute_time_sec 13.1
+wandb:              encoder vjepa_lambda0_01
+wandb:          encoder_dim 1408
+wandb:         encoder_type video_adapted
+wandb:          k_neighbors 6
+wandb:                 mode SANITY
+wandb:      motion_clusters 4
+wandb: motion_retrieval_map 0.78133
+wandb:      n_clips_aligned 64
+wandb:      n_pairs_sampled 98475
+wandb:                   +3 ...
+wandb: 
+wandb: 🚀 View run m06b_SANITY at: https://wandb.ai/sjsu_llm/walkindia-200k/runs/g9ai0umw
+wandb: ⭐️ View project at: https://wandb.ai/sjsu_llm/walkindia-200k
+wandb: Synced 5 W&B file(s), 0 media file(s), 0 artifact file(s) and 0 other file(s)
+wandb: Find logs at: ./wandb/run-20260403_102554-g9ai0umw/logs
+[10:26:10] PASSED: m06b temporal corr (winner) (0m 17s)
+[10:26:22] HF upload started in background (PID=2646542)
+
+═══════════════════════════════════════════════════════════════
+  STEP winner-shuffled: m05 shuffled adapted (temporal ablation)
+  Mode: SANITY | Est: ~30 sec
+  Started: 2026-04-03 10:26:22
+═══════════════════════════════════════════════════════════════
+[10:26:22] CMD: python -u src/m05_vjepa_embed.py --model outputs/sanity/m09_lambda0_01/student_encoder.pt --encoder vjepa_lambda0_01_shuffled --shuffle --SANITY --local-data data/subset_10k_local
+Using PyAV for video decoding
+Output: /workspace/factorjepa/outputs/sanity/embeddings_vjepa_lambda0_01_shuffled.npy
+[output_guard] m05 embed: attempting HF download for 2 missing file(s)...
+Downloading anonymousML123/factorjepa-outputs//workspace/factorjepa/outputs/sanity/ → /workspace/factorjepa/outputs/sanity
+Fetching 0 files: 0it [00:00, ?it/s]Fetching 0 files: 0it [00:00, ?it/s]
+Download complete: 0s
+[output_guard] m05 embed: 2 file(s) still missing after HF download
+[output_guard] m05 embed: outputs missing or invalid — will re-compute
+  MISS  embeddings: embeddings_vjepa_lambda0_01_shuffled.npy
+  MISS  paths: embeddings_vjepa_lambda0_01_shuffled.paths.npy
+Clip limit: 64
+Streaming from: anonymousML123/walkindia-200k
+
+============================================================
+WORKER 1: embeddings 0 → 64
+============================================================
+/workspace/factorjepa/venv_walkindia/lib/python3.12/site-packages/transformers/utils/hub.py:110: FutureWarning: Using `TRANSFORMERS_CACHE` is deprecated and will be removed in v5 of Transformers. Use `HF_HOME` instead.
+  warnings.warn(
+Using PyAV for video decoding
+GPU: NVIDIA RTX PRO 6000 Blackwell Workstation Edition
+CUDA version: 12.8
+GPU VRAM: 95 GB | VLM cost model: 16GB fixed + 0.78GB/clip
+  vjepa=37 (linear, scale=2.37x from 40GB)
+  image_encoder=148 (4x vjepa, cap 256)
+  transformers=64 (max batch, est 66GB = 69% VRAM)
+  sub-batch=51 (initial, AdaptiveBatchSizer grows to 64)
+Batch size: 37
+wandb: [wandb.login()] Loaded credentials for https://api.wandb.ai from WANDB_API_KEY.
+wandb: Currently logged in as: kapilw25 (sjsu_llm) to https://api.wandb.ai. Use `wandb login --relogin` to force relogin
+wandb: WARNING Using a boolean value for 'reinit' is deprecated. Use 'return_previous' or 'finish_previous' instead.
+wandb: setting up run 2e4r9yp4
+wandb: Tracking run with wandb version 0.25.1
+wandb: Run data is saved locally in /workspace/factorjepa/wandb/run-20260403_102630-2e4r9yp4
+wandb: Run `wandb offline` to turn off syncing.
+wandb: Syncing run m05_SANITY
+wandb: ⭐️ View project at https://wandb.ai/sjsu_llm/walkindia-200k
+wandb: 🚀 View run at https://wandb.ai/sjsu_llm/walkindia-200k/runs/2e4r9yp4
+wandb: run=m05_SANITY url=https://wandb.ai/sjsu_llm/walkindia-200k/runs/2e4r9yp4
+
+Loading model: outputs/sanity/m09_lambda0_01/student_encoder.pt
+/workspace/factorjepa/venv_walkindia/lib/python3.12/site-packages/timm/models/layers/__init__.py:49: FutureWarning: Importing from timm.models.layers is deprecated, please import via timm.layers
+  warnings.warn(f"Importing from {__name__} is deprecated, please import via timm.layers", FutureWarning)
+Adapted encoder: loaded 484/484 params (missing: 0, unexpected: 0)
+Skipping torch.compile for adapted encoder (float16 dtype conflict)
+Model loaded on cuda (dtype: torch.float16)
+
+=== Streaming Config ===
+batch_size:    2
+video_decoder: PyAV
+prefetch:      8 batches
+checkpoint:    every 500 clips
+m05_vjepa:   0%|          | 0/64 [00:00<?, ?clip/s]/venv/main/lib/python3.12/contextlib.py:105: FutureWarning: `torch.backends.cuda.sdp_kernel()` is deprecated. In the future, this context manager will be removed. Please see `torch.nn.attention.sdpa_kernel()` for the new context manager, with updated signature.
+  self.gen = func(*args, **kwds)
+m05_vjepa:   3%|▎         | 2/64 [00:02<01:20,  1.29s/clip]m05_vjepa:   3%|▎         | 2/64 [00:02<01:20,  1.29s/clip, 0.8 clips/s | failed=0]m05_vjepa:   6%|▋         | 4/64 [00:03<00:48,  1.23clip/s, 0.8 clips/s | failed=0]m05_vjepa:   6%|▋         | 4/64 [00:03<00:48,  1.23clip/s, 1.1 clips/s | failed=0]m05_vjepa:   9%|▉         | 6/64 [00:04<00:38,  1.51clip/s, 1.1 clips/s | failed=0]m05_vjepa:   9%|▉         | 6/64 [00:04<00:38,  1.51clip/s, 1.3 clips/s | failed=0]m05_vjepa:  12%|█▎        | 8/64 [00:05<00:33,  1.70clip/s, 1.3 clips/s | failed=0]m05_vjepa:  12%|█▎        | 8/64 [00:05<00:33,  1.70clip/s, 1.5 clips/s | failed=0]m05_vjepa:  16%|█▌        | 10/64 [00:06<00:29,  1.82clip/s, 1.5 clips/s | failed=0]m05_vjepa:  16%|█▌        | 10/64 [00:06<00:29,  1.82clip/s, 1.6 clips/s | failed=0]m05_vjepa:  19%|█▉        | 12/64 [00:07<00:27,  1.90clip/s, 1.6 clips/s | failed=0]m05_vjepa:  19%|█▉        | 12/64 [00:07<00:27,  1.90clip/s, 1.6 clips/s | failed=0]m05_vjepa:  22%|██▏       | 14/64 [00:08<00:25,  1.95clip/s, 1.6 clips/s | failed=0]m05_vjepa:  22%|██▏       | 14/64 [00:08<00:25,  1.95clip/s, 1.7 clips/s | failed=0]m05_vjepa:  25%|██▌       | 16/64 [00:09<00:24,  1.99clip/s, 1.7 clips/s | failed=0]m05_vjepa:  25%|██▌       | 16/64 [00:09<00:24,  1.99clip/s, 1.7 clips/s | failed=0]m05_vjepa:  28%|██▊       | 18/64 [00:10<00:22,  2.02clip/s, 1.7 clips/s | failed=0]m05_vjepa:  28%|██▊       | 18/64 [00:10<00:22,  2.02clip/s, 1.8 clips/s | failed=0]m05_vjepa:  31%|███▏      | 20/64 [00:11<00:21,  2.03clip/s, 1.8 clips/s | failed=0]m05_vjepa:  31%|███▏      | 20/64 [00:11<00:21,  2.03clip/s, 1.8 clips/s | failed=0]m05_vjepa:  34%|███▍      | 22/64 [00:12<00:20,  2.04clip/s, 1.8 clips/s | failed=0]m05_vjepa:  34%|███▍      | 22/64 [00:12<00:20,  2.04clip/s, 1.8 clips/s | failed=0]m05_vjepa:  38%|███▊      | 24/64 [00:13<00:19,  2.05clip/s, 1.8 clips/s | failed=0]m05_vjepa:  38%|███▊      | 24/64 [00:13<00:19,  2.05clip/s, 1.8 clips/s | failed=0]m05_vjepa:  41%|████      | 26/64 [00:14<00:18,  2.05clip/s, 1.8 clips/s | failed=0]m05_vjepa:  41%|████      | 26/64 [00:14<00:18,  2.05clip/s, 1.8 clips/s | failed=0]m05_vjepa:  44%|████▍     | 28/64 [00:15<00:17,  2.06clip/s, 1.8 clips/s | failed=0]m05_vjepa:  44%|████▍     | 28/64 [00:15<00:17,  2.06clip/s, 1.9 clips/s | failed=0]m05_vjepa:  47%|████▋     | 30/64 [00:16<00:16,  2.06clip/s, 1.9 clips/s | failed=0]m05_vjepa:  47%|████▋     | 30/64 [00:16<00:16,  2.06clip/s, 1.9 clips/s | failed=0]m05_vjepa:  50%|█████     | 32/64 [00:17<00:15,  2.06clip/s, 1.9 clips/s | failed=0]m05_vjepa:  50%|█████     | 32/64 [00:17<00:15,  2.06clip/s, 1.9 clips/s | failed=0]m05_vjepa:  53%|█████▎    | 34/64 [00:18<00:14,  2.06clip/s, 1.9 clips/s | failed=0]m05_vjepa:  53%|█████▎    | 34/64 [00:18<00:14,  2.06clip/s, 1.9 clips/s | failed=0]m05_vjepa:  56%|█████▋    | 36/64 [00:18<00:13,  2.06clip/s, 1.9 clips/s | failed=0]m05_vjepa:  56%|█████▋    | 36/64 [00:18<00:13,  2.06clip/s, 1.9 clips/s | failed=0]m05_vjepa:  59%|█████▉    | 38/64 [00:19<00:12,  2.06clip/s, 1.9 clips/s | failed=0]m05_vjepa:  59%|█████▉    | 38/64 [00:19<00:12,  2.06clip/s, 1.9 clips/s | failed=0]m05_vjepa:  62%|██████▎   | 40/64 [00:20<00:11,  2.06clip/s, 1.9 clips/s | failed=0]m05_vjepa:  62%|██████▎   | 40/64 [00:20<00:11,  2.06clip/s, 1.9 clips/s | failed=0]m05_vjepa:  66%|██████▌   | 42/64 [00:21<00:10,  2.06clip/s, 1.9 clips/s | failed=0]m05_vjepa:  66%|██████▌   | 42/64 [00:21<00:10,  2.06clip/s, 1.9 clips/s | failed=0]m05_vjepa:  69%|██████▉   | 44/64 [00:22<00:09,  2.06clip/s, 1.9 clips/s | failed=0]m05_vjepa:  69%|██████▉   | 44/64 [00:22<00:09,  2.06clip/s, 1.9 clips/s | failed=0]m05_vjepa:  72%|███████▏  | 46/64 [00:23<00:08,  2.06clip/s, 1.9 clips/s | failed=0]m05_vjepa:  72%|███████▏  | 46/64 [00:23<00:08,  2.06clip/s, 1.9 clips/s | failed=0]m05_vjepa:  75%|███████▌  | 48/64 [00:24<00:07,  2.05clip/s, 1.9 clips/s | failed=0]m05_vjepa:  75%|███████▌  | 48/64 [00:24<00:07,  2.05clip/s, 1.9 clips/s | failed=0]m05_vjepa:  78%|███████▊  | 50/64 [00:25<00:06,  2.05clip/s, 1.9 clips/s | failed=0]m05_vjepa:  78%|███████▊  | 50/64 [00:25<00:06,  2.05clip/s, 1.9 clips/s | failed=0]m05_vjepa:  81%|████████▏ | 52/64 [00:26<00:05,  2.05clip/s, 1.9 clips/s | failed=0]m05_vjepa:  81%|████████▏ | 52/64 [00:26<00:05,  2.05clip/s, 1.9 clips/s | failed=0]m05_vjepa:  84%|████████▍ | 54/64 [00:27<00:04,  2.05clip/s, 1.9 clips/s | failed=0]m05_vjepa:  84%|████████▍ | 54/64 [00:27<00:04,  2.05clip/s, 1.9 clips/s | failed=0]m05_vjepa:  88%|████████▊ | 56/64 [00:28<00:03,  2.05clip/s, 1.9 clips/s | failed=0]m05_vjepa:  88%|████████▊ | 56/64 [00:28<00:03,  2.05clip/s, 1.9 clips/s | failed=0][10:27:09] GPU recovered: 100% (was low for 270s)
+m05_vjepa:  91%|█████████ | 58/64 [00:29<00:02,  2.05clip/s, 1.9 clips/s | failed=0]m05_vjepa:  91%|█████████ | 58/64 [00:29<00:02,  2.05clip/s, 2.0 clips/s | failed=0]m05_vjepa:  94%|█████████▍| 60/64 [00:30<00:01,  2.05clip/s, 2.0 clips/s | failed=0]m05_vjepa:  94%|█████████▍| 60/64 [00:30<00:01,  2.05clip/s, 2.0 clips/s | failed=0]m05_vjepa:  97%|█████████▋| 62/64 [00:31<00:00,  2.05clip/s, 2.0 clips/s | failed=0]m05_vjepa:  97%|█████████▋| 62/64 [00:31<00:00,  2.05clip/s, 2.0 clips/s | failed=0]m05_vjepa: 100%|██████████| 64/64 [00:32<00:00,  2.04clip/s, 2.0 clips/s | failed=0]m05_vjepa: 100%|██████████| 64/64 [00:32<00:00,  2.04clip/s, 2.0 clips/s | failed=0]m05_vjepa: 100%|██████████| 64/64 [00:32<00:00,  1.96clip/s, 2.0 clips/s | failed=0]
+
+Segment done: 64 clips in 33s (1.96 clips/s)
+wandb: updating run metadata
+wandb: uploading output.log; uploading wandb-summary.json; uploading config.yaml
+wandb: uploading history steps 19-31, summary, console lines 16-18
+wandb: 
+wandb: Run history:
+wandb:        clips_processed ▁▁▁▂▂▂▂▃▃▃▃▃▄▄▄▄▅▅▅▅▆▆▆▆▆▇▇▇▇███
+wandb:                 failed ▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁
+wandb: throughput_clips_per_s ▁▃▄▅▅▆▆▆▆▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇██
+wandb: 
+wandb: Run summary:
+wandb:        clips_processed 64
+wandb:                 failed 0
+wandb: throughput_clips_per_s 2.04377
+wandb: 
+wandb: 🚀 View run m05_SANITY at: https://wandb.ai/sjsu_llm/walkindia-200k/runs/2e4r9yp4
+wandb: ⭐️ View project at: https://wandb.ai/sjsu_llm/walkindia-200k
+wandb: Synced 5 W&B file(s), 0 media file(s), 0 artifact file(s) and 0 other file(s)
+wandb: Find logs at: ./wandb/run-20260403_102630-2e4r9yp4/logs
+Worker exiting (GPU memory will be released).
+Checkpoint loaded: 64 embeddings from .m05_checkpoint_vjepa_lambda0_01_shuffled.npz
+Worker done. Progress: 64/64
+Checkpoint loaded: 64 embeddings from .m05_checkpoint_vjepa_lambda0_01_shuffled.npz
+
+=== Processing Stats ===
+Total clips:     64
+Embedding shape: (64, 1408)
+
+=== EMBEDDING COMPLETE ===
+Saved: /workspace/factorjepa/outputs/sanity/embeddings_vjepa_lambda0_01_shuffled.npy
+Shape: (64, 1408)
+Unique clips: 64
+wandb: [wandb.login()] Loaded credentials for https://api.wandb.ai from WANDB_API_KEY.
+wandb: Currently logged in as: kapilw25 (sjsu_llm) to https://api.wandb.ai. Use `wandb login --relogin` to force relogin
+wandb: WARNING Using a boolean value for 'reinit' is deprecated. Use 'return_previous' or 'finish_previous' instead.
+wandb: setting up run zg2xbv9g
+wandb: Tracking run with wandb version 0.25.1
+wandb: Run data is saved locally in /workspace/factorjepa/wandb/run-20260403_102715-zg2xbv9g
+wandb: Run `wandb offline` to turn off syncing.
+wandb: Syncing run m05_COMPLETE
+wandb: ⭐️ View project at https://wandb.ai/sjsu_llm/walkindia-200k
+wandb: 🚀 View run at https://wandb.ai/sjsu_llm/walkindia-200k/runs/zg2xbv9g
+wandb: run=m05_COMPLETE url=https://wandb.ai/sjsu_llm/walkindia-200k/runs/zg2xbv9g
+wandb: updating run metadata; uploading artifact embeddings; uploading artifact paths
+wandb: uploading artifact embeddings; uploading artifact paths
+wandb: uploading artifact embeddings
+wandb: uploading history steps 0-0, summary
+wandb: 
+wandb: Run history:
+wandb: embedding_dim ▁
+wandb:   total_clips ▁
+wandb: 
+wandb: Run summary:
+wandb: embedding_dim 1408
+wandb:   total_clips 64
+wandb: 
+wandb: 🚀 View run m05_COMPLETE at: https://wandb.ai/sjsu_llm/walkindia-200k/runs/zg2xbv9g
+wandb: ⭐️ View project at: https://wandb.ai/sjsu_llm/walkindia-200k
+wandb: Synced 5 W&B file(s), 0 media file(s), 3 artifact file(s) and 0 other file(s)
+wandb: Find logs at: ./wandb/run-20260403_102715-zg2xbv9g/logs
+[10:27:23] PASSED: m05 shuffled adapted (temporal ablation) (1m 1s)
+[10:27:23] HF upload started in background (PID=2708981)
+
+═══════════════════════════════════════════════════════════════
+  STEP winner-shuffled-metrics: m06 metrics (shuffled adapted)
+  Mode: SANITY | Est: ~10 sec
+  Started: 2026-04-03 10:27:23
+═══════════════════════════════════════════════════════════════
+[10:27:23] CMD: python -u src/m06_faiss_metrics.py --encoder vjepa_lambda0_01_shuffled --SANITY
+GPU: NVIDIA RTX PRO 6000 Blackwell Workstation Edition
+CUDA version: 12.8
+wandb: [wandb.login()] Loaded credentials for https://api.wandb.ai from WANDB_API_KEY.
+wandb: Currently logged in as: kapilw25 (sjsu_llm) to https://api.wandb.ai. Use `wandb login --relogin` to force relogin
+wandb: WARNING Using a boolean value for 'reinit' is deprecated. Use 'return_previous' or 'finish_previous' instead.
+wandb: setting up run pb7zgx36
+wandb: Tracking run with wandb version 0.25.1
+wandb: Run data is saved locally in /workspace/factorjepa/wandb/run-20260403_102725-pb7zgx36
+wandb: Run `wandb offline` to turn off syncing.
+wandb: Syncing run m06_SANITY
+wandb: ⭐️ View project at https://wandb.ai/sjsu_llm/walkindia-200k
+wandb: 🚀 View run at https://wandb.ai/sjsu_llm/walkindia-200k/runs/pb7zgx36
+wandb: run=m06_SANITY url=https://wandb.ai/sjsu_llm/walkindia-200k/runs/pb7zgx36
+[output_guard] m06 vjepa_lambda0_01_shuffled: attempting HF download for 2 missing file(s)...
+Downloading anonymousML123/factorjepa-outputs//workspace/factorjepa/outputs/sanity/ → /workspace/factorjepa/outputs/sanity
+Download complete: 0s
+[output_guard] m06 vjepa_lambda0_01_shuffled: 2 file(s) still missing after HF download
+[output_guard] m06 vjepa_lambda0_01_shuffled: outputs missing or invalid — will re-compute
+  MISS  metrics: m06_metrics_vjepa_lambda0_01_shuffled.json
+  MISS  knn_indices: knn_indices_vjepa_lambda0_01_shuffled.npy
+Encoder:     vjepa_lambda0_01_shuffled (dim=1408, type=video_adapted)
+Output dir:  /workspace/factorjepa/outputs/sanity
+Embeddings:  /workspace/factorjepa/outputs/sanity/embeddings_vjepa_lambda0_01_shuffled.npy
+Metrics:     /workspace/factorjepa/outputs/sanity/m06_metrics_vjepa_lambda0_01_shuffled.json
+Loaded embeddings: (64, 1408)
+Loaded tags: 64
+Loaded clip paths: 64
+WARNING: Tags lack _clip_key field — cannot verify alignment. Results may be wrong if tags and embeddings are from different runs.
+SANITY MODE: 64 clips
+Building FAISS GPU index: 64 vectors, dim=1408
+FAISS GPU index built: 64 vectors
+
+Searching 30 neighbors (k=6, extra for Hard mode)...
+
+==================================================
+EASY MODE (k=6)
+==================================================
+  Cycle@K:     82.81%
+  Overlap@K:   SKIPPED (< 100 clips)
+  Silhouette:  -0.1981 (scene_type)
+  Prec@K:      47.40%
+  mAP@K:       0.4281
+  nDCG@K:      0.9712
+  Computing per-key breakdowns for 13 fields...
+  Silhouette per-key: pedestrian_vehicle_separation=0.0576, infrastructure_quality=0.0174, time_of_day=0.0000 ...
+  Prec@K per-key: time_of_day=100.00%, lighting=100.00%, traffic_density=94.01% ...
+  mAP@K per-key: time_of_day=1.0000, lighting=1.0000, traffic_density=0.9189 ...
+  Cycle@K per-key: computed for 13 fields
+  Macro avg:   23.04%
+  Micro avg:   47.40%
+  Bootstrap 95% CI (BCa, 10K iterations)...
+  Prec@K:  47.40% ± 8.85
+  mAP@K:   0.4281 ± 0.0927
+  Cycle@K: 0.83% ± 0.09
+  nDCG@K:  0.9712 ± 0.0061
+  [0.3s]
+Hard mode exclusion: 24 clips affected (avg 1.2 excluded neighbors)
+
+==================================================
+HARD MODE (k=6)
+==================================================
+  Cycle@K:     84.38%
+  Overlap@K:   SKIPPED (< 100 clips)
+  Silhouette:  -0.1981 (scene_type)
+  Prec@K:      44.27%
+  mAP@K:       0.4023
+  nDCG@K:      0.9719
+  Computing per-key breakdowns for 13 fields...
+  Silhouette per-key: pedestrian_vehicle_separation=0.0576, infrastructure_quality=0.0174, time_of_day=0.0000 ...
+  Prec@K per-key: time_of_day=100.00%, lighting=100.00%, traffic_density=94.01% ...
+  mAP@K per-key: time_of_day=1.0000, lighting=1.0000, traffic_density=0.9189 ...
+  Cycle@K per-key: computed for 13 fields
+  Macro avg:   21.69%
+  Micro avg:   44.27%
+  Bootstrap 95% CI (BCa, 10K iterations)...
+  Prec@K:  44.27% ± 8.85
+  mAP@K:   0.4023 ± 0.0911
+  Cycle@K: 0.84% ± 0.09
+  nDCG@K:  0.9719 ± 0.0059
+  [0.0s]
+
+Confidence sweep: 7 thresholds
+
+Saved: /workspace/factorjepa/outputs/sanity/m06_metrics_vjepa_lambda0_01_shuffled.json
+Saved: /workspace/factorjepa/outputs/sanity/knn_indices_vjepa_lambda0_01_shuffled.npy ((64, 7))
+Saved: /workspace/factorjepa/outputs/sanity/m06_distance_hist.png
+Saved: /workspace/factorjepa/outputs/sanity/m06_confidence_sweep.png
+Saved: /workspace/factorjepa/outputs/sanity/m06_purity_all_keys.png
+Saved: /workspace/factorjepa/outputs/sanity/m06_silhouette_per_key.png
+Saved: /workspace/factorjepa/outputs/sanity/m06_map_per_key.png
+Saved: /workspace/factorjepa/outputs/sanity/m06_cycle_per_key.png
+Saved: /workspace/factorjepa/outputs/sanity/m06_map_per_value.png
+Saved: /workspace/factorjepa/outputs/sanity/m06_metrics_by_key.png
+Saved: /workspace/factorjepa/outputs/sanity/m06_radar.png
+
+============================================================
+                     EVALUATION SUMMARY                     
+============================================================
+Metric                     Easy       Hard
+------------------------------------------
+  Cycle At K              82.81      84.38
+  Overlap At K              N/A        N/A
+  Silhouette            -0.1981    -0.1981
+  Prec At K               47.40      44.27
+  Map At K               0.4281     0.4023
+  Ndcg At K              0.9712     0.9719
+
+  Macro Prec@K:  Easy=23.04%  Hard=21.69%
+  Micro Prec@K:  Easy=47.40%  Hard=44.27%
+wandb: uploading artifact metrics; updating run metadata
+wandb: uploading artifact metrics
+wandb: uploading media/images/m06_map_per_key_vjepa_lambda0_01_shuffled_23_2887639cdea059a5c4d5.png; uploading media/images/m06_metrics_by_key_vjepa_lambda0_01_shuffled_26_fa170b7392606a026d80.png; uploading media/images/m06_radar_vjepa_lambda0_01_shuffled_27_b026a6f696737dee80b9.png; uploading output.log; uploading wandb-summary.json (+ 7 more)
+wandb: uploading media/images/m06_cycle_per_key_vjepa_lambda0_01_shuffled_24_3ec759c90d30c58328ca.png; uploading media/images/m06_map_per_value_vjepa_lambda0_01_shuffled_25_122d211ba06f2d41e28f.png
+wandb: 
+wandb: Run history:
+wandb:  confidence_sweep/coverage ▁▁▁▁▁▁▁
+wandb: confidence_sweep/prec_at_k ▁▁▁▁▁▁▁
+wandb: confidence_sweep/threshold ▁▂▃▅▆▇█
+wandb:            easy/cycle_at_k ▁
+wandb:       easy/macro_prec_at_k ▁
+wandb:              easy/map_at_k ▁
+wandb:       easy/micro_prec_at_k ▁
+wandb:             easy/ndcg_at_k ▁
+wandb:             easy/prec_at_k ▁
+wandb:            easy/silhouette ▁
+wandb:                         +7 ...
+wandb: 
+wandb: Run summary:
+wandb:  confidence_sweep/coverage 1
+wandb: confidence_sweep/prec_at_k 47.4
+wandb: confidence_sweep/threshold 0.9
+wandb:            easy/cycle_at_k 82.81
+wandb:       easy/macro_prec_at_k 23.04
+wandb:              easy/map_at_k 0.4281
+wandb:       easy/micro_prec_at_k 47.4
+wandb:             easy/ndcg_at_k 0.9712
+wandb:             easy/prec_at_k 47.4
+wandb:            easy/silhouette -0.1981
+wandb:                         +7 ...
+wandb: 
+wandb: 🚀 View run m06_SANITY at: https://wandb.ai/sjsu_llm/walkindia-200k/runs/pb7zgx36
+wandb: ⭐️ View project at: https://wandb.ai/sjsu_llm/walkindia-200k
+wandb: Synced 5 W&B file(s), 9 media file(s), 2 artifact file(s) and 0 other file(s)
+wandb: Find logs at: ./wandb/run-20260403_102725-pb7zgx36/logs
+[10:27:39] PASSED: m06 metrics (shuffled adapted) (0m 16s)
+[10:27:52] HF upload started in background (PID=2709253)
+
+═══════════════════════════════════════════════════════════════
+  STEP winner-umap: m07 UMAP (winner)
+  Mode: SANITY | Est: ~5 min
+  Started: 2026-04-03 10:27:52
+═══════════════════════════════════════════════════════════════
+[10:27:52] CMD: python -u src/m07_umap.py --encoder vjepa_lambda0_01 --SANITY
+GPU: NVIDIA RTX PRO 6000 Blackwell Workstation Edition
+CUDA version: 12.8
+wandb: [wandb.login()] Loaded credentials for https://api.wandb.ai from WANDB_API_KEY.
+wandb: Currently logged in as: kapilw25 (sjsu_llm) to https://api.wandb.ai. Use `wandb login --relogin` to force relogin
+wandb: WARNING Using a boolean value for 'reinit' is deprecated. Use 'return_previous' or 'finish_previous' instead.
+wandb: setting up run y4f9mawf
+wandb: Tracking run with wandb version 0.25.1
+wandb: Run data is saved locally in /workspace/factorjepa/wandb/run-20260403_102755-y4f9mawf
+wandb: Run `wandb offline` to turn off syncing.
+wandb: Syncing run m07_SANITY
+wandb: ⭐️ View project at https://wandb.ai/sjsu_llm/walkindia-200k
+wandb: 🚀 View run at https://wandb.ai/sjsu_llm/walkindia-200k/runs/y4f9mawf
+wandb: run=m07_SANITY url=https://wandb.ai/sjsu_llm/walkindia-200k/runs/y4f9mawf
+[output_guard] m07 vjepa_lambda0_01: attempting HF download for 1 missing file(s)...
+Downloading anonymousML123/factorjepa-outputs//workspace/factorjepa/outputs/sanity/ → /workspace/factorjepa/outputs/sanity
+Download complete: 0s
+[output_guard] m07 vjepa_lambda0_01: 1 file(s) still missing after HF download
+[output_guard] m07 vjepa_lambda0_01: outputs missing or invalid — will re-compute
+  MISS  umap_2d: umap_2d_vjepa_lambda0_01.npy
+Encoder: vjepa_lambda0_01
+SANITY MODE: 64 clips
+Loaded: 64 clips, dim=1408
+cuML UMAP (n_neighbors=15, min_dist=0.1)...
+[2026-04-03 10:27:56.611] [CUML] [debug] Computing KNN Graph
+[2026-04-03 10:27:56.631] [CUML] [debug] Computing fuzzy simplicial set
+Saved: /workspace/factorjepa/outputs/sanity/umap_2d_vjepa_lambda0_01.npy ((64, 2))
+UMAP completed in 0.3s
+wandb: updating run metadata; uploading artifact umap_2d
+wandb: uploading artifact umap_2d
+wandb: uploading config.yaml; uploading wandb-metadata.json; uploading requirements.txt; uploading output.log; uploading wandb-summary.json
+wandb: uploading summary, console lines 1-14
+wandb: 🚀 View run m07_SANITY at: https://wandb.ai/sjsu_llm/walkindia-200k/runs/y4f9mawf
+wandb: ⭐️ View project at: https://wandb.ai/sjsu_llm/walkindia-200k
+wandb: Synced 5 W&B file(s), 0 media file(s), 2 artifact file(s) and 0 other file(s)
+wandb: Find logs at: ./wandb/run-20260403_102755-y4f9mawf/logs
+[10:28:02] PASSED: m07 UMAP (winner) (0m 10s)
+[10:28:23] HF upload started in background (PID=2709526)
+
+═══════════════════════════════════════════════════════════════
+  STEP winner-plots: m08 plots (winner)
+  Mode: SANITY | Est: ~2 min
+  Started: 2026-04-03 10:28:23
+═══════════════════════════════════════════════════════════════
+[10:28:23] CMD: python -u src/m08_plot.py --encoder vjepa_lambda0_01 --SANITY
+wandb: [wandb.login()] Loaded credentials for https://api.wandb.ai from WANDB_API_KEY.
+wandb: Currently logged in as: kapilw25 (sjsu_llm) to https://api.wandb.ai. Use `wandb login --relogin` to force relogin
+wandb: WARNING Using a boolean value for 'reinit' is deprecated. Use 'return_previous' or 'finish_previous' instead.
+wandb: setting up run 12ghgefh
+wandb: Tracking run with wandb version 0.25.1
+wandb: Run data is saved locally in /workspace/factorjepa/wandb/run-20260403_102824-12ghgefh
+wandb: Run `wandb offline` to turn off syncing.
+wandb: Syncing run m08_SANITY
+wandb: ⭐️ View project at https://wandb.ai/sjsu_llm/walkindia-200k
+wandb: 🚀 View run at https://wandb.ai/sjsu_llm/walkindia-200k/runs/12ghgefh
+wandb: run=m08_SANITY url=https://wandb.ai/sjsu_llm/walkindia-200k/runs/12ghgefh
+Output dir: /workspace/factorjepa/outputs/sanity
+[output_guard] m08 vjepa_lambda0_01: attempting HF download for 2 missing file(s)...
+Downloading anonymousML123/factorjepa-outputs//workspace/factorjepa/outputs/sanity/ → /workspace/factorjepa/outputs/sanity
+Download complete: 0s
+[output_guard] m08 vjepa_lambda0_01: 2 file(s) still missing after HF download
+[output_guard] m08 vjepa_lambda0_01: outputs missing or invalid — will re-compute
+  MISS  umap_plot: m08_umap_vjepa_lambda0_01.png
+  MISS  confusion_matrix: m08_confusion_matrix_vjepa_lambda0_01.png
+Encoder: vjepa_lambda0_01 (suffix='_vjepa_lambda0_01')
+SANITY MODE: 64 clips
+Loaded: 64 clips
+Loaded m06 metrics: m06_metrics_vjepa_lambda0_01.json
+Taxonomy keys for plots: ['scene_type', 'time_of_day', 'weather', 'crowd_density', 'traffic_density', 'traffic_mix', 'pedestrian_vehicle_separation', 'road_surface', 'infrastructure_quality', 'road_encroachment', 'vegetation', 'lighting', 'video_quality']
+Saved: /workspace/factorjepa/outputs/sanity/m08_umap_vjepa_lambda0_01.png
+Saved: /workspace/factorjepa/outputs/sanity/m08_umap_vjepa_lambda0_01_time_of_day.png
+Saved: /workspace/factorjepa/outputs/sanity/m08_umap_vjepa_lambda0_01_weather.png
+Saved: /workspace/factorjepa/outputs/sanity/m08_umap_vjepa_lambda0_01_crowd_density.png
+Saved: /workspace/factorjepa/outputs/sanity/m08_umap_vjepa_lambda0_01_traffic_density.png
+Saved: /workspace/factorjepa/outputs/sanity/m08_umap_vjepa_lambda0_01_traffic_mix.png
+Saved: /workspace/factorjepa/outputs/sanity/m08_umap_vjepa_lambda0_01_pedestrian_vehicle_separation.png
+Saved: /workspace/factorjepa/outputs/sanity/m08_umap_vjepa_lambda0_01_road_surface.png
+Saved: /workspace/factorjepa/outputs/sanity/m08_umap_vjepa_lambda0_01_infrastructure_quality.png
+Saved: /workspace/factorjepa/outputs/sanity/m08_umap_vjepa_lambda0_01_road_encroachment.png
+Saved: /workspace/factorjepa/outputs/sanity/m08_umap_vjepa_lambda0_01_vegetation.png
+Saved: /workspace/factorjepa/outputs/sanity/m08_umap_vjepa_lambda0_01_lighting.png
+Saved: /workspace/factorjepa/outputs/sanity/m08_umap_vjepa_lambda0_01_video_quality.png
+Saved: /workspace/factorjepa/outputs/sanity/m08_umap_grid_vjepa_lambda0_01.png
+Saved: /workspace/factorjepa/outputs/sanity/m08_confusion_matrix_vjepa_lambda0_01.png
+
+Per-class retrieval accuracy:
+  beach_coastal: 63.7%
+  commercial: 11.1%
+  ghat: 0.0%
+  heritage_tourist: 19.0%
+  junction: 8.3%
+  market: 0.0%
+  promenade: 56.7%
+  residential_lane: 7.1%
+Saved: /workspace/factorjepa/outputs/sanity/m08_confusion_matrix_vjepa_lambda0_01_time_of_day.png
+Saved: /workspace/factorjepa/outputs/sanity/m08_confusion_matrix_vjepa_lambda0_01_weather.png
+Saved: /workspace/factorjepa/outputs/sanity/m08_confusion_matrix_vjepa_lambda0_01_crowd_density.png
+Saved: /workspace/factorjepa/outputs/sanity/m08_confusion_matrix_vjepa_lambda0_01_traffic_density.png
+Saved: /workspace/factorjepa/outputs/sanity/m08_confusion_matrix_vjepa_lambda0_01_traffic_mix.png
+Saved: /workspace/factorjepa/outputs/sanity/m08_confusion_matrix_vjepa_lambda0_01_pedestrian_vehicle_separation.png
+Saved: /workspace/factorjepa/outputs/sanity/m08_confusion_matrix_vjepa_lambda0_01_road_surface.png
+Saved: /workspace/factorjepa/outputs/sanity/m08_confusion_matrix_vjepa_lambda0_01_infrastructure_quality.png
+Saved: /workspace/factorjepa/outputs/sanity/m08_confusion_matrix_vjepa_lambda0_01_road_encroachment.png
+Saved: /workspace/factorjepa/outputs/sanity/m08_confusion_matrix_vjepa_lambda0_01_vegetation.png
+Saved: /workspace/factorjepa/outputs/sanity/m08_confusion_matrix_vjepa_lambda0_01_lighting.png
+Saved: /workspace/factorjepa/outputs/sanity/m08_confusion_matrix_vjepa_lambda0_01_video_quality.png
+Saved: /workspace/factorjepa/outputs/sanity/m08_confusion_matrix_grid_vjepa_lambda0_01.png
+Saved: /workspace/factorjepa/outputs/sanity/m08_knn_grid_vjepa_lambda0_01.png
+
+=== MACRO/MICRO REPORTING ===
+
+EASY mode:
+  Macro Prec@K: 20.75%
+  Micro Prec@K: 44.79%
+  Cycle At K: 79.69
+  Prec At K: 44.79
+  Silhouette: -0.1993
+  Map At K: 0.3987
+  Ndcg At K: 0.9705
+
+HARD mode:
+  Macro Prec@K: 20.04%
+  Micro Prec@K: 43.23%
+  Cycle At K: 81.25
+  Prec At K: 43.23
+  Silhouette: -0.1993
+  Map At K: 0.3781
+  Ndcg At K: 0.9709
+
+=== VISUALIZATION COMPLETE ===
+Outputs in: /workspace/factorjepa/outputs/sanity
+wandb: updating run metadata
+wandb: uploading media/images/umap_vjepa_lambda0_01_infrastructure_quality_20_1d7d4b5b20dd05f35e54.png; uploading media/images/umap_vjepa_lambda0_01_4_beff54717183b61da141.png; uploading media/images/umap_vjepa_lambda0_01_weather_8_978f1ddbc68166d22940.png; uploading media/images/confusion_matrix_vjepa_lambda0_01_pedestrian_vehicle_separation_17_65fd3ca3a8842ee5dc65.png; uploading media/images/confusion_matrix_vjepa_lambda0_01_infrastructure_quality_21_4ddcf8feaa4b2b6070c5.png (+ 20 more)
+wandb: uploading media/images/umap_grid_vjepa_lambda0_01_30_c7fae8a4928a96cee495.png
+wandb: 
+wandb: Run history:
+wandb: easy/macro_prec_at_k ▁
+wandb: easy/micro_prec_at_k ▁
+wandb: hard/macro_prec_at_k ▁
+wandb: hard/micro_prec_at_k ▁
+wandb: 
+wandb: Run summary:
+wandb: easy/macro_prec_at_k 20.75
+wandb: easy/micro_prec_at_k 44.79
+wandb: hard/macro_prec_at_k 20.04
+wandb: hard/micro_prec_at_k 43.23
+wandb: 
+wandb: 🚀 View run m08_SANITY at: https://wandb.ai/sjsu_llm/walkindia-200k/runs/12ghgefh
+wandb: ⭐️ View project at: https://wandb.ai/sjsu_llm/walkindia-200k
+wandb: Synced 5 W&B file(s), 29 media file(s), 0 artifact file(s) and 0 other file(s)
+wandb: Find logs at: ./wandb/run-20260403_102824-12ghgefh/logs
+[10:28:38] PASSED: m08 plots (winner) (0m 15s)
+[10:28:51] HF upload started in background (PID=2709744)
+
+═══════════════════════════════════════════════════════════════
+  STEP final-compare: m08b comparison (frozen + baselines + adapted)
+  Mode: SANITY | Est: ~30 sec
+  Started: 2026-04-03 10:28:51
+═══════════════════════════════════════════════════════════════
+[10:28:51] CMD: python -u src/m08b_compare.py --encoders vjepa,random,dinov2,clip,vjepa_shuffled,vjepa_lambda0_01,vjepa_lambda0_01_shuffled --SANITY
+Output dir: /workspace/factorjepa/outputs/sanity
+Scanning for encoder metrics...
+  Loaded: vjepa (m06_metrics.json)
+  Loaded: random (m06_metrics_random.json)
+  Loaded: dinov2 (m06_metrics_dinov2.json)
+  Loaded: clip (m06_metrics_clip.json)
+  Loaded: vjepa_shuffled (m06_metrics_vjepa_shuffled.json)
+  Loaded: vjepa_lambda0_01 (m06_metrics_vjepa_lambda0_01.json)
+  Loaded: vjepa_lambda0_01_shuffled (m06_metrics_vjepa_lambda0_01_shuffled.json)
+  Loaded temporal: vjepa (m06b_temporal_corr.json)
+  Loaded temporal: random (m06b_temporal_corr_random.json)
+  Loaded temporal: vjepa_shuffled (m06b_temporal_corr_vjepa_shuffled.json)
+  Loaded temporal: vjepa_lambda0_01 (m06b_temporal_corr_vjepa_lambda0_01.json)
+
+Found 7 encoder(s): vjepa, random, dinov2, clip, vjepa_shuffled, vjepa_lambda0_01, vjepa_lambda0_01_shuffled
+Found 4 temporal result(s): vjepa, random, vjepa_shuffled, vjepa_lambda0_01
+wandb: [wandb.login()] Loaded credentials for https://api.wandb.ai from WANDB_API_KEY.
+wandb: Currently logged in as: kapilw25 (sjsu_llm) to https://api.wandb.ai. Use `wandb login --relogin` to force relogin
+wandb: WARNING Using a boolean value for 'reinit' is deprecated. Use 'return_previous' or 'finish_previous' instead.
+wandb: setting up run 4flpkpez
+wandb: Tracking run with wandb version 0.25.1
+wandb: Run data is saved locally in /workspace/factorjepa/wandb/run-20260403_102852-4flpkpez
+wandb: Run `wandb offline` to turn off syncing.
+wandb: Syncing run m08b_SANITY
+wandb: ⭐️ View project at https://wandb.ai/sjsu_llm/walkindia-200k
+wandb: 🚀 View run at https://wandb.ai/sjsu_llm/walkindia-200k/runs/4flpkpez
+wandb: run=m08b_SANITY url=https://wandb.ai/sjsu_llm/walkindia-200k/runs/4flpkpez
+
+================================================================================
+                               ENCODER COMPARISON                               
+================================================================================
+Encoder              Dim  Cycle@K (%) Overlap@K (%)   Prec@K (%)        mAP@K       nDCG@K   Silhouette
+-------------------------------------------------------------------------------------------------------
+vjepa               1408        79.69        40.78        45.31       0.4043       0.9712      -0.2077
+random              1408       100.00          N/A        20.83       0.1271       0.9448      -0.0282
+dinov2              1536        71.88          N/A        25.52       0.1622       0.9422      -0.3042
+clip                 768        70.31          N/A        34.38       0.2392       0.9462      -0.1078
+vjepa_shuffled      1408        81.25          N/A        46.88       0.4299       0.9677      -0.2069
+vjepa_lambda0_01    1408        79.69          N/A        44.79       0.3987       0.9705      -0.1993
+vjepa_lambda0_01_shuffled  1408        82.81          N/A        47.40       0.4281       0.9712      -0.1981
+
+--- Easy Mode (above) ---
+
+--- Hard Mode ---
+vjepa               1408        81.25        40.78        43.49       0.3835       0.9705      -0.2077
+random              1408       100.00          N/A        19.79       0.1193       0.9466      -0.0282
+dinov2              1536        70.31          N/A        25.00       0.1510       0.9406      -0.3042
+clip                 768        67.19          N/A        33.33       0.2306       0.9457      -0.1078
+vjepa_shuffled      1408        81.25          N/A        44.27       0.4025       0.9684      -0.2069
+vjepa_lambda0_01    1408        81.25          N/A        43.23       0.3781       0.9709      -0.1993
+vjepa_lambda0_01_shuffled  1408        84.38          N/A        44.27       0.4023       0.9719      -0.1981
+Saved: /workspace/factorjepa/outputs/sanity/m08b_encoder_comparison.png
+Saved: /workspace/factorjepa/outputs/sanity/m08b_radar.png
+Saved: /workspace/factorjepa/outputs/sanity/m08b_comparison_table.tex
+Saved: /workspace/factorjepa/outputs/sanity/m08b_spatial_temporal_bar.png
+Saved: /workspace/factorjepa/outputs/sanity/m08b_tradeoff_scatter.png
+Saved: /workspace/factorjepa/outputs/sanity/m08b_temporal_ablation.png
+Saved: /workspace/factorjepa/outputs/sanity/m08b_heatmap.png
+wandb: updating run metadata
+wandb: uploading wandb-summary.json; uploading media/images/m08b_encoder_comparison_0_ba912b3c88cadba2ea81.png; uploading media/images/m08b_spatial_temporal_bar_2_9983ff3c5f5a75b3b3be.png; uploading media/images/m08b_tradeoff_scatter_3_f364c3924a907a448077.png; uploading config.yaml (+ 6 more)
+wandb: uploading media/images/m08b_encoder_comparison_0_ba912b3c88cadba2ea81.png; uploading media/images/m08b_spatial_temporal_bar_2_9983ff3c5f5a75b3b3be.png; uploading media/images/m08b_tradeoff_scatter_3_f364c3924a907a448077.png; uploading media/images/m08b_radar_1_79018b3f5b283c3081e6.png; uploading media/images/m08b_temporal_ablation_4_613c819fff6e5e081dbc.png (+ 1 more)
+wandb: 🚀 View run m08b_SANITY at: https://wandb.ai/sjsu_llm/walkindia-200k/runs/4flpkpez
+wandb: ⭐️ View project at: https://wandb.ai/sjsu_llm/walkindia-200k
+wandb: Synced 5 W&B file(s), 6 media file(s), 0 artifact file(s) and 0 other file(s)
+wandb: Find logs at: ./wandb/run-20260403_102852-4flpkpez/logs
+
+=== COMPARISON COMPLETE ===
+[10:28:59] PASSED: m08b comparison (frozen + baselines + adapted) (0m 8s)
+[10:29:23] HF upload started in background (PID=2709967)
+[10:29:23] Phase 3 complete: UMAP + plots + comparison for vjepa_lambda0_01
+
+[10:29:23] === FINAL VERIFICATION: Ch10 Ablation Outputs ===
+=== ABLATION TRAINING (Phase 1) ===
+      lambda    JEPA Loss    Steps    Student
+  ---------------------------------------------
+           0       0.4825       28         OK
+       0.001       0.4875       28         OK
+        0.01       0.4847       28         OK
+         0.1       0.4847       28         OK
+  WINNER: lambda=0.01 (val_loss=1.5943552255630493)
+
+=== WINNER RUN (Phase 2) ===
+  OK   Winner embeddings
+  OK   Winner metrics
+  OK   Winner knn_indices
+
+=== FULL EVALUATION (Phase 3) ===
+  OK   Winner UMAP
+  OK   Winner UMAP plot
+  OK   Comparison radar
+  OK   Comparison table
+
+=== TOTAL: 12 OK, 0 MISSING ===
+
+═══════════════════════════════════════════════════════════════
+  Ch10 PIPELINE COMPLETE
+═══════════════════════════════════════════════════════════════
+  Mode:       SANITY
+  Config:     configs/pretrain/vitg16_indian.yaml
+  Total:      0h 38m 46s
+  Steps:      9 passed, 0 failed, 9 total
+  Outputs:    outputs/sanity/
+  Master log: logs/ch10_SANITY_20260403_095037.log
+═══════════════════════════════════════════════════════════════
+[10:29:23] Waiting for final HF upload...
+[10:29:50] Final HF upload complete
+[10:29:50] GPU watchdog stopped

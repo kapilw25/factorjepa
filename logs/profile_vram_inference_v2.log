@@ -1,0 +1,52 @@
+/workspace/factorjepa/venv_walkindia/lib/python3.12/site-packages/timm/models/layers/__init__.py:49: FutureWarning: Importing from timm.models.layers is deprecated, please import via timm.layers
+  warnings.warn(f"Importing from {__name__} is deprecated, please import via timm.layers", FutureWarning)
+GPU: NVIDIA RTX PRO 6000 Blackwell Workstation Edition (95.0 GB)
+=== INFERENCE-ONLY PROFILING (m05 embedding) ===
+Student encoder only, no grad, no teacher/predictor/optimizer
+
+Student: 1.01B params (float16)
+torch.compile: OK (will trace on first batch)
+
+ Batch   Peak VRAM    Status     Time
+---------------------------------------------
+/venv/main/lib/python3.12/contextlib.py:105: FutureWarning: `torch.backends.cuda.sdp_kernel()` is deprecated. In the future, this context manager will be removed. Please see `torch.nn.attention.sdpa_kernel()` for the new context manager, with updated signature.
+  self.gen = func(*args, **kwds)
+/venv/main/lib/python3.12/contextlib.py:105: FutureWarning: `torch.backends.cuda.sdp_kernel()` is deprecated. In the future, this context manager will be removed. Please see `torch.nn.attention.sdpa_kernel()` for the new context manager, with updated signature.
+  self.gen = func(*args, **kwds)
+    32        6.2G        OK     3.9s    8.3 clip/s
+    48        8.4G        OK     4.7s   10.2 clip/s
+    64       10.5G        OK     4.2s   15.2 clip/s
+    80       12.7G        OK     5.7s   14.0 clip/s
+    96       14.8G        OK     6.4s   15.0 clip/s
+   112       16.9G        OK     7.5s   15.0 clip/s
+   128       19.1G        OK     8.9s   14.4 clip/s
+   144       21.2G        OK    10.1s   14.3 clip/s
+   160       23.4G        OK    11.2s   14.2 clip/s
+   176       25.5G        OK    11.2s   15.7 clip/s
+   192       27.7G        OK    12.3s   15.6 clip/s
+   208       29.8G        OK    13.4s   15.6 clip/s
+   224       32.0G        OK    14.5s   15.4 clip/s
+   240       34.1G        OK    16.4s   14.7 clip/s
+   256       36.2G        OK    17.6s   14.6 clip/s
+   272       38.4G        OK    18.8s   14.5 clip/s
+   288       40.5G        OK    19.9s   14.5 clip/s
+   304       42.7G        OK    21.1s   14.4 clip/s
+   320       44.8G        OK    23.0s   13.9 clip/s
+   336       47.0G        OK    24.9s   13.5 clip/s
+   352       49.1G        OK    25.1s   14.0 clip/s
+   368       51.3G        OK    26.3s   14.0 clip/s
+   384       53.4G        OK    27.4s   14.0 clip/s
+   400       55.5G        OK    28.6s   14.0 clip/s
+   416       57.7G        OK    29.7s   14.0 clip/s
+   432       59.8G        OK    30.9s   14.0 clip/s
+   448       62.0G        OK    32.0s   14.0 clip/s
+   464       64.1G        OK    33.3s   13.9 clip/s
+   480       66.3G        OK    34.5s   13.9 clip/s
+   496         OOM    FAILED
+
+=== INFERENCE PROFILING RESULTS ===
+  Max safe BS (75% VRAM): 480
+  Peak VRAM at BS=480: 66.3G / 95G
+  Throughput at BS=480: 13.9 clips/s
+  Saved: /workspace/factorjepa/outputs/profile/profile_data.json
+  Saved: /workspace/factorjepa/outputs/profile/plot_inference_profile.png + .pdf

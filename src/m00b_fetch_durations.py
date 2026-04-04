@@ -10,6 +10,7 @@ USAGE:
 """
 import argparse
 import json
+import math
 import subprocess
 import sys
 import time
@@ -18,6 +19,7 @@ from pathlib import Path
 
 # Add src to path for utils import
 sys.path.insert(0, str(Path(__file__).parent))
+from utils.progress import make_pbar
 from utils.config import YT_VIDEOS_JSON
 from utils.config import get_sanity_clip_limit, get_pipeline_config
 
@@ -97,7 +99,6 @@ def fetch_duration_ytdlp(video: dict, resolution: int = 0) -> dict:
             resolution = meta.get("height", 0)
             filesize = meta.get("filesize_approx") or meta.get("filesize") or 0
             fps = meta.get("fps", 0)
-            import math
             expected_clips = math.ceil(duration / AVG_CLIP_DURATION) if duration > 0 else 0
             return {
                 "id": vid_id,
@@ -147,6 +148,7 @@ def fetch_all_durations(videos: list, workers: int = 10, resolution: int = 0) ->
     res_label = f"{resolution}p" if resolution > 0 else "best"
     print(f"Fetching metadata for {total} videos ({workers} parallel workers, format={res_label})...")
     start = time.time()
+    pbar = make_pbar(total=total, desc="m00b_fetch", unit="video")
 
     with ThreadPoolExecutor(max_workers=workers) as executor:
         future_to_video = {executor.submit(fetch_duration_ytdlp, v, resolution): v for v in videos}
@@ -160,14 +162,9 @@ def fetch_all_durations(videos: list, workers: int = 10, resolution: int = 0) ->
             else:
                 fail_count += 1
 
-            # Progress every 25 videos or at the end
-            if i % 25 == 0 or i == total:
-                elapsed = time.time() - start
-                rate = i / elapsed if elapsed > 0 else 0
-                eta = (total - i) / rate if rate > 0 else 0
-                print(f"  [{i:>4}/{total}] ok={ok_count} fail={fail_count} "
-                      f"rate={rate:.1f}v/s ETA={int(eta)}s")
+            pbar.update(1)
 
+    pbar.close()
     elapsed = time.time() - start
     print(f"\nCompleted in {elapsed:.1f}s ({total/elapsed:.1f} videos/sec)")
     print(f"Success: {ok_count}, Failed: {fail_count}")

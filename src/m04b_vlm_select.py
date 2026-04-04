@@ -10,6 +10,7 @@ from pathlib import Path
 
 # Add src to path for utils import
 sys.path.insert(0, str(Path(__file__).parent))
+from utils.progress import make_pbar
 from utils.config import (
     BAKEOFF_DIR, OUTPUTS_DIR, OUTPUTS_SANITY_DIR, TAG_TAXONOMY_JSON, VLM_MODELS,
 )
@@ -548,6 +549,7 @@ def main():
     # Compute raw scores per VLM
     raw_speeds = {}
     results = {}
+    pbar = make_pbar(total=len(model_names), desc="m04b_vlm", unit="vlm")
 
     for model in model_names:
         tags = all_tags[model]
@@ -569,6 +571,9 @@ def main():
                 "confidence_cal": conf_cal,
             },
         }
+        pbar.update(1)
+
+    pbar.close()
 
     # Normalize speed to [0,1]
     norm_speeds = normalize_speed(raw_speeds)

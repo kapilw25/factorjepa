@@ -1,5 +1,9 @@
 GPU: NVIDIA RTX PRO 6000 Blackwell Workstation Edition
 CUDA version: 12.8
+[output_guard] m06 vjepa: attempting HF download for 2 missing file(s)...
+Downloading anonymousML123/factorjepa-outputs//workspace/factorjepa/outputs/sanity/ → /workspace/factorjepa/outputs/sanity
+Download complete: 0s
+[output_guard] m06 vjepa: 2 file(s) still missing after HF download
 [output_guard] m06 vjepa: outputs missing or invalid — will re-compute
   MISS  metrics: m06_metrics.json
   MISS  knn_indices: knn_indices.npy
@@ -7,69 +11,69 @@ Encoder:     vjepa (dim=1408, type=video)
 Output dir:  /workspace/factorjepa/outputs/sanity
 Embeddings:  /workspace/factorjepa/outputs/sanity/embeddings.npy
 Metrics:     /workspace/factorjepa/outputs/sanity/m06_metrics.json
-Loaded embeddings: (50, 1408)
-Loaded tags: 50
-Loaded clip paths: 50
-Key alignment verified: 50 clips match
-SANITY MODE: 50 clips
-Building FAISS GPU index: 50 vectors, dim=1408
-FAISS GPU index built: 50 vectors
+Loaded embeddings: (64, 1408)
+Loaded tags: 64
+Loaded clip paths: 64
+WARNING: Tags lack _clip_key field — cannot verify alignment. Results may be wrong if tags and embeddings are from different runs.
+SANITY MODE: 64 clips
+Building FAISS GPU index: 64 vectors, dim=1408
+FAISS GPU index built: 64 vectors
 
 Searching 30 neighbors (k=6, extra for Hard mode)...
 
 ==================================================
 EASY MODE (k=6)
 ==================================================
-  Cycle@K:     80.00%
+  Cycle@K:     79.69%
   Overlap@K:   SKIPPED (< 100 clips)
-  Silhouette:  -0.0936 (scene_type)
-  Prec@K:      54.67%
-  mAP@K:       0.5137
-  nDCG@K:      0.9783
+  Silhouette:  -0.2077 (scene_type)
+  Prec@K:      45.31%
+  mAP@K:       0.4043
+  nDCG@K:      0.9712
   Computing per-key breakdowns for 13 fields...
-  Silhouette per-key: pedestrian_vehicle_separation=0.1189, traffic_mix=0.0886, road_encroachment=0.0367 ...
-  Prec@K per-key: time_of_day=100.00%, crowd_density=100.00%, traffic_density=100.00% ...
-  mAP@K per-key: time_of_day=1.0000, crowd_density=1.0000, traffic_density=1.0000 ...
+  Silhouette per-key: pedestrian_vehicle_separation=0.0574, infrastructure_quality=0.0180, time_of_day=0.0000 ...
+  Prec@K per-key: time_of_day=100.00%, lighting=100.00%, traffic_density=93.75% ...
+  mAP@K per-key: time_of_day=1.0000, lighting=1.0000, traffic_density=0.9141 ...
   Cycle@K per-key: computed for 13 fields
-  Macro avg:   28.27%
-  Micro avg:   54.67%
+  Macro avg:   20.90%
+  Micro avg:   45.31%
   Bootstrap 95% CI (BCa, 10K iterations)...
-  Prec@K:  54.67% ± 10.00
-  mAP@K:   0.5137 ± 0.1007
-  Cycle@K: 0.80% ± 0.12
-  nDCG@K:  0.9783 ± 0.0061
-  [0.4s]
-Hard mode exclusion: 18 clips affected (avg 1.3 excluded neighbors)
+  Prec@K:  45.31% ± 8.59
+  mAP@K:   0.4043 ± 0.0863
+  Cycle@K: 0.80% ± 0.09
+  nDCG@K:  0.9712 ± 0.0069
+  [0.3s]
+Hard mode exclusion: 24 clips affected (avg 1.2 excluded neighbors)
 
 ==================================================
 HARD MODE (k=6)
 ==================================================
-  Cycle@K:     80.00%
+  Cycle@K:     81.25%
   Overlap@K:   SKIPPED (< 100 clips)
-  Silhouette:  -0.0936 (scene_type)
-  Prec@K:      52.67%
-  mAP@K:       0.4880
-  nDCG@K:      0.9768
+  Silhouette:  -0.2077 (scene_type)
+  Prec@K:      43.49%
+  mAP@K:       0.3835
+  nDCG@K:      0.9705
   Computing per-key breakdowns for 13 fields...
-  Silhouette per-key: pedestrian_vehicle_separation=0.1189, traffic_mix=0.0886, road_encroachment=0.0367 ...
-  Prec@K per-key: time_of_day=100.00%, crowd_density=100.00%, traffic_density=100.00% ...
-  mAP@K per-key: time_of_day=1.0000, crowd_density=1.0000, traffic_density=1.0000 ...
+  Silhouette per-key: pedestrian_vehicle_separation=0.0574, infrastructure_quality=0.0180, time_of_day=0.0000 ...
+  Prec@K per-key: time_of_day=100.00%, lighting=100.00%, traffic_density=93.75% ...
+  mAP@K per-key: time_of_day=1.0000, lighting=1.0000, traffic_density=0.9141 ...
   Cycle@K per-key: computed for 13 fields
-  Macro avg:   27.24%
-  Micro avg:   52.67%
+  Macro avg:   20.12%
+  Micro avg:   43.49%
   Bootstrap 95% CI (BCa, 10K iterations)...
-  Prec@K:  52.67% ± 10.17
-  mAP@K:   0.4880 ± 0.1057
-  Cycle@K: 0.80% ± 0.12
-  nDCG@K:  0.9768 ± 0.0065
+  Prec@K:  43.49% ± 8.72
+  mAP@K:   0.3835 ± 0.0892
+  Cycle@K: 0.81% ± 0.09
+  nDCG@K:  0.9705 ± 0.0068
   [0.0s]
 
-  True Overlap@K: 52.00% ± 5.32 (multi-crop augmentation)
+  True Overlap@K: 40.78% ± 4.91 (multi-crop augmentation)
 
 Confidence sweep: 7 thresholds
 
 Saved: /workspace/factorjepa/outputs/sanity/m06_metrics.json
-Saved: /workspace/factorjepa/outputs/sanity/knn_indices.npy ((50, 7))
+Saved: /workspace/factorjepa/outputs/sanity/knn_indices.npy ((64, 7))
 Saved: /workspace/factorjepa/outputs/sanity/m06_distance_hist.png
 Saved: /workspace/factorjepa/outputs/sanity/m06_confidence_sweep.png
 Saved: /workspace/factorjepa/outputs/sanity/m06_purity_all_keys.png
@@ -85,12 +89,12 @@ Saved: /workspace/factorjepa/outputs/sanity/m06_radar.png
 ============================================================
 Metric                     Easy       Hard
 ------------------------------------------
-  Cycle At K              80.00      80.00
-  Overlap At K            52.00      52.00
-  Silhouette            -0.0936    -0.0936
-  Prec At K               54.67      52.67
-  Map At K               0.5137     0.4880
-  Ndcg At K              0.9783     0.9768
+  Cycle At K              79.69      81.25
+  Overlap At K            40.78      40.78
+  Silhouette            -0.2077    -0.2077
+  Prec At K               45.31      43.49
+  Map At K               0.4043     0.3835
+  Ndcg At K              0.9712     0.9705
 
-  Macro Prec@K:  Easy=28.27%  Hard=27.24%
-  Micro Prec@K:  Easy=54.67%  Hard=52.67%
+  Macro Prec@K:  Easy=20.90%  Hard=20.12%
+  Micro Prec@K:  Easy=45.31%  Hard=43.49%

@@ -12,6 +12,7 @@ import argparse
 import io
 import json
 import os
+import shutil
 import sys
 import tarfile
 import time
@@ -33,13 +34,18 @@ DOWNLOAD_WORKERS = 8  # parallel HF shard downloads (8 × ~400MB = ~3.2GB temp d
 
 
 def _download_one_shard(tar_name: str, tmp_dir: Path) -> str:
-    """Download a single HF shard to tmp_dir. Returns local path. Thread-safe."""
+    """Download a single HF shard to its own temp dir. Returns local path. Thread-safe."""
     from huggingface_hub import hf_hub_download
+    # Each worker gets a unique subdir to avoid HF Hub cache race conditions
+    # (parallel workers sharing one local_dir causes temp file collisions)
+    shard_stem = Path(tar_name).stem  # e.g. "train-00042"
+    worker_dir = tmp_dir / shard_stem
+    worker_dir.mkdir(parents=True, exist_ok=True)
     return hf_hub_download(
         HF_DATASET_REPO,
         filename=tar_name,
         repo_type="dataset",
-        local_dir=str(tmp_dir),
+        local_dir=str(worker_dir),
     )
 
 
@@ -179,6 +185,12 @@ def download_subset(args):
 
     # Resume: load manifest to find already-saved keys
     manifest = _load_manifest(manifest_path)
+    # Verify claimed shards actually exist on disk (guards against stale manifest)
+    claimed_shards = manifest.get("shards", [])
+    missing = [s for s in claimed_shards if not (output_dir / s).exists()]
+    if missing:
+        print(f"  [resume] STALE MANIFEST: {len(missing)}/{len(claimed_shards)} TARs missing on disk. Resetting.")
+        manifest = {}
     saved_keys = set(manifest.get("saved_keys", []))
     processed_hf_shards = set(manifest.get("processed_hf_shards", []))
     if saved_keys:
@@ -257,6 +269,10 @@ def download_subset(args):
 
             # Scan each downloaded shard sequentially (safe for shared state)
             for tar_name, local_tar in download_results.items():
+                if not os.path.exists(local_tar):
+                    print(f"  FATAL: downloaded file vanished: {local_tar}")
+                    download_errors += 1
+                    continue
                 matches = _scan_shard(local_tar, remaining_keys, saved_keys)
 
                 for base, mp4_bytes, json_bytes, clip_key in matches:
@@ -349,7 +365,6 @@ def download_subset(args):
     print(f"  Disk: {total_bytes / 1e9:.2f} GB")
 
     # Clean up temp dir
-    import shutil
     shutil.rmtree("/tmp/hf_shard_tmp", ignore_errors=True)
     print("  Cleaned temp dir")
 

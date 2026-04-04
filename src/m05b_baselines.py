@@ -8,8 +8,11 @@ USAGE:
     python -u src/m05b_baselines.py --encoder all --FULL --local-data data/full_local 2>&1 | tee logs/m05b_all_full.log
 """
 import argparse
+import io
+import json
 import os
 import queue
+import shutil
 import sys
 import tempfile
 import threading
@@ -26,7 +29,7 @@ from utils.config import (
     ENCODER_REGISTRY, VJEPA_EMBEDDING_DIM, VJEPA_FRAMES_PER_CLIP,
     check_gpu, check_output_exists, load_subset, add_subset_arg, add_local_data_arg,
     get_output_dir, get_encoder_files,
-    get_sanity_clip_limit, get_total_clips,
+    get_sanity_clip_limit, get_total_clips, get_pipeline_config,
 )
 from utils.data_download import ensure_local_data, iter_clips_parallel
 from utils.gpu_batch import compute_batch_sizes, add_gpu_mem_arg, cuda_cleanup, cleanup_temp
@@ -99,7 +102,6 @@ def _decode_and_extract_frame(mp4_bytes: bytes, clip_key: str,
     that only need 1 frame per clip. Falls back to PyAV on decord failure.
     """
     from PIL import Image
-    import io
 
     try:
         from decord import VideoReader
@@ -285,7 +287,20 @@ def generate_dinov2(output_dir: Path, args, clip_limit: int, subset_keys: set):
     all_embeddings, all_keys, resume_count = load_checkpoint(checkpoint_file)
     processed_keys = set(all_keys)
 
-    batch_size = args.batch_size or compute_batch_sizes(gpu_vram_gb=args.gpu_mem)["image_encoder"]
+    # Read from: 1) CLI arg, 2) profiler JSON, 3) pipeline.yaml, 4) linear estimate
+    batch_size = None
+    if args.batch_size:
+        batch_size = args.batch_size
+    else:
+        _prof_path = Path("outputs/profile/inference/dinov2/profile_data.json")
+        if _prof_path.exists():
+            _prof = json.load(open(_prof_path))
+            if "optimal_bs" in _prof:
+                batch_size = _prof["optimal_bs"]
+                print(f"Batch size: {batch_size} (from inference/dinov2 profiler)")
+        if batch_size is None:
+            batch_size = get_pipeline_config()["gpu"].get("inference_dinov2_bs",
+                         compute_batch_sizes(gpu_vram_gb=args.gpu_mem)["image_encoder"])
     if args.SANITY:
         batch_size = min(batch_size, 4)
 
@@ -363,7 +378,6 @@ def generate_dinov2(output_dir: Path, args, clip_limit: int, subset_keys: set):
         stop_event.set()
         save_checkpoint(all_embeddings, all_keys, checkpoint_file)
         producer.join(timeout=10)
-        import shutil
         shutil.rmtree(tmp_dir, ignore_errors=True)
 
     _finalize(all_embeddings, all_keys, files, checkpoint_file)
@@ -469,7 +483,6 @@ def generate_clip(output_dir: Path, args, clip_limit: int, subset_keys: set):
         stop_event.set()
         save_checkpoint(all_embeddings, all_keys, checkpoint_file)
         producer.join(timeout=10)
-        import shutil
         shutil.rmtree(tmp_dir, ignore_errors=True)
 
     _finalize(all_embeddings, all_keys, files, checkpoint_file)
@@ -628,7 +641,20 @@ def generate_shuffled_vjepa(output_dir: Path, args, clip_limit: int, subset_keys
     all_embeddings, all_keys, resume_count = load_checkpoint(checkpoint_file)
     processed_keys = set(all_keys)
 
-    batch_size = args.batch_size or compute_batch_sizes(gpu_vram_gb=args.gpu_mem)["vjepa"]
+    # Read from: 1) CLI arg, 2) profiler JSON, 3) pipeline.yaml, 4) linear estimate
+    batch_size = None
+    if args.batch_size:
+        batch_size = args.batch_size
+    else:
+        profile_path = Path("outputs/profile/inference/vjepa2/profile_data.json")
+        if profile_path.exists():
+            _profile = json.load(open(profile_path))
+            if "optimal_bs" in _profile:
+                batch_size = _profile["optimal_bs"]
+                print(f"Batch size: {batch_size} (from inference/vjepa2 profiler)")
+        if batch_size is None:
+            batch_size = get_pipeline_config()["gpu"].get("inference_vjepa_bs",
+                         compute_batch_sizes(gpu_vram_gb=args.gpu_mem)["vjepa"])
     if args.SANITY:
         batch_size = min(batch_size, 2)
 
@@ -691,7 +717,6 @@ def generate_shuffled_vjepa(output_dir: Path, args, clip_limit: int, subset_keys
         stop_event.set()
         save_checkpoint(all_embeddings, all_keys, checkpoint_file)
         producer.join(timeout=10)
-        import shutil
         shutil.rmtree(tmp_dir, ignore_errors=True)
         try:
             tmp_base.rmdir()
@@ -851,6 +876,12 @@ def _run_single_encoder(encoder: str, args):
     print(f"Clips:     {len(keys):,}")
     print(f"Dim:       {embeddings.shape[1]}")
     print(f"Next step: python -u src/m06_faiss_metrics.py --encoder {encoder} --FULL --subset data/subset_10k.json")
+
+    # Force exit: torch.compile + CUDA atexit cleanup deadlocks on futex_wait_queue
+    # (hangs indefinitely at 0% GPU after all output files are saved)
+    sys.stdout.flush()
+    sys.stderr.flush()
+    os._exit(0)
 
 
 if __name__ == "__main__":

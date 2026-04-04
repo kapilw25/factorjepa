@@ -8,6 +8,7 @@ USAGE:
     python -u src/m05_vjepa_embed.py --FULL --local-data data/full_local 2>&1 | tee logs/m05_vjepa_embed_full.log
 """
 import argparse
+import contextlib
 import json
 import os
 import queue
@@ -32,7 +33,7 @@ from utils.config import (
     check_output_exists, load_subset, add_subset_arg, add_local_data_arg, get_output_dir,
     get_pipeline_config, get_sanity_clip_limit, get_total_clips,
 )
-from utils.data_download import ensure_local_data
+from utils.data_download import ensure_local_data, iter_clips_parallel
 from utils.gpu_batch import compute_batch_sizes, add_gpu_mem_arg, cleanup_temp
 from utils.wandb_utils import add_wandb_args, init_wandb, log_metrics, log_artifact, finish_wandb
 
@@ -118,6 +119,9 @@ def _load_av(video_path: str, num_frames: int) -> torch.Tensor:
     """Load video using PyAV (fallback)."""
     container = av.open(video_path)
     stream = container.streams.video[0]
+    # Limit ffmpeg internal threads: default thread_count=0 spawns 16 threads per decoder,
+    # causing thread explosion when called from ThreadPoolExecutor (16 workers × 16 = 256)
+    stream.codec_context.thread_count = 1
     total_frames = stream.frames
     if total_frames == 0:
         if stream.duration and stream.average_rate:
@@ -226,92 +230,92 @@ def _producer_thread(processor, batch_size: int, tmp_dir: str,
     produced = 0
     skipped = 0
     retries = 0
+    tar_stop = None
 
-    while produced < clip_limit and not stop_event.is_set():
-        try:
-            ds = _create_stream(0, local_data=local_data)
-            # Collect a batch of (bytes, key) pairs, then decode in parallel
-            pending_bytes = []
-            pending_keys = []
+    def _decode_and_enqueue(p_bytes, p_keys):
+        """Parallel decode + process + enqueue one batch."""
+        nonlocal produced
+        with ThreadPoolExecutor(max_workers=DECODE_WORKERS) as pool:
+            futures = [
+                pool.submit(decode_video_bytes, b, tmp_dir, k, num_frames)
+                for b, k in zip(p_bytes, p_keys)
+            ]
+            results = [(f.result(), k) for f, k in zip(futures, p_keys)]
+        batch_tensors = [t for t, k in results if t is not None]
+        batch_keys = [k for t, k in results if t is not None]
+        if batch_tensors:
+            _process_and_enqueue(processor, batch_tensors, batch_keys, q, shuffle_frames)
+            produced += len(batch_tensors)
 
-            for example in ds:
-                if stop_event.is_set():
+    try:
+        pending_bytes = []
+        pending_keys = []
+
+        if local_data:
+            # Fast path: parallel TAR readers (8 threads, skip processed keys at TAR level)
+            clip_q, tar_stop, _reader = iter_clips_parallel(
+                local_data, subset_keys=subset_keys, processed_keys=processed_keys)
+            while produced < clip_limit and not stop_event.is_set():
+                item = clip_q.get(timeout=120)
+                if item is None:
                     break
-
-                clip_key = get_clip_key(example)
-
-                # Subset filtering
-                if subset_keys and clip_key not in subset_keys:
-                    skipped += 1
-                    continue
-
-                # Skip already-processed clips (checkpoint resume)
-                if clip_key in processed_keys:
-                    continue
-
-                # Extract video bytes
-                mp4_data = example.get("mp4", b"")
-                mp4_bytes = mp4_data["bytes"] if isinstance(mp4_data, dict) else mp4_data
+                clip_key, mp4_bytes = item
                 if not mp4_bytes:
                     continue
-
                 pending_bytes.append(mp4_bytes)
                 pending_keys.append(clip_key)
-
                 if len(pending_bytes) >= batch_size:
-                    # Parallel decode batch
-                    with ThreadPoolExecutor(max_workers=DECODE_WORKERS) as pool:
-                        futures = [
-                            pool.submit(decode_video_bytes, b, tmp_dir, k, num_frames)
-                            for b, k in zip(pending_bytes, pending_keys)
-                        ]
-                        results = [(f.result(), k) for f, k in zip(futures, pending_keys)]
-
-                    batch_tensors = [t for t, k in results if t is not None]
-                    batch_keys = [k for t, k in results if t is not None]
-
-                    if batch_tensors:
-                        _process_and_enqueue(processor, batch_tensors, batch_keys, q, shuffle_frames)
-                        produced += len(batch_tensors)
-
-                    pending_bytes = []
-                    pending_keys = []
-                    retries = 0
-
+                    _decode_and_enqueue(pending_bytes, pending_keys)
+                    pending_bytes, pending_keys = [], []
                     if produced >= clip_limit:
                         break
+        else:
+            # Fallback: sequential HF streaming
+            while produced < clip_limit and not stop_event.is_set():
+                try:
+                    ds = _create_stream(0, local_data=local_data)
+                    for example in ds:
+                        if stop_event.is_set():
+                            break
+                        clip_key = get_clip_key(example)
+                        if subset_keys and clip_key not in subset_keys:
+                            skipped += 1
+                            continue
+                        if clip_key in processed_keys:
+                            continue
+                        mp4_data = example.get("mp4", b"")
+                        mp4_bytes = mp4_data["bytes"] if isinstance(mp4_data, dict) else mp4_data
+                        if not mp4_bytes:
+                            continue
+                        pending_bytes.append(mp4_bytes)
+                        pending_keys.append(clip_key)
+                        if len(pending_bytes) >= batch_size:
+                            _decode_and_enqueue(pending_bytes, pending_keys)
+                            pending_bytes, pending_keys = [], []
+                            retries = 0
+                            if produced >= clip_limit:
+                                break
+                    break  # stream exhausted normally
+                except (ConnectionError, TimeoutError, OSError) as e:
+                    retries += 1
+                    if retries > MAX_STREAM_RETRIES:
+                        print(f"  ERROR: stream failed after {MAX_STREAM_RETRIES} retries: {e}")
+                        break
+                    wait = min(2 ** retries, 60)
+                    print(f"  WARN: stream error ({e}), retry {retries}/{MAX_STREAM_RETRIES} in {wait}s")
+                    time.sleep(wait)
 
-            # Final partial batch
-            if pending_bytes and not stop_event.is_set():
-                with ThreadPoolExecutor(max_workers=DECODE_WORKERS) as pool:
-                    futures = [
-                        pool.submit(decode_video_bytes, b, tmp_dir, k, num_frames)
-                        for b, k in zip(pending_bytes, pending_keys)
-                    ]
-                    results = [(f.result(), k) for f, k in zip(futures, pending_keys)]
+        # Flush remaining partial batch
+        if pending_bytes and not stop_event.is_set():
+            _decode_and_enqueue(pending_bytes, pending_keys)
 
-                batch_tensors = [t for t, k in results if t is not None]
-                batch_keys = [k for t, k in results if t is not None]
-
-                if batch_tensors:
-                    _process_and_enqueue(processor, batch_tensors, batch_keys, q, shuffle_frames)
-                    produced += len(batch_tensors)
-
-            break  # stream exhausted normally
-
-        except (ConnectionError, TimeoutError, OSError) as e:
-            retries += 1
-            if retries > MAX_STREAM_RETRIES:
-                print(f"  ERROR: stream failed after {MAX_STREAM_RETRIES} retries: {e}")
-                break
-            wait = min(2 ** retries, 60)
-            print(f"  WARN: stream error ({e}), retry {retries}/{MAX_STREAM_RETRIES} in {wait}s")
-            time.sleep(wait)
-        except Exception as e:
-            print(f"  ERROR: unexpected producer error: {e}")
-            import traceback
-            traceback.print_exc()
-            break
+    except Exception as e:
+        print(f"  ERROR: unexpected producer error: {e}")
+        import traceback
+        traceback.print_exc()
+    finally:
+        if tar_stop:
+            tar_stop.set()
 
     q.put(("done", None, None))
 
@@ -321,19 +325,19 @@ def _producer_thread(processor, batch_size: int, tmp_dir: str,
 def get_batch_embeddings(model, batched_pixels: torch.Tensor, device: str,
                          is_adapted: bool = False) -> np.ndarray:
     """Get V-JEPA 2 embeddings for a batch of processed videos."""
-    pixel_values = batched_pixels.to(device)
-    with torch.no_grad(), torch.amp.autocast("cuda", dtype=torch.float16):
+    pixel_values = batched_pixels.to(device=device, dtype=torch.float16)
+    with torch.no_grad():
         if is_adapted:
             # Native vjepa2 VisionTransformer: forward(x) → (B, N, D) tensor
-            # HF processor outputs (B, T, C, H, W), native vjepa2 expects (B, C, T, H, W)
             if pixel_values.ndim == 5 and pixel_values.shape[2] in (1, 3):
                 pixel_values = pixel_values.permute(0, 2, 1, 3, 4)
             outputs = model(pixel_values)
             embeddings = outputs.mean(dim=1).float().cpu().numpy()
         else:
             # HF AutoModel: forward(pixel_values_videos=...) → ModelOutput
-            outputs = model(pixel_values_videos=pixel_values, skip_predictor=True)
-            embeddings = outputs.last_hidden_state.mean(dim=1).float().cpu().numpy()
+            with torch.amp.autocast("cuda", dtype=torch.float16):
+                outputs = model(pixel_values_videos=pixel_values, skip_predictor=True)
+                embeddings = outputs.last_hidden_state.mean(dim=1).float().cpu().numpy()
     return embeddings
 
 
@@ -485,9 +489,22 @@ def worker_main(args):
     device = "cuda"
 
     if args.batch_size is None:
-        batch_sizes = compute_batch_sizes(gpu_vram_gb=args.gpu_mem)
-        args.batch_size = batch_sizes["vjepa"]
-    print(f"Batch size: {args.batch_size}")
+        # Read from: 1) profiler JSON, 2) pipeline.yaml, 3) linear estimate
+        profile_path = Path("outputs/profile/inference/vjepa2/profile_data.json")
+        if profile_path.exists():
+            _profile = json.load(open(profile_path))
+            if "optimal_bs" in _profile:
+                args.batch_size = _profile["optimal_bs"]
+                print(f"Batch size: {args.batch_size} (from inference/vjepa2 profiler)")
+        if args.batch_size is None:
+            _pcfg_bs = get_pipeline_config().get("gpu", {}).get("inference_vjepa_bs")
+            if _pcfg_bs:
+                args.batch_size = _pcfg_bs
+                print(f"Batch size: {args.batch_size} (from pipeline.yaml)")
+            else:
+                batch_sizes = compute_batch_sizes(gpu_vram_gb=args.gpu_mem)
+                args.batch_size = batch_sizes["vjepa"]
+                print(f"Batch size: {args.batch_size} (linear estimate)")
 
     mode = "SANITY" if args.SANITY else ("POC" if args.POC else "FULL")
     wb_run = init_wandb("m05", mode,
@@ -530,6 +547,7 @@ def worker_main(args):
         print("  pip install flash-attn --no-build-isolation")
         sys.exit(1)
 
+    adapted_num_frames = None  # set inside try block for adapted models
     try:
         model_path = Path(args.model)
         is_adapted = model_path.suffix == ".pt" and model_path.exists()
@@ -543,12 +561,20 @@ def worker_main(args):
             else:
                 state_dict = ckpt
 
+            # Read num_frames from training config (16), NOT VJEPA_FRAMES_PER_CLIP (64 = HF default).
+            # The adapted model was trained with 16 frames. Using 64 would 4x token count
+            # (4608 → 18432), causing 89GB VRAM + 152GB CPU queue → OOM + SIGKILL.
+            import yaml
+            _pretrain_cfg = yaml.safe_load(open("configs/pretrain/vitg16_indian.yaml"))
+            adapted_num_frames = _pretrain_cfg["data"]["num_frames"]
+            print(f"Adapted model: num_frames={adapted_num_frames} (from training config)")
+
             # Build native vjepa2 encoder (same architecture as m09 training)
             from utils.vjepa2_imports import get_vit_giant_xformers
             vit_giant_xformers = get_vit_giant_xformers()
 
             model = vit_giant_xformers(
-                img_size=(384, 384), patch_size=16, num_frames=VJEPA_FRAMES_PER_CLIP,
+                img_size=(384, 384), patch_size=16, num_frames=adapted_num_frames,
                 tubelet_size=2, use_sdpa=True, use_silu=False, wide_silu=True,
                 uniform_power=False, use_rope=True,
             )
@@ -576,13 +602,32 @@ def worker_main(args):
             )
 
         model.eval()
-        if not is_adapted:
-            print("Applying torch.compile (first batch will be slow due to compilation)...")
-            model = torch.compile(model)
-        else:
-            # Skip torch.compile for adapted models: dynamo traces with float32
-            # fake tensors against float16 model weights → dtype mismatch crash
-            print("Skipping torch.compile for adapted encoder (float16 dtype conflict)")
+        if is_adapted:
+            # Monkey-patch deprecated sdp_kernel() to eliminate torch.compile graph breaks.
+            # vjepa2 calls `with torch.backends.cuda.sdp_kernel():` (no args) which is a
+            # no-op (enables all SDPA backends = default), but it creates graph breaks that
+            # prevent inductor memory optimization (89GB instead of 30GB at BS=176).
+            # Confirmed safe: all 7 call sites in deps/vjepa2 use bare sdp_kernel() (no args).
+            # Reference: PyTorch Issue #130098.
+            torch.backends.cuda.sdp_kernel = contextlib.nullcontext
+        print("Applying torch.compile...")
+        model = torch.compile(model)
+        # Warmup: trigger compilation at small BS so inductor caches an efficient graph.
+        # Matches profiler behavior (BS=4 warmup → 30GB at BS=176).
+        print("Warmup: compiling inductor graph...")
+        # Warmup tensor in (B, C, T, H, W) — already correct for native vjepa2 model.
+        # The permute in get_batch_embeddings handles producer's (B,T,C,H,W) → (B,C,T,H,W).
+        _warmup_nf = adapted_num_frames if is_adapted else VJEPA_FRAMES_PER_CLIP
+        warmup_t = torch.randn(2, 3, _warmup_nf, 384, 384,
+                               dtype=torch.float16, device=device)
+        with torch.no_grad():
+            if is_adapted:
+                _ = model(warmup_t)
+            else:
+                _ = model(pixel_values_videos=warmup_t, skip_predictor=True)
+        torch.cuda.synchronize()
+        del warmup_t
+        torch.cuda.empty_cache()
         print(f"Model loaded on {device} (dtype: {next(model.parameters()).dtype})")
     except Exception as e:
         print(f"FATAL: Model load failed: {e}")
@@ -602,10 +647,11 @@ def worker_main(args):
     q = queue.Queue(maxsize=PREFETCH_QUEUE_SIZE)
     stop_event = threading.Event()
 
+    _num_frames = adapted_num_frames if is_adapted else VJEPA_FRAMES_PER_CLIP
     producer = threading.Thread(
         target=_producer_thread,
         args=(processor, args.batch_size, tmp_dir, q, stop_event,
-              clip_limit, subset_keys, VJEPA_FRAMES_PER_CLIP, processed_keys,
+              clip_limit, subset_keys, _num_frames, processed_keys,
               getattr(args, 'local_data', None),
               getattr(args, 'shuffle', False)),
         daemon=True,
@@ -630,8 +676,20 @@ def worker_main(args):
             if msg_type == "done":
                 break
 
-            embeddings = get_batch_embeddings(model, batched_pixels, device,
-                                                is_adapted=is_adapted)
+            try:
+                embeddings = get_batch_embeddings(model, batched_pixels, device,
+                                                    is_adapted=is_adapted)
+            except torch.cuda.OutOfMemoryError:
+                torch.cuda.empty_cache()
+                half = batched_pixels.shape[0] // 2
+                if half == 0:
+                    raise
+                print(f"\nOOM at BS={batched_pixels.shape[0]}, retrying as 2×{half}")
+                emb1 = get_batch_embeddings(model, batched_pixels[:half], device,
+                                            is_adapted=is_adapted)
+                emb2 = get_batch_embeddings(model, batched_pixels[half:], device,
+                                            is_adapted=is_adapted)
+                embeddings = np.concatenate([emb1, emb2], axis=0)
 
             for emb, key in zip(embeddings, batch_keys):
                 all_embeddings.append(emb)
@@ -693,6 +751,11 @@ def worker_main(args):
 
     finish_wandb(wb_run)
     print("Worker exiting (GPU memory will be released).")
+
+    # Force exit: torch.compile + CUDA atexit cleanup deadlocks on futex_wait_queue
+    sys.stdout.flush()
+    sys.stderr.flush()
+    os._exit(0)
 
 
 # ── Main ───────────────────────────────────────────────────────────────

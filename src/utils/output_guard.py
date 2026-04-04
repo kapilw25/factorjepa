@@ -7,6 +7,7 @@ Two modes:
    checks ALL steps' inputs/outputs, prints summary table, asks user to confirm.
 """
 import json
+import os
 import sys
 from pathlib import Path
 
@@ -524,7 +525,6 @@ def preflight_gpu_packages(pipeline: str, config: str = "", out_dir: str = ""):
         python -u src/utils/output_guard.py preflight_gpu pretrain configs/pretrain/vitg16_indian.yaml outputs/full
         python -u src/utils/output_guard.py preflight_gpu evaluate
     """
-    import os
     errors = []
 
     # GPU + torch
@@ -629,7 +629,6 @@ def verify_training_artifacts(output_dir: str):
     USAGE:
         python -u src/utils/output_guard.py verify_training <output_dir>
     """
-    import os
     out = output_dir
     for f in ["student_encoder.pt", "training_summary.json", "loss_log.csv"]:
         path = os.path.join(out, f)
@@ -653,7 +652,6 @@ def verify_pretrain_final(output_dir: str, config_path: str):
     USAGE:
         python -u src/utils/output_guard.py verify_pretrain_final outputs/full configs/pretrain/vitg16_indian.yaml
     """
-    import os
     import yaml
 
     out = output_dir
@@ -729,8 +727,6 @@ def verify_evaluate_final(output_dir: str, tags_file: str):
     USAGE:
         python -u src/utils/output_guard.py verify_evaluate_final outputs/full outputs/full/tags.json
     """
-    import os
-
     out = output_dir
     ok_count = 0
     fail_count = 0
@@ -823,8 +819,9 @@ def verify_evaluate_final(output_dir: str, tags_file: str):
 if __name__ == "__main__":
     usage = """Usage:
   python -u src/utils/output_guard.py preflight_gpu <pretrain|evaluate> [config] [out_dir]
-  python -u src/utils/output_guard.py preflight_pretrain <out_dir> <config> [--non-interactive]
-  python -u src/utils/output_guard.py preflight_evaluate <out_dir> <tags_file> <local_data> [--non-interactive]
+  python -u src/utils/output_guard.py preflight_pretrain <out_dir> <config>
+  python -u src/utils/output_guard.py preflight_evaluate <out_dir> <tags_file> <local_data>
+  # Add --interactive to restore the confirmation prompt (default: auto-proceed)
   python -u src/utils/output_guard.py verify_training <output_dir>
   python -u src/utils/output_guard.py verify_pretrain_final <output_dir> <config>
   python -u src/utils/output_guard.py verify_evaluate_final <output_dir> <tags_file>
@@ -835,7 +832,9 @@ if __name__ == "__main__":
         sys.exit(1)
 
     cmd = sys.argv[1]
-    interactive = "--non-interactive" not in sys.argv
+    # Auto-proceed: preflight shows the plan (WILL RUN/SKIP/BLOCKED) for visibility,
+    # but never blocks. Use --interactive to restore the prompt if needed.
+    interactive = "--interactive" in sys.argv
 
     if cmd == "preflight_gpu":
         pipeline = sys.argv[2] if len(sys.argv) > 2 else "evaluate"

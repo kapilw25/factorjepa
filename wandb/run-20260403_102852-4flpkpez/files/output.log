@@ -1,0 +1,32 @@
+wandb: run=m08b_SANITY url=https://wandb.ai/sjsu_llm/walkindia-200k/runs/4flpkpez
+
+================================================================================
+                               ENCODER COMPARISON
+================================================================================
+Encoder              Dim  Cycle@K (%) Overlap@K (%)   Prec@K (%)        mAP@K       nDCG@K   Silhouette
+-------------------------------------------------------------------------------------------------------
+vjepa               1408        79.69        40.78        45.31       0.4043       0.9712      -0.2077
+random              1408       100.00          N/A        20.83       0.1271       0.9448      -0.0282
+dinov2              1536        71.88          N/A        25.52       0.1622       0.9422      -0.3042
+clip                 768        70.31          N/A        34.38       0.2392       0.9462      -0.1078
+vjepa_shuffled      1408        81.25          N/A        46.88       0.4299       0.9677      -0.2069
+vjepa_lambda0_01    1408        79.69          N/A        44.79       0.3987       0.9705      -0.1993
+vjepa_lambda0_01_shuffled  1408        82.81          N/A        47.40       0.4281       0.9712      -0.1981
+
+--- Easy Mode (above) ---
+
+--- Hard Mode ---
+vjepa               1408        81.25        40.78        43.49       0.3835       0.9705      -0.2077
+random              1408       100.00          N/A        19.79       0.1193       0.9466      -0.0282
+dinov2              1536        70.31          N/A        25.00       0.1510       0.9406      -0.3042
+clip                 768        67.19          N/A        33.33       0.2306       0.9457      -0.1078
+vjepa_shuffled      1408        81.25          N/A        44.27       0.4025       0.9684      -0.2069
+vjepa_lambda0_01    1408        81.25          N/A        43.23       0.3781       0.9709      -0.1993
+vjepa_lambda0_01_shuffled  1408        84.38          N/A        44.27       0.4023       0.9719      -0.1981
+Saved: /workspace/factorjepa/outputs/sanity/m08b_encoder_comparison.png
+Saved: /workspace/factorjepa/outputs/sanity/m08b_radar.png
+Saved: /workspace/factorjepa/outputs/sanity/m08b_comparison_table.tex
+Saved: /workspace/factorjepa/outputs/sanity/m08b_spatial_temporal_bar.png
+Saved: /workspace/factorjepa/outputs/sanity/m08b_tradeoff_scatter.png
+Saved: /workspace/factorjepa/outputs/sanity/m08b_temporal_ablation.png
+Saved: /workspace/factorjepa/outputs/sanity/m08b_heatmap.png

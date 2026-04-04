@@ -1,0 +1,30 @@
+wandb: run=m05_FULL url=https://wandb.ai/sjsu_llm/walkindia-200k/runs/ge5zct24
+
+Loading model: outputs/full/m09_lambda0_001/student_encoder.pt
+/workspace/factorjepa/venv_walkindia/lib/python3.12/site-packages/timm/models/layers/__init__.py:49: FutureWarning: Importing from timm.models.layers is deprecated, please import via timm.layers
+  warnings.warn(f"Importing from {__name__} is deprecated, please import via timm.layers", FutureWarning)
+Adapted encoder: loaded 484/484 params (missing: 0, unexpected: 0)
+Applying torch.compile...
+Warmup: compiling inductor graph...
+FATAL: Model load failed: RuntimeError when making fake tensor call
+  Explanation: Dynamo failed to run FX node with fake tensors: call_function <built-in method conv3d of type object at 0x7e54f3159180>(*(FakeTensor(..., device='cuda:0', size=(2, 64, 3, 384, 384),
+               dtype=torch.float16), Parameter(FakeTensor(..., device='cuda:0', size=(1408, 3, 2, 16, 16),
+               dtype=torch.float16, requires_grad=True)), Parameter(FakeTensor(..., device='cuda:0', size=(1408,), dtype=torch.float16,
+               requires_grad=True)), (2, 16, 16), (0, 0, 0), (1, 1, 1), 1), **{}): got RuntimeError('Given groups=1, weight of size [1408, 3, 2, 16, 16], expected input[2, 64, 3, 384, 384] to have 3 channels, but got 64 channels instead')
+  Hint: Your code may result in an error when running in eager. Please double check that your code doesn't contain a similar error when actually running eager/uncompiled. You can do this by removing the `torch.compile` call, or by using `torch.compiler.set_stance("force_eager")`.
+
+  Developer debug context:
+
+ For more details about this graph break, please visit: https://meta-pytorch.github.io/compile-graph-break-site/gb/gb4315.html
+
+from user code:
+   File "/workspace/factorjepa/deps/vjepa2/src/models/vision_transformer.py", line 188, in forward
+    x = self.patch_embed(x)
+  File "/workspace/factorjepa/deps/vjepa2/src/models/utils/patch_embed.py", line 51, in forward
+    x = self.proj(x).flatten(2).transpose(1, 2)
+  File "/workspace/factorjepa/venv_walkindia/lib/python3.12/site-packages/torch/nn/modules/conv.py", line 723, in forward
+    return self._conv_forward(input, self.weight, self.bias)
+  File "/workspace/factorjepa/venv_walkindia/lib/python3.12/site-packages/torch/nn/modules/conv.py", line 718, in _conv_forward
+    return F.conv3d(
+
+Set TORCHDYNAMO_VERBOSE=1 for the internal stack trace (please do this especially if you're reporting a bug to PyTorch). For even more developer context, set TORCH_LOGS="+dynamo"

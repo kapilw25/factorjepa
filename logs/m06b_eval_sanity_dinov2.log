@@ -1,0 +1,78 @@
+wandb: [wandb.login()] Loaded credentials for https://api.wandb.ai from WANDB_API_KEY.
+wandb: Currently logged in as: kapilw25 (sjsu_llm) to https://api.wandb.ai. Use `wandb login --relogin` to force relogin
+wandb: WARNING Using a boolean value for 'reinit' is deprecated. Use 'return_previous' or 'finish_previous' instead.
+wandb: setting up run qiveor9t
+wandb: Tracking run with wandb version 0.25.1
+wandb: Run data is saved locally in /workspace/factorjepa/wandb/run-20260404_143904-qiveor9t
+wandb: Run `wandb offline` to turn off syncing.
+wandb: Syncing run m06b_SANITY
+wandb: ⭐️ View project at https://wandb.ai/sjsu_llm/walkindia-200k
+wandb: 🚀 View run at https://wandb.ai/sjsu_llm/walkindia-200k/runs/qiveor9t
+wandb: run=m06b_SANITY url=https://wandb.ai/sjsu_llm/walkindia-200k/runs/qiveor9t
+Encoder: dinov2 (dim=1536, suffix='_dinov2')
+Output: /workspace/factorjepa/outputs/sanity
+Motion features: (56, 13)
+Embeddings: (50, 1536)
+kNN indices: (50, 7)
+m06b_temporal:   0%|          | 0/5 [00:00<?, ?step/s]Aligned: 50 clips (emb=50, motion=56)
+
+Computing Spearman correlation (+ bootstrap 95% CI)...
+  Spearman rho = 0.4182 ± 0.0050 (p = 0.00e+00, 98,026 pairs)
+
+Computing Temporal Prec@K (k=6, + bootstrap 95% CI)...
+  Temporal Prec@K = 43.0% ± 8.2
+
+Computing Motion Retrieval mAP (k=6, clusters=4, + bootstrap 95% CI)...
+  Motion Retrieval mAP = 0.8371 ± 0.0849
+m06b_temporal:  60%|██████    | 3/5 [00:12<00:08,  4.24s/step]
+Computing Temporal Locality...
+m06b_temporal: 100%|██████████| 5/5 [00:12<00:00,  2.55s/step]
+  Intra-video dist: 1.0458
+  Inter-video dist: 1.2908
+  Ratio (lower=better): 0.8102 (4 videos)
+
+Saved: /workspace/factorjepa/outputs/sanity/m06b_temporal_corr_dinov2.json
+
+============================================================
+m06b TEMPORAL CORRELATION — dinov2
+============================================================
+  Spearman rho:          0.4182 ± 0.0050
+  Temporal Prec@K:       43.0% ± 8.2
+  Motion Retrieval mAP:  0.8371 ± 0.0849
+  Temporal Locality:     0.8102 (intra/inter ratio)
+  Clips aligned:         50
+  Compute time:          12.7s
+============================================================
+wandb: updating run metadata
+wandb: uploading output.log; uploading wandb-summary.json; uploading config.yaml
+wandb: uploading history steps 0-0, summary, console lines 1-34
+wandb: 
+wandb: Run history:
+wandb:     compute_time_sec ▁
+wandb:          encoder_dim ▁
+wandb:          k_neighbors ▁
+wandb:      motion_clusters ▁
+wandb: motion_retrieval_map ▁
+wandb:      n_clips_aligned ▁
+wandb:      n_pairs_sampled ▁
+wandb:        spearman_pval ▁
+wandb:         spearman_rho ▁
+wandb:   temporal_prec_at_k ▁
+wandb: 
+wandb: Run summary:
+wandb:     compute_time_sec 12.7
+wandb:              encoder dinov2
+wandb:          encoder_dim 1536
+wandb:         encoder_type image
+wandb:          k_neighbors 6
+wandb:                 mode SANITY
+wandb:      motion_clusters 4
+wandb: motion_retrieval_map 0.83712
+wandb:      n_clips_aligned 50
+wandb:      n_pairs_sampled 98026
+wandb:                   +3 ...
+wandb: 
+wandb: 🚀 View run m06b_SANITY at: https://wandb.ai/sjsu_llm/walkindia-200k/runs/qiveor9t
+wandb: ⭐️ View project at: https://wandb.ai/sjsu_llm/walkindia-200k
+wandb: Synced 5 W&B file(s), 0 media file(s), 0 artifact file(s) and 0 other file(s)
+wandb: Find logs at: ./wandb/run-20260404_143904-qiveor9t/logs

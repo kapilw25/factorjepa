@@ -19,6 +19,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent))
+from utils.progress import make_pbar
 from utils.config import (
     CLIPS_DIR, CLIP_MIN_DURATION, CLIP_MAX_DURATION, get_video_duration,
     OUTPUTS_DATA_PREP_DIR, PROJECT_ROOT,
@@ -93,17 +94,16 @@ def main():
     start = time.time()
     clip_infos = []
     done = 0
+    pbar = make_pbar(total=len(all_clips), desc="m02b_duration", unit="clip")
 
     with ThreadPoolExecutor(max_workers=8) as pool:
         futures = {pool.submit(probe_clip, c): c for c in all_clips}
         for fut in as_completed(futures):
             clip_infos.append(fut.result())
             done += 1
-            if done % 5000 == 0 or done == len(all_clips):
-                elapsed = time.time() - start
-                rate = done / elapsed if elapsed else 1
-                eta = int((len(all_clips) - done) / rate) if rate else 0
-                print(f"  [{done:>6}/{len(all_clips)}] rate={rate:.0f}/s ETA={eta}s")
+            pbar.update(1)
+
+    pbar.close()
 
     # Organize into hierarchy: section → video_id → [clips]
     tree = {}

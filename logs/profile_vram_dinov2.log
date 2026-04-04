@@ -1,0 +1,34 @@
+/workspace/factorjepa/venv_walkindia/lib/python3.12/site-packages/timm/models/layers/__init__.py:49: FutureWarning: Importing from timm.models.layers is deprecated, please import via timm.layers
+  warnings.warn(f"Importing from {__name__} is deprecated, please import via timm.layers", FutureWarning)
+GPU: NVIDIA RTX PRO 6000 Blackwell Workstation Edition (95.0 GB)
+=== DINOv2-GIANT INFERENCE PROFILING (REAL images) ===
+Loading 256 real video clips for middle-frame extraction...
+Using PyAV for video decoding
+Extracted 256 middle frames: torch.Size([256, 3, 384, 384])
+Using a slow image processor as `use_fast` is unset and a slow processor was saved with this model. `use_fast=True` will be the default behavior in v4.52, even if the model was saved with a slow processor. This will result in minor differences in outputs. You'll still be able to use a slow processor with `use_fast=False`.
+WARN: Could not load real data (The image to be converted to a PIL image contains values outside the range [0, 1], got [-2.01820707321167, 2.640000104904175] which cannot be converted to uint8.), falling back to synthetic
+`torch_dtype` is deprecated! Use `dtype` instead!
+DINOv2-giant: 1.14B params (float16)
+torch.compile warmup done
+
+ Batch   Peak VRAM    Status     Time
+--------------------------------------------------
+    16        2.3G        OK     0.0s   438.4 img/s
+    32        2.4G        OK     0.1s   425.9 img/s
+    48        2.6G        OK     0.1s   400.9 img/s
+    64        2.7G        OK     0.2s   407.7 img/s
+    80        2.9G        OK     0.2s   401.6 img/s
+    96        3.0G        OK     0.2s   402.8 img/s
+   112        3.2G        OK     0.3s   402.0 img/s
+   128        3.3G        OK     0.3s   401.3 img/s
+   160        3.6G        OK     0.4s   400.6 img/s
+   192        3.9G        OK     0.5s   375.5 img/s
+   224        4.2G        OK     0.6s   369.2 img/s
+   256        4.5G        OK     0.7s   368.6 img/s
+
+=== DINOv2 INFERENCE RESULTS ===
+  Optimal BS (max throughput): 16
+  Peak VRAM at BS=16: 2.3G / 95G
+  Throughput at BS=16: 438.4 img/s
+  Saved: /workspace/factorjepa/outputs/profile/inference/dinov2/profile_data.json
+  Saved: /workspace/factorjepa/outputs/profile/inference/dinov2/plot_dinov2_profile.png + .pdf

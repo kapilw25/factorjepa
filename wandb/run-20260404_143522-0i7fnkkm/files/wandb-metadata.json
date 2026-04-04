@@ -1,0 +1,22 @@
+{
+  "os": "Linux-6.8.0-106-generic-x86_64-with-glibc2.39",
+  "python": "CPython 3.12.13",
+  "startedAt": "2026-04-04T14:35:22.344128Z",
+  "args": [
+    "--encoder",
+    "clip",
+    "--SANITY"
+  ],
+  "program": "/workspace/factorjepa/src/m08_plot.py",
+  "codePath": "src/m08_plot.py",
+  "codePathLocal": "src/m08_plot.py",
+  "git": {
+    "remote": "https://github.com/kapilw25/factorjepa.git",
+    "commit": "945d9c312d7b9890220fa9a55d115935f0b24a26"
+  },
+  "email": "kapilw25@gmail.com",
+  "root": "/workspace/factorjepa",
+  "host": "2d5319172a4c",
+  "executable": "/workspace/factorjepa/venv_walkindia/bin/python",
+  "writerId": "qat6mt6pzbxoldyxnqzxtt3kvwa724en"
+}

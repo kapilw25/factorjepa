@@ -1,0 +1,83 @@
+GPU: NVIDIA RTX PRO 6000 Blackwell Workstation Edition
+CUDA version: 12.8
+wandb: [wandb.login()] Loaded credentials for https://api.wandb.ai from WANDB_API_KEY.
+wandb: Currently logged in as: kapilw25 (sjsu_llm) to https://api.wandb.ai. Use `wandb login --relogin` to force relogin
+wandb: WARNING Using a boolean value for 'reinit' is deprecated. Use 'return_previous' or 'finish_previous' instead.
+wandb: setting up run va71b56g
+wandb: Tracking run with wandb version 0.25.1
+wandb: Run data is saved locally in /workspace/factorjepa/wandb/run-20260404_133437-va71b56g
+wandb: Run `wandb offline` to turn off syncing.
+wandb: Syncing run m06_FULL
+wandb: ⭐️ View project at https://wandb.ai/sjsu_llm/walkindia-200k
+wandb: 🚀 View run at https://wandb.ai/sjsu_llm/walkindia-200k/runs/va71b56g
+wandb: run=m06_FULL url=https://wandb.ai/sjsu_llm/walkindia-200k/runs/va71b56g
+[output_guard] m06 vjepa_lambda0_001: attempting HF download for 2 missing file(s)...
+Downloading anonymousML123/factorjepa-outputs//workspace/factorjepa/outputs/full/ → /workspace/factorjepa/outputs/full
+
+Download complete: 0s
+  Files: 0 new, 0 updated, 68 unchanged
+  Downloaded: 0.00 GB
+[output_guard] m06 vjepa_lambda0_001: 2 file(s) still missing after HF download
+[output_guard] m06 vjepa_lambda0_001: outputs missing or invalid — will re-compute
+  MISS  metrics: m06_metrics_vjepa_lambda0_001.json
+  MISS  knn_indices: knn_indices_vjepa_lambda0_001.npy
+Encoder:     vjepa_lambda0_001 (dim=1408, type=video_adapted)
+Output dir:  /workspace/factorjepa/outputs/full
+Embeddings:  /workspace/factorjepa/outputs/full/embeddings_vjepa_lambda0_001.npy
+Metrics:     /workspace/factorjepa/outputs/full/m06_metrics_vjepa_lambda0_001.json
+Loaded embeddings: (115687, 1408)
+Loaded tags: 115,687
+Loaded clip paths: 115,687
+WARNING: Tags lack _clip_key field — cannot verify alignment. Results may be wrong if tags and embeddings are from different runs.
+Building FAISS GPU index: 115,687 vectors, dim=1408
+FAISS GPU index built: 115,687 vectors
+
+Searching 30 neighbors (k=6, extra for Hard mode)...
+m06_modes:   0%|          | 0/2 [00:00<?, ?mode/s]
+==================================================
+EASY MODE (k=6)
+==================================================
+  Cycle@K:     78.12%
+  DimConsist@K: 35.90% ± 0.63 (dim-split, NOT augmentation invariance)
+  Silhouette:  -0.0551 (scene_type)
+  Prec@K:      21.86%
+  mAP@K:       0.1449
+  nDCG@K:      0.9244
+  Computing per-key breakdowns for 13 fields...
+
+m06_easy_perkey:   0%|          | 0/65 [00:00<?, ?field/s][A
+m06_easy_perkey:   2%|▏         | 1/65 [00:00<00:45,  1.41field/s][A
+m06_easy_perkey:   3%|▎         | 2/65 [00:01<00:52,  1.20field/s][A
+m06_easy_perkey:   5%|▍         | 3/65 [00:02<00:53,  1.17field/s][A
+m06_easy_perkey:   6%|▌         | 4/65 [00:03<00:51,  1.19field/s][A
+m06_easy_perkey:   8%|▊         | 5/65 [00:04<00:47,  1.26field/s][A
+m06_easy_perkey:   9%|▉         | 6/65 [00:04<00:45,  1.28field/s][A
+m06_easy_perkey:  11%|█         | 7/65 [00:05<00:45,  1.27field/s][A
+m06_easy_perkey:  12%|█▏        | 8/65 [00:06<00:43,  1.30field/s][A
+m06_easy_perkey:  14%|█▍        | 9/65 [00:07<00:43,  1.29field/s][A
+m06_easy_perkey:  15%|█▌        | 10/65 [00:07<00:41,  1.31field/s][A
+m06_easy_perkey:  17%|█▋        | 11/65 [00:08<00:40,  1.33field/s][A
+m06_easy_perkey:  18%|█▊        | 12/65 [00:09<00:43,  1.23field/s][A
+m06_easy_perkey:  20%|██        | 13/65 [00:10<00:44,  1.18field/s][A  Silhouette per-key: video_quality=-0.0081, infrastructure_quality=-0.0109, vegetation=-0.0169 ...
+
+m06_easy_perkey:  32%|███▏      | 21/65 [00:10<00:08,  4.98field/s][A  Prec@K per-key: time_of_day=82.08%, lighting=79.08%, pedestrian_vehicle_separation=66.30% ...
+
+m06_easy_perkey:  45%|████▍     | 29/65 [00:10<00:03,  9.77field/s][A
+m06_easy_perkey:  55%|█████▌    | 36/65 [00:10<00:01, 14.72field/s][A  mAP@K per-key: time_of_day=0.7714, lighting=0.7354, pedestrian_vehicle_separation=0.5741 ...
+
+m06_easy_perkey:  63%|██████▎   | 41/65 [00:10<00:01, 16.83field/s][A
+m06_easy_perkey:  69%|██████▉   | 45/65 [00:11<00:01, 16.23field/s][A
+m06_easy_perkey:  75%|███████▌  | 49/65 [00:11<00:01, 15.66field/s][A
+m06_easy_perkey:  80%|████████  | 52/65 [00:11<00:00, 15.29field/s][A  Cycle@K per-key: computed for 13 fields
+
+m06_easy_perkey:  85%|████████▍ | 55/65 [00:12<00:01,  8.45field/s][A
+m06_easy_perkey:  88%|████████▊ | 57/65 [00:13<00:01,  6.87field/s][A
+m06_easy_perkey:  91%|█████████ | 59/65 [00:13<00:01,  5.91field/s][A
+m06_easy_perkey:  94%|█████████▍| 61/65 [00:14<00:00,  5.11field/s][A
+m06_easy_perkey:  95%|█████████▌| 62/65 [00:14<00:00,  4.76field/s][A
+m06_easy_perkey:  97%|█████████▋| 63/65 [00:14<00:00,  4.38field/s][A
+m06_easy_perkey:  98%|█████████▊| 64/65 [00:15<00:00,  4.06field/s][A
+m06_easy_perkey: 100%|██████████| 65/65 [00:15<00:00,  3.77field/s][Am06_easy_perkey: 100%|██████████| 65/65 [00:15<00:00,  4.19field/s]
+  Macro avg:   15.25%
+  Micro avg:   21.86%
+  Bootstrap 95% CI (BCa, 10K iterations)...

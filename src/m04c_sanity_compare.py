@@ -10,6 +10,7 @@ import numpy as np
 
 # ── paths (same pattern as m08_plot.py) ──────────────────────────────────────
 sys.path.insert(0, str(Path(__file__).parent))
+from utils.progress import make_pbar
 from utils.config import OUTPUTS_DIR, OUTPUTS_SANITY_DIR, TAG_TAXONOMY_JSON
 
 MODELS = ["qwen", "videollama", "llava"]
@@ -246,8 +247,11 @@ def main():
 
     # Compute metrics
     results = {}
+    pbar = make_pbar(total=len(MODELS), desc="m04c_compare", unit="vlm")
     for model in MODELS:
         results[model] = compute_metrics(all_tags[model])
+        pbar.update(1)
+    pbar.close()
 
     # Print comparison table
     print_table(results)
