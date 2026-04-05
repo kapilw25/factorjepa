@@ -221,21 +221,33 @@ Factor datasets (D_L, D_A, D_I) created via SAM3 segmentation → tracklet minin
 | Adapted vs Frozen | Prec@K: 36.14% vs 36.09% (Δ=+0.05%, **noise**) |
 | Conclusion | **10K clips insufficient for 1B model adaptation** |
 
-### Step 2: 115K Full — Main result (IN PROGRESS 🔄)
+### Step 2a: 115K Full, λ=0.001 — CATASTROPHIC FORGETTING ❌ (2026-04-05)
 
-| Item | Plan / Status |
+| Item | Result |
 |------|------|
 | Model | V-JEPA 2.0 ViT-g (1B), same as POC |
-| Data | 115K full corpus (~114K train / ~1K val) |
-| Training frames | **16f** (Meta's recipe: 16f for 95% of training, V-JEPA 2 Sec 2.4) |
-| Eval frames | **64f** (matches frozen baseline, via `pipeline.yaml: eval_frames_per_clip`) |
-| Lambda | λ=0.001 (ablation skipped — used POC winner) |
-| Training | 1 epoch = 1,023 steps at BS=112, **~6h** |
-| Embedding | m05 re-embed at 64f, BS=44, **~15h** |
-| Eval | `run_eval.sh --FULL` (6 encoders), **~1.3h** |
-| **Total** | **~22h** |
-| Critical fixes | ImageNet normalization added (Bug 13), 64f eval (Bug 14) |
-| Command | `./scripts/run_pretrain.sh --FULL && ./scripts/run_eval.sh --FULL` |
+| Data | 115K full corpus (114,576 train / 1K val) |
+| Training | 16f, 1 epoch, BS=112, 1023 steps, LR=1e-5, ImageNet norm=YES |
+| Eval | 10K POC subset, 64f, BS=44 |
+| Lambda | **λ=0.001** |
+| JEPA loss | 0.497 → 0.476 (train), best val=1.648 |
+| Prec@K | **14.3% adapted vs 36.1% frozen (−21.8pp, significant)** |
+| nDCG@K | 0.906 vs 0.950 (−0.045, significant) |
+| Diagnosis | λ=0.001 drift penalty (0.00047) is 1000x smaller than JEPA loss (0.476). EWC literature uses λ=10²–10⁹ (arxiv 2505.05946) |
+| Full log | `iter/utils/experiment_log.md` |
+
+### Step 2b: 115K Full, λ sweep [1.0, 10.0, 100.0] — NEXT 🔄
+
+| Item | Plan |
+|------|------|
+| Model | V-JEPA 2.0 ViT-g (1B) |
+| Data | 115K full corpus, same split |
+| Training | 16f, 1 epoch, BS=112, LR=1e-5, ImageNet norm=YES |
+| Eval | 10K POC subset, 64f |
+| Lambda | **λ ∈ {1.0, 10.0, 100.0}** (1000x–100,000x stronger than failed run) |
+| Acceptance | nDCG@K non-overlapping 95% CI + 5/8 metrics improved |
+| Command | Update `ablation_lambdas` in YAML, then `./scripts/train_pretrain.sh --FULL` |
+| Fallback | If all λ fail: lower LR to 3e-6, or multi-epoch on 10K subset (arxiv 2406.14833) |
 
 ### Step 3: 2B Scaling Ablation (LATER)
 
@@ -346,22 +358,26 @@ flowchart LR
 
 ---
 
-## Code & Commands (updated April 4, 2026)
+## Code & Commands (updated April 5, 2026)
 
-### 4-script architecture (no cross-chapter eval dependency)
+### 5-script architecture (no cross-chapter eval dependency)
 
 ```bash
-# Ch9: Tags + Embeddings (5 frozen encoders + motion)
-./scripts/run_frozen.sh --FULL
+# Ch9: Tags + motion features only
+./scripts/prep_data.sh --FULL
 
-# Ch10: Training + Adapted Embeddings
-./scripts/run_pretrain.sh --FULL
+# Ch10: Training only
+./scripts/train_pretrain.sh --FULL
+
+# Embedding: ALL chapters (auto-detects frozen + adapted)
+./scripts/run_embed.sh --FULL --local-data data/full_local
 
 # Evaluation: ALL available encoders (auto-detects)
-./scripts/run_eval.sh --FULL
+./scripts/run_eval.sh --POC   # 10K fast signal
+./scripts/run_eval.sh --FULL  # 115K paper result
 
 # Ch11: Surgical fine-tuning (PLACEHOLDER)
-./scripts/run_surgery.sh --FULL
+./scripts/train_surgery.sh --FULL
 ```
 
 ### Code Organization
@@ -385,10 +401,11 @@ configs/
     └── stage3_interaction.yaml
 
 scripts/
-├── run_frozen.sh            # Ch9 (DONE)
-├── run_pretrain.sh          # Ch10 (DONE)
-├── run_eval.sh              # ALL chapters (DONE)
-└── run_surgery.sh           # Ch11 (PLACEHOLDER)
+├── prep_data.sh             # Ch9: m04(tags) + m04d(motion)
+├── train_pretrain.sh        # Ch10: m09 training only
+├── train_surgery.sh         # Ch11 (PLACEHOLDER)
+├── run_embed.sh             # ALL: m05/m05b embedding
+└── run_eval.sh              # ALL: m06→m08b evaluation
 ```
 
 ---
@@ -535,4 +552,14 @@ Drift control λ trades off adaptation (learning Indian-domain features) vs rete
 | Prec@K (Hard) | 34.70% | 34.70% | 0.00% | Identical |
 | Cycle@K (Hard) | 73.56% | 72.97% | -0.59% | Slight regression |
 
-**Conclusion:** 10K clips (8,982 train) produce zero meaningful adaptation on a 1B model. The 115K full corpus is required to test whether continual pretraining works at all.
+**Conclusion:** 10K clips (8,982 train) produce zero meaningful adaptation on a 1B model. The POC "close to frozen" result was a **false positive** — JEPA loss=1.49 because ImageNet normalization was missing, so training was ineffective and model stayed near frozen.
+
+### 115K FULL Results (actual, 2026-04-05) — CATASTROPHIC FORGETTING
+
+| Lambda | Train clips | JEPA Loss | Drift Loss | Prec@K (adapted) | Prec@K (frozen) | Verdict |
+|--------|:---:|:---:|:---:|:---:|:---:|:---:|
+| **0.001** | 114,576 | 0.476 | 0.00047 | **14.3%** | 36.1% | **−21.8pp, random-level** |
+
+**Diagnosis**: λ=0.001 drift penalty is 1000x smaller than JEPA loss — effectively zero regularization. EWC literature uses λ=10²–10⁹ (arxiv 2505.05946). Training was real this time (ImageNet norm fixed, loss dropped to 0.476 vs 1.49 in POC), but the JEPA loss overwrote spatial features without constraint.
+
+**Next sweep**: λ ∈ {1.0, 10.0, 100.0}. See `iter/utils/experiment_log.md` for full HP details.

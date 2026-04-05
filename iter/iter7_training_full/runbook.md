@@ -87,10 +87,35 @@ rm -rf outputs/sanity/
 | Ch9 data (tags + motion) | ✅ Done | 115K clips tagged, motion features extracted |
 | Ch9 frozen embeddings (115K) | ✅ Done | 5 encoders at 64f |
 | Ch9 frozen eval (115K) | ✅ Done | m06→m08b, radar plot generated |
-| Ch10 training (ImageNet norm + 16f) | ✅ Done | λ=0.001, 1 epoch, BS=112, loss 0.497→0.476 |
-| Ch10 adapted embedding (10K, 64f) | 🔄 Running | BS=44, 2.2 clips/s, ~50% done |
-| Ch10 POC eval | ⏳ Pending | `./scripts/run_eval.sh --POC` after embedding |
+| Ch10 training (λ=0.001) | ✅ Done | 1 epoch, BS=112, 16f, loss 0.497→0.476 |
+| Ch10 adapted embedding (10K) | ✅ Done | 64f, BS=44, 2.2 clips/s, 76 min |
+| Ch10 POC eval | ✅ Done | 25/25 steps passed, 10.5 min |
+| Ch10 result | ❌ **FAILED** | Prec@K 14.3% vs frozen 36.1% (catastrophic forgetting) |
 | Val data (1K clips) | ✅ Fixed | Was 326/1000, re-downloaded to 1000/1000 |
+
+## Result: λ=0.001 catastrophic forgetting
+
+| Metric | Frozen | Adapted | Delta | Sig? |
+|---|---|---|---|---|
+| Prec@K | 36.1 ±0.6 | 14.3 ±0.3 | **-21.8pp** | YES |
+| nDCG@K | 0.950 ±0.001 | 0.906 ±0.001 | **-0.045** | YES |
+
+Adapted collapsed to random baseline (12.2%). λ=0.001 drift penalty is 1000x smaller than JEPA loss.
+Full details: `iter/utils/experiment_log.md`
+
+## Next Iteration
+
+```bash
+# 1. Update ablation_lambdas in vitg16_indian.yaml to [1.0, 10.0, 100.0]
+# 2. Delete old training outputs
+rm -rf outputs/full/m09_lambda0_001/ outputs/full/ablation/
+# 3. Retrain
+./scripts/train_pretrain.sh --FULL 2>&1 | tee logs/ch10_full.log
+# 4. Re-embed + re-eval
+./scripts/run_embed.sh --FULL --subset data/subset_10k.json \
+    --local-data data/subset_10k_local --encoders vjepa_lambda<winner>
+./scripts/run_eval.sh --POC
+```
 
 ## Key Configs
 
@@ -101,7 +126,8 @@ rm -rf outputs/sanity/
 | Training BS | 112 | `configs/pipeline.yaml: training_batch_size` |
 | Adapted inference BS | 44 | `configs/pipeline.yaml: inference_adapted_bs` |
 | Frozen inference BS | 176 | `configs/pipeline.yaml: inference_vjepa_bs` |
-| Lambda | 0.001 | `outputs/full/ablation/ablation_winner.json` |
+| Lambda | **0.001 (FAILED)** → next: [1.0, 10.0, 100.0] | `configs/pretrain/vitg16_indian.yaml: ablation_lambdas` |
+| LR | 1e-5, pred 10x | `configs/pretrain/vitg16_indian.yaml: optimization.lr` |
 
 ## Critical Fixes Applied
 
@@ -113,4 +139,5 @@ rm -rf outputs/sanity/
 | sdp_kernel nullcontext | torch.compile graph breaks → 89GB VRAM |
 | Orchestrator 95% guard | Prevents saving incomplete embeddings as final output |
 | Val data 326→1000 | Incomplete TAR download, re-downloaded |
-| run_eval.sh fresh/cache prompt | User chooses [1] delete all or [2] use cache before eval |
+| --POC routing fix | get_output_dir() wasn't wired to --POC flag → wrong output dir |
+| ls\|pipefail fix | ls glob with set -eo pipefail silently killed run_eval.sh |

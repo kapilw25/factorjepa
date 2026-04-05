@@ -4,6 +4,21 @@
 
 ---
 
+## Run ~2026-03-29: λ=0.001, 5 epochs, 10K POC — FALSE POSITIVE
+
+**Train**: 10K clips, 5 epochs (44,800 clips seen), BS=112, 16f, **ImageNet norm=NO (bug)**
+**Eval**: 10K POC, **16f** (unconfirmed — logs deleted, eval frame count lost)
+**Result**: Prec@K 36.14% adapted vs 36.09% frozen (Δ=+0.05%, noise). JEPA loss=**1.49** (never dropped).
+
+**Why metrics looked positive (but were false)**:
+- Prec@K/mAP@K/Cycle@K: adapted ≈ frozen (Δ<0.1%) because model barely changed. Training with wrong input range ([0,1] vs expected [-2.1,2.6]) produced noise gradients → JEPA loss stuck at 1.49 → weights barely moved from frozen init.
+- Overlap@K: adapted slightly outperformed frozen. This is the one metric where JEPA training helps even with garbage gradients — JEPA loss predicts masked patches, which is directly related to augmentation invariance (what Overlap@K measures). Even tiny weight movement in the right direction improves it. But no 95% CIs were computed on that run, so this "improvement" may also be noise.
+- The old radar had NO min-max normalization, so adapted and frozen overlapped visually → looked "close" = "good". In reality, "close to frozen" meant "training did nothing."
+
+**Why 115K with correct norm is catastrophically worse**: Fixing ImageNet norm made training actually work (loss 1.49→0.476). Real JEPA gradients + λ=0.001 (effectively zero drift penalty) actively overwrote spatial features → Prec@K collapsed from 36.1% to 14.3% (random-level). The model learned to predict masked patches (self-supervised objective) but forgot how to discriminate scenes (what Prec@K measures).
+
+---
+
 ## Run 2026-04-05: λ=0.001, 1 epoch, 115K — CATASTROPHIC FORGETTING
 
 **Links**:
