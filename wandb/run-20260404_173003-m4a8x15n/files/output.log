@@ -1,0 +1,85 @@
+wandb: run=m08_FULL url=https://wandb.ai/sjsu_llm/walkindia-200k/runs/m4a8x15n
+Output dir: /workspace/factorjepa/outputs/full
+[output_guard] m08 vjepa_lambda0_001: attempting HF download for 2 missing file(s)...
+Downloading anonymousML123/factorjepa-outputs//workspace/factorjepa/outputs/full/ → /workspace/factorjepa/outputs/full
+
+Download complete: 0s
+  Files: 0 new, 0 updated, 400 unchanged
+  Downloaded: 0.00 GB
+[output_guard] m08 vjepa_lambda0_001: 2 file(s) still missing after HF download
+[output_guard] m08 vjepa_lambda0_001: outputs missing or invalid — will re-compute
+  MISS  umap_plot: m08_umap_vjepa_lambda0_001.png
+  MISS  confusion_matrix: m08_confusion_matrix_vjepa_lambda0_001.png
+Encoder: vjepa_lambda0_001 (suffix='_vjepa_lambda0_001')
+Loaded: 115,687 clips
+Loaded m06 metrics: m06_metrics_vjepa_lambda0_001.json
+Taxonomy keys for plots: ['scene_type', 'time_of_day', 'weather', 'crowd_density', 'traffic_density', 'traffic_mix', 'pedestrian_vehicle_separation', 'road_surface', 'infrastructure_quality', 'road_encroachment', 'vegetation', 'lighting', 'video_quality']
+m08_plot:  52%|█████▏    | 15/29 [01:24<02:04,  8.91s/plot]
+Saved: /workspace/factorjepa/outputs/full/m08_umap_vjepa_lambda0_001.png
+Saved: /workspace/factorjepa/outputs/full/m08_umap_vjepa_lambda0_001_time_of_day.png
+Saved: /workspace/factorjepa/outputs/full/m08_umap_vjepa_lambda0_001_weather.png
+Saved: /workspace/factorjepa/outputs/full/m08_umap_vjepa_lambda0_001_crowd_density.png
+Saved: /workspace/factorjepa/outputs/full/m08_umap_vjepa_lambda0_001_traffic_density.png
+Saved: /workspace/factorjepa/outputs/full/m08_umap_vjepa_lambda0_001_traffic_mix.png
+Saved: /workspace/factorjepa/outputs/full/m08_umap_vjepa_lambda0_001_pedestrian_vehicle_separation.png
+Saved: /workspace/factorjepa/outputs/full/m08_umap_vjepa_lambda0_001_road_surface.png
+Saved: /workspace/factorjepa/outputs/full/m08_umap_vjepa_lambda0_001_infrastructure_quality.png
+Saved: /workspace/factorjepa/outputs/full/m08_umap_vjepa_lambda0_001_road_encroachment.png
+Saved: /workspace/factorjepa/outputs/full/m08_umap_vjepa_lambda0_001_vegetation.png
+Saved: /workspace/factorjepa/outputs/full/m08_umap_vjepa_lambda0_001_lighting.png
+Saved: /workspace/factorjepa/outputs/full/m08_umap_vjepa_lambda0_001_video_quality.png
+Saved: /workspace/factorjepa/outputs/full/m08_umap_grid_vjepa_lambda0_001.png
+Saved: /workspace/factorjepa/outputs/full/m08_confusion_matrix_vjepa_lambda0_001.png
+
+Per-class retrieval accuracy:
+  bazaar: 1.5%
+  beach_coastal: 14.7%
+  commercial: 20.5%
+  flyover_underpass: 10.9%
+  ghat: 20.7%
+  heritage_tourist: 13.6%
+  highway: 22.6%
+  junction: 6.6%
+  market: 35.1%
+  promenade: 17.3%
+  residential_lane: 24.6%
+  skyline_aerial: 8.8%
+  transit: 14.4%
+  unsure: 2.2%
+Saved: /workspace/factorjepa/outputs/full/m08_confusion_matrix_vjepa_lambda0_001_time_of_day.png
+Saved: /workspace/factorjepa/outputs/full/m08_confusion_matrix_vjepa_lambda0_001_weather.png
+Saved: /workspace/factorjepa/outputs/full/m08_confusion_matrix_vjepa_lambda0_001_crowd_density.png
+Saved: /workspace/factorjepa/outputs/full/m08_confusion_matrix_vjepa_lambda0_001_traffic_density.png
+Saved: /workspace/factorjepa/outputs/full/m08_confusion_matrix_vjepa_lambda0_001_traffic_mix.png
+Saved: /workspace/factorjepa/outputs/full/m08_confusion_matrix_vjepa_lambda0_001_pedestrian_vehicle_separation.png
+Saved: /workspace/factorjepa/outputs/full/m08_confusion_matrix_vjepa_lambda0_001_road_surface.png
+Saved: /workspace/factorjepa/outputs/full/m08_confusion_matrix_vjepa_lambda0_001_infrastructure_quality.png
+Saved: /workspace/factorjepa/outputs/full/m08_confusion_matrix_vjepa_lambda0_001_road_encroachment.png
+Saved: /workspace/factorjepa/outputs/full/m08_confusion_matrix_vjepa_lambda0_001_vegetation.png
+Saved: /workspace/factorjepa/outputs/full/m08_confusion_matrix_vjepa_lambda0_001_lighting.png
+Saved: /workspace/factorjepa/outputs/full/m08_confusion_matrix_vjepa_lambda0_001_video_quality.png
+Saved: /workspace/factorjepa/outputs/full/m08_confusion_matrix_grid_vjepa_lambda0_001.png
+Saved: /workspace/factorjepa/outputs/full/m08_knn_grid_vjepa_lambda0_001.png
+
+=== MACRO/MICRO REPORTING ===
+
+EASY mode:
+  Macro Prec@K: 15.25%
+  Micro Prec@K: 21.86%
+  Cycle At K: 78.12
+  Prec At K: 21.86
+  Silhouette: -0.0551
+  Map At K: 0.1449
+  Ndcg At K: 0.9244
+
+HARD mode:
+  Macro Prec@K: 11.57%
+  Micro Prec@K: 18.11%
+  Cycle At K: 71.74
+  Prec At K: 18.11
+  Silhouette: -0.0551
+  Map At K: 0.1096
+  Ndcg At K: 0.9161
+
+=== VISUALIZATION COMPLETE ===
+Outputs in: /workspace/factorjepa/outputs/full

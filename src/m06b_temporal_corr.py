@@ -320,7 +320,7 @@ def main():
         print("\nERROR: Specify --SANITY, --POC, or --FULL")
         sys.exit(1)
 
-    output_dir = get_output_dir(args.subset, sanity=args.SANITY)
+    output_dir = get_output_dir(args.subset, sanity=args.SANITY, poc=args.POC)
     mode = "SANITY" if args.SANITY else ("POC" if args.POC else "FULL")
     wb_run = init_wandb("m06b", mode, config=vars(args),
                         enabled=not args.no_wandb)

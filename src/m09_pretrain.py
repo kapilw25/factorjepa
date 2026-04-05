@@ -126,7 +126,7 @@ def merge_config_with_args(cfg: dict, args) -> dict:
     if getattr(args, "output_dir", None):
         cfg["checkpoint"]["output_dir"] = args.output_dir
         return cfg
-    base_out = get_output_dir(args.subset, sanity=args.SANITY)
+    base_out = get_output_dir(args.subset, sanity=args.SANITY, poc=args.POC)
     lam = cfg["drift_control"]["lambda_reg"]
     if lam is None:
         # Auto-ablation in main() will set lambda_reg and output_dir later
@@ -156,9 +156,21 @@ def load_val_subset(val_subset_path: str) -> set:
     return keys
 
 
+# ImageNet normalization — MUST match Meta's V-JEPA training pipeline.
+# deps/vjepa2/app/vjepa/transforms.py line 110: _tensor_normalize_inplace(buffer, mean, std)
+# Without this, the model sees [0,1] range during training but [-2,2.6] during evaluation
+# (HF processor normalizes). The mismatch caused -26% Prec@K artifact.
+IMAGENET_MEAN = torch.tensor([0.485, 0.456, 0.406]).view(1, 3, 1, 1)
+IMAGENET_STD = torch.tensor([0.229, 0.224, 0.225]).view(1, 3, 1, 1)
+
+
 def augment_clip_consistent(video_tensor: torch.Tensor, cfg_aug: dict,
                             crop_size: int) -> torch.Tensor:
-    """Video-consistent augmentation: same random crop applied to ALL T frames."""
+    """Video-consistent augmentation matching Meta's V-JEPA pipeline exactly.
+
+    Steps: RandomResizedCrop → HorizontalFlip → ImageNet normalize.
+    Matches deps/vjepa2/app/vjepa/transforms.py:VideoTransform.__call__().
+    """
     import torchvision.transforms as TT
 
     T_frames, C, H, W = video_tensor.shape
@@ -176,7 +188,10 @@ def augment_clip_consistent(video_tensor: torch.Tensor, cfg_aug: dict,
     if torch.rand(1).item() < cfg_aug["horizontal_flip"]:
         video = video.flip(-1)
 
-    return video  # (T, C, crop_size, crop_size)
+    # ImageNet normalization — matches Meta's training exactly
+    video = (video - IMAGENET_MEAN.to(video.device)) / IMAGENET_STD.to(video.device)
+
+    return video  # (T, C, crop_size, crop_size), ImageNet-normalized
 
 
 def producer_thread(cfg: dict, q: queue.Queue, stop_event: threading.Event,
@@ -847,6 +862,43 @@ def train(cfg: dict, args):
             val_batches.append(_batch)
         shutil.rmtree(_val_tmp, ignore_errors=True)
         print(f"Val clips collected: {len(val_collected_keys)} in {len(val_batches)} batches")
+        if len(val_collected_keys) < len(val_key_set):
+            pct = len(val_collected_keys) / len(val_key_set) * 100
+            print(f"WARNING: Only {len(val_collected_keys)}/{len(val_key_set)} val clips ({pct:.0f}%). Auto-downloading...")
+            import subprocess
+            subprocess.run([sys.executable, "-u", "src/m00d_download_subset.py",
+                           "--FULL", "--subset", args.val_subset, "--no-wandb"], check=True)
+            # Retry collection with fresh data
+            val_batches = []
+            val_collected_keys = []
+            _val_tmp = tempfile.mkdtemp(prefix="m09_val_retry_")
+            _val_ds = _create_stream(0, local_data=val_local)
+            _val_batch_buf = []
+            for _ex in _val_ds:
+                _ck = get_clip_key(_ex)
+                if _ck not in val_key_set:
+                    continue
+                _mp4 = _ex.get("mp4", b"")
+                _mp4b = _mp4["bytes"] if isinstance(_mp4, dict) else _mp4
+                if not _mp4b:
+                    continue
+                _vt = decode_video_bytes(_mp4b, _val_tmp, _ck, cfg["data"]["num_frames"])
+                if _vt is None:
+                    continue
+                _aug = augment_clip_consistent(_vt, cfg["augmentation"], cfg["data"]["crop_size"])
+                _val_batch_buf.append(_aug)
+                val_collected_keys.append(_ck)
+                if len(_val_batch_buf) >= batch_size:
+                    _batch = torch.stack(_val_batch_buf, dim=0).permute(0, 2, 1, 3, 4)
+                    val_batches.append(_batch)
+                    _val_batch_buf = []
+                if len(val_collected_keys) >= len(val_key_set):
+                    break
+            if _val_batch_buf:
+                _batch = torch.stack(_val_batch_buf, dim=0).permute(0, 2, 1, 3, 4)
+                val_batches.append(_batch)
+            shutil.rmtree(_val_tmp, ignore_errors=True)
+            print(f"Val clips collected (retry): {len(val_collected_keys)} in {len(val_batches)} batches")
     else:
         if not getattr(args, "SANITY", False):
             print("No --val-subset provided. Attempting auto-download of val data...")

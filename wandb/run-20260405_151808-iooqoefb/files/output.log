@@ -1,0 +1,93 @@
+wandb: run=m08_POC url=https://wandb.ai/sjsu_llm/walkindia-200k/runs/iooqoefb
+Output dir: /workspace/factorjepa/outputs/poc
+[output_guard] m08 vjepa_shuffled: attempting HF download for 2 missing file(s)...
+Downloading anonymousML123/factorjepa-outputs//workspace/factorjepa/outputs/poc/ → /workspace/factorjepa/outputs/poc
+
+Download complete: 0s
+  Files: 0 new, 0 updated, 456 unchanged
+  Downloaded: 0.00 GB
+[output_guard] m08 vjepa_shuffled: 2 file(s) still missing after HF download
+[output_guard] m08 vjepa_shuffled: outputs missing or invalid — will re-compute
+  MISS  umap_plot: m08_umap_vjepa_shuffled.png
+  MISS  confusion_matrix: m08_confusion_matrix_vjepa_shuffled.png
+Encoder: vjepa_shuffled (suffix='_vjepa_shuffled')
+Loaded: 10,000 clips
+Loaded m06 metrics: m06_metrics_vjepa_shuffled.json
+Taxonomy keys for plots: ['scene_type', 'time_of_day', 'weather', 'crowd_density', 'traffic_density', 'traffic_mix', 'pedestrian_vehicle_separation', 'road_surface', 'infrastructure_quality', 'road_encroachment', 'vegetation', 'lighting', 'video_quality']
+m08_plot:  48%|████▊     | 14/29 [00:13<00:27,  1.86s/plot]
+Saved: /workspace/factorjepa/outputs/poc/m08_umap_vjepa_shuffled.png
+Saved: /workspace/factorjepa/outputs/poc/m08_umap_vjepa_shuffled_time_of_day.png
+Saved: /workspace/factorjepa/outputs/poc/m08_umap_vjepa_shuffled_weather.png
+Saved: /workspace/factorjepa/outputs/poc/m08_umap_vjepa_shuffled_crowd_density.png
+Saved: /workspace/factorjepa/outputs/poc/m08_umap_vjepa_shuffled_traffic_density.png
+Saved: /workspace/factorjepa/outputs/poc/m08_umap_vjepa_shuffled_traffic_mix.png
+Saved: /workspace/factorjepa/outputs/poc/m08_umap_vjepa_shuffled_pedestrian_vehicle_separation.png
+Saved: /workspace/factorjepa/outputs/poc/m08_umap_vjepa_shuffled_road_surface.png
+Saved: /workspace/factorjepa/outputs/poc/m08_umap_vjepa_shuffled_infrastructure_quality.png
+Saved: /workspace/factorjepa/outputs/poc/m08_umap_vjepa_shuffled_road_encroachment.png
+Saved: /workspace/factorjepa/outputs/poc/m08_umap_vjepa_shuffled_vegetation.png
+Saved: /workspace/factorjepa/outputs/poc/m08_umap_vjepa_shuffled_lighting.png
+Saved: /workspace/factorjepa/outputs/poc/m08_umap_vjepa_shuffled_video_quality.png
+Saved: /workspace/factorjepa/outputs/poc/m08_umap_grid_vjepa_shuffled.png
+Saved: /workspace/factorjepa/outputs/poc/m08_confusion_matrix_vjepa_shuffled.png
+
+Per-class retrieval accuracy:
+  academic: 0.0%
+  aerial: 2.9%
+  auditorium: 0.0%
+  bazaar: 3.1%
+  beach_coastal: 31.6%
+  bridge: 5.4%
+  commercial: 32.1%
+  construction_site: 15.0%
+  flyover_underpass: 26.8%
+  ghat: 17.9%
+  heritage_tourist: 23.1%
+  highway: 46.3%
+  indoor: 0.0%
+  industrial: 0.0%
+  junction: 19.3%
+  market: 59.0%
+  promenade: 25.3%
+  residential_lane: 38.9%
+  skyline_aerial: 32.5%
+  sports_complex: 0.0%
+  transit: 23.0%
+  tunnel: 71.4%
+Saved: /workspace/factorjepa/outputs/poc/m08_confusion_matrix_vjepa_shuffled_time_of_day.png
+Saved: /workspace/factorjepa/outputs/poc/m08_confusion_matrix_vjepa_shuffled_weather.png
+Saved: /workspace/factorjepa/outputs/poc/m08_confusion_matrix_vjepa_shuffled_crowd_density.png
+Saved: /workspace/factorjepa/outputs/poc/m08_confusion_matrix_vjepa_shuffled_traffic_density.png
+Saved: /workspace/factorjepa/outputs/poc/m08_confusion_matrix_vjepa_shuffled_traffic_mix.png
+Saved: /workspace/factorjepa/outputs/poc/m08_confusion_matrix_vjepa_shuffled_pedestrian_vehicle_separation.png
+Saved: /workspace/factorjepa/outputs/poc/m08_confusion_matrix_vjepa_shuffled_road_surface.png
+Saved: /workspace/factorjepa/outputs/poc/m08_confusion_matrix_vjepa_shuffled_infrastructure_quality.png
+Saved: /workspace/factorjepa/outputs/poc/m08_confusion_matrix_vjepa_shuffled_road_encroachment.png
+Saved: /workspace/factorjepa/outputs/poc/m08_confusion_matrix_vjepa_shuffled_vegetation.png
+Saved: /workspace/factorjepa/outputs/poc/m08_confusion_matrix_vjepa_shuffled_lighting.png
+Saved: /workspace/factorjepa/outputs/poc/m08_confusion_matrix_vjepa_shuffled_video_quality.png
+Saved: /workspace/factorjepa/outputs/poc/m08_confusion_matrix_grid_vjepa_shuffled.png
+Saved: /workspace/factorjepa/outputs/poc/m08_knn_grid_vjepa_shuffled.png
+
+=== MACRO/MICRO REPORTING ===
+
+EASY mode:
+  Macro Prec@K: 21.53%
+  Micro Prec@K: 35.33%
+  Cycle At K: 76.19
+  Prec At K: 35.33
+  Silhouette: -0.2245
+  Map At K: 0.2724
+  Ndcg At K: 0.95
+
+HARD mode:
+  Macro Prec@K: 20.43%
+  Micro Prec@K: 34.07%
+  Cycle At K: 74.19
+  Prec At K: 34.07
+  Silhouette: -0.2245
+  Map At K: 0.2594
+  Ndcg At K: 0.9479
+
+=== VISUALIZATION COMPLETE ===
+Outputs in: /workspace/factorjepa/outputs/poc

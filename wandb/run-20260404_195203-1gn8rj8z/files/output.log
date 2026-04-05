@@ -1,0 +1,12 @@
+wandb: run=m09_FULL_lambda0 url=https://wandb.ai/sjsu_llm/walkindia-200k/runs/1gn8rj8z
+m09_pretrain:   0%|          | 0/562 [00:00<?, ?step/s]/venv/main/lib/python3.12/contextlib.py:105: FutureWarning: `torch.backends.cuda.sdp_kernel()` is deprecated. In the future, this context manager will be removed. Please see `torch.nn.attention.sdpa_kernel()` for the new context manager, with updated signature.
+
+=== Training: 0 → 562 steps (1 epochs) ===
+Batch size: 16
+Grad checkpointing: True
+Mixed precision: bfloat16
+EMA momentum: 0.99925
+Drift control: lambda=0
+Loss log: /workspace/factorjepa/outputs/full/ablation/m09_lambda0/loss_log.csv
+  self.gen = func(*args, **kwds)
+m09_pretrain:   3%|▎         | 17/562 [05:20<2:42:14, 17.86s/step, E0 loss=0.4728 drift=0.0000 lr=3.04e-06 grad=0.47 0.06 step/s]

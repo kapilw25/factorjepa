@@ -3,9 +3,9 @@
   "encoder_dim": 768,
   "easy": {
     "cycle_at_k": 65.17,
-    "overlap_at_k": 47.06,
+    "dim_consistency_at_k": 47.06,
     "silhouette": -0.047,
-    "prec_at_k": 46.03,
+    "prec_at_k": 46.0,
     "map_at_k": 0.3816,
     "ndcg_at_k": 0.9583,
     "ci": {
@@ -33,7 +33,7 @@
         "ci_hi": 0.959046,
         "ci_half": 0.000715
       },
-      "overlap_at_k": {
+      "dim_consistency_at_k": {
         "mean": 47.0631,
         "ci_lo": 46.442052,
         "ci_hi": 47.684531,
@@ -296,19 +296,19 @@
       "video_quality": 0.0104
     },
     "prec_per_key": {
-      "scene_type": 46.03,
-      "time_of_day": 92.86,
-      "weather": 74.7,
-      "crowd_density": 66.99,
-      "traffic_density": 61.41,
-      "traffic_mix": 62.71,
-      "pedestrian_vehicle_separation": 75.25,
-      "road_surface": 66.23,
-      "infrastructure_quality": 77.39,
-      "road_encroachment": 75.22,
-      "vegetation": 54.04,
-      "lighting": 91.12,
-      "video_quality": 61.53
+      "scene_type": 46.0,
+      "time_of_day": 92.85,
+      "weather": 74.68,
+      "crowd_density": 66.96,
+      "traffic_density": 61.39,
+      "traffic_mix": 62.67,
+      "pedestrian_vehicle_separation": 75.23,
+      "road_surface": 66.22,
+      "infrastructure_quality": 77.35,
+      "road_encroachment": 75.2,
+      "vegetation": 54.02,
+      "lighting": 91.11,
+      "video_quality": 61.51
     },
     "map_per_key": {
       "scene_type": 0.3816,
@@ -934,9 +934,9 @@
   },
   "hard": {
     "cycle_at_k": 62.17,
-    "overlap_at_k": 47.06,
+    "dim_consistency_at_k": 47.06,
     "silhouette": -0.047,
-    "prec_at_k": 44.87,
+    "prec_at_k": 44.84,
     "map_at_k": 0.3684,
     "ndcg_at_k": 0.9567,
     "ci": {
@@ -964,7 +964,7 @@
         "ci_hi": 0.957418,
         "ci_half": 0.000729
       },
-      "overlap_at_k": {
+      "dim_consistency_at_k": {
         "mean": 47.0631,
         "ci_lo": 46.442052,
         "ci_hi": 47.684531,
@@ -1227,19 +1227,19 @@
       "video_quality": 0.0104
     },
     "prec_per_key": {
-      "scene_type": 44.87,
-      "time_of_day": 92.48,
-      "weather": 74.05,
-      "crowd_density": 66.39,
-      "traffic_density": 60.62,
-      "traffic_mix": 61.9,
-      "pedestrian_vehicle_separation": 74.74,
-      "road_surface": 65.59,
-      "infrastructure_quality": 76.79,
-      "road_encroachment": 74.67,
-      "vegetation": 52.84,
-      "lighting": 90.75,
-      "video_quality": 60.93
+      "scene_type": 44.84,
+      "time_of_day": 92.45,
+      "weather": 74.03,
+      "crowd_density": 66.36,
+      "traffic_density": 60.6,
+      "traffic_mix": 61.86,
+      "pedestrian_vehicle_separation": 74.72,
+      "road_surface": 65.58,
+      "infrastructure_quality": 76.76,
+      "road_encroachment": 74.65,
+      "vegetation": 52.83,
+      "lighting": 90.72,
+      "video_quality": 60.9
     },
     "map_per_key": {
       "scene_type": 0.3684,
@@ -1910,6 +1910,6 @@
   "k_neighbors": 6,
   "num_clips": 10000,
   "exclusion_window_sec": 30,
-  "mode": "poc",
-  "subset_file": "data/subset_10k.json"
+  "mode": "full",
+  "subset_file": null
 }

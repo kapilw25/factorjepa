@@ -4,7 +4,7 @@
   "encoder_type": "synthetic",
   "n_clips_aligned": 10000,
   "k_neighbors": 6,
-  "compute_time_sec": 18.2,
+  "compute_time_sec": 18.9,
   "mode": "POC",
   "spearman_rho": 0.003938,
   "spearman_rho_ci": {

@@ -1,0 +1,18 @@
+wandb: run=m07_FULL url=https://wandb.ai/sjsu_llm/walkindia-200k/runs/lobv02so
+[output_guard] m07 random: attempting HF download for 1 missing file(s)...
+Downloading anonymousML123/factorjepa-outputs//workspace/factorjepa/outputs/full/ → /workspace/factorjepa/outputs/full
+
+Download complete: 0s
+  Files: 0 new, 0 updated, 319 unchanged
+  Downloaded: 0.00 GB
+[output_guard] m07 random: 1 file(s) still missing after HF download
+[output_guard] m07 random: outputs missing or invalid — will re-compute
+  MISS  umap_2d: umap_2d_random.npy
+Encoder: random
+Loaded: 115,687 clips, dim=1408
+cuML UMAP (n_neighbors=15, min_dist=0.1)...
+m07_umap: 100%|██████████| 1/1 [00:03<00:00,  3.14s/run]
+[2026-04-04 17:16:41.222] [CUML] [debug] Computing KNN Graph
+[2026-04-04 17:16:43.381] [CUML] [debug] Computing fuzzy simplicial set
+Saved: /workspace/factorjepa/outputs/full/umap_2d_random.npy ((115687, 2))
+UMAP completed in 3.1s

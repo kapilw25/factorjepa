@@ -15,5 +15,7 @@ batch_size:    176
 video_decoder: PyAV
 prefetch:      8 batches
 checkpoint:    every 500 clips
-m05_vjepa:  46%|████▌     | 4576/10000 [05:34<06:10, 14.64clip/s, 14.7 clips/s | failed=0]
+m05_vjepa: 10032clip [11:48, 14.17clip/s, 14.7 clips/s | failed=0]                        
   Parallel TAR reader: 8 threads, 116 TARs, queue=256
+
+Segment done: 10,032 clips in 708s (14.16 clips/s)

@@ -43,8 +43,7 @@ ffmpeg-python>=0.2.0
 # Video Processing
 # =============================================================================
 av>=12.0.0
-# torchcodec: faster video decoding (2-3x vs av) - optional, requires system FFmpeg
-# Install manually if needed: pip install torchcodec
+torchcodec                   # GPU video decode via NVDEC (5-10x vs PyAV CPU). Auto-detected by m05.
 
 # =============================================================================
 # Experiment Tracking

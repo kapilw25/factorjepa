@@ -54,9 +54,10 @@ gpu:
   vlm_batch_size: 4           # m04: transformers sequential inference
   motion_batch_size: 32       # m04d: optical flow batch
   # Profiled batch sizes (RTX PRO 6000, 96GB, real video data, median of 3 runs):
-  training_batch_size: 112    # m09: 5.6 clips/s, 64G VRAM (75% threshold)
-  inference_vjepa_bs: 176     # m05/m05b shuffled: 15.2 clips/s, 30G VRAM (plateau sweet spot)
-  inference_adapted_chunk: 32 # m05 adapted: GPU chunk size for eager mode (no torch.compile)
+  training_batch_size: 112    # m09: 16 frames with grad ckpt (profiled)
+  eval_frames_per_clip: 64   # m05/m05b: frames for embedding extraction (matches frozen V-JEPA HF model)
+  inference_vjepa_bs: 176     # m05/m05b frozen: profiled at 64f with HF AutoModel (flash_attention_2)
+  inference_adapted_bs: 44   # m05 adapted at 64f eval. BS=44: 32GB GPU, ~40GB CPU queue. BS=112 causes cgroup SIGKILL (101GB queue > 120GB limit).
   inference_dinov2_bs: 96     # m05b dinov2: 403 img/s, 3G VRAM (plateau, not noisy BS=16)
 
 # -- Evaluation --

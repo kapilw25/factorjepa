@@ -1,0 +1,60 @@
+_wandb:
+    value:
+        cli_version: 0.25.1
+        e:
+            qy1vgyitcbz2jqbtmeic9c6z8029zqsv:
+                args:
+                    - --encoder
+                    - vjepa
+                    - --FULL
+                codePath: src/m07_umap.py
+                codePathLocal: src/m07_umap.py
+                email: kapilw25@gmail.com
+                executable: /workspace/factorjepa/venv_walkindia/bin/python
+                git:
+                    commit: bf645ddc41e5cedf243cd16e499edfdc45d54bc4
+                    remote: https://github.com/kapilw25/factorjepa.git
+                host: 2d5319172a4c
+                os: Linux-6.8.0-106-generic-x86_64-with-glibc2.39
+                program: /workspace/factorjepa/src/m07_umap.py
+                python: CPython 3.12.13
+                root: /workspace/factorjepa
+                startedAt: "2026-04-05T11:17:19.146694Z"
+                writerId: qy1vgyitcbz2jqbtmeic9c6z8029zqsv
+        m: []
+        python_version: 3.12.13
+        t:
+            "1":
+                - 1
+                - 5
+                - 53
+            "2":
+                - 1
+                - 5
+                - 53
+            "3":
+                - 2
+                - 13
+                - 16
+            "4": 3.12.13
+            "5": 0.25.1
+            "10":
+                - 20
+            "12": 0.25.1
+            "13": linux-x86_64
+FULL:
+    value: true
+POC:
+    value: false
+SANITY:
+    value: false
+encoder:
+    value: vjepa
+min_dist:
+    value: 0.1
+n_neighbors:
+    value: 15
+no_wandb:
+    value: false
+subset:
+    value: null

@@ -1,471 +1,0 @@
-Using PyAV for video decoding
-
-============================================================
-  AUTO-ABLATION: No /workspace/factorjepa/outputs/sanity/ablation_winner.json found.
-  Running 4 lambda sweep on data/subset_10k_local (~2h)
-  Ablation outputs → /workspace/factorjepa/outputs/sanity/m09_lambda*/
-============================================================
-
-
---- Ablation: lambda=0 ---
-Using PyAV for video decoding
-GPU: NVIDIA RTX PRO 6000 Blackwell Workstation Edition
-CUDA version: 12.8
-[output_guard] student_encoder.pt not found — will train
-
-=== Building Model ===
-/workspace/factorjepa/venv_walkindia/lib/python3.12/site-packages/timm/models/layers/__init__.py:49: FutureWarning: Importing from timm.models.layers is deprecated, please import via timm.layers
-  warnings.warn(f"Importing from {__name__} is deprecated, please import via timm.layers", FutureWarning)
-Downloading pretrained weights via torch.hub...
-Student loaded: 1,012,173,952 params (484/484 keys = 100%)
-Teacher created (deepcopy of student)
-Predictor loaded from checkpoint (152/152 keys = 100%)
-Predictor: 22,378,240 params
-Mask generators: 2 (blocks: [8, 2])
-[POC] Loaded subset: 10,000 clip keys from subset_10k.json
-[VAL] Loaded val subset: 1,000 clips from val_1k.json
-Excluding 434 val clips from training set
-Train clips: 900 | Val clips: 100
-Epochs: 1 | Steps/epoch: 28 | Total steps: 28
-Checkpoint every 2 steps (10x/epoch, keep last 2)
-Validation every 2 steps (10x/epoch, 100 val clips)
-
-Collecting 100 val clips into memory...
-Val clips collected: 35 in 2 batches
-m09_pretrain:   0%|          | 0/28 [00:00<?, ?step/s]
-=== Training: 0 → 28 steps (1 epochs) ===
-Batch size: 32
-Grad checkpointing: True
-Mixed precision: bfloat16
-EMA momentum: 0.99925
-Drift control: lambda=0
-Loss log: /workspace/factorjepa/outputs/sanity/m09_lambda0/loss_log.csv
-/venv/main/lib/python3.12/contextlib.py:105: FutureWarning: `torch.backends.cuda.sdp_kernel()` is deprecated. In the future, this context manager will be removed. Please see `torch.nn.attention.sdpa_kernel()` for the new context manager, with updated signature.
-  self.gen = func(*args, **kwds)
-m09_pretrain:   4%|▎         | 1/28 [00:11<05:22, 11.94s/step]m09_pretrain:   7%|▋         | 2/28 [00:17<03:35,  8.29s/step]
---- Checkpoint at 7% of epoch 1 (step 2) ---
-  Step 2 | Val JEPA loss: 1.6421 (2 batches)
-  New best val loss: 1.6421
-m09_pretrain:   7%|▋         | 2/28 [00:42<03:35,  8.29s/step, E0 loss=0.4953 drift=0.0000 lr=9.96e-06 grad=1.02 0.07 step/s]m09_pretrain:  11%|█         | 3/28 [00:42<06:34, 15.80s/step, E0 loss=0.4953 drift=0.0000 lr=9.96e-06 grad=1.02 0.07 step/s]m09_pretrain:  14%|█▍        | 4/28 [00:48<04:43, 11.80s/step, E0 loss=0.4953 drift=0.0000 lr=9.96e-06 grad=1.02 0.07 step/s]
---- Checkpoint at 14% of epoch 1 (step 4) ---
-  Step 4 | Val JEPA loss: 1.6422 (2 batches)
-m09_pretrain:  18%|█▊        | 5/28 [01:09<05:54, 15.40s/step, E0 loss=0.4953 drift=0.0000 lr=9.96e-06 grad=1.02 0.07 step/s]m09_pretrain:  18%|█▊        | 5/28 [01:17<05:54, 15.40s/step, E0 loss=0.4899 drift=0.0000 lr=9.43e-06 grad=0.32 0.09 step/s]m09_pretrain:  21%|██▏       | 6/28 [01:17<04:37, 12.62s/step, E0 loss=0.4899 drift=0.0000 lr=9.43e-06 grad=0.32 0.09 step/s]
---- Checkpoint at 21% of epoch 1 (step 6) ---
-  Cleaned old checkpoint: m09_ckpt_step2.pt
-  Step 6 | Val JEPA loss: 1.6393 (2 batches)
-  New best val loss: 1.6393
-m09_pretrain:  25%|██▌       | 7/28 [01:41<05:47, 16.56s/step, E0 loss=0.4899 drift=0.0000 lr=9.43e-06 grad=0.32 0.09 step/s]m09_pretrain:  25%|██▌       | 7/28 [01:47<05:47, 16.56s/step, E0 loss=0.4906 drift=0.0000 lr=8.74e-06 grad=0.16 0.07 step/s]m09_pretrain:  29%|██▊       | 8/28 [01:47<04:21, 13.06s/step, E0 loss=0.4906 drift=0.0000 lr=8.74e-06 grad=0.16 0.07 step/s]
---- Checkpoint at 29% of epoch 1 (step 8) ---
-  Cleaned old checkpoint: m09_ckpt_step4.pt
-  Step 8 | Val JEPA loss: 1.6343 (2 batches)
-  New best val loss: 1.6343
-m09_pretrain:  32%|███▏      | 9/28 [02:16<05:42, 18.05s/step, E0 loss=0.4906 drift=0.0000 lr=8.74e-06 grad=0.16 0.07 step/s]m09_pretrain:  32%|███▏      | 9/28 [02:21<05:42, 18.05s/step, E0 loss=0.4877 drift=0.0000 lr=7.84e-06 grad=0.11 0.06 step/s]m09_pretrain:  36%|███▌      | 10/28 [02:21<04:15, 14.18s/step, E0 loss=0.4877 drift=0.0000 lr=7.84e-06 grad=0.11 0.06 step/s]
---- Checkpoint at 36% of epoch 1 (step 10) ---
-  Cleaned old checkpoint: m09_ckpt_step6.pt
-  Step 10 | Val JEPA loss: 1.6239 (2 batches)
-  New best val loss: 1.6239
-m09_pretrain:  39%|███▉      | 11/28 [02:51<05:18, 18.76s/step, E0 loss=0.4877 drift=0.0000 lr=7.84e-06 grad=0.11 0.06 step/s]m09_pretrain:  39%|███▉      | 11/28 [02:56<05:18, 18.76s/step, E0 loss=0.4936 drift=0.0000 lr=6.77e-06 grad=0.07 0.06 step/s]m09_pretrain:  43%|████▎     | 12/28 [02:56<03:55, 14.70s/step, E0 loss=0.4936 drift=0.0000 lr=6.77e-06 grad=0.07 0.06 step/s]
---- Checkpoint at 43% of epoch 1 (step 12) ---
-  Cleaned old checkpoint: m09_ckpt_step8.pt
-  Step 12 | Val JEPA loss: 1.6281 (2 batches)
-m09_pretrain:  46%|████▋     | 13/28 [03:21<04:27, 17.85s/step, E0 loss=0.4936 drift=0.0000 lr=6.77e-06 grad=0.07 0.06 step/s]m09_pretrain:  46%|████▋     | 13/28 [03:27<04:27, 17.85s/step, E0 loss=0.4855 drift=0.0000 lr=5.60e-06 grad=0.07 0.06 step/s]m09_pretrain:  50%|█████     | 14/28 [03:27<03:18, 14.17s/step, E0 loss=0.4855 drift=0.0000 lr=5.60e-06 grad=0.07 0.06 step/s]
---- Checkpoint at 50% of epoch 1 (step 14) ---
-  Cleaned old checkpoint: m09_ckpt_step10.pt
-  Step 14 | Val JEPA loss: 1.6264 (2 batches)
-m09_pretrain:  54%|█████▎    | 15/28 [03:48<03:32, 16.33s/step, E0 loss=0.4855 drift=0.0000 lr=5.60e-06 grad=0.07 0.06 step/s]m09_pretrain:  57%|█████▋    | 16/28 [03:53<02:36, 13.01s/step, E0 loss=0.4855 drift=0.0000 lr=5.60e-06 grad=0.07 0.06 step/s]
---- Checkpoint at 57% of epoch 1 (step 16) ---
-  Cleaned old checkpoint: m09_ckpt_step12.pt
-  Step 16 | Val JEPA loss: 1.6285 (2 batches)
-m09_pretrain:  57%|█████▋    | 16/28 [04:18<02:36, 13.01s/step, E0 loss=0.4880 drift=0.0000 lr=3.80e-06 grad=0.11 0.06 step/s]m09_pretrain:  61%|██████    | 17/28 [04:18<03:02, 16.55s/step, E0 loss=0.4880 drift=0.0000 lr=3.80e-06 grad=0.11 0.06 step/s]m09_pretrain:  64%|██████▍   | 18/28 [04:23<02:11, 13.19s/step, E0 loss=0.4880 drift=0.0000 lr=3.80e-06 grad=0.11 0.06 step/s]
---- Checkpoint at 64% of epoch 1 (step 18) ---
-  Cleaned old checkpoint: m09_ckpt_step14.pt
-  Step 18 | Val JEPA loss: 1.6238 (2 batches)
-  New best val loss: 1.6238
-m09_pretrain:  64%|██████▍   | 18/28 [04:53<02:11, 13.19s/step, E0 loss=0.4878 drift=0.0000 lr=2.68e-06 grad=0.09 0.06 step/s]m09_pretrain:  68%|██████▊   | 19/28 [04:53<02:43, 18.13s/step, E0 loss=0.4878 drift=0.0000 lr=2.68e-06 grad=0.09 0.06 step/s]m09_pretrain:  71%|███████▏  | 20/28 [04:58<01:53, 14.24s/step, E0 loss=0.4878 drift=0.0000 lr=2.68e-06 grad=0.09 0.06 step/s]
---- Checkpoint at 71% of epoch 1 (step 20) ---
-  Cleaned old checkpoint: m09_ckpt_step16.pt
-  Step 20 | Val JEPA loss: 1.6216 (2 batches)
-  New best val loss: 1.6216
-  Producer: starting epoch 2
-m09_pretrain:  75%|███████▌  | 21/28 [05:21<01:57, 16.74s/step, E0 loss=0.4878 drift=0.0000 lr=2.68e-06 grad=0.09 0.06 step/s]m09_pretrain:  75%|███████▌  | 21/28 [05:26<01:57, 16.74s/step, E0 loss=0.4916 drift=0.0000 lr=1.26e-06 grad=0.06 0.09 step/s]m09_pretrain:  79%|███████▊  | 22/28 [05:26<01:19, 13.23s/step, E0 loss=0.4916 drift=0.0000 lr=1.26e-06 grad=0.06 0.09 step/s]
---- Checkpoint at 79% of epoch 1 (step 22) ---
-  Cleaned old checkpoint: m09_ckpt_step18.pt
-  Step 22 | Val JEPA loss: 1.6299 (2 batches)
-m09_pretrain:  82%|████████▏ | 23/28 [05:47<01:17, 15.45s/step, E0 loss=0.4916 drift=0.0000 lr=1.26e-06 grad=0.06 0.09 step/s]m09_pretrain:  86%|████████▌ | 24/28 [05:53<00:50, 12.63s/step, E0 loss=0.4916 drift=0.0000 lr=1.26e-06 grad=0.06 0.09 step/s]
---- Checkpoint at 86% of epoch 1 (step 24) ---
-  Cleaned old checkpoint: m09_ckpt_step20.pt
-  Step 24 | Val JEPA loss: 1.6304 (2 batches)
-m09_pretrain:  86%|████████▌ | 24/28 [06:18<00:50, 12.63s/step, E0 loss=0.4825 drift=0.0000 lr=3.25e-07 grad=0.06 0.06 step/s]m09_pretrain:  89%|████████▉ | 25/28 [06:18<00:49, 16.38s/step, E0 loss=0.4825 drift=0.0000 lr=3.25e-07 grad=0.06 0.06 step/s]m09_pretrain:  93%|█████████▎| 26/28 [06:23<00:26, 13.10s/step, E0 loss=0.4825 drift=0.0000 lr=3.25e-07 grad=0.06 0.06 step/s]
---- Checkpoint at 93% of epoch 1 (step 26) ---
-  Cleaned old checkpoint: m09_ckpt_step22.pt
-  Step 26 | Val JEPA loss: 1.6249 (2 batches)
-m09_pretrain:  96%|█████████▋| 27/28 [06:47<00:16, 16.41s/step, E0 loss=0.4825 drift=0.0000 lr=3.25e-07 grad=0.06 0.06 step/s]m09_pretrain:  96%|█████████▋| 27/28 [06:53<00:16, 16.41s/step, E0 loss=0.4868 drift=0.0000 lr=1.00e-07 grad=0.06 0.08 step/s]m09_pretrain: 100%|██████████| 28/28 [06:53<00:00, 13.34s/step, E0 loss=0.4868 drift=0.0000 lr=1.00e-07 grad=0.06 0.08 step/s]
---- Checkpoint at 100% of epoch 1 (step 28) ---
-  Cleaned old checkpoint: m09_ckpt_step24.pt
-  Step 28 | Val JEPA loss: 1.6314 (2 batches)
-
---- Epoch 1/1 complete (step 28) ---
-m09_pretrain: 100%|██████████| 28/28 [07:12<00:00, 15.46s/step, E0 loss=0.4868 drift=0.0000 lr=1.00e-07 grad=0.06 0.08 step/s]
-Exported student encoder: /workspace/factorjepa/outputs/sanity/m09_lambda0/student_encoder.pt
-  Cleaned: m09_ckpt_latest.pt
-  Cleaned: m09_ckpt_best.pt
-  Cleaned: m09_ckpt_step26.pt
-  Cleaned: m09_ckpt_step28.pt
-
-=== TRAINING COMPLETE ===
-Steps:        28 (1.0 epochs)
-Clips seen:   896
-Student:      /workspace/factorjepa/outputs/sanity/m09_lambda0/student_encoder.pt
-Loss log:     /workspace/factorjepa/outputs/sanity/m09_lambda0/loss_log.csv
-Summary:      /workspace/factorjepa/outputs/sanity/m09_lambda0/training_summary.json
-
---- Ablation: lambda=0.001 ---
-Using PyAV for video decoding
-GPU: NVIDIA RTX PRO 6000 Blackwell Workstation Edition
-CUDA version: 12.8
-[output_guard] student_encoder.pt not found — will train
-
-=== Building Model ===
-/workspace/factorjepa/venv_walkindia/lib/python3.12/site-packages/timm/models/layers/__init__.py:49: FutureWarning: Importing from timm.models.layers is deprecated, please import via timm.layers
-  warnings.warn(f"Importing from {__name__} is deprecated, please import via timm.layers", FutureWarning)
-Downloading pretrained weights via torch.hub...
-Student loaded: 1,012,173,952 params (484/484 keys = 100%)
-Teacher created (deepcopy of student)
-Predictor loaded from checkpoint (152/152 keys = 100%)
-Predictor: 22,378,240 params
-Mask generators: 2 (blocks: [8, 2])
-[POC] Loaded subset: 10,000 clip keys from subset_10k.json
-[VAL] Loaded val subset: 1,000 clips from val_1k.json
-Excluding 434 val clips from training set
-Train clips: 900 | Val clips: 100
-Epochs: 1 | Steps/epoch: 28 | Total steps: 28
-Checkpoint every 2 steps (10x/epoch, keep last 2)
-Validation every 2 steps (10x/epoch, 100 val clips)
-
-Collecting 100 val clips into memory...
-Val clips collected: 35 in 2 batches
-m09_pretrain:   0%|          | 0/28 [00:00<?, ?step/s]
-=== Training: 0 → 28 steps (1 epochs) ===
-Batch size: 32
-Grad checkpointing: True
-Mixed precision: bfloat16
-EMA momentum: 0.99925
-Drift control: lambda=0.001
-Loss log: /workspace/factorjepa/outputs/sanity/m09_lambda0_001/loss_log.csv
-/venv/main/lib/python3.12/contextlib.py:105: FutureWarning: `torch.backends.cuda.sdp_kernel()` is deprecated. In the future, this context manager will be removed. Please see `torch.nn.attention.sdpa_kernel()` for the new context manager, with updated signature.
-  self.gen = func(*args, **kwds)
-m09_pretrain:   4%|▎         | 1/28 [00:12<05:29, 12.20s/step]m09_pretrain:   7%|▋         | 2/28 [00:19<03:55,  9.07s/step]
---- Checkpoint at 7% of epoch 1 (step 2) ---
-  Step 2 | Val JEPA loss: 1.6518 (2 batches)
-  New best val loss: 1.6518
-m09_pretrain:   7%|▋         | 2/28 [00:46<03:55,  9.07s/step, E0 loss=0.4929 drift=0.0000 lr=9.96e-06 grad=0.95 0.06 step/s]m09_pretrain:  11%|█         | 3/28 [00:46<07:19, 17.56s/step, E0 loss=0.4929 drift=0.0000 lr=9.96e-06 grad=0.95 0.06 step/s]m09_pretrain:  14%|█▍        | 4/28 [00:52<05:10, 12.93s/step, E0 loss=0.4929 drift=0.0000 lr=9.96e-06 grad=0.95 0.06 step/s]
---- Checkpoint at 14% of epoch 1 (step 4) ---
-  Step 4 | Val JEPA loss: 1.6556 (2 batches)
-m09_pretrain:  18%|█▊        | 5/28 [01:13<06:07, 15.97s/step, E0 loss=0.4929 drift=0.0000 lr=9.96e-06 grad=0.95 0.06 step/s]m09_pretrain:  18%|█▊        | 5/28 [01:20<06:07, 15.97s/step, E0 loss=0.4873 drift=0.0002 lr=9.43e-06 grad=0.25 0.09 step/s]m09_pretrain:  21%|██▏       | 6/28 [01:20<04:39, 12.72s/step, E0 loss=0.4873 drift=0.0002 lr=9.43e-06 grad=0.25 0.09 step/s]
---- Checkpoint at 21% of epoch 1 (step 6) ---
-  Cleaned old checkpoint: m09_ckpt_step2.pt
-  Step 6 | Val JEPA loss: 1.6434 (2 batches)
-  New best val loss: 1.6434
-m09_pretrain:  25%|██▌       | 7/28 [01:49<06:22, 18.22s/step, E0 loss=0.4873 drift=0.0002 lr=9.43e-06 grad=0.25 0.09 step/s]m09_pretrain:  25%|██▌       | 7/28 [01:55<06:22, 18.22s/step, E0 loss=0.4907 drift=0.0004 lr=8.74e-06 grad=0.13 0.06 step/s]m09_pretrain:  29%|██▊       | 8/28 [01:55<04:46, 14.33s/step, E0 loss=0.4907 drift=0.0004 lr=8.74e-06 grad=0.13 0.06 step/s]
---- Checkpoint at 29% of epoch 1 (step 8) ---
-  Cleaned old checkpoint: m09_ckpt_step4.pt
-  Step 8 | Val JEPA loss: 1.6494 (2 batches)
-m09_pretrain:  32%|███▏      | 9/28 [02:17<05:13, 16.52s/step, E0 loss=0.4907 drift=0.0004 lr=8.74e-06 grad=0.13 0.06 step/s]m09_pretrain:  36%|███▌      | 10/28 [02:23<04:00, 13.34s/step, E0 loss=0.4907 drift=0.0004 lr=8.74e-06 grad=0.13 0.06 step/s]
---- Checkpoint at 36% of epoch 1 (step 10) ---
-  Cleaned old checkpoint: m09_ckpt_step6.pt
-  Step 10 | Val JEPA loss: 1.6425 (2 batches)
-  New best val loss: 1.6425
-m09_pretrain:  36%|███▌      | 10/28 [02:47<04:00, 13.34s/step, E0 loss=0.4900 drift=0.0005 lr=7.32e-06 grad=0.07 0.06 step/s]m09_pretrain:  39%|███▉      | 11/28 [02:47<04:40, 16.50s/step, E0 loss=0.4900 drift=0.0005 lr=7.32e-06 grad=0.07 0.06 step/s]m09_pretrain:  43%|████▎     | 12/28 [02:52<03:29, 13.11s/step, E0 loss=0.4900 drift=0.0005 lr=7.32e-06 grad=0.07 0.06 step/s]
---- Checkpoint at 43% of epoch 1 (step 12) ---
-  Cleaned old checkpoint: m09_ckpt_step8.pt
-  Step 12 | Val JEPA loss: 1.6435 (2 batches)
-m09_pretrain:  43%|████▎     | 12/28 [03:18<03:29, 13.11s/step, E0 loss=0.4916 drift=0.0006 lr=6.20e-06 grad=0.12 0.06 step/s]m09_pretrain:  46%|████▋     | 13/28 [03:18<04:17, 17.16s/step, E0 loss=0.4916 drift=0.0006 lr=6.20e-06 grad=0.12 0.06 step/s]m09_pretrain:  50%|█████     | 14/28 [03:24<03:13, 13.80s/step, E0 loss=0.4916 drift=0.0006 lr=6.20e-06 grad=0.12 0.06 step/s]
---- Checkpoint at 50% of epoch 1 (step 14) ---
-  Cleaned old checkpoint: m09_ckpt_step10.pt
-  Step 14 | Val JEPA loss: 1.6442 (2 batches)
-m09_pretrain:  54%|█████▎    | 15/28 [03:46<03:27, 15.99s/step, E0 loss=0.4916 drift=0.0006 lr=6.20e-06 grad=0.12 0.06 step/s]m09_pretrain:  54%|█████▎    | 15/28 [03:52<03:27, 15.99s/step, E0 loss=0.4890 drift=0.0007 lr=4.40e-06 grad=0.07 0.09 step/s]m09_pretrain:  57%|█████▋    | 16/28 [03:52<02:36, 13.00s/step, E0 loss=0.4890 drift=0.0007 lr=4.40e-06 grad=0.07 0.09 step/s]
---- Checkpoint at 57% of epoch 1 (step 16) ---
-  Cleaned old checkpoint: m09_ckpt_step12.pt
-  Step 16 | Val JEPA loss: 1.6435 (2 batches)
-m09_pretrain:  61%|██████    | 17/28 [04:18<03:07, 17.00s/step, E0 loss=0.4890 drift=0.0007 lr=4.40e-06 grad=0.07 0.09 step/s]m09_pretrain:  61%|██████    | 17/28 [04:24<03:07, 17.00s/step, E0 loss=0.4897 drift=0.0007 lr=3.23e-06 grad=0.07 0.06 step/s]m09_pretrain:  64%|██████▍   | 18/28 [04:24<02:18, 13.82s/step, E0 loss=0.4897 drift=0.0007 lr=3.23e-06 grad=0.07 0.06 step/s]
---- Checkpoint at 64% of epoch 1 (step 18) ---
-  Cleaned old checkpoint: m09_ckpt_step14.pt
-  Step 18 | Val JEPA loss: 1.6554 (2 batches)
-m09_pretrain:  68%|██████▊   | 19/28 [04:44<02:19, 15.55s/step, E0 loss=0.4897 drift=0.0007 lr=3.23e-06 grad=0.07 0.06 step/s]m09_pretrain:  71%|███████▏  | 20/28 [04:50<01:41, 12.71s/step, E0 loss=0.4897 drift=0.0007 lr=3.23e-06 grad=0.07 0.06 step/s]
---- Checkpoint at 71% of epoch 1 (step 20) ---
-  Cleaned old checkpoint: m09_ckpt_step16.pt
-  Step 20 | Val JEPA loss: 1.6511 (2 batches)
-  Producer: starting epoch 2
-m09_pretrain:  71%|███████▏  | 20/28 [05:13<01:41, 12.71s/step, E0 loss=0.4857 drift=0.0008 lr=1.68e-06 grad=0.07 0.06 step/s]m09_pretrain:  75%|███████▌  | 21/28 [05:13<01:50, 15.85s/step, E0 loss=0.4857 drift=0.0008 lr=1.68e-06 grad=0.07 0.06 step/s]m09_pretrain:  79%|███████▊  | 22/28 [05:19<01:17, 12.87s/step, E0 loss=0.4857 drift=0.0008 lr=1.68e-06 grad=0.07 0.06 step/s]
---- Checkpoint at 79% of epoch 1 (step 22) ---
-  Cleaned old checkpoint: m09_ckpt_step18.pt
-  Step 22 | Val JEPA loss: 1.6411 (2 batches)
-  New best val loss: 1.6411
-m09_pretrain:  82%|████████▏ | 23/28 [05:43<01:20, 16.12s/step, E0 loss=0.4857 drift=0.0008 lr=1.68e-06 grad=0.07 0.06 step/s]m09_pretrain:  82%|████████▏ | 23/28 [05:48<01:20, 16.12s/step, E0 loss=0.4906 drift=0.0008 lr=5.73e-07 grad=0.06 0.09 step/s]m09_pretrain:  86%|████████▌ | 24/28 [05:48<00:51, 12.87s/step, E0 loss=0.4906 drift=0.0008 lr=5.73e-07 grad=0.06 0.09 step/s]
---- Checkpoint at 86% of epoch 1 (step 24) ---
-  Cleaned old checkpoint: m09_ckpt_step20.pt
-  Step 24 | Val JEPA loss: 1.6448 (2 batches)
-m09_pretrain:  89%|████████▉ | 25/28 [06:09<00:45, 15.33s/step, E0 loss=0.4906 drift=0.0008 lr=5.73e-07 grad=0.06 0.09 step/s]m09_pretrain:  93%|█████████▎| 26/28 [06:16<00:25, 12.73s/step, E0 loss=0.4906 drift=0.0008 lr=5.73e-07 grad=0.06 0.09 step/s]
---- Checkpoint at 93% of epoch 1 (step 26) ---
-  Cleaned old checkpoint: m09_ckpt_step22.pt
-  Step 26 | Val JEPA loss: 1.6420 (2 batches)
-m09_pretrain:  93%|█████████▎| 26/28 [06:37<00:25, 12.73s/step, E0 loss=0.4845 drift=0.0008 lr=1.00e-07 grad=0.05 0.06 step/s]m09_pretrain:  96%|█████████▋| 27/28 [06:37<00:15, 15.42s/step, E0 loss=0.4845 drift=0.0008 lr=1.00e-07 grad=0.05 0.06 step/s]m09_pretrain: 100%|██████████| 28/28 [06:44<00:00, 12.75s/step, E0 loss=0.4845 drift=0.0008 lr=1.00e-07 grad=0.05 0.06 step/s]
---- Checkpoint at 100% of epoch 1 (step 28) ---
-  Cleaned old checkpoint: m09_ckpt_step24.pt
-  Step 28 | Val JEPA loss: 1.6449 (2 batches)
-
---- Epoch 1/1 complete (step 28) ---
-m09_pretrain: 100%|██████████| 28/28 [06:59<00:00, 14.96s/step, E0 loss=0.4845 drift=0.0008 lr=1.00e-07 grad=0.05 0.06 step/s]
-Exported student encoder: /workspace/factorjepa/outputs/sanity/m09_lambda0_001/student_encoder.pt
-  Cleaned: m09_ckpt_latest.pt
-  Cleaned: m09_ckpt_best.pt
-  Cleaned: m09_ckpt_step26.pt
-  Cleaned: m09_ckpt_step28.pt
-
-=== TRAINING COMPLETE ===
-Steps:        28 (1.0 epochs)
-Clips seen:   896
-Student:      /workspace/factorjepa/outputs/sanity/m09_lambda0_001/student_encoder.pt
-Loss log:     /workspace/factorjepa/outputs/sanity/m09_lambda0_001/loss_log.csv
-Summary:      /workspace/factorjepa/outputs/sanity/m09_lambda0_001/training_summary.json
-
---- Ablation: lambda=0.01 ---
-Using PyAV for video decoding
-GPU: NVIDIA RTX PRO 6000 Blackwell Workstation Edition
-CUDA version: 12.8
-[output_guard] student_encoder.pt not found — will train
-
-=== Building Model ===
-/workspace/factorjepa/venv_walkindia/lib/python3.12/site-packages/timm/models/layers/__init__.py:49: FutureWarning: Importing from timm.models.layers is deprecated, please import via timm.layers
-  warnings.warn(f"Importing from {__name__} is deprecated, please import via timm.layers", FutureWarning)
-Downloading pretrained weights via torch.hub...
-Student loaded: 1,012,173,952 params (484/484 keys = 100%)
-Teacher created (deepcopy of student)
-Predictor loaded from checkpoint (152/152 keys = 100%)
-Predictor: 22,378,240 params
-Mask generators: 2 (blocks: [8, 2])
-[POC] Loaded subset: 10,000 clip keys from subset_10k.json
-[VAL] Loaded val subset: 1,000 clips from val_1k.json
-Excluding 434 val clips from training set
-Train clips: 900 | Val clips: 100
-Epochs: 1 | Steps/epoch: 28 | Total steps: 28
-Checkpoint every 2 steps (10x/epoch, keep last 2)
-Validation every 2 steps (10x/epoch, 100 val clips)
-
-Collecting 100 val clips into memory...
-Val clips collected: 33 in 2 batches
-m09_pretrain:   0%|          | 0/28 [00:00<?, ?step/s]
-=== Training: 0 → 28 steps (1 epochs) ===
-Batch size: 32
-Grad checkpointing: True
-Mixed precision: bfloat16
-EMA momentum: 0.99925
-Drift control: lambda=0.01
-Loss log: /workspace/factorjepa/outputs/sanity/m09_lambda0_01/loss_log.csv
-/venv/main/lib/python3.12/contextlib.py:105: FutureWarning: `torch.backends.cuda.sdp_kernel()` is deprecated. In the future, this context manager will be removed. Please see `torch.nn.attention.sdpa_kernel()` for the new context manager, with updated signature.
-  self.gen = func(*args, **kwds)
-m09_pretrain:   4%|▎         | 1/28 [00:13<06:14, 13.88s/step]m09_pretrain:   7%|▋         | 2/28 [00:20<04:11,  9.66s/step]
---- Checkpoint at 7% of epoch 1 (step 2) ---
-  Step 2 | Val JEPA loss: 1.6070 (2 batches)
-  New best val loss: 1.6070
-m09_pretrain:   7%|▋         | 2/28 [00:47<04:11,  9.66s/step, E0 loss=0.4924 drift=0.0001 lr=9.96e-06 grad=0.84 0.06 step/s]m09_pretrain:  11%|█         | 3/28 [00:47<07:23, 17.74s/step, E0 loss=0.4924 drift=0.0001 lr=9.96e-06 grad=0.84 0.06 step/s]m09_pretrain:  14%|█▍        | 4/28 [00:53<05:11, 12.99s/step, E0 loss=0.4924 drift=0.0001 lr=9.96e-06 grad=0.84 0.06 step/s]
---- Checkpoint at 14% of epoch 1 (step 4) ---
-  Step 4 | Val JEPA loss: 1.6046 (2 batches)
-  New best val loss: 1.6046
-m09_pretrain:  14%|█▍        | 4/28 [01:22<05:11, 12.99s/step, E0 loss=0.4907 drift=0.0011 lr=9.68e-06 grad=0.23 0.06 step/s]m09_pretrain:  18%|█▊        | 5/28 [01:22<07:09, 18.68s/step, E0 loss=0.4907 drift=0.0011 lr=9.68e-06 grad=0.23 0.06 step/s]m09_pretrain:  21%|██▏       | 6/28 [01:28<05:17, 14.42s/step, E0 loss=0.4907 drift=0.0011 lr=9.68e-06 grad=0.23 0.06 step/s]
---- Checkpoint at 21% of epoch 1 (step 6) ---
-  Cleaned old checkpoint: m09_ckpt_step2.pt
-  Step 6 | Val JEPA loss: 1.6025 (2 batches)
-  New best val loss: 1.6025
-m09_pretrain:  21%|██▏       | 6/28 [01:55<05:17, 14.42s/step, E0 loss=0.4912 drift=0.0017 lr=9.11e-06 grad=0.18 0.06 step/s]m09_pretrain:  25%|██▌       | 7/28 [01:55<06:25, 18.36s/step, E0 loss=0.4912 drift=0.0017 lr=9.11e-06 grad=0.18 0.06 step/s]m09_pretrain:  29%|██▊       | 8/28 [02:01<04:51, 14.57s/step, E0 loss=0.4912 drift=0.0017 lr=9.11e-06 grad=0.18 0.06 step/s]
---- Checkpoint at 29% of epoch 1 (step 8) ---
-  Cleaned old checkpoint: m09_ckpt_step4.pt
-  Step 8 | Val JEPA loss: 1.5997 (2 batches)
-  New best val loss: 1.5997
-m09_pretrain:  29%|██▊       | 8/28 [02:25<04:51, 14.57s/step, E0 loss=0.4873 drift=0.0019 lr=8.32e-06 grad=0.15 0.06 step/s]m09_pretrain:  32%|███▏      | 9/28 [02:25<05:35, 17.65s/step, E0 loss=0.4873 drift=0.0019 lr=8.32e-06 grad=0.15 0.06 step/s]m09_pretrain:  36%|███▌      | 10/28 [02:32<04:13, 14.10s/step, E0 loss=0.4873 drift=0.0019 lr=8.32e-06 grad=0.15 0.06 step/s]
---- Checkpoint at 36% of epoch 1 (step 10) ---
-  Cleaned old checkpoint: m09_ckpt_step6.pt
-  Step 10 | Val JEPA loss: 1.5975 (2 batches)
-  New best val loss: 1.5975
-m09_pretrain:  36%|███▌      | 10/28 [02:55<04:13, 14.10s/step, E0 loss=0.4916 drift=0.0019 lr=7.32e-06 grad=0.12 0.07 step/s]m09_pretrain:  39%|███▉      | 11/28 [02:55<04:50, 17.09s/step, E0 loss=0.4916 drift=0.0019 lr=7.32e-06 grad=0.12 0.07 step/s]m09_pretrain:  43%|████▎     | 12/28 [03:01<03:37, 13.57s/step, E0 loss=0.4916 drift=0.0019 lr=7.32e-06 grad=0.12 0.07 step/s]
---- Checkpoint at 43% of epoch 1 (step 12) ---
-  Cleaned old checkpoint: m09_ckpt_step8.pt
-  Step 12 | Val JEPA loss: 1.5992 (2 batches)
-m09_pretrain:  43%|████▎     | 12/28 [03:27<03:37, 13.57s/step, E0 loss=0.4958 drift=0.0019 lr=6.20e-06 grad=0.07 0.06 step/s]m09_pretrain:  46%|████▋     | 13/28 [03:27<04:20, 17.36s/step, E0 loss=0.4958 drift=0.0019 lr=6.20e-06 grad=0.07 0.06 step/s]m09_pretrain:  50%|█████     | 14/28 [03:33<03:14, 13.87s/step, E0 loss=0.4958 drift=0.0019 lr=6.20e-06 grad=0.07 0.06 step/s]
---- Checkpoint at 50% of epoch 1 (step 14) ---
-  Cleaned old checkpoint: m09_ckpt_step10.pt
-  Step 14 | Val JEPA loss: 1.5993 (2 batches)
-m09_pretrain:  54%|█████▎    | 15/28 [03:51<03:17, 15.21s/step, E0 loss=0.4958 drift=0.0019 lr=6.20e-06 grad=0.07 0.06 step/s]m09_pretrain:  57%|█████▋    | 16/28 [03:57<02:28, 12.35s/step, E0 loss=0.4958 drift=0.0019 lr=6.20e-06 grad=0.07 0.06 step/s]
---- Checkpoint at 57% of epoch 1 (step 16) ---
-  Cleaned old checkpoint: m09_ckpt_step12.pt
-  Step 16 | Val JEPA loss: 1.5991 (2 batches)
-m09_pretrain:  57%|█████▋    | 16/28 [04:23<02:28, 12.35s/step, E0 loss=0.4915 drift=0.0017 lr=3.80e-06 grad=0.08 0.07 step/s]m09_pretrain:  61%|██████    | 17/28 [04:23<02:59, 16.36s/step, E0 loss=0.4915 drift=0.0017 lr=3.80e-06 grad=0.08 0.07 step/s]m09_pretrain:  64%|██████▍   | 18/28 [04:29<02:13, 13.39s/step, E0 loss=0.4915 drift=0.0017 lr=3.80e-06 grad=0.08 0.07 step/s]
---- Checkpoint at 64% of epoch 1 (step 18) ---
-  Cleaned old checkpoint: m09_ckpt_step14.pt
-  Step 18 | Val JEPA loss: 1.6007 (2 batches)
-m09_pretrain:  68%|██████▊   | 19/28 [04:49<02:18, 15.44s/step, E0 loss=0.4915 drift=0.0017 lr=3.80e-06 grad=0.08 0.07 step/s]m09_pretrain:  68%|██████▊   | 19/28 [04:55<02:18, 15.44s/step, E0 loss=0.4885 drift=0.0016 lr=2.16e-06 grad=0.06 0.09 step/s]m09_pretrain:  71%|███████▏  | 20/28 [04:55<01:40, 12.61s/step, E0 loss=0.4885 drift=0.0016 lr=2.16e-06 grad=0.06 0.09 step/s]
---- Checkpoint at 71% of epoch 1 (step 20) ---
-  Cleaned old checkpoint: m09_ckpt_step16.pt
-  Step 20 | Val JEPA loss: 1.5987 (2 batches)
-  Producer: starting epoch 2
-m09_pretrain:  75%|███████▌  | 21/28 [05:18<01:48, 15.54s/step, E0 loss=0.4885 drift=0.0016 lr=2.16e-06 grad=0.06 0.09 step/s]m09_pretrain:  79%|███████▊  | 22/28 [05:24<01:16, 12.75s/step, E0 loss=0.4885 drift=0.0016 lr=2.16e-06 grad=0.06 0.09 step/s]
---- Checkpoint at 79% of epoch 1 (step 22) ---
-  Cleaned old checkpoint: m09_ckpt_step18.pt
-  Step 22 | Val JEPA loss: 1.6003 (2 batches)
-m09_pretrain:  79%|███████▊  | 22/28 [05:49<01:16, 12.75s/step, E0 loss=0.4867 drift=0.0015 lr=8.85e-07 grad=0.08 0.06 step/s]m09_pretrain:  82%|████████▏ | 23/28 [05:49<01:22, 16.45s/step, E0 loss=0.4867 drift=0.0015 lr=8.85e-07 grad=0.08 0.06 step/s]m09_pretrain:  86%|████████▌ | 24/28 [05:54<00:52, 13.10s/step, E0 loss=0.4867 drift=0.0015 lr=8.85e-07 grad=0.08 0.06 step/s]
---- Checkpoint at 86% of epoch 1 (step 24) ---
-  Cleaned old checkpoint: m09_ckpt_step20.pt
-  Step 24 | Val JEPA loss: 1.5944 (2 batches)
-  New best val loss: 1.5944
-m09_pretrain:  86%|████████▌ | 24/28 [06:24<00:52, 13.10s/step, E0 loss=0.4875 drift=0.0014 lr=3.25e-07 grad=0.08 0.06 step/s]m09_pretrain:  89%|████████▉ | 25/28 [06:24<00:54, 18.13s/step, E0 loss=0.4875 drift=0.0014 lr=3.25e-07 grad=0.08 0.06 step/s]m09_pretrain:  93%|█████████▎| 26/28 [06:31<00:29, 14.80s/step, E0 loss=0.4875 drift=0.0014 lr=3.25e-07 grad=0.08 0.06 step/s]
---- Checkpoint at 93% of epoch 1 (step 26) ---
-  Cleaned old checkpoint: m09_ckpt_step22.pt
-  Step 26 | Val JEPA loss: 1.5949 (2 batches)
-m09_pretrain:  96%|█████████▋| 27/28 [06:52<00:16, 16.72s/step, E0 loss=0.4875 drift=0.0014 lr=3.25e-07 grad=0.08 0.06 step/s]m09_pretrain:  96%|█████████▋| 27/28 [06:58<00:16, 16.72s/step, E0 loss=0.4856 drift=0.0014 lr=1.00e-07 grad=0.10 0.09 step/s]m09_pretrain: 100%|██████████| 28/28 [06:58<00:00, 13.53s/step, E0 loss=0.4856 drift=0.0014 lr=1.00e-07 grad=0.10 0.09 step/s]
---- Checkpoint at 100% of epoch 1 (step 28) ---
-  Cleaned old checkpoint: m09_ckpt_step24.pt
-  Step 28 | Val JEPA loss: 1.6028 (2 batches)
-
---- Epoch 1/1 complete (step 28) ---
-m09_pretrain: 100%|██████████| 28/28 [07:14<00:00, 15.50s/step, E0 loss=0.4856 drift=0.0014 lr=1.00e-07 grad=0.10 0.09 step/s]
-Exported student encoder: /workspace/factorjepa/outputs/sanity/m09_lambda0_01/student_encoder.pt
-  Cleaned: m09_ckpt_latest.pt
-  Cleaned: m09_ckpt_best.pt
-  Cleaned: m09_ckpt_step26.pt
-  Cleaned: m09_ckpt_step28.pt
-
-=== TRAINING COMPLETE ===
-Steps:        28 (1.0 epochs)
-Clips seen:   896
-Student:      /workspace/factorjepa/outputs/sanity/m09_lambda0_01/student_encoder.pt
-Loss log:     /workspace/factorjepa/outputs/sanity/m09_lambda0_01/loss_log.csv
-Summary:      /workspace/factorjepa/outputs/sanity/m09_lambda0_01/training_summary.json
-
---- Ablation: lambda=0.1 ---
-Using PyAV for video decoding
-GPU: NVIDIA RTX PRO 6000 Blackwell Workstation Edition
-CUDA version: 12.8
-[output_guard] student_encoder.pt not found — will train
-
-=== Building Model ===
-/workspace/factorjepa/venv_walkindia/lib/python3.12/site-packages/timm/models/layers/__init__.py:49: FutureWarning: Importing from timm.models.layers is deprecated, please import via timm.layers
-  warnings.warn(f"Importing from {__name__} is deprecated, please import via timm.layers", FutureWarning)
-Downloading pretrained weights via torch.hub...
-Student loaded: 1,012,173,952 params (484/484 keys = 100%)
-Teacher created (deepcopy of student)
-Predictor loaded from checkpoint (152/152 keys = 100%)
-Predictor: 22,378,240 params
-Mask generators: 2 (blocks: [8, 2])
-[POC] Loaded subset: 10,000 clip keys from subset_10k.json
-[VAL] Loaded val subset: 1,000 clips from val_1k.json
-Excluding 434 val clips from training set
-Train clips: 900 | Val clips: 100
-Epochs: 1 | Steps/epoch: 28 | Total steps: 28
-Checkpoint every 2 steps (10x/epoch, keep last 2)
-Validation every 2 steps (10x/epoch, 100 val clips)
-
-Collecting 100 val clips into memory...
-Val clips collected: 31 in 1 batches
-m09_pretrain:   0%|          | 0/28 [00:00<?, ?step/s]
-=== Training: 0 → 28 steps (1 epochs) ===
-Batch size: 32
-Grad checkpointing: True
-Mixed precision: bfloat16
-EMA momentum: 0.99925
-Drift control: lambda=0.1
-Loss log: /workspace/factorjepa/outputs/sanity/m09_lambda0_1/loss_log.csv
-/venv/main/lib/python3.12/contextlib.py:105: FutureWarning: `torch.backends.cuda.sdp_kernel()` is deprecated. In the future, this context manager will be removed. Please see `torch.nn.attention.sdpa_kernel()` for the new context manager, with updated signature.
-  self.gen = func(*args, **kwds)
-m09_pretrain:   4%|▎         | 1/28 [00:13<06:02, 13.41s/step]m09_pretrain:   7%|▋         | 2/28 [00:20<04:05,  9.43s/step]
---- Checkpoint at 7% of epoch 1 (step 2) ---
-  Step 2 | Val JEPA loss: 1.6375 (1 batches)
-  New best val loss: 1.6375
-m09_pretrain:   7%|▋         | 2/28 [00:44<04:05,  9.43s/step, E0 loss=0.4912 drift=0.0010 lr=9.96e-06 grad=1.00 0.07 step/s]m09_pretrain:  11%|█         | 3/28 [00:44<06:44, 16.19s/step, E0 loss=0.4912 drift=0.0010 lr=9.96e-06 grad=1.00 0.07 step/s]m09_pretrain:  14%|█▍        | 4/28 [00:50<04:55, 12.31s/step, E0 loss=0.4912 drift=0.0010 lr=9.96e-06 grad=1.00 0.07 step/s]
---- Checkpoint at 14% of epoch 1 (step 4) ---
-  Step 4 | Val JEPA loss: 1.6435 (1 batches)
-m09_pretrain:  18%|█▊        | 5/28 [01:10<05:46, 15.08s/step, E0 loss=0.4912 drift=0.0010 lr=9.96e-06 grad=1.00 0.07 step/s]m09_pretrain:  18%|█▊        | 5/28 [01:17<05:46, 15.08s/step, E0 loss=0.4937 drift=0.0030 lr=9.43e-06 grad=0.22 0.09 step/s]m09_pretrain:  21%|██▏       | 6/28 [01:17<04:30, 12.27s/step, E0 loss=0.4937 drift=0.0030 lr=9.43e-06 grad=0.22 0.09 step/s]
---- Checkpoint at 21% of epoch 1 (step 6) ---
-  Cleaned old checkpoint: m09_ckpt_step2.pt
-  Step 6 | Val JEPA loss: 1.6309 (1 batches)
-  New best val loss: 1.6309
-m09_pretrain:  25%|██▌       | 7/28 [01:39<05:26, 15.56s/step, E0 loss=0.4937 drift=0.0030 lr=9.43e-06 grad=0.22 0.09 step/s]m09_pretrain:  29%|██▊       | 8/28 [01:46<04:17, 12.88s/step, E0 loss=0.4937 drift=0.0030 lr=9.43e-06 grad=0.22 0.09 step/s]
---- Checkpoint at 29% of epoch 1 (step 8) ---
-  Cleaned old checkpoint: m09_ckpt_step4.pt
-  Step 8 | Val JEPA loss: 1.6329 (1 batches)
-m09_pretrain:  29%|██▊       | 8/28 [02:07<04:17, 12.88s/step, E0 loss=0.4881 drift=0.0024 lr=8.32e-06 grad=0.13 0.06 step/s]m09_pretrain:  32%|███▏      | 9/28 [02:07<04:52, 15.39s/step, E0 loss=0.4881 drift=0.0024 lr=8.32e-06 grad=0.13 0.06 step/s]m09_pretrain:  36%|███▌      | 10/28 [02:14<03:46, 12.56s/step, E0 loss=0.4881 drift=0.0024 lr=8.32e-06 grad=0.13 0.06 step/s]
---- Checkpoint at 36% of epoch 1 (step 10) ---
-  Cleaned old checkpoint: m09_ckpt_step6.pt
-  Step 10 | Val JEPA loss: 1.6324 (1 batches)
-m09_pretrain:  39%|███▉      | 11/28 [02:34<04:15, 15.02s/step, E0 loss=0.4881 drift=0.0024 lr=8.32e-06 grad=0.13 0.06 step/s]m09_pretrain:  39%|███▉      | 11/28 [02:41<04:15, 15.02s/step, E0 loss=0.4935 drift=0.0021 lr=6.77e-06 grad=0.10 0.09 step/s]m09_pretrain:  43%|████▎     | 12/28 [02:41<03:18, 12.38s/step, E0 loss=0.4935 drift=0.0021 lr=6.77e-06 grad=0.10 0.09 step/s]
---- Checkpoint at 43% of epoch 1 (step 12) ---
-  Cleaned old checkpoint: m09_ckpt_step8.pt
-  Step 12 | Val JEPA loss: 1.6364 (1 batches)
-m09_pretrain:  46%|████▋     | 13/28 [03:05<04:02, 16.16s/step, E0 loss=0.4935 drift=0.0021 lr=6.77e-06 grad=0.10 0.09 step/s]m09_pretrain:  46%|████▋     | 13/28 [03:11<04:02, 16.16s/step, E0 loss=0.4919 drift=0.0018 lr=5.60e-06 grad=0.08 0.07 step/s]m09_pretrain:  50%|█████     | 14/28 [03:11<03:02, 13.06s/step, E0 loss=0.4919 drift=0.0018 lr=5.60e-06 grad=0.08 0.07 step/s]
---- Checkpoint at 50% of epoch 1 (step 14) ---
-  Cleaned old checkpoint: m09_ckpt_step10.pt
-  Step 14 | Val JEPA loss: 1.6321 (1 batches)
-m09_pretrain:  54%|█████▎    | 15/28 [03:31<03:14, 14.98s/step, E0 loss=0.4919 drift=0.0018 lr=5.60e-06 grad=0.08 0.07 step/s]m09_pretrain:  57%|█████▋    | 16/28 [03:37<02:28, 12.40s/step, E0 loss=0.4919 drift=0.0018 lr=5.60e-06 grad=0.08 0.07 step/s]
---- Checkpoint at 57% of epoch 1 (step 16) ---
-  Cleaned old checkpoint: m09_ckpt_step12.pt
-  Step 16 | Val JEPA loss: 1.6328 (1 batches)
-m09_pretrain:  57%|█████▋    | 16/28 [03:55<02:28, 12.40s/step, E0 loss=0.4898 drift=0.0014 lr=3.80e-06 grad=0.07 0.07 step/s]m09_pretrain:  61%|██████    | 17/28 [03:55<02:34, 14.07s/step, E0 loss=0.4898 drift=0.0014 lr=3.80e-06 grad=0.07 0.07 step/s]m09_pretrain:  64%|██████▍   | 18/28 [04:02<01:57, 11.78s/step, E0 loss=0.4898 drift=0.0014 lr=3.80e-06 grad=0.07 0.07 step/s]
---- Checkpoint at 64% of epoch 1 (step 18) ---
-  Cleaned old checkpoint: m09_ckpt_step14.pt
-  Step 18 | Val JEPA loss: 1.6335 (1 batches)
-m09_pretrain:  64%|██████▍   | 18/28 [04:26<01:57, 11.78s/step, E0 loss=0.4858 drift=0.0012 lr=2.68e-06 grad=0.07 0.06 step/s]m09_pretrain:  68%|██████▊   | 19/28 [04:26<02:21, 15.74s/step, E0 loss=0.4858 drift=0.0012 lr=2.68e-06 grad=0.07 0.06 step/s]m09_pretrain:  71%|███████▏  | 20/28 [04:33<01:42, 12.86s/step, E0 loss=0.4858 drift=0.0012 lr=2.68e-06 grad=0.07 0.06 step/s]
---- Checkpoint at 71% of epoch 1 (step 20) ---
-  Cleaned old checkpoint: m09_ckpt_step16.pt
-  Step 20 | Val JEPA loss: 1.6405 (1 batches)
-  Producer: starting epoch 2
-m09_pretrain:  75%|███████▌  | 21/28 [04:51<01:42, 14.61s/step, E0 loss=0.4858 drift=0.0012 lr=2.68e-06 grad=0.07 0.06 step/s]m09_pretrain:  75%|███████▌  | 21/28 [04:58<01:42, 14.61s/step, E0 loss=0.4862 drift=0.0010 lr=1.26e-06 grad=0.07 0.09 step/s]m09_pretrain:  79%|███████▊  | 22/28 [04:58<01:13, 12.33s/step, E0 loss=0.4862 drift=0.0010 lr=1.26e-06 grad=0.07 0.09 step/s]
---- Checkpoint at 79% of epoch 1 (step 22) ---
-  Cleaned old checkpoint: m09_ckpt_step18.pt
-  Step 22 | Val JEPA loss: 1.6349 (1 batches)
-m09_pretrain:  82%|████████▏ | 23/28 [05:17<01:11, 14.38s/step, E0 loss=0.4862 drift=0.0010 lr=1.26e-06 grad=0.07 0.09 step/s]m09_pretrain:  86%|████████▌ | 24/28 [05:24<00:47, 11.93s/step, E0 loss=0.4862 drift=0.0010 lr=1.26e-06 grad=0.07 0.09 step/s]
---- Checkpoint at 86% of epoch 1 (step 24) ---
-  Cleaned old checkpoint: m09_ckpt_step20.pt
-  Step 24 | Val JEPA loss: 1.6419 (1 batches)
-m09_pretrain:  86%|████████▌ | 24/28 [05:44<00:47, 11.93s/step, E0 loss=0.4903 drift=0.0008 lr=3.25e-07 grad=0.08 0.07 step/s]m09_pretrain:  89%|████████▉ | 25/28 [05:44<00:43, 14.54s/step, E0 loss=0.4903 drift=0.0008 lr=3.25e-07 grad=0.08 0.07 step/s]m09_pretrain:  93%|█████████▎| 26/28 [05:50<00:23, 11.99s/step, E0 loss=0.4903 drift=0.0008 lr=3.25e-07 grad=0.08 0.07 step/s]
---- Checkpoint at 93% of epoch 1 (step 26) ---
-  Cleaned old checkpoint: m09_ckpt_step22.pt
-  Step 26 | Val JEPA loss: 1.6274 (1 batches)
-  New best val loss: 1.6274
-m09_pretrain:  93%|█████████▎| 26/28 [06:15<00:23, 11.99s/step, E0 loss=0.4870 drift=0.0007 lr=1.00e-07 grad=0.07 0.06 step/s]m09_pretrain:  96%|█████████▋| 27/28 [06:15<00:15, 15.92s/step, E0 loss=0.4870 drift=0.0007 lr=1.00e-07 grad=0.07 0.06 step/s]m09_pretrain: 100%|██████████| 28/28 [06:22<00:00, 13.15s/step, E0 loss=0.4870 drift=0.0007 lr=1.00e-07 grad=0.07 0.06 step/s]
---- Checkpoint at 100% of epoch 1 (step 28) ---
-  Cleaned old checkpoint: m09_ckpt_step24.pt
-  Step 28 | Val JEPA loss: 1.6326 (1 batches)
-
---- Epoch 1/1 complete (step 28) ---
-m09_pretrain: 100%|██████████| 28/28 [06:36<00:00, 14.16s/step, E0 loss=0.4870 drift=0.0007 lr=1.00e-07 grad=0.07 0.06 step/s]
-Exported student encoder: /workspace/factorjepa/outputs/sanity/m09_lambda0_1/student_encoder.pt
-  Cleaned: m09_ckpt_latest.pt
-  Cleaned: m09_ckpt_best.pt
-  Cleaned: m09_ckpt_step26.pt
-  Cleaned: m09_ckpt_step28.pt
-
-=== TRAINING COMPLETE ===
-Steps:        28 (1.0 epochs)
-Clips seen:   896
-Student:      /workspace/factorjepa/outputs/sanity/m09_lambda0_1/student_encoder.pt
-Loss log:     /workspace/factorjepa/outputs/sanity/m09_lambda0_1/loss_log.csv
-Summary:      /workspace/factorjepa/outputs/sanity/m09_lambda0_1/training_summary.json
-
-=== Lambda Ablation Winner Selection ===
-Output dir: /workspace/factorjepa/outputs/sanity
-Selection metric: best_val_loss (lowest wins)
-
-  lambda=0: best_val_loss=1.6216 (jepa_loss=0.4825, 1.0 epochs, 28 steps)
-  lambda=0.001: best_val_loss=1.6411 (jepa_loss=0.4875, 1.0 epochs, 28 steps)
-  lambda=0.01: best_val_loss=1.5944 (jepa_loss=0.4847, 1.0 epochs, 28 steps)
-  lambda=0.1: best_val_loss=1.6274 (jepa_loss=0.4847, 1.0 epochs, 28 steps)
-
-  Winner: lambda=0.01 (best_val_loss=1.5944)
-  Saved: /workspace/factorjepa/outputs/sanity/ablation_winner.json
-  run_pretrain.sh --FULL will read this automatically.
-
-Proceeding with winner: lambda=0.01 (best_val_loss=1.5944)
-GPU: NVIDIA RTX PRO 6000 Blackwell Workstation Edition
-CUDA version: 12.8
-[output_guard] Training output valid — skipping
-  OK    student_encoder.pt: 4049 MB
-  OK    epochs=1.0, steps=28, jepa_loss=0.484702467918396

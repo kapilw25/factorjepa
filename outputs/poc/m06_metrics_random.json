@@ -3,7 +3,7 @@
   "encoder_dim": 1408,
   "easy": {
     "cycle_at_k": 66.15,
-    "overlap_at_k": 0.0,
+    "dim_consistency_at_k": 0.0,
     "silhouette": -0.0303,
     "prec_at_k": 11.87,
     "map_at_k": 0.059,
@@ -33,7 +33,7 @@
         "ci_hi": 0.896967,
         "ci_half": 0.001375
       },
-      "overlap_at_k": {
+      "dim_consistency_at_k": {
         "mean": 0.003636,
         "ci_lo": 0.0,
         "ci_hi": 0.012727,
@@ -934,7 +934,7 @@
   },
   "hard": {
     "cycle_at_k": 66.15,
-    "overlap_at_k": 0.0,
+    "dim_consistency_at_k": 0.0,
     "silhouette": -0.0303,
     "prec_at_k": 11.86,
     "map_at_k": 0.059,
@@ -964,7 +964,7 @@
         "ci_hi": 0.896991,
         "ci_half": 0.001371
       },
-      "overlap_at_k": {
+      "dim_consistency_at_k": {
         "mean": 0.003636,
         "ci_lo": 0.0,
         "ci_hi": 0.012727,
@@ -1238,7 +1238,7 @@
       "infrastructure_quality": 54.52,
       "road_encroachment": 49.54,
       "vegetation": 32.81,
-      "lighting": 65.59,
+      "lighting": 65.6,
       "video_quality": 40.27
     },
     "map_per_key": {
@@ -1910,6 +1910,6 @@
   "k_neighbors": 6,
   "num_clips": 10000,
   "exclusion_window_sec": 30,
-  "mode": "poc",
-  "subset_file": "data/subset_10k.json"
+  "mode": "full",
+  "subset_file": null
 }

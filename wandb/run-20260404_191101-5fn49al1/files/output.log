@@ -1,0 +1,38 @@
+wandb: run=m09_SANITY_lambda0 url=https://wandb.ai/sjsu_llm/walkindia-200k/runs/5fn49al1
+m09_pretrain:   0%|          | 0/28 [00:00<?, ?step/s]/venv/main/lib/python3.12/contextlib.py:105: FutureWarning: `torch.backends.cuda.sdp_kernel()` is deprecated. In the future, this context manager will be removed. Please see `torch.nn.attention.sdpa_kernel()` for the new context manager, with updated signature.
+
+=== Training: 0 → 28 steps (1 epochs) ===
+Batch size: 32
+Grad checkpointing: True
+Mixed precision: bfloat16
+EMA momentum: 0.99925
+Drift control: lambda=0
+Loss log: /workspace/factorjepa/outputs/sanity/ablation/m09_lambda0/loss_log.csv
+  self.gen = func(*args, **kwds)
+m09_pretrain:  32%|███▏      | 9/28 [06:54<14:34, 46.03s/step, E0 loss=0.4709 drift=0.0000 lr=8.32e-06 grad=0.13 0.02 step/s]
+
+--- Checkpoint at 7% of epoch 1 (step 2) ---
+
+--- Checkpoint at 14% of epoch 1 (step 4) ---
+
+--- Checkpoint at 21% of epoch 1 (step 6) ---
+  Cleaned old checkpoint: m09_ckpt_step2.pt
+
+--- Checkpoint at 29% of epoch 1 (step 8) ---
+  Cleaned old checkpoint: m09_ckpt_step4.pt
+Traceback (most recent call last):
+  File "/workspace/factorjepa/src/m09_pretrain.py", line 1482, in <module>
+    main()
+  File "/workspace/factorjepa/src/m09_pretrain.py", line 1397, in main
+    train(cfg, args)
+  File "/workspace/factorjepa/src/m09_pretrain.py", line 1086, in train
+    scaler.scale(total_loss).backward()
+  File "/workspace/factorjepa/venv_walkindia/lib/python3.12/site-packages/torch/_tensor.py", line 631, in backward
+    torch.autograd.backward(
+  File "/workspace/factorjepa/venv_walkindia/lib/python3.12/site-packages/torch/autograd/__init__.py", line 381, in backward
+    _engine_run_backward(
+  File "/workspace/factorjepa/venv_walkindia/lib/python3.12/site-packages/torch/autograd/graph.py", line 879, in _engine_run_backward
+    return Variable._execution_engine.run_backward(  # Calls into the C++ engine to run the backward pass
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+torch.OutOfMemoryError: CUDA out of memory. Tried to allocate 2.14 GiB. GPU 0 has a total capacity of 94.97 GiB of which 736.44 MiB is free. Including non-PyTorch memory, this process has 94.24 GiB memory in use. Of the allocated memory 92.10 GiB is allocated by PyTorch, and 1.48 GiB is reserved by PyTorch but unallocated. If reserved but unallocated memory is large try setting PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True to avoid fragmentation.  See documentation for Memory Management  (https://docs.pytorch.org/docs/stable/notes/cuda.html#optimizing-memory-usage-with-pytorch-cuda-alloc-conf)
+Exception ignored in:

@@ -1,0 +1,85 @@
+wandb: run=m08_FULL url=https://wandb.ai/sjsu_llm/walkindia-200k/runs/xl0ieypv
+Output dir: /workspace/factorjepa/outputs/full
+[output_guard] m08 random: attempting HF download for 2 missing file(s)...
+Downloading anonymousML123/factorjepa-outputs//workspace/factorjepa/outputs/full/ → /workspace/factorjepa/outputs/full
+
+Download complete: 0s
+  Files: 0 new, 0 updated, 320 unchanged
+  Downloaded: 0.00 GB
+[output_guard] m08 random: 2 file(s) still missing after HF download
+[output_guard] m08 random: outputs missing or invalid — will re-compute
+  MISS  umap_plot: m08_umap_random.png
+  MISS  confusion_matrix: m08_confusion_matrix_random.png
+Encoder: random (suffix='_random')
+Loaded: 115,687 clips
+Loaded m06 metrics: m06_metrics_random.json
+Taxonomy keys for plots: ['scene_type', 'time_of_day', 'weather', 'crowd_density', 'traffic_density', 'traffic_mix', 'pedestrian_vehicle_separation', 'road_surface', 'infrastructure_quality', 'road_encroachment', 'vegetation', 'lighting', 'video_quality']
+m08_plot:  52%|█████▏    | 15/29 [01:26<02:05,  8.97s/plot]
+Saved: /workspace/factorjepa/outputs/full/m08_umap_random.png
+Saved: /workspace/factorjepa/outputs/full/m08_umap_random_time_of_day.png
+Saved: /workspace/factorjepa/outputs/full/m08_umap_random_weather.png
+Saved: /workspace/factorjepa/outputs/full/m08_umap_random_crowd_density.png
+Saved: /workspace/factorjepa/outputs/full/m08_umap_random_traffic_density.png
+Saved: /workspace/factorjepa/outputs/full/m08_umap_random_traffic_mix.png
+Saved: /workspace/factorjepa/outputs/full/m08_umap_random_pedestrian_vehicle_separation.png
+Saved: /workspace/factorjepa/outputs/full/m08_umap_random_road_surface.png
+Saved: /workspace/factorjepa/outputs/full/m08_umap_random_infrastructure_quality.png
+Saved: /workspace/factorjepa/outputs/full/m08_umap_random_road_encroachment.png
+Saved: /workspace/factorjepa/outputs/full/m08_umap_random_vegetation.png
+Saved: /workspace/factorjepa/outputs/full/m08_umap_random_lighting.png
+Saved: /workspace/factorjepa/outputs/full/m08_umap_random_video_quality.png
+Saved: /workspace/factorjepa/outputs/full/m08_umap_grid_random.png
+Saved: /workspace/factorjepa/outputs/full/m08_confusion_matrix_random.png
+
+Per-class retrieval accuracy:
+  bazaar: 0.7%
+  beach_coastal: 1.5%
+  commercial: 14.9%
+  flyover_underpass: 4.1%
+  ghat: 1.7%
+  heritage_tourist: 4.5%
+  highway: 7.1%
+  junction: 4.7%
+  market: 22.0%
+  promenade: 9.5%
+  residential_lane: 16.7%
+  skyline_aerial: 0.9%
+  transit: 10.5%
+  unsure: 0.1%
+Saved: /workspace/factorjepa/outputs/full/m08_confusion_matrix_random_time_of_day.png
+Saved: /workspace/factorjepa/outputs/full/m08_confusion_matrix_random_weather.png
+Saved: /workspace/factorjepa/outputs/full/m08_confusion_matrix_random_crowd_density.png
+Saved: /workspace/factorjepa/outputs/full/m08_confusion_matrix_random_traffic_density.png
+Saved: /workspace/factorjepa/outputs/full/m08_confusion_matrix_random_traffic_mix.png
+Saved: /workspace/factorjepa/outputs/full/m08_confusion_matrix_random_pedestrian_vehicle_separation.png
+Saved: /workspace/factorjepa/outputs/full/m08_confusion_matrix_random_road_surface.png
+Saved: /workspace/factorjepa/outputs/full/m08_confusion_matrix_random_infrastructure_quality.png
+Saved: /workspace/factorjepa/outputs/full/m08_confusion_matrix_random_road_encroachment.png
+Saved: /workspace/factorjepa/outputs/full/m08_confusion_matrix_random_vegetation.png
+Saved: /workspace/factorjepa/outputs/full/m08_confusion_matrix_random_lighting.png
+Saved: /workspace/factorjepa/outputs/full/m08_confusion_matrix_random_video_quality.png
+Saved: /workspace/factorjepa/outputs/full/m08_confusion_matrix_grid_random.png
+Saved: /workspace/factorjepa/outputs/full/m08_knn_grid_random.png
+
+=== MACRO/MICRO REPORTING ===
+
+EASY mode:
+  Macro Prec@K: 7.07%
+  Micro Prec@K: 13.08%
+  Cycle At K: 96.5
+  Prec At K: 13.08
+  Silhouette: -0.0036
+  Map At K: 0.066
+  Ndcg At K: 0.9049
+
+HARD mode:
+  Macro Prec@K: 7.07%
+  Micro Prec@K: 13.08%
+  Cycle At K: 96.5
+  Prec At K: 13.08
+  Silhouette: -0.0036
+  Map At K: 0.066
+  Ndcg At K: 0.9049
+
+=== VISUALIZATION COMPLETE ===
+Outputs in: /workspace/factorjepa/outputs/full

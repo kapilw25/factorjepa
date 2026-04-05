@@ -1,56 +1,0 @@
-Note: Environment variable`HF_TOKEN` is set and is the current active token independently from the token you've just configured.
-HuggingFace: Authenticated
-Model:   qwen (Qwen/Qwen3-VL-8B-Instruct)
-Output:  /workspace/factorjepa/outputs/sanity/tags_sanity_qwen.json
-Mode:    SANITY
-
-============================================================
-WORKER 1 [qwen]: clips 0 → 64
-============================================================
-Note: Environment variable`HF_TOKEN` is set and is the current active token independently from the token you've just configured.
-HuggingFace: Authenticated
-GPU: NVIDIA RTX PRO 6000 Blackwell Workstation Edition
-CUDA version: 12.8
-GPU VRAM: 95 GB | VLM cost model: 16GB fixed + 0.78GB/clip
-  vjepa=37 (linear, scale=2.37x from 40GB)
-  image_encoder=148 (4x vjepa, cap 256)
-  transformers=64 (max batch, est 66GB = 69% VRAM)
-  sub-batch=51 (initial, AdaptiveBatchSizer grows to 64)
-/workspace/factorjepa/venv_walkindia/lib/python3.12/site-packages/transformers/utils/hub.py:110: FutureWarning: Using `TRANSFORMERS_CACHE` is deprecated and will be removed in v5 of Transformers. Use `HF_HOME` instead.
-  warnings.warn(
-Loading transformers: Qwen/Qwen3-VL-8B-Instruct
-Loading checkpoint shards:   0%|          | 0/4 [00:00<?, ?it/s]Loading checkpoint shards:  25%|██▌       | 1/4 [00:00<00:01,  2.03it/s]Loading checkpoint shards:  50%|█████     | 2/4 [00:00<00:00,  2.04it/s]Loading checkpoint shards:  75%|███████▌  | 3/4 [00:01<00:00,  2.06it/s]Loading checkpoint shards: 100%|██████████| 4/4 [00:01<00:00,  2.44it/s]Loading checkpoint shards: 100%|██████████| 4/4 [00:01<00:00,  2.28it/s]
-Qwen loaded via transformers (FA2)
-Backend loaded: qwen | batch_size=64 | AdaptiveBatchSizer(size=51, range=[1, 64], cap=85%, ooms=0)
-
-Streaming from: anonymousML123/walkindia-200k
-  backend=qwen  start_from=0  clip_limit=64
-m04_qwen:   0%|          | 0/64 [00:00<?, ?clip/s]qwen-vl-utils using decord to read video.
-Qwen3VL requires frame timestamps to construct prompts, but the `fps` of the input video could not be inferred. Probably `video_metadata` was missing from inputs and you passed pre-sampled frames. Defaulting to `fps=24`. Please provide `video_metadata` for more accurate results.
-The following generation flags are not valid and may be ignored: ['temperature', 'top_p', 'top_k']. Set `TRANSFORMERS_VERBOSITY=info` for more details.
-  AdaptiveBatch: VRAM 39% < 65% → sub-batch 51 → 52
-  AdaptiveBatch: VRAM 39% < 65% → sub-batch 52 → 53
-m04_qwen: 100%|██████████| 64/64 [00:52<00:00,  1.21clip/s]m04_qwen: 100%|██████████| 64/64 [00:52<00:00,  1.21clip/s, 1.21 clips/s | ETA 0 min | qwen]m04_qwen: 100%|██████████| 64/64 [00:52<00:00,  1.21clip/s, 1.21 clips/s | ETA 0 min | qwen]
-
-Segment done: 64 clips in 53s (1.21 clips/s)
-Worker exiting (GPU memory will be released).
-Worker done. Progress: 64/64
-
-=== TAGGING COMPLETE (qwen) ===
-Saved: /workspace/factorjepa/outputs/sanity/tags_sanity_qwen.json
-Total clips tagged: 64
-Dummy tags (VLM parse failures): 0 (0.0%)
-
-Scene type distribution (qwen):
-  beach_coastal: 28
-  promenade: 15
-  heritage_tourist: 7
-  residential_lane: 7
-  commercial: 3
-  junction: 2
-  ghat: 1
-  market: 1
-Saved: /workspace/factorjepa/outputs/sanity/m04_scene_distribution_qwen.png
-Saved: /workspace/factorjepa/outputs/sanity/m04_scene_distribution_qwen.pdf
-Saved: /workspace/factorjepa/outputs/sanity/m04_taxonomy_distribution_qwen.png
-Saved: /workspace/factorjepa/outputs/sanity/m04_taxonomy_distribution_qwen.pdf

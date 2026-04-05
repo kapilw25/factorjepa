@@ -1,33 +1,0 @@
-[14:33:54] GPU watchdog started (PID=607086)
-[14:33:54] Auto-detected encoders: vjepa,clip,dinov2,random,vjepa_lambda0_001,vjepa_lambda0_01,vjepa_lambda0_01_shuffled,vjepa_shuffled
-[14:33:54] === EVALUATION PIPELINE (mode=SANITY) ===
-[14:33:54] Output dir: outputs/sanity
-[14:33:54] Encoders:   vjepa,clip,dinov2,random,vjepa_lambda0_001,vjepa_lambda0_01,vjepa_lambda0_01_shuffled,vjepa_shuffled
-[14:33:54] Master log: logs/eval_SANITY_20260404_143354.log
-[14:33:54] Tags: 50 clips in outputs/sanity/tags.json
-[14:33:54] Starting evaluation for 8 encoders...
-
-═══════════════════════════════════════════════════════════════
-  STEP eval: eval suite (vjepa clip dinov2 random vjepa_lambda0_001 vjepa_lambda0_01 vjepa_lambda0_01_shuffled vjepa_shuffled)
-  Mode: SANITY | Est: ~30-120 min
-  Started: 2026-04-04 14:33:54
-═══════════════════════════════════════════════════════════════
-[14:33:54] CMD: python -u src/utils/eval_suite.py --encoders vjepa,clip,dinov2,random,vjepa_lambda0_001,vjepa_lambda0_01,vjepa_lambda0_01_shuffled,vjepa_shuffled --compare-encoders vjepa,clip,dinov2,random,vjepa_lambda0_001,vjepa_lambda0_01,vjepa_lambda0_01_shuffled,vjepa_shuffled --SANITY --log-dir logs --log-prefix eval_sanity
-eval_suite:   0%|          | 0/33 [00:00<?, ?step/s]
-============================================================
-  EVAL SUITE: vjepa
-============================================================
-
-  --- m06 FAISS metrics (vjepa) ---
-
-  CMD: /workspace/factorjepa/venv_walkindia/bin/python -u src/m06_faiss_metrics.py --encoder vjepa --SANITY
-  PASSED: m06 vjepa (5s)
-eval_suite:   3%|▎         | 1/33 [00:04<02:37,  4.91s/step]
-  --- m06b temporal correlation (vjepa) ---
-
-  CMD: /workspace/factorjepa/venv_walkindia/bin/python -u src/m06b_temporal_corr.py --encoder vjepa --SANITY
-  PASSED: m06b vjepa (17s)
-eval_suite:   6%|▌         | 2/33 [00:21<06:04, 11.76s/step]
-  --- m07 UMAP (vjepa) ---
-
-  CMD: /workspace/factorjepa/venv_walkindia/bin/python -u src/m07_umap.py --encoder vjepa --SANITY

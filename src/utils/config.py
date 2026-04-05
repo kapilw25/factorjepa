@@ -8,6 +8,8 @@ import shutil
 import sys
 from pathlib import Path
 
+import yaml
+
 # Base paths
 PROJECT_ROOT = Path(__file__).parent.parent.parent
 SRC_DIR = PROJECT_ROOT / "src"
@@ -102,7 +104,7 @@ CLIP_MAX_DURATION = 10.0  # seconds (professor spec: min 4, max 10)
 
 # V-JEPA config (ViT-G 384: 1B params, strongest V-JEPA variant for best embeddings)
 VJEPA_MODEL_ID = "facebook/vjepa2-vitg-fpc64-384"
-VJEPA_FRAMES_PER_CLIP = 64
+VJEPA_FRAMES_PER_CLIP = yaml.safe_load(open(PROJECT_ROOT / "configs" / "pipeline.yaml"))["gpu"]["eval_frames_per_clip"]
 VJEPA_EMBEDDING_DIM = 1408  # ViT-G hidden dimension
 
 # Qwen3-VL config
@@ -247,16 +249,17 @@ def load_subset(subset_path: str = None) -> set:
     return keys
 
 
-def get_output_dir(subset_path: str = None, sanity: bool = False) -> Path:
+def get_output_dir(subset_path: str = None, sanity: bool = False,
+                   poc: bool = False) -> Path:
     """
     Return output directory based on mode.
     SANITY mode          → outputs_sanity/
-    POC mode (--subset)  → outputs_poc/
+    POC mode (--POC or --subset)  → outputs_poc/
     Full mode            → outputs/
     """
     if sanity:
         return OUTPUTS_SANITY_DIR
-    if subset_path:
+    if poc or subset_path:
         return OUTPUTS_POC_DIR
     return OUTPUTS_DIR
 

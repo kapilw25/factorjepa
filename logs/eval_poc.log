@@ -1,0 +1,10 @@
+[14:46:08] GPU watchdog started (PID=3151825)
+[14:46:08] Auto-detected encoders: vjepa,clip,dinov2,random,vjepa_lambda0_001,vjepa_shuffled
+[14:46:08] === EVALUATION PIPELINE (mode=POC) ===
+[14:46:08] Output dir: outputs/poc
+[14:46:08] Encoders:   vjepa,clip,dinov2,random,vjepa_lambda0_001,vjepa_shuffled
+[14:46:08] Master log: logs/eval_POC_20260405_144608.log
+GPU Watchdog: threshold=50%, window=5min, interval=30s, cooldown=30min
+Alert: kapilw25@gmail.com | Checks for alert: 10 consecutive
+[14:46:08] Tags: 10000 clips in outputs/poc/tags.json
+[14:50:40] ALERT SENT: GPU 0% → kapilw25@gmail.com

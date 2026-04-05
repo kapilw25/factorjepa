@@ -1,0 +1,21 @@
+wandb: run=m05_FULL url=https://wandb.ai/sjsu_llm/walkindia-200k/runs/tp0qowpc
+Checkpoint loaded: 106,304 embeddings from .m05_checkpoint_vjepa_lambda0_001_shuffled.npz
+
+Loading model: outputs/full/m09_lambda0_001/student_encoder.pt
+Adapted model: num_frames=16 (from training config)
+/workspace/factorjepa/venv_walkindia/lib/python3.12/site-packages/timm/models/layers/__init__.py:49: FutureWarning: Importing from timm.models.layers is deprecated, please import via timm.layers
+  warnings.warn(f"Importing from {__name__} is deprecated, please import via timm.layers", FutureWarning)
+Adapted encoder: loaded 484/484 params (missing: 0, unexpected: 0)
+Applying torch.compile...
+Warmup: compiling inductor graph...
+Model loaded on cuda (dtype: torch.float16)
+
+=== Streaming Config ===
+batch_size:    176
+video_decoder: PyAV
+prefetch:      8 batches
+checkpoint:    every 500 clips
+m05_vjepa: 100%|██████████| 9383/9383 [11:03<00:00, 14.13clip/s, 14.3 clips/s | failed=0]
+  Parallel TAR reader: 8 threads, 116 TARs, queue=256
+
+Segment done: 9,383 clips in 664s (14.12 clips/s)

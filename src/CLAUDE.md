@@ -23,7 +23,7 @@
 8) **GPU utilization ≥85% is TOP PRIORITY.** Idle GPU = wasted money ($1.20/hr). If GPU util drops below 50% for >1 min, the producer is starving the GPU — fix the I/O pipeline, not the model. Common causes: sequential TAR scanning (parallelize with multi-threaded readers), slow video decode (increase DECODE_WORKERS), insufficient prefetch queue (increase PREFETCH_QUEUE_SIZE). Monitor via nvtop. 0% GPU on image encoders (CLIP/DINOv2) is a sign of CPU-bound producer starvation, not "normal."
 8.1) Devil's advocate: OOM, GPU underutil, data starvation, VRAM leaks, fp16 instability (use flash-attn-2), checkpoint corruption /auto-resume solution
 9) GPU Optimizations:
-- torch.compile(model) after model.eval() — warn about first-batch compile latency. **Exception**: skip torch.compile for adapted (float16) models loaded from .pt files — vjepa2's deprecated `sdp_kernel()` context manager causes graph breaks that prevent inductor memory optimization (89GB at BS=176 vs profiler's 30GB). Use eager mode + chunked forward passes (`inference_adapted_chunk` in pipeline.yaml). Only compile frozen (base HF) models.
+- torch.compile(model) after model.eval() — warn about first-batch compile latency. For adapted models (native vjepa2), monkey-patch `torch.backends.cuda.sdp_kernel = contextlib.nullcontext` before compile to eliminate graph breaks from the deprecated context manager (PyTorch #130098). Both frozen (HF) and adapted (native) models MUST use torch.compile.
 - FAISS GPU: faiss.StandardGpuResources() + index_cpu_to_gpu(). Never CPU FAISS in GPU scripts
 - cuML GPU: for iterative algorithms (UMAP, DBSCAN, KMeans, PCA) — 50-100x speedup. For metrics (silhouette, accuracy, F1) keep sklearn/numpy on CPU — post-inference, not a bottleneck
 - Auto batch sizing: `scripts/profile_vram.py` → `outputs/profile/profile_data.json` → auto-detect in `run_pretrain.sh` (75% VRAM threshold). If profile_data.json missing, profiler runs automatically (~5 min).
@@ -55,6 +55,10 @@
 - `configs/pretrain/vitg16_indian.yaml` — training hyperparameters (LR, EMA, masking, augmentation, epochs per mode, drift control, checkpointing, mixed precision).
 
 # RULES (MUST follow)
+- **NEVER sacrifice metric accuracy for speed/memory.** Evaluation MUST match the frozen baseline's conditions exactly (same frame count, same resolution, same processor via VJEPA_FRAMES_PER_CLIP=64). Training can use fewer frames (Meta trains V-JEPA 2 at 16f for 95% of iterations, +0.7pp from 64f cooldown — Section 2.4). The model handles frame mismatch at eval (RoPE, no learnable pos_embed). Incident: missing ImageNet normalization in m09 augmentation caused -26% Prec@K — NOT the frame count.
+- **End-to-end test in Python interactive shell before restarting pipelines.** Never restart a long-running GPU job to test a change. Use the Python interactive shell (`python3` → `>>>`, also called Read-Eval-Print Loop) to test the FULL code path with real data — not just the import. Example: `from torchcodec.decoders import VideoDecoder; d = VideoDecoder("real_video.mp4")` — not just `import torchcodec`. Incident: import succeeded but decode SIGSEGV'd because torchcodec can't read TAR files (our video format). A 1-minute decode test would have caught this.
+- **Never say "let the current run complete first" to avoid fixing a bug.** All GPU scripts have checkpoint-based resume. Interrupting a run loses at most 1 checkpoint interval (~500 clips, ~4 min). If a fix can save hours (e.g., switching decoder, fixing BS, fixing normalization), interrupt immediately, apply the fix, restart. The checkpoint system exists precisely so interruptions are cheap. Telling the user to wait 15h "to be safe" when a fix is ready is wasting GPU money.
+- **No CPU fallbacks when GPU solution works.** If a GPU-accelerated dependency (torchcodec NVDEC, FAISS-GPU, cuML) was tested in REPL and works, import it directly — no try/except fallback to CPU. Silent fallback to a 7x slower CPU path (e.g., PyAV instead of torchcodec, FAISS-CPU instead of GPU, sklearn instead of cuML) wastes GPU hours without any accuracy benefit. Fail FATAL if the GPU path is missing — don't silently degrade to CPU.
 - you do not be have to be yes-man on my very demand >> behave like a Sr. AI/ML Research engineer >> give me pros and cons of each of my demand
 - Be brutally honest. Disagree [challenge me] when I'm wrong, but never hallucinate or lie.
 - Devil's advocate does NOT mean fabricating bugs that don't exist. If code is correct, say so and move on.
@@ -67,6 +71,14 @@
 - GPU time is expensive — idle GPU = wasted money; idle user during GPU job = wasted time. Keep the GPU busy.
 - Mandatory checklist for ANY GPU pipeline script: (1) tqdm progress bar, (2) auto-resume from checkpoint, (3) tee logging, (4) wandb integration, (5) windowed throughput reporting, (6) **output-exists guard** — check if final output file exists BEFORE loading model; skip if exists. **ENFORCED: Claude MUST run `/preflight <file>` after ANY edit to `src/m*.py` that touches main().**
 - When auditing for hardcoded values, SHOW the grep output as proof. User does not trust "I audited everything" claims without evidence.
+
+27) **Grep for flag existence is NOT validation. Trace the data flow.**
+- After adding a new CLI flag (e.g., `--POC`) to a shell script, verify the FULL code path: flag → Python argparse → `get_output_dir()` → correct directory. Don't stop at "the script accepts the flag."
+- `shellcheck scripts/*.sh` before committing — catches `ls | pipefail`, `read` in pipes, unquoted vars.
+- End-to-end dry run after adding new flags — catches flag wiring bugs (e.g., `--POC` not reaching `get_output_dir`).
+- REPL test of the exact code path — `get_output_dir(poc=False)` → wrong dir is a 10-second check.
+- Integration test: `run_eval.sh --POC --encoders vjepa` on SANITY-sized data catches both shell and Python bugs in 30 seconds.
+- Incident: `ls glob 2>/dev/null | wc -l` with `set -eo pipefail` silently killed `run_eval.sh`, masking a second bug where `--POC` routed to `outputs/full/` instead of `outputs/poc/`. Two bugs, first masked the second. Both catchable with `shellcheck` + a 30s dry run.
 
 # HOOKS
 - `.claude/hooks/enforce-dev-rules.sh` (PreToolUse:Bash) — blocks pip install, git state changes, bare python3

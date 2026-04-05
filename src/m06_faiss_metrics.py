@@ -1035,7 +1035,7 @@ def main():
                         enabled=not args.no_wandb)
 
     # Output routing: POC vs Full, encoder-aware paths
-    output_dir = get_output_dir(args.subset, sanity=args.SANITY)
+    output_dir = get_output_dir(args.subset, sanity=args.SANITY, poc=args.POC)
     enc_files = get_encoder_files(args.encoder, output_dir)
     metrics_file = enc_files["metrics"]
     emb_file = enc_files["embeddings"]

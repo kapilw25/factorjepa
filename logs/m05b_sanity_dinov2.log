@@ -1,38 +1,0 @@
-Using PyAV for video decoding
-============================================================
-BASELINE: dinov2
-Model:    facebook/dinov2-giant
-Dim:      1536
-Type:     image
-Output:   /workspace/factorjepa/outputs/sanity/embeddings_dinov2.npy
-============================================================
-[output_guard] m05b dinov2: attempting HF download for 2 missing file(s)...
-Downloading anonymousML123/factorjepa-outputs//workspace/factorjepa/outputs/sanity/ → /workspace/factorjepa/outputs/sanity
-Fetching 0 files: 0it [00:00, ?it/s]Fetching 0 files: 0it [00:00, ?it/s]
-Download complete: 0s
-[output_guard] m05b dinov2: 2 file(s) still missing after HF download
-[output_guard] m05b dinov2: outputs missing or invalid — will re-compute
-  MISS  embeddings: embeddings_dinov2.npy
-  MISS  paths: embeddings_dinov2.paths.npy
-GPU: NVIDIA RTX PRO 6000 Blackwell Workstation Edition
-CUDA version: 12.8
-Loading model: facebook/dinov2-giant
-Using a slow image processor as `use_fast` is unset and a slow processor was saved with this model. `use_fast=True` will be the default behavior in v4.52, even if the model was saved with a slow processor. This will result in minor differences in outputs. You'll still be able to use a slow processor with `use_fast=False`.
-`torch_dtype` is deprecated! Use `dtype` instead!
-Applying torch.compile (first batch will be slow due to compilation)...
-DINOv2 loaded (dim=1536, dtype=float16, FA2+compiled)
-GPU VRAM: 95 GB | VLM cost model: 16GB fixed + 0.78GB/clip
-  vjepa=37 (linear, scale=2.37x from 40GB)
-  image_encoder=148 (4x vjepa, cap 256)
-  transformers=64 (max batch, est 66GB = 69% VRAM)
-  sub-batch=51 (initial, AdaptiveBatchSizer grows to 64)
-m05b dinov2:   0%|          | 0/64 [00:00<?, ?clip/s]  Parallel TAR reader: 8 threads, 10 TARs, queue=256
-m05b dinov2:   6%|▋         | 4/64 [00:04<01:08,  1.14s/clip]m05b dinov2:   6%|▋         | 4/64 [00:04<01:08,  1.14s/clip, rate=0.9/s]m05b dinov2:  12%|█▎        | 8/64 [00:04<01:03,  1.14s/clip, rate=256.2/s]m05b dinov2:  19%|█▉        | 12/64 [00:04<00:59,  1.14s/clip, rate=267.1/s]m05b dinov2:  25%|██▌       | 16/64 [00:04<00:54,  1.14s/clip, rate=277.7/s]m05b dinov2:  31%|███▏      | 20/64 [00:04<00:50,  1.14s/clip, rate=271.1/s]m05b dinov2:  38%|███▊      | 24/64 [00:04<00:45,  1.14s/clip, rate=279.2/s]m05b dinov2:  44%|████▍     | 28/64 [00:04<00:41,  1.14s/clip, rate=278.8/s]m05b dinov2:  50%|█████     | 32/64 [00:04<00:03,  9.33clip/s, rate=278.8/s]m05b dinov2:  50%|█████     | 32/64 [00:04<00:03,  9.33clip/s, rate=285.5/s]m05b dinov2:  56%|█████▋    | 36/64 [00:04<00:03,  9.33clip/s, rate=282.3/s]m05b dinov2:  62%|██████▎   | 40/64 [00:04<00:02,  9.33clip/s, rate=263.4/s]m05b dinov2:  69%|██████▉   | 44/64 [00:04<00:02,  9.33clip/s, rate=269.2/s]m05b dinov2:  75%|███████▌  | 48/64 [00:04<00:01,  9.33clip/s, rate=83.6/s] m05b dinov2:  81%|████████▏ | 52/64 [00:04<00:00, 16.72clip/s, rate=83.6/s]m05b dinov2:  81%|████████▏ | 52/64 [00:04<00:00, 16.72clip/s, rate=47.8/s]m05b dinov2:  88%|████████▊ | 56/64 [00:04<00:00, 16.72clip/s, rate=58.8/s]m05b dinov2:  94%|█████████▍| 60/64 [00:04<00:00, 16.72clip/s, rate=59.6/s]m05b dinov2: 100%|██████████| 64/64 [00:05<00:00, 12.69clip/s, rate=59.6/s]
-
-Saved: /workspace/factorjepa/outputs/sanity/embeddings_dinov2.npy ((64, 1536))
-Saved: /workspace/factorjepa/outputs/sanity/embeddings_dinov2.paths.npy (64 keys)
-
-=== BASELINE COMPLETE: dinov2 ===
-Clips:     64
-Dim:       1536
-Next step: python -u src/m06_faiss_metrics.py --encoder dinov2 --FULL --subset data/subset_10k.json

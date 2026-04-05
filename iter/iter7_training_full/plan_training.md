@@ -210,7 +210,7 @@ Factor datasets (D_L, D_A, D_I) created via SAM3 segmentation → tracklet minin
 
 ## Execution Plan (ordered by priority)
 
-### Step 1: 10K POC — Validate pipeline (DONE)
+### Step 1: 10K POC — Validate pipeline (DONE ✅)
 
 | Item | Result |
 |------|--------|
@@ -218,30 +218,26 @@ Factor datasets (D_L, D_A, D_I) created via SAM3 segmentation → tracklet minin
 | Data | 10K subset (8,982 train / 1,018 val) |
 | Ablation | λ ∈ {0, 0.001, 0.01, 0.1} × 1 epoch each |
 | Winner | λ=0.001 (jepa_loss=1.4914, selected by lowest loss) |
-| Deep run | λ=0.001 × 5 epochs (400 steps, ~3h GPU) |
 | Adapted vs Frozen | Prec@K: 36.14% vs 36.09% (Δ=+0.05%, **noise**) |
 | Conclusion | **10K clips insufficient for 1B model adaptation** |
 
-### Step 2: 115K Full — Main result (NEXT)
+### Step 2: 115K Full — Main result (IN PROGRESS 🔄)
 
-```
-1B model + 10K clips → 0% gain (proven)
-1B model + 115K clips → ???        ← THIS IS NEXT
-```
-
-| Item | Plan |
+| Item | Plan / Status |
 |------|------|
 | Model | V-JEPA 2.0 ViT-g (1B), same as POC |
-| Data | 115K full corpus (~104K train / ~11K val) |
-| Lambda | λ=0.001 only (winner from POC, skip sweep) |
-| Epochs | 1 epoch = ~929 steps at BS=112, ~6.4h |
-| Eval | m05 re-embed (115K) → m06 metrics → m08b compare |
-| Command | `./scripts/run_pretrain.sh --FULL` |
-| Total time | ~98h (~4 days) including eval |
-| If it works | Report "115K needed" — clean paper story |
-| If it doesn't | Approach needs rethinking (not just data scale) |
+| Data | 115K full corpus (~114K train / ~1K val) |
+| Training frames | **16f** (Meta's recipe: 16f for 95% of training, V-JEPA 2 Sec 2.4) |
+| Eval frames | **64f** (matches frozen baseline, via `pipeline.yaml: eval_frames_per_clip`) |
+| Lambda | λ=0.001 (ablation skipped — used POC winner) |
+| Training | 1 epoch = 1,023 steps at BS=112, **~6h** |
+| Embedding | m05 re-embed at 64f, BS=44, **~15h** |
+| Eval | `run_eval.sh --FULL` (6 encoders), **~1.3h** |
+| **Total** | **~22h** |
+| Critical fixes | ImageNet normalization added (Bug 13), 64f eval (Bug 14) |
+| Command | `./scripts/run_pretrain.sh --FULL && ./scripts/run_eval.sh --FULL` |
 
-### Step 3: 2B Scaling Ablation (LATER, if time permits)
+### Step 3: 2B Scaling Ablation (LATER)
 
 **Do NOT run before Step 2.** Rationale:
 - V-JEPA 2.1 ViT-G (2B) has different architecture (deep self-supervision) → confounds the data-size experiment
@@ -249,16 +245,17 @@ Factor datasets (D_L, D_A, D_I) created via SAM3 segmentation → tracklet minin
 - ~2x VRAM → may not fit at BS=112, needs profiler re-run
 - The proposal specifies 2B as "scaling analysis" — an appendix ablation, not the main result
 
-| Item | Plan |
-|------|------|
-| Model | V-JEPA 2.1 ViT-G (2B), 1664-dim |
-| Data | 115K full corpus (same as Step 2) |
-| Purpose | Does scaling model size help when data size is fixed? |
-| Prerequisite | Step 2 must show meaningful gain first |
+| Item | V-JEPA 2.0 (Step 2) | V-JEPA 2.1 (Step 3) |
+|------|------|------|
+| Architecture | ViT-g (1B), standard JEPA | ViT-G (2B), deep self-supervision at intermediate layers |
+| Embedding dim | 1408 | 1664 |
+| Loss | L1 latent prediction (masked tokens only) | Dense Predictive Loss (ALL tokens, L1) |
+| Purpose | Main result: does 115K Indian data help? | Appendix: does model scale help at fixed data? |
+| Prerequisite | None | Step 2 must show meaningful gain first |
 
-### Step 4: Ch11 Surgery Fine-Tuning (FUTURE)
+### Step 4: Ch11 Surgery Fine-Tuning (NOT STARTED)
 
-Uses best adapted encoder from Step 2 or 3 as starting point. See Surgery section below.
+See Ch11 Implementation Status below.
 
 ---
 
@@ -349,53 +346,95 @@ flowchart LR
 
 ---
 
-## Code & Commands
+## Code & Commands (updated April 4, 2026)
 
-Code is built and tested on 10K POC. For 115K, see `plan_code_dev.md` for terminal commands.
+### 4-script architecture (no cross-chapter eval dependency)
 
 ```bash
-# 3-mode CLI:
-./scripts/run_evaluate.sh --SANITY   # quick validation
-./scripts/run_evaluate.sh --POC      # 10K subset (~8h)
-./scripts/run_evaluate.sh --FULL     # 115K full corpus (~100h)
+# Ch9: Tags + Embeddings (5 frozen encoders + motion)
+./scripts/run_frozen.sh --FULL
 
-./scripts/run_pretrain.sh --SANITY   # quick validation
-./scripts/run_pretrain.sh --POC      # 10K subset (~5h)
-./scripts/run_pretrain.sh --FULL     # 115K full corpus (~98h)
+# Ch10: Training + Adapted Embeddings
+./scripts/run_pretrain.sh --FULL
+
+# Evaluation: ALL available encoders (auto-detects)
+./scripts/run_eval.sh --FULL
+
+# Ch11: Surgical fine-tuning (PLACEHOLDER)
+./scripts/run_surgery.sh --FULL
 ```
 
-### Code Organization (flat `src/m*.py`, decided and implemented)
-
-**Our pipeline is sequential, not independent.** Modules share `config.py`, `gpu_batch.py`, encoder registry, WebDataset streaming, `bootstrap.py`, `wandb_utils.py`. m05 outputs feed m06 which feeds m08. Splitting into subdirectories would break the `m04 → m05 → m06 → m07 → m08` dependency chain that the numbering encodes.
-
-### Decision: Flat modules + config-driven training (V-JEPA 2 style)
+### Code Organization
 
 ```
 src/
-├── m00-m08b                 # Existing eval pipeline (KEEP FLAT)
-├── m09_pretrain.py          # Ch10 continual pretraining
-├── m10_sam_segment.py       # Ch11 SAM3 + tracklets
-├── m11_factor_datasets.py   # Ch11 D_L/D_A/D_I creation
-├── m12_surgery.py           # Ch11 progressive unfreezing
-└── utils/                   # Shared (KEEP)
+├── m00-m08b                 # Ch9 eval pipeline (DONE)
+├── m09_pretrain.py          # Ch10 continual pretraining (DONE)
+├── m10_sam_segment.py       # Ch11 SAM3 + tracklets (TODO)
+├── m10b_interaction_mine.py # Ch11 interaction tube mining (TODO)
+├── m10c_factor_patch.py     # Ch11 D_L/D_A/D_I generation (TODO)
+└── utils/
 
-configs/                     # NEW — V-JEPA 2 style
-├── eval/
-│   └── vitg16_poc.yaml
+configs/
+├── pipeline.yaml            # Shared: batch sizes, clip limits, eval params
 ├── pretrain/
-│   └── vitg16_indian.yaml
-└── surgery/
+│   └── vitg16_indian.yaml   # Ch10 training hyperparameters
+└── surgery/                 # Ch11 (TODO)
     ├── stage1_layout.yaml
     ├── stage2_agent.yaml
     └── stage3_interaction.yaml
 
 scripts/
-├── run_evaluate.sh          # Ch9 (EXISTS)
-├── run_pretrain.sh          # Ch10 (TODO)
-└── run_surgery.sh           # Ch11 (TODO)
+├── run_frozen.sh            # Ch9 (DONE)
+├── run_pretrain.sh          # Ch10 (DONE)
+├── run_eval.sh              # ALL chapters (DONE)
+└── run_surgery.sh           # Ch11 (PLACEHOLDER)
 ```
 
-YAML configs carry hyperparameters (LR, EMA momentum, mask ratio, batch size, prefix boundary). Python scripts carry logic. This matches V-JEPA 2 / DINOv2 / MMAction2 conventions without breaking our module numbering.
+---
+
+## Ch11 Implementation Status
+
+### Novelty: why this combination is new
+
+| Component | Exists separately? | Combined for video SSL? |
+|---|---|---|
+| Progressive prefix unfreezing | AutoProg (CVPR 2022) — images only | **NO** |
+| Factor-decomposed video inputs (layout/agent/interaction) | Sparse-Tuning (token-level, not spatial) | **NO** |
+| Self-supervised V-JEPA loss | facebookresearch/vjepa2 | **NO** |
+
+**FactorJEPA's novelty = the combination.** No existing repo implements progressive layer unfreezing × factor-patched inputs × JEPA self-supervised loss on video.
+
+### What's needed vs what exists
+
+| Proposal Section | What's needed | Status |
+|---|---|---|
+| 11.1 SAM segmentation | `m10_sam_segment.py`: SAM3 → masks → tracklets → agent/layout | NOT STARTED |
+| 11.1 Agent vs layout | Motion-based filter on tracklets | NOT STARTED |
+| 11.1 Derived datasets | D_L (layout-only), D_A (agent-only), D_I (interaction) | NOT STARTED |
+| 11.2 Interaction mining | `m10b_interaction_mine.py`: tracklet pairs → distance/persistence → tubes | NOT STARTED |
+| 11.3 Factor patch operators | `m10c_factor_patch.py`: P_L (blur agents), P_A (suppress BG), P_I (crop) | NOT STARTED |
+| 11.3 Interaction perturbations | Tube jitter, margin randomization, raw/masked mixing | NOT STARTED |
+| 11.4 Training objective | Same V-JEPA loss (student-teacher, EMA, predictor) | **REUSE m09** ✅ |
+| 11.5 Progressive prefix unfreezing | `requires_grad=False` for layers > n_s, rebuild optimizer | NOT STARTED |
+| 11.5 Stage schedule | 3 stages: n1=0.25L, n2=0.50L, n3=0.75L | NOT STARTED |
+| 11.5 Layer-wise LR decay | Smaller LR for earlier unfrozen layers | NOT STARTED |
+| 11.6 Stage-wise training loop | Per-stage init + warmup | NOT STARTED |
+| 11.8 Factor-sliced evaluation | Query with D_L, D_A, D_I separately | NOT STARTED |
+| 11.8 Patch shortcut sanity check | Eval raw vs patched clips | NOT STARTED |
+| `run_surgery.sh` | Full pipeline orchestration | PLACEHOLDER |
+
+### What CAN be reused from Ch10
+
+| Component | Reusable? |
+|---|---|
+| V-JEPA loss (student-teacher-predictor) | YES — identical |
+| EMA teacher update | YES |
+| Masking (8 small + 2 large blocks) | YES |
+| Augmentation (crop + flip + ImageNet normalize) | YES |
+| Embedding extraction (m05 at 64f) | YES |
+| Evaluation suite (run_eval.sh) | YES + new factor-sliced queries |
+| Checkpoint/resume | YES |
 
 ### Module Pipeline: Ch9 (eval) → Ch10 (pretrain) → Ch11 (surgery) → Re-eval
 

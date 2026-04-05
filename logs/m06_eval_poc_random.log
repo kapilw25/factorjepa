@@ -1,0 +1,180 @@
+GPU: NVIDIA RTX PRO 6000 Blackwell Workstation Edition
+CUDA version: 12.8
+wandb: [wandb.login()] Loaded credentials for https://api.wandb.ai from WANDB_API_KEY.
+wandb: Currently logged in as: kapilw25 (sjsu_llm) to https://api.wandb.ai. Use `wandb login --relogin` to force relogin
+wandb: WARNING Using a boolean value for 'reinit' is deprecated. Use 'return_previous' or 'finish_previous' instead.
+wandb: setting up run 6mtt5k43
+wandb: Tracking run with wandb version 0.25.1
+wandb: Run data is saved locally in /workspace/factorjepa/wandb/run-20260405_151325-6mtt5k43
+wandb: Run `wandb offline` to turn off syncing.
+wandb: Syncing run m06_POC
+wandb: ⭐️ View project at https://wandb.ai/sjsu_llm/walkindia-200k
+wandb: 🚀 View run at https://wandb.ai/sjsu_llm/walkindia-200k/runs/6mtt5k43
+wandb: run=m06_POC url=https://wandb.ai/sjsu_llm/walkindia-200k/runs/6mtt5k43
+[output_guard] m06 random: attempting HF download for 2 missing file(s)...
+Downloading anonymousML123/factorjepa-outputs//workspace/factorjepa/outputs/poc/ → /workspace/factorjepa/outputs/poc
+
+Download complete: 0s
+  Files: 0 new, 0 updated, 274 unchanged
+  Downloaded: 0.00 GB
+[output_guard] m06 random: 2 file(s) still missing after HF download
+[output_guard] m06 random: outputs missing or invalid — will re-compute
+  MISS  metrics: m06_metrics_random.json
+  MISS  knn_indices: knn_indices_random.npy
+Encoder:     random (dim=1408, type=synthetic)
+Output dir:  /workspace/factorjepa/outputs/poc
+Embeddings:  /workspace/factorjepa/outputs/poc/embeddings_random.npy
+Metrics:     /workspace/factorjepa/outputs/poc/m06_metrics_random.json
+Loaded embeddings: (10000, 1408)
+Loaded tags: 10,000
+Loaded clip paths: 10,000
+WARNING: Tags lack _clip_key field — cannot verify alignment. Results may be wrong if tags and embeddings are from different runs.
+Building FAISS GPU index: 10,000 vectors, dim=1408
+FAISS GPU index built: 10,000 vectors
+
+Searching 30 neighbors (k=6, extra for Hard mode)...
+m06_modes:   0%|          | 0/2 [00:00<?, ?mode/s]
+==================================================
+EASY MODE (k=6)
+==================================================
+  Cycle@K:     66.15%
+  DimConsist@K: 0.00% ± 0.01 (dim-split, NOT augmentation invariance)
+  Silhouette:  -0.0303 (scene_type)
+  Prec@K:      11.87%
+  mAP@K:       0.0590
+  nDCG@K:      0.8956
+  Computing per-key breakdowns for 13 fields...
+
+m06_easy_perkey:   0%|          | 0/65 [00:00<?, ?field/s][A
+m06_easy_perkey:   2%|▏         | 1/65 [00:00<00:38,  1.65field/s][A
+m06_easy_perkey:   3%|▎         | 2/65 [00:01<00:42,  1.49field/s][A
+m06_easy_perkey:   5%|▍         | 3/65 [00:02<00:42,  1.47field/s][A
+m06_easy_perkey:   6%|▌         | 4/65 [00:02<00:41,  1.48field/s][A
+m06_easy_perkey:   8%|▊         | 5/65 [00:03<00:39,  1.51field/s][A
+m06_easy_perkey:   9%|▉         | 6/65 [00:03<00:38,  1.52field/s][A
+m06_easy_perkey:  11%|█         | 7/65 [00:04<00:38,  1.50field/s][A
+m06_easy_perkey:  12%|█▏        | 8/65 [00:05<00:37,  1.51field/s][A
+m06_easy_perkey:  14%|█▍        | 9/65 [00:05<00:37,  1.50field/s][A
+m06_easy_perkey:  15%|█▌        | 10/65 [00:06<00:36,  1.49field/s][A
+m06_easy_perkey:  17%|█▋        | 11/65 [00:07<00:35,  1.52field/s][A
+m06_easy_perkey:  18%|█▊        | 12/65 [00:08<00:35,  1.48field/s][A
+m06_easy_perkey:  20%|██        | 13/65 [00:08<00:34,  1.49field/s][A  Silhouette per-key: crowd_density=-0.0003, traffic_density=-0.0003, video_quality=-0.0003 ...
+  Prec@K per-key: time_of_day=68.52%, lighting=65.60%, pedestrian_vehicle_separation=56.49% ...
+  mAP@K per-key: time_of_day=0.5885, lighting=0.5556, weather=0.4607 ...
+  Cycle@K per-key: computed for 13 fields
+
+m06_easy_perkey:  85%|████████▍ | 55/65 [00:08<00:00, 26.70field/s][Am06_easy_perkey: 100%|██████████| 65/65 [00:08<00:00,  7.29field/s]
+  Macro avg:   4.73%
+  Micro avg:   11.87%
+  Bootstrap 95% CI (BCa, 10K iterations)...
+  Prec@K:  11.87% ± 0.28
+  mAP@K:   0.0590 ± 0.0018
+  Cycle@K: 0.66% ± 0.01
+  nDCG@K:  0.8956 ± 0.0014
+  [13.1s]
+m06_modes:  50%|█████     | 1/2 [00:13<00:13, 13.08s/mode]Hard mode exclusion: 5,657 clips affected (avg 2.5 excluded neighbors)
+
+==================================================
+HARD MODE (k=6)
+==================================================
+  Cycle@K:     66.15%
+  DimConsist@K: 0.00% ± 0.01 (dim-split, NOT augmentation invariance)
+  Silhouette:  -0.0303 (scene_type)
+  Prec@K:      11.86%
+  mAP@K:       0.0590
+  nDCG@K:      0.8956
+  Computing per-key breakdowns for 13 fields...
+
+m06_hard_perkey:   0%|          | 0/65 [00:00<?, ?field/s][A
+m06_hard_perkey:   2%|▏         | 1/65 [00:00<00:38,  1.65field/s][A
+m06_hard_perkey:   3%|▎         | 2/65 [00:01<00:42,  1.49field/s][A
+m06_hard_perkey:   5%|▍         | 3/65 [00:02<00:42,  1.47field/s][A
+m06_hard_perkey:   6%|▌         | 4/65 [00:02<00:41,  1.48field/s][A
+m06_hard_perkey:   8%|▊         | 5/65 [00:03<00:39,  1.50field/s][A
+m06_hard_perkey:   9%|▉         | 6/65 [00:03<00:38,  1.52field/s][A
+m06_hard_perkey:  11%|█         | 7/65 [00:04<00:38,  1.50field/s][A
+m06_hard_perkey:  12%|█▏        | 8/65 [00:05<00:37,  1.51field/s][A
+m06_hard_perkey:  14%|█▍        | 9/65 [00:05<00:37,  1.49field/s][A
+m06_hard_perkey:  15%|█▌        | 10/65 [00:06<00:37,  1.47field/s][A
+m06_hard_perkey:  17%|█▋        | 11/65 [00:07<00:35,  1.50field/s][A
+m06_hard_perkey:  18%|█▊        | 12/65 [00:08<00:35,  1.47field/s][A
+m06_hard_perkey:  20%|██        | 13/65 [00:08<00:34,  1.49field/s][A  Silhouette per-key: crowd_density=-0.0003, traffic_density=-0.0003, video_quality=-0.0003 ...
+  Prec@K per-key: time_of_day=68.51%, lighting=65.60%, pedestrian_vehicle_separation=56.48% ...
+  mAP@K per-key: time_of_day=0.5885, lighting=0.5556, weather=0.4607 ...
+  Cycle@K per-key: computed for 13 fields
+
+m06_hard_perkey:  85%|████████▍ | 55/65 [00:08<00:00, 26.57field/s][Am06_hard_perkey: 100%|██████████| 65/65 [00:08<00:00,  7.26field/s]
+  Macro avg:   4.73%
+  Micro avg:   11.86%
+  Bootstrap 95% CI (BCa, 10K iterations)...
+  Prec@K:  11.86% ± 0.28
+  mAP@K:   0.0590 ± 0.0018
+  Cycle@K: 0.66% ± 0.01
+  nDCG@K:  0.8956 ± 0.0014
+  [12.9s]
+m06_modes: 100%|██████████| 2/2 [00:26<00:00, 13.04s/mode]m06_modes: 100%|██████████| 2/2 [00:26<00:00, 13.05s/mode]
+
+Confidence sweep: 7 thresholds
+
+Saved: /workspace/factorjepa/outputs/poc/m06_metrics_random.json
+Saved: /workspace/factorjepa/outputs/poc/knn_indices_random.npy ((10000, 7))
+Saved: /workspace/factorjepa/outputs/poc/m06_distance_hist.png
+Saved: /workspace/factorjepa/outputs/poc/m06_confidence_sweep.png
+Saved: /workspace/factorjepa/outputs/poc/m06_purity_all_keys.png
+Saved: /workspace/factorjepa/outputs/poc/m06_silhouette_per_key.png
+Saved: /workspace/factorjepa/outputs/poc/m06_map_per_key.png
+Saved: /workspace/factorjepa/outputs/poc/m06_cycle_per_key.png
+Saved: /workspace/factorjepa/outputs/poc/m06_map_per_value.png
+Saved: /workspace/factorjepa/outputs/poc/m06_metrics_by_key.png
+Saved: /workspace/factorjepa/outputs/poc/m06_radar.png
+
+============================================================
+                     EVALUATION SUMMARY                     
+============================================================
+Metric                     Easy       Hard
+------------------------------------------
+  Cycle At K              66.15      66.15
+  Dim Consistency At K       0.00       0.00
+  Silhouette            -0.0303    -0.0303
+  Prec At K               11.87      11.86
+  Map At K               0.0590     0.0590
+  Ndcg At K              0.8956     0.8956
+
+  Macro Prec@K:  Easy=4.73%  Hard=4.73%
+  Micro Prec@K:  Easy=11.87%  Hard=11.86%
+wandb: uploading artifact metrics; updating run metadata
+wandb: uploading artifact metrics
+wandb: uploading media/images/m06_map_per_value_random_27_1d67aca73accfcd2762f.png; uploading media/images/m06_silhouette_per_key_random_24_e4b12257c54c6265bc78.png; uploading media/images/m06_metrics_by_key_random_28_433ec7490a8f5ae9e28d.png; uploading media/images/m06_radar_random_29_127ec78ff167ccf17622.png; uploading config.yaml (+ 4 more)
+wandb: uploading media/images/m06_purity_all_keys_random_23_1b4174e35481c4196621.png
+wandb: uploading history steps 21-29, summary, console lines 55-101
+wandb: 
+wandb: Run history:
+wandb:  confidence_sweep/coverage ██████▁
+wandb: confidence_sweep/prec_at_k ██████▁
+wandb: confidence_sweep/threshold ▁▂▃▅▆▇█
+wandb:            easy/cycle_at_k ▁
+wandb:  easy/dim_consistency_at_k ▁
+wandb:       easy/macro_prec_at_k ▁
+wandb:              easy/map_at_k ▁
+wandb:       easy/micro_prec_at_k ▁
+wandb:             easy/ndcg_at_k ▁
+wandb:             easy/prec_at_k ▁
+wandb:                         +9 ...
+wandb: 
+wandb: Run summary:
+wandb:  confidence_sweep/coverage 0.9982
+wandb: confidence_sweep/prec_at_k 11.86
+wandb: confidence_sweep/threshold 0.9
+wandb:            easy/cycle_at_k 66.15
+wandb:  easy/dim_consistency_at_k 0
+wandb:       easy/macro_prec_at_k 4.73
+wandb:              easy/map_at_k 0.059
+wandb:       easy/micro_prec_at_k 11.87
+wandb:             easy/ndcg_at_k 0.8956
+wandb:             easy/prec_at_k 11.87
+wandb:                         +9 ...
+wandb: 
+wandb: 🚀 View run m06_POC at: https://wandb.ai/sjsu_llm/walkindia-200k/runs/6mtt5k43
+wandb: ⭐️ View project at: https://wandb.ai/sjsu_llm/walkindia-200k
+wandb: Synced 5 W&B file(s), 9 media file(s), 2 artifact file(s) and 0 other file(s)
+wandb: Find logs at: ./wandb/run-20260405_151325-6mtt5k43/logs

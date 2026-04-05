@@ -4,7 +4,7 @@
   "encoder_type": "video_shuffled",
   "n_clips_aligned": 10000,
   "k_neighbors": 6,
-  "compute_time_sec": 17.5,
+  "compute_time_sec": 19.0,
   "mode": "POC",
   "spearman_rho": 0.317223,
   "spearman_rho_ci": {

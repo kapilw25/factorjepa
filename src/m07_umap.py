@@ -51,7 +51,7 @@ def main():
 
     check_gpu()
 
-    output_dir = get_output_dir(args.subset, sanity=args.SANITY)
+    output_dir = get_output_dir(args.subset, sanity=args.SANITY, poc=args.POC)
     output_dir.mkdir(parents=True, exist_ok=True)
 
     mode = "SANITY" if args.SANITY else ("POC" if args.POC else "FULL")

@@ -24,6 +24,8 @@
 
 **Image beats video on spatial metrics.** DINOv2 outperforms V-JEPA by 3.5x on scene classification. Shuffling V-JEPA's frames improves it by 2.4x — temporal encoding hurts spatial understanding. But V-JEPA wins Cycle@K (78.7%), the most temporally-sensitive metric.
 
+All metrics reported with bootstrap 95% CIs (10K iterations). Significance = non-overlapping CIs on nDCG@K (primary, MTEB standard) + majority (5/8) of all metrics.
+
 ---
 
 ## Setup
@@ -39,37 +41,59 @@ source venv_walkindia/bin/activate
 
 ## Pipeline
 
-Three stages, each a single command. All stages use checkpoint/resume — safe to interrupt and restart.
+Five scripts, single responsibility each. All use checkpoint/resume — safe to interrupt and restart.
 
-### Evaluate frozen encoders (~7h GPU)
-
-5 encoders (V-JEPA 2 + DINOv2 + CLIP + Shuffled + Random), 9 spatial metrics + 5 temporal metrics, bootstrap 95% CI, comparison plots.
-
-```bash
-./scripts/run_evaluate.sh --FULL
+```
+scripts/
+├── train_frozen.sh     → Ch9:  VLM tags + motion features
+├── train_pretrain.sh   → Ch10: Continual pretraining (V-JEPA loss + EMA)
+├── train_surgery.sh    → Ch11: Surgical fine-tuning (TODO)
+├── run_embed.sh        → ALL:  Embedding extraction (auto-detects encoders)
+└── run_eval.sh         → ALL:  Evaluation (auto-detects encoders, radar plot)
 ```
 
-Covers: `m00d` (data download) &#8594; `m04` (VLM tagging) &#8594; `m05/m05b/m05c` (embeddings) &#8594; `m04d` (RAFT motion features) &#8594; `m06/m06b` (spatial + temporal metrics) &#8594; `m07` (UMAP) &#8594; `m08/m08b` (plots + comparison)
-
-### Continual pretraining (TODO, ~20h GPU)
-
-Self-supervised JEPA loss on Indian clips. Student-teacher with EMA, stratified sampling by v3 taxonomy.
+### Quick start
 
 ```bash
-./scripts/run_pretrain.sh --FULL
+# Fast iteration (~7h): train 115K + embed 10K + eval 10K
+./scripts/train_pretrain.sh --FULL
+./scripts/run_embed.sh --FULL --subset data/subset_10k.json \
+    --local-data data/subset_10k_local --encoders vjepa_lambda0_001
+./scripts/run_eval.sh --POC
+
+# Paper result (~22h): full embed + eval
+./scripts/run_embed.sh --FULL --local-data data/full_local
+./scripts/run_eval.sh --FULL
 ```
 
-Covers: `m09` (continual pretraining) &#8594; re-run evaluation pipeline with adapted encoder
+### Ch9: Frozen encoder data (tags + motion)
 
-### Representation surgery (TODO, ~54h GPU)
+```bash
+./scripts/train_frozen.sh --FULL   # m04 (VLM tagging) + m04d (RAFT motion)
+```
+
+### Ch10: Continual pretraining
+
+Self-supervised JEPA loss on Indian clips. Student-teacher with EMA, ImageNet normalization, 16f training / 64f eval (Meta recipe).
+
+```bash
+./scripts/train_pretrain.sh --FULL  # m09 (training only)
+```
+
+### Ch11: Representation surgery (TODO)
 
 Progressive prefix unfreezing with factor datasets (Layout &#8594; Agent &#8594; Interaction) from SAM3 segmentation.
 
 ```bash
-./scripts/run_surgery.sh --FULL
+./scripts/train_surgery.sh --FULL   # m10 → m10b → m10c → m09 (surgical)
 ```
 
-Covers: `m10` (SAM3 + tracklets) &#8594; `m11` (factor datasets) &#8594; `m12` (3-stage surgery) &#8594; re-run evaluation
+### Embedding + Evaluation (reusable across all chapters)
+
+```bash
+./scripts/run_embed.sh --FULL --local-data data/full_local   # all encoders
+./scripts/run_eval.sh --FULL                                  # m06→m08b radar
+```
 
 ---
 

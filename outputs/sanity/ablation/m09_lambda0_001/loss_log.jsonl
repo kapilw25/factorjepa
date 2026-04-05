@@ -1,0 +1,14 @@
+{"step": 0, "epoch": 0, "loss_jepa": 0.465547, "loss_drift": 0.0, "loss_total": 0.465547, "lr": 2.0000000000000003e-06, "grad_norm": 2.6612, "throughput": 0.03}
+{"step": 1, "epoch": 0, "loss_jepa": 0.468266, "loss_drift": 0.0, "loss_total": 0.468266, "lr": 4.000000000000001e-06, "grad_norm": 2.7006, "throughput": 0.05}
+{"step": 2, "epoch": 0, "loss_jepa": 0.457913, "loss_drift": 2e-06, "loss_total": 0.457915, "lr": 6e-06, "grad_norm": 2.5256, "throughput": 0.05}
+{"step": 3, "epoch": 0, "loss_jepa": 0.458005, "loss_drift": 1.1e-05, "loss_total": 0.458016, "lr": 8.000000000000001e-06, "grad_norm": 1.4077, "throughput": 0.05}
+{"step": 4, "epoch": 0, "loss_jepa": 0.45976, "loss_drift": 3.4e-05, "loss_total": 0.459794, "lr": 1e-05, "grad_norm": 0.7877, "throughput": 0.05}
+{"step": 5, "epoch": 0, "loss_jepa": 0.471479, "loss_drift": 7.8e-05, "loss_total": 0.471557, "lr": 9.990516643685222e-06, "grad_norm": 0.3906, "throughput": 0.04}
+{"step": 6, "epoch": 0, "loss_jepa": 0.472979, "loss_drift": 0.000155, "loss_total": 0.473134, "lr": 9.96210254835968e-06, "grad_norm": 0.3379, "throughput": 0.05}
+{"step": 7, "epoch": 0, "loss_jepa": 0.46661, "loss_drift": 0.000245, "loss_total": 0.466855, "lr": 9.91486549841951e-06, "grad_norm": 0.3733, "throughput": 0.05}
+{"step": 8, "epoch": 0, "loss_jepa": 0.462223, "loss_drift": 0.000334, "loss_total": 0.462557, "lr": 9.848984680175049e-06, "grad_norm": 0.2168, "throughput": 0.05}
+{"step": 9, "epoch": 0, "loss_jepa": 0.462774, "loss_drift": 0.000425, "loss_total": 0.463199, "lr": 9.764710002135784e-06, "grad_norm": 0.3345, "throughput": 0.05}
+{"step": 10, "epoch": 0, "loss_jepa": 0.457425, "loss_drift": 0.000509, "loss_total": 0.457935, "lr": 9.66236114702178e-06, "grad_norm": 0.2824, "throughput": 0.04}
+{"step": 11, "epoch": 0, "loss_jepa": 0.452161, "loss_drift": 0.00059, "loss_total": 0.452751, "lr": 9.542326359097619e-06, "grad_norm": 0.2646, "throughput": 0.06}
+{"step": 12, "epoch": 0, "loss_jepa": 0.459106, "loss_drift": 0.000661, "loss_total": 0.459766, "lr": 9.405060971428924e-06, "grad_norm": 0.1085, "throughput": 0.05}
+{"step": 13, "epoch": 0, "loss_jepa": 0.467556, "loss_drift": 0.000727, "loss_total": 0.468283, "lr": 9.251085678648072e-06, "grad_norm": 0.1053, "throughput": 0.06}

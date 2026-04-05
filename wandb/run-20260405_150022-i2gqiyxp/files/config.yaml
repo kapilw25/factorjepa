@@ -1,0 +1,51 @@
+_wandb:
+    value:
+        cli_version: 0.25.1
+        e:
+            2gbi9k13piwqkow6605p46tp1ymjymbe:
+                args:
+                    - --encoder
+                    - vjepa_lambda0_001
+                    - --POC
+                codePath: src/m06b_temporal_corr.py
+                codePathLocal: src/m06b_temporal_corr.py
+                email: kapilw25@gmail.com
+                executable: /workspace/factorjepa/venv_walkindia/bin/python
+                git:
+                    commit: bf645ddc41e5cedf243cd16e499edfdc45d54bc4
+                    remote: https://github.com/kapilw25/factorjepa.git
+                host: 2d5319172a4c
+                os: Linux-6.8.0-106-generic-x86_64-with-glibc2.39
+                program: /workspace/factorjepa/src/m06b_temporal_corr.py
+                python: CPython 3.12.13
+                root: /workspace/factorjepa
+                startedAt: "2026-04-05T15:00:22.049334Z"
+                writerId: 2gbi9k13piwqkow6605p46tp1ymjymbe
+        m: []
+        python_version: 3.12.13
+        t:
+            "3":
+                - 13
+                - 16
+            "4": 3.12.13
+            "5": 0.25.1
+            "10":
+                - 20
+            "12": 0.25.1
+            "13": linux-x86_64
+FULL:
+    value: false
+POC:
+    value: true
+SANITY:
+    value: false
+encoder:
+    value: vjepa_lambda0_001
+k:
+    value: 6
+n_pairs:
+    value: 100000
+no_wandb:
+    value: false
+subset:
+    value: null

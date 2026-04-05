@@ -1,0 +1,81 @@
+wandb: [wandb.login()] Loaded credentials for https://api.wandb.ai from WANDB_API_KEY.
+wandb: Currently logged in as: kapilw25 (sjsu_llm) to https://api.wandb.ai. Use `wandb login --relogin` to force relogin
+wandb: WARNING Using a boolean value for 'reinit' is deprecated. Use 'return_previous' or 'finish_previous' instead.
+wandb: setting up run 398gzr5e
+wandb: Tracking run with wandb version 0.25.1
+wandb: Run data is saved locally in /workspace/factorjepa/wandb/run-20260405_151735-398gzr5e
+wandb: Run `wandb offline` to turn off syncing.
+wandb: Syncing run m06b_POC
+wandb: ⭐️ View project at https://wandb.ai/sjsu_llm/walkindia-200k
+wandb: 🚀 View run at https://wandb.ai/sjsu_llm/walkindia-200k/runs/398gzr5e
+wandb: run=m06b_POC url=https://wandb.ai/sjsu_llm/walkindia-200k/runs/398gzr5e
+Encoder: vjepa_shuffled (dim=1408, suffix='_vjepa_shuffled')
+Output: /workspace/factorjepa/outputs/poc
+Motion features: (10000, 13)
+Embeddings: (10000, 1408)
+kNN indices: (10000, 7)
+m06b_temporal:   0%|          | 0/5 [00:00<?, ?step/s]Aligned: 10,000 clips (emb=10,000, motion=10,000)
+
+Computing Spearman correlation (+ bootstrap 95% CI)...
+  Spearman rho = 0.3172 ± 0.0058 (p = 0.00e+00, 99,991 pairs)
+
+Computing Temporal Prec@K (k=6, + bootstrap 95% CI)...
+  Temporal Prec@K = 42.5% ± 0.5
+
+Computing Motion Retrieval mAP (k=6, clusters=4, + bootstrap 95% CI)...
+  Motion Retrieval mAP = 0.7053 ± 0.0058
+m06b_temporal:  60%|██████    | 3/5 [00:18<00:12,  6.19s/step]
+Computing Temporal Order Sensitivity...
+  Order sensitivity: mean=30.99, median=31.28 (10,000 clips)
+
+Computing Temporal Locality...
+m06b_temporal: 100%|██████████| 5/5 [00:18<00:00,  3.27s/step]m06b_temporal: 100%|██████████| 5/5 [00:18<00:00,  3.79s/step]
+  Intra-video dist: 28.0349
+  Inter-video dist: 37.6389
+  Ratio (lower=better): 0.7448 (713 videos)
+
+Saved: /workspace/factorjepa/outputs/poc/m06b_temporal_corr_vjepa_shuffled.json
+
+============================================================
+m06b TEMPORAL CORRELATION — vjepa_shuffled
+============================================================
+  Spearman rho:          0.3172 ± 0.0058
+  Temporal Prec@K:       42.5% ± 0.5
+  Motion Retrieval mAP:  0.7053 ± 0.0058
+  Order Sensitivity:     30.99 (mean L2)
+  Temporal Locality:     0.7448 (intra/inter ratio)
+  Clips aligned:         10,000
+  Compute time:          19.0s
+============================================================
+wandb: updating run metadata
+wandb: uploading history steps 0-0, summary, console lines 6-6
+wandb: 
+wandb: Run history:
+wandb:     compute_time_sec ▁
+wandb:          encoder_dim ▁
+wandb:          k_neighbors ▁
+wandb:      motion_clusters ▁
+wandb: motion_retrieval_map ▁
+wandb:      n_clips_aligned ▁
+wandb:      n_pairs_sampled ▁
+wandb:        spearman_pval ▁
+wandb:         spearman_rho ▁
+wandb:   temporal_prec_at_k ▁
+wandb: 
+wandb: Run summary:
+wandb:     compute_time_sec 19
+wandb:              encoder vjepa_shuffled
+wandb:          encoder_dim 1408
+wandb:         encoder_type video_shuffled
+wandb:          k_neighbors 6
+wandb:                 mode POC
+wandb:      motion_clusters 4
+wandb: motion_retrieval_map 0.70534
+wandb:      n_clips_aligned 10000
+wandb:      n_pairs_sampled 99991
+wandb:                   +3 ...
+wandb: 
+wandb: 🚀 View run m06b_POC at: https://wandb.ai/sjsu_llm/walkindia-200k/runs/398gzr5e
+wandb: ⭐️ View project at: https://wandb.ai/sjsu_llm/walkindia-200k
+wandb: Synced 5 W&B file(s), 0 media file(s), 0 artifact file(s) and 0 other file(s)
+wandb: Find logs at: ./wandb/run-20260405_151735-398gzr5e/logs

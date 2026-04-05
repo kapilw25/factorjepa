@@ -419,6 +419,54 @@ Ch9 (frozen V-JEPA via HF AutoModel) worked out of the box. Ch10 (adapted V-JEPA
 
 ---
 
+## BUGS 13-16: Training Discrepancies — Adapted Worse Than Frozen (April 4, 2026)
+
+### Context
+
+Adapted model showed -26% Prec@K vs frozen (21.86% vs 48.67%). Devil's advocate audit of m09_pretrain.py vs Meta's deps/vjepa2/app/vjepa/transforms.py revealed two critical training bugs + two VRAM sizing bugs when fixing them.
+
+### BUG 13: Missing ImageNet Normalization (CRITICAL)
+
+**Discovered:** Compared m09's `augment_clip_consistent()` against Meta's `VideoTransform.__call__()` in deps/vjepa2/app/vjepa/transforms.py line 110.
+
+**Root cause:** m09 scaled pixels to [0, 1] (`video / 255.0`) but never applied ImageNet normalization `(x - mean) / std`. Meta's pipeline always normalizes to mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225), producing values in [-2.1, 2.6] range. The model was pre-trained on this range. Our training fed [0, 1] → model learned wrong input distribution. Then HF processor normalized correctly during evaluation → adapted weights produced garbage.
+
+**Fix:** Added `IMAGENET_MEAN` and `IMAGENET_STD` constants + normalization line to `augment_clip_consistent()`:
+```python
+video = (video - IMAGENET_MEAN.to(video.device)) / IMAGENET_STD.to(video.device)
+```
+
+**Verified:** Meta's actual ViT-g config (configs/train/vitg16/pretrain-256px-16f.yaml) does NOT use RandAugment (`auto_augment: false`), Random Erasing (`reprob: 0.0`), or Motion Shift (`motion_shift: false`). Only the normalization was missing — the rest of our augmentation (crop + flip) matched Meta's config exactly.
+
+### BUG 14: Training at 16 Frames Instead of 64 (CRITICAL)
+
+**Root cause:** `configs/pretrain/vitg16_indian.yaml` had `num_frames: 16`. The frozen V-JEPA was trained by Meta at 64 frames. Training at 16 frames means only 25% of temporal positions (0-7) get adapted; positions 8-31 retain Meta's original weights. Mean pooling at eval dilutes the adaptation signal by 4x.
+
+**Fix:** Changed `num_frames: 16` → `num_frames: 64` in the training config. The model uses RoPE (no learnable pos_embed), so `num_frames` in the constructor is metadata — state_dict loading is frame-count agnostic.
+
+### BUG 15: Stale Profiler JSON — BS=148 OOM at 64 Frames
+
+**Root cause:** Training profiler measured BS=148 at 16 frames (4608 tokens). At 64 frames (18432 tokens), BS=148 uses ~4x VRAM → instant OOM at step 0.
+
+**Fix:** Deleted stale `outputs/profile/training/profile_data.json`. Script falls back to `pipeline.yaml: training_batch_size`.
+
+### BUG 16: BS=32 OOM at Step 9 — Backward Pass Fragmentation
+
+**Root cause:** BS=32 at 64 frames used 94GB/95GB VRAM. First 8 steps passed (forward + backward fit). Step 9's backward failed: CUDA allocator couldn't find contiguous 2.14GB block despite 1.48GB "reserved but unallocated" — fragmentation from gradient checkpointing's re-computation pattern. `PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True` reduces fragmentation but can't prevent OOM when peak usage is 99% of GPU capacity.
+
+**Fix:** Reduced to BS=20 (72GB, 75% VRAM). Added `garbage_collection_threshold:0.8` to PYTORCH_CUDA_ALLOC_CONF.
+
+### Summary
+
+| Bug | Severity | Where | Fix |
+|:---:|:--------:|-------|-----|
+| 13 | CRITICAL | m09 augmentation | Added ImageNet normalization `(x-mean)/std` |
+| 14 | CRITICAL | vitg16_indian.yaml | `num_frames: 16` → `64` |
+| 15 | HIGH | profile_data.json | Deleted stale 16f profiler, fallback to pipeline.yaml |
+| 16 | HIGH | pipeline.yaml | `training_batch_size: 32` → `20` (72GB = 75% VRAM) |
+
+---
+
 ## m05c True Overlap@K — 36h → ~4.7h (April 4, 2026)
 
 ### Why 40h

@@ -1,0 +1,85 @@
+wandb: run=m08_FULL url=https://wandb.ai/sjsu_llm/walkindia-200k/runs/vrnd2sae
+Output dir: /workspace/factorjepa/outputs/full
+[output_guard] m08 vjepa_shuffled: attempting HF download for 2 missing file(s)...
+Downloading anonymousML123/factorjepa-outputs//workspace/factorjepa/outputs/full/ → /workspace/factorjepa/outputs/full
+
+Download complete: 0s
+  Files: 0 new, 0 updated, 560 unchanged
+  Downloaded: 0.00 GB
+[output_guard] m08 vjepa_shuffled: 2 file(s) still missing after HF download
+[output_guard] m08 vjepa_shuffled: outputs missing or invalid — will re-compute
+  MISS  umap_plot: m08_umap_vjepa_shuffled.png
+  MISS  confusion_matrix: m08_confusion_matrix_vjepa_shuffled.png
+Encoder: vjepa_shuffled (suffix='_vjepa_shuffled')
+Loaded: 115,687 clips
+Loaded m06 metrics: m06_metrics_vjepa_shuffled.json
+Taxonomy keys for plots: ['scene_type', 'time_of_day', 'weather', 'crowd_density', 'traffic_density', 'traffic_mix', 'pedestrian_vehicle_separation', 'road_surface', 'infrastructure_quality', 'road_encroachment', 'vegetation', 'lighting', 'video_quality']
+m08_plot:  52%|█████▏    | 15/29 [01:23<02:03,  8.80s/plot]
+Saved: /workspace/factorjepa/outputs/full/m08_umap_vjepa_shuffled.png
+Saved: /workspace/factorjepa/outputs/full/m08_umap_vjepa_shuffled_time_of_day.png
+Saved: /workspace/factorjepa/outputs/full/m08_umap_vjepa_shuffled_weather.png
+Saved: /workspace/factorjepa/outputs/full/m08_umap_vjepa_shuffled_crowd_density.png
+Saved: /workspace/factorjepa/outputs/full/m08_umap_vjepa_shuffled_traffic_density.png
+Saved: /workspace/factorjepa/outputs/full/m08_umap_vjepa_shuffled_traffic_mix.png
+Saved: /workspace/factorjepa/outputs/full/m08_umap_vjepa_shuffled_pedestrian_vehicle_separation.png
+Saved: /workspace/factorjepa/outputs/full/m08_umap_vjepa_shuffled_road_surface.png
+Saved: /workspace/factorjepa/outputs/full/m08_umap_vjepa_shuffled_infrastructure_quality.png
+Saved: /workspace/factorjepa/outputs/full/m08_umap_vjepa_shuffled_road_encroachment.png
+Saved: /workspace/factorjepa/outputs/full/m08_umap_vjepa_shuffled_vegetation.png
+Saved: /workspace/factorjepa/outputs/full/m08_umap_vjepa_shuffled_lighting.png
+Saved: /workspace/factorjepa/outputs/full/m08_umap_vjepa_shuffled_video_quality.png
+Saved: /workspace/factorjepa/outputs/full/m08_umap_grid_vjepa_shuffled.png
+Saved: /workspace/factorjepa/outputs/full/m08_confusion_matrix_vjepa_shuffled.png
+
+Per-class retrieval accuracy:
+  bazaar: 3.9%
+  beach_coastal: 51.2%
+  commercial: 42.9%
+  flyover_underpass: 40.0%
+  ghat: 46.5%
+  heritage_tourist: 32.0%
+  highway: 68.2%
+  junction: 27.8%
+  market: 69.5%
+  promenade: 37.6%
+  residential_lane: 49.9%
+  skyline_aerial: 38.2%
+  transit: 28.2%
+  unsure: 22.7%
+Saved: /workspace/factorjepa/outputs/full/m08_confusion_matrix_vjepa_shuffled_time_of_day.png
+Saved: /workspace/factorjepa/outputs/full/m08_confusion_matrix_vjepa_shuffled_weather.png
+Saved: /workspace/factorjepa/outputs/full/m08_confusion_matrix_vjepa_shuffled_crowd_density.png
+Saved: /workspace/factorjepa/outputs/full/m08_confusion_matrix_vjepa_shuffled_traffic_density.png
+Saved: /workspace/factorjepa/outputs/full/m08_confusion_matrix_vjepa_shuffled_traffic_mix.png
+Saved: /workspace/factorjepa/outputs/full/m08_confusion_matrix_vjepa_shuffled_pedestrian_vehicle_separation.png
+Saved: /workspace/factorjepa/outputs/full/m08_confusion_matrix_vjepa_shuffled_road_surface.png
+Saved: /workspace/factorjepa/outputs/full/m08_confusion_matrix_vjepa_shuffled_infrastructure_quality.png
+Saved: /workspace/factorjepa/outputs/full/m08_confusion_matrix_vjepa_shuffled_road_encroachment.png
+Saved: /workspace/factorjepa/outputs/full/m08_confusion_matrix_vjepa_shuffled_vegetation.png
+Saved: /workspace/factorjepa/outputs/full/m08_confusion_matrix_vjepa_shuffled_lighting.png
+Saved: /workspace/factorjepa/outputs/full/m08_confusion_matrix_vjepa_shuffled_video_quality.png
+Saved: /workspace/factorjepa/outputs/full/m08_confusion_matrix_grid_vjepa_shuffled.png
+Saved: /workspace/factorjepa/outputs/full/m08_knn_grid_vjepa_shuffled.png
+
+=== MACRO/MICRO REPORTING ===
+
+EASY mode:
+  Macro Prec@K: 39.9%
+  Micro Prec@K: 48.26%
+  Cycle At K: 75.11
+  Prec At K: 48.26
+  Silhouette: -0.0315
+  Map At K: 0.4038
+  Ndcg At K: 0.9592
+
+HARD mode:
+  Macro Prec@K: 37.01%
+  Micro Prec@K: 45.66%
+  Cycle At K: 69.11
+  Prec At K: 45.66
+  Silhouette: -0.0315
+  Map At K: 0.3748
+  Ndcg At K: 0.9556
+
+=== VISUALIZATION COMPLETE ===
+Outputs in: /workspace/factorjepa/outputs/full

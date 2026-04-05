@@ -1,0 +1,125 @@
+wandb: [wandb.login()] Loaded credentials for https://api.wandb.ai from WANDB_API_KEY.
+wandb: Currently logged in as: kapilw25 (sjsu_llm) to https://api.wandb.ai. Use `wandb login --relogin` to force relogin
+wandb: WARNING Using a boolean value for 'reinit' is deprecated. Use 'return_previous' or 'finish_previous' instead.
+wandb: setting up run jtkklhm9
+wandb: Tracking run with wandb version 0.25.1
+wandb: Run data is saved locally in /workspace/factorjepa/wandb/run-20260405_150933-jtkklhm9
+wandb: Run `wandb offline` to turn off syncing.
+wandb: Syncing run m08_POC
+wandb: ⭐️ View project at https://wandb.ai/sjsu_llm/walkindia-200k
+wandb: 🚀 View run at https://wandb.ai/sjsu_llm/walkindia-200k/runs/jtkklhm9
+wandb: run=m08_POC url=https://wandb.ai/sjsu_llm/walkindia-200k/runs/jtkklhm9
+Output dir: /workspace/factorjepa/outputs/poc
+[output_guard] m08 vjepa: attempting HF download for 2 missing file(s)...
+Downloading anonymousML123/factorjepa-outputs//workspace/factorjepa/outputs/poc/ → /workspace/factorjepa/outputs/poc
+
+Download complete: 0s
+  Files: 0 new, 0 updated, 56 unchanged
+  Downloaded: 0.00 GB
+[output_guard] m08 vjepa: 2 file(s) still missing after HF download
+[output_guard] m08 vjepa: outputs missing or invalid — will re-compute
+  MISS  umap_plot: m08_umap.png
+  MISS  confusion_matrix: m08_confusion_matrix.png
+Encoder: vjepa (suffix='')
+Loaded: 10,000 clips
+Loaded m06 metrics: m06_metrics.json
+Taxonomy keys for plots: ['scene_type', 'time_of_day', 'weather', 'crowd_density', 'traffic_density', 'traffic_mix', 'pedestrian_vehicle_separation', 'road_surface', 'infrastructure_quality', 'road_encroachment', 'vegetation', 'lighting', 'video_quality']
+m08_plot:   0%|          | 0/29 [00:00<?, ?plot/s]Saved: /workspace/factorjepa/outputs/poc/m08_umap.png
+m08_plot:   3%|▎         | 1/29 [00:00<00:23,  1.18plot/s]Saved: /workspace/factorjepa/outputs/poc/m08_umap_time_of_day.png
+m08_plot:   7%|▋         | 2/29 [00:01<00:19,  1.41plot/s]Saved: /workspace/factorjepa/outputs/poc/m08_umap_weather.png
+m08_plot:  10%|█         | 3/29 [00:02<00:17,  1.47plot/s]Saved: /workspace/factorjepa/outputs/poc/m08_umap_crowd_density.png
+m08_plot:  14%|█▍        | 4/29 [00:02<00:16,  1.51plot/s]Saved: /workspace/factorjepa/outputs/poc/m08_umap_traffic_density.png
+m08_plot:  17%|█▋        | 5/29 [00:03<00:16,  1.50plot/s]Saved: /workspace/factorjepa/outputs/poc/m08_umap_traffic_mix.png
+m08_plot:  21%|██        | 6/29 [00:04<00:15,  1.52plot/s]Saved: /workspace/factorjepa/outputs/poc/m08_umap_pedestrian_vehicle_separation.png
+m08_plot:  24%|██▍       | 7/29 [00:04<00:14,  1.54plot/s]Saved: /workspace/factorjepa/outputs/poc/m08_umap_road_surface.png
+m08_plot:  28%|██▊       | 8/29 [00:05<00:13,  1.52plot/s]Saved: /workspace/factorjepa/outputs/poc/m08_umap_infrastructure_quality.png
+m08_plot:  31%|███       | 9/29 [00:05<00:12,  1.55plot/s]Saved: /workspace/factorjepa/outputs/poc/m08_umap_road_encroachment.png
+m08_plot:  34%|███▍      | 10/29 [00:06<00:12,  1.56plot/s]Saved: /workspace/factorjepa/outputs/poc/m08_umap_vegetation.png
+m08_plot:  38%|███▊      | 11/29 [00:07<00:11,  1.56plot/s]Saved: /workspace/factorjepa/outputs/poc/m08_umap_lighting.png
+m08_plot:  41%|████▏     | 12/29 [00:07<00:10,  1.57plot/s]Saved: /workspace/factorjepa/outputs/poc/m08_umap_video_quality.png
+m08_plot:  45%|████▍     | 13/29 [00:08<00:10,  1.58plot/s]Saved: /workspace/factorjepa/outputs/poc/m08_umap_grid.png
+m08_plot:  48%|████▊     | 14/29 [00:13<00:27,  1.85s/plot]Saved: /workspace/factorjepa/outputs/poc/m08_confusion_matrix.png
+
+Per-class retrieval accuracy:
+  academic: 0.0%
+  aerial: 5.1%
+  auditorium: 0.0%
+  bazaar: 1.4%
+  beach_coastal: 35.3%
+  bridge: 5.0%
+  commercial: 32.5%
+  construction_site: 18.3%
+  flyover_underpass: 27.1%
+  ghat: 14.2%
+  heritage_tourist: 26.6%
+  highway: 48.4%
+  indoor: 0.0%
+  industrial: 0.0%
+  junction: 20.4%
+  market: 59.3%
+  promenade: 26.2%
+  residential_lane: 39.0%
+  skyline_aerial: 34.4%
+  sports_complex: 0.0%
+  transit: 23.6%
+  tunnel: 71.4%
+m08_plot:  52%|█████▏    | 15/29 [00:14<00:22,  1.64s/plot]Saved: /workspace/factorjepa/outputs/poc/m08_confusion_matrix_time_of_day.png
+m08_plot:  55%|█████▌    | 16/29 [00:14<00:15,  1.19s/plot]Saved: /workspace/factorjepa/outputs/poc/m08_confusion_matrix_weather.png
+m08_plot:  59%|█████▊    | 17/29 [00:14<00:10,  1.12plot/s]Saved: /workspace/factorjepa/outputs/poc/m08_confusion_matrix_crowd_density.png
+m08_plot:  62%|██████▏   | 18/29 [00:14<00:07,  1.49plot/s]Saved: /workspace/factorjepa/outputs/poc/m08_confusion_matrix_traffic_density.png
+m08_plot:  66%|██████▌   | 19/29 [00:14<00:05,  1.93plot/s]Saved: /workspace/factorjepa/outputs/poc/m08_confusion_matrix_traffic_mix.png
+m08_plot:  69%|██████▉   | 20/29 [00:15<00:03,  2.31plot/s]Saved: /workspace/factorjepa/outputs/poc/m08_confusion_matrix_pedestrian_vehicle_separation.png
+m08_plot:  72%|███████▏  | 21/29 [00:15<00:02,  2.83plot/s]Saved: /workspace/factorjepa/outputs/poc/m08_confusion_matrix_road_surface.png
+m08_plot:  76%|███████▌  | 22/29 [00:15<00:02,  2.94plot/s]Saved: /workspace/factorjepa/outputs/poc/m08_confusion_matrix_infrastructure_quality.png
+m08_plot:  79%|███████▉  | 23/29 [00:15<00:01,  3.47plot/s]Saved: /workspace/factorjepa/outputs/poc/m08_confusion_matrix_road_encroachment.png
+m08_plot:  83%|████████▎ | 24/29 [00:16<00:01,  3.97plot/s]Saved: /workspace/factorjepa/outputs/poc/m08_confusion_matrix_vegetation.png
+m08_plot:  86%|████████▌ | 25/29 [00:16<00:00,  4.38plot/s]Saved: /workspace/factorjepa/outputs/poc/m08_confusion_matrix_lighting.png
+m08_plot:  90%|████████▉ | 26/29 [00:16<00:00,  4.85plot/s]Saved: /workspace/factorjepa/outputs/poc/m08_confusion_matrix_video_quality.png
+m08_plot:  93%|█████████▎| 27/29 [00:16<00:00,  5.18plot/s]Saved: /workspace/factorjepa/outputs/poc/m08_confusion_matrix_grid.png
+m08_plot:  97%|█████████▋| 28/29 [00:18<00:00,  1.23plot/s]Saved: /workspace/factorjepa/outputs/poc/m08_knn_grid.png
+m08_plot: 100%|██████████| 29/29 [00:19<00:00,  1.08plot/s]m08_plot: 100%|██████████| 29/29 [00:19<00:00,  1.45plot/s]
+
+=== MACRO/MICRO REPORTING ===
+
+EASY mode:
+  Macro Prec@K: 22.18%
+  Micro Prec@K: 36.09%
+  Cycle At K: 76.01
+  Prec At K: 36.09
+  Silhouette: -0.2291
+  Map At K: 0.2778
+  Ndcg At K: 0.9502
+
+HARD mode:
+  Macro Prec@K: 20.74%
+  Micro Prec@K: 34.7%
+  Cycle At K: 73.56
+  Prec At K: 34.69
+  Silhouette: -0.2291
+  Map At K: 0.2628
+  Ndcg At K: 0.9479
+
+=== VISUALIZATION COMPLETE ===
+Outputs in: /workspace/factorjepa/outputs/poc
+wandb: updating run metadata
+wandb: uploading media/images/confusion_matrix_traffic_mix_15_bfb48b86d8716496f376.png; uploading media/images/confusion_matrix_pedestrian_vehicle_separation_17_b8bb626f55a29f1a4077.png; uploading media/images/confusion_matrix_lighting_27_abf6acd55f9c6d89f259.png; uploading media/images/knn_grid_32_7abed3ee97c678a01660.png; uploading media/images/confusion_matrix_time_of_day_7_676018246cd5748a73b1.png (+ 25 more)
+wandb: uploading media/images/umap_traffic_density_12_c7cc3d17f8a81701f97e.png; uploading media/images/confusion_matrix_grid_31_ef25b726b7728f495195.png; uploading media/images/umap_4_ab9b86e92db8bf660a60.png; uploading media/images/umap_crowd_density_10_b25e5d83929a79163e1e.png; uploading media/images/umap_lighting_26_5709591b00edfa9e4566.png (+ 11 more)
+wandb: uploading media/images/umap_traffic_density_12_c7cc3d17f8a81701f97e.png; uploading media/images/umap_4_ab9b86e92db8bf660a60.png; uploading media/images/umap_crowd_density_10_b25e5d83929a79163e1e.png; uploading media/images/umap_lighting_26_5709591b00edfa9e4566.png; uploading media/images/umap_infrastructure_quality_20_d0785056785be52e61d7.png (+ 8 more)
+wandb: uploading media/images/umap_grid_30_d976ea126f7fef730ba0.png
+wandb: 
+wandb: Run history:
+wandb: easy/macro_prec_at_k ▁
+wandb: easy/micro_prec_at_k ▁
+wandb: hard/macro_prec_at_k ▁
+wandb: hard/micro_prec_at_k ▁
+wandb: 
+wandb: Run summary:
+wandb: easy/macro_prec_at_k 22.18
+wandb: easy/micro_prec_at_k 36.09
+wandb: hard/macro_prec_at_k 20.74
+wandb: hard/micro_prec_at_k 34.7
+wandb: 
+wandb: 🚀 View run m08_POC at: https://wandb.ai/sjsu_llm/walkindia-200k/runs/jtkklhm9
+wandb: ⭐️ View project at: https://wandb.ai/sjsu_llm/walkindia-200k
+wandb: Synced 5 W&B file(s), 29 media file(s), 0 artifact file(s) and 0 other file(s)
+wandb: Find logs at: ./wandb/run-20260405_150933-jtkklhm9/logs

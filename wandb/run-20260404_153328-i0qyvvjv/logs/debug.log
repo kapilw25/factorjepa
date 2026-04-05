@@ -17,3 +17,8 @@ config: {'start_from': 66176, 'process_count': 10000, '_wandb': {}}
 2026-04-04 15:33:29,495 INFO    MainThread:1885248 [wandb_run.py:_redirect():2442] Wrapping output streams.
 2026-04-04 15:33:29,495 INFO    MainThread:1885248 [wandb_run.py:_redirect():2465] Redirects installed.
 2026-04-04 15:33:29,496 INFO    MainThread:1885248 [wandb_init.py:init():1082] run started, returning control to user process
+2026-04-04 15:45:33,209 INFO    MainThread:1885248 [wandb_run.py:_finish():2291] finishing run sjsu_llm/walkindia-200k/i0qyvvjv
+2026-04-04 15:45:33,210 INFO    MainThread:1885248 [wandb_run.py:_atexit_cleanup():2490] got exitcode: 0
+2026-04-04 15:45:33,210 INFO    MainThread:1885248 [wandb_run.py:_restore():2472] restore
+2026-04-04 15:45:33,210 INFO    MainThread:1885248 [wandb_run.py:_restore():2478] restore done
+2026-04-04 15:45:34,804 INFO    MainThread:1885248 [wandb_run.py:_footer_sync_info():3868] logging synced files

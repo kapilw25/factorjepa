@@ -1,0 +1,10 @@
+wandb: run=m05_FULL url=https://wandb.ai/sjsu_llm/walkindia-200k/runs/1sht9f4z
+Checkpoint loaded: 25,516 embeddings from .m05_checkpoint_vjepa_lambda0_001.npz
+
+Loading model: outputs/full/m09_lambda0_001/student_encoder.pt
+Adapted model: eval at 64 frames (matching frozen baseline)
+/workspace/factorjepa/venv_walkindia/lib/python3.12/site-packages/timm/models/layers/__init__.py:49: FutureWarning: Importing from timm.models.layers is deprecated, please import via timm.layers
+  warnings.warn(f"Importing from {__name__} is deprecated, please import via timm.layers", FutureWarning)
+Adapted encoder: loaded 484/484 params (missing: 0, unexpected: 0)
+Applying torch.compile...
+Warmup: compiling inductor graph...

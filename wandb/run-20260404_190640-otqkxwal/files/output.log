@@ -1,0 +1,58 @@
+wandb: run=m09_SANITY_lambda0 url=https://wandb.ai/sjsu_llm/walkindia-200k/runs/otqkxwal
+m09_pretrain:   0%|          | 0/6 [00:00<?, ?step/s]/venv/main/lib/python3.12/contextlib.py:105: FutureWarning: `torch.backends.cuda.sdp_kernel()` is deprecated. In the future, this context manager will be removed. Please see `torch.nn.attention.sdpa_kernel()` for the new context manager, with updated signature.
+
+=== Training: 0 → 6 steps (1 epochs) ===
+Batch size: 148
+Grad checkpointing: True
+Mixed precision: bfloat16
+EMA momentum: 0.99925
+Drift control: lambda=0
+Loss log: /workspace/factorjepa/outputs/sanity/ablation/m09_lambda0/loss_log.csv
+  self.gen = func(*args, **kwds)
+m09_pretrain:   0%|          | 0/6 [01:52<?, ?step/s]
+Traceback (most recent call last):
+  File "/workspace/factorjepa/src/m09_pretrain.py", line 1482, in <module>
+    main()
+  File "/workspace/factorjepa/src/m09_pretrain.py", line 1397, in main
+    train(cfg, args)
+  File "/workspace/factorjepa/src/m09_pretrain.py", line 1066, in train
+    h = teacher(batch_clips)
+        ^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/factorjepa/venv_walkindia/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1778, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/factorjepa/venv_walkindia/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1789, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/factorjepa/deps/vjepa2/src/models/vision_transformer.py", line 199, in forward
+    x = torch.utils.checkpoint.checkpoint(
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/factorjepa/venv_walkindia/lib/python3.12/site-packages/torch/_compile.py", line 54, in inner
+    return disable_fn(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/factorjepa/venv_walkindia/lib/python3.12/site-packages/torch/_dynamo/eval_frame.py", line 1256, in _fn
+    return fn(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^
+  File "/workspace/factorjepa/venv_walkindia/lib/python3.12/site-packages/torch/utils/checkpoint.py", line 512, in checkpoint
+    ret = function(*args, **kwargs)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/factorjepa/venv_walkindia/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1778, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/factorjepa/venv_walkindia/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1789, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/factorjepa/deps/vjepa2/src/models/utils/modules.py", line 563, in forward
+    y = self.attn(self.norm1(x), mask=mask, attn_mask=attn_mask, T=T, H_patches=H_patches, W_patches=W_patches)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/factorjepa/venv_walkindia/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1778, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/factorjepa/venv_walkindia/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1789, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/factorjepa/deps/vjepa2/src/models/utils/modules.py", line 374, in forward
+    x = F.scaled_dot_product_attention(
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+torch.OutOfMemoryError: CUDA out of memory. Tried to allocate 7.15 GiB. GPU 0 has a total capacity of 94.97 GiB of which 282.44 MiB is free. Including non-PyTorch memory, this process has 94.68 GiB memory in use. Of the allocated memory 93.94 GiB is allocated by PyTorch, and 97.97 MiB is reserved by PyTorch but unallocated. If reserved but unallocated memory is large try setting PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True to avoid fragmentation.  See documentation for Memory Management  (https://docs.pytorch.org/docs/stable/notes/cuda.html#optimizing-memory-usage-with-pytorch-cuda-alloc-conf)
+Exception ignored in:

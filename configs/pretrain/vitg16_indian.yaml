@@ -12,7 +12,7 @@ data:
   hf_dataset: "anonymousML123/walkindia-200k"
   local_data: null                    # override with --local-data
   subset: null                        # override with --subset
-  num_frames: 16                      # T frames per clip (16 for POC, 64 for full)
+  num_frames: 16                      # T frames per clip. Meta trains at 16f for 95% of iterations (V-JEPA 2 Sec 2.4). Eval at 64f via VJEPA_FRAMES_PER_CLIP.
   crop_size: 384                      # spatial resolution (match pretrained)
   patch_size: 16
   tubelet_size: 2

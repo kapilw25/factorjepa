@@ -1,0 +1,29 @@
+wandb: run=m08b_FULL url=https://wandb.ai/sjsu_llm/walkindia-200k/runs/ua63vmvd
+
+================================================================================
+                               ENCODER COMPARISON
+================================================================================
+Encoder              Dim  Cycle@K (%) DimConsist@K (%)   Prec@K (%)        mAP@K       nDCG@K   Silhouette
+----------------------------------------------------------------------------------------------------------
+vjepa               1408        75.64        35.52        48.67       0.4081       0.9598      -0.0465
+clip                 768        62.36        45.88        40.64       0.3292       0.9452      -0.0393
+dinov2              1536        66.82        61.57        60.30       0.5336       0.9653      -0.0311
+random              1408        96.50          N/A        13.08       0.0660       0.9049      -0.0036
+vjepa_shuffled      1408        75.11        34.35        48.26       0.4038       0.9592      -0.0315
+
+--- Easy Mode (above) ---
+
+--- Hard Mode ---
+vjepa               1408        69.57        35.52        45.95       0.3775       0.9563      -0.0465
+clip                 768        54.88        45.88        37.54       0.2975       0.9399      -0.0393
+dinov2              1536        56.97        61.57        58.22       0.5092       0.9616      -0.0311
+random              1408        96.50          N/A        13.08       0.0660       0.9049      -0.0036
+vjepa_shuffled      1408        69.11        34.35        45.66       0.3748       0.9556      -0.0315
+m08b_compare: 100%|██████████| 7/7 [00:03<00:00,  2.21plot/s]
+Saved: /workspace/factorjepa/outputs/full/m08b_encoder_comparison.png
+Saved: /workspace/factorjepa/outputs/full/m08b_radar.png
+Saved: /workspace/factorjepa/outputs/full/m08b_comparison_table.tex
+Saved: /workspace/factorjepa/outputs/full/m08b_spatial_temporal_bar.png
+Saved: /workspace/factorjepa/outputs/full/m08b_tradeoff_scatter.png
+Saved: /workspace/factorjepa/outputs/full/m08b_temporal_ablation.png
+Saved: /workspace/factorjepa/outputs/full/m08b_heatmap.png

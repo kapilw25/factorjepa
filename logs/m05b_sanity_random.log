@@ -1,25 +1,0 @@
-Using PyAV for video decoding
-============================================================
-BASELINE: random
-Model:    N/A (synthetic)
-Dim:      1408
-Type:     synthetic
-Output:   /workspace/factorjepa/outputs/sanity/embeddings_random.npy
-============================================================
-[output_guard] m05b random: attempting HF download for 2 missing file(s)...
-Downloading anonymousML123/factorjepa-outputs//workspace/factorjepa/outputs/sanity/ → /workspace/factorjepa/outputs/sanity
-Fetching 0 files: 0it [00:00, ?it/s]Fetching 0 files: 0it [00:00, ?it/s]
-Download complete: 0s
-[output_guard] m05b random: 2 file(s) still missing after HF download
-[output_guard] m05b random: outputs missing or invalid — will re-compute
-  MISS  embeddings: embeddings_random.npy
-  MISS  paths: embeddings_random.paths.npy
-Using 64 clip keys from V-JEPA embeddings.paths.npy
-Generating 64 random embeddings (dim=1408, seed=42)
-Saved: /workspace/factorjepa/outputs/sanity/embeddings_random.npy ((64, 1408))
-Saved: /workspace/factorjepa/outputs/sanity/embeddings_random.paths.npy (64 keys)
-
-=== BASELINE COMPLETE: random ===
-Clips:     64
-Dim:       1408
-Next step: python -u src/m06_faiss_metrics.py --encoder random --FULL --subset data/subset_10k.json

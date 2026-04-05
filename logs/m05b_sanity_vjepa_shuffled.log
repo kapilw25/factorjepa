@@ -1,36 +1,0 @@
-Using PyAV for video decoding
-============================================================
-BASELINE: vjepa_shuffled
-Model:    facebook/vjepa2-vitg-fpc64-384
-Dim:      1408
-Type:     video_shuffled
-Output:   /workspace/factorjepa/outputs/sanity/embeddings_vjepa_shuffled.npy
-============================================================
-[output_guard] m05b vjepa_shuffled: attempting HF download for 2 missing file(s)...
-Downloading anonymousML123/factorjepa-outputs//workspace/factorjepa/outputs/sanity/ → /workspace/factorjepa/outputs/sanity
-Fetching 0 files: 0it [00:00, ?it/s]Fetching 0 files: 0it [00:00, ?it/s]
-Download complete: 0s
-[output_guard] m05b vjepa_shuffled: 2 file(s) still missing after HF download
-[output_guard] m05b vjepa_shuffled: outputs missing or invalid — will re-compute
-  MISS  embeddings: embeddings_vjepa_shuffled.npy
-  MISS  paths: embeddings_vjepa_shuffled.paths.npy
-GPU: NVIDIA RTX PRO 6000 Blackwell Workstation Edition
-CUDA version: 12.8
-Loading model: facebook/vjepa2-vitg-fpc64-384
-`torch_dtype` is deprecated! Use `dtype` instead!
-V-JEPA loaded for shuffled inference (dim=1408, dtype=torch.float16)
-GPU VRAM: 95 GB | VLM cost model: 16GB fixed + 0.78GB/clip
-  vjepa=37 (linear, scale=2.37x from 40GB)
-  image_encoder=148 (4x vjepa, cap 256)
-  transformers=64 (max batch, est 66GB = 69% VRAM)
-  sub-batch=51 (initial, AdaptiveBatchSizer grows to 64)
-m05b vjepa_shuffled:   0%|          | 0/64 [00:00<?, ?clip/s]Casting fp32 inputs back to torch.float16 for flash-attn compatibility.
-m05b vjepa_shuffled:   3%|▎         | 2/64 [00:05<02:38,  2.55s/clip]m05b vjepa_shuffled:   3%|▎         | 2/64 [00:05<02:38,  2.55s/clip, rate=0.4/s]m05b vjepa_shuffled:   6%|▋         | 4/64 [00:05<01:17,  1.30s/clip, rate=0.4/s]m05b vjepa_shuffled:   6%|▋         | 4/64 [00:05<01:17,  1.30s/clip, rate=2.4/s]m05b vjepa_shuffled:   9%|▉         | 6/64 [00:06<00:52,  1.11clip/s, rate=2.4/s]m05b vjepa_shuffled:   9%|▉         | 6/64 [00:06<00:52,  1.11clip/s, rate=2.4/s]m05b vjepa_shuffled:  12%|█▎        | 8/64 [00:07<00:39,  1.41clip/s, rate=2.4/s]m05b vjepa_shuffled:  12%|█▎        | 8/64 [00:07<00:39,  1.41clip/s, rate=2.4/s]m05b vjepa_shuffled:  16%|█▌        | 10/64 [00:08<00:32,  1.65clip/s, rate=2.4/s]m05b vjepa_shuffled:  16%|█▌        | 10/64 [00:08<00:32,  1.65clip/s, rate=2.4/s]m05b vjepa_shuffled:  19%|█▉        | 12/64 [00:09<00:28,  1.84clip/s, rate=2.4/s]m05b vjepa_shuffled:  19%|█▉        | 12/64 [00:09<00:28,  1.84clip/s, rate=2.4/s]m05b vjepa_shuffled:  22%|██▏       | 14/64 [00:10<00:25,  1.98clip/s, rate=2.4/s]m05b vjepa_shuffled:  22%|██▏       | 14/64 [00:10<00:25,  1.98clip/s, rate=2.4/s]m05b vjepa_shuffled:  25%|██▌       | 16/64 [00:11<00:23,  2.08clip/s, rate=2.4/s]m05b vjepa_shuffled:  25%|██▌       | 16/64 [00:11<00:23,  2.08clip/s, rate=2.3/s]m05b vjepa_shuffled:  28%|██▊       | 18/64 [00:11<00:21,  2.16clip/s, rate=2.3/s]m05b vjepa_shuffled:  28%|██▊       | 18/64 [00:11<00:21,  2.16clip/s, rate=2.3/s]m05b vjepa_shuffled:  31%|███▏      | 20/64 [00:12<00:19,  2.21clip/s, rate=2.3/s]m05b vjepa_shuffled:  31%|███▏      | 20/64 [00:12<00:19,  2.21clip/s, rate=2.4/s]m05b vjepa_shuffled:  34%|███▍      | 22/64 [00:13<00:18,  2.25clip/s, rate=2.4/s]m05b vjepa_shuffled:  34%|███▍      | 22/64 [00:13<00:18,  2.25clip/s, rate=2.3/s]m05b vjepa_shuffled:  38%|███▊      | 24/64 [00:14<00:17,  2.28clip/s, rate=2.3/s]m05b vjepa_shuffled:  38%|███▊      | 24/64 [00:14<00:17,  2.28clip/s, rate=2.4/s]m05b vjepa_shuffled:  41%|████      | 26/64 [00:15<00:16,  2.30clip/s, rate=2.4/s]m05b vjepa_shuffled:  41%|████      | 26/64 [00:15<00:16,  2.30clip/s, rate=2.4/s]m05b vjepa_shuffled:  44%|████▍     | 28/64 [00:16<00:15,  2.31clip/s, rate=2.4/s]m05b vjepa_shuffled:  44%|████▍     | 28/64 [00:16<00:15,  2.31clip/s, rate=2.3/s]m05b vjepa_shuffled:  47%|████▋     | 30/64 [00:16<00:14,  2.33clip/s, rate=2.3/s]m05b vjepa_shuffled:  47%|████▋     | 30/64 [00:16<00:14,  2.33clip/s, rate=2.4/s]m05b vjepa_shuffled:  50%|█████     | 32/64 [00:17<00:13,  2.33clip/s, rate=2.4/s]m05b vjepa_shuffled:  50%|█████     | 32/64 [00:17<00:13,  2.33clip/s, rate=2.4/s]m05b vjepa_shuffled:  53%|█████▎    | 34/64 [00:18<00:12,  2.34clip/s, rate=2.4/s]m05b vjepa_shuffled:  53%|█████▎    | 34/64 [00:18<00:12,  2.34clip/s, rate=2.4/s]m05b vjepa_shuffled:  56%|█████▋    | 36/64 [00:19<00:11,  2.34clip/s, rate=2.4/s]m05b vjepa_shuffled:  56%|█████▋    | 36/64 [00:19<00:11,  2.34clip/s, rate=2.4/s]m05b vjepa_shuffled:  59%|█████▉    | 38/64 [00:20<00:11,  2.34clip/s, rate=2.4/s]m05b vjepa_shuffled:  59%|█████▉    | 38/64 [00:20<00:11,  2.34clip/s, rate=2.3/s]m05b vjepa_shuffled:  62%|██████▎   | 40/64 [00:21<00:10,  2.34clip/s, rate=2.3/s]m05b vjepa_shuffled:  62%|██████▎   | 40/64 [00:21<00:10,  2.34clip/s, rate=2.3/s]m05b vjepa_shuffled:  66%|██████▌   | 42/64 [00:22<00:09,  2.34clip/s, rate=2.3/s]m05b vjepa_shuffled:  66%|██████▌   | 42/64 [00:22<00:09,  2.34clip/s, rate=2.3/s]m05b vjepa_shuffled:  69%|██████▉   | 44/64 [00:22<00:08,  2.34clip/s, rate=2.3/s]m05b vjepa_shuffled:  69%|██████▉   | 44/64 [00:22<00:08,  2.34clip/s, rate=2.3/s]m05b vjepa_shuffled:  72%|███████▏  | 46/64 [00:23<00:07,  2.33clip/s, rate=2.3/s]m05b vjepa_shuffled:  72%|███████▏  | 46/64 [00:23<00:07,  2.33clip/s, rate=2.3/s]m05b vjepa_shuffled:  75%|███████▌  | 48/64 [00:24<00:06,  2.33clip/s, rate=2.3/s]m05b vjepa_shuffled:  75%|███████▌  | 48/64 [00:24<00:06,  2.33clip/s, rate=2.3/s]m05b vjepa_shuffled:  78%|███████▊  | 50/64 [00:25<00:06,  2.33clip/s, rate=2.3/s]m05b vjepa_shuffled:  78%|███████▊  | 50/64 [00:25<00:06,  2.33clip/s, rate=2.3/s]m05b vjepa_shuffled:  81%|████████▏ | 52/64 [00:26<00:05,  2.33clip/s, rate=2.3/s]m05b vjepa_shuffled:  81%|████████▏ | 52/64 [00:26<00:05,  2.33clip/s, rate=2.3/s]m05b vjepa_shuffled:  84%|████████▍ | 54/64 [00:27<00:04,  2.33clip/s, rate=2.3/s]m05b vjepa_shuffled:  84%|████████▍ | 54/64 [00:27<00:04,  2.33clip/s, rate=2.3/s]m05b vjepa_shuffled:  88%|████████▊ | 56/64 [00:28<00:03,  2.33clip/s, rate=2.3/s]m05b vjepa_shuffled:  88%|████████▊ | 56/64 [00:28<00:03,  2.33clip/s, rate=2.3/s]m05b vjepa_shuffled:  91%|█████████ | 58/64 [00:28<00:02,  2.33clip/s, rate=2.3/s]m05b vjepa_shuffled:  91%|█████████ | 58/64 [00:28<00:02,  2.33clip/s, rate=2.3/s]m05b vjepa_shuffled:  94%|█████████▍| 60/64 [00:29<00:01,  2.33clip/s, rate=2.3/s]m05b vjepa_shuffled:  94%|█████████▍| 60/64 [00:29<00:01,  2.33clip/s, rate=2.3/s]m05b vjepa_shuffled:  97%|█████████▋| 62/64 [00:30<00:00,  2.33clip/s, rate=2.3/s]m05b vjepa_shuffled:  97%|█████████▋| 62/64 [00:30<00:00,  2.33clip/s, rate=2.3/s]m05b vjepa_shuffled: 100%|██████████| 64/64 [00:31<00:00,  2.33clip/s, rate=2.3/s]m05b vjepa_shuffled: 100%|██████████| 64/64 [00:31<00:00,  2.33clip/s, rate=2.3/s]m05b vjepa_shuffled: 100%|██████████| 64/64 [00:31<00:00,  2.03clip/s, rate=2.3/s]
-
-Saved: /workspace/factorjepa/outputs/sanity/embeddings_vjepa_shuffled.npy ((64, 1408))
-Saved: /workspace/factorjepa/outputs/sanity/embeddings_vjepa_shuffled.paths.npy (64 keys)
-
-=== BASELINE COMPLETE: vjepa_shuffled ===
-Clips:     64
-Dim:       1408
-Next step: python -u src/m06_faiss_metrics.py --encoder vjepa_shuffled --FULL --subset data/subset_10k.json

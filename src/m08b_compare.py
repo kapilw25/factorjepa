@@ -9,6 +9,7 @@ USAGE:
 """
 import argparse
 import json
+import re
 import sys
 from pathlib import Path
 
@@ -52,7 +53,7 @@ ENCODER_ORDER = ["vjepa", "random", "dinov2", "clip", "vjepa_shuffled"]
 
 METRICS_DISPLAY = [
     ("cycle_at_k", "Cycle@K (%)"),
-    ("overlap_at_k", "Overlap@K (%)"),
+    ("dim_consistency_at_k", "DimConsist@K (%)"),
     ("prec_at_k", "Prec@K (%)"),
     ("map_at_k", "mAP@K"),
     ("ndcg_at_k", "nDCG@K"),
@@ -129,7 +130,7 @@ def print_summary_table(all_metrics: dict):
                 val = m.get(key)
                 if val is None:
                     row += f" {'N/A':>{col_w}}"
-                elif key in ("cycle_at_k", "overlap_at_k", "prec_at_k"):
+                elif key in ("cycle_at_k", "dim_consistency_at_k", "prec_at_k"):
                     row += f" {val:>{col_w}.2f}"
                 else:
                     row += f" {val:>{col_w}.4f}"
@@ -217,8 +218,8 @@ def create_radar_plot(all_metrics: dict, output_dir: Path,
         return
 
     # 5 spatial + 3 temporal axes (ordered so spatial=left, temporal=right)
-    spatial_keys = ["prec_at_k", "map_at_k", "cycle_at_k", "overlap_at_k", "ndcg_at_k"]
-    spatial_labels = ["Prec@K", "mAP@K", "Cycle@K", "Overlap@K", "nDCG@K"]
+    spatial_keys = ["prec_at_k", "map_at_k", "cycle_at_k", "dim_consistency_at_k", "ndcg_at_k"]
+    spatial_labels = ["Prec@K", "mAP@K", "Cycle@K", "DimConsist@K", "nDCG@K"]
 
     temporal_keys = ["spearman_rho", "temporal_prec_at_k", "temporal_locality_inv"]
     temporal_labels = ["Spearman \u03c1", "Temp Prec@K", "Temp Locality"]
@@ -253,10 +254,15 @@ def create_radar_plot(all_metrics: dict, output_dir: Path,
                 vals.append((all_temporal or {}).get(enc, {}).get(k))
         raw[enc] = vals
 
-    # Normalize each axis to [0, 100]
+    # Per-axis min-max normalization to [0, 100].
+    # Max-only normalization (v/max*100) clusters values near the outer edge when
+    # all encoders score similarly (e.g., nDCG 92-96% all map to 96-100).
+    # Min-max spreads them: worst encoder → 0, best → 100, differences visible.
+    mins = []
     maxes = []
     for i in range(n_metrics):
         axis_vals = [raw[e][i] for e in encoders if raw[e][i] is not None]
+        mins.append(min(axis_vals) if axis_vals else 0)
         maxes.append(max(axis_vals) if axis_vals else 1)
 
     angles = np.linspace(0, 2 * np.pi, n_metrics, endpoint=False).tolist()
@@ -281,8 +287,11 @@ def create_radar_plot(all_metrics: dict, output_dir: Path,
     for enc in encoders:
         vals = []
         for i, v in enumerate(raw[enc]):
-            if v is not None and maxes[i] > 0:
-                vals.append(v / maxes[i] * 100)
+            span = maxes[i] - mins[i]
+            if v is not None and span > 0:
+                vals.append((v - mins[i]) / span * 100)
+            elif v is not None:
+                vals.append(100)  # all encoders equal on this axis
             else:
                 vals.append(0)
         vals += vals[:1]
@@ -300,8 +309,12 @@ def create_radar_plot(all_metrics: dict, output_dir: Path,
         label.set_fontweight("bold")
 
     ax.set_ylim(0, 115)
+    # Read clip count from first encoder's metrics (num_clips field)
+    first_enc = encoders[0]
+    n_clips = all_metrics[first_enc].get("num_clips", "")
+    clip_str = f", {n_clips:,} clips" if n_clips else ""
     title = "Spatial + Temporal Encoder Comparison" if has_temporal else "Encoder Comparison"
-    ax.set_title(f"{title} (Easy, normalized)", fontsize=12,
+    ax.set_title(f"{title} (Easy, min-max normalized{clip_str})", fontsize=12,
                  fontweight="bold", pad=25)
     ax.legend(loc="lower right", fontsize=8, bbox_to_anchor=(1.3, -0.05))
 
@@ -333,7 +346,7 @@ def create_grouped_bar_chart(all_metrics: dict, all_temporal: dict, output_dir: 
         return
 
     spatial_keys = [("prec_at_k", "Prec@K (%)"), ("map_at_k", "mAP@K"),
-                    ("cycle_at_k", "Cycle@K (%)"), ("overlap_at_k", "Overlap@K (%)"),
+                    ("cycle_at_k", "Cycle@K (%)"), ("dim_consistency_at_k", "DimConsist@K (%)"),
                     ("ndcg_at_k", "nDCG@K")]
     temporal_keys = [(k, l) for k, l in TEMPORAL_METRICS_DISPLAY if any(
         all_temporal.get(e, {}).get(k) is not None for e in encoders)]
@@ -496,7 +509,7 @@ def create_ablation_chart(all_metrics: dict, all_temporal: dict, output_dir: Pat
         ("prec_at_k", "Prec@K (%)", "spatial"),
         ("map_at_k", "mAP@K", "spatial"),
         ("cycle_at_k", "Cycle@K (%)", "spatial"),
-        ("overlap_at_k", "Overlap@K (%)", "spatial"),
+        ("dim_consistency_at_k", "DimConsist@K (%)", "spatial"),
         ("ndcg_at_k", "nDCG@K", "spatial"),
     ]
     temporal_defs = [
@@ -599,6 +612,177 @@ def create_ablation_chart(all_metrics: dict, all_temporal: dict, output_dir: Pat
     print(f"Saved: {output_dir / 'm08b_temporal_ablation.png'}")
 
 
+# ── Adaptation Stage Ablation (frozen vs pretrained vs surgical) ──
+
+def create_adaptation_ablation(all_metrics: dict, all_temporal: dict, output_dir: Path):
+    """Adaptation stage comparison: frozen vs pretrained vs surgical.
+
+    Auto-detects adapted encoders (vjepa_lambda*, vjepa_surgical*).
+    Delta + propagated 95% CI vs frozen baseline. If CI doesn't cross
+    zero, the improvement is statistically significant.
+    """
+
+    baseline = "vjepa"
+    if baseline not in all_metrics:
+        print("  SKIP adaptation ablation: need frozen vjepa as baseline")
+        return
+
+    # Auto-detect adapted and surgical encoders
+    stages = [(baseline, "V-JEPA 2\n(frozen)", "#2196F3")]
+    _adapted_colors = ["#7B1FA2", "#9C27B0", "#CE93D8"]
+    _surgical_colors = ["#00695C", "#00897B", "#4DB6AC"]
+    adapted_idx, surgical_idx = 0, 0
+
+    for enc in sorted(all_metrics.keys()):
+        if enc == baseline:
+            continue
+        m_lam = re.match(r'vjepa_lambda(\d+(?:_\d+)*)', enc)
+        if m_lam and "shuffled" not in enc:
+            lam_str = m_lam.group(1).replace("_", ".", 1)
+            stages.append((enc, f"Pretrained\n(\u03bb={lam_str})",
+                           _adapted_colors[adapted_idx % len(_adapted_colors)]))
+            adapted_idx += 1
+        elif enc == "vjepa_adapted":
+            stages.append((enc, "Pretrained", _adapted_colors[adapted_idx % len(_adapted_colors)]))
+            adapted_idx += 1
+        elif enc.startswith("vjepa_surgical"):
+            stages.append((enc, f"Surgical\n({enc.split('_', 2)[-1]})",
+                           _surgical_colors[surgical_idx % len(_surgical_colors)]))
+            surgical_idx += 1
+
+    if len(stages) < 2:
+        print("  SKIP adaptation ablation: need at least 1 adapted/surgical encoder")
+        return
+
+    stage_labels = [s[1] for s in stages]
+    stage_colors = [s[2] for s in stages]
+    n_stages = len(stages)
+
+    # Metric definitions
+    spatial_defs = [
+        ("prec_at_k", "Prec@K (%)", "spatial"),
+        ("map_at_k", "mAP@K", "spatial"),
+        ("cycle_at_k", "Cycle@K (%)", "spatial"),
+        ("dim_consistency_at_k", "DimConsist@K (%)", "spatial"),
+        ("ndcg_at_k", "nDCG@K", "spatial"),
+    ]
+    temporal_defs = [
+        ("spearman_rho", "Spearman \u03c1", "temporal"),
+        ("temporal_prec_at_k", "Temp Prec@K (%)", "temporal"),
+        ("motion_retrieval_map", "Motion mAP", "temporal"),
+    ]
+    if all_temporal and any(
+            all_temporal.get(baseline, {}).get("temporal_locality", {}).get("ratio") is not None
+            for _ in [1]):
+        temporal_defs.append(("temporal_locality_ratio", "Locality\n(lower=better)", "temporal"))
+
+    has_temporal = all_temporal and any(
+        all_temporal.get(baseline, {}).get(k) is not None for k, _, _ in temporal_defs[:3])
+
+    n_spatial_d = len(spatial_defs)
+    n_temporal_d = len(temporal_defs) if has_temporal else 0
+    n_cols = max(n_spatial_d, n_temporal_d) if n_temporal_d > 0 else n_spatial_d
+    n_rows = 2 if n_temporal_d > 0 else 1
+
+    fig, axes = plt.subplots(n_rows, n_cols, figsize=(3.5 * n_cols, 4.5 * n_rows),
+                             squeeze=False)
+
+    def _get_val_ci(enc, key, domain):
+        if domain == "spatial":
+            v = all_metrics[enc].get("easy", {}).get(key)
+            ci_h = all_metrics[enc].get("easy", {}).get("ci", {}).get(
+                key, {}).get("ci_half", 0)
+        elif key == "temporal_locality_ratio":
+            v = (all_temporal or {}).get(enc, {}).get(
+                "temporal_locality", {}).get("ratio")
+            ci_h = (all_temporal or {}).get(enc, {}).get(
+                "temporal_locality", {}).get("ratio_ci", {}).get("ci_half", 0)
+        else:
+            v = (all_temporal or {}).get(enc, {}).get(key)
+            ci_h = (all_temporal or {}).get(enc, {}).get(
+                f"{key}_ci", {}).get("ci_half", 0)
+            if ci_h == 0 and key == "spearman_rho":
+                ci_h = (all_temporal or {}).get(enc, {}).get(
+                    "spearman_rho_ci", {}).get("ci_half", 0)
+        return (v if v is not None else 0), ci_h
+
+    def _adaptation_bar(ax, key, label, domain):
+        vals, errs = [], []
+        for enc, _, _ in stages:
+            v, ci_h = _get_val_ci(enc, key, domain)
+            vals.append(v)
+            errs.append(ci_h)
+
+        x = np.arange(n_stages)
+        bar_w = 0.6
+        ax.bar(x, vals, bar_w, color=stage_colors, alpha=0.85,
+               yerr=errs, capsize=4, error_kw={"lw": 1.5})
+
+        # Delta annotations: each adapted stage vs frozen baseline
+        baseline_v, baseline_e = vals[0], errs[0]
+        for si in range(1, n_stages):
+            delta = vals[si] - baseline_v
+            delta_ci = np.sqrt(errs[si]**2 + baseline_e**2)
+            delta_sign = "+" if delta > 0 else ""
+            # Significance: CI doesn't cross zero
+            significant = abs(delta) > delta_ci and delta_ci > 0
+            if key == "temporal_locality_ratio":
+                improved = delta < 0  # lower is better
+            else:
+                improved = delta > 0
+            if significant:
+                delta_color = "#2E7D32" if improved else "#C62828"
+                sig_marker = " *"
+            else:
+                delta_color = "#888888"
+                sig_marker = ""
+            ci_str = f"\u00b1{delta_ci:.2f}" if delta_ci > 0 else ""
+            annot = f"\u0394={delta_sign}{delta:.2f} {ci_str}{sig_marker}"
+            y_pos = max(vals[si] + errs[si], baseline_v + baseline_e) * 1.02
+            ax.annotate(annot, xy=(x[si], y_pos), fontsize=6, fontweight="bold",
+                        color=delta_color, ha="center", va="bottom")
+
+        title_color = "#2E7D32" if domain == "spatial" else "#C62828"
+        ax.set_title(label, fontsize=9, fontweight="bold", color=title_color)
+        ax.set_xticks(x)
+        ax.set_xticklabels([sl.replace("\n", " ") for sl in stage_labels],
+                           fontsize=6, rotation=15, ha="right")
+        ax.tick_params(axis="y", labelsize=8)
+
+    # Top row: spatial
+    for i, (key, label, domain) in enumerate(spatial_defs):
+        _adaptation_bar(axes[0][i], key, label, domain)
+    for i in range(n_spatial_d, n_cols):
+        axes[0][i].set_visible(False)
+
+    # Bottom row: temporal
+    if n_temporal_d > 0:
+        for i, (key, label, domain) in enumerate(temporal_defs):
+            _adaptation_bar(axes[1][i], key, label, domain)
+        for i in range(n_temporal_d, n_cols):
+            axes[1][i].set_visible(False)
+
+    fig.text(0.02, 0.75, "SPATIAL", fontsize=13, fontweight="bold",
+             color="#2E7D32", rotation=90, va="center")
+    if n_temporal_d > 0:
+        fig.text(0.02, 0.28, "TEMPORAL", fontsize=13, fontweight="bold",
+                 color="#C62828", rotation=90, va="center")
+
+    plt.suptitle("Adaptation Stage Ablation: Frozen vs Pretrained vs Surgical",
+                 fontsize=13, fontweight="bold", y=1.01)
+    fig.text(0.5, -0.01,
+             "Green \u0394* = significant improvement (CI excludes 0)  |  "
+             "Red \u0394* = significant degradation  |  "
+             "Gray \u0394 = not significant",
+             ha="center", fontsize=7, color="#555", style="italic")
+    plt.tight_layout(rect=[0.04, 0.02, 1, 0.98])
+    for ext in [".png", ".pdf"]:
+        plt.savefig(output_dir / f"m08b_adaptation_ablation{ext}",
+                    dpi=150 if ext == ".png" else None, bbox_inches="tight")
+    plt.close()
+    print(f"Saved: {output_dir / 'm08b_adaptation_ablation.png'}")
+
+
 # ── Normalized Heatmap (Encoders × Metrics) ────────────────────────
 
 def create_heatmap(all_metrics: dict, all_temporal: dict, output_dir: Path):
@@ -615,7 +799,7 @@ def create_heatmap(all_metrics: dict, all_temporal: dict, output_dir: Path):
         ("prec_at_k", "Prec@K"),
         ("map_at_k", "mAP@K"),
         ("cycle_at_k", "Cycle@K"),
-        ("overlap_at_k", "Overlap@K"),
+        ("dim_consistency_at_k", "DimConsist@K"),
         ("ndcg_at_k", "nDCG@K"),
     ]
     temporal_defs = []
@@ -684,7 +868,7 @@ def create_heatmap(all_metrics: dict, all_temporal: dict, output_dir: Path):
             v = val_matrix[ei, mi]
             ci = ci_matrix[ei, mi]
             key = all_defs[mi][0]
-            if key in ("prec_at_k", "cycle_at_k", "overlap_at_k", "temporal_prec_at_k"):
+            if key in ("prec_at_k", "cycle_at_k", "dim_consistency_at_k", "temporal_prec_at_k"):
                 txt = f"{v:.1f}"
                 if ci > 0:
                     txt += f"\n\u00b1{ci:.1f}"
@@ -756,12 +940,12 @@ def create_latex_table(all_metrics: dict, output_dir: Path):
 
         ci_data = easy.get("ci", {})
         vals = []
-        for key in ["cycle_at_k", "overlap_at_k", "prec_at_k", "map_at_k", "ndcg_at_k"]:
+        for key in ["cycle_at_k", "dim_consistency_at_k", "prec_at_k", "map_at_k", "ndcg_at_k"]:
             v = easy.get(key)
             ci_half = ci_data.get(key, {}).get("ci_half")
             if v is None:
                 vals.append("--")
-            elif key in ("cycle_at_k", "overlap_at_k", "prec_at_k"):
+            elif key in ("cycle_at_k", "dim_consistency_at_k", "prec_at_k"):
                 if ci_half is not None:
                     vals.append(f"{v:.1f}{{\\tiny$\\pm${ci_half:.1f}}}")
                 else:
@@ -815,7 +999,6 @@ def main():
         for i, enc in enumerate(encoder_list):
             if enc not in ENCODER_LABELS:
                 # Dynamic labels for lambda encoders and their shuffled variants
-                import re
                 m_shuf = re.match(r'vjepa_lambda(\d+(?:_\d+)*)_shuffled', enc)
                 m_lam = re.match(r'vjepa_lambda(\d+(?:_\d+)*)', enc)
                 if m_shuf:
@@ -831,7 +1014,7 @@ def main():
         global ENCODER_ORDER
         ENCODER_ORDER = encoder_list
 
-    output_dir = get_output_dir(args.subset, sanity=args.SANITY)
+    output_dir = get_output_dir(args.subset, sanity=args.SANITY, poc=args.POC)
     print(f"Output dir: {output_dir}")
     print(f"Scanning for encoder metrics...")
 
@@ -854,7 +1037,7 @@ def main():
 
     # Plots + table (need >= 2 encoders for comparison)
     if len(all_metrics) >= 2:
-        pbar = make_pbar(total=7, desc="m08b_compare", unit="plot")
+        pbar = make_pbar(total=8, desc="m08b_compare", unit="plot")
         create_bar_chart(all_metrics, output_dir)
         pbar.update(1)
         create_radar_plot(all_metrics, output_dir, all_temporal=all_temporal)
@@ -867,13 +1050,16 @@ def main():
         pbar.update(1)
         create_ablation_chart(all_metrics, all_temporal, output_dir)
         pbar.update(1)
+        create_adaptation_ablation(all_metrics, all_temporal, output_dir)
+        pbar.update(1)
         create_heatmap(all_metrics, all_temporal, output_dir)
         pbar.update(1)
         pbar.close()
 
         for name in ["m08b_encoder_comparison", "m08b_radar",
                      "m08b_spatial_temporal_bar", "m08b_tradeoff_scatter",
-                     "m08b_temporal_ablation", "m08b_heatmap"]:
+                     "m08b_temporal_ablation", "m08b_adaptation_ablation",
+                     "m08b_heatmap"]:
             png = output_dir / f"{name}.png"
             if png.exists():
                 log_image(wb_run, name, str(png))

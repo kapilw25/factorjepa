@@ -1,0 +1,35 @@
+wandb: run=m06b_FULL url=https://wandb.ai/sjsu_llm/walkindia-200k/runs/1c40wpmx
+Encoder: dinov2 (dim=1536, suffix='_dinov2')
+Output: /workspace/factorjepa/outputs/full
+Motion features: (115687, 13)
+Embeddings: (115687, 1536)
+kNN indices: (115687, 7)
+m06b_temporal: 100%|██████████| 5/5 [01:58<00:00, 23.75s/step]
+Aligned: 115,687 clips (emb=115,687, motion=115,687)
+
+Computing Spearman correlation (+ bootstrap 95% CI)...
+  Spearman rho = 0.1765 ± 0.0062 (p = 0.00e+00, 99,999 pairs)
+
+Computing Temporal Prec@K (k=6, + bootstrap 95% CI)...
+  Temporal Prec@K = 47.5% ± 0.2
+
+Computing Motion Retrieval mAP (k=6, clusters=4, + bootstrap 95% CI)...
+  Motion Retrieval mAP = 0.7439 ± 0.0017
+
+Computing Temporal Locality...
+  Intra-video dist: 0.9413
+  Inter-video dist: 1.1575
+  Ratio (lower=better): 0.8132 (713 videos)
+
+Saved: /workspace/factorjepa/outputs/full/m06b_temporal_corr_dinov2.json
+
+============================================================
+m06b TEMPORAL CORRELATION — dinov2
+============================================================
+  Spearman rho:          0.1765 ± 0.0062
+  Temporal Prec@K:       47.5% ± 0.2
+  Motion Retrieval mAP:  0.7439 ± 0.0017
+  Temporal Locality:     0.8132 (intra/inter ratio)
+  Clips aligned:         115,687
+  Compute time:          118.8s
+============================================================

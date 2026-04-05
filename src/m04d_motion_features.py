@@ -381,7 +381,7 @@ def main():
     check_gpu()
 
     # Output routing
-    output_dir = get_output_dir(args.subset, sanity=args.SANITY)
+    output_dir = get_output_dir(args.subset, sanity=args.SANITY, poc=args.POC)
     output_dir.mkdir(parents=True, exist_ok=True)
 
     # Skip if output already exists (motion features are encoder-independent)

@@ -1,109 +1,0 @@
-wandb: [wandb.login()] Loaded credentials for https://api.wandb.ai from WANDB_API_KEY.
-wandb: Currently logged in as: kapilw25 (sjsu_llm) to https://api.wandb.ai. Use `wandb login --relogin` to force relogin
-wandb: WARNING Using a boolean value for 'reinit' is deprecated. Use 'return_previous' or 'finish_previous' instead.
-wandb: setting up run 73iibgsm
-wandb: Tracking run with wandb version 0.25.1
-wandb: Run data is saved locally in /workspace/factorjepa/wandb/run-20260404_144132-73iibgsm
-wandb: Run `wandb offline` to turn off syncing.
-wandb: Syncing run m08_SANITY
-wandb: ⭐️ View project at https://wandb.ai/sjsu_llm/walkindia-200k
-wandb: 🚀 View run at https://wandb.ai/sjsu_llm/walkindia-200k/runs/73iibgsm
-wandb: run=m08_SANITY url=https://wandb.ai/sjsu_llm/walkindia-200k/runs/73iibgsm
-Output dir: /workspace/factorjepa/outputs/sanity
-[output_guard] m08 vjepa_lambda0_01_shuffled: attempting HF download for 2 missing file(s)...
-Downloading anonymousML123/factorjepa-outputs//workspace/factorjepa/outputs/sanity/ → /workspace/factorjepa/outputs/sanity
-
-Download complete: 0s
-  Files: 0 new, 0 updated, 636 unchanged
-  Downloaded: 0.00 GB
-[output_guard] m08 vjepa_lambda0_01_shuffled: 2 file(s) still missing after HF download
-[output_guard] m08 vjepa_lambda0_01_shuffled: outputs missing or invalid — will re-compute
-  MISS  umap_plot: m08_umap_vjepa_lambda0_01_shuffled.png
-  MISS  confusion_matrix: m08_confusion_matrix_vjepa_lambda0_01_shuffled.png
-Encoder: vjepa_lambda0_01_shuffled (suffix='_vjepa_lambda0_01_shuffled')
-SANITY MODE: 50 clips
-Loaded: 50 clips
-Loaded m06 metrics: m06_metrics_vjepa_lambda0_01_shuffled.json
-Taxonomy keys for plots: ['scene_type', 'time_of_day', 'weather', 'crowd_density', 'traffic_density', 'traffic_mix', 'pedestrian_vehicle_separation', 'road_surface', 'infrastructure_quality', 'road_encroachment', 'vegetation', 'lighting', 'video_quality']
-m08_plot:   0%|          | 0/29 [00:00<?, ?plot/s]Saved: /workspace/factorjepa/outputs/sanity/m08_umap_vjepa_lambda0_01_shuffled.png
-m08_plot:   3%|▎         | 1/29 [00:00<00:07,  3.60plot/s]Saved: /workspace/factorjepa/outputs/sanity/m08_umap_vjepa_lambda0_01_shuffled_time_of_day.png
-m08_plot:   7%|▋         | 2/29 [00:00<00:05,  4.58plot/s]Saved: /workspace/factorjepa/outputs/sanity/m08_umap_vjepa_lambda0_01_shuffled_weather.png
-m08_plot:  10%|█         | 3/29 [00:00<00:05,  4.86plot/s]Saved: /workspace/factorjepa/outputs/sanity/m08_umap_vjepa_lambda0_01_shuffled_crowd_density.png
-m08_plot:  14%|█▍        | 4/29 [00:00<00:04,  5.21plot/s]Saved: /workspace/factorjepa/outputs/sanity/m08_umap_vjepa_lambda0_01_shuffled_traffic_density.png
-m08_plot:  17%|█▋        | 5/29 [00:00<00:04,  5.44plot/s]Saved: /workspace/factorjepa/outputs/sanity/m08_umap_vjepa_lambda0_01_shuffled_traffic_mix.png
-m08_plot:  21%|██        | 6/29 [00:01<00:04,  5.22plot/s]Saved: /workspace/factorjepa/outputs/sanity/m08_umap_vjepa_lambda0_01_shuffled_pedestrian_vehicle_separation.png
-m08_plot:  24%|██▍       | 7/29 [00:01<00:04,  5.35plot/s]Saved: /workspace/factorjepa/outputs/sanity/m08_umap_vjepa_lambda0_01_shuffled_road_surface.png
-m08_plot:  28%|██▊       | 8/29 [00:01<00:04,  5.25plot/s]Saved: /workspace/factorjepa/outputs/sanity/m08_umap_vjepa_lambda0_01_shuffled_infrastructure_quality.png
-m08_plot:  31%|███       | 9/29 [00:01<00:03,  5.27plot/s]Saved: /workspace/factorjepa/outputs/sanity/m08_umap_vjepa_lambda0_01_shuffled_road_encroachment.png
-m08_plot:  34%|███▍      | 10/29 [00:01<00:03,  5.41plot/s]Saved: /workspace/factorjepa/outputs/sanity/m08_umap_vjepa_lambda0_01_shuffled_vegetation.png
-m08_plot:  38%|███▊      | 11/29 [00:02<00:03,  5.43plot/s]Saved: /workspace/factorjepa/outputs/sanity/m08_umap_vjepa_lambda0_01_shuffled_lighting.png
-m08_plot:  41%|████▏     | 12/29 [00:02<00:03,  5.59plot/s]Saved: /workspace/factorjepa/outputs/sanity/m08_umap_vjepa_lambda0_01_shuffled_video_quality.png
-m08_plot:  45%|████▍     | 13/29 [00:02<00:02,  5.58plot/s]Saved: /workspace/factorjepa/outputs/sanity/m08_umap_grid_vjepa_lambda0_01_shuffled.png
-m08_plot:  48%|████▊     | 14/29 [00:04<00:09,  1.52plot/s]Saved: /workspace/factorjepa/outputs/sanity/m08_confusion_matrix_vjepa_lambda0_01_shuffled.png
-
-Per-class retrieval accuracy:
-  beach_coastal: 69.4%
-  ghat: 0.0%
-  heritage_tourist: 26.5%
-  promenade: 71.1%
-  residential_lane: 16.7%
-  unsure: 0.0%
-m08_plot:  52%|█████▏    | 15/29 [00:04<00:07,  1.92plot/s]Saved: /workspace/factorjepa/outputs/sanity/m08_confusion_matrix_vjepa_lambda0_01_shuffled_time_of_day.png
-m08_plot:  55%|█████▌    | 16/29 [00:04<00:05,  2.48plot/s]Saved: /workspace/factorjepa/outputs/sanity/m08_confusion_matrix_vjepa_lambda0_01_shuffled_weather.png
-m08_plot:  59%|█████▊    | 17/29 [00:04<00:03,  3.04plot/s]Saved: /workspace/factorjepa/outputs/sanity/m08_confusion_matrix_vjepa_lambda0_01_shuffled_crowd_density.png
-m08_plot:  62%|██████▏   | 18/29 [00:04<00:02,  3.70plot/s]Saved: /workspace/factorjepa/outputs/sanity/m08_confusion_matrix_vjepa_lambda0_01_shuffled_traffic_density.png
-m08_plot:  66%|██████▌   | 19/29 [00:04<00:02,  4.37plot/s]Saved: /workspace/factorjepa/outputs/sanity/m08_confusion_matrix_vjepa_lambda0_01_shuffled_traffic_mix.png
-m08_plot:  69%|██████▉   | 20/29 [00:05<00:01,  5.03plot/s]Saved: /workspace/factorjepa/outputs/sanity/m08_confusion_matrix_vjepa_lambda0_01_shuffled_pedestrian_vehicle_separation.png
-m08_plot:  72%|███████▏  | 21/29 [00:05<00:01,  5.54plot/s]Saved: /workspace/factorjepa/outputs/sanity/m08_confusion_matrix_vjepa_lambda0_01_shuffled_road_surface.png
-m08_plot:  76%|███████▌  | 22/29 [00:05<00:01,  5.20plot/s]Saved: /workspace/factorjepa/outputs/sanity/m08_confusion_matrix_vjepa_lambda0_01_shuffled_infrastructure_quality.png
-m08_plot:  79%|███████▉  | 23/29 [00:05<00:01,  5.66plot/s]Saved: /workspace/factorjepa/outputs/sanity/m08_confusion_matrix_vjepa_lambda0_01_shuffled_road_encroachment.png
-m08_plot:  83%|████████▎ | 24/29 [00:05<00:00,  6.10plot/s]Saved: /workspace/factorjepa/outputs/sanity/m08_confusion_matrix_vjepa_lambda0_01_shuffled_vegetation.png
-m08_plot:  86%|████████▌ | 25/29 [00:05<00:00,  5.71plot/s]Saved: /workspace/factorjepa/outputs/sanity/m08_confusion_matrix_vjepa_lambda0_01_shuffled_lighting.png
-m08_plot:  90%|████████▉ | 26/29 [00:06<00:00,  6.22plot/s]Saved: /workspace/factorjepa/outputs/sanity/m08_confusion_matrix_vjepa_lambda0_01_shuffled_video_quality.png
-m08_plot:  93%|█████████▎| 27/29 [00:06<00:00,  6.49plot/s]Saved: /workspace/factorjepa/outputs/sanity/m08_confusion_matrix_grid_vjepa_lambda0_01_shuffled.png
-m08_plot:  97%|█████████▋| 28/29 [00:07<00:00,  2.08plot/s]Saved: /workspace/factorjepa/outputs/sanity/m08_knn_grid_vjepa_lambda0_01_shuffled.png
-m08_plot: 100%|██████████| 29/29 [00:08<00:00,  1.52plot/s]m08_plot: 100%|██████████| 29/29 [00:08<00:00,  3.40plot/s]
-
-=== MACRO/MICRO REPORTING ===
-
-EASY mode:
-  Macro Prec@K: 23.04%
-  Micro Prec@K: 47.4%
-  Cycle At K: 82.81
-  Prec At K: 47.4
-  Silhouette: -0.1981
-  Map At K: 0.4281
-  Ndcg At K: 0.9712
-
-HARD mode:
-  Macro Prec@K: 21.69%
-  Micro Prec@K: 44.27%
-  Cycle At K: 84.38
-  Prec At K: 44.27
-  Silhouette: -0.1981
-  Map At K: 0.4023
-  Ndcg At K: 0.9719
-
-=== VISUALIZATION COMPLETE ===
-Outputs in: /workspace/factorjepa/outputs/sanity
-wandb: updating run metadata
-wandb: uploading media/images/confusion_matrix_vjepa_lambda0_01_shuffled_crowd_density_11_74dd57e005261b4b6c91.png; uploading media/images/umap_vjepa_lambda0_01_shuffled_road_surface_18_ed660fcead84bfe1b337.png; uploading media/images/confusion_matrix_vjepa_lambda0_01_shuffled_road_surface_19_1eece6518d3fa4a83c3f.png; uploading media/images/confusion_matrix_vjepa_lambda0_01_shuffled_lighting_27_c411470cce46014f0058.png; uploading config.yaml (+ 27 more)
-wandb: uploading media/images/confusion_matrix_vjepa_lambda0_01_shuffled_road_surface_19_1eece6518d3fa4a83c3f.png; uploading media/images/confusion_matrix_vjepa_lambda0_01_shuffled_time_of_day_7_0fe19aef045d605d013f.png; uploading media/images/umap_vjepa_lambda0_01_shuffled_infrastructure_quality_20_5e2160c4aec7542fb2fe.png; uploading media/images/confusion_matrix_vjepa_lambda0_01_shuffled_vegetation_25_8ebd919124f80d788dcc.png; uploading media/images/confusion_matrix_vjepa_lambda0_01_shuffled_video_quality_29_009d47aad7049bc15f87.png (+ 18 more)
-wandb: uploading media/images/umap_grid_vjepa_lambda0_01_shuffled_30_14305395d1a581947b14.png
-wandb: 
-wandb: Run history:
-wandb: easy/macro_prec_at_k ▁
-wandb: easy/micro_prec_at_k ▁
-wandb: hard/macro_prec_at_k ▁
-wandb: hard/micro_prec_at_k ▁
-wandb: 
-wandb: Run summary:
-wandb: easy/macro_prec_at_k 23.04
-wandb: easy/micro_prec_at_k 47.4
-wandb: hard/macro_prec_at_k 21.69
-wandb: hard/micro_prec_at_k 44.27
-wandb: 
-wandb: 🚀 View run m08_SANITY at: https://wandb.ai/sjsu_llm/walkindia-200k/runs/73iibgsm
-wandb: ⭐️ View project at: https://wandb.ai/sjsu_llm/walkindia-200k
-wandb: Synced 5 W&B file(s), 29 media file(s), 0 artifact file(s) and 0 other file(s)
-wandb: Find logs at: ./wandb/run-20260404_144132-73iibgsm/logs

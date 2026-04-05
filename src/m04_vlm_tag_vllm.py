@@ -213,7 +213,7 @@ def tag_clips(args):
     check_gpu()
 
     from utils.config import get_output_dir
-    output_dir = get_output_dir(args.subset, sanity=args.SANITY)
+    output_dir = get_output_dir(args.subset, sanity=args.SANITY, poc=args.POC)
     output_dir.mkdir(parents=True, exist_ok=True)
     tags_file = output_dir / "tags.json"
     checkpoint_path = output_dir / ".m04_vllm_checkpoint.json"

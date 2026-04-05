@@ -804,7 +804,7 @@ def main():
 def _run_single_encoder(encoder: str, args):
     """Run a single baseline encoder end-to-end."""
     info = ENCODER_REGISTRY[encoder]
-    output_dir = get_output_dir(args.subset, sanity=args.SANITY)
+    output_dir = get_output_dir(args.subset, sanity=args.SANITY, poc=args.POC)
     output_dir.mkdir(parents=True, exist_ok=True)
     files = get_encoder_files(encoder, output_dir)
 

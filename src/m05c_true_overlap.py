@@ -273,7 +273,7 @@ def main():
     check_gpu()
     device = "cuda"
 
-    output_dir = get_output_dir(args.subset, sanity=args.SANITY)
+    output_dir = get_output_dir(args.subset, sanity=args.SANITY, poc=args.POC)
     output_dir.mkdir(parents=True, exist_ok=True)
     aug_a_file = output_dir / "overlap_augA.npy"
     aug_b_file = output_dir / "overlap_augB.npy"

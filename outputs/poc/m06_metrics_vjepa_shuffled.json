@@ -3,7 +3,7 @@
   "encoder_dim": 1408,
   "easy": {
     "cycle_at_k": 76.19,
-    "overlap_at_k": 35.32,
+    "dim_consistency_at_k": 35.32,
     "silhouette": -0.2245,
     "prec_at_k": 35.33,
     "map_at_k": 0.2724,
@@ -33,7 +33,7 @@
         "ci_hi": 0.950793,
         "ci_half": 0.000839
       },
-      "overlap_at_k": {
+      "dim_consistency_at_k": {
         "mean": 35.32155,
         "ci_lo": 34.743447,
         "ci_hi": 35.919918,
@@ -934,7 +934,7 @@
   },
   "hard": {
     "cycle_at_k": 74.19,
-    "overlap_at_k": 35.32,
+    "dim_consistency_at_k": 35.32,
     "silhouette": -0.2245,
     "prec_at_k": 34.07,
     "map_at_k": 0.2594,
@@ -964,7 +964,7 @@
         "ci_hi": 0.948694,
         "ci_half": 0.000848
       },
-      "overlap_at_k": {
+      "dim_consistency_at_k": {
         "mean": 35.32155,
         "ci_lo": 34.743447,
         "ci_hi": 35.919918,
@@ -1233,7 +1233,7 @@
       "crowd_density": 63.85,
       "traffic_density": 57.27,
       "traffic_mix": 55.71,
-      "pedestrian_vehicle_separation": 70.1,
+      "pedestrian_vehicle_separation": 70.11,
       "road_surface": 55.12,
       "infrastructure_quality": 70.39,
       "road_encroachment": 68.33,
@@ -1910,6 +1910,6 @@
   "k_neighbors": 6,
   "num_clips": 10000,
   "exclusion_window_sec": 30,
-  "mode": "poc",
-  "subset_file": "data/subset_10k.json"
+  "mode": "full",
+  "subset_file": null
 }

@@ -46,14 +46,15 @@ except ImportError as e:
     print("Install with: pip install torch transformers datasets")
     sys.exit(1)
 
-# Try torchcodec first (faster), fallback to av
-USE_TORCHCODEC = False
+# torchcodec 0.11.0: SIGSEGV on decoder cleanup (del decoder triggers C++ destructor crash).
+# Tested: decode works, but process dies on cleanup even with os._exit(0).
+# Incompatible with PyTorch nightly 2.12+cu128 on Blackwell sm_120.
+# Blocked until torchcodec fixes destructor bug. Using PyAV (CPU) as fallback.
 try:
     from torchcodec.decoders import VideoDecoder
-    USE_TORCHCODEC = True
-    print("Using torchcodec (fast video decoding)")
-except (ImportError, RuntimeError, OSError):
-    USE_TORCHCODEC = False
+except ImportError:
+    VideoDecoder = None
+USE_TORCHCODEC = False
 
 if not USE_TORCHCODEC:
     try:
@@ -101,13 +102,13 @@ def _create_stream(skip_count: int = 0, local_data: str = None):
 # ── Video Decoding (from bytes, not local paths) ──────────────────────
 
 def _load_torchcodec(video_path: str, num_frames: int) -> torch.Tensor:
-    """Load video using torchcodec (faster, GPU-accelerated decode)."""
+    """Load video using torchcodec (GPU NVDEC decode, 5-10x faster than PyAV CPU)."""
     decoder = VideoDecoder(video_path)
-    metadata = decoder.metadata
-    total_frames = metadata.num_frames if hasattr(metadata, 'num_frames') else 200
+    total_frames = decoder.metadata.num_frames if hasattr(decoder.metadata, 'num_frames') else 200
     frame_indices = np.linspace(0, max(total_frames - 1, 0), num_frames, dtype=int)
     frames = decoder.get_frames_at(indices=frame_indices.tolist())
     video_tensor = frames.data  # (T, C, H, W)
+    del decoder  # release CUDA NVDEC resources immediately (prevents SIGSEGV at process exit)
     if video_tensor.shape[0] < num_frames:
         pad_size = num_frames - video_tensor.shape[0]
         last_frame = video_tensor[-1:].repeat(pad_size, 1, 1, 1)
@@ -351,7 +352,7 @@ def orchestrator_main(args):
     Each worker gets fresh HF connections + GPU state. On stream stall
     (10-min producer timeout), worker exits, orchestrator respawns from checkpoint.
     """
-    output_dir = get_output_dir(args.subset, sanity=args.SANITY)
+    output_dir = get_output_dir(args.subset, sanity=args.SANITY, poc=args.POC)
 
     # Encoder name determines output filenames (unique per lambda for ablation)
     model_path = Path(args.model)
@@ -452,6 +453,15 @@ def orchestrator_main(args):
         print("ERROR: No embeddings collected.")
         sys.exit(1)
 
+    # GUARD: do NOT save incomplete output as final. If worker loop broke early
+    # (exit -9 SIGKILL, exit -11 SIGSEGV, etc.), the checkpoint has partial data.
+    # Saving it as final .npy would trick downstream steps into using incomplete embeddings.
+    if final_count < total_clips * 0.95:
+        print(f"FATAL: Only {final_count:,}/{total_clips:,} clips embedded ({final_count/total_clips*100:.0f}%). "
+              f"Worker died before completion. Checkpoint preserved for resume.")
+        print(f"  Re-run with same command to resume from checkpoint.")
+        sys.exit(1)
+
     embeddings = np.stack(all_embeddings).astype(np.float32)
     clip_keys = all_keys
 
@@ -506,13 +516,24 @@ def worker_main(args):
                 args.batch_size = batch_sizes["vjepa"]
                 print(f"Batch size: {args.batch_size} (linear estimate)")
 
+    # Adapted models eval at 64f (VJEPA_FRAMES_PER_CLIP) but frozen HF models also use 64f.
+    # The difference: adapted uses native vjepa2 (sdp_kernel patched), frozen uses HF AutoModel.
+    # They have different VRAM profiles → separate BS configs in pipeline.yaml.
+    model_path = Path(args.model)
+    is_adapted_pre = model_path.suffix == ".pt" and model_path.exists()
+    if is_adapted_pre:
+        adapted_bs = get_pipeline_config()["gpu"]["inference_adapted_bs"]
+        if adapted_bs < args.batch_size:
+            print(f"Batch size: {args.batch_size} → {adapted_bs} (adapted model, from pipeline.yaml)")
+            args.batch_size = adapted_bs
+
     mode = "SANITY" if args.SANITY else ("POC" if args.POC else "FULL")
     wb_run = init_wandb("m05", mode,
                         config={"start_from": args.start_from,
                                 "process_count": args.process_count},
                         enabled=not args.no_wandb)
 
-    output_dir = get_output_dir(args.subset, sanity=args.SANITY)
+    output_dir = get_output_dir(args.subset, sanity=args.SANITY, poc=args.POC)
     # Match orchestrator's encoder-aware checkpoint path
     model_path = Path(args.model)
     is_adapted = model_path.suffix == ".pt" and model_path.exists()
@@ -547,7 +568,6 @@ def worker_main(args):
         print("  pip install flash-attn --no-build-isolation")
         sys.exit(1)
 
-    adapted_num_frames = None  # set inside try block for adapted models
     try:
         model_path = Path(args.model)
         is_adapted = model_path.suffix == ".pt" and model_path.exists()
@@ -561,20 +581,18 @@ def worker_main(args):
             else:
                 state_dict = ckpt
 
-            # Read num_frames from training config (16), NOT VJEPA_FRAMES_PER_CLIP (64 = HF default).
-            # The adapted model was trained with 16 frames. Using 64 would 4x token count
-            # (4608 → 18432), causing 89GB VRAM + 152GB CPU queue → OOM + SIGKILL.
-            import yaml
-            _pretrain_cfg = yaml.safe_load(open("configs/pretrain/vitg16_indian.yaml"))
-            adapted_num_frames = _pretrain_cfg["data"]["num_frames"]
-            print(f"Adapted model: num_frames={adapted_num_frames} (from training config)")
+            # CRITICAL: use VJEPA_FRAMES_PER_CLIP (64) for evaluation, NOT the training
+            # num_frames (16). The model uses RoPE (no learnable pos_embed), so it handles
+            # any frame count. Using 16 frames would give 4x less temporal context than the
+            # frozen baseline (64 frames) → unfair comparison, -26% Prec@K artifact.
+            # The 1-epoch adaptation preserves the original 64-frame capabilities.
+            print(f"Adapted model: eval at {VJEPA_FRAMES_PER_CLIP} frames (matching frozen baseline)")
 
-            # Build native vjepa2 encoder (same architecture as m09 training)
             from utils.vjepa2_imports import get_vit_giant_xformers
             vit_giant_xformers = get_vit_giant_xformers()
 
             model = vit_giant_xformers(
-                img_size=(384, 384), patch_size=16, num_frames=adapted_num_frames,
+                img_size=(384, 384), patch_size=16, num_frames=VJEPA_FRAMES_PER_CLIP,
                 tubelet_size=2, use_sdpa=True, use_silu=False, wide_silu=True,
                 uniform_power=False, use_rope=True,
             )
@@ -617,8 +635,7 @@ def worker_main(args):
         print("Warmup: compiling inductor graph...")
         # Warmup tensor in (B, C, T, H, W) — already correct for native vjepa2 model.
         # The permute in get_batch_embeddings handles producer's (B,T,C,H,W) → (B,C,T,H,W).
-        _warmup_nf = adapted_num_frames if is_adapted else VJEPA_FRAMES_PER_CLIP
-        warmup_t = torch.randn(2, 3, _warmup_nf, 384, 384,
+        warmup_t = torch.randn(2, 3, VJEPA_FRAMES_PER_CLIP, 384, 384,
                                dtype=torch.float16, device=device)
         with torch.no_grad():
             if is_adapted:
@@ -647,11 +664,10 @@ def worker_main(args):
     q = queue.Queue(maxsize=PREFETCH_QUEUE_SIZE)
     stop_event = threading.Event()
 
-    _num_frames = adapted_num_frames if is_adapted else VJEPA_FRAMES_PER_CLIP
     producer = threading.Thread(
         target=_producer_thread,
         args=(processor, args.batch_size, tmp_dir, q, stop_event,
-              clip_limit, subset_keys, _num_frames, processed_keys,
+              clip_limit, subset_keys, VJEPA_FRAMES_PER_CLIP, processed_keys,
               getattr(args, 'local_data', None),
               getattr(args, 'shuffle', False)),
         daemon=True,

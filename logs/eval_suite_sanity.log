@@ -1,207 +1,0 @@
-eval_suite:   0%|          | 0/33 [00:00<?, ?step/s]
-============================================================
-  EVAL SUITE: vjepa
-============================================================
-
-  --- m06 FAISS metrics (vjepa) ---
-
-  CMD: /workspace/factorjepa/venv_walkindia/bin/python -u src/m06_faiss_metrics.py --encoder vjepa --SANITY
-  PASSED: m06 vjepa (5s)
-eval_suite:   3%|▎         | 1/33 [00:05<02:50,  5.33s/step]
-  --- m06b temporal correlation (vjepa) ---
-
-  CMD: /workspace/factorjepa/venv_walkindia/bin/python -u src/m06b_temporal_corr.py --encoder vjepa --SANITY
-  PASSED: m06b vjepa (17s)
-eval_suite:   6%|▌         | 2/33 [00:21<06:11, 11.98s/step]
-  --- m07 UMAP (vjepa) ---
-
-  CMD: /workspace/factorjepa/venv_walkindia/bin/python -u src/m07_umap.py --encoder vjepa --SANITY
-  PASSED: m07 vjepa (6s)
-eval_suite:   9%|▉         | 3/33 [00:27<04:34,  9.14s/step]
-  --- m08 plots (vjepa) ---
-
-  CMD: /workspace/factorjepa/venv_walkindia/bin/python -u src/m08_plot.py --encoder vjepa --SANITY
-  PASSED: m08 vjepa (3s)
-eval_suite:  12%|█▏        | 4/33 [00:31<03:19,  6.89s/step]
-============================================================
-  EVAL SUITE: clip
-============================================================
-
-  --- m06 FAISS metrics (clip) ---
-
-  CMD: /workspace/factorjepa/venv_walkindia/bin/python -u src/m06_faiss_metrics.py --encoder clip --SANITY
-  PASSED: m06 clip (5s)
-eval_suite:  15%|█▌        | 5/33 [00:35<02:50,  6.09s/step]
-  --- m06b temporal correlation (clip) ---
-
-  CMD: /workspace/factorjepa/venv_walkindia/bin/python -u src/m06b_temporal_corr.py --encoder clip --SANITY
-  PASSED: m06b clip (16s)
-eval_suite:  18%|█▊        | 6/33 [00:51<04:15,  9.47s/step]
-  --- m07 UMAP (clip) ---
-
-  CMD: /workspace/factorjepa/venv_walkindia/bin/python -u src/m07_umap.py --encoder clip --SANITY
-  PASSED: m07 clip (5s)
-eval_suite:  21%|██        | 7/33 [00:57<03:32,  8.17s/step]
-  --- m08 plots (clip) ---
-
-  CMD: /workspace/factorjepa/venv_walkindia/bin/python -u src/m08_plot.py --encoder clip --SANITY
-  PASSED: m08 clip (3s)
-eval_suite:  24%|██▍       | 8/33 [01:00<02:46,  6.66s/step]
-============================================================
-  EVAL SUITE: dinov2
-============================================================
-
-  --- m06 FAISS metrics (dinov2) ---
-
-  CMD: /workspace/factorjepa/venv_walkindia/bin/python -u src/m06_faiss_metrics.py --encoder dinov2 --SANITY
-  PASSED: m06 dinov2 (5s)
-eval_suite:  27%|██▋       | 9/33 [01:05<02:27,  6.13s/step]
-  --- m06b temporal correlation (dinov2) ---
-
-  CMD: /workspace/factorjepa/venv_walkindia/bin/python -u src/m06b_temporal_corr.py --encoder dinov2 --SANITY
-  PASSED: m06b dinov2 (16s)
-eval_suite:  30%|███       | 10/33 [01:22<03:33,  9.26s/step]
-  --- m07 UMAP (dinov2) ---
-
-  CMD: /workspace/factorjepa/venv_walkindia/bin/python -u src/m07_umap.py --encoder dinov2 --SANITY
-  PASSED: m07 dinov2 (5s)
-eval_suite:  33%|███▎      | 11/33 [01:27<02:57,  8.05s/step]
-  --- m08 plots (dinov2) ---
-
-  CMD: /workspace/factorjepa/venv_walkindia/bin/python -u src/m08_plot.py --encoder dinov2 --SANITY
-  PASSED: m08 dinov2 (3s)
-eval_suite:  36%|███▋      | 12/33 [01:30<02:20,  6.67s/step]
-============================================================
-  EVAL SUITE: random
-============================================================
-
-  --- m06 FAISS metrics (random) ---
-
-  CMD: /workspace/factorjepa/venv_walkindia/bin/python -u src/m06_faiss_metrics.py --encoder random --SANITY
-  PASSED: m06 random (5s)
-eval_suite:  39%|███▉      | 13/33 [01:35<02:01,  6.09s/step]
-  --- m06b temporal correlation (random) ---
-
-  CMD: /workspace/factorjepa/venv_walkindia/bin/python -u src/m06b_temporal_corr.py --encoder random --SANITY
-  PASSED: m06b random (16s)
-eval_suite:  42%|████▏     | 14/33 [01:51<02:54,  9.17s/step]
-  --- m07 UMAP (random) ---
-
-  CMD: /workspace/factorjepa/venv_walkindia/bin/python -u src/m07_umap.py --encoder random --SANITY
-  PASSED: m07 random (5s)
-eval_suite:  45%|████▌     | 15/33 [01:57<02:24,  8.03s/step]
-  --- m08 plots (random) ---
-
-  CMD: /workspace/factorjepa/venv_walkindia/bin/python -u src/m08_plot.py --encoder random --SANITY
-  PASSED: m08 random (4s)
-eval_suite:  48%|████▊     | 16/33 [02:00<01:53,  6.69s/step]
-============================================================
-  EVAL SUITE: vjepa_lambda0_001
-============================================================
-
-  --- m06 FAISS metrics (vjepa_lambda0_001) ---
-
-  CMD: /workspace/factorjepa/venv_walkindia/bin/python -u src/m06_faiss_metrics.py --encoder vjepa_lambda0_001 --SANITY
-  PASSED: m06 vjepa_lambda0_001 (5s)
-eval_suite:  52%|█████▏    | 17/33 [02:06<01:39,  6.24s/step]
-  --- m06b temporal correlation (vjepa_lambda0_001) ---
-
-  CMD: /workspace/factorjepa/venv_walkindia/bin/python -u src/m06b_temporal_corr.py --encoder vjepa_lambda0_001 --SANITY
-  PASSED: m06b vjepa_lambda0_001 (16s)
-eval_suite:  55%|█████▍    | 18/33 [02:22<02:17,  9.20s/step]
-  --- m07 UMAP (vjepa_lambda0_001) ---
-
-  CMD: /workspace/factorjepa/venv_walkindia/bin/python -u src/m07_umap.py --encoder vjepa_lambda0_001 --SANITY
-  PASSED: m07 vjepa_lambda0_001 (6s)
-eval_suite:  58%|█████▊    | 19/33 [02:27<01:53,  8.12s/step]
-  --- m08 plots (vjepa_lambda0_001) ---
-
-  CMD: /workspace/factorjepa/venv_walkindia/bin/python -u src/m08_plot.py --encoder vjepa_lambda0_001 --SANITY
-  PASSED: m08 vjepa_lambda0_001 (4s)
-eval_suite:  61%|██████    | 20/33 [02:31<01:28,  6.81s/step]
-============================================================
-  EVAL SUITE: vjepa_lambda0_01
-============================================================
-
-  --- m06 FAISS metrics (vjepa_lambda0_01) ---
-
-  CMD: /workspace/factorjepa/venv_walkindia/bin/python -u src/m06_faiss_metrics.py --encoder vjepa_lambda0_01 --SANITY
-  PASSED: m06 vjepa_lambda0_01 (5s)
-eval_suite:  64%|██████▎   | 21/33 [02:36<01:15,  6.28s/step]
-  --- m06b temporal correlation (vjepa_lambda0_01) ---
-
-  CMD: /workspace/factorjepa/venv_walkindia/bin/python -u src/m06b_temporal_corr.py --encoder vjepa_lambda0_01 --SANITY
-  PASSED: m06b vjepa_lambda0_01 (17s)
-eval_suite:  67%|██████▋   | 22/33 [02:53<01:45,  9.55s/step]
-  --- m07 UMAP (vjepa_lambda0_01) ---
-
-  CMD: /workspace/factorjepa/venv_walkindia/bin/python -u src/m07_umap.py --encoder vjepa_lambda0_01 --SANITY
-  PASSED: m07 vjepa_lambda0_01 (5s)
-eval_suite:  70%|██████▉   | 23/33 [02:58<01:22,  8.26s/step]
-  --- m08 plots (vjepa_lambda0_01) ---
-
-  CMD: /workspace/factorjepa/venv_walkindia/bin/python -u src/m08_plot.py --encoder vjepa_lambda0_01 --SANITY
-  PASSED: m08 vjepa_lambda0_01 (3s)
-eval_suite:  73%|███████▎  | 24/33 [03:02<01:00,  6.76s/step]
-============================================================
-  EVAL SUITE: vjepa_lambda0_01_shuffled
-============================================================
-
-  --- m06 FAISS metrics (vjepa_lambda0_01_shuffled) ---
-
-  CMD: /workspace/factorjepa/venv_walkindia/bin/python -u src/m06_faiss_metrics.py --encoder vjepa_lambda0_01_shuffled --SANITY
-  PASSED: m06 vjepa_lambda0_01_shuffled (5s)
-eval_suite:  76%|███████▌  | 25/33 [03:06<00:49,  6.15s/step]
-  --- m06b temporal correlation (vjepa_lambda0_01_shuffled) ---
-
-  CMD: /workspace/factorjepa/venv_walkindia/bin/python -u src/m06b_temporal_corr.py --encoder vjepa_lambda0_01_shuffled --SANITY
-  PASSED: m06b vjepa_lambda0_01_shuffled (17s)
-eval_suite:  79%|███████▉  | 26/33 [03:23<01:04,  9.26s/step]
-  --- m07 UMAP (vjepa_lambda0_01_shuffled) ---
-
-  CMD: /workspace/factorjepa/venv_walkindia/bin/python -u src/m07_umap.py --encoder vjepa_lambda0_01_shuffled --SANITY
-  PASSED: m07 vjepa_lambda0_01_shuffled (10s)
-eval_suite:  82%|████████▏ | 27/33 [03:33<00:56,  9.50s/step]
-  --- m08 plots (vjepa_lambda0_01_shuffled) ---
-
-  CMD: /workspace/factorjepa/venv_walkindia/bin/python -u src/m08_plot.py --encoder vjepa_lambda0_01_shuffled --SANITY
-  PASSED: m08 vjepa_lambda0_01_shuffled (15s)
-eval_suite:  85%|████████▍ | 28/33 [03:48<00:55, 11.01s/step]
-============================================================
-  EVAL SUITE: vjepa_shuffled
-============================================================
-
-  --- m06 FAISS metrics (vjepa_shuffled) ---
-
-  CMD: /workspace/factorjepa/venv_walkindia/bin/python -u src/m06_faiss_metrics.py --encoder vjepa_shuffled --SANITY
-  PASSED: m06 vjepa_shuffled (5s)
-eval_suite:  88%|████████▊ | 29/33 [03:52<00:36,  9.10s/step]
-  --- m06b temporal correlation (vjepa_shuffled) ---
-
-  CMD: /workspace/factorjepa/venv_walkindia/bin/python -u src/m06b_temporal_corr.py --encoder vjepa_shuffled --SANITY
-  PASSED: m06b vjepa_shuffled (16s)
-eval_suite:  91%|█████████ | 30/33 [04:09<00:33, 11.32s/step]
-  --- m07 UMAP (vjepa_shuffled) ---
-
-  CMD: /workspace/factorjepa/venv_walkindia/bin/python -u src/m07_umap.py --encoder vjepa_shuffled --SANITY
-  PASSED: m07 vjepa_shuffled (5s)
-eval_suite:  94%|█████████▍| 31/33 [04:14<00:19,  9.57s/step]
-  --- m08 plots (vjepa_shuffled) ---
-
-  CMD: /workspace/factorjepa/venv_walkindia/bin/python -u src/m08_plot.py --encoder vjepa_shuffled --SANITY
-  PASSED: m08 vjepa_shuffled (4s)
-eval_suite:  97%|█████████▋| 32/33 [04:18<00:07,  7.76s/step]
-============================================================
-  m08b COMPARE: vjepa,clip,dinov2,random,vjepa_lambda0_001,vjepa_lambda0_01,vjepa_lambda0_01_shuffled,vjepa_shuffled
-============================================================
-
-  CMD: /workspace/factorjepa/venv_walkindia/bin/python -u src/m08b_compare.py --encoders vjepa,clip,dinov2,random,vjepa_lambda0_001,vjepa_lambda0_01,vjepa_lambda0_01_shuffled,vjepa_shuffled --SANITY
-  PASSED: m08b compare (8s)
-eval_suite: 100%|██████████| 33/33 [04:26<00:00,  7.77s/step]eval_suite: 100%|██████████| 33/33 [04:26<00:00,  8.06s/step]
-
-============================================================
-  EVAL SUITE COMPLETE
-  Encoders: vjepa, clip, dinov2, random, vjepa_lambda0_001, vjepa_lambda0_01, vjepa_lambda0_01_shuffled, vjepa_shuffled
-  Steps: 33 passed, 0 failed, 33 total
-  Time: 266s (4.4 min)
-============================================================

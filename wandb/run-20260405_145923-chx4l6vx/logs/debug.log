@@ -1,0 +1,24 @@
+2026-04-05 14:59:23,207 INFO    MainThread:3157622 [wandb_setup.py:_flush():81] Current SDK version is 0.25.1
+2026-04-05 14:59:23,207 INFO    MainThread:3157622 [wandb_setup.py:_flush():81] Configure stats pid to 3157622
+2026-04-05 14:59:23,207 INFO    MainThread:3157622 [wandb_setup.py:_flush():81] Loading settings from environment variables
+2026-04-05 14:59:23,207 INFO    MainThread:3157622 [wandb_init.py:setup_run_log_directory():717] Logging user logs to /workspace/factorjepa/wandb/run-20260405_145923-chx4l6vx/logs/debug.log
+2026-04-05 14:59:23,208 INFO    MainThread:3157622 [wandb_init.py:setup_run_log_directory():718] Logging internal logs to /workspace/factorjepa/wandb/run-20260405_145923-chx4l6vx/logs/debug-internal.log
+2026-04-05 14:59:23,208 INFO    MainThread:3157622 [wandb_init.py:init():844] calling init triggers
+2026-04-05 14:59:23,208 INFO    MainThread:3157622 [wandb_init.py:init():849] wandb.init called with sweep_config: {}
+config: {'SANITY': False, 'POC': True, 'FULL': False, 'n_neighbors': 15, 'min_dist': 0.1, 'encoder': 'dinov2', 'subset': None, 'no_wandb': False, '_wandb': {}}
+2026-04-05 14:59:23,208 INFO    MainThread:3157622 [wandb_init.py:init():892] starting backend
+2026-04-05 14:59:23,441 INFO    MainThread:3157622 [wandb_init.py:init():895] sending inform_init request
+2026-04-05 14:59:23,445 INFO    MainThread:3157622 [wandb_init.py:init():903] backend started and connected
+2026-04-05 14:59:23,446 INFO    MainThread:3157622 [wandb_init.py:init():973] updated telemetry
+2026-04-05 14:59:23,448 INFO    MainThread:3157622 [wandb_init.py:init():997] communicating run to backend with 90.0 second timeout
+2026-04-05 14:59:24,344 INFO    MainThread:3157622 [wandb_init.py:init():1042] starting run threads in backend
+2026-04-05 14:59:24,405 INFO    MainThread:3157622 [wandb_run.py:_console_start():2524] atexit reg
+2026-04-05 14:59:24,405 INFO    MainThread:3157622 [wandb_run.py:_redirect():2373] redirect: wrap_raw
+2026-04-05 14:59:24,405 INFO    MainThread:3157622 [wandb_run.py:_redirect():2442] Wrapping output streams.
+2026-04-05 14:59:24,405 INFO    MainThread:3157622 [wandb_run.py:_redirect():2465] Redirects installed.
+2026-04-05 14:59:24,406 INFO    MainThread:3157622 [wandb_init.py:init():1082] run started, returning control to user process
+2026-04-05 14:59:24,407 INFO    MainThread:3157622 [wandb_run.py:_finish():2291] finishing run sjsu_llm/walkindia-200k/chx4l6vx
+2026-04-05 14:59:24,407 INFO    MainThread:3157622 [wandb_run.py:_atexit_cleanup():2490] got exitcode: 0
+2026-04-05 14:59:24,408 INFO    MainThread:3157622 [wandb_run.py:_restore():2472] restore
+2026-04-05 14:59:24,408 INFO    MainThread:3157622 [wandb_run.py:_restore():2478] restore done
+2026-04-05 14:59:25,628 INFO    MainThread:3157622 [wandb_run.py:_footer_sync_info():3868] logging synced files

@@ -1,0 +1,39 @@
+wandb: run=m06b_POC url=https://wandb.ai/sjsu_llm/walkindia-200k/runs/kwipekiz
+Encoder: vjepa (dim=1408, suffix='')
+Output: /workspace/factorjepa/outputs/full
+Motion features: (115687, 13)
+Embeddings: (115687, 1408)
+kNN indices: (115687, 7)
+m06b_temporal: 100%|██████████| 5/5 [00:48<00:00,  9.66s/step]
+Aligned: 115,687 clips (emb=115,687, motion=115,687)
+
+Computing Spearman correlation (+ bootstrap 95% CI)...
+  Spearman rho = 0.2639 ± 0.0058 (p = 0.00e+00, 99,999 pairs)
+
+Computing Temporal Prec@K (k=6, + bootstrap 95% CI)...
+  Temporal Prec@K = 47.5% ± 0.2
+
+Computing Motion Retrieval mAP (k=6, clusters=4, + bootstrap 95% CI)...
+  Motion Retrieval mAP = 0.7510 ± 0.0016
+
+Computing Temporal Order Sensitivity...
+  Order sensitivity: mean=30.89, median=31.10 (115,687 clips)
+
+Computing Temporal Locality...
+  Intra-video dist: 30.4288
+  Inter-video dist: 39.4208
+  Ratio (lower=better): 0.7719 (713 videos)
+
+Saved: /workspace/factorjepa/outputs/full/m06b_temporal_corr.json
+
+============================================================
+m06b TEMPORAL CORRELATION — vjepa
+============================================================
+  Spearman rho:          0.2639 ± 0.0058
+  Temporal Prec@K:       47.5% ± 0.2
+  Motion Retrieval mAP:  0.7510 ± 0.0016
+  Order Sensitivity:     30.89 (mean L2)
+  Temporal Locality:     0.7719 (intra/inter ratio)
+  Clips aligned:         115,687
+  Compute time:          48.3s
+============================================================

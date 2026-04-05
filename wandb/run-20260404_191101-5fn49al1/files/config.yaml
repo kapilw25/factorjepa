@@ -1,0 +1,195 @@
+_wandb:
+    value:
+        cli_version: 0.25.1
+        e:
+            0rhoyvbqyfp2gz4ysvdksrn7azo66eey:
+                args:
+                    - --config
+                    - configs/pretrain/vitg16_indian.yaml
+                    - --SANITY
+                    - --local-data
+                    - data/subset_10k_local
+                    - --val-subset
+                    - data/val_1k.json
+                    - --val-local-data
+                    - data/val_1k_local
+                    - --lambda-reg
+                    - "0"
+                    - --max-epochs
+                    - "1"
+                    - --output-dir
+                    - /workspace/factorjepa/outputs/sanity/ablation/m09_lambda0
+                    - --batch-size
+                    - "32"
+                codePath: src/m09_pretrain.py
+                codePathLocal: src/m09_pretrain.py
+                cpu_count: 8
+                cpu_count_logical: 16
+                cudaVersion: "13.0"
+                disk:
+                    /:
+                        total: "34359738368"
+                        used: "3205414912"
+                email: kapilw25@gmail.com
+                executable: /workspace/factorjepa/venv_walkindia/bin/python
+                git:
+                    commit: bf645ddc41e5cedf243cd16e499edfdc45d54bc4
+                    remote: https://github.com/kapilw25/factorjepa.git
+                gpu: NVIDIA RTX PRO 6000 Blackwell Workstation Edition
+                gpu_count: 1
+                gpu_nvidia:
+                    - architecture: Blackwell
+                      cudaCores: 24064
+                      memoryTotal: "102641958912"
+                      name: NVIDIA RTX PRO 6000 Blackwell Workstation Edition
+                      uuid: GPU-385fd64a-daf1-e235-0f52-ff35f2f5a5dd
+                host: 2d5319172a4c
+                memory:
+                    total: "134098214912"
+                os: Linux-6.8.0-106-generic-x86_64-with-glibc2.39
+                program: /workspace/factorjepa/src/m09_pretrain.py
+                python: CPython 3.12.13
+                root: /workspace/factorjepa
+                startedAt: "2026-04-04T19:11:01.246125Z"
+                writerId: 0rhoyvbqyfp2gz4ysvdksrn7azo66eey
+        m: []
+        python_version: 3.12.13
+        t:
+            "1":
+                - 1
+                - 5
+                - 11
+                - 41
+                - 49
+                - 51
+                - 53
+                - 63
+                - 71
+            "2":
+                - 1
+                - 5
+                - 11
+                - 41
+                - 49
+                - 51
+                - 53
+                - 63
+                - 71
+            "3":
+                - 13
+                - 16
+                - 61
+            "4": 3.12.13
+            "5": 0.25.1
+            "6": 4.57.6
+            "10":
+                - 20
+            "12": 0.25.1
+            "13": linux-x86_64
+augmentation:
+    value:
+        horizontal_flip: 0.5
+        random_resize_ratio:
+            - 0.75
+            - 1.35
+        random_resize_scale:
+            - 0.3
+            - 1
+checkpoint:
+    value:
+        keep_last_n: 2
+        output_dir: /workspace/factorjepa/outputs/sanity/ablation/m09_lambda0
+        saves_per_epoch: 10
+data:
+    value:
+        crop_size: 384
+        hf_dataset: anonymousML123/walkindia-200k
+        local_data: data/subset_10k_local
+        num_frames: 64
+        patch_size: 16
+        sanity_train_clips: 900
+        sanity_val_clips: 100
+        seed: 42
+        subset: null
+        tubelet_size: 2
+drift_control:
+    value:
+        ablation_epochs: 1
+        ablation_lambdas:
+            - 0
+            - 0.001
+            - 0.01
+            - 0.1
+        ablation_local_data: data/subset_10k_local
+        ablation_subset: data/subset_10k.json
+        ablation_val_local_data: data/val_1k_local
+        ablation_val_subset: data/val_1k.json
+        enabled: false
+        lambda_reg: 0
+mask:
+    value:
+        - aspect_ratio:
+            - 0.75
+            - 1.5
+          num_blocks: 8
+          spatial_scale:
+            - 0.15
+            - 0.15
+          temporal_scale:
+            - 1
+            - 1
+        - aspect_ratio:
+            - 0.75
+            - 1.5
+          num_blocks: 2
+          spatial_scale:
+            - 0.7
+            - 0.7
+          temporal_scale:
+            - 1
+            - 1
+mixed_precision:
+    value:
+        dtype: bfloat16
+        enabled: true
+model:
+    value:
+        arch: vit_giant_xformers
+        depth: 40
+        embed_dim: 1408
+        min_predictor_load_pct: 50
+        min_student_load_pct: 90
+        num_mask_tokens: 2
+        pred_depth: 12
+        pred_embed_dim: 384
+        pred_num_heads: 12
+        use_activation_checkpointing: true
+        use_rope: true
+optimization:
+    value:
+        batch_size: 32
+        betas:
+            - 0.9
+            - 0.999
+        ema_momentum: 0.99925
+        eps: 1e-08
+        final_weight_decay: 0.04
+        gc_interval: 50
+        grad_clip: 1
+        loss_exp: 1
+        lr: 1e-05
+        max_epochs: 1
+        min_lr: 1e-07
+        nan_tolerance: 3
+        pred_lr_multiplier: 10
+        warmup_cap_pct: 10
+        warmup_steps: 500
+        weight_decay: 0.04
+validation:
+    value:
+        cycle_k:
+            - 1
+            - 10
+        evals_per_epoch: 10
+        faiss_k: 6
+        max_val_clips: 1000

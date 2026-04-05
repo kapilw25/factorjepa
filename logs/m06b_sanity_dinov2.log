@@ -1,9 +1,0 @@
-Encoder: dinov2 (dim=1536, suffix='_dinov2')
-Output: /workspace/factorjepa/outputs/sanity
-Motion features: (64, 13)
-Embeddings: (64, 1536)
-kNN indices: (64, 7)
-FATAL: No shared keys between embeddings (64 keys) and motion features (64 keys).
-  First emb key:    tier1/kolkata/walking/s9ms9PT0btQ/s9ms9PT0btQ-149.mp4
-  First motion key: goa/walking/04YKvC8kAgI/04YKvC8kAgI-008.mp4
-  Re-run m04d and m05 with the same --subset to fix.

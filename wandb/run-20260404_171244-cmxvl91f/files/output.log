@@ -1,0 +1,85 @@
+wandb: run=m08_FULL url=https://wandb.ai/sjsu_llm/walkindia-200k/runs/cmxvl91f
+Output dir: /workspace/factorjepa/outputs/full
+[output_guard] m08 dinov2: attempting HF download for 2 missing file(s)...
+Downloading anonymousML123/factorjepa-outputs//workspace/factorjepa/outputs/full/ → /workspace/factorjepa/outputs/full
+
+Download complete: 0s
+  Files: 0 new, 0 updated, 260 unchanged
+  Downloaded: 0.00 GB
+[output_guard] m08 dinov2: 2 file(s) still missing after HF download
+[output_guard] m08 dinov2: outputs missing or invalid — will re-compute
+  MISS  umap_plot: m08_umap_dinov2.png
+  MISS  confusion_matrix: m08_confusion_matrix_dinov2.png
+Encoder: dinov2 (suffix='_dinov2')
+Loaded: 115,687 clips
+Loaded m06 metrics: m06_metrics_dinov2.json
+Taxonomy keys for plots: ['scene_type', 'time_of_day', 'weather', 'crowd_density', 'traffic_density', 'traffic_mix', 'pedestrian_vehicle_separation', 'road_surface', 'infrastructure_quality', 'road_encroachment', 'vegetation', 'lighting', 'video_quality']
+m08_plot:  52%|█████▏    | 15/29 [01:25<02:06,  9.02s/plot]
+Saved: /workspace/factorjepa/outputs/full/m08_umap_dinov2.png
+Saved: /workspace/factorjepa/outputs/full/m08_umap_dinov2_time_of_day.png
+Saved: /workspace/factorjepa/outputs/full/m08_umap_dinov2_weather.png
+Saved: /workspace/factorjepa/outputs/full/m08_umap_dinov2_crowd_density.png
+Saved: /workspace/factorjepa/outputs/full/m08_umap_dinov2_traffic_density.png
+Saved: /workspace/factorjepa/outputs/full/m08_umap_dinov2_traffic_mix.png
+Saved: /workspace/factorjepa/outputs/full/m08_umap_dinov2_pedestrian_vehicle_separation.png
+Saved: /workspace/factorjepa/outputs/full/m08_umap_dinov2_road_surface.png
+Saved: /workspace/factorjepa/outputs/full/m08_umap_dinov2_infrastructure_quality.png
+Saved: /workspace/factorjepa/outputs/full/m08_umap_dinov2_road_encroachment.png
+Saved: /workspace/factorjepa/outputs/full/m08_umap_dinov2_vegetation.png
+Saved: /workspace/factorjepa/outputs/full/m08_umap_dinov2_lighting.png
+Saved: /workspace/factorjepa/outputs/full/m08_umap_dinov2_video_quality.png
+Saved: /workspace/factorjepa/outputs/full/m08_umap_grid_dinov2.png
+Saved: /workspace/factorjepa/outputs/full/m08_confusion_matrix_dinov2.png
+
+Per-class retrieval accuracy:
+  bazaar: 4.9%
+  beach_coastal: 72.6%
+  commercial: 53.8%
+  flyover_underpass: 62.5%
+  ghat: 74.5%
+  heritage_tourist: 61.3%
+  highway: 75.8%
+  junction: 28.3%
+  market: 75.4%
+  promenade: 57.8%
+  residential_lane: 61.6%
+  skyline_aerial: 62.4%
+  transit: 39.3%
+  unsure: 42.7%
+Saved: /workspace/factorjepa/outputs/full/m08_confusion_matrix_dinov2_time_of_day.png
+Saved: /workspace/factorjepa/outputs/full/m08_confusion_matrix_dinov2_weather.png
+Saved: /workspace/factorjepa/outputs/full/m08_confusion_matrix_dinov2_crowd_density.png
+Saved: /workspace/factorjepa/outputs/full/m08_confusion_matrix_dinov2_traffic_density.png
+Saved: /workspace/factorjepa/outputs/full/m08_confusion_matrix_dinov2_traffic_mix.png
+Saved: /workspace/factorjepa/outputs/full/m08_confusion_matrix_dinov2_pedestrian_vehicle_separation.png
+Saved: /workspace/factorjepa/outputs/full/m08_confusion_matrix_dinov2_road_surface.png
+Saved: /workspace/factorjepa/outputs/full/m08_confusion_matrix_dinov2_infrastructure_quality.png
+Saved: /workspace/factorjepa/outputs/full/m08_confusion_matrix_dinov2_road_encroachment.png
+Saved: /workspace/factorjepa/outputs/full/m08_confusion_matrix_dinov2_vegetation.png
+Saved: /workspace/factorjepa/outputs/full/m08_confusion_matrix_dinov2_lighting.png
+Saved: /workspace/factorjepa/outputs/full/m08_confusion_matrix_dinov2_video_quality.png
+Saved: /workspace/factorjepa/outputs/full/m08_confusion_matrix_grid_dinov2.png
+Saved: /workspace/factorjepa/outputs/full/m08_knn_grid_dinov2.png
+
+=== MACRO/MICRO REPORTING ===
+
+EASY mode:
+  Macro Prec@K: 55.22%
+  Micro Prec@K: 60.3%
+  Cycle At K: 66.82
+  Prec At K: 60.3
+  Silhouette: -0.0311
+  Map At K: 0.5336
+  Ndcg At K: 0.9653
+
+HARD mode:
+  Macro Prec@K: 52.94%
+  Micro Prec@K: 58.22%
+  Cycle At K: 56.97
+  Prec At K: 58.22
+  Silhouette: -0.0311
+  Map At K: 0.5092
+  Ndcg At K: 0.9616
+
+=== VISUALIZATION COMPLETE ===
+Outputs in: /workspace/factorjepa/outputs/full

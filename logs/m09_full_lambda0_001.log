@@ -1,6 +1,0 @@
-Using PyAV for video decoding
-GPU: NVIDIA RTX PRO 6000 Blackwell Workstation Edition
-CUDA version: 12.8
-[output_guard] Training output valid — skipping
-  OK    student_encoder.pt: 4049 MB
-  OK    epochs=1.0, steps=1023, jepa_loss=0.482092946767807
