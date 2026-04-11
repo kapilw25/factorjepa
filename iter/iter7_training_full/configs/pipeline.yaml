@@ -1,0 +1,75 @@
+# ═══════════════════════════════════════════════════════════════════════
+# Pipeline config — single source of truth for all src/m*.py scripts
+# No hardcoded clip counts, dataset sizes, or magic numbers in Python.
+# ═══════════════════════════════════════════════════════════════════════
+
+# -- SANITY mode clip limits (per module) --
+# Purpose: validate code runs end-to-end, not model quality
+sanity:
+  download: 3                 # m01: videos to download
+  data_prep: 5                # m00b: durations to fetch
+  download_subset: 20         # m00d: clips to download locally
+  vlm_tag: 64                 # m04: clips to tag (= batch_size to avoid partial-batch overshoot)
+  motion: 64                  # m04d: clips for motion features (match vlm_tag)
+  embed: 64                   # m05/m05b/m05c: clips to embed (match vlm_tag)
+  pretrain_train: 900         # m09: train clips (8 steps at BS=112)
+  pretrain_val: 100           # m09: val clips
+  default: 20                 # fallback for unlisted modules
+
+# -- BAKEOFF mode --
+bakeoff:
+  clips: 2500                 # m04b: VLM comparison subset
+
+# -- POC subset --
+poc:
+  default_n: 10000            # m00c: default subset size
+
+# -- Data processing --
+data:
+  clips_per_shard: 1000       # m03/m00d: WebDataset shard size
+  data_prep_workers: 10       # m00b: concurrent duration fetchers
+  clip_duration_sec: 10       # m06: default clip length for ±30s exclusion
+  exclusion_window_sec: 30    # m06: hard mode temporal exclusion window
+  download_resolution: 480    # m01: yt-dlp resolution
+
+# -- Streaming & checkpointing --
+streaming:
+  max_retries: 5              # HF stream reconnect attempts
+  checkpoint_every: 500       # clips between checkpoint saves (m04/m05)
+  engine_restart_every: 10000 # m04/m05: worker subprocess restart interval
+  prefetch_queue_vlm: 8       # m04: VLM producer queue depth (was 4, GPU starved)
+  prefetch_queue_embed: 8     # m05/m05b/m05c: embedding producer queue depth (was 2, CRITICAL)
+  prefetch_queue_train: 8     # m09: training producer queue depth (was 4, marginal)
+  decode_workers_embed: 8     # m05/m05b/m05c: video decode threads (was 4, doubled for GPU feed)
+  decode_workers_motion: 16   # m04d: optical flow video decode threads (was 8, doubled to prevent starvation at 90%+)
+  decode_workers_train: 16    # m09: video decode threads (256 CPU cores)
+  augment_workers: 8          # m05c: augmentation thread workers (was 4)
+  producer_queue_motion: 64   # m04d: preprocessed clip batches buffered ahead (was 16, 4x to prevent GPU starvation)
+
+# -- GPU defaults (from VRAM profiling with real data on RTX PRO 6000 96GB) --
+# Re-profile on different GPU: python -u src/utils/profile_vram.py --training/--inference/--dinov2
+gpu:
+  default_batch_size: 16      # fallback if profiler unavailable
+  default_num_workers: 8      # dataloader workers
+  vlm_batch_size: 4           # m04: transformers sequential inference
+  motion_batch_size: 32       # m04d: optical flow batch
+  # Profiled batch sizes (RTX PRO 6000, 96GB, real video data, median of 3 runs):
+  training_batch_size: 112    # m09: 16 frames with grad ckpt (profiled)
+  eval_frames_per_clip: 64   # m05/m05b: frames for embedding extraction (matches frozen V-JEPA HF model)
+  inference_vjepa_bs: 176     # m05/m05b frozen: profiled at 64f with HF AutoModel (flash_attention_2)
+  inference_adapted_bs: 44   # m05 adapted at 64f eval. BS=44: 32GB GPU, ~40GB CPU queue. BS=112 causes cgroup SIGKILL (101GB queue > 120GB limit).
+  inference_dinov2_bs: 96     # m05b dinov2: 403 img/s, 3G VRAM (plateau, not noisy BS=16)
+
+# -- Evaluation --
+eval:
+  faiss_k_neighbors: 6          # m06: kNN neighbors (includes self)
+  temporal_sample_pairs: 100000  # m06b: pairs for temporal correlation
+  temporal_motion_clusters: 4    # m06b: k-means clusters for motion
+  motion_checkpoint_every: 200   # m04d: checkpoint interval
+  llava_num_frames: 16           # m04: LLaVA-NeXT frame count (8-32 range)
+  overlap_subsample: 30000       # m05c: random subsample for True Overlap@K (stat. sufficient for bootstrap CI)
+
+# -- Verification thresholds (shell scripts) --
+verify:
+  sanity_min_clips: 5            # run_evaluate.sh / run_pretrain.sh: min clips for SANITY pass
+  full_min_clips: 1000           # run_evaluate.sh / run_pretrain.sh: min clips for FULL pass

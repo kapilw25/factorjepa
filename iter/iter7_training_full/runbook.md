@@ -1,6 +1,6 @@
 # FactorJEPA Runbook — Terminal Commands
 
-> **Current goal:** Find pretraining params that show improved metrics over frozen baseline.
+> **Current goal:** Build pretraining params/algorithm that show improved metrics over frozen baseline.
 > Embed + eval on 10K (POC) only. No 115K runs until POC shows positive results.
 >
 > **Acceptance bar (NeurIPS-grade):**

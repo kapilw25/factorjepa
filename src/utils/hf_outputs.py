@@ -102,8 +102,10 @@ def _mirror_cleanup(api, local_path: Path, subfolder: str):
         else:
             print(f"  Mirror: HF in sync ({len(remote_files)} files, 0 stale)")
     except Exception as e:
-        # Non-fatal: cleanup failure shouldn't block upload
-        print(f"  WARN: mirror cleanup failed ({e}), continuing with upload")
+        print(f"FATAL: mirror cleanup failed ({e})")
+        print("  Stale files on HF will be re-downloaded to other machines.")
+        print("  Fix the error above, then re-run upload.")
+        sys.exit(1)
 
 
 _CHECKPOINT_AGE_THRESHOLD = 120  # seconds — skip checkpoints modified within this window

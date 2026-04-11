@@ -110,17 +110,22 @@ Phase 2: Winner → m09 deep train (5ep) → m05 re-embed → m06 metrics
 Phase 3: m06b temporal → m05 shuffled adapted → m06 shuffled → m07 UMAP → m08 plots → m08b compare (7 encoders)
 ```
 
-## Current Status
+## Current Status (updated 2026-04-11)
 - **Ch9: COMPLETE** — 5-encoder comparison on 10K POC. Baseline: Prec@K=36.1% (frozen V-JEPA)
-- **Ch10: COMPLETE (10K POC)** — Pipeline validated end-to-end. Key results:
-  - Winner: λ=0.001 (lowest jepa_loss=1.4914, 5 epochs)
-  - Adapted vs Frozen: Prec@K 36.14% vs 36.09% (Δ=+0.05%, **noise**)
-  - Cycle@K: 75.31% vs 76.01% (slight regression)
-  - **Conclusion: 10K clips insufficient for 1B model adaptation. 115K full corpus needed.**
-  - Total GPU time: ~8h (training + re-embedding + metrics)
-  - student_encoder.pt for winner (λ=0.001) was lost due to unguarded deletion — rebuilt with epoch-count protection
-- **Ch10: NEXT** — 115K full corpus (1 epoch, λ=0.001 only, skip ablation sweep)
-- **Ch11: NOT BUILT** — m10/m11/m12 planned, code not started
+  - **Key finding: shuffled > normal V-JEPA by 2.4x** → temporal interference (temporal encoding HURTS spatial retrieval)
+- **Ch10 (10K POC): DONE** — Pipeline validated, Prec@K 36.14% vs 36.09% (**noise**, 10K insufficient)
+- **Ch10 (115K FULL): CATASTROPHIC FORGETTING** (2026-04-05)
+  - λ=0.001 → Prec@K crashed 36.1% → **14.3% (random-level, −21.8pp)**
+  - Diagnosis: drift penalty 1000x smaller than JEPA loss → zero regularization
+  - Gold standard audit found **12 discrepancies** (4 CRITICAL, 7 HIGH) — `iter/iter8/plan_training.md`
+- **Strategic pivot (2026-04-10):**
+  - Ch11 runs **directly on frozen encoder** (no Ch10 prerequisite) — clean attribution
+  - V-JEPA 2.1 ViT-G (2B, 1664-dim) = PRIMARY target (not 2.0)
+  - Temporal interference projection (30 min CPU) = potential paper centerpiece
+  - λ=100 Ch10 = parallel ablation, NOT prerequisite
+  - Idea Critic verdict: **PURSUE** (upgraded from REFINE)
+  - Full plan: `iter/iter8/plan_training.md` | Action items: `iter/iter8/next_steps.md`
+- **Ch11: NOT BUILT** — m10/m11/m12 code not started. POC validation first (3h GPU, 100 clips)
 
 ## Data Download Times (measured, RTX PRO 6000 instance, April 2026)
 

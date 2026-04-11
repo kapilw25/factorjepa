@@ -1,5 +1,6 @@
-# Training Plan: Ch10 (Continual Pretraining) + Ch11 (Surgery Fine-Tuning)
-> **Current goal:** Build pretraining params/algorithm that show improved metrics over frozen baseline.
+# Training Plan: Ch11 (Surgery Fine-Tuning) + Ch10 (Ablation Comparison)
+> **GOAL: Get V-JEPA 2.1 (2B) surgical adaptation to improve Prec@K over frozen baseline on WalkIndia-200K.**
+> Ch11 (surgery on frozen) is the PRIMARY path. Ch10 (brute-force) is a paper comparison arm, run LATER.
 > Ref: `Literature/proposal/FactorJEPA/FactorJEPA.md` Sections 10-11
 
 ---
@@ -236,38 +237,35 @@ Factor datasets (D_L, D_A, D_I) created via SAM3 segmentation → tracklet minin
 | Diagnosis | λ=0.001 drift penalty (0.00047) is 1000x smaller than JEPA loss (0.476). EWC literature uses λ=10²–10⁹ (arxiv 2505.05946) |
 | Full log | `iter/utils/experiment_log.md` |
 
-### Step 2b: 115K Full, λ sweep [1.0, 10.0, 100.0] — NEXT 🔄
+### Step 2b: λ=100 Ch10 Ablation (PARALLEL, not prerequisite for Ch11)
 
 | Item | Plan |
 |------|------|
-| Model | V-JEPA 2.0 ViT-g (1B) |
+| Model | V-JEPA 2.0 ViT-g (1B) — same as failed run |
 | Data | 115K full corpus, same split |
-| Training | 16f, 1 epoch, BS=112, LR=1e-5, ImageNet norm=YES |
-| Eval | 10K POC subset, 64f |
-| Lambda | **λ ∈ {1.0, 10.0, 100.0}** (1000x–100,000x stronger than failed run) |
-| Acceptance | nDCG@K non-overlapping 95% CI + 5/8 metrics improved |
-| Command | Update `ablation_lambdas` in YAML, then `./scripts/train_pretrain.sh --FULL` |
-| Fallback | If all λ fail: lower LR to 3e-6, or multi-epoch on 10K subset (arxiv 2406.14833) |
+| Training | 16f, **5 epochs + 1 cooldown**, **LR=1e-6 (constant)**, ImageNet norm=YES |
+| Lambda | **λ=100** (100,000x stronger than failed λ=0.001) |
+| Anti-forgetting | EWC (FIM-weighted L2) + VICReg variance-covariance |
+| Layer freezing | Freeze layers 0-20, train 20-48 only |
+| Monitoring | Effective rank + kNN probe → early stop if below frozen baseline |
+| Purpose | **Comparison point** — "brute force fails, surgery succeeds" |
+| Time | ~6h GPU |
 
-### Step 3: 2B Scaling Ablation (LATER)
+### Step 3: V-JEPA 2.1 (2B) Upgrade — PRIMARY TARGET
 
-**Do NOT run before Step 2.** Rationale:
-- V-JEPA 2.1 ViT-G (2B) has different architecture (deep self-supervision) → confounds the data-size experiment
-- Different embedding dim (1664 vs 1408) → all downstream scripts need testing
-- ~2x VRAM → may not fit at BS=112, needs profiler re-run
-- The proposal specifies 2B as "scaling analysis" — an appendix ablation, not the main result
+V-JEPA 2.1 ViT-G (2B, 1664-dim) is the **primary target model**, not an appendix ablation. Gold standard audit found 2.1's dense loss + deep supervision maximizes spatial feature quality (+23.5 mIoU on ADE20K). Ref: [arXiv:2603.14482](https://arxiv.org/abs/2603.14482)
 
-| Item | V-JEPA 2.0 (Step 2) | V-JEPA 2.1 (Step 3) |
+| Item | V-JEPA 2.0 (current) | V-JEPA 2.1 (target) |
 |------|------|------|
-| Architecture | ViT-g (1B), standard JEPA | ViT-G (2B), deep self-supervision at intermediate layers |
+| Architecture | ViT-g (1B), standard JEPA | ViT-G (2B), deep self-supervision at 4 intermediate layers |
 | Embedding dim | 1408 | 1664 |
-| Loss | L1 latent prediction (masked tokens only) | Dense Predictive Loss (ALL tokens, L1) |
-| Purpose | Main result: does 115K Indian data help? | Appendix: does model scale help at fixed data? |
-| Prerequisite | None | Step 2 must show meaningful gain first |
+| Loss | L1 masked-only | Dense Predictive Loss (ALL tokens, L1) |
+| Spatial quality | Baseline | +23.5 mIoU on ADE20K |
+| Prerequisite | None | Step 2b validates forgetting control first |
 
-### Step 4: Ch11 Surgery Fine-Tuning (NOT STARTED)
+### Step 4: Ch11 Surgery Fine-Tuning — DIRECTLY ON FROZEN
 
-See Ch11 Implementation Status below.
+Ch11 runs **directly on the frozen V-JEPA encoder** (no Ch10 prerequisite). See "Key Insight: Ch10 NOT Prerequisite" section below.
 
 ---
 
@@ -387,7 +385,7 @@ flowchart LR
 | **Resolution** | 224 or 256 | **384** (vitg-fpc64-**384** pretrained resolution) | Use 384 to match pretrained |
 | **Mask ratio** | 15-30% total masked | 15% per-block spatial → **~75-90% total** (8+2 blocks) | Much more aggressive masking |
 | **Block count** | 2-6 blocks | **8 small + 2 large = 10** blocks | More blocks than proposal suggested |
-| **LR schedule** | Not specified | Warmup-constant-cooldown (for from-scratch); cosine decay for continual pretraining | Cosine for our adaptation |
+| **LR schedule** | Not specified | Warmup-constant-cooldown (for from-scratch) | **Constant** (warmup then flat) — cosine re-warming causes forgetting ([arXiv:2503.02844](https://arxiv.org/abs/2503.02844)) |
 
 ---
 
@@ -599,6 +597,227 @@ Drift control λ trades off adaptation (learning Indian-domain features) vs rete
 
 ---
 
+## Gold Standard Audit Fixes (12 Discrepancies Found)
+
+Audit of m09_pretrain.py against V-JEPA 2/2.1 source code and literature (2026-04-10). All CRITICAL/HIGH items must be fixed before next run.
+
+| # | Current | Fix to | Severity | Ref |
+|---|---------|--------|----------|-----|
+| 1 | Cosine LR decay to 1e-7 | **Constant** (warmup then flat) | CRITICAL | [arXiv:2503.02844](https://arxiv.org/abs/2503.02844) |
+| 2 | V-JEPA 2.0 (1B, 1408d) | **V-JEPA 2.1 (2B, 1664d)** | CRITICAL | [arXiv:2603.14482](https://arxiv.org/abs/2603.14482) |
+| 3 | Masked-only L1 loss | **Dense loss (all tokens)** | CRITICAL | V-JEPA 2.1 paper |
+| 4 | Final layer supervision | **4-layer deep supervision** | CRITICAL | V-JEPA 2.1 paper |
+| 5 | grad_clip=1.0 | **10.0 or remove** | MODERATE | V-JEPA 1/2 configs |
+| 6 | 1 epoch | **5 epochs + 1 cooldown** | HIGH | [arXiv:2406.14833](https://arxiv.org/abs/2406.14833) |
+| 7 | All layers trainable | **Freeze 0-20, train 20-48** | HIGH | [arXiv:2509.10156](https://arxiv.org/abs/2509.10156) |
+| 8 | No cooldown phase | **Epoch 6: 64f, linear LR decay** (matches eval frame count) | HIGH | V-JEPA 2 cooldown config |
+| 9 | Predictor LR 10x encoder | **Ablate: 10x vs 1x** (predictor = retention mechanism) | HIGH | [arXiv:2311.13321](https://arxiv.org/abs/2311.13321) |
+| 10 | Teacher layer_norm missing | **Fixed** | FIXED | V-JEPA 2 train.py line 432 |
+| 11 | Uniform L2 drift control | **EWC with FIM-weighted L2** | HIGH | [arXiv:2210.16365](https://arxiv.org/abs/2210.16365), [arXiv:2603.18596](https://arxiv.org/abs/2603.18596) |
+| 12 | No collapse prevention | **VICReg variance-covariance term** | HIGH | [arXiv:2410.19560](https://arxiv.org/abs/2410.19560) |
+
+---
+
+## Updated Training Recipe (post-audit)
+
+### Architecture: V-JEPA 2.1 ViT-G (2B)
+
+1. Use V-JEPA 2.1 ViT-G (2B, 1664-dim) — strongest model, best spatial features (+23.5 mIoU on ADE20K), maximizes ceiling
+2. V-JEPA 2.1's **dense loss** (loss on ALL tokens, not just masked) — the reason 2.1 is better at spatial tasks
+3. V-JEPA 2.1's **deep self-supervision** (4-layer loss, not just final layer) — supervision throughout network depth
+4. Pipeline changes: `VJEPA_EMBEDDING_DIM = 1664`, FAISS is dim-agnostic, m06/m07/m08 read shape dynamically
+
+Ref: [V-JEPA 2.1 (arXiv:2603.14482)](https://arxiv.org/abs/2603.14482)
+
+### Hyperparameters (corrected vs failed run)
+
+| Param | Old (failed, λ=0.001) | New | Ref |
+|-------|----------------------|-----|-----|
+| Lambda | 0.001 | **[10, 100, 1000]** | [EWC](https://arxiv.org/abs/1612.00796), [EWC Done Right](https://arxiv.org/abs/2603.18596) |
+| LR schedule | Cosine decay | **Constant** (warmup then flat) | [arXiv:2503.02844](https://arxiv.org/abs/2503.02844) |
+| Encoder LR | 1e-5 | **1e-6** (10x smaller) | |
+| Predictor LR | 1e-4 | **1e-5** (10x encoder) | |
+| Layer freezing | All trainable | **Freeze 0-20, train 20-48** | [arXiv:2509.10156](https://arxiv.org/abs/2509.10156) |
+| Epochs | 1 | **5 + 1 cooldown** | [arXiv:2406.14833](https://arxiv.org/abs/2406.14833) |
+| Grad clip | 1.0 | **10.0** | V-JEPA 1/2 configs |
+
+---
+
+## Anti-Forgetting: Beyond Simple L2 Drift
+
+### EWC with Fisher Information Matrix
+
+Replace uniform L2 drift with FIM-weighted L2. Anchors important weights strongly, lets unimportant weights adapt freely. One-time FIM computation on frozen model (~30 min). Proven for SSL+ViT.
+
+Refs: [EWC for SSL](https://arxiv.org/abs/2210.16365), [EWC Done Right](https://arxiv.org/abs/2603.18596) (fixes FIM gradient vanishing pitfall)
+
+### VICReg Variance-Covariance Regularization
+
+Add variance term to JEPA loss. Explicitly prevents dimensional collapse (our λ=0.001 run collapsed to random-level Prec@K=14.3%).
+
+Refs: [C-JEPA](https://arxiv.org/abs/2410.19560), [VJ-VCR](https://arxiv.org/abs/2412.10925)
+
+---
+
+## Monitoring & Early Stopping Triggers
+
+All implemented as EARLY STOPPING TRIGGERS, not just logging.
+
+| Monitor | Metric | Stop condition | Ref |
+|---------|--------|---------------|-----|
+| Drift loss magnitude | drift_loss vs JEPA_loss ratio | drift_loss << JEPA_loss → forgetting | [EWC](https://arxiv.org/abs/1612.00796) |
+| Embedding effective rank | Eigenvalue spectrum of covariance | Rank drops below frozen baseline | [arXiv:2110.09348](https://arxiv.org/abs/2110.09348) |
+| kNN probe (1K val) | kNN accuracy on scene_type | Accuracy drops below frozen baseline | Direct Prec@K proxy |
+| Val JEPA loss | Train-val divergence | Use kNN probe as real signal (SSL loss ≠ downstream) | [arXiv:2210.14199](https://arxiv.org/abs/2210.14199) |
+
+---
+
+## Key Insight: Ch10 is NOT a Prerequisite for Ch11
+
+Ch11's novelty = factor-decomposed inputs + progressive prefix unfreezing using the SAME JEPA loss. This runs **directly on the frozen encoder**. Ch10's adapted checkpoint is not needed.
+
+**Skipping Ch10 makes Ch11's result STRONGER:**
+
+| Approach | What it proves | Paper strength |
+|---|---|---|
+| Ch10 → Ch11 | "Surgery improves an already-adapted model" | Weak — readers ask "was it Ch10 or Ch11?" |
+| **Ch11 directly on frozen** | "Surgery alone fixes what brute-force couldn't" | Strong — clean attribution |
+| **Ch11 on frozen + Ch10 as ablation** | "Surgery works AND outperforms brute force" | Strongest — both results |
+
+**Literature supports skipping Ch10:**
+- ULMFiT (Howard & Ruder, 2018) — progressive unfreezing directly on pretrained LM
+- ExPLoRA ([arXiv:2406.10973](https://arxiv.org/abs/2406.10973), ICML 2025) — LoRA + 2-block unfreezing directly on frozen DINOv2
+- LayerLock ([arXiv:2509.10156](https://arxiv.org/abs/2509.10156), ICCV 2025) — progressive freezing during pretraining
+
+| | Skip Ch10 (Ch11 on frozen) | Do Ch10 first |
+|---|---|---|
+| Time to first result | **Days** | Weeks |
+| Attribution | Clean | Confounded |
+| Risk | If Ch11 fails, no fallback | Warmer starting point |
+| Narrative | "Brute force fails, surgery succeeds" — **strong contrast** | "We pretrained, then refined" — incremental |
+| Compute | ~20h | ~100h |
+| NeurIPS deadline | Feasible in 3 weeks | Very tight |
+
+**Novel contribution:** No paper addresses JEPA catastrophic forgetting — open research gap. Publishable regardless of result.
+
+---
+
+## Experiment Flow (V-JEPA 2.1, Ch11 Surgery vs ExPLoRA)
+
+```mermaid
+flowchart TD
+    subgraph PARALLEL ["WEEK 1: Parallel experiments"]
+        direction TB
+        S1A["Step 1a: Temporal Projection<br>30 min CPU (during SAM3 prep)<br>PCA on (normal - shuffled)<br>Project out → re-run Prec@K"]
+        S1B["Step 1b: ExPLoRA baseline<br>3h GPU<br>LoRA + unfreeze 1-2 blocks<br>JEPA pretraining on 10K clips"]
+        SAM["SAM3 prep<br>100 clips → masks<br>→ tracklets → D_L + D_A"]
+    end
+
+    subgraph SURGERY ["WEEK 1: Ch11 Surgery POC"]
+        direction TB
+        S2["Step 2: Factor Surgery<br>3h GPU<br>2-stage progressive unfreezing<br>D_L (layout) → D_A (agents)"]
+    end
+
+    subgraph GATE ["DECISION GATE"]
+        G1{"ExPLoRA<br>improves?"}
+        G2{"Surgery ><br>ExPLoRA?"}
+    end
+
+    subgraph WEEK2 ["WEEK 2+: Scale or Debug"]
+        W2A["Scale Ch11 to 10K clips<br>SAM3 → D_L + D_A + D_I<br>3-stage surgery"]
+        W2B["Debug: reverse order<br>D_A→D_L, simultaneous,<br>more clips, add D_I"]
+        W2C["Publish ExPLoRA result<br>Surgery adds no value"]
+    end
+
+    S1A --> GATE
+    S1B --> G1
+    SAM --> S2
+    S2 --> G2
+
+    G1 -->|"Yes"| G2
+    G1 -->|"No"| G2
+    G2 -->|"Surgery wins"| W2A
+    G2 -->|"Surgery fails"| W2B
+    G2 -->|"ExPLoRA wins"| W2C
+
+    style S1A fill:#43a047,color:#fff,font-weight:bold
+    style S1B fill:#1e88e5,color:#fff,font-weight:bold
+    style SAM fill:#8e24aa,color:#fff,font-weight:bold
+    style S2 fill:#f4511e,color:#fff,font-weight:bold
+    style G1 fill:#f4511e,color:#fff,font-weight:bold
+    style G2 fill:#f4511e,color:#fff,font-weight:bold
+    style W2A fill:#d81b60,color:#fff,font-weight:bold
+    style W2B fill:#546e7a,color:#fff,font-weight:bold
+    style W2C fill:#00897b,color:#fff,font-weight:bold
+```
+
+---
+
+## Updated Execution Order (updated 2026-04-11)
+
+All experiments use **V-JEPA 2.1 (2B, 1664-dim)**. No V-JEPA 2.0. No Ch10 in Week 1. No generalization to other datasets.
+
+### WEEK 1: Surgery POC vs ExPLoRA baseline
+
+```
+Step 1a [30 min CPU, parallel]:  Temporal interference projection
+  → PCA on (normal_embedding - shuffled_embedding) for 10K clips
+  → Project V-JEPA 2.1 embeddings orthogonal to top components
+  → Re-run Prec@K — diagnostic only, paper novelty if it works
+
+Step 1b [3h GPU, parallel]:  ExPLoRA baseline on V-JEPA 2.1
+  → Freeze all blocks except 0-1, LoRA (rank 8-16) on rest
+  → JEPA pretraining on 10K Indian clips
+  → Sets the bar that Ch11 surgery must beat
+
+SAM3 prep [parallel with 1a/1b]:
+  → SAM3 on 100 clips → instance masks → tracklets
+  → Agent vs layout separation (motion filter)
+  → Generate D_L (layout-only) + D_A (agent-only)
+
+Step 2 [3h GPU]:  Ch11 factor surgery POC on frozen V-JEPA 2.1
+  → 2-stage progressive prefix unfreezing (simplified: D_L then D_A, skip D_I)
+  → Stage 1: unfreeze 0→25%L, train on D_L
+  → Stage 2: unfreeze 0→50%L, train on 90% D_A + 10% D_L replay
+  → Compare: frozen vs ExPLoRA vs Ch11-surgery
+  → THE KEY QUESTION: does factor decomposition beat ExPLoRA?
+```
+
+### WEEK 1 Decision Gate
+
+| Step 1a projection | Step 1b ExPLoRA | Step 2 Surgery | Action |
+|---|---|---|---|
+| Prec@K jumps | ExPLoRA improves | Surgery > ExPLoRA | **Strongest: projection + surgery wins** |
+| Any | ExPLoRA improves | Surgery = ExPLoRA | **Publish ExPLoRA, surgery adds no value** |
+| Any | No change | Surgery improves | **Best novelty: standard fails, surgery succeeds** |
+| Any | ExPLoRA improves | Surgery < ExPLoRA | **Publish ExPLoRA, drop surgery** |
+| Any | No change | No change | **Debug: reverse order, simultaneous factors, more clips** |
+
+### If Surgery fails: debug sequence (before giving up)
+
+1. Reverse order: D_A → D_L (agents first — most visually different)
+2. All factors simultaneously (no ordering) — tests if factor decomposition itself helps
+3. Add D_I (interactions) — full 3-stage from proposal Sec 11.5
+4. More clips (1K instead of 100)
+
+### WEEK 2+: Scale or write (conditional on Week 1)
+
+```
+IF Surgery > ExPLoRA:
+  → Scale Ch11 to 10K clips: SAM3 → D_L + D_A + D_I → 3-stage surgery
+  → Add Ch10 λ=100 as comparison arm (paper narrative: brute force vs surgery)
+  → Target: statistically significant Prec@K improvement with 95% CI
+
+IF ExPLoRA wins:
+  → Publish ExPLoRA-on-V-JEPA-2.1 result
+  → Surgery becomes an ablation showing it doesn't add value
+
+IF nothing works:
+  → Submit Ch9 diagnostic + temporal interference finding as standalone paper
+```
+
+---
+
 ## Research Papers: JEPA Family (48 found, 12 most relevant)
 
 ### Tier 1: Directly applicable
@@ -673,35 +892,39 @@ Drift control λ trades off adaptation (learning Indian-domain features) vs rete
 
 ---
 
-## Idea Critic: 7-Dimension Evaluation (Full Paper: Ch9 + Ch10 + Ch11)
+## Idea Critic: 7-Dimension Evaluation (Reframed: Temporal Interference Paper)
 
-**Framing:** Ch10 (continual pretraining) = baseline. **Ch11 (FactorJEPA surgical fine-tuning) = the novelty.**
+**Framing:** Temporal interference discovery (Ch9) = the insight. Temporal projection + FactorJEPA surgery (Ch11 on frozen) = the method. Ch10 = ablation comparison.
 
 | # | Dimension | Score | Assessment |
 |---|-----------|-------|-----------|
-| 1 | **Novelty** | MONTHS (unique combo) | No one feeds SAM-segmented layout/agent/interaction factors through JEPA loss as a curriculum. Individual pieces known; combination is not. |
-| 2 | **Impact** | MEDIUM-HIGH | "Temporal encoding hurts on out-of-domain data" (Ch9) + "factor decomposition fixes it with fewer params than brute force" (Ch11). Scientific depth, not just numbers. |
+| 1 | **Novelty** | MONTHS (unique combo) | "Temporal encoding corrupts spatial features on OOD data" — no prior work identifies this. Frame shuffling as diagnostic tool is novel. Temporal interference projection is 10 lines of NumPy. Factor-decomposed JEPA surgery is a unique combination. |
+| 2 | **Impact** | HIGH | General finding applicable to ANY video foundation model on ANY OOD domain. Not India-specific. Scientific depth: diagnosis + theory + method. |
 | 3 | **Timing** | WELL-TIMED | V-JEPA 2.1 just dropped. Geographic bias is hot. Window open but closing. |
-| 4 | **Feasibility** | VERY HIGH RISK | Ch11 has ZERO code. m10/m11/m12 not built. SAM3 on 115K = GPU-days. NeurIPS deadline ~May 4-6 (~4 weeks). |
-| 5 | **Competitive** | OPEN | No one doing factor-decomposed JEPA. Risk: Meta at 100x scale. Advantage: dataset + diagnostic finding. |
-| 6 | **Nugget** | CLEAR | "By decomposing videos into layout/agent/interaction factors and progressively unfreezing deeper layers, surgical JEPA adaptation succeeds where brute-force pretraining causes catastrophic forgetting." |
-| 7 | **Narrative** | COMPELLING | (1) Western model fails on India, (2) temporal encoding is culprit (shuffled > normal), (3) brute force forgets catastrophically, (4) surgical factor decomposition fixes it with fewer params. |
+| 4 | **Feasibility** | HIGH | Day 1 experiments are CPU-only (30 min + 1h). Ch11 POC = 3h GPU on 100 clips. No Ch10 prerequisite. Feasibility dramatically improved by skipping Ch10 and starting with cheap experiments. |
+| 5 | **Competitive** | OPEN | No one doing temporal interference analysis on video SSL. Risk: Meta at 100x scale. Advantage: dataset + diagnostic finding + general theory. |
+| 6 | **Nugget** | CLEAR | "Video foundation models suffer temporal interference — temporal features learned from training-domain motion statistics corrupt spatial representations on OOD data. We diagnose it via frame shuffling, remove it via subspace projection, and prevent it via factor-decomposed surgical fine-tuning." |
+| 7 | **Narrative** | COMPELLING | (1) Western model fails on India, (2) shuffling IMPROVES results → temporal features are the problem, (3) project out temporal subspace → instant recovery, (4) FactorJEPA surgery prevents it permanently, (5) generalizes to driving + sports + medical. |
 
-### Verdict: REFINE
+### Verdict: PURSUE (upgraded from REFINE)
 
-Ch11 is genuinely novel and narrative is compelling. Feasibility is the bottleneck — zero implementation with ~4 weeks to NeurIPS deadline.
+Temporal interference framing makes this a general contribution, not a dataset paper. Feasibility dramatically improved by skipping Ch10 prerequisite and starting with cheap CPU experiments. No paper addresses JEPA catastrophic forgetting — open research gap, publishable regardless of result.
 
-### Critical Validation (before building m10/m11/m12)
+### Critical Validation (Week 1 — cheap experiments first)
 
-**3-day proof-of-concept:** 1K clips → SAM3 factor decomposition (layout-only, agent-only) → 1 epoch JEPA training on (a) raw, (b) layout-only, (c) agent-only. If loss curves are visibly different → core idea validated. If indistinguishable → redesign before investing.
+See "Updated Execution Order" section above for the full week-by-week plan.
 
-**Parallel (6 hours):** Fix Ch10 with λ=100 alone (everything else identical). If Prec@K stays near 36.1% → forgetting controllable. If collapses → deeper problem.
+**Day 1 (CPU):** Temporal interference projection (30 min) + encoder fusion (1h)
+**Day 2 (GPU):** Ch11 factor POC directly on frozen (3h)
+**Day 3 (GPU):** λ=100 as parallel ablation (6h)
+**Day 4-5 (CPU):** Generalize shuffled finding to BDD100K + Diving48
 
-### Decision Tree
+### Decision Tree (updated 2026-04-11)
 
-- Ch10 λ=100 works + factor POC shows different dynamics → **all-in on NeurIPS**
-- Ch10 works but factor POC flat → **submit Ch9 diagnostic + Ch10 fix to NeurIPS, Ch11 to ICLR 2027**
-- Ch10 still fails → **submit Ch9 diagnostic to NeurIPS Datasets & Benchmarks track**
+- Surgery > ExPLoRA + projection works → **Strongest NeurIPS: 3 contributions**
+- Surgery > ExPLoRA → **Strong NeurIPS: factor surgery beats SOTA adaptation**
+- ExPLoRA improves, surgery = ExPLoRA → **Publish ExPLoRA-on-V-JEPA-2.1, surgery as ablation**
+- Nothing improves Prec@K → **Submit Ch9 diagnostic + temporal interference finding**
 
 ---
 

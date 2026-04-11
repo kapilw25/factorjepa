@@ -55,6 +55,7 @@
 - `configs/pretrain/vitg16_indian.yaml` — training hyperparameters (LR, EMA, masking, augmentation, epochs per mode, drift control, checkpointing, mixed precision).
 
 # RULES (MUST follow)
+- **GOAL OVERRIDE: The #1 priority is research results, not code cleanliness.** Every recommendation must answer: "Does this maximize the probability of adapted outperforming frozen on ALL metrics?" If the answer is no, reject the recommendation even if it's easier to implement. Never filter recommendations by implementation effort. Never say "use 2.0 because 2.1 requires more code changes" — if 2.1 maximizes the chance of a positive result, recommend 2.1.
 - **NEVER sacrifice metric accuracy for speed/memory.** Evaluation MUST match the frozen baseline's conditions exactly (same frame count, same resolution, same processor via VJEPA_FRAMES_PER_CLIP=64). Training can use fewer frames (Meta trains V-JEPA 2 at 16f for 95% of iterations, +0.7pp from 64f cooldown — Section 2.4). The model handles frame mismatch at eval (RoPE, no learnable pos_embed). Incident: missing ImageNet normalization in m09 augmentation caused -26% Prec@K — NOT the frame count.
 - **End-to-end test in Python interactive shell before restarting pipelines.** Never restart a long-running GPU job to test a change. Use the Python interactive shell (`python3` → `>>>`, also called Read-Eval-Print Loop) to test the FULL code path with real data — not just the import. Example: `from torchcodec.decoders import VideoDecoder; d = VideoDecoder("real_video.mp4")` — not just `import torchcodec`. Incident: import succeeded but decode SIGSEGV'd because torchcodec can't read TAR files (our video format). A 1-minute decode test would have caught this.
 - **Never say "let the current run complete first" to avoid fixing a bug.** All GPU scripts have checkpoint-based resume. Interrupting a run loses at most 1 checkpoint interval (~500 clips, ~4 min). If a fix can save hours (e.g., switching decoder, fixing BS, fixing normalization), interrupt immediately, apply the fix, restart. The checkpoint system exists precisely so interruptions are cheap. Telling the user to wait 15h "to be safe" when a fix is ready is wasting GPU money.
@@ -88,4 +89,8 @@
 # REFERENCE
 - Bug history & batch speedup details: `iter/iter6/plan_batch_speedup.md`
 - Ch10 expected vs real errors: `iter/iter7_training/expected_errors.md`
-- Training plan: `iter/iter7_training/plan_training.md`
+- Training plan (CURRENT): `iter/iter8/plan_training.md` (gold standard audit, updated recipe, experiment flow, paper strategy)
+- Next steps: `iter/iter8/next_steps.md` (5 action items for Week 1)
+- Training plan (OLD, iter7): `iter/iter7_training/plan_training.md`
+
+28) **Update CLAUDE.md + MEMORY.md at end of every session** that discovers new experimental results, strategic pivots, or architectural decisions. These files are the ONLY context that persists across sessions. Stale files = wasted tokens re-discovering known information. After updating `src/MEMORY.md`, sync to `~/.claude/projects/.../memory/MEMORY.md`.
