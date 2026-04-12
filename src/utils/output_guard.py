@@ -522,7 +522,7 @@ def preflight_gpu_packages(pipeline: str, config: str = "", out_dir: str = ""):
     """Check GPU + packages before any GPU work. Shared between run_evaluate.sh and run_pretrain.sh.
 
     USAGE:
-        python -u src/utils/output_guard.py preflight_gpu pretrain configs/pretrain/vitg16_indian.yaml outputs/full
+        python -u src/utils/output_guard.py preflight_gpu pretrain configs/train/ch10_pretrain.yaml outputs/full
         python -u src/utils/output_guard.py preflight_gpu evaluate
     """
     errors = []
@@ -650,7 +650,7 @@ def verify_pretrain_final(output_dir: str, config_path: str):
     """Final verification of all Ch10 outputs. Reads lambdas from YAML config.
 
     USAGE:
-        python -u src/utils/output_guard.py verify_pretrain_final outputs/full configs/pretrain/vitg16_indian.yaml
+        python -u src/utils/output_guard.py verify_pretrain_final outputs/full configs/train/ch10_pretrain.yaml
     """
     import yaml
 

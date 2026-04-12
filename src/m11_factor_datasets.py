@@ -37,38 +37,48 @@ import yaml
 # ── Factor Patching ──────────────────────────────────────────────────
 
 def make_layout_only(frames: np.ndarray, agent_mask: np.ndarray,
-                     method: str, blur_sigma: float = 15.0) -> np.ndarray:
-    """D_L: suppress agents, preserve layout. Returns (T, H, W, C) uint8."""
-    patched = frames.copy()
-    for t in range(frames.shape[0]):
-        if not agent_mask[t].any():
-            continue
-        if method == "blur":
-            blurred = gaussian_filter(frames[t].astype(np.float32),
-                                      sigma=(blur_sigma, blur_sigma, 0))
-            patched[t] = np.where(agent_mask[t, :, :, None],
-                                  blurred.astype(np.uint8), frames[t])
-        elif method == "zero":
-            patched[t][agent_mask[t]] = 0
-        else:
-            print(f"FATAL: Unknown layout_patch_method: {method}")
-            sys.exit(1)
-    return patched
+                     method: str, blur_sigma: float,
+                     feather_sigma: float = 3.0) -> np.ndarray:
+    """D_L: suppress agents, preserve layout. Feathered mask edges. Returns (T, H, W, C) uint8."""
+    # Feather mask: soft blend instead of hard binary (prevents shortcut learning)
+    alpha = gaussian_filter(agent_mask.astype(np.float32),
+                            sigma=(0, feather_sigma, feather_sigma))
+    alpha_4d = alpha[:, :, :, None]  # (T, H, W, 1)
+
+    if method == "blur":
+        blurred = np.stack([
+            gaussian_filter(frames[t].astype(np.float32), sigma=(blur_sigma, blur_sigma, 0))
+            for t in range(frames.shape[0])
+        ], axis=0)
+        patched = alpha_4d * blurred + (1.0 - alpha_4d) * frames.astype(np.float32)
+        return patched.astype(np.uint8)
+    elif method == "zero":
+        patched = frames.astype(np.float32) * (1.0 - alpha_4d)
+        return patched.astype(np.uint8)
+    else:
+        print(f"FATAL: Unknown layout_patch_method: {method}")
+        sys.exit(1)
 
 
 def make_agent_only(frames: np.ndarray, layout_mask: np.ndarray,
-                    method: str, matte_factor: float) -> np.ndarray:
-    """D_A: suppress background, preserve agents. Returns (T, H, W, C) uint8."""
-    patched = frames.copy().astype(np.float32)
-    for t in range(frames.shape[0]):
-        if method == "soft_matte":
-            patched[t][layout_mask[t]] *= matte_factor
-        elif method == "hard_zero":
-            patched[t][layout_mask[t]] = 0
-        else:
-            print(f"FATAL: Unknown agent_patch_method: {method}")
-            sys.exit(1)
-    return patched.astype(np.uint8)
+                    method: str, matte_factor: float,
+                    feather_sigma: float = 3.0) -> np.ndarray:
+    """D_A: suppress background, preserve agents. Feathered mask edges. Returns (T, H, W, C) uint8."""
+    # Feather mask: soft edges prevent shortcut learning at mask boundaries
+    alpha = gaussian_filter(layout_mask.astype(np.float32),
+                            sigma=(0, feather_sigma, feather_sigma))
+    alpha_4d = alpha[:, :, :, None]  # (T, H, W, 1)
+
+    if method == "soft_matte":
+        patched = frames.astype(np.float32)
+        patched = patched * (1.0 - alpha_4d * (1.0 - matte_factor))
+        return patched.astype(np.uint8)
+    elif method == "hard_zero":
+        patched = frames.astype(np.float32) * (1.0 - alpha_4d)
+        return patched.astype(np.uint8)
+    else:
+        print(f"FATAL: Unknown agent_patch_method: {method}")
+        sys.exit(1)
 
 
 def make_interaction_tubes_from_centroids(frames: np.ndarray, interactions: list,
@@ -316,6 +326,10 @@ def main():
     layout_method = factor_cfg["layout_patch_method"]
     agent_method = factor_cfg["agent_patch_method"]
     matte_factor = factor_cfg["soft_matte_factor"]
+    blur_sigma = factor_cfg["blur_sigma"]
+    feather_sigma = factor_cfg["feather_sigma"]
+    min_agent_pct = factor_cfg["min_agent_area_pct"]
+    max_agent_pct = factor_cfg["max_agent_area_pct"]
     interaction_cfg = train_cfg["interaction_mining"]
     tube_margin = interaction_cfg["tube_margin_pct"]
 
@@ -387,14 +401,24 @@ def main():
             else:
                 frames_np = frames_np.astype(np.uint8)
 
-            # Generate D_L (layout-only: blur agents)
-            dl_frames = make_layout_only(frames_np, agent_mask, method=layout_method)
-            np.save(dl_file, dl_frames)
+            # Quality filters: skip degenerate samples (proposal Sec 11.7)
+            agent_pct = segments[clip_key]["agent_pixel_ratio"]
+            has_dl = agent_pct <= max_agent_pct
+            has_da = agent_pct >= min_agent_pct
 
-            # Generate D_A (agent-only: suppress background)
-            da_frames = make_agent_only(frames_np, layout_mask,
-                                        method=agent_method, matte_factor=matte_factor)
-            np.save(da_file, da_frames)
+            # Generate D_L (layout-only: blur agents, feathered edges)
+            if has_dl:
+                dl_frames = make_layout_only(frames_np, agent_mask,
+                                             method=layout_method, blur_sigma=blur_sigma,
+                                             feather_sigma=feather_sigma)
+                np.save(dl_file, dl_frames)
+
+            # Generate D_A (agent-only: suppress background, feathered edges)
+            if has_da:
+                da_frames = make_agent_only(frames_np, layout_mask,
+                                            method=agent_method, matte_factor=matte_factor,
+                                            feather_sigma=feather_sigma)
+                np.save(da_file, da_frames)
 
             # Generate D_I (interaction tubes from centroids)
             n_tubes = 0
@@ -407,11 +431,11 @@ def main():
                 n_tubes = len(tubes)
 
             manifest[clip_key] = {
-                "has_D_L": True,
-                "has_D_A": True,
+                "has_D_L": has_dl,
+                "has_D_A": has_da,
                 "has_D_I": n_tubes > 0,
                 "n_interaction_tubes": n_tubes,
-                "agent_pct": segments[clip_key]["agent_pixel_ratio"],
+                "agent_pct": agent_pct,
             }
             pbar.update(1)
 

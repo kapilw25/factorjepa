@@ -70,6 +70,14 @@ fi
 source "$(dirname "$0")/lib/common.sh"
 start_watchdog
 
+# Cleanup on interrupt (stop watchdog, preserve checkpoint)
+cleanup_on_exit() {
+    log "INTERRUPTED — preserving checkpoint for resume. Re-run same command."
+    stop_watchdog
+    exit 130
+}
+trap cleanup_on_exit INT TERM
+
 # ── Config ────────────────────────────────────────────────────────────
 MODEL_CONFIG="configs/model/vjepa2_1.yaml"
 TRAIN_CONFIG="configs/train/explora.yaml"
@@ -82,19 +90,60 @@ if [[ ! -f "$CKPT" ]]; then
     exit 1
 fi
 
-# Local data
+# ── Local data (FATAL if missing for non-SANITY) ─────────────────────
 LOCAL_FLAG=""
 VAL_FLAG=""
 if [[ "$MODE" == "SANITY" ]]; then
     LOCAL_FLAG=""
-elif [[ -d "data/subset_10k_local" && -n "$SUBSET_FLAG" ]]; then
-    LOCAL_FLAG="--local-data data/subset_10k_local"
-elif [[ -d "data/full_local" ]]; then
-    LOCAL_FLAG="--local-data data/full_local"
-fi
-if [[ -f "data/val_1k.json" && -d "data/val_1k_local" ]]; then
+else
+    # POC: use val_1k_local (1K clips for fast signal)
+    if [[ -n "$SUBSET_FLAG" ]]; then
+        if [[ ! -d "data/val_1k_local" ]] || [[ ! -f "data/val_1k_local/manifest.json" ]]; then
+            log "FATAL: data/val_1k_local/ missing or no manifest.json"
+            log "  Download: python -u src/utils/hf_outputs.py download-data"
+            exit 1
+        fi
+        LOCAL_FLAG="--local-data data/val_1k_local"
+    else
+        if [[ ! -d "data/full_local" ]] || [[ ! -f "data/full_local/manifest.json" ]]; then
+            log "FATAL: data/full_local/ missing or no manifest.json"
+            log "  Download: python -u src/m00d_download_subset.py --FULL --no-wandb"
+            exit 1
+        fi
+        LOCAL_FLAG="--local-data data/full_local"
+    fi
+    # Val data (FATAL if missing)
+    if [[ ! -f "data/val_1k.json" ]]; then
+        log "FATAL: data/val_1k.json not found"
+        exit 1
+    fi
+    if [[ ! -d "data/val_1k_local" ]]; then
+        log "FATAL: data/val_1k_local/ not found"
+        exit 1
+    fi
     VAL_FLAG="--val-subset data/val_1k.json --val-local-data data/val_1k_local"
 fi
+
+# ── Auto batch size detection ─────────────────────────────────────────
+BATCH_FLAG=""
+PROFILE_JSON="outputs/profile/training/profile_data.json"
+if [[ -f "$PROFILE_JSON" ]]; then
+    BS=$(python -u src/utils/gpu_batch.py optimal-bs --profile-json "$PROFILE_JSON" 2>/dev/null || echo "")
+    if [[ -n "$BS" ]]; then
+        BATCH_FLAG="--batch-size $BS"
+        log "Batch size: $BS (from profiler)"
+    fi
+fi
+if [[ -z "$BATCH_FLAG" ]]; then
+    BS=$(python -u src/utils/config.py get-yaml "$TRAIN_CONFIG" optimization.batch_size 2>/dev/null || echo "32")
+    BATCH_FLAG="--batch-size $BS"
+    log "Batch size: $BS (from YAML / default)"
+fi
+
+# ── GPU pre-flight ────────────────────────────────────────────────────
+log "Pre-flight: checking GPU packages..."
+python -u src/utils/output_guard.py preflight_gpu_packages "explora" "$TRAIN_CONFIG" "$OUT_DIR" \
+    2>&1 | tee -a "$MASTER_LOG" || { log "FATAL: GPU pre-flight failed"; exit 1; }
 
 # ── Time estimates ────────────────────────────────────────────────────
 if [[ "$MODE" == "SANITY" ]]; then
@@ -146,7 +195,7 @@ run_step "1-train" "m09 ExPLoRA (LoRA rank=16, unfreeze=2 blocks)" \
         --train-config "$TRAIN_CONFIG" \
         --explora \
         --output-dir "$EXPLORA_DIR" \
-        $MODE_FLAG $SUBSET_FLAG $LOCAL_FLAG $VAL_FLAG --no-wandb
+        $BATCH_FLAG $MODE_FLAG $SUBSET_FLAG $LOCAL_FLAG $VAL_FLAG --no-wandb
 
 # Verify student_encoder.pt exists
 STUDENT_PT="${EXPLORA_DIR}/student_encoder.pt"
@@ -179,4 +228,4 @@ run_step "3-eval" "m06 metrics (ExPLoRA vs frozen)" \
 # ═══════════════════════════════════════════════════════════════════════
 # Done
 # ═══════════════════════════════════════════════════════════════════════
-finalize
+finalize "ExPLoRA"

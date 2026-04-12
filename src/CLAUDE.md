@@ -58,7 +58,6 @@
 - `configs/train/ch10_pretrain.yaml` — Ch10 continual pretraining (drift control, lambda sweep, layer freeze).
 - `configs/train/explora.yaml` — ExPLoRA (LoRA + unfreeze 1-2 blocks).
 - `configs/train/ch11_surgery.yaml` — Ch11 factor surgery (3-stage progressive unfreezing + factor datasets).
-- `configs/pretrain/vitg16_indian.yaml` — **LEGACY** (single-file, kept for backward compat with run_pretrain.sh).
 
 # RULES (MUST follow)
 - **GOAL OVERRIDE: The #1 priority is research results, not code cleanliness.** Every recommendation must answer: "Does this maximize the probability of adapted outperforming frozen on ALL metrics?" If the answer is no, reject the recommendation even if it's easier to implement. Never filter recommendations by implementation effort. Never say "use 2.0 because 2.1 requires more code changes" — if 2.1 maximizes the chance of a positive result, recommend 2.1.

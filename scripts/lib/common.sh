@@ -140,7 +140,7 @@ print_summary() {
 
 # ── Wait for final background upload + cleanup ───────────────────────
 finalize() {
-    local pipeline_name="$1"
+    local pipeline_name="${1:?FATAL: finalize requires pipeline_name argument (e.g., finalize \"ExPLoRA\")}"
     print_summary "$pipeline_name"
 
     if [[ -n "$UPLOAD_PID" ]]; then

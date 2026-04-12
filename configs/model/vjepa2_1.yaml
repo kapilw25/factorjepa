@@ -24,6 +24,9 @@ model:
   num_mask_tokens: 2
   zero_init_mask_tokens: true
 
+  # Deep supervision (V-JEPA 2.1: output at 4 intermediate layers)
+  n_output_distillation: 4        # layers [11, 23, 37, 47] for depth=48
+
   # Architecture features
   use_rope: true
   use_activation_checkpointing: true

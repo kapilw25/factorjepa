@@ -22,7 +22,7 @@ extends: base_optimization.yaml
 optimization:
   # ExPLoRA can use slightly higher LR than full fine-tuning (smaller param surface)
   lr: 1.0e-5
-  pred_lr_multiplier: 10.0        # Predictor LR = 1e-4
+  pred_lr_multiplier: 1.0         # Meta uses SAME LR (gold standard audit: 10x was wrong)
 
   max_epochs:
     sanity: 1

@@ -209,15 +209,29 @@ if [ "$1" = "--gpu" ]; then
     echo "GPU Setup (Linux + Nvidia ONLY)"
     echo "============================================"
 
-    # Clone vjepa2 training dependency (Ch10 continual pretraining)
+    # Clone vjepa2 (contains BOTH 2.0 and 2.1 code)
+    # 2.0: deps/vjepa2/src/models/ (base ViT, predictor)
+    # 2.1: deps/vjepa2/app/vjepa_2_1/models/ (hierarchical output, deep supervision)
     if [ ! -d "deps/vjepa2/src" ]; then
         echo ""
-        echo "Cloning facebookresearch/vjepa2 (training dependency)..."
+        echo "Cloning facebookresearch/vjepa2 (contains V-JEPA 2.0 + 2.1)..."
         rm -rf deps/vjepa2
         git clone --depth 1 https://github.com/facebookresearch/vjepa2.git deps/vjepa2
         echo "vjepa2 cloned to deps/vjepa2/"
     else
         echo "deps/vjepa2 already present"
+    fi
+
+    # Download V-JEPA 2.1 ViT-G (2B) checkpoint (~8 GB)
+    VJEPA_CKPT="checkpoints/vjepa2_1_vitG_384.pt"
+    if [ ! -f "$VJEPA_CKPT" ]; then
+        echo ""
+        echo "Downloading V-JEPA 2.1 ViT-G checkpoint (~8 GB)..."
+        mkdir -p checkpoints
+        wget -q --show-progress https://dl.fbaipublicfiles.com/vjepa2/vjepa2_1_vitG_384.pt -P checkpoints/
+        echo "Checkpoint saved: $VJEPA_CKPT"
+    else
+        echo "V-JEPA 2.1 checkpoint already present: $VJEPA_CKPT"
     fi
 
     # Download prebuilt wheels if --from-wheels

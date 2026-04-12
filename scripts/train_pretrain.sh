@@ -30,15 +30,18 @@ export PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True,garbage_collection_thres
 # ── Parse args ────────────────────────────────────────────────────────
 MODE=""
 SUBSET_FLAG=""
-CONFIG="configs/pretrain/vitg16_indian.yaml"
+MODEL_CONFIG="configs/model/vjepa2_1.yaml"
+TRAIN_CONFIG="configs/train/ch10_pretrain.yaml"
 
 usage() {
-    echo "Usage: $0 --SANITY | --POC | --FULL [--config CONFIG]"
+    echo "Usage: $0 --SANITY | --POC | --FULL"
     echo ""
     echo "  --SANITY   Quick validation (~5 min, 900 train clips from config)"
     echo "  --POC      10K subset: 1-epoch ablation + 5-epoch winner (~5h)"
     echo "  --FULL     115K full corpus: no subset, dataset size from manifest (~28h)"
-    echo "  --config   Override YAML config (default: $CONFIG)"
+    echo ""
+    echo "  Model config: $MODEL_CONFIG"
+    echo "  Train config: $TRAIN_CONFIG"
     exit 1
 }
 
@@ -66,10 +69,6 @@ while [[ $# -gt 0 ]]; do
             SUBSET_FLAG=""
             OUT_DIR="outputs/full"
             shift
-            ;;
-        --config)
-            CONFIG="$2"
-            shift 2
             ;;
         *)
             usage
@@ -210,12 +209,13 @@ fi
 # ═══════════════════════════════════════════════════════════════════════
 
 log "Ch10 pipeline starting (mode=${MODE})"
-log "Config: ${CONFIG}"
+log "Model config: ${MODEL_CONFIG}"
+log "Train config: ${TRAIN_CONFIG}"
 log "Master log: ${MASTER_LOG}"
 echo "" | tee -a "$MASTER_LOG"
 log "=== PRE-FLIGHT ==="
 
-python -u src/utils/output_guard.py preflight_gpu pretrain "$CONFIG" "$OUT_DIR" 2>&1 | tee -a "$MASTER_LOG"
+python -u src/utils/output_guard.py preflight_gpu pretrain "$TRAIN_CONFIG" "$OUT_DIR" 2>&1 | tee -a "$MASTER_LOG"
 if [[ ${PIPESTATUS[0]} -ne 0 ]]; then
     log "FATAL: GPU/package pre-flight failed."
     exit 1
@@ -225,7 +225,7 @@ log "Pre-flight complete."
 
 # ── Output preflight: check all inputs/outputs before GPU work ────────
 log "=== OUTPUT PREFLIGHT ==="
-python -u src/utils/output_guard.py preflight_pretrain "$OUT_DIR" "$CONFIG" 2>&1 | tee -a "$MASTER_LOG"
+python -u src/utils/output_guard.py preflight_pretrain "$OUT_DIR" "$TRAIN_CONFIG" 2>&1 | tee -a "$MASTER_LOG"
 if [[ ${PIPESTATUS[0]} -ne 0 ]]; then
     log "FATAL: Output preflight failed or aborted."
     exit 1
@@ -240,7 +240,7 @@ echo "" | tee -a "$MASTER_LOG"
 
 # Read epochs from YAML config (mode-aware)
 EPOCH_KEY="optimization.max_epochs.${MODE,,}"  # sanity, poc, or full
-WINNER_EPOCHS=$(python -u src/utils/config.py get-yaml "$CONFIG" "$EPOCH_KEY")
+WINNER_EPOCHS=$(python -u src/utils/config.py get-yaml "$TRAIN_CONFIG" "$EPOCH_KEY")
 
 # Read winner lambda from ablation (single source: ablation/ subdir)
 WINNER_JSON=""
@@ -272,7 +272,7 @@ if [[ -n "$WINNER_JSON" ]]; then
 
     run_step "train" "m09 pretrain (lambda=${WINNER_LAMBDA}, ${WINNER_EPOCHS} epochs)" "$T_M09" \
         "$LOGDIR/m09_${MODE,,}_${WINNER_DIR}.log" \
-        src/m09_pretrain.py --config "$CONFIG" --lambda-reg "$WINNER_LAMBDA" \
+        src/m09_pretrain.py --model-config "$MODEL_CONFIG" --train-config "$TRAIN_CONFIG" --lambda-reg "$WINNER_LAMBDA" \
             --max-epochs "$WINNER_EPOCHS" \
             $BATCH_FLAG $MODE_FLAG $SUBSET_FLAG $LOCAL_FLAG $VAL_FLAG \
         || { log "FATAL: m09 training failed."; exit 1; }
@@ -282,7 +282,7 @@ else
 
     run_step "train" "m09 pretrain (auto-ablation + winner)" "$T_M09" \
         "$LOGDIR/m09_${MODE,,}_auto_ablation.log" \
-        src/m09_pretrain.py --config "$CONFIG" \
+        src/m09_pretrain.py --model-config "$MODEL_CONFIG" --train-config "$TRAIN_CONFIG" \
             --max-epochs "$WINNER_EPOCHS" \
             $BATCH_FLAG $MODE_FLAG $SUBSET_FLAG $LOCAL_FLAG $VAL_FLAG \
         || { log "FATAL: m09 training failed."; exit 1; }
@@ -317,6 +317,6 @@ log "  ./scripts/run_eval.sh --FULL"
 echo "" | tee -a "$MASTER_LOG"
 log "=== FINAL VERIFICATION: Ch10 Ablation Outputs ==="
 
-python -u src/utils/output_guard.py verify_pretrain_final "$OUT_DIR" "$CONFIG" 2>&1 | tee -a "$MASTER_LOG"
+python -u src/utils/output_guard.py verify_pretrain_final "$OUT_DIR" "$TRAIN_CONFIG" 2>&1 | tee -a "$MASTER_LOG"
 
 finalize "Ch10"

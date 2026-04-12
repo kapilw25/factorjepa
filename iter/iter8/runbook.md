@@ -1,200 +1,192 @@
 # FactorJEPA Runbook — Week 1 Experiments
 
 > **GOAL: Get V-JEPA 2.1 (2B) surgical adaptation to improve Prec@K over frozen baseline on WalkIndia-200K.**
-> Ch11 surgery is the PRIMARY path. ExPLoRA is the baseline to beat. Ch10 brute-force deferred.
+> **Short-term: Show Surgery > ExPLoRA > Frozen on 1K val clips (~70 min GPU).**
+> Ch11 surgery is the PRIMARY path. ExPLoRA is the baseline to beat.
 >
 > **Key files for new Claude sessions:**
-> - `iter/iter8/next_steps.md` — 3 action items for Week 1
+> - `iter/iter8/next_steps.md` — action items for Week 1
 > - `iter/iter8/plan_code_development.md` — implementation plan + completed work
-> - `iter/iter8/plan_training.md` — full research plan (training recipe, audit fixes, paper strategy)
-> - `src/CLAUDE.md` — codebase rules (31 rules, hook-enforced)
+> - `iter/iter8/plan_training.md` — full research plan (system design diagrams, paper strategy)
+> - `src/CLAUDE.md` — codebase rules (32 rules, hook-enforced)
 > - `src/MEMORY.md` — project state, pipeline modules, encoder registry
 
 ---
 
-## Scripts
-
-```
-scripts/
-├── lib/common.sh           # Shared: log, run_step, verify, watchdog, bg_upload
-├── prep_data.sh            # Ch9: m04(tags) + m04d(motion)
-├── train_pretrain.sh       # Ch10: m09(continual pretraining) — DEFERRED
-├── train_explora.sh        # Step 1b: ExPLoRA (LoRA + unfreeze) — NEW
-├── train_surgery.sh        # Step 2: Ch11 factor surgery — NEW (m10/m11 NOT BUILT)
-├── run_embed.sh            # ALL: m05/m05b embedding (auto-detects encoders)
-└── run_eval.sh             # ALL: m06→m08b evaluation (auto-detects encoders)
-```
-
----
-
-## Setup (one-time, on GPU instance)
+## GPU Instance Setup (one-time)
 
 ```bash
-# 1. Clone + setup
-git clone https://github.com/kapilw25/factorjepa.git && cd factorjepa
+# 1. Pull latest code
+git pull origin main
+
+# 2. Setup environment
 ./setup_env_uv.sh --gpu --from-wheels 2>&1 | tee logs/setup_env_gpu.log
 source venv_walkindia/bin/activate
 
-# 2. Download V-JEPA 2.1 (2B) checkpoint (~8 GB)
+# 3. Download V-JEPA 2.1 (2B) checkpoint (~8 GB)
 mkdir -p checkpoints
 wget https://dl.fbaipublicfiles.com/vjepa2/vjepa2_1_vitG_384.pt -P checkpoints/
 
-# 3. Download pre-filtered data (POC 10K + val 1K, ~3 min)
-python -u src/utils/hf_outputs.py download-data 2>&1 | tee logs/download_poc_val.log
+# 4. Install SAM 3.1 (gated — need HF access approval first)
+huggingface-cli login
+pip install git+https://github.com/facebookresearch/sam3.git
 
-# 4. (Optional) Download full 115K corpus (~24 min)
-python -u src/m00d_download_subset.py --FULL --no-wandb 2>&1 | tee logs/m00d_full.log
+# 5. Install PEFT for ExPLoRA
+pip install peft>=0.13.0
+
+# 6. Download data (POC 1K val + 10K subset, ~3 min)
+python -u src/utils/hf_outputs.py download-data 2>&1 | tee logs/download_poc_val.log
 ```
 
 ---
 
-## Sanity Check (~10 min)
+## Sanity Check (~5 min)
 
 ```bash
 rm -rf outputs/sanity/
-./scripts/prep_data.sh --SANITY && \
-./scripts/train_explora.sh --SANITY && \
-./scripts/run_embed.sh --SANITY && \
-./scripts/run_eval.sh --SANITY
+./scripts/train_explora.sh --SANITY 2>&1 | tee logs/sanity_explora.log
 ```
 
 ---
 
-## Week 1 Experiment Sequence
+## Week 1: Fast Signal on 1K Val Clips (~70 min total)
 
-### Step 1a: Temporal Interference Projection [~2.5h GPU + 30 min CPU]
+### Step 1b: ExPLoRA Baseline [~1h GPU]
 
-Requires frozen 2.1 embeddings (from Step 0) + shuffled 2.1 embeddings.
-
-```bash
-# 1. Generate shuffled V-JEPA 2.1 embeddings (~2h GPU, one-time)
-python -u src/m05b_baselines.py --encoder vjepa_2_1_frozen_shuffled \
-    --model-config configs/model/vjepa2_1.yaml \
-    --FULL --subset data/subset_10k.json --local-data data/subset_10k_local --no-wandb \
-    2>&1 | tee logs/m05b_vjepa_2_1_shuffled.log
-
-# 2. Temporal projection: PCA on (frozen - shuffled), sweep k, re-run Prec@K (30 min CPU)
-python -u src/m06c_temporal_projection.py --FULL --subset data/subset_10k.json \
-    --normal-encoder vjepa_2_1_frozen --shuffled-encoder vjepa_2_1_frozen_shuffled \
-    2>&1 | tee logs/m06c.log
-
-# Output: outputs/poc/m06c_projection_results.json
-# Compare: vjepa_2_1_frozen Prec@K vs projected Prec@K for each k
-# If Prec@K jumps → paper novelty (temporal interference is removable linear subspace)
-```
-
-### Step 1b: ExPLoRA Baseline [~7h GPU total]
-
-Simplest V-JEPA 2.1 domain adaptation. Sets the bar that Ch11 surgery must beat.
-`train_explora.sh` handles ALL sub-steps automatically:
+Single command — handles frozen 2.1 baseline + ExPLoRA training + re-embed + eval:
 
 ```bash
-# Single command — handles frozen baseline + ExPLoRA train + re-embed + eval
 ./scripts/train_explora.sh --POC 2>&1 | tee logs/explora_poc.log
 
-# What it does internally:
-#   Step 0: frozen 2.1 embed + eval (~2h, skips if cached)
-#   Step 1: ExPLoRA training (~3h)
-#   Step 2: re-embed adapted model (~2h)
-#   Step 3: evaluate adapted Prec@K
+# What it does:
+#   Step 0: frozen V-JEPA 2.1 embed on 1K clips + eval (~12 min, skips if cached)
+#   Step 1: ExPLoRA training — LoRA rank=16, unfreeze blocks 0-1 (~20 min)
+#   Step 2: re-embed adapted model (~12 min)
+#   Step 3: evaluate Prec@K
 
 # Compare:
 #   outputs/poc/m06_metrics_vjepa_2_1_frozen.json    ← frozen baseline
 #   outputs/poc/m06_metrics_vjepa_2_1_explora.json   ← ExPLoRA adapted
-#   If ExPLoRA improves over frozen 2.1 → publishable result
 ```
 
-**Embedding files generated:**
-```
-outputs/poc/
-├── embeddings.npy                              (10000, 1408) ← V-JEPA 2.0 frozen (existing, KEEP)
-├── embeddings_vjepa_2_1_frozen.npy             (10000, 1664) ← V-JEPA 2.1 frozen
-├── embeddings_vjepa_2_1_frozen_shuffled.npy    (10000, 1664) ← V-JEPA 2.1 shuffled (from Step 1a)
-├── embeddings_vjepa_2_1_explora.npy            (10000, 1664) ← V-JEPA 2.1 ExPLoRA adapted
-```
+### Step 2: Ch11 Factor Surgery [~30 min GPU]
 
-### Step 2: Ch11 Factor Surgery POC [~3h GPU + SAM3 prep]
-
-THE experiment. Factor-decomposed inputs + progressive unfreezing on frozen V-JEPA 2.1.
-POC uses `--poc-simple`: 100 clips, 2 factors (D_L + D_A), skip D_I.
+THE experiment — SAM 3.1 text-prompted segmentation + 3-factor progressive unfreezing:
 
 ```bash
-# SAM3 segmentation + factor datasets + 2-stage surgery + re-embed + eval
 ./scripts/train_surgery.sh --POC 2>&1 | tee logs/surgery_poc.log
 
 # What it does:
-#   Step 0: m10 SAM3 segmentation on 100 clips → masks → tracklets (~30 min GPU)
-#   Step 1: m11 factor datasets D_L + D_A (~5 min CPU)
-#   Step 2: m09 surgery training, 2-stage progressive unfreezing (~2.5h GPU)
-#   Step 3: m05 re-embed surgical model (~2h GPU)
-#   Step 4: m06 evaluate
+#   Step 0: m10 SAM 3.1 on 1K clips — per-clip text prompt from tags.json notable_objects
+#           → agent masks + layout masks + interaction mining (~5 min GPU)
+#   Step 1: m11 factor datasets D_L + D_A + D_I (~3 min CPU)
+#   Step 2: m09 surgery — 3-stage progressive unfreezing (~15 min GPU)
+#           Stage 1: layers 0-12, 100% D_L (layout)
+#           Stage 2: layers 0-24, 90% D_A + 10% D_L replay
+#           Stage 3: layers 0-36, 85% D_I + 10% D_A + 5% D_L replay
+#   Step 3: m05 re-embed surgical model (~12 min GPU)
+#   Step 4: m06 evaluate Prec@K
 
 # THE KEY COMPARISON:
 #   outputs/poc/m06_metrics_vjepa_2_1_frozen.json     ← frozen baseline
 #   outputs/poc/m06_metrics_vjepa_2_1_explora.json    ← ExPLoRA (from Step 1b)
 #   outputs/poc/m06_metrics_vjepa_2_1_surgical.json   ← surgery adapted
-#   Surgery must beat ExPLoRA to justify complexity
+```
+
+### Step 1a (optional): Temporal Interference Projection [30 min CPU]
+
+Run after Step 1b (needs frozen 2.1 + shuffled embeddings):
+
+```bash
+# 1. Generate shuffled V-JEPA 2.1 embeddings (~12 min GPU on 1K clips)
+python -u src/m05b_baselines.py --encoder vjepa_2_1_frozen_shuffled \
+    --model-config configs/model/vjepa2_1.yaml \
+    --POC --local-data data/val_1k_local --no-wandb \
+    2>&1 | tee logs/m05b_vjepa_2_1_shuffled.log
+
+# 2. Temporal projection (30 min CPU)
+python -u src/m06c_temporal_projection.py --POC \
+    --normal-encoder vjepa_2_1_frozen --shuffled-encoder vjepa_2_1_frozen_shuffled \
+    2>&1 | tee logs/m06c.log
+```
+
+---
+
+## Embedding Files Generated
+
+```
+outputs/poc/
+├── embeddings.npy                              (10000, 1408) ← V-JEPA 2.0 frozen (existing)
+├── embeddings_vjepa_2_1_frozen.npy             (1000, 1664)  ← V-JEPA 2.1 frozen
+├── embeddings_vjepa_2_1_frozen_shuffled.npy    (1000, 1664)  ← V-JEPA 2.1 shuffled
+├── embeddings_vjepa_2_1_explora.npy            (1000, 1664)  ← ExPLoRA adapted
+├── embeddings_vjepa_2_1_surgical.npy           (1000, 1664)  ← Surgery adapted
+├── factors/
+│   ├── masks/{clip_key}.npz                    ← SAM 3.1 agent/layout masks
+│   ├── D_L/{clip_key}.npy                      ← layout-only (agents blurred)
+│   ├── D_A/{clip_key}.npy                      ← agent-only (background suppressed)
+│   ├── D_I/{clip_key}_tube{idx}.npy            ← interaction tubes
+│   ├── segments.json                           ← per-clip segmentation metadata
+│   └── factor_manifest.json                    ← D_L/D_A/D_I availability per clip
 ```
 
 ---
 
 ## Decision Gate (end of Week 1)
 
-| Step 1a projection | Step 1b ExPLoRA | Step 2 Surgery | Action |
-|---|---|---|---|
-| Prec@K jumps | ExPLoRA improves | Surgery > ExPLoRA | **Strongest: all 3 + surgery wins** |
-| Any | ExPLoRA improves | Surgery = ExPLoRA | **Publish ExPLoRA, surgery adds no value** |
-| Any | No change | Surgery improves | **Best novelty: standard fails, surgery succeeds** |
-| Any | ExPLoRA improves | Surgery < ExPLoRA | **Publish ExPLoRA, drop surgery** |
-| Any | No change | No change | **Debug: reverse factor order, more clips, LoRA fallback** |
+| Step 1b ExPLoRA | Step 2 Surgery | Action |
+|---|---|---|
+| ExPLoRA improves | Surgery > ExPLoRA | **Strongest: surgery wins** |
+| ExPLoRA improves | Surgery = ExPLoRA | **Publish ExPLoRA, surgery adds no value** |
+| No change | Surgery improves | **Best novelty: standard fails, surgery succeeds** |
+| ExPLoRA improves | Surgery < ExPLoRA | **Publish ExPLoRA, drop surgery** |
+| No change | No change | **Debug: reverse factor order, more clips, LoRA fallback** |
+
+If Surgery > ExPLoRA on 1K → scale to 10K for paper (statistically significant Prec@K with 95% CI).
 
 ---
 
-## Config Architecture (new, this session)
+## Scripts Architecture
+
+```
+scripts/
+├── lib/common.sh           # Shared: log, run_step, verify, watchdog, bg_upload
+├── prep_data.sh            # Ch9: m04(tags) + m04d(motion) — DONE
+├── train_explora.sh        # Step 1b: frozen embed + ExPLoRA train + re-embed + eval
+├── train_surgery.sh        # Step 2: m10 SAM 3.1 + m11 factors + m09 surgery + eval
+├── train_pretrain.sh       # Ch10: legacy continual pretraining — DEFERRED
+├── run_embed.sh            # ALL: m05/m05b embedding (auto-detects encoders)
+└── run_eval.sh             # ALL: m06→m08b evaluation (auto-detects encoders)
+```
+
+---
+
+## Config Architecture
 
 ```
 configs/
 ├── pipeline.yaml                    # Shared: clip limits, encoders, streaming, eval
+├── tag_taxonomy.json                # VLM tag schema (notable_objects → SAM 3.1 prompts)
 ├── model/
 │   ├── vjepa2_0.yaml                # Legacy (1B, 1408-dim)
 │   └── vjepa2_1.yaml                # PRIMARY (2B, 1664-dim)
 └── train/
     ├── base_optimization.yaml       # Shared: masking, augmentation, AdamW, EMA
-    ├── ch10_pretrain.yaml           # Drift control + lambda sweep
-    ├── explora.yaml                 # LoRA + unfreeze 1-2 blocks
-    └── ch11_surgery.yaml            # 3-stage progressive unfreezing + factor datasets
+    ├── ch10_pretrain.yaml           # Drift control + lambda sweep — DEFERRED
+    ├── explora.yaml                 # LoRA rank=16 + unfreeze 2 blocks
+    └── ch11_surgery.yaml            # 3-stage unfreezing + SAM 3.1 + factor datasets
 ```
-
-Training scripts merge: `pipeline.yaml` + `model/*.yaml` + `train/*.yaml` via `load_merged_config()`.
-
----
-
-## Key Configs
-
-| Config | Value | Source |
-|---|---|---|
-| Model | V-JEPA 2.1 ViT-G (2B, 1664-dim) | `configs/model/vjepa2_1.yaml` |
-| Checkpoint | `checkpoints/vjepa2_1_vitG_384.pt` | Download from Meta |
-| Training frames | 16 | `configs/train/base_optimization.yaml` |
-| Eval frames | 64 | `configs/pipeline.yaml: gpu.eval_frames_per_clip` |
-| ExPLoRA LoRA rank | 16 | `configs/train/explora.yaml` |
-| ExPLoRA unfreeze | 2 blocks | `configs/train/explora.yaml` |
-| Surgery stages | 3 (layout → agent → interaction) | `configs/train/ch11_surgery.yaml` |
-| Grad clip | 10.0 (post-audit, was 1.0) | `configs/train/base_optimization.yaml` |
-| LR schedule | Constant (post-audit, was cosine) | `configs/train/base_optimization.yaml` |
 
 ---
 
 ## Previous Results (Ch10, April 5, 2026)
 
-| Metric | Frozen | Ch10 Adapted (λ=0.001) | Delta |
+| Metric | Frozen | Ch10 Adapted (lambda=0.001) | Delta |
 |---|---|---|---|
 | Prec@K | 36.1 +/-0.6 | 14.3 +/-0.3 | **-21.8pp (FAILED)** |
 | nDCG@K | 0.950 +/-0.001 | 0.906 +/-0.001 | **-0.045 (FAILED)** |
 
-Diagnosis: λ=0.001 drift penalty 1000x smaller than JEPA loss → catastrophic forgetting.
-Gold standard audit found 12 discrepancies → all fixed in new configs.
-Full details: `iter/utils/experiment_log.md`
+Diagnosis: lambda=0.001 drift penalty 1000x smaller than JEPA loss. Gold standard audit found 12 discrepancies — all fixed in new configs.
 
 ---
 
@@ -202,5 +194,5 @@ Full details: `iter/utils/experiment_log.md`
 
 - 1% Prec@K from a single run is noise (arXiv:2511.19794)
 - Need: non-overlapping 95% bootstrap CIs on nDCG@K + majority (5/8) metrics improved
-- For paper: 3-5 training seeds, propagated CI on delta
-- POC shortcut: bootstrap CIs on 10K subset (r=0.84 with full)
+- POC shortcut: bootstrap CIs on 1K val subset as fast signal
+- For paper: 3-5 training seeds on 10K+ clips

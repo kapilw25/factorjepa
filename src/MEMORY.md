@@ -39,7 +39,7 @@ Research benchmark testing if V-JEPA 2 (Meta's video foundation model, trained o
 - **m09_pretrain.py** (~940 lines): V-JEPA 2 student-teacher JEPA with EMA, L1 latent prediction, drift control. Epoch-based training (not step-based). Key features:
   - vjepa2 imports via `utils/vjepa2_imports.py` shim (namespace collision fix)
   - Epoch geometry: `steps_per_epoch = n_train // batch_size`, `total_steps = steps_per_epoch * max_epochs`
-  - Epochs per mode from YAML: `configs/pretrain/vitg16_indian.yaml` → `optimization.max_epochs.{sanity,poc,full,winner}`
+  - Epochs per mode from YAML: `configs/train/ch10_pretrain.yaml` → `optimization.max_epochs.{sanity,poc,full,winner}`
   - SANITY clip limits from `configs/pipeline.yaml` → `sanity.pretrain_train/val`
   - No SANITY subset: collects first N clip keys from data stream for filtering
   - Full dataset size: discovered from `--subset` (JSON) or `--local-data` manifest.json. FATAL if undiscoverable.
@@ -86,7 +86,7 @@ Research benchmark testing if V-JEPA 2 (Meta's video foundation model, trained o
 
 ### Config Files
 - **configs/pipeline.yaml**: Single source of truth for clip limits (SANITY per module), streaming params (retries, checkpoint interval, decode workers, prefetch queues), GPU defaults (batch sizes), eval params (FAISS K, temporal pairs), verification thresholds (MIN_CLIPS), data processing (clips/shard, resolution). All `src/m*.py` read from here via `get_pipeline_config()`.
-- **configs/pretrain/vitg16_indian.yaml**: V-JEPA 2 ViT-g training config. Data (frames, crop, patch, val split, sanity clips), model (arch, embed dim, pred depth, mask tokens, RoPE, activation checkpointing), masking (8 small + 2 large blocks), augmentation, optimization (LR, EMA, epochs per mode, warmup, grad clip, loss_exp), drift control (lambda), validation (interval, Cycle@K), checkpointing (saves_per_epoch, keep_last_n), mixed precision (bfloat16).
+- **configs/train/ch10_pretrain.yaml**: V-JEPA 2 ViT-g training config. Data (frames, crop, patch, val split, sanity clips), model (arch, embed dim, pred depth, mask tokens, RoPE, activation checkpointing), masking (8 small + 2 large blocks), augmentation, optimization (LR, EMA, epochs per mode, warmup, grad clip, loss_exp), drift control (lambda), validation (interval, Cycle@K), checkpointing (saves_per_epoch, keep_last_n), mixed precision (bfloat16).
 
 ## ENCODER_REGISTRY
 | Encoder | Model | Dim | Suffix | Type |

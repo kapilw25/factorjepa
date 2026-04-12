@@ -18,7 +18,7 @@ extends: base_optimization.yaml
 optimization:
   # POST-AUDIT: 10x smaller (was 1e-5 in failed run)
   lr: 1.0e-6
-  pred_lr_multiplier: 10.0        # Predictor LR = 1e-5
+  pred_lr_multiplier: 1.0         # Meta uses SAME LR (gold standard audit: 10x was wrong)
 
   # POST-AUDIT: 5 epochs + 1 cooldown (was 1 epoch — stability gap, arXiv:2406.14833)
   max_epochs:

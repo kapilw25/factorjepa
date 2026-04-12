@@ -16,17 +16,14 @@ import time
 from pathlib import Path
 
 import numpy as np
-from tqdm import tqdm
 
 # Add src to path for utils import
 sys.path.insert(0, str(Path(__file__).parent))
 from utils.progress import make_pbar
 from utils.config import (
-    EMBEDDINGS_FILE, TAGS_FILE, METRICS_FILE, OUTPUTS_DIR,
     FAISS_K_NEIGHBORS, TAG_TAXONOMY_JSON,
     check_gpu, add_subset_arg, get_output_dir,
-    add_encoder_arg, get_encoder_files, get_encoder_info, ENCODER_REGISTRY,
-    get_pipeline_config,
+    add_encoder_arg, get_encoder_files, get_encoder_info, get_pipeline_config,
 )
 from utils.wandb_utils import (
     add_wandb_args, init_wandb, log_metrics, log_image, log_artifact, finish_wandb,
@@ -197,8 +194,7 @@ def build_exclusion_mask(clip_metadata: list, window_sec: float = 30,
 
 def apply_hard_filter(distances: np.ndarray, indices: np.ndarray,
                       exclusion: dict, k: int) -> tuple:
-    """Filter kNN results by exclusion mask, keeping top-k valid neighbors.
-    Semi-vectorized: builds exclusion mask per clip, then uses NumPy selection."""
+    """Filter kNN results by exclusion mask, keeping top-k valid neighbors. Vectorized."""
     n = indices.shape[0]
     n_cols = indices.shape[1]
     hard_D = np.full((n, k + 1), np.inf, dtype=np.float32)
@@ -208,27 +204,41 @@ def apply_hard_filter(distances: np.ndarray, indices: np.ndarray,
     keep_mask = np.ones((n, n_cols), dtype=bool)
     self_mask = (indices == np.arange(n)[:, None])  # identify self-neighbors
 
-    # Mark excluded neighbors per clip (only clips with exclusions)
-    for i, excluded in exclusion.items():
-        if excluded:
-            for j_pos in range(n_cols):
-                if indices[i, j_pos] in excluded:
-                    keep_mask[i, j_pos] = False
+    # Vectorized exclusion: build set of excluded indices per clip, mark in mask
+    # Convert exclusion dict {clip_idx: set(excluded_indices)} to vectorized mask
+    if exclusion:
+        excluded_flat = set()
+        for exc_set in exclusion.values():
+            excluded_flat.update(exc_set)
+        if excluded_flat:
+            for i, excluded in exclusion.items():
+                if excluded:
+                    excluded_arr = np.array(list(excluded))
+                    keep_mask[i] = ~np.isin(indices[i], excluded_arr)
 
     # Self-neighbor goes to col 0
-    self_col = self_mask.argmax(axis=1)  # first True in each row
+    self_col = self_mask.argmax(axis=1)
     hard_D[:, 0] = distances[np.arange(n), self_col]
     hard_I[:, 0] = indices[np.arange(n), self_col]
 
-    # For non-self, non-excluded neighbors: pick top-k by distance order
-    keep_mask &= ~self_mask  # exclude self from candidate pool
-    for i in range(n):
-        valid_cols = np.where(keep_mask[i])[0]
-        top_k = valid_cols[:k]  # already sorted by distance (FAISS returns sorted)
-        n_kept = len(top_k)
-        if n_kept > 0:
-            hard_D[i, 1:n_kept + 1] = distances[i, top_k]
-            hard_I[i, 1:n_kept + 1] = indices[i, top_k]
+    # Vectorized top-k selection: use cumsum on sorted keep_mask
+    keep_mask &= ~self_mask
+    # For FAISS output (already sorted by distance), valid columns are in distance order.
+    # Use cumsum to find first k valid neighbors per clip.
+    valid_cumsum = np.cumsum(keep_mask, axis=1)  # (n, n_cols)
+    # Mask: only keep positions where cumsum <= k (first k valid neighbors)
+    topk_mask = keep_mask & (valid_cumsum <= k)
+
+    # Gather distances and indices for top-k valid neighbors
+    for col in range(n_cols):
+        sel = topk_mask[:, col]  # (n,) bool — which clips have a valid neighbor at this col
+        if not sel.any():
+            continue
+        # Determine output column: cumsum at this position (1-based rank)
+        out_col = valid_cumsum[sel, col]  # rank of this neighbor for each selected clip
+        clip_ids = np.where(sel)[0]
+        hard_D[clip_ids, out_col] = distances[clip_ids, col]
+        hard_I[clip_ids, out_col] = indices[clip_ids, col]
 
     return hard_D, hard_I
 
@@ -517,7 +527,7 @@ def compute_all_metrics(embeddings: np.ndarray, D: np.ndarray, I: np.ndarray,
         print(f"  DimConsist@K: {overlap:.2f}% \u00b1 {overlap_ci['ci_half']:.2f} (dim-split, NOT augmentation invariance)")
     else:
         overlap, overlap_ci = None, None
-        print(f"  DimConsist@K: SKIPPED (< 100 clips)")
+        print("  DimConsist@K: SKIPPED (< 100 clips)")
 
     sil = compute_silhouette(embeddings, tags)
     print(f"  Silhouette:  {sil:.4f} (scene_type)")
@@ -582,7 +592,7 @@ def compute_all_metrics(embeddings: np.ndarray, D: np.ndarray, I: np.ndarray,
     print(f"  Micro avg:   {micro['prec_at_k']:.2f}%")
 
     # ── Bootstrap 95% CI on global metrics ──
-    print(f"  Bootstrap 95% CI (BCa, 10K iterations)...")
+    print("  Bootstrap 95% CI (BCa, 10K iterations)...")
     pc_prec = per_clip_prec_at_k(I, tags, k, label_arrays=label_arrays)
     pc_map = per_clip_map_at_k(I, tags, k, label_arrays=label_arrays)
     pc_cycle = per_clip_cycle_at_k(I, k)
@@ -1103,7 +1113,7 @@ def main():
                 sys.exit(1)
             print(f"Key alignment verified: {n:,} clips match")
         else:
-            print(f"WARNING: Tags lack _clip_key field — cannot verify alignment. "
+            print("WARNING: Tags lack _clip_key field — cannot verify alignment. "
                   "Results may be wrong if tags and embeddings are from different runs.")
 
     if args.SANITY:

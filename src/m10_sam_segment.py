@@ -40,11 +40,17 @@ import yaml
 
 # ── SAM 3.1 Model Loading ───────────────────────────────────────────
 
-def load_sam3(device: str = "cuda"):
-    """Load SAM 3.1 video predictor."""
-    from sam3.model_builder import build_sam3_video_predictor
-    predictor = build_sam3_video_predictor()
-    return predictor
+def load_sam3(model_id: str, gpus: list = None):
+    """Load SAM 3 / 3.1 video predictor. Dispatches builder by version."""
+    import torch as _torch
+    if gpus is None:
+        gpus = list(range(_torch.cuda.device_count()))
+    if "3.1" in model_id:
+        from sam3.model_builder import build_sam3_multiplex_video_predictor
+        return build_sam3_multiplex_video_predictor(gpus_to_use=gpus)
+    else:
+        from sam3.model_builder import build_sam3_video_predictor
+        return build_sam3_video_predictor(gpus_to_use=gpus)
 
 
 # ── Per-Clip Tags → Agent Prompt ─────────────────────────────────────
@@ -94,11 +100,16 @@ def segment_clip(predictor, frame_dir: str, agent_prompt: str,
                  dilation_px: int) -> dict:
     """Run SAM 3.1 text-prompted segmentation on a video clip.
 
+    Uses SAM 3.1 streaming API (handle_stream_request + propagate_in_video).
+    Output format per frame: {out_obj_ids: arr, out_binary_masks: arr, out_probs: arr}.
+
     Returns:
         agent_mask: (T, H, W) bool — union of all agent instances per frame
         layout_mask: (T, H, W) bool — complement
         n_agents: int — distinct agent instances detected on frame 0
         agent_pixel_ratio: float — mean agent pixel fraction across frames
+        centroids: {obj_id: {t: (cy, cx)}} for interaction mining
+        per_object: {obj_id: {t: mask}} per-object masks
     """
     # 1. Start SAM 3.1 video session
     response = predictor.handle_request(dict(
@@ -108,40 +119,58 @@ def segment_clip(predictor, frame_dir: str, agent_prompt: str,
     session_id = response["session_id"]
 
     # 2. Text prompt on frame 0 → detect all agent instances
-    response = predictor.handle_request(dict(
+    prompt_resp = predictor.handle_request(dict(
         type="add_prompt",
         session_id=session_id,
         frame_index=0,
         text=agent_prompt,
     ))
 
-    # 3. Propagate masks across all frames (SAM 3.1 multiplexing)
-    response = predictor.handle_request(dict(
-        type="propagate",
+    # 3. Capture frame 0 masks from prompt response
+    # SAM 3.1 output: {out_obj_ids: (N,), out_binary_masks: (N, H, W), out_probs: (N,)}
+    masks_per_frame = {}
+    out0 = prompt_resp["outputs"]
+    n_agents = len(out0["out_obj_ids"])
+    masks_per_frame[0] = {
+        int(oid): out0["out_binary_masks"][i]
+        for i, oid in enumerate(out0["out_obj_ids"].tolist())
+        if out0["out_binary_masks"][i].any()
+    }
+
+    # Infer spatial dims from first mask
+    if n_agents > 0:
+        H, W = out0["out_binary_masks"][0].shape
+    else:
+        H, W = 384, 384
+
+    # 4. Propagate across all frames (streaming — SAM 3.1 API)
+    for resp in predictor.handle_stream_request(dict(
+        type="propagate_in_video",
         session_id=session_id,
-    ))
+    )):
+        fidx = resp["frame_index"]
+        out = resp["outputs"]
+        frame_masks = {}
+        for i, oid in enumerate(out["out_obj_ids"].tolist()):
+            if out["out_binary_masks"][i].any():
+                frame_masks[oid] = out["out_binary_masks"][i]
+        masks_per_frame[fidx] = frame_masks
 
-    # 4. Build per-frame masks: union (A_t) + per-object (for interaction mining)
-    masks_per_frame = response["outputs"]
-    T = len(masks_per_frame)
-    first_frame_masks = next(iter(masks_per_frame.values()))
-    first_mask = next(iter(first_frame_masks.values()))
-    H, W = first_mask.shape
-
+    # 5. Build per-frame A_t (agent union) + per-object tracking
+    T = max(masks_per_frame.keys()) + 1 if masks_per_frame else 1
     agent_mask = np.zeros((T, H, W), dtype=bool)
-    # Per-object tracking: {obj_id: {t: mask}} for interaction mining
     per_object = {}
-    n_agents = 0
+    centroids = {}
 
-    for t_str, frame_masks in masks_per_frame.items():
-        t = int(t_str)
+    for t, frame_masks in masks_per_frame.items():
         frame_union = np.zeros((H, W), dtype=bool)
         for obj_id, mask in frame_masks.items():
             m = np.asarray(mask, dtype=bool)
             frame_union |= m
             per_object.setdefault(obj_id, {})[t] = m
-        if t == 0:
-            n_agents = len(frame_masks)
+            if m.any():
+                ys, xs = np.where(m)
+                centroids.setdefault(obj_id, {})[t] = (float(ys.mean()), float(xs.mean()))
         if dilation_px > 0:
             struct = np.ones((2 * dilation_px + 1, 2 * dilation_px + 1), dtype=bool)
             frame_union = binary_dilation(frame_union, structure=struct)
@@ -150,17 +179,8 @@ def segment_clip(predictor, frame_dir: str, agent_prompt: str,
     layout_mask = ~agent_mask
     agent_pixel_ratio = float(agent_mask.sum()) / max(T * H * W, 1)
 
-    # 5. Compute per-object centroids for interaction mining
-    centroids = {}  # {obj_id: {t: (cy, cx)}}
-    for obj_id, frames_dict in per_object.items():
-        centroids[obj_id] = {}
-        for t, m in frames_dict.items():
-            if m.any():
-                ys, xs = np.where(m)
-                centroids[obj_id][t] = (float(ys.mean()), float(xs.mean()))
-
-    # 6. End session
-    predictor.handle_request(dict(type="end_session", session_id=session_id))
+    # 6. Close session (SAM 3.1 API: "close_session", NOT "end_session")
+    predictor.handle_request(dict(type="close_session", session_id=session_id))
 
     return {
         "agent_mask": agent_mask,
@@ -195,27 +215,36 @@ def mine_interactions(centroids: dict, frame_width: int,
     obj_ids = list(centroids.keys())
     interactions = []
 
+    # Pre-extract centroid arrays per object for vectorized distance
+    obj_frames = {}
+    obj_coords = {}
+    for oid in obj_ids:
+        times = sorted(centroids[oid].keys())
+        obj_frames[oid] = np.array(times)
+        obj_coords[oid] = np.array([centroids[oid][t] for t in times])  # (n_frames, 2)
+
     for i in range(len(obj_ids)):
         for j in range(i + 1, len(obj_ids)):
             a, b = obj_ids[i], obj_ids[j]
-            # Find frames where both objects exist
-            shared_frames = sorted(set(centroids[a].keys()) & set(centroids[b].keys()))
-            if len(shared_frames) < min_frames:
+            # Vectorized shared frame detection
+            shared = np.intersect1d(obj_frames[a], obj_frames[b])
+            if len(shared) < min_frames:
                 continue
 
-            # Find consecutive runs where distance < d_max
-            close_frames = []
-            for t in shared_frames:
-                cy_a, cx_a = centroids[a][t]
-                cy_b, cx_b = centroids[b][t]
-                dist = np.sqrt((cy_a - cy_b) ** 2 + (cx_a - cx_b) ** 2)
-                if dist < d_max:
-                    close_frames.append(t)
+            # Vectorized distance computation across all shared frames
+            idx_a = np.searchsorted(obj_frames[a], shared)
+            idx_b = np.searchsorted(obj_frames[b], shared)
+            coords_a = obj_coords[a][idx_a]  # (n_shared, 2)
+            coords_b = obj_coords[b][idx_b]  # (n_shared, 2)
+            dists = np.linalg.norm(coords_a - coords_b, axis=1)  # (n_shared,)
 
-            # Find consecutive runs of length >= min_frames
+            close_mask = dists < d_max
+            close_frames = shared[close_mask].tolist()
+
             if len(close_frames) < min_frames:
                 continue
 
+            # Find consecutive runs of length >= min_frames
             runs = []
             current_run = [close_frames[0]]
             for k in range(1, len(close_frames)):
@@ -419,8 +448,8 @@ def main():
 
     # Load SAM 3.1
     print(f"\nLoading SAM 3.1 ({factor_cfg['sam_model']})...")
-    predictor = load_sam3("cuda")
-    print("SAM 3.1 loaded")
+    predictor = load_sam3(factor_cfg["sam_model"])
+    print(f"SAM 3.1 loaded ({factor_cfg['sam_model']})")
 
     # Resume checkpoint
     ckpt_file = output_dir / ".m10_checkpoint.json"
@@ -535,6 +564,10 @@ def main():
     plot_agent_stats(segments, tags_lookup, output_dir)
 
     log_metrics(wb_run, summary)
+    # Shutdown SAM 3.1 predictor (releases GPU worker processes)
+    if hasattr(predictor, "shutdown"):
+        predictor.shutdown()
+
     finish_wandb(wb_run)
     print(f"\nDone: {len(segments)} clips segmented in {elapsed:.0f}s")
     print(f"  Agents detected: {summary['n_total_agents']}")

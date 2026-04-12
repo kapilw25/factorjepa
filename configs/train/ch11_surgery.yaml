@@ -31,7 +31,7 @@ extends: base_optimization.yaml
 # -- Optimization overrides --
 optimization:
   lr: 1.0e-6                      # Same as Ch10 (constant, post-audit)
-  pred_lr_multiplier: 10.0
+  # pred_lr_multiplier inherited from base_optimization.yaml (1.0, gold standard audit)
   layer_wise_lr_decay: true       # Smaller LR for earlier (already-frozen) layers
   layer_wise_lr_decay_factor: 0.75
 
@@ -55,6 +55,10 @@ factor_datasets:
   layout_patch_method: blur            # blur | inpaint
   agent_patch_method: soft_matte       # hard_zero | soft_matte
   soft_matte_factor: 0.1               # Background attenuation (1.0 = no change, 0 = hard zero)
+  blur_sigma: 15.0                     # Gaussian blur sigma for D_L agent suppression
+  feather_sigma: 3.0                   # Mask edge feathering sigma (prevents shortcut learning)
+  min_agent_area_pct: 0.02             # Drop D_A if agent < 2% (degenerate — mostly dark)
+  max_agent_area_pct: 0.70             # Drop D_L if agent > 70% (layout invisible)
 
 # -- Interaction mining (D_I) --
 interaction_mining:
