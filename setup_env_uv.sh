@@ -420,7 +420,7 @@ print(f'PyTorch: {torch.__version__}, CUDA: {torch.version.cuda}, GPU: {torch.cu
     if python -c "import sam3" 2>/dev/null; then
         echo "SAM 3.1 already installed"
     else
-        pip install git+https://github.com/facebookresearch/sam3.git
+        uv pip install git+https://github.com/facebookresearch/sam3.git
     fi
 
     # Final verification

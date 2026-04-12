@@ -48,8 +48,9 @@ torchcodec                   # GPU video decode via NVDEC (5-10x vs PyAV CPU). A
 # =============================================================================
 # Segmentation (m10_sam_segment.py) — SAM 3.1 text-prompted video segmentation
 # =============================================================================
-# sam3 installed from source: pip install git+https://github.com/facebookresearch/sam3.git
+# sam3 installed from source in setup_env_uv.sh step 8 (not on PyPI)
 # Checkpoints gated on HF: huggingface-cli login (accept access at hf.co/facebook/sam3.1)
+einops>=0.6.0                # SAM 3.1 dependency (rope.py uses rearrange/repeat)
 
 # =============================================================================
 # LoRA (m09_pretrain.py --explora) — Parameter-efficient fine-tuning

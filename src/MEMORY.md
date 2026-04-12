@@ -54,25 +54,20 @@ Research benchmark testing if V-JEPA 2 (Meta's video foundation model, trained o
   - LR warmup capped at 10% of total steps
   - `--max-epochs` CLI override for winner deep run
 
-### m10-m11: Surgery Factor Datasets (Ch11, BUILT)
-- **m10_sam_segment.py**: SAM 3.1 text-prompted segmentation → agent/layout masks + interaction mining. Per-clip notable_objects from tags.json. Streaming API (propagate_in_video). Multiplex builder for 3.1.
-- **m11_factor_datasets.py**: Generate D_L (blur agents, feathered edges), D_A (suppress background, soft matte), D_I (interaction tubes from centroids). Quality filters (min 2% / max 70% agent area). All params from ch11_surgery.yaml.
-- **m09 surgery mode**: NOT YET IMPLEMENTED — progressive prefix unfreezing + factor loading blocked. train_surgery.sh has FATAL guard.
+### m10-m11: Surgery Factor Datasets (Ch11, BUILT — untested on GPU)
+- **m10_sam_segment.py** (~595 lines): SAM 3.1 text-prompted segmentation → agent/layout masks + interaction mining. Per-clip notable_objects from tags.json. Streaming API (`handle_stream_request` → `propagate_in_video`). Multiplex builder for 3.1. Quality gate: FATAL if mean_concept_recall < 0.3. Saves `.npz` masks + `segments.json` + `summary.json` + sample plots.
+- **m11_factor_datasets.py** (~515 lines): CPU-only. Generate D_L (blur agents σ=15, feathered edges σ=3), D_A (suppress background, soft matte 10% residual), D_I (interaction tubes from centroids, ≥4 frame runs). Quality filters (min 2% / max 70% agent area). Saves `.npy` per clip + `factor_manifest.json`. All params from ch11_surgery.yaml.
+- **m09 surgery mode** (IMPLEMENTED, untested on GPU): `train_surgery()` function (~270 lines). 3-stage progressive prefix unfreezing: builds `FactorSampler` from `factor_manifest.json`, loads `.npy` factor clips, per-stage optimizer rebuild + warmup. Stages from `ch11_surgery.yaml`: stage1 (layers 0-25%, 100% D_L), stage2 (0-50%, 90% D_A + 10% D_L), stage3 (0-75%, 85% D_I + 10% D_A + 5% D_L). Same V-JEPA 2.1 dense loss.
 
 ### Scripts
-- **scripts/run_evaluate.sh**: Ch9 eval pipeline (m04→m05→m05b→m05c→m04d→m06→m06b→m07→m08→m08b). Hard fail on all errors.
-- **scripts/run_pretrain.sh**: Ch10 training pipeline. Two phases:
-  - Phase 1: 4-lambda ablation sweep (1 epoch each) → m09 train → m05 re-embed → m06 metrics per lambda → m08b compare
-  - Phase 2: Winner selection (best Cycle@K from JSON) → 5-epoch deep run → re-embed → metrics
-  - Auto-detect BS from profiler (75% VRAM, `gpu_gb - headroom`)
-  - Auto-run profiler if `profile_data.json` missing
-  - `PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True` for fragmentation
-  - Hard fail everywhere (no WARNING, no continue, no fallback)
-  - Per-lambda encoder names: `vjepa_lambda0`, `vjepa_lambda0_001`, etc.
-  - Winner saved to `ablation_winner.json` (JSON-to-JSON, no stdout parsing)
-  - MIN_CLIPS from `configs/pipeline.yaml`
-- **scripts/run_surgery.sh**: Ch11 surgery pipeline (empty stub).
-- **scripts/profile_vram.py**: VRAM profiler for ViT-g training. Sweeps batch sizes [1..256], measures with/without gradient checkpointing. Generates 5 diagnostic plots. Uses CWD trick for vjepa2 imports.
+- **scripts/train_explora.sh**: ExPLoRA pipeline: m05(frozen baseline) → m09(ExPLoRA LoRA+unfreeze) → m05(re-embed adapted) → m06(metrics). 3 modes (SANITY/POC/FULL). Auto batch size from profiler, GPU pre-flight, signal trap for clean interrupt. Sources `lib/common.sh`.
+- **scripts/train_surgery.sh**: Ch11 surgery pipeline: m10(SAM3) → m11(factor datasets) → m09(surgery) → m05(re-embed) → m06(eval). Same 3 modes. Factor dir at `${OUT_DIR}/factors/`.
+- **scripts/run_eval.sh**: Standalone eval (reusable across Ch9/Ch10/Ch11). Auto-detects encoders from `embeddings*.npy`. Delegates to `eval_suite.py` which runs m06→m06b→m07→m08→m08b.
+- **scripts/run_embed.sh**: Standalone embedding extraction. Auto-detects adapted models from `m09_*/student_encoder.pt`. Routes to m05 or m05b per encoder type.
+- **scripts/prep_data.sh** (aka run_evaluate.sh): Ch9 data pipeline (m04 tags + m04d motion). Pre-flight GPU checks, optional vLLM backend.
+- **scripts/lib/common.sh**: Shared infrastructure: `log()`, `banner()`, `run_step()` (PIPESTATUS capture, auto HF upload), `bg_upload()`, `start_watchdog()`, `finalize()`.
+- **scripts/run_pretrain.sh** (Ch10, OLD): 4-lambda ablation → winner → 5-epoch deep run. Per-lambda encoder names.
+- **scripts/profile_vram.py**: VRAM profiler for ViT-g training. Sweeps batch sizes [1..256]. Generates 5 diagnostic plots.
 
 ### Utils
 - **utils/config.py** (~600 lines): Paths, constants, `get_pipeline_config()` (cached YAML reader), `get_sanity_clip_limit(module)`, `get_total_clips(local_data, subset_file)`. ENCODER_REGISTRY with dynamic fallback for lambda variants. `FAISS_K_NEIGHBORS`, `DEFAULT_BATCH_SIZE`, `DEFAULT_NUM_WORKERS`, `BAKEOFF_CLIP_COUNT` all from YAML.
@@ -110,7 +105,7 @@ Phase 2: Winner → m09 deep train (5ep) → m05 re-embed → m06 metrics
 Phase 3: m06b temporal → m05 shuffled adapted → m06 shuffled → m07 UMAP → m08 plots → m08b compare (7 encoders)
 ```
 
-## Current Status (updated 2026-04-11)
+## Current Status (updated 2026-04-12)
 - **Ch9: COMPLETE** — 5-encoder comparison on 10K POC. Baseline: Prec@K=36.1% (frozen V-JEPA)
   - **Key finding: shuffled > normal V-JEPA by 2.4x** → temporal interference (temporal encoding HURTS spatial retrieval)
 - **Ch10 (10K POC): DONE** — Pipeline validated, Prec@K 36.14% vs 36.09% (**noise**, 10K insufficient)
@@ -125,7 +120,14 @@ Phase 3: m06b temporal → m05 shuffled adapted → m06 shuffled → m07 UMAP �
   - λ=100 Ch10 = parallel ablation, NOT prerequisite
   - Idea Critic verdict: **PURSUE** (upgraded from REFINE)
   - Full plan: `iter/iter8/plan_training.md` | Action items: `iter/iter8/next_steps.md`
-- **Ch11: m10 + m11 BUILT, m09 surgery BLOCKED** — SAM 3.1 segmentation + factor datasets ready. m09 progressive unfreezing + factor loading not implemented. ExPLoRA ready to run NOW.
+- **Ch11: ALL CODE BUILT, UNTESTED ON GPU** (2026-04-12)
+  - m10 SAM 3.1 segmentation: DONE (595 lines)
+  - m11 factor datasets: DONE (515 lines)
+  - m09 surgery mode (`train_surgery()`): DONE (~270 lines, `FactorSampler` + `load_factor_clip` + 3-stage loop)
+  - m09 ExPLoRA mode: DONE (LoRA injection + block freeze)
+  - train_explora.sh + train_surgery.sh: DONE (full pipelines with common.sh infra)
+  - **GPU instance provisioned**: RTX PRO 6000 Blackwell 96GB, env setup complete, HF data synced
+  - **Next**: Execute runbook Steps A-E (SANITY), then POC — per `iter/iter8/runbook.md`
 
 ## Data Download Times (measured, RTX PRO 6000 instance, April 2026)
 
