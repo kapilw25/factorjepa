@@ -1,195 +1,0 @@
-GPU: NVIDIA RTX PRO 6000 Blackwell Workstation Edition
-CUDA version: 12.8
-wandb: [wandb.login()] Loaded credentials for https://api.wandb.ai from WANDB_API_KEY.
-wandb: Currently logged in as: kapilw25 (sjsu_llm) to https://api.wandb.ai. Use `wandb login --relogin` to force relogin
-wandb: WARNING Using a boolean value for 'reinit' is deprecated. Use 'return_previous' or 'finish_previous' instead.
-wandb: setting up run p2kzyfgz
-wandb: Tracking run with wandb version 0.25.1
-wandb: Run data is saved locally in /workspace/factorjepa/wandb/run-20260405_151002-p2kzyfgz
-wandb: Run `wandb offline` to turn off syncing.
-wandb: Syncing run m06_POC
-wandb: ⭐️ View project at https://wandb.ai/sjsu_llm/walkindia-200k
-wandb: 🚀 View run at https://wandb.ai/sjsu_llm/walkindia-200k/runs/p2kzyfgz
-wandb: run=m06_POC url=https://wandb.ai/sjsu_llm/walkindia-200k/runs/p2kzyfgz
-[output_guard] m06 clip: attempting HF download for 2 missing file(s)...
-Downloading anonymousML123/factorjepa-outputs//workspace/factorjepa/outputs/poc/ → /workspace/factorjepa/outputs/poc
-
-Download complete: 0s
-  Files: 0 new, 0 updated, 114 unchanged
-  Downloaded: 0.00 GB
-[output_guard] m06 clip: 2 file(s) still missing after HF download
-[output_guard] m06 clip: outputs missing or invalid — will re-compute
-  MISS  metrics: m06_metrics_clip.json
-  MISS  knn_indices: knn_indices_clip.npy
-Encoder:     clip (dim=768, type=image)
-Output dir:  /workspace/factorjepa/outputs/poc
-Embeddings:  /workspace/factorjepa/outputs/poc/embeddings_clip.npy
-Metrics:     /workspace/factorjepa/outputs/poc/m06_metrics_clip.json
-Loaded embeddings: (10000, 768)
-Loaded tags: 10,000
-Loaded clip paths: 10,000
-WARNING: Tags lack _clip_key field — cannot verify alignment. Results may be wrong if tags and embeddings are from different runs.
-Building FAISS GPU index: 10,000 vectors, dim=768
-FAISS GPU index built: 10,000 vectors
-
-Searching 30 neighbors (k=6, extra for Hard mode)...
-m06_modes:   0%|          | 0/2 [00:00<?, ?mode/s]
-==================================================
-EASY MODE (k=6)
-==================================================
-  Cycle@K:     65.17%
-  DimConsist@K: 47.06% ± 0.62 (dim-split, NOT augmentation invariance)
-  Silhouette:  -0.0470 (scene_type)
-/workspace/factorjepa/src/utils/bootstrap.py:122: RuntimeWarning: invalid value encountered in divide
-  scores = np.where(totals > 0, hits / totals * 100, 0.0)
-  Prec@K:      46.00%
-  mAP@K:       0.3816
-/workspace/factorjepa/src/utils/bootstrap.py:212: RuntimeWarning: invalid value encountered in divide
-  scores = np.where(idcg > 0, dcg / idcg, np.nan)
-  nDCG@K:      0.9583
-  Computing per-key breakdowns for 13 fields...
-
-m06_easy_perkey:   0%|          | 0/65 [00:00<?, ?field/s][A
-m06_easy_perkey:   2%|▏         | 1/65 [00:00<00:33,  1.90field/s][A
-m06_easy_perkey:   3%|▎         | 2/65 [00:01<00:37,  1.68field/s][A
-m06_easy_perkey:   5%|▍         | 3/65 [00:01<00:37,  1.66field/s][A
-m06_easy_perkey:   6%|▌         | 4/65 [00:02<00:36,  1.67field/s][A
-m06_easy_perkey:   8%|▊         | 5/65 [00:02<00:35,  1.69field/s][A
-m06_easy_perkey:   9%|▉         | 6/65 [00:03<00:34,  1.71field/s][A
-m06_easy_perkey:  11%|█         | 7/65 [00:04<00:34,  1.69field/s][A
-m06_easy_perkey:  12%|█▏        | 8/65 [00:04<00:33,  1.70field/s][A
-m06_easy_perkey:  14%|█▍        | 9/65 [00:05<00:33,  1.68field/s][A
-m06_easy_perkey:  15%|█▌        | 10/65 [00:05<00:32,  1.68field/s][A
-m06_easy_perkey:  17%|█▋        | 11/65 [00:06<00:31,  1.71field/s][A
-m06_easy_perkey:  18%|█▊        | 12/65 [00:07<00:31,  1.66field/s][A
-m06_easy_perkey:  20%|██        | 13/65 [00:07<00:31,  1.67field/s][A  Silhouette per-key: infrastructure_quality=0.0482, road_encroachment=0.0116, video_quality=0.0104 ...
-/workspace/factorjepa/src/utils/bootstrap.py:122: RuntimeWarning: invalid value encountered in divide
-  scores = np.where(totals > 0, hits / totals * 100, 0.0)
-  Prec@K per-key: time_of_day=92.85%, lighting=91.11%, infrastructure_quality=77.35% ...
-  mAP@K per-key: time_of_day=0.9109, lighting=0.8902, infrastructure_quality=0.7142 ...
-  Cycle@K per-key: computed for 13 fields
-
-m06_easy_perkey:  86%|████████▌ | 56/65 [00:07<00:00, 30.34field/s][Am06_easy_perkey: 100%|██████████| 65/65 [00:07<00:00,  8.20field/s]
-  Macro avg:   33.34%
-  Micro avg:   46.02%
-  Bootstrap 95% CI (BCa, 10K iterations)...
-/workspace/factorjepa/src/utils/bootstrap.py:212: RuntimeWarning: invalid value encountered in divide
-  scores = np.where(idcg > 0, dcg / idcg, np.nan)
-  Prec@K:  46.00% ± 0.68
-  mAP@K:   0.3816 ± 0.0069
-  Cycle@K: 0.65% ± 0.01
-  nDCG@K:  0.9583 ± 0.0007
-  [12.1s]
-m06_modes:  50%|█████     | 1/2 [00:12<00:12, 12.05s/mode]Hard mode exclusion: 5,657 clips affected (avg 2.5 excluded neighbors)
-
-==================================================
-HARD MODE (k=6)
-==================================================
-  Cycle@K:     62.17%
-  DimConsist@K: 47.06% ± 0.62 (dim-split, NOT augmentation invariance)
-  Silhouette:  -0.0470 (scene_type)
-/workspace/factorjepa/src/utils/bootstrap.py:122: RuntimeWarning: invalid value encountered in divide
-  scores = np.where(totals > 0, hits / totals * 100, 0.0)
-  Prec@K:      44.84%
-  mAP@K:       0.3684
-/workspace/factorjepa/src/utils/bootstrap.py:212: RuntimeWarning: invalid value encountered in divide
-  scores = np.where(idcg > 0, dcg / idcg, np.nan)
-  nDCG@K:      0.9567
-  Computing per-key breakdowns for 13 fields...
-
-m06_hard_perkey:   0%|          | 0/65 [00:00<?, ?field/s][A
-m06_hard_perkey:   2%|▏         | 1/65 [00:00<00:33,  1.90field/s][A
-m06_hard_perkey:   3%|▎         | 2/65 [00:01<00:37,  1.69field/s][A
-m06_hard_perkey:   5%|▍         | 3/65 [00:01<00:37,  1.67field/s][A
-m06_hard_perkey:   6%|▌         | 4/65 [00:02<00:36,  1.68field/s][A
-m06_hard_perkey:   8%|▊         | 5/65 [00:02<00:35,  1.70field/s][A
-m06_hard_perkey:   9%|▉         | 6/65 [00:03<00:34,  1.72field/s][A
-m06_hard_perkey:  11%|█         | 7/65 [00:04<00:34,  1.70field/s][A
-m06_hard_perkey:  12%|█▏        | 8/65 [00:04<00:33,  1.71field/s][A
-m06_hard_perkey:  14%|█▍        | 9/65 [00:05<00:33,  1.69field/s][A
-m06_hard_perkey:  15%|█▌        | 10/65 [00:05<00:32,  1.68field/s][A
-m06_hard_perkey:  17%|█▋        | 11/65 [00:06<00:31,  1.72field/s][A
-m06_hard_perkey:  18%|█▊        | 12/65 [00:07<00:31,  1.67field/s][A
-m06_hard_perkey:  20%|██        | 13/65 [00:07<00:30,  1.68field/s][A  Silhouette per-key: infrastructure_quality=0.0482, road_encroachment=0.0116, video_quality=0.0104 ...
-/workspace/factorjepa/src/utils/bootstrap.py:122: RuntimeWarning: invalid value encountered in divide
-  scores = np.where(totals > 0, hits / totals * 100, 0.0)
-  Prec@K per-key: time_of_day=92.45%, lighting=90.72%, infrastructure_quality=76.76% ...
-  mAP@K per-key: time_of_day=0.9065, lighting=0.8860, infrastructure_quality=0.7068 ...
-  Cycle@K per-key: computed for 13 fields
-
-m06_hard_perkey:  85%|████████▍ | 55/65 [00:07<00:00, 29.92field/s][Am06_hard_perkey: 100%|██████████| 65/65 [00:07<00:00,  8.22field/s]
-  Macro avg:   30.46%
-  Micro avg:   44.86%
-  Bootstrap 95% CI (BCa, 10K iterations)...
-/workspace/factorjepa/src/utils/bootstrap.py:212: RuntimeWarning: invalid value encountered in divide
-  scores = np.where(idcg > 0, dcg / idcg, np.nan)
-  Prec@K:  44.84% ± 0.68
-  mAP@K:   0.3684 ± 0.0069
-  Cycle@K: 0.62% ± 0.01
-  nDCG@K:  0.9567 ± 0.0007
-  [11.8s]
-m06_modes: 100%|██████████| 2/2 [00:23<00:00, 11.95s/mode]m06_modes: 100%|██████████| 2/2 [00:23<00:00, 11.97s/mode]
-
-Confidence sweep: 7 thresholds
-
-Saved: /workspace/factorjepa/outputs/poc/m06_metrics_clip.json
-Saved: /workspace/factorjepa/outputs/poc/knn_indices_clip.npy ((10000, 7))
-Saved: /workspace/factorjepa/outputs/poc/m06_distance_hist.png
-Saved: /workspace/factorjepa/outputs/poc/m06_confidence_sweep.png
-Saved: /workspace/factorjepa/outputs/poc/m06_purity_all_keys.png
-Saved: /workspace/factorjepa/outputs/poc/m06_silhouette_per_key.png
-Saved: /workspace/factorjepa/outputs/poc/m06_map_per_key.png
-Saved: /workspace/factorjepa/outputs/poc/m06_cycle_per_key.png
-Saved: /workspace/factorjepa/outputs/poc/m06_map_per_value.png
-Saved: /workspace/factorjepa/outputs/poc/m06_metrics_by_key.png
-Saved: /workspace/factorjepa/outputs/poc/m06_radar.png
-
-============================================================
-                     EVALUATION SUMMARY                     
-============================================================
-Metric                     Easy       Hard
-------------------------------------------
-  Cycle At K              65.17      62.17
-  Dim Consistency At K      47.06      47.06
-  Silhouette            -0.0470    -0.0470
-  Prec At K               46.00      44.84
-  Map At K               0.3816     0.3684
-  Ndcg At K              0.9583     0.9567
-
-  Macro Prec@K:  Easy=33.34%  Hard=30.46%
-  Micro Prec@K:  Easy=46.02%  Hard=44.86%
-wandb: uploading artifact metrics; updating run metadata
-wandb: uploading artifact metrics
-wandb: uploading media/images/m06_purity_all_keys_clip_23_bdc575b8e8666143cb17.png; uploading media/images/m06_map_per_key_clip_25_81572a92b7f59c143c69.png; uploading media/images/m06_cycle_per_key_clip_26_6f654a6b3e8fb4704e01.png; uploading media/images/m06_metrics_by_key_clip_28_2130e3885c8bc6694f1e.png; uploading config.yaml (+ 7 more)
-wandb: uploading media/images/m06_purity_all_keys_clip_23_bdc575b8e8666143cb17.png; uploading media/images/m06_radar_clip_29_21039a7ac3c80f3ff88d.png
-wandb: 
-wandb: Run history:
-wandb:  confidence_sweep/coverage ██████▁
-wandb: confidence_sweep/prec_at_k ▁▁▁▁▁▁▁
-wandb: confidence_sweep/threshold ▁▂▃▅▆▇█
-wandb:            easy/cycle_at_k ▁
-wandb:  easy/dim_consistency_at_k ▁
-wandb:       easy/macro_prec_at_k ▁
-wandb:              easy/map_at_k ▁
-wandb:       easy/micro_prec_at_k ▁
-wandb:             easy/ndcg_at_k ▁
-wandb:             easy/prec_at_k ▁
-wandb:                         +9 ...
-wandb: 
-wandb: Run summary:
-wandb:  confidence_sweep/coverage 0.9982
-wandb: confidence_sweep/prec_at_k 46.03
-wandb: confidence_sweep/threshold 0.9
-wandb:            easy/cycle_at_k 65.17
-wandb:  easy/dim_consistency_at_k 47.06
-wandb:       easy/macro_prec_at_k 33.34
-wandb:              easy/map_at_k 0.3816
-wandb:       easy/micro_prec_at_k 46.02
-wandb:             easy/ndcg_at_k 0.9583
-wandb:             easy/prec_at_k 46
-wandb:                         +9 ...
-wandb: 
-wandb: 🚀 View run m06_POC at: https://wandb.ai/sjsu_llm/walkindia-200k/runs/p2kzyfgz
-wandb: ⭐️ View project at: https://wandb.ai/sjsu_llm/walkindia-200k
-wandb: Synced 5 W&B file(s), 9 media file(s), 2 artifact file(s) and 0 other file(s)
-wandb: Find logs at: ./wandb/run-20260405_151002-p2kzyfgz/logs

@@ -1,7 +1,0 @@
-[14:54:42] GPU watchdog started (PID=3155253)
-[14:54:42] Auto-detected encoders: vjepa,clip,dinov2,random,vjepa_lambda0_001,vjepa_shuffled
-[14:54:42] === EVALUATION PIPELINE (mode=POC) ===
-[14:54:42] Output dir: outputs/poc
-[14:54:42] Encoders:   vjepa,clip,dinov2,random,vjepa_lambda0_001,vjepa_shuffled
-[14:54:42] Master log: logs/eval_POC_20260405_145442.log
-[14:54:42] Tags: 10000 clips in outputs/poc/tags.json

@@ -1,68 +1,0 @@
-Output dir: /workspace/factorjepa/outputs/poc
-Scanning for encoder metrics...
-  Loaded: vjepa (m06_metrics.json)
-  Loaded: clip (m06_metrics_clip.json)
-  Loaded: dinov2 (m06_metrics_dinov2.json)
-  Loaded: random (m06_metrics_random.json)
-  Loaded: vjepa_lambda0_001 (m06_metrics_vjepa_lambda0_001.json)
-  Loaded: vjepa_shuffled (m06_metrics_vjepa_shuffled.json)
-  Loaded temporal: vjepa (m06b_temporal_corr.json)
-  Loaded temporal: clip (m06b_temporal_corr_clip.json)
-  Loaded temporal: dinov2 (m06b_temporal_corr_dinov2.json)
-  Loaded temporal: random (m06b_temporal_corr_random.json)
-  Loaded temporal: vjepa_lambda0_001 (m06b_temporal_corr_vjepa_lambda0_001.json)
-  Loaded temporal: vjepa_shuffled (m06b_temporal_corr_vjepa_shuffled.json)
-
-Found 6 encoder(s): vjepa, clip, dinov2, random, vjepa_lambda0_001, vjepa_shuffled
-Found 6 temporal result(s): vjepa, clip, dinov2, random, vjepa_lambda0_001, vjepa_shuffled
-wandb: [wandb.login()] Loaded credentials for https://api.wandb.ai from WANDB_API_KEY.
-wandb: Currently logged in as: kapilw25 (sjsu_llm) to https://api.wandb.ai. Use `wandb login --relogin` to force relogin
-wandb: WARNING Using a boolean value for 'reinit' is deprecated. Use 'return_previous' or 'finish_previous' instead.
-wandb: setting up run xtda0hmv
-wandb: Tracking run with wandb version 0.25.1
-wandb: Run data is saved locally in /workspace/factorjepa/wandb/run-20260405_151835-xtda0hmv
-wandb: Run `wandb offline` to turn off syncing.
-wandb: Syncing run m08b_POC
-wandb: ⭐️ View project at https://wandb.ai/sjsu_llm/walkindia-200k
-wandb: 🚀 View run at https://wandb.ai/sjsu_llm/walkindia-200k/runs/xtda0hmv
-wandb: run=m08b_POC url=https://wandb.ai/sjsu_llm/walkindia-200k/runs/xtda0hmv
-
-================================================================================
-                               ENCODER COMPARISON                               
-================================================================================
-Encoder              Dim  Cycle@K (%) DimConsist@K (%)   Prec@K (%)        mAP@K       nDCG@K   Silhouette
-----------------------------------------------------------------------------------------------------------
-vjepa               1408        76.01        36.05        36.09       0.2778       0.9502      -0.2291
-clip                 768        65.17        47.06        46.00       0.3816       0.9583      -0.0470
-dinov2              1536        66.77        60.90        50.47       0.4271       0.9577      -0.0574
-random              1408        66.15         0.00        11.87       0.0590       0.8956      -0.0303
-vjepa_lambda0_001   1408        75.48        35.69        14.31       0.0799       0.9057      -0.3078
-vjepa_shuffled      1408        76.19        35.32        35.33       0.2724       0.9500      -0.2245
-
---- Easy Mode (above) ---
-
---- Hard Mode ---
-vjepa               1408        73.56        36.05        34.69       0.2628       0.9479      -0.2291
-clip                 768        62.17        47.06        44.84       0.3684       0.9567      -0.0470
-dinov2              1536        63.55        60.90        49.49       0.4159       0.9554      -0.0574
-random              1408        66.15         0.00        11.86       0.0590       0.8956      -0.0303
-vjepa_lambda0_001   1408        72.89        35.69        13.54       0.0724       0.9020      -0.3078
-vjepa_shuffled      1408        74.19        35.32        34.07       0.2594       0.9479      -0.2245
-m08b_compare:   0%|          | 0/8 [00:00<?, ?plot/s]Saved: /workspace/factorjepa/outputs/poc/m08b_encoder_comparison.png
-m08b_compare:  12%|█▎        | 1/8 [00:00<00:03,  1.77plot/s]Saved: /workspace/factorjepa/outputs/poc/m08b_radar.png
-m08b_compare:  25%|██▌       | 2/8 [00:00<00:02,  2.57plot/s]Saved: /workspace/factorjepa/outputs/poc/m08b_comparison_table.tex
-Saved: /workspace/factorjepa/outputs/poc/m08b_spatial_temporal_bar.png
-m08b_compare:  50%|█████     | 4/8 [00:01<00:01,  2.45plot/s]Saved: /workspace/factorjepa/outputs/poc/m08b_tradeoff_scatter.png
-m08b_compare:  62%|██████▎   | 5/8 [00:01<00:01,  2.95plot/s]Saved: /workspace/factorjepa/outputs/poc/m08b_temporal_ablation.png
-m08b_compare:  75%|███████▌  | 6/8 [00:02<00:00,  2.15plot/s]Saved: /workspace/factorjepa/outputs/poc/m08b_adaptation_ablation.png
-m08b_compare:  88%|████████▊ | 7/8 [00:03<00:00,  1.78plot/s]Saved: /workspace/factorjepa/outputs/poc/m08b_heatmap.png
-m08b_compare: 100%|██████████| 8/8 [00:03<00:00,  2.12plot/s]m08b_compare: 100%|██████████| 8/8 [00:03<00:00,  2.19plot/s]
-wandb: updating run metadata
-wandb: uploading media/images/m08b_encoder_comparison_0_5110f7cdab4e6af642ac.png; uploading media/images/m08b_spatial_temporal_bar_2_d2dfc0c7ee642a9ef220.png; uploading media/images/m08b_tradeoff_scatter_3_e1e62c3884bb5aa226ea.png; uploading media/images/m08b_heatmap_6_f610a84c0fbb80476ef9.png; uploading media/images/m08b_radar_1_127fd7d83dc36e808308.png (+ 2 more)
-wandb: uploading history steps 0-6, summary, console lines 2-31
-wandb: 🚀 View run m08b_POC at: https://wandb.ai/sjsu_llm/walkindia-200k/runs/xtda0hmv
-wandb: ⭐️ View project at: https://wandb.ai/sjsu_llm/walkindia-200k
-wandb: Synced 5 W&B file(s), 7 media file(s), 0 artifact file(s) and 0 other file(s)
-wandb: Find logs at: ./wandb/run-20260405_151835-xtda0hmv/logs
-
-=== COMPARISON COMPLETE ===

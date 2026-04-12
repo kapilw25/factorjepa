@@ -1,190 +1,0 @@
-[15:08:15] GPU watchdog started (PID=3161539)
-[15:08:15] Auto-detected encoders: vjepa,clip,dinov2,random,vjepa_lambda0_001,vjepa_shuffled
-[15:08:15] === EVALUATION PIPELINE (mode=POC) ===
-[15:08:15] Output dir: outputs/poc
-[15:08:15] Encoders:   vjepa,clip,dinov2,random,vjepa_lambda0_001,vjepa_shuffled
-[15:08:15] Master log: logs/eval_POC_20260405_150815.log
-[15:08:15] Tags: 10000 clips in outputs/poc/tags.json
-[15:08:15] Starting evaluation for 6 encoders...
-
-═══════════════════════════════════════════════════════════════
-  STEP eval: eval suite (vjepa clip dinov2 random vjepa_lambda0_001 vjepa_shuffled)
-  Mode: POC | Est: ~30-120 min
-  Started: 2026-04-05 15:08:15
-═══════════════════════════════════════════════════════════════
-[15:08:15] CMD: python -u src/utils/eval_suite.py --encoders vjepa,clip,dinov2,random,vjepa_lambda0_001,vjepa_shuffled --compare-encoders vjepa,clip,dinov2,random,vjepa_lambda0_001,vjepa_shuffled --POC --log-dir logs --log-prefix eval_poc
-eval_suite:   0%|          | 0/25 [00:00<?, ?step/s]
-============================================================
-  EVAL SUITE: vjepa
-============================================================
-
-  --- m06 FAISS metrics (vjepa) ---
-
-  CMD: /workspace/factorjepa/venv_walkindia/bin/python -u src/m06_faiss_metrics.py --encoder vjepa --POC
-  PASSED: m06 vjepa (43s)
-eval_suite:   4%|▍         | 1/25 [00:43<17:14, 43.10s/step]
-  --- m06b temporal correlation (vjepa) ---
-
-  CMD: /workspace/factorjepa/venv_walkindia/bin/python -u src/m06b_temporal_corr.py --encoder vjepa --POC
-  PASSED: m06b vjepa (24s)
-eval_suite:   8%|▊         | 2/25 [01:06<12:08, 31.66s/step]
-  --- m07 UMAP (vjepa) ---
-
-  CMD: /workspace/factorjepa/venv_walkindia/bin/python -u src/m07_umap.py --encoder vjepa --POC
-  PASSED: m07 vjepa (10s)
-eval_suite:  12%|█▏        | 3/25 [01:16<07:57, 21.68s/step]
-  --- m08 plots (vjepa) ---
-
-  CMD: /workspace/factorjepa/venv_walkindia/bin/python -u src/m08_plot.py --encoder vjepa --POC
-  PASSED: m08 vjepa (27s)
-eval_suite:  16%|█▌        | 4/25 [01:44<08:23, 23.97s/step]
-============================================================
-  EVAL SUITE: clip
-============================================================
-
-  --- m06 FAISS metrics (clip) ---
-
-  CMD: /workspace/factorjepa/venv_walkindia/bin/python -u src/m06_faiss_metrics.py --encoder clip --POC
-  PASSED: m06 clip (41s)
-eval_suite:  20%|██        | 5/25 [02:25<10:05, 30.28s/step]
-  --- m06b temporal correlation (clip) ---
-
-  CMD: /workspace/factorjepa/venv_walkindia/bin/python -u src/m06b_temporal_corr.py --encoder clip --POC
-  PASSED: m06b clip (23s)
-eval_suite:  24%|██▍       | 6/25 [02:48<08:49, 27.85s/step]
-  --- m07 UMAP (clip) ---
-
-  CMD: /workspace/factorjepa/venv_walkindia/bin/python -u src/m07_umap.py --encoder clip --POC
-  PASSED: m07 clip (10s)
-eval_suite:  28%|██▊       | 7/25 [02:58<06:33, 21.87s/step]
-  --- m08 plots (clip) ---
-
-  CMD: /workspace/factorjepa/venv_walkindia/bin/python -u src/m08_plot.py --encoder clip --POC
-  PASSED: m08 clip (26s)
-eval_suite:  32%|███▏      | 8/25 [03:24<06:36, 23.31s/step]
-============================================================
-  EVAL SUITE: dinov2
-============================================================
-
-  --- m06 FAISS metrics (dinov2) ---
-
-  CMD: /workspace/factorjepa/venv_walkindia/bin/python -u src/m06_faiss_metrics.py --encoder dinov2 --POC
-  PASSED: m06 dinov2 (43s)
-eval_suite:  36%|███▌      | 9/25 [04:07<07:52, 29.53s/step]
-  --- m06b temporal correlation (dinov2) ---
-
-  CMD: /workspace/factorjepa/venv_walkindia/bin/python -u src/m06b_temporal_corr.py --encoder dinov2 --POC
-  PASSED: m06b dinov2 (24s)
-eval_suite:  40%|████      | 10/25 [04:31<06:55, 27.69s/step]
-  --- m07 UMAP (dinov2) ---
-
-  CMD: /workspace/factorjepa/venv_walkindia/bin/python -u src/m07_umap.py --encoder dinov2 --POC
-  PASSED: m07 dinov2 (10s)
-eval_suite:  44%|████▍     | 11/25 [04:41<05:11, 22.27s/step]
-  --- m08 plots (dinov2) ---
-
-  CMD: /workspace/factorjepa/venv_walkindia/bin/python -u src/m08_plot.py --encoder dinov2 --POC
-  PASSED: m08 dinov2 (26s)
-eval_suite:  48%|████▊     | 12/25 [05:07<05:04, 23.45s/step]
-============================================================
-  EVAL SUITE: random
-============================================================
-
-  --- m06 FAISS metrics (random) ---
-
-  CMD: /workspace/factorjepa/venv_walkindia/bin/python -u src/m06_faiss_metrics.py --encoder random --POC
-  PASSED: m06 random (43s)
-eval_suite:  52%|█████▏    | 13/25 [05:50<05:52, 29.34s/step]
-  --- m06b temporal correlation (random) ---
-
-  CMD: /workspace/factorjepa/venv_walkindia/bin/python -u src/m06b_temporal_corr.py --encoder random --POC
-  PASSED: m06b random (23s)
-eval_suite:  56%|█████▌    | 14/25 [06:13<05:02, 27.50s/step]
-  --- m07 UMAP (random) ---
-
-  CMD: /workspace/factorjepa/venv_walkindia/bin/python -u src/m07_umap.py --encoder random --POC
-  PASSED: m07 random (10s)
-eval_suite:  60%|██████    | 15/25 [06:23<03:41, 22.16s/step]
-  --- m08 plots (random) ---
-
-  CMD: /workspace/factorjepa/venv_walkindia/bin/python -u src/m08_plot.py --encoder random --POC
-  PASSED: m08 random (28s)
-eval_suite:  64%|██████▍   | 16/25 [06:51<03:34, 23.86s/step]
-============================================================
-  EVAL SUITE: vjepa_lambda0_001
-============================================================
-
-  --- m06 FAISS metrics (vjepa_lambda0_001) ---
-
-  CMD: /workspace/factorjepa/venv_walkindia/bin/python -u src/m06_faiss_metrics.py --encoder vjepa_lambda0_001 --POC
-  PASSED: m06 vjepa_lambda0_001 (43s)
-eval_suite:  68%|██████▊   | 17/25 [07:34<03:57, 29.69s/step]
-  --- m06b temporal correlation (vjepa_lambda0_001) ---
-
-  CMD: /workspace/factorjepa/venv_walkindia/bin/python -u src/m06b_temporal_corr.py --encoder vjepa_lambda0_001 --POC
-  PASSED: m06b vjepa_lambda0_001 (23s)
-eval_suite:  72%|███████▏  | 18/25 [07:57<03:13, 27.71s/step]
-  --- m07 UMAP (vjepa_lambda0_001) ---
-
-  CMD: /workspace/factorjepa/venv_walkindia/bin/python -u src/m07_umap.py --encoder vjepa_lambda0_001 --POC
-  PASSED: m07 vjepa_lambda0_001 (10s)
-eval_suite:  76%|███████▌  | 19/25 [08:07<02:14, 22.46s/step]
-  --- m08 plots (vjepa_lambda0_001) ---
-
-  CMD: /workspace/factorjepa/venv_walkindia/bin/python -u src/m08_plot.py --encoder vjepa_lambda0_001 --POC
-  PASSED: m08 vjepa_lambda0_001 (27s)
-eval_suite:  80%|████████  | 20/25 [08:35<01:59, 23.92s/step]
-============================================================
-  EVAL SUITE: vjepa_shuffled
-============================================================
-
-  --- m06 FAISS metrics (vjepa_shuffled) ---
-
-  CMD: /workspace/factorjepa/venv_walkindia/bin/python -u src/m06_faiss_metrics.py --encoder vjepa_shuffled --POC
-  PASSED: m06 vjepa_shuffled (44s)
-eval_suite:  84%|████████▍ | 21/25 [09:18<01:59, 29.80s/step]
-  --- m06b temporal correlation (vjepa_shuffled) ---
-
-  CMD: /workspace/factorjepa/venv_walkindia/bin/python -u src/m06b_temporal_corr.py --encoder vjepa_shuffled --POC
-  PASSED: m06b vjepa_shuffled (23s)
-eval_suite:  88%|████████▊ | 22/25 [09:41<01:23, 27.73s/step]
-  --- m07 UMAP (vjepa_shuffled) ---
-
-  CMD: /workspace/factorjepa/venv_walkindia/bin/python -u src/m07_umap.py --encoder vjepa_shuffled --POC
-  PASSED: m07 vjepa_shuffled (10s)
-eval_suite:  92%|█████████▏| 23/25 [09:51<00:44, 22.41s/step]
-  --- m08 plots (vjepa_shuffled) ---
-
-  CMD: /workspace/factorjepa/venv_walkindia/bin/python -u src/m08_plot.py --encoder vjepa_shuffled --POC
-  PASSED: m08 vjepa_shuffled (27s)
-eval_suite:  96%|█████████▌| 24/25 [10:18<00:23, 23.83s/step]
-============================================================
-  m08b COMPARE: vjepa,clip,dinov2,random,vjepa_lambda0_001,vjepa_shuffled
-============================================================
-
-  CMD: /workspace/factorjepa/venv_walkindia/bin/python -u src/m08b_compare.py --encoders vjepa,clip,dinov2,random,vjepa_lambda0_001,vjepa_shuffled --POC
-  PASSED: m08b compare (8s)
-eval_suite: 100%|██████████| 25/25 [10:27<00:00, 19.22s/step]eval_suite: 100%|██████████| 25/25 [10:27<00:00, 25.09s/step]
-
-============================================================
-  EVAL SUITE COMPLETE
-  Encoders: vjepa, clip, dinov2, random, vjepa_lambda0_001, vjepa_shuffled
-  Steps: 25 passed, 0 failed, 25 total
-  Time: 627s (10.5 min)
-============================================================
-[15:18:43] PASSED: eval suite (vjepa clip dinov2 random vjepa_lambda0_001 vjepa_shuffled) (10m 28s)
-[15:18:43] HF upload started in background (PID=3166804)
-[15:19:14] HF upload started in background (PID=3167018)
-
-═══════════════════════════════════════════════════════════════
-  Eval PIPELINE COMPLETE
-═══════════════════════════════════════════════════════════════
-  Mode:       POC
-  Total:      0h 10m 59s
-  Steps:      1 passed, 0 failed, 1 total
-  Outputs:    outputs/poc/
-  Master log: logs/eval_POC_20260405_150815.log
-═══════════════════════════════════════════════════════════════
-[15:19:14] Waiting for final HF upload...
-[15:19:20] Final HF upload complete
-[15:19:20] GPU watchdog stopped
