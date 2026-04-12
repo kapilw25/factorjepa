@@ -1,0 +1,58 @@
+# ExPLoRA: Parameter-Efficient Extended Pre-Training to Adapt ViTs under Domain Shifts
+# ICML 2025 — https://arxiv.org/abs/2406.10973
+#
+# Recipe: Freeze all blocks EXCEPT first 1-2 + add LoRA (rank 8-16) on remaining blocks
+# + continue same SSL objective (JEPA loss) on new domain.
+#
+# Result on DINOv2 + satellite: +8% linear probing accuracy with <10% trainable params.
+# Outperformed full fine-tuning. Our hypothesis: same wins on V-JEPA + Indian streets.
+#
+# Status (Week 1): This is the BASELINE that Ch11 factor surgery must beat.
+# If ExPLoRA alone improves Prec@K, we have a publishable result in 3h GPU.
+#
+# USAGE:
+#   python -u src/m09_pretrain.py \
+#       --model-config configs/model/vjepa2_1.yaml \
+#       --train-config configs/train/explora.yaml \
+#       --FULL --subset data/subset_10k.json --local-data data/subset_10k_local
+
+extends: base_optimization.yaml
+
+# -- Optimization overrides --
+optimization:
+  # ExPLoRA can use slightly higher LR than full fine-tuning (smaller param surface)
+  lr: 1.0e-5
+  pred_lr_multiplier: 10.0        # Predictor LR = 1e-4
+
+  max_epochs:
+    sanity: 1
+    poc: 5
+    full: 5
+
+  batch_size: 32                  # Auto-overridden by profiler
+
+# -- ExPLoRA configuration --
+explora:
+  enabled: true                   # Toggle: false = standard full training
+  unfreeze_blocks: 2              # Unfreeze first N blocks (ExPLoRA recipe: 1-2)
+  unfreeze_norm_layers: true      # Always unfreeze LayerNorm (ExPLoRA requirement)
+
+  # LoRA parameters (applied to all FROZEN blocks)
+  lora_rank: 16                   # 8-32 typical
+  lora_alpha: 32                  # Scaling, typically 2x rank
+  lora_dropout: 0.0               # Zero for SSL (no overfitting risk)
+  lora_target_modules:
+    - qkv                         # Fused Q/K/V attention
+    - proj                        # Attention output projection
+
+  # PEFT library (preferred). If incompatible with vjepa2 custom ViT,
+  # fallback to manual LoRALinear wrapper (~30 lines, no external dep).
+  use_peft: true
+
+# -- Drift control: DISABLED for ExPLoRA --
+# LoRA params are auto-excluded from compute_drift_loss() because they don't exist
+# in init_params dict (created BEFORE LoRA injection). Frozen block params are
+# anchored by requires_grad=False, so drift control is redundant.
+drift_control:
+  enabled: false
+  lambda_reg: 0

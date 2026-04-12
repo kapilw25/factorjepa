@@ -64,8 +64,28 @@ def _ensure_loaded():
 
 
 def get_vit_giant_xformers():
+    """V-JEPA 2.0 ViT-g (1B, embed_dim=1408, depth=40, 22 heads)."""
     _ensure_loaded()
     return sys.modules["src.models.vision_transformer"].vit_giant_xformers
+
+
+def get_vit_gigantic_xformers():
+    """V-JEPA 2.1 ViT-G (2B, embed_dim=1664, depth=48, 26 heads)."""
+    _ensure_loaded()
+    return sys.modules["src.models.vision_transformer"].vit_gigantic_xformers
+
+
+def get_vit_by_arch(arch: str):
+    """Return ViT constructor by arch name from model config YAML."""
+    dispatch = {
+        "vit_giant_xformers": get_vit_giant_xformers,
+        "vit_gigantic_xformers": get_vit_gigantic_xformers,
+    }
+    if arch not in dispatch:
+        print(f"FATAL: Unknown arch '{arch}'. Supported: {list(dispatch.keys())}")
+        import sys as _sys
+        _sys.exit(1)
+    return dispatch[arch]()
 
 
 def get_vit_predictor():

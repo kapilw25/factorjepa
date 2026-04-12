@@ -69,6 +69,70 @@ eval:
   llava_num_frames: 16           # m04: LLaVA-NeXT frame count (8-32 range)
   overlap_subsample: 30000       # m05c: random subsample for True Overlap@K (stat. sufficient for bootstrap CI)
 
+# -- Encoder registry (all model IDs + dims — no hardcoding in Python) --
+encoders:
+  vjepa:
+    model_id: null
+    dim: null
+    type: video
+    suffix: ""                       # Backward compat: existing 2.0 embeddings use no suffix
+  vjepa_2_0_frozen:
+    model_id: null
+    dim: 1408
+    type: video
+    suffix: _vjepa_2_0_frozen        # Explicit name for V-JEPA 2.0 frozen
+  random:
+    model_id: null
+    dim: null                        # Same as vjepa (synthetic baseline)
+    type: synthetic
+    suffix: _random
+  dinov2:
+    model_id: facebook/dinov2-giant
+    dim: 1536
+    type: image
+    suffix: _dinov2
+  clip:
+    model_id: openai/clip-vit-large-patch14
+    dim: 768
+    type: image
+    suffix: _clip
+  vjepa_shuffled:
+    model_id: null                   # Same model as vjepa, frames shuffled
+    dim: null
+    type: video_shuffled
+    suffix: _vjepa_shuffled
+  vjepa_adapted:
+    model_id: null
+    dim: null
+    type: video_adapted
+    suffix: _vjepa_adapted
+  vjepa_2_1_frozen:
+    model_id: null
+    dim: 1664
+    type: video
+    suffix: _vjepa_2_1_frozen
+  vjepa_2_1_explora:
+    model_id: null
+    dim: 1664
+    type: video_adapted
+    suffix: _vjepa_2_1_explora
+  vjepa_2_1_surgical:
+    model_id: null
+    dim: 1664
+    type: video_adapted
+    suffix: _vjepa_2_1_surgical
+
+# -- VLM models --
+vlm:
+  qwen: Qwen/Qwen3-VL-8B-Instruct
+  videollama: DAMO-NLP-SG/VideoLLaMA3-7B
+  llava: llava-hf/LLaVA-NeXT-Video-7B-hf
+
+# -- Scene detection --
+scene_detection:
+  clip_min_duration: 4.0             # seconds
+  clip_max_duration: 10.0            # seconds
+
 # -- Verification thresholds (shell scripts) --
 verify:
   sanity_min_clips: 5            # run_evaluate.sh / run_pretrain.sh: min clips for SANITY pass

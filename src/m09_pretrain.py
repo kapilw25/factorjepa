@@ -57,9 +57,10 @@ from tqdm import tqdm
 # Add src to path for utils import
 sys.path.insert(0, str(Path(__file__).parent))
 from utils.config import (
-    HF_DATASET_REPO, check_gpu,
+    check_gpu,
     add_subset_arg, add_local_data_arg, get_output_dir, load_subset,
-    get_pipeline_config,
+    get_pipeline_config, load_merged_config,
+    add_model_config_arg, add_train_config_arg,
 )
 from utils.data_download import ensure_local_data, iter_clips_parallel
 from utils.wandb_utils import (
@@ -71,7 +72,7 @@ import torch.nn.functional as F
 
 # vjepa2 imports via shim (avoids src/ namespace collision)
 from utils.vjepa2_imports import (
-    get_vit_giant_xformers, get_vit_predictor,
+    get_vit_by_arch, get_vit_predictor,
     get_mask_generator, get_apply_masks,
 )
 
@@ -302,15 +303,17 @@ def producer_thread(cfg: dict, q: queue.Queue, stop_event: threading.Event,
 
 def build_model(cfg: dict, device: torch.device) -> dict:
     """Build student encoder, teacher encoder (EMA), and predictor."""
-    vit_giant_xformers = get_vit_giant_xformers()
-    vit_predictor = get_vit_predictor()
-
     model_cfg = cfg["model"]
     data_cfg = cfg["data"]
+    arch = model_cfg["arch"]
 
-    # Student encoder (Q1: use vit_giant_xformers, Q5: use_rope=True)
-    student = vit_giant_xformers(
-        img_size=(data_cfg["crop_size"], data_cfg["crop_size"]),
+    vit_constructor = get_vit_by_arch(arch)
+    vit_predictor = get_vit_predictor()
+
+    # Student encoder — arch from model config YAML (vit_giant_xformers or vit_gigantic_xformers)
+    crop_size = model_cfg["crop_size"]
+    student = vit_constructor(
+        img_size=(crop_size, crop_size),
         patch_size=data_cfg["patch_size"],
         num_frames=data_cfg["num_frames"],
         tubelet_size=data_cfg["tubelet_size"],
@@ -322,19 +325,18 @@ def build_model(cfg: dict, device: torch.device) -> dict:
         use_activation_checkpointing=model_cfg["use_activation_checkpointing"],
     )
 
-    # Load pretrained weights (Q3: target_encoder key, Q5: strip prefixes)
+    # Load pretrained weights — checkpoint path from model config YAML
     project_root = Path(__file__).parent.parent
-    ckpt_dir = project_root / "checkpoints"
-    ckpt_path = ckpt_dir / "vjepa2_vitg384.pt"
+    ckpt_path = project_root / model_cfg["checkpoint_path"]
+    ckpt_url = model_cfg["checkpoint_url"]
     if ckpt_path.exists():
         print(f"Loading pretrained weights from {ckpt_path}")
         ckpt = torch.load(ckpt_path, map_location="cpu", weights_only=False)
     else:
-        print("Downloading pretrained weights via torch.hub...")
-        url = "https://dl.fbaipublicfiles.com/vjepa2/vitg-384.pt"
-        ckpt_dir.mkdir(parents=True, exist_ok=True)
-        ckpt = torch.hub.load_state_dict_from_url(url, map_location="cpu",
-                                                    model_dir=str(ckpt_dir))
+        print(f"Downloading pretrained weights: {ckpt_url}")
+        ckpt_path.parent.mkdir(parents=True, exist_ok=True)
+        ckpt = torch.hub.load_state_dict_from_url(ckpt_url, map_location="cpu",
+                                                    model_dir=str(ckpt_path.parent))
 
     # Q3: Use target_encoder (EMA teacher = best quality starting point)
     if "target_encoder" in ckpt:
@@ -378,7 +380,7 @@ def build_model(cfg: dict, device: torch.device) -> dict:
     for p in teacher.parameters():
         p.requires_grad = False
     teacher.eval()
-    print(f"Teacher created (deepcopy of student)")
+    print("Teacher created (deepcopy of student)")
 
     # Predictor (Q4: num_mask_tokens, Q1: use_rope)
     predictor = vit_predictor(
@@ -432,11 +434,53 @@ def build_model(cfg: dict, device: torch.device) -> dict:
     del ckpt
     gc.collect()
 
+    # ExPLoRA: LoRA injection + block freezing (after checkpoint loaded, before return)
+    explora_cfg = cfg.get("explora")
+    explora_enabled = explora_cfg and explora_cfg.get("enabled", False)
+    if explora_enabled:
+        from peft import get_peft_model, LoraConfig
+
+        # 1. Freeze all student params
+        for param in student.parameters():
+            param.requires_grad = False
+
+        # 2. Unfreeze first N blocks (ExPLoRA recipe: 1-2)
+        n_unfreeze = explora_cfg["unfreeze_blocks"]
+        for i in range(n_unfreeze):
+            for param in student.blocks[i].parameters():
+                param.requires_grad = True
+
+        # 3. Unfreeze all norm layers (ExPLoRA requirement)
+        if explora_cfg["unfreeze_norm_layers"]:
+            for name, param in student.named_parameters():
+                if "norm" in name or "ln" in name:
+                    param.requires_grad = True
+
+        # 4. Inject LoRA on frozen attention layers
+        lora_config = LoraConfig(
+            r=explora_cfg["lora_rank"],
+            lora_alpha=explora_cfg["lora_alpha"],
+            target_modules=explora_cfg["lora_target_modules"],
+            lora_dropout=explora_cfg["lora_dropout"],
+            bias="none",
+        )
+        student = get_peft_model(student, lora_config)
+
+        trainable = sum(p.numel() for p in student.parameters() if p.requires_grad)
+        total = sum(p.numel() for p in student.parameters())
+        print(f"  ExPLoRA: {trainable:,} trainable / {total:,} total ({100*trainable/total:.1f}%)")
+
+        # 5. Recompute init_params (only frozen non-LoRA params for drift control)
+        init_params = {name: p.clone().detach().cpu()
+                       for name, p in student.named_parameters()
+                       if not p.requires_grad and "lora" not in name}
+
     return {
         "student": student,
         "teacher": teacher,
         "predictor": predictor,
         "init_params": init_params,
+        "explora_enabled": explora_enabled,
     }
 
 
@@ -507,11 +551,15 @@ def compute_drift_loss(student: torch.nn.Module, init_params: dict,
 @torch.no_grad()
 def update_teacher_ema(student: torch.nn.Module, teacher: torch.nn.Module,
                        momentum: float):
-    """EMA update: theta_bar <- tau * theta_bar + (1-tau) * theta"""
-    params_s = list(student.parameters())
-    params_t = list(teacher.parameters())
-    torch._foreach_mul_(params_t, momentum)
-    torch._foreach_add_(params_t, params_s, alpha=1.0 - momentum)
+    """EMA update: theta_bar <- tau * theta_bar + (1-tau) * theta.
+
+    Uses name-based matching so ExPLoRA LoRA params (which only exist in student,
+    not teacher) are safely skipped.
+    """
+    student_dict = dict(student.named_parameters())
+    for name, param_t in teacher.named_parameters():
+        if name in student_dict:
+            param_t.mul_(momentum).add_(student_dict[name].data, alpha=1.0 - momentum)
 
 
 # ═════════════════════════════════════════════════════════════════════════
@@ -684,13 +732,18 @@ def load_training_checkpoint(path: Path, student, teacher, predictor,
     return ckpt["step"], ckpt.get("best_metric", float("inf"))
 
 
-def export_student_for_eval(student, path: Path):
+def export_student_for_eval(student, path: Path, explora_enabled: bool = False):
     """Export student encoder weights + metadata for m05/m06 re-evaluation."""
     from utils.config import VJEPA_MODEL_ID
     path.parent.mkdir(parents=True, exist_ok=True)
+    # ExPLoRA: merge LoRA weights into base model before saving
+    export_model = student
+    if explora_enabled and hasattr(student, "merge_and_unload"):
+        print("  Merging LoRA weights into base model for export...")
+        export_model = student.merge_and_unload()
     torch.save({
-        "student_state_dict": student.state_dict(),
-        "model_id": VJEPA_MODEL_ID,  # base architecture for instantiation
+        "student_state_dict": export_model.state_dict(),
+        "model_id": VJEPA_MODEL_ID,
         "type": "vjepa2_adapted",
     }, path)
     print(f"Exported student encoder: {path}")
@@ -1075,7 +1128,7 @@ def train(cfg: dict, args):
             if msg_type == "error":
                 print(f"FATAL: Producer stream failed at step {step}/{total_steps}. "
                       f"Data source unreachable after {MAX_STREAM_RETRIES} retries.")
-                print(f"  Checkpoint saved. Check network/disk and resume.")
+                print("  Checkpoint saved. Check network/disk and resume.")
                 sys.exit(1)
             if msg_type == "done":
                 pct_done = (step + 1) / total_steps * 100
@@ -1151,8 +1204,8 @@ def train(cfg: dict, args):
                 print(f"  NaN/Inf loss at step {step} (strike {nan_strikes}/3). "
                       f"GradScaler will auto-adjust.")
                 if nan_strikes >= cfg["optimization"]["nan_tolerance"]:
-                    print(f"FATAL: 3 consecutive NaN/Inf losses. Model diverged.")
-                    print(f"  Debug: check loss_log.csv for divergence point.")
+                    print("FATAL: 3 consecutive NaN/Inf losses. Model diverged.")
+                    print("  Debug: check loss_log.csv for divergence point.")
                     sys.exit(1)
             else:
                 main._nan_strikes = 0  # reset on valid loss
@@ -1309,7 +1362,7 @@ def train(cfg: dict, args):
         json.dump(summary, f, indent=2)
 
     finish_wandb(wb_run)
-    print(f"\n=== TRAINING COMPLETE ===")
+    print("\n=== TRAINING COMPLETE ===")
     print(f"Steps:        {step + 1} ({total_epochs_done:.1f} epochs)")
     print(f"Clips seen:   {(step + 1) * batch_size:,}")
     print(f"Student:      {student_path}")
@@ -1324,8 +1377,12 @@ def train(cfg: dict, args):
 def main():
     parser = argparse.ArgumentParser(
         description="V-JEPA 2 continual pretraining on Indian urban clips (Ch10)")
-    parser.add_argument("--config", type=str, default=DEFAULT_CONFIG,
-                        help="YAML config path")
+    parser.add_argument("--config", type=str, default=None,
+                        help="Legacy single YAML config (backward compat with train_pretrain.sh)")
+    add_model_config_arg(parser)
+    add_train_config_arg(parser)
+    parser.add_argument("--explora", action="store_true",
+                        help="Enable ExPLoRA mode (LoRA + block freeze)")
     parser.add_argument("--SANITY", action="store_true",
                         help="Quick validation: 50 steps, batch_size=2")
     parser.add_argument("--POC", action="store_true",
@@ -1358,8 +1415,16 @@ def main():
 
     ensure_local_data(args)
 
-    cfg = load_config(args.config)
+    # Load config: new (--model-config + --train-config) or legacy (--config)
+    if args.config:
+        cfg = load_config(args.config)
+    elif args.train_config:
+        cfg = load_merged_config(args.model_config, args.train_config)
+    else:
+        cfg = load_config(DEFAULT_CONFIG)
     cfg = merge_config_with_args(cfg, args)
+    if args.explora:
+        cfg.setdefault("explora", {})["enabled"] = True
 
     # Auto-ablation: if no --lambda-reg specified, find or run ablation
     if args.lambda_reg is None:
@@ -1378,7 +1443,7 @@ def main():
             ablation_dir = out_dir / "ablation"
             print(f"\n{'='*60}")
             print(f"  AUTO-ABLATION: No {winner_json} found.")
-            print(f"  Running 4 lambda sweep on data/subset_10k_local (~2h)")
+            print("  Running 4 lambda sweep on data/subset_10k_local (~2h)")
             print(f"  Ablation (10K) → {ablation_dir}/m09_lambda*/")
             print(f"  Full training  → {out_dir}/m09_lambda<winner>/")
             print(f"{'='*60}\n")
@@ -1447,9 +1512,9 @@ def select_ablation_winner(output_dir: str, lambdas=None):
     out = Path(output_dir)
     results = {}
 
-    print(f"\n=== Lambda Ablation Winner Selection ===")
+    print("\n=== Lambda Ablation Winner Selection ===")
     print(f"Output dir: {out}")
-    print(f"Selection metric: best_val_loss (lowest wins)\n")
+    print("Selection metric: best_val_loss (lowest wins)\n")
 
     for lam in lambdas:
         lam_dir = "lambda" + lam.replace(".", "_")
@@ -1488,7 +1553,7 @@ def select_ablation_winner(output_dir: str, lambdas=None):
 
     print(f"\n  Winner: lambda={winner} (best_val_loss={results[winner]['val_loss']:.4f})")
     print(f"  Saved: {winner_path}")
-    print(f"  run_pretrain.sh --FULL will read this automatically.")
+    print("  run_pretrain.sh --FULL will read this automatically.")
 
     # Plot val_loss curves for all lambdas (publication quality)
     try:

@@ -1,29 +1,21 @@
 #!/usr/bin/env bash
 # ═══════════════════════════════════════════════════════════════════════
-# Ch11: Factor Surgery — SAM3 segmentation + progressive prefix unfreezing
-# on V-JEPA 2.1 (2B, 1664-dim). THE paper novelty experiment.
+# ExPLoRA: LoRA + unfreeze 1-2 blocks + JEPA self-supervised pretraining
+# on V-JEPA 2.1 (2B, 1664-dim). Step 1b baseline adaptation.
 #
-# Pipeline: m10(SAM3) → m11(factor datasets) → m09(surgery training) → m05(re-embed) → m06(eval)
+# Pipeline: m09(ExPLoRA training) → m05(re-embed) → m06(metrics)
 #
 # USAGE:
-#   ./scripts/train_surgery.sh --SANITY 2>&1 | tee logs/surgery_sanity.log
-#   ./scripts/train_surgery.sh --POC 2>&1 | tee logs/surgery_poc.log
-#   ./scripts/train_surgery.sh --FULL 2>&1 | tee logs/surgery_full.log
-#
-# POC MODE (Week 1):
-#   - 100 clips, 2 factors only (D_L + D_A, skip D_I)
-#   - 2 stages: Stage 1 (layout), Stage 2 (agents + 10% layout replay)
-#   - ~3h GPU total (30 min SAM3 + 2.5h training)
+#   ./scripts/train_explora.sh --SANITY 2>&1 | tee logs/explora_sanity.log
+#   ./scripts/train_explora.sh --POC 2>&1 | tee logs/explora_poc.log
+#   ./scripts/train_explora.sh --FULL 2>&1 | tee logs/explora_full.log
 #
 # PREREQUISITES:
 #   1. ./setup_env_uv.sh --gpu --from-wheels
-#   2. checkpoints/vjepa2_1_vitG_384.pt (~8 GB)
-#   3. data/subset_10k_local/ OR data/full_local/
+#   2. checkpoints/vjepa2_1_vitG_384.pt (~8 GB, download from Meta)
+#   3. data/subset_10k_local/ OR data/full_local/ (from m00d or rsync)
 #   4. data/val_1k_local/ (for validation)
-#   5. tmux new -s surgery
-#
-# NOTE: m10_sam_segment.py and m11_factor_datasets.py are NOT YET BUILT.
-# This script provides the orchestration skeleton. Build Python scripts first.
+#   5. tmux new -s explora
 # ═══════════════════════════════════════════════════════════════════════
 set -euo pipefail
 
@@ -34,9 +26,9 @@ MODE=""
 usage() {
     echo "Usage: $0 --SANITY | --POC | --FULL"
     echo ""
-    echo "  --SANITY   Quick validation (~5 min, 20 clips)"
-    echo "  --POC      100 clips, 2 factors (D_L + D_A), 2 stages (~3h GPU)"
-    echo "  --FULL     10K clips, 3 factors (D_L + D_A + D_I), 3 stages (~24h GPU)"
+    echo "  --SANITY   Quick validation (~5 min, 64 clips)"
+    echo "  --POC      10K subset, 5 epochs (~3h GPU)"
+    echo "  --FULL     115K full corpus, 5 epochs (~15h GPU)"
     exit 1
 }
 
@@ -66,7 +58,7 @@ cd "$SCRIPT_DIR/.."
 
 LOGDIR="logs"
 mkdir -p "$LOGDIR" "$OUT_DIR"
-MASTER_LOG="$LOGDIR/surgery_${MODE}_$(date +%Y%m%d_%H%M%S).log"
+MASTER_LOG="$LOGDIR/explora_${MODE}_$(date +%Y%m%d_%H%M%S).log"
 
 if [[ -d "venv_walkindia" ]]; then
     source venv_walkindia/bin/activate
@@ -80,8 +72,9 @@ start_watchdog
 
 # ── Config ────────────────────────────────────────────────────────────
 MODEL_CONFIG="configs/model/vjepa2_1.yaml"
-TRAIN_CONFIG="configs/train/ch11_surgery.yaml"
+TRAIN_CONFIG="configs/train/explora.yaml"
 
+# Checkpoint check
 CKPT="checkpoints/vjepa2_1_vitG_384.pt"
 if [[ ! -f "$CKPT" ]]; then
     log "FATAL: V-JEPA 2.1 checkpoint not found: $CKPT"
@@ -89,14 +82,15 @@ if [[ ! -f "$CKPT" ]]; then
     exit 1
 fi
 
+# Local data
 LOCAL_FLAG=""
 VAL_FLAG=""
-if [[ "$MODE" != "SANITY" ]]; then
-    if [[ -d "data/subset_10k_local" && -n "$SUBSET_FLAG" ]]; then
-        LOCAL_FLAG="--local-data data/subset_10k_local"
-    elif [[ -d "data/full_local" ]]; then
-        LOCAL_FLAG="--local-data data/full_local"
-    fi
+if [[ "$MODE" == "SANITY" ]]; then
+    LOCAL_FLAG=""
+elif [[ -d "data/subset_10k_local" && -n "$SUBSET_FLAG" ]]; then
+    LOCAL_FLAG="--local-data data/subset_10k_local"
+elif [[ -d "data/full_local" ]]; then
+    LOCAL_FLAG="--local-data data/full_local"
 fi
 if [[ -f "data/val_1k.json" && -d "data/val_1k_local" ]]; then
     VAL_FLAG="--val-subset data/val_1k.json --val-local-data data/val_1k_local"
@@ -104,84 +98,85 @@ fi
 
 # ── Time estimates ────────────────────────────────────────────────────
 if [[ "$MODE" == "SANITY" ]]; then
-    T_SAM3="~1 min"; T_FACTORS="~30 sec"; T_SURGERY="~3 min"
-    T_EMBED="~30 sec"; T_EVAL="~10 sec"
+    T_TRAIN="~3 min"; T_EMBED="~30 sec"; T_EVAL="~10 sec"
 elif [[ "$MODE" == "POC" ]]; then
-    T_SAM3="~30 min (100 clips)"; T_FACTORS="~5 min"; T_SURGERY="~2.5h (2 stages)"
-    T_EMBED="~2h"; T_EVAL="~1 min"
+    T_TRAIN="~3h (5 epochs, 10K clips)"; T_EMBED="~2h"; T_EVAL="~1 min"
 else
-    T_SAM3="~5h (10K clips)"; T_FACTORS="~30 min"; T_SURGERY="~15h (3 stages)"
-    T_EMBED="~20h"; T_EVAL="~5 min"
+    T_TRAIN="~15h (5 epochs, 115K clips)"; T_EMBED="~20h"; T_EVAL="~5 min"
 fi
 
+# ── Print banner ──────────────────────────────────────────────────────
 log ""
 log "═══════════════════════════════════════════════════════"
-log " Ch11 Factor Surgery — V-JEPA 2.1 (2B) on WalkIndia-200K"
+log " ExPLoRA Training — V-JEPA 2.1 (2B) on WalkIndia-200K"
 log " Mode: $MODE | Model: $MODEL_CONFIG | Train: $TRAIN_CONFIG"
 log "═══════════════════════════════════════════════════════"
 
 # ═══════════════════════════════════════════════════════════════════════
-# Step 0 (GPU): SAM3 segmentation → instance masks → tracklets
-# NOTE: m10_sam_segment.py NOT YET BUILT
+# Step 0: Generate frozen V-JEPA 2.1 baseline embeddings (one-time)
+# These are needed to compare: frozen 2.1 vs ExPLoRA 2.1 (same model, fair comparison)
 # ═══════════════════════════════════════════════════════════════════════
-FACTOR_DIR="${OUT_DIR}/factors"
-mkdir -p "$FACTOR_DIR"
+FROZEN_EMB="${OUT_DIR}/embeddings_vjepa_2_1_frozen.npy"
+if [[ -f "$FROZEN_EMB" ]]; then
+    log "Frozen 2.1 embeddings exist: $FROZEN_EMB (skipping)"
+else
+    run_step "0-frozen-embed" "m05 frozen V-JEPA 2.1 embeddings" \
+        "$T_EMBED" "$LOGDIR/m05_vjepa_2_1_frozen_${MODE,,}.log" \
+        src/m05_vjepa_embed.py \
+            --model-config "$MODEL_CONFIG" \
+            --encoder vjepa_2_1_frozen \
+            $MODE_FLAG $SUBSET_FLAG $LOCAL_FLAG --no-wandb
 
-run_step "0-sam3" "m10 SAM3 segmentation → tracklets" \
-    "$T_SAM3" "$LOGDIR/m10_sam3_${MODE,,}.log" \
-    src/m10_sam_segment.py \
-        --output-dir "$FACTOR_DIR" \
-        $MODE_FLAG $SUBSET_FLAG $LOCAL_FLAG --no-wandb
-
-# ═══════════════════════════════════════════════════════════════════════
-# Step 1 (CPU): Generate factor datasets (D_L, D_A, optionally D_I)
-# NOTE: m11_factor_datasets.py NOT YET BUILT
-# ═══════════════════════════════════════════════════════════════════════
-run_step "1-factors" "m11 factor datasets (D_L, D_A, D_I)" \
-    "$T_FACTORS" "$LOGDIR/m11_factors_${MODE,,}.log" \
-    src/m11_factor_datasets.py \
-        --input-dir "$FACTOR_DIR" \
-        --output-dir "$FACTOR_DIR" \
-        $MODE_FLAG $SUBSET_FLAG --no-wandb
+    run_step "0-frozen-eval" "m06 frozen V-JEPA 2.1 metrics" \
+        "$T_EVAL" "$LOGDIR/m06_vjepa_2_1_frozen_${MODE,,}.log" \
+        src/m06_faiss_metrics.py \
+            --encoder vjepa_2_1_frozen \
+            $MODE_FLAG $SUBSET_FLAG --no-wandb
+fi
 
 # ═══════════════════════════════════════════════════════════════════════
-# Step 2 (GPU): Progressive prefix unfreezing on frozen V-JEPA 2.1
+# Step 1: ExPLoRA training
 # ═══════════════════════════════════════════════════════════════════════
-SURGERY_DIR="${OUT_DIR}/m09_surgery"
+EXPLORA_DIR="${OUT_DIR}/m09_explora"
 
-run_step "2-surgery" "m09 factor surgery (progressive unfreezing)" \
-    "$T_SURGERY" "$LOGDIR/m09_surgery_${MODE,,}.log" \
+run_step "1-train" "m09 ExPLoRA (LoRA rank=16, unfreeze=2 blocks)" \
+    "$T_TRAIN" "$LOGDIR/m09_explora_${MODE,,}.log" \
     src/m09_pretrain.py \
         --model-config "$MODEL_CONFIG" \
         --train-config "$TRAIN_CONFIG" \
-        --output-dir "$SURGERY_DIR" \
+        --explora \
+        --output-dir "$EXPLORA_DIR" \
         $MODE_FLAG $SUBSET_FLAG $LOCAL_FLAG $VAL_FLAG --no-wandb
 
-STUDENT_PT="${SURGERY_DIR}/student_encoder.pt"
+# Verify student_encoder.pt exists
+STUDENT_PT="${EXPLORA_DIR}/student_encoder.pt"
 if [[ ! -f "$STUDENT_PT" ]]; then
     log "FATAL: student_encoder.pt not found at $STUDENT_PT"
     exit 1
 fi
-log "Surgery training complete: $STUDENT_PT"
+log "ExPLoRA training complete: $STUDENT_PT"
 
 # ═══════════════════════════════════════════════════════════════════════
-# Step 3: Re-embed with surgical model
+# Step 2: Re-embed with adapted model
 # ═══════════════════════════════════════════════════════════════════════
-run_step "3-embed" "m05 re-embed surgical adapted" \
-    "$T_EMBED" "$LOGDIR/m05_surgery_${MODE,,}.log" \
+run_step "2-embed" "m05 re-embed ExPLoRA adapted" \
+    "$T_EMBED" "$LOGDIR/m05_explora_${MODE,,}.log" \
     src/m05_vjepa_embed.py \
         --model-config "$MODEL_CONFIG" \
         --model "$STUDENT_PT" \
-        --encoder vjepa_2_1_surgical \
+        --encoder vjepa_2_1_explora \
         $MODE_FLAG $SUBSET_FLAG $LOCAL_FLAG --no-wandb
 
 # ═══════════════════════════════════════════════════════════════════════
-# Step 4: Evaluate
+# Step 3: Evaluate
 # ═══════════════════════════════════════════════════════════════════════
-run_step "4-eval" "m06 metrics (surgery vs frozen vs ExPLoRA)" \
-    "$T_EVAL" "$LOGDIR/m06_surgery_${MODE,,}.log" \
+run_step "3-eval" "m06 metrics (ExPLoRA vs frozen)" \
+    "$T_EVAL" "$LOGDIR/m06_explora_${MODE,,}.log" \
     src/m06_faiss_metrics.py \
-        --encoder vjepa_2_1_surgical \
+        --encoder vjepa_2_1_explora \
         $MODE_FLAG $SUBSET_FLAG --no-wandb
 
+# ═══════════════════════════════════════════════════════════════════════
+# Done
+# ═══════════════════════════════════════════════════════════════════════
 finalize

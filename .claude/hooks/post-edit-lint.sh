@@ -69,8 +69,8 @@ source = open('$FILE_PATH').read()
 has_tqdm = 'from tqdm' in source or 'import tqdm' in source
 # GPU modules need tqdm; CPU-only modules do not
 # GPU: m04, m04d, m05, m05b, m05c, m06, m07, m09
-# CPU: m00-m03, m04b, m04c, m06b, m08, m08b
-cpu_only = {'m04b', 'm04c', 'm06b', 'm08', 'm08b'}
+# CPU: m00-m03, m04b, m04c, m06b, m06c, m08, m08b
+cpu_only = {'m04b', 'm04c', 'm06b', 'm06c', 'm08', 'm08b'}
 module_prefix = '$BASENAME'.split('_')[0]  # e.g. 'm04b', 'm09'
 module_num = module_prefix.replace('m','').replace('b','').replace('c','').replace('d','')
 is_gpu_module = (module_prefix not in cpu_only
@@ -102,7 +102,12 @@ echo "AST check PASSED: $BASENAME — $AST_RESULT"
 # ── Check 3: ruff (undefined names, unused vars, redefined) ──────────
 # Try direct ruff, then uvx ruff
 RUFF_CMD=""
-if command -v ruff &>/dev/null; then
+# Prefer venv ruff (always synced via setup_env_uv.sh)
+if [ -x "venv_walkindia/bin/ruff" ]; then
+    RUFF_CMD="venv_walkindia/bin/ruff"
+elif [ -x "venv_walkindia/bin/python3" ]; then
+    RUFF_CMD="venv_walkindia/bin/python3 -m ruff"
+elif command -v ruff &>/dev/null; then
     RUFF_CMD="ruff"
 elif [ -x "$HOME/.local/bin/uvx" ]; then
     RUFF_CMD="$HOME/.local/bin/uvx ruff"
@@ -111,13 +116,15 @@ elif command -v uvx &>/dev/null; then
 fi
 
 if [ -n "$RUFF_CMD" ]; then
-    RUFF_RESULT=$($RUFF_CMD check "$FILE_PATH" --select F821,F841,F811 2>&1)
-    if echo "$RUFF_RESULT" | grep -q "^F8"; then
+    # F = pyflakes (undefined names, unused imports/vars, redefined, f-string, ...)
+    # E9 = syntax errors (catches more than py_compile)
+    RUFF_RESULT=$($RUFF_CMD check "$FILE_PATH" --select F,E9 2>&1)
+    if echo "$RUFF_RESULT" | grep -qE "^(F|E9)"; then
         echo "ruff FAILED: $BASENAME"
         echo "$RUFF_RESULT"
         exit 1
     fi
-    echo "ruff PASSED: $BASENAME"
+    echo "ruff PASSED: $BASENAME (F + E9 rules)"
 fi
 
 exit 0

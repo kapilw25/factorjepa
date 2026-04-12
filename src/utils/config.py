@@ -98,17 +98,8 @@ def ensure_clips_exist() -> bool:
         print("ERROR: huggingface_hub not installed. Run: pip install huggingface_hub")
         return False
 
-# PySceneDetect config
-CLIP_MIN_DURATION = 4.0  # seconds
-CLIP_MAX_DURATION = 10.0  # seconds (professor spec: min 4, max 10)
-
-# V-JEPA config (ViT-G 384: 1B params, strongest V-JEPA variant for best embeddings)
-VJEPA_MODEL_ID = "facebook/vjepa2-vitg-fpc64-384"
-VJEPA_FRAMES_PER_CLIP = yaml.safe_load(open(PROJECT_ROOT / "configs" / "pipeline.yaml"))["gpu"]["eval_frames_per_clip"]
-VJEPA_EMBEDDING_DIM = 1408  # ViT-G hidden dimension
-
-# Qwen3-VL config
-QWEN_MODEL_ID = "Qwen/Qwen3-VL-8B-Instruct"
+# All model/encoder configs loaded from YAML after function definitions below.
+# See "Module-level constants from YAML" section.
 
 # ── Pipeline config (clip limits from YAML, not hardcoded) ───────────
 PIPELINE_CONFIG_PATH = PROJECT_ROOT / "configs" / "pipeline.yaml"
@@ -122,6 +113,96 @@ def get_pipeline_config() -> dict:
         with open(PIPELINE_CONFIG_PATH) as f:
             _pipeline_cfg = yaml.safe_load(f)
     return _pipeline_cfg
+
+
+CONFIGS_DIR = PROJECT_ROOT / "configs"
+
+
+def _deep_merge(base: dict, overlay: dict) -> dict:
+    """Recursively merge overlay into base. Overlay values win on conflict."""
+    merged = base.copy()
+    for k, v in overlay.items():
+        if k in merged and isinstance(merged[k], dict) and isinstance(v, dict):
+            merged[k] = _deep_merge(merged[k], v)
+        else:
+            merged[k] = v
+    return merged
+
+
+def load_merged_config(model_config: str, train_config: str) -> dict:
+    """Load and merge: pipeline.yaml (base) + model/*.yaml + train/*.yaml.
+
+    Train configs that specify 'extends: base_optimization.yaml' are merged
+    with that base first, then model config is overlaid.
+
+    Args:
+        model_config: Path to model YAML (e.g., 'configs/model/vjepa2_1.yaml')
+        train_config: Path to train YAML (e.g., 'configs/train/explora.yaml')
+
+    Returns:
+        Single merged dict with all config values.
+    """
+    model_path = Path(model_config)
+    train_path = Path(train_config)
+    if not model_path.is_absolute():
+        model_path = PROJECT_ROOT / model_path
+    if not train_path.is_absolute():
+        train_path = PROJECT_ROOT / train_path
+
+    if not model_path.exists():
+        print(f"FATAL: Model config not found: {model_path}")
+        sys.exit(1)
+    if not train_path.exists():
+        print(f"FATAL: Train config not found: {train_path}")
+        sys.exit(1)
+
+    pipeline_cfg = get_pipeline_config()
+    with open(model_path) as f:
+        model_cfg = yaml.safe_load(f)
+    with open(train_path) as f:
+        train_cfg = yaml.safe_load(f)
+
+    # Handle 'extends' in train config (inheritance from base_optimization.yaml)
+    extends = train_cfg.pop("extends", None)
+    if extends:
+        base_path = train_path.parent / extends
+        if base_path.exists():
+            with open(base_path) as f:
+                base_cfg = yaml.safe_load(f)
+            train_cfg = _deep_merge(base_cfg, train_cfg)
+
+    # Merge order: pipeline (base) → model → train (train wins on conflict)
+    merged = _deep_merge(pipeline_cfg, model_cfg)
+    merged = _deep_merge(merged, train_cfg)
+    return merged
+
+
+def get_model_config(model_config: str = None) -> dict:
+    """Load a model config YAML (standalone, no merge). Useful for m05 frozen eval."""
+    if model_config is None:
+        model_config = str(CONFIGS_DIR / "model" / "vjepa2_1.yaml")
+    path = Path(model_config)
+    if not path.is_absolute():
+        path = PROJECT_ROOT / path
+    if not path.exists():
+        print(f"FATAL: Model config not found: {path}")
+        sys.exit(1)
+    with open(path) as f:
+        return yaml.safe_load(f)
+
+
+def add_model_config_arg(parser):
+    """Add --model-config flag. Default: configs/model/vjepa2_1.yaml (PRIMARY target)."""
+    parser.add_argument(
+        "--model-config", default="configs/model/vjepa2_1.yaml",
+        help="Model config YAML (default: configs/model/vjepa2_1.yaml)")
+
+
+def add_train_config_arg(parser):
+    """Add --train-config flag (for m09 training scripts)."""
+    parser.add_argument(
+        "--train-config", default=None,
+        help="Training config YAML (e.g., configs/train/explora.yaml)")
 
 
 def get_sanity_clip_limit(module: str) -> int:
@@ -143,24 +224,41 @@ def get_total_clips(local_data: str = None, subset_file: str = None) -> int:
     return 0  # caller must handle 0
 
 
-# FAISS config (after get_pipeline_config is defined)
-FAISS_K_NEIGHBORS = get_pipeline_config()["eval"]["faiss_k_neighbors"]
+# ═══════════════════════════════════════════════════════════════════════
+# MODULE-LEVEL CONSTANTS FROM YAML — all loaded AFTER function defs above.
+# No hardcoded model IDs, dims, or magic numbers. Rule 15 in CLAUDE.md.
+# ═══════════════════════════════════════════════════════════════════════
 
-# POC subset config
+_pcfg = get_pipeline_config()
+
+# V-JEPA config — from configs/model/ YAML (default: 2.1 ViT-G 2B)
+_default_model_cfg = get_model_config()["model"]
+VJEPA_MODEL_ID = _default_model_cfg["hf_model_id"]
+VJEPA_EMBEDDING_DIM = _default_model_cfg["embed_dim"]
+VJEPA_CHECKPOINT_PATH = _default_model_cfg["checkpoint_path"]
+VJEPA_FRAMES_PER_CLIP = _pcfg["gpu"]["eval_frames_per_clip"]
+
+# FAISS config
+FAISS_K_NEIGHBORS = _pcfg["eval"]["faiss_k_neighbors"]
+
+# Scene detection config
+CLIP_MIN_DURATION = _pcfg["scene_detection"]["clip_min_duration"]
+CLIP_MAX_DURATION = _pcfg["scene_detection"]["clip_max_duration"]
+
+# VLM config
+VLM_MODELS = _pcfg["vlm"]
+QWEN_MODEL_ID = _pcfg["vlm"]["qwen"]
+
+# Bake-off config
+BAKEOFF_CLIP_COUNT = _pcfg["bakeoff"]["clips"]
+
+# POC / output dirs
 SUBSET_FILE = PROJECT_ROOT / "data" / "subset_10k.json"
 OUTPUTS_SANITY_DIR = OUTPUTS_ROOT / "sanity"
 OUTPUTS_POC_DIR = OUTPUTS_ROOT / "poc"
 BAKEOFF_DIR = DATA_DIR / "bakeoff"
 
-# VLM bake-off config
-VLM_MODELS = {
-    "qwen": "Qwen/Qwen3-VL-8B-Instruct",
-    "videollama": "DAMO-NLP-SG/VideoLLaMA3-7B",
-    "llava": "llava-hf/LLaVA-NeXT-Video-7B-hf",
-}
-BAKEOFF_CLIP_COUNT = get_pipeline_config()["bakeoff"]["clips"]
-
-# Output files
+# Output files (legacy shortcuts — prefer get_encoder_files() for encoder-specific paths)
 EMBEDDINGS_FILE = OUTPUTS_DIR / "embeddings.npy"
 TAGS_FILE = OUTPUTS_DIR / "tags.json"
 UMAP_PLOT_PNG = OUTPUTS_DIR / "m08_umap.png"
@@ -168,26 +266,30 @@ UMAP_PLOT_PDF = OUTPUTS_DIR / "m08_umap.pdf"
 METRICS_FILE = OUTPUTS_DIR / "m06_metrics.json"
 
 
-# Encoder registry (baselines + V-JEPA). suffix="" = backward compat for vjepa.
-ENCODER_REGISTRY = {
-    "vjepa":          {"model_id": VJEPA_MODEL_ID,                       "dim": 1408, "type": "video",          "suffix": ""},
-    "random":         {"model_id": None,                                  "dim": 1408, "type": "synthetic",      "suffix": "_random"},
-    "dinov2":         {"model_id": "facebook/dinov2-giant",              "dim": 1536, "type": "image",           "suffix": "_dinov2"},
-    "clip":           {"model_id": "openai/clip-vit-large-patch14",      "dim": 768,  "type": "image",           "suffix": "_clip"},
-    "vjepa_shuffled": {"model_id": VJEPA_MODEL_ID,                       "dim": 1408, "type": "video_shuffled",  "suffix": "_vjepa_shuffled"},
-    "vjepa_adapted":  {"model_id": None,                                  "dim": 1408, "type": "video_adapted",   "suffix": "_vjepa_adapted"},
-}
+# ── Encoder registry — loaded from configs/pipeline.yaml → encoders section ──
+# V-JEPA-derived encoders inherit dim from the default model config.
+def _build_encoder_registry() -> dict:
+    enc_cfg = _pcfg["encoders"]
+    registry = {}
+    for name, entry in enc_cfg.items():
+        dim = entry["dim"] if entry["dim"] is not None else VJEPA_EMBEDDING_DIM
+        model_id = entry["model_id"]
+        registry[name] = {
+            "model_id": model_id,
+            "dim": dim,
+            "type": entry["type"],
+            "suffix": entry["suffix"],
+        }
+    return registry
+
+ENCODER_REGISTRY = _build_encoder_registry()
 
 
 def get_encoder_info(encoder: str) -> dict:
-    """Get encoder info from registry, with dynamic fallback for unregistered encoders.
-
-    Supports Ch10 ablation variants like vjepa_lambda0_01 without pre-registration.
-    """
+    """Get encoder info from registry, with dynamic fallback for unregistered encoders."""
     if encoder in ENCODER_REGISTRY:
         return ENCODER_REGISTRY[encoder]
-    # Dynamic fallback: assume V-JEPA dim (1408), infer suffix from name
-    return {"model_id": None, "dim": 1408, "type": "video_adapted", "suffix": f"_{encoder}"}
+    return {"model_id": None, "dim": VJEPA_EMBEDDING_DIM, "type": "video_adapted", "suffix": f"_{encoder}"}
 
 
 def get_encoder_files(encoder: str, output_dir: Path) -> dict:
@@ -509,7 +611,7 @@ def setup_ram_cache(clip_paths: list, use_cache: bool = True, cache_subdir: str 
         print(f"RAM cache: Skipping ({e})")
         return clip_paths, False
 
-    print(f"\n=== Setting up RAM cache ===")
+    print("\n=== Setting up RAM cache ===")
     print(f"Copying {len(clip_paths)} clips to /dev/shm (~{estimated_size_gb:.1f}GB)")
 
     # Clean up old cache

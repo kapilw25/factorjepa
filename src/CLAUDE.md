@@ -3,7 +3,7 @@
 3) GPU Hardware:
 - Debug/SANITY: RTX Pro 4000 (24GB VRAM, ~$0.2/hr) — use --SANITY to validate model loading, inference, JSON parsing
 - Full/BAKEOFF runs: RTX Pro 6000 Blackwell (96GB VRAM, ~$0.8/hr) — use --BAKEOFF (2500 clips) and --FULL (10K-115K clips)
-- M1 Macbook: CPU/API ops + AST/lint only. No GPU fallback
+- M1 Macbook: CPU/API ops + AST/lint + RUFF. No GPU fallback
 - GPU Software: PyTorch 2.12.0.dev+cu128 nightly, CUDA 12.8, FA2 2.8.3 (prebuilt sm_120 wheel), cuML 26.02, FAISS-GPU 1.14.1 (prebuilt sm_120 wheel, needs patchelf RPATH fix + libopenblas-dev), Python 3.12.12, UV
 - GPU scripts must FAIL LOUD — no silent CPU fallback (e.g. FAISS-CPU masking GPU fail, sklearn masking cuML fail)
 - "No CPU fallback" applies to inference/compute scripts (m04/m05/m06/m07/m09), NOT visualization/plotting scripts (m08)
@@ -14,7 +14,7 @@
 6.1) **MANDATORY after ANY edit to `src/m*.py`:** Run BOTH checks before moving on. No exceptions.
    - `source venv_walkindia/bin/activate && python3 -m py_compile src/<file>.py` — **ENFORCED: `.claude/hooks/post-edit-lint.sh` auto-runs via PostToolUse hook.**
    - AST structural check (verify functions, argparse choices, imports) — **ENFORCED: `.claude/hooks/post-edit-lint.sh`.**
-   - `ruff check --select F821,F841,F811` (undefined names, unused vars, redefined vars) — **ENFORCED: `.claude/hooks/post-edit-lint.sh`.** Catches "used before assignment" bugs that py_compile misses.
+   - `venv_walkindia/bin/ruff check --select F,E9` (full pyflakes + syntax: undefined names, unused imports/vars, redefined, f-string issues) — **ENFORCED: `.claude/hooks/post-edit-lint.sh`.** Catches bugs that py_compile + AST miss.
 7) Plots: both .png & .pdf. m08_plot.py = CPU-only (pure matplotlib, reads pre-computed .npy files)
 7.1) GPU scripts save .npy artifacts (embeddings, knn_indices, umap_2d) → CPU scripts read them. NEVER duplicate GPU compute in CPU scripts (e.g. never rebuild FAISS index in plotting when m06 already saves knn_indices.npy)
 7.4) **95% CI MANDATORY**: Every metric reported in JSON or displayed in plots/tables MUST include bootstrap 95% CI (BCa, 10K iterations via `scipy.stats.bootstrap`). Use `utils/bootstrap.py`: compute per-clip scores → `bootstrap_ci(scores)` → store `{"mean", "ci_lo", "ci_hi", "ci_half"}` under `"ci"` key in JSON. Plots: error bars via `yerr=ci_half`. LaTeX tables: `50.5{\tiny$\pm$2.1}` format. No point estimates without CI — this is a research paper.
@@ -48,11 +48,17 @@
 23) **All imports at the TOP of each .py file.** NEVER write `import` inside a function body. Inline imports cause: (a) redundant re-imports on every call, (b) hidden dependencies, (c) import errors discovered at runtime instead of startup. The ONLY exception: guarded `try/except ImportError` for optional dependencies (e.g., `try: import cuml`). Every other import goes at module top, after `sys.path.insert`.
 25) **Replace Python for-loops with NumPy vectorization** when iterating over 1K+ items (clips, embeddings, tags, kNN indices). Python for-loops with `dict.get()` or `list[i]` starve the GPU — the CPU spends minutes in pure Python while the GPU sits at 0%. Use `np.take`, broadcasting (`a[:, None] == b[None, :]`), `np.cumsum`, `pd.factorize` instead. Incident: m06 bootstrap CI took 88 min on 115K clips with Python loops; vectorized version: <1 min. See `src/utils/bootstrap.py` for the pattern.
 26) **Organize output files into clean, scalable subdirectories.** Never dump multiple unrelated files into a flat directory. Each logical group gets its own subdirectory (e.g., `outputs/profile/training/`, `outputs/profile/inference/vjepa2/`, `outputs/profile/inference/dinov2/`). Each subdirectory owns its own `profile_data.json` — no shared files that get overwritten by different profilers. Apply the same principle to `outputs/full/ablation/`, `outputs/full/m09_lambda*/`. Think scalability: when V-JEPA 2.1 or CLIP profiling is added, it should slot in without restructuring.
-24) **3-check gate is MANDATORY after ANY edit to `src/**/*.py`.** Run ALL THREE — never skip any: (1) `python3 -m py_compile <file>` (syntax), (2) `python3 -c "import ast; ast.parse(open('<file>').read())"` (structure), (3) `ruff check --select F821,F841,F811 <file>` (undefined names, unused vars). **ENFORCED: `.claude/hooks/post-edit-lint.sh` runs automatically on Edit/Write.** If any check fails, fix before proceeding. No exceptions.
+24) **3-check gate is MANDATORY after ANY edit to `src/**/*.py`.** Run ALL THREE — never skip any: (1) `python3 -m py_compile <file>` (syntax), (2) `python3 -c "import ast; ast.parse(open('<file>').read())"` (structure), (3) `venv_walkindia/bin/ruff check --select F,E9 <file>` (full pyflakes: undefined names, unused imports/vars, redefinition, f-string issues, syntax). **ENFORCED: `.claude/hooks/post-edit-lint.sh` runs automatically on Edit/Write.** If any check fails, fix before proceeding. No exceptions. If ruff missing in venv, run `./setup_env_uv.sh --mac` (it's in `requirements.txt`).
 
 # CONFIG FILES
-- `configs/pipeline.yaml` — clip limits (SANITY/BAKEOFF), streaming params, GPU defaults, eval params, verification thresholds. Single source of truth for all `src/m*.py`.
-- `configs/pretrain/vitg16_indian.yaml` — training hyperparameters (LR, EMA, masking, augmentation, epochs per mode, drift control, checkpointing, mixed precision).
+- `configs/pipeline.yaml` — clip limits, streaming params, GPU defaults, eval params, encoder registry, VLM model IDs, scene detection params. Single source of truth for all `src/m*.py`.
+- `configs/model/vjepa2_1.yaml` — **PRIMARY MODEL** (V-JEPA 2.1 ViT-G 2B, 1664-dim). Checkpoint URL, arch, dims, loss config.
+- `configs/model/vjepa2_0.yaml` — legacy fallback (V-JEPA 2.0 ViT-g 1B, 1408-dim).
+- `configs/train/base_optimization.yaml` — shared optimization: masking, augmentation, AdamW, EMA, mixed precision. All technique configs inherit via `extends:`.
+- `configs/train/ch10_pretrain.yaml` — Ch10 continual pretraining (drift control, lambda sweep, layer freeze).
+- `configs/train/explora.yaml` — ExPLoRA (LoRA + unfreeze 1-2 blocks).
+- `configs/train/ch11_surgery.yaml` — Ch11 factor surgery (3-stage progressive unfreezing + factor datasets).
+- `configs/pretrain/vitg16_indian.yaml` — **LEGACY** (single-file, kept for backward compat with run_pretrain.sh).
 
 # RULES (MUST follow)
 - **GOAL OVERRIDE: The #1 priority is research results, not code cleanliness.** Every recommendation must answer: "Does this maximize the probability of adapted outperforming frozen on ALL metrics?" If the answer is no, reject the recommendation even if it's easier to implement. Never filter recommendations by implementation effort. Never say "use 2.0 because 2.1 requires more code changes" — if 2.1 maximizes the chance of a positive result, recommend 2.1.
@@ -93,4 +99,19 @@
 - Next steps: `iter/iter8/next_steps.md` (5 action items for Week 1)
 - Training plan (OLD, iter7): `iter/iter7_training/plan_training.md`
 
+29) **GPU script infrastructure checklist.** Every new `src/m*.py` that uses GPU MUST import and integrate ALL applicable infrastructure from `src/utils/`. Checklist:
+   - `check_gpu()` — FATAL if no CUDA (config.py)
+   - `cleanup_temp()` — clean stale /tmp files at start (gpu_batch.py)
+   - `verify_or_skip()` — skip if outputs already valid (output_guard.py)
+   - `compute_batch_sizes()` / `AdaptiveBatchSizer` — auto-batch from VRAM (gpu_batch.py)
+   - `cuda_cleanup()` — between encoder runs / after OOM (gpu_batch.py)
+   - `save_embedding_checkpoint()` / `load_embedding_checkpoint()` — atomic resume (checkpoint.py)
+   - `ensure_local_data()` / `iter_clips_parallel()` — local TAR readers (data_download.py)
+   - `make_pbar()` — standardized progress bar (progress.py)
+   - `init_wandb()` / `log_metrics()` / `finish_wandb()` — wandb logging (wandb_utils.py)
+   - `get_output_dir()` — mode-aware output routing (config.py)
+   - `add_model_config_arg()` — load model from `configs/model/*.yaml` (config.py)
+   CPU-only scripts (m06c, m08, m08b): skip GPU-specific items (check_gpu, AdaptiveBatchSizer, cuda_cleanup) but use verify_or_skip, make_pbar, wandb, checkpoint.
+30) **Use `--model-config` + `--train-config` for training scripts.** Python merges `pipeline.yaml` (base) + `model/*.yaml` + `train/*.yaml` via `load_merged_config()`. Model configs define architecture + checkpoint. Train configs define technique (Ch10/Ch11/ExPLoRA). Train configs inherit shared params via `extends: base_optimization.yaml`. No model IDs or dims hardcoded in Python.
+31) **Use `get_vit_by_arch(arch)` from vjepa2_imports.py** to load the correct ViT constructor based on model config. Supports `vit_giant_xformers` (2.0, 1B) and `vit_gigantic_xformers` (2.1, 2B). Never hardcode which model to load — read `model.arch` from YAML.
 28) **Update CLAUDE.md + MEMORY.md at end of every session** that discovers new experimental results, strategic pivots, or architectural decisions. These files are the ONLY context that persists across sessions. Stale files = wasted tokens re-discovering known information. After updating `src/MEMORY.md`, sync to `~/.claude/projects/.../memory/MEMORY.md`.

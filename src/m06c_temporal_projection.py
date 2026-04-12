@@ -4,7 +4,6 @@
 """
 import argparse
 import json
-import os
 import shutil
 import subprocess
 import sys
@@ -16,9 +15,10 @@ from sklearn.decomposition import TruncatedSVD
 
 # Project imports
 sys.path.insert(0, str(Path(__file__).parent))
-from utils.config import (
-    get_output_dir, add_subset_arg, add_encoder_arg, get_encoder_files,
-)
+from utils.config import get_output_dir, add_subset_arg
+from utils.checkpoint import save_array_checkpoint, save_json_checkpoint
+from utils.gpu_batch import cleanup_temp
+from utils.output_guard import verify_or_skip
 from utils.progress import make_pbar
 from utils.wandb_utils import add_wandb_args, init_wandb, log_metrics, finish_wandb
 
@@ -74,7 +74,7 @@ def load_and_verify(output_dir: Path) -> tuple:
         sys.exit(1)
 
     print(f"Loaded embeddings: {emb_normal.shape[0]} clips, {emb_normal.shape[1]}-dim")
-    print(f"Clip keys aligned: OK")
+    print("Clip keys aligned: OK")
     return emb_normal, emb_shuffled, paths_n
 
 
@@ -135,9 +135,19 @@ def main():
     output_dir = get_output_dir(args.subset, sanity=args.SANITY, poc=args.POC)
     wb_run = init_wandb("m06c", mode, config=vars(args), enabled=not args.no_wandb)
 
+    # Clean stale temp files (consistent with GPU scripts)
+    cleanup_temp()
+
     k_values = K_SWEEP
     if args.k_sweep:
         k_values = [int(x.strip()) for x in args.k_sweep.split(",")]
+
+    # Output-exists guard — skip full run if summary already exists
+    summary_file = output_dir / "m06c_projection_results.json"
+    if verify_or_skip(output_dir, {
+        "projection summary": summary_file,
+    }, label="m06c temporal_projection"):
+        return
 
     print(f"\n{'='*60}")
     print(f"Temporal Interference Projection — {mode} mode")
@@ -147,7 +157,7 @@ def main():
 
     # ── Load embeddings ─────────────────────────────────────────
     t0 = time.time()
-    emb_normal, emb_shuffled, paths = load_and_verify(output_dir)
+    emb_normal, emb_shuffled, _paths = load_and_verify(output_dir)
     N, D = emb_normal.shape
 
     # ── Compute difference stats ────────────────────────────────
@@ -172,44 +182,63 @@ def main():
           f"top-50={cumulative_explained[min(49, max_k-1)]:.2%}, "
           f"top-{max_k}={cumulative_explained[-1]:.2%}")
 
-    # Project and save for each k
+    # Precompute vectorized stats for original (used in every k iteration)
+    emb_norm_vec = np.linalg.norm(emb_normal, axis=1)
+    shuf_norm_vec = np.linalg.norm(emb_shuffled, axis=1)
+    cos_before_vec = np.sum(emb_normal * emb_shuffled, axis=1) / (emb_norm_vec * shuf_norm_vec + 1e-8)
+    orig_embedding_norm = float(emb_norm_vec.mean())
+    cos_before_mean = float(cos_before_vec.mean())
+
     results = []
     pbar = make_pbar(total=len(k_values), desc="m06c_projection", unit="k")
 
     for k in k_values:
-        components_k = components_full[:k]  # (k, D)
-
-        # Project out top-k temporal components
-        projected = project_out(emb_normal, components_k)
-
-        # Save projected embeddings
         suffix = f"_temporal_proj_k{k}"
         proj_emb_file = output_dir / f"embeddings{suffix}.npy"
         proj_paths_file = output_dir / f"embeddings{suffix}.paths.npy"
-        np.save(proj_emb_file, projected)
-        shutil.copy(output_dir / "embeddings.paths.npy", proj_paths_file)
 
-        # Verify shape preserved
-        assert projected.shape == emb_normal.shape, f"Shape changed: {projected.shape} vs {emb_normal.shape}"
+        # Resume: load cached projection if shape matches (corrupt file -> recompute)
+        projected = None
+        if proj_emb_file.exists():
+            try:
+                cached = np.load(proj_emb_file)
+            except Exception as e:
+                print(f"  k={k:3d}: cached file corrupt ({e}), recomputing")
+                cached = None
+            if cached is not None:
+                if cached.shape == emb_normal.shape:
+                    projected = cached
+                else:
+                    print(f"  k={k:3d}: cached shape {cached.shape} != expected {emb_normal.shape}, recomputing")
 
-        # Compute cosine similarity before/after projection
-        cos_before = np.sum(emb_normal * emb_shuffled, axis=1) / (
-            np.linalg.norm(emb_normal, axis=1) * np.linalg.norm(emb_shuffled, axis=1) + 1e-8)
-        cos_after = np.sum(projected * emb_shuffled, axis=1) / (
-            np.linalg.norm(projected, axis=1) * np.linalg.norm(emb_shuffled, axis=1) + 1e-8)
+        if projected is None:
+            components_k = components_full[:k]                 # (k, D)
+            projected = project_out(emb_normal, components_k)  # (N, D)
+            save_array_checkpoint(projected, proj_emb_file)    # atomic
+            if not proj_paths_file.exists():
+                shutil.copy(output_dir / "embeddings.paths.npy", proj_paths_file)
+            assert projected.shape == emb_normal.shape, \
+                f"Shape changed: {projected.shape} vs {emb_normal.shape}"
+            action = "saved "
+        else:
+            action = "cached"
+
+        # Vectorized cosine after projection
+        proj_norm_vec = np.linalg.norm(projected, axis=1)
+        cos_after_vec = np.sum(projected * emb_shuffled, axis=1) / (proj_norm_vec * shuf_norm_vec + 1e-8)
 
         results.append({
             "k": k,
             "explained_variance_cumulative": float(cumulative_explained[k - 1]),
-            "cosine_normal_shuffled_before": float(cos_before.mean()),
-            "cosine_normal_shuffled_after": float(cos_after.mean()),
-            "embedding_norm_before": float(np.linalg.norm(emb_normal, axis=1).mean()),
-            "embedding_norm_after": float(np.linalg.norm(projected, axis=1).mean()),
+            "cosine_normal_shuffled_before": cos_before_mean,
+            "cosine_normal_shuffled_after": float(cos_after_vec.mean()),
+            "embedding_norm_before": orig_embedding_norm,
+            "embedding_norm_after": float(proj_norm_vec.mean()),
         })
 
         print(f"  k={k:3d}: explained={cumulative_explained[k-1]:.2%}, "
-              f"cos(n,s) {cos_before.mean():.4f} → {cos_after.mean():.4f}, "
-              f"saved {proj_emb_file.name}")
+              f"cos(n,s) {cos_before_mean:.4f} -> {cos_after_vec.mean():.4f}, "
+              f"{action} {proj_emb_file.name}")
         pbar.update(1)
 
     pbar.close()
@@ -264,9 +293,7 @@ def main():
         "elapsed_seconds": elapsed,
     }
     summary_file = output_dir / "m06c_projection_results.json"
-    with open(summary_file, "w") as f:
-        json.dump(summary, f, indent=2)
-    os.fsync(f.fileno())
+    save_json_checkpoint(summary, summary_file)  # atomic + fsync
     print(f"\nSaved: {summary_file}")
 
     # ── Wandb logging ────────────────────────────────────────��──

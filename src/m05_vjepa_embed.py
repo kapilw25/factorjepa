@@ -27,11 +27,10 @@ from tqdm import tqdm
 # Add src to path for utils import
 sys.path.insert(0, str(Path(__file__).parent))
 from utils.config import (
-    EMBEDDINGS_FILE, VJEPA_MODEL_ID, HF_DATASET_REPO,
-    VJEPA_FRAMES_PER_CLIP, VJEPA_EMBEDDING_DIM,
-    check_gpu, DEFAULT_BATCH_SIZE,
-    check_output_exists, load_subset, add_subset_arg, add_local_data_arg, get_output_dir,
+    VJEPA_MODEL_ID, HF_DATASET_REPO, VJEPA_FRAMES_PER_CLIP,
+    check_gpu, load_subset, add_subset_arg, add_local_data_arg, get_output_dir,
     get_pipeline_config, get_sanity_clip_limit, get_total_clips,
+    add_model_config_arg, get_model_config,
 )
 from utils.data_download import ensure_local_data, iter_clips_parallel
 from utils.gpu_batch import compute_batch_sizes, add_gpu_mem_arg, cleanup_temp
@@ -459,13 +458,13 @@ def orchestrator_main(args):
     if final_count < total_clips * 0.95:
         print(f"FATAL: Only {final_count:,}/{total_clips:,} clips embedded ({final_count/total_clips*100:.0f}%). "
               f"Worker died before completion. Checkpoint preserved for resume.")
-        print(f"  Re-run with same command to resume from checkpoint.")
+        print("  Re-run with same command to resume from checkpoint.")
         sys.exit(1)
 
     embeddings = np.stack(all_embeddings).astype(np.float32)
     clip_keys = all_keys
 
-    print(f"\n=== Processing Stats ===")
+    print("\n=== Processing Stats ===")
     print(f"Total clips:     {len(clip_keys):,}")
     print(f"Embedding shape: {embeddings.shape}")
 
@@ -476,7 +475,7 @@ def orchestrator_main(args):
     if checkpoint_file.exists():
         checkpoint_file.unlink()
 
-    print(f"\n=== EMBEDDING COMPLETE ===")
+    print("\n=== EMBEDDING COMPLETE ===")
     print(f"Saved: {embeddings_file}")
     print(f"Shape: {embeddings.shape}")
     print(f"Unique clips: {len(clip_keys)}")
@@ -572,6 +571,12 @@ def worker_main(args):
         model_path = Path(args.model)
         is_adapted = model_path.suffix == ".pt" and model_path.exists()
 
+        # Load model config to determine architecture
+        mcfg = get_model_config(getattr(args, "model_config", None))["model"]
+        arch = mcfg["arch"]
+        hf_model_id = mcfg["hf_model_id"]
+        crop_size = mcfg["crop_size"]
+
         if is_adapted:
             # Adapted encoder: use vjepa2's native VisionTransformer (same keys as m09 training)
             # HF AutoModel has different key format (split QKV, renamed layers) — incompatible
@@ -581,18 +586,13 @@ def worker_main(args):
             else:
                 state_dict = ckpt
 
-            # CRITICAL: use VJEPA_FRAMES_PER_CLIP (64) for evaluation, NOT the training
-            # num_frames (16). The model uses RoPE (no learnable pos_embed), so it handles
-            # any frame count. Using 16 frames would give 4x less temporal context than the
-            # frozen baseline (64 frames) → unfair comparison, -26% Prec@K artifact.
-            # The 1-epoch adaptation preserves the original 64-frame capabilities.
-            print(f"Adapted model: eval at {VJEPA_FRAMES_PER_CLIP} frames (matching frozen baseline)")
+            print(f"Adapted model ({arch}): eval at {VJEPA_FRAMES_PER_CLIP} frames (matching frozen baseline)")
 
-            from utils.vjepa2_imports import get_vit_giant_xformers
-            vit_giant_xformers = get_vit_giant_xformers()
+            from utils.vjepa2_imports import get_vit_by_arch
+            vit_constructor = get_vit_by_arch(arch)
 
-            model = vit_giant_xformers(
-                img_size=(384, 384), patch_size=16, num_frames=VJEPA_FRAMES_PER_CLIP,
+            model = vit_constructor(
+                img_size=(crop_size, crop_size), patch_size=16, num_frames=VJEPA_FRAMES_PER_CLIP,
                 tubelet_size=2, use_sdpa=True, use_silu=False, wide_silu=True,
                 uniform_power=False, use_rope=True,
             )
@@ -608,12 +608,54 @@ def worker_main(args):
                 sys.exit(1)
 
             model = model.to(device=device, dtype=torch.float16)
-            processor = AutoVideoProcessor.from_pretrained(VJEPA_MODEL_ID)
+            # V-JEPA 2.1 has no HF release → use 2.0's processor (same resolution, same normalization)
+            proc_id = hf_model_id if hf_model_id else "facebook/vjepa2-vitg-fpc64-384"
+            processor = AutoVideoProcessor.from_pretrained(proc_id)
+
+        elif hf_model_id is None:
+            # Native frozen model (V-JEPA 2.1 — no HuggingFace release, load from checkpoint)
+            ckpt_path = Path(mcfg["checkpoint_path"])
+            if not ckpt_path.is_absolute():
+                ckpt_path = Path(__file__).parent.parent / ckpt_path
+            if not ckpt_path.exists():
+                print(f"FATAL: V-JEPA 2.1 checkpoint not found: {ckpt_path}")
+                print(f"  Download: wget {mcfg['checkpoint_url']} -P checkpoints/")
+                sys.exit(1)
+
+            print(f"Frozen model ({arch}): native checkpoint at {ckpt_path}")
+            ckpt = torch.load(ckpt_path, map_location="cpu", weights_only=False)
+            # Prefer target_encoder (EMA teacher — best quality), fallback to encoder
+            state_dict = ckpt.get("target_encoder", ckpt.get("encoder", ckpt))
+            # Strip DDP/wrapper prefixes
+            state_dict = {k.replace("module.", "").replace("backbone.", ""): v
+                          for k, v in state_dict.items()}
+
+            from utils.vjepa2_imports import get_vit_by_arch
+            vit_constructor = get_vit_by_arch(arch)
+            model = vit_constructor(
+                img_size=(crop_size, crop_size), patch_size=16, num_frames=VJEPA_FRAMES_PER_CLIP,
+                tubelet_size=2, use_sdpa=True, use_silu=False, wide_silu=True,
+                uniform_power=False, use_rope=True,
+            )
+            msg = model.load_state_dict(state_dict, strict=False)
+            loaded = len(state_dict) - len(msg.unexpected_keys)
+            total = len(list(model.state_dict().keys()))
+            print(f"Frozen encoder: loaded {loaded}/{total} params "
+                  f"(missing: {len(msg.missing_keys)}, unexpected: {len(msg.unexpected_keys)})")
+            if loaded < total * 0.9:
+                print(f"FATAL: Only {loaded}/{total} params loaded — key mismatch!")
+                sys.exit(1)
+
+            model = model.to(device=device, dtype=torch.float16)
+            model.eval()
+            is_adapted = True  # Use the native forward path in get_batch_embeddings()
+            processor = AutoVideoProcessor.from_pretrained("facebook/vjepa2-vitg-fpc64-384")
+
         else:
-            # Standard HF model (frozen baseline)
-            processor = AutoVideoProcessor.from_pretrained(args.model)
+            # Standard HF model (frozen baseline — V-JEPA 2.0 via HuggingFace)
+            processor = AutoVideoProcessor.from_pretrained(hf_model_id)
             model = AutoModel.from_pretrained(
-                args.model,
+                hf_model_id,
                 torch_dtype=torch.float16,
                 device_map="auto",
                 attn_implementation="flash_attention_2",
@@ -651,7 +693,7 @@ def worker_main(args):
         sys.exit(1)
 
     # Producer-consumer setup
-    print(f"\n=== Streaming Config ===")
+    print("\n=== Streaming Config ===")
     print(f"batch_size:    {args.batch_size}")
     print(f"video_decoder: {'torchcodec (fast)' if USE_TORCHCODEC else 'PyAV'}")
     print(f"prefetch:      {PREFETCH_QUEUE_SIZE} batches")
@@ -783,13 +825,15 @@ def main():
     parser.add_argument("--SANITY", action="store_true", help="Process 5 clips only")
     parser.add_argument("--POC", action="store_true", help="10K subset")
     parser.add_argument("--FULL", action="store_true", help="Process all clips")
-    parser.add_argument("--model", type=str, default=VJEPA_MODEL_ID, help="Model ID")
+    parser.add_argument("--model", type=str, default=VJEPA_MODEL_ID,
+                        help="Model ID or adapted checkpoint path")
     parser.add_argument("--batch-size", type=int, default=None,
                         help="Override batch size (auto-computed if omitted)")
     parser.add_argument("--encoder", type=str, default=None,
                         help="Encoder name for output files (e.g., vjepa_lambda0)")
     parser.add_argument("--shuffle", action="store_true",
                         help="Shuffle frame order (for temporal ablation)")
+    add_model_config_arg(parser)
     add_subset_arg(parser)
     add_local_data_arg(parser)
     add_wandb_args(parser)

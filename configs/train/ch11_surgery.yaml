@@ -1,0 +1,110 @@
+# Ch11: Factor Surgery — Progressive Prefix Unfreezing with Factor Datasets
+# (FactorJEPA proposal Sec 11)
+#
+# This is the PAPER NOVELTY. THE experiment that determines whether the approach works.
+#
+# Recipe:
+#   1. SAM3 segments video clips into agent vs layout (motion filter)
+#   2. Generate factor datasets:
+#        D_L = layout-only (blur agents)
+#        D_A = agent-only (suppress background)
+#        D_I = interaction tubes (multi-agent events)
+#   3. 3-stage progressive unfreezing on FROZEN V-JEPA 2.1 (no Ch10 prerequisite):
+#        Stage 1: layers 0 → 25%L, 100% D_L
+#        Stage 2: layers 0 → 50%L, 90% D_A + 10% D_L replay
+#        Stage 3: layers 0 → 75%L, 85% D_I + 10% D_A + 5% D_L
+#   4. Same JEPA loss — only input distribution and trainable depth change
+#
+# USAGE:
+#   python -u src/m09_pretrain.py \
+#       --model-config configs/model/vjepa2_1.yaml \
+#       --train-config configs/train/ch11_surgery.yaml \
+#       --FULL --subset data/subset_10k.json --local-data data/subset_10k_local
+#
+# POC Mode (Week 1, simplified):
+#   - 100 clips, 2 factors only (D_L + D_A, skip D_I)
+#   - 2 stages: Stage 1 (D_L), Stage 2 (D_A + 10% D_L replay)
+#   - 1 epoch each = ~3h GPU on RTX PRO 6000
+
+extends: base_optimization.yaml
+
+# -- Optimization overrides --
+optimization:
+  lr: 1.0e-6                      # Same as Ch10 (constant, post-audit)
+  pred_lr_multiplier: 10.0
+  layer_wise_lr_decay: true       # Smaller LR for earlier (already-frozen) layers
+  layer_wise_lr_decay_factor: 0.75
+
+  max_epochs:
+    sanity: 1
+    poc: 1                        # 1 epoch per stage for POC validation
+    full: 3                       # 3 epochs per stage for full run
+
+  batch_size: 32                  # Auto-overridden by profiler
+
+# -- Factor datasets (m10/m11 prerequisite) --
+factor_datasets:
+  sam_model: facebook/sam3-large      # SAM3 instance segmentation
+  iou_threshold: 0.3                  # Tracklet matching threshold
+  motion_threshold: 0.05              # Frame width fraction (agent vs layout filter)
+  motion_min_frames: 4                # Persistence required for "agent" classification
+  agent_dilation_pixels: 4            # Mask dilation for thin structures (legs, bike spokes)
+
+  # Patch operators (rendering)
+  layout_patch_method: blur            # blur | inpaint
+  agent_patch_method: soft_matte       # hard_zero | soft_matte
+  soft_matte_factor: 0.1               # Background attenuation (1.0 = no change, 0 = hard zero)
+
+# -- Interaction mining (D_I) --
+interaction_mining:
+  enabled: true                       # Set false for POC (skip D_I)
+  min_overlap_frames: 4               # r in proposal Sec 11.2
+  max_distance_frame_fraction: 0.20   # d_max
+  cue_types: [approach, crossing, following]
+  tube_margin_pct: 0.15               # Box expansion margin
+
+# -- Surgery: 3-stage progressive prefix unfreezing --
+# Sec 11.5 of proposal — n1=0.25L, n2=0.50L, n3=0.75L
+surgery:
+  stages:
+    - name: stage1_layout
+      unfreeze_below: 0.25          # Fraction of total depth (e.g., 12 of 48 layers)
+      mode_mixture:
+        L: 1.00                     # 100% layout-only
+        A: 0.00
+        I: 0.00
+      warmup_steps: 200             # Per-stage warmup to avoid loss spikes
+      max_epochs_pct: 0.33          # 33% of total epoch budget
+
+    - name: stage2_agent
+      unfreeze_below: 0.50          # 24 of 48 layers
+      mode_mixture:
+        L: 0.10                     # 10% replay
+        A: 0.90                     # 90% agent-only
+        I: 0.00
+      warmup_steps: 200
+      max_epochs_pct: 0.33
+
+    - name: stage3_interaction
+      unfreeze_below: 0.75          # 36 of 48 layers
+      mode_mixture:
+        L: 0.05                     # 5% replay
+        A: 0.10                     # 10% replay
+        I: 0.85                     # 85% interaction
+      warmup_steps: 200
+      max_epochs_pct: 0.34
+
+# -- POC simplification (Week 1) --
+# Override for fast validation: skip D_I, run only Stage 1 + Stage 2
+poc_simplified:
+  enabled: false                    # Set true via --poc-simple flag
+  stages_to_run: [stage1_layout, stage2_agent]
+  n_clips: 100                      # SAM3 on 100 clips for POC
+
+# -- Drift control: minimal --
+# Surgery uses freezing as the primary anti-forgetting mechanism.
+# Light drift control on unfrozen layers as belt-and-suspenders.
+drift_control:
+  enabled: true
+  type: l2_uniform                  # Simple L2 (not EWC) for surgery
+  lambda_reg: 1.0
