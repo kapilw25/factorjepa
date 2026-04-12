@@ -97,7 +97,7 @@ def save_frames_as_jpeg(frames_np: np.ndarray, frame_dir: str) -> str:
 # ── Per-Clip Segmentation ───────────────────────────────────────────
 
 def segment_clip(predictor, frame_dir: str, agent_prompt: str,
-                 dilation_px: int) -> dict:
+                 dilation_px: int, min_confidence: float) -> dict:
     """Run SAM 3.1 text-prompted segmentation on a video clip.
 
     Uses SAM 3.1 streaming API (handle_stream_request + propagate_in_video).
@@ -128,13 +128,14 @@ def segment_clip(predictor, frame_dir: str, agent_prompt: str,
 
     # 3. Capture frame 0 masks from prompt response
     # SAM 3.1 output: {out_obj_ids: (N,), out_binary_masks: (N, H, W), out_probs: (N,)}
+    # Gold standard: only keep masks with confidence >= threshold (SAM 3 paper benchmark practice)
     masks_per_frame = {}
     out0 = prompt_resp["outputs"]
     n_agents = len(out0["out_obj_ids"])
     masks_per_frame[0] = {
         int(oid): out0["out_binary_masks"][i]
         for i, oid in enumerate(out0["out_obj_ids"].tolist())
-        if out0["out_binary_masks"][i].any()
+        if out0["out_binary_masks"][i].any() and out0["out_probs"][i] >= min_confidence
     }
 
     # Infer spatial dims from first mask
@@ -152,7 +153,7 @@ def segment_clip(predictor, frame_dir: str, agent_prompt: str,
         out = resp["outputs"]
         frame_masks = {}
         for i, oid in enumerate(out["out_obj_ids"].tolist()):
-            if out["out_binary_masks"][i].any():
+            if out["out_binary_masks"][i].any() and out["out_probs"][i] >= min_confidence:
                 frame_masks[oid] = out["out_binary_masks"][i]
         masks_per_frame[fidx] = frame_masks
 
@@ -399,6 +400,7 @@ def main():
         train_cfg = yaml.safe_load(f)
     factor_cfg = train_cfg["factor_datasets"]
     dilation_px = factor_cfg["agent_dilation_pixels"]
+    min_confidence = factor_cfg["min_confidence"]
     interaction_cfg = train_cfg["interaction_mining"]
 
     # Output routing
@@ -510,7 +512,7 @@ def main():
             agent_prompt = get_agent_prompt(clip_key, tags_lookup)
 
             # Segment
-            result = segment_clip(predictor, frame_dir, agent_prompt, dilation_px)
+            result = segment_clip(predictor, frame_dir, agent_prompt, dilation_px, min_confidence)
 
             # Mine interactions (D_I)
             interactions = mine_interactions(
@@ -522,8 +524,16 @@ def main():
 
             # Save masks + centroids + interactions
             save_clip_masks(clip_key, result, interactions, masks_dir)
+            # Concept recall: detected agents vs expected from tags.json
+            expected_objects = tags_lookup[clip_key]["notable_objects"]
+            n_expected = len(expected_objects)
+            n_detected = result["n_agents"]
+            concept_recall = n_detected / max(n_expected, 1)
+
             segments[clip_key] = {
-                "n_agents": result["n_agents"],
+                "n_agents": n_detected,
+                "n_expected": n_expected,
+                "concept_recall": round(concept_recall, 3),
                 "n_frames": frames_np.shape[0],
                 "agent_pixel_ratio": result["agent_pixel_ratio"],
                 "agent_prompt": agent_prompt,
@@ -545,13 +555,19 @@ def main():
     save_json_checkpoint(segments, output_dir / "segments.json")
     elapsed = time.time() - t0
     n_interactions_total = sum(s["n_interactions"] for s in segments.values())
+    concept_recalls = [s["concept_recall"] for s in segments.values()]
+    mean_concept_recall = float(np.mean(concept_recalls)) if concept_recalls else 0
+
     summary = {
         "n_clips": len(segments),
         "n_total_agents": sum(s["n_agents"] for s in segments.values()),
         "n_total_interactions": n_interactions_total,
         "mean_agent_pixel_ratio": float(np.mean([s["agent_pixel_ratio"] for s in segments.values()])) if segments else 0,
+        "mean_concept_recall": mean_concept_recall,
+        "min_confidence_threshold": min_confidence,
         "elapsed_sec": elapsed,
         "sam_model": factor_cfg["sam_model"],
+        "quality_gate": "PASS" if mean_concept_recall >= 0.3 else "FAIL",
     }
     save_json_checkpoint(summary, output_dir / "summary.json")
 
@@ -562,6 +578,13 @@ def main():
     # Paper visualizations
     plot_segmentation_samples(segments, masks_dir, tags_lookup, output_dir)
     plot_agent_stats(segments, tags_lookup, output_dir)
+
+    # Quality gate: FATAL if concept recall too low (Rule 33: quality gates in Python, not shell)
+    if mean_concept_recall < 0.3:
+        print(f"FATAL: Mean concept recall = {mean_concept_recall:.2f} (< 0.3 threshold)")
+        print("  SAM 3.1 is not detecting enough objects from tags.json prompts.")
+        print("  Check: text prompts, SAM model version, image quality.")
+        sys.exit(1)
 
     log_metrics(wb_run, summary)
     # Shutdown SAM 3.1 predictor (releases GPU worker processes)

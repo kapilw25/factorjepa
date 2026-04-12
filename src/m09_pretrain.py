@@ -966,6 +966,16 @@ def train_surgery(cfg: dict, args):
         print(f"FATAL: factor_manifest.json not found in {factor_dir}")
         sys.exit(1)
 
+    # Quality gate: check m10 summary before training (Rule 33: logic in Python)
+    summary_file = factor_dir / "summary.json"
+    if summary_file.exists():
+        m10_summary = json.load(open(summary_file))
+        if m10_summary.get("quality_gate") == "FAIL":
+            print(f"FATAL: m10 quality gate FAILED (concept_recall={m10_summary['mean_concept_recall']:.2f})")
+            print("  SAM 3.1 did not detect enough objects. Fix m10 before training.")
+            sys.exit(1)
+        print(f"  m10 quality: concept_recall={m10_summary['mean_concept_recall']:.2f} (PASS)")
+
     manifest = json.load(open(manifest_file))
     factor_index = build_factor_index(manifest,
                                        factor_dir / "D_L",

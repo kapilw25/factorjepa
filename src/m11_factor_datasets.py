@@ -241,6 +241,60 @@ def plot_factor_samples(dl_dir: Path, da_dir: Path, output_dir: Path,
     save_fig(fig, str(output_dir / "m11_factor_samples"))
 
 
+def plot_interaction_samples(di_dir: Path, manifest: dict, output_dir: Path,
+                            n_samples: int = 8):
+    """Paper-quality grid of D_I interaction tubes. 2 columns: frame 0 | middle frame.
+
+    Shows spatial crop around interacting agent pairs across time.
+    Saved as m11_interaction_samples.png/.pdf.
+    """
+    init_style()
+
+    tube_files = sorted(di_dir.glob("*.npy"))[:n_samples]
+    if not tube_files:
+        print("  No D_I tubes found — skipping interaction visualization")
+        return
+
+    fig, axes = plt.subplots(len(tube_files), 3, figsize=(14, 3 * len(tube_files)))
+    if len(tube_files) == 1:
+        axes = axes[np.newaxis, :]
+
+    for i, tube_file in enumerate(tube_files):
+        tube = np.load(tube_file)  # (T_tube, H_crop, W_crop, C) uint8
+        T = tube.shape[0]
+        mid = T // 2
+
+        clip_name = tube_file.stem.rsplit("_tube", 1)[0].replace("__", "/")
+        tube_id = tube_file.stem.rsplit("_tube", 1)[1] if "_tube" in tube_file.stem else "?"
+
+        axes[i, 0].imshow(tube[0])
+        axes[i, 0].set_title(f"D_I tube {tube_id} — frame 0", fontsize=9)
+        axes[i, 0].axis("off")
+
+        axes[i, 1].imshow(tube[mid])
+        axes[i, 1].set_title(f"frame {mid}/{T}", fontsize=9)
+        axes[i, 1].axis("off")
+
+        axes[i, 2].imshow(tube[-1])
+        axes[i, 2].set_title(f"frame {T-1} (last)", fontsize=9)
+        axes[i, 2].axis("off")
+
+        axes[i, 0].set_ylabel(clip_name[:30], fontsize=7, rotation=0, labelpad=80, va="center")
+
+    fig.suptitle(f"D_I Interaction Tubes ({len(tube_files)} samples)", fontsize=13, y=1.01)
+    fig.tight_layout()
+    save_fig(fig, str(output_dir / "m11_interaction_samples"))
+
+    # Print D_I summary stats
+    clips_with_tubes = sum(1 for v in manifest.values() if v.get("n_interaction_tubes", 0) > 0)
+    total_tubes = sum(v.get("n_interaction_tubes", 0) for v in manifest.values())
+    tube_counts = [v.get("n_interaction_tubes", 0) for v in manifest.values() if v.get("n_interaction_tubes", 0) > 0]
+    print(f"  D_I quality: {clips_with_tubes}/{len(manifest)} clips have tubes "
+          f"({100*clips_with_tubes/max(len(manifest),1):.0f}%), "
+          f"{total_tubes} total tubes"
+          f"{f', median {np.median(tube_counts):.0f}/clip' if tube_counts else ''}")
+
+
 def plot_factor_stats(manifest: dict, output_dir: Path):
     """Histogram of agent pixel ratio across clips. Paper figure."""
     init_style()
@@ -451,8 +505,9 @@ def main():
     print(f"  D_A: {da_dir} ({len(list(da_dir.glob('*.npy')))} files)")
     print(f"  D_I: {di_dir} ({len(list(di_dir.glob('*.npy')))} tubes from {n_tubes_total} interactions)")
 
-    # Paper visualizations
+    # Paper visualizations (D_L vs D_A, D_I tubes, stats)
     plot_factor_samples(dl_dir, da_dir, output_dir)
+    plot_interaction_samples(di_dir, manifest, output_dir)
     plot_factor_stats(manifest, output_dir)
 
     log_metrics(wb_run, {"n_clips": len(manifest), "elapsed": elapsed})

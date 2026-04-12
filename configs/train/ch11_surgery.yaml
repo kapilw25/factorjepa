@@ -50,6 +50,7 @@ factor_datasets:
   motion_threshold: 0.05              # Frame width fraction (agent vs layout filter)
   motion_min_frames: 4                # Persistence required for "agent" classification
   agent_dilation_pixels: 4            # Mask dilation for thin structures (legs, bike spokes)
+  min_confidence: 0.5                  # SAM 3.1 out_probs threshold (gold standard: 0.5)
 
   # Patch operators (rendering)
   layout_patch_method: blur            # blur | inpaint
