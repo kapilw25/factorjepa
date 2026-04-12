@@ -35,7 +35,7 @@ Research benchmark testing if V-JEPA 2 (Meta's video foundation model, trained o
 - **m08_plot.py**: CPU-only matplotlib. Reads pre-computed .npy files.
 - **m08b_compare.py**: CPU-only. Auto-scans m06/m06b JSON. Hard fail on missing temporal scores.
 
-### m09: Continual Pretraining (Ch10, in progress)
+### m09: Training — ExPLoRA + Ch10 Pretrain + Surgery (Ch10/Ch11)
 - **m09_pretrain.py** (~940 lines): V-JEPA 2 student-teacher JEPA with EMA, L1 latent prediction, drift control. Epoch-based training (not step-based). Key features:
   - vjepa2 imports via `utils/vjepa2_imports.py` shim (namespace collision fix)
   - Epoch geometry: `steps_per_epoch = n_train // batch_size`, `total_steps = steps_per_epoch * max_epochs`
@@ -54,10 +54,10 @@ Research benchmark testing if V-JEPA 2 (Meta's video foundation model, trained o
   - LR warmup capped at 10% of total steps
   - `--max-epochs` CLI override for winner deep run
 
-### m10-m12: Surgery Fine-Tuning (Ch11, NOT BUILT)
-- **m10_sam_segment.py**: SAM3 segmentation → tracklets → agent/layout separation (TODO)
-- **m11_factor_datasets.py**: Create D_L/D_A/D_I factor datasets (TODO)
-- **m12_surgery.py**: Progressive prefix unfreezing training (TODO)
+### m10-m11: Surgery Factor Datasets (Ch11, BUILT)
+- **m10_sam_segment.py**: SAM 3.1 text-prompted segmentation → agent/layout masks + interaction mining. Per-clip notable_objects from tags.json. Streaming API (propagate_in_video). Multiplex builder for 3.1.
+- **m11_factor_datasets.py**: Generate D_L (blur agents, feathered edges), D_A (suppress background, soft matte), D_I (interaction tubes from centroids). Quality filters (min 2% / max 70% agent area). All params from ch11_surgery.yaml.
+- **m09 surgery mode**: NOT YET IMPLEMENTED — progressive prefix unfreezing + factor loading blocked. train_surgery.sh has FATAL guard.
 
 ### Scripts
 - **scripts/run_evaluate.sh**: Ch9 eval pipeline (m04→m05→m05b→m05c→m04d→m06→m06b→m07→m08→m08b). Hard fail on all errors.
@@ -125,7 +125,7 @@ Phase 3: m06b temporal → m05 shuffled adapted → m06 shuffled → m07 UMAP �
   - λ=100 Ch10 = parallel ablation, NOT prerequisite
   - Idea Critic verdict: **PURSUE** (upgraded from REFINE)
   - Full plan: `iter/iter8/plan_training.md` | Action items: `iter/iter8/next_steps.md`
-- **Ch11: NOT BUILT** — m10/m11/m12 code not started. POC validation first (3h GPU, 100 clips)
+- **Ch11: m10 + m11 BUILT, m09 surgery BLOCKED** — SAM 3.1 segmentation + factor datasets ready. m09 progressive unfreezing + factor loading not implemented. ExPLoRA ready to run NOW.
 
 ## Data Download Times (measured, RTX PRO 6000 instance, April 2026)
 

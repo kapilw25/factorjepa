@@ -65,6 +65,8 @@ from utils.wandb_utils import (
 import torch
 import torch.nn.functional as F
 
+from utils.progress import make_pbar
+
 # vjepa2 imports via shim (avoids src/ namespace collision)
 from utils.vjepa2_imports import (
     get_vit_by_arch, get_vit_predictor, get_vit_predictor_2_1,
@@ -800,7 +802,376 @@ def export_student_for_eval(student, path: Path, explora_enabled: bool = False):
 
 
 # ═════════════════════════════════════════════════════════════════════════
-# TRAINING LOOP
+# SURGERY HELPERS (Ch11 — progressive prefix unfreezing + factor datasets)
+# ═════════════════════════════════════════════════════════════════════════
+
+def set_trainable_prefix(student, n_layers: int):
+    """Freeze all blocks, then unfreeze blocks [0, n_layers). Rebuild optimizer after calling."""
+    for param in student.parameters():
+        param.requires_grad = False
+    for i in range(min(n_layers, len(student.blocks))):
+        for param in student.blocks[i].parameters():
+            param.requires_grad = True
+    for name, param in student.named_parameters():
+        if "norm" in name or "ln" in name:
+            param.requires_grad = True
+    trainable = sum(p.numel() for p in student.parameters() if p.requires_grad)
+    total = sum(p.numel() for p in student.parameters())
+    print(f"  Trainable prefix: {n_layers}/{len(student.blocks)} blocks "
+          f"({trainable:,}/{total:,} = {100*trainable/total:.1f}%)")
+
+
+def build_factor_index(manifest: dict, dl_dir: Path, da_dir: Path, di_dir: Path) -> dict:
+    """Build clip_key → {D_L: path, D_A: path, D_I: [paths]} from m11 manifest."""
+    index = {}
+    for clip_key, info in manifest.items():
+        safe_key = clip_key.replace("/", "__")
+        entry = {}
+        if info["has_D_L"]:
+            p = dl_dir / f"{safe_key}.npy"
+            if p.exists():
+                entry["D_L"] = p
+        if info["has_D_A"]:
+            p = da_dir / f"{safe_key}.npy"
+            if p.exists():
+                entry["D_A"] = p
+        if info.get("has_D_I") and info.get("n_interaction_tubes", 0) > 0:
+            tubes = sorted(di_dir.glob(f"{safe_key}_tube*.npy"))
+            if tubes:
+                entry["D_I"] = tubes
+        if entry:
+            index[clip_key] = entry
+    print(f"  Factor index: {len(index)} clips "
+          f"(D_L={sum(1 for e in index.values() if 'D_L' in e)}, "
+          f"D_A={sum(1 for e in index.values() if 'D_A' in e)}, "
+          f"D_I={sum(1 for e in index.values() if 'D_I' in e)})")
+    return index
+
+
+class FactorSampler:
+    """Sample factor clips according to per-stage mode mixture weights."""
+
+    def __init__(self, factor_index: dict, mode_mixture: dict):
+        factor_map = {"L": "D_L", "A": "D_A", "I": "D_I"}
+        self.clips_by_factor = {}
+        for fk in ["D_L", "D_A", "D_I"]:
+            self.clips_by_factor[fk] = [
+                (key, entry[fk])
+                for key, entry in factor_index.items()
+                if fk in entry
+            ]
+        self.factors = []
+        self.weights = []
+        for mode_key, weight in mode_mixture.items():
+            if weight > 0:
+                fk = factor_map[mode_key]
+                if self.clips_by_factor[fk]:
+                    self.factors.append(fk)
+                    self.weights.append(weight)
+        if not self.factors:
+            print("FATAL: No factor clips available for the given mode mixture")
+            sys.exit(1)
+        total_w = sum(self.weights)
+        self.weights = [w / total_w for w in self.weights]
+        print(f"  FactorSampler: {', '.join(f'{f}={w:.0%}' for f, w in zip(self.factors, self.weights))}")
+
+    def sample(self) -> tuple:
+        """Returns (factor_type, clip_key, path_or_paths)."""
+        factor = np.random.choice(self.factors, p=self.weights)
+        clips = self.clips_by_factor[factor]
+        idx = np.random.randint(len(clips))
+        clip_key, path = clips[idx]
+        if isinstance(path, list):
+            path = path[np.random.randint(len(path))]
+        return factor, clip_key, path
+
+
+def load_factor_clip(path: Path, num_frames: int, crop_size: int) -> torch.Tensor:
+    """Load factor-patched clip from .npy → (T, C, H, W) float32 tensor, ImageNet-normalized."""
+    frames = np.load(path)
+    if frames.shape[1] != crop_size or frames.shape[2] != crop_size:
+        from PIL import Image as _PILResize
+        resized = []
+        for t in range(frames.shape[0]):
+            img = _PILResize.fromarray(frames[t])
+            img = img.resize((crop_size, crop_size), _PILResize.BILINEAR)
+            resized.append(np.array(img))
+        frames = np.stack(resized)
+    if frames.shape[0] > num_frames:
+        indices = np.linspace(0, frames.shape[0] - 1, num_frames, dtype=int)
+        frames = frames[indices]
+    elif frames.shape[0] < num_frames:
+        pad = np.repeat(frames[-1:], num_frames - frames.shape[0], axis=0)
+        frames = np.concatenate([frames, pad], axis=0)
+    tensor = torch.from_numpy(frames).permute(0, 3, 1, 2).float() / 255.0
+    mean = torch.tensor([0.485, 0.456, 0.406]).view(1, 3, 1, 1)
+    std = torch.tensor([0.229, 0.224, 0.225]).view(1, 3, 1, 1)
+    tensor = (tensor - mean) / std
+    return tensor
+
+
+# ═════════════════════════════════════════════════════════════════════════
+# SURGERY TRAINING (Ch11 — 3-stage progressive prefix unfreezing)
+# ═════════════════════════════════════════════════════════════════════════
+
+def train_surgery(cfg: dict, args):
+    """3-stage progressive prefix unfreezing with factor datasets (Ch11 proposal Sec 11.5-11.6)."""
+    check_gpu()
+    device = torch.device("cuda")
+
+    seed = cfg["data"]["seed"]
+    random.seed(seed)
+    np.random.seed(seed)
+    torch.manual_seed(seed)
+    torch.backends.cudnn.benchmark = True
+
+    gc.disable()
+    gc.collect()
+
+    # Output dir
+    output_dir = Path(args.output_dir) if args.output_dir else get_output_dir(
+        args.subset, sanity=args.SANITY, poc=args.POC) / "m09_surgery"
+    output_dir.mkdir(parents=True, exist_ok=True)
+    student_path = output_dir / "student_encoder.pt"
+
+    from utils.output_guard import verify_or_skip
+    if verify_or_skip(output_dir, {"student": student_path}, label="m09 surgery"):
+        return
+
+    mode_key = "sanity" if args.SANITY else ("poc" if args.POC else "full")
+    mp_cfg = cfg["mixed_precision"]
+    dtype = getattr(torch, mp_cfg["dtype"])
+    scaler = torch.amp.GradScaler("cuda", enabled=(mp_cfg["dtype"] == "float16"))
+    loss_exp = cfg["optimization"]["loss_exp"]
+    ema_momentum = cfg["optimization"]["ema_momentum"]
+
+    wb_run = init_wandb("m09_surgery", mode_key.upper(), config=vars(args),
+                        enabled=not args.no_wandb)
+
+    # Build model (V-JEPA 2.1 with deep supervision + dense loss)
+    models = build_model(cfg, device)
+    student = models["student"]
+    teacher = models["teacher"]
+    predictor = models["predictor"]
+
+    mask_generators = build_mask_generators(cfg)
+
+    # Load factor datasets
+    factor_dir = Path(args.factor_dir)
+    if not factor_dir.exists():
+        print(f"FATAL: factor_dir not found: {factor_dir}")
+        sys.exit(1)
+    manifest_file = factor_dir / "factor_manifest.json"
+    if not manifest_file.exists():
+        print(f"FATAL: factor_manifest.json not found in {factor_dir}")
+        sys.exit(1)
+
+    manifest = json.load(open(manifest_file))
+    factor_index = build_factor_index(manifest,
+                                       factor_dir / "D_L",
+                                       factor_dir / "D_A",
+                                       factor_dir / "D_I")
+
+    # Surgery config
+    surgery_cfg = cfg["surgery"]
+    stages = surgery_cfg["stages"]
+    depth = cfg["model"]["depth"]
+    embed_dim = cfg["model"]["embed_dim"]
+    n_levels = cfg["model"].get("n_output_distillation", 4)
+    predict_all = cfg["model"]["predict_all"]
+    crop_size = cfg["model"]["crop_size"]
+    num_frames = cfg["data"]["num_frames"]
+    batch_size = args.batch_size if args.batch_size else cfg["optimization"]["batch_size"]
+
+    max_epochs = cfg["optimization"]["max_epochs"][mode_key]
+    total_clips = len(factor_index)
+    steps_per_epoch = max(total_clips // batch_size, 1)
+    total_steps = steps_per_epoch * max_epochs
+
+    print(f"\n{'='*60}")
+    print(f"SURGERY TRAINING — {len(stages)} stages on {total_clips} factor clips")
+    print(f"Model: {cfg['model']['arch']} ({depth} blocks, {embed_dim}-dim)")
+    print(f"Epochs: {max_epochs} | Steps: {total_steps} | BS: {batch_size}")
+    print(f"Dense loss: predict_all={predict_all} | Deep supervision: {n_levels} levels")
+    print(f"{'='*60}")
+
+    global_step = 0
+    csv_path = output_dir / "loss_log.csv"
+    jsonl_path = output_dir / "loss_log.jsonl"
+    csv_file = open(csv_path, "w", newline="")
+    csv_writer = csv.writer(csv_file)
+    csv_writer.writerow(["step", "stage", "loss_jepa", "loss_masked", "loss_context", "lr", "grad_norm"])
+    jsonl_file = open(jsonl_path, "w")
+
+    def _log_step(record):
+        jsonl_file.write(json.dumps(record) + "\n")
+        jsonl_file.flush()
+        os.fsync(jsonl_file.fileno())
+
+    try:
+        for stage_idx, stage_cfg in enumerate(stages):
+            stage_name = stage_cfg["name"]
+            n_trainable = int(depth * stage_cfg["unfreeze_below"])
+            stage_pct = stage_cfg["max_epochs_pct"]
+            stage_steps = max(int(total_steps * stage_pct), 1)
+            warmup_steps = stage_cfg["warmup_steps"]
+            mode_mixture = stage_cfg["mode_mixture"]
+
+            print(f"\n{'='*60}")
+            print(f"STAGE {stage_idx + 1}/{len(stages)}: {stage_name}")
+            print(f"  Layers 0-{n_trainable} trainable | {stage_steps} steps | warmup {warmup_steps}")
+            print(f"  Mixture: {mode_mixture}")
+            print(f"{'='*60}")
+
+            # Set trainable prefix
+            set_trainable_prefix(student, n_trainable)
+
+            # Rebuild optimizer (only trainable params)
+            optimizer = build_optimizer(student, predictor, cfg["optimization"])
+
+            # Per-stage LR scheduler (warmup then constant)
+            def lr_lambda(step, ws=warmup_steps):
+                if step < ws:
+                    return (step + 1) / max(ws, 1)
+                return 1.0
+            scheduler = torch.optim.lr_scheduler.LambdaLR(optimizer, lr_lambda)
+
+            # Factor sampler for this stage
+            sampler = FactorSampler(factor_index, mode_mixture)
+
+            pbar = make_pbar(total=stage_steps, desc=f"surgery:{stage_name}", unit="step")
+
+            for local_step in range(stage_steps):
+                # Build batch from factor clips
+                batch_tensors = []
+                for _ in range(batch_size):
+                    _, _, clip_path = sampler.sample()
+                    clip_tensor = load_factor_clip(clip_path, num_frames, crop_size)
+                    batch_tensors.append(clip_tensor)
+                batch_clips = torch.stack(batch_tensors).to(device)
+                batch_clips = batch_clips.permute(0, 2, 1, 3, 4)  # (B, C, T, H, W)
+
+                actual_bs = batch_clips.shape[0]
+
+                # Generate masks
+                all_masks_enc, all_masks_pred = [], []
+                for mg in mask_generators:
+                    m_enc, m_pred = mg(actual_bs)
+                    all_masks_enc.append(m_enc.to(device))
+                    all_masks_pred.append(m_pred.to(device))
+
+                # Forward pass (dense loss + deep supervision — same as train())
+                with torch.amp.autocast("cuda", dtype=dtype, enabled=mp_cfg["enabled"]):
+                    with torch.no_grad():
+                        h = teacher(batch_clips)
+                        if h.size(-1) == n_levels * embed_dim:
+                            chunks = []
+                            for lvl in range(n_levels):
+                                chunk = h[:, :, lvl * embed_dim : (lvl + 1) * embed_dim]
+                                chunks.append(F.layer_norm(chunk, (embed_dim,)))
+                            h = torch.cat(chunks, dim=2)
+                        else:
+                            h = F.layer_norm(h, (h.size(-1),))
+
+                    pred_features = []
+                    pred_context = []
+                    for i, (m_enc, m_pred) in enumerate(zip(all_masks_enc, all_masks_pred)):
+                        z = student(batch_clips, masks=[m_enc])
+                        outputs = predictor(z, [m_enc], [m_pred], mask_index=i)
+                        if isinstance(outputs, tuple) and len(outputs) == 2:
+                            pred_features.append(outputs[0])
+                            pred_context.append(outputs[1])
+                        else:
+                            pred_features.append(outputs)
+
+                    jepa_loss, loss_masked, loss_context = compute_jepa_loss(
+                        pred_features, pred_context, h,
+                        all_masks_pred, all_masks_enc,
+                        loss_exp, predict_all, lambda_context=0.5)
+
+                # Backward + step
+                scaler.scale(jepa_loss).backward()
+                scaler.unscale_(optimizer)
+                grad_norm = torch.nn.utils.clip_grad_norm_(
+                    list(student.parameters()) + list(predictor.parameters()),
+                    cfg["optimization"]["grad_clip"])
+                scaler.step(optimizer)
+                scaler.update()
+                optimizer.zero_grad()
+                scheduler.step()
+
+                # EMA teacher update
+                update_teacher_ema(student, teacher, ema_momentum)
+
+                # Logging
+                jepa_val = jepa_loss.item()
+                masked_val = loss_masked.item()
+                context_val = loss_context.item()
+                lr_val = scheduler.get_last_lr()[0]
+                gn_val = grad_norm.item() if torch.is_tensor(grad_norm) else grad_norm
+
+                step_record = {
+                    "step": global_step, "stage": stage_name,
+                    "loss_jepa": round(jepa_val, 6),
+                    "loss_masked": round(masked_val, 6),
+                    "loss_context": round(context_val, 6),
+                    "lr": lr_val, "grad_norm": round(gn_val, 4),
+                }
+                _log_step(step_record)
+                csv_writer.writerow([global_step, stage_name, f"{jepa_val:.6f}",
+                                     f"{masked_val:.6f}", f"{context_val:.6f}",
+                                     f"{lr_val:.2e}", f"{gn_val:.4f}"])
+
+                log_metrics(wb_run, {
+                    "loss/jepa": jepa_val, "loss/masked": masked_val,
+                    "loss/context": context_val, "lr": lr_val,
+                    "grad_norm": gn_val, "stage": stage_idx,
+                }, step=global_step)
+
+                global_step += 1
+                pbar.update(1)
+
+                if global_step % cfg["optimization"]["gc_interval"] == 0:
+                    gc.collect()
+
+            pbar.close()
+            save_training_checkpoint(output_dir / f"m09_ckpt_stage{stage_idx}.pt",
+                                     student, teacher, predictor, optimizer, scheduler,
+                                     scaler, global_step, 0.0, full=False)
+            print(f"  Stage {stage_name} complete: {stage_steps} steps, loss={jepa_val:.4f}")
+
+    finally:
+        csv_file.close()
+        jsonl_file.close()
+        gc.enable()
+
+    # Export student encoder
+    export_student_for_eval(student, student_path)
+
+    # Training summary
+    summary = {
+        "steps": global_step,
+        "stages": [s["name"] for s in stages],
+        "total_factor_clips": len(factor_index),
+        "batch_size": batch_size,
+        "final_loss": jepa_val,
+    }
+    with open(output_dir / "training_summary.json", "w") as f:
+        json.dump(summary, f, indent=2)
+
+    # Training curves (reuse utils/plots.py)
+    from utils.plots import plot_training_curves
+    plot_training_curves(
+        [{"csv_path": str(csv_path), "label": "Surgery", "batch_size": batch_size}],
+        str(output_dir), title_prefix="Surgery: ")
+
+    finish_wandb(wb_run)
+    print(f"\nSURGERY COMPLETE: {global_step} steps across {len(stages)} stages")
+    print(f"  Exported: {student_path}")
+
+
+# ═════════════════════════════════════════════════════════════════════════
+# TRAINING LOOP (Ch10 / ExPLoRA)
 # ═════════════════════════════════════════════════════════════════════════
 
 def train(cfg: dict, args):
@@ -1491,6 +1862,10 @@ def main():
     add_train_config_arg(parser)
     parser.add_argument("--explora", action="store_true",
                         help="Enable ExPLoRA mode (LoRA + block freeze)")
+    parser.add_argument("--surgery", action="store_true",
+                        help="Enable surgery mode (progressive prefix unfreezing + factor datasets)")
+    parser.add_argument("--factor-dir", type=str, default=None,
+                        help="Factor dataset dir from m11 (contains D_L/, D_A/, D_I/, factor_manifest.json)")
     parser.add_argument("--SANITY", action="store_true",
                         help="Quick validation: 50 steps, batch_size=2")
     parser.add_argument("--POC", action="store_true",
@@ -1607,7 +1982,14 @@ def main():
             print(f"\nProceeding with winner: lambda={w['winner_lambda']} "
                   f"(best_val_loss={w['winner_val_loss']:.4f})")
 
-    train(cfg, args)
+    # Dispatch: surgery / explora / standard training
+    if args.surgery:
+        if not args.factor_dir:
+            print("FATAL: --surgery requires --factor-dir (path to m11 factor datasets)")
+            sys.exit(1)
+        train_surgery(cfg, args)
+    else:
+        train(cfg, args)
 
 
 def select_ablation_winner(output_dir: str, lambdas=None):

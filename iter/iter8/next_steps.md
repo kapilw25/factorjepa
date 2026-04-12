@@ -1,69 +1,119 @@
 # Next Steps (Week 1)
 
 > **GOAL: Get V-JEPA 2.1 (2B) surgical adaptation to improve Prec@K over frozen baseline on WalkIndia-200K.**
-> **Short-term: Show Surgery > ExPLoRA > Frozen on 1K val clips (~70 min total GPU).**
-> Ch11 surgery is the PRIMARY path. ExPLoRA is the baseline to beat. Ch10 brute-force deferred.
-> **Full plan:** `iter/iter8/plan_training.md` | **Code plan:** `iter/iter8/plan_code_development.md`
+> **Short-term: Show Surgery > ExPLoRA > Frozen on 1K val clips (~70 min GPU).**
 
 ---
 
-## Step 0: Frozen V-JEPA 2.1 Baseline [~12 min GPU, prerequisite]
+## Implementation Status
 
-- Generate frozen V-JEPA 2.1 (2B, 1664-dim) embeddings on 1K val clips
-- Evaluate frozen 2.1 Prec@K — this is the NEW baseline to beat
-- **Handled automatically by `train_explora.sh` Step 0** (skips if cached)
-- Data: `data/val_1k_local/` (1000 clips, ready)
-
-## Step 1a: Temporal Interference Projection [30 min CPU, after Step 0]
-
-- Generate `vjepa_2_1_frozen_shuffled` embeddings (same 2.1 model, frames shuffled)
-- PCA on `(vjepa_2_1_frozen - vjepa_2_1_frozen_shuffled)` for 1K clips
-- Project V-JEPA 2.1 embeddings orthogonal to top components
-- Re-run Prec@K on projected embeddings
-- **Diagnostic** — if Prec@K recovers → paper novelty
-
-## Step 1b: ExPLoRA on V-JEPA 2.1 [~1h GPU on 1K clips]
-
-- `./scripts/train_explora.sh --POC` with `--local-data data/val_1k_local`:
-  - Step 0: frozen 2.1 embeddings + eval (~12 min, skips if cached)
-  - Step 1: ExPLoRA training — LoRA rank=16, unfreeze blocks 0-1 (~20 min)
-  - Step 2: re-embed adapted model (~12 min)
-  - Step 3: evaluate adapted Prec@K
-- Compare: `m06_metrics_vjepa_2_1_frozen.json` vs `m06_metrics_vjepa_2_1_explora.json`
-- **Sets the bar** — Ch11 surgery must beat this
-
-## Step 2: Ch11 Factor Surgery POC on V-JEPA 2.1 [~30 min GPU + SAM3.1 prep]
-
-- **SAM 3.1 text-prompted segmentation** (`src/m10_sam_segment.py`) on 1K val clips
-  - Per-clip prompt from `data/val_1k_local/tags.json` → `notable_objects` field
-  - Example: clip tagged `[auto_rickshaw, pedestrian]` → SAM prompt `"auto_rickshaw, pedestrian"`
-  - SAM 3.1 multiplexing tracks all agents across 16 frames
-- **Factor datasets** (`src/m11_factor_datasets.py`): D_L (blur agents), D_A (suppress background)
-- **2-stage progressive prefix unfreezing** (`--poc-simple`):
-  - Stage 1: unfreeze layers 0→25%L, train on D_L (layout)
-  - Stage 2: unfreeze layers 0→50%L, train on 90% D_A + 10% D_L replay
-- Compare Prec@K: frozen 2.1 vs ExPLoRA vs Surgery
-- **THE KEY COMPARISON: does factor decomposition beat ExPLoRA?**
-
-### If Step 2 fails: debug sequence
-
-1. **Reverse order (D_A → D_L)** — agents first (most visually different)
-2. **All factors simultaneously** — isolates ordering vs decomposition
-3. **Add D_I (interactions)** — 3-stage with interaction tubes
-4. **Scale to 10K** — 1K may be insufficient for 2B model
-
-### If Step 2 succeeds: scale up
-
-- Full pipeline on 10K clips → statistically significant Prec@K with 95% CI
+| Component | Status | Notes |
+|---|---|---|
+| V-JEPA 2.1 model loading | DONE | `get_vit_by_arch()` dispatches to 2.1 `app/vjepa_2_1/` modules |
+| Dense loss (predict_all) | DONE | Context loss with lambda=0.5, doubles training signal |
+| Deep supervision (4-layer) | DONE | `return_hierarchical=True`, per-chunk LayerNorm, 6656-dim output |
+| Predictor LR 1x | DONE | Meta uses same LR (was 10x, gold standard audit fix) |
+| ExPLoRA (LoRA + unfreeze) | DONE | `--explora` flag in m09, peft LoRA injection |
+| m10 SAM 3.1 segmentation | DONE | `handle_stream_request`, `propagate_in_video`, multiplex builder |
+| m11 factor datasets (D_L+D_A+D_I) | DONE | Feathered mask edges, quality filters, interaction tubes |
+| train_explora.sh | DONE | Safety infra: batch size, pre-flight, FATAL enforcement, signal trap |
+| train_surgery.sh | **DONE** | FATAL guard removed, --surgery --factor-dir wired up |
+| Checkpoint download | ON GPU | `wget vjepa2_1_vitG_384.pt` (~8 GB) — in setup_env_uv.sh |
 
 ---
 
-## Decision Gate (end of Week 1)
+## GPU Execution Order
 
-| Step 1a projection | Step 1b ExPLoRA | Step 2 Surgery | Action |
-|---|---|---|---|
-| Prec@K jumps | ExPLoRA improves | Surgery > ExPLoRA | **Strongest: all 3 + surgery wins** |
-| Any | ExPLoRA improves | Surgery = ExPLoRA | **Publish ExPLoRA, surgery adds no value** |
-| Any | No change | Surgery improves | **Best novelty: standard fails, surgery succeeds** |
-| Any | ExPLoRA improves | Surgery < ExPLoRA | **Publish ExPLoRA, drop surgery** |
-| Any | No change | No change | **Debug: reverse order, more clips, LoRA fallback** |
+### Step 1b: ExPLoRA [~1h GPU — READY TO RUN]
+
+```bash
+./scripts/train_explora.sh --POC 2>&1 | tee logs/explora_poc.log
+```
+
+Handles: frozen 2.1 baseline embed → ExPLoRA training → re-embed → eval. All automated.
+
+### Step 2: Surgery [~35 min GPU — READY TO RUN]
+
+```bash
+./scripts/train_surgery.sh --POC 2>&1 | tee logs/surgery_poc.log
+```
+
+Handles: m10 SAM 3.1 (5 min) → m11 factor D_L+D_A+D_I (3 min) → m09 --surgery 3-stage (15 min) → m05 re-embed (12 min) → m06 eval. All automated.
+
+### Step 1a: Temporal Projection [30 min CPU — after frozen 2.1 embeddings exist]
+
+```bash
+python -u src/m05b_baselines.py --encoder vjepa_2_1_frozen_shuffled \
+    --model-config configs/model/vjepa2_1.yaml --POC --local-data data/val_1k_local --no-wandb
+python -u src/m06c_temporal_projection.py --POC \
+    --normal-encoder vjepa_2_1_frozen --shuffled-encoder vjepa_2_1_frozen_shuffled
+```
+
+---
+
+## Decision Gate
+
+| Step 1b ExPLoRA | Step 2 Surgery | Action |
+|---|---|---|
+| ExPLoRA improves | Surgery > ExPLoRA | **Strongest: surgery wins** |
+| ExPLoRA improves | Surgery = ExPLoRA | **Publish ExPLoRA** |
+| No change | Surgery improves | **Best novelty: standard fails, surgery succeeds** |
+| No change | No change | **Debug: reverse factor order, more clips** |
+
+---
+
+## Future Tasks (post-POC)
+
+### Refactor: Split m09 into focused training scripts + utils/training.py
+
+m09 is ~2000 lines with 3 training modes (Ch10, ExPLoRA, Surgery). After POC results confirm which mode wins, split into clean modules:
+
+```
+src/
+├── utils/
+│   └── training.py              # JEPA step, EMA update, masking, loss, checkpoint (~300 lines)
+│                                 # Shared: compute_jepa_loss, update_teacher_ema, build_optimizer,
+│                                 # build_scheduler, save/load_training_checkpoint, export_student_for_eval
+├── m09_pretrain.py              # Ch10 only — drift control + lambda sweep (~400 lines)
+├── m09b_explora.py              # ExPLoRA only — LoRA injection + block freeze (~300 lines)
+├── m09c_surgery.py              # Surgery only — 3-stage prefix unfreezing + factor loading (~400 lines)
+```
+
+11 shared functions to move (from earlier audit):
+
+| Function | Currently in m09 | Move to |
+|---|---|---|
+| `compute_jepa_loss()` | line 526 | `utils/training.py` |
+| `compute_drift_loss()` | line 568 | `utils/training.py` |
+| `update_teacher_ema()` | line 584 | `utils/training.py` |
+| `build_optimizer()` | line 601 | `utils/training.py` |
+| `build_scheduler()` | line 625 | `utils/training.py` |
+| `update_weight_decay()` | line 641 | `utils/training.py` |
+| `build_mask_generators()` | line 530 | `utils/training.py` |
+| `save_training_checkpoint()` | line 727 | `utils/training.py` |
+| `load_training_checkpoint()` | line 758 | `utils/training.py` |
+| `cleanup_old_checkpoints()` | line 749 | `utils/training.py` |
+| `export_student_for_eval()` | line 775 | `utils/training.py` |
+
+**When:** After POC confirms surgery works (or doesn't). ~2-3 hour refactor.
+**Why not now:** High breakage risk, doesn't improve Prec@K. GOAL OVERRIDE says research results first.
+
+### Scale-up tasks (if POC positive)
+
+| Task | When | What |
+|---|---|---|
+| Run on 10K clips | After POC positive | Scale factor datasets + training for paper-quality CI |
+| 6 interaction perturbations | Before FULL | Tube jitter, margin random, raw/masked mixing (proposal Sec 11.3) |
+| Patch shortcut sanity check | Before paper | Eval raw vs patched clips (proposal Sec 11.8) |
+| 3-5 training seeds | Before paper | Propagated CI on delta for NeurIPS |
+| Cooldown (64f) implementation | Before paper | Full producer restart at 64 frames |
+| WebDataset TARs for factors | Before FULL | .npy per-file won't scale to 115K |
+
+### Ch10 improvements (deferred — comparison arm only)
+
+| Task | What |
+|---|---|
+| EMA momentum ramp (0.996 → 1.0) | Linear schedule matching Meta |
+| Lambda progressive (context loss warmup) | Ramp from 0 to 0.5 over first 15K steps |
+| Loss outlier regulation | Skip gradient step if loss > mean + N*std |
+| Distance-weighted context loss | `compute_mask_distance()` weighting |

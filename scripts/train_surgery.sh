@@ -86,13 +86,6 @@ cleanup_on_exit() {
 }
 trap cleanup_on_exit INT TERM
 
-# ── GUARD: m09 surgery mode NOT YET IMPLEMENTED ──────────────────────
-log "FATAL: m09 surgery mode (progressive prefix unfreezing + factor loading) NOT YET IMPLEMENTED"
-log "  Surgery training requires m09 --surgery flag with stage iteration logic."
-log "  See iter/iter8/plan_code_development.md for design."
-log "  ExPLoRA (train_explora.sh) works NOW — run that first."
-exit 1
-
 # ── Config ────────────────────────────────────────────────────────────
 MODEL_CONFIG="configs/model/vjepa2_1.yaml"
 TRAIN_CONFIG="configs/train/ch11_surgery.yaml"
@@ -204,6 +197,7 @@ run_step "2-surgery" "m09 factor surgery (progressive unfreezing)" \
     src/m09_pretrain.py \
         --model-config "$MODEL_CONFIG" \
         --train-config "$TRAIN_CONFIG" \
+        --surgery --factor-dir "$FACTOR_DIR" \
         --output-dir "$SURGERY_DIR" \
         $BATCH_FLAG $MODE_FLAG $SUBSET_FLAG $LOCAL_FLAG $VAL_FLAG --no-wandb
 

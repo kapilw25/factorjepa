@@ -336,9 +336,11 @@ Factor datasets (D_L, D_A, D_I) created via SAM3 segmentation → tracklet minin
 
 ---
 
-## Execution Plan (ordered by priority)
+## Execution Plan
 
-### Step 1: 10K POC — Validate pipeline (DONE ✅)
+**See `iter/iter8/runbook.md` for GPU commands and `iter/iter8/next_steps.md` for current status.**
+
+### Historical: 10K POC (DONE ✅)
 
 | Item | Result |
 |------|--------|
@@ -580,24 +582,26 @@ scripts/
 
 **FactorJEPA's novelty = the combination.** No existing repo implements progressive layer unfreezing × factor-patched inputs × JEPA self-supervised loss on video.
 
-### What's needed vs what exists
+### Implementation Status (updated 2026-04-12)
 
 | Proposal Section | What's needed | Status |
 |---|---|---|
-| 11.1 SAM segmentation | `m10_sam_segment.py`: SAM3 → masks → tracklets → agent/layout | NOT STARTED |
-| 11.1 Agent vs layout | Motion-based filter on tracklets | NOT STARTED |
-| 11.1 Derived datasets | D_L (layout-only), D_A (agent-only), D_I (interaction) | NOT STARTED |
-| 11.2 Interaction mining | `m10b_interaction_mine.py`: tracklet pairs → distance/persistence → tubes | NOT STARTED |
-| 11.3 Factor patch operators | `m10c_factor_patch.py`: P_L (blur agents), P_A (suppress BG), P_I (crop) | NOT STARTED |
-| 11.3 Interaction perturbations | Tube jitter, margin randomization, raw/masked mixing | NOT STARTED |
-| 11.4 Training objective | Same V-JEPA loss (student-teacher, EMA, predictor) | **REUSE m09** ✅ |
-| 11.5 Progressive prefix unfreezing | `requires_grad=False` for layers > n_s, rebuild optimizer | NOT STARTED |
-| 11.5 Stage schedule | 3 stages: n1=0.25L, n2=0.50L, n3=0.75L | NOT STARTED |
-| 11.5 Layer-wise LR decay | Smaller LR for earlier unfrozen layers | NOT STARTED |
-| 11.6 Stage-wise training loop | Per-stage init + warmup | NOT STARTED |
+| 11.1 SAM segmentation | `m10_sam_segment.py`: SAM 3.1 text prompt → agent/layout masks | **DONE** |
+| 11.1 Agent vs layout | Per-clip `notable_objects` from tags.json → SAM prompt | **DONE** |
+| 11.1 Derived datasets | D_L + D_A + D_I (feathered edges, quality filters) | **DONE** (m11) |
+| 11.2 Interaction mining | Centroid distance + persistence filter | **DONE** (in m10) |
+| 11.3 Factor patch operators | Gaussian blur (D_L), soft matte (D_A), centroid tubes (D_I) | **DONE** (m11) |
+| 11.3 Interaction perturbations | Tube jitter, margin random, raw/masked mixing | DEFER (FULL only) |
+| 11.3 Mask feathering | `gaussian_filter(mask, sigma=3)` before blend | **DONE** |
+| 11.4 Training objective | Dense loss + deep supervision (V-JEPA 2.1 recipe) | **DONE** (m09) |
+| 11.5 Progressive prefix unfreezing | Stage iteration + optimizer rebuild in m09 | **BLOCKED** |
+| 11.5 Stage schedule | 3 stages in ch11_surgery.yaml | **DONE** (config) |
+| 11.6 Stage-wise training loop | m09 `--surgery` flag + factor loading | **BLOCKED** |
 | 11.8 Factor-sliced evaluation | Query with D_L, D_A, D_I separately | NOT STARTED |
 | 11.8 Patch shortcut sanity check | Eval raw vs patched clips | NOT STARTED |
-| `run_surgery.sh` | Full pipeline orchestration | PLACEHOLDER |
+| `train_surgery.sh` | Full pipeline orchestration | **DONE** (FATAL guard until m09 surgery mode) |
+
+**Remaining blocker:** m09 surgery mode — progressive prefix unfreezing + factor data loading. See `iter/iter8/plan_code_development.md`.
 
 ### What CAN be reused from Ch10
 
@@ -880,7 +884,9 @@ flowchart TD
 
 ---
 
-## Updated Execution Order (updated 2026-04-11)
+## Execution Order (updated 2026-04-12)
+
+**See `iter/iter8/runbook.md` for GPU commands.**
 
 All experiments use **V-JEPA 2.1 (2B, 1664-dim)**. No V-JEPA 2.0. No Ch10 in Week 1. No generalization to other datasets.
 
