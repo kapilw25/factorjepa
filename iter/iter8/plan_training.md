@@ -5,132 +5,259 @@
 
 ---
 
-## System Design: Ch10 + Ch11 Overview
+## System Design: Full Pipeline (m00 → m11 → eval)
 
 ```mermaid
 flowchart TB
-    subgraph INPUT ["Shared Input"]
-        direction TB
-        D["WebDataset<br>116 TARs"] --> SPLIT["video_id split<br>90/10"]
-        TAGS["tags.json<br>16 fields"]
+    subgraph DATA ["Data Pipeline (m00-m03, CPU, done)"]
+        direction LR
+        YT["m00: YT videos<br>714 videos"] --> DL_V["m01: download<br>480p"]
+        DL_V --> SCENE["m02: scene split<br>4-10s clips"]
+        SCENE --> PACK["m03: WebDataset<br>116 TARs → HF"]
     end
 
-    subgraph CH10_DATA ["Ch10 · Data + Masking"]
-        direction TB
-        AUG["RRC 384×384<br>h-flip"] --> MASK["8+2 mask blocks<br>~80% masked"]
-        MASK --> VIS["visible tokens"]
-        MASK --> MASKED["masked tokens"]
+    subgraph EVAL_CH9 ["Ch9 Eval Pipeline (m04-m08b, done)"]
+        direction LR
+        TAG["m04: VLM tag<br>Qwen3-VL<br>→ tags.json"]
+        MOT["m04d: RAFT<br>motion features"]
+        EMB["m05: V-JEPA 2.1<br>frozen embed<br>→ (N, 1664)"]
+        BASE["m05b: baselines<br>DINOv2, CLIP,<br>shuffled"]
+        FAISS["m06: FAISS-GPU<br>9 metrics<br>Prec@K, nDCG@K"]
+        TEMP["m06b: temporal<br>correlation"]
+        UMAP["m07: cuML UMAP"]
+        PLOT["m08: plots"]
+        COMP["m08b: compare<br>radar + table"]
     end
 
-    subgraph CH10_FWD ["Ch10 · Forward Pass"]
+    subgraph CONFIGS ["configs/"]
         direction TB
-        STU["Student ViT-g<br>visible only<br>trainable"]
-        TEA["Teacher ViT-g<br>ALL tokens<br>no grad"]
-        STU --> PRED["Predictor<br>12-layer 384-dim"]
+        MODEL["model/<br>vjepa2_1.yaml<br>(2B, 1664-dim)"]
+        TRAIN_E["train/<br>explora.yaml"]
+        TRAIN_S["train/<br>ch11_surgery.yaml"]
+        PIPE["pipeline.yaml<br>encoders, limits"]
     end
 
-    subgraph CH10_LOSS ["Ch10 · Loss + Update"]
+    subgraph EXPLORA ["ExPLoRA Training (Step 1b, m09)"]
         direction TB
-        L1["L1 loss<br>masked positions"]
-        DRIFT["Drift λ·‖θ−θ₀‖²"]
-        OPT["AdamW + grad clip"]
-        EMA["EMA teacher<br>τ=0.99925"]
+        E_CLIP["Raw Indian clip<br>16 frames, 384x384"]
+        E_MASK["Mask 80%<br>8+2 blocks"]
+        E_STU["Student ViT-G 2B<br>blocks 0-1: TRAINABLE<br>blocks 2-47: FROZEN + LoRA<br>~5% params trainable"]
+        E_TEA["Teacher (EMA)<br>no grad"]
+        E_LOSS["JEPA L1 loss<br>predict masked tokens"]
+        E_OUT["student_encoder.pt<br>vjepa_2_1_explora"]
+        E_CLIP --> E_MASK --> E_STU --> E_LOSS
+        E_TEA --> E_LOSS
+        E_LOSS --> E_OUT
     end
 
-    subgraph CH10_CKPT ["Ch10 · Selection"]
+    subgraph SURGERY ["Surgery Training (Step 2, m10 → m11 → m09)"]
         direction TB
-        CKPT["Checkpoint<br>10x per epoch"]
-        WINNER["Winner by<br>jepa_loss"]
-        ADAPTED["V-JEPA<br>(adapted)"]
+
+        S_SAM["m10: SAM 3.1<br>text prompt per clip<br>from tags.json<br>notable_objects"]
+        S_DL["m11: D_L<br>layout-only<br>blur agents"]
+        S_DA["m11: D_A<br>agent-only<br>suppress BG"]
+        S_DI["m11: D_I<br>interaction tubes<br>agent pairs within d_max"]
+
+        S1["m09 Stage 1<br>layers 0→12 trainable<br>100% D_L"]
+        S2["m09 Stage 2<br>layers 0→24 trainable<br>90% D_A + 10% D_L"]
+        S3["m09 Stage 3<br>layers 0→36 trainable<br>85% D_I + 10% D_A + 5% D_L"]
+        S_OUT["student_encoder.pt<br>vjepa_2_1_surgical"]
+
+        S_SAM --> S_DL
+        S_SAM --> S_DA
+        S_SAM --> S_DI
+        S_DL --> S1 --> S2
+        S_DA --> S2 --> S3
+        S_DI --> S3 --> S_OUT
     end
 
-    subgraph CH11_SAM ["m10 · Segmentation"]
-        direction TB
-        SEG["SAM3<br>instance masks"]
-        TRACK["Greedy IoU<br>tracklets"]
-        AGENT["Agent vs Layout<br>motion filter"]
-        SEG --> TRACK --> AGENT
+    subgraph RE_EVAL ["Re-Evaluation (all encoders)"]
+        direction LR
+        RE_EMB["m05: re-embed<br>frozen / ExPLoRA / surgical"]
+        RE_M6["m06: Prec@K<br>with 95% CI"]
+        RE_COMP["m08b: compare<br>frozen vs ExPLoRA<br>vs surgical"]
+        RE_EMB --> RE_M6 --> RE_COMP
     end
 
-    subgraph CH11_FACTOR ["m11 · Factor Datasets"]
+    subgraph OUTPUTS ["outputs/poc/"]
         direction TB
-        DL["D_L layout-only<br>blur agents"]
-        DA["D_A agent-only<br>suppress BG"]
-        DI["D_I interaction<br>tube crops"]
+        O_FROZEN["embeddings_vjepa_2_1_frozen.npy"]
+        O_EXPLORA["embeddings_vjepa_2_1_explora.npy"]
+        O_SURGICAL["embeddings_vjepa_2_1_surgical.npy"]
+        O_METRICS["m06_metrics_*.json"]
+        O_FACTORS["factors/<br>masks/ D_L/ D_A/ D_I/"]
     end
 
-    subgraph CH11_SURGERY ["m12 · Prefix Unfreezing"]
-        direction TB
-        S1["Stage 1: layers 0→10<br>100% D_L"]
-        S2["Stage 2: layers 0→20<br>90% D_A + 10% D_L"]
-        S3["Stage 3: layers 0→30<br>85% D_I + mix"]
-        S1 --> S2 --> S3
-        S3 --> SURGICAL["V-JEPA<br>(surgical)"]
+    DATA --> EVAL_CH9
+    DATA --> EXPLORA
+    DATA --> SURGERY
+    TAG --> S_SAM
+    CONFIGS --> EXPLORA
+    CONFIGS --> SURGERY
+    E_OUT --> RE_EVAL
+    S_OUT --> RE_EVAL
+    RE_EVAL --> OUTPUTS
+
+    style YT fill:#5e35b1,color:#fff,font-weight:bold
+    style DL_V fill:#5e35b1,color:#fff,font-weight:bold
+    style SCENE fill:#5e35b1,color:#fff,font-weight:bold
+    style PACK fill:#5e35b1,color:#fff,font-weight:bold
+    style TAG fill:#00acc1,color:#fff,font-weight:bold
+    style EMB fill:#43a047,color:#fff,font-weight:bold
+    style FAISS fill:#e53935,color:#fff,font-weight:bold
+    style COMP fill:#b71c1c,color:#fff,font-weight:bold
+    style E_STU fill:#1565c0,color:#fff,font-weight:bold
+    style E_LOSS fill:#1565c0,color:#fff,font-weight:bold
+    style E_OUT fill:#1565c0,color:#fff,font-weight:bold
+    style S_SAM fill:#c62828,color:#fff,font-weight:bold
+    style S_DL fill:#1b5e20,color:#fff,font-weight:bold
+    style S_DA fill:#e65100,color:#fff,font-weight:bold
+    style S_DI fill:#6a1b9a,color:#fff,font-weight:bold
+    style S1 fill:#1b5e20,color:#fff,font-weight:bold
+    style S2 fill:#e65100,color:#fff,font-weight:bold
+    style S3 fill:#6a1b9a,color:#fff,font-weight:bold
+    style S_OUT fill:#c62828,color:#fff,font-weight:bold
+    style MODEL fill:#616161,color:#fff,font-weight:bold
+    style TRAIN_E fill:#1565c0,color:#fff,font-weight:bold
+    style TRAIN_S fill:#c62828,color:#fff,font-weight:bold
+    style O_FROZEN fill:#546e7a,color:#fff,font-weight:bold
+    style O_EXPLORA fill:#1565c0,color:#fff,font-weight:bold
+    style O_SURGICAL fill:#c62828,color:#fff,font-weight:bold
+```
+
+**Layman story (full pipeline):** Imagine building a map of every street in India for a self-driving car that only knows American roads.
+
+1. **Data (purple, top):** You record 714 walking tour videos across Indian cities, chop them into 115K short clips (10 seconds each), and upload to a cloud dataset.
+
+2. **Eval (teal/green/red, left):** A robot VLM watches each clip and tags it: "market, day, crowded, auto-rickshaw, sacred cow." Then V-JEPA 2.1 (the American-trained brain) converts each clip into a 1664-number fingerprint. FAISS finds which clips have similar fingerprints. If "market" clips cluster together → the brain understands markets. If not → it's confused.
+
+3. **ExPLoRA (blue, middle):** Bolt tiny adapter modules (LoRA) onto the frozen brain. Only 5% of parameters change. Show it Indian clips, same fill-in-the-blanks game as V-JEPA's original training. Quick and cheap (~1 hour). This is the BASELINE TO BEAT.
+
+4. **Surgery (red, middle-right):** THE EXPERIMENT.
+   - **m10 (SAM 3.1):** An AI eye surgeon (SAM 3.1) looks at each clip's tags ("auto_rickshaw, pedestrian") and cuts the video into: roads-only (D_L), people-only (D_A), and interactions (D_I — a pedestrian crossing in front of an auto-rickshaw).
+   - **m11:** Generates the 3 patched versions of each clip.
+   - **m09 (3 stages):** Teaches the brain in order: first roads (layers 0-12), then people (layers 0-24), then interactions (layers 0-36). Each stage unlocks deeper layers. Earlier concepts are replayed to prevent forgetting.
+
+5. **Re-eval (bottom):** Re-run the fingerprint + FAISS test on all 3 brains (frozen, ExPLoRA, surgical). The winner: whichever brain makes the best "market" clusters.
+
+---
+
+## System Design: ExPLoRA (Step 1b)
+
+```mermaid
+flowchart LR
+    subgraph DATA ["1. Data"]
+        CLIP["Indian clip<br>10s, 16 frames<br>from WebDataset"]
+        CLIP --> AUG["Augment<br>RRC 384x384<br>h-flip"]
     end
 
-    subgraph EVAL ["Re-evaluation"]
-        direction TB
-        RE["m05 re-embed<br>× 3 encoders"]
-        M6["m06 metrics<br>spatial + temporal"]
-        M8["m08b radar<br>frozen vs adapted<br>vs surgical"]
-        RE --> M6 --> M8
+    subgraph MASK ["2. Mask"]
+        AUG --> TOK["Patchify<br>24x24x8<br>=4608 tokens"]
+        TOK --> VIS["visible<br>~900 tokens"]
+        TOK --> HID["masked<br>~3700 tokens"]
     end
 
-    INPUT --> CH10_DATA
-    TAGS -->|"stratified"| CH10_DATA
-    CH10_DATA --> CH10_FWD
-    VIS --> STU
-    MASKED --> L1
-    TEA --> L1
-    PRED --> L1
-    CH10_FWD --> CH10_LOSS
-    L1 --> OPT
-    DRIFT --> OPT
-    OPT --> EMA
-    CH10_LOSS --> CH10_CKPT
-    CKPT --> WINNER --> ADAPTED
+    subgraph MODEL ["3. ExPLoRA Model"]
+        VIS --> STU["Student ViT-G 2B<br>blocks 0-1: TRAINABLE<br>blocks 2-47: FROZEN + LoRA<br>rank=16, ~5% params"]
+        AUG2["same clip"] --> TEA["Teacher ViT-G 2B<br>ALL tokens<br>no grad (EMA copy)"]
+        STU --> PRED["Predictor<br>24-layer 384-dim"]
+    end
 
-    ADAPTED --> CH11_SAM
-    INPUT --> CH11_SAM
-    AGENT --> DL
-    AGENT --> DA
-    AGENT --> DI
-    CH11_FACTOR --> CH11_SURGERY
+    subgraph LOSS ["4. Loss + Update"]
+        PRED --> L1["L1 loss<br>pred vs teacher<br>at masked positions"]
+        TEA --> L1
+        L1 --> ADAM["AdamW<br>blocks 0-1 + LoRA only"]
+        ADAM --> EMA["EMA update teacher<br>tau=0.99925"]
+    end
 
-    ADAPTED --> EVAL
-    SURGICAL --> EVAL
-
-    style D fill:#5e35b1,color:#fff,font-weight:bold
-    style SPLIT fill:#7b1fa2,color:#fff,font-weight:bold
-    style TAGS fill:#00acc1,color:#fff,font-weight:bold
+    style CLIP fill:#5e35b1,color:#fff,font-weight:bold
     style AUG fill:#00897b,color:#fff,font-weight:bold
-    style MASK fill:#e65100,color:#fff,font-weight:bold
     style VIS fill:#2e7d32,color:#fff,font-weight:bold
-    style MASKED fill:#c62828,color:#fff,font-weight:bold
+    style HID fill:#c62828,color:#fff,font-weight:bold
     style STU fill:#1565c0,color:#fff,font-weight:bold
     style TEA fill:#546e7a,color:#fff,font-weight:bold
     style PRED fill:#6a1b9a,color:#fff,font-weight:bold
     style L1 fill:#c62828,color:#fff,font-weight:bold
-    style DRIFT fill:#4e342e,color:#fff,font-weight:bold
-    style OPT fill:#283593,color:#fff,font-weight:bold
+    style ADAM fill:#1565c0,color:#fff,font-weight:bold
     style EMA fill:#9c27b0,color:#fff,font-weight:bold
-    style CKPT fill:#ad1457,color:#fff,font-weight:bold
-    style WINNER fill:#d81b60,color:#fff,font-weight:bold
-    style ADAPTED fill:#4a148c,color:#fff,font-weight:bold
-    style SEG fill:#0277bd,color:#fff,font-weight:bold
-    style TRACK fill:#01579b,color:#fff,font-weight:bold
-    style AGENT fill:#004d40,color:#fff,font-weight:bold
-    style DL fill:#1b5e20,color:#fff,font-weight:bold
-    style DA fill:#33691e,color:#fff,font-weight:bold
-    style DI fill:#827717,color:#fff,font-weight:bold
-    style S1 fill:#1565c0,color:#fff,font-weight:bold
-    style S2 fill:#1565c0,color:#fff,font-weight:bold
-    style S3 fill:#0d47a1,color:#fff,font-weight:bold
-    style SURGICAL fill:#0d47a1,color:#fff,font-weight:bold
-    style RE fill:#bf360c,color:#fff,font-weight:bold
-    style M6 fill:#d84315,color:#fff,font-weight:bold
-    style M8 fill:#b71c1c,color:#fff,font-weight:bold
 ```
+
+**Layman story (ExPLoRA):** A fill-in-the-blanks exam on Indian streets. The brain is FROZEN except for 2 "input processing" blocks and tiny LoRA adapters (~5% of total parameters). The student sees 20% of each video and guesses the hidden 80%. The teacher holds the answer key. Only the adapters and 2 blocks learn — like learning a new accent without forgetting the language. Cheap (~20 min on 1K clips), proven (+8% on satellite imagery).
+
+---
+
+## System Design: Surgery (Step 2) — THE PAPER NOVELTY
+
+```mermaid
+flowchart TB
+    subgraph SAM ["m10: SAM 3.1 Segmentation (GPU)"]
+        CLIP["Indian clip<br>16 frames"] --> SAM31["SAM 3.1 text prompt<br>per-clip notable_objects<br>from tags.json"]
+        SAM31 --> AMASK["Agent masks<br>(people, vehicles,<br>rickshaws, cows)"]
+        SAM31 --> LMASK["Layout masks<br>(roads, buildings,<br>wires, sky)"]
+    end
+
+    subgraph FACTOR ["m11: Factor Datasets (CPU)"]
+        CLIP2["Original frames"] --> DL["D_L: layout-only<br>blur agents<br>(Gaussian sigma=15)"]
+        CLIP2 --> DA["D_A: agent-only<br>suppress background<br>(soft matte x0.1)"]
+        AMASK --> DL
+        LMASK --> DA
+        AMASK --> MINE["Interaction mining<br>agent pairs within<br>20% frame width<br>for >= 4 frames"]
+        MINE --> DI["D_I: interaction tubes<br>cropped to bounding box<br>of interacting agents"]
+    end
+
+    subgraph STAGE1 ["m09 Stage 1: Layout (layers 0-12)"]
+        DL --> S1_IN["100% D_L clips"]
+        S1_IN --> S1_STU["Student ViT-G 2B<br>layers 0-12: TRAINABLE<br>layers 13-47: FROZEN"]
+        S1_STU --> S1_L["JEPA L1 loss<br>same mask game"]
+    end
+
+    subgraph STAGE2 ["m09 Stage 2: Agents (layers 0-24)"]
+        DA --> S2_A["90% D_A clips"]
+        DL2["10% D_L replay"] --> S2_A
+        S2_A --> S2_STU["Student ViT-G 2B<br>layers 0-24: TRAINABLE<br>layers 25-47: FROZEN"]
+        S2_STU --> S2_L["JEPA L1 loss"]
+    end
+
+    subgraph STAGE3 ["m09 Stage 3: Interactions (layers 0-36)"]
+        DI --> S3_I["85% D_I clips"]
+        DA2["10% D_A replay"] --> S3_I
+        DL3["5% D_L replay"] --> S3_I
+        S3_I --> S3_STU["Student ViT-G 2B<br>layers 0-36: TRAINABLE<br>layers 37-47: FROZEN"]
+        S3_STU --> S3_L["JEPA L1 loss"]
+    end
+
+    S1_L -->|"checkpoint"| STAGE2
+    S2_L -->|"checkpoint"| STAGE3
+    S3_L --> EXPORT["student_encoder.pt<br>vjepa_2_1_surgical"]
+
+    style CLIP fill:#5e35b1,color:#fff,font-weight:bold
+    style SAM31 fill:#c62828,color:#fff,font-weight:bold
+    style AMASK fill:#e65100,color:#fff,font-weight:bold
+    style LMASK fill:#1565c0,color:#fff,font-weight:bold
+    style DL fill:#1b5e20,color:#fff,font-weight:bold
+    style DA fill:#e65100,color:#fff,font-weight:bold
+    style MINE fill:#6a1b9a,color:#fff,font-weight:bold
+    style DI fill:#6a1b9a,color:#fff,font-weight:bold
+    style S1_STU fill:#1b5e20,color:#fff,font-weight:bold
+    style S1_L fill:#1b5e20,color:#fff,font-weight:bold
+    style S2_STU fill:#e65100,color:#fff,font-weight:bold
+    style S2_L fill:#e65100,color:#fff,font-weight:bold
+    style S3_STU fill:#6a1b9a,color:#fff,font-weight:bold
+    style S3_L fill:#6a1b9a,color:#fff,font-weight:bold
+    style EXPORT fill:#c62828,color:#fff,font-weight:bold
+```
+
+**Layman story (Surgery):** Teaching a foreign doctor to work in an Indian hospital — in 3 stages:
+
+**Stage 1 — Layout (green):** Show the doctor ONLY the hospital — walls, floor, equipment, wiring. No patients, no staff. Blur out all people. The doctor's "early visual processing" (layers 0-12) learns Indian infrastructure — narrow lanes, overhead wires, speed breakers, open drains. The rest of the brain stays FROZEN. Training data: D_L (layout-only clips where agents are blurred).
+
+**Stage 2 — Agents (orange):** Now show the patients and staff — people, vehicles, animals. The background is dimmed to 10% brightness. The doctor's "mid-level understanding" (layers 0-24) learns to recognize Indian agents — auto-rickshaws, sacred cows, street vendors, cycle rickshaws. Mix in 10% layout-only clips so the doctor doesn't forget the infrastructure learned in Stage 1.
+
+**Stage 3 — Interactions (purple):** Finally, show HOW people interact with each other and with the environment — a pedestrian dodging an auto-rickshaw, a vendor blocking half the road, a cow calmly walking through a busy market. These are interaction tubes: cropped video segments showing exactly where two agents are close together for at least 4 frames. The doctor's "high-level reasoning" (layers 0-36) learns Indian interaction patterns. Mix in 10% agent + 5% layout clips for replay.
+
+**Why 3 factors and not just raw clips?** Each factor ISOLATES one concept. D_L teaches infrastructure WITHOUT confounding agent patterns. D_A teaches agents WITHOUT confounding layout. D_I teaches interactions in CONTEXT. This is like teaching anatomy, then physiology, then surgery — not throwing everything at the student at once.
+
+**Why progressive unfreezing?** Earlier ViT layers learn low-level features (edges, textures). Later layers learn high-level semantics (scene composition, interactions). By unfreezing more layers at each stage, the model learns simple Indian features first, then builds complex understanding on top. Replay mixing prevents catastrophic forgetting of earlier stages.
 
 ---
 

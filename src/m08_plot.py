@@ -25,7 +25,7 @@ from utils.config import (
     add_subset_arg, add_encoder_arg, get_output_dir, get_encoder_files,
 )
 
-TAXONOMY_FILE = Path(__file__).parent / "utils" / "tag_taxonomy.json"
+TAXONOMY_FILE = Path(__file__).parent.parent / "configs" / "tag_taxonomy.json"
 SINGLE_VALUE_KEYS = []
 if TAXONOMY_FILE.exists():
     with open(TAXONOMY_FILE) as _f:

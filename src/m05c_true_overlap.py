@@ -31,11 +31,16 @@ from utils.data_download import ensure_local_data, iter_clips_parallel
 from utils.gpu_batch import compute_batch_sizes, add_gpu_mem_arg, cuda_cleanup, cleanup_temp
 from utils.wandb_utils import add_wandb_args, init_wandb, log_metrics, log_artifact, finish_wandb
 
-from m05_vjepa_embed import (
-    get_clip_key, _create_stream, decode_video_bytes, get_batch_embeddings,
-    save_checkpoint, load_checkpoint,
-    DECODE_WORKERS, MAX_STREAM_RETRIES, CHECKPOINT_EVERY, PREFETCH_QUEUE_SIZE,
-)
+from utils.video_io import get_clip_key, create_stream, decode_video_bytes
+from m05_vjepa_embed import get_batch_embeddings
+
+_pcfg_stream = get_pipeline_config()
+DECODE_WORKERS = _pcfg_stream["streaming"]["decode_workers_embed"]
+MAX_STREAM_RETRIES = _pcfg_stream["streaming"]["max_retries"]
+CHECKPOINT_EVERY = _pcfg_stream["streaming"]["checkpoint_every"]
+PREFETCH_QUEUE_SIZE = _pcfg_stream["streaming"]["prefetch_queue_embed"]
+
+_create_stream = create_stream
 
 import torch
 import torchvision.transforms as T
@@ -339,7 +344,7 @@ def main():
     # Reference: github.com/facebookresearch/ToMe, arxiv.org/abs/2210.09461
 
     model = torch.compile(model)
-    print(f"V-JEPA loaded for augmented inference (torch.compile ON)")
+    print("V-JEPA loaded for augmented inference (torch.compile ON)")
 
     mode = "SANITY" if args.SANITY else ("POC" if args.POC else "FULL")
     wb_run = init_wandb("m05c", mode, config=vars(args), enabled=not args.no_wandb)
@@ -464,7 +469,7 @@ def main():
     print(f"\nSaved: {aug_a_file} ({arr_a.shape})")
     print(f"Saved: {aug_b_file} ({arr_b.shape})")
     print(f"Saved: {keys_file} ({len(all_keys)} keys)")
-    print(f"\nNext: python -u src/m06_faiss_metrics.py --true-overlap --FULL --subset data/subset_10k.json")
+    print("\nNext: python -u src/m06_faiss_metrics.py --true-overlap --FULL --subset data/subset_10k.json")
 
     log_metrics(wb_run, {"total_clips": len(all_keys), "embedding_dim": arr_a.shape[1]})
     log_artifact(wb_run, "overlap_augA", str(aug_a_file))

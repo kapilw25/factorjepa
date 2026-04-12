@@ -62,65 +62,78 @@ rm -rf outputs/sanity/
 
 ## Week 1 Experiment Sequence
 
-### Step 1a: Temporal Interference Projection [30 min CPU, parallel]
+### Step 1a: Temporal Interference Projection [~2.5h GPU + 30 min CPU]
 
-Diagnostic — run while SAM3 preps clips for Step 2. Uses existing V-JEPA 2.0 embeddings.
+Requires frozen 2.1 embeddings (from Step 0) + shuffled 2.1 embeddings.
 
 ```bash
+# 1. Generate shuffled V-JEPA 2.1 embeddings (~2h GPU, one-time)
+python -u src/m05b_baselines.py --encoder vjepa_2_1_frozen_shuffled \
+    --model-config configs/model/vjepa2_1.yaml \
+    --FULL --subset data/subset_10k.json --local-data data/subset_10k_local --no-wandb \
+    2>&1 | tee logs/m05b_vjepa_2_1_shuffled.log
+
+# 2. Temporal projection: PCA on (frozen - shuffled), sweep k, re-run Prec@K (30 min CPU)
 python -u src/m06c_temporal_projection.py --FULL --subset data/subset_10k.json \
+    --normal-encoder vjepa_2_1_frozen --shuffled-encoder vjepa_2_1_frozen_shuffled \
     2>&1 | tee logs/m06c.log
 
-# Output: outputs/poc/m06c_projection_results.json (Prec@K for k=5,10,25,50,100,200)
-# Compare: original Prec@K vs projected Prec@K
+# Output: outputs/poc/m06c_projection_results.json
+# Compare: vjepa_2_1_frozen Prec@K vs projected Prec@K for each k
 # If Prec@K jumps → paper novelty (temporal interference is removable linear subspace)
 ```
 
-### Step 1b: ExPLoRA Baseline [3h GPU, parallel]
+### Step 1b: ExPLoRA Baseline [~7h GPU total]
 
 Simplest V-JEPA 2.1 domain adaptation. Sets the bar that Ch11 surgery must beat.
+`train_explora.sh` handles ALL sub-steps automatically:
 
 ```bash
-# 1. Generate frozen V-JEPA 2.1 baseline embeddings (~2h GPU, one-time)
-python -u src/m05_vjepa_embed.py \
-    --model-config configs/model/vjepa2_1.yaml \
-    --encoder vjepa_2_1_frozen \
-    --FULL --subset data/subset_10k.json --local-data data/subset_10k_local --no-wandb \
-    2>&1 | tee logs/m05_vjepa_2_1_frozen.log
-
-# 2. Evaluate frozen 2.1 baseline
-python -u src/m06_faiss_metrics.py --encoder vjepa_2_1_frozen \
-    --FULL --subset data/subset_10k.json --no-wandb \
-    2>&1 | tee logs/m06_vjepa_2_1_frozen.log
-
-# 3. ExPLoRA: train → re-embed → evaluate
+# Single command — handles frozen baseline + ExPLoRA train + re-embed + eval
 ./scripts/train_explora.sh --POC 2>&1 | tee logs/explora_poc.log
 
-# 4. Compare frozen 2.1 vs ExPLoRA 2.1
-#    outputs/poc/m06_metrics_vjepa_2_1_frozen.json   ← frozen baseline
-#    outputs/poc/m06_metrics_vjepa_2_1_explora.json   ← ExPLoRA adapted
-#    If ExPLoRA improves over frozen 2.1 → publishable result
+# What it does internally:
+#   Step 0: frozen 2.1 embed + eval (~2h, skips if cached)
+#   Step 1: ExPLoRA training (~3h)
+#   Step 2: re-embed adapted model (~2h)
+#   Step 3: evaluate adapted Prec@K
+
+# Compare:
+#   outputs/poc/m06_metrics_vjepa_2_1_frozen.json    ← frozen baseline
+#   outputs/poc/m06_metrics_vjepa_2_1_explora.json   ← ExPLoRA adapted
+#   If ExPLoRA improves over frozen 2.1 → publishable result
 ```
 
 **Embedding files generated:**
 ```
 outputs/poc/
-├── embeddings.npy                          (10000, 1408) ← V-JEPA 2.0 frozen (existing, KEEP)
-├── embeddings_vjepa_2_1_frozen.npy         (10000, 1664) ← V-JEPA 2.1 frozen (NEW)
-├── embeddings_vjepa_2_1_explora.npy        (10000, 1664) ← V-JEPA 2.1 ExPLoRA (NEW)
+├── embeddings.npy                              (10000, 1408) ← V-JEPA 2.0 frozen (existing, KEEP)
+├── embeddings_vjepa_2_1_frozen.npy             (10000, 1664) ← V-JEPA 2.1 frozen
+├── embeddings_vjepa_2_1_frozen_shuffled.npy    (10000, 1664) ← V-JEPA 2.1 shuffled (from Step 1a)
+├── embeddings_vjepa_2_1_explora.npy            (10000, 1664) ← V-JEPA 2.1 ExPLoRA adapted
 ```
 
-### Step 2: Ch11 Factor Surgery POC [3h GPU + SAM3 prep]
+### Step 2: Ch11 Factor Surgery POC [~3h GPU + SAM3 prep]
 
 THE experiment. Factor-decomposed inputs + progressive unfreezing on frozen V-JEPA 2.1.
+POC uses `--poc-simple`: 100 clips, 2 factors (D_L + D_A), skip D_I.
 
 ```bash
-# NOTE: m10_sam_segment.py and m11_factor_datasets.py NOT YET BUILT
-# Build those first, then:
+# SAM3 segmentation + factor datasets + 2-stage surgery + re-embed + eval
 ./scripts/train_surgery.sh --POC 2>&1 | tee logs/surgery_poc.log
 
-# Output: outputs/poc/m09_surgery/student_encoder.pt
-# Metrics: outputs/poc/m06_metrics_vjepa_2_1_surgical.json
-# THE KEY COMPARISON: surgery vs ExPLoRA vs frozen
+# What it does:
+#   Step 0: m10 SAM3 segmentation on 100 clips → masks → tracklets (~30 min GPU)
+#   Step 1: m11 factor datasets D_L + D_A (~5 min CPU)
+#   Step 2: m09 surgery training, 2-stage progressive unfreezing (~2.5h GPU)
+#   Step 3: m05 re-embed surgical model (~2h GPU)
+#   Step 4: m06 evaluate
+
+# THE KEY COMPARISON:
+#   outputs/poc/m06_metrics_vjepa_2_1_frozen.json     ← frozen baseline
+#   outputs/poc/m06_metrics_vjepa_2_1_explora.json    ← ExPLoRA (from Step 1b)
+#   outputs/poc/m06_metrics_vjepa_2_1_surgical.json   ← surgery adapted
+#   Surgery must beat ExPLoRA to justify complexity
 ```
 
 ---

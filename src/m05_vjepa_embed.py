@@ -34,12 +34,13 @@ from utils.config import (
 )
 from utils.data_download import ensure_local_data, iter_clips_parallel
 from utils.gpu_batch import compute_batch_sizes, add_gpu_mem_arg, cleanup_temp
+from utils.video_io import get_clip_key, create_stream, decode_video_bytes, _USE_TORCHCODEC
 from utils.wandb_utils import add_wandb_args, init_wandb, log_metrics, log_artifact, finish_wandb
 
 try:
     import torch
     from transformers import AutoModel, AutoVideoProcessor
-    from datasets import load_dataset
+    from datasets import load_dataset  # noqa: F401 — imported for try/except check; used by utils.video_io
 except ImportError as e:
     print(f"ERROR: Missing dependency: {e}")
     print("Install with: pip install torch transformers datasets")
@@ -49,21 +50,6 @@ except ImportError as e:
 # Tested: decode works, but process dies on cleanup even with os._exit(0).
 # Incompatible with PyTorch nightly 2.12+cu128 on Blackwell sm_120.
 # Blocked until torchcodec fixes destructor bug. Using PyAV (CPU) as fallback.
-try:
-    from torchcodec.decoders import VideoDecoder
-except ImportError:
-    VideoDecoder = None
-USE_TORCHCODEC = False
-
-if not USE_TORCHCODEC:
-    try:
-        import av
-        print("Using PyAV for video decoding")
-    except ImportError:
-        print("ERROR: Neither torchcodec nor av available")
-        print("Install with: pip install av")
-        sys.exit(1)
-
 # Constants
 _pcfg = get_pipeline_config()
 MAX_STREAM_RETRIES = _pcfg["streaming"]["max_retries"]
@@ -74,101 +60,12 @@ ENGINE_RESTART_EVERY = _pcfg["streaming"]["engine_restart_every"]
 
 
 # ── HF Streaming Helpers ──────────────────────────────────────────────
-
-def get_clip_key(example: dict) -> str:
-    """Reconstruct clip key from HF WebDataset example metadata."""
-    meta = example.get("json", {})
-    if isinstance(meta, (bytes, str)):
-        meta = json.loads(meta) if meta else {}
-    section = meta.get("section", "")
-    video_id = meta.get("video_id", "")
-    source_file = meta.get("source_file", "")
-    return f"{section}/{video_id}/{source_file}"
+# Moved to utils/video_io.py: get_clip_key, create_stream, decode_video_bytes
+# Backward compat alias (m05b/m05c may still import _create_stream from m05)
+_create_stream = create_stream
 
 
-def _create_stream(skip_count: int = 0, local_data: str = None):
-    """Create streaming dataset from HF or local WebDataset shards."""
-    if local_data:
-        ds = load_dataset("webdataset", data_files=f"{local_data}/*.tar", split="train", streaming=True)
-    else:
-        ds = load_dataset(HF_DATASET_REPO, split="train", streaming=True)
-    ds = ds.decode(False)
-    if skip_count > 0:
-        ds = ds.skip(skip_count)
-    return ds
-
-
-# ── Video Decoding (from bytes, not local paths) ──────────────────────
-
-def _load_torchcodec(video_path: str, num_frames: int) -> torch.Tensor:
-    """Load video using torchcodec (GPU NVDEC decode, 5-10x faster than PyAV CPU)."""
-    decoder = VideoDecoder(video_path)
-    total_frames = decoder.metadata.num_frames if hasattr(decoder.metadata, 'num_frames') else 200
-    frame_indices = np.linspace(0, max(total_frames - 1, 0), num_frames, dtype=int)
-    frames = decoder.get_frames_at(indices=frame_indices.tolist())
-    video_tensor = frames.data  # (T, C, H, W)
-    del decoder  # release CUDA NVDEC resources immediately (prevents SIGSEGV at process exit)
-    if video_tensor.shape[0] < num_frames:
-        pad_size = num_frames - video_tensor.shape[0]
-        last_frame = video_tensor[-1:].repeat(pad_size, 1, 1, 1)
-        video_tensor = torch.cat([video_tensor, last_frame], dim=0)
-    return video_tensor[:num_frames]
-
-
-def _load_av(video_path: str, num_frames: int) -> torch.Tensor:
-    """Load video using PyAV (fallback)."""
-    container = av.open(video_path)
-    stream = container.streams.video[0]
-    # Limit ffmpeg internal threads: default thread_count=0 spawns 16 threads per decoder,
-    # causing thread explosion when called from ThreadPoolExecutor (16 workers × 16 = 256)
-    stream.codec_context.thread_count = 1
-    total_frames = stream.frames
-    if total_frames == 0:
-        if stream.duration and stream.average_rate:
-            total_frames = int(float(stream.duration * stream.time_base) * float(stream.average_rate))
-        else:
-            total_frames = 200
-    indices = set(np.linspace(0, max(total_frames - 1, 0), num_frames, dtype=int).tolist())
-    frames = []
-    frame_idx = 0
-    for frame in container.decode(video=0):
-        if frame_idx in indices:
-            img = frame.to_ndarray(format="rgb24")
-            img_tensor = torch.from_numpy(img).permute(2, 0, 1)
-            frames.append(img_tensor)
-        frame_idx += 1
-        if len(frames) >= num_frames:
-            break
-    container.close()
-    while len(frames) < num_frames:
-        if frames:
-            frames.append(frames[-1].clone())
-        else:
-            frames.append(torch.zeros((3, 256, 256), dtype=torch.uint8))
-    return torch.stack(frames[:num_frames])
-
-
-def decode_video_bytes(mp4_bytes: bytes, tmp_dir: str, key: str,
-                       num_frames: int):
-    """Write mp4 bytes to temp file, decode frames, delete temp file. Returns tensor or None."""
-    safe_key = key.replace("/", "_").replace("\\", "_")
-    tmp_path = os.path.join(tmp_dir, f"{safe_key}.mp4")
-    try:
-        with open(tmp_path, "wb") as f:
-            f.write(mp4_bytes)
-        if USE_TORCHCODEC:
-            return _load_torchcodec(tmp_path, num_frames)
-        else:
-            return _load_av(tmp_path, num_frames)
-    except Exception as e:
-        print(f"  WARN: decode failed ({key}): {e}")
-        return None
-    finally:
-        if os.path.exists(tmp_path):
-            try:
-                os.unlink(tmp_path)
-            except OSError:
-                pass
+# Video decoding moved to utils/video_io.py (decode_video_bytes, _load_av, _load_torchcodec)
 
 
 # ── Checkpoint ─────────────────────────────────────────────────────────
@@ -695,7 +592,7 @@ def worker_main(args):
     # Producer-consumer setup
     print("\n=== Streaming Config ===")
     print(f"batch_size:    {args.batch_size}")
-    print(f"video_decoder: {'torchcodec (fast)' if USE_TORCHCODEC else 'PyAV'}")
+    print(f"video_decoder: {'torchcodec (fast)' if _USE_TORCHCODEC else 'PyAV'}")
     print(f"prefetch:      {PREFETCH_QUEUE_SIZE} batches")
     print(f"checkpoint:    every {CHECKPOINT_EVERY} clips")
 

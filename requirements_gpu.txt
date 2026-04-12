@@ -46,6 +46,17 @@ av>=12.0.0
 torchcodec                   # GPU video decode via NVDEC (5-10x vs PyAV CPU). Auto-detected by m05.
 
 # =============================================================================
+# Segmentation (m10_sam_segment.py) — SAM 3.1 text-prompted video segmentation
+# =============================================================================
+# sam3 installed from source: pip install git+https://github.com/facebookresearch/sam3.git
+# Checkpoints gated on HF: huggingface-cli login (accept access at hf.co/facebook/sam3.1)
+
+# =============================================================================
+# LoRA (m09_pretrain.py --explora) — Parameter-efficient fine-tuning
+# =============================================================================
+peft>=0.13.0
+
+# =============================================================================
 # Experiment Tracking
 # =============================================================================
 wandb>=0.15.0

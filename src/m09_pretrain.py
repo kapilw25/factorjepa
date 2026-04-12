@@ -1,34 +1,29 @@
-"""
-V-JEPA 2 continual pretraining on Indian urban clips (Ch10).
-Student-teacher JEPA with EMA, L1 latent prediction, drift control.
-GPU-only (requires vjepa2 package + CUDA).
+"""V-JEPA 2.1 training: ExPLoRA (Step 1b) + Ch10 continual pretraining (legacy). GPU-only.
 
-SETUP (one-time): python -u src/m00c_sample_subset.py --POC --n 1000 --seed 99 --output data/val_1k.json
+ExPLoRA (V-JEPA 2.1, LoRA + unfreeze 1-2 blocks):
+    python -u src/m09_pretrain.py --model-config configs/model/vjepa2_1.yaml \
+        --train-config configs/train/explora.yaml --explora \
+        --SANITY --local-data data/val_1k_local --val-local-data data/val_1k_local \
+        2>&1 | tee logs/m09_explora_sanity.log
+    python -u src/m09_pretrain.py --model-config configs/model/vjepa2_1.yaml \
+        --train-config configs/train/explora.yaml --explora \
+        --POC --local-data data/val_1k_local --val-local-data data/val_1k_local \
+        2>&1 | tee logs/m09_explora_poc.log
+    python -u src/m09_pretrain.py --model-config configs/model/vjepa2_1.yaml \
+        --train-config configs/train/explora.yaml --explora \
+        --FULL --local-data data/full_local --val-local-data data/val_1k_local \
+        2>&1 | tee logs/m09_explora_full.log
 
-USAGE:
+Ch10 continual pretraining (legacy, --config single YAML):
     python -u src/m09_pretrain.py --config configs/pretrain/vitg16_indian.yaml \
         --SANITY 2>&1 | tee logs/m09_pretrain_sanity.log
     python -u src/m09_pretrain.py --config configs/pretrain/vitg16_indian.yaml \
-        --POC --subset data/subset_10k.json --val-subset data/val_1k.json \
-        --local-data data/subset_10k_local --val-local-data data/val_1k_local \
+        --POC --subset data/subset_10k.json --local-data data/subset_10k_local \
+        --val-subset data/val_1k.json --val-local-data data/val_1k_local \
         2>&1 | tee logs/m09_pretrain_poc.log
     python -u src/m09_pretrain.py --config configs/pretrain/vitg16_indian.yaml \
-        --FULL --val-subset data/val_1k.json --local-data data/full_local \
+        --FULL --local-data data/full_local --val-subset data/val_1k.json \
         --val-local-data data/val_1k_local 2>&1 | tee logs/m09_pretrain_full.log
-
-ABLATION (drift control lambda sweep — run sequentially or on 4 GPUs):
-    python -u src/m09_pretrain.py --config configs/pretrain/vitg16_indian.yaml \
-        --FULL --subset data/subset_10k.json --local-data data/subset_10k_local \
-        --lambda-reg 0 2>&1 | tee logs/m09_lambda0.log
-    python -u src/m09_pretrain.py --config configs/pretrain/vitg16_indian.yaml \
-        --FULL --subset data/subset_10k.json --local-data data/subset_10k_local \
-        --lambda-reg 0.001 2>&1 | tee logs/m09_lambda0_001.log
-    python -u src/m09_pretrain.py --config configs/pretrain/vitg16_indian.yaml \
-        --FULL --subset data/subset_10k.json --local-data data/subset_10k_local \
-        --lambda-reg 0.01 2>&1 | tee logs/m09_lambda0_01.log
-    python -u src/m09_pretrain.py --config configs/pretrain/vitg16_indian.yaml \
-        --FULL --subset data/subset_10k.json --local-data data/subset_10k_local \
-        --lambda-reg 0.1 2>&1 | tee logs/m09_lambda0_1.log
 """
 import os
 os.environ.setdefault("OMP_NUM_THREADS", "1")   # Must be before torch import
@@ -84,10 +79,10 @@ PREFETCH_QUEUE_SIZE = _pcfg["streaming"]["prefetch_queue_train"]
 DECODE_WORKERS = _pcfg["streaming"]["decode_workers_train"]
 MAX_STREAM_RETRIES = _pcfg["streaming"]["max_retries"]
 
-# Reuse data loading from m05
-from m05_vjepa_embed import (
-    get_clip_key, _create_stream, decode_video_bytes,
-)
+# Shared video I/O from utils (Rule 32: no cross-imports between m*.py)
+from utils.video_io import get_clip_key, create_stream, decode_video_bytes
+
+_create_stream = create_stream
 
 
 # ═════════════════════════════════════════════════════════════════════════

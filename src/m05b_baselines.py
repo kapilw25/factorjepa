@@ -27,7 +27,7 @@ from tqdm import tqdm
 sys.path.insert(0, str(Path(__file__).parent))
 from utils.config import (
     ENCODER_REGISTRY, VJEPA_EMBEDDING_DIM, VJEPA_FRAMES_PER_CLIP,
-    check_gpu, check_output_exists, load_subset, add_subset_arg, add_local_data_arg,
+    check_gpu, load_subset, add_subset_arg, add_local_data_arg,
     get_output_dir, get_encoder_files,
     get_sanity_clip_limit, get_total_clips, get_pipeline_config,
 )
@@ -35,12 +35,17 @@ from utils.data_download import ensure_local_data, iter_clips_parallel
 from utils.gpu_batch import compute_batch_sizes, add_gpu_mem_arg, cuda_cleanup, cleanup_temp
 from utils.wandb_utils import add_wandb_args, init_wandb, log_metrics, log_artifact, finish_wandb
 
-# Reuse HF streaming + video decode from m05
-from m05_vjepa_embed import (
-    get_clip_key, _create_stream, decode_video_bytes,
-    save_checkpoint, load_checkpoint,
-    DECODE_WORKERS, MAX_STREAM_RETRIES, CHECKPOINT_EVERY, PREFETCH_QUEUE_SIZE,
-)
+# Shared video I/O from utils (Rule 32: no cross-imports between m*.py)
+from utils.video_io import get_clip_key, create_stream, decode_video_bytes
+from utils.checkpoint import save_embedding_checkpoint as save_checkpoint, load_embedding_checkpoint as load_checkpoint
+
+_pcfg_stream = get_pipeline_config()
+DECODE_WORKERS = _pcfg_stream["streaming"]["decode_workers_embed"]
+MAX_STREAM_RETRIES = _pcfg_stream["streaming"]["max_retries"]
+CHECKPOINT_EVERY = _pcfg_stream["streaming"]["checkpoint_every"]
+PREFETCH_QUEUE_SIZE = _pcfg_stream["streaming"]["prefetch_queue_embed"]
+
+_create_stream = create_stream
 
 # Lazy imports (GPU-only libs)
 torch = None
@@ -402,7 +407,7 @@ def generate_clip(output_dir: Path, args, clip_limit: int, subset_keys: set):
     model.eval()
     print("Applying torch.compile (first batch will be slow due to compilation)...")
     model = torch.compile(model)
-    print(f"CLIP loaded (dim=768, dtype=float16, SDPA+compiled)")
+    print("CLIP loaded (dim=768, dtype=float16, SDPA+compiled)")
 
     all_embeddings, all_keys, resume_count = load_checkpoint(checkpoint_file)
     processed_keys = set(all_keys)
@@ -778,7 +783,7 @@ def main():
 
     if args.encoder == "all":
         print(f"{'='*60}")
-        print(f"RUNNING ALL 4 BASELINES SEQUENTIALLY")
+        print("RUNNING ALL 4 BASELINES SEQUENTIALLY")
         print(f"Order: {' → '.join(encoders_to_run)}")
         print(f"{'='*60}\n")
 
@@ -796,8 +801,8 @@ def main():
 
     if args.encoder == "all":
         print(f"\n{'='*60}")
-        print(f"ALL 4 BASELINES COMPLETE")
-        print(f"Next: python -u src/m06_faiss_metrics.py --encoder <enc> --FULL --subset data/subset_10k.json")
+        print("ALL 4 BASELINES COMPLETE")
+        print("Next: python -u src/m06_faiss_metrics.py --encoder <enc> --FULL --subset data/subset_10k.json")
         print(f"{'='*60}")
 
 

@@ -111,6 +111,11 @@ encoders:
     dim: 1664
     type: video
     suffix: _vjepa_2_1_frozen
+  vjepa_2_1_frozen_shuffled:
+    model_id: null
+    dim: 1664
+    type: video_shuffled
+    suffix: _vjepa_2_1_frozen_shuffled
   vjepa_2_1_explora:
     model_id: null
     dim: 1664

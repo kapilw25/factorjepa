@@ -26,9 +26,10 @@ OUTPUTS_DIR = OUTPUTS_ROOT / "full"
 OUTPUTS_DATA_PREP_DIR = OUTPUTS_ROOT / "data_prep"
 OUTPUTS_PROFILE_DIR = OUTPUTS_ROOT / "profile"
 
-# Input data (canonical copies in src/utils/)
-YT_VIDEOS_JSON = UTILS_DIR / "YT_videos_raw.json"
-TAG_TAXONOMY_JSON = UTILS_DIR / "tag_taxonomy.json"
+# Input data (moved from src/utils/ to configs/)
+CONFIGS_DIR = PROJECT_ROOT / "configs"
+YT_VIDEOS_JSON = CONFIGS_DIR / "YT_videos_raw.json"
+TAG_TAXONOMY_JSON = CONFIGS_DIR / "tag_taxonomy.json"
 
 # Ensure directories exist
 for d in [VIDEOS_DIR, CLIPS_DIR, SHARDS_DIR, OUTPUTS_DIR, OUTPUTS_DATA_PREP_DIR,
@@ -113,9 +114,6 @@ def get_pipeline_config() -> dict:
         with open(PIPELINE_CONFIG_PATH) as f:
             _pipeline_cfg = yaml.safe_load(f)
     return _pipeline_cfg
-
-
-CONFIGS_DIR = PROJECT_ROOT / "configs"
 
 
 def _deep_merge(base: dict, overlay: dict) -> dict:

@@ -44,7 +44,8 @@ optimization:
 
 # -- Factor datasets (m10/m11 prerequisite) --
 factor_datasets:
-  sam_model: facebook/sam3-large      # SAM3 instance segmentation
+  sam_model: facebook/sam3.1            # SAM 3.1 — text prompts + multiplexing (Mar 2026)
+  agent_prompt_source: tags_json       # Per-clip notable_objects from tags.json (MANDATORY, no fallback)
   iou_threshold: 0.3                  # Tracklet matching threshold
   motion_threshold: 0.05              # Frame width fraction (agent vs layout filter)
   motion_min_frames: 4                # Persistence required for "agent" classification

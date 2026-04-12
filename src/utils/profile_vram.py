@@ -27,7 +27,6 @@ import sys
 import tarfile
 import tempfile
 import time
-import yaml
 from pathlib import Path
 
 import matplotlib
@@ -57,6 +56,10 @@ for _k in ["src", "src.utils"]:
 _il.invalidate_caches()
 vit_giant_xformers = sys.modules["src.models.vision_transformer"].vit_giant_xformers
 vit_predictor = sys.modules["src.models.predictor"].vit_predictor
+
+# Shared video I/O (Rule 32: no cross-imports between m*.py)
+from utils.video_io import decode_video_bytes
+from m09_pretrain import load_config, DEFAULT_CONFIG
 _MaskGenerator = sys.modules["src.masks.multiseq_multiblock3d"]._MaskGenerator
 apply_masks = sys.modules["src.masks.utils"].apply_masks
 
@@ -271,7 +274,7 @@ def generate_plots(results_no_ckpt, results_ckpt, gpu_name, gpu_total_gb,
     plt.tight_layout()
     fig.savefig(out_dir / "plot1_batch_scaling.png", dpi=150)
     plt.close(fig)
-    print(f"  [1/5] Saved plot1_batch_scaling.png")
+    print("  [1/5] Saved plot1_batch_scaling.png")
 
     # ── Plot 2: Grad Checkpointing Savings (Grouped Bar) ─────────────
     common_bs = sorted(set(bs_no) & set(bs_ck))
@@ -307,7 +310,7 @@ def generate_plots(results_no_ckpt, results_ckpt, gpu_name, gpu_total_gb,
         plt.tight_layout()
         fig.savefig(out_dir / "plot2_ckpt_savings.png", dpi=150)
         plt.close(fig)
-        print(f"  [2/5] Saved plot2_ckpt_savings.png")
+        print("  [2/5] Saved plot2_ckpt_savings.png")
 
     # ── Plot 3: Memory Breakdown (Stacked Bar) ───────────────────────
     # Estimate components from the model params
@@ -344,7 +347,7 @@ def generate_plots(results_no_ckpt, results_ckpt, gpu_name, gpu_total_gb,
         plt.tight_layout()
         fig.savefig(out_dir / "plot3_breakdown.png", dpi=150)
         plt.close(fig)
-        print(f"  [3/5] Saved plot3_breakdown.png")
+        print("  [3/5] Saved plot3_breakdown.png")
 
     # ── Plot 4: Memory Waterfall (single step, largest common BS) ────
     ref_bs = common_bs[-1] if common_bs else (bs_ck[-1] if bs_ck else None)
@@ -372,7 +375,7 @@ def generate_plots(results_no_ckpt, results_ckpt, gpu_name, gpu_total_gb,
         plt.tight_layout()
         fig.savefig(out_dir / "plot4_waterfall.png", dpi=150)
         plt.close(fig)
-        print(f"  [4/5] Saved plot4_waterfall.png")
+        print("  [4/5] Saved plot4_waterfall.png")
 
     # ── Plot 5: Visible Tokens vs Peak VRAM ──────────────────────────
     # Unique to JEPA: masking ratio directly affects student memory
@@ -400,7 +403,7 @@ def generate_plots(results_no_ckpt, results_ckpt, gpu_name, gpu_total_gb,
         plt.tight_layout()
         fig.savefig(out_dir / "plot5_masking_effect.png", dpi=150)
         plt.close(fig)
-        print(f"  [5/5] Saved plot5_masking_effect.png")
+        print("  [5/5] Saved plot5_masking_effect.png")
 
     print(f"\nAll plots saved to {out_dir}/")
 
@@ -615,12 +618,7 @@ def main():
 
 
 def _load_real_video_batch(n_clips: int, local_data: str = "data/full_local"):
-    """Load real videos using the same functions as m05/m09 pipeline.
-    Imports: decode_video_bytes from m05, load_config from m09.
-    Config: reads num_frames/crop_size from configs/pretrain/vitg16_indian.yaml.
-    """
-    from m05_vjepa_embed import decode_video_bytes
-    from m09_pretrain import load_config, DEFAULT_CONFIG
+    """Load real videos using the pipeline's video decode + config functions."""
     from transformers import AutoVideoProcessor
     from utils.config import VJEPA_MODEL_ID
 
@@ -671,7 +669,7 @@ def profile_inference():
     gpu_name = torch.cuda.get_device_name(device)
     gpu_total_gb = torch.cuda.get_device_properties(device).total_memory / (1024 ** 3)
     print(f"GPU: {gpu_name} ({gpu_total_gb:.1f} GB)")
-    print(f"=== INFERENCE PROFILING (REAL video data + torch.compile) ===")
+    print("=== INFERENCE PROFILING (REAL video data + torch.compile) ===")
     print()
 
     # Load real video clips for realistic profiling
@@ -777,7 +775,7 @@ def profile_inference():
     optimal = max(plateau_bs) if plateau_bs else max(results.keys(), key=lambda bs: results[bs]["throughput"])
     peak_tput = results[optimal]["throughput"]
 
-    print(f"\n=== INFERENCE PROFILING RESULTS ===")
+    print("\n=== INFERENCE PROFILING RESULTS ===")
     print(f"  Optimal BS (max throughput): {optimal}")
     print(f"  Peak VRAM at BS={optimal}: {results[optimal]['peak_gb']:.1f}G / {gpu_total_gb:.0f}G")
     print(f"  Throughput at BS={optimal}: {peak_tput:.1f} clips/s")
@@ -831,7 +829,7 @@ def profile_inference():
         ax2.axvline(x=optimal, color=COLORS["green"], linestyle="--", linewidth=2,
                     label=f"Optimal BS={optimal} ({peak_tput:.1f} clips/s)")
 
-    ax1.set_title(f"Inference Batch Size Profiling — ViT-g 1B")
+    ax1.set_title("Inference Batch Size Profiling — ViT-g 1B")
 
     # Combined legend — placed outside plot to avoid overlap
     lines1, labels1 = ax1.get_legend_handles_labels()
@@ -861,7 +859,7 @@ def profile_dinov2():
     gpu_name = torch.cuda.get_device_name(device)
     gpu_total_gb = torch.cuda.get_device_properties(device).total_memory / (1024 ** 3)
     print(f"GPU: {gpu_name} ({gpu_total_gb:.1f} GB)")
-    print(f"=== DINOv2-GIANT INFERENCE PROFILING (REAL images) ===")
+    print("=== DINOv2-GIANT INFERENCE PROFILING (REAL images) ===")
 
     from transformers import AutoModel, AutoImageProcessor
 
@@ -949,7 +947,7 @@ def profile_dinov2():
     plateau_d = [bs for bs in results if results[bs]["throughput"] >= thresh_d]
     optimal = max(plateau_d) if plateau_d else max(results.keys(), key=lambda bs: results[bs]["throughput"])
     peak_tput = results[optimal]["throughput"]
-    print(f"\n=== DINOv2 INFERENCE RESULTS ===")
+    print("\n=== DINOv2 INFERENCE RESULTS ===")
     print(f"  Optimal BS (max throughput): {optimal}")
     print(f"  Peak VRAM at BS={optimal}: {results[optimal]['peak_gb']:.1f}G / {gpu_total_gb:.0f}G")
     print(f"  Throughput at BS={optimal}: {peak_tput:.1f} img/s")
