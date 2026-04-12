@@ -3,25 +3,34 @@ Upload/download compute outputs + POC/val data to HuggingFace Hub.
 Repo: anonymousML123/factorjepa-outputs (public, gated, auto-created on first upload).
 
 USAGE:
-    # FULL/POC/SANITY usage:
-    python -u src/utils/hf_outputs.py upload outputs 2>&1 | tee logs/hf_upload_outputs.log                                                                    
-    python -u src/utils/hf_outputs.py download outputs 2>&1 | tee logs/hf_download_outputs.log 
-    
+    # FULL/POC/SANITY usage: from outputs/
+    python -u src/utils/hf_outputs.py upload outputs 2>&1 | tee logs/hf_upload_outputs.log
+    python -u src/utils/hf_outputs.py download outputs 2>&1 | tee logs/hf_download_outputs.log
+
     # Upload/download: from outputs/full/ ONLY
     python -u src/utils/hf_outputs.py upload outputs/full 2>&1 | tee logs/hf_upload.log
     python -u src/utils/hf_outputs.py download outputs/full 2>&1 | tee logs/hf_download.log
-    
-    # Upload/download: poc 10K (10 TARs, 10.5GB) + val 1K (1 TAR, 0.9GB) + JSON manifests
+
+    # Upload/download: from @data/
+    # poc 10K (10 TARs, 10.5GB) + val 1K (1 TAR, 0.9GB) + JSON manifests
     python -u src/utils/hf_outputs.py upload-data 2>&1 | tee logs/upload_poc_val.log    # ~15 min upload
     python -u src/utils/hf_outputs.py download-data 2>&1 | tee logs/download_poc_val.log # ~3 min measured
-    
 
-    
+
+
 """
 import os
 import sys
 import time
 from pathlib import Path
+
+try:
+    from dotenv import load_dotenv
+except ImportError:
+    load_dotenv = None
+
+from huggingface_hub import HfApi, repo_exists, snapshot_download
+from utils.progress import make_pbar
 
 # Enable Rust-based HF transfer (1.5-3x faster per file).
 # Safe here — upload_folder/snapshot_download are single-call APIs, no worker conflict.
@@ -30,20 +39,20 @@ os.environ.setdefault("HF_HUB_ENABLE_HF_TRANSFER", "1")
 
 HF_OUTPUTS_REPO = "anonymousML123/factorjepa-outputs"
 
+_UPLOAD_EXTENSIONS = {"*.npy", "*.npz", "*.json", "*.csv", "*.png", "*.pdf", "*.tex", "*.pt"}
+
+_CHECKPOINT_AGE_THRESHOLD = 120  # seconds — skip checkpoints modified within this window
+
 
 def _get_token():
     """Load HF_TOKEN from .env."""
-    try:
-        from dotenv import load_dotenv
+    if load_dotenv is not None:
         load_dotenv()
-    except ImportError:
-        pass  # check env directly
     return os.getenv("HF_TOKEN")
 
 
 def _ensure_repo(token):
     """Auto-create repo if it doesn't exist. Public + gated access."""
-    from huggingface_hub import HfApi, repo_exists
     api = HfApi(token=token)
 
     if repo_exists(HF_OUTPUTS_REPO, repo_type="dataset", token=token):
@@ -62,6 +71,37 @@ def _ensure_repo(token):
         gated="auto",
     )
     print(f"Created: https://huggingface.co/datasets/{HF_OUTPUTS_REPO} (public, gated)")
+
+
+def _fmt_size(nbytes: int) -> str:
+    """Format bytes as human-readable string."""
+    if nbytes >= 1e9:
+        return f"{nbytes / 1e9:.1f} GB"
+    if nbytes >= 1e6:
+        return f"{nbytes / 1e6:.1f} MB"
+    if nbytes >= 1e3:
+        return f"{nbytes / 1e3:.0f} KB"
+    return f"{nbytes} B"
+
+
+def _list_local_files(output_path: Path, extensions: set) -> list:
+    """List local files matching allowed extensions, sorted by path."""
+    files = []
+    for ext in extensions:
+        files.extend(output_path.rglob(ext.lstrip("*")))
+    return sorted(set(files))
+
+
+def _list_remote_files(api, subfolder: str) -> list:
+    """List remote files under subfolder on HF, returns list of (rpath, size_bytes)."""
+    files = []
+    for item in api.list_repo_tree(
+            HF_OUTPUTS_REPO, path_in_repo=subfolder, repo_type="dataset",
+            recursive=True):
+        if hasattr(item, 'rpath') and not hasattr(item, 'tree_id'):
+            size = getattr(item, 'size', 0) or 0
+            files.append((item.rpath, size))
+    return sorted(files)
 
 
 def _mirror_cleanup(api, local_path: Path, subfolder: str):
@@ -108,9 +148,6 @@ def _mirror_cleanup(api, local_path: Path, subfolder: str):
         sys.exit(1)
 
 
-_CHECKPOINT_AGE_THRESHOLD = 120  # seconds — skip checkpoints modified within this window
-
-
 def _stale_checkpoint_ignores(output_path: Path) -> list:
     """Return ignore patterns for checkpoint files currently being written.
 
@@ -138,8 +175,6 @@ def upload_outputs(output_dir: str, subfolder: str = None):
         output_dir: Local path (e.g., "outputs/full")
         subfolder: HF path prefix (default: basename of output_dir, e.g., "full")
     """
-    from huggingface_hub import HfApi
-
     token = _get_token()
     if not token:
         print("SKIP upload: HF_TOKEN not found in .env")
@@ -162,8 +197,15 @@ def upload_outputs(output_dir: str, subfolder: str = None):
     # deleted plots). Download then pulls them all back → OOM (73GB incident).
     _mirror_cleanup(api, output_path, subfolder)
 
-    # Upload with dedup — HF only uploads files whose hash changed
+    # List files that will be uploaded
+    local_files = _list_local_files(output_path, _UPLOAD_EXTENSIONS)
+    total_bytes = sum(f.stat().st_size for f in local_files)
     print(f"Uploading {output_dir} → {HF_OUTPUTS_REPO}/{subfolder}/")
+    print(f"  {len(local_files)} files ({_fmt_size(total_bytes)}):")
+    for f in local_files:
+        rel = f.relative_to(output_path)
+        print(f"    {rel} ({_fmt_size(f.stat().st_size)})")
+
     t0 = time.time()
 
     api.upload_folder(
@@ -171,7 +213,7 @@ def upload_outputs(output_dir: str, subfolder: str = None):
         repo_id=HF_OUTPUTS_REPO,
         repo_type="dataset",
         path_in_repo=subfolder,
-        allow_patterns=["*.npy", "*.npz", "*.json", "*.csv", "*.png", "*.pdf", "*.tex", "*.pt"],
+        allow_patterns=list(_UPLOAD_EXTENSIONS),
         ignore_patterns=["tmp_*"] + _stale_checkpoint_ignores(output_path),
     )
 
@@ -180,14 +222,12 @@ def upload_outputs(output_dir: str, subfolder: str = None):
 
 
 def download_outputs(output_dir: str, subfolder: str = None):
-    """Download outputs from HF to local directory. Prints progress.
+    """Download outputs from HF to local directory. Prints per-file list + progress.
 
     Args:
         output_dir: Local destination (e.g., "outputs/full")
         subfolder: HF path prefix (default: basename of output_dir)
     """
-    from huggingface_hub import snapshot_download, repo_exists
-
     token = _get_token()
     if not token:
         print("SKIP download: HF_TOKEN not found in .env")
@@ -200,7 +240,15 @@ def download_outputs(output_dir: str, subfolder: str = None):
     if subfolder is None:
         subfolder = str(Path(output_dir))  # "outputs/full" — mirrors HF layout
 
+    # Pre-list remote files so user sees what's coming
+    api = HfApi(token=token)
+    remote_files = _list_remote_files(api, subfolder)
+    total_bytes = sum(size for _, size in remote_files)
     print(f"Downloading {HF_OUTPUTS_REPO}/{subfolder}/ → {output_dir}")
+    print(f"  {len(remote_files)} files ({_fmt_size(total_bytes)}) on HF:")
+    for rpath, size in remote_files:
+        rel = rpath[len(subfolder):].lstrip("/") if rpath.startswith(subfolder) else rpath
+        print(f"    {rel} ({_fmt_size(size)})")
 
     # Snapshot before download: track what files exist
     output_path = Path(output_dir)
@@ -235,15 +283,15 @@ def download_outputs(output_dir: str, subfolder: str = None):
     print(f"\nDownload complete: {elapsed:.0f}s")
     print(f"  Files: {len(new_files)} new, {len(updated_files)} updated, {unchanged} unchanged")
     total_bytes = sum(after[f] for f in new_files | updated_files)
-    print(f"  Downloaded: {total_bytes / 1e9:.2f} GB")
+    print(f"  Downloaded: {_fmt_size(total_bytes)}")
     if new_files:
         for f in sorted(new_files)[:10]:
-            print(f"  NEW  {f} ({after[f] / 1e6:.1f} MB)")
+            print(f"  NEW  {f} ({_fmt_size(after[f])})")
         if len(new_files) > 10:
             print(f"  ... and {len(new_files) - 10} more new files")
     if updated_files:
         for f in sorted(updated_files)[:10]:
-            print(f"  UPD  {f} ({after[f] / 1e6:.1f} MB)")
+            print(f"  UPD  {f} ({_fmt_size(after[f])})")
         if len(updated_files) > 10:
             print(f"  ... and {len(updated_files) - 10} more updated files")
 
@@ -265,8 +313,6 @@ def upload_data():
       data/subset_10k.json + data/subset_10k_local/*.tar  → factorjepa-outputs/data/subset_10k_local/
       data/val_1k.json + data/val_1k_local/*.tar           → factorjepa-outputs/data/val_1k_local/
     """
-    from huggingface_hub import HfApi
-
     token = _get_token()
     if not token:
         print("SKIP: HF_TOKEN not found")
@@ -282,14 +328,16 @@ def upload_data():
         ("data/val_1k_local", "data/val_1k_local"),
     ]
 
+    pbar = make_pbar(total=len(uploads), desc="upload_data", unit="item")
     for local_path, repo_path in uploads:
         p = Path(local_path)
         if not p.exists():
             print(f"  SKIP: {local_path} not found")
+            pbar.update(1)
             continue
 
         if p.is_file():
-            print(f"  Uploading {local_path} → {repo_path}")
+            print(f"  Uploading {local_path} → {repo_path} ({_fmt_size(p.stat().st_size)})")
             api.upload_file(
                 path_or_fileobj=str(p),
                 path_in_repo=repo_path,
@@ -297,21 +345,23 @@ def upload_data():
                 repo_type="dataset",
             )
         elif p.is_dir():
-            print(f"  Uploading {local_path}/ → {repo_path}/ ({len(list(p.glob('*')))} files)")
+            n_files = len(list(p.glob('*')))
+            dir_size = sum(f.stat().st_size for f in p.rglob('*') if f.is_file())
+            print(f"  Uploading {local_path}/ → {repo_path}/ ({n_files} files, {_fmt_size(dir_size)})")
             api.upload_folder(
                 folder_path=str(p),
                 repo_id=HF_OUTPUTS_REPO,
                 repo_type="dataset",
                 path_in_repo=repo_path,
             )
+        pbar.update(1)
+    pbar.close()
 
     print(f"Data upload complete → https://huggingface.co/datasets/{HF_OUTPUTS_REPO}")
 
 
 def download_data():
     """Download POC + val data from HF to local data/ directory."""
-    from huggingface_hub import snapshot_download, repo_exists
-
     token = _get_token()
     if not token:
         print("SKIP: HF_TOKEN not found")
@@ -321,7 +371,16 @@ def download_data():
         print(f"SKIP: {HF_OUTPUTS_REPO} does not exist")
         return False
 
+    # Pre-list remote data files
+    api = HfApi(token=token)
+    remote_files = _list_remote_files(api, "data")
+    total_bytes = sum(size for _, size in remote_files)
     print(f"Downloading data from {HF_OUTPUTS_REPO}/data/ → data/")
+    print(f"  {len(remote_files)} files ({_fmt_size(total_bytes)}) on HF:")
+    for rpath, size in remote_files:
+        rel = rpath[len("data"):].lstrip("/") if rpath.startswith("data") else rpath
+        print(f"    {rel} ({_fmt_size(size)})")
+
     t0 = time.time()
 
     snapshot_download(

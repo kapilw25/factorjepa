@@ -1,0 +1,13 @@
+{
+  "steps": 281,
+  "epochs": 1.0,
+  "clips_seen": 8992,
+  "final_jepa_loss": 0.480027973651886,
+  "final_drift_loss": 0.00017112024943344295,
+  "final_total_loss": 0.48019909858703613,
+  "best_val_loss": 1.6281786615198308,
+  "final_lr": 1e-07,
+  "final_grad_norm": 0.04686245322227478,
+  "lambda_reg": 0.1,
+  "batch_size": 32
+}
