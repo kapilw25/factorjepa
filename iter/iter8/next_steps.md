@@ -2,6 +2,7 @@
 
 > **GOAL: Get V-JEPA 2.1 (2B) surgical adaptation to improve Prec@K over frozen baseline on WalkIndia-200K.**
 > **Short-term: Show Surgery > ExPLoRA > Frozen on 1K val clips (~70 min GPU).**
+> **If surgery doesn't improve:** See `iter/utils/literarure_survey.md` — 24 JEPA variants surveyed, 3 techniques to steal (SIGReg from LeJEPA, leakage-free from VLA-JEPA, temporal straightening diagnostic).
 
 ---
 
