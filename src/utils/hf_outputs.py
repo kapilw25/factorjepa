@@ -7,7 +7,7 @@ USAGE:
     python -u src/utils/hf_outputs.py upload outputs 2>&1 | tee logs/hf_upload_outputs.log                                                                    
     python -u src/utils/hf_outputs.py download outputs 2>&1 | tee logs/hf_download_outputs.log 
     
-    # Upload/download: Compute outputs (embeddings, metrics, plots from outputs/full/)
+    # Upload/download: from outputs/full/ ONLY
     python -u src/utils/hf_outputs.py upload outputs/full 2>&1 | tee logs/hf_upload.log
     python -u src/utils/hf_outputs.py download outputs/full 2>&1 | tee logs/hf_download.log
     

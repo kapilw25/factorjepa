@@ -5,15 +5,13 @@
 
 ---
 
-## GPU Setup (one-time)
+## GPU Setup (one-time, bare instance)
 
 ```bash
-git pull origin main
+git clone https://github.com/kapilw25/factorjepa.git && cd factorjepa
+./git_pull.sh                          # downloads outputs + data from HF
 ./setup_env_uv.sh --gpu --from-wheels 2>&1 | tee logs/setup_gpu.log
 source venv_walkindia/bin/activate
-huggingface-cli login
-pip install git+https://github.com/facebookresearch/sam3.git
-pip install peft>=0.13.0
 ```
 
 ---

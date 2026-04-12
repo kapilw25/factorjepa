@@ -209,6 +209,14 @@ if [ "$1" = "--gpu" ]; then
     echo "GPU Setup (Linux + Nvidia ONLY)"
     echo "============================================"
 
+    # Load .env for HF_TOKEN (SAM 3.1 is gated, checkpoint downloads need auth)
+    if [ -f ".env" ]; then
+        set -a
+        source .env
+        set +a
+        echo "Loaded .env (HF_TOKEN set)"
+    fi
+
     # Clone vjepa2 (contains BOTH 2.0 and 2.1 code)
     # 2.0: deps/vjepa2/src/models/ (base ViT, predictor)
     # 2.1: deps/vjepa2/app/vjepa_2_1/models/ (hierarchical output, deep supervision)
@@ -403,8 +411,17 @@ print(f'PyTorch: {torch.__version__}, CUDA: {torch.version.cuda}, GPU: {torch.cu
 
     # 7. Install wandb (experiment tracking)
     echo ""
-    echo "[7/7] Installing wandb..."
+    echo "[7/8] Installing wandb..."
     uv pip install wandb
+
+    # 8. Install SAM 3.1 (gated model — user must accept access at hf.co/facebook/sam3.1)
+    echo ""
+    echo "[8/8] Installing SAM 3.1 from source..."
+    if python -c "import sam3" 2>/dev/null; then
+        echo "SAM 3.1 already installed"
+    else
+        pip install git+https://github.com/facebookresearch/sam3.git
+    fi
 
     # Final verification
     echo ""
@@ -448,11 +465,10 @@ print('')
 print('SUCCESS: All GPU components verified')
 "
 
-    # 8. vLLM setup SKIPPED — transformers is 2.5x faster for offline batch tagging.
+    # vLLM setup SKIPPED — transformers is 2.5x faster for offline batch tagging.
     # See iter/utils/vLLM_plan_Blackwell.md for 14 root causes found + fixed.
-    # To install vLLM manually: see setup instructions in that file.
     echo ""
-    echo "[8/8] vLLM: SKIPPED (transformers 2.5x faster for offline batch, see vLLM_plan_Blackwell.md)"
+    echo "vLLM: SKIPPED (transformers 2.5x faster for offline batch, see vLLM_plan_Blackwell.md)"
 
     echo ""
     echo "============================================"

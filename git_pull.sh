@@ -5,11 +5,12 @@ Git Pull + HF Download — sync code + compute outputs from remote
 =============================================================================
 
 Usage:
-    ./git_pull.sh              # sync code + download outputs from HF
-    ./git_pull.sh --code-only  # sync code only (no HF download, use on Mac)
 
-All modes do: git fetch + git reset --hard + git clean -fd
-= exact mirror of remote, no stale files, no merge conflicts
+On Linux 
+    ./git_pull.sh              # sync code + download outputs + data from HF
+
+On Mac (preserves .gitignored files like src/data/videos/, src/data/clips/):
+    ./git_pull.sh --code-only  # safe — git clean -fd skips .gitignored files
 
 =============================================================================
 '
@@ -27,7 +28,8 @@ done
 
 echo "=== Git Pull ==="
 
-# All modes: hard reset to remote (exact mirror, no stale files)
+# Hard reset to remote (exact mirror, no stale files)
+# git clean -fd removes untracked files but PRESERVES .gitignored files (src/data/videos/, clips/)
 git fetch origin
 git reset --hard origin/main
 git clean -fd
@@ -52,6 +54,11 @@ mkdir -p logs
 python -u src/utils/hf_outputs.py download outputs 2>&1 | tee logs/hf_download_outputs.log
 
 echo ""
+echo "=== HF Download: Data (val_1k, subset_10k) ==="
+python -u src/utils/hf_outputs.py download-data 2>&1 | tee logs/hf_download_data.log
+
+echo ""
 echo "=== Sync Complete ==="
 echo "  Code: $(git log --oneline -1)"
 echo "  Outputs: outputs/ (check logs/hf_download_outputs.log)"
+echo "  Data: data/ (check logs/hf_download_data.log)"
