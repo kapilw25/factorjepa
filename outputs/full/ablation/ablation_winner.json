@@ -1,5 +1,0 @@
-{
-  "winner_lambda": "0.001",
-  "winner_dir": "lambda0_001",
-  "note": "Manually set to skip ablation (previous 16f winner). Re-run ablation at 64f when time permits."
-}
