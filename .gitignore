@@ -73,6 +73,13 @@ src/data/
 outputs/**/*.npy
 outputs/**/*.npz
 outputs/full/*.json
+# Per-clip verification images (re-generable via --plot, too many for git)
+outputs/**/m10_overlay_verify/
+outputs/**/m11_per_clip_verify/
+# Factor dataset dirs (large .npy arrays, backed up to HF)
+outputs/**/m11_factor_datasets/D_L/
+outputs/**/m11_factor_datasets/D_A/
+outputs/**/m11_factor_datasets/D_I/
 # Symlinks under src/ point to outputs/ — gitignore both paths
 src/outputs/**/*.npy
 src/outputs/**/*.npz
