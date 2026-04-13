@@ -51,6 +51,7 @@ torchcodec                   # GPU video decode via NVDEC (5-10x vs PyAV CPU). A
 # sam3 installed from source in setup_env_uv.sh step 8 (not on PyPI)
 # Checkpoints gated on HF: huggingface-cli login (accept access at hf.co/facebook/sam3.1)
 einops>=0.6.0                # SAM 3.1 dependency (rope.py uses rearrange/repeat)
+pycocotools>=2.0.0           # SAM 3.1 dependency (train/data/coco_json_loaders.py imported at load time)
 
 # =============================================================================
 # LoRA (m09_pretrain.py --explora) — Parameter-efficient fine-tuning

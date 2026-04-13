@@ -1,0 +1,137 @@
+{
+  "goa/walking/U2hl1v8xxlE/U2hl1v8xxlE-157.mp4": {
+    "n_agents": 5,
+    "n_expected": 9,
+    "concept_recall": 0.556,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.09243388953942233,
+    "agent_prompt": "bus, auto rickshaw, bike, car, truck, handcart, street vendor, pedestrian, signage",
+    "n_interactions": 0
+  },
+  "goa/walking/XeOliFWJBVg/XeOliFWJBVg-073.mp4": {
+    "n_agents": 3,
+    "n_expected": 2,
+    "concept_recall": 1.5,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.04838108655347385,
+    "agent_prompt": "pedestrian, signage",
+    "n_interactions": 6
+  },
+  "goa/walking/YX5LXl4bxTg/YX5LXl4bxTg-010.mp4": {
+    "n_agents": 8,
+    "n_expected": 4,
+    "concept_recall": 2.0,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.04266442232630757,
+    "agent_prompt": "car, bike, pedestrian, signage",
+    "n_interactions": 31
+  },
+  "goa/walking/ZnpFrYOjQKQ/ZnpFrYOjQKQ-009.mp4": {
+    "n_agents": 6,
+    "n_expected": 5,
+    "concept_recall": 1.2,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.028672057962529272,
+    "agent_prompt": "bike, car, street vendor, pedestrian, signage",
+    "n_interactions": 25
+  },
+  "tier1/bangalore/drive/7W0bqXN2b1k/7W0bqXN2b1k-017.mp4": {
+    "n_agents": 16,
+    "n_expected": 4,
+    "concept_recall": 4.0,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.09098985777712724,
+    "agent_prompt": "auto rickshaw, car, signage, pedestrian",
+    "n_interactions": 19
+  },
+  "tier1/bangalore/drive/FlzchFfTruw/FlzchFfTruw-058.mp4": {
+    "n_agents": 7,
+    "n_expected": 7,
+    "concept_recall": 1.0,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.06323047789812647,
+    "agent_prompt": "car, bus, auto rickshaw, bike, pedestrian, overhead wires, signage",
+    "n_interactions": 12
+  },
+  "tier1/bangalore/drive/FoDu_Bhak4E/FoDu_Bhak4E-087.mp4": {
+    "n_agents": 20,
+    "n_expected": 6,
+    "concept_recall": 3.333,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.1283149760928962,
+    "agent_prompt": "auto rickshaw, bike, car, pedestrian, religious shrine, signage",
+    "n_interactions": 16
+  },
+  "tier1/bangalore/drive/IQDGp_qQ1OI/IQDGp_qQ1OI-098.mp4": {
+    "n_agents": 5,
+    "n_expected": 6,
+    "concept_recall": 0.833,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.20896729849726775,
+    "agent_prompt": "bus, auto rickshaw, bike, car, truck, signage",
+    "n_interactions": 6
+  },
+  "tier1/bangalore/drive/IVDTABXiR4c/IVDTABXiR4c-085.mp4": {
+    "n_agents": 9,
+    "n_expected": 5,
+    "concept_recall": 1.8,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.1368382855191257,
+    "agent_prompt": "car, bike, pedestrian, signage, overhead wires",
+    "n_interactions": 8
+  },
+  "tier1/bangalore/drive/LD7bl1I2NgM/LD7bl1I2NgM-135.mp4": {
+    "n_agents": 3,
+    "n_expected": 5,
+    "concept_recall": 0.6,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.010295040147206424,
+    "agent_prompt": "bike, car, pedestrian, overhead wires, signage",
+    "n_interactions": 0
+  },
+  "goa/walking/gflBqzcPAKs/gflBqzcPAKs-123.mp4": {
+    "n_agents": 1,
+    "n_expected": 3,
+    "concept_recall": 0.333,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.023814250341530056,
+    "agent_prompt": "car, overhead wires, signage",
+    "n_interactions": 12
+  },
+  "goa/walking/jQPs0LTwVwY/jQPs0LTwVwY-075.mp4": {
+    "n_agents": 2,
+    "n_expected": 4,
+    "concept_recall": 0.5,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.013884721409055426,
+    "agent_prompt": "car, bike, pedestrian, religious shrine",
+    "n_interactions": 4
+  },
+  "goa/walking/m6vxCnejLKE/m6vxCnejLKE-194.mp4": {
+    "n_agents": 0,
+    "n_expected": 3,
+    "concept_recall": 0.0,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.0,
+    "agent_prompt": "pedestrian, religious shrine, signage",
+    "n_interactions": 0
+  },
+  "goa/walking/t7xoacYTSJw/t7xoacYTSJw-169.mp4": {
+    "n_agents": 3,
+    "n_expected": 3,
+    "concept_recall": 1.0,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.059072197014051524,
+    "agent_prompt": "car, bike, overhead wires",
+    "n_interactions": 4
+  },
+  "monuments/red_fort_delhi/TWqaSTSWzus/TWqaSTSWzus-165.mp4": {
+    "n_agents": 2,
+    "n_expected": 1,
+    "concept_recall": 2.0,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.005909994633099142,
+    "agent_prompt": "pedestrian",
+    "n_interactions": 3
+  }
+}

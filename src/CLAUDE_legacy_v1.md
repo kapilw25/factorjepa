@@ -1,0 +1,118 @@
+1) Modules: src/m00_<name>.py … src/m09_<name>.py — prefix "m" avoids import errors. Numbers must NOT repeat.
+2) Utils: @src/utils/
+3) GPU Hardware:
+- Debug/SANITY: RTX Pro 4000 (24GB VRAM, ~$0.2/hr) — use --SANITY to validate model loading, inference, JSON parsing
+- Full/BAKEOFF runs: RTX Pro 6000 Blackwell (96GB VRAM, ~$0.8/hr) — use --BAKEOFF (2500 clips) and --FULL (10K-115K clips)
+- M1 Macbook: CPU/API ops + AST/lint + RUFF. No GPU fallback
+- GPU Software: PyTorch 2.12.0.dev+cu128 nightly, CUDA 12.8, FA2 2.8.3 (prebuilt sm_120 wheel), cuML 26.02, FAISS-GPU 1.14.1 (prebuilt sm_120 wheel, needs patchelf RPATH fix + libopenblas-dev), Python 3.12.12, UV
+- GPU scripts must FAIL LOUD — no silent CPU fallback (e.g. FAISS-CPU masking GPU fail, sklearn masking cuML fail)
+- "No CPU fallback" applies to inference/compute scripts (m04/m05/m06/m07/m09), NOT visualization/plotting scripts (m08)
+4) Docstrings: max 2-line explanation + terminal commands only. No verbose descriptions, no prerequisites, no paragraphs. Format: `"""One-line summary. GPU-only.\n    python -u src/file.py --SANITY 2>&1 | tee logs/file.log\n    python -u src/file.py --FULL 2>&1 | tee logs/file.log\n"""`
+4.1) format: `python -u src/*.py --args arg_name 2>&1 | tee logs/<log_name>.log`
+5) Dependencies: update @setup_env_uv.sh, @requirements.txt (CPU), @requirements_gpu.txt (GPU) — install via UV ONLY, no individual pip. **ENFORCED: `.claude/hooks/enforce-dev-rules.sh` blocks `pip install` / `uv pip install` via PreToolUse hook.**
+6) Test on M1 `venv_walkindia` : `py_compile` + `--help` + `ast` — full GPU tests on cloud only. **ENFORCED: `.claude/hooks/enforce-dev-rules.sh` blocks bare `python3` without venv activation via PreToolUse hook.** Always: `source venv_walkindia/bin/activate && python3 -m module`
+6.1) **MANDATORY after ANY edit to `src/m*.py`:** Run BOTH checks before moving on. No exceptions.
+   - `source venv_walkindia/bin/activate && python3 -m py_compile src/<file>.py` — **ENFORCED: `.claude/hooks/post-edit-lint.sh` auto-runs via PostToolUse hook.**
+   - AST structural check (verify functions, argparse choices, imports) — **ENFORCED: `.claude/hooks/post-edit-lint.sh`.**
+   - `venv_walkindia/bin/ruff check --select F,E9` (full pyflakes + syntax: undefined names, unused imports/vars, redefined, f-string issues) — **ENFORCED: `.claude/hooks/post-edit-lint.sh`.** Catches bugs that py_compile + AST miss.
+7) Plots: both .png & .pdf. m08_plot.py = CPU-only (pure matplotlib, reads pre-computed .npy files)
+7.1) GPU scripts save .npy artifacts (embeddings, knn_indices, umap_2d) → CPU scripts read them. NEVER duplicate GPU compute in CPU scripts (e.g. never rebuild FAISS index in plotting when m06 already saves knn_indices.npy)
+7.4) **95% CI MANDATORY**: Every metric reported in JSON or displayed in plots/tables MUST include bootstrap 95% CI (BCa, 10K iterations via `scipy.stats.bootstrap`). Use `utils/bootstrap.py`: compute per-clip scores → `bootstrap_ci(scores)` → store `{"mean", "ci_lo", "ci_hi", "ci_half"}` under `"ci"` key in JSON. Plots: error bars via `yerr=ci_half`. LaTeX tables: `50.5{\tiny$\pm$2.1}` format. No point estimates without CI — this is a research paper.
+7.2) embeddings.paths.npy stores clip keys (not local paths) — used for Hard mode ±30s exclusion. Tags↔embeddings alignment via __key__ field. FAISS uses IVFFlat (not IVF-PQ) — simpler, sufficient at 10K-115K scale
+7.3) m05c reads embeddings.paths.npy (deduped keys, ~5K) instead of subset_10k.json (10K). Ordering dependency: m05 must complete before m05c (enforced by run_evaluate.sh step ordering)
+8) **GPU utilization ≥85% is TOP PRIORITY.** Idle GPU = wasted money ($1.20/hr). If GPU util drops below 50% for >1 min, the producer is starving the GPU — fix the I/O pipeline, not the model. Common causes: sequential TAR scanning (parallelize with multi-threaded readers), slow video decode (increase DECODE_WORKERS), insufficient prefetch queue (increase PREFETCH_QUEUE_SIZE). Monitor via nvtop. 0% GPU on image encoders (CLIP/DINOv2) is a sign of CPU-bound producer starvation, not "normal."
+8.1) Devil's advocate: OOM, GPU underutil, data starvation, VRAM leaks, fp16 instability (use flash-attn-2), checkpoint corruption /auto-resume solution
+9) GPU Optimizations:
+- torch.compile(model) after model.eval() — warn about first-batch compile latency. For adapted models (native vjepa2), monkey-patch `torch.backends.cuda.sdp_kernel = contextlib.nullcontext` before compile to eliminate graph breaks from the deprecated context manager (PyTorch #130098). Both frozen (HF) and adapted (native) models MUST use torch.compile.
+- FAISS GPU: faiss.StandardGpuResources() + index_cpu_to_gpu(). Never CPU FAISS in GPU scripts
+- cuML GPU: for iterative algorithms (UMAP, DBSCAN, KMeans, PCA) — 50-100x speedup. For metrics (silhouette, accuracy, F1) keep sklearn/numpy on CPU — post-inference, not a bottleneck
+- Auto batch sizing: `scripts/profile_vram.py` → `outputs/profile/profile_data.json` → auto-detect in `run_pretrain.sh` (75% VRAM threshold). If profile_data.json missing, profiler runs automatically (~5 min).
+- Attention per encoder: V-JEPA/shuffled/DINOv2 = FA2 (`attn_implementation="flash_attention_2"`), CLIP = SDPA (`attn_implementation="sdpa"`)
+- Producer pre-processing: processor() runs in CPU producer thread, enqueues ready tensors → GPU thread only does .to(device) + forward pass
+- CUDA memory fragmentation: `export PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True` in shell scripts. Prevents OOM from reserved-but-unallocated memory on long training runs.
+- wandb: shared src/utils/wandb_utils.py with: add_wandb_args(parser), init_wandb(module, mode, config, enabled), log_metrics(run, dict, step), log_image(run, key, path), log_artifact(run, name, path), finish_wandb(run). --no-wandb flag on every GPU module, all functions no-op when run=None
+10) Each `print` statement must be `dynamic`. Remove/modify all false advertising / `static` prints from code.
+11) Throughput reporting: NEVER use `total_clips / elapsed` when checkpoint clips are loaded at t=0 — this inflates initial rate and shows fake decline. Use **windowed throughput** (`clips_this_window / window_time`) for display, `new_clips_this_run / elapsed` for final summary.
+12) Threading: NEVER use ThreadPoolExecutor for CPU-bound PyTorch tensor ops (augmentation, processor). ATen spawns ~80 internal threads per worker → 8 workers = 640+ threads → OS scheduler thrash → 0% throughput. Threading is ONLY for I/O-bound ops (video decode, file read). **Exception**: call `torch.set_num_threads(1)` inside each worker function to prevent ATen OpenMP oversubscription (PyTorch #37259).
+13) **tqdm progress bar MANDATORY in EVERY `src/m*.py` script** (not just GPU scripts). Must show: total count, current progress, rate, ETA. Use `from utils.progress import make_pbar` (shared factory in `src/utils/progress.py`). Call `make_pbar(total=N, desc="module_name", unit="clip")` with `pbar.update(batch_size)` per batch. If ETA is missing, a 10-hour computation becomes invisible until it's too late (m06 FULL incident: 88 min CPU bootstrap with zero progress indication).
+14) **LR warmup capped at 10% of total steps** for all modes. Prevents warmup exceeding training length on short runs. Implemented in `build_scheduler()`: `warmup = min(cfg_warmup, total_steps // 10)`.
+15) **No hardcoded dataset sizes, clip counts, or magic numbers in Python.** Put them in `configs/pipeline.yaml` (clip limits, streaming params, eval params) or `configs/pretrain/*.yaml` (training params), or discover at runtime via `get_total_clips()` / `get_sanity_clip_limit()` from `utils/config.py`. **ENFORCED: code review + `.claude/hooks/fail-hard-research.sh`.**
+15.1) **No `.get(key, default)` on YAML config values.** Use direct `cfg[key]` access so missing keys crash immediately instead of silently using a hardcoded default. `.get()` is allowed on runtime data only (WebDataset samples, checkpoint dicts, external JSON manifests, optimizer param groups). If a YAML key might be absent, add it to the YAML with an explicit value — don't hide the default in Python.
+16) **FAIL HARD in research pipelines.** No `|| continue`, `|| true`, or `WARNING`-without-exit in shell scripts. No bare `except: pass` in Python. Every error must crash immediately. Silent failures produce garbage metrics. **ENFORCED: `.claude/hooks/fail-hard-research.sh` blocks error-swallowing patterns via PreToolUse hook.**
+17) **vjepa2 imports via shim** (`src/utils/vjepa2_imports.py`). vjepa2's `from src.models...` collides with our `src/utils/__init__.py`. The shim temporarily isolates sys.path + CWD to import vjepa2 modules without collision. Use `get_vit_giant_xformers()`, `get_vit_predictor()`, `get_mask_generator()`, `get_apply_masks()`. NEVER `from models.` or `from src.models.` directly.
+18) **Epoch-based training, not step-based.** m09_pretrain.py uses `max_epochs` from YAML (per mode: sanity/poc/full/winner). Steps computed as `n_train // batch_size`. Ensures same clips processed regardless of batch size. SANITY clip count from `configs/pipeline.yaml` → `data.sanity_train_clips`.
+19) **Per-lambda encoder paths for ablation.** Each lambda gets unique encoder name (e.g., `vjepa_lambda0`, `vjepa_lambda0_001`) via dynamic fallback in `get_encoder_info()`. m05 `--encoder` flag, m06 `--encoder` flag. Prevents overwriting across lambdas.
+20) **No V-JEPA deduplication.** Using V-JEPA's own cosine similarity to filter eval clips is circular reasoning (model decides what it's evaluated on). Dedup removed from m05. Hard mode ±30s exclusion in m06 handles temporal duplicates (metadata-based, not model-based).
+21) **Checkpoint disk management.** m09 exports only `student_encoder.pt` (~3.8GB) as deliverable. All intermediate checkpoints (latest, step*, final) cleaned after training. Periodic checkpoints use `full=False` (no optimizer, ~8GB vs ~16GB). `keep_last_n` from YAML.
+22) **Crash-safe metrics logging.** Training metrics MUST use JSONL (`loss_log.jsonl`) with `os.fsync()` after every write (Detectron2 pattern). CSV is kept only for backward compat. On OOM/SIGKILL, only the last partially-written JSONL line is lost — all previous records survive on disk. NEVER rely on CSV flush intervals or in-memory state for metrics. Every val_loss, train_loss, drift_loss must be on disk within 1ms of computation. Incident: 6 of 10 val_loss points lost to OOM crash because CSV only flushed every 10 steps without fsync.
+23) **All imports at the TOP of each .py file.** NEVER write `import` inside a function body. Inline imports cause: (a) redundant re-imports on every call, (b) hidden dependencies, (c) import errors discovered at runtime instead of startup. The ONLY exception: guarded `try/except ImportError` for optional dependencies (e.g., `try: import cuml`). Every other import goes at module top, after `sys.path.insert`.
+25) **Replace Python for-loops with NumPy vectorization** when iterating over 1K+ items (clips, embeddings, tags, kNN indices). Python for-loops with `dict.get()` or `list[i]` starve the GPU — the CPU spends minutes in pure Python while the GPU sits at 0%. Use `np.take`, broadcasting (`a[:, None] == b[None, :]`), `np.cumsum`, `pd.factorize` instead. Incident: m06 bootstrap CI took 88 min on 115K clips with Python loops; vectorized version: <1 min. See `src/utils/bootstrap.py` for the pattern.
+26) **Organize output files into clean, scalable subdirectories.** Never dump multiple unrelated files into a flat directory. Each logical group gets its own subdirectory (e.g., `outputs/profile/training/`, `outputs/profile/inference/vjepa2/`, `outputs/profile/inference/dinov2/`). Each subdirectory owns its own `profile_data.json` — no shared files that get overwritten by different profilers. Apply the same principle to `outputs/full/ablation/`, `outputs/full/m09_lambda*/`. Think scalability: when V-JEPA 2.1 or CLIP profiling is added, it should slot in without restructuring.
+24) **3-check gate is MANDATORY after ANY edit to `src/**/*.py`.** Run ALL THREE — never skip any: (1) `python3 -m py_compile <file>` (syntax), (2) `python3 -c "import ast; ast.parse(open('<file>').read())"` (structure), (3) `venv_walkindia/bin/ruff check --select F,E9 <file>` (full pyflakes: undefined names, unused imports/vars, redefinition, f-string issues, syntax). **ENFORCED: `.claude/hooks/post-edit-lint.sh` runs automatically on Edit/Write.** If any check fails, fix before proceeding. No exceptions. If ruff missing in venv, run `./setup_env_uv.sh --mac` (it's in `requirements.txt`).
+
+# CONFIG FILES
+- `configs/pipeline.yaml` — clip limits, streaming params, GPU defaults, eval params, encoder registry, VLM model IDs, scene detection params. Single source of truth for all `src/m*.py`.
+- `configs/model/vjepa2_1.yaml` — **PRIMARY MODEL** (V-JEPA 2.1 ViT-G 2B, 1664-dim). Checkpoint URL, arch, dims, loss config.
+- `configs/model/vjepa2_0.yaml` — legacy fallback (V-JEPA 2.0 ViT-g 1B, 1408-dim).
+- `configs/train/base_optimization.yaml` — shared optimization: masking, augmentation, AdamW, EMA, mixed precision. All technique configs inherit via `extends:`.
+- `configs/train/ch10_pretrain.yaml` — Ch10 continual pretraining (drift control, lambda sweep, layer freeze).
+- `configs/train/explora.yaml` — ExPLoRA (LoRA + unfreeze 1-2 blocks).
+- `configs/train/ch11_surgery.yaml` — Ch11 factor surgery (3-stage progressive unfreezing + factor datasets).
+
+# RULES (MUST follow)
+- **GOAL OVERRIDE: The #1 priority is research results, not code cleanliness.** Every recommendation must answer: "Does this maximize the probability of adapted outperforming frozen on ALL metrics?" If the answer is no, reject the recommendation even if it's easier to implement. Never filter recommendations by implementation effort. Never say "use 2.0 because 2.1 requires more code changes" — if 2.1 maximizes the chance of a positive result, recommend 2.1.
+- **NEVER sacrifice metric accuracy for speed/memory.** Evaluation MUST match the frozen baseline's conditions exactly (same frame count, same resolution, same processor via VJEPA_FRAMES_PER_CLIP=64). Training can use fewer frames (Meta trains V-JEPA 2 at 16f for 95% of iterations, +0.7pp from 64f cooldown — Section 2.4). The model handles frame mismatch at eval (RoPE, no learnable pos_embed). Incident: missing ImageNet normalization in m09 augmentation caused -26% Prec@K — NOT the frame count.
+- **End-to-end test in Python interactive shell before restarting pipelines.** Never restart a long-running GPU job to test a change. Use the Python interactive shell (`python3` → `>>>`, also called Read-Eval-Print Loop) to test the FULL code path with real data — not just the import. Example: `from torchcodec.decoders import VideoDecoder; d = VideoDecoder("real_video.mp4")` — not just `import torchcodec`. Incident: import succeeded but decode SIGSEGV'd because torchcodec can't read TAR files (our video format). A 1-minute decode test would have caught this.
+- **Never say "let the current run complete first" to avoid fixing a bug.** All GPU scripts have checkpoint-based resume. Interrupting a run loses at most 1 checkpoint interval (~500 clips, ~4 min). If a fix can save hours (e.g., switching decoder, fixing BS, fixing normalization), interrupt immediately, apply the fix, restart. The checkpoint system exists precisely so interruptions are cheap. Telling the user to wait 15h "to be safe" when a fix is ready is wasting GPU money.
+- **No CPU fallbacks when GPU solution works.** If a GPU-accelerated dependency (torchcodec NVDEC, FAISS-GPU, cuML) was tested in REPL and works, import it directly — no try/except fallback to CPU. Silent fallback to a 7x slower CPU path (e.g., PyAV instead of torchcodec, FAISS-CPU instead of GPU, sklearn instead of cuML) wastes GPU hours without any accuracy benefit. Fail FATAL if the GPU path is missing — don't silently degrade to CPU.
+- you do not be have to be yes-man on my very demand >> behave like a Sr. AI/ML Research engineer >> give me pros and cons of each of my demand
+- Be brutally honest. Disagree [challenge me] when I'm wrong, but never hallucinate or lie.
+- Devil's advocate does NOT mean fabricating bugs that don't exist. If code is correct, say so and move on.
+- WEBSEARCH when needed to confirm universal AI/ML research practices.
+- Git: provide commit message text only. NEVER run git commands. User handles all git ops via git_push.sh. **ENFORCED: `.claude/hooks/enforce-dev-rules.sh` blocks `git commit/push/add/reset` via PreToolUse hook.**
+- NEVER draw conclusions from statistically insufficient data. A sanity check validates code correctness (no crashes, valid output), NOT model performance.
+- Think like a Sr. Research Scientist: before making any recommendation, ask "do I have enough evidence for this claim?" If the answer is no, say so explicitly instead of speculating.
+- **Scalability-first design:** Remote storage paths MUST mirror local project layout exactly (e.g., `outputs/full/` locally = `outputs/full/` on HF, NOT `full/`). Never flatten or rename directory structures — future directories (poc, sanity, surgical) must slot in without refactoring. Apply the same principle to file naming, config keys, and API paths.
+- **WEBSEARCH before recommending:** Before recommending any approach (architecture, optimization, library choice, file organization), WEBSEARCH for at least 3 alternatives used by similar projects. Present pros/cons of each option to the user. Only then give a recommendation with justification. Never jump to a single solution without showing alternatives.
+- GPU time is expensive — idle GPU = wasted money; idle user during GPU job = wasted time. Keep the GPU busy.
+- Mandatory checklist for ANY GPU pipeline script: (1) tqdm progress bar, (2) auto-resume from checkpoint, (3) tee logging, (4) wandb integration, (5) windowed throughput reporting, (6) **output-exists guard** — check if final output file exists BEFORE loading model; skip if exists. **ENFORCED: Claude MUST run `/preflight <file>` after ANY edit to `src/m*.py` that touches main().**
+- When auditing for hardcoded values, SHOW the grep output as proof. User does not trust "I audited everything" claims without evidence.
+
+27) **Grep for flag existence is NOT validation. Trace the data flow.**
+- After adding a new CLI flag (e.g., `--POC`) to a shell script, verify the FULL code path: flag → Python argparse → `get_output_dir()` → correct directory. Don't stop at "the script accepts the flag."
+- `shellcheck scripts/*.sh` before committing — catches `ls | pipefail`, `read` in pipes, unquoted vars.
+- End-to-end dry run after adding new flags — catches flag wiring bugs (e.g., `--POC` not reaching `get_output_dir`).
+- REPL test of the exact code path — `get_output_dir(poc=False)` → wrong dir is a 10-second check.
+- Integration test: `run_eval.sh --POC --encoders vjepa` on SANITY-sized data catches both shell and Python bugs in 30 seconds.
+- Incident: `ls glob 2>/dev/null | wc -l` with `set -eo pipefail` silently killed `run_eval.sh`, masking a second bug where `--POC` routed to `outputs/full/` instead of `outputs/poc/`. Two bugs, first masked the second. Both catchable with `shellcheck` + a 30s dry run.
+
+# HOOKS
+- `.claude/hooks/enforce-dev-rules.sh` (PreToolUse:Bash) — blocks pip install, git state changes, bare python3
+- `.claude/hooks/post-edit-lint.sh` (PostToolUse:Edit,Write) — auto py_compile + + ruff check on src/m*.py
+- `.claude/hooks/fail-hard-research.sh` (PreToolUse:Edit,Write) — blocks `|| continue`, `|| true`, WARNING-without-exit, bare `except: pass`
+
+# REFERENCE
+- Bug history & batch speedup details: `iter/iter6/plan_batch_speedup.md`
+- Ch10 expected vs real errors: `iter/iter7_training/expected_errors.md`
+- Training plan (CURRENT): `iter/iter8/plan_training.md` (gold standard audit, updated recipe, experiment flow, paper strategy)
+- Next steps: `iter/iter8/next_steps.md` (5 action items for Week 1)
+- Training plan (OLD, iter7): `iter/iter7_training/plan_training.md`
+
+29) **GPU script infrastructure checklist.** Every new `src/m*.py` that uses GPU MUST import and integrate ALL applicable infrastructure from `src/utils/`. Checklist:
+   - `check_gpu()` — FATAL if no CUDA (config.py)
+   - `cleanup_temp()` — clean stale /tmp files at start (gpu_batch.py)
+   - `verify_or_skip()` — skip if outputs already valid (output_guard.py)
+   - `compute_batch_sizes()` / `AdaptiveBatchSizer` — auto-batch from VRAM (gpu_batch.py)
+   - `cuda_cleanup()` — between encoder runs / after OOM (gpu_batch.py)
+   - `save_embedding_checkpoint()` / `load_embedding_checkpoint()` — atomic resume (checkpoint.py)
+   - `ensure_local_data()` / `iter_clips_parallel()` — local TAR readers (data_download.py)
+   - `make_pbar()` — standardized progress bar (progress.py)
+   - `init_wandb()` / `log_metrics()` / `finish_wandb()` — wandb logging (wandb_utils.py)
+   - `get_output_dir()` — mode-aware output routing (config.py)
+   - `add_model_config_arg()` — load model from `configs/model/*.yaml` (config.py)
+   CPU-only scripts (m06c, m08, m08b): skip GPU-specific items (check_gpu, AdaptiveBatchSizer, cuda_cleanup) but use verify_or_skip, make_pbar, wandb, checkpoint.
+30) **Use `--model-config` + `--train-config` for training scripts.** Python merges `pipeline.yaml` (base) + `model/*.yaml` + `train/*.yaml` via `load_merged_config()`. Model configs define architecture + checkpoint. Train configs define technique (Ch10/Ch11/ExPLoRA). Train configs inherit shared params via `extends: base_optimization.yaml`. No model IDs or dims hardcoded in Python.
+31) **Use `get_vit_by_arch(arch)` from vjepa2_imports.py** to load the correct ViT constructor based on model config. Supports `vit_giant_xformers` (2.0, 1B) and `vit_gigantic_xformers` (2.1, 2B). Never hardcode which model to load — read `model.arch` from YAML.
+33) **Shell scripts are THIN wrappers.** `scripts/*.sh` orchestrate (call Python scripts in order, pass flags, check exit codes). ALL business logic, validation, quality gates, and conditional branching must live in Python (`src/m*.py` or `src/utils/`). No `python -c` inline logic in shell. No `bc -l` math in shell. If a quality check is needed between m10 and m09, implement it as a Python function in m10 that writes a pass/fail to JSON, and m09 reads it with FATAL on fail.
+32) **No cross-imports between m*.py files.** Pipeline scripts (`src/m*.py`) must import ONLY from `src/utils/` + standard lib + torch/transformers. Never `from m05_vjepa_embed import ...` in m09 or m10. Shared functions live in `utils/video_io.py` (decode, clip keys, streaming), `utils/checkpoint.py` (save/load), `utils/config.py` (paths, constants). If a function in m*.py is needed by 2+ scripts, move it to utils/ first.
+28) **Update CLAUDE.md + MEMORY.md at end of every session** that discovers new experimental results, strategic pivots, or architectural decisions. These files are the ONLY context that persists across sessions. Stale files = wasted tokens re-discovering known information. After updating `src/MEMORY.md`, sync to `~/.claude/projects/.../memory/MEMORY.md`.

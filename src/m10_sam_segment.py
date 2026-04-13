@@ -32,25 +32,21 @@ from utils.gpu_batch import cleanup_temp
 from utils.output_guard import verify_or_skip
 from utils.plots import init_style, save_fig, COLORS, SCENE_COLORS
 from utils.progress import make_pbar
-from utils.video_io import get_clip_key, decode_video_bytes
+from utils.video_io import decode_video_bytes
 from utils.wandb_utils import add_wandb_args, init_wandb, log_metrics, finish_wandb
 
 import yaml
+from sam3 import build_sam3_predictor
 
 
 # ── SAM 3.1 Model Loading ───────────────────────────────────────────
 
-def load_sam3(model_id: str, gpus: list = None):
-    """Load SAM 3 / 3.1 video predictor. Dispatches builder by version."""
-    import torch as _torch
-    if gpus is None:
-        gpus = list(range(_torch.cuda.device_count()))
-    if "3.1" in model_id:
-        from sam3.model_builder import build_sam3_multiplex_video_predictor
-        return build_sam3_multiplex_video_predictor(gpus_to_use=gpus)
-    else:
-        from sam3.model_builder import build_sam3_video_predictor
-        return build_sam3_video_predictor(gpus_to_use=gpus)
+def load_sam3(model_id: str):
+    """Load SAM 3 / 3.1 video predictor. Uses build_sam3_predictor (unified entry point)."""
+    version = "sam3.1" if "3.1" in model_id else "sam3"
+    # use_fa3=False: SAM 3.1 defaults to FA3 (flash_attn_interface), a separate package
+    # from FA2 (flash_attn 2.8.3). We have FA2; FA3 not installed. Falls back to SDPA.
+    return build_sam3_predictor(version=version, use_fa3=False)
 
 
 # ── Per-Clip Tags → Agent Prompt ─────────────────────────────────────
@@ -71,17 +67,21 @@ def load_tags_lookup(tags_path: Path) -> dict:
     return lookup
 
 
-def get_agent_prompt(clip_key: str, tags_lookup: dict) -> str:
-    """Build SAM 3.1 text prompt from per-clip notable_objects. FATAL if clip not in tags."""
+def get_agent_prompts(clip_key: str, tags_lookup: dict) -> list:
+    """Get per-object text prompts from tags.json. Returns list of strings, or None if unavailable.
+
+    SAM 3.1 requires ONE add_prompt call per object category (Meta benchmark pattern).
+    Comma-joining all objects into one string fails — the BPE tokenizer treats it as one query.
+    """
     if clip_key not in tags_lookup:
-        print(f"FATAL: clip {clip_key} not found in tags.json")
-        print("  tags.json must contain ALL clips being processed")
-        sys.exit(1)
-    objects = tags_lookup[clip_key]["notable_objects"]
+        print(f"  SKIP: clip {clip_key} not found in tags.json")
+        return None
+    objects = tags_lookup[clip_key].get("notable_objects", [])
     if not objects:
-        print(f"FATAL: clip {clip_key} has empty notable_objects in tags.json")
-        sys.exit(1)
-    return ", ".join(objects)
+        print(f"  SKIP: clip {clip_key} has empty notable_objects")
+        return None
+    # Replace underscores with spaces for natural language (auto_rickshaw → auto rickshaw)
+    return [obj.replace("_", " ") for obj in objects]
 
 
 # ── Frame I/O for SAM 3.1 ───────────────────────────────────────────
@@ -96,72 +96,78 @@ def save_frames_as_jpeg(frames_np: np.ndarray, frame_dir: str) -> str:
 
 # ── Per-Clip Segmentation ───────────────────────────────────────────
 
-def segment_clip(predictor, frame_dir: str, agent_prompt: str,
+def segment_clip(predictor, frame_dir: str, agent_prompts: list,
                  dilation_px: int, min_confidence: float) -> dict:
     """Run SAM 3.1 text-prompted segmentation on a video clip.
 
-    Uses SAM 3.1 streaming API (handle_stream_request + propagate_in_video).
-    Output format per frame: {out_obj_ids: arr, out_binary_masks: arr, out_probs: arr}.
+    Calls add_prompt ONCE PER OBJECT CATEGORY (Meta benchmark pattern).
+    Each call detects all instances of that category, then propagates.
+    Results from all categories are merged into unified agent/layout masks.
 
     Returns:
         agent_mask: (T, H, W) bool — union of all agent instances per frame
         layout_mask: (T, H, W) bool — complement
-        n_agents: int — distinct agent instances detected on frame 0
+        n_agents: int — total distinct agent instances across all categories
         agent_pixel_ratio: float — mean agent pixel fraction across frames
         centroids: {obj_id: {t: (cy, cx)}} for interaction mining
         per_object: {obj_id: {t: mask}} per-object masks
     """
-    # 1. Start SAM 3.1 video session
-    response = predictor.handle_request(dict(
-        type="start_session",
-        resource_path=frame_dir,
-    ))
-    session_id = response["session_id"]
-
-    # 2. Text prompt on frame 0 → detect all agent instances
-    prompt_resp = predictor.handle_request(dict(
-        type="add_prompt",
-        session_id=session_id,
-        frame_index=0,
-        text=agent_prompt,
-    ))
-
-    # 3. Capture frame 0 masks from prompt response
-    # SAM 3.1 output: {out_obj_ids: (N,), out_binary_masks: (N, H, W), out_probs: (N,)}
-    # Gold standard: only keep masks with confidence >= threshold (SAM 3 paper benchmark practice)
     masks_per_frame = {}
-    out0 = prompt_resp["outputs"]
-    n_agents = len(out0["out_obj_ids"])
-    masks_per_frame[0] = {
-        int(oid): out0["out_binary_masks"][i]
-        for i, oid in enumerate(out0["out_obj_ids"].tolist())
-        if out0["out_binary_masks"][i].any() and out0["out_probs"][i] >= min_confidence
-    }
-
-    # Infer spatial dims from first mask
-    if n_agents > 0:
-        H, W = out0["out_binary_masks"][0].shape
-    else:
-        H, W = 384, 384
-
-    # 4. Propagate across all frames (streaming — SAM 3.1 API)
-    for resp in predictor.handle_stream_request(dict(
-        type="propagate_in_video",
-        session_id=session_id,
-    )):
-        fidx = resp["frame_index"]
-        out = resp["outputs"]
-        frame_masks = {}
-        for i, oid in enumerate(out["out_obj_ids"].tolist()):
-            if out["out_binary_masks"][i].any() and out["out_probs"][i] >= min_confidence:
-                frame_masks[oid] = out["out_binary_masks"][i]
-        masks_per_frame[fidx] = frame_masks
-
-    # 5. Build per-frame A_t (agent union) + per-object tracking
-    T = max(masks_per_frame.keys()) + 1 if masks_per_frame else 1
-    agent_mask = np.zeros((T, H, W), dtype=bool)
     per_object = {}
     centroids = {}
+    n_agents = 0
+    H, W = 384, 384
+    obj_id_offset = 0
+
+    for prompt in agent_prompts:
+        # Start fresh session per category (Meta benchmark pattern: prompt → propagate → reset)
+        response = predictor.handle_request(dict(
+            type="start_session",
+            resource_path=frame_dir,
+        ))
+        session_id = response["session_id"]
+
+        # Text prompt on frame 0 → detect all instances of this category
+        prompt_resp = predictor.handle_request(dict(
+            type="add_prompt",
+            session_id=session_id,
+            frame_index=0,
+            text=prompt,
+        ))
+
+        # Capture frame 0 masks
+        out0 = prompt_resp["outputs"]
+        n_this = len(out0["out_obj_ids"])
+        if n_this > 0:
+            H, W = out0["out_binary_masks"][0].shape
+
+        for i, oid in enumerate(out0["out_obj_ids"].tolist()):
+            if out0["out_binary_masks"][i].any() and out0["out_probs"][i] >= min_confidence:
+                global_id = obj_id_offset + int(oid)
+                masks_per_frame.setdefault(0, {})[global_id] = out0["out_binary_masks"][i]
+                n_agents += 1
+
+        # Propagate across all frames
+        for resp in predictor.handle_stream_request(dict(
+            type="propagate_in_video",
+            session_id=session_id,
+        )):
+            fidx = resp["frame_index"]
+            out = resp["outputs"]
+            for i, oid in enumerate(out["out_obj_ids"].tolist()):
+                if out["out_binary_masks"][i].any() and out["out_probs"][i] >= min_confidence:
+                    global_id = obj_id_offset + int(oid)
+                    masks_per_frame.setdefault(fidx, {})[global_id] = out["out_binary_masks"][i]
+
+        # Close session before next category
+        predictor.handle_request(dict(type="close_session", session_id=session_id))
+
+        # Offset obj_ids so categories don't collide
+        obj_id_offset += max(n_this, 1) * 100
+
+    # Build per-frame A_t (agent union) + per-object tracking
+    T = max(masks_per_frame.keys()) + 1 if masks_per_frame else 1
+    agent_mask = np.zeros((T, H, W), dtype=bool)
 
     for t, frame_masks in masks_per_frame.items():
         frame_union = np.zeros((H, W), dtype=bool)
@@ -179,9 +185,6 @@ def segment_clip(predictor, frame_dir: str, agent_prompt: str,
 
     layout_mask = ~agent_mask
     agent_pixel_ratio = float(agent_mask.sum()) / max(T * H * W, 1)
-
-    # 6. Close session (SAM 3.1 API: "close_session", NOT "end_session")
-    predictor.handle_request(dict(type="close_session", session_id=session_id))
 
     return {
         "agent_mask": agent_mask,
@@ -477,19 +480,14 @@ def main():
     t0 = time.time()
 
     with tempfile.TemporaryDirectory(prefix="m10_") as tmp_dir:
-        for example in iter_clips_parallel(local_data=local_data, subset_keys=subset_keys):
-            if n_processed >= clip_limit:
+        clip_q, tar_stop, _reader = iter_clips_parallel(
+            local_data=local_data, subset_keys=subset_keys,
+            processed_keys=processed_keys)
+        while n_processed < clip_limit:
+            item = clip_q.get(timeout=600)
+            if item is None:
                 break
-
-            clip_key = get_clip_key(example)
-            if clip_key in processed_keys:
-                continue
-            if subset_keys and clip_key not in subset_keys:
-                continue
-
-            mp4_bytes = example["mp4"]
-            if isinstance(mp4_bytes, str):
-                mp4_bytes = mp4_bytes.encode()
+            clip_key, mp4_bytes = item
 
             # Decode → numpy frames (T, H, W, C) uint8
             frames_tensor = decode_video_bytes(mp4_bytes, tmp_dir, clip_key, num_frames=16)
@@ -508,11 +506,15 @@ def main():
                 shutil.rmtree(frame_dir)
             save_frames_as_jpeg(frames_np, frame_dir)
 
-            # Per-clip agent prompt from tags.json
-            agent_prompt = get_agent_prompt(clip_key, tags_lookup)
+            # Per-clip agent prompts from tags.json (one per object category)
+            agent_prompts = get_agent_prompts(clip_key, tags_lookup)
+            if agent_prompts is None:
+                n_processed += 1
+                pbar.update(1)
+                continue
 
-            # Segment
-            result = segment_clip(predictor, frame_dir, agent_prompt, dilation_px, min_confidence)
+            # Segment (one add_prompt call per category, Meta benchmark pattern)
+            result = segment_clip(predictor, frame_dir, agent_prompts, dilation_px, min_confidence)
 
             # Mine interactions (D_I)
             interactions = mine_interactions(
@@ -536,7 +538,7 @@ def main():
                 "concept_recall": round(concept_recall, 3),
                 "n_frames": frames_np.shape[0],
                 "agent_pixel_ratio": result["agent_pixel_ratio"],
-                "agent_prompt": agent_prompt,
+                "agent_prompt": ", ".join(agent_prompts),
                 "n_interactions": len(interactions),
             }
 
@@ -567,7 +569,7 @@ def main():
         "min_confidence_threshold": min_confidence,
         "elapsed_sec": elapsed,
         "sam_model": factor_cfg["sam_model"],
-        "quality_gate": "PASS" if mean_concept_recall >= 0.3 else "FAIL",
+        "quality_gate": "PASS" if mean_concept_recall >= 0.5 else "FAIL",
     }
     save_json_checkpoint(summary, output_dir / "summary.json")
 
@@ -580,8 +582,8 @@ def main():
     plot_agent_stats(segments, tags_lookup, output_dir)
 
     # Quality gate: FATAL if concept recall too low (Rule 33: quality gates in Python, not shell)
-    if mean_concept_recall < 0.3:
-        print(f"FATAL: Mean concept recall = {mean_concept_recall:.2f} (< 0.3 threshold)")
+    if mean_concept_recall < 0.5:
+        print(f"FATAL: Mean concept recall = {mean_concept_recall:.2f} (< 0.5 threshold)")
         print("  SAM 3.1 is not detecting enough objects from tags.json prompts.")
         print("  Check: text prompts, SAM model version, image quality.")
         sys.exit(1)

@@ -28,7 +28,7 @@ from utils.data_download import ensure_local_data, iter_clips_parallel
 from utils.output_guard import verify_or_skip
 from utils.plots import init_style, save_fig, COLORS
 from utils.progress import make_pbar
-from utils.video_io import get_clip_key, decode_video_bytes
+from utils.video_io import decode_video_bytes
 from utils.wandb_utils import add_wandb_args, init_wandb, log_metrics, finish_wandb
 
 import yaml
@@ -405,8 +405,15 @@ def main():
     t0 = time.time()
 
     with tempfile.TemporaryDirectory(prefix="m11_") as tmp_dir:
-        for example in iter_clips_parallel(local_data=local_data, subset_keys=subset_keys):
-            clip_key = get_clip_key(example)
+        segment_keys = set(segments.keys())
+        clip_q, tar_stop, _reader = iter_clips_parallel(
+            local_data=local_data, subset_keys=subset_keys or segment_keys)
+        n_done = 0
+        while n_done < len(segments):
+            item = clip_q.get(timeout=600)
+            if item is None:
+                break
+            clip_key, mp4_bytes = item
             if clip_key not in segments:
                 continue
 
@@ -425,6 +432,7 @@ def main():
                     "has_D_A": True,
                     "agent_pct": segments[clip_key]["agent_pixel_ratio"],
                 }
+                n_done += 1
                 pbar.update(1)
                 continue
 
@@ -442,9 +450,6 @@ def main():
                 centroids = json.loads(str(data["centroids_json"]))
 
             # Decode original frames
-            mp4_bytes = example["mp4"]
-            if isinstance(mp4_bytes, str):
-                mp4_bytes = mp4_bytes.encode()
             frames_tensor = decode_video_bytes(mp4_bytes, tmp_dir, clip_key, num_frames=16)
             if frames_tensor is None:
                 print(f"  FATAL: decode failed for {clip_key}")
@@ -491,6 +496,7 @@ def main():
                 "n_interaction_tubes": n_tubes,
                 "agent_pct": agent_pct,
             }
+            n_done += 1
             pbar.update(1)
 
     pbar.close()

@@ -15,13 +15,11 @@ import torch
 
 from utils.config import HF_DATASET_REPO
 
-# Video decoder: prefer torchcodec (GPU NVDEC), fallback to PyAV
-try:
-    from torchcodec.decoders import VideoDecoder
-    _USE_TORCHCODEC = True
-except ImportError:
-    VideoDecoder = None
-    _USE_TORCHCODEC = False
+# Video decoder: torchcodec (GPU NVDEC) segfaults on TAR-extracted mp4 bytes (SIGSEGV,
+# no Python traceback). Disabled until upstream fix. PyAV works reliably.
+# Incident: MEMORY.md "torchcodec can't read TAR files" — confirmed 2026-04-13.
+_USE_TORCHCODEC = False
+VideoDecoder = None
 
 if not _USE_TORCHCODEC:
     try:

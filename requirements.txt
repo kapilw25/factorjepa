@@ -24,7 +24,7 @@ scenedetect[opencv]>=0.6.0
 Pillow>=10.0.0
 
 # Data & Plotting
-numpy>=1.24.0,<2.4
+numpy>=2.3.0,<2.4          # Pin >=2.3: cuML/CuPy requires numpy 2.x. SAM3 claims <2.0 but works fine.
 pandas>=2.0.0
 matplotlib>=3.7.0
 seaborn>=0.12.0

@@ -415,12 +415,15 @@ print(f'PyTorch: {torch.__version__}, CUDA: {torch.version.cuda}, GPU: {torch.cu
     uv pip install wandb
 
     # 8. Install SAM 3.1 (gated model — user must accept access at hf.co/facebook/sam3.1)
+    #    --no-deps: SAM3 metadata pins numpy<2.0 which breaks cuML/CuPy (requires numpy>=2.3).
+    #    SAM3 works fine with numpy 2.x — the pin is overly conservative.
+    #    All real deps (einops, torch, PIL, etc.) already installed via requirements_gpu.txt.
     echo ""
-    echo "[8/8] Installing SAM 3.1 from source..."
+    echo "[8/8] Installing SAM 3.1 from source (--no-deps to preserve numpy>=2.3)..."
     if python -c "import sam3" 2>/dev/null; then
         echo "SAM 3.1 already installed"
     else
-        uv pip install git+https://github.com/facebookresearch/sam3.git
+        uv pip install --no-deps git+https://github.com/facebookresearch/sam3.git
     fi
 
     # Final verification

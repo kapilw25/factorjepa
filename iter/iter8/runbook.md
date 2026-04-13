@@ -31,7 +31,7 @@ python -u src/m10_sam_segment.py --SANITY \
 | `quality_gate` | `"pass"` |
 | `mean_agents_per_clip` | 2-15 |
 | `mean_agent_pixel_ratio` | 5-40% |
-| `mean_concept_recall` | > 0.5 |
+| `mean_concept_recall` | >= 0.5 (quality gate threshold) |
 | `m10_segmentation_samples.png` | Red masks on people/vehicles, blue on roads |
 
 ---
