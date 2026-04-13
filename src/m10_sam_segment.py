@@ -586,18 +586,22 @@ def main():
         print(f"FATAL: Mean concept recall = {mean_concept_recall:.2f} (< 0.5 threshold)")
         print("  SAM 3.1 is not detecting enough objects from tags.json prompts.")
         print("  Check: text prompts, SAM model version, image quality.")
-        sys.exit(1)
+        os._exit(1)  # os._exit to kill SAM3 async threads (sys.exit hangs)
 
     log_metrics(wb_run, summary)
-    # Shutdown SAM 3.1 predictor (releases GPU worker processes)
-    if hasattr(predictor, "shutdown"):
-        predictor.shutdown()
-
     finish_wandb(wb_run)
     print(f"\nDone: {len(segments)} clips segmented in {elapsed:.0f}s")
     print(f"  Agents detected: {summary['n_total_agents']}")
     print(f"  Interactions mined: {n_interactions_total}")
     print(f"  Mean agent pixel ratio: {summary['mean_agent_pixel_ratio']:.2%}")
+
+    # Force exit: SAM 3.1 spawns async frame-loading threads (async_loading_frames=True)
+    # that keep the process alive after main() completes. No shutdown() method exists.
+    # Without os._exit, train_surgery.sh hangs indefinitely after m10 step.
+    del predictor
+    import gc
+    gc.collect()
+    os._exit(0)
 
 
 if __name__ == "__main__":
