@@ -10,9 +10,31 @@
 
 SAM3 native text grounding is too weak for Indian objects — masks roofs/walls instead of vehicles/people. Evidence: 10/15 clips had wrong or missing agent masks on SANITY.
 
+**Architecture change:**
+```
+Current (broken):   tags.json → notable_objects → SAM3.1 text prompt → SAM3.1 detects + segments
+                    SAM3.1 does BOTH detection AND segmentation — bad at detection for Indian objects.
+
+Grounded-SAM:       tags.json → notable_objects → Grounding DINO text → DINO detects BOXES → SAM refines to MASKS
+                    DINO: trained on Objects365 + GoldG (365+ categories), strong open-vocab detection.
+                    SAM: takes bounding box → pixel-perfect mask (geometric refinement, always been good at this).
+```
+
+**No prompt changes needed.** `get_agent_prompts()` returns `["bus", "auto rickshaw", "pedestrian"]` — DINO accepts the same strings. Only `segment_clip()` changes:
+```python
+# Current: SAM3.1 does everything
+predictor.handle_request({"type": "add_prompt", "text": "bus"})
+
+# Grounded-SAM: DINO detects, SAM segments
+boxes = grounding_dino.predict("bus", image)        # → [[x1,y1,x2,y2], ...]
+predictor.handle_request({"type": "add_prompt", "bounding_boxes": boxes})  # SAM masks from boxes
+```
+SAM3.1 already accepts `bounding_boxes` in `add_prompt` (confirmed in source audit). Keep SAM3.1 for mask refinement, just feed it DINO boxes instead of text.
+
+**Tasks:**
 - ⬜ 🔴 WebSearch: "Grounded-SAM 2026 video segmentation best practice" for latest API
 - ⬜ 🔴 Add `groundingdino` to `requirements_gpu.txt` + `setup_env_uv.sh`
-- ⬜ 🔴 Modify `m10_sam_segment.py`: DINO box detection → SAM mask refinement (replace text prompt path)
+- ⬜ 🔴 Modify `m10_sam_segment.py`: DINO box detection → SAM box-prompted mask refinement
 - ⬜ 🔴 py_compile + ruff all modified files on Mac
 - ⬜ 🔴 Fix cross-reference paths from per-module dir restructure (verify m06/m08 read from m05/m04 module dirs)
 - ⬜ 🔴 Update `runbook.md` paths: `outputs/sanity/factors/` → `outputs/sanity/m10_sam_segment/` etc.
