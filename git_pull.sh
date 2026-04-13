@@ -7,10 +7,10 @@ Git Pull + HF Download — sync code + compute outputs from remote
 Usage:
 
 On Linux 
-    ./git_pull.sh              # sync code + download outputs + data from HF
+    ./git_pull.sh 2>&1 | tee logs/git_pull.log # sync code + download outputs + data from HF
 
 On Mac (preserves .gitignored files like src/data/videos/, src/data/clips/):
-    ./git_pull.sh --code-only  # safe — git clean -fd skips .gitignored files
+    ./git_pull.sh --code-only 2>&1 | tee logs/git_pull.log   # safe — git clean -fd skips .gitignored files
 
 =============================================================================
 '

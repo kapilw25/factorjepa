@@ -267,6 +267,7 @@ def download_outputs(output_dir: str, subfolder: str = None):
         local_dir=".",  # download to project root, HF preserves subfolder structure
         allow_patterns=[f"{subfolder}/*"],
         token=token,
+        max_workers=16,
     )
 
     elapsed = time.time() - t0
@@ -391,6 +392,7 @@ def download_data():
         local_dir=".",
         allow_patterns=["data/*.json", "data/subset_10k_local/*", "data/val_1k_local/*"],
         token=token,
+        max_workers=16,
     )
 
     print(f"Data download complete: {time.time() - t0:.0f}s")
