@@ -12,6 +12,8 @@
 | 6 | SAM3 import fails: `No module named 'pycocotools'` | SAM3's import chain pulls training code (`coco_json_loaders.py`) at load time | Add `pycocotools>=2.0.0` to `requirements_gpu.txt` | `requirements_gpu.txt` |
 | 7 | SAM3 import fails: `No module named 'einops'` | SAM3's `rope.py` uses `rearrange/repeat` from einops, not declared as dependency | Add `einops>=0.6.0` to `requirements_gpu.txt` | `requirements_gpu.txt` |
 
+| 7b | Checkpoint download takes 23h+ (wget ~350 KB/s on 2.4 Gbps link), partial file passes `if [ ! -f ]` check → corrupted checkpoint | `wget` uses single HTTP connection; Facebook CDN throttles per-connection; size comment said ~8 GB but file is 28 GB | Use `aria2c -x 16 -s 16` (16 parallel connections) → 28 GB in 53s at 566 MiB/s; fix size comment to ~28 GB; fix step numbering /7→/8 | `setup_env_uv.sh` |
+
 ## Step A: m10 SAM 3.1 Segmentation
 
 | # | Error | Root Cause | Fix | File |

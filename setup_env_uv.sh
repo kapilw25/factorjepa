@@ -230,13 +230,19 @@ if [ "$1" = "--gpu" ]; then
         echo "deps/vjepa2 already present"
     fi
 
-    # Download V-JEPA 2.1 ViT-G (2B) checkpoint (~8 GB)
+    # Download V-JEPA 2.1 ViT-G (2B) checkpoint (~28 GB)
     VJEPA_CKPT="checkpoints/vjepa2_1_vitG_384.pt"
     if [ ! -f "$VJEPA_CKPT" ]; then
         echo ""
-        echo "Downloading V-JEPA 2.1 ViT-G checkpoint (~8 GB)..."
+        echo "Downloading V-JEPA 2.1 ViT-G checkpoint (~28 GB)..."
         mkdir -p checkpoints
-        wget -q --show-progress https://dl.fbaipublicfiles.com/vjepa2/vjepa2_1_vitG_384.pt -P checkpoints/
+        command -v aria2c &> /dev/null || apt-get install -y -qq aria2 > /dev/null 2>&1
+        if command -v aria2c &> /dev/null; then
+            aria2c -x 16 -s 16 -d checkpoints -o vjepa2_1_vitG_384.pt \
+                https://dl.fbaipublicfiles.com/vjepa2/vjepa2_1_vitG_384.pt
+        else
+            wget -q --show-progress https://dl.fbaipublicfiles.com/vjepa2/vjepa2_1_vitG_384.pt -P checkpoints/
+        fi
         echo "Checkpoint saved: $VJEPA_CKPT"
     else
         echo "V-JEPA 2.1 checkpoint already present: $VJEPA_CKPT"
@@ -257,16 +263,16 @@ if [ "$1" = "--gpu" ]; then
     GPU_NAME=$(nvidia-smi --query-gpu=gpu_name --format=csv,noheader 2>/dev/null | head -1 || echo "")
     echo "Detected GPU: ${GPU_NAME:-unknown}"
     if echo "$GPU_NAME" | grep -qiE "blackwell|rtx.*pro.*(4000|6000)|rtx.*5090|rtx.*5080|rtx.*5070"; then
-        echo "[1/7] Installing PyTorch ${TORCH_VERSION}+cu128 (Blackwell — pinned)..."
+        echo "[1/8] Installing PyTorch ${TORCH_VERSION}+cu128 (Blackwell — pinned)..."
         uv pip install "torch==${TORCH_VERSION}" torchvision --index-url https://download.pytorch.org/whl/nightly/cu128
     else
-        echo "[1/7] Installing PyTorch 2.5.1+cu124..."
+        echo "[1/8] Installing PyTorch 2.5.1+cu124..."
         uv pip install torch==2.5.1 torchvision==0.20.1 --index-url https://download.pytorch.org/whl/cu124
     fi
 
     # 2. Verify PyTorch + CUDA
     echo ""
-    echo "[2/7] Verifying PyTorch + CUDA..."
+    echo "[2/8] Verifying PyTorch + CUDA..."
     python -c "
 import torch
 if not torch.cuda.is_available():
@@ -277,14 +283,14 @@ print(f'PyTorch: {torch.__version__}, CUDA: {torch.version.cuda}, GPU: {torch.cu
 
     # 3. Install GPU requirements (includes hf_transfer for fast HF downloads)
     echo ""
-    echo "[3/7] Installing GPU requirements (UV - fast)..."
+    echo "[3/8] Installing GPU requirements (UV - fast)..."
     uv pip install -r requirements_gpu.txt
     # Enable Rust-based HF transfer (1.5-3x faster downloads per file)
     export HF_HUB_ENABLE_HF_TRANSFER=1
 
     # 4. Install Flash-Attention 2 (auto-detect GPU arch)
     echo ""
-    echo "[4/7] Installing Flash-Attention 2..."
+    echo "[4/8] Installing Flash-Attention 2..."
     GPU_ARCH=$(python -c "import torch; cc=torch.cuda.get_device_capability(); print(f'{cc[0]}{cc[1]}')" 2>/dev/null || echo "")
     echo "GPU compute capability: sm_${GPU_ARCH:-unknown}"
 
@@ -371,7 +377,7 @@ print(f'PyTorch: {torch.__version__}, CUDA: {torch.version.cuda}, GPU: {torch.cu
 
     # 5. Install FAISS-GPU (CUDA 12)
     echo ""
-    echo "[5/7] Installing FAISS-GPU (CUDA 12)..."
+    echo "[5/8] Installing FAISS-GPU (CUDA 12)..."
     # FAISS source-built wheel needs libopenblas at runtime
     if ! dpkg -s libopenblas-dev &>/dev/null 2>&1; then
         echo "Installing libopenblas-dev (FAISS runtime dependency)..."
@@ -406,7 +412,7 @@ print(f'PyTorch: {torch.__version__}, CUDA: {torch.version.cuda}, GPU: {torch.cu
 
     # 6. Install cuML (GPU UMAP) from RAPIDS PyPI
     echo ""
-    echo "[6/7] Installing cuML (GPU UMAP)..."
+    echo "[6/8] Installing cuML (GPU UMAP)..."
     uv pip install cuml-cu12 --extra-index-url https://pypi.nvidia.com
 
     # 7. Install wandb (experiment tracking)

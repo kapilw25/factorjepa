@@ -9,7 +9,7 @@
 
 ```bash
 git clone https://github.com/kapilw25/factorjepa.git && cd factorjepa
-./setup_env_uv.sh --gpu --from-wheels 2>&1 | tee logs/setup_gpu.log
+mkdir -p logs && ./setup_env_uv.sh --gpu --from-wheels 2>&1 | tee logs/setup_env_gpu.log
 source venv_walkindia/bin/activate
 ./git_pull.sh                          # downloads outputs + data from HF
 ```
