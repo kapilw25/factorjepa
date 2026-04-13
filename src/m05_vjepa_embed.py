@@ -29,6 +29,7 @@ sys.path.insert(0, str(Path(__file__).parent))
 from utils.config import (
     VJEPA_MODEL_ID, HF_DATASET_REPO, VJEPA_FRAMES_PER_CLIP,
     check_gpu, load_subset, add_subset_arg, add_local_data_arg, get_output_dir,
+    get_module_output_dir,
     get_pipeline_config, get_sanity_clip_limit, get_total_clips,
     add_model_config_arg, get_model_config,
 )
@@ -248,7 +249,7 @@ def orchestrator_main(args):
     Each worker gets fresh HF connections + GPU state. On stream stall
     (10-min producer timeout), worker exits, orchestrator respawns from checkpoint.
     """
-    output_dir = get_output_dir(args.subset, sanity=args.SANITY, poc=args.POC)
+    output_dir = get_module_output_dir("m05_vjepa_embed", args.subset, sanity=args.SANITY, poc=args.POC)
 
     # Encoder name determines output filenames (unique per lambda for ablation)
     model_path = Path(args.model)
@@ -429,7 +430,7 @@ def worker_main(args):
                                 "process_count": args.process_count},
                         enabled=not args.no_wandb)
 
-    output_dir = get_output_dir(args.subset, sanity=args.SANITY, poc=args.POC)
+    output_dir = get_module_output_dir("m05_vjepa_embed", args.subset, sanity=args.SANITY, poc=args.POC)
     # Match orchestrator's encoder-aware checkpoint path
     model_path = Path(args.model)
     is_adapted = model_path.suffix == ".pt" and model_path.exists()

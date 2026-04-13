@@ -19,7 +19,7 @@ sys.path.insert(0, str(Path(__file__).parent))
 from utils.progress import make_pbar
 from utils.config import (
     EMBEDDINGS_FILE, check_gpu,
-    add_subset_arg, get_output_dir,
+    add_subset_arg, get_output_dir, get_module_output_dir,
     add_encoder_arg, get_encoder_files,
 )
 from utils.wandb_utils import add_wandb_args, init_wandb, log_artifact, finish_wandb
@@ -51,15 +51,16 @@ def main():
 
     check_gpu()
 
-    output_dir = get_output_dir(args.subset, sanity=args.SANITY, poc=args.POC)
-    output_dir.mkdir(parents=True, exist_ok=True)
+    input_dir = get_output_dir(args.subset, sanity=args.SANITY, poc=args.POC)
+    output_dir = get_module_output_dir("m07_umap", args.subset, sanity=args.SANITY, poc=args.POC)
 
     mode = "SANITY" if args.SANITY else ("POC" if args.POC else "FULL")
     wb_run = init_wandb("m07", mode, config=vars(args), enabled=not args.no_wandb)
 
-    # Load embeddings (encoder-aware paths)
+    # Load embeddings (encoder-aware paths from upstream)
+    input_enc_files = get_encoder_files(args.encoder, input_dir)
     enc_files = get_encoder_files(args.encoder, output_dir)
-    emb_file = enc_files["embeddings"]
+    emb_file = input_enc_files["embeddings"]
 
     # Output-exists guard
     from utils.output_guard import verify_or_skip

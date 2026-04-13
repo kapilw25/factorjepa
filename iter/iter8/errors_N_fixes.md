@@ -22,4 +22,12 @@
 | 11 | `iter_clips_parallel` misuse: `TypeError: '<' not supported between instances of 'dict' and 'int'` | `for example in iter_clips_parallel(...)` iterates over tuple `(queue, event, thread)`, not clips | Unpack: `clip_q, tar_stop, _reader = iter_clips_parallel(...)` + `clip_q.get()` loop | `m10_sam_segment.py`, `m11_factor_datasets.py` |
 | 12 | `FATAL: clip has empty notable_objects` — crashes entire pipeline | Some clips (7%) have empty `notable_objects` in tags.json | Return `None` from `get_agent_prompts()`, skip clip in caller | `m10_sam_segment.py` |
 | 13 | Mean concept recall = 0.22 (quality gate FAIL) | All objects comma-joined into one text prompt — SAM treats as single query, detects nothing | One `add_prompt` call per object category (Meta benchmark pattern) | `m10_sam_segment.py` |
-| 14 | Process hangs after "Done" — never exits, holds 20GB VRAM | SAM3 spawns async frame-loading threads, no `shutdown()` method | `os._exit(0)` after cleanup (kills orphan threads) | `m10_sam_segment.py` |
+| 14 | Process hangs after "Done" — never exits, holds 20GB VRAM | SAM3 spawns async frame-loading threads, no `shutdown()` method | `os._exit(0)` after cleanup + `try/except` wrapper at `__main__` with `os._exit(1)` for crashes | `m10_sam_segment.py` |
+| 15 | `ValueError: shapes (384,384) (480,854)` in `frame_union \|= m` | SAM3 returns different mask resolutions per prompt category | Normalize all masks to first detected resolution via `_resize_mask()` | `m10_sam_segment.py` |
+| 16 | Process hangs on unhandled exception (no traceback, no exit) | `os._exit` only at end of `main()`, not on crash path | Wrap `main()` in `try/except` at `__main__` with `os._exit(1)` | `m10_sam_segment.py` |
+
+## Step B: m11 Factor Datasets
+
+| # | Error | Root Cause | Fix | File |
+|---|---|---|---|---|
+| 17 | `ValueError: shapes (2,480,854,1) (16,480,854,3)` in `make_layout_only` | SAM3 propagated only 2 frames but video has 16 — mask/video temporal mismatch | Nearest-neighbor temporal interpolation: `linspace(0, T_mask-1, T_vid)` + spatial resize if needed | `m11_factor_datasets.py` |

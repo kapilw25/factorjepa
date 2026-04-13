@@ -78,14 +78,17 @@ if [[ -z "$ENCODERS" ]]; then
 from pathlib import Path
 out = Path('${OUT_DIR}')
 found = []
-for f in sorted(out.glob('embeddings*.npy')):
-    if f.name.endswith('.paths.npy'):
-        continue
-    if f.name == 'embeddings.npy':
-        found.append('vjepa')
-    else:
-        enc = f.name.replace('embeddings_', '').replace('.npy', '')
-        found.append(enc)
+# Search in per-module dirs (new) and flat dir (backward compat)
+search_dirs = [out / 'm05_vjepa_embed', out / 'm05b_baselines', out]
+for d in search_dirs:
+    for f in sorted(d.glob('embeddings*.npy')):
+        if f.name.endswith('.paths.npy'):
+            continue
+        if f.name == 'embeddings.npy':
+            if 'vjepa' not in found: found.append('vjepa')
+        else:
+            enc = f.name.replace('embeddings_', '').replace('.npy', '')
+            if enc not in found: found.append(enc)
 print(','.join(found))
 ")
     if [[ -z "$ENCODERS" ]]; then
@@ -104,7 +107,11 @@ log "Encoders:   ${ENCODERS}"
 log "Master log: ${MASTER_LOG}"
 
 # Check tags exist (needed for m06 metrics)
-TAGS_FILE="${OUT_DIR}/tags.json"
+TAGS_FILE="${OUT_DIR}/m04_vlm_tag/tags.json"
+# Fallback to old flat location
+if [[ ! -f "$TAGS_FILE" ]]; then
+    TAGS_FILE="${OUT_DIR}/tags.json"
+fi
 if [[ ! -f "$TAGS_FILE" ]]; then
     log "FATAL: ${TAGS_FILE} not found. Run Ch9 m04 (VLM tagging) first."
     exit 1

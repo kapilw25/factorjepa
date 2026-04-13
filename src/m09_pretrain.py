@@ -53,7 +53,7 @@ from tqdm import tqdm
 sys.path.insert(0, str(Path(__file__).parent))
 from utils.config import (
     check_gpu,
-    add_subset_arg, add_local_data_arg, get_output_dir, load_subset,
+    add_subset_arg, add_local_data_arg, get_output_dir, get_module_output_dir, load_subset,
     get_pipeline_config, load_merged_config,
     add_model_config_arg, add_train_config_arg,
 )
@@ -125,14 +125,14 @@ def merge_config_with_args(cfg: dict, args) -> dict:
     if getattr(args, "output_dir", None):
         cfg["checkpoint"]["output_dir"] = args.output_dir
         return cfg
-    base_out = get_output_dir(args.subset, sanity=args.SANITY, poc=args.POC)
+    base_out = get_module_output_dir("m09_pretrain", args.subset,
+                                    sanity=args.SANITY, poc=args.POC)
     lam = cfg["drift_control"]["lambda_reg"]
     if lam is None:
-        # Auto-ablation in main() will set lambda_reg and output_dir later
-        cfg["checkpoint"]["output_dir"] = str(base_out / "m09_pending_ablation")
+        cfg["checkpoint"]["output_dir"] = str(base_out / "pending_ablation")
         return cfg
-    lam_str = f"{lam:g}".replace(".", "_")  # 0.0→"0", 0.01→"0_01" (no trailing .0)
-    cfg["checkpoint"]["output_dir"] = str(base_out / f"m09_lambda{lam_str}")
+    lam_str = f"{lam:g}".replace(".", "_")
+    cfg["checkpoint"]["output_dir"] = str(base_out / f"lambda{lam_str}")
     return cfg
 
 
@@ -929,8 +929,8 @@ def train_surgery(cfg: dict, args):
     gc.collect()
 
     # Output dir
-    output_dir = Path(args.output_dir) if args.output_dir else get_output_dir(
-        args.subset, sanity=args.SANITY, poc=args.POC) / "m09_surgery"
+    output_dir = Path(args.output_dir) if args.output_dir else get_module_output_dir(
+        "m09_pretrain", args.subset, sanity=args.SANITY, poc=args.POC) / "surgery"
     output_dir.mkdir(parents=True, exist_ok=True)
     student_path = output_dir / "student_encoder.pt"
 

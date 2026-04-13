@@ -86,8 +86,8 @@ if [[ -z "$ENCODERS" ]]; then
     # Auto-detect: frozen baselines + all adapted models
     ENCODER_LIST="vjepa,random,dinov2,clip,vjepa_shuffled"
 
-    # Find adapted models from m09 outputs
-    for model_dir in "$OUT_DIR"/m09_lambda*/; do
+    # Find adapted models from m09 outputs (new per-module dir + old flat dir)
+    for model_dir in "$OUT_DIR"/m09_pretrain/lambda*/ "$OUT_DIR"/m09_lambda*/; do
         if [[ -f "${model_dir}student_encoder.pt" ]]; then
             enc_name="vjepa_$(basename "$model_dir" | sed 's/m09_//')"
             ENCODER_LIST="${ENCODER_LIST},${enc_name}"

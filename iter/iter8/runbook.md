@@ -21,18 +21,19 @@ source venv_walkindia/bin/activate
 ```bash
 python -u src/m10_sam_segment.py --SANITY \
     --local-data data/val_1k_local --no-wandb \
-    2>&1 | tee logs/m10_sanity.log
+    2>&1 | tee logs/m10_sanity_v13.log
 ```
 
 **Verify:** `cat outputs/sanity/factors/summary.json | python3 -m json.tool`
 
 | Check | Expect |
 |---|---|
-| `quality_gate` | `"pass"` |
-| `mean_agents_per_clip` | 2-15 |
-| `mean_agent_pixel_ratio` | 5-40% |
-| `mean_concept_recall` | >= 0.5 (quality gate threshold) |
-| `m10_segmentation_samples.png` | Red masks on people/vehicles, blue on roads |
+| `quality_gate` | `"PASS"` |
+| `quality_gate_checks` | All 4 checks PASS |
+| `mean_agent_pixel_ratio` | 2-40% (gate: >=2%, <=50%) |
+| `mean_mask_confidence` | >= 0.4 |
+| `clips_with_agents_pct` | >= 50% |
+| `m10_overlay_verify/` | Red masks on people/vehicles, blue on roads |
 
 ---
 
@@ -41,7 +42,7 @@ python -u src/m10_sam_segment.py --SANITY \
 ```bash
 python -u src/m11_factor_datasets.py --SANITY \
     --local-data data/val_1k_local --no-wandb \
-    2>&1 | tee logs/m11_sanity.log
+    2>&1 | tee logs/m11_sanity_v1.log
 ```
 
 **Verify:**

@@ -167,7 +167,7 @@ log "═════════════════════════
 # Step 0 (GPU): SAM3 segmentation → instance masks → tracklets
 # NOTE: m10_sam_segment.py NOT YET BUILT
 # ═══════════════════════════════════════════════════════════════════════
-FACTOR_DIR="${OUT_DIR}/factors"
+FACTOR_DIR="${OUT_DIR}/m10_sam_segment"
 mkdir -p "$FACTOR_DIR"
 
 run_step "0-sam3" "m10 SAM3 segmentation → tracklets" \
@@ -190,7 +190,7 @@ run_step "1-factors" "m11 factor datasets (D_L, D_A, D_I)" \
 # ═══════════════════════════════════════════════════════════════════════
 # Step 2 (GPU): Progressive prefix unfreezing on frozen V-JEPA 2.1
 # ═══════════════════════════════════════════════════════════════════════
-SURGERY_DIR="${OUT_DIR}/m09_surgery"
+SURGERY_DIR="${OUT_DIR}/m09_pretrain/surgery"
 
 run_step "2-surgery" "m09 factor surgery (progressive unfreezing)" \
     "$T_SURGERY" "$LOGDIR/m09_surgery_${MODE,,}.log" \

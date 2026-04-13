@@ -1,7 +1,8 @@
 """SAM 3.1 text-prompted video segmentation → agent/layout masks. GPU-only.
-    python -u src/m10_sam_segment.py --SANITY --local-data data/val_1k_local 2>&1 | tee logs/m10_sanity.log
-    python -u src/m10_sam_segment.py --POC --local-data data/val_1k_local 2>&1 | tee logs/m10_poc.log
-    python -u src/m10_sam_segment.py --FULL --local-data data/full_local 2>&1 | tee logs/m10_full.log
+    python -u src/m10_sam_segment.py --SANITY --local-data data/val_1k_local --no-wandb 2>&1 | tee logs/m10_sanity.log
+    python -u src/m10_sam_segment.py --POC --local-data data/val_1k_local --no-wandb 2>&1 | tee logs/m10_poc.log
+    python -u src/m10_sam_segment.py --FULL --local-data data/full_local --no-wandb 2>&1 | tee logs/m10_full.log
+    python -u src/m10_sam_segment.py --SANITY --plot    # re-generate plots only (no GPU, reads existing outputs)
 """
 import argparse
 import json
@@ -23,7 +24,7 @@ from scipy.ndimage import binary_dilation
 
 sys.path.insert(0, str(Path(__file__).parent))
 from utils.config import (
-    check_gpu, add_subset_arg, add_local_data_arg, get_output_dir,
+    check_gpu, add_subset_arg, add_local_data_arg, get_output_dir, get_module_output_dir,
     load_subset, get_sanity_clip_limit, get_total_clips,
 )
 from utils.checkpoint import save_json_checkpoint, load_json_checkpoint
@@ -68,20 +69,33 @@ def load_tags_lookup(tags_path: Path) -> dict:
 
 
 def get_agent_prompts(clip_key: str, tags_lookup: dict) -> list:
-    """Get per-object text prompts from tags.json. Returns list of strings, or None if unavailable.
+    """Get per-object contextual text prompts from tags.json. Returns list or None.
 
     SAM 3.1 requires ONE add_prompt call per object category (Meta benchmark pattern).
-    Comma-joining all objects into one string fails — the BPE tokenizer treats it as one query.
+    Contextual prompts ("bus on road in market") outperform bare nouns ("bus") because
+    SAM3's text encoder disambiguates with scene context. All prompts stay under 30 BPE
+    tokens (SAM3 context_length=32, minus SOT/EOT). Context from Qwen3-VL tags.
     """
     if clip_key not in tags_lookup:
         print(f"  SKIP: clip {clip_key} not found in tags.json")
         return None
-    objects = tags_lookup[clip_key].get("notable_objects", [])
+    tag = tags_lookup[clip_key]
+    objects = tag.get("notable_objects", [])
     if not objects:
         print(f"  SKIP: clip {clip_key} has empty notable_objects")
         return None
-    # Replace underscores with spaces for natural language (auto_rickshaw → auto rickshaw)
-    return [obj.replace("_", " ") for obj in objects]
+
+    # Build context suffix from existing Qwen3-VL tags (no extra VLM call)
+    scene = tag.get("scene_type", "").replace("_", " ")
+    road = tag.get("road_surface", "")
+    context = f"on {road} road in {scene}" if scene and road else (f"in {scene}" if scene else "")
+
+    prompts = []
+    for obj in objects:
+        name = obj.replace("_", " ")
+        prompt = f"{name} {context}".strip() if context else name
+        prompts.append(prompt)
+    return prompts
 
 
 # ── Frame I/O for SAM 3.1 ───────────────────────────────────────────
@@ -97,7 +111,8 @@ def save_frames_as_jpeg(frames_np: np.ndarray, frame_dir: str) -> str:
 # ── Per-Clip Segmentation ───────────────────────────────────────────
 
 def segment_clip(predictor, frame_dir: str, agent_prompts: list,
-                 dilation_px: int, min_confidence: float) -> dict:
+                 dilation_px: int, min_confidence: float,
+                 min_mask_area_pct: float = 0.001) -> dict:
     """Run SAM 3.1 text-prompted segmentation on a video clip.
 
     Calls add_prompt ONCE PER OBJECT CATEGORY (Meta benchmark pattern).
@@ -115,8 +130,9 @@ def segment_clip(predictor, frame_dir: str, agent_prompts: list,
     masks_per_frame = {}
     per_object = {}
     centroids = {}
+    accepted_probs = []  # track confidence of accepted masks for quality gate
     n_agents = 0
-    H, W = 384, 384
+    H, W = 0, 0  # set from first detected mask
     obj_id_offset = 0
 
     for prompt in agent_prompts:
@@ -138,13 +154,27 @@ def segment_clip(predictor, frame_dir: str, agent_prompts: list,
         # Capture frame 0 masks
         out0 = prompt_resp["outputs"]
         n_this = len(out0["out_obj_ids"])
-        if n_this > 0:
-            H, W = out0["out_binary_masks"][0].shape
+
+        def _accept_mask(mask_raw, prob):
+            """Check mask, set H/W on first detection, resize if needed, filter by area."""
+            nonlocal H, W
+            m = np.asarray(mask_raw)
+            if H == 0:
+                H, W = m.shape  # set target resolution from first detected mask
+            if m.shape != (H, W):
+                m = np.array(Image.fromarray(m.astype(np.uint8) * 255).resize(
+                    (W, H), Image.NEAREST)) > 127
+            min_area = int(H * W * min_mask_area_pct)
+            if m.any() and prob >= min_confidence and m.sum() >= min_area:
+                return m
+            return None
 
         for i, oid in enumerate(out0["out_obj_ids"].tolist()):
-            if out0["out_binary_masks"][i].any() and out0["out_probs"][i] >= min_confidence:
+            m = _accept_mask(out0["out_binary_masks"][i], float(out0["out_probs"][i]))
+            if m is not None:
                 global_id = obj_id_offset + int(oid)
-                masks_per_frame.setdefault(0, {})[global_id] = out0["out_binary_masks"][i]
+                masks_per_frame.setdefault(0, {})[global_id] = m
+                accepted_probs.append(float(out0["out_probs"][i]))
                 n_agents += 1
 
         # Propagate across all frames
@@ -155,9 +185,11 @@ def segment_clip(predictor, frame_dir: str, agent_prompts: list,
             fidx = resp["frame_index"]
             out = resp["outputs"]
             for i, oid in enumerate(out["out_obj_ids"].tolist()):
-                if out["out_binary_masks"][i].any() and out["out_probs"][i] >= min_confidence:
+                m = _accept_mask(out["out_binary_masks"][i], float(out["out_probs"][i]))
+                if m is not None:
                     global_id = obj_id_offset + int(oid)
-                    masks_per_frame.setdefault(fidx, {})[global_id] = out["out_binary_masks"][i]
+                    masks_per_frame.setdefault(fidx, {})[global_id] = m
+                    accepted_probs.append(float(out["out_probs"][i]))
 
         # Close session before next category
         predictor.handle_request(dict(type="close_session", session_id=session_id))
@@ -166,6 +198,8 @@ def segment_clip(predictor, frame_dir: str, agent_prompts: list,
         obj_id_offset += max(n_this, 1) * 100
 
     # Build per-frame A_t (agent union) + per-object tracking
+    if H == 0:
+        H, W = 384, 384  # fallback if no masks detected by any prompt
     T = max(masks_per_frame.keys()) + 1 if masks_per_frame else 1
     agent_mask = np.zeros((T, H, W), dtype=bool)
 
@@ -186,11 +220,14 @@ def segment_clip(predictor, frame_dir: str, agent_prompts: list,
     layout_mask = ~agent_mask
     agent_pixel_ratio = float(agent_mask.sum()) / max(T * H * W, 1)
 
+    mean_mask_confidence = float(np.mean(accepted_probs)) if accepted_probs else 0.0
+
     return {
         "agent_mask": agent_mask,
         "layout_mask": layout_mask,
         "n_agents": n_agents,
         "agent_pixel_ratio": agent_pixel_ratio,
+        "mean_mask_confidence": mean_mask_confidence,
         "centroids": centroids,
         "per_object": per_object,
     }
@@ -271,101 +308,129 @@ def mine_interactions(centroids: dict, frame_width: int,
     return interactions
 
 
-def save_clip_masks(clip_key: str, result: dict, interactions: list, masks_dir: Path):
-    """Save per-clip masks + centroids + interactions as compressed .npz."""
+def save_clip_masks(clip_key: str, result: dict, interactions: list,
+                    masks_dir: Path, mid_frame_rgb: np.ndarray = None):
+    """Save per-clip masks + centroids + interactions + middle frame as compressed .npz."""
     safe_key = clip_key.replace("/", "__")
     out_path = masks_dir / f"{safe_key}.npz"
-    # Serialize centroids and interactions as JSON strings (numpy can't store nested dicts)
     centroids_json = json.dumps({str(k): {str(t): list(v) for t, v in frames.items()}
                                   for k, frames in result["centroids"].items()})
     interactions_json = json.dumps(interactions)
-    np.savez_compressed(out_path,
-                        agent_mask=result["agent_mask"],
-                        layout_mask=result["layout_mask"],
-                        centroids_json=np.array(centroids_json),
-                        interactions_json=np.array(interactions_json))
+    save_dict = dict(
+        agent_mask=result["agent_mask"],
+        layout_mask=result["layout_mask"],
+        centroids_json=np.array(centroids_json),
+        interactions_json=np.array(interactions_json),
+    )
+    if mid_frame_rgb is not None:
+        save_dict["mid_frame_rgb"] = mid_frame_rgb  # (H, W, 3) uint8 for overlay plots
+    np.savez_compressed(out_path, **save_dict)
 
 
 # ── Paper Visualizations ─────────────────────────────────────────────
 
-def plot_segmentation_samples(segments: dict, masks_dir: Path, tags_lookup: dict,
-                              output_dir: Path, n_samples: int = 8):
-    """Paper-quality segmentation grid: agent mask (red) | layout mask (blue) per scene_type."""
-    init_style()
-    clip_keys = list(segments.keys())
-    if not clip_keys:
-        return
+def plot_overlay_per_clip(segments: dict, masks_dir: Path, tags_lookup: dict,
+                         output_dir: Path):
+    """Save per-clip overlay images: original | agent mask (red) | layout (blue)."""
+    overlay_dir = output_dir / "m10_overlay_verify"
+    overlay_dir.mkdir(parents=True, exist_ok=True)
 
-    by_scene = {}
-    for k in clip_keys:
-        if k in tags_lookup:
-            by_scene.setdefault(tags_lookup[k]["scene_type"], []).append(k)
-    sampled = []
-    for scene_keys in by_scene.values():
-        sampled.append(scene_keys[0])
-        if len(sampled) >= n_samples:
-            break
-    while len(sampled) < min(n_samples, len(clip_keys)):
-        sampled.append(clip_keys[len(sampled)])
-
-    fig, axes = plt.subplots(len(sampled), 2, figsize=(10, 2.5 * len(sampled)))
-    if len(sampled) == 1:
-        axes = axes[np.newaxis, :]
-
-    agent_cmap = ListedColormap(["#f0f0f0", COLORS["red"]])
-    layout_cmap = ListedColormap(["#f0f0f0", COLORS["blue"]])
-
-    for i, clip_key in enumerate(sampled):
+    for clip_key in segments:
         safe_key = clip_key.replace("/", "__")
         mask_file = masks_dir / f"{safe_key}.npz"
         if not mask_file.exists():
             continue
 
         data = np.load(mask_file)
-        mid = data["agent_mask"].shape[0] // 2
-        agent_frame = data["agent_mask"][mid]
-        layout_frame = data["layout_mask"][mid]
+        if "mid_frame_rgb" not in data:
+            continue
 
-        scene = tags_lookup[clip_key]["scene_type"] if clip_key in tags_lookup else "unknown"
+        frame_rgb = data["mid_frame_rgb"]  # (H, W, 3) uint8
+        mid = min(data["agent_mask"].shape[0] - 1, frame_rgb.shape[0] // 2 if frame_rgb.ndim == 3 else 0)
+        agent_mask = data["agent_mask"][mid]
+
+        # Resize mask to frame if needed
+        fh, fw = frame_rgb.shape[:2]
+        mh, mw = agent_mask.shape
+        if (mh, mw) != (fh, fw):
+            from PIL import Image as PILImage
+            agent_mask = np.array(PILImage.fromarray(agent_mask).resize((fw, fh), PILImage.NEAREST))
+
+        fig, axes = plt.subplots(1, 3, figsize=(15, 4))
+
+        axes[0].imshow(frame_rgb)
+        axes[0].set_title("Original", fontsize=10)
+        axes[0].axis("off")
+
+        overlay = frame_rgb.astype(float).copy()
+        overlay[agent_mask > 0] = [255, 50, 50]
+        blended = (0.6 * frame_rgb.astype(float) + 0.4 * overlay).astype(np.uint8)
         n_ag = segments[clip_key]["n_agents"]
         pct = segments[clip_key]["agent_pixel_ratio"]
+        scene = tags_lookup.get(clip_key, {}).get("scene_type", "unknown")
+        axes[1].imshow(blended)
+        axes[1].set_title(f"Agents (red): {n_ag} det, {pct:.0%} px", fontsize=10)
+        axes[1].axis("off")
 
-        axes[i, 0].imshow(agent_frame, cmap=agent_cmap)
-        axes[i, 0].set_title(f"{scene} — {n_ag} agents ({pct:.0%} pixels)", fontsize=10)
-        axes[i, 0].axis("off")
+        layout_mask = ~(agent_mask > 0)
+        overlay2 = frame_rgb.astype(float).copy()
+        overlay2[layout_mask] = [50, 80, 220]
+        blended2 = (0.7 * frame_rgb.astype(float) + 0.3 * overlay2).astype(np.uint8)
+        axes[2].imshow(blended2)
+        axes[2].set_title("Layout (blue)", fontsize=10)
+        axes[2].axis("off")
 
-        axes[i, 1].imshow(layout_frame, cmap=layout_cmap)
-        axes[i, 1].set_title("Layout (complement)", fontsize=10)
-        axes[i, 1].axis("off")
+        fig.suptitle(f"{scene} — {clip_key.split('/')[-1]}", fontsize=11)
+        plt.tight_layout()
+        save_fig(fig, str(overlay_dir / safe_key))
+        plt.close(fig)
 
-    save_fig(fig, str(output_dir / "m10_segmentation_samples"))
+    print(f"  Saved: {overlay_dir}/ ({len(list(overlay_dir.glob('*.png')))} clips)")
 
 
 def plot_agent_stats(segments: dict, tags_lookup: dict, output_dir: Path):
-    """Bar chart: agent count + pixel ratio by scene_type. Paper figure."""
+    """Dual-axis grouped bar: agent count (left) + pixel ratio % (right) by scene_type."""
     init_style()
     if not segments:
         return
 
     by_scene = {}
     for k, s in segments.items():
-        scene = tags_lookup[k]["scene_type"] if k in tags_lookup else "unknown"
+        scene = tags_lookup.get(k, {}).get("scene_type", "unknown")
         by_scene.setdefault(scene, []).append(s)
 
     scenes = sorted(by_scene.keys())
     mean_agents = [np.mean([s["n_agents"] for s in by_scene[sc]]) for sc in scenes]
     mean_pct = [np.mean([s["agent_pixel_ratio"] for s in by_scene[sc]]) * 100 for sc in scenes]
-    bar_colors = [SCENE_COLORS.get(sc, COLORS["gray"]) for sc in scenes]
+    n_clips = [len(by_scene[sc]) for sc in scenes]
 
-    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(14, 5))
+    # Sort by agent count descending
+    idx = np.argsort(mean_agents)[::-1]
+    scenes = [scenes[i] for i in idx]
+    mean_agents = [mean_agents[i] for i in idx]
+    mean_pct = [mean_pct[i] for i in idx]
+    n_clips = [n_clips[i] for i in idx]
 
-    ax1.barh(scenes, mean_agents, color=bar_colors, alpha=0.85)
-    ax1.set_xlabel("Mean agents per clip")
-    ax1.set_title("Agent Count by Scene Type")
+    x = np.arange(len(scenes))
+    w = 0.35
 
-    ax2.barh(scenes, mean_pct, color=bar_colors, alpha=0.85)
-    ax2.set_xlabel("Agent pixel ratio (%)")
-    ax2.set_title("Agent Coverage by Scene Type")
+    fig, ax1 = plt.subplots(figsize=(10, 5))
+    ax2 = ax1.twinx()
+
+    b1 = ax1.bar(x - w / 2, mean_agents, w, label="Mean agents/clip", color=COLORS["blue"], alpha=0.85)
+    b2 = ax2.bar(x + w / 2, mean_pct, w, label="Agent pixel ratio (%)", color=COLORS["red"], alpha=0.85)
+
+    ax1.set_ylabel("Mean agents per clip", color=COLORS["blue"])
+    ax2.set_ylabel("Agent pixel ratio (%)", color=COLORS["red"])
+    ax1.set_xticks(x)
+    ax1.set_xticklabels([f"{s}\n(n={n})" for s, n in zip(scenes, n_clips)],
+                        fontsize=9, rotation=30, ha="right")
+    ax1.set_title(f"SAM 3.1 Agent Detection by Scene Type ({len(segments)} clips)")
+
+    lines1, labels1 = ax1.get_legend_handles_labels()
+    lines2, labels2 = ax2.get_legend_handles_labels()
+    ax1.legend(lines1 + lines2, labels1 + labels2, loc="upper right")
+    ax1.grid(axis="y", alpha=0.3)
 
     save_fig(fig, str(output_dir / "m10_agent_stats"))
 
@@ -379,6 +444,8 @@ def main():
     parser.add_argument("--SANITY", action="store_true", help="20 clips")
     parser.add_argument("--POC", action="store_true", help="1K clips (val_1k_local)")
     parser.add_argument("--FULL", action="store_true", help="All clips")
+    parser.add_argument("--plot", action="store_true",
+                        help="Re-generate plots only from existing outputs (no GPU needed)")
     parser.add_argument("--train-config", default="configs/train/ch11_surgery.yaml",
                         help="Factor dataset params YAML")
     parser.add_argument("--output-dir", default=None,
@@ -395,6 +462,36 @@ def main():
         print("\nERROR: Specify --SANITY, --POC, or --FULL")
         sys.exit(1)
 
+    # --plot: re-generate plots from existing outputs (no GPU, no SAM3)
+    if args.plot:
+        if args.output_dir:
+            output_dir = Path(args.output_dir)
+        else:
+            output_dir = get_module_output_dir("m10_sam_segment", args.subset,
+                                               sanity=args.SANITY, poc=args.POC)
+        masks_dir = output_dir / "masks"
+        segments_file = output_dir / "segments.json"
+        if not segments_file.exists():
+            print(f"FATAL: {segments_file} not found. Run segmentation first (without --plot).")
+            sys.exit(1)
+        segments = json.load(open(segments_file))
+        # Load tags
+        if args.tags_json:
+            tags_path = Path(args.tags_json)
+        else:
+            local_data = getattr(args, "local_data", None)
+            if local_data and Path(local_data).joinpath("tags.json").exists():
+                tags_path = Path(local_data) / "tags.json"
+            else:
+                base = get_output_dir(args.subset, sanity=args.SANITY, poc=args.POC)
+                tags_path = base / "tags.json"
+        tags_lookup = load_tags_lookup(tags_path)
+        print(f"Re-generating plots from {output_dir} ({len(segments)} clips)...")
+        plot_overlay_per_clip(segments, masks_dir, tags_lookup, output_dir)
+        plot_agent_stats(segments, tags_lookup, output_dir)
+        print("Done (--plot).")
+        return
+
     ensure_local_data(args)
     check_gpu()
 
@@ -404,14 +501,15 @@ def main():
     factor_cfg = train_cfg["factor_datasets"]
     dilation_px = factor_cfg["agent_dilation_pixels"]
     min_confidence = factor_cfg["min_confidence"]
+    min_mask_area_pct = factor_cfg["min_mask_area_pct"]
     interaction_cfg = train_cfg["interaction_mining"]
 
     # Output routing
     if args.output_dir:
         output_dir = Path(args.output_dir)
     else:
-        base = get_output_dir(args.subset, sanity=args.SANITY, poc=args.POC)
-        output_dir = base / "factors"
+        output_dir = get_module_output_dir("m10_sam_segment", args.subset,
+                                           sanity=args.SANITY, poc=args.POC)
     masks_dir = output_dir / "masks"
     masks_dir.mkdir(parents=True, exist_ok=True)
 
@@ -444,8 +542,13 @@ def main():
         if local_data and Path(local_data).joinpath("tags.json").exists():
             tags_path = Path(local_data) / "tags.json"
         else:
-            base_out = get_output_dir(args.subset, sanity=args.SANITY, poc=args.POC)
-            tags_path = base_out / "tags.json"
+            # Look in m04's output dir, then base dir (backward compat)
+            m04_dir = get_module_output_dir("m04_vlm_tag", args.subset,
+                                            sanity=args.SANITY, poc=args.POC)
+            if (m04_dir / "tags.json").exists():
+                tags_path = m04_dir / "tags.json"
+            else:
+                tags_path = get_output_dir(args.subset, sanity=args.SANITY, poc=args.POC) / "tags.json"
 
     tags_lookup = load_tags_lookup(tags_path)
 
@@ -514,7 +617,8 @@ def main():
                 continue
 
             # Segment (one add_prompt call per category, Meta benchmark pattern)
-            result = segment_clip(predictor, frame_dir, agent_prompts, dilation_px, min_confidence)
+            result = segment_clip(predictor, frame_dir, agent_prompts, dilation_px, min_confidence,
+                                 min_mask_area_pct=min_mask_area_pct)
 
             # Mine interactions (D_I)
             interactions = mine_interactions(
@@ -524,8 +628,10 @@ def main():
                 min_frames=interaction_cfg["min_overlap_frames"],
             )
 
-            # Save masks + centroids + interactions
-            save_clip_masks(clip_key, result, interactions, masks_dir)
+            # Save masks + centroids + interactions + middle frame for overlay plots
+            mid_idx = frames_np.shape[0] // 2
+            save_clip_masks(clip_key, result, interactions, masks_dir,
+                            mid_frame_rgb=frames_np[mid_idx])
             # Concept recall: detected agents vs expected from tags.json
             expected_objects = tags_lookup[clip_key]["notable_objects"]
             n_expected = len(expected_objects)
@@ -538,6 +644,7 @@ def main():
                 "concept_recall": round(concept_recall, 3),
                 "n_frames": frames_np.shape[0],
                 "agent_pixel_ratio": result["agent_pixel_ratio"],
+                "mean_mask_confidence": result["mean_mask_confidence"],
                 "agent_prompt": ", ".join(agent_prompts),
                 "n_interactions": len(interactions),
             }
@@ -559,17 +666,36 @@ def main():
     n_interactions_total = sum(s["n_interactions"] for s in segments.values())
     concept_recalls = [s["concept_recall"] for s in segments.values()]
     mean_concept_recall = float(np.mean(concept_recalls)) if concept_recalls else 0
+    pixel_ratios = [s["agent_pixel_ratio"] for s in segments.values()]
+    mean_pixel_ratio = float(np.mean(pixel_ratios)) if pixel_ratios else 0
+    mask_confs = [s["mean_mask_confidence"] for s in segments.values() if s["mean_mask_confidence"] > 0]
+    mean_mask_confidence = float(np.mean(mask_confs)) if mask_confs else 0
+    clips_with_agents = sum(1 for s in segments.values() if s["n_agents"] > 0)
+    clips_with_agents_pct = clips_with_agents / max(len(segments), 1)
+
+    # Composite quality gate — checks 4 failure modes:
+    gate_checks = {
+        "pixel_ratio_min": mean_pixel_ratio >= 0.02,       # not empty masks
+        "pixel_ratio_max": mean_pixel_ratio <= 0.50,       # not everything masked
+        "mask_confidence": mean_mask_confidence >= 0.4,     # SAM is confident
+        "clips_with_agents": clips_with_agents_pct >= 0.5,  # >=50% clips have agents
+    }
+    quality_gate = all(gate_checks.values())
 
     summary = {
         "n_clips": len(segments),
         "n_total_agents": sum(s["n_agents"] for s in segments.values()),
         "n_total_interactions": n_interactions_total,
-        "mean_agent_pixel_ratio": float(np.mean([s["agent_pixel_ratio"] for s in segments.values()])) if segments else 0,
+        "mean_agent_pixel_ratio": mean_pixel_ratio,
         "mean_concept_recall": mean_concept_recall,
+        "mean_mask_confidence": mean_mask_confidence,
+        "clips_with_agents_pct": round(clips_with_agents_pct, 3),
         "min_confidence_threshold": min_confidence,
+        "min_mask_area_pct": min_mask_area_pct,
         "elapsed_sec": elapsed,
         "sam_model": factor_cfg["sam_model"],
-        "quality_gate": "PASS" if mean_concept_recall >= 0.5 else "FAIL",
+        "quality_gate": "PASS" if quality_gate else "FAIL",
+        "quality_gate_checks": {k: "PASS" if v else "FAIL" for k, v in gate_checks.items()},
     }
     save_json_checkpoint(summary, output_dir / "summary.json")
 
@@ -578,14 +704,17 @@ def main():
         ckpt_file.unlink()
 
     # Paper visualizations
-    plot_segmentation_samples(segments, masks_dir, tags_lookup, output_dir)
+    plot_overlay_per_clip(segments, masks_dir, tags_lookup, output_dir)
     plot_agent_stats(segments, tags_lookup, output_dir)
 
-    # Quality gate: FATAL if concept recall too low (Rule 33: quality gates in Python, not shell)
-    if mean_concept_recall < 0.5:
-        print(f"FATAL: Mean concept recall = {mean_concept_recall:.2f} (< 0.5 threshold)")
-        print("  SAM 3.1 is not detecting enough objects from tags.json prompts.")
-        print("  Check: text prompts, SAM model version, image quality.")
+    # Quality gate: FATAL if composite check fails (Rule 33: quality gates in Python, not shell)
+    if not quality_gate:
+        failed = [k for k, v in gate_checks.items() if not v]
+        print(f"FATAL: Quality gate FAILED — {len(failed)} check(s):")
+        print(f"  pixel_ratio_min:  mean={mean_pixel_ratio:.3f} (need >=0.02) {'FAIL' if not gate_checks['pixel_ratio_min'] else 'OK'}")
+        print(f"  pixel_ratio_max:  mean={mean_pixel_ratio:.3f} (need <=0.50) {'FAIL' if not gate_checks['pixel_ratio_max'] else 'OK'}")
+        print(f"  mask_confidence:  mean={mean_mask_confidence:.3f} (need >=0.40) {'FAIL' if not gate_checks['mask_confidence'] else 'OK'}")
+        print(f"  clips_with_agents: {clips_with_agents_pct:.0%} (need >=50%) {'FAIL' if not gate_checks['clips_with_agents'] else 'OK'}")
         os._exit(1)  # os._exit to kill SAM3 async threads (sys.exit hangs)
 
     log_metrics(wb_run, summary)
@@ -605,4 +734,10 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except Exception as e:
+        print(f"\nFATAL (unhandled): {e}")
+        import traceback
+        traceback.print_exc()
+        os._exit(1)  # guarantee exit even with SAM3 async threads

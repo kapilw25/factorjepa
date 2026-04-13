@@ -40,6 +40,7 @@ from utils.config import (
     VLM_MODELS, BAKEOFF_CLIP_COUNT, BAKEOFF_DIR, OUTPUTS_POC_DIR, OUTPUTS_SANITY_DIR,
     check_gpu, check_output_exists, load_subset, add_subset_arg, add_local_data_arg,
     get_pipeline_config, get_sanity_clip_limit, get_total_clips,
+    get_module_output_dir,
 )
 from utils.data_download import ensure_local_data, iter_clips_parallel
 from utils.gpu_batch import compute_batch_sizes, add_gpu_mem_arg, AdaptiveBatchSizer, cleanup_temp
@@ -788,14 +789,13 @@ def get_batch_size(model_name: str, override: int = None) -> int:
 def get_tags_file(model_name: str, is_bakeoff: bool, subset_path: str = None,
                    is_sanity: bool = False) -> Path:
     """Determine output tags file based on mode."""
-    if is_sanity:
-        return OUTPUTS_SANITY_DIR / f"tags_sanity_{model_name}.json"
     if is_bakeoff:
         return BAKEOFF_DIR / f"tags_{model_name}.json"
-    elif subset_path:
-        return OUTPUTS_POC_DIR / "tags.json"
-    else:
-        return TAGS_FILE
+    out = get_module_output_dir("m04_vlm_tag", subset_path,
+                                sanity=is_sanity, poc=bool(subset_path))
+    if is_sanity:
+        return out / f"tags_sanity_{model_name}.json"
+    return out / "tags.json"
 
 
 # ═════════════════════════════════════════════════════════════════════════

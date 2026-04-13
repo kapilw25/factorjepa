@@ -28,7 +28,7 @@ sys.path.insert(0, str(Path(__file__).parent))
 from utils.config import (
     ENCODER_REGISTRY, VJEPA_EMBEDDING_DIM, VJEPA_FRAMES_PER_CLIP,
     check_gpu, load_subset, add_subset_arg, add_local_data_arg,
-    get_output_dir, get_encoder_files,
+    get_output_dir, get_module_output_dir, get_encoder_files,
     get_sanity_clip_limit, get_total_clips, get_pipeline_config,
 )
 from utils.data_download import ensure_local_data, iter_clips_parallel
@@ -809,8 +809,7 @@ def main():
 def _run_single_encoder(encoder: str, args):
     """Run a single baseline encoder end-to-end."""
     info = ENCODER_REGISTRY[encoder]
-    output_dir = get_output_dir(args.subset, sanity=args.SANITY, poc=args.POC)
-    output_dir.mkdir(parents=True, exist_ok=True)
+    output_dir = get_module_output_dir("m05b_baselines", args.subset, sanity=args.SANITY, poc=args.POC)
     files = get_encoder_files(encoder, output_dir)
 
     print(f"{'='*60}")

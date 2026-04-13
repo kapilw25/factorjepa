@@ -36,6 +36,7 @@ from utils.config import (
     HF_DATASET_REPO, check_gpu,
     add_subset_arg, add_local_data_arg, get_output_dir, load_subset,
     get_pipeline_config, get_sanity_clip_limit, get_total_clips,
+    get_module_output_dir,
 )
 from utils.data_download import ensure_local_data, iter_clips_parallel
 from utils.wandb_utils import (
@@ -381,7 +382,7 @@ def main():
     check_gpu()
 
     # Output routing
-    output_dir = get_output_dir(args.subset, sanity=args.SANITY, poc=args.POC)
+    output_dir = get_module_output_dir("m04d_motion_features", args.subset, sanity=args.SANITY, poc=args.POC)
     output_dir.mkdir(parents=True, exist_ok=True)
 
     # Skip if output already exists (motion features are encoder-independent)

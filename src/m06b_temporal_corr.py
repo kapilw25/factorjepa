@@ -21,8 +21,8 @@ sys.path.insert(0, str(Path(__file__).parent))
 from utils.progress import make_pbar
 from utils.config import (
     ENCODER_REGISTRY, FAISS_K_NEIGHBORS,
-    add_encoder_arg, add_subset_arg, get_output_dir, get_encoder_files,
-    get_encoder_info, get_pipeline_config,
+    add_encoder_arg, add_subset_arg, get_output_dir, get_module_output_dir,
+    get_encoder_files, get_encoder_info, get_pipeline_config,
 )
 from utils.wandb_utils import (
     add_wandb_args, init_wandb, log_metrics, finish_wandb,
@@ -320,21 +320,23 @@ def main():
         print("\nERROR: Specify --SANITY, --POC, or --FULL")
         sys.exit(1)
 
-    output_dir = get_output_dir(args.subset, sanity=args.SANITY, poc=args.POC)
+    input_dir = get_output_dir(args.subset, sanity=args.SANITY, poc=args.POC)
+    output_dir = get_module_output_dir("m06b_temporal_corr", args.subset, sanity=args.SANITY, poc=args.POC)
     mode = "SANITY" if args.SANITY else ("POC" if args.POC else "FULL")
     wb_run = init_wandb("m06b", mode, config=vars(args),
                         enabled=not args.no_wandb)
 
     enc_info = get_encoder_info(args.encoder)
-    enc_files = get_encoder_files(args.encoder, output_dir)
+    enc_files = get_encoder_files(args.encoder, input_dir)
     sfx = enc_info["suffix"]
 
     print(f"Encoder: {args.encoder} (dim={enc_info['dim']}, suffix='{sfx}')")
+    print(f"Input:  {input_dir}")
     print(f"Output: {output_dir}")
 
     # ── Load motion features (optional — metrics 4+5 work without) ──
-    motion_file = output_dir / "motion_features.npy"
-    motion_keys_file = output_dir / "motion_features.paths.npy"
+    motion_file = input_dir / "motion_features.npy"
+    motion_keys_file = input_dir / "motion_features.paths.npy"
     motion_features = None
     motion_keys = None
 
@@ -428,8 +430,8 @@ def main():
     order_sensitivity = None
     if args.encoder in ("vjepa", "vjepa_shuffled"):
         # Load the counterpart: if running vjepa, load shuffled; if shuffled, load normal
-        vjepa_files = get_encoder_files("vjepa", output_dir)
-        shuffled_files = get_encoder_files("vjepa_shuffled", output_dir)
+        vjepa_files = get_encoder_files("vjepa", input_dir)
+        shuffled_files = get_encoder_files("vjepa_shuffled", input_dir)
         normal_emb_file = vjepa_files["embeddings"]
         shuffled_emb_file = shuffled_files["embeddings"]
         normal_keys_file = vjepa_files["paths"]

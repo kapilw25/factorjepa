@@ -165,7 +165,7 @@ log "═════════════════════════
 # Step 0: Generate frozen V-JEPA 2.1 baseline embeddings (one-time)
 # These are needed to compare: frozen 2.1 vs ExPLoRA 2.1 (same model, fair comparison)
 # ═══════════════════════════════════════════════════════════════════════
-FROZEN_EMB="${OUT_DIR}/embeddings_vjepa_2_1_frozen.npy"
+FROZEN_EMB="${OUT_DIR}/m05_vjepa_embed/embeddings_vjepa_2_1_frozen.npy"
 if [[ -f "$FROZEN_EMB" ]]; then
     log "Frozen 2.1 embeddings exist: $FROZEN_EMB (skipping)"
 else
@@ -186,7 +186,7 @@ fi
 # ═══════════════════════════════════════════════════════════════════════
 # Step 1: ExPLoRA training
 # ═══════════════════════════════════════════════════════════════════════
-EXPLORA_DIR="${OUT_DIR}/m09_explora"
+EXPLORA_DIR="${OUT_DIR}/m09_pretrain/explora"
 
 run_step "1-train" "m09 ExPLoRA (LoRA rank=16, unfreeze=2 blocks)" \
     "$T_TRAIN" "$LOGDIR/m09_explora_${MODE,,}.log" \

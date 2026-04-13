@@ -364,6 +364,20 @@ def get_output_dir(subset_path: str = None, sanity: bool = False,
     return OUTPUTS_DIR
 
 
+def get_module_output_dir(module_name: str, subset_path: str = None,
+                          sanity: bool = False, poc: bool = False) -> Path:
+    """Return per-module output directory: outputs/{mode}/{module_name}/
+
+    Each src/m*.py gets its own subdirectory for clean separation.
+    Example: get_module_output_dir("m10_sam_segment", sanity=True)
+             → outputs/sanity/m10_sam_segment/
+    """
+    base = get_output_dir(subset_path, sanity, poc)
+    out = base / module_name
+    out.mkdir(parents=True, exist_ok=True)
+    return out
+
+
 def add_subset_arg(parser):
     """Add --subset argument to any argparse parser (shared across m04-m08)."""
     parser.add_argument("--subset", type=str, default=None,

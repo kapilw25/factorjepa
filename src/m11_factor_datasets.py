@@ -1,7 +1,8 @@
 """Generate factor datasets D_L (layout-only) + D_A (agent-only) from m10 masks. CPU-only.
-    python -u src/m11_factor_datasets.py --SANITY --local-data data/val_1k_local 2>&1 | tee logs/m11_sanity.log
-    python -u src/m11_factor_datasets.py --POC --local-data data/val_1k_local 2>&1 | tee logs/m11_poc.log
-    python -u src/m11_factor_datasets.py --FULL --local-data data/full_local 2>&1 | tee logs/m11_full.log
+    python -u src/m11_factor_datasets.py --SANITY --local-data data/val_1k_local --no-wandb 2>&1 | tee logs/m11_sanity.log
+    python -u src/m11_factor_datasets.py --POC --local-data data/val_1k_local --no-wandb 2>&1 | tee logs/m11_poc.log
+    python -u src/m11_factor_datasets.py --FULL --local-data data/full_local --no-wandb 2>&1 | tee logs/m11_full.log
+    python -u src/m11_factor_datasets.py --SANITY --plot    # re-generate plots only (reads existing outputs)
 """
 import argparse
 import sys
@@ -20,7 +21,7 @@ from scipy.ndimage import gaussian_filter
 
 sys.path.insert(0, str(Path(__file__).parent))
 from utils.config import (
-    add_subset_arg, add_local_data_arg, get_output_dir,
+    add_subset_arg, add_local_data_arg, get_output_dir, get_module_output_dir,
     load_subset,
 )
 from utils.checkpoint import save_json_checkpoint, load_json_checkpoint
@@ -295,6 +296,87 @@ def plot_interaction_samples(di_dir: Path, manifest: dict, output_dir: Path,
           f"{f', median {np.median(tube_counts):.0f}/clip' if tube_counts else ''}")
 
 
+def plot_factor_per_clip(dl_dir: Path, da_dir: Path, di_dir: Path,
+                        masks_dir: Path, output_dir: Path):
+    """2x2 per-clip grid: original | D_L (layout) | D_A (agent) | D_I (interaction).
+
+    Reads mid_frame_rgb from m10 .npz masks for the original frame.
+    Saves individual images per clip to output_dir/m11_per_clip_verify/.
+    """
+    init_style()
+    verify_dir = output_dir / "m11_per_clip_verify"
+    verify_dir.mkdir(parents=True, exist_ok=True)
+
+    dl_files = sorted(dl_dir.glob("*.npy"))
+    count = 0
+    for dl_file in dl_files:
+        safe_key = dl_file.stem
+        da_file = da_dir / f"{safe_key}.npy"
+        mask_file = masks_dir / f"{safe_key}.npz"
+
+        dl_frames = np.load(dl_file)
+        mid = dl_frames.shape[0] // 2
+
+        # Original frame from m10 masks (saved as mid_frame_rgb)
+        original = None
+        if mask_file.exists():
+            data = np.load(mask_file)
+            if "mid_frame_rgb" in data:
+                original = data["mid_frame_rgb"]
+
+        # D_A
+        da_frame = None
+        if da_file.exists():
+            da_frames = np.load(da_file)
+            da_frame = da_frames[min(mid, da_frames.shape[0] - 1)]
+
+        # D_I — find first tube for this clip
+        di_frame = None
+        di_tubes = sorted(di_dir.glob(f"{safe_key}_tube*.npy"))
+        if di_tubes:
+            tube = np.load(di_tubes[0])
+            di_frame = tube[tube.shape[0] // 2]
+
+        # 2x2 grid
+        fig, axes = plt.subplots(2, 2, figsize=(12, 10))
+        clip_name = safe_key.replace("__", "/")
+
+        if original is not None:
+            axes[0, 0].imshow(original)
+        axes[0, 0].set_title("Original", fontsize=11)
+        axes[0, 0].axis("off")
+
+        axes[0, 1].imshow(dl_frames[mid])
+        axes[0, 1].set_title("D_L: Layout (agents blurred)", fontsize=11)
+        axes[0, 1].axis("off")
+
+        if da_frame is not None:
+            axes[1, 0].imshow(da_frame)
+            axes[1, 0].set_title("D_A: Agents (background suppressed)", fontsize=11)
+        else:
+            axes[1, 0].text(0.5, 0.5, "D_A: skipped\n(agent area < threshold)",
+                           ha="center", va="center", fontsize=12, transform=axes[1, 0].transAxes)
+            axes[1, 0].set_title("D_A: Agents", fontsize=11)
+        axes[1, 0].axis("off")
+
+        if di_frame is not None:
+            axes[1, 1].imshow(di_frame)
+            axes[1, 1].set_title(f"D_I: Interaction tube ({len(di_tubes)} tubes)", fontsize=11)
+        else:
+            axes[1, 1].text(0.5, 0.5, "D_I: no interactions\nfound for this clip",
+                           ha="center", va="center", fontsize=12, transform=axes[1, 1].transAxes)
+            axes[1, 1].set_title("D_I: Interaction", fontsize=11)
+        axes[1, 1].axis("off")
+
+        fig.suptitle(f"{clip_name}", fontsize=12, y=0.98)
+        plt.tight_layout()
+        save_fig(fig, str(verify_dir / safe_key))
+        plt.close(fig)
+        count += 1
+
+    print(f"  Saved: {verify_dir}/ ({count} clips, 2x2 grids)")
+
+
 def plot_factor_stats(manifest: dict, output_dir: Path):
     """Histogram of agent pixel ratio across clips. Paper figure."""
     init_style()
@@ -323,6 +405,8 @@ def main():
     parser.add_argument("--SANITY", action="store_true", help="20 clips")
     parser.add_argument("--POC", action="store_true", help="1K clips")
     parser.add_argument("--FULL", action="store_true", help="All clips")
+    parser.add_argument("--plot", action="store_true",
+                        help="Re-generate plots only from existing outputs (no data processing)")
     parser.add_argument("--train-config", default="configs/train/ch11_surgery.yaml",
                         help="Patching params YAML")
     parser.add_argument("--input-dir", default=None,
@@ -338,6 +422,27 @@ def main():
         print("\nERROR: Specify --SANITY, --POC, or --FULL")
         sys.exit(1)
 
+    # --plot: re-generate plots from existing outputs (no data processing)
+    if args.plot:
+        output_dir = Path(args.output_dir) if args.output_dir else get_module_output_dir(
+            "m11_factor_datasets", args.subset, sanity=args.SANITY, poc=args.POC)
+        m10_dir = get_module_output_dir("m10_sam_segment", args.subset,
+                                        sanity=args.SANITY, poc=args.POC)
+        masks_dir = (Path(args.input_dir) if args.input_dir else m10_dir) / "masks"
+        dl_dir, da_dir, di_dir = output_dir / "D_L", output_dir / "D_A", output_dir / "D_I"
+        manifest_file = output_dir / "factor_manifest.json"
+        if not manifest_file.exists():
+            print(f"FATAL: {manifest_file} not found. Run without --plot first.")
+            sys.exit(1)
+        manifest = json.load(open(manifest_file))
+        print(f"Re-generating plots from {output_dir} ({len(manifest)} clips)...")
+        plot_factor_samples(dl_dir, da_dir, output_dir)
+        plot_interaction_samples(di_dir, manifest, output_dir)
+        plot_factor_per_clip(dl_dir, da_dir, di_dir, masks_dir, output_dir)
+        plot_factor_stats(manifest, output_dir)
+        print("Done (--plot).")
+        return
+
     ensure_local_data(args)
 
     # Load config
@@ -345,10 +450,12 @@ def main():
         train_cfg = yaml.safe_load(f)
     factor_cfg = train_cfg["factor_datasets"]
 
-    # Directories
-    base_dir = get_output_dir(args.subset, sanity=args.SANITY, poc=args.POC)
-    input_dir = Path(args.input_dir) if args.input_dir else base_dir / "factors"
-    output_dir = Path(args.output_dir) if args.output_dir else input_dir
+    # Directories — m11 reads masks from m10, writes factors to its own dir
+    m10_dir = get_module_output_dir("m10_sam_segment", args.subset,
+                                    sanity=args.SANITY, poc=args.POC)
+    input_dir = Path(args.input_dir) if args.input_dir else m10_dir
+    output_dir = Path(args.output_dir) if args.output_dir else get_module_output_dir(
+        "m11_factor_datasets", args.subset, sanity=args.SANITY, poc=args.POC)
     masks_dir = input_dir / "masks"
 
     dl_dir = output_dir / "D_L"
@@ -438,7 +545,7 @@ def main():
 
             # Load masks + interaction data
             data = np.load(mask_file, allow_pickle=True)
-            agent_mask = data["agent_mask"]
+            agent_mask = data["agent_mask"]  # (T_mask, H, W)
             layout_mask = data["layout_mask"]
 
             # Load per-object masks + interactions (for D_I)
@@ -454,11 +561,33 @@ def main():
             if frames_tensor is None:
                 print(f"  FATAL: decode failed for {clip_key}")
                 sys.exit(1)
-            frames_np = frames_tensor.permute(0, 2, 3, 1).numpy()
+            frames_np = frames_tensor.permute(0, 2, 3, 1).numpy()  # (T, H, W, C)
             if frames_np.max() <= 1.0:
                 frames_np = (frames_np * 255).astype(np.uint8)
             else:
                 frames_np = frames_np.astype(np.uint8)
+
+            # Align mask frames to video frames (SAM may propagate fewer frames)
+            T_vid = frames_np.shape[0]
+            T_mask = agent_mask.shape[0]
+            if T_mask != T_vid:
+                # Nearest-neighbor temporal interpolation
+                mask_indices = np.linspace(0, T_mask - 1, T_vid, dtype=int)
+                agent_mask = agent_mask[mask_indices]
+                layout_mask = layout_mask[mask_indices]
+
+            # Align spatial dims (SAM output resolution may differ from video)
+            if agent_mask.shape[1:] != frames_np.shape[1:3]:
+                from PIL import Image as PILImage
+                new_masks = np.zeros((T_vid, frames_np.shape[1], frames_np.shape[2]), dtype=bool)
+                new_layouts = np.zeros_like(new_masks)
+                for t in range(T_vid):
+                    new_masks[t] = np.array(PILImage.fromarray(agent_mask[t]).resize(
+                        (frames_np.shape[2], frames_np.shape[1]), PILImage.NEAREST))
+                    new_layouts[t] = np.array(PILImage.fromarray(layout_mask[t]).resize(
+                        (frames_np.shape[2], frames_np.shape[1]), PILImage.NEAREST))
+                agent_mask = new_masks
+                layout_mask = new_layouts
 
             # Quality filters: skip degenerate samples (proposal Sec 11.7)
             agent_pct = segments[clip_key]["agent_pixel_ratio"]
@@ -511,9 +640,10 @@ def main():
     print(f"  D_A: {da_dir} ({len(list(da_dir.glob('*.npy')))} files)")
     print(f"  D_I: {di_dir} ({len(list(di_dir.glob('*.npy')))} tubes from {n_tubes_total} interactions)")
 
-    # Paper visualizations (D_L vs D_A, D_I tubes, stats)
+    # Paper visualizations (D_L vs D_A, D_I tubes, stats, per-clip 2x2 grids)
     plot_factor_samples(dl_dir, da_dir, output_dir)
     plot_interaction_samples(di_dir, manifest, output_dir)
+    plot_factor_per_clip(dl_dir, da_dir, di_dir, masks_dir, output_dir)
     plot_factor_stats(manifest, output_dir)
 
     log_metrics(wb_run, {"n_clips": len(manifest), "elapsed": elapsed})

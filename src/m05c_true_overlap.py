@@ -24,7 +24,7 @@ from tqdm import tqdm
 sys.path.insert(0, str(Path(__file__).parent))
 from utils.config import (
     VJEPA_FRAMES_PER_CLIP, check_gpu, check_output_exists,
-    load_subset, add_subset_arg, add_local_data_arg, get_output_dir,
+    load_subset, add_subset_arg, add_local_data_arg, get_output_dir, get_module_output_dir,
     get_sanity_clip_limit, get_total_clips, get_pipeline_config,
 )
 from utils.data_download import ensure_local_data, iter_clips_parallel
@@ -278,8 +278,7 @@ def main():
     check_gpu()
     device = "cuda"
 
-    output_dir = get_output_dir(args.subset, sanity=args.SANITY, poc=args.POC)
-    output_dir.mkdir(parents=True, exist_ok=True)
+    output_dir = get_module_output_dir("m05c_true_overlap", args.subset, sanity=args.SANITY, poc=args.POC)
     aug_a_file = output_dir / "overlap_augA.npy"
     aug_b_file = output_dir / "overlap_augB.npy"
     keys_file = output_dir / "overlap_keys.npy"

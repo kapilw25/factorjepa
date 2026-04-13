@@ -13,6 +13,7 @@ sys.path.insert(0, str(Path(__file__).parent))
 from utils.progress import make_pbar
 from utils.config import (
     BAKEOFF_DIR, OUTPUTS_DIR, OUTPUTS_SANITY_DIR, TAG_TAXONOMY_JSON, VLM_MODELS,
+    get_module_output_dir,
 )
 
 # ── Config ────────────────────────────────────────────────────────────────
@@ -523,7 +524,7 @@ def main():
     sanity = args.SANITY
 
     mode_label = "SANITY" if sanity else "BAKEOFF"
-    output_dir = OUTPUTS_DIR if sanity else BAKEOFF_DIR
+    output_dir = get_module_output_dir("m04b_vlm_select", sanity=sanity)
     output_json = output_dir / "m04b_vlm_comparison.json"
 
     print(f"VLM Bake-off Selection  (mode={mode_label})")

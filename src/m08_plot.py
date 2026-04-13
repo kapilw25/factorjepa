@@ -22,7 +22,8 @@ from utils.progress import make_pbar
 from utils.config import (
     EMBEDDINGS_FILE, TAGS_FILE, METRICS_FILE, OUTPUTS_DIR,
     FAISS_K_NEIGHBORS, ENCODER_REGISTRY, get_encoder_info,
-    add_subset_arg, add_encoder_arg, get_output_dir, get_encoder_files,
+    add_subset_arg, add_encoder_arg, get_output_dir, get_module_output_dir,
+    get_encoder_files,
 )
 
 TAXONOMY_FILE = Path(__file__).parent.parent / "configs" / "tag_taxonomy.json"
@@ -477,8 +478,8 @@ def main():
         print("\nERROR: Specify --SANITY, --POC, or --FULL")
         sys.exit(1)
 
-    output_dir = get_output_dir(args.subset, sanity=args.SANITY, poc=args.POC)
-    output_dir.mkdir(parents=True, exist_ok=True)
+    base_dir = get_output_dir(args.subset, sanity=args.SANITY, poc=args.POC)
+    output_dir = get_module_output_dir("m08_plot", args.subset, sanity=args.SANITY, poc=args.POC)
 
     mode = "SANITY" if args.SANITY else ("POC" if args.POC else "FULL")
     wb_run = init_wandb("m08", mode, config=vars(args), enabled=not args.no_wandb)
@@ -486,7 +487,7 @@ def main():
     print(f"Output dir: {output_dir}")
 
     # Resolve file paths — encoder-aware via get_encoder_files()
-    enc_files = get_encoder_files(args.encoder, output_dir)
+    enc_files = get_encoder_files(args.encoder, base_dir)
     enc_sfx = get_encoder_info(args.encoder)["suffix"]
 
     # Output-exists guard (CPU-only but avoids redundant re-plots)
@@ -499,7 +500,7 @@ def main():
     }, label=f"m08 {args.encoder}"):
         finish_wandb(wb_run)
         return
-    tags_file = output_dir / "tags.json"
+    tags_file = base_dir / "tags.json"
     paths_file = enc_files["paths"]
     metrics_file = enc_files["metrics"]
     umap_file = enc_files["umap_2d"]

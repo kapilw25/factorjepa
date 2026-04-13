@@ -52,7 +52,7 @@ case "$1" in
         MODE_FLAG="--SANITY"
         SUBSET_FLAG=""
         OUT_DIR="outputs/sanity"
-        TAGS_FILE="outputs/sanity/tags_sanity_qwen.json"
+        TAGS_FILE="outputs/sanity/m04_vlm_tag/tags_sanity_qwen.json"
         BATCH_M04=""
         ;;
     --POC)
@@ -60,7 +60,7 @@ case "$1" in
         MODE_FLAG="--FULL"
         SUBSET_FLAG="--subset data/subset_10k.json"
         OUT_DIR="outputs/poc"
-        TAGS_FILE="outputs/poc/tags.json"
+        TAGS_FILE="outputs/poc/m04_vlm_tag/tags.json"
         BATCH_M04=""
         ;;
     --FULL)
@@ -68,7 +68,7 @@ case "$1" in
         MODE_FLAG="--FULL"
         SUBSET_FLAG=""
         OUT_DIR="outputs/full"
-        TAGS_FILE="outputs/full/tags.json"
+        TAGS_FILE="outputs/full/m04_vlm_tag/tags.json"
         BATCH_M04=""
         ;;
     *)
@@ -357,7 +357,7 @@ except Exception as e:
 "
 
 # Symlink tags file so downstream steps (m06, m08) find it at the canonical path
-CANONICAL_TAGS="${OUT_DIR}/tags.json"
+CANONICAL_TAGS="${OUT_DIR}/m04_vlm_tag/tags.json"
 if [[ -f "$TAGS_FILE" && "$TAGS_FILE" != "$CANONICAL_TAGS" ]]; then
     ln -sf "$(cd "$(dirname "$TAGS_FILE")" && pwd)/$(basename "$TAGS_FILE")" "$CANONICAL_TAGS"
     log "Symlinked: $(basename "$TAGS_FILE") → tags.json"

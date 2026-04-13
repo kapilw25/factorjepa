@@ -18,8 +18,8 @@ import numpy as np
 sys.path.insert(0, str(Path(__file__).parent))
 from utils.progress import make_pbar
 from utils.config import (
-    ENCODER_REGISTRY, add_subset_arg, get_output_dir, get_encoder_files,
-    get_encoder_info,
+    ENCODER_REGISTRY, add_subset_arg, get_output_dir, get_module_output_dir,
+    get_encoder_files, get_encoder_info,
 )
 from utils.wandb_utils import add_wandb_args, init_wandb, log_image, finish_wandb
 
@@ -1014,16 +1014,17 @@ def main():
         global ENCODER_ORDER
         ENCODER_ORDER = encoder_list
 
-    output_dir = get_output_dir(args.subset, sanity=args.SANITY, poc=args.POC)
+    base_dir = get_output_dir(args.subset, sanity=args.SANITY, poc=args.POC)
+    output_dir = get_module_output_dir("m08b_compare", args.subset, sanity=args.SANITY, poc=args.POC)
     print(f"Output dir: {output_dir}")
     print(f"Scanning for encoder metrics...")
 
-    all_metrics = load_all_metrics(output_dir, encoder_list=encoder_list)
+    all_metrics = load_all_metrics(base_dir, encoder_list=encoder_list)
     if not all_metrics:
         print("FATAL: No encoder metrics found. Run m06 first.")
         sys.exit(1)
 
-    all_temporal = load_all_temporal(output_dir, encoder_list=encoder_list)
+    all_temporal = load_all_temporal(base_dir, encoder_list=encoder_list)
 
     print(f"\nFound {len(all_metrics)} encoder(s): {', '.join(all_metrics.keys())}")
     if all_temporal:

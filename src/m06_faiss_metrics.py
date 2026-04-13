@@ -22,7 +22,7 @@ sys.path.insert(0, str(Path(__file__).parent))
 from utils.progress import make_pbar
 from utils.config import (
     FAISS_K_NEIGHBORS, TAG_TAXONOMY_JSON,
-    check_gpu, add_subset_arg, get_output_dir,
+    check_gpu, add_subset_arg, get_output_dir, get_module_output_dir,
     add_encoder_arg, get_encoder_files, get_encoder_info, get_pipeline_config,
 )
 from utils.wandb_utils import (
@@ -1045,14 +1045,16 @@ def main():
                         enabled=not args.no_wandb)
 
     # Output routing: POC vs Full, encoder-aware paths
-    output_dir = get_output_dir(args.subset, sanity=args.SANITY, poc=args.POC)
+    input_dir = get_output_dir(args.subset, sanity=args.SANITY, poc=args.POC)
+    output_dir = get_module_output_dir("m06_faiss_metrics", args.subset, sanity=args.SANITY, poc=args.POC)
+    input_enc_files = get_encoder_files(args.encoder, input_dir)
     enc_files = get_encoder_files(args.encoder, output_dir)
     metrics_file = enc_files["metrics"]
-    emb_file = enc_files["embeddings"]
-    paths_file = enc_files["paths"]
+    emb_file = input_enc_files["embeddings"]
+    paths_file = input_enc_files["paths"]
 
     # Tags are shared across all encoders (not encoder-specific)
-    tags_file = output_dir / "tags.json"
+    tags_file = input_dir / "tags.json"
 
     enc_info = get_encoder_info(args.encoder)
 
@@ -1155,7 +1157,7 @@ def main():
 
     # ── True Overlap@K (replaces dim-split if augmented embeddings exist) ──
     if args.true_overlap:
-        result = compute_true_overlap_at_k(output_dir, k)
+        result = compute_true_overlap_at_k(input_dir, k)
         if result is not None:
             true_ov, overlap_ci = result
             print(f"\n  True Overlap@K: {true_ov:.2f}% \u00b1 {overlap_ci['ci_half']:.2f} (multi-crop augmentation)")

@@ -35,6 +35,7 @@ from utils.config import (
     TAGS_FILE, TAG_TAXONOMY_JSON, HF_DATASET_REPO,
     check_gpu, load_subset, add_subset_arg, add_local_data_arg,
     get_pipeline_config, get_sanity_clip_limit, get_total_clips,
+    get_module_output_dir,
 )
 from utils.data_download import ensure_local_data
 from utils.wandb_utils import (
@@ -212,8 +213,7 @@ def load_checkpoint(path):
 def tag_clips(args):
     check_gpu()
 
-    from utils.config import get_output_dir
-    output_dir = get_output_dir(args.subset, sanity=args.SANITY, poc=args.POC)
+    output_dir = get_module_output_dir("m04_vlm_tag", args.subset, sanity=args.SANITY, poc=args.POC)
     output_dir.mkdir(parents=True, exist_ok=True)
     tags_file = output_dir / "tags.json"
     checkpoint_path = output_dir / ".m04_vllm_checkpoint.json"

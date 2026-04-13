@@ -15,7 +15,7 @@ from sklearn.decomposition import TruncatedSVD
 
 # Project imports
 sys.path.insert(0, str(Path(__file__).parent))
-from utils.config import get_output_dir, add_subset_arg
+from utils.config import get_output_dir, get_module_output_dir, add_subset_arg
 from utils.checkpoint import save_array_checkpoint, save_json_checkpoint
 from utils.gpu_batch import cleanup_temp
 from utils.output_guard import verify_or_skip
@@ -132,7 +132,8 @@ def main():
     mode_flag = f"--{mode}"
     subset_arg = ["--subset", args.subset] if args.subset else []
 
-    output_dir = get_output_dir(args.subset, sanity=args.SANITY, poc=args.POC)
+    input_dir = get_output_dir(args.subset, sanity=args.SANITY, poc=args.POC)
+    output_dir = get_module_output_dir("m06c_temporal_projection", args.subset, sanity=args.SANITY, poc=args.POC)
     wb_run = init_wandb("m06c", mode, config=vars(args), enabled=not args.no_wandb)
 
     # Clean stale temp files (consistent with GPU scripts)
@@ -157,7 +158,7 @@ def main():
 
     # ── Load embeddings ─────────────────────────────────────────
     t0 = time.time()
-    emb_normal, emb_shuffled, _paths = load_and_verify(output_dir)
+    emb_normal, emb_shuffled, _paths = load_and_verify(input_dir)
     N, D = emb_normal.shape
 
     # ── Compute difference stats ────────────────────────────────
@@ -216,7 +217,7 @@ def main():
             projected = project_out(emb_normal, components_k)  # (N, D)
             save_array_checkpoint(projected, proj_emb_file)    # atomic
             if not proj_paths_file.exists():
-                shutil.copy(output_dir / "embeddings.paths.npy", proj_paths_file)
+                shutil.copy(input_dir / "embeddings.paths.npy", proj_paths_file)
             assert projected.shape == emb_normal.shape, \
                 f"Shape changed: {projected.shape} vs {emb_normal.shape}"
             action = "saved "
@@ -253,12 +254,14 @@ def main():
         encoder_name = f"temporal_proj_k{k}"
         success = run_m06_for_encoder(encoder_name, mode_flag, subset_arg)
         if success:
-            metrics_file = output_dir / f"m06_metrics_{encoder_name}.json"
+            m06_dir = get_module_output_dir("m06_faiss_metrics", args.subset, sanity=args.SANITY, poc=args.POC)
+            metrics_file = m06_dir / f"m06_metrics_{encoder_name}.json"
             prec = load_prec_at_k(metrics_file)
             entry.update(prec)
 
     # ── Load original vjepa Prec@K for comparison ───────────────
-    orig_metrics = load_prec_at_k(output_dir / "m06_metrics.json")
+    m06_dir = get_module_output_dir("m06_faiss_metrics", args.subset, sanity=args.SANITY, poc=args.POC)
+    orig_metrics = load_prec_at_k(m06_dir / "m06_metrics.json")
 
     # ── Print comparison table ──────────────────────────────────
     elapsed = time.time() - t0
