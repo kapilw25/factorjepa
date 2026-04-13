@@ -5,7 +5,7 @@
   "mean_agent_pixel_ratio": 0.06356457038074793,
   "mean_concept_recall": 1.377,
   "min_confidence_threshold": 0.5,
-  "elapsed_sec": 168.49295449256897,
+  "elapsed_sec": 171.95632672309875,
   "sam_model": "facebook/sam3.1",
   "quality_gate": "PASS"
 }
