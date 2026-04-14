@@ -11,6 +11,7 @@
 git clone https://github.com/kapilw25/factorjepa.git && cd factorjepa
 mkdir -p logs && ./setup_env_uv.sh --gpu --from-wheels 2>&1 | tee logs/setup_env_gpu.log
 source venv_walkindia/bin/activate
+./git_push.sh --code-only "updating"  # sync code only (if CODE modified during isntallation, but no HF upload, use on both Mac and GPU)
 ./git_pull.sh 2>&1 | tee logs/git_pull.log # downloads outputs + data from HF
 ```
 
