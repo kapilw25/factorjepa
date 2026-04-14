@@ -54,20 +54,27 @@ Research benchmark testing if V-JEPA 2 (Meta's video foundation model, trained o
   - LR warmup capped at 10% of total steps
   - `--max-epochs` CLI override for winner deep run
 
-### m10-m11: Surgery Factor Datasets (Ch11, BUILT — untested on GPU)
-- **m10_sam_segment.py** (~595 lines): SAM 3.1 text-prompted segmentation → agent/layout masks + interaction mining. Per-clip notable_objects from tags.json. Streaming API (`handle_stream_request` → `propagate_in_video`). Multiplex builder for 3.1. Quality gate: FATAL if mean_concept_recall < 0.3. Saves `.npz` masks + `segments.json` + `summary.json` + sample plots.
-- **m11_factor_datasets.py** (~515 lines): CPU-only. Generate D_L (blur agents σ=15, feathered edges σ=3), D_A (suppress background, soft matte 10% residual), D_I (interaction tubes from centroids, ≥4 frame runs). Quality filters (min 2% / max 70% agent area). Saves `.npy` per clip + `factor_manifest.json`. All params from ch11_surgery.yaml.
-- **m09 surgery mode** (IMPLEMENTED, untested on GPU): `train_surgery()` function (~270 lines). 3-stage progressive prefix unfreezing: builds `FactorSampler` from `factor_manifest.json`, loads `.npy` factor clips, per-stage optimizer rebuild + warmup. Stages from `ch11_surgery.yaml`: stage1 (layers 0-25%, 100% D_L), stage2 (0-50%, 90% D_A + 10% D_L), stage3 (0-75%, 85% D_I + 10% D_A + 5% D_L). Same V-JEPA 2.1 dense loss.
+### m10-m11: Surgery Factor Datasets (Ch11, Step A+B PASSED on GPU 2026-04-13, C/D/E pending)
+- **m10_sam_segment.py** (743 lines): SAM 3.1 text-prompted segmentation → agent/layout masks + interaction mining. Per-clip `notable_objects` from tags.json, one `add_prompt` call per object category (Meta benchmark pattern). Unified `build_sam3_predictor(version="sam3.1", use_fa3=False)` entry point. `segment_clip()` loops categories → per-category session → `add_prompt` with contextual text ("bus on road in market") → `propagate_in_video` stream → mask resize normalization to first-detected resolution. `mine_interactions()` vectorized: agent pairs whose centroids come within `max_dist_frac * W` for ≥`min_frames` consecutive frames. Composite quality gate (4 checks: pixel_ratio 2-50%, mask_confidence ≥0.4, ≥50% clips with agents). Saves `.npz` masks (agent/layout/centroids_json/interactions_json/mid_frame_rgb) + `segments.json` + `summary.json`. Plots: per-clip overlay (orig/agent-red/layout-blue) + dual-axis scene stats. `--plot` flag regenerates from existing outputs. `os._exit(0)` to kill SAM3 async frame-loading threads. **Status**: SANITY passed but native text grounding weak for Indian objects (roofs/walls instead of vehicles) — Grounded-SAM (DINO boxes → SAM refine) pivot identified.
+- **m11_factor_datasets.py** (654 lines): CPU-only. Generate D_L (feathered Gaussian blur σ=15 on agents + feather σ=3), D_A (soft matte BG x0.1 residual, feathered), D_I (centroid-based crop tubes, ≥4 frame runs). Temporal interpolation: if SAM propagated fewer frames than video, `np.linspace(0, T_mask-1, T_vid, dtype=int)` nearest-neighbor. Spatial resize if mask shape ≠ video shape. Quality filters (min 2% / max 70% agent area). Saves per-clip `.npy` (D_L/D_A) + `_tube{i}.npy` (D_I) + `factor_manifest.json`. Plots: `m11_factor_samples.png` (D_L|D_A grid), `m11_interaction_samples.png` (3-frame tube grid), `m11_factor_per_clip_verify/` (2x2 per clip), `m11_factor_stats.png`. All params from ch11_surgery.yaml.
+- **m09 surgery mode** (train_surgery(), ~270 lines at m09_pretrain.py:917-1180): 3-stage progressive prefix unfreezing. `FactorSampler` samples `(factor_type, clip_key, path)` per `mode_mixture` weights. `load_factor_clip()` normalizes to ImageNet stats. `set_trainable_prefix(n_layers)` freezes all → unfreezes blocks [0, n_layers) + norm layers → rebuild optimizer. Per-stage warmup-then-constant LR. Same V-JEPA 2.1 dense loss + EMA teacher update. Stages from `ch11_surgery.yaml`: stage1 (layers 0-25%, 100% D_L), stage2 (0-50%, 90% D_A + 10% D_L), stage3 (0-75%, 85% D_I + 10% D_A + 5% D_L). Quality gate check on m10 `summary.json` before training. Plot training curves at end. **Status**: Built, not yet run on GPU (Step E pending).
 
 ### Scripts
-- **scripts/train_explora.sh**: ExPLoRA pipeline: m05(frozen baseline) → m09(ExPLoRA LoRA+unfreeze) → m05(re-embed adapted) → m06(metrics). 3 modes (SANITY/POC/FULL). Auto batch size from profiler, GPU pre-flight, signal trap for clean interrupt. Sources `lib/common.sh`.
-- **scripts/train_surgery.sh**: Ch11 surgery pipeline: m10(SAM3) → m11(factor datasets) → m09(surgery) → m05(re-embed) → m06(eval). Same 3 modes. Factor dir at `${OUT_DIR}/factors/`.
+- **scripts/train_explora.sh** (231 lines): Step1b ExPLoRA pipeline. 3 modes (--SANITY/--POC/--FULL). Pre-flight: venv, ckpt `checkpoints/vjepa2_1_vitG_384.pt`, `data/val_1k_local` + `data/val_1k.json`, GPU packages via `output_guard.py preflight_gpu_packages`. Steps: [0] m05 frozen `vjepa_2_1_frozen` baseline (skip if exists) → m06 frozen metrics → [1] m09 `--explora --train-config configs/train/explora.yaml` → [2] m05 re-embed `vjepa_2_1_explora` → [3] m06 metrics. Auto batch size from `outputs/profile/training/profile_data.json` via `gpu_batch.py optimal-bs`; fallback YAML. Checkpoint preserved on INT/TERM (trap). Sources `lib/common.sh`.
+- **scripts/train_surgery.sh** (231 lines): Ch11 surgery pipeline. Same pre-flight/mode structure as train_explora.sh. Steps: [0] m10 SAM3 → `$OUT_DIR/m10_sam_segment/` → [1] m11 factor datasets → [2] m09 `--surgery --factor-dir "$FACTOR_DIR" --train-config configs/train/ch11_surgery.yaml` → [3] m05 re-embed `vjepa_2_1_surgical` → [4] m06 metrics. Factor dir at `${OUT_DIR}/m10_sam_segment` (m11 writes D_L/D_A/D_I siblings).
 - **scripts/run_eval.sh**: Standalone eval (reusable across Ch9/Ch10/Ch11). Auto-detects encoders from `embeddings*.npy`. Delegates to `eval_suite.py` which runs m06→m06b→m07→m08→m08b.
 - **scripts/run_embed.sh**: Standalone embedding extraction. Auto-detects adapted models from `m09_*/student_encoder.pt`. Routes to m05 or m05b per encoder type.
 - **scripts/prep_data.sh** (aka run_evaluate.sh): Ch9 data pipeline (m04 tags + m04d motion). Pre-flight GPU checks, optional vLLM backend.
-- **scripts/lib/common.sh**: Shared infrastructure: `log()`, `banner()`, `run_step()` (PIPESTATUS capture, auto HF upload), `bg_upload()`, `start_watchdog()`, `finalize()`.
-- **scripts/run_pretrain.sh** (Ch10, OLD): 4-lambda ablation → winner → 5-epoch deep run. Per-lambda encoder names.
-- **scripts/profile_vram.py**: VRAM profiler for ViT-g training. Sweeps batch sizes [1..256]. Generates 5 diagnostic plots.
+- **scripts/train_pretrain.sh** (Ch10, OLD): 4-lambda ablation → winner → 5-epoch deep run. Per-lambda encoder names.
+- **scripts/lib/common.sh** (161 lines): Shared infrastructure. `log()`, `banner()`, `run_step(num, name, est_time, log_file, cmd...)` (PIPESTATUS capture, auto HF upload on success), `bg_upload()` (non-blocking `hf_outputs.py upload`), `verify()` (non-fatal or `--fatal` hard stop), `start_watchdog()`/`stop_watchdog()`, `print_summary()`, `finalize(pipeline_name)` (waits final upload + stops watchdog + exits with failure count).
+
+### Root-level Scripts
+- **setup_env_uv.sh**: UV-based environment setup. `--mac` (CPU/lint), `--gpu` (Linux+Nvidia, 8-step install: PyTorch→verify→requirements_gpu→FA2→FAISS-GPU→cuML→wandb→SAM3.1), `--gpu --from-wheels` (downloads prebuilt sm_120 wheels from GitHub release `sm120-cu128-py312`). Auto-downloads V-JEPA 2.1 ckpt (~28 GB) via aria2c -x 16 -s 16. Auto-detects Blackwell vs Ampere for PyTorch version. SAM3 installed `--no-deps` (preserves numpy>=2.3 for cuML).
+- **git_pull.sh** (64 lines): `git fetch + reset --hard origin/main + clean -fd` (preserves .gitignored data dirs). `--code-only` skips HF download. Else activates venv, runs `hf_outputs.py download outputs` + `download-data` (pulls val_1k + subset_10k).
+- **build_faiss_sm120.sh** (330 lines): Source-build FAISS-GPU for Blackwell sm_120 (pip wheels only ship sm_70+sm_80). Clones facebookresearch/faiss → cmake with `-DCMAKE_CUDA_ARCHITECTURES=120` → build (10min@96cores). Post-processing: injects all required `.so` files (libfaiss.so, libfaiss_avx2.so, libfaiss_gpu.so, _swigfaiss*.so, libfaiss_python_callbacks.so) into the pip wheel zip + rewrites WHEEL metadata platform tag + rebuilds RECORD hashes. `--install` skips build, reuses cached artifacts at `/tmp/faiss_build`.
+
+### HF Sync
+- **src/utils/hf_outputs.py** (425 lines): HuggingFace Hub sync for outputs + POC/val data. Repo: `anonymousML123/factorjepa-outputs` (public+gated, auto-created). `upload_outputs(dir)` does `_mirror_cleanup()` (deletes remote files not present locally — prevents 73GB stale accumulation) + `_stale_checkpoint_ignores()` (skips checkpoints modified <120s ago). `_UPLOAD_EXTENSIONS = {npy, npz, json, csv, png, pdf, tex, pt}`. `download_outputs()` uses `snapshot_download()` with `allow_patterns=[f"{subfolder}/*"]`. `upload_data()`/`download_data()` syncs `data/subset_10k_local/*.tar` + `data/val_1k_local/*.tar` + JSON manifests. `HF_HUB_ENABLE_HF_TRANSFER=1` for 1.5-3x speedup (safe for single-call APIs).
 
 ### Utils
 - **utils/config.py** (~600 lines): Paths, constants, `get_pipeline_config()` (cached YAML reader), `get_sanity_clip_limit(module)`, `get_total_clips(local_data, subset_file)`. ENCODER_REGISTRY with dynamic fallback for lambda variants. `FAISS_K_NEIGHBORS`, `DEFAULT_BATCH_SIZE`, `DEFAULT_NUM_WORKERS`, `BAKEOFF_CLIP_COUNT` all from YAML.
@@ -120,14 +127,22 @@ Phase 3: m06b temporal → m05 shuffled adapted → m06 shuffled → m07 UMAP �
   - λ=100 Ch10 = parallel ablation, NOT prerequisite
   - Idea Critic verdict: **PURSUE** (upgraded from REFINE)
   - Full plan: `iter/iter8/plan_training.md` | Action items: `iter/iter8/next_steps.md`
-- **Ch11: ALL CODE BUILT, UNTESTED ON GPU** (2026-04-12)
-  - m10 SAM 3.1 segmentation: DONE (595 lines)
-  - m11 factor datasets: DONE (515 lines)
-  - m09 surgery mode (`train_surgery()`): DONE (~270 lines, `FactorSampler` + `load_factor_clip` + 3-stage loop)
-  - m09 ExPLoRA mode: DONE (LoRA injection + block freeze)
-  - train_explora.sh + train_surgery.sh: DONE (full pipelines with common.sh infra)
-  - **GPU instance provisioned**: RTX PRO 6000 Blackwell 96GB, env setup complete, HF data synced
-  - **Next**: Execute runbook Steps A-E (SANITY), then POC — per `iter/iter8/runbook.md`
+- **Ch11 SANITY: STEPS A+B PASSED ON GPU (2026-04-13/14)** — 24GB RTX PRO 4000 Blackwell
+  - **Step A (m10 SAM3.1 segmentation)**: PASSED 4/4 quality gate checks (pixel_ratio 2-50%, mask_confidence≥0.4, ≥50% clips with agents). BUT native text grounding weak on Indian objects (masks roofs/walls instead of vehicles in 10/15 clips). **Pivot identified: Grounded-SAM** — replace SAM3 text detection with Grounding DINO box detection, keep SAM3 for mask refinement only. SAM3's `add_prompt` already accepts `bounding_boxes` kw.
+  - **Step B (m11 factor datasets)**: PASSED. D_L/D_A/D_I `.npy` generated, per-clip 2x2 verify grids working. D_I tube mining geometry-based (not a SAM problem).
+  - **Steps C/D/E pending**: m05 frozen V-JEPA 2.1 embed → m09 ExPLoRA → m09 surgery. Then POC on 96GB GPU.
+  - All code built: m10 (743 lines), m11 (654 lines), m09 surgery mode `train_surgery()` (~270 lines at m09_pretrain.py:917), m09 ExPLoRA mode (LoRA injection + block freeze at m09_pretrain.py:449).
+  - Orchestration: train_explora.sh + train_surgery.sh (231 lines each) + lib/common.sh.
+  - **Env stack (pinned)**: PyTorch 2.12.0.dev20260228+cu128, FA2 2.8.3, FAISS-GPU 1.14.1 (source-built sm_120), cuML 26.04, SAM 3.1, Python 3.12. Release tag: `sm120-cu128-py312`.
+
+## NeurIPS 2026-05-04 Deadline
+- Budget: ~38h remaining (22d × 2h/day − 6h spent).
+- Phase 0 (Mac, Grounded-SAM pivot): 2-3h BLOCKING.
+- Phase 1 (24GB GPU SANITY): ~2h remaining (C/D/E).
+- Phase 2 (96GB GPU POC): 3h.
+- Decision gate: Surgery > ExPLoRA > Frozen on Prec@K.
+- Fallback: `iter/utils/literarure_survey.md` — 24 JEPA variants, 3 top techniques (SIGReg, VLA-JEPA leakage-free, temporal straightening).
+- Best-paper reframe: "Temporal interference" (shuffled > normal V-JEPA by 2.4x) as paper centerpiece — PCA on (normal-shuffled), project out, recover Prec@K with zero retraining.
 
 ## Data Download Times (measured, RTX PRO 6000 instance, April 2026)
 

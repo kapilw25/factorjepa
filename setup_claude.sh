@@ -1,4 +1,22 @@
 #!/bin/bash
+# Normal case (paste works) — unchanged:
+# bash setup_claude.sh
+
+# Paste-broken case (like today) — two commands:
+# # On Mac:
+# security find-generic-password -s "Claude Code-credentials" -w
+
+# # On GPU (paste the JSON inside the quotes):
+# export CLAUDE_CREDS_JSON='<paste JSON here>'
+# bash setup_claude.sh
+
+# The export command tolerates paste in web terminals (it's just shell input, not a TUI), so this path works
+# everywhere.
+
+# Security reminder: those tokens grant full Claude Max access. Before destroying the GPU instance, run rm
+# ~/.claude/.credentials.json ~/.claude.json so the tokens don't linger in snapshots.
+
+
 set -e  # stop on first error
 
 # 1. Ensure curl is available
@@ -20,6 +38,27 @@ curl -fsSL https://claude.ai/install.sh | bash
 
 # Ensure ~/.local/bin is in PATH (native installer location)
 export PATH="$HOME/.local/bin:$PATH"
+
+# 3. (Optional) Paste-auth bypass for web terminals where the OAuth code
+#    won't paste (Vast.ai web shell, some JupyterLab terminals, etc.).
+#
+#    How to use:
+#      On your Mac, run:
+#        security find-generic-password -s "Claude Code-credentials" -w
+#      Copy the JSON it prints, then on the GPU box run:
+#        export CLAUDE_CREDS_JSON='<paste JSON here>'
+#        bash setup_claude.sh
+#
+#    If CLAUDE_CREDS_JSON is unset, this block is skipped and Claude Code
+#    uses its normal interactive browser-based auth.
+if [ -n "${CLAUDE_CREDS_JSON:-}" ]; then
+    echo "Installing Claude credentials from CLAUDE_CREDS_JSON (paste-auth bypass)..."
+    mkdir -p ~/.claude
+    printf '%s\n' "$CLAUDE_CREDS_JSON" > ~/.claude/.credentials.json
+    chmod 600 ~/.claude/.credentials.json
+    # Skip the first-run "Select login method" welcome screen.
+    [ -f ~/.claude.json ] || echo '{"hasCompletedOnboarding":true}' > ~/.claude.json
+fi
 
 # Navigate to your project directory.
 # cd /path/to/your/project
