@@ -53,6 +53,7 @@ torchcodec                   # GPU video decode via NVDEC (5-10x vs PyAV CPU). A
 einops>=0.6.0                # SAM 3.1 dependency (rope.py uses rearrange/repeat)
 pycocotools>=2.0.0           # SAM 3.1 dependency (train/data/coco_json_loaders.py imported at load time)
 iopath>=0.1.9                # SAM 3.1 dependency (model_builder.py uses g_pathmgr for checkpoint I/O)
+ftfy>=6.0.0                  # SAM 3.1 dependency (tokenizer_ve.py uses ftfy for text cleanup)
 
 # =============================================================================
 # LoRA (m09_pretrain.py --explora) — Parameter-efficient fine-tuning

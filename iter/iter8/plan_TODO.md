@@ -1,55 +1,53 @@
 # TODO — iter8
 
-> **GOAL: Surgery > ExPLoRA > Frozen on Prec@K, 115K clips.**
+> **Final GOAL: Surgery > ExPLoRA > Frozen on Prec@K, 115K clips.**
+> **Immediate GOAL: Surgery > ExPLoRA > Frozen on Prec@K, 1K clips from @data/val_1k_local/manifest.json**
+> **m10/m11 Goal = maximize D_A/D_L/D_I accuracy for Prec@K**
 > **Deadline: NeurIPS May 04. Budget: ~38h remaining (22 days x 2h/day minus 6h spent).**
 > **If surgery doesn't improve:** `iter/utils/literarure_survey.md` — 24 JEPA variants, 3 fallback techniques.
 
 ---
 
-## 🛑 BLOCKING: Grounded-SAM Pivot (do on Mac, no GPU needed)
+## ✅ DONE: Grounded-SAM Pivot (2026-04-14, on GPU directly)
 
-SAM3 native text grounding is too weak for Indian objects — masks roofs/walls instead of vehicles/people. Evidence: 10/15 clips had wrong or missing agent masks on SANITY.
-
-**Architecture change:**
+**Architecture (locked in):**
 ```
-Current (broken):   tags.json → notable_objects → SAM3.1 text prompt → SAM3.1 detects + segments
-                    SAM3.1 does BOTH detection AND segmentation — bad at detection for Indian objects.
-
-Grounded-SAM:       tags.json → notable_objects → Grounding DINO text → DINO detects BOXES → SAM refines to MASKS
-                    DINO: trained on Objects365 + GoldG (365+ categories), strong open-vocab detection.
-                    SAM: takes bounding box → pixel-perfect mask (geometric refinement, always been good at this).
+Grounded-SAM Path D:  fixed 17-cat agent taxonomy → Grounding DINO (text → boxes on frame 0)
+                      → SAM 3.1 add_prompt(text=cat, boxes=DINO_xywh_norm, box_labels=[1]*N)
+                      → SAM 3.1 propagates masks across all 16 frames (text drives tracking,
+                        boxes refine frame 0). Per-category sessions preserve obj_id ranges
+                        (offset += 100) for D_I cross-category mining.
 ```
 
-**No prompt changes needed.** `get_agent_prompts()` returns `["bus", "auto rickshaw", "pedestrian"]` — DINO accepts the same strings. Only `segment_clip()` changes:
-```python
-# Current: SAM3.1 does everything
-predictor.handle_request({"type": "add_prompt", "text": "bus"})
+**Verified on SANITY v5 (20 clips, 24GB RTX PRO 4000 Blackwell):**
+- 12/20 clips with detected agents (8 truly-empty Goa/monument scenes correctly skipped)
+- 82 total agent detections, mean mask confidence 0.93
+- 39 interaction tubes from 9/20 clips (vs 0 with text-only or boxes-only)
+- Per-clip 2x2 verify grids show clean D_L blur, D_A isolation, D_I crops
+- m10 quality gate PASS, m11 manifest produced for all 20 clips
 
-# Grounded-SAM: DINO detects, SAM segments
-boxes = grounding_dino.predict("bus", image)        # → [[x1,y1,x2,y2], ...]
-predictor.handle_request({"type": "add_prompt", "bounding_boxes": boxes})  # SAM masks from boxes
-```
-SAM3.1 already accepts `bounding_boxes` in `add_prompt` (confirmed in source audit). Keep SAM3.1 for mask refinement, just feed it DINO boxes instead of text.
+**Done tasks:**
+- ✅ Modified `m10_sam_segment.py`: DINO box detection + SAM 3.1 text+boxes hybrid (Path D)
+- ✅ Added `iopath`, `ftfy` to `requirements_gpu.txt` (SAM3 `--no-deps` undeclared deps)
+- ✅ Added `load_dotenv()` to m10 (HF_HOME, HF_TOKEN propagation)
+- ✅ Fixed transformers 4.57 API renames (`box_threshold`→`threshold`, `labels`→`text_labels`)
+- ✅ Fixed SAM 3.1 box format (xyxy→normalized xywh, paired box_labels=[1]*N)
+- ✅ Tuned thresholds Option C: DINO box=0.15, text=0.12; m11 min_agent_area_pct=0.003
+- ✅ Updated `runbook.md` paths: `outputs/sanity/factors/` → `outputs/sanity/m10_sam_segment/` etc.
+- ✅ Fixed taxonomy: 17 agent categories in `ch11_surgery.yaml` (not VLM tags) for accuracy
+- ✅ Added step [9/9] to `setup_env_uv.sh` to pre-cache Grounding DINO weights
 
-**Tasks:**
-- ⬜ 🔴 WebSearch: "Grounded-SAM 2026 video segmentation best practice" for latest API
-- ⬜ 🔴 Add `groundingdino` to `requirements_gpu.txt` + `setup_env_uv.sh`
-- ⬜ 🔴 Modify `m10_sam_segment.py`: DINO box detection → SAM box-prompted mask refinement
-- ⬜ 🔴 py_compile + ruff all modified files on Mac
-- ⬜ 🔴 Fix cross-reference paths from per-module dir restructure (verify m06/m08 read from m05/m04 module dirs)
-- ⬜ 🔴 Update `runbook.md` paths: `outputs/sanity/factors/` → `outputs/sanity/m10_sam_segment/` etc.
+**Documented in `errors_N_fixes.md` entries #18-27.**
 
 ---
 
-## 🔥 Active (Phase 1: GPU SANITY) — resume on 24GB GPU after Mac fixes
+## 🔥 Active (Phase 1: GPU SANITY) — Steps C/D/E next
 
-- ✅ Step A: m10 SAM 3.1 segmentation — quality gate PASS, but masks noisy (pivot to Grounded-SAM)
-- ✅ Step B: m11 factor datasets — D_L/D_A/D_I generated, per-clip 2x2 verify images working
-- ⬜ Step A': Re-run m10 with Grounded-SAM → verify overlay images
-- ⬜ Step B': Re-run m11 with new masks → verify 2x2 grids
-- ⬜ Step C: m05 frozen V-JEPA 2.1 embedding
-- ⬜ Step D: m09 ExPLoRA training
-- ⬜ Step E: m09 Surgery training
+- ✅ Step A: m10 Grounded-SAM segmentation — quality gate PASS, 12/20 clips with clean masks
+- ✅ Step B: m11 factor datasets — D_L blurred, D_A isolated, D_I 39 tubes/9 clips, all 2x2 grids correct
+- 🔥 Step C: m05 frozen V-JEPA 2.1 embedding
+- 🔥 Step D: m09 ExPLoRA training
+- 🔥 Step E: m09 Surgery training (uses `--factor-dir outputs/sanity/m11_factor_datasets/`)
 - ⬜ Commit all fixes via `git_push.sh`
 
 ---

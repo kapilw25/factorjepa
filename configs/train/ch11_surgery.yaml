@@ -44,8 +44,39 @@ optimization:
 
 # -- Factor datasets (m10/m11 prerequisite) --
 factor_datasets:
-  sam_model: facebook/sam3.1            # SAM 3.1 — text prompts + multiplexing (Mar 2026)
-  agent_prompt_source: tags_json       # Per-clip notable_objects from tags.json (MANDATORY, no fallback)
+  # Grounded-SAM pipeline: Grounding DINO (text → boxes) → SAM 3.1 (box → masks + propagation)
+  # Replaces SAM 3.1 native text grounding (too weak on Indian objects: 10/15 clips had
+  # n_agents=0 on SANITY). DINO trained on Objects365+GoldG (365 open-vocab categories).
+  sam_model: facebook/sam3.1            # SAM 3.1 — now only does box refinement + propagation
+  grounding_dino:
+    model_id: "IDEA-Research/grounding-dino-base"   # Swin-B, 233M params, ~1.2 GB VRAM
+    # Aggressive recall: SANITY v3 with 0.25/0.20 left 7/20 clips (35%) with zero
+    # detections → at 115K scale = ~40K clips with no D_A/D_I training data → paper-killing.
+    # FP risk mitigated downstream by SAM3 min_confidence=0.3 + min_mask_area_pct=0.001 +
+    # fixed agent-only taxonomy (no layout category can be hallucinated).
+    box_threshold: 0.15                  # was 0.25 (HF default 0.35)
+    text_threshold: 0.12                 # was 0.20 (HF default 0.25)
+    # 17-category agent taxonomy (accuracy-first; goal = Surgery > ExPLoRA > Frozen on Prec@K).
+    # Extended beyond tag_taxonomy.json's 11 agents with finer Objects365-aligned classes.
+    agent_taxonomy:
+      - pedestrian
+      - person
+      - vendor
+      - policeman
+      - bus
+      - car
+      - truck
+      - motorcycle
+      - bicycle
+      - scooter
+      - auto rickshaw
+      - cycle rickshaw
+      - cart
+      - cow
+      - dog
+      - bull
+      - buffalo
+
   iou_threshold: 0.3                  # Tracklet matching threshold
   motion_threshold: 0.05              # Frame width fraction (agent vs layout filter)
   motion_min_frames: 4                # Persistence required for "agent" classification
@@ -59,7 +90,11 @@ factor_datasets:
   soft_matte_factor: 0.1               # Background attenuation (1.0 = no change, 0 = hard zero)
   blur_sigma: 15.0                     # Gaussian blur sigma for D_L agent suppression
   feather_sigma: 3.0                   # Mask edge feathering sigma (prevents shortcut learning)
-  min_agent_area_pct: 0.02             # Drop D_A if agent < 2% (degenerate — mostly dark)
+  min_agent_area_pct: 0.003            # Drop D_A if agent < 0.3% (calibrated to Grounded-SAM
+                                       # output distribution: tight precise masks avg 0.5-1.0%).
+                                       # Was 0.02 (calibrated for OLD noisy SAM3-text pipeline with
+                                       # mean ~3-5% from false positives). At new distribution 0.02
+                                       # would skip D_A on ~16/20 clips → starve Stage 2.
   max_agent_area_pct: 0.70             # Drop D_L if agent > 70% (layout invisible)
 
 # -- Interaction mining (D_I) --
