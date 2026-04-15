@@ -94,6 +94,7 @@ src/outputs_sanity/**/*.npz
 *.mp4
 # Exception: allow small web demo videos in docs/
 !docs/static/videos/**/*.mp4
+!iter/iter8/outputs/poc/m11_factor_datasets/m11_per_Videoclip_verify/*.mp4
 
 # secrets
 cookies.txt
