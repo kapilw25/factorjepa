@@ -21,10 +21,13 @@ hf_transfer>=0.1.4
 # =============================================================================
 # Transformers & Model Loading
 # =============================================================================
-# V-JEPA 2 requires transformers>=4.52.0, Qwen3-VL requires >=4.57.0
-# V-JEPA 2 needs >=4.52.0, Qwen3-VL needs >=4.57.0, LLaVA-NeXT-Video needs >=4.42.0
-# Pin <5.0: VideoLLaMA3 remote code breaks on 5.x (processor signature + API changes)
-transformers>=4.57.0,<5.0
+# transformers==5.5.4: required for Sam3VideoModel + Sam3TrackerVideoModel
+# (Sam3 HF wrapper added in 5.0, unavailable in 4.57). Unlocks working
+# `max_frame_num_to_track` + `start_frame_idx` for m10 v2_HF backend (~10× speedup).
+# Downstream compat: Qwen3-VL (m04) ✓, V-JEPA 2 (m05) ✓, Grounding DINO (m10) ✓.
+# Known break: VideoLLaMA3 backend in m04 (processor signature changed) — unused,
+# m04 default backend is Qwen3-VL. Update `setup_env_uv.sh` before re-running m04.
+transformers==5.5.4
 sentencepiece>=0.1.99  # LLaVA-NeXT-Video: LlamaTokenizerFast requires sentencepiece for from_slow path
 accelerate>=0.25.0
 bitsandbytes>=0.41.0

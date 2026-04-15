@@ -189,12 +189,16 @@ flowchart LR
 
 ## System Design: Surgery (Step 2) — THE PAPER NOVELTY
 
+> **2026-04-14 update:** m10 architecture pivoted to **Grounded-SAM (Path D)** — Grounding DINO open-vocab box detection on frame 0 + SAM 3.1 text-tracked + box-refined propagation across 16 frames. Replaces the original SAM 3.1 native text grounding which failed on Indian objects (10/15 clips wrong/missing masks). Fixed 17-category agent taxonomy in `configs/train/ch11_surgery.yaml > factor_datasets.grounding_dino.agent_taxonomy` replaces per-clip VLM `notable_objects`. See `errors_N_fixes.md` #20-27 for pivot history.
+
 ```mermaid
 flowchart TB
-    subgraph SAM ["m10: SAM 3.1 Segmentation (GPU)"]
-        CLIP["Indian clip<br>16 frames"] --> SAM31["SAM 3.1 text prompt<br>per-clip notable_objects<br>from tags.json"]
-        SAM31 --> AMASK["Agent masks<br>(people, vehicles,<br>rickshaws, cows)"]
-        SAM31 --> LMASK["Layout masks<br>(roads, buildings,<br>wires, sky)"]
+    subgraph SAM ["m10: Grounded-SAM Segmentation (GPU)"]
+        CLIP["Indian clip<br>16 frames"] --> DINO["Grounding DINO Base<br>17-cat compound prompt<br>'pedestrian. car. bus...'<br>frame 0 only"]
+        DINO --> BOXES["Boxes per category<br>+ confidence scores"]
+        BOXES --> SAM31["SAM 3.1 add_prompt<br>text=cat (tracking)<br>+ boxes_xywh_norm (refine)<br>+ box_labels=[1]*N"]
+        SAM31 --> AMASK["Agent masks<br>per-frame<br>(propagated across 16f)"]
+        AMASK --> LMASK["Layout masks<br>= NOT agent_mask"]
     end
 
     subgraph FACTOR ["m11: Factor Datasets (CPU)"]

@@ -1,0 +1,43 @@
+{
+  "n_clips": 100,
+  "n_total_agents": 5581,
+  "n_total_interactions": 2659,
+  "mean_agent_pixel_ratio": 0.21659345160893906,
+  "mean_concept_recall": 0.6223199999999999,
+  "mean_mask_confidence": 0.8766604839721096,
+  "clips_with_agents_pct": 0.95,
+  "min_confidence_threshold": 0.3,
+  "min_mask_area_pct": 0.001,
+  "elapsed_sec": 2319.15140581131,
+  "pipeline": "grounded-sam",
+  "dino_model": "IDEA-Research/grounding-dino-base",
+  "dino_box_threshold": 0.15,
+  "dino_text_threshold": 0.12,
+  "sam_model": "facebook/sam3.1",
+  "agent_taxonomy": [
+    "pedestrian",
+    "person",
+    "vendor",
+    "policeman",
+    "bus",
+    "car",
+    "truck",
+    "motorcycle",
+    "bicycle",
+    "scooter",
+    "auto rickshaw",
+    "cycle rickshaw",
+    "cart",
+    "cow",
+    "dog",
+    "bull",
+    "buffalo"
+  ],
+  "quality_gate": "PASS",
+  "quality_gate_checks": {
+    "pixel_ratio_min": "PASS",
+    "pixel_ratio_max": "PASS",
+    "mask_confidence": "PASS",
+    "clips_with_agents": "PASS"
+  }
+}

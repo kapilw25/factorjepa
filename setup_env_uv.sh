@@ -437,7 +437,7 @@ print(f'PyTorch: {torch.__version__}, CUDA: {torch.version.cuda}, GPU: {torch.cu
     #    timeouts that AutoProcessor.from_pretrained() hits when HF CDN is flaky.
     #    Reference: errors_N_fixes.md #22 (HF timeout) + #27 (Path D text+boxes hybrid).
     echo ""
-    echo "[9/9] Pre-downloading Grounding DINO (IDEA-Research/grounding-dino-base, ~1.8 GB)..."
+    echo "[9/10] Pre-downloading Grounding DINO (IDEA-Research/grounding-dino-base, ~1.8 GB)..."
     : "${HF_HOME:=/workspace/volume/hf_cache}"
     DINO_CACHE="${HF_HOME}/hub/models--IDEA-Research--grounding-dino-base"
     DINO_SNAP=$(ls "${DINO_CACHE}/snapshots" 2>/dev/null | head -1 || echo "")
@@ -449,6 +449,29 @@ print(f'PyTorch: {torch.__version__}, CUDA: {torch.version.cuda}, GPU: {torch.cu
         mkdir -p "${HF_HOME}"
         hf download IDEA-Research/grounding-dino-base
         echo "Grounding DINO cached at ${DINO_CACHE}"
+    fi
+
+    # 10. Pre-download HF SAM 3 weights for m10_sam_segment_v2_HF.py (Path B speedup).
+    #     `facebook/sam3` hosts BOTH Sam3TrackerVideoModel (P-5a, our primary) and
+    #     Sam3VideoModel (P-3a text-only probe). ~12 GB total. HF_TRANSFER (set above)
+    #     parallel-streams the download in Rust, 1.5-3× faster than wget per file.
+    #     Gated model: user must accept access at hf.co/facebook/sam3 once (HF_TOKEN in .env).
+    echo ""
+    echo "[10/10] Pre-downloading HF SAM 3 (facebook/sam3, ~12 GB, HF_TRANSFER parallel)..."
+    SAM3_HF_CACHE="${HF_HOME}/hub/models--facebook--sam3"
+    SAM3_HF_SNAP=$(ls "${SAM3_HF_CACHE}/snapshots" 2>/dev/null | head -1 || echo "")
+    if [ -n "$SAM3_HF_SNAP" ] \
+       && [ -f "${SAM3_HF_CACHE}/snapshots/${SAM3_HF_SNAP}/config.json" ] \
+       && ls "${SAM3_HF_CACHE}/snapshots/${SAM3_HF_SNAP}"/*.safetensors >/dev/null 2>&1; then
+        echo "HF SAM 3 already cached: ${SAM3_HF_CACHE}"
+    else
+        mkdir -p "${HF_HOME}"
+        # Rust multi-stream download (HF_HUB_ENABLE_HF_TRANSFER=1 set at line 289).
+        # ~8 parallel streams per file on modern networks.
+        HF_HUB_ENABLE_HF_TRANSFER=1 hf download facebook/sam3 \
+            --exclude "*.bin" \
+            || { echo "FATAL: facebook/sam3 download failed. Accept access at hf.co/facebook/sam3 with your HF_TOKEN, then re-run."; exit 1; }
+        echo "HF SAM 3 cached at ${SAM3_HF_CACHE}"
     fi
 
     # Final verification
@@ -485,6 +508,15 @@ from transformers import AutoProcessor
 _dino_proc = AutoProcessor.from_pretrained('IDEA-Research/grounding-dino-base')
 dino_status = f'cached (fast tokenizer={_dino_proc.tokenizer.is_fast})'
 
+# Assert HF SAM 3 is loadable offline (both Sam3TrackerVideoModel for P-5a + Sam3VideoModel for P-3a).
+try:
+    from transformers import Sam3TrackerVideoProcessor, Sam3VideoProcessor
+    _sam3tv = Sam3TrackerVideoProcessor.from_pretrained('facebook/sam3')
+    _sam3v  = Sam3VideoProcessor.from_pretrained('facebook/sam3')
+    sam3_hf_status = 'cached (TrackerVideo + Video processors loadable)'
+except Exception as e:
+    sam3_hf_status = f'FAIL: {e}'
+
 print(f'PyTorch:        {torch.__version__}')
 print(f'CUDA:           {torch.version.cuda}')
 print(f'GPU:            {torch.cuda.get_device_name(0)}')
@@ -497,9 +529,33 @@ print(f'cuML:           {cuml.__version__}')
 print(f'wandb:          {wandb.__version__}')
 print(f'Datasets:       OK')
 print(f'Grounding DINO: {dino_status}')
+print(f'HF SAM 3:       {sam3_hf_status}')
 print('')
 print('SUCCESS: All GPU components verified')
 "
+
+    # Dependency health check: fail hard on new mismatches, allowlist 4 known-OK ones.
+    # See iter/iter8/errors_N_fixes.md #5 (sam3 --no-deps) + #10 (torchcodec/decord).
+    echo ""
+    echo "[Dependency health] uv pip check..."
+    set +e
+    CHECK_OUT=$(uv pip check 2>&1)
+    set -e
+    # Known-OK incompatibilities (grep -E patterns) — each verified non-fatal at runtime:
+    #   sam3.numpy          : SAM3 pin <2 obsolete; numpy 2.x works (m04-m11 ran weeks on it)
+    #   sam3.ftfy           : 6.1.1 → 6.3.1 patch, fix_text() API unchanged
+    #   torch.cuda-bindings : cuML/torch patch ping-pong, ABI-stable
+    #   decord.platform     : dormant (m04 tags.json already produced, PyAV is active decoder)
+    EXPECTED='sam3.*numpy|sam3.*ftfy|torch.*cuda-bindings|decord.*platform'
+    UNEXPECTED=$(echo "$CHECK_OUT" | grep -E '^The package' | grep -vE "$EXPECTED" || echo "")
+    if [ -n "$UNEXPECTED" ]; then
+        echo "FATAL: uv pip check found UNEXPECTED incompatibilities:"
+        echo "$UNEXPECTED"
+        echo "Investigate before running pipeline. See errors_N_fixes.md for resolution patterns."
+        exit 1
+    fi
+    EXPECTED_COUNT=$(echo "$CHECK_OUT" | grep -cE '^The package' || echo 0)
+    echo "OK — ${EXPECTED_COUNT} known-OK incompatibilities (allowlist: numpy/ftfy/cuda-bindings/decord), 0 unexpected"
 
     # vLLM setup SKIPPED — transformers is 2.5x faster for offline batch tagging.
     # See iter/utils/vLLM_plan_Blackwell.md for 14 root causes found + fixed.

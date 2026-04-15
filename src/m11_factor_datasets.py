@@ -139,46 +139,47 @@ def make_interaction_tubes_from_centroids(frames: np.ndarray, interactions: list
     return tubes
 
 
-def make_interaction_tubes(frames: np.ndarray, interactions: list,
-                           per_object: dict, margin_pct: float) -> list:
-    """D_I: crop interaction tubes — bounding box of interacting agent pair + margin.
+def make_interaction_tubes_from_bboxes(frames: np.ndarray, interactions: list,
+                                       per_object_bboxes: dict, margin_pct: float) -> list:
+    """D_I: crop interaction tubes — tight union bbox of interacting agent pair + margin.
+
+    Preferred over `make_interaction_tubes_from_centroids` (fixed 30% centroid square):
+    uses per-object tight bboxes saved by m10 to compute a union bbox of the two specific
+    interacting agents, preserving aspect ratio + agent identity region + scene context
+    immediately around the pair. Still a square-ish crop fed to V-JEPA (not a full
+    tubelet-token architecture), but strictly tighter and agent-aware vs the centroid fallback.
 
     Args:
         frames: (T, H, W, C) uint8
-        interactions: list from mine_interactions() [{obj_a, obj_b, frames}]
-        per_object: {obj_id: {t: mask}} per-object masks
+        interactions: [{obj_a, obj_b, frames: [int]}] from m10 mine_interactions
+        per_object_bboxes: {obj_id: {t: [y1, x1, y2, x2]}} from m10 .npz per_object_bboxes_json
         margin_pct: box expansion margin (e.g., 0.15 = 15%)
 
     Returns:
         List of (T_tube, H_crop, W_crop, C) uint8 arrays — one per interaction event
+        with ≥4 valid frames (matches centroid-version filter for parity).
     """
     H, W = frames.shape[1], frames.shape[2]
     tubes = []
 
     for event in interactions:
-        obj_a, obj_b = event["obj_a"], event["obj_b"]
+        obj_a, obj_b = str(event["obj_a"]), str(event["obj_b"])
         event_frames = event["frames"]
 
         tube_frames = []
         for t in event_frames:
-            # Union bounding box of both agents in this frame
-            mask_a = per_object.get(obj_a, {}).get(t)
-            mask_b = per_object.get(obj_b, {}).get(t)
-            if mask_a is None and mask_b is None:
+            t_str = str(t)
+            ba = per_object_bboxes.get(obj_a, {}).get(t_str)  # [y1, x1, y2, x2] or None
+            bb = per_object_bboxes.get(obj_b, {}).get(t_str)
+            if ba is None and bb is None:
                 continue
 
-            combined = np.zeros((H, W), dtype=bool)
-            if mask_a is not None:
-                combined |= mask_a
-            if mask_b is not None:
-                combined |= mask_b
-
-            if not combined.any():
-                continue
-
-            ys, xs = np.where(combined)
-            y1, y2 = int(ys.min()), int(ys.max())
-            x1, x2 = int(xs.min()), int(xs.max())
+            # Tight union bbox of the two agents' bboxes (ignore missing one)
+            boxes = [b for b in (ba, bb) if b is not None]
+            y1 = min(b[0] for b in boxes)
+            x1 = min(b[1] for b in boxes)
+            y2 = max(b[2] for b in boxes)
+            x2 = max(b[3] for b in boxes)
 
             # Expand by margin
             h_margin = int((y2 - y1) * margin_pct)
@@ -188,16 +189,15 @@ def make_interaction_tubes(frames: np.ndarray, interactions: list,
             x1 = max(0, x1 - w_margin)
             x2 = min(W, x2 + w_margin)
 
-            tube_frames.append(frames[t, y1:y2, x1:x2, :])
+            if y2 - y1 > 10 and x2 - x1 > 10 and t < frames.shape[0]:
+                tube_frames.append(frames[t, y1:y2, x1:x2, :])
 
-        if tube_frames:
-            # Resize all frames to same size (use the median crop dimensions)
+        if len(tube_frames) >= 4:
             target_h = int(np.median([f.shape[0] for f in tube_frames]))
             target_w = int(np.median([f.shape[1] for f in tube_frames]))
             resized = []
             for f in tube_frames:
-                img = PILImage.fromarray(f)
-                img = img.resize((target_w, target_h), PILImage.BILINEAR)
+                img = PILImage.fromarray(f).resize((target_w, target_h), PILImage.BILINEAR)
                 resized.append(np.array(img))
             tubes.append(np.stack(resized))
 
@@ -377,6 +377,184 @@ def plot_factor_per_clip(dl_dir: Path, da_dir: Path, di_dir: Path,
     print(f"  Saved: {verify_dir}/ ({count} clips, 2x2 grids)")
 
 
+def plot_factor_per_videoclip(manifest: dict, dl_dir: Path, da_dir: Path,
+                              di_dir: Path, output_dir: Path,
+                              local_data: str, top_n: int = 20):
+    """2x2 video grid (Original | D_L | D_A | D_I) per clip — for top N best clips.
+
+    Output: H.264-encoded MP4s (web-browser compatible) at
+    `output_dir/m11_per_Videoclip_verify/{safe_key}.mp4`. For human eyeballing and
+    for embedding in the project website (`docs/index.html`) as `<video controls>`.
+
+    Selection: top N by score = (has_D_A + has_D_I + n_interaction_tubes + agent_pct*100)
+    so we get clips with all 3 factors populated and dense agent activity.
+    Cost: ~1s/clip encoding × N clips + re-decode top-N MP4s from val_1k_local.
+    """
+    import av
+    import cv2
+    from utils.data_download import iter_clips_parallel
+    from utils.video_io import decode_video_bytes
+
+    PANEL_H, PANEL_W = 270, 480
+    GRID_H, GRID_W = PANEL_H * 2, PANEL_W * 2
+    T = 16
+    FPS = 6
+
+    # Score + select top N
+    def _score(v):
+        return (
+            int(v.get("has_D_A", False)) * 1000
+            + int(v.get("has_D_I", False)) * 1000
+            + v.get("n_interaction_tubes", 0) * 10
+            + v.get("agent_pct", 0.0) * 100
+        )
+    ranked = sorted(manifest.items(), key=lambda kv: -_score(kv[1]))
+    top = [(k, v) for k, v in ranked if v.get("has_D_L")][:top_n]
+    if not top:
+        print("  No clips qualify for video grid (need at least D_L)")
+        return
+
+    verify_dir = output_dir / "m11_per_Videoclip_verify"
+    verify_dir.mkdir(parents=True, exist_ok=True)
+    top_keys = {k for k, _ in top}
+
+    # Re-decode original MP4 bytes for top N (only ~20 clips, runs in ~30s)
+    print(f"  Generating video grids for top {len(top)} clips...")
+    import tempfile
+    with tempfile.TemporaryDirectory(prefix="m11_vid_") as tmp_dir:
+        clip_q, tar_stop, _reader = iter_clips_parallel(
+            local_data=local_data, subset_keys=top_keys)
+        clip_bytes = {}
+        n_done = 0
+        while n_done < len(top_keys):
+            try:
+                item = clip_q.get(timeout=120)
+            except Exception:
+                break
+            if item is None:
+                break
+            clip_key, mp4_bytes = item
+            if clip_key in top_keys and clip_key not in clip_bytes:
+                clip_bytes[clip_key] = mp4_bytes
+                n_done += 1
+        tar_stop.set()
+
+        for clip_key, info in top:
+            safe_key = clip_key.replace("/", "__")
+            out_path = verify_dir / f"{safe_key}.mp4"
+            mp4 = clip_bytes.get(clip_key)
+            if mp4 is None:
+                print(f"  SKIP {safe_key}: original MP4 not retrievable")
+                continue
+
+            # Decode original (T, C, H, W) → (T, H, W, 3) uint8
+            t = decode_video_bytes(mp4, tmp_dir, clip_key, num_frames=T)
+            if t is None:
+                print(f"  SKIP {safe_key}: decode failed")
+                continue
+            orig = t.permute(0, 2, 3, 1).numpy()
+            if orig.max() <= 1.0:
+                orig = (orig * 255).astype(np.uint8)
+            else:
+                orig = orig.astype(np.uint8)
+
+            # Load factor arrays — D_L always exists; D_A/D_I may be missing.
+            dl = np.load(dl_dir / f"{safe_key}.npy")
+            da = np.load(da_dir / f"{safe_key}.npy") if (da_dir / f"{safe_key}.npy").exists() else None
+            di_files = sorted(di_dir.glob(f"{safe_key}_tube*.npy"))
+            di = np.load(di_files[0]) if di_files else None
+
+            _write_grid_video(
+                out_path, orig, dl, da, di, info,
+                T=T, panel_h=PANEL_H, panel_w=PANEL_W,
+                grid_h=GRID_H, grid_w=GRID_W, fps=FPS,
+            )
+
+    n_written = len(list(verify_dir.glob("*.mp4")))
+    print(f"  Saved: {verify_dir}/ ({n_written} videos, 960x540 @ {FPS}fps, H.264)")
+
+
+def _fit_panel(frame: np.ndarray, panel_h: int, panel_w: int) -> np.ndarray:
+    """Resize frame to fit panel preserving aspect ratio; pad rest with black."""
+    import cv2
+    h, w = frame.shape[:2]
+    scale = min(panel_h / h, panel_w / w)
+    new_h, new_w = max(1, int(h * scale)), max(1, int(w * scale))
+    resized = cv2.resize(frame, (new_w, new_h), interpolation=cv2.INTER_LINEAR)
+    canvas = np.zeros((panel_h, panel_w, 3), dtype=np.uint8)
+    y0 = (panel_h - new_h) // 2
+    x0 = (panel_w - new_w) // 2
+    canvas[y0:y0 + new_h, x0:x0 + new_w] = resized
+    return canvas
+
+
+def _write_grid_video(out_path: Path, orig: np.ndarray, dl: np.ndarray,
+                     da: np.ndarray, di: np.ndarray, info: dict,
+                     T: int, panel_h: int, panel_w: int,
+                     grid_h: int, grid_w: int, fps: int):
+    """Encode 2x2 grid MP4 (H.264, yuv420p) for one clip. Browser-compatible."""
+    import av
+    import cv2
+
+    n_tubes = info.get("n_interaction_tubes", 0)
+    pct = info.get("agent_pct", 0.0) * 100
+
+    def _label(panel: np.ndarray, text: str):
+        # White text with black outline for legibility
+        cv2.putText(panel, text, (8, 22), cv2.FONT_HERSHEY_SIMPLEX, 0.55, (0, 0, 0), 3, cv2.LINE_AA)
+        cv2.putText(panel, text, (8, 22), cv2.FONT_HERSHEY_SIMPLEX, 0.55, (255, 255, 255), 1, cv2.LINE_AA)
+
+    container = av.open(str(out_path), mode='w')
+    stream = container.add_stream('h264', rate=fps)
+    stream.width = grid_w
+    stream.height = grid_h
+    stream.pix_fmt = 'yuv420p'
+    stream.options = {'preset': 'fast', 'crf': '23'}
+
+    for t in range(T):
+        # Cycle each panel's source if shorter than T (D_I tube is variable-length)
+        o_t = _fit_panel(orig[t % orig.shape[0]], panel_h, panel_w)
+        l_t = _fit_panel(dl[t % dl.shape[0]], panel_h, panel_w)
+        if da is not None:
+            a_t = _fit_panel(da[t % da.shape[0]], panel_h, panel_w)
+        else:
+            a_t = np.zeros((panel_h, panel_w, 3), dtype=np.uint8)
+        if di is not None:
+            i_t = _fit_panel(di[t % di.shape[0]], panel_h, panel_w)
+        else:
+            i_t = np.zeros((panel_h, panel_w, 3), dtype=np.uint8)
+
+        _label(o_t, "Original")
+        _label(l_t, "D_L Layout (agents blurred)")
+        _label(a_t, "D_A Agents (BG suppressed)" if da is not None else "D_A skipped (low agent area)")
+        _label(i_t, f"D_I Tube ({n_tubes} tubes)" if di is not None else "D_I empty")
+
+        grid = np.zeros((grid_h, grid_w, 3), dtype=np.uint8)
+        grid[:panel_h, :panel_w] = o_t
+        grid[:panel_h, panel_w:] = l_t
+        grid[panel_h:, :panel_w] = a_t
+        grid[panel_h:, panel_w:] = i_t
+
+        # Frame counter + clip stats banner across the bottom
+        cv2.putText(grid, f"frame {t+1}/{T}", (grid_w - 130, grid_h - 12),
+                    cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0), 3, cv2.LINE_AA)
+        cv2.putText(grid, f"frame {t+1}/{T}", (grid_w - 130, grid_h - 12),
+                    cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 1, cv2.LINE_AA)
+        cv2.putText(grid, f"agent_pct={pct:.1f}%", (8, grid_h - 12),
+                    cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0), 3, cv2.LINE_AA)
+        cv2.putText(grid, f"agent_pct={pct:.1f}%", (8, grid_h - 12),
+                    cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 1, cv2.LINE_AA)
+
+        frame = av.VideoFrame.from_ndarray(grid, format='rgb24')
+        for packet in stream.encode(frame):
+            container.mux(packet)
+
+    # Flush encoder
+    for packet in stream.encode():
+        container.mux(packet)
+    container.close()
+
+
 def plot_factor_stats(manifest: dict, output_dir: Path):
     """Histogram of agent pixel ratio across clips. Paper figure."""
     init_style()
@@ -440,6 +618,13 @@ def main():
         plot_interaction_samples(di_dir, manifest, output_dir)
         plot_factor_per_clip(dl_dir, da_dir, di_dir, masks_dir, output_dir)
         plot_factor_stats(manifest, output_dir)
+        # Top-20 video grid (re-decodes original MP4s — needs --local-data)
+        local_data_for_video = getattr(args, "local_data", None)
+        if local_data_for_video:
+            plot_factor_per_videoclip(manifest, dl_dir, da_dir, di_dir,
+                                      output_dir, local_data_for_video, top_n=20)
+        else:
+            print("  Skipping video grid (--plot mode needs --local-data to re-decode originals)")
         print("Done (--plot).")
         return
 
@@ -548,13 +733,16 @@ def main():
             agent_mask = data["agent_mask"]  # (T_mask, H, W)
             layout_mask = data["layout_mask"]
 
-            # Load per-object masks + interactions (for D_I)
+            # Load per-object bboxes + centroids + interactions (for D_I)
             interactions = []
             centroids = {}
+            per_object_bboxes = {}
             if "interactions_json" in data:
                 interactions = json.loads(str(data["interactions_json"]))
             if "centroids_json" in data:
                 centroids = json.loads(str(data["centroids_json"]))
+            if "per_object_bboxes_json" in data:  # new in m10 (post-bbox-save)
+                per_object_bboxes = json.loads(str(data["per_object_bboxes_json"]))
 
             # Decode original frames
             frames_tensor = decode_video_bytes(mp4_bytes, tmp_dir, clip_key, num_frames=16)
@@ -608,11 +796,19 @@ def main():
                                             feather_sigma=feather_sigma)
                 np.save(da_file, da_frames)
 
-            # Generate D_I (interaction tubes from centroids)
+            # Generate D_I (interaction tubes). Prefer tight union-bbox from per-object
+            # bboxes (m10 post-bbox-save); fall back to fixed 30% centroid square for
+            # legacy .npz files produced before bbox save was added.
             n_tubes = 0
-            if interactions and centroids:
-                tubes = make_interaction_tubes_from_centroids(
-                    frames_np, interactions, centroids, tube_margin)
+            if interactions:
+                if per_object_bboxes:
+                    tubes = make_interaction_tubes_from_bboxes(
+                        frames_np, interactions, per_object_bboxes, tube_margin)
+                elif centroids:
+                    tubes = make_interaction_tubes_from_centroids(
+                        frames_np, interactions, centroids, tube_margin)
+                else:
+                    tubes = []
                 for tube_idx, tube in enumerate(tubes):
                     tube_file = di_dir / f"{safe_key}_tube{tube_idx}.npy"
                     np.save(tube_file, tube)
@@ -645,6 +841,9 @@ def main():
     plot_interaction_samples(di_dir, manifest, output_dir)
     plot_factor_per_clip(dl_dir, da_dir, di_dir, masks_dir, output_dir)
     plot_factor_stats(manifest, output_dir)
+    # Top-20 video grid (2x2 MP4s for human eyeballing + docs/index.html embed)
+    plot_factor_per_videoclip(manifest, dl_dir, da_dir, di_dir,
+                              output_dir, local_data, top_n=20)
 
     log_metrics(wb_run, {"n_clips": len(manifest), "elapsed": elapsed})
     finish_wandb(wb_run)

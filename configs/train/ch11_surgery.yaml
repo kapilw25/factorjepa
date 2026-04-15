@@ -47,7 +47,8 @@ factor_datasets:
   # Grounded-SAM pipeline: Grounding DINO (text → boxes) → SAM 3.1 (box → masks + propagation)
   # Replaces SAM 3.1 native text grounding (too weak on Indian objects: 10/15 clips had
   # n_agents=0 on SANITY). DINO trained on Objects365+GoldG (365 open-vocab categories).
-  sam_model: facebook/sam3.1            # SAM 3.1 — now only does box refinement + propagation
+  sam_model: facebook/sam3.1            # raw sam3 pkg (m10_sam_segment.py): SAM 3.1 weights
+  sam_hf_model: facebook/sam3           # HF transformers wrapper (m10_sam_segment_v2_HF.py): Sam3TrackerVideoModel
   grounding_dino:
     model_id: "IDEA-Research/grounding-dino-base"   # Swin-B, 233M params, ~1.2 GB VRAM
     # Aggressive recall: SANITY v3 with 0.25/0.20 left 7/20 clips (35%) with zero

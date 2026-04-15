@@ -247,6 +247,89 @@ print('B15 PASS: torchcodec disabled, PyAV fallback active')
 "
 ```
 
+---
+
+## Part D: transformers 5.x Regression Guards (B16-B20)
+
+Added 2026-04-14 during transformers 4.57 → 5.5.4 migration. Each maps to an error logged in `iter/iter8/errors_N_fixes.md` (#37, #38, #39, #40). All are AST/grep-based, run in <1 s.
+
+**B16. Deprecated `torch_dtype=` kwarg** (catches error #37 — transformers 5.x renamed to `dtype=`):
+```bash
+source venv_walkindia/bin/activate && python3 -c "
+import ast, sys
+src = open('<file>').read()
+tree = ast.parse(src)
+bad = []
+for node in ast.walk(tree):
+    if isinstance(node, ast.Call) and isinstance(node.func, ast.Attribute) and node.func.attr == 'from_pretrained':
+        for kw in node.keywords:
+            if kw.arg == 'torch_dtype': bad.append(node.lineno)
+if bad: print(f'B16 FAIL: deprecated torch_dtype= at line(s) {bad}. Use dtype= (errors_N_fixes.md #37)'); sys.exit(1)
+print('B16 PASS')"
+```
+
+**B17. DINO must be fp32 under transformers 5.x** (catches error #37 — text-branch crash when DINO is fp16, no auto-cast):
+```bash
+source venv_walkindia/bin/activate && python3 -c "
+import ast, sys
+src = open('<file>').read()
+tree = ast.parse(src)
+bad = []
+for node in ast.walk(tree):
+    if isinstance(node, ast.Call) and isinstance(node.func, ast.Attribute) and node.func.attr == 'from_pretrained':
+        recv = node.func.value
+        if isinstance(recv, ast.Name) and recv.id == 'AutoModelForZeroShotObjectDetection':
+            for kw in node.keywords:
+                if kw.arg in ('dtype', 'torch_dtype'):
+                    v = kw.value
+                    if isinstance(v, ast.Attribute) and v.attr in ('float16', 'half', 'bfloat16'):
+                        bad.append((node.lineno, v.attr))
+if bad: print(f'B17 FAIL: Grounding DINO loaded non-fp32: {bad}. transformers 5.x text branch crashes fp16 (errors_N_fixes.md #37)'); sys.exit(1)
+print('B17 PASS')"
+```
+
+**B18. Sam3TrackerVideoProcessor box-input depth=3, not 4** (catches error #38):
+```bash
+python3 -c "
+import re, sys
+src = open('<file>').read()
+bad = [i+1 for i, line in enumerate(src.split(chr(10)))
+       if re.search(r'\[\s*\[\s*\[\s*b\s*\]\s+for\s+b\s+in\s+', line)]
+if bad: print(f'B18 FAIL: depth-4 box nesting at line(s) {bad}. Sam3TrackerVideoProcessor expects depth-3 [image,box,coords] for input_boxes (depth-4 is for input_points). See errors_N_fixes.md #38'); sys.exit(1)
+print('B18 PASS')"
+```
+
+**B19. Session-reset methods live on session object, not processor** (catches error #39):
+```bash
+python3 -c "
+import re, sys
+src = open('<file>').read()
+bad = []
+for i, line in enumerate(src.split(chr(10)), 1):
+    m = re.search(r'(\w*processor\w*)\.(reset_inference_session|reset_tracking_data|clear_all|remove_point_inputs|remove_mask_inputs)\s*\(', line)
+    if m: bad.append((i, m.group(1), m.group(2)))
+if bad: print(f'B19 FAIL: session-reset called on processor (should be on session): {bad}. See errors_N_fixes.md #39'); sys.exit(1)
+print('B19 PASS')"
+```
+
+**B20. Sam3TrackerVideoSegmentationOutput attr names** (catches error #40 — silent bug: legacy SAM2 attr `iou_scores` etc. returns None with getattr-fallback, defeats mask confidence filter):
+```bash
+source venv_walkindia/bin/activate && python3 << 'PY'
+import re, sys
+src = open('<file>').read()
+bad = []
+for i, line in enumerate(src.split('\n'), 1):
+    if re.search(r'\boutput\.(iou_scores|mask_logits|out_obj_ids|out_binary_masks|out_probs)\b', line):
+        bad.append((i, line.strip()))
+    if re.search(r"""getattr\(output,\s*['"]iou_scores['"]""", line):
+        bad.append((i, line.strip()))
+if bad: print(f'B20 FAIL: legacy SAM2/raw-sam3 output attrs. Sam3TrackerVideoSegmentationOutput exposes ONLY object_ids, pred_masks, object_score_logits, frame_idx. {bad}. See errors_N_fixes.md #40'); sys.exit(1)
+print('B20 PASS')
+PY
+```
+
+---
+
 ## Output Format
 
 ```
@@ -254,7 +337,8 @@ print('B15 PASS: torchcodec disabled, PyAV fallback active')
 AUTOMATED:       [A1] PASS/FAIL  [A2] PASS/FAIL  [A3] PASS/FAIL
 GENERIC MANUAL:  [B1] …  [B2] …  [B3] …  [B4] …  [B5] …  [B6] …  [B7] PASS/N/A  [B8] …  [B9] …
 REGRESSION:      [B10] …  [B11] …  [B12] …  [B13] …  [B14] …  [B15] …
-TOTAL: X/17 passed. Y FAILs need fixing. (B7 is N/A for non-training scripts.)
+TX 5.x:          [B16] …  [B17] …  [B18] …  [B19] …  [B20] …
+TOTAL: X/22 passed. Y FAILs need fixing. (B7 is N/A for non-training scripts.)
 ```
 
 List all FAILs with line numbers and fix instructions referencing `iter/iter8/errors_N_fixes.md` entry numbers.

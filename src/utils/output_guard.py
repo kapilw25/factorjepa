@@ -74,8 +74,13 @@ def verify_or_skip(
                 if isinstance(data, dict):
                     keys = len(data)
                     details.append(f"  OK    {desc}: {keys} keys")
+                    # Count JSON dict keys toward clip_count (partial-resume detection)
+                    if clip_count is None:
+                        clip_count = keys
                 elif isinstance(data, list):
                     details.append(f"  OK    {desc}: {len(data)} items")
+                    if clip_count is None:
+                        clip_count = len(data)
                 else:
                     details.append(f"  OK    {desc}: loaded")
             except Exception as e:

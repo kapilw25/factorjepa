@@ -91,11 +91,9 @@ def load_sam3(model_id: str):
 
 
 def load_grounding_dino(model_id: str):
-    """Load Grounding DINO for zero-shot text-prompted object detection."""
+    """Load Grounding DINO in fp32 (transformers 5.x removed auto-cast, #37)."""
     processor = AutoProcessor.from_pretrained(model_id)
-    model = AutoModelForZeroShotObjectDetection.from_pretrained(
-        model_id, torch_dtype=torch.float16,
-    ).to("cuda").eval()
+    model = AutoModelForZeroShotObjectDetection.from_pretrained(model_id).to("cuda").eval()
     return processor, model
 
 
@@ -165,6 +163,11 @@ def detect_boxes_grounding_dino(dino_processor, dino_model,
     pil = Image.fromarray(frame_rgb)
     inputs = dino_processor(images=pil, text=compound_prompt, return_tensors="pt")
     inputs = {k: v.to("cuda") for k, v in inputs.items()}
+    # transformers 5.x: processor fp32 outputs + fp16 model weights no longer auto-cast (#37).
+    model_dtype = next(dino_model.parameters()).dtype
+    for k, v in inputs.items():
+        if v.dtype.is_floating_point and v.dtype != model_dtype:
+            inputs[k] = v.to(model_dtype)
     with torch.no_grad():
         outputs = dino_model(**inputs)
 
@@ -246,18 +249,43 @@ def segment_clip(sam_predictor, dino_processor, dino_model,
         per_object: {obj_id: {t: mask}}
         detected_categories: list[str] (for concept_recall diagnostic)
     """
-    # ── Step 1: DINO detection on frame 0 ─────────────────────────
-    frame_0 = frames_np[0]
-    dino_out = detect_boxes_grounding_dino(
-        dino_processor, dino_model, frame_0, compound_prompt,
-        box_threshold, text_threshold,
-    )
-    H, W = dino_out["H"], dino_out["W"]
-    boxes_by_cat = dino_out["boxes_by_cat"]
+    # ── Multi-anchor DINO re-seed (Level 2 quality fix) ────────────────
+    # Instead of running DINO ONLY on frame 0 and letting SAM3 propagate 16 frames
+    # (which drifts badly by mid/end frames — e.g., 25.7% → 5.9% coverage), we run
+    # DINO on 4 anchor frames spread evenly across the clip, and each anchor "owns"
+    # the 4 nearest frames. Max tracking drift per frame is ~2 frames instead of ~15.
+    #
+    #   Anchors for T=16:   [0,      4,      8,      12]
+    #   Segment ownership:  [0-3,    4-7,    8-11,   12-15]
+    #
+    # Cost: 4x DINO forwards + 4x SAM3 sessions per category (sessions are the bulk
+    # cost). Quality win: fresh boxes every 4 frames = tight masks throughout clip.
+    T = frames_np.shape[0]
+    n_anchors = 4
+    segment_size = max(1, T // n_anchors)
+    anchors = [a * segment_size for a in range(n_anchors)]
+    anchor_segments = {}
+    for i, a in enumerate(anchors):
+        end = anchors[i + 1] if i + 1 < len(anchors) else T
+        anchor_segments[a] = set(range(a, end))  # frames this anchor owns
 
-    # Early exit: no agents detected → return empty result (m11 skips D_A, uses agent-free D_L)
-    if not boxes_by_cat:
-        empty_mask = np.zeros((frames_np.shape[0], H, W), dtype=bool)
+    # Step 1: Run DINO on each anchor frame (parallel-friendly but we do sequential
+    # — DINO base is ~100ms/frame, 4x = ~400ms per clip overhead. Negligible.)
+    dino_per_anchor = {}
+    H = W = 0
+    all_detected_categories = set()
+    for a in anchors:
+        dino_out = detect_boxes_grounding_dino(
+            dino_processor, dino_model, frames_np[a], compound_prompt,
+            box_threshold, text_threshold,
+        )
+        H, W = dino_out["H"], dino_out["W"]  # same across anchors (same clip)
+        dino_per_anchor[a] = dino_out["boxes_by_cat"]
+        all_detected_categories.update(dino_out["boxes_by_cat"].keys())
+
+    # Early exit: no agents at ANY anchor → return empty result
+    if not any(dino_per_anchor[a] for a in anchors):
+        empty_mask = np.zeros((T, H if H else 384, W if W else 384), dtype=bool)
         return {
             "agent_mask": empty_mask,
             "layout_mask": ~empty_mask,
@@ -269,7 +297,7 @@ def segment_clip(sam_predictor, dino_processor, dino_model,
             "detected_categories": [],
         }
 
-    # ── Step 2: Per-category SAM 3.1 session with DINO boxes ───────
+    # Step 2: Per-anchor × per-category SAM 3.1 session, keep masks only in segment
     masks_per_frame = {}
     per_object = {}
     centroids = {}
@@ -289,69 +317,108 @@ def segment_clip(sam_predictor, dino_processor, dino_model,
             return m
         return None
 
-    for category, boxes in boxes_by_cat.items():
-        # Start a SAM 3.1 session for this category only.
-        response = sam_predictor.handle_request(dict(
-            type="start_session",
-            resource_path=frame_dir,
-        ))
-        session_id = response["session_id"]
+    for anchor in anchors:
+        boxes_by_cat = dino_per_anchor[anchor]
+        segment_frames = anchor_segments[anchor]
+        if not boxes_by_cat:
+            continue  # no detections at this anchor → no sessions needed
 
-        # SAM 3.1 requires xywh format in NORMALIZED [0, 1] coords, plus paired box_labels
-        # (see sam3_multiplex_tracking.py:1708-1717). DINO returns absolute-pixel xyxy.
-        # Convert: [x0, y0, x1, y1]_abs → [x0/W, y0/H, (x1-x0)/W, (y1-y0)/H]_norm
-        boxes_xywh_norm = [
-            [x0 / W, y0 / H, (x1 - x0) / W, (y1 - y0) / H]
-            for x0, y0, x1, y1 in boxes
-        ]
-        # One positive-prompt label (=1) per box (SAM1/2 convention: 1=include, 0=exclude).
-        box_labels_pos = [1] * len(boxes_xywh_norm)
+        for category, boxes in boxes_by_cat.items():
+            # Start a SAM 3.1 session for this anchor × category.
+            response = sam_predictor.handle_request(dict(
+                type="start_session",
+                resource_path=frame_dir,
+            ))
+            session_id = response["session_id"]
 
-        # Hybrid prompt (SAM 3.1's intended workflow per sam3_multiplex_tracking.py:1700-1715):
-        #   - text=category    → propagates as cross-frame TRACKING signal (find_inputs[t].text_ids
-        #                        set for every frame). Without this, SAM3 has no concept of "what"
-        #                        to track in frames 1..T-1 and drops most boxes after frame 0.
-        #   - bounding_boxes   → REFINE frame-0 segmentation with DINO's accurate anchor (avoids
-        #                        SAM3 text encoder's weak grounding on Indian objects).
-        # Splits responsibilities: DINO=detect, SAM3 box=refine f0, SAM3 text=track f1..T-1.
-        prompt_resp = sam_predictor.handle_request(dict(
-            type="add_prompt",
-            session_id=session_id,
-            frame_index=0,
-            text=category,
-            bounding_boxes=boxes_xywh_norm,
-            bounding_box_labels=box_labels_pos,
-        ))
+            # Clamp DINO boxes to frame bounds, normalize to xywh in [0,1]. See #25/#28.
+            boxes_xywh_norm = []
+            for x0, y0, x1, y1 in boxes:
+                x0c = max(0.0, min(float(W), x0))
+                y0c = max(0.0, min(float(H), y0))
+                x1c = max(0.0, min(float(W), x1))
+                y1c = max(0.0, min(float(H), y1))
+                w, h = x1c - x0c, y1c - y0c
+                if w <= 0 or h <= 0:
+                    continue  # out-of-frame or zero-area
+                boxes_xywh_norm.append([x0c / W, y0c / H, w / W, h / H])
+            if not boxes_xywh_norm:
+                sam_predictor.handle_request(dict(type="close_session", session_id=session_id))
+                continue
+            box_labels_pos = [1] * len(boxes_xywh_norm)
 
-        # Capture frame 0 masks
-        out0 = prompt_resp["outputs"]
-        for i, oid in enumerate(out0["out_obj_ids"].tolist()):
-            m = _accept_mask(out0["out_binary_masks"][i], float(out0["out_probs"][i]))
-            if m is not None:
-                global_id = obj_id_offset + int(oid)
-                masks_per_frame.setdefault(0, {})[global_id] = m
-                obj_id_to_cat[global_id] = category
-                accepted_probs.append(float(out0["out_probs"][i]))
-                n_agents += 1
+            # Hybrid prompt (Path D): text for cross-frame tracking signal + boxes for
+            # frame-anchor refinement. frame_index=anchor (not 0) so SAM3 anchors masks
+            # at this specific frame for better local tracking.
+            prompt_resp = sam_predictor.handle_request(dict(
+                type="add_prompt",
+                session_id=session_id,
+                frame_index=anchor,
+                text=category,
+                bounding_boxes=boxes_xywh_norm,
+                bounding_box_labels=box_labels_pos,
+            ))
 
-        # Propagate across all frames
-        for resp in sam_predictor.handle_stream_request(dict(
-            type="propagate_in_video",
-            session_id=session_id,
-        )):
-            fidx = resp["frame_index"]
-            out = resp["outputs"]
-            for i, oid in enumerate(out["out_obj_ids"].tolist()):
-                m = _accept_mask(out["out_binary_masks"][i], float(out["out_probs"][i]))
-                if m is not None:
-                    global_id = obj_id_offset + int(oid)
-                    masks_per_frame.setdefault(fidx, {})[global_id] = m
-                    accepted_probs.append(float(out["out_probs"][i]))
+            # Capture mask at the anchor frame itself (from add_prompt response)
+            out0 = prompt_resp["outputs"]
+            n_anchor_objs = len(out0.get("out_obj_ids", []))
+            if anchor in segment_frames:  # anchor is always in its own segment
+                for i, oid in enumerate(out0["out_obj_ids"].tolist()):
+                    m = _accept_mask(out0["out_binary_masks"][i], float(out0["out_probs"][i]))
+                    if m is not None:
+                        global_id = obj_id_offset + int(oid)
+                        masks_per_frame.setdefault(anchor, {})[global_id] = m
+                        obj_id_to_cat[global_id] = category
+                        accepted_probs.append(float(out0["out_probs"][i]))
+                        n_agents += 1
 
-        sam_predictor.handle_request(dict(type="close_session", session_id=session_id))
+            # Guard #30: add_prompt returned empty → skip propagation, close session
+            if n_anchor_objs == 0:
+                sam_predictor.handle_request(dict(type="close_session", session_id=session_id))
+                obj_id_offset += 100
+                continue
 
-        # Reserve 100 obj_ids per category so D_I mining can tell categories apart
-        obj_id_offset += 100
+            # Forward-only propagation (#35, ~2× speedup, bit-identical output). Discovered via
+            # sam3_base_predictor.py:92 which exposes `propagation_direction` ("forward"|"backward"|"both").
+            # Backward was completely useless for our multi-anchor architecture:
+            #   - anchor=0 backward → frames [-1,-2,-3] (invalid, was crashing #33)
+            #   - anchors 4/8/12 backward → frames already owned by previous anchor → discarded by filter below
+            # NOTE: also tried `max_frame_num_to_track` to cap forward range to segment_size-1 frames
+            # (would be ~10× speedup), but BOTH directions of that param are unsafe in SAM 3.1
+            # (see #34): SAM3's memory mechanism internally accesses neighboring frames beyond the
+            # bounded loop, causing `current_vision_feats[-1].expand(-1, B, -1)` to fail with
+            # `Tensor sizes: [5184, 0, 256]` (empty batch from unloaded frame). Stuck with full-clip
+            # forward propagation; out-of-segment frames discarded by `if fidx not in segment_frames`.
+            # Guard #31: catch "No points are provided" from SAM3's internal state inconsistency.
+            try:
+                for resp in sam_predictor.handle_stream_request(dict(
+                    type="propagate_in_video",
+                    session_id=session_id,
+                    propagation_direction="forward",
+                )):
+                    fidx = resp["frame_index"]
+                    if fidx not in segment_frames or fidx == anchor:
+                        # Outside this anchor's segment, OR already captured from add_prompt
+                        continue
+                    out = resp["outputs"]
+                    for i, oid in enumerate(out["out_obj_ids"].tolist()):
+                        m = _accept_mask(out["out_binary_masks"][i], float(out["out_probs"][i]))
+                        if m is not None:
+                            global_id = obj_id_offset + int(oid)
+                            masks_per_frame.setdefault(fidx, {})[global_id] = m
+                            accepted_probs.append(float(out["out_probs"][i]))
+            except RuntimeError as e:
+                if "No points are provided" not in str(e):
+                    raise
+                print(f"  WARN: SAM3 propagate inconsistency on anchor={anchor}, "
+                      f"category='{category}' (anchor-frame mask kept, segment tracking skipped): {e}")
+
+            sam_predictor.handle_request(dict(type="close_session", session_id=session_id))
+            # Reserve 100 obj_ids per session so D_I mining can tell sessions apart
+            obj_id_offset += 100
+
+    # Preserve variable name used below by Step 3
+    boxes_by_cat = {c: [] for c in sorted(all_detected_categories)}  # reporting only
 
     # ── Step 3: Build agent_mask union + centroids ─────────────────
     T = frames_np.shape[0]
@@ -464,17 +531,40 @@ def mine_interactions(centroids: dict, frame_width: int,
 
 def save_clip_masks(clip_key: str, result: dict, interactions: list,
                     masks_dir: Path, mid_frame_rgb: np.ndarray = None):
-    """Save per-clip masks + centroids + interactions + middle frame as compressed .npz."""
+    """Save per-clip masks + centroids + per-object bboxes + interactions + middle frame as compressed .npz.
+
+    Adds `per_object_bboxes_json`: {obj_id: {t: [y1, x1, y2, x2]}} — tight axis-aligned
+    bbox of each object's mask per frame. Used by m11 D_I builder for tight union-bbox
+    tubes (vs fixed 30% centroid squares). Storage cost: ~5 KB/clip for ~20 agents ×
+    16 frames × 4 ints, vs ~130 MB/clip for full per-object masks. Enables gold-standard
+    interaction tubes without blowing up FULL (115K × 5 KB ≈ 600 MB).
+    """
     safe_key = clip_key.replace("/", "__")
     out_path = masks_dir / f"{safe_key}.npz"
     centroids_json = json.dumps({str(k): {str(t): list(v) for t, v in frames.items()}
                                   for k, frames in result["centroids"].items()})
     interactions_json = json.dumps(interactions)
+
+    # Per-object tight bboxes (y1, x1, y2, x2) — derived from per_object masks
+    per_object_bboxes = {}
+    for oid, frames_dict in result.get("per_object", {}).items():
+        per_frame = {}
+        for t, mask in frames_dict.items():
+            m = np.asarray(mask, dtype=bool)
+            if not m.any():
+                continue
+            ys, xs = np.where(m)
+            per_frame[str(t)] = [int(ys.min()), int(xs.min()), int(ys.max()), int(xs.max())]
+        if per_frame:
+            per_object_bboxes[str(oid)] = per_frame
+    per_object_bboxes_json = json.dumps(per_object_bboxes)
+
     save_dict = dict(
         agent_mask=result["agent_mask"],
         layout_mask=result["layout_mask"],
         centroids_json=np.array(centroids_json),
         interactions_json=np.array(interactions_json),
+        per_object_bboxes_json=np.array(per_object_bboxes_json),
     )
     if mid_frame_rgb is not None:
         save_dict["mid_frame_rgb"] = mid_frame_rgb  # (H, W, 3) uint8 for overlay plots
@@ -675,14 +765,9 @@ def main():
     masks_dir = output_dir / "masks"
     masks_dir.mkdir(parents=True, exist_ok=True)
 
-    # Skip if done
-    if verify_or_skip(output_dir, {"segments": output_dir / "segments.json"},
-                      label="m10 SAM3.1"):
-        return
-
     mode = "SANITY" if args.SANITY else ("POC" if args.POC else "FULL")
 
-    # Clip limit
+    # Clip limit (computed before guard so the completeness check knows the target)
     if args.SANITY:
         clip_limit = get_sanity_clip_limit("default")
     elif args.POC:
@@ -694,6 +779,13 @@ def main():
         if clip_limit == 0:
             print("FATAL: Cannot determine clip count. Use --subset or --local-data with manifest.json")
             sys.exit(1)
+
+    # Skip if done — but only if segments.json has the FULL expected clip count.
+    # Without min_clips, a partial segments.json (e.g., 50/100 from a crashed run)
+    # would make the guard return early without resuming.
+    if verify_or_skip(output_dir, {"segments": output_dir / "segments.json"},
+                      min_clips=clip_limit, label="m10 SAM3.1"):
+        return
 
     # Load tags.json (MANDATORY — per-clip agent prompts)
     if args.tags_json:
