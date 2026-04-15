@@ -89,9 +89,89 @@ Verdict: Path B achieved 4.21× speedup AND +228 % D_I tubes AND tighter agent m
 - ✅ Step A' (POC 100 dense, v2_HF): 6146 agents, 8723 interactions, 11.02 s/clip
 - ✅ Step B' (POC 100 dense, bbox-tubes): 91/100 D_I clips, 8723 tubes, 5659 unique shapes
 - 🔥 Step C: m05 frozen V-JEPA 2.1 embedding on 100-clip dense subset (`--POC --subset data/sanity_100_dense.json`)
-- 🔥 Step D: m09 ExPLoRA training on 100-clip dense subset
-- 🔥 Step E: m09 Surgery training on 100-clip dense subset (uses `--factor-dir outputs/poc/m11_factor_datasets/`)
+- 🔥 Step D: m09 Surgery SANITY training (WIP — see "m09c SANITY progress" below)
+- ⬜ Step E: m09 ExPLoRA training on 100-clip dense subset (blocked on D.1 unblock)
 - ⬜ Commit all fixes via `git_push.sh`
+
+---
+
+### 🔄 m09c SANITY training progress (2026-04-15, 24GB RTX Pro 4000)
+
+**Iterations so far:** v0 → v7. Errors & fixes catalogued in `errors_N_fixes.md` #50-#58.
+
+| Version | Furthest point reached | Blocker | Fixed by |
+|---|---|---|---|
+| v0 | `build_model` | `KeyError 'src.models.predictor'` | #50 (vjepa2_imports finally-block restores all saved_modules) |
+| v1 | `build_model:125` | `KeyError 'patch_size'` on cfg["data"] | #51 (sed `data_cfg[X]` → `model_cfg[X]` for crop_size/patch_size/tubelet_size) |
+| v2 | `train_surgery:351` | `TypeError 'int' not subscriptable` on max_epochs | #52 (drop redundant `[mode_key]` — merge already flattened) |
+| v3 | Stage 1 step 0 | OOM at first forward (2.25 GiB need, 1.87 free on 24GB) | #53 (AdaptiveBatchSizer + `_train_step_grad_accum` wired + `PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True`) |
+| v4 | Stage 1 summary | `UnboundLocalError jepa_val` (step OOMed → loop ended before any value assigned) | #54 (pre-init loss vars per-stage before inner for-loop) |
+| v5 | All 3 stages printed "complete" | Silent fail: 0 successful steps, exported unmodified student | #55 (within-step retry on OOM + fail-hard when sizer at min) |
+| v6 | Stages 1+2 ✅ (loss=0.4841, 0.4874), Stage 3 OOM | Stage 3: 36/48 trainable blocks — fp32 master (5.5 GB) + 8-bit m1/m2 (3 GB) + model + activations overflowed 24 GB | #56 (grad checkpointing + bnb AdamW8bit) + #57 (mode-gated yaml: savers ON for SANITY, OFF for POC/FULL) |
+| **v7** | **Stages 1+2 ✅, Stage 3 still OOM** | **See root cause below** | **#58 partial — needs follow-up** |
+
+### 🛑 v7 Stage 3 OOM — detailed root cause
+
+**What v7 did accomplish:** `PagedAdamW8bit` (unified-memory CPU paging) wired in via `#58`; inter-stage optimizer cleanup (`None`-ref + `empty_cache` + `ipc_collect`) working. Stage 2 → Stage 3 transition log shows `17.7 GB used / 25.2 GB total after releasing Stage 2 state` — cleanup IS happening correctly. Stage 3's optimizer built successfully. Forward at sub-batch=1 immediately OOMed.
+
+**Memory accounting for Stage 3 on 24 GB (actual, from v7 log):**
+
+| Component | Size | Cumulative |
+|---|---:|---:|
+| CUDA context + PyTorch reserved | ~2.0 GB | 2.0 GB |
+| Student fp16 (48 blocks × 2B params) | 3.7 GB | 5.7 GB |
+| Teacher fp16 (frozen EMA copy) | 3.7 GB | 9.4 GB |
+| Predictor fp16 (60M) | 0.12 GB | 9.5 GB |
+| Mixed-precision buffers, mask generators, etc. | ~0.5 GB | 10.0 GB |
+| **Post-cleanup baseline ← matches log "17.7 GB"** (7.7 GB extra accounted for by partial optimizer pre-allocation) | — | 17.7 GB |
+| Stage 3 optimizer: fp32 master (1.38B × 4 bytes) | 5.5 GB | — |
+| Stage 3 optimizer: 8-bit m1+m2 (quantized) | ~3.0 GB | — |
+| PagedAdamW8bit pages SOME of above to CPU RAM | -3 to -5 GB | ~20 GB after build |
+| **Forward spike at sub-batch=1** (activations + grads + intermediate) | **+5-6 GB** | **~25-26 GB → OOM** |
+
+**Why PagedAdamW8bit alone wasn't enough:** paging is *reactive* (pages on pressure, not proactively). The forward-pass spike is fast — allocator requests activation tensors, there's no free slot, it returns OOM *before* paging can swap anything out. Paging helps steady-state memory but not burst peaks.
+
+### ✅ Proposed fix for v8 — teacher CPU offload
+
+**Idea:** Teacher is 3.7 GB permanently resident on GPU but only *used* during a single `torch.no_grad()` forward per sub-batch (inside `_train_step_grad_accum`). For 95%+ of each step the teacher sits idle consuming premium GPU memory. Move teacher to CPU by default, swap to GPU only for that one forward call, move back to CPU after.
+
+**Expected memory freed:** 3.7 GB on GPU permanently.
+**Expected throughput hit:** ~200-500ms per sub-batch for 3.7 GB PCIe transfer (× 2: to-GPU then back). At SANITY's scale (1 step per stage), ~1 second added per step total. Negligible.
+**Accuracy impact:** ZERO — teacher runs at full fp16 precision on GPU during its forward; the only change is residency between calls.
+
+**Implementation sketch** (surgery-only per scope discipline):
+1. Add mode-gated yaml: `teacher_offload: {sanity: true, poc: false, full: false}` in `ch11_surgery.yaml` + flatten in `m09c_surgery.merge_config_with_args`.
+2. In `_train_step_grad_accum` (or a surgery-only wrapper around it), if offload flag is True:
+   ```python
+   teacher = teacher.to(device, non_blocking=True)
+   with torch.no_grad():
+       h = teacher(bc)
+   teacher = teacher.to("cpu", non_blocking=True)
+   torch.cuda.synchronize()  # ensure copy-out completes before student forward
+   ```
+3. Store teacher on CPU after initial build in m09c `build_model` (conditional).
+4. EMA update (`update_teacher_ema`) also needs teacher on GPU briefly — swap pattern same as above.
+
+**Gold-standard reference:** HF Accelerate's `cpu_offload_with_hook` pattern, DeepSpeed ZeRO-Infinity's weight offloading, FAIR vissl's `param_offload_to_cpu`. All use the same "move to GPU on use, back on done" semantics.
+
+**Expected v8 Stage 3 memory:** 17.7 GB - 3.7 GB teacher = 14.0 GB post-cleanup → +8.5 GB Stage 3 optimizer (partially paged) ≈ 20 GB → +5-6 GB forward spike ≈ 25-26 GB. Still tight. **May need a second fix.**
+
+### 📋 Fallback fixes if teacher offload alone doesn't fit v8
+
+Ordered by preference (least invasive first):
+
+1. **Reduce teacher to fp32→bf16 master only + fp16 weights** (already in mixed precision, marginal)
+2. **Disable teacher hierarchical output (4-level deep supervision) for SANITY Stage 3** — saves ~1.5 GB in teacher forward activations. Config flag `cfg[model][n_output_distillation]=1` for SANITY. Changes training loss slightly but SANITY is code-only.
+3. **Reduce SANITY `num_frames` from 16 → 8** — halves token count, halves activation memory. Add mode-gate to `data.num_frames`. Clean yaml-only change.
+4. **Predictor CPU offload** (predictor is small, 0.12 GB — low ROI)
+5. **Gradient accumulation at sub-micro-batch level** — split sub-batch=1 forward into time-sliced chunks. Non-trivial code change.
+
+### 🔚 Status at 2026-04-15 ~midnight (GPU killed for sleep)
+
+- All SANITY code path validated THROUGH Stage 2 end-to-end: loss=0.4841 (Stage 1, D_L), loss=0.4874 (Stage 2, D_A+10%D_L). Inter-stage cleanup + Paged 8-bit optimizer + within-step retry + fail-hard all validated.
+- Stage 3 (36 trainable blocks + D_I 85% mixture) unfit on 24 GB with current savers.
+- **Next session action**: implement teacher CPU offload (#59 pending), re-run v8. If v8 Stage 3 still OOMs, apply fallback #2 or #3 above.
+- **Does NOT block POC/FULL on 96 GB** — those modes have all savers OFF and fit trivially. Once Stage 3 SANITY runs once end-to-end (for loss-graph validation), the ~$0.20 SANITY tier is done forever — move to 96 GB for D.2 POC.
 
 ---
 

@@ -429,7 +429,10 @@ def train_surgery(cfg: dict, args):
             # Stage 3 past 24 GB even with 8-bit + checkpointing. `ipc_collect` flushes
             # inter-process CUDA cache entries too (relevant for torch.compile'd models).
             if stage_idx > 0:
-                del optimizer, scheduler, sampler
+                # Drop references so Python GC releases underlying objects; then
+                # explicitly return CUDA cache blocks to the pool BEFORE
+                # build_optimizer allocates the new stage's state.
+                optimizer = scheduler = sampler = None
                 gc.collect()
                 torch.cuda.empty_cache()
                 torch.cuda.ipc_collect()
