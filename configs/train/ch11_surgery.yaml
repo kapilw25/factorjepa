@@ -16,7 +16,7 @@
 #   4. Same JEPA loss — only input distribution and trainable depth change
 #
 # USAGE:
-#   python -u src/m09_pretrain.py \
+#   python -u src/m09c_surgery.py \
 #       --model-config configs/model/vjepa2_1.yaml \
 #       --train-config configs/train/ch11_surgery.yaml \
 #       --FULL --subset data/subset_10k.json --local-data data/subset_10k_local

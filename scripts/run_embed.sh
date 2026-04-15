@@ -86,10 +86,15 @@ if [[ -z "$ENCODERS" ]]; then
     # Auto-detect: frozen baselines + all adapted models
     ENCODER_LIST="vjepa,random,dinov2,clip,vjepa_shuffled"
 
-    # Find adapted models from m09 outputs (new per-module dir + old flat dir)
-    for model_dir in "$OUT_DIR"/m09_pretrain/lambda*/ "$OUT_DIR"/m09_lambda*/; do
+    # Find adapted models from m09a/b/c outputs (split from monolith 2026-04-15, #49).
+    # Back-compat: also glob old m09_pretrain/ paths for pre-split checkpoints.
+    for model_dir in "$OUT_DIR"/m09a_pretrain/lambda*/ "$OUT_DIR"/m09a_pretrain/ablation/lambda*/ \
+                     "$OUT_DIR"/m09b_explora/ "$OUT_DIR"/m09c_surgery/ \
+                     "$OUT_DIR"/m09_pretrain/lambda*/ "$OUT_DIR"/m09_lambda*/; do
         if [[ -f "${model_dir}student_encoder.pt" ]]; then
-            enc_name="vjepa_$(basename "$model_dir" | sed 's/m09_//')"
+            # Encoder name: strip output base dirs + any "m09*_" prefix, prepend vjepa_
+            raw=$(basename "$model_dir")
+            enc_name="vjepa_$(echo "$raw" | sed 's/^m09[abc]*_//')"
             ENCODER_LIST="${ENCODER_LIST},${enc_name}"
         fi
     done

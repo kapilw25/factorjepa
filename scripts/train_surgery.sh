@@ -190,14 +190,14 @@ run_step "1-factors" "m11 factor datasets (D_L, D_A, D_I)" \
 # ═══════════════════════════════════════════════════════════════════════
 # Step 2 (GPU): Progressive prefix unfreezing on frozen V-JEPA 2.1
 # ═══════════════════════════════════════════════════════════════════════
-SURGERY_DIR="${OUT_DIR}/m09_pretrain/surgery"
+SURGERY_DIR="${OUT_DIR}/m09c_surgery"
 
-run_step "2-surgery" "m09 factor surgery (progressive unfreezing)" \
-    "$T_SURGERY" "$LOGDIR/m09_surgery_${MODE,,}.log" \
-    src/m09_pretrain.py \
+run_step "2-surgery" "m09c factor surgery (progressive unfreezing)" \
+    "$T_SURGERY" "$LOGDIR/m09c_surgery_${MODE,,}.log" \
+    src/m09c_surgery.py \
         --model-config "$MODEL_CONFIG" \
         --train-config "$TRAIN_CONFIG" \
-        --surgery --factor-dir "$FACTOR_DIR" \
+        --factor-dir "$FACTOR_DIR" \
         --output-dir "$SURGERY_DIR" \
         $BATCH_FLAG $MODE_FLAG $SUBSET_FLAG $LOCAL_FLAG $VAL_FLAG --no-wandb
 

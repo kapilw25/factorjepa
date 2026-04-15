@@ -59,7 +59,11 @@ vit_predictor = sys.modules["src.models.predictor"].vit_predictor
 
 # Shared video I/O (Rule 32: no cross-imports between m*.py)
 from utils.video_io import decode_video_bytes
-from m09_pretrain import load_config, DEFAULT_CONFIG
+# Phase 3 of #49: m09_pretrain.py was split into m09a/b/c. load_config now lives in
+# utils.training. DEFAULT_CONFIG was a legacy name (never defined post-rename to
+# DEFAULT_TRAIN_CONFIG); define locally here to preserve the one consumer at line 625.
+from utils.training import load_config
+DEFAULT_CONFIG = "configs/train/ch10_pretrain.yaml"  # profiler defaults to Ch10 pretrain config
 _MaskGenerator = sys.modules["src.masks.multiseq_multiblock3d"]._MaskGenerator
 apply_masks = sys.modules["src.masks.utils"].apply_masks
 

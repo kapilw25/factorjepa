@@ -270,22 +270,22 @@ if [[ -n "$WINNER_JSON" ]]; then
         fi
     fi
 
-    run_step "train" "m09 pretrain (lambda=${WINNER_LAMBDA}, ${WINNER_EPOCHS} epochs)" "$T_M09" \
-        "$LOGDIR/m09_${MODE,,}_${WINNER_DIR}.log" \
-        src/m09_pretrain.py --model-config "$MODEL_CONFIG" --train-config "$TRAIN_CONFIG" --lambda-reg "$WINNER_LAMBDA" \
+    run_step "train" "m09a pretrain (lambda=${WINNER_LAMBDA}, ${WINNER_EPOCHS} epochs)" "$T_M09" \
+        "$LOGDIR/m09a_${MODE,,}_${WINNER_DIR}.log" \
+        src/m09a_pretrain.py --model-config "$MODEL_CONFIG" --train-config "$TRAIN_CONFIG" --lambda-reg "$WINNER_LAMBDA" \
             --max-epochs "$WINNER_EPOCHS" \
             $BATCH_FLAG $MODE_FLAG $SUBSET_FLAG $LOCAL_FLAG $VAL_FLAG \
-        || { log "FATAL: m09 training failed."; exit 1; }
+        || { log "FATAL: m09a training failed."; exit 1; }
 else
-    # No winner — m09 auto-ablates all lambdas, selects winner, then trains
-    log "No ablation_winner.json found. m09 will auto-ablate + select winner + train."
+    # No winner — m09a auto-ablates all lambdas, selects winner, then trains
+    log "No ablation_winner.json found. m09a will auto-ablate + select winner + train."
 
-    run_step "train" "m09 pretrain (auto-ablation + winner)" "$T_M09" \
-        "$LOGDIR/m09_${MODE,,}_auto_ablation.log" \
-        src/m09_pretrain.py --model-config "$MODEL_CONFIG" --train-config "$TRAIN_CONFIG" \
+    run_step "train" "m09a pretrain (auto-ablation + winner)" "$T_M09" \
+        "$LOGDIR/m09a_${MODE,,}_auto_ablation.log" \
+        src/m09a_pretrain.py --model-config "$MODEL_CONFIG" --train-config "$TRAIN_CONFIG" \
             --max-epochs "$WINNER_EPOCHS" \
             $BATCH_FLAG $MODE_FLAG $SUBSET_FLAG $LOCAL_FLAG $VAL_FLAG \
-        || { log "FATAL: m09 training failed."; exit 1; }
+        || { log "FATAL: m09a training failed."; exit 1; }
 
     # Read winner created by m09's auto-ablation
     WINNER_JSON="${OUT_DIR}/ablation_winner.json"

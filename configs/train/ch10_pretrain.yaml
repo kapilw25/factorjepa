@@ -7,7 +7,7 @@
 # This config applies the gold standard audit fixes (12 discrepancies, see plan_training.md).
 #
 # USAGE:
-#   python -u src/m09_pretrain.py \
+#   python -u src/m09a_pretrain.py \
 #       --model-config configs/model/vjepa2_1.yaml \
 #       --train-config configs/train/ch10_pretrain.yaml \
 #       --FULL --subset data/subset_10k.json --local-data data/subset_10k_local

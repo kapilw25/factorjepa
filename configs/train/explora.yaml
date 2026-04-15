@@ -11,7 +11,7 @@
 # If ExPLoRA alone improves Prec@K, we have a publishable result in 3h GPU.
 #
 # USAGE:
-#   python -u src/m09_pretrain.py \
+#   python -u src/m09b_explora.py \
 #       --model-config configs/model/vjepa2_1.yaml \
 #       --train-config configs/train/explora.yaml \
 #       --FULL --subset data/subset_10k.json --local-data data/subset_10k_local

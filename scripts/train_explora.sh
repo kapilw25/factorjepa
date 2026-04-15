@@ -186,14 +186,13 @@ fi
 # ═══════════════════════════════════════════════════════════════════════
 # Step 1: ExPLoRA training
 # ═══════════════════════════════════════════════════════════════════════
-EXPLORA_DIR="${OUT_DIR}/m09_pretrain/explora"
+EXPLORA_DIR="${OUT_DIR}/m09b_explora"
 
-run_step "1-train" "m09 ExPLoRA (LoRA rank=16, unfreeze=2 blocks)" \
-    "$T_TRAIN" "$LOGDIR/m09_explora_${MODE,,}.log" \
-    src/m09_pretrain.py \
+run_step "1-train" "m09b ExPLoRA (LoRA rank=16, unfreeze=2 blocks)" \
+    "$T_TRAIN" "$LOGDIR/m09b_explora_${MODE,,}.log" \
+    src/m09b_explora.py \
         --model-config "$MODEL_CONFIG" \
         --train-config "$TRAIN_CONFIG" \
-        --explora \
         --output-dir "$EXPLORA_DIR" \
         $BATCH_FLAG $MODE_FLAG $SUBSET_FLAG $LOCAL_FLAG $VAL_FLAG --no-wandb
 

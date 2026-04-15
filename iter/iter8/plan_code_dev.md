@@ -314,10 +314,13 @@ User explicitly: *"Time spent on code development is not constraint. HIGH ACCURA
 
 | Time | Phase | Step | Action | Status | Notes |
 |---|---|---|---|---|---|
-| 2026-04-15 | — | — | Plan written + decisions captured | ✅ | User confirmed: full isolation, output migration, bit-equivalence validation |
-| _next_ | 0 | 0.1 | Capture 5-step baseline for pretrain | 📋 | awaiting greenlight |
-| _next_ | 0 | 0.2 | Capture 5-step baseline for explora | 📋 | awaiting greenlight |
-| _next_ | 0 | 0.3 | Capture 5-step baseline for surgery | 📋 | awaiting greenlight |
+| 2026-04-15 | — | — | Plan written + decisions captured | ✅ | Full isolation, output migration, bit-equiv validation |
+| 2026-04-15 | 0 | — | Skip Phase 0 baseline capture | ⚠️ | `--max-steps` flag doesn't exist; m09 hasn't been validated under transformers 5.5.4 anyway. Switched to: Phase 1 pure-mechanical extraction verified by diff + smoke test; Phase 2 split verified same way |
+| 2026-04-15 | 1 | 1.1-1.5 | Extract 20 symbols to utils/training.py | ✅ | m09 2164→1520 lines; utils/training.py 715 lines; lint clean (F821/F841/F811); 0 `args.explora`/`args.surgery` in utils/training.py; backup at /tmp/m09_pretrain_backup.py. 6 defs remain in m09 (merge_config_with_args, build_model, train_surgery, train, main, select_ablation_winner) |
+| 2026-04-15 | 2 | 2.1-2.3 | Create m09a / m09b / m09c in parallel | 🔄 | 3 agents launched |
+| _next_ | 2 | 2.4 | Delete src/m09_pretrain.py | 📋 | after 2.1-2.3 complete |
+| _next_ | 3 | — | Update scripts + configs + utils imports | 📋 | |
+| _next_ | 4 | — | Docs | 📋 | |
 
 ---
 

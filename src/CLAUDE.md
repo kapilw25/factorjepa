@@ -1,6 +1,6 @@
 # PROJECT STRUCTURE
-- Modules: `src/m00_*.py` … `src/m11_*.py` — prefix "m" avoids import errors. Numbers must NOT repeat.
-- Utils: `src/utils/` — shared functions only. **No cross-imports between m*.py files** (rule 32).
+- Modules: `src/m00_*.py` … `src/m11_*.py` — prefix "m" avoids import errors. Numbers must NOT repeat. **Suffixed variants (`m04b`, `m09a/b/c`) ARE allowed** and signal related-but-isolated modules (e.g., m09a=vanilla pretrain, m09b=ExPLoRA, m09c=surgery — all share `src/utils/training.py` primitives, but each has its own full training loop for isolation per #49).
+- Utils: `src/utils/` — shared functions only. **No cross-imports between m*.py files** (rule 32). **`src/utils/training.py` (#49) contract**: every function MUST be technique-agnostic. ZERO `if args.explora`/`if args.surgery`/`if cfg["technique"]` branches. Mode-specific behavior is configured via explicit parameters (`init_params=None`, `drift_cfg=None`, `explora_enabled=False`).
 - Configs: `configs/pipeline.yaml` (clip limits, streaming, eval), `configs/model/*.yaml` (architecture), `configs/train/*.yaml` (technique, inherits `base_optimization.yaml`). Use `load_merged_config()` to merge. **No hardcoded values in Python** — YAML or runtime discovery only. **No `.get(key, default)` on YAML** — use `cfg[key]` so missing keys crash.
 - Plots: both .png & .pdf. GPU scripts save .npy → CPU scripts (m08) read them. Never duplicate GPU compute in CPU scripts.
 - Shell scripts are THIN wrappers — all logic in Python. No `python -c` inline, no `bc -l` math in shell.
