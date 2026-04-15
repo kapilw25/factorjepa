@@ -31,6 +31,7 @@ model:
   loss_exp: 1.0
   predict_all: false             # 2.0: loss on masked tokens only
   weight_distance_loss: false    # 2.0: no deep supervision
+  n_output_distillation: 1       # 2.0: no deep supervision (single output layer; 2.1 uses 4). Required per CLAUDE.md fail-hard — no `.get()` defaults on YAML.
 
   # Resolution / temporal
   crop_size: 384                 # match pretrained ViT-g/384

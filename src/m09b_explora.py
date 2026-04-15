@@ -137,9 +137,9 @@ def build_model(cfg: dict, device: torch.device) -> dict:
     crop_size = model_cfg["crop_size"]
     student = vit_constructor(
         img_size=(crop_size, crop_size),
-        patch_size=data_cfg["patch_size"],
+        patch_size=model_cfg["patch_size"],
         num_frames=data_cfg["num_frames"],
-        tubelet_size=data_cfg["tubelet_size"],
+        tubelet_size=model_cfg["tubelet_size"],
         use_sdpa=True,
         use_silu=False,
         wide_silu=True,
@@ -203,7 +203,7 @@ def build_model(cfg: dict, device: torch.device) -> dict:
         student.return_hierarchical = True
 
     # V-JEPA 2.1 requires RoPE (no pos_embed registered in model)
-    if model_cfg["predict_all"] or model_cfg.get("n_output_distillation", 1) > 1:
+    if model_cfg["predict_all"] or model_cfg["n_output_distillation"] > 1:
         if not model_cfg["use_rope"]:
             print("FATAL: V-JEPA 2.1 requires use_rope=True (no pos_embed registered in model)")
             sys.exit(1)
@@ -218,10 +218,10 @@ def build_model(cfg: dict, device: torch.device) -> dict:
     # Predictor: use 2.1 version if predict_all (supports return_all_tokens + proj_context)
     pred_constructor = get_vit_predictor_2_1() if model_cfg["predict_all"] else vit_predictor
     predictor = pred_constructor(
-        img_size=(data_cfg["crop_size"], data_cfg["crop_size"]),
-        patch_size=data_cfg["patch_size"],
+        img_size=(model_cfg["crop_size"], model_cfg["crop_size"]),
+        patch_size=model_cfg["patch_size"],
         num_frames=data_cfg["num_frames"],
-        tubelet_size=data_cfg["tubelet_size"],
+        tubelet_size=model_cfg["tubelet_size"],
         embed_dim=model_cfg["embed_dim"],
         predictor_embed_dim=model_cfg["pred_embed_dim"],
         depth=model_cfg["pred_depth"],
@@ -727,19 +727,36 @@ def train(cfg: dict, args):
                 all_masks_enc.append(m_enc.to(device))
                 all_masks_pred.append(m_pred.to(device))
 
-            # Adaptive grad-accumulation forward+backward (#48). m09b relies on the
-            # helper defaults (both regularizer args default to None), so the helper
+            # Adaptive grad-accumulation forward+backward (#48 / #55). m09b relies on
+            # the helper defaults (both regularizer args default to None), so the helper
             # short-circuits the regularizer branch and returns a zero fourth value.
-            try:
-                jepa_val, masked_val, context_val, _unused = _train_step_grad_accum(
-                    student, teacher, predictor, batch_clips,
-                    all_masks_enc, all_masks_pred,
-                    cfg, dtype, mp_cfg, scaler, train_sizer, loss_exp)
-            except torch.cuda.OutOfMemoryError:
-                # Discard partial grads from incomplete macro; sizer already shrank via on_oom.
-                optimizer.zero_grad()
-                print(f"  OOM at step {step}: macro discarded, sizer shrunk to {train_sizer.size}, retrying")
-                continue
+            #
+            # Within-step retry loop (#55): on OOM, sizer.on_oom() shrinks; we retry
+            # the SAME macro at the new sub-batch instead of `continue`-ing to next
+            # step. Old `continue` was harmless when total_steps >> 1 (next step would
+            # try the new sub-batch), but failed silently in low-step regimes (POC/SANITY).
+            # Now we retry until either (a) success or (b) sizer at min and OOMed → fail-hard.
+            step_succeeded = False
+            while not step_succeeded:
+                try:
+                    jepa_val, masked_val, context_val, _unused = _train_step_grad_accum(
+                        student, teacher, predictor, batch_clips,
+                        all_masks_enc, all_masks_pred,
+                        cfg, dtype, mp_cfg, scaler, train_sizer, loss_exp)
+                    step_succeeded = True
+                except torch.cuda.OutOfMemoryError:
+                    optimizer.zero_grad()  # discard partial grads from incomplete macro
+                    if train_sizer.size <= train_sizer.min_size:
+                        raise RuntimeError(
+                            f"Step {step}: OOM persists at minimum sub-batch="
+                            f"{train_sizer.size}. ExPLoRA budget (LoRA rank={cfg['explora']['lora_rank']} "
+                            f"+ first-2-block unfreeze) exceeded GPU memory cap "
+                            f"({_gpu_cfg['gpu_memory_target']:.0%}). Mitigations: lower lora_rank, "
+                            f"reduce training_batch_size in YAML, or move to FULL hardware. "
+                            f"See errors_N_fixes.md #55."
+                        ) from None
+                    print(f"  OOM at step {step}: sub-batch shrunk to "
+                          f"{train_sizer.size}, retrying SAME macro")
             total_val = jepa_val
 
             # Single optimizer step per macro batch — preserves effective BS = batch_size
@@ -974,6 +991,8 @@ def train(cfg: dict, args):
 # ═════════════════════════════════════════════════════════════════════════
 
 def main():
+    # Reduce CUDA fragmentation — pairs with AdaptiveBatchSizer + per-epoch gc (#47/#48/#53).
+    os.environ.setdefault("PYTORCH_CUDA_ALLOC_CONF", "expandable_segments:True")
     parser = argparse.ArgumentParser(
         description="V-JEPA 2.1 ExPLoRA training (LoRA + unfreeze first N blocks)")
     parser.add_argument("--config", type=str, default=None,

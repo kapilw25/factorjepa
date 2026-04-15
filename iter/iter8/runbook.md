@@ -1,7 +1,7 @@
 # FactorJEPA Runbook
-> **Final GOAL: Surgery > ExPLoRA > Frozen on Prec@K, 115K clips.**
-> **Immediate GOAL: Surgery > ExPLoRA > Frozen on Prec@K, 1K clips from @data/val_1k_local/manifest.json**
-> **m10/m11 Goal = maximize D_A/D_L/D_I accuracy for Prec@K**
+> **High level Goal: Surgery > ExPLoRA > Frozen on Prec@K, 115K clips.**
+> **Mid level Goal: Surgery > ExPLoRA > Frozen on Prec@K, 1K clips**
+> **Low level Goal: Surgery > Frozen on Prec@K with non-overlapping 95 % CIs, 100 dense clips**
 
 > Run these commands on GPU. Verify each step before moving to the next.
 > Architecture + decisions: `plan_TODO.md`. Error history: `errors_N_fixes.md`.
@@ -114,36 +114,83 @@ print(f'L2 norm mean: {np.linalg.norm(e, axis=1).mean():.2f}')"
 
 ---
 
-## Step D: ExPLoRA Training — 100-clip dense subset
+## Step D: Surgery Training — `src/m09c_surgery.py` 🎯 PRIMARY PATH (paper novelty)
+
+> m09c = 3-stage progressive prefix unfreezing + factor datasets (D_L → D_A → D_I). No drift, no held-out val.
+>
+> **Why Step D (not E)**: immediate goal is `Surgery > Frozen` on Prec@K. D_L/D_A/D_I factors already built in Step B. Test this path FIRST — if it works, we have the paper result. ExPLoRA (Step E) is the comparison arm run AFTER Surgery is validated.
+
+### D.1 — SANITY (20 clips, ~15 min, code smoke test + multi-stage transitions)
+
+> Requires `outputs/sanity/m11_factor_datasets/` from Step B run in `--SANITY` mode. If not present, re-run Step B with `--SANITY`.
 
 ```bash
-python -u src/m09_pretrain.py --POC \
-    --subset data/sanity_100_dense.json \
+rm -rf outputs/sanity/m09c_surgery/
+python -u src/m09c_surgery.py --SANITY \
     --model-config configs/model/vjepa2_1.yaml \
-    --train-config configs/train/explora.yaml \
-    --explora --local-data data/val_1k_local --no-wandb \
-    2>&1 | tee logs/m09_dense100_explora.log
+    --train-config configs/train/ch11_surgery.yaml \
+    --factor-dir outputs/sanity/m11_factor_datasets/ \
+    --local-data data/val_1k_local --no-wandb \
+    2>&1 | tee logs/m09c_sanity_surgery.log
 ```
 
-**Verify:** `ls -lh outputs/poc/m09_pretrain/explora/student_encoder.pt` — exists, ~8 GB
+**Verify:** `ls -lh outputs/sanity/m09c_surgery/student_encoder.pt` — exists, ~8 GB. Check log for 3 stage transitions (`Stage 1/2/3`), 3 optimizer rebuilds, non-NaN losses across stages.
 
----
-
-## Step E: Surgery Training — 100-clip dense subset
+### D.2 — POC (100-clip dense subset, ~3h, real training signal)
 
 ```bash
-python -u src/m09_pretrain.py --POC \
+rm -rf outputs/poc/m09c_surgery/
+python -u src/m09c_surgery.py --POC \
     --subset data/sanity_100_dense.json \
     --model-config configs/model/vjepa2_1.yaml \
     --train-config configs/train/ch11_surgery.yaml \
-    --surgery --factor-dir outputs/poc/m11_factor_datasets/ \
+    --factor-dir outputs/poc/m11_factor_datasets/ \
     --local-data data/val_1k_local --no-wandb \
-    2>&1 | tee logs/m09_dense100_surgery.log
+    2>&1 | tee logs/m09c_dense100_surgery.log
 ```
 
-**Verify:** `ls -lh outputs/poc/m09_pretrain/surgery/student_encoder.pt` — exists, ~8 GB
+**Verify:** `ls -lh outputs/poc/m09c_surgery/student_encoder.pt` — exists, ~8 GB
+
+---
+
+## Step E: ExPLoRA Training — `src/m09b_explora.py` (comparison arm)
+
+> m09b = LoRA on blocks 2-47 + unfreeze blocks 0-1, no drift. Hardcoded ExPLoRA mode (no `--explora` flag).
+>
+> **Why Step E (not D)**: ExPLoRA is the adaptation-baseline comparator for `Surgery > ExPLoRA > Frozen`. Only valuable AFTER Step D Surgery passed — it completes the comparison triangle. If Surgery already ≤ Frozen, pause and debug factor quality before spending GPU on ExPLoRA.
+
+### E.1 — SANITY (20 clips, ~10 min, code smoke test before spending POC GPU time)
+
+```bash
+rm -rf outputs/sanity/m09b_explora/
+python -u src/m09b_explora.py --SANITY \
+    --model-config configs/model/vjepa2_1.yaml \
+    --train-config configs/train/explora.yaml \
+    --local-data data/val_1k_local --no-wandb \
+    2>&1 | tee logs/m09b_sanity_explora.log
+```
+
+**Verify:** `ls -lh outputs/sanity/m09b_explora/student_encoder.pt` — exists, ~8 GB. Check log for `LoRA injection`, non-NaN `loss_jepa`, clean exit.
+
+### E.2 — POC (100-clip dense subset, ~1.5h, real training signal)
+
+```bash
+rm -rf outputs/poc/m09b_explora/
+python -u src/m09b_explora.py --POC \
+    --subset data/sanity_100_dense.json \
+    --model-config configs/model/vjepa2_1.yaml \
+    --train-config configs/train/explora.yaml \
+    --local-data data/val_1k_local --no-wandb \
+    2>&1 | tee logs/m09b_dense100_explora.log
+```
+
+**Verify:** `ls -lh outputs/poc/m09b_explora/student_encoder.pt` — exists, ~8 GB
 
 **Subset = 100 clips from `data/sanity_100_dense.json`** (density-scored: traffic + crowd + agent tags, 73 tier1 + 26 tier2 + 1 goa). Same subset across Steps A-E so Prec@K comparisons (frozen vs ExPLoRA vs surgical) are apples-to-apples.
+
+> **SANITY vs POC rationale**: SANITY (D.1 / E.1) validates the code path (no crashes, non-NaN losses, checkpoint saves) on 20 clips in minutes — cheap smoke test. POC (D.2 / E.2) on 100 dense clips is the actual training signal where loss curves and Prec@K deltas become interpretable. Run SANITY first, then POC only if SANITY passes.
+>
+> **🎯 Decision gate after D.2 (Surgery POC)**: if Prec@K(surgery) > Prec@K(frozen) with non-overlapping 95 % CIs → we have the paper result; proceed to E.1/E.2 for the full `Surgery > ExPLoRA > Frozen` comparison + ablations. If Surgery ≤ Frozen → **pause Step E** and debug factor quality (m10/m11 re-examination) FIRST — ExPLoRA offers no insight into a broken factoring signal.
 
 ---
 

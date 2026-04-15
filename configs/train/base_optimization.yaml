@@ -64,6 +64,13 @@ optimization:
   nan_tolerance: 3                # Crash after 3 consecutive NaN/Inf losses
   gc_interval: 50                 # Manual GC every N steps
 
+  # Memory-saver flags (#56) — safe defaults OFF; technique-specific configs
+  # override when needed (surgery NEEDS both on 24GB SANITY for 36-block Stage 3).
+  # 8-bit AdamW: ~4× optimizer-state reduction, <1% accuracy (Dettmers 2022).
+  # Gradient checkpointing: ~2-4× activation reduction, ~25% throughput hit.
+  use_8bit_optim: false           # bitsandbytes AdamW8bit (drop-in AdamW replacement)
+  gradient_checkpointing: false   # torch.utils.checkpoint on transformer blocks
+
 # -- Cooldown phase (V-JEPA 2.1: switch to 64f + linear LR decay) --
 cooldown:
   enabled: true                   # Run cooldown after main training

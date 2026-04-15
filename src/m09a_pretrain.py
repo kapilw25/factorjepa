@@ -155,9 +155,9 @@ def build_model(cfg: dict, device: torch.device) -> dict:
     crop_size = model_cfg["crop_size"]
     student = vit_constructor(
         img_size=(crop_size, crop_size),
-        patch_size=data_cfg["patch_size"],
+        patch_size=model_cfg["patch_size"],
         num_frames=data_cfg["num_frames"],
-        tubelet_size=data_cfg["tubelet_size"],
+        tubelet_size=model_cfg["tubelet_size"],
         use_sdpa=True,
         use_silu=False,
         wide_silu=True,
@@ -223,7 +223,7 @@ def build_model(cfg: dict, device: torch.device) -> dict:
         student.return_hierarchical = True
 
     # V-JEPA 2.1 requires RoPE (no pos_embed registered in model)
-    if model_cfg["predict_all"] or model_cfg.get("n_output_distillation", 1) > 1:
+    if model_cfg["predict_all"] or model_cfg["n_output_distillation"] > 1:
         if not model_cfg["use_rope"]:
             print("FATAL: V-JEPA 2.1 requires use_rope=True (no pos_embed registered in model)")
             sys.exit(1)
@@ -238,10 +238,10 @@ def build_model(cfg: dict, device: torch.device) -> dict:
     # Predictor: use 2.1 version if predict_all (supports return_all_tokens + proj_context)
     pred_constructor = get_vit_predictor_2_1() if model_cfg["predict_all"] else vit_predictor
     predictor = pred_constructor(
-        img_size=(data_cfg["crop_size"], data_cfg["crop_size"]),
-        patch_size=data_cfg["patch_size"],
+        img_size=(model_cfg["crop_size"], model_cfg["crop_size"]),
+        patch_size=model_cfg["patch_size"],
         num_frames=data_cfg["num_frames"],
-        tubelet_size=data_cfg["tubelet_size"],
+        tubelet_size=model_cfg["tubelet_size"],
         embed_dim=model_cfg["embed_dim"],
         predictor_embed_dim=model_cfg["pred_embed_dim"],
         depth=model_cfg["pred_depth"],
@@ -974,6 +974,8 @@ def train(cfg: dict, args):
 # ═════════════════════════════════════════════════════════════════════════
 
 def main():
+    # Reduce CUDA fragmentation — pairs with AdaptiveBatchSizer + per-epoch gc (#47/#48/#53).
+    os.environ.setdefault("PYTORCH_CUDA_ALLOC_CONF", "expandable_segments:True")
     parser = argparse.ArgumentParser(
         description="V-JEPA 2 continual pretraining on Indian urban clips (Ch10 vanilla)")
     parser.add_argument("--config", type=str, default=None,

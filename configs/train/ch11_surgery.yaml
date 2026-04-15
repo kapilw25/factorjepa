@@ -42,6 +42,45 @@ optimization:
 
   batch_size: 32                  # Auto-overridden by profiler
 
+  # Memory saver flags — MODE-GATED (#57).
+  #
+  # SANITY runs on 24GB RTX Pro 4000 (cheap, fast iteration) — needs both flags
+  # ON: Stage 3 unfreezes 36/48 blocks → 1.38B trainable params → fp32 AdamW
+  # state ~16.5 GB alone overflows 24 GB. Without savers, v5 OOMed at sub-batch=1
+  # even after within-step retry (#55). 8-bit AdamW (bitsandbytes, Dettmers 2022
+  # arXiv:2110.02861) reduces optimizer state 4×; gradient checkpointing
+  # (torch.utils.checkpoint) cuts activation memory 2-4×. Combined fits all 3
+  # stages with ~25% throughput hit. Acceptable — SANITY purpose per CLAUDE.md
+  # is "code correctness, NOT model performance."
+  #
+  # POC/FULL runs on 96GB RTX Pro 6000 Blackwell — flags OFF. Research-quality
+  # comparisons (Surgery > Frozen on Prec@K, non-overlapping 95% CIs) use the
+  # published V-JEPA recipe (fp32 AdamW, no checkpointing) to eliminate 8-bit
+  # as an accuracy confound. Dettmers' <1% accuracy claim was benchmarked ≤1.3B;
+  # V-JEPA ViT-G is 2B (extrapolation). For a NeurIPS comparison where Surgery's
+  # advantage might be ~1-5% Prec@K, the ~0.5% 8-bit noise would widen CIs and
+  # threaten the win condition. 96 GB has headroom → no savers needed. ~33%
+  # throughput gain vs 24GB path. Matches user priority: Accuracy > Throughput.
+  use_8bit_optim:
+    sanity: true      # 24GB SANITY: need memory saver (code correctness only)
+    poc: false        # 96GB POC: clean fp32 for research-quality comparison
+    full: false       # 96GB FULL: clean fp32 for paper-quality result
+  gradient_checkpointing:
+    sanity: true
+    poc: false
+    full: false
+  # Paged optimizer (#58) — ONLY read when use_8bit_optim is true. SANITY Stage 3
+  # (36 trainable blocks) needs CPU paging of optimizer state: fp32 master
+  # weights (~5.5 GB) + 8-bit m1/m2 (~3 GB) + model + activations don't all fit
+  # simultaneously in 24 GB even after inter-stage cleanup. `bnb.optim.PagedAdamW8bit`
+  # uses unified memory — cold optimizer tensors page to CPU RAM on pressure,
+  # warm ones stay on GPU. Same 8-bit quantization (no accuracy change), ~10-20%
+  # throughput hit. HF QLoRA's default for fine-tuning 7-65B on consumer GPUs.
+  paged_optim:
+    sanity: true      # 24GB SANITY: page optimizer state on pressure
+    poc: false        # 96GB POC: not needed (never used anyway since use_8bit_optim=false)
+    full: false
+
 # -- Factor datasets (m10/m11 prerequisite) --
 factor_datasets:
   # Grounded-SAM pipeline: Grounding DINO (text → boxes) → SAM 3.1 (box → masks + propagation)

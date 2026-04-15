@@ -101,9 +101,20 @@ def _ensure_loaded_2_1():
     finally:
         os.chdir(saved_cwd)
         sys.path = saved_path
-        for key in ["src", "src.utils"]:
-            if key in saved_modules:
-                sys.modules[key] = saved_modules[key]
+        # Restore ALL saved src.* / app.* modules — previously only restored
+        # "src" and "src.utils", which dropped src.models.predictor et al.
+        # This left subsequent calls to get_vit_predictor() / get_mask_generator()
+        # with KeyError on sys.modules lookup (#50 post-split regression).
+        # Only skip modules that are NEEDED by 2.1 AND already re-imported above.
+        _freshly_imported = {
+            "src.utils.tensors",
+            "src.masks.utils",
+        }
+        for key, mod in saved_modules.items():
+            if key in _freshly_imported:
+                continue  # keep the freshly-imported one (may have 2.1-aware version)
+            if key not in sys.modules:
+                sys.modules[key] = mod
         importlib.invalidate_caches()
 
 

@@ -45,7 +45,7 @@ Every `src/m*.py` using GPU MUST have: (1) `check_gpu()`, (2) `cleanup_temp()`, 
 - SANITY validates code correctness (no crashes), NOT model performance. Never draw conclusions from insufficient data.
 
 # WORKFLOW RULES
-- **Goal override**: #1 priority is research results. Every recommendation must maximize P(adapted > frozen). Never filter by implementation effort.
+- **Goal override**: #1 priority is research results. Every recommendation must maximize "Surgery(Prec@k) > Frozen(Prec@K) with non-overlapping 95 % CIs. Never filter by implementation effort.
 - **Never sacrifice metric accuracy for speed.** Eval must match frozen baseline exactly (64 frames, same resolution, ImageNet norm).
 - **Never choose the easy option. WEBSEARCH for the gold-standard solution that preserves BOTH highest accuracy AND highest throughput.** When hitting a runtime error, the first reflex (disable the offending feature, fallback to slower path, add a `|| true`, skip the hard case) is almost always wrong. BEFORE proposing any fix that trades off throughput (disabling torch.compile, falling back to eager, reducing batch size, downgrading dtype) OR accuracy (skipping a mask, lowering a threshold, dropping a factor), websearch how the community (HF, facebookresearch, Dao-AILab, PyTorch core) solved the exact same error on a comparable stack. Cite ≥2 sources. Example: disabling `torch.compile` on a 2B model to dodge a RoPE-induced Q/K/V dtype mismatch is lazy; the correct fix is a one-line `q, k = q.to(v.dtype), k.to(v.dtype)` before SDPA (the idiom used by HF Llama + naver-ai/rope-vit + HF PR #36065). See `iter/iter8/errors_N_fixes.md` #44.
 - **Interrupt freely**: All GPU scripts have checkpoint resume. Don't say "let the run complete" when a fix is ready.

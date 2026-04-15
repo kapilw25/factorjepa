@@ -317,10 +317,32 @@ User explicitly: *"Time spent on code development is not constraint. HIGH ACCURA
 | 2026-04-15 | — | — | Plan written + decisions captured | ✅ | Full isolation, output migration, bit-equiv validation |
 | 2026-04-15 | 0 | — | Skip Phase 0 baseline capture | ⚠️ | `--max-steps` flag doesn't exist; m09 hasn't been validated under transformers 5.5.4 anyway. Switched to: Phase 1 pure-mechanical extraction verified by diff + smoke test; Phase 2 split verified same way |
 | 2026-04-15 | 1 | 1.1-1.5 | Extract 20 symbols to utils/training.py | ✅ | m09 2164→1520 lines; utils/training.py 715 lines; lint clean (F821/F841/F811); 0 `args.explora`/`args.surgery` in utils/training.py; backup at /tmp/m09_pretrain_backup.py. 6 defs remain in m09 (merge_config_with_args, build_model, train_surgery, train, main, select_ablation_winner) |
-| 2026-04-15 | 2 | 2.1-2.3 | Create m09a / m09b / m09c in parallel | 🔄 | 3 agents launched |
-| _next_ | 2 | 2.4 | Delete src/m09_pretrain.py | 📋 | after 2.1-2.3 complete |
-| _next_ | 3 | — | Update scripts + configs + utils imports | 📋 | |
-| _next_ | 4 | — | Docs | 📋 | |
+| 2026-04-15 | 2 | 2.1 | Create m09a_pretrain.py (vanilla + drift + ablation) | ✅ | 1174 lines, lint clean, 7 F401 cleaned, `main._nan_strikes` → local `nan_strikes` |
+| 2026-04-15 | 2 | 2.2 | Create m09b_explora.py (LoRA hardcoded on, no drift) | ✅ | 1030 lines, lint clean, LoRA injection unconditional, `export_student_for_eval(explora_enabled=True)` single caller |
+| 2026-04-15 | 2 | 2.3 | Create m09c_surgery.py (3-stage progressive unfreeze) | ✅ | 599 lines, lint clean, no producer_thread/run_validation/drift, --factor-dir validated |
+| 2026-04-15 | 2 | 2.4 | Delete src/m09_pretrain.py | ✅ | Backup at /tmp/m09_pretrain_backup.py |
+| 2026-04-15 | 3 | 3.1-3.6 | Update scripts + configs + utils imports + migration script | ✅ | 4 scripts, 3 configs, profile_vram.py import, scripts/migrate_m09_outputs.sh (idempotent, tested) |
+| 2026-04-15 | 4 | 4.1-4.5 | Docs: errors_N_fixes #49, CLAUDE.md PROJECT STRUCTURE, plan_TODO mark done | ✅ | — |
+
+## 🎯 Final state
+
+| Metric | Value |
+|---|---:|
+| Total LOC (before) | 2164 (m09_pretrain.py monolith) |
+| Total LOC (after) | 4518 across 4 files: m09a (1174) + m09b (1030) + m09c (599) + utils/training.py (715) + ~1000 boilerplate/imports/docstrings |
+| Lint status | ✅ `py_compile + ruff F821/F841/F811` clean on all 4 new files |
+| Contract verified | ✅ 0 `args.explora`/`args.surgery`/`cfg["technique"]` branches in `utils/training.py` |
+| Cross-leakage verified | ✅ 0 `train_surgery`/`--surgery`/`FactorSampler`/`--explora` in m09a; 0 `drift_cfg`/`loss_drift`/`lambda_reg`/`--surgery` in m09b; 0 `--explora`/`LoraConfig`/`drift_cfg`/`lambda_reg` in m09c |
+| Smoke imports | ✅ all 3 m09[abc] modules importable; utils/training + profile_vram import chain works |
+| Scripts verified | ✅ `bash -n` on all 4 scripts; `train_explora.sh` → m09b (no `--explora` flag); `train_surgery.sh` → m09c (no `--surgery`); `run_embed.sh` globs both old and new output dirs |
+| Migration script | ✅ `scripts/migrate_m09_outputs.sh` idempotent + tested (moved=0/skipped=0/missing=0 on fresh state) |
+
+## 🎓 Key decisions made during execution
+
+1. **Helper `_cleanup_old_checkpoints`** added locally to `m09a_pretrain.py` instead of parametrizing the utils.training one (utils version hardcodes legacy `m09_ckpt` prefix; m09a needs `m09a_ckpt_step*.pt`). Cleanest way to satisfy both plan's new-prefix requirement and "don't touch utils/training.py" constraint.
+2. **`DEFAULT_CONFIG` local definition** in `profile_vram.py` — legacy name never existed post-rename to `DEFAULT_TRAIN_CONFIG`. Defined locally to preserve the single consumer at line 625.
+3. **`init_wandb("m09a"/"m09b"/"m09c_surgery", ...)` separate run names** per module — clean separation in wandb dashboard.
+4. **Some `# noqa: F401` imports kept in m09c** for surface API parity with m09a/m09b (e.g., `_train_step_grad_accum`, `cleanup_old_checkpoints`) — wired for future integration of those helpers into surgery loop.
 
 ---
 

@@ -175,7 +175,7 @@ Priority if time-constrained: **A3** (proves factoring matters) then **A4** (Neu
 
 ## 🔮 Future (post-paper)
 
-- Split m09 (~2000 lines) into m09_pretrain.py + m09b_explora.py + m09c_surgery.py
+- ✅ Split m09 (2164 lines) → m09a_pretrain.py + m09b_explora.py + m09c_surgery.py + utils/training.py (2026-04-15, #49)
 - WebDataset TARs for factor datasets (.npy won't scale to 115K)
 - 6 interaction perturbations (tube jitter, margin random, raw/masked mixing)
 - Patch shortcut sanity check (eval raw vs patched clips)

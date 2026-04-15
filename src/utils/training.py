@@ -229,13 +229,14 @@ def build_mask_generators(cfg: dict) -> list:
     _MaskGenerator = get_mask_generator()
 
     data_cfg = cfg["data"]
+    model_cfg = cfg["model"]  # crop_size/patch_size/tubelet_size live under model: per configs/model/vjepa2_*.yaml (#51)
     generators = []
     for m_cfg in cfg["mask"]:
         mg = _MaskGenerator(
-            crop_size=(data_cfg["crop_size"], data_cfg["crop_size"]),
+            crop_size=(model_cfg["crop_size"], model_cfg["crop_size"]),
             num_frames=data_cfg["num_frames"],
-            spatial_patch_size=(data_cfg["patch_size"], data_cfg["patch_size"]),
-            temporal_patch_size=data_cfg["tubelet_size"],
+            spatial_patch_size=(model_cfg["patch_size"], model_cfg["patch_size"]),
+            temporal_patch_size=model_cfg["tubelet_size"],
             spatial_pred_mask_scale=m_cfg["spatial_scale"],
             temporal_pred_mask_scale=m_cfg["temporal_scale"],
             aspect_ratio=m_cfg["aspect_ratio"],
@@ -324,7 +325,7 @@ def _train_step_grad_accum(student, teacher, predictor, batch_clips,
     to discard partial gradients and retries on the next producer batch.
     """
     embed_dim = cfg["model"]["embed_dim"]
-    n_levels = cfg["model"].get("n_output_distillation", 4)
+    n_levels = cfg["model"]["n_output_distillation"]
     predict_all = cfg["model"]["predict_all"]
     macro_bs = batch_clips.shape[0]
 
@@ -405,9 +406,17 @@ def update_teacher_ema(student: torch.nn.Module, teacher: torch.nn.Module,
 # ═════════════════════════════════════════════════════════════════════════
 
 def build_optimizer(student, predictor, cfg_opt: dict):
+    """Build AdamW optimizer. Reads `use_8bit_optim` flag (#56) — when True, uses
+    bitsandbytes `AdamW8bit` for 4× optimizer-state memory reduction (m1+m2 stored
+    as 8-bit block-wise quantized values instead of fp32). <1% accuracy loss per
+    Dettmers et al. 2022 ("8-bit Optimizers via Block-wise Quantization",
+    arXiv:2110.02861). Standard in HF Trainer (`optim="adamw_bnb_8bit"`) and FAIR
+    fairscale for fine-tuning 2B+ models on consumer GPUs.
+    """
     base_lr = cfg_opt["lr"]
     pred_lr = base_lr * cfg_opt["pred_lr_multiplier"]
     wd = cfg_opt["weight_decay"]
+    use_8bit = cfg_opt["use_8bit_optim"]
 
     def split_params(module, lr):
         decay, no_decay = [], []
@@ -424,8 +433,71 @@ def build_optimizer(student, predictor, cfg_opt: dict):
         ]
 
     param_groups = split_params(student, base_lr) + split_params(predictor, pred_lr)
+
+    if use_8bit:
+        import bitsandbytes as bnb
+        # Paged variant (#58) — auto CPU paging of optimizer state on GPU pressure.
+        # ONLY read `paged_optim` inside this branch so non-8bit configs (m09a/m09b,
+        # m09c POC/FULL) never require the key in their yaml. HF QLoRA standard for
+        # fine-tuning 7-65B models on 24-48 GB consumer GPUs.
+        paged_optim = cfg_opt["paged_optim"]
+        if paged_optim:
+            opt = bnb.optim.PagedAdamW8bit(param_groups,
+                                             betas=tuple(cfg_opt["betas"]),
+                                             eps=cfg_opt["eps"])
+            optim_name = "PagedAdamW8bit (bitsandbytes, unified-memory CPU paging)"
+        else:
+            opt = bnb.optim.AdamW8bit(param_groups,
+                                       betas=tuple(cfg_opt["betas"]),
+                                       eps=cfg_opt["eps"])
+            optim_name = "AdamW8bit (bitsandbytes)"
+        n_trainable = sum(len(g["params"]) for g in param_groups)
+        print(f"  Optimizer: {optim_name} — {n_trainable} param groups, "
+              f"8-bit block-wise quantized m1/m2 (4× memory reduction)")
+        return opt
     return torch.optim.AdamW(param_groups, betas=tuple(cfg_opt["betas"]),
                               eps=cfg_opt["eps"])
+
+
+def enable_gradient_checkpointing(model):
+    """Wrap each transformer block's forward in `torch.utils.checkpoint.checkpoint`
+    for activation-memory savings (#56). Activations recomputed during backward
+    instead of stored → ~2-4× reduction in activation memory at cost of ~25-30%
+    throughput (one extra forward pass per block during backward).
+
+    Uses `use_reentrant=False` (modern PyTorch API, required for torch.compile
+    compatibility + proper handling of keyword args — V-JEPA blocks accept
+    `mask`, `T`, `H_patches`, `W_patches`, `return_attn`, `mode` as kwargs).
+
+    Works for BOTH trainable and frozen blocks — frozen blocks still consume
+    activation memory during forward (autograd needs them to backprop gradient
+    to earlier trainable blocks), so checkpointing helps regardless of
+    `requires_grad`. Gold-standard pattern used by HF Transformers
+    `gradient_checkpointing_enable()` and FAIR vissl's checkpoint_wrapper.
+
+    Must be called AFTER model.train() is set and BEFORE build_optimizer —
+    safe to call once per stage (idempotent via `_gradient_checkpointing` attr).
+    """
+    if getattr(model, "_gradient_checkpointing", False):
+        return  # idempotent — already wrapped
+    if not hasattr(model, "blocks"):
+        raise ValueError(f"enable_gradient_checkpointing: model {type(model).__name__} "
+                         f"has no .blocks attribute (expected nn.ModuleList)")
+
+    import torch.utils.checkpoint as ckpt
+
+    def make_ckpt_wrapper(original_forward):
+        def checkpointed_forward(*args, **kwargs):
+            return ckpt.checkpoint(original_forward, *args,
+                                   use_reentrant=False, **kwargs)
+        return checkpointed_forward
+
+    for block in model.blocks:
+        block.forward = make_ckpt_wrapper(block.forward)
+
+    model._gradient_checkpointing = True
+    print(f"  Gradient checkpointing enabled on {len(model.blocks)} blocks "
+          f"(~2-4× activation memory reduction, ~25% throughput cost)")
 
 
 def build_scheduler(optimizer, cfg_opt: dict, total_steps: int):
@@ -496,7 +568,7 @@ def run_validation(student, teacher, predictor, mask_generators,
             with torch.amp.autocast("cuda", dtype=dtype, enabled=mp_cfg["enabled"]):
                 # Teacher: all tokens + per-chunk LayerNorm (deep supervision)
                 embed_dim_val = cfg["model"]["embed_dim"]
-                n_levels_val = cfg["model"].get("n_output_distillation", 4)
+                n_levels_val = cfg["model"]["n_output_distillation"]
                 h = teacher(batch_clips)
                 if h.size(-1) == n_levels_val * embed_dim_val:
                     chunks = []

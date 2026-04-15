@@ -31,7 +31,7 @@ sys.path.insert(0, str(Path(__file__).parent))
 from utils.config import (
     check_gpu,
     add_subset_arg, add_local_data_arg, get_output_dir, get_module_output_dir, load_subset,  # noqa: F401
-    load_merged_config,
+    get_pipeline_config, load_merged_config,
     add_model_config_arg, add_train_config_arg,
 )
 from utils.data_download import ensure_local_data
@@ -65,7 +65,7 @@ from utils.training import (
     build_optimizer, build_scheduler, update_weight_decay,  # noqa: F401 — build_scheduler/update_weight_decay kept for future stage schedulers
     save_training_checkpoint, cleanup_old_checkpoints, load_training_checkpoint,  # noqa: F401 — cleanup_old_checkpoints/load_training_checkpoint kept for resume
     export_student_for_eval,
-    set_trainable_prefix,
+    set_trainable_prefix, enable_gradient_checkpointing,
     FactorSampler, build_factor_index, load_factor_clip,
 )
 
@@ -86,6 +86,17 @@ def merge_config_with_args(cfg: dict, args) -> dict:
     else:
         mode_key = "full"
     cfg["optimization"]["max_epochs"] = cfg["optimization"]["max_epochs"][mode_key]
+    # Mode-gated memory-saver flags (#57): flatten the per-mode dicts in
+    # ch11_surgery.yaml into scalars that build_optimizer + enable_gradient_checkpointing
+    # read directly. SANITY (24GB) → both True; POC/FULL (96GB) → both False, so
+    # research-quality runs use the published V-JEPA fp32 AdamW recipe without
+    # the 8-bit extrapolation-risk confound. See errors_N_fixes.md #57.
+    cfg["optimization"]["use_8bit_optim"] = \
+        cfg["optimization"]["use_8bit_optim"][mode_key]
+    cfg["optimization"]["gradient_checkpointing"] = \
+        cfg["optimization"]["gradient_checkpointing"][mode_key]
+    cfg["optimization"]["paged_optim"] = \
+        cfg["optimization"]["paged_optim"][mode_key]
     if args.batch_size is not None:
         cfg["optimization"]["batch_size"] = args.batch_size
     if args.max_epochs is not None:
@@ -122,9 +133,9 @@ def build_model(cfg: dict, device: torch.device) -> dict:
     crop_size = model_cfg["crop_size"]
     student = vit_constructor(
         img_size=(crop_size, crop_size),
-        patch_size=data_cfg["patch_size"],
+        patch_size=model_cfg["patch_size"],
         num_frames=data_cfg["num_frames"],
-        tubelet_size=data_cfg["tubelet_size"],
+        tubelet_size=model_cfg["tubelet_size"],
         use_sdpa=True,
         use_silu=False,
         wide_silu=True,
@@ -190,7 +201,7 @@ def build_model(cfg: dict, device: torch.device) -> dict:
         student.return_hierarchical = True
 
     # V-JEPA 2.1 requires RoPE (no pos_embed registered in model)
-    if model_cfg["predict_all"] or model_cfg.get("n_output_distillation", 1) > 1:
+    if model_cfg["predict_all"] or model_cfg["n_output_distillation"] > 1:
         if not model_cfg["use_rope"]:
             print("FATAL: V-JEPA 2.1 requires use_rope=True (no pos_embed registered in model)")
             sys.exit(1)
@@ -205,10 +216,10 @@ def build_model(cfg: dict, device: torch.device) -> dict:
     # Predictor: use 2.1 version if predict_all (supports return_all_tokens + proj_context)
     pred_constructor = get_vit_predictor_2_1() if model_cfg["predict_all"] else vit_predictor
     predictor = pred_constructor(
-        img_size=(data_cfg["crop_size"], data_cfg["crop_size"]),
-        patch_size=data_cfg["patch_size"],
+        img_size=(model_cfg["crop_size"], model_cfg["crop_size"]),
+        patch_size=model_cfg["patch_size"],
         num_frames=data_cfg["num_frames"],
-        tubelet_size=data_cfg["tubelet_size"],
+        tubelet_size=model_cfg["tubelet_size"],
         embed_dim=model_cfg["embed_dim"],
         predictor_embed_dim=model_cfg["pred_embed_dim"],
         depth=model_cfg["pred_depth"],
@@ -309,6 +320,12 @@ def train_surgery(cfg: dict, args):
     teacher = models["teacher"]
     predictor = models["predictor"]
 
+    # Gradient checkpointing (#56): only on student (teacher runs under torch.no_grad
+    # so no activations are stored — checkpointing would be wasted CPU overhead).
+    # Enabled via configs/train/ch11_surgery.yaml:optimization.gradient_checkpointing.
+    if cfg["optimization"]["gradient_checkpointing"]:
+        enable_gradient_checkpointing(student)
+
     mask_generators = build_mask_generators(cfg)
 
     # Load factor datasets
@@ -342,13 +359,14 @@ def train_surgery(cfg: dict, args):
     stages = surgery_cfg["stages"]
     depth = cfg["model"]["depth"]
     embed_dim = cfg["model"]["embed_dim"]
-    n_levels = cfg["model"].get("n_output_distillation", 4)
+    n_levels = cfg["model"]["n_output_distillation"]
     predict_all = cfg["model"]["predict_all"]
     crop_size = cfg["model"]["crop_size"]
     num_frames = cfg["data"]["num_frames"]
     batch_size = args.batch_size if args.batch_size else cfg["optimization"]["batch_size"]
 
-    max_epochs = cfg["optimization"]["max_epochs"][mode_key]
+    # merge_config_with_args (line 88) already flattened the per-mode dict → int. Don't re-subscript (#52).
+    max_epochs = cfg["optimization"]["max_epochs"]
     total_clips = len(factor_index)
     steps_per_epoch = max(total_clips // batch_size, 1)
     total_steps = steps_per_epoch * max_epochs
@@ -359,6 +377,21 @@ def train_surgery(cfg: dict, args):
     print(f"Epochs: {max_epochs} | Steps: {total_steps} | BS: {batch_size}")
     print(f"Dense loss: predict_all={predict_all} | Deep supervision: {n_levels} levels")
     print(f"{'='*60}")
+
+    # AdaptiveBatchSizer for gradient accumulation (#48 / #53). Effective BS stays =
+    # batch_size (preserves Adam momentum + LR scaling + WD schedule); each forward+backward
+    # runs on a micro-batch sized by VRAM availability. Sub-batches accumulate gradients
+    # before a single optimizer step. All 3 sizer params from yaml — same pattern as m09a/m09b.
+    _gpu_cfg = get_pipeline_config()["gpu"]
+    train_sizer = AdaptiveBatchSizer(
+        initial_size=min(_gpu_cfg["training_initial_bs"], batch_size),
+        min_size=1, max_size=batch_size,
+        memory_cap=_gpu_cfg["gpu_memory_target"])
+    print(f"AdaptiveBatchSizer (surgery, grad-accum): start={train_sizer.size}, "
+          f"max={batch_size} (= effective BS), target VRAM={_gpu_cfg['gpu_memory_target']:.0%}")
+
+    # Danger zone #1 fix: local NaN-strike counter (was main._nan_strikes in m09_pretrain.py).
+    nan_strikes = 0  # noqa: F841 — wired into future dense NaN guard for surgery loop
 
     global_step = 0
     csv_path = output_dir / "loss_log.csv"
@@ -388,6 +421,22 @@ def train_surgery(cfg: dict, args):
             print(f"  Mixture: {mode_mixture}")
             print(f"{'='*60}")
 
+            # Inter-stage cleanup (#58): explicitly release prior stage's optimizer/scheduler
+            # /sampler BEFORE allocating the new stage's optimizer. Without this, Python's
+            # assignment order (`optimizer = build_optimizer(...)`) evaluates RHS first,
+            # briefly holding BOTH old and new optimizers on GPU → peak ~2× optimizer state
+            # (~16 GB for Stage 3 vs steady-state 8.5 GB). On v6 this double-hold pushed
+            # Stage 3 past 24 GB even with 8-bit + checkpointing. `ipc_collect` flushes
+            # inter-process CUDA cache entries too (relevant for torch.compile'd models).
+            if stage_idx > 0:
+                del optimizer, scheduler, sampler
+                gc.collect()
+                torch.cuda.empty_cache()
+                torch.cuda.ipc_collect()
+                free, total = torch.cuda.mem_get_info(0)
+                print(f"  Inter-stage cleanup: {(total - free) / 1e9:.1f} GB used / "
+                      f"{total / 1e9:.1f} GB total after releasing Stage {stage_idx} state")
+
             # Set trainable prefix
             set_trainable_prefix(student, n_trainable)
 
@@ -405,6 +454,16 @@ def train_surgery(cfg: dict, args):
             sampler = FactorSampler(factor_index, mode_mixture)
 
             pbar = make_pbar(total=stage_steps, desc=f"surgery:{stage_name}", unit="step")
+
+            # Track last loss values so end-of-stage summary still reports something
+            # when every step in this stage early-`continue`s on OOM (matches m09b
+            # pattern lines 683-688). Reset each stage so the summary reflects THIS
+            # stage's last successful step, not the prior stage's.
+            jepa_val = 0.0
+            masked_val = 0.0
+            context_val = 0.0
+            lr_val = 0.0
+            gn_val = 0.0
 
             for local_step in range(stage_steps):
                 # Build batch from factor clips
@@ -425,37 +484,45 @@ def train_surgery(cfg: dict, args):
                     all_masks_enc.append(m_enc.to(device))
                     all_masks_pred.append(m_pred.to(device))
 
-                # Forward pass (dense loss + deep supervision — same as train())
-                with torch.amp.autocast("cuda", dtype=dtype, enabled=mp_cfg["enabled"]):
-                    with torch.no_grad():
-                        h = teacher(batch_clips)
-                        if h.size(-1) == n_levels * embed_dim:
-                            chunks = []
-                            for lvl in range(n_levels):
-                                chunk = h[:, :, lvl * embed_dim : (lvl + 1) * embed_dim]
-                                chunks.append(F.layer_norm(chunk, (embed_dim,)))
-                            h = torch.cat(chunks, dim=2)
-                        else:
-                            h = F.layer_norm(h, (h.size(-1),))
+                # Adaptive grad-accumulation forward+backward (#48 / #53 / #55). Replaces
+                # the inline forward/backward block — same semantics (loss-scaled by
+                # micro/macro ratio so accumulated gradient is bit-equivalent to a single
+                # full-batch step), micro-batch sized by AdaptiveBatchSizer to track VRAM
+                # target. Surgery: no drift control (init_params=None, drift_cfg=None).
+                #
+                # Within-step retry loop (#55): on OOM, sizer.on_oom() shrinks; we retry
+                # the SAME macro at the new sub-batch instead of continuing to the next
+                # step. With stage_steps=1 (SANITY) the old `continue` skipped to a non-
+                # existent next step → 0 successful steps → silent success. Now we retry
+                # until either (a) success, (b) sizer at min and OOMed → fail-hard.
+                step_succeeded = False
+                while not step_succeeded:
+                    try:
+                        jepa_val, masked_val, context_val, _drift_val = _train_step_grad_accum(
+                            student, teacher, predictor, batch_clips,
+                            all_masks_enc, all_masks_pred,
+                            cfg, dtype, mp_cfg, scaler, train_sizer, loss_exp,
+                            init_params=None, drift_cfg=None)
+                        step_succeeded = True
+                    except torch.cuda.OutOfMemoryError:
+                        optimizer.zero_grad()  # discard partial grads from incomplete macro
+                        # sizer.on_oom() ran inside helper. If at min and still OOMing, fail hard.
+                        if train_sizer.size <= train_sizer.min_size:
+                            raise RuntimeError(
+                                f"Stage {stage_name} step {global_step}: OOM persists at "
+                                f"minimum sub-batch={train_sizer.size}. GPU memory budget "
+                                f"({_gpu_cfg['gpu_memory_target']:.0%} cap on this device) "
+                                f"cannot fit V-JEPA ViT-G + AdamW state for "
+                                f"{int(depth * stage_cfg['unfreeze_below'])}/{depth} trainable "
+                                f"blocks. Gold-standard mitigations: (1) gradient checkpointing "
+                                f"on transformer blocks (~25% throughput hit), (2) bitsandbytes "
+                                f"AdamW8bit (4× optimizer-state reduction), (3) move surgery to "
+                                f"FULL hardware (96GB). See errors_N_fixes.md #55."
+                            ) from None
+                        print(f"  OOM at step {global_step}: sub-batch shrunk to "
+                              f"{train_sizer.size}, retrying SAME macro")
 
-                    pred_features = []
-                    pred_context = []
-                    for i, (m_enc, m_pred) in enumerate(zip(all_masks_enc, all_masks_pred)):
-                        z = student(batch_clips, masks=[m_enc])
-                        outputs = predictor(z, [m_enc], [m_pred], mask_index=i)
-                        if isinstance(outputs, tuple) and len(outputs) == 2:
-                            pred_features.append(outputs[0])
-                            pred_context.append(outputs[1])
-                        else:
-                            pred_features.append(outputs)
-
-                    jepa_loss, loss_masked, loss_context = compute_jepa_loss(
-                        pred_features, pred_context, h,
-                        all_masks_pred, all_masks_enc,
-                        loss_exp, predict_all, lambda_context=0.5)
-
-                # Backward + step
-                scaler.scale(jepa_loss).backward()
+                # Single optimizer step per macro batch — preserves effective BS = batch_size
                 scaler.unscale_(optimizer)
                 grad_norm = torch.nn.utils.clip_grad_norm_(
                     list(student.parameters()) + list(predictor.parameters()),
@@ -468,10 +535,8 @@ def train_surgery(cfg: dict, args):
                 # EMA teacher update
                 update_teacher_ema(student, teacher, ema_momentum)
 
-                # Logging
-                jepa_val = jepa_loss.item()
-                masked_val = loss_masked.item()
-                context_val = loss_context.item()
+                # Logging — values from _train_step_grad_accum are macro-batch means
+                # (weighted sum of micro-batch values), preserving the per-step diagnostics.
                 lr_val = scheduler.get_last_lr()[0]
                 gn_val = grad_norm.item() if torch.is_tensor(grad_norm) else grad_norm
 
@@ -510,6 +575,19 @@ def train_surgery(cfg: dict, args):
         jsonl_file.close()
         gc.enable()
 
+    # Fail-hard if zero successful training steps across all 3 stages (#55).
+    # Without this guard, the script would silently export the *initial* (frozen)
+    # student weights and report "SURGERY COMPLETE" — passing CI but producing
+    # garbage for downstream m05 eval. Per CLAUDE.md "Silent failures = garbage metrics".
+    if global_step == 0:
+        raise RuntimeError(
+            "SURGERY FAILED: 0 successful training steps across all 3 stages. "
+            "Every step OOMed at minimum sub-batch=1 OR helper raised before any "
+            "macro completed. The exported student would be identical to the input "
+            "frozen V-JEPA weights — refusing to write a misleading checkpoint. "
+            "See errors_N_fixes.md #55 for memory-budget mitigations."
+        )
+
     # Export student encoder (vanilla ViT — no LoRA merge)
     export_student_for_eval(student, student_path, explora_enabled=False)
 
@@ -540,6 +618,11 @@ def train_surgery(cfg: dict, args):
 # ═════════════════════════════════════════════════════════════════════════
 
 def main():
+    # Reduce CUDA fragmentation — lets allocator grow existing segments rather than
+    # reserving fresh blocks. Critical for grad-accum: small micro-batches + repeated
+    # alloc/free patterns fragment the heap fast. Idempotent (env only read at first
+    # CUDA init). Pairs with AdaptiveBatchSizer + per-epoch gc (#47/#48/#53).
+    os.environ.setdefault("PYTORCH_CUDA_ALLOC_CONF", "expandable_segments:True")
     parser = argparse.ArgumentParser(
         description="Ch11 factor surgery: 3-stage progressive unfreeze + D_L/D_A/D_I factor datasets")
     parser.add_argument("--config", type=str, default=None,
