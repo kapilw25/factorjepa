@@ -58,6 +58,7 @@ from utils.config import (
     add_model_config_arg, add_train_config_arg,
 )
 from utils.data_download import ensure_local_data, iter_clips_parallel
+from utils.gpu_batch import AdaptiveBatchSizer, cuda_cleanup
 from utils.wandb_utils import (
     add_wandb_args, init_wandb, log_metrics, finish_wandb,
 )
@@ -575,6 +576,87 @@ def compute_drift_loss(student: torch.nn.Module, init_params: dict,
         if name in init_params:
             drift += torch.sum((param - init_params[name].to(device)) ** 2)
     return lambda_reg * drift
+
+
+def _train_step_grad_accum(student, teacher, predictor, batch_clips,
+                           all_masks_enc, all_masks_pred,
+                           cfg, dtype, mp_cfg, scaler, sizer, loss_exp,
+                           init_params=None, drift_cfg=None):
+    """Forward+backward with adaptive micro-batch sizing + gradient accumulation (#48).
+
+    Splits the macro batch into micro-batches of `sizer.size`, runs forward+backward
+    per micro, scales each micro's loss by (micro_size / macro_size) so accumulated
+    gradients are mathematically identical to a single full-batch step. The optimizer
+    step + zero_grad happen ONCE per macro in the caller — preserving effective batch
+    size, optimizer dynamics (Adam momentum, weight-decay scheduling, LR scaling),
+    and convergence behavior. Only the GPU memory footprint shrinks.
+
+    Drift loss (parameter regularizer, no batch dim) is added once after the micro
+    loop with full weight — equivalent to a single-batch step.
+
+    Returns (jepa_val, masked_val, context_val, drift_val) — running totals
+    weighted to match macro-batch mean (interpretable for logging).
+
+    On OOM: cuda_cleanup + sizer.on_oom + raises — caller calls optimizer.zero_grad()
+    to discard partial gradients and retries on the next producer batch.
+    """
+    embed_dim = cfg["model"]["embed_dim"]
+    n_levels = cfg["model"].get("n_output_distillation", 4)
+    predict_all = cfg["model"]["predict_all"]
+    macro_bs = batch_clips.shape[0]
+
+    j_val, m_val, c_val = 0.0, 0.0, 0.0
+    i = 0
+    while i < macro_bs:
+        end = min(i + sizer.size, macro_bs)
+        micro_bs = end - i
+        weight = micro_bs / macro_bs
+
+        bc = batch_clips[i:end]
+        m_enc_list = [m[i:end] for m in all_masks_enc]
+        m_pred_list = [m[i:end] for m in all_masks_pred]
+
+        try:
+            with torch.amp.autocast("cuda", dtype=dtype, enabled=mp_cfg["enabled"]):
+                with torch.no_grad():
+                    h = teacher(bc)
+                    if h.size(-1) == n_levels * embed_dim:
+                        chunks = [F.layer_norm(h[:, :, lvl * embed_dim:(lvl + 1) * embed_dim],
+                                               (embed_dim,))
+                                  for lvl in range(n_levels)]
+                        h = torch.cat(chunks, dim=2)
+                    else:
+                        h = F.layer_norm(h, (h.size(-1),))
+                pf, pc = [], []
+                for k, (me, mp) in enumerate(zip(m_enc_list, m_pred_list)):
+                    z = student(bc, masks=[me])
+                    out = predictor(z, [me], [mp], mask_index=k)
+                    if isinstance(out, tuple) and len(out) == 2:
+                        pf.append(out[0]); pc.append(out[1])
+                    else:
+                        pf.append(out)
+                jl, lm, lc = compute_jepa_loss(pf, pc, h, m_pred_list, m_enc_list,
+                                                loss_exp, predict_all, lambda_context=0.5)
+            scaler.scale(jl * weight).backward()
+        except torch.cuda.OutOfMemoryError:
+            cuda_cleanup()
+            sizer.on_oom()
+            raise
+
+        j_val += jl.item() * weight
+        m_val += lm.item() * weight
+        c_val += lc.item() * weight
+        i = end
+
+    drift_val = 0.0
+    if init_params is not None and drift_cfg is not None \
+            and drift_cfg.get("enabled") and drift_cfg.get("lambda_reg", 0) > 0:
+        drift_loss = compute_drift_loss(student, init_params, drift_cfg["lambda_reg"])
+        scaler.scale(drift_loss).backward()
+        drift_val = drift_loss.item()
+
+    sizer.after_batch_success()
+    return j_val, m_val, c_val, drift_val
 
 
 # ═════════════════════════════════════════════════════════════════════════
@@ -1543,11 +1625,31 @@ def train(cfg: dict, args):
     print(f"Drift control: lambda={drift_cfg['lambda_reg'] if drift_cfg['enabled'] else 0}")
     print(f"Loss log: {csv_path}")
 
+    # AdaptiveBatchSizer for gradient accumulation (#48). Effective BS stays = batch_size
+    # (preserves optimizer dynamics: Adam momentum, LR scaling, weight decay scheduling),
+    # but each forward+backward runs on a micro-batch sized by VRAM availability. Sub-batches
+    # accumulate gradients before a single optimizer step. All 3 sizer params from yaml.
+    _gpu_cfg = get_pipeline_config()["gpu"]
+    train_sizer = AdaptiveBatchSizer(
+        initial_size=min(_gpu_cfg["training_initial_bs"], batch_size),
+        min_size=1, max_size=batch_size,
+        memory_cap=_gpu_cfg["gpu_memory_target"])
+    print(f"AdaptiveBatchSizer (training, grad-accum): start={train_sizer.size}, "
+          f"max={batch_size} (= effective BS), target VRAM={_gpu_cfg['gpu_memory_target']:.0%}")
+
     step = start_step
+    # Per-epoch memory hygiene — clears fragmented blocks accumulated across steps.
+    # Paired with PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True env at shell level (#47).
+    _last_epoch_cleared = -1
     try:
         for step in range(start_step, total_steps):
             epoch = step // steps_per_epoch
             epoch_step = step % steps_per_epoch
+            if epoch != _last_epoch_cleared:
+                gc.collect()
+                torch.cuda.empty_cache()
+                torch.cuda.ipc_collect()
+                _last_epoch_cleared = epoch
 
             # Get batch from producer
             try:
@@ -1580,51 +1682,24 @@ def train(cfg: dict, args):
                 all_masks_enc.append(m_enc.to(device))
                 all_masks_pred.append(m_pred.to(device))
 
-            # Forward pass (zero_grad after step, matching Meta's pattern)
-            with torch.amp.autocast("cuda", dtype=dtype, enabled=mp_cfg["enabled"]):
-                # Teacher: all tokens, no grad
-                # V-JEPA 2.1 deep supervision: teacher returns (B, N, 4*D) hierarchical
-                # Per-chunk LayerNorm (Meta's train.py lines 597-607)
-                embed_dim = cfg["model"]["embed_dim"]
-                n_levels = cfg["model"].get("n_output_distillation", 4)
-                with torch.no_grad():
-                    h = teacher(batch_clips)
-                    if h.size(-1) == n_levels * embed_dim:
-                        chunks = []
-                        for lvl in range(n_levels):
-                            chunk = h[:, :, lvl * embed_dim : (lvl + 1) * embed_dim]
-                            chunks.append(F.layer_norm(chunk, (embed_dim,)))
-                        h = torch.cat(chunks, dim=2)
-                    else:
-                        h = F.layer_norm(h, (h.size(-1),))
+            # Adaptive grad-accumulation forward+backward (#48). Replaces the inline
+            # forward/backward block — same semantics (loss-scaled by micro/macro ratio so
+            # accumulated gradient is bit-equivalent to a single full-batch step), but the
+            # micro-batch is sized by AdaptiveBatchSizer to track VRAM target.
+            try:
+                jepa_val, masked_val, context_val, drift_val = _train_step_grad_accum(
+                    student, teacher, predictor, batch_clips,
+                    all_masks_enc, all_masks_pred,
+                    cfg, dtype, mp_cfg, scaler, train_sizer, loss_exp,
+                    init_params=init_params, drift_cfg=drift_cfg)
+            except torch.cuda.OutOfMemoryError:
+                # Discard partial grads from incomplete macro; sizer already shrank via on_oom.
+                optimizer.zero_grad()
+                print(f"  OOM at step {step}: macro discarded, sizer shrunk to {train_sizer.size}, retrying")
+                continue
+            total_val = jepa_val + drift_val
 
-                predict_all = cfg["model"]["predict_all"]
-                pred_features = []
-                pred_context = []
-                for i, (m_enc, m_pred) in enumerate(zip(all_masks_enc, all_masks_pred)):
-                    z = student(batch_clips, masks=[m_enc])
-                    outputs = predictor(z, [m_enc], [m_pred], mask_index=i)
-                    if isinstance(outputs, tuple) and len(outputs) == 2:
-                        pred_features.append(outputs[0])
-                        pred_context.append(outputs[1])
-                    else:
-                        pred_features.append(outputs)
-
-                jepa_loss, loss_masked, loss_context = compute_jepa_loss(
-                    pred_features, pred_context, h,
-                    all_masks_pred, all_masks_enc,
-                    loss_exp, predict_all, lambda_context=0.5)
-
-                if drift_cfg["enabled"] and drift_cfg["lambda_reg"] > 0:
-                    drift_loss = compute_drift_loss(student, init_params,
-                                                    drift_cfg["lambda_reg"])
-                    total_loss = jepa_loss + drift_loss
-                else:
-                    drift_loss = torch.tensor(0.0)
-                    total_loss = jepa_loss
-
-            # Backward + optimizer step
-            scaler.scale(total_loss).backward()
+            # Single optimizer step per macro batch — preserves effective BS = batch_size
             scaler.unscale_(optimizer)
             grad_norm = torch.nn.utils.clip_grad_norm_(
                 list(student.parameters()) + list(predictor.parameters()),
@@ -1642,12 +1717,9 @@ def train(cfg: dict, args):
             if step % cfg["optimization"]["gc_interval"] == 0:
                 gc.collect()
 
-            # Per-step logging + NaN/Inf guard
-            jepa_val = jepa_loss.item()
-            masked_val = loss_masked.item()
-            context_val = loss_context.item()
-            drift_val = drift_loss.item()
-            total_val = total_loss.item()
+            # Per-step logging + NaN/Inf guard. jepa_val/masked_val/context_val/drift_val/
+            # total_val already populated by _train_step_grad_accum (#48) — they are the
+            # macro-batch mean losses (weighted sum across micro-batches).
             lr_val = scheduler.get_last_lr()[0]
             gn_val = grad_norm.item() if torch.is_tensor(grad_norm) else grad_norm
 

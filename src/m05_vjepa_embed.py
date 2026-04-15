@@ -9,6 +9,7 @@ USAGE:
 """
 import argparse
 import contextlib
+import gc
 import json
 import os
 import queue
@@ -34,7 +35,7 @@ from utils.config import (
     add_model_config_arg, get_model_config,
 )
 from utils.data_download import ensure_local_data, iter_clips_parallel
-from utils.gpu_batch import compute_batch_sizes, add_gpu_mem_arg, cleanup_temp
+from utils.gpu_batch import compute_batch_sizes, add_gpu_mem_arg, cleanup_temp, AdaptiveBatchSizer
 from utils.video_io import get_clip_key, create_stream, decode_video_bytes, _USE_TORCHCODEC
 from utils.wandb_utils import add_wandb_args, init_wandb, log_metrics, log_artifact, finish_wandb
 
@@ -222,8 +223,16 @@ def _producer_thread(processor, batch_size: int, tmp_dir: str,
 
 def get_batch_embeddings(model, batched_pixels: torch.Tensor, device: str,
                          is_adapted: bool = False) -> np.ndarray:
-    """Get V-JEPA 2 embeddings for a batch of processed videos."""
-    pixel_values = batched_pixels.to(device=device, dtype=torch.float16)
+    """Get V-JEPA 2 embeddings for a batch of processed videos.
+
+    Uses the model's own parameter dtype (fp16 for V-JEPA 2.0 HF, bf16 for V-JEPA 2.1
+    native — see #44) for both the input cast and autocast context. Hardcoded fp16 would
+    crash `conv3d` in patch_embed when model is bf16 (input/weight dtype mismatch).
+    """
+    # Detect model dtype — handles torch.compile-wrapped models via `_orig_mod` if present
+    m = getattr(model, "_orig_mod", model)
+    model_dtype = next(m.parameters()).dtype
+    pixel_values = batched_pixels.to(device=device, dtype=model_dtype)
     with torch.no_grad():
         if is_adapted:
             # Native vjepa2 VisionTransformer: forward(x) → (B, N, D) tensor
@@ -233,7 +242,7 @@ def get_batch_embeddings(model, batched_pixels: torch.Tensor, device: str,
             embeddings = outputs.mean(dim=1).float().cpu().numpy()
         else:
             # HF AutoModel: forward(pixel_values_videos=...) → ModelOutput
-            with torch.amp.autocast("cuda", dtype=torch.float16):
+            with torch.amp.autocast("cuda", dtype=model_dtype):
                 outputs = model(pixel_values_videos=pixel_values, skip_predictor=True)
                 embeddings = outputs.last_hidden_state.mean(dim=1).float().cpu().numpy()
     return embeddings
@@ -243,6 +252,22 @@ def get_batch_embeddings(model, batched_pixels: torch.Tensor, device: str,
 # ORCHESTRATOR / WORKER (subprocess pattern for HF stream resilience)
 # ═════════════════════════════════════════════════════════════════════════
 
+def _resolve_model(user_model) -> tuple:
+    """Normalize args.model → (model_path or None, is_adapted bool).
+
+    - user_model is None: no --model passed → load frozen native from YAML checkpoint_path.
+      is_adapted=False; model_path=None. Worker's `elif hf_model_id is None` branch handles it.
+    - user_model is a .pt path that exists: adapted student from m09 training.
+      is_adapted=True; model_path=Path(...). Worker's `if is_adapted` branch handles it.
+    - Any other string (HF model id): frozen HF AutoModel path.
+      is_adapted=False; model_path=Path(user_model) for display only.
+    """
+    if user_model is None:
+        return None, False
+    p = Path(user_model)
+    return p, (p.suffix == ".pt" and p.exists())
+
+
 def orchestrator_main(args):
     """Spawn worker subprocesses every ENGINE_RESTART_EVERY clips.
 
@@ -251,9 +276,10 @@ def orchestrator_main(args):
     """
     output_dir = get_module_output_dir("m05_vjepa_embed", args.subset, sanity=args.SANITY, poc=args.POC)
 
-    # Encoder name determines output filenames (unique per lambda for ablation)
-    model_path = Path(args.model)
-    is_adapted = model_path.suffix == ".pt" and model_path.exists()
+    # V-JEPA 2.1 has `hf_model_id: null` in its YAML → VJEPA_MODEL_ID is None → args.model is None.
+    # In that case we're loading a frozen native checkpoint (from YAML checkpoint_path in the
+    # worker's native-frozen branch, NOT the adapted-student branch). See `_resolve_model`.
+    model_path, is_adapted = _resolve_model(args.model)
     encoder_name = getattr(args, 'encoder', None) or ("vjepa_adapted" if is_adapted else "vjepa")
     from utils.config import get_encoder_info
     embed_suffix = get_encoder_info(encoder_name)["suffix"]
@@ -416,13 +442,30 @@ def worker_main(args):
     # Adapted models eval at 64f (VJEPA_FRAMES_PER_CLIP) but frozen HF models also use 64f.
     # The difference: adapted uses native vjepa2 (sdp_kernel patched), frozen uses HF AutoModel.
     # They have different VRAM profiles → separate BS configs in pipeline.yaml.
-    model_path = Path(args.model)
-    is_adapted_pre = model_path.suffix == ".pt" and model_path.exists()
-    if is_adapted_pre:
-        adapted_bs = get_pipeline_config()["gpu"]["inference_adapted_bs"]
+    model_path, is_adapted_pre = _resolve_model(args.model)
+    # V-JEPA 2.1 native-frozen (args.model=None AND YAML hf_model_id=null) uses the SAME
+    # native forward path + 64-frame inference as adapted students → same VRAM profile,
+    # so apply the adapted BS cap here too (#46). Without this, args.batch_size stays at
+    # the 96GB-profiler value (e.g. 176) and OOMs on 24GB at BS=100 on 2B bf16.
+    _mcfg_early = get_model_config(getattr(args, "model_config", None))["model"]
+    uses_native_fwd = is_adapted_pre or (args.model is None and _mcfg_early["hf_model_id"] is None)
+    _gpu_cfg = get_pipeline_config()["gpu"]
+    sizer = None  # Only used on native-fwd path (HF AutoModel handles its own mem via autocast)
+    if uses_native_fwd:
+        # Producer fills batches at the MAX cap; consumer sub-batches via AdaptiveBatchSizer
+        # starting at the yaml-configured initial size, growing until gpu_memory_target × VRAM.
+        # All three values come from configs/pipeline.yaml — no hardcoded Python defaults (#46).
+        adapted_bs = _gpu_cfg["inference_adapted_bs"]
+        initial_bs = _gpu_cfg["inference_vjepa_initial_bs"]
+        mem_target = _gpu_cfg["gpu_memory_target"]
         if adapted_bs < args.batch_size:
-            print(f"Batch size: {args.batch_size} → {adapted_bs} (adapted model, from pipeline.yaml)")
+            why = "adapted model" if is_adapted_pre else "V-JEPA 2.1 native (same native fwd as adapted)"
+            print(f"Batch size: {args.batch_size} → {adapted_bs} ({why}, from pipeline.yaml)")
             args.batch_size = adapted_bs
+        sizer = AdaptiveBatchSizer(initial_size=initial_bs, min_size=1,
+                                   max_size=adapted_bs, memory_cap=mem_target)
+        print(f"AdaptiveBatchSizer: start={initial_bs}, max={adapted_bs}, "
+              f"target VRAM={mem_target:.0%} (from pipeline.yaml)")
 
     mode = "SANITY" if args.SANITY else ("POC" if args.POC else "FULL")
     wb_run = init_wandb("m05", mode,
@@ -432,8 +475,7 @@ def worker_main(args):
 
     output_dir = get_module_output_dir("m05_vjepa_embed", args.subset, sanity=args.SANITY, poc=args.POC)
     # Match orchestrator's encoder-aware checkpoint path
-    model_path = Path(args.model)
-    is_adapted = model_path.suffix == ".pt" and model_path.exists()
+    model_path, is_adapted = _resolve_model(args.model)
     encoder_name = getattr(args, 'encoder', None) or ("vjepa_adapted" if is_adapted else "vjepa")
     from utils.config import get_encoder_info
     embed_suffix = get_encoder_info(encoder_name)["suffix"]
@@ -466,8 +508,7 @@ def worker_main(args):
         sys.exit(1)
 
     try:
-        model_path = Path(args.model)
-        is_adapted = model_path.suffix == ".pt" and model_path.exists()
+        model_path, is_adapted = _resolve_model(args.model)
 
         # Load model config to determine architecture
         mcfg = get_model_config(getattr(args, "model_config", None))["model"]
@@ -544,7 +585,11 @@ def worker_main(args):
                 print(f"FATAL: Only {loaded}/{total} params loaded — key mismatch!")
                 sys.exit(1)
 
-            model = model.to(device=device, dtype=torch.float16)
+            # bf16 for V-JEPA 2.1: same FA2 throughput as fp16 on Blackwell sm_120, wider dynamic
+            # range avoids NaN on long video token sequences (#44). Paired with RoPE Q/K dtype
+            # cast in deps/vjepa2 (`q, k = q.to(v.dtype), k.to(v.dtype)`) so SDPA sees consistent
+            # dtypes and can dispatch to FA2 under torch.compile tracing.
+            model = model.to(device=device, dtype=torch.bfloat16)
             model.eval()
             is_adapted = True  # Use the native forward path in get_batch_embeddings()
             processor = AutoVideoProcessor.from_pretrained("facebook/vjepa2-vitg-fpc64-384")
@@ -554,7 +599,7 @@ def worker_main(args):
             processor = AutoVideoProcessor.from_pretrained(hf_model_id)
             model = AutoModel.from_pretrained(
                 hf_model_id,
-                torch_dtype=torch.float16,
+                dtype=torch.float16,  # transformers 5.x: `torch_dtype` → `dtype` (#37)
                 device_map="auto",
                 attn_implementation="flash_attention_2",
             )
@@ -573,10 +618,13 @@ def worker_main(args):
         # Warmup: trigger compilation at small BS so inductor caches an efficient graph.
         # Matches profiler behavior (BS=4 warmup → 30GB at BS=176).
         print("Warmup: compiling inductor graph...")
-        # Warmup tensor in (B, C, T, H, W) — already correct for native vjepa2 model.
-        # The permute in get_batch_embeddings handles producer's (B,T,C,H,W) → (B,C,T,H,W).
+        # Warmup tensor must match the model's own parameter dtype (fp16 for V-JEPA 2.0 HF,
+        # bf16 for V-JEPA 2.1 native — see #44). Hardcoded fp16 would crash conv3d in
+        # patch_embed with "Input type (Half) and bias type (BFloat16) should be the same".
+        _m_un = getattr(model, "_orig_mod", model)
+        _warmup_dtype = next(_m_un.parameters()).dtype
         warmup_t = torch.randn(2, 3, VJEPA_FRAMES_PER_CLIP, 384, 384,
-                               dtype=torch.float16, device=device)
+                               dtype=_warmup_dtype, device=device)
         with torch.no_grad():
             if is_adapted:
                 _ = model(warmup_t)
@@ -632,20 +680,36 @@ def worker_main(args):
             if msg_type == "done":
                 break
 
-            try:
+            # Sub-batch the producer's batch using AdaptiveBatchSizer (native-fwd path only).
+            # HF AutoModel path stays single-shot (its autocast handles memory internally).
+            if sizer is None:
                 embeddings = get_batch_embeddings(model, batched_pixels, device,
-                                                    is_adapted=is_adapted)
-            except torch.cuda.OutOfMemoryError:
-                torch.cuda.empty_cache()
-                half = batched_pixels.shape[0] // 2
-                if half == 0:
-                    raise
-                print(f"\nOOM at BS={batched_pixels.shape[0]}, retrying as 2×{half}")
-                emb1 = get_batch_embeddings(model, batched_pixels[:half], device,
-                                            is_adapted=is_adapted)
-                emb2 = get_batch_embeddings(model, batched_pixels[half:], device,
-                                            is_adapted=is_adapted)
-                embeddings = np.concatenate([emb1, emb2], axis=0)
+                                                  is_adapted=is_adapted)
+            else:
+                sub_embs = []
+                i = 0
+                while i < batched_pixels.shape[0]:
+                    sub = batched_pixels[i : i + sizer.size]
+                    oom = False
+                    try:
+                        sub_emb = get_batch_embeddings(model, sub, device, is_adapted=is_adapted)
+                    except torch.cuda.OutOfMemoryError:
+                        oom = True
+                    # Cleanup OUTSIDE except (exception holds stack frame refs — see m04 pattern)
+                    if oom:
+                        del sub
+                        gc.collect()
+                        torch.cuda.synchronize()
+                        torch.cuda.empty_cache()
+                        torch.cuda.ipc_collect()
+                        if not sizer.on_oom():
+                            raise torch.cuda.OutOfMemoryError(
+                                f"AdaptiveBatchSizer at min_size={sizer.min_size} and still OOM")
+                        continue  # retry same i with smaller sizer.size
+                    sub_embs.append(sub_emb)
+                    sizer.after_batch_success()
+                    i += sub.shape[0]
+                embeddings = np.concatenate(sub_embs, axis=0)
 
             for emb, key in zip(embeddings, batch_keys):
                 all_embeddings.append(emb)
@@ -717,6 +781,11 @@ def worker_main(args):
 # ── Main ───────────────────────────────────────────────────────────────
 
 def main():
+    # Enable expandable_segments BEFORE any CUDA allocation. Reduces OOM-retry failure
+    # rate by letting the allocator grow existing segments instead of reserving new
+    # large blocks that get fragmented. Matches PyTorch's own OOM error-message
+    # recommendation. Idempotent — env var only read at first CUDA init.
+    os.environ.setdefault("PYTORCH_CUDA_ALLOC_CONF", "expandable_segments:True")
     cleanup_temp()
     parser = argparse.ArgumentParser(
         description="Generate V-JEPA 2 embeddings (GPU-only, HF WebDataset streaming)")

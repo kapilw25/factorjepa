@@ -59,6 +59,17 @@ gpu:
   inference_vjepa_bs: 176     # m05/m05b frozen: profiled at 64f with HF AutoModel (flash_attention_2)
   inference_adapted_bs: 44   # m05 adapted at 64f eval. BS=44: 32GB GPU, ~40GB CPU queue. BS=112 causes cgroup SIGKILL (101GB queue > 120GB limit).
   inference_dinov2_bs: 96     # m05b dinov2: 403 img/s, 3G VRAM (plateau, not noisy BS=16)
+  # ═════════════════════════════════════════════════════════════════════════
+  # AdaptiveBatchSizer — universal GPU infra (CLAUDE.md: "GPU util ≥85% TOP
+  # PRIORITY"). Every GPU script with a batch loop wires this up (see #47).
+  # Pattern: start at *_initial_bs, grow geometrically until gpu_memory_target ×
+  # VRAM, halve + cooldown on OOM, bounded above by the module's *_bs max cap.
+  # ═════════════════════════════════════════════════════════════════════════
+  gpu_memory_target: 0.85              # UNIVERSAL VRAM ceiling for all sizers (m04/m05/m05b/m05c/m09/...)
+  inference_vjepa_initial_bs: 8        # m05 V-JEPA native fwd (2B bf16 @ 64f) — safe start, max=inference_adapted_bs
+  inference_dinov2_initial_bs: 16      # m05b DINOv2-L (300M fp16) — safe start, max=inference_dinov2_bs
+  inference_clip_initial_bs: 16        # m05b CLIP-L (400M fp16) — safe start, max=inference_dinov2_bs (same tier)
+  training_initial_bs: 4               # m09 fwd+bwd+grads — safe start, max=training_batch_size
 
 # -- Evaluation --
 eval:

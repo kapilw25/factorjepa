@@ -428,12 +428,13 @@ def main():
     device = _torch.device("cuda")
     model, transforms = load_raft_model(device)
 
-    # Batch sizer for sub-batching within GPU forward (OOM recovery)
+    # Batch sizer for sub-batching within GPU forward (OOM recovery).
+    # VRAM ceiling from universal pipeline.yaml key `gpu_memory_target` (#47).
     sizer = AdaptiveBatchSizer(
         initial_size=CLIPS_PER_GPU_BATCH * args.n_pairs,
         min_size=args.n_pairs,
         max_size=CLIPS_PER_GPU_BATCH * args.n_pairs,
-        memory_cap=0.85)
+        memory_cap=get_pipeline_config()["gpu"]["gpu_memory_target"])
     print(f"RAFT batch sizer: {sizer}")
     print(f"Producer-consumer: queue={PRODUCER_QUEUE_SIZE}, "
           f"clips/GPU_batch={CLIPS_PER_GPU_BATCH}")

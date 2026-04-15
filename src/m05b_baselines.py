@@ -32,7 +32,7 @@ from utils.config import (
     get_sanity_clip_limit, get_total_clips, get_pipeline_config,
 )
 from utils.data_download import ensure_local_data, iter_clips_parallel
-from utils.gpu_batch import compute_batch_sizes, add_gpu_mem_arg, cuda_cleanup, cleanup_temp
+from utils.gpu_batch import compute_batch_sizes, add_gpu_mem_arg, cuda_cleanup, cleanup_temp, AdaptiveBatchSizer
 from utils.wandb_utils import add_wandb_args, init_wandb, log_metrics, log_artifact, finish_wandb
 
 # Shared video I/O from utils (Rule 32: no cross-imports between m*.py)
@@ -280,7 +280,7 @@ def generate_dinov2(output_dir: Path, args, clip_limit: int, subset_keys: set):
 
     print(f"Loading model: {model_id}")
     processor = AutoImageProcessor.from_pretrained(model_id)
-    model = AutoModel.from_pretrained(model_id, torch_dtype=torch.float16,
+    model = AutoModel.from_pretrained(model_id, dtype=torch.float16,  # #37
                                       device_map="auto",
                                       attn_implementation="flash_attention_2")
     model.eval()
@@ -308,6 +308,16 @@ def generate_dinov2(output_dir: Path, args, clip_limit: int, subset_keys: set):
                          compute_batch_sizes(gpu_vram_gb=args.gpu_mem)["image_encoder"])
     if args.SANITY:
         batch_size = min(batch_size, 4)
+
+    # Adaptive sub-batcher: initial from yaml, max = producer BS (hard ceiling),
+    # VRAM ceiling from universal `gpu_memory_target` (#47). Same pattern as m05/m04.
+    _gpu_cfg = get_pipeline_config()["gpu"]
+    sizer = AdaptiveBatchSizer(
+        initial_size=min(_gpu_cfg["inference_dinov2_initial_bs"], batch_size),
+        min_size=1, max_size=batch_size,
+        memory_cap=_gpu_cfg["gpu_memory_target"])
+    print(f"AdaptiveBatchSizer: start={sizer.size}, max={batch_size}, "
+          f"target VRAM={_gpu_cfg['gpu_memory_target']:.0%} (from pipeline.yaml)")
 
     tmp_base = output_dir / "tmp_m05b"
     tmp_base.mkdir(parents=True, exist_ok=True)
@@ -341,10 +351,30 @@ def generate_dinov2(output_dir: Path, args, clip_limit: int, subset_keys: set):
                 break
 
             inputs = {k: v.to(device) for k, v in batch_inputs.items() if hasattr(v, 'to')}
-            with torch.no_grad():
-                outputs = model(**inputs)
-                # DINOv2: CLS token is first position
-                emb = outputs.last_hidden_state[:, 0, :].cpu().numpy().astype(np.float32)
+            # Sub-batch via AdaptiveBatchSizer — first stacked tensor key drives slicing.
+            _tensor_keys = [k for k, v in inputs.items() if hasattr(v, 'shape')]
+            _total = inputs[_tensor_keys[0]].shape[0] if _tensor_keys else len(batch_keys)
+            _sub_embs = []
+            _i = 0
+            while _i < _total:
+                _sub = {k: (v[_i:_i + sizer.size] if k in _tensor_keys else v)
+                        for k, v in inputs.items()}
+                _oom = False
+                try:
+                    with torch.no_grad():
+                        _out = model(**_sub)
+                        _emb_sub = _out.last_hidden_state[:, 0, :].cpu().numpy().astype(np.float32)
+                except torch.cuda.OutOfMemoryError:
+                    _oom = True
+                if _oom:
+                    cuda_cleanup()
+                    if not sizer.on_oom():
+                        raise torch.cuda.OutOfMemoryError(f"m05b DINOv2 at min sub-batch")
+                    continue
+                _sub_embs.append(_emb_sub)
+                sizer.after_batch_success()
+                _i += _sub[_tensor_keys[0]].shape[0] if _tensor_keys else 1
+            emb = np.concatenate(_sub_embs, axis=0) if _sub_embs else np.empty((0, _out.last_hidden_state.shape[-1]), dtype=np.float32)
 
             # L2-normalize
             norms = np.linalg.norm(emb, axis=1, keepdims=True)
@@ -401,7 +431,7 @@ def generate_clip(output_dir: Path, args, clip_limit: int, subset_keys: set):
 
     print(f"Loading model: {model_id}")
     processor = CLIPProcessor.from_pretrained(model_id)
-    model = CLIPModel.from_pretrained(model_id, torch_dtype=torch.float16,
+    model = CLIPModel.from_pretrained(model_id, dtype=torch.float16,  # #37
                                       device_map="auto",
                                       attn_implementation="sdpa")
     model.eval()
@@ -415,6 +445,15 @@ def generate_clip(output_dir: Path, args, clip_limit: int, subset_keys: set):
     batch_size = args.batch_size or compute_batch_sizes(gpu_vram_gb=args.gpu_mem)["image_encoder"]
     if args.SANITY:
         batch_size = min(batch_size, 4)
+
+    # AdaptiveBatchSizer (#47) — same universal pattern as DINOv2 runner above.
+    _gpu_cfg = get_pipeline_config()["gpu"]
+    sizer = AdaptiveBatchSizer(
+        initial_size=min(_gpu_cfg["inference_clip_initial_bs"], batch_size),
+        min_size=1, max_size=batch_size,
+        memory_cap=_gpu_cfg["gpu_memory_target"])
+    print(f"AdaptiveBatchSizer: start={sizer.size}, max={batch_size}, "
+          f"target VRAM={_gpu_cfg['gpu_memory_target']:.0%} (from pipeline.yaml)")
 
     tmp_base = output_dir / "tmp_m05b"
     tmp_base.mkdir(parents=True, exist_ok=True)
@@ -448,8 +487,29 @@ def generate_clip(output_dir: Path, args, clip_limit: int, subset_keys: set):
                 break
 
             inputs = {k: v.to(device) for k, v in batch_inputs.items() if hasattr(v, 'to')}
-            with torch.no_grad():
-                emb = model.get_image_features(**inputs).cpu().numpy().astype(np.float32)
+            # Sub-batch via sizer (#47) — same pattern as DINOv2 path.
+            _tensor_keys = [k for k, v in inputs.items() if hasattr(v, 'shape')]
+            _total = inputs[_tensor_keys[0]].shape[0] if _tensor_keys else len(batch_keys)
+            _sub_embs = []
+            _i = 0
+            while _i < _total:
+                _sub = {k: (v[_i:_i + sizer.size] if k in _tensor_keys else v)
+                        for k, v in inputs.items()}
+                _oom = False
+                try:
+                    with torch.no_grad():
+                        _emb_sub = model.get_image_features(**_sub).cpu().numpy().astype(np.float32)
+                except torch.cuda.OutOfMemoryError:
+                    _oom = True
+                if _oom:
+                    cuda_cleanup()
+                    if not sizer.on_oom():
+                        raise torch.cuda.OutOfMemoryError("m05b CLIP at min sub-batch")
+                    continue
+                _sub_embs.append(_emb_sub)
+                sizer.after_batch_success()
+                _i += _sub[_tensor_keys[0]].shape[0] if _tensor_keys else 1
+            emb = np.concatenate(_sub_embs, axis=0) if _sub_embs else np.empty((0, 768), dtype=np.float32)
 
             # L2-normalize
             norms = np.linalg.norm(emb, axis=1, keepdims=True)
@@ -636,7 +696,7 @@ def generate_shuffled_vjepa(output_dir: Path, args, clip_limit: int, subset_keys
         print("FATAL: flash-attn not installed. V-JEPA 2 ViT-G requires Flash Attention 2.")
         sys.exit(1)
     model = AutoModel.from_pretrained(
-        model_id, torch_dtype=torch.float16,
+        model_id, dtype=torch.float16,  # #37
         device_map="auto", attn_implementation="flash_attention_2",
     )
     model.eval()

@@ -80,7 +80,7 @@ print(f'D_I: {clips_with}/{len(tubes)} clips ({100*clips_with/len(tubes):.0f}%) 
 
 ---
 
-## Step C: V-JEPA 2.1 Frozen Embedding — 100-clip dense subset
+## Step C: V-JEPA 2.1 Frozen Embedding — 100-clip dense subset ✅ validated 2026-04-15
 
 ```bash
 python -u src/m05_vjepa_embed.py --POC \
@@ -95,11 +95,22 @@ python -u src/m05_vjepa_embed.py --POC \
 ```bash
 python3 -c "
 import numpy as np
-e = np.load('outputs/poc/embeddings_vjepa_2_1_frozen.npy')
+e = np.load('outputs/poc/m05_vjepa_embed/embeddings_vjepa_2_1_frozen.npy')
 print(f'Shape: {e.shape}')   # expect (100, 1664)
 print(f'Range: [{e.min():.2f}, {e.max():.2f}]')
-"
+print(f'L2 norm mean: {np.linalg.norm(e, axis=1).mean():.2f}')"
 ```
+
+| Check | Expect (100 dense clips, measured 2026-04-15) |
+|---|---|
+| Wall time (model load + 100 clips) | ~232 s (0.43 clips/s on 24GB Blackwell) |
+| Per-clip rate | ~2.3 s/clip steady-state (after compile warmup) |
+| `embeddings_vjepa_2_1_frozen.npy` shape | `(100, 1664)` |
+| AdaptiveBatchSizer growth | 8 → 14 (VRAM 36% → 65%, target=85%, max=44) |
+| OOM events | 0 (sizer kept VRAM headroom) |
+| Compile path | `torch.compile` ✅ (RoPE Q/K cast to V.dtype, #44) |
+| Model dtype | `bfloat16` (V-JEPA 2.1 native, #44) |
+| Branch routing | `frozen-native` (loads `target_encoder` from .pt, #42) |
 
 ---
 

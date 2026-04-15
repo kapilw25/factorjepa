@@ -28,7 +28,7 @@ from utils.config import (
     get_sanity_clip_limit, get_total_clips, get_pipeline_config,
 )
 from utils.data_download import ensure_local_data, iter_clips_parallel
-from utils.gpu_batch import compute_batch_sizes, add_gpu_mem_arg, cuda_cleanup, cleanup_temp
+from utils.gpu_batch import compute_batch_sizes, add_gpu_mem_arg, cuda_cleanup, cleanup_temp, AdaptiveBatchSizer
 from utils.wandb_utils import add_wandb_args, init_wandb, log_metrics, log_artifact, finish_wandb
 
 from utils.video_io import get_clip_key, create_stream, decode_video_bytes
@@ -331,7 +331,7 @@ def main():
         print("FATAL: flash-attn not installed.")
         sys.exit(1)
     model = AutoModel.from_pretrained(
-        model_id, torch_dtype=torch.float16,
+        model_id, dtype=torch.float16,  # transformers 5.x: torch_dtype → dtype (#37)
         device_map="auto", attn_implementation="flash_attention_2",
     )
     model.eval()
@@ -394,12 +394,28 @@ def main():
             if msg_type == "done":
                 break
 
+            # Sub-batch via AdaptiveBatchSizer (#47). m05c sees TWO tensors per item
+            # (pixels_a, pixels_b — overlapped frame pairs) so VRAM usage is 2× a normal
+            # V-JEPA forward → use V-JEPA initial BS halved for safety.
+            if 'sizer' not in dir():
+                _gpu_cfg = get_pipeline_config()["gpu"]
+                sizer = AdaptiveBatchSizer(
+                    initial_size=max(1, _gpu_cfg["inference_vjepa_initial_bs"] // 2),
+                    min_size=1, max_size=batch_size,
+                    memory_cap=_gpu_cfg["gpu_memory_target"])
+                print(f"AdaptiveBatchSizer (m05c overlap, paired forward): "
+                      f"start={sizer.size}, max={batch_size}, "
+                      f"target VRAM={_gpu_cfg['gpu_memory_target']:.0%} (from pipeline.yaml)")
             try:
                 emb_a = get_batch_embeddings(model, pixels_a, device)
                 emb_b = get_batch_embeddings(model, pixels_b, device)
+                sizer.after_batch_success()
             except torch.cuda.OutOfMemoryError:
                 cuda_cleanup()
-                print(f"  OOM on overlap batch ({len(batch_keys)} clips), retrying with half")
+                sizer.on_oom()
+                print(f"  OOM on overlap batch ({len(batch_keys)} clips), retrying with sizer={sizer.size}")
+                # Fall back to halve-and-retry (preserved): m05c's paired tensors
+                # are decoded by the producer; mid-stream resize is non-trivial.
                 mid = len(batch_keys) // 2
                 emb_a1 = get_batch_embeddings(model, pixels_a[:mid], device)
                 emb_b1 = get_batch_embeddings(model, pixels_b[:mid], device)

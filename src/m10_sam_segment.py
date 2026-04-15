@@ -899,6 +899,10 @@ def main():
             if n_processed % 10 == 0:
                 save_json_checkpoint({"processed_keys": list(processed_keys)}, ckpt_file)
                 save_json_checkpoint(segments, output_dir / "segments.json")
+                # Periodic cache release — m10 doesn't use AdaptiveBatchSizer (per-clip
+                # SAM3 sessions, not batched) but still benefits from compaction every
+                # 10 clips to prevent fragmentation buildup over a 100-1000 clip run (#47).
+                torch.cuda.empty_cache()
 
     pbar.close()
 

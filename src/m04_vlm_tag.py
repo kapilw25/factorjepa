@@ -484,7 +484,7 @@ class VideoLLaMA3Backend(VLMBackend):
         )
         self.model = AutoModelForCausalLM.from_pretrained(
             self.model_id,
-            torch_dtype=torch.bfloat16,
+            dtype=torch.bfloat16,  # transformers 5.x: `torch_dtype` → `dtype` (#37)
             device_map="auto",
             trust_remote_code=True,
             attn_implementation="flash_attention_2",
@@ -595,7 +595,7 @@ class LLaVANextBackend(VLMBackend):
         self.processor = LlavaNextVideoProcessor.from_pretrained(self.model_id)
         self.model = LlavaNextVideoForConditionalGeneration.from_pretrained(
             self.model_id,
-            torch_dtype=torch.float16,
+            dtype=torch.float16,  # transformers 5.x: `torch_dtype` → `dtype` (#37)
             device_map="auto",
             low_cpu_mem_usage=True,
             attn_implementation="flash_attention_2",
@@ -1229,11 +1229,13 @@ def worker_main(args):
     backend = backend_cls()
     backend.load_model()
 
-    # Adaptive sub-batch sizing: initial from VRAM scaling, max = producer batch size
+    # Adaptive sub-batch sizing: initial from VRAM scaling, max = producer batch size,
+    # VRAM ceiling from universal pipeline.yaml key `gpu_memory_target` (#47).
     sub_batch_size = batch_sizes["transformers_batch"]
     backend.batch_sizer = AdaptiveBatchSizer(
         initial_size=sub_batch_size,
         max_size=args.batch_size,
+        memory_cap=get_pipeline_config()["gpu"]["gpu_memory_target"],
     )
     print(f"Backend loaded: {backend.model_name} | batch_size={args.batch_size} | {backend.batch_sizer}")
 
