@@ -70,6 +70,8 @@ src/data/videos/*.mp4
 src/data/clips/
 src/data/
 # Compute outputs — backed up to HF via: python -u src/utils/hf_outputs.py upload outputs/<dir>
+*.npy
+*.npz
 outputs/**/*.npy
 outputs/**/*.npz
 outputs/full/*.json
