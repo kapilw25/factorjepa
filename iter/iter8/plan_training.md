@@ -4,6 +4,13 @@
 > Ref: `Literature/proposal/FactorJEPA/FactorJEPA.md` Sections 10-11
 > **If surgery doesn't improve metrics:** See `iter/utils/literarure_survey.md` — 24 JEPA variants surveyed. Top fallback techniques: SIGReg regularizer (LeJEPA, replaces EMA), leakage-free factor training (VLA-JEPA), temporal straightening diagnostic (LeWorldModel).
 
+## 🟢 Status (2026-04-15): m10/m11 upstream pipeline validated on dense100
+
+- **m10** (Grounded-SAM): HF `Sam3TrackerVideoModel` @ **11 s/clip** (4.21× faster than raw sam3 pkg) → FULL 115K ETA **14.7 days on 24GB, 3.7 days on 96GB**.
+- **m11** (factor datasets): D_L/D_A/D_I at 100/94/91 on 100 clips; **8723 bbox-adaptive D_I tubes** (+228 % vs fixed centroid squares).
+- **Deadline fit**: upstream no longer on critical path. Remaining budget (~20 GPU-h) flows to Steps C/D/E (m05 frozen → m09 ExPLoRA → m09 Surgery) + Phase 3 ablations.
+- **Decision gate unchanged**: POC (100 dense clips) → if Surgery > Frozen on Prec@K with 95 % CI, scale to FULL 115K. If not, follow fallback ladder in `literature_survey.md`.
+
 ---
 
 ## System Design: Full Pipeline (m00 → m11 → eval)

@@ -55,25 +55,22 @@ Grounded-SAM Path D:  fixed 17-cat agent taxonomy → Grounding DINO (text → b
 
 **D_I tube builder (2026-04-14)**: m10 now saves `per_object_bboxes_json` (~5 KB/clip); m11 prefers tight union-bbox crops over fixed 30% centroid squares (graceful fallback for legacy .npz).
 
-### 📊 POC dense100 measurements — Level 1 vs Level 2 (2026-04-14)
+### 📊 POC dense100 measurements — Level 1 → Level 2 → **v2_HF + bbox-tubes** (current, 2026-04-15)
 
-| Metric | Level 1 (1 anchor) | Level 2 (4 anchors) | Δ |
+| Metric | Level 1 (1 anchor, raw sam3) | Level 2 (4 anchors, raw sam3) | **v2_HF (4 anchors, HF Sam3Tracker + bbox tubes)** |
 |---|---:|---:|---:|
-| m10 throughput (tqdm EMA) | 12.86 s/clip | **46.38 s/clip** | 3.61× slower |
-| m10 total agents | 1286 | **5581** | **+334%** |
-| m10 D_I interactions | 1759 | **2659** | **+51%** |
-| m10 mean pixel_ratio | 17.42% | **21.66%** | **+24%** |
-| m10 clips with ≥1 agent | — | 95/100 | — |
-| m10 mean mask_confidence | — | 0.877 | — |
-| m10 concept_recall (vs VLM) | — | 0.622 | — |
-| m11 throughput | — | **2.45 s/clip** | — |
-| m11 D_L present | — | 100/100 | — |
-| m11 D_A present | — | 93/100 | — |
-| m11 D_I present | — | 88/100 | — |
-| m11 median tubes/clip | — | 21.5 (max 127) | — |
-| 115K ETA (24GB, m10 only) | ~15 days | ~61 days | — |
+| m10 throughput | 12.86 s/clip | 46.38 s/clip | **11.02 s/clip** ✅ |
+| m10 total agents | 1286 | 5581 | **6146** |
+| m10 D_I interactions | 1759 | 2659 | **8723** |
+| m10 mean pixel_ratio | 17.42% | 21.66% | 18.61% (tighter masks) |
+| m11 D_L / D_A / D_I present | — | 100 / 93 / 88 | **100 / 94 / 91** |
+| m11 total tubes | — | 2659 (fixed 30 % squares) | **8723 (5659 unique bbox shapes)** |
+| m11 median tubes/clip | — | 21.5 | **65** |
+| 115K ETA (24GB, m10 only) | ~15 days | ~61 days | **~14.7 days** |
+| 115K ETA (96GB, batch ×4) | — | — | **~3.7 days** |
 
-Source: `logs/m10_dense100{,_level2}_v5.log`. Verdict: accuracy win is the lever; 3.6× slowdown recoverable via Path B (HF Sam3).
+Sources: `logs/m10_v2HF_dense100_probe5_v5.log`, `logs/m11_dense100_level2_v5.log` (m11 over v2_HF masks).
+Verdict: Path B achieved 4.21× speedup AND +228 % D_I tubes AND tighter agent masks — a clean Pareto win.
 
 **Decision log:**
 - ✅ 17-category agent taxonomy in `configs/train/ch11_surgery.yaml > factor_datasets.grounding_dino.agent_taxonomy` (fixed, not per-clip VLM tags) — accuracy-first for D_L/D_A/D_I
@@ -87,13 +84,13 @@ Source: `logs/m10_dense100{,_level2}_v5.log`. Verdict: accuracy win is the lever
 
 ## 🔥 Active (Phase 1: GPU SANITY) — Steps C/D/E next
 
-- ✅ Step A (SANITY 20-clip): m10 Grounded-SAM segmentation — quality gate PASS, 12/20 clips with clean masks
-- ✅ Step B (SANITY 20-clip): m11 factor datasets — D_L blurred, D_A isolated, D_I 39 tubes/9 clips, all 2x2 grids correct
-- ⬜ Step A' (POC 100 dense, Level 2): `m10 --POC --subset data/sanity_100_dense.json` — expect ≥90% clips with agents, consistent 15-25% mid-frame coverage
-- ⬜ Step B' (POC 100 dense, Level 2): `m11 --POC --subset data/sanity_100_dense.json` — expect ≥90% D_I tubes, clean 2x2 stills + top-20 videos
-- 🔥 Step C: m05 frozen V-JEPA 2.1 embedding
-- 🔥 Step D: m09 ExPLoRA training
-- 🔥 Step E: m09 Surgery training (uses `--factor-dir outputs/poc/m11_factor_datasets/`)
+- ✅ Step A (SANITY 20-clip): m10 Grounded-SAM segmentation — quality gate PASS
+- ✅ Step B (SANITY 20-clip): m11 factor datasets — D_L/D_A/D_I verified
+- ✅ Step A' (POC 100 dense, v2_HF): 6146 agents, 8723 interactions, 11.02 s/clip
+- ✅ Step B' (POC 100 dense, bbox-tubes): 91/100 D_I clips, 8723 tubes, 5659 unique shapes
+- 🔥 Step C: m05 frozen V-JEPA 2.1 embedding on 100-clip dense subset (`--POC --subset data/sanity_100_dense.json`)
+- 🔥 Step D: m09 ExPLoRA training on 100-clip dense subset
+- 🔥 Step E: m09 Surgery training on 100-clip dense subset (uses `--factor-dir outputs/poc/m11_factor_datasets/`)
 - ⬜ Commit all fixes via `git_push.sh`
 
 ---
@@ -123,9 +120,9 @@ Measured baseline on POC dense100 (46 s/clip with v5 forward-only): **115K naive
 | Module | Path | Effort | Speedup | 115K ETA (24GB) | Status |
 |---|---|---|---|---|---|
 | m10 | **A. `propagation_direction="forward"`** (skip backward SAM3 call) | done | 1.83× measured | ~61 days | ✓ #35 (unblocks POC, not FULL) |
-| m10 | **B. HF `Sam3TrackerVideoModel` (P-5a) in `m10_sam_segment_v2_HF.py`** — requires `transformers==5.5.4` | ~2h | ~10× est. | **~6 days** | 🟡 #36 code done, awaiting `setup_env_uv.sh --gpu` + POC run |
-| m10 | B+96GB. Path B + larger batch on 96GB GPU | +0h | ~50× total | ~1.5 days | ⬜ (preferred for FULL) |
-| m10 | B'. P-3a probe: `Sam3VideoModel` text-only, 5 clips (`--probe-p3a 5`) | +0h | +dropping DINO = ~2× | ~3 days | 🟡 #36 code done, A/B after P-5a run |
+| m10 | **B. HF `Sam3TrackerVideoModel` (replaced `m10_sam_segment.py`)** — requires `transformers==5.5.4` | done | **4.21× measured** | **~14.7 days** | ✅ #36-#40 validated 2026-04-15 on dense100 |
+| m10 | B+96GB. Path B + larger batch on 96GB GPU | +0h | ~4× on top | **~3.7 days** | ⬜ (preferred for FULL) |
+| m10 | B'. P-3a probe: `Sam3VideoModel` text-only (stripped from m10 code, kept in git history) | post-paper | +dropping DINO ~2× | ~1.5 days | ⬜ (backlog — not on critical path) |
 | m10 | C. Streaming mode (HF only) — disables hotstart heuristics (quality risk) | ~3h | 10× | ~6 days | ⬜ (not recommended) |
 | m10 | D. Density-filter FULL to ~30-40K multi-agent clips only | ~30min | — | ~2-4 days with B+96GB | ⬜ (paper-valid if stratified) |
 | m10 | — `max_frame_num_to_track=3` in raw sam3 pkg | tried | would be 10× | — | 🔬 #33/#35 (SAM3 bug: empty tensor, reverted) |
@@ -187,6 +184,17 @@ Priority if time-constrained: **A3** (proves factoring matters) then **A4** (Neu
 ---
 
 ## ✅ Completed
+
+### 2026-04-15 (~2h GPU): Path B speedup + bbox-tubes + m10 consolidation
+- 5 bugs found & fixed: #37 DINO fp16 text-branch crash (fp32 default), #38 Sam3Tracker box depth=3 (not 4), #39 session.reset_tracking_data (not processor), #40 silent bug — object_score_logits not iou_scores, #41 add_text_prompt kwarg `text=` not `prompts=`
+- transformers 4.57.6 → **5.5.4** (setup_env_uv.sh steps [9/10] DINO + [10/10] facebook/sam3 ~12 GB HF_TRANSFER parallel)
+- HF `Sam3TrackerVideoModel` integrated; `max_frame_num_to_track` now works (raw sam3 pkg #33/#35 unfixable)
+- m10 v2_HF merged back into `m10_sam_segment.py` (P-3a probe stripped); `train_surgery.sh` unchanged
+- m11 D_I upgrade: `per_object_bboxes_json` saved by m10; `make_interaction_tubes_from_bboxes` replaces fixed 30% centroid square
+- setup_env_uv.sh: added non-fatal `uv pip check` with allowlist (sam3/numpy, sam3/ftfy, torch/cuda-bindings, decord)
+- preflight skill extended B16-B20 for transformers 5.x regression guards
+- Measured on dense100: **11.02 s/clip (4.21× faster), 6146 agents (+10 %), 8723 D_I tubes (+228 %), 91 % clips have tubes**
+- 115K FULL ETA: 61 days → **14.7 days on 24GB**, **3.7 days on 96GB+batch×4**
 
 ### 2026-04-14 (~5h GPU): Grounded-SAM Pivot + Level 2 multi-anchor
 - 32 bugs found and fixed (see `errors_N_fixes.md` #18-32)

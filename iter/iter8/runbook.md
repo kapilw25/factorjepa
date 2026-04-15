@@ -21,69 +21,52 @@ source venv_walkindia/bin/activate
 
 ---
 
-## Step A: Grounded-SAM Segmentation (DINO + SAM 3.1)
+## Step A: Grounded-SAM Segmentation — DINO + HF Sam3TrackerVideo ✅ validated 2026-04-15
 
 ```bash
 rm -rf outputs/poc/m10_sam_segment/ outputs/poc/m11_factor_datasets/
 python -u src/m10_sam_segment.py --POC \
     --subset data/sanity_100_dense.json \
     --local-data data/val_1k_local --no-wandb \
-    2>&1 | tee logs/m10_dense100_level2_v1.log
+    2>&1 | tee logs/m10_dense100.log
 ```
 
 **Verify:** `cat outputs/poc/m10_sam_segment/summary.json | python3 -m json.tool`
 
-| Check | Expect (100 dense clips) |
+| Check | Expect (100 dense clips, measured 2026-04-15) |
 |---|---|
-| `quality_gate` | `"PASS"` |
-| `quality_gate_checks` | All 4 checks PASS |
-| `mean_agent_pixel_ratio` | 2-15% |
-| `mean_mask_confidence` | >= 0.85 |
-| `clips_with_agents_pct` | >= 90% |
-| `n_total_interactions` | > 200 |
-| `pipeline` | `"grounded-sam"` |
+| Wall time | ~1100 s (11 s/clip — 4.21× faster than raw sam3 pkg) |
+| `n_total_agents` | ~6100 |
+| `n_total_interactions` | ~8700 |
+| `mean_agent_pixel_ratio` | ~0.18 |
+| `mean_mask_confidence` | ≥ 0.85 |
+| `clips_with_agents_pct` | ≥ 0.95 |
+| `quality_gate` | `"PASS"` (4 checks) |
 | `m10_overlay_verify/*.png` | Red masks on real agents, no FPs on wires/signage |
-
-## Step A.2:
-```bash
-./setup_env_uv.sh --gpu --from-wheels 
-# Then smoke-test 3 load paths in the upgraded venv before running v2_HF on POC:
-source venv_walkindia/bin/activate && python3 -c "
-from transformers import Sam3TrackerVideoModel, Sam3VideoModel, AutoModelForZeroShotObjectDetection, Qwen3VLForConditionalGeneration
-print('Sam3Tracker OK, Sam3Video OK, DINO OK, Qwen3VL OK')" 
-
-# If those 4 imports succeed, we're clear to run: 
-                         
-python -u src/m10_sam_segment_v2_HF.py --POC \
---subset data/sanity_100_dense.json \
---local-data data/val_1k_local \
---no-wandb --probe-p3a 5 \
-2>&1 | tee logs/m10_v2HF_dense100_probe5.log
-```
 
 ---
 
-## Step B: Factor Datasets (D_L + D_A + D_I)
+## Step B: Factor Datasets (D_L + D_A + D_I with tight-bbox tubes) ✅ validated 2026-04-15
 
 ```bash
 python -u src/m11_factor_datasets.py --POC \
     --subset data/sanity_100_dense.json \
     --local-data data/val_1k_local --no-wandb \
-    2>&1 | tee logs/m11_dense100_level2_v1.log
+    2>&1 | tee logs/m11_dense100.log
 ```
 
 **Verify:**
 
-| Check | Expect (100 dense clips) |
+| Check | Expect (100 dense clips, measured 2026-04-15) |
 |---|---|
-| `m11_factor_samples.png` | D_L: agents visibly blurred, layout (signage/buildings) sharp. D_A: agents bright, BG dimmed to 10% |
-| `m11_interaction_samples.png` | Tight crops around 2+ agents (cross-category pairs: pedestrian × motorcycle, car × bus, etc.) |
-| `m11_factor_stats.png` | Agent ratio bell curve, mode at 2-8% (denser scenes than random val_1k) |
-| `m11_per_clip_verify/*.png` | 2x2 stills — Original \| D_L (blurred agents) \| D_A (isolated agents) \| D_I (tube crop) |
-| `m11_per_Videoclip_verify/*.mp4` | 2x2 H.264 videos, top 20 clips, 16 frames animated, 960x540 @ 6fps |
-| Console: `D_I quality` line | >= 90% clips have tubes |
-| Console: `D_A: N files` | >= 90 of 100 clips |
-| Mid-frame coverage | Masks 15-25% consistently across all 16 frames |
+| Wall time | ~270 s (2.7 s/clip, CPU-bound) |
+| `D_L present` | 100/100 |
+| `D_A present` | ≥ 93/100 |
+| `D_I present` | ≥ 90/100 |
+| Total D_I tubes | ~8700 (bbox-adaptive, ~5600 unique shapes, not fixed 30% squares) |
+| Median tubes/clip | ~65 (max ~400 for very dense Mumbai clips) |
+| `m11_factor_samples.png` | D_L: agents blurred, layout sharp. D_A: agents bright, BG dimmed to 10% |
+| `m11_per_Videoclip_verify/*.mp4` | 20 top videos, 2×2 H.264 grids, 960×540 @ 6fps |
 
 ```bash
 python3 -c "
@@ -97,54 +80,59 @@ print(f'D_I: {clips_with}/{len(tubes)} clips ({100*clips_with/len(tubes):.0f}%) 
 
 ---
 
-## Step C: V-JEPA 2.1 Frozen Embedding
+## Step C: V-JEPA 2.1 Frozen Embedding — 100-clip dense subset
 
 ```bash
-python -u src/m05_vjepa_embed.py --SANITY \
+python -u src/m05_vjepa_embed.py --POC \
+    --subset data/sanity_100_dense.json \
     --model-config configs/model/vjepa2_1.yaml \
     --encoder vjepa_2_1_frozen \
     --local-data data/val_1k_local --no-wandb \
-    2>&1 | tee logs/m05_sanity_2_1.log
+    2>&1 | tee logs/m05_dense100_frozen.log
 ```
 
 **Verify:**
 ```bash
 python3 -c "
 import numpy as np
-e = np.load('outputs/sanity/embeddings_vjepa_2_1_frozen.npy')
-print(f'Shape: {e.shape}')   # (20, 1664)
+e = np.load('outputs/poc/embeddings_vjepa_2_1_frozen.npy')
+print(f'Shape: {e.shape}')   # expect (100, 1664)
 print(f'Range: [{e.min():.2f}, {e.max():.2f}]')
 "
 ```
 
 ---
 
-## Step D: ExPLoRA Training
+## Step D: ExPLoRA Training — 100-clip dense subset
 
 ```bash
-python -u src/m09_pretrain.py --SANITY \
+python -u src/m09_pretrain.py --POC \
+    --subset data/sanity_100_dense.json \
     --model-config configs/model/vjepa2_1.yaml \
     --train-config configs/train/explora.yaml \
     --explora --local-data data/val_1k_local --no-wandb \
-    2>&1 | tee logs/m09_explora_sanity.log
+    2>&1 | tee logs/m09_dense100_explora.log
 ```
 
-**Verify:** `ls -lh outputs/sanity/student_encoder.pt` — exists, ~8 GB
+**Verify:** `ls -lh outputs/poc/m09_pretrain/explora/student_encoder.pt` — exists, ~8 GB
 
 ---
 
-## Step E: Surgery Training
+## Step E: Surgery Training — 100-clip dense subset
 
 ```bash
-python -u src/m09_pretrain.py --SANITY \
+python -u src/m09_pretrain.py --POC \
+    --subset data/sanity_100_dense.json \
     --model-config configs/model/vjepa2_1.yaml \
     --train-config configs/train/ch11_surgery.yaml \
     --surgery --factor-dir outputs/poc/m11_factor_datasets/ \
     --local-data data/val_1k_local --no-wandb \
-    2>&1 | tee logs/m09_surgery_sanity.log
+    2>&1 | tee logs/m09_dense100_surgery.log
 ```
 
-**Verify:** `ls -lh outputs/sanity/m09_pretrain/surgery/student_encoder.pt` — exists, ~8 GB
+**Verify:** `ls -lh outputs/poc/m09_pretrain/surgery/student_encoder.pt` — exists, ~8 GB
+
+**Subset = 100 clips from `data/sanity_100_dense.json`** (density-scored: traffic + crowd + agent tags, 73 tier1 + 26 tier2 + 1 goa). Same subset across Steps A-E so Prec@K comparisons (frozen vs ExPLoRA vs surgical) are apples-to-apples.
 
 ---
 

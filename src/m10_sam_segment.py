@@ -1,13 +1,21 @@
-"""Grounded-SAM video segmentation: Grounding DINO (text → boxes) + SAM 3.1 (box → masks). GPU-only.
+"""Grounded-SAM video segmentation: Grounding DINO + HF Sam3TrackerVideoModel. GPU-only.
+
+4-anchor re-seed: DINO detects boxes on frames [0, 4, 8, 12]; HF Sam3TrackerVideoModel
+propagates per-anchor within its 4-frame segment via `max_frame_num_to_track=3` (raw sam3
+pkg couldn't — errors #33/#34/#35). Measured ~11 s/clip = 4.21× faster than raw sam3 pkg,
+→ FULL 115K ETA ~14.7 days on 24GB. See `iter/iter8/plan_TODO.md` for architecture.
+
     python -u src/m10_sam_segment.py --SANITY --local-data data/val_1k_local --no-wandb 2>&1 | tee logs/m10_sanity.log
-    python -u src/m10_sam_segment.py --POC --local-data data/val_1k_local --no-wandb 2>&1 | tee logs/m10_poc.log
+    python -u src/m10_sam_segment.py --POC --subset data/sanity_100_dense.json --local-data data/val_1k_local --no-wandb 2>&1 | tee logs/m10_poc.log
     python -u src/m10_sam_segment.py --FULL --local-data data/full_local --no-wandb 2>&1 | tee logs/m10_full.log
-    python -u src/m10_sam_segment.py --SANITY --plot    # re-generate plots only (no GPU, reads existing outputs)
+    python -u src/m10_sam_segment.py --SANITY --plot    # re-generate plots only (no GPU)
+
+HF model download: `facebook/sam3` (~12 GB, first-run only) is pre-cached by `setup_env_uv.sh` step [10/10]
+via `hf download` which respects `HF_HUB_ENABLE_HF_TRANSFER=1` (Rust multi-stream, 1.5-3× per file).
 """
 import argparse
 import json
 import os
-import shutil
 import sys
 import tempfile
 import time
@@ -47,8 +55,12 @@ from utils.wandb_utils import add_wandb_args, init_wandb, log_metrics, finish_wa
 
 import yaml
 import torch
-from sam3 import build_sam3_predictor
-from transformers import AutoProcessor, AutoModelForZeroShotObjectDetection
+from transformers import (
+    AutoProcessor,
+    AutoModelForZeroShotObjectDetection,
+    Sam3TrackerVideoModel,
+    Sam3TrackerVideoProcessor,
+)
 
 
 # ── Fixed Agent Taxonomy ─────────────────────────────────────────────
@@ -82,16 +94,29 @@ DINO_TO_TAG = {
 
 # ── Model Loading ───────────────────────────────────────────────────
 
-def load_sam3(model_id: str):
-    """Load SAM 3 / 3.1 video predictor. Uses build_sam3_predictor (unified entry point)."""
-    version = "sam3.1" if "3.1" in model_id else "sam3"
-    # use_fa3=False: SAM 3.1 defaults to FA3 (flash_attn_interface), a separate package
-    # from FA2 (flash_attn 2.8.3). We have FA2; FA3 not installed. Falls back to SDPA.
-    return build_sam3_predictor(version=version, use_fa3=False)
+def load_sam3_hf(model_id: str = "facebook/sam3"):
+    """HF Sam3TrackerVideoModel (box/point/mask-prompted video tracker). Returns (model, processor).
+
+    Replaces raw `sam3.build_sam3_predictor` to unlock `max_frame_num_to_track` +
+    `start_frame_idx` in `propagate_in_video_iterator` (raw pkg crashed #34/#35 with
+    empty-tensor). bfloat16 for throughput; model cached at $HF_HOME after first call.
+    """
+    model = Sam3TrackerVideoModel.from_pretrained(
+        model_id, dtype=torch.bfloat16,
+    ).to("cuda").eval()
+    processor = Sam3TrackerVideoProcessor.from_pretrained(model_id)
+    return model, processor
 
 
 def load_grounding_dino(model_id: str):
-    """Load Grounding DINO in fp32 (transformers 5.x removed auto-cast, #37)."""
+    """Load Grounding DINO in fp32 (see errors_N_fixes.md #37).
+
+    transformers 5.x removed auto-cast across DINO's cross-modal encoder:
+    pixel_values can be cast to fp16, but the text branch (input_ids → embedding
+    → text_enhancer_layer) produces fp32 activations that hit fp16 Linear weights
+    → crash. Full autocast wrapping is too invasive; fp32 DINO (+500 MB VRAM,
+    negligible vs SAM3's 12 GB) avoids all dtype issues for 4 forwards/clip.
+    """
     processor = AutoProcessor.from_pretrained(model_id)
     model = AutoModelForZeroShotObjectDetection.from_pretrained(model_id).to("cuda").eval()
     return processor, model
@@ -163,7 +188,9 @@ def detect_boxes_grounding_dino(dino_processor, dino_model,
     pil = Image.fromarray(frame_rgb)
     inputs = dino_processor(images=pil, text=compound_prompt, return_tensors="pt")
     inputs = {k: v.to("cuda") for k, v in inputs.items()}
-    # transformers 5.x: processor fp32 outputs + fp16 model weights no longer auto-cast (#37).
+    # transformers 5.x: processor returns fp32 pixel_values but model weights are fp16.
+    # Explicit cast required (4.x auto-cast was removed). int tensors (attention masks,
+    # input_ids) must stay int — only cast floating tensors.
     model_dtype = next(dino_model.parameters()).dtype
     for k, v in inputs.items():
         if v.dtype.is_floating_point and v.dtype != model_dtype:
@@ -226,40 +253,25 @@ def _canonicalize_label(raw_label: str) -> str:
     return None
 
 
-def segment_clip(sam_predictor, dino_processor, dino_model,
-                 frames_np: np.ndarray, frame_dir: str,
+def segment_clip(sam_model, sam_processor, dino_processor, dino_model,
+                 frames_np: np.ndarray,
                  compound_prompt: str,
                  dilation_px: int, min_confidence: float,
                  min_mask_area_pct: float,
                  box_threshold: float, text_threshold: float) -> dict:
-    """Grounded-SAM segmentation: DINO detects boxes on frame 0 → SAM 3.1 refines masks + propagates.
+    """Grounded-SAM segmentation (HF backend): DINO boxes → Sam3TrackerVideoModel tracks.
 
-    Flow: DINO forward on frame 0 → group boxes by detected category → for each
-    category with ≥1 box, open a SAM 3.1 session, seed with bounding_boxes on frame 0,
-    propagate across all frames. Per-category SAM sessions preserve obj_id ranges for
-    D_I cross-category interaction mining.
+    Multi-anchor re-seed at frames [0,4,8,12] for T=16. Each anchor × detected-category
+    opens an HF inference session, seeds boxes on that anchor frame, propagates forward
+    within the 4-frame segment via `propagate_in_video_iterator(start_frame_idx=anchor,
+    max_frame_num_to_track=segment_size-1)` — unlike raw sam3 pkg, these params work
+    correctly in HF wrapper (#36), giving ~10× speedup with tight per-segment tracking.
 
-    Returns:
-        agent_mask: (T, H, W) bool
-        layout_mask: (T, H, W) bool
-        n_agents: int — total distinct agent instances detected on frame 0
-        agent_pixel_ratio: float
-        mean_mask_confidence: float
-        centroids: {obj_id: {t: (cy, cx)}}
-        per_object: {obj_id: {t: mask}}
-        detected_categories: list[str] (for concept_recall diagnostic)
+    Returns: agent_mask, layout_mask, n_agents, agent_pixel_ratio, mean_mask_confidence,
+             centroids, per_object, detected_categories
     """
-    # ── Multi-anchor DINO re-seed (Level 2 quality fix) ────────────────
-    # Instead of running DINO ONLY on frame 0 and letting SAM3 propagate 16 frames
-    # (which drifts badly by mid/end frames — e.g., 25.7% → 5.9% coverage), we run
-    # DINO on 4 anchor frames spread evenly across the clip, and each anchor "owns"
-    # the 4 nearest frames. Max tracking drift per frame is ~2 frames instead of ~15.
-    #
-    #   Anchors for T=16:   [0,      4,      8,      12]
-    #   Segment ownership:  [0-3,    4-7,    8-11,   12-15]
-    #
-    # Cost: 4x DINO forwards + 4x SAM3 sessions per category (sessions are the bulk
-    # cost). Quality win: fresh boxes every 4 frames = tight masks throughout clip.
+    # Multi-anchor: DINO on [0,4,8,12] (T=16), each anchor owns its 4-frame segment.
+    # Max tracking drift per frame is ~2 frames instead of ~15 (see plan_TODO.md Level 2).
     T = frames_np.shape[0]
     n_anchors = 4
     segment_size = max(1, T // n_anchors)
@@ -267,10 +279,9 @@ def segment_clip(sam_predictor, dino_processor, dino_model,
     anchor_segments = {}
     for i, a in enumerate(anchors):
         end = anchors[i + 1] if i + 1 < len(anchors) else T
-        anchor_segments[a] = set(range(a, end))  # frames this anchor owns
+        anchor_segments[a] = set(range(a, end))
 
-    # Step 1: Run DINO on each anchor frame (parallel-friendly but we do sequential
-    # — DINO base is ~100ms/frame, 4x = ~400ms per clip overhead. Negligible.)
+    # Step 1: DINO on each anchor frame
     dino_per_anchor = {}
     H = W = 0
     all_detected_categories = set()
@@ -279,36 +290,34 @@ def segment_clip(sam_predictor, dino_processor, dino_model,
             dino_processor, dino_model, frames_np[a], compound_prompt,
             box_threshold, text_threshold,
         )
-        H, W = dino_out["H"], dino_out["W"]  # same across anchors (same clip)
+        H, W = dino_out["H"], dino_out["W"]
         dino_per_anchor[a] = dino_out["boxes_by_cat"]
         all_detected_categories.update(dino_out["boxes_by_cat"].keys())
 
-    # Early exit: no agents at ANY anchor → return empty result
     if not any(dino_per_anchor[a] for a in anchors):
         empty_mask = np.zeros((T, H if H else 384, W if W else 384), dtype=bool)
         return {
-            "agent_mask": empty_mask,
-            "layout_mask": ~empty_mask,
-            "n_agents": 0,
-            "agent_pixel_ratio": 0.0,
-            "mean_mask_confidence": 0.0,
-            "centroids": {},
-            "per_object": {},
-            "detected_categories": [],
+            "agent_mask": empty_mask, "layout_mask": ~empty_mask,
+            "n_agents": 0, "agent_pixel_ratio": 0.0, "mean_mask_confidence": 0.0,
+            "centroids": {}, "per_object": {}, "detected_categories": [],
         }
 
-    # Step 2: Per-anchor × per-category SAM 3.1 session, keep masks only in segment
+    # Step 2: one HF video session per clip (reused across anchor × category sub-calls).
+    # frames_np is (T, H, W, 3) uint8 — HF processor accepts numpy video directly.
+    session = sam_processor.init_video_session(
+        video=frames_np, inference_device="cuda", dtype=torch.bfloat16,
+    )
+
     masks_per_frame = {}
     per_object = {}
     centroids = {}
-    obj_id_to_cat = {}  # obj_id → category (for D_I cross-category mining)
+    obj_id_to_cat = {}
     accepted_probs = []
     n_agents = 0
-    obj_id_offset = 0
+    obj_id_offset = 0  # reserve 100 ids per (anchor,category) session so D_I can tell them apart
 
-    def _accept_mask(mask_raw, prob):
-        """Resize mask to DINO-frame shape, filter by area and confidence."""
-        m = np.asarray(mask_raw)
+    def _accept_mask(mask_np, prob):
+        m = np.asarray(mask_np, dtype=bool)
         if m.shape != (H, W):
             m = np.array(Image.fromarray(m.astype(np.uint8) * 255).resize(
                 (W, H), Image.NEAREST)) > 127
@@ -321,104 +330,81 @@ def segment_clip(sam_predictor, dino_processor, dino_model,
         boxes_by_cat = dino_per_anchor[anchor]
         segment_frames = anchor_segments[anchor]
         if not boxes_by_cat:
-            continue  # no detections at this anchor → no sessions needed
+            continue
 
         for category, boxes in boxes_by_cat.items():
-            # Start a SAM 3.1 session for this anchor × category.
-            response = sam_predictor.handle_request(dict(
-                type="start_session",
-                resource_path=frame_dir,
-            ))
-            session_id = response["session_id"]
-
-            # Clamp DINO boxes to frame bounds, normalize to xywh in [0,1]. See #25/#28.
-            boxes_xywh_norm = []
+            # Clamp DINO boxes to frame bounds (#28), keep xyxy pixel coords — HF accepts pixel xyxy.
+            boxes_xyxy = []
             for x0, y0, x1, y1 in boxes:
                 x0c = max(0.0, min(float(W), x0))
                 y0c = max(0.0, min(float(H), y0))
                 x1c = max(0.0, min(float(W), x1))
                 y1c = max(0.0, min(float(H), y1))
-                w, h = x1c - x0c, y1c - y0c
-                if w <= 0 or h <= 0:
-                    continue  # out-of-frame or zero-area
-                boxes_xywh_norm.append([x0c / W, y0c / H, w / W, h / H])
-            if not boxes_xywh_norm:
-                sam_predictor.handle_request(dict(type="close_session", session_id=session_id))
-                continue
-            box_labels_pos = [1] * len(boxes_xywh_norm)
-
-            # Hybrid prompt (Path D): text for cross-frame tracking signal + boxes for
-            # frame-anchor refinement. frame_index=anchor (not 0) so SAM3 anchors masks
-            # at this specific frame for better local tracking.
-            prompt_resp = sam_predictor.handle_request(dict(
-                type="add_prompt",
-                session_id=session_id,
-                frame_index=anchor,
-                text=category,
-                bounding_boxes=boxes_xywh_norm,
-                bounding_box_labels=box_labels_pos,
-            ))
-
-            # Capture mask at the anchor frame itself (from add_prompt response)
-            out0 = prompt_resp["outputs"]
-            n_anchor_objs = len(out0.get("out_obj_ids", []))
-            if anchor in segment_frames:  # anchor is always in its own segment
-                for i, oid in enumerate(out0["out_obj_ids"].tolist()):
-                    m = _accept_mask(out0["out_binary_masks"][i], float(out0["out_probs"][i]))
-                    if m is not None:
-                        global_id = obj_id_offset + int(oid)
-                        masks_per_frame.setdefault(anchor, {})[global_id] = m
-                        obj_id_to_cat[global_id] = category
-                        accepted_probs.append(float(out0["out_probs"][i]))
-                        n_agents += 1
-
-            # Guard #30: add_prompt returned empty → skip propagation, close session
-            if n_anchor_objs == 0:
-                sam_predictor.handle_request(dict(type="close_session", session_id=session_id))
-                obj_id_offset += 100
+                if x1c - x0c <= 0 or y1c - y0c <= 0:
+                    continue
+                boxes_xyxy.append([x0c, y0c, x1c, y1c])
+            if not boxes_xyxy:
                 continue
 
-            # Forward-only propagation (#35, ~2× speedup, bit-identical output). Discovered via
-            # sam3_base_predictor.py:92 which exposes `propagation_direction` ("forward"|"backward"|"both").
-            # Backward was completely useless for our multi-anchor architecture:
-            #   - anchor=0 backward → frames [-1,-2,-3] (invalid, was crashing #33)
-            #   - anchors 4/8/12 backward → frames already owned by previous anchor → discarded by filter below
-            # NOTE: also tried `max_frame_num_to_track` to cap forward range to segment_size-1 frames
-            # (would be ~10× speedup), but BOTH directions of that param are unsafe in SAM 3.1
-            # (see #34): SAM3's memory mechanism internally accesses neighboring frames beyond the
-            # bounded loop, causing `current_vision_feats[-1].expand(-1, B, -1)` to fail with
-            # `Tensor sizes: [5184, 0, 256]` (empty batch from unloaded frame). Stuck with full-clip
-            # forward propagation; out-of-segment frames discarded by `if fidx not in segment_frames`.
-            # Guard #31: catch "No points are provided" from SAM3's internal state inconsistency.
+            # HF API: one obj_id per box. `input_boxes` expected_depth=3:
+            # [image level, box level, box coordinates]. Points are depth-4 (extra
+            # object level), but boxes are flat per image. Parallel with obj_ids.
+            local_ids = list(range(len(boxes_xyxy)))
+            input_boxes = [boxes_xyxy]  # [[[x1,y1,x2,y2], ...]]
+            sam_processor.add_inputs_to_inference_session(
+                inference_session=session,
+                frame_idx=anchor,
+                obj_ids=local_ids,
+                input_boxes=input_boxes,
+            )
+
+            # Propagate forward within this anchor's segment only — max_frame_num_to_track=3
+            # covers frames [anchor..anchor+3]; HF wrapper clips correctly (unlike raw sam3 #35).
+            max_track = max(1, segment_size - 1)
             try:
-                for resp in sam_predictor.handle_stream_request(dict(
-                    type="propagate_in_video",
-                    session_id=session_id,
-                    propagation_direction="forward",
-                )):
-                    fidx = resp["frame_index"]
-                    if fidx not in segment_frames or fidx == anchor:
-                        # Outside this anchor's segment, OR already captured from add_prompt
+                for output in sam_model.propagate_in_video_iterator(
+                    inference_session=session,
+                    start_frame_idx=anchor,
+                    max_frame_num_to_track=max_track,
+                    reverse=False,
+                ):
+                    fidx = int(output.frame_idx)
+                    if fidx not in segment_frames:
                         continue
-                    out = resp["outputs"]
-                    for i, oid in enumerate(out["out_obj_ids"].tolist()):
-                        m = _accept_mask(out["out_binary_masks"][i], float(out["out_probs"][i]))
+                    # HF returns pred_masks as logits at model resolution — post_process_masks
+                    # resizes to original (H, W) and applies sigmoid + threshold.
+                    masks_full = sam_processor.post_process_masks(
+                        [output.pred_masks], original_sizes=[(H, W)], binarize=True,
+                    )[0]  # (n_objs, 1, H, W) bool
+                    # Mask confidence from object_score_logits (sigmoid → [0,1]).
+                    # Dataclass attr is `object_score_logits`, NOT `iou_scores` (that's SAM2's name).
+                    probs = torch.sigmoid(
+                        output.object_score_logits.detach().float()
+                    ).squeeze().cpu().numpy()
+                    if probs.ndim == 0:
+                        probs = probs.reshape(1)
+                    for i in range(masks_full.shape[0]):
+                        mask_np = masks_full[i, 0].detach().cpu().numpy()
+                        prob = float(probs[i])
+                        m = _accept_mask(mask_np, prob)
                         if m is not None:
-                            global_id = obj_id_offset + int(oid)
+                            global_id = obj_id_offset + i
                             masks_per_frame.setdefault(fidx, {})[global_id] = m
-                            accepted_probs.append(float(out["out_probs"][i]))
+                            if fidx == anchor:
+                                obj_id_to_cat[global_id] = category
+                                n_agents += 1
+                            accepted_probs.append(prob)
             except RuntimeError as e:
-                if "No points are provided" not in str(e):
-                    raise
-                print(f"  WARN: SAM3 propagate inconsistency on anchor={anchor}, "
-                      f"category='{category}' (anchor-frame mask kept, segment tracking skipped): {e}")
+                print(f"  WARN: HF Sam3Tracker propagate anchor={anchor} cat={category}: {e}")
 
-            sam_predictor.handle_request(dict(type="close_session", session_id=session_id))
-            # Reserve 100 obj_ids per session so D_I mining can tell sessions apart
+            # Reset prompts + obj_ids + tracklets between (anchor × category) pairs.
+            # `reset_tracking_data()` keeps the encoded video cache (expensive); use that
+            # instead of `reset_inference_session()` which would force re-encoding for every
+            # category. Method lives on the session object, not the processor.
+            session.reset_tracking_data()
             obj_id_offset += 100
 
-    # Preserve variable name used below by Step 3
-    boxes_by_cat = {c: [] for c in sorted(all_detected_categories)}  # reporting only
+    boxes_by_cat = {c: [] for c in sorted(all_detected_categories)}
 
     # ── Step 3: Build agent_mask union + centroids ─────────────────
     T = frames_np.shape[0]
@@ -531,13 +517,10 @@ def mine_interactions(centroids: dict, frame_width: int,
 
 def save_clip_masks(clip_key: str, result: dict, interactions: list,
                     masks_dir: Path, mid_frame_rgb: np.ndarray = None):
-    """Save per-clip masks + centroids + per-object bboxes + interactions + middle frame as compressed .npz.
+    """Save masks + centroids + per-object bboxes + interactions + middle frame as compressed .npz.
 
-    Adds `per_object_bboxes_json`: {obj_id: {t: [y1, x1, y2, x2]}} — tight axis-aligned
-    bbox of each object's mask per frame. Used by m11 D_I builder for tight union-bbox
-    tubes (vs fixed 30% centroid squares). Storage cost: ~5 KB/clip for ~20 agents ×
-    16 frames × 4 ints, vs ~130 MB/clip for full per-object masks. Enables gold-standard
-    interaction tubes without blowing up FULL (115K × 5 KB ≈ 600 MB).
+    `per_object_bboxes_json` ({obj_id: {t: [y1,x1,y2,x2]}}) enables m11 tight-union-bbox
+    D_I tubes instead of fixed 30% centroid squares. ~5 KB/clip vs ~130 MB for full masks.
     """
     safe_key = clip_key.replace("/", "__")
     out_path = masks_dir / f"{safe_key}.npz"
@@ -545,7 +528,6 @@ def save_clip_masks(clip_key: str, result: dict, interactions: list,
                                   for k, frames in result["centroids"].items()})
     interactions_json = json.dumps(interactions)
 
-    # Per-object tight bboxes (y1, x1, y2, x2) — derived from per_object masks
     per_object_bboxes = {}
     for oid, frames_dict in result.get("per_object", {}).items():
         per_frame = {}
@@ -567,7 +549,7 @@ def save_clip_masks(clip_key: str, result: dict, interactions: list,
         per_object_bboxes_json=np.array(per_object_bboxes_json),
     )
     if mid_frame_rgb is not None:
-        save_dict["mid_frame_rgb"] = mid_frame_rgb  # (H, W, 3) uint8 for overlay plots
+        save_dict["mid_frame_rgb"] = mid_frame_rgb
     np.savez_compressed(out_path, **save_dict)
 
 
@@ -813,10 +795,11 @@ def main():
     dino_processor, dino_model = load_grounding_dino(dino_model_id)
     print(f"Grounding DINO loaded. Compound prompt ({len(agent_taxonomy)} cats): {compound_prompt[:120]}...")
 
-    # Load SAM 3.1 (box → mask + temporal propagation)
-    print(f"\nLoading SAM 3.1 ({factor_cfg['sam_model']})...")
-    predictor = load_sam3(factor_cfg["sam_model"])
-    print(f"SAM 3.1 loaded ({factor_cfg['sam_model']})")
+    # Load HF Sam3TrackerVideoModel (box → mask + temporal propagation, `max_frame_num_to_track` works)
+    sam_model_id = factor_cfg["sam_hf_model"]
+    print(f"\nLoading HF Sam3TrackerVideoModel ({sam_model_id})...")
+    sam_model, sam_processor = load_sam3_hf(sam_model_id)
+    print(f"HF Sam3TrackerVideoModel loaded ({sam_model_id})")
 
     # Resume checkpoint
     ckpt_file = output_dir / ".m10_checkpoint.json"
@@ -863,16 +846,10 @@ def main():
             else:
                 frames_np = frames_np.astype(np.uint8)
 
-            # Save as JPEG folder for SAM 3.1
-            frame_dir = os.path.join(tmp_dir, "clip_frames")
-            if os.path.exists(frame_dir):
-                shutil.rmtree(frame_dir)
-            save_frames_as_jpeg(frames_np, frame_dir)
-
-            # Grounded-SAM: DINO boxes on frame 0 → per-category SAM 3.1 sessions → masks + propagation
+            # HF API takes the numpy video array directly — no JPEG frame dir needed.
             result = segment_clip(
-                predictor, dino_processor, dino_model,
-                frames_np, frame_dir,
+                sam_model, sam_processor, dino_processor, dino_model,
+                frames_np,
                 compound_prompt=compound_prompt,
                 dilation_px=dilation_px,
                 min_confidence=min_confidence,
@@ -998,10 +975,8 @@ def main():
     print(f"  Interactions mined: {n_interactions_total}")
     print(f"  Mean agent pixel ratio: {summary['mean_agent_pixel_ratio']:.2%}")
 
-    # Force exit: SAM 3.1 spawns async frame-loading threads (async_loading_frames=True)
-    # that keep the process alive after main() completes. No shutdown() method exists.
-    # Without os._exit, train_surgery.sh hangs indefinitely after m10 step.
-    del predictor
+    # Force exit: HF Sam3 video sessions + DINO hold GPU buffers.
+    del sam_model, sam_processor, dino_model, dino_processor
     import gc
     gc.collect()
     os._exit(0)
