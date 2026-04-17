@@ -1,9 +1,9 @@
-# FactorJEPA Runbook
-> **High level Goal: Surgery > ExPLoRA > Frozen on Prec@K, 115K clips.**
-> **Mid level Goal: Surgery > ExPLoRA > Frozen on Prec@K, 1K clips (val_1k) — the POC decision gate.**
-> **Low level Goal (SANITY smoke test only): 3 stages pass end-to-end on 20 clips with non-NaN loss.**
+# 🚀 FactorJEPA Runbook
+> 🏆 **High level Goal**: Surgery > ExPLoRA > Frozen on Prec@K, 115K clips.
+> 🎯 **Mid level Goal**: Surgery > ExPLoRA > Frozen on Prec@K, 1K clips (val_1k) — the POC decision gate.
+> 🧪 **Low level Goal (SANITY smoke test only)**: 3 stages pass end-to-end on 20 clips with non-NaN loss.
 
-> **Tier ladder (2026-04-17):** SANITY (20 clips, ~60 s code check) → POC (1K clips / val_1k, ~6-7 h full pipeline) → FULL (115K clips, ~1.5 d on 96GB). The 100-dense-clip intermediate tier was validated on 2026-04-17 and then retired — 3200 visits-per-clip at 100 scale produced overfitting-pressure Prec@K that wouldn't replicate at FULL. 1K × 20 epochs = 20 visits/clip is the cheapest scale where Prec@K signal is publishable.
+> 📊 **Tier ladder (2026-04-17 🕘 updated)**: SANITY (20 clips, ~60 s code check) → POC (1K clips / val_1k, ~10 h full pipeline) → FULL (115K clips, ~1.5 d on 96GB). The 100-dense-clip intermediate tier was validated on 2026-04-17 and then 🚚 retired — 3200 visits-per-clip at 100 scale produced overfitting-pressure Prec@K that wouldn't replicate at FULL, and the short run exposed two POC-config bugs (#60 max_epochs, #61 warmup_steps) which are now fixed. 1K × 20 epochs = 20 visits/clip is the cheapest scale where Prec@K signal is publishable.
 
 > Run these commands on GPU. Verify each step before moving to the next.
 > Architecture + decisions: `plan_TODO.md`. Error history: `errors_N_fixes.md`.

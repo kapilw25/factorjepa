@@ -82,18 +82,21 @@ Verdict: Path B achieved 4.21× speedup AND +228 % D_I tubes AND tighter agent m
 
 ---
 
-## 🔥 Active (Phase 1: GPU SANITY → Phase 2: POC)
+## 🔥 Active (Phase 1 ✅ GREEN → Phase 2 🎯 1K POC NEXT)
 
-- ✅ Step A (SANITY 20-clip): m10 Grounded-SAM segmentation — quality gate PASS
-- ✅ Step B (SANITY 20-clip): m11 factor datasets — D_L/D_A/D_I verified
-- ✅ Step A' (POC 100 dense, 2026-04-17): 6141 agents, 8712 interactions, 6.13 s/clip on 96GB (613 s total)
-- ✅ Step B' (POC 100 dense, 2026-04-17): 91/100 D_I clips, 8712 tubes, 47 s total with 32-worker ProcessPool (5.7× speedup)
-- ✅ Step C (m05 frozen V-JEPA 2.1, 2026-04-17): 100 clips × 1664-dim embeddings in 423 s on 96GB. `torch.compile` + bf16 + RoPE cast (#44) all working.
-- ✅ Step D.1 (m09c Surgery SANITY, 2026-04-17): all 3 stages PASS on 96GB — Stage 1 loss=0.4870, Stage 2=0.4901, **Stage 3=0.4806** (first successful measurement — resolved #58 via hardware migration, no v8 patch needed). ~60s total.
-- 🔥 Step D.2 (m09c Surgery POC): 100 dense clips, ~3h on 96GB — the real training signal.
-- ⬜ Step E.1 (m09b ExPLoRA SANITY): blocked on D.2 decision gate.
-- ⬜ Step E.2 (m09b ExPLoRA POC): blocked on D.2 decision gate.
-- ⬜ m05 re-embed on surgical student + m06 metrics → decision gate.
+- ✅ Step A (SANITY 20-clip + POC 100-dense 2026-04-17): m10 Grounded-SAM — quality gate PASS, 6141 agents, 8712 interactions, 6.13 s/clip on 96GB
+- ✅ Step B (SANITY 20-clip + POC 100-dense 2026-04-17): m11 factor datasets — 91/100 D_I clips, 8712 tubes, 47 s with 32-worker ProcessPool (5.7× speedup)
+- ✅ Step C (m05 frozen V-JEPA 2.1, 2026-04-17): 100 clips × 1664-dim in 423 s. `torch.compile` + bf16 + RoPE cast (#44/#59 durable) all working.
+- ✅ Step D.1 (m09c Surgery SANITY, 2026-04-17): all 3 stages PASS — 0.4870 / 0.4901 / **0.4806** (first ever Stage 3). 96GB resolved #58 for free.
+- 🐛 Step D.2 v1 (m09c Surgery POC 100-dense, 2026-04-17 first run): completed in 60 s — revealed **#60** `max_epochs.poc: 1` → only 3 optimizer steps total. Fixed → max_epochs.poc: 100.
+- 🐛 Step D.2 v2 (m09c Surgery POC 100-dense, 2026-04-17 second run): completed in ~95 min — revealed **#61** `warmup_steps: 200 > stage_steps: 99` → LR never reached target, loss 0.50→0.476 warmup-truncated. Fixed → `warmup_pct: 0.20` auto-scaling.
+- 🚚 100-dense tier retired. 3200 visits/clip = unpublishable overfitting pressure. Moving to 1K val_1k POC tier.
+- 🎯 **Step D.2 v3 (1K val_1k POC, NEXT)**: both bug fixes in place + `max_epochs.poc: 20` for ~2.7 h wall. Real training signal.
+- ⬜ Step D.3 (m05 re-embed on 1K surgical, ~70 min)
+- ⬜ Step D.4 (m06 Prec@K frozen vs surgical — decision gate, ~5 min)
+- ⬜ Step E.1 (m09b ExPLoRA SANITY, ~10 min) — run after D.4 regardless of gate result (cheap code smoke test)
+- ⬜ Step E.2 (m09b ExPLoRA POC 1K, ~2 h) — CONDITIONAL on D.4 showing Surgery > Frozen
+- ⬜ Step E.3 (m05 ExPLoRA re-embed + m06 Prec@K) — completes the 3-arm comparison
 
 ---
 
@@ -111,9 +114,12 @@ Verdict: Path B achieved 4.21× speedup AND +228 % D_I tubes AND tighter agent m
 | v5 | All 3 stages printed "complete" | Silent fail: 0 successful steps, exported unmodified student | #55 (within-step retry on OOM + fail-hard when sizer at min) |
 | v6 | Stages 1+2 ✅ (loss=0.4841, 0.4874), Stage 3 OOM | Stage 3: 36/48 trainable blocks — fp32 master (5.5 GB) + 8-bit m1/m2 (3 GB) + model + activations overflowed 24 GB | #56 (grad checkpointing + bnb AdamW8bit) + #57 (mode-gated yaml: savers ON for SANITY, OFF for POC/FULL) |
 | v7 | Stages 1+2 ✅, Stage 3 OOM at min sub-batch=1 | fp32 master + 8-bit m1/m2 + activation spike exceeded 24GB even with PagedAdamW8bit | #58 (inter-stage cleanup + PagedAdamW8bit — helped but didn't close the gap on 24GB) |
-| **v8-hw (2026-04-17)** | **ALL 3 STAGES ✅** (Stage 1 loss=0.4870, Stage 2 loss=0.4901, **Stage 3 loss=0.4806**), student_encoder.pt exported | — (resolved by 96GB hardware migration; post-cleanup VRAM 19.9 GB / 102 GB after Stage 2) | Hardware upgrade; "v8 teacher CPU offload" patch from #58's follow-up plan was NOT needed. |
+| ✅ **v8-hw (2026-04-17 noon)** | **ALL 3 STAGES PASS on 96GB** (Stage 1=0.4870, Stage 2=0.4901, **Stage 3=0.4806**), student_encoder.pt exported | — (resolved by 96GB hardware migration; post-cleanup VRAM 19.9 GB / 102 GB after Stage 2) | 🏁 Hardware upgrade; "v8 teacher CPU offload" patch from #58's follow-up plan NOT needed. |
+| 🐛 **v9 (2026-04-17 dinner-time POC)** | D.2 POC 100-dense "SURGERY COMPLETE" in 60 s — but only 3 optimizer steps total 😱 | `max_epochs.poc: 1` (yaml comment "1 epoch per stage" ≠ code "1 epoch total"). `stage_steps = int(3 × 0.33) = 0` → clamped to 1/stage. Silent near-no-op. | #60 — bumped `max_epochs.poc: 1 → 100`, yaml comment corrected. |
+| 🐛 **v10 (2026-04-17 late POC)** | D.2 POC 100-dense 300 steps completed — loss dropped only 0.50 → 0.476 (∆ −5.4 %) 📉 | `warmup_steps: 200` per stage > `stage_steps: 99` → LR never reached target (~50 % max). Fresh scheduler per stage restarts warmup from 0. | #61 — replaced fixed `warmup_steps` with `warmup_pct: 0.20` in yaml, auto-scales to 19/41/718 for 100/1K/115K. |
+| 🎯 **v11 (1K val_1k POC, NEXT)** | (pending) | — | — |
 
-**Closure:** The proposed v8 teacher-CPU-offload patch in #58 was never landed — 96GB resolved the issue for free. Documented in errors_N_fixes.md #58 post-script.
+**Closure:** SANITY loop resolved via hardware (v7→v8). POC loop debugged via config-fix cascade (#60 → #61). Real Prec@K signal will come from v11 at 1K scale.
 
 ### 🛑 v7 Stage 3 OOM — detailed root cause
 
@@ -309,8 +315,9 @@ Priority if time-constrained: **A3** (proves factoring matters) then **A4** (Neu
 | Phase | Hours | Status |
 |---|---|---|
 | Phase 0: Grounded-SAM pivot (done on GPU) | ~4h spent | ✅ |
-| Phase 1: GPU SANITY (24GB → 96GB migration 2026-04-17) | ~11h spent | ✅ A/B/A'/B'/C/D.1 done |
-| Phase 2: GPU POC (96GB, $0.80/hr) | ~2h spent + ~3h remaining | 🔄 D.2 next (Surgery 100-clip), then E.1/E.2 ExPLoRA |
+| Phase 1: GPU SANITY (24GB → 96GB migration 2026-04-17) | ~11h spent | ✅ all steps done, SANITY chain fully green |
+| Phase 2a: POC 100-dense (discovery tier — RETIRED) | ~4h spent | ✅ caught 2 config bugs (#60 max_epochs, #61 warmup). Student too overfit to publish. |
+| Phase 2b: POC 1K val_1k (publishable tier) | ~10h projected | 🎯 NEXT — full pipeline D.2→E.3 with both config fixes in place |
 | Decision gate | — | ⬜ |
 | Phase 3: Scale 115K + ablations | 12h | ⬜ |
 | Phase 4: Paper writing | 14h | ⬜ |

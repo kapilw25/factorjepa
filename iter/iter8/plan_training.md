@@ -4,14 +4,16 @@
 > Ref: `Literature/proposal/FactorJEPA/FactorJEPA.md` Sections 10-11
 > **If surgery doesn't improve metrics:** See `iter/utils/literarure_survey.md` — 24 JEPA variants surveyed. Top fallback techniques: SIGReg regularizer (LeJEPA, replaces EMA), leakage-free factor training (VLA-JEPA), temporal straightening diagnostic (LeWorldModel).
 
-## 🟢 Status (2026-04-17): Full SANITY pipeline validated on 96 GB Blackwell
+## 🟢 Status (2026-04-17 🕘 late): SANITY green, POC debugged, 1K POC next
 
-- **m10** (Grounded-SAM, Step A'): **6.13 s/clip on 96 GB**, 6141 agents, 8712 interactions, quality_gate PASS. FULL 115K ETA **~8.2 d single-stream, ~2 d at batch ×4**.
-- **m11** (factor datasets, Step B'): D_L/D_A/D_I at 100/94/91 on 100 clips, 8712 bbox-adaptive tubes, **47 s total** with 32-worker ProcessPool (5.7× speedup vs single-thread baseline).
-- **m05** (V-JEPA 2.1 frozen embed, Step C): 100 clips × 1664-dim in 423 s on 96 GB. `torch.compile` + bf16 + RoPE Q/K dtype cast (#44) all working after durable patch in `setup_env_uv.sh` (#59).
-- **m09c** (Surgery SANITY, Step D.1): **ALL 3 STAGES PASS** — Stage 1 loss=0.4870, Stage 2=0.4901, **Stage 3=0.4806** (first ever successful Stage 3 completion). 96 GB migration alone closed the v7 24 GB OOM — no v8 teacher-offload code needed (#58 resolved).
-- **Deadline fit**: upstream + SANITY no longer on critical path. Remaining budget (~17 GPU-h) flows to Step D.2 POC (~3 h, real training signal), Step E POC (~1.5 h, ExPLoRA baseline), m05 re-embed + m06 Prec@K (~1 h), decision gate.
-- **Decision gate unchanged**: Step D.2 POC (100 dense clips) → if Surgery > Frozen on Prec@K with 95 % CI, scale to FULL 115K. If not, follow fallback ladder in `literature_survey.md`.
+- 🟢 **m10** (Grounded-SAM, Step A): **6.13 s/clip on 96 GB**, 6141 agents, 8712 interactions, quality_gate PASS. FULL 115K ETA **~8.2 d single-stream, ~2 d at batch ×4**.
+- 🟢 **m11** (factor datasets, Step B): D_L/D_A/D_I at 100/94/91 on 100 clips, 8712 bbox-adaptive tubes, **47 s total** with 32-worker ProcessPool (5.7× speedup vs single-thread baseline).
+- 🟢 **m05** (V-JEPA 2.1 frozen embed, Step C): 100 clips × 1664-dim in 423 s on 96 GB. `torch.compile` + bf16 + RoPE Q/K dtype cast working after durable patch in `setup_env_uv.sh` (#44/#59).
+- 🟢 **m09c SANITY** (Step D.1): **ALL 3 STAGES PASS** — 0.4870 / 0.4901 / **0.4806** (first ever Stage 3). 96 GB migration closed v7's 24 GB OOM for free — no v8 teacher-offload code needed (#58 resolved).
+- 🐛 **m09c POC on 100-dense** (Step D.2 first + second runs, 2026-04-17): flushed out 2 training-config bugs that only surface at POC scale — **#60 `max_epochs.poc: 1`** (3 optimizer steps silent near-no-op) and **#61 `warmup_steps: 200 > stage_steps: 99`** (LR never reached target, loss 0.50→0.476 warmup-truncated). Both fixed: max_epochs.poc→100, warmup replaced by `warmup_pct: 0.20` auto-scaling. 100-dense tier now retired (3200 visits/clip overfitting = unpublishable).
+- 🎯 **1K val_1k POC pipeline (NEXT)**: ~10 h end-to-end on 96 GB — m10 (~102 min) + m11 (~8 min) + m05 frozen (~70 min) + m09c Surgery (~2.7 h with `max_epochs.poc: 20`) + m05 surgical (~70 min) + m06 (~5 min) + ExPLoRA arm (~2.75 h). Delivers the real 3-arm Prec@K comparison.
+- 📅 **Deadline fit (NeurIPS May 04)**: ~27 GPU-h remaining of original ~38 h budget. 1K POC (10 h) + iteration buffer (5 h) + FULL 115K (~1.5 d = 36 h on 96GB batch×4) = **tight but feasible** if 1K Prec@K shows Surgery > Frozen cleanly. Otherwise 1K becomes the submission-ready tier.
+- 🎯 **Decision gate (unchanged)**: 1K val_1k POC → Surgery > Frozen with non-overlapping 95 % CI → scale to FULL 115K. Otherwise follow fallback ladder in `literature_survey.md` (SIGReg, VLA-JEPA leakage-free, temporal-interference projection).
 
 ---
 
@@ -352,9 +354,10 @@ Factor datasets (D_L, D_A, D_I) created via SAM3 segmentation → tracklet minin
 
 ## Execution Plan + Historical Results
 
-**Current commands:** `iter/iter8/runbook.md`
-**Current status:** `iter/iter8/next_steps.md`
-**Training configs:** `configs/train/` (ch10_pretrain.yaml, explora.yaml, ch11_surgery.yaml)
+**Current commands:** 🚀 `iter/iter8/runbook.md`
+**Current status:** 📋 `iter/iter8/plan_TODO.md` (was `next_steps.md` — renamed 2026-04-14)
+**Error log:** 🐛 `iter/iter8/errors_N_fixes.md`
+**Training configs:** ⚙️ `configs/train/` (ch10_pretrain.yaml, explora.yaml, ch11_surgery.yaml)
 
 ### Historical: 10K POC (DONE ✅)
 
