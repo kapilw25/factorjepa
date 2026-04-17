@@ -28,10 +28,13 @@ rm -rf outputs/poc/m10_sam_segment/ outputs/poc/m11_factor_datasets/
 python -u src/m10_sam_segment.py --POC \
     --subset data/sanity_100_dense.json \
     --local-data data/val_1k_local --no-wandb \
-    2>&1 | tee logs/m10_dense100.log
+    2>&1 | tee logs/m10_dense100_v1.log
 ```
 
-**Verify:** `cat outputs/poc/m10_sam_segment/summary.json | python3 -m json.tool`
+**Verify:** 
+```bash
+cat outputs/poc/m10_sam_segment/summary.json | python3 -m json.tool
+```
 
 | Check | Expect (100 dense clips, measured 2026-04-15) |
 |---|---|
@@ -52,7 +55,7 @@ python -u src/m10_sam_segment.py --POC \
 python -u src/m11_factor_datasets.py --POC \
     --subset data/sanity_100_dense.json \
     --local-data data/val_1k_local --no-wandb \
-    2>&1 | tee logs/m11_dense100.log
+    2>&1 | tee logs/m11_dense100_v1.log
 ```
 
 **Verify:**

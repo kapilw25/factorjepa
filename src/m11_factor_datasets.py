@@ -5,9 +5,11 @@
     python -u src/m11_factor_datasets.py --SANITY --plot    # re-generate plots only (reads existing outputs)
 """
 import argparse
+import os
 import sys
 import tempfile
 import time
+from concurrent.futures import ProcessPoolExecutor, FIRST_COMPLETED, wait as futures_wait
 from pathlib import Path
 
 import matplotlib
@@ -21,7 +23,7 @@ from scipy.ndimage import gaussian_filter
 
 sys.path.insert(0, str(Path(__file__).parent))
 from utils.config import (
-    add_subset_arg, add_local_data_arg, get_output_dir, get_module_output_dir,
+    add_subset_arg, add_local_data_arg, get_module_output_dir,
     load_subset,
 )
 from utils.checkpoint import save_json_checkpoint, load_json_checkpoint
@@ -390,8 +392,6 @@ def plot_factor_per_videoclip(manifest: dict, dl_dir: Path, da_dir: Path,
     so we get clips with all 3 factors populated and dense agent activity.
     Cost: ~1s/clip encoding × N clips + re-decode top-N MP4s from val_1k_local.
     """
-    import av
-    import cv2
     from utils.data_download import iter_clips_parallel
     from utils.video_io import decode_video_bytes
 
@@ -715,13 +715,21 @@ def main():
                 print(f"  FATAL: mask file missing for {clip_key}: {mask_file}")
                 sys.exit(1)
 
-            # Skip if already generated
+            # Skip if already generated (resume path). Count existing D_I tubes
+            # on disk so the manifest entry has the SAME shape as the full-compute
+            # branch below (has_D_I + n_interaction_tubes). Previously this branch
+            # emitted a short entry → downstream sum(v["n_interaction_tubes"]) crashed
+            # with KeyError whenever any clip resumed.
             dl_file = dl_dir / f"{safe_key}.npy"
             da_file = da_dir / f"{safe_key}.npy"
             if dl_file.exists() and da_file.exists():
+                existing_tubes = sorted(di_dir.glob(f"{safe_key}_tube*.npy"))
+                n_tubes = len(existing_tubes)
                 manifest[clip_key] = {
                     "has_D_L": True,
                     "has_D_A": True,
+                    "has_D_I": n_tubes > 0,
+                    "n_interaction_tubes": n_tubes,
                     "agent_pct": segments[clip_key]["agent_pixel_ratio"],
                 }
                 n_done += 1

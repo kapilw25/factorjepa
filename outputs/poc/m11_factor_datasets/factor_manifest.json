@@ -2,44 +2,40 @@
   "goa/walking/U2hl1v8xxlE/U2hl1v8xxlE-157.mp4": {
     "has_D_L": true,
     "has_D_A": true,
-    "has_D_I": true,
-    "n_interaction_tubes": 3,
-    "agent_pct": 0.10286412592701015
+    "agent_pct": 0.10309008465066355
   },
   "tier1/chennai/drive/VeHqaGKoMAg/VeHqaGKoMAg-050.mp4": {
     "has_D_L": true,
     "has_D_A": true,
-    "has_D_I": true,
-    "n_interaction_tubes": 234,
-    "agent_pct": 0.23778892832747853
+    "agent_pct": 0.2375792837626854
   },
   "tier1/chennai/drive/vUJ87vyv7MI/vUJ87vyv7MI-096.mp4": {
     "has_D_L": true,
     "has_D_A": true,
     "has_D_I": true,
-    "n_interaction_tubes": 102,
-    "agent_pct": 0.1622348568013271
+    "n_interaction_tubes": 103,
+    "agent_pct": 0.16230621218774394
   },
   "tier1/bangalore/walking/yfZ7MKvF4FE/yfZ7MKvF4FE-036.mp4": {
     "has_D_L": true,
     "has_D_A": true,
     "has_D_I": true,
     "n_interaction_tubes": 3,
-    "agent_pct": 0.05998274053473848
+    "agent_pct": 0.06000744047619048
   },
   "tier1/chennai/drive/15P_-dTlpLY/15P_-dTlpLY-054.mp4": {
     "has_D_L": true,
     "has_D_A": true,
     "has_D_I": true,
-    "n_interaction_tubes": 413,
-    "agent_pct": 0.5084133794398907
+    "n_interaction_tubes": 412,
+    "agent_pct": 0.5083290642076502
   },
   "tier1/chennai/drive/9AoxJtnDpgw/9AoxJtnDpgw-094.mp4": {
     "has_D_L": true,
     "has_D_A": true,
     "has_D_I": true,
     "n_interaction_tubes": 33,
-    "agent_pct": 0.19827420594262296
+    "agent_pct": 0.19836461992583918
   },
   "tier1/bangalore/drone/z7cRTSP0vwo/z7cRTSP0vwo-014.mp4": {
     "has_D_L": true,
@@ -53,504 +49,504 @@
     "has_D_A": true,
     "has_D_I": true,
     "n_interaction_tubes": 76,
-    "agent_pct": 0.2366303181108509
+    "agent_pct": 0.23656140222482436
   },
   "tier1/delhi/walking/rkcSj0lFyrA/rkcSj0lFyrA-302.mp4": {
     "has_D_L": true,
     "has_D_A": true,
     "has_D_I": true,
-    "n_interaction_tubes": 43,
-    "agent_pct": 0.14167307035519125
+    "n_interaction_tubes": 45,
+    "agent_pct": 0.13789260709406714
   },
   "tier1/delhi/walking/kn9RPUNqcrA/kn9RPUNqcrA-013.mp4": {
     "has_D_L": true,
     "has_D_A": true,
     "has_D_I": true,
-    "n_interaction_tubes": 137,
-    "agent_pct": 0.1404850336651054
+    "n_interaction_tubes": 136,
+    "agent_pct": 0.1403719018345043
   },
   "tier1/delhi/walking/eIBW-ol_yb8/eIBW-ol_yb8-131.mp4": {
     "has_D_L": true,
     "has_D_A": true,
     "has_D_I": true,
-    "n_interaction_tubes": 67,
-    "agent_pct": 0.17293968945160032
+    "n_interaction_tubes": 68,
+    "agent_pct": 0.1759212163348946
   },
   "tier1/hyderabad/walking/qI0DtmauUNQ/qI0DtmauUNQ-226.mp4": {
     "has_D_L": true,
     "has_D_A": true,
     "has_D_I": true,
     "n_interaction_tubes": 46,
-    "agent_pct": 0.14502997248427674
+    "agent_pct": 0.14500731568832984
   },
   "tier1/kolkata/walking/4pI3dd4N3a8/4pI3dd4N3a8-226.mp4": {
     "has_D_L": true,
     "has_D_A": true,
     "has_D_I": true,
     "n_interaction_tubes": 27,
-    "agent_pct": 0.09056187792740047
+    "agent_pct": 0.0905820038056206
   },
   "tier1/kolkata/drone/T1vbtFJKJzc/T1vbtFJKJzc-045.mp4": {
     "has_D_L": true,
     "has_D_A": true,
     "has_D_I": false,
     "n_interaction_tubes": 0,
-    "agent_pct": 0.016298302107728337
+    "agent_pct": 0.016336114363778298
   },
   "tier1/kolkata/walking/3c4Li82qH4Y/3c4Li82qH4Y-101.mp4": {
     "has_D_L": true,
     "has_D_A": true,
     "has_D_I": true,
     "n_interaction_tubes": 19,
-    "agent_pct": 0.18549061402224826
+    "agent_pct": 0.18545051473458235
   },
   "tier1/kolkata/walking/cMsnU7D1GZ4/cMsnU7D1GZ4-228.mp4": {
     "has_D_L": true,
     "has_D_A": true,
     "has_D_I": true,
     "n_interaction_tubes": 22,
-    "agent_pct": 0.062332741754488684
+    "agent_pct": 0.06246127293130367
   },
   "tier1/kolkata/walking/QsOcWEPqhWg/QsOcWEPqhWg-117.mp4": {
     "has_D_L": true,
     "has_D_A": true,
     "has_D_I": true,
-    "n_interaction_tubes": 131,
-    "agent_pct": 0.22407036675347222
+    "n_interaction_tubes": 138,
+    "agent_pct": 0.22761610243055555
   },
   "tier1/kolkata/walking/D9zyrrwGWNk/D9zyrrwGWNk-086.mp4": {
     "has_D_L": true,
     "has_D_A": true,
     "has_D_I": true,
     "n_interaction_tubes": 30,
-    "agent_pct": 0.32964236924277907
+    "agent_pct": 0.32961416251951603
   },
   "tier1/kolkata/walking/dJ6JWCRoH80/dJ6JWCRoH80-046.mp4": {
     "has_D_L": true,
     "has_D_A": true,
     "has_D_I": true,
     "n_interaction_tubes": 170,
-    "agent_pct": 0.08686390027322405
+    "agent_pct": 0.08677607825917252
   },
   "tier1/kolkata/walking/JDhjlSW6dLk/JDhjlSW6dLk-057.mp4": {
     "has_D_L": true,
     "has_D_A": true,
     "has_D_I": true,
     "n_interaction_tubes": 30,
-    "agent_pct": 0.29319059206674475
+    "agent_pct": 0.2982847262880562
   },
   "tier1/kolkata/walking/s9ms9PT0btQ/s9ms9PT0btQ-043.mp4": {
     "has_D_L": true,
     "has_D_A": true,
     "has_D_I": true,
     "n_interaction_tubes": 154,
-    "agent_pct": 0.3651091981362217
+    "agent_pct": 0.3650883099141296
   },
   "tier1/kolkata/walking/x-dad-Elxz4/x-dad-Elxz4-148.mp4": {
     "has_D_L": true,
     "has_D_A": true,
     "has_D_I": true,
-    "n_interaction_tubes": 23,
-    "agent_pct": 0.1641210480093677
+    "n_interaction_tubes": 22,
+    "agent_pct": 0.16367675400078063
   },
   "tier1/mumbai/drive/AECb7R804uA/AECb7R804uA-073.mp4": {
     "has_D_L": true,
     "has_D_A": true,
     "has_D_I": true,
     "n_interaction_tubes": 347,
-    "agent_pct": 0.06552284592115534
+    "agent_pct": 0.0654205393735363
   },
   "tier1/mumbai/walking/DFQO7Zn-KM4-1004/DFQO7Zn-KM4-1004.mp4": {
     "has_D_L": true,
     "has_D_A": true,
     "has_D_I": true,
     "n_interaction_tubes": 5,
-    "agent_pct": 0.18302534640905543
+    "agent_pct": 0.1830471494437939
   },
   "tier1/mumbai/walking/DFQO7Zn-KM4-1005/DFQO7Zn-KM4-1005.mp4": {
     "has_D_L": true,
     "has_D_A": true,
     "has_D_I": true,
-    "n_interaction_tubes": 119,
-    "agent_pct": 0.13860585602068695
+    "n_interaction_tubes": 112,
+    "agent_pct": 0.1426723507025761
   },
   "tier1/mumbai/walking/DFQO7Zn-KM4-1006/DFQO7Zn-KM4-1006.mp4": {
     "has_D_L": true,
     "has_D_A": true,
     "has_D_I": true,
-    "n_interaction_tubes": 49,
-    "agent_pct": 0.11910372755659641
+    "n_interaction_tubes": 54,
+    "agent_pct": 0.11926366730093677
   },
   "tier1/mumbai/walking/DFQO7Zn-KM4-1012/DFQO7Zn-KM4-1012.mp4": {
     "has_D_L": true,
     "has_D_A": true,
     "has_D_I": true,
     "n_interaction_tubes": 50,
-    "agent_pct": 0.20689158860265416
+    "agent_pct": 0.20690515832357534
   },
   "tier1/mumbai/walking/DFQO7Zn-KM4-1013/DFQO7Zn-KM4-1013.mp4": {
     "has_D_L": true,
     "has_D_A": true,
     "has_D_I": true,
-    "n_interaction_tubes": 174,
-    "agent_pct": 0.20985573404566746
+    "n_interaction_tubes": 175,
+    "agent_pct": 0.21018247462919595
   },
   "tier1/mumbai/walking/DFQO7Zn-KM4-1014/DFQO7Zn-KM4-1014.mp4": {
     "has_D_L": true,
     "has_D_A": true,
     "has_D_I": true,
-    "n_interaction_tubes": 355,
-    "agent_pct": 0.1588680413251366
+    "n_interaction_tubes": 350,
+    "agent_pct": 0.15826060572794692
   },
   "tier1/mumbai/walking/DFQO7Zn-KM4-1015/DFQO7Zn-KM4-1015.mp4": {
     "has_D_L": true,
     "has_D_A": true,
     "has_D_I": true,
-    "n_interaction_tubes": 110,
-    "agent_pct": 0.23359786665690865
+    "n_interaction_tubes": 112,
+    "agent_pct": 0.2336702893247463
   },
   "tier1/mumbai/walking/DFQO7Zn-KM4-1017/DFQO7Zn-KM4-1017.mp4": {
     "has_D_L": true,
     "has_D_A": true,
     "has_D_I": true,
-    "n_interaction_tubes": 93,
-    "agent_pct": 0.11865211504683841
+    "n_interaction_tubes": 94,
+    "agent_pct": 0.12464398541178767
   },
   "tier1/mumbai/walking/DFQO7Zn-KM4-1024/DFQO7Zn-KM4-1024.mp4": {
     "has_D_L": true,
     "has_D_A": true,
     "has_D_I": true,
     "n_interaction_tubes": 133,
-    "agent_pct": 0.13080921277322405
+    "agent_pct": 0.1311489132025761
   },
   "tier1/mumbai/walking/DFQO7Zn-KM4-1025/DFQO7Zn-KM4-1025.mp4": {
     "has_D_L": true,
     "has_D_A": true,
     "has_D_I": true,
-    "n_interaction_tubes": 44,
-    "agent_pct": 0.11494620901639344
+    "n_interaction_tubes": 45,
+    "agent_pct": 0.11522415959211553
   },
   "tier1/mumbai/walking/DFQO7Zn-KM4-1026/DFQO7Zn-KM4-1026.mp4": {
     "has_D_L": true,
     "has_D_A": true,
     "has_D_I": true,
     "n_interaction_tubes": 137,
-    "agent_pct": 0.16280737704918033
+    "agent_pct": 0.1628845262490242
   },
   "tier1/mumbai/walking/DFQO7Zn-KM4-1027/DFQO7Zn-KM4-1027.mp4": {
     "has_D_L": true,
     "has_D_A": true,
     "has_D_I": true,
     "n_interaction_tubes": 61,
-    "agent_pct": 0.17975489119828258
+    "agent_pct": 0.18047972775175644
   },
   "tier1/mumbai/walking/DFQO7Zn-KM4-1031/DFQO7Zn-KM4-1031.mp4": {
     "has_D_L": true,
     "has_D_A": true,
     "has_D_I": true,
-    "n_interaction_tubes": 71,
-    "agent_pct": 0.28027724921935987
+    "n_interaction_tubes": 67,
+    "agent_pct": 0.27971326722287276
   },
   "tier1/mumbai/walking/DFQO7Zn-KM4-1032/DFQO7Zn-KM4-1032.mp4": {
     "has_D_L": true,
     "has_D_A": true,
     "has_D_I": true,
     "n_interaction_tubes": 26,
-    "agent_pct": 0.17300006708626073
+    "agent_pct": 0.17285964334504295
   },
   "tier1/mumbai/walking/DFQO7Zn-KM4-1033/DFQO7Zn-KM4-1033.mp4": {
     "has_D_L": true,
     "has_D_A": true,
     "has_D_I": true,
-    "n_interaction_tubes": 108,
-    "agent_pct": 0.2279453917837627
+    "n_interaction_tubes": 112,
+    "agent_pct": 0.22818415788446525
   },
   "tier1/mumbai/walking/DFQO7Zn-KM4-1053/DFQO7Zn-KM4-1053.mp4": {
     "has_D_L": true,
     "has_D_A": true,
     "has_D_I": true,
-    "n_interaction_tubes": 95,
-    "agent_pct": 0.1046964956576893
+    "n_interaction_tubes": 105,
+    "agent_pct": 0.10470030737704918
   },
   "tier1/mumbai/walking/DFQO7Zn-KM4-1054/DFQO7Zn-KM4-1054.mp4": {
     "has_D_L": true,
     "has_D_A": true,
     "has_D_I": true,
     "n_interaction_tubes": 52,
-    "agent_pct": 0.06540026102654177
+    "agent_pct": 0.06556218286494926
   },
   "tier1/mumbai/walking/DFQO7Zn-KM4-1055/DFQO7Zn-KM4-1055.mp4": {
     "has_D_L": true,
     "has_D_A": true,
     "has_D_I": true,
     "n_interaction_tubes": 124,
-    "agent_pct": 0.10918517637587823
+    "agent_pct": 0.10240443257220921
   },
   "tier1/mumbai/walking/DFQO7Zn-KM4-1057/DFQO7Zn-KM4-1057.mp4": {
     "has_D_L": true,
     "has_D_A": true,
     "has_D_I": true,
     "n_interaction_tubes": 93,
-    "agent_pct": 0.1274966761807182
+    "agent_pct": 0.12742486338797815
   },
   "tier1/mumbai/walking/DFQO7Zn-KM4-1058/DFQO7Zn-KM4-1058.mp4": {
     "has_D_L": true,
     "has_D_A": true,
     "has_D_I": true,
-    "n_interaction_tubes": 220,
-    "agent_pct": 0.2238096762782982
+    "n_interaction_tubes": 212,
+    "agent_pct": 0.22366757538056206
   },
   "tier1/mumbai/walking/DFQO7Zn-KM4-1061/DFQO7Zn-KM4-1061.mp4": {
     "has_D_L": true,
     "has_D_A": true,
     "has_D_I": true,
     "n_interaction_tubes": 41,
-    "agent_pct": 0.08749771296838407
+    "agent_pct": 0.09146037641491023
   },
   "tier1/mumbai/walking/DFQO7Zn-KM4-1066/DFQO7Zn-KM4-1066.mp4": {
     "has_D_L": true,
     "has_D_A": true,
     "has_D_I": true,
     "n_interaction_tubes": 65,
-    "agent_pct": 0.13102709065183452
+    "agent_pct": 0.1304138612412178
   },
   "tier1/mumbai/walking/DFQO7Zn-KM4-1067/DFQO7Zn-KM4-1067.mp4": {
     "has_D_L": true,
     "has_D_A": true,
     "has_D_I": true,
     "n_interaction_tubes": 65,
-    "agent_pct": 0.14048045960187353
+    "agent_pct": 0.140331650078064
   },
   "tier1/mumbai/walking/DFQO7Zn-KM4-1068/DFQO7Zn-KM4-1068.mp4": {
     "has_D_L": true,
     "has_D_A": true,
     "has_D_I": true,
-    "n_interaction_tubes": 308,
-    "agent_pct": 0.24956714114949258
+    "n_interaction_tubes": 317,
+    "agent_pct": 0.25109152395589385
   },
   "tier1/mumbai/walking/DFQO7Zn-KM4-1100/DFQO7Zn-KM4-1100.mp4": {
     "has_D_L": true,
     "has_D_A": true,
     "has_D_I": true,
-    "n_interaction_tubes": 16,
-    "agent_pct": 0.25961529078844653
+    "n_interaction_tubes": 11,
+    "agent_pct": 0.25961757782006245
   },
   "tier1/mumbai/walking/DFQO7Zn-KM4-1102/DFQO7Zn-KM4-1102.mp4": {
     "has_D_L": true,
     "has_D_A": true,
     "has_D_I": true,
-    "n_interaction_tubes": 75,
-    "agent_pct": 0.41742108216237317
+    "n_interaction_tubes": 74,
+    "agent_pct": 0.4164829417935207
   },
   "tier1/mumbai/walking/DFQO7Zn-KM4-1103/DFQO7Zn-KM4-1103.mp4": {
     "has_D_L": true,
     "has_D_A": true,
     "has_D_I": true,
-    "n_interaction_tubes": 176,
-    "agent_pct": 0.20904307547814208
+    "n_interaction_tubes": 190,
+    "agent_pct": 0.20925927620023418
   },
   "tier1/mumbai/walking/DFQO7Zn-KM4-1112/DFQO7Zn-KM4-1112.mp4": {
     "has_D_L": true,
     "has_D_A": true,
     "has_D_I": true,
-    "n_interaction_tubes": 20,
-    "agent_pct": 0.27839441232435597
+    "n_interaction_tubes": 18,
+    "agent_pct": 0.2782934779957065
   },
   "tier1/mumbai/walking/DFQO7Zn-KM4-1116/DFQO7Zn-KM4-1116.mp4": {
     "has_D_L": true,
     "has_D_A": true,
     "has_D_I": true,
     "n_interaction_tubes": 9,
-    "agent_pct": 0.13222168349921937
+    "agent_pct": 0.13217258855386416
   },
   "tier1/mumbai/walking/DFQO7Zn-KM4-1126/DFQO7Zn-KM4-1126.mp4": {
     "has_D_L": true,
     "has_D_A": true,
     "has_D_I": true,
     "n_interaction_tubes": 34,
-    "agent_pct": 0.06481783030835285
+    "agent_pct": 0.06476568598750976
   },
   "tier1/mumbai/walking/DFQO7Zn-KM4-1127/DFQO7Zn-KM4-1127.mp4": {
     "has_D_L": true,
     "has_D_A": true,
     "has_D_I": true,
     "n_interaction_tubes": 14,
-    "agent_pct": 0.09757437426814988
+    "agent_pct": 0.09828015222482435
   },
   "tier1/mumbai/walking/DFQO7Zn-KM4-1128/DFQO7Zn-KM4-1128.mp4": {
     "has_D_L": true,
     "has_D_A": true,
     "has_D_I": true,
     "n_interaction_tubes": 169,
-    "agent_pct": 0.19674799351092895
+    "agent_pct": 0.19742236290007806
   },
   "tier1/mumbai/walking/DFQO7Zn-KM4-1129/DFQO7Zn-KM4-1129.mp4": {
     "has_D_L": true,
     "has_D_A": true,
     "has_D_I": true,
-    "n_interaction_tubes": 323,
-    "agent_pct": 0.20424076649102263
+    "n_interaction_tubes": 320,
+    "agent_pct": 0.20472851410031226
   },
   "tier1/mumbai/walking/DFQO7Zn-KM4-1132/DFQO7Zn-KM4-1132.mp4": {
     "has_D_L": true,
     "has_D_A": true,
     "has_D_I": true,
     "n_interaction_tubes": 61,
-    "agent_pct": 0.2712730532786885
+    "agent_pct": 0.27310511807181886
   },
   "tier1/mumbai/walking/DFQO7Zn-KM4-1134/DFQO7Zn-KM4-1134.mp4": {
     "has_D_L": true,
     "has_D_A": true,
     "has_D_I": true,
-    "n_interaction_tubes": 130,
-    "agent_pct": 0.3339451905249805
+    "n_interaction_tubes": 141,
+    "agent_pct": 0.33400404347189694
   },
   "tier1/mumbai/walking/DFQO7Zn-KM4-1138/DFQO7Zn-KM4-1138.mp4": {
     "has_D_L": true,
     "has_D_A": true,
     "has_D_I": true,
-    "n_interaction_tubes": 192,
-    "agent_pct": 0.264654993657299
+    "n_interaction_tubes": 188,
+    "agent_pct": 0.2627024785323966
   },
   "tier1/mumbai/walking/DFQO7Zn-KM4-1139/DFQO7Zn-KM4-1139.mp4": {
     "has_D_L": true,
     "has_D_A": true,
     "has_D_I": true,
-    "n_interaction_tubes": 105,
-    "agent_pct": 0.1339634867779079
+    "n_interaction_tubes": 100,
+    "agent_pct": 0.13386849873145978
   },
   "tier1/mumbai/walking/DFQO7Zn-KM4-1141/DFQO7Zn-KM4-1141.mp4": {
     "has_D_L": true,
     "has_D_A": true,
     "has_D_I": true,
     "n_interaction_tubes": 141,
-    "agent_pct": 0.14603657420960187
+    "agent_pct": 0.14590606093871974
   },
   "tier1/mumbai/walking/DFQO7Zn-KM4-1142/DFQO7Zn-KM4-1142.mp4": {
     "has_D_L": true,
     "has_D_A": true,
     "has_D_I": true,
-    "n_interaction_tubes": 166,
-    "agent_pct": 0.3872612338992974
+    "n_interaction_tubes": 163,
+    "agent_pct": 0.3862642405835285
   },
   "tier1/mumbai/walking/DFQO7Zn-KM4-1144/DFQO7Zn-KM4-1144.mp4": {
     "has_D_L": true,
     "has_D_A": true,
     "has_D_I": true,
     "n_interaction_tubes": 46,
-    "agent_pct": 0.1969937731752537
+    "agent_pct": 0.19715356045081966
   },
   "tier1/mumbai/walking/DFQO7Zn-KM4-1149/DFQO7Zn-KM4-1149.mp4": {
     "has_D_L": true,
     "has_D_A": true,
     "has_D_I": true,
     "n_interaction_tubes": 157,
-    "agent_pct": 0.3038143113290398
+    "agent_pct": 0.3041985326405152
   },
   "tier1/mumbai/walking/DFQO7Zn-KM4-1150/DFQO7Zn-KM4-1150.mp4": {
     "has_D_L": true,
     "has_D_A": true,
     "has_D_I": true,
-    "n_interaction_tubes": 99,
-    "agent_pct": 0.4452007403883685
+    "n_interaction_tubes": 95,
+    "agent_pct": 0.4446109911690086
   },
   "tier1/mumbai/walking/DFQO7Zn-KM4-1151/DFQO7Zn-KM4-1151.mp4": {
     "has_D_L": true,
     "has_D_A": true,
     "has_D_I": true,
     "n_interaction_tubes": 71,
-    "agent_pct": 0.36221488339188135
+    "agent_pct": 0.3622493413348946
   },
   "tier1/mumbai/walking/DFQO7Zn-KM4-1162/DFQO7Zn-KM4-1162.mp4": {
     "has_D_L": true,
     "has_D_A": true,
     "has_D_I": true,
     "n_interaction_tubes": 84,
-    "agent_pct": 0.47047457430718187
+    "agent_pct": 0.47056483582162373
   },
   "tier1/mumbai/walking/DFQO7Zn-KM4-1191/DFQO7Zn-KM4-1191.mp4": {
     "has_D_L": true,
     "has_D_A": true,
     "has_D_I": true,
     "n_interaction_tubes": 127,
-    "agent_pct": 0.40372069550156126
+    "agent_pct": 0.4037911360753318
   },
   "tier1/mumbai/walking/DFQO7Zn-KM4-1195/DFQO7Zn-KM4-1195.mp4": {
     "has_D_L": true,
     "has_D_A": true,
     "has_D_I": true,
     "n_interaction_tubes": 114,
-    "agent_pct": 0.20196638978337236
+    "agent_pct": 0.2021001048985168
   },
   "tier1/mumbai/walking/DFQO7Zn-KM4-1197/DFQO7Zn-KM4-1197.mp4": {
     "has_D_L": true,
     "has_D_A": true,
     "has_D_I": true,
     "n_interaction_tubes": 39,
-    "agent_pct": 0.13996023614363778
+    "agent_pct": 0.13996968920765027
   },
   "tier1/mumbai/walking/DFQO7Zn-KM4-1211/DFQO7Zn-KM4-1211.mp4": {
     "has_D_L": true,
     "has_D_A": true,
     "has_D_I": true,
-    "n_interaction_tubes": 391,
-    "agent_pct": 0.1048768662177986
+    "n_interaction_tubes": 387,
+    "agent_pct": 0.09354523443598751
   },
   "tier1/mumbai/walking/DFQO7Zn-KM4-1213/DFQO7Zn-KM4-1213.mp4": {
     "has_D_L": true,
     "has_D_A": true,
     "has_D_I": true,
     "n_interaction_tubes": 187,
-    "agent_pct": 0.10049598092310695
+    "agent_pct": 0.10060774053473849
   },
   "tier1/mumbai/walking/DFQO7Zn-KM4-1216/DFQO7Zn-KM4-1216.mp4": {
     "has_D_L": true,
     "has_D_A": true,
     "has_D_I": true,
-    "n_interaction_tubes": 59,
-    "agent_pct": 0.12527734070062452
+    "n_interaction_tubes": 57,
+    "agent_pct": 0.12555910299570647
   },
   "tier1/mumbai/walking/DFQO7Zn-KM4-1224/DFQO7Zn-KM4-1224.mp4": {
     "has_D_L": true,
     "has_D_A": true,
     "has_D_I": true,
     "n_interaction_tubes": 6,
-    "agent_pct": 0.15344304986338797
+    "agent_pct": 0.15333159518930523
   },
   "tier1/mumbai/walking/DFQO7Zn-KM4-1225/DFQO7Zn-KM4-1225.mp4": {
     "has_D_L": true,
     "has_D_A": true,
     "has_D_I": true,
     "n_interaction_tubes": 32,
-    "agent_pct": 0.19816961236338798
+    "agent_pct": 0.19818607899102264
   },
   "tier2/ahmedabad/walking/7NZ5fzDGUAM/7NZ5fzDGUAM-337.mp4": {
     "has_D_L": true,
     "has_D_A": true,
     "has_D_I": true,
     "n_interaction_tubes": 99,
-    "agent_pct": 0.2619451661299766
+    "agent_pct": 0.2619081162177986
   },
   "tier2/ahmedabad/walking/DIYHkv1_J8I/DIYHkv1_J8I-408.mp4": {
     "has_D_L": true,
     "has_D_A": true,
     "has_D_I": true,
     "n_interaction_tubes": 10,
-    "agent_pct": 0.024736533957845433
+    "agent_pct": 0.02481200600117096
   },
   "tier2/indore/drive/YRTHHNqU4DI/YRTHHNqU4DI-018.mp4": {
     "has_D_L": true,
     "has_D_A": true,
     "has_D_I": true,
     "n_interaction_tubes": 42,
-    "agent_pct": 0.11142442491319444
+    "agent_pct": 0.1111767578125
   },
   "tier2/jaipur/walking/R0wbglRfi5c/R0wbglRfi5c-299.mp4": {
     "has_D_L": true,
     "has_D_A": true,
     "has_D_I": true,
-    "n_interaction_tubes": 82,
-    "agent_pct": 0.31613256854996097
+    "n_interaction_tubes": 76,
+    "agent_pct": 0.3163312353629977
   },
   "tier2/kochi/drone/ZglsiZMQr84/ZglsiZMQr84-086.mp4": {
     "has_D_L": true,
@@ -571,35 +567,35 @@
     "has_D_A": true,
     "has_D_I": true,
     "n_interaction_tubes": 22,
-    "agent_pct": 0.08342583550347223
+    "agent_pct": 0.08366482204861111
   },
   "tier2/nagpur/drive/RZj7mTbPWh8/RZj7mTbPWh8-014.mp4": {
     "has_D_L": true,
     "has_D_A": true,
     "has_D_I": true,
     "n_interaction_tubes": 99,
-    "agent_pct": 0.4692184787326389
+    "agent_pct": 0.46856201171875
   },
   "tier2/nagpur/drone/umOJymW60n0/umOJymW60n0-013.mp4": {
     "has_D_L": true,
     "has_D_A": true,
     "has_D_I": false,
     "n_interaction_tubes": 0,
-    "agent_pct": 0.014487735411787666
+    "agent_pct": 0.01449368169398907
   },
   "tier2/lucknow/walking/0yz8-gvg2FU/0yz8-gvg2FU-156.mp4": {
     "has_D_L": true,
     "has_D_A": true,
     "has_D_I": true,
     "n_interaction_tubes": 3,
-    "agent_pct": 0.08578640344457455
+    "agent_pct": 0.08559307303864169
   },
   "tier2/mysuru/rain/0_bwM56GabE/0_bwM56GabE-068.mp4": {
     "has_D_L": true,
     "has_D_A": true,
     "has_D_I": true,
-    "n_interaction_tubes": 17,
-    "agent_pct": 0.6776012697599532
+    "n_interaction_tubes": 16,
+    "agent_pct": 0.6758279054449648
   },
   "tier2/mysuru/rain/Yt3pRiUHQ6s/Yt3pRiUHQ6s-054.mp4": {
     "has_D_L": true,
@@ -613,56 +609,56 @@
     "has_D_A": true,
     "has_D_I": true,
     "n_interaction_tubes": 35,
-    "agent_pct": 0.22833982850312257
+    "agent_pct": 0.22765005976775957
   },
   "tier2/nagpur/walking/2swRYp8mXuE/2swRYp8mXuE-068.mp4": {
     "has_D_L": true,
     "has_D_A": true,
     "has_D_I": true,
     "n_interaction_tubes": 86,
-    "agent_pct": 0.07702112607338017
+    "agent_pct": 0.07687704308157689
   },
   "tier2/pune/drone/RKW6nLIeXGc/RKW6nLIeXGc-013.mp4": {
     "has_D_L": true,
     "has_D_A": true,
     "has_D_I": false,
     "n_interaction_tubes": 0,
-    "agent_pct": 0.011701825966042155
+    "agent_pct": 0.011738418471896956
   },
   "tier2/pune/rain/-EgBIiZ51nw/-EgBIiZ51nw-011.mp4": {
     "has_D_L": true,
     "has_D_A": true,
     "has_D_I": true,
-    "n_interaction_tubes": 11,
-    "agent_pct": 0.225234375
+    "n_interaction_tubes": 8,
+    "agent_pct": 0.22226399739583333
   },
   "tier2/surat/drone/rSzWEI01rEM/rSzWEI01rEM-012.mp4": {
     "has_D_L": true,
     "has_D_A": true,
     "has_D_I": true,
     "n_interaction_tubes": 1,
-    "agent_pct": 0.07602308341369335
+    "agent_pct": 0.07673771352803417
   },
   "tier2/varanasi/drive/Ugn-uqKFMJY/Ugn-uqKFMJY-087.mp4": {
     "has_D_L": true,
     "has_D_A": true,
     "has_D_I": true,
     "n_interaction_tubes": 76,
-    "agent_pct": 0.10013783177205308
+    "agent_pct": 0.09992635758196722
   },
   "tier2/varanasi/drive/aK5bK2WAs44/aK5bK2WAs44-144.mp4": {
     "has_D_L": true,
     "has_D_A": true,
     "has_D_I": true,
     "n_interaction_tubes": 48,
-    "agent_pct": 0.5725568403590945
+    "agent_pct": 0.572042105776737
   },
   "tier2/varanasi/drive/5sxCg1OuYds/5sxCg1OuYds-010.mp4": {
     "has_D_L": true,
     "has_D_A": true,
     "has_D_I": true,
     "n_interaction_tubes": 33,
-    "agent_pct": 0.2615961651053864
+    "agent_pct": 0.26143088895394223
   },
   "tier2/varanasi/drone/XRkM8zuNr-k/XRkM8zuNr-k-000.mp4": {
     "has_D_L": true,
@@ -682,21 +678,21 @@
     "has_D_L": true,
     "has_D_A": true,
     "has_D_I": true,
-    "n_interaction_tubes": 95,
-    "agent_pct": 0.1244262600019516
+    "n_interaction_tubes": 84,
+    "agent_pct": 0.12462706137782982
   },
   "tier2/thiruvananthapuram/drive/Ly8OkwIgles/Ly8OkwIgles-014.mp4": {
     "has_D_L": true,
     "has_D_A": true,
     "has_D_I": true,
-    "n_interaction_tubes": 133,
-    "agent_pct": 0.318511843774395
+    "n_interaction_tubes": 135,
+    "agent_pct": 0.3177251048985168
   },
   "tier2/visakhapatnam/rain/zF7vsaMrCwI/zF7vsaMrCwI-011.mp4": {
     "has_D_L": true,
     "has_D_A": true,
     "has_D_I": true,
     "n_interaction_tubes": 80,
-    "agent_pct": 0.10298611111111111
+    "agent_pct": 0.10310167100694445
   }
 }
