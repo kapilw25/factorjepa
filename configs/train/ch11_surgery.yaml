@@ -37,8 +37,8 @@ optimization:
 
   max_epochs:
     sanity: 1
-    poc: 1                        # 1 epoch per stage for POC validation
-    full: 3                       # 3 epochs per stage for full run
+    poc: 100                      # ~300 total steps → ~100 per stage × 20s ≈ 100 min on 96GB (real loss curve)
+    full: 300                     # ~900 total steps → ~300 per stage × 20s ≈ 5h per stage (115K training signal)
 
   batch_size: 32                  # Auto-overridden by profiler
 
