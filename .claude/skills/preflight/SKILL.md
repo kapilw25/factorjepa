@@ -1,6 +1,6 @@
 ---
 name: preflight
-description: Pipeline code review checklist + automated checks (py_compile, AST, ruff) + call pattern + SIGSEGV detection + SAM3/utils-specific regression guards derived from iter/iter8/errors_N_fixes.md. Catches known failure patterns BEFORE GPU run.
+description: Pipeline code review checklist + automated checks (py_compile, AST, ruff) + call pattern + SIGSEGV detection + SAM3/Grounded-SAM/m09-split regression guards derived from iter/iter8/errors_N_fixes.md #1-#58. Catches known failure patterns BEFORE GPU run.
 disable-model-invocation: true
 allowed-tools: Read, Grep, Glob, Bash
 argument-hint: [file-path or module-name]
@@ -330,6 +330,280 @@ PY
 
 ---
 
+## Part E: Grounded-SAM / Path D Guards (B21-B25)
+
+Added 2026-04-14 during the SAM3-text-only → Grounded-SAM pivot. Each cites `iter/iter8/errors_N_fixes.md` entry.
+
+**B21. `load_dotenv()` at top of SAM3/transformers scripts** (catches error #21 — m10 ran without HF_HOME/HF_TOKEN because it never sourced `.env`):
+
+Any file that imports `sam3` OR any `transformers` auto-loader (`AutoModel`, `AutoProcessor`, `AutoModelFor*`) MUST call `load_dotenv()` BEFORE those imports — they read HF_HOME/TRANSFORMERS_CACHE at import time.
+```bash
+python3 -c "
+import re, sys
+src = open('<file>').read()
+needs_env = bool(re.search(r'(^|\n)\s*(import sam3\b|from sam3\b|from transformers import.*Auto[A-Z]\w*)', src))
+if not needs_env: print('B21 SKIP'); sys.exit(0)
+lines = src.split(chr(10))
+# Find earliest HF-reading import (sam3 or transformers Auto*)
+first_env_import = next((i for i, l in enumerate(lines) if re.search(r'(import sam3\b|from sam3\b|from transformers import.*Auto[A-Z]\w*)', l)), None)
+first_load_dotenv = next((i for i, l in enumerate(lines) if 'load_dotenv(' in l and not l.lstrip().startswith('#')), None)
+if first_load_dotenv is None or first_load_dotenv > first_env_import:
+    print(f'B21 FAIL: sam3/AutoModel imported at line {first_env_import+1} but load_dotenv() call not found before it (or missing entirely). Add load_dotenv(.env) at top BEFORE transformers/sam3 imports (errors_N_fixes.md #21)'); sys.exit(1)
+print('B21 PASS')"
+```
+
+**B22. Grounding DINO post-process kwarg + label key** (catches error #24 — transformers >=4.51 renamed `box_threshold` → `threshold` and `labels` → `text_labels`):
+```bash
+python3 -c "
+import ast, sys
+tree = ast.parse(open('<file>').read())
+bad_kwarg, bad_key = [], []
+for node in ast.walk(tree):
+    if isinstance(node, ast.Call) and isinstance(node.func, ast.Attribute) and node.func.attr == 'post_process_grounded_object_detection':
+        for kw in node.keywords:
+            if kw.arg == 'box_threshold': bad_kwarg.append(node.lineno)
+    if isinstance(node, ast.Subscript) and isinstance(node.slice, ast.Constant) and node.slice.value == 'labels':
+        if isinstance(node.value, ast.Name) and 'result' in node.value.id.lower():
+            bad_key.append(node.lineno)
+if bad_kwarg: print(f'B22 FAIL: post_process_grounded_object_detection(box_threshold=...) at line(s) {bad_kwarg}. Rename to threshold= (errors_N_fixes.md #24)'); sys.exit(1)
+if bad_key: print(f'B22 WARN: result[\"labels\"] at line(s) {bad_key} — transformers 5.x returns int class ids; iterate results[\"text_labels\"] for str labels (#24)')
+print('B22 PASS')"
+```
+
+**B23. SAM 3.1 text+boxes hybrid required for tracking** (catches error #27 — boxes-only lost frame>0 masks, leading to silent D_A/D_I degradation):
+
+Any call to `add_prompt(...)` on a raw `sam3` predictor that passes `bounding_boxes=` MUST also pass `text=` (HF's `add_inputs_to_inference_session` is exempt — it uses `input_boxes=` without a text arg).
+```bash
+python3 -c "
+import ast, sys
+tree = ast.parse(open('<file>').read())
+bad = []
+for node in ast.walk(tree):
+    if isinstance(node, ast.Call) and isinstance(node.func, ast.Attribute) and node.func.attr == 'add_prompt':
+        kws = {kw.arg for kw in node.keywords}
+        if 'bounding_boxes' in kws and 'text' not in kws:
+            bad.append(node.lineno)
+if bad: print(f'B23 FAIL: SAM 3.1 add_prompt(bounding_boxes=...) WITHOUT text= at line(s) {bad}. Tracking will drop after frame 0. Add text=category (errors_N_fixes.md #27)'); sys.exit(1)
+print('B23 PASS')"
+```
+
+**B24. Propagation guards for empty frame-0 + "No points are provided"** (catches errors #30 + #31 — m10 crashes late in 100-clip runs without these guards):
+
+If the file calls `propagate_in_video` (raw sam3) OR `propagate_in_video_iterator` (HF), it MUST (a) pre-check the add_prompt output for `len(out_obj_ids) == 0` and continue on empty, AND (b) wrap the propagate loop in a `try/except RuntimeError` that re-raises unless `"No points are provided" in str(e)`.
+```bash
+python3 -c "
+import re, sys
+src = open('<file>').read()
+if 'propagate_in_video' not in src: print('B24 SKIP'); sys.exit(0)
+has_empty_guard = bool(re.search(r'(n_frame0_objs|len\(.*out_obj_ids.*\))\s*==\s*0', src))
+has_runtime_guard = bool(re.search(r'except\s+RuntimeError', src)) and 'No points are provided' in src
+fails = []
+if not has_empty_guard: fails.append('missing empty-add_prompt guard (len(out_obj_ids)==0) — error #30')
+if not has_runtime_guard: fails.append('missing try/except RuntimeError for \"No points are provided\" — error #31')
+if fails: print(f'B24 FAIL: {fails}'); sys.exit(1)
+print('B24 PASS')"
+```
+
+**B25. Box clamp before xywh normalization** (catches error #28 — DINO can emit out-of-frame coords that trip SAM 3.1's `(0 <= boxes_xywh <= 1).all()` assertion):
+
+If the file computes `x/W, y/H, w/W, h/H` to pass to SAM 3.1 `bounding_boxes=`, it MUST either (a) clamp each coord with `max(0, min(W, x))` patterns BEFORE division, or (b) use HF's `Sam3TrackerVideoProcessor` path which doesn't require normalization.
+```bash
+python3 -c "
+import re, sys
+src = open('<file>').read()
+if 'bounding_boxes=' not in src: print('B25 SKIP'); sys.exit(0)
+has_normalize = bool(re.search(r'/\s*[WH]\b|/\s*float\([WH]\)', src))
+has_clamp = bool(re.search(r'max\s*\(\s*0[.,]?\s*,\s*min\s*\(\s*[WH]', src)) or 'clip(' in src or '.clamp(' in src
+uses_hf = 'add_inputs_to_inference_session' in src or 'Sam3TrackerVideoProcessor' in src
+if has_normalize and not has_clamp and not uses_hf:
+    print('B25 FAIL: xywh normalization present without box clamp. DINO can emit out-of-frame boxes; SAM 3.1 asserts (0<=xywh<=1).all(). Clamp x/y to [0,W]/[0,H] before /W //H (errors_N_fixes.md #28)'); sys.exit(1)
+print('B25 PASS')"
+```
+
+## Part F: Raw sam3 vs HF sam3 API Guards (B26-B27)
+
+Added 2026-04-15 during the Path B speedup (HF `Sam3TrackerVideoModel` integration).
+
+**B26. `max_frame_num_to_track=` banned on raw sam3** (catches errors #33 + #35 — raw sam3 pkg's multiplex model has an internal bug; bounded propagation crashes on both forward and reverse):
+
+Raw `sam3` package `propagate_in_video` / `handle_stream_request(propagate_in_video)` MUST NOT receive `max_frame_num_to_track=` (any int value). HF's `propagate_in_video_iterator` is EXEMPT (different code path that correctly clips).
+```bash
+python3 -c "
+import re, sys
+src = open('<file>').read()
+uses_raw_sam3 = bool(re.search(r'(build_sam3_predictor|handle_stream_request)', src))
+uses_hf_iter = 'propagate_in_video_iterator' in src
+if not uses_raw_sam3: print('B26 SKIP'); sys.exit(0)
+# Find max_frame_num_to_track= in non-HF context (file uses raw sam3)
+bad = [i+1 for i, line in enumerate(src.split(chr(10))) if 'max_frame_num_to_track=' in line and not line.lstrip().startswith('#')]
+# If file uses BOTH paths, can't easily split — warn only when NOT pure HF
+if bad and not uses_hf_iter:
+    print(f'B26 FAIL: max_frame_num_to_track= at line(s) {bad} on raw sam3 path. SAM 3.1 multiplex model has a bug (empty tensor crash); remove and use propagation_direction=\"forward\" instead (errors_N_fixes.md #33, #35)'); sys.exit(1)
+print('B26 PASS')"
+```
+
+**B27. `Sam3VideoProcessor` kwarg + postprocess-key regression** (catches error #41 — Meta model card docs diverged from installed 5.5.4 API):
+
+If the file calls `Sam3VideoProcessor.add_text_prompt(...)` (text-only probe path), it MUST use kwarg `text=` not `prompts=`. If it reads `postprocess_outputs(...)` result, it MUST index `["masks"]` not `["pred_masks"]`.
+```bash
+python3 -c "
+import re, sys
+src = open('<file>').read()
+if 'Sam3VideoProcessor' not in src and 'Sam3VideoModel' not in src: print('B27 SKIP'); sys.exit(0)
+bad_kw = [i+1 for i, line in enumerate(src.split(chr(10))) if re.search(r'add_text_prompt\s*\([^)]*prompts\s*=', line)]
+bad_key = [i+1 for i, line in enumerate(src.split(chr(10))) if re.search(r'\bpost\[[\\x22\\x27]pred_masks[\\x22\\x27]\]', line)]
+fails = []
+if bad_kw: fails.append(f'add_text_prompt(prompts=) at line(s) {bad_kw} — rename to text= (#41)')
+if bad_key: fails.append(f'post[\"pred_masks\"] at line(s) {bad_key} — Sam3VideoProcessor returns post[\"masks\"] (#41)')
+if fails: print(f'B27 FAIL: {fails}'); sys.exit(1)
+print('B27 PASS')"
+```
+
+## Part G: V-JEPA 2.1 + config-schema guards (B28-B31)
+
+**B28. Hardcoded `dtype=torch.float16` in m05** (catches error #45 — m05 path must read dtype from the loaded model at runtime, not assume fp16):
+
+Input casts in `m05_vjepa_embed.py` inside `get_batch_embeddings` / autocast / warmup tensors MUST use runtime detection (`next(model.parameters()).dtype`), NOT hardcoded `torch.float16`.
+```bash
+python3 -c "
+import os, re, sys
+target = '<file>'
+if os.path.basename(target) != 'm05_vjepa_embed.py': print('B28 SKIP'); sys.exit(0)
+src = open(target).read()
+# Allowed: single source-of-truth at model-load time. Disallowed: in the hot forward path.
+# Hot path signals: near 'autocast', 'get_batch_embeddings', 'warmup'.
+bad = []
+for i, line in enumerate(src.split(chr(10)), 1):
+    if re.search(r'dtype\s*=\s*torch\.float16\b', line) and any(ctx in src[max(0, src.find(line)-500):src.find(line)+500] for ctx in ['get_batch_embeddings', 'autocast', 'warmup']):
+        bad.append(i)
+if bad:
+    print(f'B28 FAIL: hardcoded dtype=torch.float16 in m05 forward path at line(s) {bad}. Use runtime detection: dt = next(getattr(model, \"_orig_mod\", model).parameters()).dtype (errors_N_fixes.md #45)'); sys.exit(1)
+print('B28 PASS')"
+```
+
+**B29. `vjepa2_imports._ensure_loaded_2_1` finally-block restores ALL saved modules** (catches error #50 — finally-block only restored `src` + `src.utils` on first implementation, leaking other `src.*` pops and breaking `get_vit_predictor`):
+
+Only applies to `src/utils/vjepa2_imports.py`. The `finally` block inside `_ensure_loaded_2_1` MUST iterate `saved_modules` and restore each key (not just two hardcoded keys).
+```bash
+python3 -c "
+import os, re, sys
+target = '<file>'
+if os.path.basename(target) != 'vjepa2_imports.py': print('B29 SKIP'); sys.exit(0)
+src = open(target).read()
+finally_blocks = re.findall(r'finally:\s*\n(.*?)(?=\n\S)', src, re.S)
+for fb in finally_blocks:
+    # Good pattern: loops over saved_modules OR assigns dict back into sys.modules in a loop
+    if re.search(r'for\s+\w+\s*(,\s*\w+)?\s+in\s+saved_modules', fb) or 'sys.modules.update' in fb:
+        print('B29 PASS'); sys.exit(0)
+print('B29 FAIL: _ensure_loaded_2_1 finally-block does not restore all saved_modules. Must iterate and re-assign (errors_N_fixes.md #50)'); sys.exit(1)"
+```
+
+**B30. `cfg[\"data\"][\"patch_size|crop_size|tubelet_size\"]` schema bug** (catches error #51 — these keys live under `cfg[\"model\"]`):
+```bash
+python3 -c "
+import re, sys
+src = open('<file>').read()
+bad = []
+for i, line in enumerate(src.split(chr(10)), 1):
+    if re.search(r'(data_cfg|cfg\[[\\x22\\x27]data[\\x22\\x27]\])\s*\[\s*[\\x22\\x27](crop_size|patch_size|tubelet_size)[\\x22\\x27]\s*\]', line):
+        bad.append(i)
+if bad: print(f'B30 FAIL: cfg[\"data\"][\"patch_size/crop_size/tubelet_size\"] at line(s) {bad} — these live under cfg[\"model\"] (errors_N_fixes.md #51)'); sys.exit(1)
+print('B30 PASS')"
+```
+
+**B31. `cfg[\"optimization\"][\"max_epochs\"][mode_key]` double-subscript** (catches error #52 — `merge_config_with_args` already flattens the per-mode dict into an int):
+```bash
+python3 -c "
+import re, sys
+src = open('<file>').read()
+bad = [i+1 for i, line in enumerate(src.split(chr(10))) if re.search(r'\[[\\x22\\x27]max_epochs[\\x22\\x27]\]\s*\[\s*mode_key\s*\]', line)]
+if bad: print(f'B31 FAIL: max_epochs[mode_key] double-subscript at line(s) {bad} — merge_config_with_args already flattened (errors_N_fixes.md #52)'); sys.exit(1)
+print('B31 PASS')"
+```
+
+## Part H: m09 split training regression guards (B32-B36)
+
+Added 2026-04-15 post-#49 (m09 monolith → m09a/m09b/m09c split).
+
+**B32. `PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True` at main() of m09\*** (catches error #53 — fragmented blocks prevent OOM recovery):
+```bash
+python3 -c "
+import os, re, sys
+target = '<file>'
+if not re.match(r'm09[abc]_.*\.py$', os.path.basename(target)): print('B32 SKIP'); sys.exit(0)
+src = open(target).read()
+has_setdefault = bool(re.search(r'os\.environ\.setdefault\([\\x22\\x27]PYTORCH_CUDA_ALLOC_CONF[\\x22\\x27]\s*,\s*[\\x22\\x27]expandable_segments:True', src))
+if not has_setdefault:
+    print(f'B32 FAIL: m09 training script missing os.environ.setdefault(\"PYTORCH_CUDA_ALLOC_CONF\", \"expandable_segments:True\") (errors_N_fixes.md #53)'); sys.exit(1)
+print('B32 PASS')"
+```
+
+**B33. m09c per-stage pre-init of loss vars** (catches error #54 — OOM-only stages hit `UnboundLocalError: jepa_val` at the summary print):
+```bash
+python3 -c "
+import os, re, sys
+target = '<file>'
+if os.path.basename(target) != 'm09c_surgery.py': print('B33 SKIP'); sys.exit(0)
+src = open(target).read()
+needed = ['jepa_val', 'masked_val', 'context_val']
+# Require each var to be assigned 0.0 somewhere INSIDE a stage loop (looked for via a simple pre-init block pattern)
+bad = [v for v in needed if not re.search(rf'\b{v}\s*=\s*0\.0\b', src)]
+if bad: print(f'B33 FAIL: m09c missing per-stage pre-init for {bad}. Add v = 0.0 before inner for-loop in each stage (errors_N_fixes.md #54)'); sys.exit(1)
+print('B33 PASS')"
+```
+
+**B34. m09b/m09c within-step retry + 0-step fail-hard** (catches error #55 — static-BS sub-batch=1 OOM with nowhere to shrink would silently export unmodified weights):
+```bash
+python3 -c "
+import os, re, sys
+target = '<file>'
+if not re.match(r'm09[bc]_.*\.py$', os.path.basename(target)): print('B34 SKIP'); sys.exit(0)
+src = open(target).read()
+has_while = bool(re.search(r'while\s+not\s+step_succeeded', src))
+has_fail_hard = bool(re.search(r'if\s+global_step\s*==\s*0\s*:\s*\n\s*raise\s+RuntimeError', src, re.M)) or 'm09b' in os.path.basename(target)  # m09b has equivalent inside-loop check
+has_min_raise = bool(re.search(r'train_sizer\.size\s*<=\s*train_sizer\.min_size', src))
+fails = []
+if not has_while: fails.append('missing while not step_succeeded retry loop (#55)')
+if not has_min_raise: fails.append('missing fail-hard when sizer.size <= sizer.min_size (#55)')
+if 'm09c' in os.path.basename(target) and not has_fail_hard: fails.append('m09c missing post-loop if global_step == 0: raise (#55)')
+if fails: print(f'B34 FAIL: {fails}'); sys.exit(1)
+print('B34 PASS')"
+```
+
+**B35. AdaptiveBatchSizer wired in every GPU batch loop** (catches error #47 — sizer is universal INFRA, must be in m04/m05/m05b/m05c/m09*):
+```bash
+python3 -c "
+import os, re, sys
+target = '<file>'
+modules_needing_sizer = {'m04_vlm_tag.py', 'm04d_motion_features.py', 'm05_vjepa_embed.py', 'm05b_baselines.py', 'm05c_true_overlap.py', 'm09a_pretrain.py', 'm09b_explora.py', 'm09c_surgery.py'}
+if os.path.basename(target) not in modules_needing_sizer: print('B35 SKIP'); sys.exit(0)
+src = open(target).read()
+has_import = 'AdaptiveBatchSizer' in src or '_train_step_grad_accum' in src
+has_memory_cap = bool(re.search(r'memory_cap\s*=\s*[\w\.\[\]\\x22\\x27]*gpu_memory_target', src)) or bool(re.search(r'memory_cap\s*=.*yaml', src, re.I))
+fails = []
+if not has_import: fails.append('AdaptiveBatchSizer/grad-accum helper not imported or used')
+if not has_memory_cap: fails.append('memory_cap not read from pipeline.yaml gpu_memory_target (hardcoded 0.85 forbidden — #47)')
+if fails: print(f'B35 FAIL: {fails} (errors_N_fixes.md #46, #47, #48)'); sys.exit(1)
+print('B35 PASS')"
+```
+
+**B36. `requirements_gpu.txt` transformers pin is 5.5.4** (catches error #36 — `Sam3TrackerVideoModel` was added in transformers 5.x; 4.57 would ImportError):
+```bash
+source venv_walkindia/bin/activate && python3 -c "
+import re, sys, os
+if not os.path.exists('requirements_gpu.txt'): print('B36 SKIP: no requirements_gpu.txt'); sys.exit(0)
+req = open('requirements_gpu.txt').read()
+m = re.search(r'^\s*transformers\s*([<>=~!]+)\s*([\d.]+)', req, re.M)
+if not m: print('B36 FAIL: transformers not pinned in requirements_gpu.txt (errors_N_fixes.md #36)'); sys.exit(1)
+op, ver = m.group(1), m.group(2)
+major = int(ver.split('.')[0])
+if major < 5:
+    print(f'B36 FAIL: transformers pinned at {op}{ver} — Sam3TrackerVideoModel needs >=5.0. Pin to ==5.5.4 (errors_N_fixes.md #36)'); sys.exit(1)
+print(f'B36 PASS: transformers {op}{ver}')"
+```
+
+---
+
 ## Output Format
 
 ```
@@ -338,7 +612,11 @@ AUTOMATED:       [A1] PASS/FAIL  [A2] PASS/FAIL  [A3] PASS/FAIL
 GENERIC MANUAL:  [B1] …  [B2] …  [B3] …  [B4] …  [B5] …  [B6] …  [B7] PASS/N/A  [B8] …  [B9] …
 REGRESSION:      [B10] …  [B11] …  [B12] …  [B13] …  [B14] …  [B15] …
 TX 5.x:          [B16] …  [B17] …  [B18] …  [B19] …  [B20] …
-TOTAL: X/22 passed. Y FAILs need fixing. (B7 is N/A for non-training scripts.)
+GROUNDED-SAM:    [B21] …  [B22] …  [B23] …  [B24] …  [B25] …
+RAW-vs-HF SAM3:  [B26] …  [B27] …
+VJEPA/CFG:       [B28] …  [B29] …  [B30] …  [B31] …
+m09 SPLIT:       [B32] …  [B33] …  [B34] …  [B35] …  [B36] …
+TOTAL: X/38 passed. Y FAILs need fixing. (Many checks SKIP when not applicable to the target file.)
 ```
 
 List all FAILs with line numbers and fix instructions referencing `iter/iter8/errors_N_fixes.md` entry numbers.

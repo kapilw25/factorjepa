@@ -7,176 +7,179 @@ When you update this file OR `src/CLAUDE.md`, copy the updated version to its sn
 Both snapshots are version-tracked in git. Keep them in sync.
 
 ## Project Overview
-Research benchmark testing if V-JEPA 2 (Meta's video foundation model, trained on Western data) transfers to Indian street scenes. Pipeline: YouTube videos → scene-split clips → WebDataset shards (HF) → VLM tagging → V-JEPA embeddings → FAISS metrics → UMAP → plots → continual pretraining → surgery fine-tuning.
+Research benchmark testing if V-JEPA 2 (Meta's video foundation model, trained on Western data) transfers to Indian street scenes. Pipeline: YouTube videos → scene-split clips → WebDataset shards (HF) → VLM tagging → V-JEPA embeddings → FAISS metrics → UMAP → plots → ExPLoRA/Surgery fine-tuning.
 
 ## Pipeline Modules
 
 ### m00-m03: Data Pipeline (CPU, completed)
-- **m00_data_prep.py**: Parse YT_videos_raw.md → JSON, word freq, city matrix.
+- **m00_data_prep.py**: Parse YT_videos_raw.json → word freq, city matrix.
 - **m00b_fetch_durations.py**: yt-dlp metadata fetch. Workers from `configs/pipeline.yaml`.
-- **m00c_sample_subset.py**: Video-level uniform 10K subset → data/subset_10k.json. Default N from `configs/pipeline.yaml`.
-- **m00d_download_subset.py**: Pre-download subset to local WebDataset TARs. Clips/shard from `configs/pipeline.yaml`.
-- **m01_download.py**: Download videos via yt-dlp + aria2c. Resolution from `configs/pipeline.yaml`.
+- **m00c_sample_subset.py**: Video-level uniform 10K subset → data/subset_10k.json.
+- **m00d_download_subset.py**: Pre-download subset to local WebDataset TARs.
+- **m01_download.py**: Download videos via yt-dlp + aria2c.
 - **m02_scene_detect.py**: PySceneDetect → greedy [4-10s] split → ffmpeg encode.
-- **m02b_scene_fetch_duration.py**: ffprobe scan clips → clip_durations.json.
-- **m03_pack_shards.py**: Pack clips → WebDataset TARs. Clips/shard from `configs/pipeline.yaml`.
+- **m02b_scene_fetch_duration.py**: ffprobe scan → clip_durations.json.
+- **m03_pack_shards.py**: Pack clips → WebDataset TARs.
 
 ### m04-m08b: Evaluation Pipeline (Ch9, completed)
-- **m04_vlm_tag.py** (~1416 lines): 3 VLM backends (Qwen/VideoLLaMA3/LLaVA). Orchestrator/worker pattern. All streaming params from `configs/pipeline.yaml`.
-- **m04b_vlm_select.py**: CPU-only. 5-criterion weighted bake-off.
-- **m04c_sanity_compare.py**: CPU-only. 4-metric table + dashboard.
-- **m04d_motion_features.py**: GPU-RAFT optical flow → 13D motion features. All params from `configs/pipeline.yaml`.
-- **m05_vjepa_embed.py** (~700 lines): V-JEPA 2 ViT-G (1B, fp16, FA2). Orchestrator/worker pattern. Supports `--encoder` flag for per-lambda unique output files. Adapted models: skip torch.compile (dtype conflict), use autocast, permute (B,T,C,H,W)→(B,C,T,H,W). No deduplication (circular reasoning removed). All streaming params from `configs/pipeline.yaml`.
-- **m05b_baselines.py**: 4 baselines (Random, DINOv2, CLIP, Shuffled V-JEPA). Clip limits from `configs/pipeline.yaml`.
-- **m05c_true_overlap.py**: Augmented V-JEPA embeddings for True Overlap@K. Workers from `configs/pipeline.yaml`.
-- **m06_faiss_metrics.py** (~1275 lines): FAISS-GPU kNN → 9 metrics Easy/Hard + bootstrap CI. Exclusion window and clip duration from `configs/pipeline.yaml`. Hard fail on missing data (no silent fallbacks). Dynamic encoder names via `get_encoder_info()` fallback.
-- **m06b_temporal_corr.py**: 5 temporal metrics per encoder. Sample pairs and clusters from `configs/pipeline.yaml`.
+- **m04_vlm_tag.py**: 3 VLM backends (Qwen3-VL default / VideoLLaMA3 / LLaVA-NeXT). Orchestrator/worker. AdaptiveBatchSizer wired (#47).
+- **m04_vlm_tag_vllm.py**: vLLM backend variant for Qwen3-VL.
+- **m04b_vlm_select.py**: CPU-only 5-criterion weighted VLM bake-off.
+- **m04c_sanity_compare.py**: CPU-only 4-metric comparison dashboard.
+- **m04d_motion_features.py**: GPU-RAFT optical flow → 13D motion features. AdaptiveBatchSizer wired (#47).
+- **m05_vjepa_embed.py**: V-JEPA 2.1 ViT-G (2B, bf16, FA2, torch.compile) via `_resolve_model(user_model)` helper (#42): `None → (None, is_adapted=False) → native-frozen branch` unpacks `target_encoder`/`encoder` from .pt; `.pt path → adapted-student branch`. RoPE Q/K cast to V.dtype before SDPA (#44). AdaptiveBatchSizer (#46/#47). HF AutoModel flash_attention_2 for 2.0 path. Permute (B,T,C,H,W)→(B,C,T,H,W). No deduplication.
+- **m05b_baselines.py**: 4 baselines (Random, DINOv2-giant 1536-dim, CLIP-L 768-dim, Shuffled V-JEPA). AdaptiveBatchSizer wired.
+- **m05c_true_overlap.py**: Augmented V-JEPA embeddings for True Overlap@K. Paired-forward AdaptiveBatchSizer (initial = vjepa/2).
+- **m06_faiss_metrics.py**: FAISS-GPU kNN → 9 metrics Easy/Hard + bootstrap 95% CI. Exclusion window + clip duration from pipeline.yaml. Hard fail on missing data.
+- **m06b_temporal_corr.py**: 5 temporal metrics per encoder. k-means motion clusters from pipeline.yaml.
+- **m06c_temporal_projection.py**: CPU-only PCA on (normal-shuffled) V-JEPA embeddings → project out temporal-interference subspace. 30-min experiment, potential paper centerpiece.
 - **m07_umap.py**: cuML GPU UMAP.
 - **m08_plot.py**: CPU-only matplotlib. Reads pre-computed .npy files.
 - **m08b_compare.py**: CPU-only. Auto-scans m06/m06b JSON. Hard fail on missing temporal scores.
 
-### m09: Training — ExPLoRA + Ch10 Pretrain + Surgery (Ch10/Ch11)
-- **m09_pretrain.py** (~940 lines): V-JEPA 2 student-teacher JEPA with EMA, L1 latent prediction, drift control. Epoch-based training (not step-based). Key features:
-  - vjepa2 imports via `utils/vjepa2_imports.py` shim (namespace collision fix)
-  - Epoch geometry: `steps_per_epoch = n_train // batch_size`, `total_steps = steps_per_epoch * max_epochs`
-  - Epochs per mode from YAML: `configs/train/ch10_pretrain.yaml` → `optimization.max_epochs.{sanity,poc,full,winner}`
-  - SANITY clip limits from `configs/pipeline.yaml` → `sanity.pretrain_train/val`
-  - No SANITY subset: collects first N clip keys from data stream for filtering
-  - Full dataset size: discovered from `--subset` (JSON) or `--local-data` manifest.json. FATAL if undiscoverable.
-  - Producer thread: multi-epoch loop (no `break`), `torch.set_num_threads(1)`, decode workers from config
-  - No double LayerNorm on teacher output (ViT already normalizes)
-  - GradScaler disabled for bfloat16 (unnecessary, bfloat16 has full dynamic range)
-  - init_params stored on CPU (saves ~4GB VRAM), moved to GPU per-parameter in drift loss
-  - Light checkpoints (no optimizer, ~8GB) for periodic saves; full checkpoints for resume only
-  - `cleanup_old_checkpoints(keep_n)` deletes oldest step files
-  - Post-training: exports `student_encoder.pt`, deletes ALL intermediate checkpoints
-  - CSV loss log per step + wandb per step
-  - LR warmup capped at 10% of total steps
-  - `--max-epochs` CLI override for winner deep run
+### m09a / m09b / m09c: Training (post-#49 split, 2026-04-15)
+**Why split**: m09_pretrain.py monolith (2164 lines, 3 entangled techniques via `--explora`/`--surgery` flags) risked silent regression in unrelated technique during iteration. User-directed split into 3 physically isolated files, each with its own full training loop sharing only `src/utils/training.py` primitives.
 
-### m10-m11: Surgery Factor Datasets (Ch11, Step A+B PASSED on GPU 2026-04-13, C/D/E pending)
-- **m10_sam_segment.py** (743 lines): SAM 3.1 text-prompted segmentation → agent/layout masks + interaction mining. Per-clip `notable_objects` from tags.json, one `add_prompt` call per object category (Meta benchmark pattern). Unified `build_sam3_predictor(version="sam3.1", use_fa3=False)` entry point. `segment_clip()` loops categories → per-category session → `add_prompt` with contextual text ("bus on road in market") → `propagate_in_video` stream → mask resize normalization to first-detected resolution. `mine_interactions()` vectorized: agent pairs whose centroids come within `max_dist_frac * W` for ≥`min_frames` consecutive frames. Composite quality gate (4 checks: pixel_ratio 2-50%, mask_confidence ≥0.4, ≥50% clips with agents). Saves `.npz` masks (agent/layout/centroids_json/interactions_json/mid_frame_rgb) + `segments.json` + `summary.json`. Plots: per-clip overlay (orig/agent-red/layout-blue) + dual-axis scene stats. `--plot` flag regenerates from existing outputs. `os._exit(0)` to kill SAM3 async frame-loading threads. **Status**: SANITY passed but native text grounding weak for Indian objects (roofs/walls instead of vehicles) — Grounded-SAM (DINO boxes → SAM refine) pivot identified.
-- **m11_factor_datasets.py** (654 lines): CPU-only. Generate D_L (feathered Gaussian blur σ=15 on agents + feather σ=3), D_A (soft matte BG x0.1 residual, feathered), D_I (centroid-based crop tubes, ≥4 frame runs). Temporal interpolation: if SAM propagated fewer frames than video, `np.linspace(0, T_mask-1, T_vid, dtype=int)` nearest-neighbor. Spatial resize if mask shape ≠ video shape. Quality filters (min 2% / max 70% agent area). Saves per-clip `.npy` (D_L/D_A) + `_tube{i}.npy` (D_I) + `factor_manifest.json`. Plots: `m11_factor_samples.png` (D_L|D_A grid), `m11_interaction_samples.png` (3-frame tube grid), `m11_factor_per_clip_verify/` (2x2 per clip), `m11_factor_stats.png`. All params from ch11_surgery.yaml.
-- **m09 surgery mode** (train_surgery(), ~270 lines at m09_pretrain.py:917-1180): 3-stage progressive prefix unfreezing. `FactorSampler` samples `(factor_type, clip_key, path)` per `mode_mixture` weights. `load_factor_clip()` normalizes to ImageNet stats. `set_trainable_prefix(n_layers)` freezes all → unfreezes blocks [0, n_layers) + norm layers → rebuild optimizer. Per-stage warmup-then-constant LR. Same V-JEPA 2.1 dense loss + EMA teacher update. Stages from `ch11_surgery.yaml`: stage1 (layers 0-25%, 100% D_L), stage2 (0-50%, 90% D_A + 10% D_L), stage3 (0-75%, 85% D_I + 10% D_A + 5% D_L). Quality gate check on m10 `summary.json` before training. Plot training curves at end. **Status**: Built, not yet run on GPU (Step E pending).
+- **m09a_pretrain.py** (1176 lines): Ch10 continual pretraining — full-param or layer-frozen V-JEPA 2 student-teacher JEPA with EMA, L1 latent prediction, drift control (λ·‖θ-θ₀‖²), lambda ablation sweep. Epoch-based. AdaptiveBatchSizer + `_train_step_grad_accum` (#48). `PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True` at main() (#53). Per-lambda encoder output names.
+- **m09b_explora.py** (1049 lines): ExPLoRA — LoRA rank=16 α=32 injected on blocks 2-47 + unfreeze blocks 0-1 + LayerNorm. No drift control (LoRA params auto-excluded from `init_params`). Same JEPA loss. Hardcoded ExPLoRA mode (no --explora flag). Within-step OOM retry loop (#55).
+- **m09c_surgery.py** (685 lines): **PAPER NOVELTY** — 3-stage progressive prefix unfreezing on FROZEN V-JEPA 2.1 with factor datasets. `FactorSampler(factor_manifest.json)` samples per-stage `mode_mixture` weights. `set_trainable_prefix(n_layers)` freezes all → unfreezes blocks [0, n_layers) + norm layers → rebuilds optimizer. Stages from `ch11_surgery.yaml`: stage1 (25% depth, 100% D_L), stage2 (50%, 90% D_A + 10% D_L), stage3 (75%, 85% D_I + 10% D_A + 5% D_L). Hardcoded surgery mode (no --surgery flag). Inter-stage cleanup: `optimizer=scheduler=sampler=None; gc.collect(); empty_cache(); ipc_collect()` (#58). Mode-gated memory savers: `use_8bit_optim` / `gradient_checkpointing` / `paged_optim` (sanity=true / poc=false / full=false) — SANITY on 24GB fits Stage 3 via bnb.PagedAdamW8bit + torch.utils.checkpoint (#56/#57/#58); POC/FULL on 96GB use clean fp32 AdamW for research-quality comparison. Within-step retry + 0-step fail-hard (#55). Per-stage pre-init of loss vars (#54). Status: SANITY v7 Stages 1+2 PASS (loss=0.4841, 0.4874), Stage 3 OOM at sub-batch=1 — v8 plan: teacher CPU offload.
+
+### m10 / m11: Surgery Factor Datasets (Ch11, validated 2026-04-15 on 100 dense clips)
+- **m10_sam_segment.py** (996 lines): Grounded-SAM pipeline — Grounding DINO-base (Swin-B, fp32 per #37) does open-vocab text→box on 4 re-seed anchor frames `[0,4,8,12]` (multi-anchor per #32) → HF `Sam3TrackerVideoModel` (transformers 5.5.4 per #36) does box→mask refinement + propagation within each anchor's 4-frame segment. API calls: `init_video_session(video=frames_np)` per clip; per anchor × category `add_inputs_to_inference_session(frame_idx=anchor, obj_ids=[...], input_boxes=[boxes_xyxy])` (depth-3 boxes per #38), `session.reset_tracking_data()` between categories (not processor per #39), `propagate_in_video_iterator(start_frame_idx=anchor, max_frame_num_to_track=segment_size-1, reverse=False)`, `post_process_masks([output.pred_masks], original_sizes=[(H,W)], binarize=True)`, mask confidence from `sigmoid(output.object_score_logits)` (not iou_scores per #40). Box clamp before xywh-normalize (#28). Guards: empty `add_prompt` out_obj_ids (#30), `RuntimeError "No points are provided"` (#31). Saves per-clip `.npz` (agent_mask, layout_mask, centroids_json, interactions_json, mid_frame_rgb) + `segments.json` + `summary.json` + `per_object_bboxes_json` (~5KB/clip for m11 bbox-adaptive tubes). 17-category fixed agent taxonomy from `ch11_surgery.yaml` (replaces per-clip VLM `notable_objects`). `load_dotenv()` at top (#21). `os._exit(0)` on success / `os._exit(1)` on crash (#14/#16). Composite quality gate (4 checks). Measured on dense100: 11.02 s/clip (4.21× faster than raw sam3), 6146 agents, 8723 interactions.
+- **m10_sam_segment_legacy.py** (742 lines): Pre-2026-04-15 raw `sam3` package path. Kept as fallback reference.
+- **m11_factor_datasets.py** (853 lines): CPU-only. D_L (feathered Gaussian σ=15 blur on agents + feather σ=3), D_A (soft matte BG x0.1 residual), D_I (bbox-adaptive tubes via `make_interaction_tubes_from_bboxes` reading m10's `per_object_bboxes_json`; fallback to fixed centroid-30% crops for legacy `.npz`). Temporal interpolation for mask-frame/video-frame mismatches: `np.linspace(0, T_mask-1, T_vid)` (#17). Spatial resize if shapes differ. Quality filters: `min_agent_area_pct=0.003` (tuned for Grounded-SAM tight masks per #26), `max_agent_area_pct=0.70`. Saves per-clip `.npy` + `_tube{i}.npy` + `factor_manifest.json`. Plots: `m11_factor_samples.png` (D_L|D_A grid), `m11_interaction_samples.png`, `m11_per_Videoclip_verify/*.mp4` (20 top videos 2×2 grids 960×540 @ 6fps), `m11_factor_stats.png`. Measured on dense100: 91/100 clips have D_I, 8723 tubes, 5659 unique bbox shapes, median 65 tubes/clip.
 
 ### Scripts
-- **scripts/train_explora.sh** (231 lines): Step1b ExPLoRA pipeline. 3 modes (--SANITY/--POC/--FULL). Pre-flight: venv, ckpt `checkpoints/vjepa2_1_vitG_384.pt`, `data/val_1k_local` + `data/val_1k.json`, GPU packages via `output_guard.py preflight_gpu_packages`. Steps: [0] m05 frozen `vjepa_2_1_frozen` baseline (skip if exists) → m06 frozen metrics → [1] m09 `--explora --train-config configs/train/explora.yaml` → [2] m05 re-embed `vjepa_2_1_explora` → [3] m06 metrics. Auto batch size from `outputs/profile/training/profile_data.json` via `gpu_batch.py optimal-bs`; fallback YAML. Checkpoint preserved on INT/TERM (trap). Sources `lib/common.sh`.
-- **scripts/train_surgery.sh** (231 lines): Ch11 surgery pipeline. Same pre-flight/mode structure as train_explora.sh. Steps: [0] m10 SAM3 → `$OUT_DIR/m10_sam_segment/` → [1] m11 factor datasets → [2] m09 `--surgery --factor-dir "$FACTOR_DIR" --train-config configs/train/ch11_surgery.yaml` → [3] m05 re-embed `vjepa_2_1_surgical` → [4] m06 metrics. Factor dir at `${OUT_DIR}/m10_sam_segment` (m11 writes D_L/D_A/D_I siblings).
-- **scripts/run_eval.sh**: Standalone eval (reusable across Ch9/Ch10/Ch11). Auto-detects encoders from `embeddings*.npy`. Delegates to `eval_suite.py` which runs m06→m06b→m07→m08→m08b.
-- **scripts/run_embed.sh**: Standalone embedding extraction. Auto-detects adapted models from `m09_*/student_encoder.pt`. Routes to m05 or m05b per encoder type.
-- **scripts/prep_data.sh** (aka run_evaluate.sh): Ch9 data pipeline (m04 tags + m04d motion). Pre-flight GPU checks, optional vLLM backend.
-- **scripts/train_pretrain.sh** (Ch10, OLD): 4-lambda ablation → winner → 5-epoch deep run. Per-lambda encoder names.
-- **scripts/lib/common.sh** (161 lines): Shared infrastructure. `log()`, `banner()`, `run_step(num, name, est_time, log_file, cmd...)` (PIPESTATUS capture, auto HF upload on success), `bg_upload()` (non-blocking `hf_outputs.py upload`), `verify()` (non-fatal or `--fatal` hard stop), `start_watchdog()`/`stop_watchdog()`, `print_summary()`, `finalize(pipeline_name)` (waits final upload + stops watchdog + exits with failure count).
+- **scripts/train_pretrain.sh**: Ch10 brute-force baseline (4-lambda ablation → winner → 5-epoch deep). Routes to `m09a_pretrain.py` post-#49.
+- **scripts/train_explora.sh**: ExPLoRA pipeline. Steps [0]-[3]: m05 frozen → m06 frozen → m09b (no `--explora` flag, hardcoded) → m05 re-embed `vjepa_2_1_explora` → m06 metrics. AdaptiveBatchSizer from profiler `outputs/profile/training/profile_data.json`; YAML fallback. Checkpoint preserved on INT/TERM (trap). Sources `lib/common.sh`.
+- **scripts/train_surgery.sh**: Ch11 surgery pipeline. Steps [0]-[4]: m10 Grounded-SAM → m11 factor datasets → m09c (no `--surgery` flag, hardcoded) `--factor-dir` → m05 re-embed `vjepa_2_1_surgical` → m06 metrics.
+- **scripts/run_eval.sh**: Standalone eval (reusable across Ch9/Ch10/Ch11). Auto-detects encoders from `embeddings*.npy`. Delegates to `eval_suite.py` (m06→m06b→m07→m08→m08b).
+- **scripts/run_embed.sh**: Standalone embedding extraction. Glob covers both legacy (m09_pretrain) and post-#49 (m09a/b/c) student_encoder.pt paths.
+- **scripts/prep_data.sh**: Ch9 data pipeline (m04 tags + m04d motion). Pre-flight GPU checks, optional vLLM backend.
+- **scripts/migrate_m09_outputs.sh**: Phase 3 of #49 — idempotent `mv` migration of legacy `outputs/.../m09_pretrain/{ablation,lambda*,explora,surgery}` into `m09a_pretrain/` / `m09b_explora/` / `m09c_surgery/`.
+- **scripts/lib/common.sh**: Shared infra — `log()`, `banner()`, `run_step(num, name, est_time, log_file, cmd...)` (PIPESTATUS capture, auto HF upload on success), `bg_upload()`, `verify()`, `start_watchdog()`/`stop_watchdog()`, `finalize(pipeline_name)`.
 
 ### Root-level Scripts
-- **setup_env_uv.sh**: UV-based environment setup. `--mac` (CPU/lint), `--gpu` (Linux+Nvidia, 8-step install: PyTorch→verify→requirements_gpu→FA2→FAISS-GPU→cuML→wandb→SAM3.1), `--gpu --from-wheels` (downloads prebuilt sm_120 wheels from GitHub release `sm120-cu128-py312`). Auto-downloads V-JEPA 2.1 ckpt (~28 GB) via aria2c -x 16 -s 16. Auto-detects Blackwell vs Ampere for PyTorch version. SAM3 installed `--no-deps` (preserves numpy>=2.3 for cuML).
-- **git_pull.sh** (64 lines): `git fetch + reset --hard origin/main + clean -fd` (preserves .gitignored data dirs). `--code-only` skips HF download. Else activates venv, runs `hf_outputs.py download outputs` + `download-data` (pulls val_1k + subset_10k).
-- **build_faiss_sm120.sh** (330 lines): Source-build FAISS-GPU for Blackwell sm_120 (pip wheels only ship sm_70+sm_80). Clones facebookresearch/faiss → cmake with `-DCMAKE_CUDA_ARCHITECTURES=120` → build (10min@96cores). Post-processing: injects all required `.so` files (libfaiss.so, libfaiss_avx2.so, libfaiss_gpu.so, _swigfaiss*.so, libfaiss_python_callbacks.so) into the pip wheel zip + rewrites WHEEL metadata platform tag + rebuilds RECORD hashes. `--install` skips build, reuses cached artifacts at `/tmp/faiss_build`.
+- **setup_env_uv.sh**: UV-based env setup. `--mac` (CPU/lint), `--gpu --from-wheels` (10-step install from prebuilt sm_120 wheels release `sm120-cu128-py312`): PyTorch 2.12+cu128 → verify → requirements_gpu → FA2 → FAISS-GPU (source-built sm_120) → cuML → wandb → SAM 3.1 (`--no-deps` to preserve numpy>=2.3 per #5) → Grounding DINO pre-cache → `facebook/sam3` HF (~12 GB parallel HF_TRANSFER=1). Auto-downloads V-JEPA 2.1 ckpt (~28 GB) via `aria2c -x 16 -s 16` (#7b).
+- **git_pull.sh**: `git fetch + reset --hard origin/main + clean -fd` (preserves .gitignored data). `--code-only` skips HF. Else `hf_outputs.py download outputs` + `download-data`.
+- **git_push.sh**: User-invoked (Claude blocked from git state by hook). `--code-only` skips HF upload.
+- **build_faiss_sm120.sh**: Source-build FAISS-GPU 1.14.1 for Blackwell sm_120 (pip wheels only sm_70+sm_80). Injects .so files into pip wheel, rewrites WHEEL + RECORD. `--install` reuses `/tmp/faiss_build`.
 
 ### HF Sync
-- **src/utils/hf_outputs.py** (425 lines): HuggingFace Hub sync for outputs + POC/val data. Repo: `anonymousML123/factorjepa-outputs` (public+gated, auto-created). `upload_outputs(dir)` does `_mirror_cleanup()` (deletes remote files not present locally — prevents 73GB stale accumulation) + `_stale_checkpoint_ignores()` (skips checkpoints modified <120s ago). `_UPLOAD_EXTENSIONS = {npy, npz, json, csv, png, pdf, tex, pt}`. `download_outputs()` uses `snapshot_download()` with `allow_patterns=[f"{subfolder}/*"]`. `upload_data()`/`download_data()` syncs `data/subset_10k_local/*.tar` + `data/val_1k_local/*.tar` + JSON manifests. `HF_HUB_ENABLE_HF_TRANSFER=1` for 1.5-3x speedup (safe for single-call APIs).
+- **src/utils/hf_outputs.py**: HF Hub sync to `anonymousML123/factorjepa-outputs` (public+gated). `_mirror_cleanup()` deletes stale remote files, `_stale_checkpoint_ignores()` skips ckpts modified <120s ago. `_UPLOAD_EXTENSIONS = {npy, npz, json, csv, png, pdf, tex, pt}`. `HF_HUB_ENABLE_HF_TRANSFER=1`. Has `sys.path.insert` for CLI use (#3).
 
 ### Utils
-- **utils/config.py** (~600 lines): Paths, constants, `get_pipeline_config()` (cached YAML reader), `get_sanity_clip_limit(module)`, `get_total_clips(local_data, subset_file)`. ENCODER_REGISTRY with dynamic fallback for lambda variants. `FAISS_K_NEIGHBORS`, `DEFAULT_BATCH_SIZE`, `DEFAULT_NUM_WORKERS`, `BAKEOFF_CLIP_COUNT` all from YAML.
-- **utils/vjepa2_imports.py**: Import shim for vjepa2 modules. Temporarily changes CWD to /tmp and isolates sys.path/modules to avoid `src/utils/` namespace collision. Exposes `get_vit_giant_xformers()`, `get_vit_predictor()`, `get_mask_generator()`, `get_apply_masks()`.
-- **utils/bootstrap.py**: BCa bootstrap 95% CI via scipy.stats.bootstrap.
-- **utils/gpu_batch.py**: compute_batch_sizes(vram), AdaptiveBatchSizer class.
+- **utils/config.py** (792 lines): Paths, constants, `load_merged_config(model_yaml, train_yaml)` deep-merge (handles `extends: base_optimization.yaml`), `get_pipeline_config()` cached reader, `get_sanity_clip_limit(module)`, `get_total_clips(local_data, subset_file)`. ENCODER_REGISTRY with dynamic lambda fallback.
+- **utils/training.py** (787 lines, NEW #49): 20 technique-agnostic helpers shared by m09a/b/c. `build_model`, `build_optimizer` (reads `use_8bit_optim` → `bnb.optim.AdamW8bit` or `PagedAdamW8bit` per `paged_optim`), `build_mask_generators` (reads `cfg["model"]["crop_size/patch_size/tubelet_size"]` per #51), `enable_gradient_checkpointing` (block-wise `torch.utils.checkpoint(use_reentrant=False)`), `_train_step_grad_accum` (#48), `compute_drift_loss`, `update_teacher_ema`, `export_student_for_eval`. Contract: ZERO `if args.explora`/`if cfg["technique"]` branches.
+- **utils/vjepa2_imports.py**: Import shim for vjepa2 modules. CWD-based isolation to avoid `src/utils/` namespace collision. `_ensure_loaded_2_1()` finally-block restores ALL saved `src.*` modules (not just `src` + `src.utils`) per #50. Exposes `get_vit_by_arch`, `get_vit_predictor`, `get_mask_generator`, `get_apply_masks`.
+- **utils/bootstrap.py**: BCa bootstrap 95% CI via scipy.stats.bootstrap (10K iter).
+- **utils/gpu_batch.py**: `compute_batch_sizes(vram)`, `AdaptiveBatchSizer` class (grow to `memory_cap`, halve on OOM, cooldown).
 - **utils/hf_utils.py**: HF auth, upload helpers.
-- **utils/wandb_utils.py**: Shared wandb integration. All functions no-op when run=None.
-- **utils/export_metadata.py**: Convert tags.json → per-directory metadata.jsonl.
-- **utils/output_guard.py**: Output verification before GPU work. `verify_or_skip()` for per-script guards (non-interactive, shape-validated). `verify_training_output()` for m09 (epoch-aware). `preflight_pipeline()` for shell scripts (checks ALL steps' inputs/outputs at pipeline start, interactive confirm). CLI: `python -u src/utils/output_guard.py preflight_pretrain|preflight_evaluate <args>`.
+- **utils/wandb_utils.py**: All functions no-op when run=None.
+- **utils/export_metadata.py**: tags.json → per-directory metadata.jsonl.
+- **utils/output_guard.py**: `verify_or_skip(dir, min_clips=N)` returns bool (caller must `if`). JSON branch now sets `clip_count = len(data)` for completeness check (#29). `preflight_pipeline()` for shell scripts — interactive confirm before GPU work.
+- **utils/video_io.py**: `_USE_TORCHCODEC = False` (#10 SIGSEGV on Blackwell sm_120); PyAV fallback is the active path.
+- **utils/data_download.py**: `iter_clips_parallel(local_dir, processed_keys=...)` returns `(queue, stop_event, reader_thread)`. Resume-safe.
 
 ### Config Files
-- **configs/pipeline.yaml**: Single source of truth for clip limits (SANITY per module), streaming params (retries, checkpoint interval, decode workers, prefetch queues), GPU defaults (batch sizes), eval params (FAISS K, temporal pairs), verification thresholds (MIN_CLIPS), data processing (clips/shard, resolution). All `src/m*.py` read from here via `get_pipeline_config()`.
-- **configs/train/ch10_pretrain.yaml**: V-JEPA 2 ViT-g training config. Data (frames, crop, patch, val split, sanity clips), model (arch, embed dim, pred depth, mask tokens, RoPE, activation checkpointing), masking (8 small + 2 large blocks), augmentation, optimization (LR, EMA, epochs per mode, warmup, grad clip, loss_exp), drift control (lambda), validation (interval, Cycle@K), checkpointing (saves_per_epoch, keep_last_n), mixed precision (bfloat16).
+- **configs/pipeline.yaml**: Single source of truth. SANITY per-module clip limits, streaming params (prefetch queues 8, decode workers 8-16), GPU defaults, profiled batch sizes for RTX Pro 6000 96GB, **universal `gpu_memory_target: 0.85`** + per-module `*_initial_bs`, eval params (FAISS K=6, temporal pairs 100K), ENCODER_REGISTRY, VLM IDs, verify thresholds.
+- **configs/model/vjepa2_0.yaml**: Legacy V-JEPA 2.0 ViT-g (1B, 1408-dim, 40 blocks, pred_depth=12, masked-only L1).
+- **configs/model/vjepa2_1.yaml**: **PRIMARY** V-JEPA 2.1 ViT-G (2B, 1664-dim, 48 blocks, 26 heads, pred_depth=24, `predict_all=true`, `weight_distance_loss=true`, `n_output_distillation=4`). `hf_model_id: null` → `checkpoint_path: checkpoints/vjepa2_1_vitG_384.pt`.
+- **configs/train/base_optimization.yaml**: Shared AdamW betas, EMA τ=0.99925, warmup 500 capped at 10%, LR schedule constant, grad_clip=10.0, bfloat16 mixed precision. `use_8bit_optim=false` + `gradient_checkpointing=false` defaults (SAFE for m09a/b).
+- **configs/train/ch10_pretrain.yaml**: Ch10 recipe. lr=1e-6, 5 epochs + cooldown, freeze_below=20, λ ∈ [10, 100, 1000] (post-audit), EWC + VICReg.
+- **configs/train/explora.yaml**: ExPLoRA recipe. lr=1e-5, unfreeze blocks 0-1 + LayerNorm, LoRA rank=16 α=32 on `qkv + proj`, `use_peft: true`, drift disabled.
+- **configs/train/ch11_surgery.yaml**: Surgery recipe. lr=1e-6 constant, layer_wise_lr_decay=0.75, 3 stages `unfreeze_below ∈ {0.25, 0.50, 0.75}`. Mode-gated `use_8bit_optim`/`gradient_checkpointing`/`paged_optim` (sanity=true, poc=false, full=false). `factor_datasets`: Grounded-SAM (DINO box=0.15, text=0.12), 17-cat agent taxonomy, `min_agent_area_pct=0.003`. D_I mining: `min_overlap_frames=4`, `max_distance_frame_fraction=0.20`. Light L2 drift λ=1.0.
+- **configs/YT_videos_raw.json**: 714 YouTube video IDs + titles + URLs across Delhi/Mumbai/Bangalore/Goa drive & walk tours.
+- **configs/tag_taxonomy.json**: VLM tag taxonomy v3 (scene_type 13 values, crowd/traffic density, traffic_mix, 11 notable_objects, road_encroachment, video_quality).
 
-## ENCODER_REGISTRY
-| Encoder | Model | Dim | Suffix | Type |
-|---------|-------|-----|--------|------|
-| vjepa | vjepa2-vitg-fpc64-384 | 1408 | "" | video |
-| random | — | 1408 | _random | synthetic |
-| dinov2 | dinov2-vitl14 | 1024 | _dinov2 | image (middle frame) |
-| clip | clip-vit-large-patch14 | 768 | _clip | image (middle frame) |
-| vjepa_shuffled | vjepa2-vitg-fpc64-384 | 1408 | _vjepa_shuffled | video (shuffled) |
-| vjepa_adapted | — | 1408 | _vjepa_adapted | video (Ch10 adapted) |
-| vjepa_lambda* | — | 1408 | _vjepa_lambda* | video (per-lambda, dynamic fallback) |
+### Data Files (`data/`)
+- **sanity_100_dense.json**: 100-clip density-scored subset (73 tier1 + 26 tier2 + 1 goa), traffic+crowd+agent scored. Used across Steps A-E so comparisons are apples-to-apples.
+- **subset_10k.json**: 10K video-level uniform subset, seed=42, from m00c.
+- **val_1k.json**: 1K validation subset, seed=99.
+- **val_1k_local/{manifest.json, tags.json}**: WebDataset manifest (1 TAR) + per-clip VLM tags.
+- **subset_10k_local/{manifest.json, tags.json}**: WebDataset manifest (10 TARs) + tags.
+- **full_local/manifest.json**: Full 115K corpus manifest (116 TARs).
+
+## ENCODER_REGISTRY (live in `configs/pipeline.yaml`)
+| Encoder | Dim | Suffix | Type |
+|---------|----:|--------|------|
+| vjepa (legacy 2.0) | 1408 | "" | video |
+| vjepa_2_0_frozen | 1408 | _vjepa_2_0_frozen | video |
+| random | 1408 | _random | synthetic |
+| dinov2 | 1536 | _dinov2 | image (middle frame) |
+| clip | 768 | _clip | image (middle frame) |
+| vjepa_shuffled | 1408 | _vjepa_shuffled | video (shuffled) |
+| vjepa_adapted | 1408 | _vjepa_adapted | video (Ch10 adapted) |
+| vjepa_2_1_frozen | 1664 | _vjepa_2_1_frozen | video |
+| vjepa_2_1_frozen_shuffled | 1664 | _vjepa_2_1_frozen_shuffled | video (shuffled) |
+| vjepa_2_1_explora | 1664 | _vjepa_2_1_explora | video (adapted) |
+| vjepa_2_1_surgical | 1664 | _vjepa_2_1_surgical | video (adapted) |
 
 ## Cross-Module Dependencies
 ```
-Ch9 Eval (run_evaluate.sh):
-m00d → m04 → m05 → m05b → m05c → m04d → m06 → m06b → m07 → m08 → m08b
+Ch9 Eval (prep_data.sh + run_embed.sh + run_eval.sh):
+m00d → m04 → m04d → m05 → m05b → m05c → m06 → m06b → m07 → m08 → m08b
 
-Ch10 Pretrain (run_pretrain.sh):
-Phase 1: For each lambda: m09 train only (select winner by jepa_loss from JSON)
-Phase 2: Winner → m09 deep train (5ep) → m05 re-embed → m06 metrics
-Phase 3: m06b temporal → m05 shuffled adapted → m06 shuffled → m07 UMAP → m08 plots → m08b compare (7 encoders)
+Ch10 brute-force (train_pretrain.sh): m09a train (λ-ablation) → m05 re-embed → m06 metrics
+ExPLoRA  (train_explora.sh):          m05 frozen → m09b → m05 re-embed → m06 metrics
+Surgery  (train_surgery.sh):          m10 → m11 → m09c → m05 re-embed → m06 metrics
 ```
 
-## Current Status (updated 2026-04-12)
-- **Ch9: COMPLETE** — 5-encoder comparison on 10K POC. Baseline: Prec@K=36.1% (frozen V-JEPA)
-  - **Key finding: shuffled > normal V-JEPA by 2.4x** → temporal interference (temporal encoding HURTS spatial retrieval)
-- **Ch10 (10K POC): DONE** — Pipeline validated, Prec@K 36.14% vs 36.09% (**noise**, 10K insufficient)
-- **Ch10 (115K FULL): CATASTROPHIC FORGETTING** (2026-04-05)
-  - λ=0.001 → Prec@K crashed 36.1% → **14.3% (random-level, −21.8pp)**
-  - Diagnosis: drift penalty 1000x smaller than JEPA loss → zero regularization
-  - Gold standard audit found **12 discrepancies** (4 CRITICAL, 7 HIGH) — `iter/iter8/plan_training.md`
-- **Strategic pivot (2026-04-10):**
-  - Ch11 runs **directly on frozen encoder** (no Ch10 prerequisite) — clean attribution
-  - V-JEPA 2.1 ViT-G (2B, 1664-dim) = PRIMARY target (not 2.0)
-  - Temporal interference projection (30 min CPU) = potential paper centerpiece
-  - λ=100 Ch10 = parallel ablation, NOT prerequisite
-  - Idea Critic verdict: **PURSUE** (upgraded from REFINE)
-  - Full plan: `iter/iter8/plan_training.md` | Action items: `iter/iter8/next_steps.md`
-- **Ch11 SANITY: STEPS A+B PASSED ON GPU (2026-04-13/14)** — 24GB RTX PRO 4000 Blackwell
-  - **Step A (m10 SAM3.1 segmentation)**: PASSED 4/4 quality gate checks (pixel_ratio 2-50%, mask_confidence≥0.4, ≥50% clips with agents). BUT native text grounding weak on Indian objects (masks roofs/walls instead of vehicles in 10/15 clips). **Pivot identified: Grounded-SAM** — replace SAM3 text detection with Grounding DINO box detection, keep SAM3 for mask refinement only. SAM3's `add_prompt` already accepts `bounding_boxes` kw.
-  - **Step B (m11 factor datasets)**: PASSED. D_L/D_A/D_I `.npy` generated, per-clip 2x2 verify grids working. D_I tube mining geometry-based (not a SAM problem).
-  - **Steps C/D/E pending**: m05 frozen V-JEPA 2.1 embed → m09 ExPLoRA → m09 surgery. Then POC on 96GB GPU.
-  - All code built: m10 (743 lines), m11 (654 lines), m09 surgery mode `train_surgery()` (~270 lines at m09_pretrain.py:917), m09 ExPLoRA mode (LoRA injection + block freeze at m09_pretrain.py:449).
-  - Orchestration: train_explora.sh + train_surgery.sh (231 lines each) + lib/common.sh.
-  - **Env stack (pinned)**: PyTorch 2.12.0.dev20260228+cu128, FA2 2.8.3, FAISS-GPU 1.14.1 (source-built sm_120), cuML 26.04, SAM 3.1, Python 3.12. Release tag: `sm120-cu128-py312`.
+## Current Status (updated 2026-04-17)
+- **Ch9: COMPLETE** — 5-encoder comparison on 10K POC. Baseline: Prec@K=36.1% (frozen V-JEPA 2.0). Key finding: shuffled > normal V-JEPA by 2.4× → temporal interference.
+- **Ch10 (115K FULL): CATASTROPHIC FORGETTING** (2026-04-05). λ=0.001 → Prec@K crashed 36.1% → 14.3%. Drift penalty 1000× smaller than JEPA loss. Gold-standard audit found 12 discrepancies. Demoted to comparison arm.
+- **Strategic pivot (2026-04-10)**: Ch11 runs directly on frozen V-JEPA 2.1 (no Ch10 prerequisite). V-JEPA 2.1 ViT-G = PRIMARY. Temporal interference projection (30 min CPU) = potential paper centerpiece. Idea Critic verdict: PURSUE.
+- **Ch11 SANITY + dense100 POC upstream: VALIDATED 2026-04-15**:
+  - Step A' (m10 Grounded-SAM v2_HF): 11.02 s/clip (4.21× faster than raw sam3), 6146 agents, 8723 interactions, quality_gate PASS.
+  - Step B' (m11 bbox-tubes): 91/100 clips have D_I, 8723 tubes, 5659 unique bbox shapes, median 65 tubes/clip.
+  - Step C (m05 V-JEPA 2.1 frozen embed): 232 s for 100 clips at 2.3 s/clip bf16 with torch.compile + AdaptiveBatchSizer 8→14.
+  - 115K ETA: 61 days → **14.7 days on 24GB / 3.7 days on 96GB+batch×4**.
+- **Ch11 SANITY m09c Surgery training: IN PROGRESS** — v7 Stages 1+2 PASS (loss=0.4841, 0.4874), Stage 3 OOM at sub-batch=1 on 24GB even with PagedAdamW8bit + gradient_checkpointing + inter-stage cleanup. Proposed v8 fix: teacher CPU offload (frees 3.7 GB permanently, ~1 s/stage throughput hit, zero accuracy impact). Fallback ladder: disable deep supervision on SANITY, reduce num_frames 16→8, predictor CPU offload.
+- **Step D.2 POC (m09c Surgery, 100 dense clips) + Step E.1/E.2 (m09b ExPLoRA)**: PENDING — blocked on v8 SANITY fix or move to 96GB GPU for POC.
+
+## Env Stack (pinned, 2026-04-15)
+PyTorch 2.12.0.dev20260228+cu128, CUDA 12.8, FA2 2.8.3, FAISS-GPU 1.14.1 (source-built sm_120), cuML 26.04, SAM 3.1 (raw pkg via `--no-deps`), transformers **5.5.4** (`Sam3TrackerVideoModel`), bitsandbytes 0.49.2, Python 3.12, UV. Release tag: `sm120-cu128-py312`.
 
 ## NeurIPS 2026-05-04 Deadline
 - Budget: ~38h remaining (22d × 2h/day − 6h spent).
-- Phase 0 (Mac, Grounded-SAM pivot): 2-3h BLOCKING.
-- Phase 1 (24GB GPU SANITY): ~2h remaining (C/D/E).
+- Phase 1 (24GB GPU SANITY): ~1h remaining (m09c Stage 3 fix + end-to-end run).
 - Phase 2 (96GB GPU POC): 3h.
-- Decision gate: Surgery > ExPLoRA > Frozen on Prec@K.
+- Decision gate: Surgery > ExPLoRA > Frozen on Prec@K with non-overlapping 95% CIs on 100 dense clips.
 - Fallback: `iter/utils/literarure_survey.md` — 24 JEPA variants, 3 top techniques (SIGReg, VLA-JEPA leakage-free, temporal straightening).
-- Best-paper reframe: "Temporal interference" (shuffled > normal V-JEPA by 2.4x) as paper centerpiece — PCA on (normal-shuffled), project out, recover Prec@K with zero retraining.
+- Best-paper reframe: "Temporal Interference in Video Foundation Models" — shuffled > normal by 2.4× as paper centerpiece.
 
-## Data Download Times (measured, RTX PRO 6000 instance, April 2026)
-
+## Data Download Times (measured, April 2026)
 | Command | What it does | Time |
 |---------|-------------|:----:|
-| `m00d --FULL --no-wandb` | Downloads ALL 116 TARs from walkindia-200k, keeps all 115K clips | **24 min** |
-| `m00d --FULL --subset data/subset_10k.json` | Downloads ALL 116 TARs, opens each, filters to 10K clips | **~50 min** (NOT 5 min — scans all 116 TARs) |
-| `m00d --FULL --subset data/val_1k.json` | Downloads ALL 116 TARs, opens each, filters to 1K clips | **~50 min** (15 min if TARs cached) |
-| `rsync data/ from Mac` | Transfers pre-filtered 10K (10 TARs) + val 1K (1 TAR) | **~17 min** (network limited) |
-| `hf_outputs.py download-data` | Downloads poc 10K + val 1K from factorjepa-outputs | **~3 min** (measured, pre-filtered 11 TARs) |
+| `m00d --FULL --no-wandb` | Downloads ALL 116 TARs, keeps all 115K clips | 24 min |
+| `m00d --FULL --subset data/subset_10k.json` | Downloads ALL 116 TARs, filters to 10K | ~50 min |
+| `rsync data/ from Mac` | Transfers pre-filtered 10K + val 1K | ~17 min |
+| `hf_outputs.py download-data` | Downloads poc 10K + val 1K from factorjepa-outputs | ~3 min |
 
-**Key insight:** m00d always downloads ALL 116 TARs regardless of subset size. For POC/val data, rsync from Mac or hf_outputs download-data is 10-25x faster because the TARs are pre-filtered.
+**Key insight**: m00d always downloads ALL 116 TARs regardless of subset. rsync or hf_outputs download-data is 10-25× faster for POC/val.
 
-## Lessons Learned (Ch10 debugging, 2026-03-28/29)
-1. **vjepa2 namespace collision**: Our `src/utils/__init__.py` shadows vjepa2's `src/utils/` (regular pkg wins over namespace). Fixed with CWD-based import shim.
-2. **Disk management**: Each full checkpoint = 16GB (student+teacher+predictor+optimizer). 4 lambdas × 4 checkpoints = 256GB → disk full. Fixed: light checkpoints + cleanup.
-3. **Lambda dir naming**: `str(0.0)` → `"0.0"` → `"0_0"` not `"0"`. Fixed: `f"{lam:g}"`.
-4. **torch.compile + float16**: dynamo traces with float32 fake tensors → dtype mismatch. Fixed: skip compile for adapted models.
-5. **Tensor permutation**: HF processor outputs (B,T,C,H,W), native vjepa2 expects (B,C,T,H,W). Fixed in `get_batch_embeddings()`.
-6. **GradScaler + bfloat16**: GradScaler is a no-op for bfloat16 (same dynamic range as fp32). Disabled.
-7. **Producer epoch loop**: `break` after stream exhaust → training stops after 1 pass. Fixed: removed break, added epoch counter.
-8. **CUDA fragmentation**: 13.8GB reserved-but-unallocated after 30+ steps. Fixed: `expandable_segments:True`.
-9. **Epoch vs step training**: Fixed BS × fixed steps = variable clips processed. Fixed: epoch-based (clips = n_train × epochs, independent of BS).
-10. **Per-lambda file paths**: All lambdas wrote to same `embeddings_vjepa_adapted.npy`. Fixed: per-lambda encoder names via `--encoder vjepa_lambda*`.
-11. **Winner stdout parsing**: `2>&1 | tee` mixes stderr into shell variable. Fixed: JSON-to-JSON via `ablation_winner.json`.
-12. **Unguarded checkpoint deletion**: `run_pretrain.sh` deleted 5-epoch student_encoder.pt (3h GPU) without checking epoch count. Fixed: `verify_training_output(min_epochs)` + shell epoch guard + `protect-checkpoints.sh` hook.
-13. **Output preflight**: Pipeline discovered missing inputs 3h into a run. Fixed: `preflight_pipeline()` in `output_guard.py` checks ALL steps' inputs/outputs at pipeline start, before any GPU work. Interactive confirm/abort.
-14. **m05 re-embed dominates pipeline time**: 1.7h per 10K clips (1.55 clips/s). Skipped Phase 1 m05/m06 — winner selected by jepa_loss from JSON instead of Cycle@K. Full m05/m06 only for winner in Phase 2.
+## Lessons Learned (selected — full history in iter/iter8/errors_N_fixes.md #1-#58)
+1. **vjepa2 namespace collision**: `src/utils/__init__.py` shadows vjepa2's `src/utils/`. Fixed with CWD-based import shim + `_ensure_loaded_2_1()` finally-block restores ALL saved `src.*` modules (#50).
+2. **SAM3 `--no-deps` undeclared dependencies**: Every runtime import must be explicitly declared in `requirements_gpu.txt` (pycocotools, einops, iopath, ftfy). Pattern: #5, #6, #7, #18, #19.
+3. **transformers 4.57 → 5.5.4 migration**: `torch_dtype=` → `dtype=` (#37/#43), DINO text branch crashes under fp16 → load fp32 (#37), `box_threshold` → `threshold` + `labels` → `text_labels` (#24), `Sam3TrackerVideoProcessor.add_inputs_to_inference_session` wants depth-3 boxes not depth-4 (#38), session-reset methods on session not processor (#39), `output.object_score_logits` not `iou_scores` (#40).
+4. **SAM 3.1 multiplex tracking**: needs `text + boxes` hybrid — boxes-only loses tracking (#27). `max_frame_num_to_track` unusable on raw sam3 pkg (#33/#35). Multi-anchor DINO re-seed every 4 frames caps drift (#32). HF `Sam3TrackerVideoModel` unlocks 4.21× speedup and works correctly (#36).
+5. **V-JEPA 2.1 torch.compile + bf16**: RoPE Q/K emerge in fp32 but V stays fp16 → SDPA crashes under inductor. Cast Q, K to V.dtype before SDPA (`q = q.to(v.dtype); k = k.to(v.dtype)`); use bf16 over fp16 for wider dynamic range. Zero accuracy impact (#44/#45).
+6. **m05 `is_adapted` branch selector**: `_resolve_model(None)` helper routes `--model=None + hf_model_id=null` to native-frozen branch which unpacks `target_encoder`/`encoder` keys. Never set `args.model = VJEPA_CHECKPOINT_PATH` (triggers wrong adapted-student branch) (#42).
+7. **m09 monolith split (#49)**: Zero cross-technique contamination. m09a/b/c each own full training loop; utils/training.py shared and technique-agnostic (no `if cfg["technique"]` branches).
+8. **AdaptiveBatchSizer is universal infra**: Wire into every GPU forward loop (m04/m05/m05b/m05c/m09). `memory_cap=pipeline.yaml gpu_memory_target` (universal 0.85), `initial_size=per-module *_initial_bs` (#46/#47).
+9. **Gradient accumulation preserves research integrity**: Effective BS must stay = `cfg.optimization.batch_size` so optimizer dynamics are bit-identical to a static-BS run. Micro-batch sub-size is adaptive; scale each micro's loss by `(micro/macro)` (#48).
+10. **m09c Stage 3 memory on 24GB**: fp32 master weights + 8-bit m1/m2 + CUDA context overshoots. Fixes compound: inter-stage optimizer cleanup (None-ref + empty_cache + ipc_collect) + bnb.PagedAdamW8bit (CPU-paged) + gradient_checkpointing + (v8 planned) teacher CPU offload (#56/#57/#58).
+11. **Silent failures are garbage metrics**: Within-step retry loop on OOM (shrink sub-batch, retry SAME macro batch, raise if at min_size); post-loop fail-hard if 0 successful steps (refuse to export misleading checkpoint) (#55).
+12. **verify_or_skip completeness**: Must check output count not just existence. Both JSON and .npy branches set `clip_count = len(data)` (#29).
+13. **torchcodec SIGSEGV on Blackwell**: `_USE_TORCHCODEC = False` in `video_io.py`; PyAV fallback is active. Silent C-extension crashes bypass try/except (#10).
+14. **SAM3 async thread shutdown**: `os._exit(0)` on success + `os._exit(1)` on crash — `return` leaks async frame-loading threads that hold VRAM (#14/#16).
 
 ## User Preferences
-- Never be a yes-man — give pros/cons like a Sr. AI/ML Research Engineer
-- Be brutally honest. Disagree when wrong, never hallucinate
-- Git: provide commit message text only, never run git commands (enforced by hook)
-- GPU time is expensive — keep GPU busy, no idle waste
-- When auditing, SHOW grep output as proof — user does not trust "I checked" claims
-- No hardcoded values in Python — YAML configs or runtime discovery only
-- Fail hard in research — silent errors cost paper rejections
+- Never be a yes-man — give pros/cons like a Sr. AI/ML Research Engineer.
+- Be brutally honest. Disagree when wrong, never hallucinate.
+- Git: provide commit message text only, never run git commands (enforced by hook).
+- GPU time is expensive — keep GPU ≥85% busy, no idle waste.
+- When auditing, SHOW grep output as proof — user does not trust "I checked" claims.
+- No hardcoded values in Python — YAML configs or runtime discovery only.
+- Fail hard in research — silent errors cost paper rejections.
+- WEBSEARCH before recommending any fix that trades off accuracy or throughput; cite ≥2 sources.
