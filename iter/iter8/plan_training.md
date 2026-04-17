@@ -4,12 +4,14 @@
 > Ref: `Literature/proposal/FactorJEPA/FactorJEPA.md` Sections 10-11
 > **If surgery doesn't improve metrics:** See `iter/utils/literarure_survey.md` — 24 JEPA variants surveyed. Top fallback techniques: SIGReg regularizer (LeJEPA, replaces EMA), leakage-free factor training (VLA-JEPA), temporal straightening diagnostic (LeWorldModel).
 
-## 🟢 Status (2026-04-15): m10/m11 upstream pipeline validated on dense100
+## 🟢 Status (2026-04-17): Full SANITY pipeline validated on 96 GB Blackwell
 
-- **m10** (Grounded-SAM): HF `Sam3TrackerVideoModel` @ **11 s/clip** (4.21× faster than raw sam3 pkg) → FULL 115K ETA **14.7 days on 24GB, 3.7 days on 96GB**.
-- **m11** (factor datasets): D_L/D_A/D_I at 100/94/91 on 100 clips; **8723 bbox-adaptive D_I tubes** (+228 % vs fixed centroid squares).
-- **Deadline fit**: upstream no longer on critical path. Remaining budget (~20 GPU-h) flows to Steps C/D/E (m05 frozen → m09 ExPLoRA → m09 Surgery) + Phase 3 ablations.
-- **Decision gate unchanged**: POC (100 dense clips) → if Surgery > Frozen on Prec@K with 95 % CI, scale to FULL 115K. If not, follow fallback ladder in `literature_survey.md`.
+- **m10** (Grounded-SAM, Step A'): **6.13 s/clip on 96 GB**, 6141 agents, 8712 interactions, quality_gate PASS. FULL 115K ETA **~8.2 d single-stream, ~2 d at batch ×4**.
+- **m11** (factor datasets, Step B'): D_L/D_A/D_I at 100/94/91 on 100 clips, 8712 bbox-adaptive tubes, **47 s total** with 32-worker ProcessPool (5.7× speedup vs single-thread baseline).
+- **m05** (V-JEPA 2.1 frozen embed, Step C): 100 clips × 1664-dim in 423 s on 96 GB. `torch.compile` + bf16 + RoPE Q/K dtype cast (#44) all working after durable patch in `setup_env_uv.sh` (#59).
+- **m09c** (Surgery SANITY, Step D.1): **ALL 3 STAGES PASS** — Stage 1 loss=0.4870, Stage 2=0.4901, **Stage 3=0.4806** (first ever successful Stage 3 completion). 96 GB migration alone closed the v7 24 GB OOM — no v8 teacher-offload code needed (#58 resolved).
+- **Deadline fit**: upstream + SANITY no longer on critical path. Remaining budget (~17 GPU-h) flows to Step D.2 POC (~3 h, real training signal), Step E POC (~1.5 h, ExPLoRA baseline), m05 re-embed + m06 Prec@K (~1 h), decision gate.
+- **Decision gate unchanged**: Step D.2 POC (100 dense clips) → if Surgery > Frozen on Prec@K with 95 % CI, scale to FULL 115K. If not, follow fallback ladder in `literature_survey.md`.
 
 ---
 

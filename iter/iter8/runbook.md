@@ -124,7 +124,9 @@ print(f'L2 norm mean: {np.linalg.norm(e, axis=1).mean():.2f}')"
 >
 > **Why Step D (not E)**: immediate goal is `Surgery > Frozen` on Prec@K. D_L/D_A/D_I factors already built in Step B. Test this path FIRST — if it works, we have the paper result. ExPLoRA (Step E) is the comparison arm run AFTER Surgery is validated.
 
-### D.1 — SANITY (20 clips, ~15 min, code smoke test + multi-stage transitions)
+### D.1 — SANITY ✅ validated 2026-04-17 on 96 GB Blackwell
+
+**Result:** 3 stages passed end-to-end in ~60 s (Stage 1 loss=0.4870, Stage 2 loss=0.4901, Stage 3 loss=0.4806). `student_encoder.pt` exported. Stage 3 — which OOMed on 24 GB at v7 — used only 19.9 / 102 GB VRAM on 96 GB, confirming errors_N_fixes.md #58's "no v8 patch needed, move to 96 GB" decision.
 
 > Requires `outputs/sanity/m11_factor_datasets/` from Step B run in `--SANITY` mode. If not present, re-run Step B with `--SANITY`.
 
@@ -138,7 +140,11 @@ python -u src/m09c_surgery.py --SANITY \
     2>&1 | tee logs/m09c_sanity_surgery.log
 ```
 
-**Verify:** `ls -lh outputs/sanity/m09c_surgery/student_encoder.pt` — exists, ~8 GB. Check log for 3 stage transitions (`Stage 1/2/3`), 3 optimizer rebuilds, non-NaN losses across stages.
+**Verify:** 
+```bash
+ls -lh outputs/sanity/m09c_surgery/student_encoder.pt
+``` 
+— exists, ~8 GB. Check log for 3 stage transitions (`Stage 1/2/3`), 3 optimizer rebuilds, non-NaN losses across stages.
 
 ### D.2 — POC (100-clip dense subset, ~3h, real training signal)
 

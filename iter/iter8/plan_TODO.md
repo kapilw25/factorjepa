@@ -82,22 +82,24 @@ Verdict: Path B achieved 4.21× speedup AND +228 % D_I tubes AND tighter agent m
 
 ---
 
-## 🔥 Active (Phase 1: GPU SANITY) — Steps C/D/E next
+## 🔥 Active (Phase 1: GPU SANITY → Phase 2: POC)
 
 - ✅ Step A (SANITY 20-clip): m10 Grounded-SAM segmentation — quality gate PASS
 - ✅ Step B (SANITY 20-clip): m11 factor datasets — D_L/D_A/D_I verified
-- ✅ Step A' (POC 100 dense, v2_HF): 6146 agents, 8723 interactions, 11.02 s/clip
-- ✅ Step B' (POC 100 dense, bbox-tubes): 91/100 D_I clips, 8723 tubes, 5659 unique shapes
-- 🔥 Step C: m05 frozen V-JEPA 2.1 embedding on 100-clip dense subset (`--POC --subset data/sanity_100_dense.json`)
-- 🔥 Step D: m09 Surgery SANITY training (WIP — see "m09c SANITY progress" below)
-- ⬜ Step E: m09 ExPLoRA training on 100-clip dense subset (blocked on D.1 unblock)
-- ⬜ Commit all fixes via `git_push.sh`
+- ✅ Step A' (POC 100 dense, 2026-04-17): 6141 agents, 8712 interactions, 6.13 s/clip on 96GB (613 s total)
+- ✅ Step B' (POC 100 dense, 2026-04-17): 91/100 D_I clips, 8712 tubes, 47 s total with 32-worker ProcessPool (5.7× speedup)
+- ✅ Step C (m05 frozen V-JEPA 2.1, 2026-04-17): 100 clips × 1664-dim embeddings in 423 s on 96GB. `torch.compile` + bf16 + RoPE cast (#44) all working.
+- ✅ Step D.1 (m09c Surgery SANITY, 2026-04-17): all 3 stages PASS on 96GB — Stage 1 loss=0.4870, Stage 2=0.4901, **Stage 3=0.4806** (first successful measurement — resolved #58 via hardware migration, no v8 patch needed). ~60s total.
+- 🔥 Step D.2 (m09c Surgery POC): 100 dense clips, ~3h on 96GB — the real training signal.
+- ⬜ Step E.1 (m09b ExPLoRA SANITY): blocked on D.2 decision gate.
+- ⬜ Step E.2 (m09b ExPLoRA POC): blocked on D.2 decision gate.
+- ⬜ m05 re-embed on surgical student + m06 metrics → decision gate.
 
 ---
 
-### 🔄 m09c SANITY training progress (2026-04-15, 24GB RTX Pro 4000)
+### ✅ m09c SANITY training — RESOLVED 2026-04-17 on 96GB Blackwell
 
-**Iterations so far:** v0 → v7. Errors & fixes catalogued in `errors_N_fixes.md` #50-#58.
+**Iterations:** v0 → v7 on 24GB, v8-hw on 96GB. Errors & fixes catalogued in `errors_N_fixes.md` #50-#58.
 
 | Version | Furthest point reached | Blocker | Fixed by |
 |---|---|---|---|
@@ -108,7 +110,10 @@ Verdict: Path B achieved 4.21× speedup AND +228 % D_I tubes AND tighter agent m
 | v4 | Stage 1 summary | `UnboundLocalError jepa_val` (step OOMed → loop ended before any value assigned) | #54 (pre-init loss vars per-stage before inner for-loop) |
 | v5 | All 3 stages printed "complete" | Silent fail: 0 successful steps, exported unmodified student | #55 (within-step retry on OOM + fail-hard when sizer at min) |
 | v6 | Stages 1+2 ✅ (loss=0.4841, 0.4874), Stage 3 OOM | Stage 3: 36/48 trainable blocks — fp32 master (5.5 GB) + 8-bit m1/m2 (3 GB) + model + activations overflowed 24 GB | #56 (grad checkpointing + bnb AdamW8bit) + #57 (mode-gated yaml: savers ON for SANITY, OFF for POC/FULL) |
-| **v7** | **Stages 1+2 ✅, Stage 3 still OOM** | **See root cause below** | **#58 partial — needs follow-up** |
+| v7 | Stages 1+2 ✅, Stage 3 OOM at min sub-batch=1 | fp32 master + 8-bit m1/m2 + activation spike exceeded 24GB even with PagedAdamW8bit | #58 (inter-stage cleanup + PagedAdamW8bit — helped but didn't close the gap on 24GB) |
+| **v8-hw (2026-04-17)** | **ALL 3 STAGES ✅** (Stage 1 loss=0.4870, Stage 2 loss=0.4901, **Stage 3 loss=0.4806**), student_encoder.pt exported | — (resolved by 96GB hardware migration; post-cleanup VRAM 19.9 GB / 102 GB after Stage 2) | Hardware upgrade; "v8 teacher CPU offload" patch from #58's follow-up plan was NOT needed. |
+
+**Closure:** The proposed v8 teacher-CPU-offload patch in #58 was never landed — 96GB resolved the issue for free. Documented in errors_N_fixes.md #58 post-script.
 
 ### 🛑 v7 Stage 3 OOM — detailed root cause
 
@@ -166,12 +171,12 @@ Ordered by preference (least invasive first):
 4. **Predictor CPU offload** (predictor is small, 0.12 GB — low ROI)
 5. **Gradient accumulation at sub-micro-batch level** — split sub-batch=1 forward into time-sliced chunks. Non-trivial code change.
 
-### 🔚 Status at 2026-04-15 ~midnight (GPU killed for sleep)
+### ✅ Status at 2026-04-17 (RESOLVED on 96 GB)
 
-- All SANITY code path validated THROUGH Stage 2 end-to-end: loss=0.4841 (Stage 1, D_L), loss=0.4874 (Stage 2, D_A+10%D_L). Inter-stage cleanup + Paged 8-bit optimizer + within-step retry + fail-hard all validated.
-- Stage 3 (36 trainable blocks + D_I 85% mixture) unfit on 24 GB with current savers.
-- **Next session action**: implement teacher CPU offload (#59 pending), re-run v8. If v8 Stage 3 still OOMs, apply fallback #2 or #3 above.
-- **Does NOT block POC/FULL on 96 GB** — those modes have all savers OFF and fit trivially. Once Stage 3 SANITY runs once end-to-end (for loss-graph validation), the ~$0.20 SANITY tier is done forever — move to 96 GB for D.2 POC.
+- All SANITY code paths validated end-to-end on 96 GB Blackwell: Stage 1 loss=0.4870, Stage 2 loss=0.4901, **Stage 3 loss=0.4806** (first successful measurement — first ever Stage 3 completion).
+- Stage 3 peak post-cleanup VRAM: 19.9 GB / 102 GB — ~80 GB of headroom. No OOM, no fallback needed.
+- **v8 teacher-CPU-offload patch was NOT landed** — prediction from 2026-04-15 ("may not fit even with offload") was superseded by the cheaper option (just run on 96 GB). Leaves code clean (no offload complexity to maintain) and matches plan_training's SANITY→POC hardware progression.
+- **POC D.2 unblocked** — all savers will auto-flip OFF (mode-gated yaml #57) for clean fp32 AdamW training, the research-quality recipe for the Prec@K comparison.
 
 ---
 
@@ -304,8 +309,8 @@ Priority if time-constrained: **A3** (proves factoring matters) then **A4** (Neu
 | Phase | Hours | Status |
 |---|---|---|
 | Phase 0: Grounded-SAM pivot (done on GPU) | ~4h spent | ✅ |
-| Phase 1: GPU SANITY (24GB, $0.20/hr) | ~10h spent + ~1h remaining | 🔄 A/B/A'/B' done, C/D/E pending |
-| Phase 2: GPU POC (96GB, $0.80/hr) | 3h | ⬜ |
+| Phase 1: GPU SANITY (24GB → 96GB migration 2026-04-17) | ~11h spent | ✅ A/B/A'/B'/C/D.1 done |
+| Phase 2: GPU POC (96GB, $0.80/hr) | ~2h spent + ~3h remaining | 🔄 D.2 next (Surgery 100-clip), then E.1/E.2 ExPLoRA |
 | Decision gate | — | ⬜ |
 | Phase 3: Scale 115K + ablations | 12h | ⬜ |
 | Phase 4: Paper writing | 14h | ⬜ |
