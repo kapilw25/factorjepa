@@ -148,6 +148,11 @@ interaction_mining:
 # -- Surgery: 3-stage progressive prefix unfreezing --
 # Sec 11.5 of proposal — n1=0.25L, n2=0.50L, n3=0.75L
 surgery:
+  # Per-stage warmup as a fraction of stage_steps. Replaces the old fixed
+  # warmup_steps=200 which broke POC (stage_steps≈99 < 200 → never reached full
+  # LR). 0.20 = 20% of stage spent warming LR from 0→target, 80% at full LR.
+  # Auto-scales: POC 100 clips → 19 warmup, POC 10K → 206, FULL 115K → 718.
+  warmup_pct: 0.20
   stages:
     - name: stage1_layout
       unfreeze_below: 0.25          # Fraction of total depth (e.g., 12 of 48 layers)
@@ -155,7 +160,6 @@ surgery:
         L: 1.00                     # 100% layout-only
         A: 0.00
         I: 0.00
-      warmup_steps: 200             # Per-stage warmup to avoid loss spikes
       max_epochs_pct: 0.33          # 33% of total epoch budget
 
     - name: stage2_agent
@@ -164,7 +168,6 @@ surgery:
         L: 0.10                     # 10% replay
         A: 0.90                     # 90% agent-only
         I: 0.00
-      warmup_steps: 200
       max_epochs_pct: 0.33
 
     - name: stage3_interaction
@@ -173,7 +176,6 @@ surgery:
         L: 0.05                     # 5% replay
         A: 0.10                     # 10% replay
         I: 0.85                     # 85% interaction
-      warmup_steps: 200
       max_epochs_pct: 0.34
 
 # -- POC simplification (Week 1) --

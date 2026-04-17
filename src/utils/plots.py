@@ -257,9 +257,14 @@ def plot_val_loss_curves(ablation_dir, lambdas: list, winner: str,
 
 
 def _read_loss_log(csv_path: str) -> dict:
-    """Parse loss_log.jsonl (primary) or loss_log.csv (fallback) into arrays."""
+    """Parse loss_log.jsonl (primary) or loss_log.csv (fallback) into arrays.
+
+    Also extracts per-step "stage" when present (surgery only) — returned as
+    `stages_train` (parallel to `steps_train`). Empty list for ExPLoRA/pretrain.
+    """
     steps_train, jepa_loss, drift_loss, total_loss = [], [], [], []
     steps_val, val_loss = [], []
+    stages_train = []  # m09c only — empty for m09a/m09b
 
     # Try JSONL first (crash-safe, no data loss)
     jsonl_path = Path(csv_path).with_suffix(".jsonl")
@@ -282,9 +287,11 @@ def _read_loss_log(csv_path: str) -> dict:
                     jepa_loss.append(record["loss_jepa"])
                     drift_loss.append(record.get("loss_drift", 0.0))
                     total_loss.append(record.get("loss_total", 0.0))
+                    stages_train.append(record.get("stage", ""))
         return {
             "steps_train": steps_train, "jepa_loss": jepa_loss,
             "drift_loss": drift_loss, "total_loss": total_loss,
+            "stages_train": stages_train,
             "steps_val": steps_val, "val_loss": val_loss,
         }
 
@@ -314,30 +321,40 @@ def _read_loss_log(csv_path: str) -> dict:
     return {
         "steps_train": steps_train, "jepa_loss": jepa_loss,
         "drift_loss": drift_loss, "total_loss": total_loss,
+        "stages_train": stages_train,
         "steps_val": steps_val, "val_loss": val_loss,
     }
 
 
-def plot_training_curves(runs: list, output_dir: str, title_prefix: str = ""):
+def plot_training_curves(runs: list, output_dir: str, title_prefix: str = "",
+                         x_axis_mode: str = "steps"):
     """Generate 3 separate publication-quality plots from training loss_log.csv files.
 
     Supports multiple runs for comparison (e.g., V-JEPA 2.0 vs 2.1).
-    X-axis shows number of CLIPS (step × batch_size from training_summary.json).
-    batch_size is read from training_summary.json — never hardcoded.
 
     Args:
         runs: List of dicts, each with:
             - "csv_path": path to loss_log.csv
             - "label": legend label (e.g., "V-JEPA 2.0")
             - "color": color key from COLORS (optional, auto-assigned)
+            - "batch_size": required only when x_axis_mode="clip_visits"
         output_dir: Directory for output plots.
         title_prefix: Optional prefix for titles (e.g., "115K Clips, ").
+        x_axis_mode: "steps" (default — x = optimizer steps, always correct) or
+            "clip_visits" (x = step × batch_size). "clip_visits" is MISLEADING
+            for surgery/SANITY/POC where the producer samples with replacement
+            from a small pool — it over-reports by the number of repeats. Only
+            use "clip_visits" for FULL-mode continual pretraining where the
+            producer draws fresh clips from a stream larger than step × BS.
 
     Generates:
         1. {output_dir}/m09_val_loss.png/.pdf
-        2. {output_dir}/m09_train_loss.png/.pdf
-        3. {output_dir}/m09_drift_loss.png/.pdf
+        2. {output_dir}/m09_train_loss.png/.pdf  (color-segmented by stage when
+           JSONL contains "stage" field — i.e., m09c surgery runs)
+        3. {output_dir}/m09_drift_loss.png/.pdf  (skipped when drift all zero)
     """
+    assert x_axis_mode in ("steps", "clip_visits"), \
+        f"x_axis_mode must be 'steps' or 'clip_visits', got {x_axis_mode!r}"
     init_style()
     out = Path(output_dir)
     out.mkdir(parents=True, exist_ok=True)
@@ -350,64 +367,119 @@ def plot_training_curves(runs: list, output_dir: str, title_prefix: str = ""):
         label = run.get("label", f"Run {i+1}")
         color = COLORS.get(run.get("color", ""), auto_colors[i % len(auto_colors)])
 
-        # Read batch_size: training_summary.json (completed) → caller-provided → FATAL
-        batch_size = run.get("batch_size")
-        summary_path = Path(run["csv_path"]).parent / "training_summary.json"
-        if summary_path.exists():
-            s = json.load(open(summary_path))
-            batch_size = s["batch_size"]
-        if batch_size is None:
-            print(f"FATAL: batch_size unknown for {run['csv_path']}.")
-            print("  Provide batch_size in run dict or wait for training_summary.json.")
-            return
+        if x_axis_mode == "clip_visits":
+            # Read batch_size: training_summary.json → caller-provided → FATAL
+            batch_size = run.get("batch_size")
+            summary_path = Path(run["csv_path"]).parent / "training_summary.json"
+            if summary_path.exists():
+                s = json.load(open(summary_path))
+                batch_size = s["batch_size"]
+            if batch_size is None:
+                print(f"FATAL: batch_size unknown for {run['csv_path']}.")
+                print("  Provide batch_size in run dict or wait for training_summary.json.")
+                return
+            data["x_train"] = [step * batch_size for step in data["steps_train"]]
+            data["x_val"] = [step * batch_size for step in data["steps_val"]]
+        else:  # "steps"
+            data["x_train"] = list(data["steps_train"])
+            data["x_val"] = list(data["steps_val"])
 
-        data["clips_train"] = [step * batch_size for step in data["steps_train"]]
-        data["clips_val"] = [step * batch_size for step in data["steps_val"]]
         data["label"] = label
         data["color"] = color
         parsed_runs.append(data)
 
-    def _fmt_clips(x, _):
-        return f"{x/1000:.0f}K" if x >= 1000 else f"{x:.0f}"
+    def _fmt_x(x, _):
+        return f"{x/1000:.1f}K" if x >= 1000 else f"{x:.0f}"
+
+    x_label = "Training Clip-Visits (step × BS)" if x_axis_mode == "clip_visits" else "Optimizer Steps"
+
+    def _stage_markers(run):
+        """Return list of (x_position, stage_name) where stage changes, for vlines."""
+        stages = run.get("stages_train", [])
+        if not stages or len(stages) != len(run["x_train"]):
+            return []
+        markers = []
+        last = None
+        for x, s in zip(run["x_train"], stages):
+            if s and s != last:
+                markers.append((x, s))
+                last = s
+        return markers
+
+    # 8-color palette for stage segmentation (first 3 match common Ch11 stage colors)
+    stage_colors = [COLORS["green"], COLORS["orange"], COLORS["purple"],
+                    COLORS["red"], COLORS["blue"], "#8B4513", "#FF1493", "#00CED1"]
 
     # ── Plot 1: Validation Loss ──────────────────────────────────────
     fig, ax = plt.subplots(figsize=(10, 6))
     for run in parsed_runs:
-        if run["clips_val"]:
-            ax.plot(run["clips_val"], run["val_loss"], "s-",
+        if run["x_val"]:
+            ax.plot(run["x_val"], run["val_loss"], "s-",
                     color=run["color"], linewidth=3.0, markersize=8,
                     label=run["label"], zorder=10)
-    ax.xaxis.set_major_formatter(plt.FuncFormatter(_fmt_clips))
-    ax.set_xlabel("Training Clips")
+    ax.xaxis.set_major_formatter(plt.FuncFormatter(_fmt_x))
+    ax.set_xlabel(x_label)
     ax.set_ylabel("Validation JEPA Loss")
     ax.set_title(f"{title_prefix}Validation Loss")
     ax.legend(loc="upper right")
     save_fig(fig, str(out / "m09_val_loss"))
 
-    # ── Plot 2: Training Loss (raw + smoothed moving average) ──────
-    fig, ax = plt.subplots(figsize=(10, 6))
+    # ── Plot 2: Training Loss — color-segmented by stage when present ──
+    fig, ax = plt.subplots(figsize=(12, 6))
     for run in parsed_runs:
-        if run["clips_train"]:
-            clips = np.array(run["clips_train"])
-            loss = np.array(run["jepa_loss"])
-            # Raw loss (light, thin)
-            ax.plot(clips, loss,
-                    color=run["color"], linewidth=0.5, alpha=0.3)
-            # Smoothed moving average (bold red)
-            window = max(1, len(loss) // 20)  # 5% window
+        if not run["x_train"]:
+            continue
+        x = np.array(run["x_train"])
+        loss = np.array(run["jepa_loss"])
+
+        # Raw line always drawn (light, thin)
+        ax.plot(x, loss, color=run["color"], linewidth=0.5, alpha=0.25, zorder=1)
+
+        # If stages present → color-segment smoothed curve + shade stage regions
+        markers = _stage_markers(run)
+        if markers:
+            # Build per-stage index ranges
+            stage_ranges = []
+            for i, (x_start, s_name) in enumerate(markers):
+                x_end = markers[i + 1][0] if i + 1 < len(markers) else x[-1] + 1
+                idx = np.where((x >= x_start) & (x < x_end))[0]
+                if len(idx) > 0:
+                    stage_ranges.append((s_name, idx, x_start, x_end))
+
+            # Smoothed per-stage segment
+            for i, (s_name, idx, x_start, x_end) in enumerate(stage_ranges):
+                seg_x = x[idx]
+                seg_loss = loss[idx]
+                col = stage_colors[i % len(stage_colors)]
+                window = max(1, len(seg_loss) // 10)
+                if window > 1:
+                    k = np.ones(window) / window
+                    sm = np.convolve(seg_loss, k, mode="valid")
+                    sm_x = seg_x[window - 1:]
+                    ax.plot(sm_x, sm, color=col, linewidth=2.8,
+                            label=f"{s_name}", zorder=10)
+                else:
+                    ax.plot(seg_x, seg_loss, color=col, linewidth=2.8,
+                            label=f"{s_name}", zorder=10)
+                # Shade stage band + draw transition vline at stage start
+                ax.axvspan(x_start, x_end, alpha=0.04, color=col, zorder=0)
+                if i > 0:
+                    ax.axvline(x_start, color="gray", linestyle="--",
+                               linewidth=1.0, alpha=0.7, zorder=2)
+        else:
+            # No stages (m09a / m09b) — single smoothed line
+            window = max(1, len(loss) // 20)
             if window > 1:
-                kernel = np.ones(window) / window
-                smoothed = np.convolve(loss, kernel, mode="valid")
-                smoothed_clips = clips[window - 1:]
-                ax.plot(smoothed_clips, smoothed,
-                        color=COLORS["red"], linewidth=3.0,
-                        label=f"{run['label']} (smoothed)", zorder=10)
+                k = np.ones(window) / window
+                sm = np.convolve(loss, k, mode="valid")
+                ax.plot(x[window - 1:], sm, color=COLORS["red"],
+                        linewidth=3.0, label=f"{run['label']} (smoothed)", zorder=10)
             else:
-                ax.plot(clips, loss,
-                        color=COLORS["red"], linewidth=3.0,
+                ax.plot(x, loss, color=COLORS["red"], linewidth=3.0,
                         label=run["label"], zorder=10)
-    ax.xaxis.set_major_formatter(plt.FuncFormatter(_fmt_clips))
-    ax.set_xlabel("Training Clips")
+
+    ax.xaxis.set_major_formatter(plt.FuncFormatter(_fmt_x))
+    ax.set_xlabel(x_label)
     ax.set_ylabel("Training JEPA Loss")
     ax.set_title(f"{title_prefix}Training Loss")
     ax.legend(loc="upper right")
@@ -418,12 +490,12 @@ def plot_training_curves(runs: list, output_dir: str, title_prefix: str = ""):
     if has_drift:
         fig, ax = plt.subplots(figsize=(10, 6))
         for run in parsed_runs:
-            if run["clips_train"] and run["drift_loss"] and max(run["drift_loss"]) > 0:
-                ax.plot(run["clips_train"], run["drift_loss"],
+            if run["x_train"] and run["drift_loss"] and max(run["drift_loss"]) > 0:
+                ax.plot(run["x_train"], run["drift_loss"],
                         color=run["color"], linewidth=2.0,
                         label=run["label"])
-        ax.xaxis.set_major_formatter(plt.FuncFormatter(_fmt_clips))
-        ax.set_xlabel("Training Clips")
+        ax.xaxis.set_major_formatter(plt.FuncFormatter(_fmt_x))
+        ax.set_xlabel(x_label)
         ax.set_ylabel("Drift Loss ($\\lambda \\|\\theta - \\theta_0\\|^2$)")
         ax.set_title(f"{title_prefix}Drift Control Loss")
         ax.legend(loc="upper right")

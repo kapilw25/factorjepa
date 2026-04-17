@@ -41,7 +41,6 @@ from utils.wandb_utils import (
 )
 
 import torch
-import torch.nn.functional as F
 
 from utils.progress import make_pbar
 
@@ -412,7 +411,11 @@ def train_surgery(cfg: dict, args):
             n_trainable = int(depth * stage_cfg["unfreeze_below"])
             stage_pct = stage_cfg["max_epochs_pct"]
             stage_steps = max(int(total_steps * stage_pct), 1)
-            warmup_steps = stage_cfg["warmup_steps"]
+            # Warmup = warmup_pct * stage_steps (auto-scales with run length).
+            # Replaces hardcoded warmup_steps=200 which broke POC where
+            # stage_steps (~99) < 200 → LR never reached target. `max(1, ...)`
+            # guards SANITY 1-step case where 20% floor-divides to 0.
+            warmup_steps = max(1, int(stage_steps * surgery_cfg["warmup_pct"]))
             mode_mixture = stage_cfg["mode_mixture"]
 
             print(f"\n{'='*60}")
@@ -605,11 +608,17 @@ def train_surgery(cfg: dict, args):
     with open(output_dir / "training_summary.json", "w") as f:
         json.dump(summary, f, indent=2)
 
-    # Training curves (reuse utils/plots.py)
+    # Training curves (reuse utils/plots.py). Pass x_axis_mode="steps" because
+    # FactorSampler samples with REPLACEMENT from a small pool (e.g., 100 unique
+    # clips on POC) — step × batch_size would over-report by the replacement
+    # factor. "Optimizer Steps" is the only honest x-axis for surgery.
     from utils.plots import plot_training_curves
+    n_unique_clips = len(factor_index)
     plot_training_curves(
         [{"csv_path": str(csv_path), "label": "Surgery", "batch_size": batch_size}],
-        str(output_dir), title_prefix="Surgery: ")
+        str(output_dir),
+        title_prefix=f"Surgery ({n_unique_clips} unique clips, BS={batch_size}): ",
+        x_axis_mode="steps")
 
     finish_wandb(wb_run)
     print(f"\nSURGERY COMPLETE: {global_step} steps across {len(stages)} stages")
