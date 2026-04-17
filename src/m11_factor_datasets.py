@@ -575,6 +575,113 @@ def plot_factor_stats(manifest: dict, output_dir: Path):
     save_fig(fig, str(output_dir / "m11_factor_stats"))
 
 
+# ── Parallel worker ──────────────────────────────────────────────────
+
+def _get_cpu_workers(cap: int = 32) -> int:
+    """Cgroup/container-aware usable CPU count. Linux: sched_getaffinity(0)."""
+    try:
+        n = len(os.sched_getaffinity(0))
+    except (AttributeError, OSError):
+        n = os.cpu_count() or 1
+    return max(1, min(cap, n))
+
+
+def _process_one_clip(args: tuple) -> tuple:
+    """Worker: generate D_L/D_A/D_I for one clip. Returns (clip_key, manifest_entry | None)."""
+    (clip_key, mp4_bytes, seg_entry, masks_dir_s,
+     dl_dir_s, da_dir_s, di_dir_s, cfg) = args
+
+    os.environ.setdefault("OMP_NUM_THREADS", "1")
+    os.environ.setdefault("MKL_NUM_THREADS", "1")
+
+    masks_dir = Path(masks_dir_s)
+    dl_dir = Path(dl_dir_s)
+    da_dir = Path(da_dir_s)
+    di_dir = Path(di_dir_s)
+
+    safe_key = clip_key.replace("/", "__")
+    mask_file = masks_dir / f"{safe_key}.npz"
+    if not mask_file.exists():
+        return (clip_key, None)
+
+    dl_file = dl_dir / f"{safe_key}.npy"
+    da_file = da_dir / f"{safe_key}.npy"
+    if dl_file.exists() and da_file.exists():
+        n_tubes = len(sorted(di_dir.glob(f"{safe_key}_tube*.npy")))
+        return (clip_key, {
+            "has_D_L": True, "has_D_A": True,
+            "has_D_I": n_tubes > 0,
+            "n_interaction_tubes": n_tubes,
+            "agent_pct": seg_entry["agent_pixel_ratio"],
+        })
+
+    data = np.load(mask_file, allow_pickle=True)
+    agent_mask = data["agent_mask"]
+    layout_mask = data["layout_mask"]
+    interactions = json.loads(str(data["interactions_json"])) if "interactions_json" in data else []
+    centroids = json.loads(str(data["centroids_json"])) if "centroids_json" in data else {}
+    per_object_bboxes = json.loads(str(data["per_object_bboxes_json"])) if "per_object_bboxes_json" in data else {}
+
+    with tempfile.TemporaryDirectory(prefix="m11_w_") as tmp:
+        frames_tensor = decode_video_bytes(mp4_bytes, tmp, clip_key, num_frames=16)
+    if frames_tensor is None:
+        return (clip_key, None)
+    frames_np = frames_tensor.permute(0, 2, 3, 1).numpy()
+    frames_np = (frames_np * 255).astype(np.uint8) if frames_np.max() <= 1.0 else frames_np.astype(np.uint8)
+
+    T_vid, T_mask = frames_np.shape[0], agent_mask.shape[0]
+    if T_mask != T_vid:
+        idx = np.linspace(0, T_mask - 1, T_vid, dtype=int)
+        agent_mask = agent_mask[idx]
+        layout_mask = layout_mask[idx]
+    if agent_mask.shape[1:] != frames_np.shape[1:3]:
+        H, W = frames_np.shape[1], frames_np.shape[2]
+        nm = np.zeros((T_vid, H, W), dtype=bool)
+        nl = np.zeros_like(nm)
+        for t in range(T_vid):
+            nm[t] = np.array(PILImage.fromarray(agent_mask[t]).resize((W, H), PILImage.NEAREST))
+            nl[t] = np.array(PILImage.fromarray(layout_mask[t]).resize((W, H), PILImage.NEAREST))
+        agent_mask, layout_mask = nm, nl
+
+    agent_pct = seg_entry["agent_pixel_ratio"]
+    has_dl = agent_pct <= cfg["max_agent_pct"]
+    has_da = agent_pct >= cfg["min_agent_pct"]
+
+    if has_dl:
+        dl_frames = make_layout_only(frames_np, agent_mask,
+                                     method=cfg["layout_method"],
+                                     blur_sigma=cfg["blur_sigma"],
+                                     feather_sigma=cfg["feather_sigma"])
+        np.save(dl_file, dl_frames)
+    if has_da:
+        da_frames = make_agent_only(frames_np, layout_mask,
+                                    method=cfg["agent_method"],
+                                    matte_factor=cfg["matte_factor"],
+                                    feather_sigma=cfg["feather_sigma"])
+        np.save(da_file, da_frames)
+
+    n_tubes = 0
+    if interactions:
+        if per_object_bboxes:
+            tubes = make_interaction_tubes_from_bboxes(
+                frames_np, interactions, per_object_bboxes, cfg["tube_margin"])
+        elif centroids:
+            tubes = make_interaction_tubes_from_centroids(
+                frames_np, interactions, centroids, cfg["tube_margin"])
+        else:
+            tubes = []
+        for i, tube in enumerate(tubes):
+            np.save(di_dir / f"{safe_key}_tube{i}.npy", tube)
+        n_tubes = len(tubes)
+
+    return (clip_key, {
+        "has_D_L": has_dl, "has_D_A": has_da,
+        "has_D_I": n_tubes > 0,
+        "n_interaction_tubes": n_tubes,
+        "agent_pct": agent_pct,
+    })
+
+
 # ── Main ─────────────────────────────────────────────────────────────
 
 def main():
@@ -696,141 +803,73 @@ def main():
     pbar = make_pbar(total=len(segments), desc="m11 factors", unit="clip")
     t0 = time.time()
 
-    with tempfile.TemporaryDirectory(prefix="m11_") as tmp_dir:
+    # Cgroup-aware worker count. Cap at 32 to bound memory (each worker holds
+    # ~30 MB of frames + masks during gaussian_filter). On a 24-core cgroup we
+    # get 24; on a host-shared 192-core machine we get 192 → clamped to 32.
+    n_workers = _get_cpu_workers(cap=32)
+    print(f"CPU workers: {n_workers} (os.sched_getaffinity-based; cap=32)\n")
+
+    worker_cfg = {
+        "layout_method": layout_method,
+        "agent_method": agent_method,
+        "matte_factor": matte_factor,
+        "blur_sigma": blur_sigma,
+        "feather_sigma": feather_sigma,
+        "min_agent_pct": min_agent_pct,
+        "max_agent_pct": max_agent_pct,
+        "tube_margin": tube_margin,
+    }
+    path_args = (str(masks_dir), str(dl_dir), str(da_dir), str(di_dir))
+
+    with tempfile.TemporaryDirectory(prefix="m11_") as _tmp_dir:
         segment_keys = set(segments.keys())
         clip_q, tar_stop, _reader = iter_clips_parallel(
             local_data=local_data, subset_keys=subset_keys or segment_keys)
-        n_done = 0
-        while n_done < len(segments):
-            item = clip_q.get(timeout=600)
-            if item is None:
-                break
-            clip_key, mp4_bytes = item
-            if clip_key not in segments:
-                continue
 
-            safe_key = clip_key.replace("/", "__")
-            mask_file = masks_dir / f"{safe_key}.npz"
-            if not mask_file.exists():
-                print(f"  FATAL: mask file missing for {clip_key}: {mask_file}")
-                sys.exit(1)
+        with ProcessPoolExecutor(max_workers=n_workers) as pool:
+            futures: dict = {}
+            submitted = 0
+            n_done = 0
+            target = len(segments)
 
-            # Skip if already generated (resume path). Count existing D_I tubes
-            # on disk so the manifest entry has the SAME shape as the full-compute
-            # branch below (has_D_I + n_interaction_tubes). Previously this branch
-            # emitted a short entry → downstream sum(v["n_interaction_tubes"]) crashed
-            # with KeyError whenever any clip resumed.
-            dl_file = dl_dir / f"{safe_key}.npy"
-            da_file = da_dir / f"{safe_key}.npy"
-            if dl_file.exists() and da_file.exists():
-                existing_tubes = sorted(di_dir.glob(f"{safe_key}_tube*.npy"))
-                n_tubes = len(existing_tubes)
-                manifest[clip_key] = {
-                    "has_D_L": True,
-                    "has_D_A": True,
-                    "has_D_I": n_tubes > 0,
-                    "n_interaction_tubes": n_tubes,
-                    "agent_pct": segments[clip_key]["agent_pixel_ratio"],
-                }
-                n_done += 1
-                pbar.update(1)
-                continue
+            while n_done < target:
+                # Fill pool up to 2× n_workers outstanding to keep decode pipeline warm
+                while len(futures) < 2 * n_workers and submitted < target:
+                    try:
+                        item = clip_q.get(timeout=600)
+                    except Exception:
+                        break
+                    if item is None:
+                        break
+                    clip_key, mp4_bytes = item
+                    if clip_key not in segments:
+                        continue
+                    safe_key = clip_key.replace("/", "__")
+                    mask_file = masks_dir / f"{safe_key}.npz"
+                    if not mask_file.exists():
+                        print(f"  FATAL: mask file missing for {clip_key}: {mask_file}")
+                        sys.exit(1)
+                    fut = pool.submit(
+                        _process_one_clip,
+                        (clip_key, mp4_bytes, segments[clip_key], *path_args, worker_cfg),
+                    )
+                    futures[fut] = clip_key
+                    submitted += 1
 
-            # Load masks + interaction data
-            data = np.load(mask_file, allow_pickle=True)
-            agent_mask = data["agent_mask"]  # (T_mask, H, W)
-            layout_mask = data["layout_mask"]
+                if not futures:
+                    break
+                done, _pending = futures_wait(list(futures), return_when=FIRST_COMPLETED)
+                for fut in done:
+                    clip_key = futures.pop(fut)
+                    _, entry = fut.result()
+                    if entry is None:
+                        print(f"  FATAL: worker returned None for {clip_key} (decode or mask load failed)")
+                        sys.exit(1)
+                    manifest[clip_key] = entry
+                    n_done += 1
+                    pbar.update(1)
 
-            # Load per-object bboxes + centroids + interactions (for D_I)
-            interactions = []
-            centroids = {}
-            per_object_bboxes = {}
-            if "interactions_json" in data:
-                interactions = json.loads(str(data["interactions_json"]))
-            if "centroids_json" in data:
-                centroids = json.loads(str(data["centroids_json"]))
-            if "per_object_bboxes_json" in data:  # new in m10 (post-bbox-save)
-                per_object_bboxes = json.loads(str(data["per_object_bboxes_json"]))
-
-            # Decode original frames
-            frames_tensor = decode_video_bytes(mp4_bytes, tmp_dir, clip_key, num_frames=16)
-            if frames_tensor is None:
-                print(f"  FATAL: decode failed for {clip_key}")
-                sys.exit(1)
-            frames_np = frames_tensor.permute(0, 2, 3, 1).numpy()  # (T, H, W, C)
-            if frames_np.max() <= 1.0:
-                frames_np = (frames_np * 255).astype(np.uint8)
-            else:
-                frames_np = frames_np.astype(np.uint8)
-
-            # Align mask frames to video frames (SAM may propagate fewer frames)
-            T_vid = frames_np.shape[0]
-            T_mask = agent_mask.shape[0]
-            if T_mask != T_vid:
-                # Nearest-neighbor temporal interpolation
-                mask_indices = np.linspace(0, T_mask - 1, T_vid, dtype=int)
-                agent_mask = agent_mask[mask_indices]
-                layout_mask = layout_mask[mask_indices]
-
-            # Align spatial dims (SAM output resolution may differ from video)
-            if agent_mask.shape[1:] != frames_np.shape[1:3]:
-                from PIL import Image as PILImage
-                new_masks = np.zeros((T_vid, frames_np.shape[1], frames_np.shape[2]), dtype=bool)
-                new_layouts = np.zeros_like(new_masks)
-                for t in range(T_vid):
-                    new_masks[t] = np.array(PILImage.fromarray(agent_mask[t]).resize(
-                        (frames_np.shape[2], frames_np.shape[1]), PILImage.NEAREST))
-                    new_layouts[t] = np.array(PILImage.fromarray(layout_mask[t]).resize(
-                        (frames_np.shape[2], frames_np.shape[1]), PILImage.NEAREST))
-                agent_mask = new_masks
-                layout_mask = new_layouts
-
-            # Quality filters: skip degenerate samples (proposal Sec 11.7)
-            agent_pct = segments[clip_key]["agent_pixel_ratio"]
-            has_dl = agent_pct <= max_agent_pct
-            has_da = agent_pct >= min_agent_pct
-
-            # Generate D_L (layout-only: blur agents, feathered edges)
-            if has_dl:
-                dl_frames = make_layout_only(frames_np, agent_mask,
-                                             method=layout_method, blur_sigma=blur_sigma,
-                                             feather_sigma=feather_sigma)
-                np.save(dl_file, dl_frames)
-
-            # Generate D_A (agent-only: suppress background, feathered edges)
-            if has_da:
-                da_frames = make_agent_only(frames_np, layout_mask,
-                                            method=agent_method, matte_factor=matte_factor,
-                                            feather_sigma=feather_sigma)
-                np.save(da_file, da_frames)
-
-            # Generate D_I (interaction tubes). Prefer tight union-bbox from per-object
-            # bboxes (m10 post-bbox-save); fall back to fixed 30% centroid square for
-            # legacy .npz files produced before bbox save was added.
-            n_tubes = 0
-            if interactions:
-                if per_object_bboxes:
-                    tubes = make_interaction_tubes_from_bboxes(
-                        frames_np, interactions, per_object_bboxes, tube_margin)
-                elif centroids:
-                    tubes = make_interaction_tubes_from_centroids(
-                        frames_np, interactions, centroids, tube_margin)
-                else:
-                    tubes = []
-                for tube_idx, tube in enumerate(tubes):
-                    tube_file = di_dir / f"{safe_key}_tube{tube_idx}.npy"
-                    np.save(tube_file, tube)
-                n_tubes = len(tubes)
-
-            manifest[clip_key] = {
-                "has_D_L": has_dl,
-                "has_D_A": has_da,
-                "has_D_I": n_tubes > 0,
-                "n_interaction_tubes": n_tubes,
-                "agent_pct": agent_pct,
-            }
-            n_done += 1
-            pbar.update(1)
+        tar_stop.set()
 
     pbar.close()
 

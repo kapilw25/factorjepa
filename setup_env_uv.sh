@@ -230,6 +230,33 @@ if [ "$1" = "--gpu" ]; then
         echo "deps/vjepa2 already present"
     fi
 
+    # Idempotent patch: cast RoPE-rotated Q/K back to V.dtype before SDPA.
+    # V-JEPA 2.1's RoPE keeps Q/K in fp32 for numerical stability, but the model is
+    # loaded in bf16 → torch.compile's FakeTensor check rejects the Q/K/V dtype
+    # mismatch at F.scaled_dot_product_attention. Lossless downcast (rotation math
+    # stays fp32, only final Q/K result is cast). Must re-apply on every fresh clone.
+    # errors_N_fixes.md #44. Idempotent: skips if already present.
+    python3 << 'PYEOF'
+path = 'deps/vjepa2/app/vjepa_2_1/models/utils/modules.py'
+src = open(path).read()
+if 'q = q.to(v.dtype)' in src:
+    print("vjepa2 RoPE dtype patch already present (#44)")
+else:
+    anchor = "            k = torch.cat([kd, kh, kw], dim=-1)\n\n        if self.use_sdpa:"
+    replacement = (
+        "            k = torch.cat([kd, kh, kw], dim=-1)\n\n"
+        "        # RoPE outputs fp32 Q/K; cast back to V.dtype before SDPA so\n"
+        "        # torch.compile FakeTensor check passes. errors_N_fixes.md #44.\n"
+        "        q = q.to(v.dtype)\n"
+        "        k = k.to(v.dtype)\n\n"
+        "        if self.use_sdpa:"
+    )
+    if anchor not in src:
+        raise SystemExit(f"FATAL: vjepa2 upstream refactored {path} — #44 anchor not found. Re-derive patch.")
+    open(path, 'w').write(src.replace(anchor, replacement))
+    print("vjepa2 RoPE dtype patch applied (#44)")
+PYEOF
+
     # Download V-JEPA 2.1 ViT-G (2B) checkpoint (~28 GB)
     VJEPA_CKPT="checkpoints/vjepa2_1_vitG_384.pt"
     if [ ! -f "$VJEPA_CKPT" ]; then

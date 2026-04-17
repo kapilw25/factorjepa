@@ -52,6 +52,7 @@ cat outputs/poc/m10_sam_segment/summary.json | python3 -m json.tool
 ## Step B: Factor Datasets (D_L + D_A + D_I with tight-bbox tubes) ✅ validated 2026-04-15
 
 ```bash
+rm -rf outputs/poc/m11_factor_datasets/
 python -u src/m11_factor_datasets.py --POC \
     --subset data/sanity_100_dense.json \
     --local-data data/val_1k_local --no-wandb \
@@ -91,7 +92,7 @@ python -u src/m05_vjepa_embed.py --POC \
     --model-config configs/model/vjepa2_1.yaml \
     --encoder vjepa_2_1_frozen \
     --local-data data/val_1k_local --no-wandb \
-    2>&1 | tee logs/m05_dense100_frozen.log
+    2>&1 | tee logs/m05_dense100_frozen_v1.log
 ```
 
 **Verify:**

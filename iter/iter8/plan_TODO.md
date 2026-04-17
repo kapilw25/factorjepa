@@ -234,9 +234,11 @@ Priority if time-constrained: **A3** (proves factoring matters) then **A4** (Neu
 - ⬜ 🟡 Verification videos: MP4 with mask overlay for temporal consistency
 - ⬜ 🟡 Output dir restructure: verify all cross-references after per-module migration
 - ⬜ 🟡 **D_I gold-standard architecture** (post-deadline): current tight-union-bbox crop is still a POC shortcut. Gold standard (Social-Fabric ICCV'21, Video-HOI NeurIPS'22): per-agent tubelets + RoIAlign on scene features + pair transformer. Requires V-JEPA forward-pass change → out of NeurIPS scope, log for v2.
+- ⬜ 🟡 **m11 GPU rewrite** (post-POC): replace `scipy.ndimage.gaussian_filter` (σ=15 blur, ~2.4s/clip CPU bottleneck) with `kornia.filters.gaussian_blur2d` on GPU — projects 3.5s/clip → ~5ms/clip compute, FULL 115K from 5.6d → ~10h. Needs kornia in requirements_gpu, ≥40dB PSNR diff-test vs scipy, `--gpu` CPU-optional flag.
 - ⬜ 🟢 `hf_outputs.py` upload: `git_push.sh` doesn't `source .env`
 - ⬜ 🟢 `setup_env_uv.sh`: cuML/SAM3 version ping-pong
 - ⬜ 🟢 FA3 installation: only if SAM3 bottleneck on FULL
+- ⬜ 🟢 `output_guard.py` absolute-path → repo-relative (errors_N_fixes.md #23): stops noisy HF 404 + URL-encoded `%2Fworkspace%2F...` log spam on every m10/m11 run.
 
 ---
 
