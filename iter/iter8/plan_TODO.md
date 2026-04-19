@@ -82,22 +82,27 @@ Verdict: Path B achieved 4.21× speedup AND +228 % D_I tubes AND tighter agent m
 
 ---
 
-## 🔥 Active (Phase 1 ✅ GREEN → Phase 2 🎯 1K POC NEXT)
+## 🔥 Active (Phase 1 ✅ GREEN → Phase 2 🟢 1K POC IN FLIGHT)
 
 - ✅ Step A (SANITY 20-clip + POC 100-dense 2026-04-17): m10 Grounded-SAM — quality gate PASS, 6141 agents, 8712 interactions, 6.13 s/clip on 96GB
 - ✅ Step B (SANITY 20-clip + POC 100-dense 2026-04-17): m11 factor datasets — 91/100 D_I clips, 8712 tubes, 47 s with 32-worker ProcessPool (5.7× speedup)
 - ✅ Step C (m05 frozen V-JEPA 2.1, 2026-04-17): 100 clips × 1664-dim in 423 s. `torch.compile` + bf16 + RoPE cast (#44/#59 durable) all working.
-- ✅ Step D.1 (m09c Surgery SANITY, 2026-04-17): all 3 stages PASS — 0.4870 / 0.4901 / **0.4806** (first ever Stage 3). 96GB resolved #58 for free.
+- ✅ Step D.1 (m09c Surgery SANITY, 2026-04-17): all 3 stages PASS — 0.4870 / 0.4901 / **0.4806** (first ever Stage 3). 96GB resolved #58 for free. Re-confirmed 2026-04-19 post-probe-wiring: 0.4870 / 0.4898 / 0.4803.
 - 🐛 Step D.2 v1 (m09c Surgery POC 100-dense, 2026-04-17 first run): completed in 60 s — revealed **#60** `max_epochs.poc: 1` → only 3 optimizer steps total. Fixed → max_epochs.poc: 100.
 - 🐛 Step D.2 v2 (m09c Surgery POC 100-dense, 2026-04-17 second run): completed in ~95 min — revealed **#61** `warmup_steps: 200 > stage_steps: 99` → LR never reached target, loss 0.50→0.476 warmup-truncated. Fixed → `warmup_pct: 0.20` auto-scaling.
+- 🐛 Step A.v1-1K (m10 1K val_1k, 2026-04-19 first run): completed in 337 s — revealed **#62** `poc_simplified.n_clips: 100` yaml fallback silently capped `--POC --subset data/val_1k.json` at 100 clips despite subset having 1000. Fixed → removed `poc_simplified` block from `ch11_surgery.yaml`; m10 `args.POC` branch now calls `get_total_clips(subset_file=args.subset)` (fail-loud if neither `--subset` nor `--local-data/manifest.json`).
+- 🆕 Probe infrastructure landed (2026-04-19, **#63**): m09c wires `run_probe_eval` (Prec@K/mAP@K/Cycle@K + BCa 95 % CI) + `run_probe_val_loss` (JEPA val loss) at `every_n_steps` cadence (`n_points: 30`) + stage-boundary BWT anchors. 4 plots per run: `m09_train_loss.png`, `m09_val_loss.png` (33 pts), `probe_trajectory.png` (33 pts × 3 metrics), plus `probe_history.jsonl` + scalar BWT in `training_summary.json`. Overhead ~7 % on 2.7 h POC, scale-invariant.
 - 🚚 100-dense tier retired. 3200 visits/clip = unpublishable overfitting pressure. Moving to 1K val_1k POC tier.
-- 🎯 **Step D.2 v3 (1K val_1k POC, NEXT)**: both bug fixes in place + `max_epochs.poc: 20` for ~2.7 h wall. Real training signal.
+- 🟢 **Step A.v2-1K (m10 1K, RUNNING 2026-04-19)**: post-#62, `Clip limit: 1000` ✓, at ~2.65-5 s/clip (dense val_1k clips slower than projection), ETA ~45-55 min wall. Output doubles as Step A for the surgery chain — no re-run.
+- ⬜ Step B (m11 1K, ~8 min) — starts once Step A completes
+- ⬜ Step C (m05 frozen 1K, ~70 min)
+- 🎯 **Step D.2 v3 (1K val_1k POC, NEXT after Step C)**: both bug fixes in place + `max_epochs.poc: 20` for ~2.7 h wall. Real training signal + 33-point probe trajectory + val-loss curve for first time.
 - ⬜ Step D.3 (m05 re-embed on 1K surgical, ~70 min)
 - ⬜ Step D.4 (m06 Prec@K frozen vs surgical — decision gate, ~5 min)
 - ⬜ Step E.1 (m09b ExPLoRA SANITY, ~10 min) — run after D.4 regardless of gate result (cheap code smoke test)
 - ⬜ Step E.2 (m09b ExPLoRA POC 1K, ~2 h) — CONDITIONAL on D.4 showing Surgery > Frozen
 - ⬜ Step E.3 (m05 ExPLoRA re-embed + m06 Prec@K) — completes the 3-arm comparison
-- ⬜ **Step F (CONDITIONAL on D.4 Surgery > Frozen)**: port probe infra (`run_probe_eval`, `compute_trajectory_stats`, `probe:` yaml) from m09c → m09a + m09b so all 3 arms emit matched Prec@K/mAP@K/Cycle@K trajectories with BCa 95% CI on val_1k. Needed for apples-to-apples 3-arm training-dynamics figure (only m09c has it today). Est. ~1 h — mostly `from utils.training import build_probe_clips, run_probe_eval, compute_trajectory_stats` + argparse + eval hook at `total_steps//3` cadence.
+- ⬜ **Step F (CONDITIONAL on D.4 Surgery > Frozen)**: port probe infra (`run_probe_eval`, `run_probe_val_loss`, `compute_trajectory_stats`, `probe:` yaml) from m09c → m09a + m09b so all 3 arms emit matched Prec@K/mAP@K/Cycle@K + val-loss trajectories on val_1k. Needed for apples-to-apples 3-arm training-dynamics figure (only m09c has it today). Est. ~1 h — mostly import + argparse + call-site parity.
 
 ---
 

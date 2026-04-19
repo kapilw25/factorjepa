@@ -957,6 +957,109 @@ def run_probe_eval(student, probe_clips: list, cfg: dict, device: torch.device,
     }
 
 
+@torch.no_grad()
+def run_probe_val_loss(student, teacher, predictor, probe_clips: list,
+                       mask_generators: list, cfg: dict,
+                       device: torch.device) -> dict:
+    """Compute JEPA val-loss on the decoded probe clips (optimization-trajectory companion
+    to run_probe_eval's downstream retrieval metrics). Same masked-token L1 + dense-context
+    loss used during training, evaluated on held-out val_1k clips. Cheap (~6 s at N=1000).
+
+    Contract: student's return_hierarchical MUST be True during this call (predictor needs
+    hierarchical output). Caller-safe: train() / eval() toggled and restored.
+
+    Returns {"jepa_loss", "masked_loss", "context_loss", "n_val_clips"}.
+    """
+    n = len(probe_clips)
+    if n < 10:
+        raise ValueError(f"probe val-loss N={n} too small for stable mean")
+
+    was_training = student.training
+    had_hier = getattr(student, "return_hierarchical", None)
+    student.eval()
+    if had_hier is not None:
+        student.return_hierarchical = True   # predictor needs hierarchical output
+    teacher_was_training = teacher.training
+    predictor_was_training = predictor.training
+    teacher.eval()
+    predictor.eval()
+
+    _gpu = get_pipeline_config()["gpu"]
+    sizer = AdaptiveBatchSizer(
+        initial_size=_gpu["inference_vjepa_initial_bs"],
+        min_size=1, max_size=_gpu["inference_adapted_bs"],
+        memory_cap=_gpu["gpu_memory_target"])
+
+    mp_cfg = cfg["mixed_precision"]
+    dtype = getattr(torch, mp_cfg["dtype"])
+    loss_exp = cfg["optimization"]["loss_exp"]
+    embed_dim = cfg["model"]["embed_dim"]
+    n_levels = cfg["model"]["n_output_distillation"]
+    predict_all = cfg["model"]["predict_all"]
+
+    total_j, total_m, total_c, n_seen = 0.0, 0.0, 0.0, 0
+
+    try:
+        i = 0
+        while i < n:
+            end = min(i + sizer.size, n)
+            micro_bs = end - i
+            batch = torch.stack([c for _, _, c in probe_clips[i:end]])
+            batch = batch.permute(0, 2, 1, 3, 4).to(device=device, dtype=dtype)
+            try:
+                all_menc, all_mpred = [], []
+                for mg in mask_generators:
+                    me, mp = mg(micro_bs)
+                    all_menc.append(me.to(device))
+                    all_mpred.append(mp.to(device))
+                with torch.amp.autocast("cuda", dtype=dtype, enabled=mp_cfg["enabled"]):
+                    h = teacher(batch)
+                    if h.size(-1) == n_levels * embed_dim:
+                        chunks = [F.layer_norm(h[:, :, lvl * embed_dim:(lvl + 1) * embed_dim], (embed_dim,))
+                                  for lvl in range(n_levels)]
+                        h = torch.cat(chunks, dim=2)
+                    else:
+                        h = F.layer_norm(h, (h.size(-1),))
+                    pf, pc = [], []
+                    for k, (me, mp) in enumerate(zip(all_menc, all_mpred)):
+                        z = student(batch, masks=[me])
+                        out = predictor(z, [me], [mp], mask_index=k)
+                        if isinstance(out, tuple) and len(out) == 2:
+                            pf.append(out[0]); pc.append(out[1])
+                        else:
+                            pf.append(out)
+                    jl, lm, lc = compute_jepa_loss(pf, pc, h, all_mpred, all_menc,
+                                                   loss_exp, predict_all, lambda_context=0.5)
+                total_j += jl.item() * micro_bs
+                total_m += lm.item() * micro_bs
+                total_c += lc.item() * micro_bs
+                n_seen += micro_bs
+                sizer.after_batch_success()
+                i = end
+            except torch.cuda.OutOfMemoryError:
+                cuda_cleanup()
+                if not sizer.on_oom():
+                    raise RuntimeError(
+                        f"probe val-loss OOM at min sub-batch={sizer.min_size}"
+                    ) from None
+    finally:
+        if had_hier is not None:
+            student.return_hierarchical = had_hier
+        if was_training:
+            student.train()
+        if teacher_was_training:
+            teacher.train()
+        if predictor_was_training:
+            predictor.train()
+
+    return {
+        "jepa_loss": total_j / max(n_seen, 1),
+        "masked_loss": total_m / max(n_seen, 1),
+        "context_loss": total_c / max(n_seen, 1),
+        "n_val_clips": n_seen,
+    }
+
+
 def compute_trajectory_stats(probe_history: list) -> dict:
     """Trajectory stats across stage boundaries.
 

@@ -45,7 +45,7 @@ Every `src/m*.py` using GPU MUST have: (1) `check_gpu()`, (2) `cleanup_temp()`, 
 - SANITY validates code correctness (no crashes), NOT model performance. Never draw conclusions from insufficient data.
 
 # WORKFLOW RULES
-- **Goal override**: #1 priority is research results. Every recommendation must maximize "Surgery(Prec@k) > Frozen(Prec@K) with non-overlapping 95 % CIs. Never filter by implementation effort.
+- **Goal override**: #1 priority is research results. Every recommendation must maximize "Surgery outperform Frozen on [Prec@K/mAP@K/Cycle@K] with non-overlapping 95 % CIs. Never filter by implementation effort. Never take shortcut at the cost of compromising results.
 - **Never sacrifice metric accuracy for speed.** Eval must match frozen baseline exactly (64 frames, same resolution, ImageNet norm).
 - **Never choose the easy option. WEBSEARCH for the gold-standard solution that preserves BOTH highest accuracy AND highest throughput.** When hitting a runtime error, the first reflex (disable the offending feature, fallback to slower path, add a `|| true`, skip the hard case) is almost always wrong. BEFORE proposing any fix that trades off throughput (disabling torch.compile, falling back to eager, reducing batch size, downgrading dtype) OR accuracy (skipping a mask, lowering a threshold, dropping a factor), websearch how the community (HF, facebookresearch, Dao-AILab, PyTorch core) solved the exact same error on a comparable stack. Cite ≥2 sources. Example: disabling `torch.compile` on a 2B model to dodge a RoPE-induced Q/K/V dtype mismatch is lazy; the correct fix is a one-line `q, k = q.to(v.dtype), k.to(v.dtype)` before SDPA (the idiom used by HF Llama + naver-ai/rope-vit + HF PR #36065). See `iter/iter8/errors_N_fixes.md` #44.
 - **Interrupt freely**: All GPU scripts have checkpoint resume. Don't say "let the run complete" when a fix is ready.
@@ -73,6 +73,6 @@ Every `src/m*.py` using GPU MUST have: (1) `check_gpu()`, (2) `cleanup_temp()`, 
 - 🏗️ Training plan: `iter/iter8/plan_training.md` (HIGH level — system design, literature)
 - 📋 TODO + status: `iter/iter8/plan_TODO.md` (MID level — kanban, m09c iteration table, time budget)
 - 🚀 Runbook: `iter/iter8/runbook.md` (LOW level — GPU-ready commands + verify tables)
-- 🐛 Bug log: `iter/iter8/errors_N_fixes.md` (ERROR level — 61 entries catalogued, #1-#61 as of 2026-04-17)
+- 🐛 Bug log: `iter/iter8/errors_N_fixes.md` (ERROR level — 63 entries catalogued, #1-#63 as of 2026-04-19: +#62 poc_simplified removed, +#63 probe infra landed)
 - 🛡️ Preflight CPU-side guards: `.claude/skills/preflight/SKILL.md` (B1-B42 static checks citing errors_N_fixes entries)
 - 📖 Fallback techniques if Surgery fails: `iter/utils/literarure_survey.md` (24 JEPA variants, SIGReg / VLA-JEPA / temporal-projection)

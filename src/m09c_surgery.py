@@ -66,7 +66,7 @@ from utils.training import (
     export_student_for_eval,
     set_trainable_prefix, enable_gradient_checkpointing,
     FactorSampler, build_factor_index, load_factor_clip,
-    build_probe_clips, run_probe_eval, compute_trajectory_stats,
+    build_probe_clips, run_probe_eval, run_probe_val_loss, compute_trajectory_stats,
 )
 
 
@@ -424,19 +424,37 @@ def train_surgery(cfg: dict, args):
         os.fsync(jsonl_file.fileno())
 
     # Mid-training probe: decode val_1k clips ONCE upfront (~5-10 min),
-    # then embed + eval in <10 s per stage boundary. Skipped if disabled
-    # (SANITY) or --no-probe. Required yaml keys accessed directly — missing
-    # key = KeyError = fail loud (CLAUDE.md "no .get(key, default) on YAML").
+    # then embed + eval in <10 s per probe point. Required yaml keys accessed
+    # directly — missing key = KeyError = fail loud (CLAUDE.md "no .get default").
+    #
+    # Cadence (ch11_surgery.yaml probe.cadence):
+    #   "every_n_steps" → distributes `n_points` probes uniformly across total_steps
+    #                     (probe_every = total_steps // n_points), ALWAYS firing an
+    #                     extra probe at each stage-boundary for true BWT anchors.
+    #   "stage_boundary" → 3 probes only (legacy, low-resolution trajectory).
     probe_cfg = cfg["probe"]
     probe_clips = None
-    probe_history = []          # list of {stage_idx, stage_name, metrics}
+    probe_history = []          # list of {stage_idx, stage_name, global_step, prec@k, map@k, cycle@k, val_loss_*}
     probe_jsonl_path = output_dir / "probe_history.jsonl"
+    probe_cadence = probe_cfg["cadence"]
+    probe_every = None
+    probe_compute_val_loss = probe_cfg["compute_val_loss"]
     if probe_cfg["enabled"]:
         # Required yaml keys. Direct access — missing key → KeyError with file+key name.
         subset_path = probe_cfg["subset"]
         local_data_path = probe_cfg["local_data"]
         tags_path = probe_cfg["tags_path"]
-        print(f"\n{'='*60}\n[probe] decoding {subset_path} (one-time)\n{'='*60}")
+        if probe_cadence == "every_n_steps":
+            n_points = probe_cfg["n_points"]
+            probe_every = max(1, total_steps // n_points)
+            print(f"\n{'='*60}\n[probe] decoding {subset_path} (one-time), cadence=every_n_steps, "
+                  f"n_points={n_points} (probe_every={probe_every}), val_loss={probe_compute_val_loss}\n{'='*60}")
+        elif probe_cadence == "stage_boundary":
+            print(f"\n{'='*60}\n[probe] decoding {subset_path} (one-time), cadence=stage_boundary "
+                  f"(3 probes only), val_loss={probe_compute_val_loss}\n{'='*60}")
+        else:
+            print(f"FATAL: probe.cadence='{probe_cadence}' — must be 'every_n_steps' or 'stage_boundary'")
+            sys.exit(1)
         probe_clips = build_probe_clips(
             probe_subset_path=subset_path,
             probe_local_data=local_data_path,
@@ -445,8 +463,45 @@ def train_surgery(cfg: dict, args):
         )
         probe_jsonl_file = open(probe_jsonl_path, "w")
     else:
-        print("[probe] disabled (SANITY mode or --no-probe) — skipping stage-boundary eval")
+        print("[probe] disabled (SANITY mode or --no-probe) — skipping probe + val-loss eval")
         probe_jsonl_file = None
+
+    def _run_probe_at_step(stage_idx_, stage_name_, global_step_):
+        """Run probe + optional val-loss, append to history, log + fsync."""
+        if probe_clips is None:
+            return
+        try:
+            pr = run_probe_eval(student, probe_clips, cfg, device,
+                                k=probe_cfg["k"], bootstrap_iter=probe_cfg["bootstrap_iter"])
+            if probe_compute_val_loss:
+                vl = run_probe_val_loss(student, teacher, predictor, probe_clips,
+                                        mask_generators, cfg, device)
+                pr["val_jepa_loss"] = vl["jepa_loss"]
+                pr["val_masked_loss"] = vl["masked_loss"]
+                pr["val_context_loss"] = vl["context_loss"]
+            pr["stage_idx"] = stage_idx_
+            pr["stage_name"] = stage_name_
+            pr["global_step"] = global_step_
+            probe_history.append(pr)
+            probe_jsonl_file.write(json.dumps(pr) + "\n")
+            probe_jsonl_file.flush()
+            os.fsync(probe_jsonl_file.fileno())
+            pk, mk, ck = pr["prec_at_k"], pr["map_at_k"], pr["cycle_at_k"]
+            vl_msg = f" val_jepa={pr.get('val_jepa_loss', float('nan')):.4f}" if probe_compute_val_loss else ""
+            print(f"  [probe] step={global_step_} stage={stage_name_} N={pr['num_clips']} "
+                  f"Prec@K={pk['mean']:.2f}±{pk['ci_half']:.2f} "
+                  f"mAP@K={mk['mean']:.2f}±{mk['ci_half']:.2f} "
+                  f"Cycle@K={ck['mean']:.2f}±{ck['ci_half']:.2f}{vl_msg}")
+            log_metrics(wb_run, {
+                f"probe/{stage_name_}/prec_at_k": pk["mean"],
+                f"probe/{stage_name_}/prec_at_k_ci_half": pk["ci_half"],
+                f"probe/{stage_name_}/map_at_k": mk["mean"],
+                f"probe/{stage_name_}/cycle_at_k": ck["mean"],
+                **({f"probe/{stage_name_}/val_jepa_loss": pr["val_jepa_loss"]}
+                   if probe_compute_val_loss else {}),
+            }, step=global_step_)
+        except Exception as e:
+            print(f"  [probe] WARN: eval failed at step {global_step_} stage {stage_name_}: {e}")
 
     try:
         for stage_idx, stage_cfg in enumerate(stages):
@@ -613,53 +668,25 @@ def train_surgery(cfg: dict, args):
                 if global_step % cfg["optimization"]["gc_interval"] == 0:
                     gc.collect()
 
+                # Mid-stage probe: fire every `probe_every` steps under "every_n_steps"
+                # cadence. Excludes local_step == stage_steps - 1 (last step of stage) —
+                # that gets a forced probe below for the BWT anchor guarantee.
+                is_last_step_of_stage = (local_step == stage_steps - 1)
+                if (probe_clips is not None
+                        and probe_every is not None
+                        and not is_last_step_of_stage
+                        and global_step % probe_every == 0):
+                    _run_probe_at_step(stage_idx, stage_name, global_step)
+
             pbar.close()
             save_training_checkpoint(output_dir / f"{CHECKPOINT_PREFIX}_stage{stage_idx}.pt",
                                      student, teacher, predictor, optimizer, scheduler,
                                      scaler, global_step, 0.0, full=False)
             print(f"  Stage {stage_name} complete: {stage_steps} steps, loss={jepa_val:.4f}")
 
-            # Probe eval at stage boundary: embed val_1k through CURRENT student,
-            # compute Prec@K/mAP@K/Cycle@K with BCa 95% CI. Trajectory (list per
-            # stage) is the paper's "forgetting monitor" — if Prec@K drops at
-            # stage_idx+1 despite replay, the paper claim breaks on this run.
-            # Non-fatal: probe failures log a WARN and continue training.
-            if probe_clips is not None:
-                try:
-                    # Direct yaml subscripts — missing key → KeyError at runtime
-                    # (immediate crash, clear cause). No defaults per CLAUDE.md fail-loud.
-                    probe_result = run_probe_eval(
-                        student, probe_clips, cfg, device,
-                        k=probe_cfg["k"],
-                        bootstrap_iter=probe_cfg["bootstrap_iter"],
-                    )
-                    probe_result["stage_idx"] = stage_idx
-                    probe_result["stage_name"] = stage_name
-                    probe_result["global_step"] = global_step
-                    probe_history.append(probe_result)
-                    probe_jsonl_file.write(json.dumps(probe_result) + "\n")
-                    probe_jsonl_file.flush()
-                    os.fsync(probe_jsonl_file.fileno())
-
-                    # run_probe_eval raises ValueError for N<10, else always returns
-                    # full CI dicts. Direct indexing — no .get defaults.
-                    pk = probe_result["prec_at_k"]
-                    mk = probe_result["map_at_k"]
-                    ck = probe_result["cycle_at_k"]
-                    print(f"  [probe] stage={stage_name} N={probe_result['num_clips']} "
-                          f"Prec@K={pk['mean']:.2f}±{pk['ci_half']:.2f} "
-                          f"mAP@K={mk['mean']:.2f}±{mk['ci_half']:.2f} "
-                          f"Cycle@K={ck['mean']:.2f}±{ck['ci_half']:.2f}")
-                    log_metrics(wb_run, {
-                        f"probe/{stage_name}/prec_at_k": pk["mean"],
-                        f"probe/{stage_name}/prec_at_k_ci_half": pk["ci_half"],
-                        f"probe/{stage_name}/map_at_k": mk["mean"],
-                        f"probe/{stage_name}/cycle_at_k": ck["mean"],
-                    }, step=global_step)
-                except Exception as e:
-                    # Non-fatal: probe failure (OOM / N<10 / tag mismatch) logs WARN
-                    # and continues training. Stage checkpoint already saved above.
-                    print(f"  [probe] WARN: eval failed at stage {stage_name}: {e}")
+            # Forced stage-boundary probe (BWT anchor) — fires regardless of cadence
+            # so the 3 anchors are always present in probe_history for BWT computation.
+            _run_probe_at_step(stage_idx, stage_name, global_step)
 
     finally:
         csv_file.close()
@@ -742,6 +769,46 @@ def train_surgery(cfg: dict, args):
             print(f"  Saved: {output_dir / 'probe_trajectory.png'}")
         except Exception as e:
             print(f"  [probe] WARN: trajectory plot failed: {e}")
+
+        # Val-loss curve (optimization-trajectory companion to probe retrieval metrics).
+        # Plots val JEPA / masked / context loss vs global_step with stage-transition
+        # vlines — mirrors training-loss figure layout so reviewers can compare side-by-side.
+        if probe_compute_val_loss and all("val_jepa_loss" in r for r in probe_history):
+            try:
+                import matplotlib
+                matplotlib.use("Agg")
+                import matplotlib.pyplot as plt
+                fig, ax = plt.subplots(figsize=(8, 5))
+                steps = [r["global_step"] for r in probe_history]
+                for key, label, color in [
+                    ("val_jepa_loss", "JEPA val-loss (total)", "#C62828"),
+                    ("val_masked_loss", "masked loss", "#1565C0"),
+                    ("val_context_loss", "context loss", "#2E7D32"),
+                ]:
+                    vals = [r[key] for r in probe_history]
+                    ax.plot(steps, vals, "o-", color=color, linewidth=2,
+                            label=label, markersize=6, alpha=0.9)
+                # Stage-transition vlines (last entry per stage_idx is the anchor)
+                seen = set()
+                for r in probe_history:
+                    if r["stage_idx"] not in seen:
+                        ax.axvline(r["global_step"], color="gray",
+                                   linestyle=":", alpha=0.4, linewidth=1)
+                        seen.add(r["stage_idx"])
+                ax.set_xlabel("Optimizer step")
+                ax.set_ylabel("JEPA val-loss (L1 latent prediction)")
+                ax.set_title(
+                    f"Mid-training JEPA val-loss (N={probe_history[0]['num_clips']} val_1k clips, "
+                    f"{len(probe_history)} probe points)")
+                ax.legend(loc="best", fontsize=9)
+                ax.grid(True, alpha=0.3)
+                for ext in (".png", ".pdf"):
+                    plt.savefig(output_dir / f"m09_val_loss{ext}",
+                                dpi=150 if ext == ".png" else None, bbox_inches="tight")
+                plt.close()
+                print(f"  Saved: {output_dir / 'm09_val_loss.png'}")
+            except Exception as e:
+                print(f"  [probe] WARN: val-loss plot failed: {e}")
 
     # Training summary
     summary = {

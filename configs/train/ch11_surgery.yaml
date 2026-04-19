@@ -207,7 +207,9 @@ probe:
   tags_path: data/val_1k_local/tags.json
   k: 6                            # matches configs/pipeline.yaml eval.K
   bootstrap_iter: 10000           # matches utils/bootstrap.N_BOOTSTRAP
-  cadence: stage_boundary         # stage_boundary | end_only — future: every_n_steps
+  cadence: every_n_steps          # stage_boundary | every_n_steps — "every_n_steps" distributes probes uniformly across total_steps, ALWAYS preserving the 3 stage-boundary anchors for BWT.
+  n_points: 30                    # target probe count across the whole run; probe_every = max(1, total_steps // n_points). Budget math: 30 probes × (~15 s probe + ~6 s val-loss) ≈ 10.5 min overhead on 2.7 h POC (~6.5%). Reducing n_points cuts overhead linearly.
+  compute_val_loss: true          # also compute JEPA val-loss on probe clips at every probe point (m09c val-loss companion to probe Prec@K). Cheap (~6 s per call at N=1000).
   # NOTE: probe forward micro-batch is adaptive — AdaptiveBatchSizer reads
   # pipeline.yaml gpu.{inference_vjepa_initial_bs, inference_adapted_bs,
   # gpu_memory_target} at runtime. Do NOT hardcode a sub_batch here (violates
