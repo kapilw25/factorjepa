@@ -28,6 +28,19 @@
 
 extends: base_optimization.yaml
 
+# -- Data split overrides (m09c-specific train/val) --
+# Deterministic 90/10 split via seeded shuffle (cfg.data.seed from base_optimization.yaml).
+# Held-out val clip_keys are written to outputs/.../m09c_surgery/val_split.json for
+# downstream Step D (Frozen m05), Step E (Surgical m05), Step F (m06 decision gate) —
+# apples-to-apples on the same held-out 10%. SANITY uses 1.0 (no split) since N=20 is
+# too small to split further. Removes the 2026-04-19 test-leakage flaw where training,
+# probe, and decision gate all ran on identical val_1k clips.
+data:
+  train_val_split:
+    sanity: 1.0                   # no split (N=20 too small)
+    poc: 0.9                      # 900 train / 100 held-out val
+    full: 0.9                     # 103K train / 12K held-out val
+
 # -- Optimization overrides --
 optimization:
   lr: 1.0e-6                      # Same as Ch10 (constant, post-audit)
@@ -37,8 +50,8 @@ optimization:
 
   max_epochs:
     sanity: 1
-    poc: 100                      # ~300 total steps → ~100 per stage × 20s ≈ 100 min on 96GB (real loss curve)
-    full: 300                     # ~900 total steps → ~300 per stage × 20s ≈ 5h per stage (115K training signal)
+    poc: 5                        # 900 clips × 5 epochs / 32 BS ≈ 140 total steps / 3 stages ≈ 47 per stage (~25 min on 96GB)
+    full: 1                       # 103K clips × 1 epoch / 32 BS ≈ 3220 total steps / 3 stages ≈ 1073 per stage (~5-6h on 96GB, single pass sufficient at 115K scale)
 
   batch_size: 32                  # Auto-overridden by profiler
 
@@ -186,29 +199,36 @@ drift_control:
   type: l2_uniform                  # Simple L2 (not EWC) for surgery
   lambda_reg: 1.0
 
-# -- Mid-training probe eval (B37-style forgetting / trajectory monitor) --
-# At stage boundaries, embed val_1k through the current student and compute
-# Prec@K / mAP@K / Cycle@K with BCa 95% CI. Numbers are directly comparable to
-# the D.4 decision gate (same bootstrap math, same scene_type field). Adds
-# ~10 min upfront (one-time clip decode) + ~5 s × 3 stages on 96GB.
-#
-# Mode gating: skipped on SANITY (N=20 too small for stable CI), ON for POC and
-# FULL. Probe uses val_1k_local which is ALSO the decision-gate set — so test
-# leakage exists by design. Acceptable because the retrieval metric is
-# structural, not supervised accuracy (m06 does query-vs-database kNN on the
-# same set with ±30s exclusion, not held-out label prediction).
+# -- Mid-training probe eval (trajectory monitor + best-ckpt selection + kill-switch) --
+# Probe runs on the held-out 10% split (see data.train_val_split). 100 clips on POC →
+# Prec@K / mAP@K / Cycle@K with BCa 95% CI + JEPA val-loss. On `saves_per_epoch` cadence,
+# probe fires every `steps_per_epoch // saves_per_epoch` steps → 10 probes/epoch.
+# Best-ckpt: tracks running max Prec@K; exports student_best.pt on each new max; at
+# end-of-training, student_best.pt is promoted to student_encoder.pt. Kill-switch:
+# aborts training if Prec@K drops >forgetting_threshold_pct from running max for
+# forgetting_patience consecutive probes (catastrophic-forgetting guard).
 probe:
   enabled:
     sanity: false                 # N too small for stable BCa CI
     poc: true
     full: true
-  subset: data/val_1k.json        # must match --probe-subset from script
+  subset: data/val_1k.json        # original subset (used only if split_ratio == 1.0; otherwise held-out val keys come from in-memory split)
   local_data: data/val_1k_local   # WebDataset TAR dir (1 shard for val_1k)
   tags_path: data/val_1k_local/tags.json
   k: 6                            # matches configs/pipeline.yaml eval.K
   bootstrap_iter: 10000           # matches utils/bootstrap.N_BOOTSTRAP
-  cadence: every_n_steps          # stage_boundary | every_n_steps — "every_n_steps" distributes probes uniformly across total_steps, ALWAYS preserving the 3 stage-boundary anchors for BWT.
-  n_points: 30                    # target probe count across the whole run; probe_every = max(1, total_steps // n_points). Budget math: 30 probes × (~15 s probe + ~6 s val-loss) ≈ 10.5 min overhead on 2.7 h POC (~6.5%). Reducing n_points cuts overhead linearly.
+  cadence: saves_per_epoch        # stage_boundary | every_n_steps | saves_per_epoch — saves_per_epoch reuses `checkpoint.saves_per_epoch` (base_optimization.yaml:93) so probe cadence = ckpt-save cadence. No redundant knob.
+  n_points: 30                    # kept for every_n_steps backward-compat (unused when cadence=saves_per_epoch).
+  best_ckpt_enabled:              # export student_best.pt on each new max prec_at_k.mean; promote to student_encoder.pt post-training.
+    sanity: false
+    poc: true
+    full: true
+  kill_switch_enabled:            # abort if prec_at_k < running_max - forgetting_threshold_pct for forgetting_patience consecutive probes.
+    sanity: false
+    poc: true
+    full: true
+  forgetting_threshold_pct: 5.0   # absolute Prec@K points below running max that count as a forgetting strike.
+  forgetting_patience: 3          # consecutive strikes → kill.
   compute_val_loss: true          # also compute JEPA val-loss on probe clips at every probe point (m09c val-loss companion to probe Prec@K). Cheap (~6 s per call at N=1000).
   # NOTE: probe forward micro-batch is adaptive — AdaptiveBatchSizer reads
   # pipeline.yaml gpu.{inference_vjepa_initial_bs, inference_adapted_bs,

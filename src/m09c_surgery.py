@@ -65,7 +65,7 @@ from utils.training import (
     save_training_checkpoint, cleanup_old_checkpoints, cleanup_stage_checkpoints, load_training_checkpoint,  # noqa: F401 — cleanup_old_checkpoints/load_training_checkpoint kept for resume
     export_student_for_eval,
     set_trainable_prefix, enable_gradient_checkpointing,
-    FactorSampler, build_factor_index, load_factor_clip,
+    FactorSampler, build_factor_index, load_factor_clip, create_train_val_split,
     build_probe_clips, run_probe_eval, run_probe_val_loss, compute_trajectory_stats,
 )
 
@@ -118,6 +118,15 @@ def merge_config_with_args(cfg: dict, args) -> dict:
     if getattr(args, "no_probe", False):
         probe_enabled = False
     cfg["probe"]["enabled"] = probe_enabled
+
+    # Best-ckpt + kill-switch: mode-gated (off for SANITY, on for POC/FULL).
+    # Flatten per-mode dicts → scalars so training loop reads booleans directly.
+    cfg["probe"]["best_ckpt_enabled"] = probe_cfg["best_ckpt_enabled"][mode_key]
+    cfg["probe"]["kill_switch_enabled"] = probe_cfg["kill_switch_enabled"][mode_key]
+
+    # 90/10 train/val split (see data.train_val_split in ch11_surgery.yaml). Capped at
+    # 1000 val clips to prevent FULL (115K × 10% = 11.5K) from over-sizing the val-set.
+    cfg["data"]["train_val_split"] = cfg["data"]["train_val_split"][mode_key]
 
     # Output dir: explicit --output-dir, or auto from module + mode
     if getattr(args, "output_dir", None):
@@ -366,7 +375,28 @@ def train_surgery(cfg: dict, args):
         print(f"  m10 quality: concept_recall={m10_summary['mean_concept_recall']:.2f} (PASS)")
 
     manifest = json.load(open(manifest_file))
-    factor_index = build_factor_index(manifest,
+
+    # 90/10 train/val split (data.train_val_split from ch11_surgery.yaml). Deterministic
+    # seeded shuffle via create_train_val_split(); val capped at 1000 clips. Held-out
+    # val keys persisted to val_split.json so Step D (Frozen m05), Step E (Surgical m05),
+    # and Step F (m06 decision gate) all read the SAME held-out set — apples-to-apples,
+    # no train/test leakage. SANITY uses split_ratio=1.0 → no split.
+    split_ratio = cfg["data"]["train_val_split"]
+    all_keys = list(manifest.keys())
+    train_keys, val_keys = create_train_val_split(all_keys, split_ratio, seed,
+                                                  max_val_clips=1000)
+    train_manifest = {k: manifest[k] for k in train_keys}
+    val_split_path = output_dir / "val_split.json"
+    with open(val_split_path, "w") as f:
+        json.dump({"n": len(val_keys), "seed": seed,
+                   "source": str(args.subset) if args.subset else str(cfg["data"]["subset"]),
+                   "split_ratio": split_ratio,
+                   "max_val_clips": 1000,
+                   "clip_keys": val_keys}, f, indent=2)
+    print(f"  train/val split: {len(train_keys)} train / {len(val_keys)} val "
+          f"(seed={seed}, ratio={split_ratio:.2f}) → {val_split_path}")
+
+    factor_index = build_factor_index(train_manifest,
                                        factor_dir / "D_L",
                                        factor_dir / "D_A",
                                        factor_dir / "D_I")
@@ -423,15 +453,15 @@ def train_surgery(cfg: dict, args):
         jsonl_file.flush()
         os.fsync(jsonl_file.fileno())
 
-    # Mid-training probe: decode val_1k clips ONCE upfront (~5-10 min),
-    # then embed + eval in <10 s per probe point. Required yaml keys accessed
-    # directly — missing key = KeyError = fail loud (CLAUDE.md "no .get default").
+    # Mid-training probe runs on held-out val-split keys (from train/val split above).
+    # Required yaml keys accessed directly — missing key = KeyError = fail loud
+    # (CLAUDE.md "no .get default").
     #
     # Cadence (ch11_surgery.yaml probe.cadence):
-    #   "every_n_steps" → distributes `n_points` probes uniformly across total_steps
-    #                     (probe_every = total_steps // n_points), ALWAYS firing an
-    #                     extra probe at each stage-boundary for true BWT anchors.
-    #   "stage_boundary" → 3 probes only (legacy, low-resolution trajectory).
+    #   "every_n_steps"    → distributes `n_points` probes uniformly across total_steps.
+    #   "saves_per_epoch"  → reuses checkpoint.saves_per_epoch (base_optimization.yaml)
+    #                        to fire that many probes per training epoch.
+    #   "stage_boundary"   → 3 probes only (legacy, low-resolution trajectory).
     probe_cfg = cfg["probe"]
     probe_clips = None
     probe_history = []          # list of {stage_idx, stage_name, global_step, prec@k, map@k, cycle@k, val_loss_*}
@@ -447,27 +477,197 @@ def train_surgery(cfg: dict, args):
         if probe_cadence == "every_n_steps":
             n_points = probe_cfg["n_points"]
             probe_every = max(1, total_steps // n_points)
-            print(f"\n{'='*60}\n[probe] decoding {subset_path} (one-time), cadence=every_n_steps, "
+            print(f"\n{'='*60}\n[probe] N={len(val_keys)} held-out val clips, cadence=every_n_steps, "
                   f"n_points={n_points} (probe_every={probe_every}), val_loss={probe_compute_val_loss}\n{'='*60}")
+        elif probe_cadence == "saves_per_epoch":
+            saves_per_epoch = cfg["checkpoint"]["saves_per_epoch"]
+            probe_every = max(1, steps_per_epoch // saves_per_epoch)
+            n_probes_total = max_epochs * saves_per_epoch
+            print(f"\n{'='*60}\n[probe] N={len(val_keys)} held-out val clips, cadence=saves_per_epoch, "
+                  f"saves_per_epoch={saves_per_epoch} (probe_every={probe_every} steps, "
+                  f"~{n_probes_total} total probes), val_loss={probe_compute_val_loss}\n{'='*60}")
         elif probe_cadence == "stage_boundary":
-            print(f"\n{'='*60}\n[probe] decoding {subset_path} (one-time), cadence=stage_boundary "
+            print(f"\n{'='*60}\n[probe] N={len(val_keys)} held-out val clips, cadence=stage_boundary "
                   f"(3 probes only), val_loss={probe_compute_val_loss}\n{'='*60}")
         else:
-            print(f"FATAL: probe.cadence='{probe_cadence}' — must be 'every_n_steps' or 'stage_boundary'")
+            print(f"FATAL: probe.cadence='{probe_cadence}' — must be 'every_n_steps', 'saves_per_epoch', or 'stage_boundary'")
             sys.exit(1)
+        # Use held-out val_keys from train/val split (in-memory override) instead of
+        # reading probe.subset JSON — eliminates train/test overlap.
         probe_clips = build_probe_clips(
             probe_subset_path=subset_path,
             probe_local_data=local_data_path,
             probe_tags_path=tags_path,
             num_frames=num_frames, crop_size=crop_size,
+            subset_keys_override=set(val_keys) if val_keys else None,
         )
         probe_jsonl_file = open(probe_jsonl_path, "w")
     else:
         print("[probe] disabled (SANITY mode or --no-probe) — skipping probe + val-loss eval")
         probe_jsonl_file = None
 
+    # Best-ckpt tracker + catastrophic-forgetting kill-switch state.
+    # Both driven by prec_at_k.mean (gate-aligned metric). best_state exports
+    # student_best.pt on each new running-max; post-training it is promoted to
+    # student_encoder.pt. kill_state accumulates strikes when current < max - threshold.
+    best_state = {"prec_at_k": -1.0, "global_step": -1, "stage_name": "", "probe_record": None}
+    kill_state = {"strikes": 0, "triggered": False}
+    best_ckpt_enabled = probe_cfg["best_ckpt_enabled"]
+    kill_switch_enabled = probe_cfg["kill_switch_enabled"]
+    forgetting_threshold_pct = probe_cfg["forgetting_threshold_pct"]
+    forgetting_patience = probe_cfg["forgetting_patience"]
+    best_ckpt_path = output_dir / "student_best.pt"
+
+    def _render_live_plots(verbose: bool = False):
+        """Render probe_trajectory + m09_forgetting + m09_val_loss PNG/PDF from
+        the live probe_history. Called after each probe (verbose=False) and at
+        end-of-training (verbose=True). Needs ≥2 probe points for line+CI; silent
+        no-op below that. Each plot wrapped in try/except so rendering failure
+        never kills training. Overhead: ~0.5 s × 3 plots × 50 probes ≈ 75 s / 25-min run (~5%).
+        """
+        if len(probe_history) < 2:
+            return
+        try:
+            import matplotlib
+            matplotlib.use("Agg")
+            import matplotlib.pyplot as plt
+        except Exception as e:
+            if verbose:
+                print(f"  [probe] WARN: matplotlib import failed: {e}")
+            return
+
+        steps_ = [r["global_step"] for r in probe_history]
+
+        # Plot 1: probe_trajectory.png/.pdf — Prec@K/mAP@K/Cycle@K vs step
+        try:
+            fig, ax = plt.subplots(figsize=(8, 5))
+            for metric, color in [("prec_at_k", "#2E7D32"),
+                                  ("map_at_k", "#1565C0"),
+                                  ("cycle_at_k", "#E65100")]:
+                means = [r[metric]["mean"] for r in probe_history]
+                ci_los = [r[metric]["ci_lo"] for r in probe_history]
+                ci_his = [r[metric]["ci_hi"] for r in probe_history]
+                ax.plot(steps_, means, "o-", color=color, linewidth=2,
+                        label=metric, markersize=5, alpha=0.9)
+                ax.fill_between(steps_, ci_los, ci_his, color=color, alpha=0.15)
+            seen = set()
+            for r in probe_history:
+                if r["stage_idx"] not in seen:
+                    ax.axvline(r["global_step"], color="gray",
+                               linestyle=":", alpha=0.4, linewidth=1)
+                    seen.add(r["stage_idx"])
+            ax.set_xlabel("Optimizer step")
+            ax.set_ylabel("Probe metric (%)")
+            ax.set_title(
+                f"Probe trajectory (N={probe_history[0]['num_clips']} val-split, "
+                f"{len(probe_history)} probes, 95% BCa CI)")
+            ax.legend(loc="best", fontsize=9)
+            ax.grid(True, alpha=0.3)
+            for ext in (".png", ".pdf"):
+                plt.savefig(output_dir / f"probe_trajectory{ext}",
+                            dpi=150 if ext == ".png" else None, bbox_inches="tight")
+            plt.close()
+            if verbose:
+                print(f"  Saved: {output_dir / 'probe_trajectory.png'}")
+        except Exception as e:
+            if verbose:
+                print(f"  [probe] WARN: trajectory plot failed: {e}")
+
+        # Plot 2: m09_forgetting.png/.pdf — Prec@K + running max + tolerance band + strikes
+        try:
+            fig, ax = plt.subplots(figsize=(8, 5))
+            prec_ = [r["prec_at_k"]["mean"] for r in probe_history]
+            running_max = []
+            cur_max = -1.0
+            for v in prec_:
+                cur_max = max(cur_max, v)
+                running_max.append(cur_max)
+            strike_x, strike_y = [], []
+            for s, p, m in zip(steps_, prec_, running_max):
+                if m > 0 and p < m - forgetting_threshold_pct:
+                    strike_x.append(s)
+                    strike_y.append(p)
+            ax.plot(steps_, prec_, "o-", color="#2E7D32", linewidth=2,
+                    label="Prec@K (held-out val)", markersize=5, alpha=0.9)
+            ax.plot(steps_, running_max, "--", color="#1565C0", linewidth=1.5,
+                    label="running max", alpha=0.8)
+            threshold_low = [m - forgetting_threshold_pct for m in running_max]
+            ax.fill_between(steps_, threshold_low, running_max,
+                            color="#FFA726", alpha=0.15,
+                            label=f"forgetting tolerance ({forgetting_threshold_pct:.1f}pp)")
+            if strike_x:
+                ax.scatter(strike_x, strike_y, marker="x", s=100, color="#C62828",
+                           label=f"forgetting strikes ({len(strike_x)})",
+                           zorder=5, linewidths=2)
+            seen = set()
+            for r in probe_history:
+                if r["stage_idx"] not in seen:
+                    ax.axvline(r["global_step"], color="gray",
+                               linestyle=":", alpha=0.4, linewidth=1)
+                    seen.add(r["stage_idx"])
+            if best_state["global_step"] >= 0:
+                ax.axvline(best_state["global_step"], color="#2E7D32",
+                           linestyle="-.", alpha=0.5, linewidth=1.5,
+                           label=f"best ckpt (Prec@K={best_state['prec_at_k']:.2f})")
+            kill_msg = " — TRIGGERED" if kill_state["triggered"] else ""
+            ax.set_xlabel("Optimizer step")
+            ax.set_ylabel("Prec@K (%)")
+            ax.set_title(
+                f"Forgetting monitor (N={probe_history[0]['num_clips']}, "
+                f"patience={forgetting_patience}, threshold={forgetting_threshold_pct:.1f}pp{kill_msg})")
+            ax.legend(loc="best", fontsize=9)
+            ax.grid(True, alpha=0.3)
+            for ext in (".png", ".pdf"):
+                plt.savefig(output_dir / f"m09_forgetting{ext}",
+                            dpi=150 if ext == ".png" else None, bbox_inches="tight")
+            plt.close()
+            if verbose:
+                print(f"  Saved: {output_dir / 'm09_forgetting.png'}")
+        except Exception as e:
+            if verbose:
+                print(f"  [probe] WARN: forgetting plot failed: {e}")
+
+        # Plot 3: m09_val_loss.png/.pdf — val JEPA / masked / context loss vs step
+        if probe_compute_val_loss and all("val_jepa_loss" in r for r in probe_history):
+            try:
+                fig, ax = plt.subplots(figsize=(8, 5))
+                for key, label, color in [
+                    ("val_jepa_loss", "JEPA val-loss (total)", "#C62828"),
+                    ("val_masked_loss", "masked loss", "#1565C0"),
+                    ("val_context_loss", "context loss", "#2E7D32"),
+                ]:
+                    vals = [r[key] for r in probe_history]
+                    ax.plot(steps_, vals, "o-", color=color, linewidth=2,
+                            label=label, markersize=6, alpha=0.9)
+                seen = set()
+                for r in probe_history:
+                    if r["stage_idx"] not in seen:
+                        ax.axvline(r["global_step"], color="gray",
+                                   linestyle=":", alpha=0.4, linewidth=1)
+                        seen.add(r["stage_idx"])
+                ax.set_xlabel("Optimizer step")
+                ax.set_ylabel("JEPA val-loss (L1 latent prediction)")
+                ax.set_title(
+                    f"JEPA val-loss (N={probe_history[0]['num_clips']} val-split, "
+                    f"{len(probe_history)} probes)")
+                ax.legend(loc="best", fontsize=9)
+                ax.grid(True, alpha=0.3)
+                for ext in (".png", ".pdf"):
+                    plt.savefig(output_dir / f"m09_val_loss{ext}",
+                                dpi=150 if ext == ".png" else None, bbox_inches="tight")
+                plt.close()
+                if verbose:
+                    print(f"  Saved: {output_dir / 'm09_val_loss.png'}")
+            except Exception as e:
+                if verbose:
+                    print(f"  [probe] WARN: val-loss plot failed: {e}")
+
     def _run_probe_at_step(stage_idx_, stage_name_, global_step_):
-        """Run probe + optional val-loss, append to history, log + fsync."""
+        """Run probe + optional val-loss, append to history, log + fsync.
+        Also updates best-ckpt tracker + kill-switch state (both driven by
+        prec_at_k.mean). Silent success on probe failure (try/except) so a
+        bad probe doesn't kill training — kill-switch acts only on successful probes.
+        """
         if probe_clips is None:
             return
         try:
@@ -500,6 +700,38 @@ def train_surgery(cfg: dict, args):
                 **({f"probe/{stage_name_}/val_jepa_loss": pr["val_jepa_loss"]}
                    if probe_compute_val_loss else {}),
             }, step=global_step_)
+
+            # Best-ckpt tracker: export student_best.pt on each new running-max prec_at_k.
+            current_prec = pk["mean"]
+            if best_ckpt_enabled and current_prec > best_state["prec_at_k"]:
+                best_state.update({
+                    "prec_at_k": current_prec,
+                    "global_step": global_step_,
+                    "stage_name": stage_name_,
+                    "probe_record": pr,
+                })
+                export_student_for_eval(student, best_ckpt_path, explora_enabled=False)
+                print(f"  [best] new max Prec@K={current_prec:.2f} "
+                      f"(step {global_step_}) → saved student_best.pt")
+
+            # Kill-switch: drop > forgetting_threshold_pct from running max for
+            # forgetting_patience consecutive probes → abort training.
+            if kill_switch_enabled and best_state["prec_at_k"] > 0:
+                running_max = best_state["prec_at_k"]
+                if current_prec < running_max - forgetting_threshold_pct:
+                    kill_state["strikes"] += 1
+                    print(f"  [forgetting-kill] strike {kill_state['strikes']}/{forgetting_patience}: "
+                          f"Prec@K {current_prec:.2f} < max {running_max:.2f} - {forgetting_threshold_pct:.1f}")
+                    if kill_state["strikes"] >= forgetting_patience:
+                        kill_state["triggered"] = True
+                else:
+                    kill_state["strikes"] = 0
+
+            # Live plots (trajectory + forgetting + val_loss) refreshed on every
+            # probe so mid-run progress is visible via `ls outputs/poc/m09c_surgery/*.png`.
+            # Silent (verbose=False); wrapped in try/except so plot render failure
+            # never kills training. Skipped when probe_history has <2 entries.
+            _render_live_plots(verbose=False)
         except Exception as e:
             print(f"  [probe] WARN: eval failed at step {global_step_} stage {stage_name_}: {e}")
 
@@ -678,7 +910,23 @@ def train_surgery(cfg: dict, args):
                         and global_step % probe_every == 0):
                     _run_probe_at_step(stage_idx, stage_name, global_step)
 
+                # Kill-switch: abort training if catastrophic-forgetting strikes fired.
+                # Break out of inner step loop AND flag outer stage loop to exit.
+                if kill_state["triggered"]:
+                    print(f"\n⚠️  CATASTROPHIC FORGETTING — aborting training at step {global_step}")
+                    print(f"     Best Prec@K={best_state['prec_at_k']:.2f} saved at "
+                          f"step {best_state['global_step']} (stage {best_state['stage_name']})")
+                    break
+
             pbar.close()
+            if kill_state["triggered"]:
+                # Skip remaining stages; stage ckpt still saved for resume/post-mortem.
+                save_training_checkpoint(output_dir / f"{CHECKPOINT_PREFIX}_stage{stage_idx}.pt",
+                                         student, teacher, predictor, optimizer, scheduler,
+                                         scaler, global_step, best_state["prec_at_k"], full=False)
+                cleanup_stage_checkpoints(output_dir, CHECKPOINT_PREFIX, keep_n=1)
+                _run_probe_at_step(stage_idx, stage_name, global_step)
+                break
             save_training_checkpoint(output_dir / f"{CHECKPOINT_PREFIX}_stage{stage_idx}.pt",
                                      student, teacher, predictor, optimizer, scheduler,
                                      scaler, global_step, 0.0, full=False)
@@ -714,8 +962,19 @@ def train_surgery(cfg: dict, args):
             "See errors_N_fixes.md #55 for memory-budget mitigations."
         )
 
-    # Export student encoder (vanilla ViT — no LoRA merge)
-    export_student_for_eval(student, student_path, explora_enabled=False)
+    # Best-ckpt promotion: if best_ckpt_enabled fired and student_best.pt exists,
+    # promote it to student_encoder.pt (the downstream artifact). The "best" student
+    # is the one that maxed Prec@K on the held-out val split during training —
+    # eliminates the final-step-not-always-best problem. If no best was recorded
+    # (probe disabled, or all probes failed), export current student weights.
+    if best_ckpt_enabled and best_ckpt_path.exists():
+        import shutil
+        shutil.move(str(best_ckpt_path), str(student_path))
+        print(f"  [best] Promoted student_best.pt (Prec@K={best_state['prec_at_k']:.2f} "
+              f"at step {best_state['global_step']}, stage {best_state['stage_name']}) "
+              f"→ student_encoder.pt")
+    else:
+        export_student_for_eval(student, student_path, explora_enabled=False)
 
     # Final checkpoint cleanup: `student_encoder.pt` is the only downstream artifact
     # (consumed by m05 surgical re-embed + m06 Prec@K). Stage rollback ckpts are
@@ -746,81 +1005,9 @@ def train_surgery(cfg: dict, args):
             "probe/trajectory/monotonic": int(traj_stats["monotonic"]),
         }, step=global_step)
 
-        # Training-dynamics figure — Prec@K across stages with CI bands. The
-        # paper figure Frozen-baseline runs can't produce (they have no stages).
-        try:
-            import matplotlib
-            matplotlib.use("Agg")
-            import matplotlib.pyplot as plt
-            fig, ax = plt.subplots(figsize=(7, 5))
-            stages_x = list(range(len(probe_history)))
-            stage_labels = [r["stage_name"] for r in probe_history]
-            # Every probe_history entry has all three metrics populated by
-            # run_probe_eval (raises on N<10 before returning). No .get guards needed.
-            for metric, color in [("prec_at_k", "#2E7D32"),
-                                  ("map_at_k", "#1565C0"),
-                                  ("cycle_at_k", "#E65100")]:
-                means = [r[metric]["mean"] for r in probe_history]
-                ci_los = [r[metric]["ci_lo"] for r in probe_history]
-                ci_his = [r[metric]["ci_hi"] for r in probe_history]
-                ax.plot(stages_x, means, "o-", color=color, linewidth=2,
-                        label=metric, markersize=8)
-                ax.fill_between(stages_x, ci_los, ci_his, color=color, alpha=0.15)
-            ax.set_xticks(stages_x)
-            ax.set_xticklabels(stage_labels, fontsize=9)
-            ax.set_ylabel("Probe metric (%)")
-            ax.set_title(
-                f"Mid-training probe trajectory (N={probe_history[0]['num_clips']}, "
-                f"95% BCa CI, scene_type)")
-            ax.legend(loc="best", fontsize=9)
-            ax.grid(True, alpha=0.3)
-            for ext in (".png", ".pdf"):
-                plt.savefig(output_dir / f"probe_trajectory{ext}",
-                            dpi=150 if ext == ".png" else None, bbox_inches="tight")
-            plt.close()
-            print(f"  Saved: {output_dir / 'probe_trajectory.png'}")
-        except Exception as e:
-            print(f"  [probe] WARN: trajectory plot failed: {e}")
-
-        # Val-loss curve (optimization-trajectory companion to probe retrieval metrics).
-        # Plots val JEPA / masked / context loss vs global_step with stage-transition
-        # vlines — mirrors training-loss figure layout so reviewers can compare side-by-side.
-        if probe_compute_val_loss and all("val_jepa_loss" in r for r in probe_history):
-            try:
-                import matplotlib
-                matplotlib.use("Agg")
-                import matplotlib.pyplot as plt
-                fig, ax = plt.subplots(figsize=(8, 5))
-                steps = [r["global_step"] for r in probe_history]
-                for key, label, color in [
-                    ("val_jepa_loss", "JEPA val-loss (total)", "#C62828"),
-                    ("val_masked_loss", "masked loss", "#1565C0"),
-                    ("val_context_loss", "context loss", "#2E7D32"),
-                ]:
-                    vals = [r[key] for r in probe_history]
-                    ax.plot(steps, vals, "o-", color=color, linewidth=2,
-                            label=label, markersize=6, alpha=0.9)
-                # Stage-transition vlines (last entry per stage_idx is the anchor)
-                seen = set()
-                for r in probe_history:
-                    if r["stage_idx"] not in seen:
-                        ax.axvline(r["global_step"], color="gray",
-                                   linestyle=":", alpha=0.4, linewidth=1)
-                        seen.add(r["stage_idx"])
-                ax.set_xlabel("Optimizer step")
-                ax.set_ylabel("JEPA val-loss (L1 latent prediction)")
-                ax.set_title(
-                    f"Mid-training JEPA val-loss (N={probe_history[0]['num_clips']} val_1k clips, "
-                    f"{len(probe_history)} probe points)")
-                ax.legend(loc="best", fontsize=9)
-                ax.grid(True, alpha=0.3)
-                for ext in (".png", ".pdf"):
-                    plt.savefig(output_dir / f"m09_val_loss{ext}",
-                                dpi=150 if ext == ".png" else None, bbox_inches="tight")
-                plt.close()
-                print(f"  Saved: {output_dir / 'm09_val_loss.png'}")
-            except Exception as e:
-                print(f"  [probe] WARN: val-loss plot failed: {e}")
+        # Final pass at end-of-training — same helper used for live mid-run renders,
+        # verbose=True so Saved: lines appear in the log for end-of-run confirmation.
+        _render_live_plots(verbose=True)
 
     # Training summary
     summary = {
@@ -831,6 +1018,23 @@ def train_surgery(cfg: dict, args):
         "final_loss": jepa_val,
         "probe_history": probe_history,
         "probe_trajectory_stats": traj_stats,
+        "train_val_split": {
+            "train": len(train_keys), "val": len(val_keys),
+            "split_ratio": split_ratio, "seed": seed, "max_val_clips": 1000,
+            "val_split_path": str(val_split_path),
+        },
+        "best_ckpt": {
+            "prec_at_k": best_state["prec_at_k"],
+            "global_step": best_state["global_step"],
+            "stage_name": best_state["stage_name"],
+            "probe_record": best_state["probe_record"],
+        } if best_ckpt_enabled else None,
+        "kill_switch": {
+            "triggered": kill_state["triggered"],
+            "strikes_at_end": kill_state["strikes"],
+            "threshold_pct": forgetting_threshold_pct,
+            "patience": forgetting_patience,
+        },
     }
     with open(output_dir / "training_summary.json", "w") as f:
         json.dump(summary, f, indent=2)

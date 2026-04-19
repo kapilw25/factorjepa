@@ -43,6 +43,18 @@ HF_OUTPUTS_REPO = "anonymousML123/factorjepa-outputs"
 
 _UPLOAD_EXTENSIONS = {"*.npy", "*.npz", "*.json", "*.csv", "*.png", "*.pdf", "*.tex", "*.pt"}
 
+# Large regeneratable m11 subdirs — mirror .gitignore lines 80-84. These are
+# deliberately EXCLUDED from HF upload because they are cheap to re-compute
+# locally via Step B m11 (~10 min factor-gen + ~30-60 min per-clip plots) and
+# together add ~58 GB per POC run (D_L=18G + D_A=16G + D_I=21G + per_clip_verify=2.9G).
+# Downstream m09c reads from the LOCAL regenerated copies — never needs HF-hosted ones.
+_UPLOAD_SKIP_PATTERNS = [
+    "**/m11_factor_datasets/D_L/**",                  # gitignore:82
+    "**/m11_factor_datasets/D_A/**",                  # gitignore:83
+    "**/m11_factor_datasets/D_I/**",                  # gitignore:84
+    "**/m11_factor_datasets/m11_per_clip_verify/**",  # gitignore:80
+]
+
 _CHECKPOINT_AGE_THRESHOLD = 120  # seconds — skip checkpoints modified within this window
 
 
@@ -86,12 +98,40 @@ def _fmt_size(nbytes: int) -> str:
     return f"{nbytes} B"
 
 
-def _list_local_files(output_path: Path, extensions: set) -> list:
-    """List local files matching allowed extensions, sorted by path."""
+def _list_local_files(output_path: Path, extensions: set,
+                      skip_patterns: list = None) -> list:
+    """List local files matching allowed extensions, sorted by path.
+
+    skip_patterns: list of gitignore-style globs (e.g., `**/m11_factor_datasets/D_L/**`).
+    A file is skipped if ANY of its parent-dir path fragments match a skip pattern.
+    Preview listing is kept in sync with what upload_folder() actually sends so
+    "Uploading N files (X GB)" is accurate.
+    """
     files = []
     for ext in extensions:
-        files.extend(output_path.rglob(ext.lstrip("*")))
-    return sorted(set(files))
+        # rglob needs the full glob pattern (e.g. "*.npy"); previously ext.lstrip("*")
+        # stripped the wildcard → rglob(".npy") literal-matched nothing → preview
+        # always showed "0 files (0 GB)" even as upload_folder sent 64 GB.
+        files.extend(output_path.rglob(ext))
+    files = sorted(set(files))
+    if not skip_patterns:
+        return files
+    # Extract the unique mid-path fragments (e.g., "m11_factor_datasets/D_L")
+    # from gitignore globs like "**/m11_factor_datasets/D_L/**". Simple substring
+    # match on the POSIX relative path is enough — no need to emulate glob recursion.
+    fragments = []
+    for pat in skip_patterns:
+        frag = pat.strip("/")
+        frag = frag[len("**/"):] if frag.startswith("**/") else frag
+        frag = frag[:-len("/**")] if frag.endswith("/**") else frag
+        fragments.append(frag)
+    filtered = []
+    for f in files:
+        rel = f.relative_to(output_path).as_posix()
+        if any(f"/{frag}/" in f"/{rel}/" for frag in fragments):
+            continue
+        filtered.append(f)
+    return filtered
 
 
 def _list_remote_files(api, subfolder: str) -> list:
@@ -199,10 +239,15 @@ def upload_outputs(output_dir: str, subfolder: str = None):
     # deleted plots). Download then pulls them all back → OOM (73GB incident).
     _mirror_cleanup(api, output_path, subfolder)
 
-    # List files that will be uploaded
-    local_files = _list_local_files(output_path, _UPLOAD_EXTENSIONS)
+    # List files that will be uploaded (preview list filtered by the same
+    # skip patterns that upload_folder will apply — so "N files (X GB)" is accurate).
+    local_files = _list_local_files(output_path, _UPLOAD_EXTENSIONS,
+                                    skip_patterns=_UPLOAD_SKIP_PATTERNS)
     total_bytes = sum(f.stat().st_size for f in local_files)
     print(f"Uploading {output_dir} → {HF_OUTPUTS_REPO}/{subfolder}/")
+    print(f"  Skipping {len(_UPLOAD_SKIP_PATTERNS)} large regeneratable dirs "
+          f"(see _UPLOAD_SKIP_PATTERNS in hf_outputs.py): "
+          f"{', '.join(p.strip('/').split('/')[-2] for p in _UPLOAD_SKIP_PATTERNS)}")
     print(f"  {len(local_files)} files ({_fmt_size(total_bytes)}):")
     for f in local_files:
         rel = f.relative_to(output_path)
@@ -216,7 +261,8 @@ def upload_outputs(output_dir: str, subfolder: str = None):
         repo_type="dataset",
         path_in_repo=subfolder,
         allow_patterns=list(_UPLOAD_EXTENSIONS),
-        ignore_patterns=["tmp_*"] + _stale_checkpoint_ignores(output_path),
+        ignore_patterns=(["tmp_*"] + _stale_checkpoint_ignores(output_path)
+                         + _UPLOAD_SKIP_PATTERNS),
     )
 
     elapsed = time.time() - t0

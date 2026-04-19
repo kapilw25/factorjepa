@@ -15,10 +15,10 @@
 | Setup | GPU Setup | ✅ done | 11,444/11,458 files pulled, 112 GB local |
 | A | m10 1K Grounded-SAM (GPU) | 🟢 RUNNING | re-run after 2026-04-19 `rm -rf outputs/poc/` accident; `logs/m10_1k_v1.log` at 145/1000 @ 7:56, ~3.3 s/clip, ETA ~47 min |
 | B | m11 1K factor datasets (CPU) | ⏳ pending | ~10 min factor gen + ~30-60 min per-clip plots (~40-70 min total); `factor_manifest.json` lands at ~10 min — C can launch then, plots continue in background |
-| C | 🎯 m09c POC surgery (GPU) | ⏳ **NEXT after B manifest lands** | ~2.7 h on full 96 GB GPU (no OOM contention); 33-point probe trajectory = early-abort signal |
-| D | m05 1K frozen embed (GPU) | ⏳ pending — runs AFTER C | ~21 min measured (`m05_1k_frozen_v1.log:78`, 1000 clips in 1266 s); skip entirely if C's probe trajectory is flat/down, saves ~21 min |
-| E | m05 1K surgical embed (GPU) | ⏳ pending — runs after D | ~21 min; sequential with D on GPU |
-| F | 🏆 m06 Prec@K decision gate (GPU FAISS) | ⏳ pending — runs after E | ~5 min; reads D + E .npy, produces Surgery vs Frozen metric |
+| C | 🎯 m09c POC surgery (GPU) | ⏳ **NEXT after B manifest lands** | ~25 min on 96 GB GPU (5 epochs × 900 train clips × BS=32 ≈ 140 steps); writes `val_split.json` (100 held-out clips); 50-probe trajectory + best-ckpt + kill-switch |
+| D | m05 100-clip frozen embed (GPU) | ⏳ pending — runs AFTER C | ~2 min on val_split.json (100 clips × 1.27 s/clip); held-out, apples-to-apples with E |
+| E | m05 100-clip surgical embed (GPU) | ⏳ pending — runs after D | ~2 min on val_split.json; sequential with D on GPU |
+| F | 🏆 m06 Prec@K decision gate (GPU FAISS) | ⏳ pending — runs after E | ~1 min; reads D + E .npy on 100 held-out clips, produces Surgery vs Frozen metric with BCa 95% CI |
 | G | ExPLoRA arm (m09b + m05 + m06) | 🔒 locked on F pass | conditional on Surgery > Frozen |
 | FULL | 115K scale-up | 🔒 locked | conditional on POC win |
 
@@ -133,16 +133,10 @@ print(f'D_I: {clips_with}/{len(tubes)} clips ({100*clips_with/len(tubes):.0f}%) 
 > m09c = 3-stage progressive prefix unfreezing + factor datasets (D_L → D_A → D_I). No drift, no held-out val.
 > **Why Step C before D**: immediate goal is `Surgery > Frozen` on Prec@K — test Surgery FIRST so early-abort on flat probe trajectory saves Step D's ~21 min if path is broken.
 
-### 🎯 C — POC (1000 clips val_1k, ~2.7 h on 96GB, real training signal) — NEXT after B manifest lands
+### 🎯 C — POC (900 train / 100 held-out val, ~25 min on 96GB) — NEXT after B manifest lands
 
-> **One-time yaml edit before running** (POC epoch count tuned for 1K scale so wall time stays under 3 h):
-> ```bash
-> # max_epochs.poc: 100 → 20 in configs/train/ch11_surgery.yaml
-> # At 1K clips × 20 epochs × 32 BS = 620 total steps / 3 stages ≈ 207 per stage
-> sed -i 's/^  poc: 100.*# ~300 total/  poc: 20                       # 1K × 20 ep = 620 total steps (~2.7h)/' \
->     configs/train/ch11_surgery.yaml
-> ```
-> Warmup auto-scales via `warmup_pct: 0.20` (fix #60): 207-step stage → 41-step warmup → 166 steps at full LR per stage.
+> **Config locked in yaml (no sed needed)**: `max_epochs.poc: 5` + `data.train_val_split.poc: 0.9` (900/100, cap 1000) + `probe.cadence: saves_per_epoch` (10 probes/epoch × 5 epochs = 50 probes) + `best_ckpt_enabled` + `kill_switch_enabled` (>5% Prec@K drop × 3 probes = abort). All fail-loud; no runtime flags.
+> **Writes** `outputs/poc/m09c_surgery/val_split.json` with 100 held-out keys (seed=42, deterministic) — Step D/E/F read this as `--subset` for apples-to-apples evaluation.
 
 ```bash
 rm -rf outputs/poc/m09c_surgery/
@@ -157,29 +151,32 @@ python -u src/m09c_surgery.py --POC \
 
 **Verify:**
 ```bash
-ls -lh outputs/poc/m09c_surgery/student_encoder.pt outputs/poc/m09c_surgery/probe_trajectory.png outputs/poc/m09c_surgery/probe_history.jsonl
-cat outputs/poc/m09c_surgery/training_summary.json | python3 -c "import json,sys; d=json.load(sys.stdin); print(d['probe_trajectory_stats'])"
+ls -lh outputs/poc/m09c_surgery/student_encoder.pt outputs/poc/m09c_surgery/val_split.json outputs/poc/m09c_surgery/probe_trajectory.png outputs/poc/m09c_surgery/probe_history.jsonl
+python3 -c "import json; d=json.load(open('outputs/poc/m09c_surgery/training_summary.json')); print('train/val:', d['train_val_split']); print('best_ckpt:', d['best_ckpt']); print('kill_switch:', d['kill_switch']); print('trajectory:', d['probe_trajectory_stats'])"
 ```
-- `m09_train_loss.png`: 3 stage curves + vlines ~step 207/414, ≥0.03 loss drop post-warmup/stage, final Stage 3 ~0.35-0.42.
-- `probe_trajectory_stats`: `bwt_prec_at_k > 0` + `monotonic: true` expected; `max_drop_prec_at_k > 0` = replay failed → inspect before Step F.
-- Per-stage log: `[probe] stage=... N=1000 Prec@K=XX.XX±Y.YY mAP@K=... Cycle@K=...`
-- **Early-abort trigger**: flat probe trajectory at Stage 1 end → kill + debug factor quality before spending Steps D/E/F time.
+- `val_split.json`: 100 held-out keys, seed=42, split_ratio=0.9 — downstream D/E/F `--subset` target.
+- `m09_train_loss.png`: 3 stage curves + vlines at stage boundaries, ≥0.03 loss drop post-warmup, final Stage 3 ~0.35-0.42.
+- Per-probe log: `[probe] step=… stage=… N=100 Prec@K=XX.XX±Y.YY mAP@K=… Cycle@K=… val_jepa=…`
+- On new running max: `[best] new max Prec@K=XX.XX → saved student_best.pt`
+- On >5% drop for 3 consecutive probes: `[forgetting-kill] strike N/3` → `⚠️ CATASTROPHIC FORGETTING — aborting`
+- Post-training: `[best] Promoted student_best.pt (Prec@K=XX.XX at step NN) → student_encoder.pt`
+- `training_summary.json`: `best_ckpt.prec_at_k > 0`, `kill_switch.triggered` = false on healthy run.
 
 ---
 
-## ⏳ Step D: V-JEPA 2.1 Frozen Embedding — 1000-clip val_1k — GPU, ~21 min measured
+## ⏳ Step D: V-JEPA 2.1 Frozen Embedding — 100-clip held-out val split — GPU, ~2 min
 
-> ⚠️ `rm -rf` first — stale pre-#62 100-clip `embeddings_vjepa_2_1_frozen.npy` would be re-used silently by `verify_or_skip`.
-> ⏸️ **Runs AFTER Step C.** Earlier plan ran this in parallel with B → would OOM when C allocates optimizer state. Sequential after C releases GPU. If C's probe trajectory is flat/down → skip D entirely, save ~21 min.
+> ⚠️ `rm -rf` first — stale 1000-clip frozen `.npy` would be re-used silently by `verify_or_skip`. Reads `val_split.json` from Step C (apples-to-apples with E).
+> ⏸️ **Runs AFTER Step C.** If C's kill-switch triggered OR probe trajectory is flat → skip D entirely.
 
 ```bash
 rm -rf outputs/poc/m05_vjepa_embed/
 python -u src/m05_vjepa_embed.py --POC \
-    --subset data/val_1k.json \
+    --subset outputs/poc/m09c_surgery/val_split.json \
     --model-config configs/model/vjepa2_1.yaml \
     --encoder vjepa_2_1_frozen \
     --local-data data/val_1k_local --no-wandb \
-    2>&1 | tee logs/m05_1k_frozen_v1.log
+    2>&1 | tee logs/m05_100val_frozen_v1.log
 ```
 
 **Verify:**
@@ -192,12 +189,12 @@ print(f'Range: [{e.min():.2f}, {e.max():.2f}]')
 print(f'L2 norm mean: {np.linalg.norm(e, axis=1).mean():.2f}')"
 ```
 
-| Check | Expect (1000 clips val_1k) |
+| Check | Expect (100 held-out clips) |
 |---|---|
-| Wall time | **~21 min measured** (`logs/m05_1k_frozen_v1.log:78`: 1000 clips in 1266 s / 0.79 clips/s on 96 GB) |
-| Per-clip rate | **~0.79 clips/s** (1.27 s/clip) steady-state; sizer ramps 8→44 over first ~600 clips |
-| `embeddings_vjepa_2_1_frozen.npy` shape | `(1000, 1664)` |
-| AdaptiveBatchSizer growth | 8 → 18+ (may hit max 44 at ~step 400+) |
+| Wall time | **~2 min** (100 × 1.27 s/clip at steady-state on 96 GB; sizer may not reach max 44 at N=100) |
+| Per-clip rate | **~0.79 clips/s** (1.27 s/clip) steady-state |
+| `embeddings_vjepa_2_1_frozen.npy` shape | `(100, 1664)` |
+| AdaptiveBatchSizer growth | 8 → ≥18 (capped by N=100 total) |
 | OOM events | 0 |
 | Compile path | `torch.compile` ✅ (RoPE Q/K cast to V.dtype, #44/#59) |
 | Model dtype | `bfloat16` (V-JEPA 2.1 native) |
@@ -205,21 +202,21 @@ print(f'L2 norm mean: {np.linalg.norm(e, axis=1).mean():.2f}')"
 
 ---
 
-## ⏳ Step E: m05 re-embed on surgical student — ~21 min on 96GB
+## ⏳ Step E: m05 re-embed on surgical student — ~2 min on 96GB
 
-Apply surgery-trained V-JEPA 2.1 to the same 1000 val_1k clips so Prec@K is directly comparable with the frozen baseline (Step D). `rm -f` the surgical .npy only — keep frozen embeddings from Step D.
+Apply surgery-trained (best-ckpt-selected) V-JEPA 2.1 to the SAME 100 held-out val_split clips Frozen embedded in Step D. `student_encoder.pt` here is the best Prec@K checkpoint from C, auto-promoted from `student_best.pt`.
 
 ```bash
 rm -f outputs/poc/m05_vjepa_embed/embeddings_vjepa_2_1_surgical.npy \
       outputs/poc/m05_vjepa_embed/embeddings_vjepa_2_1_surgical.paths.npy \
       outputs/poc/m05_vjepa_embed/.m05_checkpoint_vjepa_2_1_surgical.npz
 python -u src/m05_vjepa_embed.py --POC \
-    --subset data/val_1k.json \
+    --subset outputs/poc/m09c_surgery/val_split.json \
     --model-config configs/model/vjepa2_1.yaml \
     --model outputs/poc/m09c_surgery/student_encoder.pt \
     --encoder vjepa_2_1_surgical \
     --local-data data/val_1k_local --no-wandb \
-    2>&1 | tee logs/m05_1k_surgical_v1.log
+    2>&1 | tee logs/m05_100val_surgical_v1.log
 ```
 
 **Verify:**
@@ -227,32 +224,32 @@ python -u src/m05_vjepa_embed.py --POC \
 python3 -c "
 import numpy as np
 e = np.load('outputs/poc/m05_vjepa_embed/embeddings_vjepa_2_1_surgical.npy')
-print(f'Shape: {e.shape}')                             # expect (1000, 1664)
+print(f'Shape: {e.shape}')                             # expect (100, 1664)
 print(f'L2 norm mean: {np.linalg.norm(e, axis=1).mean():.2f}')"
 ```
 
 ---
 
-## 🏆 Step F: m06 FAISS Prec@K metrics — 🎯 DECISION GATE (~2-5 min, FAISS-GPU)
+## 🏆 Step F: m06 FAISS Prec@K metrics — 🎯 DECISION GATE (~1 min, FAISS-GPU)
 
-Two m06 runs (frozen + surgical) to close the 🎯 decision gate. m06 takes `--encoder` (NOT `--local-data` — chain script error, see fix in errors log). Per-encoder JSON lands at `outputs/poc/m06_metrics_vjepa_2_1_*.json`.
+Two m06 runs (frozen + surgical) on the SAME 100 held-out val_split clips. m06 takes `--encoder` (NOT `--local-data`). Per-encoder JSON lands at `outputs/poc/m06_metrics_vjepa_2_1_*.json`. BCa 95% CI on N=100 is wider than on N=1000 but still publishable if delta > ~3 Prec@K points.
 
 ```bash
 # Frozen baseline — rm stale per-encoder JSON first
 rm -f outputs/poc/m06_metrics_vjepa_2_1_frozen.json outputs/poc/knn_indices_vjepa_2_1_frozen.npy
 python -u src/m06_faiss_metrics.py --POC \
-    --subset data/val_1k.json \
+    --subset outputs/poc/m09c_surgery/val_split.json \
     --encoder vjepa_2_1_frozen \
     --no-wandb \
-    2>&1 | tee logs/m06_1k_frozen.log
+    2>&1 | tee logs/m06_100val_frozen.log
 
 # Surgical — the paper-arm result
 rm -f outputs/poc/m06_metrics_vjepa_2_1_surgical.json outputs/poc/knn_indices_vjepa_2_1_surgical.npy
 python -u src/m06_faiss_metrics.py --POC \
-    --subset data/val_1k.json \
+    --subset outputs/poc/m09c_surgery/val_split.json \
     --encoder vjepa_2_1_surgical \
     --no-wandb \
-    2>&1 | tee logs/m06_1k_surgical.log
+    2>&1 | tee logs/m06_100val_surgical.log
 ```
 
 **Verify — decision gate:**

@@ -724,6 +724,33 @@ def set_trainable_prefix(student, n_layers: int):
           f"({trainable:,}/{total:,} = {100*trainable/total:.1f}%)")
 
 
+def create_train_val_split(clip_keys, split_ratio: float, seed: int,
+                           max_val_clips: int = 1000):
+    """Deterministic train/val split via seeded shuffle. Reproducible across runs
+    with same (keys, split_ratio, seed, max_val_clips). Used by m09c to carve a
+    held-out val-set from the factor manifest so the same set powers mid-training
+    probe + downstream Step F decision gate — eliminates the 2026-04-19 test-leakage flaw.
+
+    val_size = min(max_val_clips, int(n * (1 - split_ratio))). Cap prevents FULL
+    (115K clips × 10% = 11500) from burning GPU on an over-sized val-set when 1000
+    clips already give tight BCa CIs. POC (1000 × 10% = 100) is below cap → 100 val.
+
+    split_ratio=1.0 returns (all_keys, []) — SANITY uses this (N=20 too small to split).
+    """
+    if split_ratio >= 1.0:
+        return list(clip_keys), []
+    rng = random.Random(seed)
+    shuffled = list(clip_keys)
+    rng.shuffle(shuffled)
+    n_total = len(shuffled)
+    # Avoid `n_total * (1 - split_ratio)` — IEEE 754 rounds 1-0.9 = 0.0999... → off-by-one.
+    # Compute n_train first (exact for round multiples), derive n_val from it, then cap.
+    n_train = int(n_total * split_ratio)
+    n_val = min(max_val_clips, n_total - n_train)
+    n_train = n_total - n_val   # re-derive so cap actually increases n_train on FULL
+    return shuffled[:n_train], shuffled[n_train:]
+
+
 def build_factor_index(manifest: dict, dl_dir: Path, da_dir: Path, di_dir: Path) -> dict:
     """Build clip_key → {D_L: path, D_A: path, D_I: [paths]} from m11 manifest."""
     index = {}
@@ -828,16 +855,24 @@ def _probe_preprocess(video_uint8: torch.Tensor, crop_size: int) -> torch.Tensor
 
 
 def build_probe_clips(probe_subset_path: str, probe_local_data: str,
-                      probe_tags_path: str, num_frames: int, crop_size: int) -> list:
+                      probe_tags_path: str, num_frames: int, crop_size: int,
+                      subset_keys_override: set = None) -> list:
     """Decode + preprocess probe clips ONCE upfront. Returns list of
     (clip_key, tag_dict, tensor[T,C,H,W]).
 
     Tag alignment: Path(clip_key).name == tag["source_file"]. Clips without a
     matching tag record are skipped (not fatal — probe is best-effort signal).
     Heavy: 1K val_1k clips take ~5-10 min to decode via PyAV. Cost amortized
-    across 3 stage-boundary calls.
+    across multiple probe calls.
+
+    subset_keys_override: if provided (e.g., m09c held-out 10% split), skip the
+    JSON load and use these keys directly. Lets callers plumb an in-memory split
+    without writing a temp JSON to disk.
     """
-    subset_keys = set(json.load(open(probe_subset_path))["clip_keys"])
+    if subset_keys_override is not None:
+        subset_keys = set(subset_keys_override)
+    else:
+        subset_keys = set(json.load(open(probe_subset_path))["clip_keys"])
     tags_list = json.load(open(probe_tags_path))
     # Fail-loud: tag records without "source_file" are malformed — skip with explicit test, no .get default.
     tag_by_source = {t["source_file"]: t for t in tags_list if "source_file" in t}
