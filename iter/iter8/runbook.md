@@ -17,6 +17,7 @@ git clone https://github.com/kapilw25/factorjepa.git && cd factorjepa
 mkdir -p logs && ./setup_env_uv.sh --gpu --from-wheels 2>&1 | tee logs/setup_env_gpu.log
 # Step [9/9] pre-caches Grounding DINO weights (~1.8 GB) so m10 runs offline.
 source venv_walkindia/bin/activate
+chmod +x git_push.sh git_pull.sh
 ./git_push.sh --code-only "updating"  # sync code only (no HF upload, use on both Mac and GPU)
 ./git_pull.sh 2>&1 | tee logs/git_pull.log  # downloads outputs + data from HF
 ```

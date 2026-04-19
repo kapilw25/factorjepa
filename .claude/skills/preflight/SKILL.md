@@ -604,6 +604,134 @@ print(f'B36 PASS: transformers {op}{ver}')"
 
 ---
 
+## Part I: Durability + YAML-schema + env-file guards (B37-B42)
+
+Added 2026-04-17 late after POC run exposed config-level bugs (#60 max_epochs, #61 warmup) and a patch-durability regression (#59 fresh vjepa2 clone wiped #44 RoPE patch). Each check maps to an `errors_N_fixes.md` entry.
+
+**B37. vjepa2 RoPE Q/K dtype cast durability** (catches errors #44 + #59 — fix is in `deps/vjepa2/` which gets wiped on every `rm -rf deps/vjepa2 && git clone` in setup_env_uv.sh. Patch must be present on disk OR idempotently re-applied by setup_env_uv.sh):
+
+Either (a) `deps/vjepa2/app/vjepa_2_1/models/utils/modules.py` contains `q = q.to(v.dtype)` AND `k = k.to(v.dtype)`, OR (b) `setup_env_uv.sh` contains the heredoc that idempotently applies the patch after `git clone`. Failing both means the next fresh provision will crash m05 under `torch.compile` with `F.scaled_dot_product_attention(q.dtype=float, ..., v.dtype=c10::BFloat16)`.
+```bash
+python3 -c "
+import os, sys
+patched_ok = False
+vjepa_mod = 'deps/vjepa2/app/vjepa_2_1/models/utils/modules.py'
+if os.path.exists(vjepa_mod):
+    src = open(vjepa_mod).read()
+    if 'q = q.to(v.dtype)' in src and 'k = k.to(v.dtype)' in src:
+        patched_ok = True
+setup_ok = False
+if os.path.exists('setup_env_uv.sh'):
+    setup = open('setup_env_uv.sh').read()
+    if 'q = q.to(v.dtype)' in setup and 'vjepa2 RoPE dtype patch' in setup:
+        setup_ok = True
+if not patched_ok and not setup_ok:
+    print('B37 FAIL: vjepa2 RoPE Q/K dtype cast missing in BOTH deps/vjepa2 AND setup_env_uv.sh. Fresh clone will crash m05 under torch.compile (errors_N_fixes.md #44, #59)'); sys.exit(1)
+if not setup_ok:
+    print('B37 WARN: patch is on disk but setup_env_uv.sh has no idempotent re-apply step. Next fresh instance will lose it (#59)')
+    sys.exit(0)
+print('B37 PASS: vjepa2 RoPE patch applied in setup_env_uv.sh (durable across fresh clones)')"
+```
+
+**B38. `ch11_surgery.yaml` max_epochs sanity** (catches error #60 — yaml comment said "1 epoch per stage" but code interprets as total; `poc: 1` → only 3 optimizer steps across all stages → silent near-no-op + garbage student):
+
+`configs/train/ch11_surgery.yaml > optimization.max_epochs.{sanity,poc,full}` must be integers. POC must be ≥ 10 and FULL must be ≥ POC (monotone tier ladder). SANITY can stay 1 (code-only tier).
+```bash
+source venv_walkindia/bin/activate && python3 -c "
+import sys, os, yaml
+y = 'configs/train/ch11_surgery.yaml'
+if not os.path.exists(y): print('B38 SKIP: no ch11_surgery.yaml'); sys.exit(0)
+cfg = yaml.safe_load(open(y))
+me = cfg.get('optimization', {}).get('max_epochs', {})
+fails = []
+for k in ('sanity', 'poc', 'full'):
+    if k not in me: fails.append(f'missing max_epochs.{k}')
+if fails: print(f'B38 FAIL: {fails} (errors_N_fixes.md #60)'); sys.exit(1)
+if me['poc'] < 10:
+    print(f'B38 FAIL: max_epochs.poc={me[\"poc\"]} <10 — stage_steps may collapse to <5 → silent near-no-op training. Bump to ≥20 (errors_N_fixes.md #60)'); sys.exit(1)
+if me['full'] < me['poc']:
+    print(f'B38 FAIL: max_epochs.full={me[\"full\"]} < poc={me[\"poc\"]} — tier ladder inverted (#60)'); sys.exit(1)
+print(f'B38 PASS: max_epochs sanity={me[\"sanity\"]} poc={me[\"poc\"]} full={me[\"full\"]}')"
+```
+
+**B39. `ch11_surgery.yaml` warmup uses warmup_pct (fraction), not fixed warmup_steps** (catches error #61 — `warmup_steps: 200` per stage exceeded POC's 99 steps/stage so LR never reached target, loss 0.50→0.476 was a warmup-truncated floor not a converged value):
+
+Under `surgery:` (or each entry in `surgery.stages`) must have `warmup_pct: <float 0.01–0.5>`. If legacy `warmup_steps: <int>` appears at stage level → fail.
+```bash
+source venv_walkindia/bin/activate && python3 -c "
+import sys, os, yaml
+y = 'configs/train/ch11_surgery.yaml'
+if not os.path.exists(y): print('B39 SKIP'); sys.exit(0)
+cfg = yaml.safe_load(open(y))
+surg = cfg.get('surgery', {})
+fails = []
+pct = surg.get('warmup_pct')
+if pct is None: fails.append('surgery.warmup_pct missing (legacy fixed warmup_steps is banned per #61)')
+elif not (0.01 <= pct <= 0.5): fails.append(f'surgery.warmup_pct={pct} outside sensible [0.01, 0.5]')
+for st in surg.get('stages', []):
+    if 'warmup_steps' in st: fails.append(f'stage {st.get(\"name\")} has legacy warmup_steps — remove, use surgery.warmup_pct (#61)')
+if fails: print(f'B39 FAIL: {fails} (errors_N_fixes.md #61)'); sys.exit(1)
+print(f'B39 PASS: surgery.warmup_pct={pct}')"
+```
+
+**B40. m05 `_resolve_model` helper present + no `Path(args.model)` direct** (catches error #42 — `Path(None)` crashed on V-JEPA 2.1 frozen path because `hf_model_id: null`, and setting `args.model = VJEPA_CHECKPOINT_PATH` mis-routed to adapted-student branch):
+
+If target is `m05_vjepa_embed.py`, it MUST define `_resolve_model(` AND contain NO bare `Path(args.model)` call sites (all callers must use the helper). Also NO reassignments like `args.model = VJEPA_CHECKPOINT_PATH` which the #42 postmortem identified as a wrong-fix.
+```bash
+python3 -c "
+import os, re, sys
+target = '<file>'
+if os.path.basename(target) != 'm05_vjepa_embed.py': print('B40 SKIP'); sys.exit(0)
+src = open(target).read()
+fails = []
+if 'def _resolve_model(' not in src: fails.append('_resolve_model helper missing (#42)')
+if re.search(r'args\.model\s*=\s*VJEPA_CHECKPOINT_PATH', src):
+    fails.append('args.model = VJEPA_CHECKPOINT_PATH reassignment detected — wrong #42 fix, routes to adapted-student branch')
+bad_path = [i+1 for i, line in enumerate(src.split(chr(10))) if re.search(r'Path\(\s*args\.model\s*\)', line) and 'resolve_model' not in line]
+if bad_path: fails.append(f'bare Path(args.model) at line(s) {bad_path} — route via _resolve_model() (#42)')
+if fails: print(f'B40 FAIL: {fails}'); sys.exit(1)
+print('B40 PASS')"
+```
+
+**B41. `.env` multi-word values must be quoted** (catches error #1 — `GMAIL_APP_PASSWORD=vtjn heud iupn wrlc` unquoted → bash executed `heud` as a command when `source .env`):
+
+`.env` lines of form `KEY=value with spaces` must quote the value. Skip comments and empty lines.
+```bash
+python3 -c "
+import os, re, sys
+if not os.path.exists('.env'): print('B41 SKIP: no .env file'); sys.exit(0)
+bad = []
+for i, line in enumerate(open('.env'), 1):
+    s = line.rstrip('\n')
+    if not s or s.lstrip().startswith('#') or s.lstrip().startswith('export '): 
+        s = s.replace('export ', '', 1) if s.lstrip().startswith('export ') else s
+    if not s or s.lstrip().startswith('#'): continue
+    if '=' not in s: continue
+    k, _, v = s.partition('=')
+    if not v: continue
+    # If value has unquoted whitespace (tokens like 'vtjn heud iupn wrlc'), that's #1.
+    if v[0] in ('\"', \"'\"): continue  # quoted — OK
+    if re.search(r'\s', v): bad.append((i, k.strip()))
+if bad: print(f'B41 FAIL: .env has unquoted multi-word values at line(s) {bad}. Wrap in \"...\" (errors_N_fixes.md #1)'); sys.exit(1)
+print('B41 PASS')"
+```
+
+**B42. `.gitignore` excludes `logs/`** (catches error #4 — `git clean -fd` from `git_pull.sh` wiped `logs/*.log` being written by live `tee` pipes):
+
+`.gitignore` must match `logs/` (or `logs/*.log`) so `git clean -fd` doesn't destroy active pipeline output.
+```bash
+python3 -c "
+import os, sys
+if not os.path.exists('.gitignore'): print('B42 FAIL: no .gitignore (errors_N_fixes.md #4)'); sys.exit(1)
+gi = open('.gitignore').read()
+patterns = ['logs/', 'logs/*', 'logs/*.log']
+if not any(p in gi for p in patterns):
+    print(f'B42 FAIL: none of {patterns} found in .gitignore — git clean will nuke live logs (#4)'); sys.exit(1)
+print('B42 PASS')"
+```
+
+---
+
 ## Output Format
 
 ```
