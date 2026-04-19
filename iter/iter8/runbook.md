@@ -13,16 +13,13 @@
 | Phase | Step | Status | Notes |
 |---|---|---|---|
 | Setup | GPU Setup | ✅ done | 11,444/11,458 files pulled, 112 GB local |
-| Canary | 1. m09c SANITY | ✅ done 2026-04-19 | losses 0.4870/0.4898/0.4803, probe-disabled line ✓, no KeyError |
-| Canary+POC A | 2. m10 POC 1K **(= Step A, same process)** | 🟢 RUNNING 2026-04-19 | `Clip limit: 1000` ✅ confirmed line 20; at ~122/1000 clips @ 6:38, ~2.65 s/clip, ETA ~39 min. **Do NOT re-run Step A below** — this canary IS Step A's output. |
-| ~~POC A~~ | ~~separate Step A rerun~~ | ⏭️ **SKIP** | superseded by canary step 2 above |
-| POC B | m11 1K factor datasets | ⏳ pending | ~8 min on 32-worker CPU |
-| POC C | m05 1K frozen embed | ⏳ pending | ~70 min, produces frozen baseline for D.4 |
-| POC D.1 | m09c SANITY surgery | ✅ done 2026-04-19 | (same run as canary step 1) |
-| POC D.2 | 🎯 m09c POC surgery | ⏳ **NEXT** | ~2.7 h — 3 stages + 3 probe evals on val_1k |
-| POC D.3 | m05 1K surgical embed | ⏳ pending | ~70 min |
-| POC D.4 | 🎯🏆 m06 Prec@K decision gate | ⏳ pending | Surgery > Frozen? → unlocks Step E |
-| POC E | ExPLoRA arm | 🔒 locked | conditional on D.4 pass |
+| A | m10 1K Grounded-SAM (GPU) | 🟢 RUNNING | re-run after 2026-04-19 `rm -rf outputs/poc/` accident; `logs/m10_1k_v1.log` at 145/1000 @ 7:56, ~3.3 s/clip, ETA ~47 min |
+| B | m11 1K factor datasets (CPU) | ⏳ pending | ~10 min factor gen + ~30-60 min per-clip plots (~40-70 min total); `factor_manifest.json` lands at ~10 min — C can launch then, plots continue in background |
+| C | 🎯 m09c POC surgery (GPU) | ⏳ **NEXT after B manifest lands** | ~2.7 h on full 96 GB GPU (no OOM contention); 33-point probe trajectory = early-abort signal |
+| D | m05 1K frozen embed (GPU) | ⏳ pending — runs AFTER C | ~21 min measured (`m05_1k_frozen_v1.log:78`, 1000 clips in 1266 s); skip entirely if C's probe trajectory is flat/down, saves ~21 min |
+| E | m05 1K surgical embed (GPU) | ⏳ pending — runs after D | ~21 min; sequential with D on GPU |
+| F | 🏆 m06 Prec@K decision gate (GPU FAISS) | ⏳ pending — runs after E | ~5 min; reads D + E .npy, produces Surgery vs Frozen metric |
+| G | ExPLoRA arm (m09b + m05 + m06) | 🔒 locked on F pass | conditional on Surgery > Frozen |
 | FULL | 115K scale-up | 🔒 locked | conditional on POC win |
 
 Legend: ✅ done · 🟢 running · ⏳ pending · ⏭️ skipped · 🎯 next target · 🏆 paper-decision gate · 🔒 blocked on upstream result · ❌ failed · 🚫 fatal stop
@@ -43,24 +40,9 @@ chmod +x git_push.sh git_pull.sh
 
 ---
 
-## 🧪 Pre-POC canary (run after any code change to m09c / m10 / utils/training / ch11_surgery.yaml)
+## 🧪 Pre-POC canary (run after any code change to m10 / utils/training / ch11_surgery.yaml)
 
-~75 s. Catches regressions SANITY alone misses (#60/#61/`poc_simplified` were all POC-only).
-
-### ✅ 1. m09c SANITY (~60 s) — DONE 2026-04-19 (`logs/m09c_sanity_post_probe_wiring.log`)
-```bash
-rm -rf outputs/sanity/m09c_surgery/
-python -u src/m09c_surgery.py --SANITY \
-    --model-config configs/model/vjepa2_1.yaml \
-    --train-config configs/train/ch11_surgery.yaml \
-    --factor-dir outputs/sanity/m11_factor_datasets/ \
-    --local-data data/val_1k_local --no-wandb \
-    2>&1 | tee logs/m09c_sanity_post_probe_wiring.log
-```
-- ✅ Expect: 3 stages PASS, `student_encoder.pt` ~8 GB, log line `[probe] disabled (SANITY mode or --no-probe)`. **Got: 0.4870 / 0.4898 / 0.4803, no KeyError, probe-disabled line confirmed.**
-- 🚫 FATAL if: `KeyError: 'probe'` (missing block in ch11_surgery.yaml) or `KeyError: 'poc_simplified'` (stale ref to removed block).
-
-### 🟢 2. m10 POC 1K canary (~15 s to confirm + ~47 min to finish) — RUNNING 2026-04-19, **IS Step A itself**
+### 🟢 m10 POC 1K canary (~15 s to confirm + ~47 min to finish) — RUNNING 2026-04-19, **IS Step A itself**
 ```bash
 python -u src/m10_sam_segment.py --POC \
     --subset data/val_1k.json \
@@ -107,7 +89,10 @@ cat outputs/poc/m10_sam_segment/summary.json | python3 -m json.tool
 
 ---
 
-## ⏳ Step B: Factor Datasets (D_L + D_A + D_I with tight-bbox tubes)
+## ⏳ Step B: Factor Datasets (D_L + D_A + D_I with tight-bbox tubes) — CPU, ~10 min factor gen + ~30-60 min per-clip plots
+
+> ⚠️ `rm -rf` first — stale partial m11 outputs (e.g. 2026-04-19 disk-full: 475 D_L / 25967 D_I / no `factor_manifest.json`) race with `verify_or_skip`.
+> 🔀 Step C (surgery, GPU) launches as soon as `factor_manifest.json` lands (~10 min into B); m11's matplotlib plot loop keeps running on CPU in background, no GPU contention.
 
 ```bash
 rm -rf outputs/poc/m11_factor_datasets/
@@ -121,7 +106,8 @@ python -u src/m11_factor_datasets.py --POC \
 
 | Check | Expect (1000 clips val_1k, projected from 47 s / 100 dense with 32 CPU workers) |
 |---|---|
-| Wall time | ~470 s = ~**8 min** (32-worker ProcessPool, CPU-bound) |
+| Wall time | **~40-70 min total**: ~10 min factor-gen (32-worker ProcessPool) + ~30-60 min per-clip 2×2 plot loop (single-threaded matplotlib, 1000 figures × 2-4 s each) |
+| `factor_manifest.json` written | **at ~10 min mark** — D.2 unblocked here, plots continue in background |
 | `D_L present` | 1000/1000 |
 | `D_A present` | ≥ 800/1000 (same ~80% ratio as val_1k's `clips_with_agents_pct`) |
 | `D_I present` | ≥ 750/1000 (slightly lower — some clips have agents but no interactions) |
@@ -142,9 +128,13 @@ print(f'D_I: {clips_with}/{len(tubes)} clips ({100*clips_with/len(tubes):.0f}%) 
 
 ---
 
-## ⏳ Step C: V-JEPA 2.1 Frozen Embedding — 1000-clip val_1k
+## ⏳ Step D: V-JEPA 2.1 Frozen Embedding — 1000-clip val_1k — GPU, ~21 min measured
+
+> ⚠️ `rm -rf` first — stale pre-#62 100-clip `embeddings_vjepa_2_1_frozen.npy` would be re-used silently by `verify_or_skip`.
+> ⏸️ **POSTPONED to AFTER Step C (surgery).** Earlier plan ran this in parallel with B → would OOM when D.2 surgery allocates its optimizer state. Runs sequentially after C releases GPU. If C's probe trajectory is flat/down → skip D entirely, save ~21 min. Wall-time: `logs/m05_1k_frozen_v1.log:78` measured **1000 clips in 1266 s (0.79 clips/s)** on 96 GB Blackwell.
 
 ```bash
+rm -rf outputs/poc/m05_vjepa_embed/
 python -u src/m05_vjepa_embed.py --POC \
     --subset data/val_1k.json \
     --model-config configs/model/vjepa2_1.yaml \
@@ -165,8 +155,8 @@ print(f'L2 norm mean: {np.linalg.norm(e, axis=1).mean():.2f}')"
 
 | Check | Expect (1000 clips val_1k, projected from 4.23 s/clip on 96GB Blackwell, 100-dense measurement) |
 |---|---|
-| Wall time | ~4230 s = ~**70 min** (AdaptiveBatchSizer has more room to grow on longer runs — likely 60-65 min effective) |
-| Per-clip rate | ~3-4 s/clip steady-state (better than 100-clip because sizer reaches max faster) |
+| Wall time | **~21 min measured** (`logs/m05_1k_frozen_v1.log:78`: 1000 clips in 1266 s / 0.79 clips/s, 2026-04-19); earlier 70 min projection assumed 4.23 s/clip — actual is 1.27 s/clip on 96 GB after sizer ramps 8→44 |
+| Per-clip rate | **~0.79 clips/s** (1.27 s/clip) steady-state; sizer ramps 8→44 over first ~600 clips |
 | `embeddings_vjepa_2_1_frozen.npy` shape | `(1000, 1664)` |
 | AdaptiveBatchSizer growth | 8 → 18+ (may hit max 44 at ~step 400+) |
 | OOM events | 0 |
@@ -176,35 +166,13 @@ print(f'L2 norm mean: {np.linalg.norm(e, axis=1).mean():.2f}')"
 
 ---
 
-## 🎯 Step D: Surgery Training — `src/m09c_surgery.py` 🏆 PRIMARY PATH (paper novelty)
+## 🎯 Step C: Surgery Training — `src/m09c_surgery.py` 🏆 PRIMARY PATH (paper novelty)
 
 > m09c = 3-stage progressive prefix unfreezing + factor datasets (D_L → D_A → D_I). No drift, no held-out val.
 >
 > **Why Step D (not E)**: immediate goal is `Surgery > Frozen` on Prec@K. D_L/D_A/D_I factors already built in Step B. Test this path FIRST — if it works, we have the paper result. ExPLoRA (Step E) is the comparison arm run AFTER Surgery is validated.
 
-### ✅ D.1 — SANITY validated 2026-04-17 on 96 GB Blackwell (re-confirmed 2026-04-19 post-probe-wiring)
-
-**Result:** 3 stages passed end-to-end in ~60 s (Stage 1 loss=0.4870, Stage 2 loss=0.4901, Stage 3 loss=0.4806). `student_encoder.pt` exported. Stage 3 — which OOMed on 24 GB at v7 — used only 19.9 / 102 GB VRAM on 96 GB, confirming errors_N_fixes.md #58's "no v8 patch needed, move to 96 GB" decision.
-
-> Requires `outputs/sanity/m11_factor_datasets/` from Step B run in `--SANITY` mode. If not present, re-run Step B with `--SANITY`.
-
-```bash
-rm -rf outputs/sanity/m09c_surgery/
-python -u src/m09c_surgery.py --SANITY \
-    --model-config configs/model/vjepa2_1.yaml \
-    --train-config configs/train/ch11_surgery.yaml \
-    --factor-dir outputs/sanity/m11_factor_datasets/ \
-    --local-data data/val_1k_local --no-wandb \
-    2>&1 | tee logs/m09c_sanity_surgery.log
-```
-
-**Verify:** 
-```bash
-ls -lh outputs/sanity/m09c_surgery/student_encoder.pt
-``` 
-— exists, ~8 GB. Check log for 3 stage transitions (`Stage 1/2/3`), 3 optimizer rebuilds, non-NaN losses across stages. Probe is intentionally DISABLED on SANITY (N=20 too small for stable BCa CI) — log shows `[probe] disabled (SANITY mode or --no-probe) — skipping stage-boundary eval`. If it decodes probe clips here, the mode-gate in `ch11_surgery.yaml:probe.enabled.sanity` has drifted.
-
-### 🎯 D.2 — POC (1000 clips val_1k, ~2.7 h on 96GB, real training signal) — NEXT
+### 🎯 C — POC (1000 clips val_1k, ~2.7 h on 96GB, real training signal) — NEXT after B manifest lands
 
 > **One-time yaml edit before running** (POC epoch count tuned for 1K scale so wall time stays under 3 h):
 > ```bash
@@ -236,11 +204,14 @@ cat outputs/poc/m09c_surgery/training_summary.json | python3 -c "import json,sys
 - `probe_trajectory_stats`: `bwt_prec_at_k > 0` + `monotonic: true` expected; `max_drop_prec_at_k > 0` = replay failed → inspect before D.4.
 - Per-stage log: `[probe] stage=... N=1000 Prec@K=XX.XX±Y.YY mAP@K=... Cycle@K=...`
 
-### ⏳ D.3 — m05 re-embed on surgical student (~70 min on 96GB)
+### ⏳ E — m05 re-embed on surgical student (~21 min on 96GB)
 
-Apply surgery-trained V-JEPA 2.1 to the same 1000 val_1k clips so Prec@K is directly comparable with the frozen baseline (Step C).
+Apply surgery-trained V-JEPA 2.1 to the same 1000 val_1k clips so Prec@K is directly comparable with the frozen baseline (Step C). `rm -f` the surgical .npy only — keep frozen embeddings from Step C.
 
 ```bash
+rm -f outputs/poc/m05_vjepa_embed/embeddings_vjepa_2_1_surgical.npy \
+      outputs/poc/m05_vjepa_embed/embeddings_vjepa_2_1_surgical.paths.npy \
+      outputs/poc/m05_vjepa_embed/.m05_checkpoint_vjepa_2_1_surgical.npz
 python -u src/m05_vjepa_embed.py --POC \
     --subset data/val_1k.json \
     --model-config configs/model/vjepa2_1.yaml \
@@ -264,7 +235,8 @@ print(f'L2 norm mean: {np.linalg.norm(e, axis=1).mean():.2f}')"
 Two m06 runs (frozen + surgical) to close the 🎯 decision gate. m06 takes `--encoder` (NOT `--local-data` — chain script error, see fix in errors log). Per-encoder JSON lands at `outputs/poc/m06_metrics_vjepa_2_1_*.json`.
 
 ```bash
-# Frozen baseline
+# Frozen baseline — rm stale per-encoder JSON first
+rm -f outputs/poc/m06_metrics_vjepa_2_1_frozen.json outputs/poc/knn_indices_vjepa_2_1_frozen.npy
 python -u src/m06_faiss_metrics.py --POC \
     --subset data/val_1k.json \
     --encoder vjepa_2_1_frozen \
@@ -272,6 +244,7 @@ python -u src/m06_faiss_metrics.py --POC \
     2>&1 | tee logs/m06_1k_frozen.log
 
 # Surgical — the paper-arm result
+rm -f outputs/poc/m06_metrics_vjepa_2_1_surgical.json outputs/poc/knn_indices_vjepa_2_1_surgical.npy
 python -u src/m06_faiss_metrics.py --POC \
     --subset data/val_1k.json \
     --encoder vjepa_2_1_surgical \
@@ -334,7 +307,10 @@ python -u src/m09b_explora.py --POC \
 ### 🔒 E.3 — m05 re-embed on ExPLoRA student + m06 Prec@K
 
 ```bash
-# m05 re-embed (~70 min)
+# m05 re-embed (~70 min) — rm stale ExPLoRA .npy only
+rm -f outputs/poc/m05_vjepa_embed/embeddings_vjepa_2_1_explora.npy \
+      outputs/poc/m05_vjepa_embed/embeddings_vjepa_2_1_explora.paths.npy \
+      outputs/poc/m05_vjepa_embed/.m05_checkpoint_vjepa_2_1_explora.npz
 python -u src/m05_vjepa_embed.py --POC \
     --subset data/val_1k.json \
     --model-config configs/model/vjepa2_1.yaml \
@@ -344,6 +320,7 @@ python -u src/m05_vjepa_embed.py --POC \
     2>&1 | tee logs/m05_1k_explora.log
 
 # m06 Prec@K for ExPLoRA
+rm -f outputs/poc/m06_metrics_vjepa_2_1_explora.json outputs/poc/knn_indices_vjepa_2_1_explora.npy
 python -u src/m06_faiss_metrics.py --POC \
     --subset data/val_1k.json \
     --encoder vjepa_2_1_explora \

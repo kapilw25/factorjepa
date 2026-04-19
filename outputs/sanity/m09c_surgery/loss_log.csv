@@ -1,4 +1,0 @@
-step,stage,loss_jepa,loss_masked,loss_context,lr,grad_norm
-0,stage1_layout,0.486958,0.357514,0.258888,1.00e-06,2.4626
-1,stage2_agent,0.489844,0.356262,0.267164,1.00e-06,2.4834
-2,stage3_interaction,0.480255,0.352249,0.256012,1.00e-06,0.8264

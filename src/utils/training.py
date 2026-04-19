@@ -646,6 +646,32 @@ def cleanup_old_checkpoints(output_dir: Path, keep_n: int = 2):
             print(f"  Cleaned old checkpoint: {Path(old_file).name}")
 
 
+def cleanup_stage_checkpoints(output_dir: Path, prefix: str, keep_n: int = 1):
+    """Delete oldest `{prefix}_stage*.pt` files, keeping only the last `keep_n`.
+
+    Mirror of `cleanup_old_checkpoints` but for **stage-suffixed** saves
+    (m09c surgery writes stage0 / stage1 / stage2 — not step-N). Keeps disk
+    footprint at `keep_n × ~15 GB` instead of cumulative `3 × ~15 GB`.
+
+    Usage in m09c:
+      - Mid-training (per-stage save): `keep_n=1` → one resume anchor on disk.
+      - Post-export (after `export_student_for_eval`): `keep_n=0` → student_encoder.pt
+        is the only artifact downstream needs, stage rollback points are disposable.
+
+    The glob is sorted by mtime so the N most-recent writes survive regardless of
+    stage ordering (important if a resume re-writes stage2 with a newer timestamp
+    than stage0/1 — we keep the "newest save", not the "highest stage index").
+    """
+    pattern = str(output_dir / f"{prefix}_stage*.pt")
+    stage_files = sorted(glob.glob(pattern),
+                         key=lambda f: os.path.getmtime(f))
+    if len(stage_files) > keep_n:
+        target = stage_files[:-keep_n] if keep_n > 0 else stage_files
+        for old_file in target:
+            os.remove(old_file)
+            print(f"  Cleaned stage checkpoint: {Path(old_file).name}")
+
+
 def load_training_checkpoint(path: Path, student, teacher, predictor,
                               optimizer, scheduler, scaler) -> tuple:
     ckpt = torch.load(path, map_location="cuda", weights_only=False)

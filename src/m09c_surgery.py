@@ -62,7 +62,7 @@ from utils.training import (
     compute_jepa_loss, _train_step_grad_accum,  # noqa: F401 — _train_step_grad_accum kept for future grad-accum wiring
     update_teacher_ema,
     build_optimizer, build_scheduler, update_weight_decay,  # noqa: F401 — build_scheduler/update_weight_decay kept for future stage schedulers
-    save_training_checkpoint, cleanup_old_checkpoints, load_training_checkpoint,  # noqa: F401 — cleanup_old_checkpoints/load_training_checkpoint kept for resume
+    save_training_checkpoint, cleanup_old_checkpoints, cleanup_stage_checkpoints, load_training_checkpoint,  # noqa: F401 — cleanup_old_checkpoints/load_training_checkpoint kept for resume
     export_student_for_eval,
     set_trainable_prefix, enable_gradient_checkpointing,
     FactorSampler, build_factor_index, load_factor_clip,
@@ -682,6 +682,12 @@ def train_surgery(cfg: dict, args):
             save_training_checkpoint(output_dir / f"{CHECKPOINT_PREFIX}_stage{stage_idx}.pt",
                                      student, teacher, predictor, optimizer, scheduler,
                                      scaler, global_step, 0.0, full=False)
+            # Per-stage rotation: keep only the newest stage checkpoint on disk. Without
+            # this, the run accumulates 3 × ~15 GB = ~45 GB of redundant rollback points
+            # (cause of the 2026-04-19 disk-full halt on 199 GB /workspace). `keep_n=1`
+            # preserves one resume anchor for mid-stage crash recovery. Final cleanup
+            # (keep_n=0) happens after export_student_for_eval below.
+            cleanup_stage_checkpoints(output_dir, CHECKPOINT_PREFIX, keep_n=1)
             print(f"  Stage {stage_name} complete: {stage_steps} steps, loss={jepa_val:.4f}")
 
             # Forced stage-boundary probe (BWT anchor) — fires regardless of cadence
@@ -710,6 +716,12 @@ def train_surgery(cfg: dict, args):
 
     # Export student encoder (vanilla ViT — no LoRA merge)
     export_student_for_eval(student, student_path, explora_enabled=False)
+
+    # Final checkpoint cleanup: `student_encoder.pt` is the only downstream artifact
+    # (consumed by m05 surgical re-embed + m06 Prec@K). Stage rollback ckpts are
+    # disposable once the run completes cleanly. Per CLAUDE.md "Clean all
+    # intermediates after training." Saves ~15 GB per run at 2B model scale.
+    cleanup_stage_checkpoints(output_dir, CHECKPOINT_PREFIX, keep_n=0)
 
     # Trajectory stats across stage boundaries. Single-probe-set regime so BWT
     # degenerates to net Prec@K improvement (R[-1]-R[0]). Non-zero max_drop
