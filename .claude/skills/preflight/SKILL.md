@@ -702,15 +702,11 @@ import os, re, sys
 if not os.path.exists('.env'): print('B41 SKIP: no .env file'); sys.exit(0)
 bad = []
 for i, line in enumerate(open('.env'), 1):
-    s = line.rstrip('\n')
-    if not s or s.lstrip().startswith('#') or s.lstrip().startswith('export '): 
-        s = s.replace('export ', '', 1) if s.lstrip().startswith('export ') else s
-    if not s or s.lstrip().startswith('#'): continue
-    if '=' not in s: continue
+    s = line.strip()
+    if not s or s.startswith('#') or '=' not in s: continue
+    if s.startswith('export '): s = s[7:]
     k, _, v = s.partition('=')
-    if not v: continue
-    # If value has unquoted whitespace (tokens like 'vtjn heud iupn wrlc'), that's #1.
-    if v[0] in ('\"', \"'\"): continue  # quoted — OK
+    if not v or v[0] in ('\"', \"'\"): continue  # empty or quoted — OK
     if re.search(r'\s', v): bad.append((i, k.strip()))
 if bad: print(f'B41 FAIL: .env has unquoted multi-word values at line(s) {bad}. Wrap in \"...\" (errors_N_fixes.md #1)'); sys.exit(1)
 print('B41 PASS')"
@@ -744,7 +740,8 @@ GROUNDED-SAM:    [B21] …  [B22] …  [B23] …  [B24] …  [B25] …
 RAW-vs-HF SAM3:  [B26] …  [B27] …
 VJEPA/CFG:       [B28] …  [B29] …  [B30] …  [B31] …
 m09 SPLIT:       [B32] …  [B33] …  [B34] …  [B35] …  [B36] …
-TOTAL: X/38 passed. Y FAILs need fixing. (Many checks SKIP when not applicable to the target file.)
+DURABILITY/CFG:  [B37] …  [B38] …  [B39] …  [B40] …  [B41] …  [B42] …
+TOTAL: X/45 passed. Y FAILs need fixing. (Many checks SKIP when not applicable to the target file.)
 ```
 
 List all FAILs with line numbers and fix instructions referencing `iter/iter8/errors_N_fixes.md` entry numbers.
