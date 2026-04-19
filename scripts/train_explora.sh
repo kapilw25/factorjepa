@@ -125,19 +125,26 @@ else
 fi
 
 # ── Auto batch size detection ─────────────────────────────────────────
+# Fail-loud: no silent `|| echo "32"` fallback. If both profiler AND yaml reads
+# fail, abort with a clear message (#60/#61 class of silent-config bug).
 BATCH_FLAG=""
 PROFILE_JSON="outputs/profile/training/profile_data.json"
 if [[ -f "$PROFILE_JSON" ]]; then
-    BS=$(python -u src/utils/gpu_batch.py optimal-bs --profile-json "$PROFILE_JSON" 2>/dev/null || echo "")
-    if [[ -n "$BS" ]]; then
+    if BS=$(python -u src/utils/gpu_batch.py optimal-bs --profile-json "$PROFILE_JSON") && [[ -n "$BS" ]]; then
         BATCH_FLAG="--batch-size $BS"
-        log "Batch size: $BS (from profiler)"
+        log "Batch size: $BS (from profiler $PROFILE_JSON)"
     fi
 fi
 if [[ -z "$BATCH_FLAG" ]]; then
-    BS=$(python -u src/utils/config.py get-yaml "$TRAIN_CONFIG" optimization.batch_size 2>/dev/null || echo "32")
-    BATCH_FLAG="--batch-size $BS"
-    log "Batch size: $BS (from YAML / default)"
+    if BS=$(python -u src/utils/config.py get-yaml "$TRAIN_CONFIG" optimization.batch_size) && [[ -n "$BS" ]]; then
+        BATCH_FLAG="--batch-size $BS"
+        log "Batch size: $BS (from YAML: $TRAIN_CONFIG optimization.batch_size)"
+    else
+        log "FATAL: could not resolve batch_size — neither profiler ($PROFILE_JSON)"
+        log "       nor YAML ($TRAIN_CONFIG optimization.batch_size) returned a value."
+        log "       No silent default — fix your config before running."
+        exit 1
+    fi
 fi
 
 # ── GPU pre-flight ────────────────────────────────────────────────────

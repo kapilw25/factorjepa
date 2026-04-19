@@ -8,9 +8,28 @@
 > Run these commands on GPU. Verify each step before moving to the next.
 > Architecture + decisions: `plan_TODO.md`. Error history: `errors_N_fixes.md`.
 
+### 📊 Progress snapshot (updated 2026-04-19)
+
+| Phase | Step | Status | Notes |
+|---|---|---|---|
+| Setup | GPU Setup | ✅ done | 11,444/11,458 files pulled, 112 GB local |
+| Canary | 1. m09c SANITY | ✅ done 2026-04-19 | losses 0.4870/0.4898/0.4803, probe-disabled line ✓, no KeyError |
+| Canary+POC A | 2. m10 POC 1K **(= Step A, same process)** | 🟢 RUNNING 2026-04-19 | `Clip limit: 1000` ✅ confirmed line 20; at ~122/1000 clips @ 6:38, ~2.65 s/clip, ETA ~39 min. **Do NOT re-run Step A below** — this canary IS Step A's output. |
+| ~~POC A~~ | ~~separate Step A rerun~~ | ⏭️ **SKIP** | superseded by canary step 2 above |
+| POC B | m11 1K factor datasets | ⏳ pending | ~8 min on 32-worker CPU |
+| POC C | m05 1K frozen embed | ⏳ pending | ~70 min, produces frozen baseline for D.4 |
+| POC D.1 | m09c SANITY surgery | ✅ done 2026-04-19 | (same run as canary step 1) |
+| POC D.2 | 🎯 m09c POC surgery | ⏳ **NEXT** | ~2.7 h — 3 stages + 3 probe evals on val_1k |
+| POC D.3 | m05 1K surgical embed | ⏳ pending | ~70 min |
+| POC D.4 | 🎯🏆 m06 Prec@K decision gate | ⏳ pending | Surgery > Frozen? → unlocks Step E |
+| POC E | ExPLoRA arm | 🔒 locked | conditional on D.4 pass |
+| FULL | 115K scale-up | 🔒 locked | conditional on POC win |
+
+Legend: ✅ done · 🟢 running · ⏳ pending · ⏭️ skipped · 🎯 next target · 🏆 paper-decision gate · 🔒 blocked on upstream result · ❌ failed · 🚫 fatal stop
+
 ---
 
-## GPU Setup (one-time, bare instance)
+## 🛠️ GPU Setup (one-time, bare instance)
 
 ```bash
 git clone https://github.com/kapilw25/factorjepa.git && cd factorjepa
@@ -24,9 +43,43 @@ chmod +x git_push.sh git_pull.sh
 
 ---
 
-## Step A: Grounded-SAM Segmentation — DINO + HF Sam3TrackerVideo
+## 🧪 Pre-POC canary (run after any code change to m09c / m10 / utils/training / ch11_surgery.yaml)
+
+~75 s. Catches regressions SANITY alone misses (#60/#61/`poc_simplified` were all POC-only).
+
+### ✅ 1. m09c SANITY (~60 s) — DONE 2026-04-19 (`logs/m09c_sanity_post_probe_wiring.log`)
+```bash
+rm -rf outputs/sanity/m09c_surgery/
+python -u src/m09c_surgery.py --SANITY \
+    --model-config configs/model/vjepa2_1.yaml \
+    --train-config configs/train/ch11_surgery.yaml \
+    --factor-dir outputs/sanity/m11_factor_datasets/ \
+    --local-data data/val_1k_local --no-wandb \
+    2>&1 | tee logs/m09c_sanity_post_probe_wiring.log
+```
+- ✅ Expect: 3 stages PASS, `student_encoder.pt` ~8 GB, log line `[probe] disabled (SANITY mode or --no-probe)`. **Got: 0.4870 / 0.4898 / 0.4803, no KeyError, probe-disabled line confirmed.**
+- 🚫 FATAL if: `KeyError: 'probe'` (missing block in ch11_surgery.yaml) or `KeyError: 'poc_simplified'` (stale ref to removed block).
+
+### 🟢 2. m10 POC 1K canary (~15 s to confirm + ~47 min to finish) — RUNNING 2026-04-19, **IS Step A itself**
+```bash
+python -u src/m10_sam_segment.py --POC \
+    --subset data/val_1k.json \
+    --local-data data/val_1k_local --no-wandb \
+    2>&1 | tee logs/m10_1k_canary.log &
+M10_PID=$!
+sleep 15
+grep -m1 "Clip limit:" logs/m10_1k_canary.log
+```
+- ✅ Got: `Clip limit: 1000` at line 20 of `logs/m10_1k_canary.log`. Process running at ~2.65 s/clip (faster than 6.13 s/clip projection — val_1k is lighter than dense100). ETA total ~47 min from kickoff.
+- ⏭️ **This process IS Step A. Do NOT re-run the Step A block below** — outputs land in `outputs/poc/m10_sam_segment/` as expected. After `wait $M10_PID` completes, jump directly to Step B.
+
+---
+
+## 🟢 Step A: Grounded-SAM Segmentation — DINO + HF Sam3TrackerVideo — RUNNING (same process as canary step 2, do NOT re-invoke)
 
 POC tier = 1000 clips from `data/val_1k.json`. Pipeline code validated on 100-dense-clip tier 2026-04-17 (6141 agents, 8712 interactions, quality_gate PASS at 6.13 s/clip); now scaled up.
+
+> ⚠️ The canary block above is already running this exact command. Skip the `python -u src/m10_sam_segment.py` invocation in this section — re-running would `rm -rf outputs/poc/m10_sam_segment/` mid-flight and kill the in-progress work. Only run the **Verify** block after `wait $M10_PID` (from canary step 2) finishes.
 
 ```bash
 rm -rf outputs/poc/m10_sam_segment/ outputs/poc/m11_factor_datasets/
@@ -54,7 +107,7 @@ cat outputs/poc/m10_sam_segment/summary.json | python3 -m json.tool
 
 ---
 
-## Step B: Factor Datasets (D_L + D_A + D_I with tight-bbox tubes)
+## ⏳ Step B: Factor Datasets (D_L + D_A + D_I with tight-bbox tubes)
 
 ```bash
 rm -rf outputs/poc/m11_factor_datasets/
@@ -89,7 +142,7 @@ print(f'D_I: {clips_with}/{len(tubes)} clips ({100*clips_with/len(tubes):.0f}%) 
 
 ---
 
-## Step C: V-JEPA 2.1 Frozen Embedding — 1000-clip val_1k
+## ⏳ Step C: V-JEPA 2.1 Frozen Embedding — 1000-clip val_1k
 
 ```bash
 python -u src/m05_vjepa_embed.py --POC \
@@ -123,13 +176,13 @@ print(f'L2 norm mean: {np.linalg.norm(e, axis=1).mean():.2f}')"
 
 ---
 
-## Step D: Surgery Training — `src/m09c_surgery.py` 🎯 PRIMARY PATH (paper novelty)
+## 🎯 Step D: Surgery Training — `src/m09c_surgery.py` 🏆 PRIMARY PATH (paper novelty)
 
 > m09c = 3-stage progressive prefix unfreezing + factor datasets (D_L → D_A → D_I). No drift, no held-out val.
 >
 > **Why Step D (not E)**: immediate goal is `Surgery > Frozen` on Prec@K. D_L/D_A/D_I factors already built in Step B. Test this path FIRST — if it works, we have the paper result. ExPLoRA (Step E) is the comparison arm run AFTER Surgery is validated.
 
-### D.1 — SANITY ✅ validated 2026-04-17 on 96 GB Blackwell
+### ✅ D.1 — SANITY validated 2026-04-17 on 96 GB Blackwell (re-confirmed 2026-04-19 post-probe-wiring)
 
 **Result:** 3 stages passed end-to-end in ~60 s (Stage 1 loss=0.4870, Stage 2 loss=0.4901, Stage 3 loss=0.4806). `student_encoder.pt` exported. Stage 3 — which OOMed on 24 GB at v7 — used only 19.9 / 102 GB VRAM on 96 GB, confirming errors_N_fixes.md #58's "no v8 patch needed, move to 96 GB" decision.
 
@@ -149,9 +202,9 @@ python -u src/m09c_surgery.py --SANITY \
 ```bash
 ls -lh outputs/sanity/m09c_surgery/student_encoder.pt
 ``` 
-— exists, ~8 GB. Check log for 3 stage transitions (`Stage 1/2/3`), 3 optimizer rebuilds, non-NaN losses across stages.
+— exists, ~8 GB. Check log for 3 stage transitions (`Stage 1/2/3`), 3 optimizer rebuilds, non-NaN losses across stages. Probe is intentionally DISABLED on SANITY (N=20 too small for stable BCa CI) — log shows `[probe] disabled (SANITY mode or --no-probe) — skipping stage-boundary eval`. If it decodes probe clips here, the mode-gate in `ch11_surgery.yaml:probe.enabled.sanity` has drifted.
 
-### D.2 — POC (1000 clips val_1k, ~2.7 h on 96GB, real training signal)
+### 🎯 D.2 — POC (1000 clips val_1k, ~2.7 h on 96GB, real training signal) — NEXT
 
 > **One-time yaml edit before running** (POC epoch count tuned for 1K scale so wall time stays under 3 h):
 > ```bash
@@ -176,15 +229,14 @@ python -u src/m09c_surgery.py --POC \
 
 **Verify:**
 ```bash
-ls -lh outputs/poc/m09c_surgery/student_encoder.pt   # exists, ~8 GB
+ls -lh outputs/poc/m09c_surgery/student_encoder.pt outputs/poc/m09c_surgery/probe_trajectory.png outputs/poc/m09c_surgery/probe_history.jsonl
+cat outputs/poc/m09c_surgery/training_summary.json | python3 -c "import json,sys; d=json.load(sys.stdin); print(d['probe_trajectory_stats'])"
 ```
-Check `outputs/poc/m09c_surgery/m09_train_loss.png`:
-- 3 color-segmented stage curves (green = Stage 1 layout, orange = Stage 2 agent, purple = Stage 3 interaction).
-- Transition vlines at ~step 207 and ~step 414.
-- Warmup ramp visible in first 41 steps of each stage; loss should drop ≥ 0.03 post-warmup per stage (vs ≤ 0.01 in the buggy 100-clip run).
-- Final Stage 3 loss: expect ~0.35-0.42 (vs 0.476 in the warmup-truncated 100-clip run).
+- `m09_train_loss.png`: 3 stage curves + vlines ~step 207/414, ≥0.03 loss drop post-warmup/stage, final Stage 3 ~0.35-0.42.
+- `probe_trajectory_stats`: `bwt_prec_at_k > 0` + `monotonic: true` expected; `max_drop_prec_at_k > 0` = replay failed → inspect before D.4.
+- Per-stage log: `[probe] stage=... N=1000 Prec@K=XX.XX±Y.YY mAP@K=... Cycle@K=...`
 
-### D.3 — m05 re-embed on surgical student (~70 min on 96GB)
+### ⏳ D.3 — m05 re-embed on surgical student (~70 min on 96GB)
 
 Apply surgery-trained V-JEPA 2.1 to the same 1000 val_1k clips so Prec@K is directly comparable with the frozen baseline (Step C).
 
@@ -207,7 +259,7 @@ print(f'Shape: {e.shape}')                             # expect (1000, 1664)
 print(f'L2 norm mean: {np.linalg.norm(e, axis=1).mean():.2f}')"
 ```
 
-### D.4 — m06 FAISS Prec@K metrics — decision gate (~2-5 min, FAISS-GPU)
+### 🎯⏳ D.4 — m06 FAISS Prec@K metrics — 🏆 DECISION GATE (~2-5 min, FAISS-GPU)
 
 Two m06 runs (frozen + surgical) to close the 🎯 decision gate. m06 takes `--encoder` (NOT `--local-data` — chain script error, see fix in errors log). Per-encoder JSON lands at `outputs/poc/m06_metrics_vjepa_2_1_*.json`.
 
@@ -246,13 +298,13 @@ for name in ['frozen', 'surgical']:
 
 ---
 
-## Step E: ExPLoRA Training — `src/m09b_explora.py` (comparison arm)
+## 🔒 Step E: ExPLoRA Training — `src/m09b_explora.py` (comparison arm, CONDITIONAL on D.4 pass)
 
 > m09b = LoRA on blocks 2-47 + unfreeze blocks 0-1, no drift. Hardcoded ExPLoRA mode (no `--explora` flag).
 >
 > **Why Step E (not D)**: ExPLoRA is the adaptation-baseline comparator for `Surgery > ExPLoRA > Frozen`. Only valuable AFTER Step D Surgery passed — it completes the comparison triangle. If Surgery already ≤ Frozen, pause and debug factor quality before spending GPU on ExPLoRA.
 
-### E.1 — SANITY (20 clips, ~10 min, code smoke test before spending POC GPU time)
+### ⏳ E.1 — SANITY (20 clips, ~10 min, code smoke test before spending POC GPU time)
 
 ```bash
 rm -rf outputs/sanity/m09b_explora/
@@ -265,7 +317,7 @@ python -u src/m09b_explora.py --SANITY \
 
 **Verify:** `ls -lh outputs/sanity/m09b_explora/student_encoder.pt` — exists, ~8 GB. Check log for `LoRA injection`, non-NaN `loss_jepa`, clean exit.
 
-### E.2 — POC (1000 clips val_1k, ~2 h, real training signal)
+### 🔒 E.2 — POC (1000 clips val_1k, ~2 h, real training signal)
 
 ```bash
 rm -rf outputs/poc/m09b_explora/
@@ -279,7 +331,7 @@ python -u src/m09b_explora.py --POC \
 
 **Verify:** `ls -lh outputs/poc/m09b_explora/student_encoder.pt` — exists, ~8 GB. Check `loss_log.csv` for monotonically-decreasing JEPA loss (ExPLoRA has no stages, so it's a single clean curve).
 
-### E.3 — m05 re-embed on ExPLoRA student + m06 Prec@K
+### 🔒 E.3 — m05 re-embed on ExPLoRA student + m06 Prec@K
 
 ```bash
 # m05 re-embed (~70 min)
@@ -309,7 +361,7 @@ python -u src/m06_faiss_metrics.py --POC \
 
 ---
 
-## Final 3-arm comparison (after all D + E steps complete)
+## 🏁 Final 3-arm comparison (after all D + E steps complete)
 
 ```bash
 python3 -c "

@@ -66,6 +66,7 @@ from utils.training import (
     export_student_for_eval,
     set_trainable_prefix, enable_gradient_checkpointing,
     FactorSampler, build_factor_index, load_factor_clip,
+    build_probe_clips, run_probe_eval, compute_trajectory_stats,
 )
 
 
@@ -100,6 +101,23 @@ def merge_config_with_args(cfg: dict, args) -> dict:
         cfg["optimization"]["batch_size"] = args.batch_size
     if args.max_epochs is not None:
         cfg["optimization"]["max_epochs"] = args.max_epochs
+
+    # Mid-training probe (Prec@K/mAP@K/Cycle@K with BCa 95% CI at stage
+    # boundaries — companion to the D.4 decision gate). Mode-gated: SANITY off
+    # (N=20 too small for stable CI), POC/FULL on. CLI overrides win over yaml.
+    # Fail-loud: ch11_surgery.yaml MUST have a `probe:` block with all keys;
+    # missing/typo → KeyError at config merge (no .get default, per CLAUDE.md).
+    probe_cfg = cfg["probe"]
+    probe_enabled = probe_cfg["enabled"][mode_key]
+    if getattr(args, "probe_subset", None):
+        probe_cfg["subset"] = args.probe_subset
+    if getattr(args, "probe_local_data", None):
+        probe_cfg["local_data"] = args.probe_local_data
+    if getattr(args, "probe_tags", None):
+        probe_cfg["tags_path"] = args.probe_tags
+    if getattr(args, "no_probe", False):
+        probe_enabled = False
+    cfg["probe"]["enabled"] = probe_enabled
 
     # Output dir: explicit --output-dir, or auto from module + mode
     if getattr(args, "output_dir", None):
@@ -405,6 +423,31 @@ def train_surgery(cfg: dict, args):
         jsonl_file.flush()
         os.fsync(jsonl_file.fileno())
 
+    # Mid-training probe: decode val_1k clips ONCE upfront (~5-10 min),
+    # then embed + eval in <10 s per stage boundary. Skipped if disabled
+    # (SANITY) or --no-probe. Required yaml keys accessed directly — missing
+    # key = KeyError = fail loud (CLAUDE.md "no .get(key, default) on YAML").
+    probe_cfg = cfg["probe"]
+    probe_clips = None
+    probe_history = []          # list of {stage_idx, stage_name, metrics}
+    probe_jsonl_path = output_dir / "probe_history.jsonl"
+    if probe_cfg["enabled"]:
+        # Required yaml keys. Direct access — missing key → KeyError with file+key name.
+        subset_path = probe_cfg["subset"]
+        local_data_path = probe_cfg["local_data"]
+        tags_path = probe_cfg["tags_path"]
+        print(f"\n{'='*60}\n[probe] decoding {subset_path} (one-time)\n{'='*60}")
+        probe_clips = build_probe_clips(
+            probe_subset_path=subset_path,
+            probe_local_data=local_data_path,
+            probe_tags_path=tags_path,
+            num_frames=num_frames, crop_size=crop_size,
+        )
+        probe_jsonl_file = open(probe_jsonl_path, "w")
+    else:
+        print("[probe] disabled (SANITY mode or --no-probe) — skipping stage-boundary eval")
+        probe_jsonl_file = None
+
     try:
         for stage_idx, stage_cfg in enumerate(stages):
             stage_name = stage_cfg["name"]
@@ -576,9 +619,53 @@ def train_surgery(cfg: dict, args):
                                      scaler, global_step, 0.0, full=False)
             print(f"  Stage {stage_name} complete: {stage_steps} steps, loss={jepa_val:.4f}")
 
+            # Probe eval at stage boundary: embed val_1k through CURRENT student,
+            # compute Prec@K/mAP@K/Cycle@K with BCa 95% CI. Trajectory (list per
+            # stage) is the paper's "forgetting monitor" — if Prec@K drops at
+            # stage_idx+1 despite replay, the paper claim breaks on this run.
+            # Non-fatal: probe failures log a WARN and continue training.
+            if probe_clips is not None:
+                try:
+                    # Direct yaml subscripts — missing key → KeyError at runtime
+                    # (immediate crash, clear cause). No defaults per CLAUDE.md fail-loud.
+                    probe_result = run_probe_eval(
+                        student, probe_clips, cfg, device,
+                        k=probe_cfg["k"],
+                        bootstrap_iter=probe_cfg["bootstrap_iter"],
+                    )
+                    probe_result["stage_idx"] = stage_idx
+                    probe_result["stage_name"] = stage_name
+                    probe_result["global_step"] = global_step
+                    probe_history.append(probe_result)
+                    probe_jsonl_file.write(json.dumps(probe_result) + "\n")
+                    probe_jsonl_file.flush()
+                    os.fsync(probe_jsonl_file.fileno())
+
+                    # run_probe_eval raises ValueError for N<10, else always returns
+                    # full CI dicts. Direct indexing — no .get defaults.
+                    pk = probe_result["prec_at_k"]
+                    mk = probe_result["map_at_k"]
+                    ck = probe_result["cycle_at_k"]
+                    print(f"  [probe] stage={stage_name} N={probe_result['num_clips']} "
+                          f"Prec@K={pk['mean']:.2f}±{pk['ci_half']:.2f} "
+                          f"mAP@K={mk['mean']:.2f}±{mk['ci_half']:.2f} "
+                          f"Cycle@K={ck['mean']:.2f}±{ck['ci_half']:.2f}")
+                    log_metrics(wb_run, {
+                        f"probe/{stage_name}/prec_at_k": pk["mean"],
+                        f"probe/{stage_name}/prec_at_k_ci_half": pk["ci_half"],
+                        f"probe/{stage_name}/map_at_k": mk["mean"],
+                        f"probe/{stage_name}/cycle_at_k": ck["mean"],
+                    }, step=global_step)
+                except Exception as e:
+                    # Non-fatal: probe failure (OOM / N<10 / tag mismatch) logs WARN
+                    # and continues training. Stage checkpoint already saved above.
+                    print(f"  [probe] WARN: eval failed at stage {stage_name}: {e}")
+
     finally:
         csv_file.close()
         jsonl_file.close()
+        if probe_jsonl_file is not None:
+            probe_jsonl_file.close()
         gc.enable()
 
     # Fail-hard if zero successful training steps across all 3 stages (#55).
@@ -597,6 +684,65 @@ def train_surgery(cfg: dict, args):
     # Export student encoder (vanilla ViT — no LoRA merge)
     export_student_for_eval(student, student_path, explora_enabled=False)
 
+    # Trajectory stats across stage boundaries. Single-probe-set regime so BWT
+    # degenerates to net Prec@K improvement (R[-1]-R[0]). Non-zero max_drop
+    # flags a stage transition that hurt Prec@K despite replay — paper's
+    # "replay prevents forgetting" claim fails on this run if so.
+    traj_stats = compute_trajectory_stats(probe_history) if probe_history else {}
+    # compute_trajectory_stats returns either full stats dict (≥2 entries) or
+    # a dict with None-valued fields (0-1 entries). Distinguish via trajectory length.
+    if traj_stats and traj_stats["trajectory"]:
+        print(f"\n{'='*60}\n[probe] Trajectory across {len(probe_history)} stages:")
+        print(f"  Prec@K: {traj_stats['trajectory']}")
+        print(f"  ΔPrec@K (BWT-proxy): {traj_stats['bwt_prec_at_k']:+.2f}")
+        if not traj_stats["monotonic"]:
+            print(f"  ⚠  max_drop = {traj_stats['max_drop_prec_at_k']:.2f} "
+                  f"— some stage hurt Prec@K despite replay")
+        else:
+            print("  ✓  monotonic improvement across stages")
+        print("=" * 60)
+        log_metrics(wb_run, {
+            "probe/trajectory/bwt_prec_at_k": traj_stats["bwt_prec_at_k"],
+            "probe/trajectory/max_drop_prec_at_k": traj_stats["max_drop_prec_at_k"],
+            "probe/trajectory/monotonic": int(traj_stats["monotonic"]),
+        }, step=global_step)
+
+        # Training-dynamics figure — Prec@K across stages with CI bands. The
+        # paper figure Frozen-baseline runs can't produce (they have no stages).
+        try:
+            import matplotlib
+            matplotlib.use("Agg")
+            import matplotlib.pyplot as plt
+            fig, ax = plt.subplots(figsize=(7, 5))
+            stages_x = list(range(len(probe_history)))
+            stage_labels = [r["stage_name"] for r in probe_history]
+            # Every probe_history entry has all three metrics populated by
+            # run_probe_eval (raises on N<10 before returning). No .get guards needed.
+            for metric, color in [("prec_at_k", "#2E7D32"),
+                                  ("map_at_k", "#1565C0"),
+                                  ("cycle_at_k", "#E65100")]:
+                means = [r[metric]["mean"] for r in probe_history]
+                ci_los = [r[metric]["ci_lo"] for r in probe_history]
+                ci_his = [r[metric]["ci_hi"] for r in probe_history]
+                ax.plot(stages_x, means, "o-", color=color, linewidth=2,
+                        label=metric, markersize=8)
+                ax.fill_between(stages_x, ci_los, ci_his, color=color, alpha=0.15)
+            ax.set_xticks(stages_x)
+            ax.set_xticklabels(stage_labels, fontsize=9)
+            ax.set_ylabel("Probe metric (%)")
+            ax.set_title(
+                f"Mid-training probe trajectory (N={probe_history[0]['num_clips']}, "
+                f"95% BCa CI, scene_type)")
+            ax.legend(loc="best", fontsize=9)
+            ax.grid(True, alpha=0.3)
+            for ext in (".png", ".pdf"):
+                plt.savefig(output_dir / f"probe_trajectory{ext}",
+                            dpi=150 if ext == ".png" else None, bbox_inches="tight")
+            plt.close()
+            print(f"  Saved: {output_dir / 'probe_trajectory.png'}")
+        except Exception as e:
+            print(f"  [probe] WARN: trajectory plot failed: {e}")
+
     # Training summary
     summary = {
         "steps": global_step,
@@ -604,6 +750,8 @@ def train_surgery(cfg: dict, args):
         "total_factor_clips": len(factor_index),
         "batch_size": batch_size,
         "final_loss": jepa_val,
+        "probe_history": probe_history,
+        "probe_trajectory_stats": traj_stats,
     }
     with open(output_dir / "training_summary.json", "w") as f:
         json.dump(summary, f, indent=2)
@@ -655,6 +803,16 @@ def main():
                         help="Override max epochs (SANITY=1, --POC=5, --FULL=1)")
     parser.add_argument("--output-dir", type=str, default=None,
                         help="Override output directory")
+    # Mid-training probe (Prec@K/mAP@K/Cycle@K with BCa 95% CI at stage boundaries).
+    # Defaults resolved from configs/train/ch11_surgery.yaml probe: block; CLI wins.
+    parser.add_argument("--probe-subset", type=str, default=None,
+                        help="Probe clip subset JSON (default: cfg.probe.subset = val_1k)")
+    parser.add_argument("--probe-local-data", type=str, default=None,
+                        help="Probe WebDataset TAR dir (default: cfg.probe.local_data)")
+    parser.add_argument("--probe-tags", type=str, default=None,
+                        help="Probe tags.json path (default: cfg.probe.tags_path)")
+    parser.add_argument("--no-probe", action="store_true",
+                        help="Skip mid-training probe regardless of yaml setting")
     add_subset_arg(parser)
     add_local_data_arg(parser)
     add_wandb_args(parser)

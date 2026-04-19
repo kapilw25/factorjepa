@@ -749,17 +749,21 @@ def main():
 
     mode = "SANITY" if args.SANITY else ("POC" if args.POC else "FULL")
 
-    # Clip limit (computed before guard so the completeness check knows the target)
+    # Clip limit (computed before guard so the completeness check knows the target).
+    # POC + FULL derive clip count from explicit --subset (clip_keys list) or
+    # --local-data (manifest.json). Fail loud if neither works — no yaml fallback.
+    # Previously POC read `train_cfg["poc_simplified"]["n_clips"]` which silently
+    # capped 1000-clip val_1k runs at 100 regardless of --subset (Phase 2a
+    # 100-dense tier leftover). Removed 2026-04-17 when Phase 2b moved to 1K val_1k.
     if args.SANITY:
         clip_limit = get_sanity_clip_limit("default")
-    elif args.POC:
-        clip_limit = train_cfg["poc_simplified"]["n_clips"]
     else:
         clip_limit = get_total_clips(
             local_data=getattr(args, "local_data", None),
             subset_file=args.subset)
         if clip_limit == 0:
-            print("FATAL: Cannot determine clip count. Use --subset or --local-data with manifest.json")
+            print("FATAL: POC/FULL require explicit --subset (JSON with clip_keys list) or "
+                  "--local-data (directory with manifest.json). No yaml fallback.")
             sys.exit(1)
 
     # Skip if done — but only if segments.json has the FULL expected clip count.

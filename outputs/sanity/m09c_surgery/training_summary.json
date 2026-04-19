@@ -7,5 +7,7 @@
   ],
   "total_factor_clips": 15,
   "batch_size": 32,
-  "final_loss": 0.4805784337222576
+  "final_loss": 0.4802549835294485,
+  "probe_history": [],
+  "probe_trajectory_stats": {}
 }

@@ -21,10 +21,10 @@
 #       --train-config configs/train/ch11_surgery.yaml \
 #       --FULL --subset data/subset_10k.json --local-data data/subset_10k_local
 #
-# POC Mode (Week 1, simplified):
-#   - 100 clips, 2 factors only (D_L + D_A, skip D_I)
-#   - 2 stages: Stage 1 (D_L), Stage 2 (D_A + 10% D_L replay)
-#   - 1 epoch each = ~3h GPU on RTX PRO 6000
+# POC Mode (Phase 2b, 2026-04-17 onward):
+#   - 1000 clips from data/val_1k.json, all 3 factors (D_L + D_A + D_I), 3 stages
+#   - Clip count derived from --subset + --local-data manifest (fail-loud, no yaml fallback)
+#   - ~2.7 h GPU on RTX PRO 6000 96GB (100 epochs × 3 stages)
 
 extends: base_optimization.yaml
 
@@ -178,13 +178,6 @@ surgery:
         I: 0.85                     # 85% interaction
       max_epochs_pct: 0.34
 
-# -- POC simplification (Week 1) --
-# Override for fast validation: skip D_I, run only Stage 1 + Stage 2
-poc_simplified:
-  enabled: false                    # Set true via --poc-simple flag
-  stages_to_run: [stage1_layout, stage2_agent]
-  n_clips: 100                      # SAM3 on 100 clips for POC
-
 # -- Drift control: minimal --
 # Surgery uses freezing as the primary anti-forgetting mechanism.
 # Light drift control on unfrozen layers as belt-and-suspenders.
@@ -192,3 +185,30 @@ drift_control:
   enabled: true
   type: l2_uniform                  # Simple L2 (not EWC) for surgery
   lambda_reg: 1.0
+
+# -- Mid-training probe eval (B37-style forgetting / trajectory monitor) --
+# At stage boundaries, embed val_1k through the current student and compute
+# Prec@K / mAP@K / Cycle@K with BCa 95% CI. Numbers are directly comparable to
+# the D.4 decision gate (same bootstrap math, same scene_type field). Adds
+# ~10 min upfront (one-time clip decode) + ~5 s × 3 stages on 96GB.
+#
+# Mode gating: skipped on SANITY (N=20 too small for stable CI), ON for POC and
+# FULL. Probe uses val_1k_local which is ALSO the decision-gate set — so test
+# leakage exists by design. Acceptable because the retrieval metric is
+# structural, not supervised accuracy (m06 does query-vs-database kNN on the
+# same set with ±30s exclusion, not held-out label prediction).
+probe:
+  enabled:
+    sanity: false                 # N too small for stable BCa CI
+    poc: true
+    full: true
+  subset: data/val_1k.json        # must match --probe-subset from script
+  local_data: data/val_1k_local   # WebDataset TAR dir (1 shard for val_1k)
+  tags_path: data/val_1k_local/tags.json
+  k: 6                            # matches configs/pipeline.yaml eval.K
+  bootstrap_iter: 10000           # matches utils/bootstrap.N_BOOTSTRAP
+  cadence: stage_boundary         # stage_boundary | end_only — future: every_n_steps
+  # NOTE: probe forward micro-batch is adaptive — AdaptiveBatchSizer reads
+  # pipeline.yaml gpu.{inference_vjepa_initial_bs, inference_adapted_bs,
+  # gpu_memory_target} at runtime. Do NOT hardcode a sub_batch here (violates
+  # CLAUDE.md B35 "universal infra" rule, errors_N_fixes.md #47).

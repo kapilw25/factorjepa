@@ -42,7 +42,7 @@ Research benchmark testing if V-JEPA 2 (Meta's video foundation model, trained o
 
 - **m09a_pretrain.py** (1176 lines): Ch10 continual pretraining — full-param or layer-frozen V-JEPA 2 student-teacher JEPA with EMA, L1 latent prediction, drift control (λ·‖θ-θ₀‖²), lambda ablation sweep. Epoch-based. AdaptiveBatchSizer + `_train_step_grad_accum` (#48). `PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True` at main() (#53). Per-lambda encoder output names.
 - **m09b_explora.py** (1049 lines): ExPLoRA — LoRA rank=16 α=32 injected on blocks 2-47 + unfreeze blocks 0-1 + LayerNorm. No drift control (LoRA params auto-excluded from `init_params`). Same JEPA loss. Hardcoded ExPLoRA mode (no --explora flag). Within-step OOM retry loop (#55).
-- **m09c_surgery.py** (685 lines): **PAPER NOVELTY** — 3-stage progressive prefix unfreezing on FROZEN V-JEPA 2.1 with factor datasets. `FactorSampler(factor_manifest.json)` samples per-stage `mode_mixture` weights. `set_trainable_prefix(n_layers)` freezes all → unfreezes blocks [0, n_layers) + norm layers → rebuilds optimizer. Stages from `ch11_surgery.yaml`: stage1 (25% depth, 100% D_L), stage2 (50%, 90% D_A + 10% D_L), stage3 (75%, 85% D_I + 10% D_A + 5% D_L). Hardcoded surgery mode (no --surgery flag). Inter-stage cleanup: `optimizer=scheduler=sampler=None; gc.collect(); empty_cache(); ipc_collect()` (#58). Mode-gated memory savers: `use_8bit_optim` / `gradient_checkpointing` / `paged_optim` (sanity=true / poc=false / full=false) — SANITY on 24GB fits Stage 3 via bnb.PagedAdamW8bit + torch.utils.checkpoint (#56/#57/#58); POC/FULL on 96GB use clean fp32 AdamW for research-quality comparison. Within-step retry + 0-step fail-hard (#55). Per-stage pre-init of loss vars (#54). Status: SANITY v7 Stages 1+2 PASS (loss=0.4841, 0.4874), Stage 3 OOM at sub-batch=1 — v8 plan: teacher CPU offload.
+- **m09c_surgery.py** (685 lines): **PAPER NOVELTY** — 3-stage progressive prefix unfreezing on FROZEN V-JEPA 2.1 with factor datasets. `FactorSampler(factor_manifest.json)` samples per-stage `mode_mixture` weights. `set_trainable_prefix(n_layers)` freezes all → unfreezes blocks [0, n_layers) + norm layers → rebuilds optimizer. Stages from `ch11_surgery.yaml`: stage1 (25% depth, 100% D_L), stage2 (50%, 90% D_A + 10% D_L), stage3 (75%, 85% D_I + 10% D_A + 5% D_L). Hardcoded surgery mode (no --surgery flag). Inter-stage cleanup: `optimizer=scheduler=sampler=None; gc.collect(); empty_cache(); ipc_collect()` (#58). Mode-gated memory savers: `use_8bit_optim` / `gradient_checkpointing` / `paged_optim` (sanity=true / poc=false / full=false). Per-stage warmup via `warmup_pct: 0.20` fraction (#61 — replaced fixed `warmup_steps: 200` which exceeded POC's 99 stage-steps → LR never reached target). Within-step retry + 0-step fail-hard (#55). Per-stage pre-init of loss vars (#54). **Status 2026-04-17 late: SANITY ✅ on 96GB (all 3 stages, loss=0.4870/0.4901/0.4806 — first Stage 3 completion). POC 100-dense debugged (#60 max_epochs.poc 1→100, #61 warmup_pct) then 🚚 retired (3200 visits/clip overfitting). 1K val_1k POC 🎯 NEXT.**
 
 ### m10 / m11: Surgery Factor Datasets (Ch11, validated 2026-04-15 on 100 dense clips)
 - **m10_sam_segment.py** (996 lines): Grounded-SAM pipeline — Grounding DINO-base (Swin-B, fp32 per #37) does open-vocab text→box on 4 re-seed anchor frames `[0,4,8,12]` (multi-anchor per #32) → HF `Sam3TrackerVideoModel` (transformers 5.5.4 per #36) does box→mask refinement + propagation within each anchor's 4-frame segment. API calls: `init_video_session(video=frames_np)` per clip; per anchor × category `add_inputs_to_inference_session(frame_idx=anchor, obj_ids=[...], input_boxes=[boxes_xyxy])` (depth-3 boxes per #38), `session.reset_tracking_data()` between categories (not processor per #39), `propagate_in_video_iterator(start_frame_idx=anchor, max_frame_num_to_track=segment_size-1, reverse=False)`, `post_process_masks([output.pred_masks], original_sizes=[(H,W)], binarize=True)`, mask confidence from `sigmoid(output.object_score_logits)` (not iou_scores per #40). Box clamp before xywh-normalize (#28). Guards: empty `add_prompt` out_obj_ids (#30), `RuntimeError "No points are provided"` (#31). Saves per-clip `.npz` (agent_mask, layout_mask, centroids_json, interactions_json, mid_frame_rgb) + `segments.json` + `summary.json` + `per_object_bboxes_json` (~5KB/clip for m11 bbox-adaptive tubes). 17-category fixed agent taxonomy from `ch11_surgery.yaml` (replaces per-clip VLM `notable_objects`). `load_dotenv()` at top (#21). `os._exit(0)` on success / `os._exit(1)` on crash (#14/#16). Composite quality gate (4 checks). Measured on dense100: 11.02 s/clip (4.21× faster than raw sam3), 6146 agents, 8723 interactions.
@@ -129,22 +129,28 @@ Surgery  (train_surgery.sh):          m10 → m11 → m09c → m05 re-embed → 
 - **Ch9: COMPLETE** — 5-encoder comparison on 10K POC. Baseline: Prec@K=36.1% (frozen V-JEPA 2.0). Key finding: shuffled > normal V-JEPA by 2.4× → temporal interference.
 - **Ch10 (115K FULL): CATASTROPHIC FORGETTING** (2026-04-05). λ=0.001 → Prec@K crashed 36.1% → 14.3%. Drift penalty 1000× smaller than JEPA loss. Gold-standard audit found 12 discrepancies. Demoted to comparison arm.
 - **Strategic pivot (2026-04-10)**: Ch11 runs directly on frozen V-JEPA 2.1 (no Ch10 prerequisite). V-JEPA 2.1 ViT-G = PRIMARY. Temporal interference projection (30 min CPU) = potential paper centerpiece. Idea Critic verdict: PURSUE.
-- **Ch11 SANITY + dense100 POC upstream: VALIDATED 2026-04-15**:
-  - Step A' (m10 Grounded-SAM v2_HF): 11.02 s/clip (4.21× faster than raw sam3), 6146 agents, 8723 interactions, quality_gate PASS.
-  - Step B' (m11 bbox-tubes): 91/100 clips have D_I, 8723 tubes, 5659 unique bbox shapes, median 65 tubes/clip.
-  - Step C (m05 V-JEPA 2.1 frozen embed): 232 s for 100 clips at 2.3 s/clip bf16 with torch.compile + AdaptiveBatchSizer 8→14.
-  - 115K ETA: 61 days → **14.7 days on 24GB / 3.7 days on 96GB+batch×4**.
-- **Ch11 SANITY m09c Surgery training: IN PROGRESS** — v7 Stages 1+2 PASS (loss=0.4841, 0.4874), Stage 3 OOM at sub-batch=1 on 24GB even with PagedAdamW8bit + gradient_checkpointing + inter-stage cleanup. Proposed v8 fix: teacher CPU offload (frees 3.7 GB permanently, ~1 s/stage throughput hit, zero accuracy impact). Fallback ladder: disable deep supervision on SANITY, reduce num_frames 16→8, predictor CPU offload.
-- **Step D.2 POC (m09c Surgery, 100 dense clips) + Step E.1/E.2 (m09b ExPLoRA)**: PENDING — blocked on v8 SANITY fix or move to 96GB GPU for POC.
+- **Ch11 upstream (m10 + m11 + m05 frozen) VALIDATED on 96GB 2026-04-17**:
+  - Step A (m10 Grounded-SAM): **6.13 s/clip on 96GB** (11.02 s/clip on 24GB), 6141 agents, 8712 interactions, quality_gate PASS.
+  - Step B (m11 bbox-tubes, 32-worker ProcessPool): 47 s total on 100 dense clips (5.7× speedup vs single-thread). 91/100 clips with D_I, 8712 tubes, median 65 tubes/clip.
+  - Step C (m05 V-JEPA 2.1 frozen embed): 100 clips × 1664-dim in **423 s on 96GB** (4.23 s/clip bf16 with torch.compile + AdaptiveBatchSizer). RoPE Q/K cast durable via setup_env_uv.sh heredoc (#44/#59).
+  - 115K FULL ETA: ~8.2 d single-stream m10 / ~2 d at batch ×4 on 96GB.
+- **Ch11 m09c Surgery SANITY: ✅ RESOLVED on 96GB 2026-04-17** — all 3 stages PASS (loss=0.4870/0.4901/**0.4806** — first ever successful Stage 3 completion). Stage 3 post-cleanup VRAM 19.9 / 102 GB = 80 GB headroom. v8 teacher-offload plan NOT needed — 96GB hardware migration resolved #58 for free. PagedAdamW8bit + grad-checkpointing kept mode-gated to sanity for 24GB backward-compat.
+- **Ch11 m09c Surgery POC (100-dense) debugged + retired 2026-04-17**:
+  - v1: `max_epochs.poc: 1` → 3 total steps across 3 stages (silent near-no-op, #60). Fixed → 100.
+  - v2: `warmup_steps: 200 > stage_steps: 99` per stage → LR never reached target, loss 0.503→0.476 warmup-truncated (#61). Fixed → `warmup_pct: 0.20` auto-scaling.
+  - 🚚 Tier retired — 3200 visits/clip at 100 scale produces overfitting pressure that wouldn't replicate at FULL scale. Unpublishable.
+- **🎯 NEXT (Phase 2b): 1K val_1k POC**. Full pipeline ~10 h on 96GB (m10 ~102 min + m11 ~8 min + m05 frozen ~70 min + m09c Surgery ~2.7 h + m05 surgical ~70 min + m06 ~5 min + m09b ExPLoRA arm ~2.75 h). 20 visits/clip = publishable scale. Decision gate: Surgery > Frozen with non-overlapping 95% CIs → scale to FULL 115K; else follow `literature_survey.md` fallback ladder.
 
 ## Env Stack (pinned, 2026-04-15)
 PyTorch 2.12.0.dev20260228+cu128, CUDA 12.8, FA2 2.8.3, FAISS-GPU 1.14.1 (source-built sm_120), cuML 26.04, SAM 3.1 (raw pkg via `--no-deps`), transformers **5.5.4** (`Sam3TrackerVideoModel`), bitsandbytes 0.49.2, Python 3.12, UV. Release tag: `sm120-cu128-py312`.
 
 ## NeurIPS 2026-05-04 Deadline
-- Budget: ~38h remaining (22d × 2h/day − 6h spent).
-- Phase 1 (24GB GPU SANITY): ~1h remaining (m09c Stage 3 fix + end-to-end run).
-- Phase 2 (96GB GPU POC): 3h.
-- Decision gate: Surgery > ExPLoRA > Frozen on Prec@K with non-overlapping 95% CIs on 100 dense clips.
+- Budget: ~27h remaining (of original ~38 h, ~11 h spent on Phase 1 SANITY + Phase 2a 100-dense debug).
+- Phase 1 (24GB→96GB SANITY): ✅ DONE.
+- Phase 2a (100-dense POC discovery tier): ✅ DONE + 🚚 retired. Caught #60 max_epochs + #61 warmup_pct.
+- Phase 2b (1K val_1k POC, publishable tier): 🎯 NEXT — ~10 h full pipeline D.2 → E.3.
+- Phase 3 (FULL 115K + ablations): ⬜ ~36 h on 96GB batch×4 if 1K Prec@K shows Surgery > Frozen cleanly.
+- Decision gate: Surgery > ExPLoRA > Frozen on Prec@K with non-overlapping 95% CIs on 1K val_1k clips (moved up from 100-dense).
 - Fallback: `iter/utils/literarure_survey.md` — 24 JEPA variants, 3 top techniques (SIGReg, VLA-JEPA leakage-free, temporal straightening).
 - Best-paper reframe: "Temporal Interference in Video Foundation Models" — shuffled > normal by 2.4× as paper centerpiece.
 
@@ -158,7 +164,7 @@ PyTorch 2.12.0.dev20260228+cu128, CUDA 12.8, FA2 2.8.3, FAISS-GPU 1.14.1 (source
 
 **Key insight**: m00d always downloads ALL 116 TARs regardless of subset. rsync or hf_outputs download-data is 10-25× faster for POC/val.
 
-## Lessons Learned (selected — full history in iter/iter8/errors_N_fixes.md #1-#58)
+## Lessons Learned (selected — full history in iter/iter8/errors_N_fixes.md #1-#61)
 1. **vjepa2 namespace collision**: `src/utils/__init__.py` shadows vjepa2's `src/utils/`. Fixed with CWD-based import shim + `_ensure_loaded_2_1()` finally-block restores ALL saved `src.*` modules (#50).
 2. **SAM3 `--no-deps` undeclared dependencies**: Every runtime import must be explicitly declared in `requirements_gpu.txt` (pycocotools, einops, iopath, ftfy). Pattern: #5, #6, #7, #18, #19.
 3. **transformers 4.57 → 5.5.4 migration**: `torch_dtype=` → `dtype=` (#37/#43), DINO text branch crashes under fp16 → load fp32 (#37), `box_threshold` → `threshold` + `labels` → `text_labels` (#24), `Sam3TrackerVideoProcessor.add_inputs_to_inference_session` wants depth-3 boxes not depth-4 (#38), session-reset methods on session not processor (#39), `output.object_score_logits` not `iou_scores` (#40).
@@ -173,6 +179,9 @@ PyTorch 2.12.0.dev20260228+cu128, CUDA 12.8, FA2 2.8.3, FAISS-GPU 1.14.1 (source
 12. **verify_or_skip completeness**: Must check output count not just existence. Both JSON and .npy branches set `clip_count = len(data)` (#29).
 13. **torchcodec SIGSEGV on Blackwell**: `_USE_TORCHCODEC = False` in `video_io.py`; PyAV fallback is active. Silent C-extension crashes bypass try/except (#10).
 14. **SAM3 async thread shutdown**: `os._exit(0)` on success + `os._exit(1)` on crash — `return` leaks async frame-loading threads that hold VRAM (#14/#16).
+15. **vjepa2 patches must re-apply on fresh clone (#59)**: `setup_env_uv.sh` does `rm -rf deps/vjepa2 && git clone` on every provision — any local edit to `deps/vjepa2/` is wiped. The RoPE Q/K dtype cast (#44) must live as an idempotent heredoc in `setup_env_uv.sh` (anchor-match + SystemExit if anchor missing), not as a one-off file edit.
+16. **YAML training-config sanity is load-bearing (#60, #61)**: `max_epochs.poc: 1` silently ran only 3 total optimizer steps; `warmup_steps: 200 > stage_steps: 99` silently capped LR at <50% of target. Both produced exported students that looked OK downstream but carried no training signal. Fail-hard preflight checks (B38 max_epochs sanity, B39 warmup_pct) now guard these at CPU-time before GPU spend.
+17. **Hardware upgrade can beat code complexity (#58 postscript)**: v8 teacher-CPU-offload patch (~3 h code + test + maintain) was superseded by moving SANITY from 24GB RTX Pro 4000 → 96GB RTX Pro 6000 Blackwell (~$0.60/hr delta, cents per SANITY run). Compare "code fix" vs "hardware upgrade" as equal options, not hardware as last resort.
 
 ## User Preferences
 - Never be a yes-man — give pros/cons like a Sr. AI/ML Research Engineer.

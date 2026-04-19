@@ -97,6 +97,7 @@ Verdict: Path B achieved 4.21× speedup AND +228 % D_I tubes AND tighter agent m
 - ⬜ Step E.1 (m09b ExPLoRA SANITY, ~10 min) — run after D.4 regardless of gate result (cheap code smoke test)
 - ⬜ Step E.2 (m09b ExPLoRA POC 1K, ~2 h) — CONDITIONAL on D.4 showing Surgery > Frozen
 - ⬜ Step E.3 (m05 ExPLoRA re-embed + m06 Prec@K) — completes the 3-arm comparison
+- ⬜ **Step F (CONDITIONAL on D.4 Surgery > Frozen)**: port probe infra (`run_probe_eval`, `compute_trajectory_stats`, `probe:` yaml) from m09c → m09a + m09b so all 3 arms emit matched Prec@K/mAP@K/Cycle@K trajectories with BCa 95% CI on val_1k. Needed for apples-to-apples 3-arm training-dynamics figure (only m09c has it today). Est. ~1 h — mostly `from utils.training import build_probe_clips, run_probe_eval, compute_trajectory_stats` + argparse + eval hook at `total_steps//3` cadence.
 
 ---
 

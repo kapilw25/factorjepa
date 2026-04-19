@@ -15,6 +15,698 @@
     ],
     "n_interactions": 3
   },
+  "goa/walking/X2GEIVQCk6w/X2GEIVQCk6w-005.mp4": {
+    "n_agents": 0,
+    "n_expected": 0,
+    "concept_recall": 0.0,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.0,
+    "mean_mask_confidence": 0.0,
+    "detected_categories": [],
+    "n_interactions": 0
+  },
+  "goa/walking/XaI7QtqS4O8/XaI7QtqS4O8-000.mp4": {
+    "n_agents": 0,
+    "n_expected": 0,
+    "concept_recall": 0.0,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.0,
+    "mean_mask_confidence": 0.0,
+    "detected_categories": [
+      "car"
+    ],
+    "n_interactions": 0
+  },
+  "goa/walking/XeOliFWJBVg/XeOliFWJBVg-073.mp4": {
+    "n_agents": 32,
+    "n_expected": 1,
+    "concept_recall": 1.0,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.03440640856752537,
+    "mean_mask_confidence": 0.9941611808674936,
+    "detected_categories": [
+      "car",
+      "pedestrian"
+    ],
+    "n_interactions": 68
+  },
+  "goa/walking/Y8Ea5ZpV7n8/Y8Ea5ZpV7n8-109.mp4": {
+    "n_agents": 1,
+    "n_expected": 0,
+    "concept_recall": 0.0,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.0015070013661202186,
+    "mean_mask_confidence": 0.9999838173389435,
+    "detected_categories": [
+      "person"
+    ],
+    "n_interactions": 0
+  },
+  "goa/walking/YX5LXl4bxTg/YX5LXl4bxTg-010.mp4": {
+    "n_agents": 28,
+    "n_expected": 3,
+    "concept_recall": 1.0,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.02853819037861046,
+    "mean_mask_confidence": 0.9979750492157192,
+    "detected_categories": [
+      "car",
+      "motorcycle",
+      "pedestrian",
+      "person"
+    ],
+    "n_interactions": 50
+  },
+  "goa/walking/ZnpFrYOjQKQ/ZnpFrYOjQKQ-009.mp4": {
+    "n_agents": 14,
+    "n_expected": 4,
+    "concept_recall": 0.75,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.01583281493950039,
+    "mean_mask_confidence": 0.9982735807612791,
+    "detected_categories": [
+      "car",
+      "motorcycle",
+      "person",
+      "truck"
+    ],
+    "n_interactions": 4
+  },
+  "tier1/bangalore/drive/7W0bqXN2b1k/7W0bqXN2b1k-017.mp4": {
+    "n_agents": 23,
+    "n_expected": 3,
+    "concept_recall": 0.667,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.05874042496096799,
+    "mean_mask_confidence": 0.9939217256175147,
+    "detected_categories": [
+      "bicycle",
+      "car",
+      "pedestrian",
+      "truck"
+    ],
+    "n_interactions": 26
+  },
+  "tier1/bangalore/drive/FlzchFfTruw/FlzchFfTruw-058.mp4": {
+    "n_agents": 29,
+    "n_expected": 5,
+    "concept_recall": 0.8,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.07529731411007026,
+    "mean_mask_confidence": 0.9963917252236763,
+    "detected_categories": [
+      "bus",
+      "car",
+      "motorcycle",
+      "pedestrian",
+      "person",
+      "truck"
+    ],
+    "n_interactions": 29
+  },
+  "tier1/bangalore/drive/FoDu_Bhak4E/FoDu_Bhak4E-087.mp4": {
+    "n_agents": 102,
+    "n_expected": 4,
+    "concept_recall": 0.75,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.17657744193989072,
+    "mean_mask_confidence": 0.9843683155143962,
+    "detected_categories": [
+      "car",
+      "motorcycle",
+      "pedestrian",
+      "person",
+      "truck"
+    ],
+    "n_interactions": 128
+  },
+  "tier1/bangalore/drive/IQDGp_qQ1OI/IQDGp_qQ1OI-098.mp4": {
+    "n_agents": 49,
+    "n_expected": 5,
+    "concept_recall": 0.8,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.2560001036787666,
+    "mean_mask_confidence": 0.993096950310695,
+    "detected_categories": [
+      "bicycle",
+      "bus",
+      "car",
+      "motorcycle",
+      "person",
+      "truck"
+    ],
+    "n_interactions": 60
+  },
+  "tier1/bangalore/drive/IVDTABXiR4c/IVDTABXiR4c-085.mp4": {
+    "n_agents": 26,
+    "n_expected": 3,
+    "concept_recall": 1.0,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.10183572404371585,
+    "mean_mask_confidence": 0.9786815197668343,
+    "detected_categories": [
+      "bicycle",
+      "car",
+      "motorcycle",
+      "pedestrian",
+      "person",
+      "truck"
+    ],
+    "n_interactions": 27
+  },
+  "tier1/bangalore/drive/LD7bl1I2NgM/LD7bl1I2NgM-135.mp4": {
+    "n_agents": 12,
+    "n_expected": 3,
+    "concept_recall": 1.0,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.019510971653005464,
+    "mean_mask_confidence": 0.9949903773224872,
+    "detected_categories": [
+      "car",
+      "motorcycle",
+      "pedestrian",
+      "person"
+    ],
+    "n_interactions": 2
+  },
+  "goa/walking/f2oXG655Wpc/f2oXG655Wpc-032.mp4": {
+    "n_agents": 0,
+    "n_expected": 0,
+    "concept_recall": 0.0,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.0,
+    "mean_mask_confidence": 0.0,
+    "detected_categories": [],
+    "n_interactions": 0
+  },
+  "goa/walking/gflBqzcPAKs/gflBqzcPAKs-123.mp4": {
+    "n_agents": 1,
+    "n_expected": 1,
+    "concept_recall": 1.0,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.0128692793715847,
+    "mean_mask_confidence": 0.9993083477020264,
+    "detected_categories": [
+      "car"
+    ],
+    "n_interactions": 0
+  },
+  "goa/walking/jQPs0LTwVwY/jQPs0LTwVwY-075.mp4": {
+    "n_agents": 25,
+    "n_expected": 3,
+    "concept_recall": 1.0,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.018314701649102264,
+    "mean_mask_confidence": 0.9899869805358978,
+    "detected_categories": [
+      "car",
+      "motorcycle",
+      "person",
+      "truck"
+    ],
+    "n_interactions": 17
+  },
+  "goa/walking/m6vxCnejLKE/m6vxCnejLKE-194.mp4": {
+    "n_agents": 2,
+    "n_expected": 1,
+    "concept_recall": 0.0,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.0004609131049960968,
+    "mean_mask_confidence": 0.9998424053192139,
+    "detected_categories": [
+      "car"
+    ],
+    "n_interactions": 0
+  },
+  "goa/walking/t7xoacYTSJw/t7xoacYTSJw-169.mp4": {
+    "n_agents": 15,
+    "n_expected": 2,
+    "concept_recall": 1.0,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.05943720725995316,
+    "mean_mask_confidence": 0.9998839682546156,
+    "detected_categories": [
+      "car",
+      "motorcycle"
+    ],
+    "n_interactions": 4
+  },
+  "monuments/mysore_palace/Bu-9hS9Lzbg/Bu-9hS9Lzbg-013.mp4": {
+    "n_agents": 0,
+    "n_expected": 0,
+    "concept_recall": 0.0,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.0,
+    "mean_mask_confidence": 0.0,
+    "detected_categories": [],
+    "n_interactions": 0
+  },
+  "monuments/red_fort_delhi/TWqaSTSWzus/TWqaSTSWzus-165.mp4": {
+    "n_agents": 2,
+    "n_expected": 1,
+    "concept_recall": 1.0,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.0021212980581576894,
+    "mean_mask_confidence": 0.9999462366104126,
+    "detected_categories": [
+      "bicycle",
+      "pedestrian"
+    ],
+    "n_interactions": 1
+  },
+  "tier1/bangalore/drive/0dsDjXBthT0/0dsDjXBthT0-062.mp4": {
+    "n_agents": 43,
+    "n_expected": 4,
+    "concept_recall": 0.75,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.08158299180327869,
+    "mean_mask_confidence": 0.9943651591577838,
+    "detected_categories": [
+      "bus",
+      "car",
+      "motorcycle",
+      "pedestrian",
+      "person",
+      "truck"
+    ],
+    "n_interactions": 49
+  },
+  "tier1/bangalore/drive/33LAzx2TQ3c/33LAzx2TQ3c-000.mp4": {
+    "n_agents": 38,
+    "n_expected": 5,
+    "concept_recall": 0.8,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.05430175400078064,
+    "mean_mask_confidence": 0.9689603356627731,
+    "detected_categories": [
+      "bus",
+      "car",
+      "motorcycle",
+      "pedestrian",
+      "person",
+      "truck"
+    ],
+    "n_interactions": 4
+  },
+  "tier1/bangalore/drive/3T7XZ1lE9Vo/3T7XZ1lE9Vo-236.mp4": {
+    "n_agents": 57,
+    "n_expected": 3,
+    "concept_recall": 0.667,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.19259764100312257,
+    "mean_mask_confidence": 0.970968479588187,
+    "detected_categories": [
+      "car",
+      "truck"
+    ],
+    "n_interactions": 15
+  },
+  "tier1/bangalore/drive/6yLbS7Tq5uY/6yLbS7Tq5uY-000.mp4": {
+    "n_agents": 42,
+    "n_expected": 4,
+    "concept_recall": 0.75,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.1626256342701015,
+    "mean_mask_confidence": 0.9894688721550139,
+    "detected_categories": [
+      "bicycle",
+      "bus",
+      "car",
+      "motorcycle",
+      "pedestrian",
+      "person",
+      "truck"
+    ],
+    "n_interactions": 55
+  },
+  "goa/walking/GT89Ljv5zc8/GT89Ljv5zc8-037.mp4": {
+    "n_agents": 0,
+    "n_expected": 0,
+    "concept_recall": 0.0,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.0,
+    "mean_mask_confidence": 0.0,
+    "detected_categories": [],
+    "n_interactions": 0
+  },
+  "goa/walking/HnKlAunBJgw/HnKlAunBJgw-097.mp4": {
+    "n_agents": 33,
+    "n_expected": 3,
+    "concept_recall": 1.0,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.26919398907103825,
+    "mean_mask_confidence": 0.9947811828719245,
+    "detected_categories": [
+      "car",
+      "motorcycle",
+      "pedestrian"
+    ],
+    "n_interactions": 38
+  },
+  "goa/walking/IB9MFHPY9c8/IB9MFHPY9c8-000.mp4": {
+    "n_agents": 4,
+    "n_expected": 0,
+    "concept_recall": 0.0,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.012903889783372365,
+    "mean_mask_confidence": 0.9999811202287674,
+    "detected_categories": [
+      "car",
+      "person"
+    ],
+    "n_interactions": 6
+  },
+  "goa/walking/IiT11lKrvVE/IiT11lKrvVE-213.mp4": {
+    "n_agents": 21,
+    "n_expected": 2,
+    "concept_recall": 1.0,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.0264464712626854,
+    "mean_mask_confidence": 0.9741346140702566,
+    "detected_categories": [
+      "car",
+      "motorcycle",
+      "person",
+      "truck"
+    ],
+    "n_interactions": 3
+  },
+  "goa/walking/LTCSPZap5EY/LTCSPZap5EY-073.mp4": {
+    "n_agents": 0,
+    "n_expected": 1,
+    "concept_recall": 1.0,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.0,
+    "mean_mask_confidence": 0.0,
+    "detected_categories": [
+      "person"
+    ],
+    "n_interactions": 0
+  },
+  "goa/walking/LcTItaFqA-8/LcTItaFqA-8-006.mp4": {
+    "n_agents": 26,
+    "n_expected": 1,
+    "concept_recall": 1.0,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.03460294081772053,
+    "mean_mask_confidence": 0.9968217466816758,
+    "detected_categories": [
+      "car",
+      "truck"
+    ],
+    "n_interactions": 64
+  },
+  "goa/walking/MaZ3WTmOfVc/MaZ3WTmOfVc-025.mp4": {
+    "n_agents": 3,
+    "n_expected": 1,
+    "concept_recall": 1.0,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.013153023760733802,
+    "mean_mask_confidence": 0.9860120680597093,
+    "detected_categories": [
+      "car",
+      "motorcycle",
+      "person"
+    ],
+    "n_interactions": 1
+  },
+  "goa/walking/v0aVwAGV9dE/v0aVwAGV9dE-045.mp4": {
+    "n_agents": 4,
+    "n_expected": 1,
+    "concept_recall": 1.0,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.020215834797033566,
+    "mean_mask_confidence": 0.9999775215983391,
+    "detected_categories": [
+      "car",
+      "pedestrian"
+    ],
+    "n_interactions": 0
+  },
+  "goa/walking/vDnO_KXr0us/vDnO_KXr0us-047.mp4": {
+    "n_agents": 0,
+    "n_expected": 0,
+    "concept_recall": 0.0,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.0,
+    "mean_mask_confidence": 0.0,
+    "detected_categories": [],
+    "n_interactions": 0
+  },
+  "goa/walking/w2T-gXsHzjE/w2T-gXsHzjE-128.mp4": {
+    "n_agents": 3,
+    "n_expected": 2,
+    "concept_recall": 1.0,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.0024320294203747073,
+    "mean_mask_confidence": 0.9988222397290744,
+    "detected_categories": [
+      "car",
+      "pedestrian"
+    ],
+    "n_interactions": 0
+  },
+  "goa/walking/yP6LURr0e5Y/yP6LURr0e5Y-047.mp4": {
+    "n_agents": 41,
+    "n_expected": 3,
+    "concept_recall": 0.667,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.1161311963309914,
+    "mean_mask_confidence": 0.9868911490990565,
+    "detected_categories": [
+      "car",
+      "motorcycle",
+      "truck"
+    ],
+    "n_interactions": 29
+  },
+  "monuments/gateway_of_india_mumbai/LVguK9bqj4Y/LVguK9bqj4Y-025.mp4": {
+    "n_agents": 124,
+    "n_expected": 3,
+    "concept_recall": 1.0,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.27570562548790006,
+    "mean_mask_confidence": 0.9949737937588777,
+    "detected_categories": [
+      "car",
+      "motorcycle",
+      "pedestrian",
+      "policeman",
+      "truck"
+    ],
+    "n_interactions": 468
+  },
+  "monuments/gateway_of_india_mumbai/_NofLLZazeA/_NofLLZazeA-044.mp4": {
+    "n_agents": 29,
+    "n_expected": 3,
+    "concept_recall": 1.0,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.15023647906908666,
+    "mean_mask_confidence": 0.9964707284911066,
+    "detected_categories": [
+      "car",
+      "motorcycle",
+      "pedestrian",
+      "truck"
+    ],
+    "n_interactions": 34
+  },
+  "goa/walking/O1vcEdp-UNY/O1vcEdp-UNY-146.mp4": {
+    "n_agents": 4,
+    "n_expected": 1,
+    "concept_recall": 1.0,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.022555163202576112,
+    "mean_mask_confidence": 0.9999707503752275,
+    "detected_categories": [
+      "pedestrian",
+      "policeman"
+    ],
+    "n_interactions": 1
+  },
+  "goa/walking/P4lewi0UCKc/P4lewi0UCKc-101.mp4": {
+    "n_agents": 0,
+    "n_expected": 0,
+    "concept_recall": 0.0,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.0,
+    "mean_mask_confidence": 0.0,
+    "detected_categories": [],
+    "n_interactions": 0
+  },
+  "goa/walking/PKHjc9u3wHg/PKHjc9u3wHg-036.mp4": {
+    "n_agents": 4,
+    "n_expected": 0,
+    "concept_recall": 0.0,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.004906597628805621,
+    "mean_mask_confidence": 0.9999822527170181,
+    "detected_categories": [
+      "person"
+    ],
+    "n_interactions": 2
+  },
+  "goa/walking/QnWhWcry8rM/QnWhWcry8rM-130.mp4": {
+    "n_agents": 0,
+    "n_expected": 1,
+    "concept_recall": 1.0,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.0,
+    "mean_mask_confidence": 0.0,
+    "detected_categories": [
+      "person"
+    ],
+    "n_interactions": 0
+  },
+  "goa/walking/04YKvC8kAgI/04YKvC8kAgI-093.mp4": {
+    "n_agents": 0,
+    "n_expected": 0,
+    "concept_recall": 0.0,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.0,
+    "mean_mask_confidence": 0.0,
+    "detected_categories": [],
+    "n_interactions": 0
+  },
+  "goa/walking/1bJMoSTs4rA/1bJMoSTs4rA-118.mp4": {
+    "n_agents": 0,
+    "n_expected": 1,
+    "concept_recall": 0.0,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.0,
+    "mean_mask_confidence": 0.0,
+    "detected_categories": [],
+    "n_interactions": 0
+  },
+  "goa/walking/2_gdsRymzzM/2_gdsRymzzM-060.mp4": {
+    "n_agents": 0,
+    "n_expected": 0,
+    "concept_recall": 0.0,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.0,
+    "mean_mask_confidence": 0.0,
+    "detected_categories": [],
+    "n_interactions": 0
+  },
+  "goa/walking/BimNT0Y5Hbs/BimNT0Y5Hbs-204.mp4": {
+    "n_agents": 1,
+    "n_expected": 0,
+    "concept_recall": 0.0,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.0011833101580796253,
+    "mean_mask_confidence": 0.8162266612052917,
+    "detected_categories": [
+      "person"
+    ],
+    "n_interactions": 0
+  },
+  "goa/walking/C6Tn_V6-EXg/C6Tn_V6-EXg-047.mp4": {
+    "n_agents": 51,
+    "n_expected": 4,
+    "concept_recall": 1.0,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.09112784201795472,
+    "mean_mask_confidence": 0.9933601031380315,
+    "detected_categories": [
+      "car",
+      "dog",
+      "motorcycle",
+      "person",
+      "truck"
+    ],
+    "n_interactions": 75
+  },
+  "goa/walking/Dxuqlhmwh-Q/Dxuqlhmwh-Q-095.mp4": {
+    "n_agents": 13,
+    "n_expected": 5,
+    "concept_recall": 0.4,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.3047878244535519,
+    "mean_mask_confidence": 0.9973911716013538,
+    "detected_categories": [
+      "person",
+      "vendor"
+    ],
+    "n_interactions": 3
+  },
+  "tier1/bangalore/drive/McJ-sa11O_8/McJ-sa11O_8-110.mp4": {
+    "n_agents": 62,
+    "n_expected": 5,
+    "concept_recall": 0.8,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.1191220238095238,
+    "mean_mask_confidence": 0.9415870765068012,
+    "detected_categories": [
+      "car",
+      "motorcycle",
+      "pedestrian",
+      "truck"
+    ],
+    "n_interactions": 27
+  },
+  "tier1/bangalore/drive/PWTJe65Qw-k/PWTJe65Qw-k-001.mp4": {
+    "n_agents": 51,
+    "n_expected": 3,
+    "concept_recall": 1.0,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.19265237729313037,
+    "mean_mask_confidence": 0.9883514403659392,
+    "detected_categories": [
+      "car",
+      "motorcycle",
+      "pedestrian",
+      "person",
+      "truck"
+    ],
+    "n_interactions": 45
+  },
+  "tier1/bangalore/drive/QFjB-ezXgOA/QFjB-ezXgOA-084.mp4": {
+    "n_agents": 18,
+    "n_expected": 3,
+    "concept_recall": 0.667,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.04059343896370023,
+    "mean_mask_confidence": 0.983068767615727,
+    "detected_categories": [
+      "bus",
+      "car",
+      "motorcycle",
+      "truck"
+    ],
+    "n_interactions": 7
+  },
+  "tier1/bangalore/drive/QbRghK-FBwI/QbRghK-FBwI-009.mp4": {
+    "n_agents": 47,
+    "n_expected": 5,
+    "concept_recall": 0.8,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.05404514905347385,
+    "mean_mask_confidence": 0.988140814914936,
+    "detected_categories": [
+      "car",
+      "motorcycle",
+      "pedestrian",
+      "truck"
+    ],
+    "n_interactions": 49
+  },
+  "tier1/bangalore/drive/f-52ntfv_Ns/f-52ntfv_Ns-132.mp4": {
+    "n_agents": 50,
+    "n_expected": 4,
+    "concept_recall": 0.75,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.1236570550351288,
+    "mean_mask_confidence": 0.9646984844594388,
+    "detected_categories": [
+      "bus",
+      "car",
+      "motorcycle",
+      "pedestrian",
+      "person",
+      "truck"
+    ],
+    "n_interactions": 26
+  },
   "tier1/chennai/drive/VeHqaGKoMAg/VeHqaGKoMAg-050.mp4": {
     "n_agents": 146,
     "n_expected": 5,
@@ -32,6 +724,124 @@
     ],
     "n_interactions": 233
   },
+  "tier1/chennai/drive/WznlYZfcivA/WznlYZfcivA-150.mp4": {
+    "n_agents": 40,
+    "n_expected": 4,
+    "concept_recall": 0.75,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.07985735021467603,
+    "mean_mask_confidence": 0.9879718839176117,
+    "detected_categories": [
+      "bus",
+      "car",
+      "motorcycle",
+      "pedestrian",
+      "person",
+      "truck",
+      "vendor"
+    ],
+    "n_interactions": 25
+  },
+  "tier1/chennai/drive/g8NLulwoiLQ/g8NLulwoiLQ-026.mp4": {
+    "n_agents": 62,
+    "n_expected": 4,
+    "concept_recall": 0.75,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.1274690793325527,
+    "mean_mask_confidence": 0.9734530142210063,
+    "detected_categories": [
+      "bicycle",
+      "car",
+      "motorcycle",
+      "pedestrian",
+      "person",
+      "truck"
+    ],
+    "n_interactions": 29
+  },
+  "tier1/chennai/drive/iMqYy9vH_w0/iMqYy9vH_w0-055.mp4": {
+    "n_agents": 53,
+    "n_expected": 4,
+    "concept_recall": 0.75,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.1136354349629196,
+    "mean_mask_confidence": 0.9901075837917106,
+    "detected_categories": [
+      "bicycle",
+      "car",
+      "motorcycle",
+      "pedestrian",
+      "person"
+    ],
+    "n_interactions": 43
+  },
+  "tier1/chennai/drive/l9Sb2UDft9Y/l9Sb2UDft9Y-045.mp4": {
+    "n_agents": 49,
+    "n_expected": 5,
+    "concept_recall": 0.8,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.16529764954137394,
+    "mean_mask_confidence": 0.9962934217282704,
+    "detected_categories": [
+      "bus",
+      "car",
+      "motorcycle",
+      "pedestrian",
+      "person",
+      "truck"
+    ],
+    "n_interactions": 51
+  },
+  "tier1/chennai/drive/o7yMklSe0uE/o7yMklSe0uE-067.mp4": {
+    "n_agents": 32,
+    "n_expected": 2,
+    "concept_recall": 1.0,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.031181541520296643,
+    "mean_mask_confidence": 0.9885947323337043,
+    "detected_categories": [
+      "bicycle",
+      "car",
+      "motorcycle",
+      "person",
+      "truck"
+    ],
+    "n_interactions": 17
+  },
+  "tier1/chennai/drive/qTv2Av5KtYc/qTv2Av5KtYc-002.mp4": {
+    "n_agents": 29,
+    "n_expected": 4,
+    "concept_recall": 1.0,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.05945504610655738,
+    "mean_mask_confidence": 0.9842450920115696,
+    "detected_categories": [
+      "bus",
+      "car",
+      "motorcycle",
+      "pedestrian",
+      "person",
+      "truck"
+    ],
+    "n_interactions": 6
+  },
+  "tier1/chennai/drive/uL36YVAnVis/uL36YVAnVis-001.mp4": {
+    "n_agents": 16,
+    "n_expected": 4,
+    "concept_recall": 0.75,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.0267944050058548,
+    "mean_mask_confidence": 0.9943197953934763,
+    "detected_categories": [
+      "bicycle",
+      "car",
+      "motorcycle",
+      "pedestrian",
+      "person",
+      "truck"
+    ],
+    "n_interactions": 0
+  },
   "tier1/chennai/drive/vUJ87vyv7MI/vUJ87vyv7MI-096.mp4": {
     "n_agents": 114,
     "n_expected": 5,
@@ -48,6 +858,133 @@
     ],
     "n_interactions": 103
   },
+  "tier1/chennai/drive/w7RacWBH-1Q/w7RacWBH-1Q-035.mp4": {
+    "n_agents": 39,
+    "n_expected": 3,
+    "concept_recall": 1.0,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.16362064549180327,
+    "mean_mask_confidence": 0.9626204986420889,
+    "detected_categories": [
+      "bus",
+      "car",
+      "motorcycle",
+      "pedestrian",
+      "person",
+      "truck"
+    ],
+    "n_interactions": 16
+  },
+  "tier1/chennai/drone/Q8O9vUG4d2s/Q8O9vUG4d2s-026.mp4": {
+    "n_agents": 0,
+    "n_expected": 6,
+    "concept_recall": 0.167,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.0,
+    "mean_mask_confidence": 0.0,
+    "detected_categories": [
+      "car"
+    ],
+    "n_interactions": 0
+  },
+  "tier1/chennai/drone/ZKGUak6Le6A/ZKGUak6Le6A-017.mp4": {
+    "n_agents": 1,
+    "n_expected": 0,
+    "concept_recall": 0.0,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.012004019076893052,
+    "mean_mask_confidence": 0.9999644756317139,
+    "detected_categories": [
+      "truck"
+    ],
+    "n_interactions": 0
+  },
+  "tier1/bangalore/walking/YnuMd2yWDlQ/YnuMd2yWDlQ-310.mp4": {
+    "n_agents": 15,
+    "n_expected": 2,
+    "concept_recall": 0.5,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.30946373682669787,
+    "mean_mask_confidence": 0.9735777488461247,
+    "detected_categories": [
+      "pedestrian",
+      "person",
+      "policeman"
+    ],
+    "n_interactions": 4
+  },
+  "tier1/bangalore/walking/ZpsgUToz78o/ZpsgUToz78o-018.mp4": {
+    "n_agents": 4,
+    "n_expected": 1,
+    "concept_recall": 1.0,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.010865992144808743,
+    "mean_mask_confidence": 0.9999416209757328,
+    "detected_categories": [
+      "pedestrian",
+      "person"
+    ],
+    "n_interactions": 0
+  },
+  "tier1/bangalore/walking/dkttf1NYZos/dkttf1NYZos-012.mp4": {
+    "n_agents": 14,
+    "n_expected": 1,
+    "concept_recall": 1.0,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.029260739900468385,
+    "mean_mask_confidence": 0.9998483583331108,
+    "detected_categories": [
+      "pedestrian",
+      "policeman"
+    ],
+    "n_interactions": 60
+  },
+  "tier1/bangalore/walking/st7rGnwyVwQ/st7rGnwyVwQ-108.mp4": {
+    "n_agents": 114,
+    "n_expected": 2,
+    "concept_recall": 1.0,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.12105502293130367,
+    "mean_mask_confidence": 0.9662944044840442,
+    "detected_categories": [
+      "bicycle",
+      "car",
+      "pedestrian"
+    ],
+    "n_interactions": 114
+  },
+  "tier1/bangalore/walking/tgjrKLN0yRg/tgjrKLN0yRg-015.mp4": {
+    "n_agents": 73,
+    "n_expected": 3,
+    "concept_recall": 1.0,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.1310914324746292,
+    "mean_mask_confidence": 0.9955703346606564,
+    "detected_categories": [
+      "car",
+      "motorcycle",
+      "pedestrian",
+      "person",
+      "policeman",
+      "vendor"
+    ],
+    "n_interactions": 167
+  },
+  "tier1/bangalore/walking/u_6ewPkln-s/u_6ewPkln-s-011.mp4": {
+    "n_agents": 22,
+    "n_expected": 2,
+    "concept_recall": 1.0,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.03456772053083528,
+    "mean_mask_confidence": 0.9958167593888562,
+    "detected_categories": [
+      "car",
+      "motorcycle",
+      "pedestrian",
+      "truck"
+    ],
+    "n_interactions": 13
+  },
   "tier1/bangalore/walking/yfZ7MKvF4FE/yfZ7MKvF4FE-036.mp4": {
     "n_agents": 18,
     "n_expected": 6,
@@ -61,6 +998,102 @@
       "policeman"
     ],
     "n_interactions": 3
+  },
+  "tier1/chennai/drive/-Bl2EIufMNQ/-Bl2EIufMNQ-025.mp4": {
+    "n_agents": 22,
+    "n_expected": 4,
+    "concept_recall": 0.75,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.13255254073965653,
+    "mean_mask_confidence": 0.985327416307786,
+    "detected_categories": [
+      "bus",
+      "car",
+      "motorcycle",
+      "person",
+      "truck"
+    ],
+    "n_interactions": 10
+  },
+  "tier1/chennai/drone/f43q0qi25VU/f43q0qi25VU-069.mp4": {
+    "n_agents": 0,
+    "n_expected": 5,
+    "concept_recall": 0.0,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.0,
+    "mean_mask_confidence": 0.0,
+    "detected_categories": [],
+    "n_interactions": 0
+  },
+  "tier1/chennai/drone/gCouE441TW4/gCouE441TW4-016.mp4": {
+    "n_agents": 53,
+    "n_expected": 0,
+    "concept_recall": 0.0,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.2605988668520687,
+    "mean_mask_confidence": 0.9997438203667013,
+    "detected_categories": [
+      "bus",
+      "car",
+      "truck"
+    ],
+    "n_interactions": 150
+  },
+  "tier1/chennai/drone/iN-OFbTZZqk/iN-OFbTZZqk-015.mp4": {
+    "n_agents": 55,
+    "n_expected": 3,
+    "concept_recall": 0.333,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.06260200161007026,
+    "mean_mask_confidence": 0.9713380548851621,
+    "detected_categories": [
+      "car",
+      "motorcycle",
+      "pedestrian",
+      "person"
+    ],
+    "n_interactions": 32
+  },
+  "tier1/chennai/walking/3Ugg1oF_q4c/3Ugg1oF_q4c-265.mp4": {
+    "n_agents": 0,
+    "n_expected": 0,
+    "concept_recall": 0.0,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.0,
+    "mean_mask_confidence": 0.0,
+    "detected_categories": [],
+    "n_interactions": 0
+  },
+  "tier1/chennai/walking/4GfX-OtaKsk/4GfX-OtaKsk-033.mp4": {
+    "n_agents": 31,
+    "n_expected": 2,
+    "concept_recall": 0.5,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.07140234679937549,
+    "mean_mask_confidence": 0.9912596262923075,
+    "detected_categories": [
+      "pedestrian",
+      "person",
+      "policeman"
+    ],
+    "n_interactions": 17
+  },
+  "tier1/chennai/walking/C0xqFIjtu70/C0xqFIjtu70-131.mp4": {
+    "n_agents": 96,
+    "n_expected": 4,
+    "concept_recall": 0.75,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.10147879464285714,
+    "mean_mask_confidence": 0.9790841908873739,
+    "detected_categories": [
+      "bicycle",
+      "car",
+      "motorcycle",
+      "pedestrian",
+      "policeman",
+      "vendor"
+    ],
+    "n_interactions": 62
   },
   "tier1/chennai/drive/15P_-dTlpLY/15P_-dTlpLY-054.mp4": {
     "n_agents": 108,
@@ -79,6 +1112,56 @@
     ],
     "n_interactions": 412
   },
+  "tier1/chennai/drive/1uan36x3Rw4/1uan36x3Rw4-045.mp4": {
+    "n_agents": 86,
+    "n_expected": 4,
+    "concept_recall": 0.75,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.1784247536104606,
+    "mean_mask_confidence": 0.9933651508459078,
+    "detected_categories": [
+      "bicycle",
+      "car",
+      "motorcycle",
+      "pedestrian",
+      "person",
+      "truck",
+      "vendor"
+    ],
+    "n_interactions": 196
+  },
+  "tier1/chennai/drive/3GHeyVtcrEY/3GHeyVtcrEY-010.mp4": {
+    "n_agents": 115,
+    "n_expected": 4,
+    "concept_recall": 0.5,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.19811228410421547,
+    "mean_mask_confidence": 0.98133630027958,
+    "detected_categories": [
+      "car",
+      "motorcycle",
+      "pedestrian",
+      "person",
+      "truck"
+    ],
+    "n_interactions": 161
+  },
+  "tier1/chennai/drive/5vOTWGh5vdM/5vOTWGh5vdM-060.mp4": {
+    "n_agents": 35,
+    "n_expected": 4,
+    "concept_recall": 0.75,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.08498914422326308,
+    "mean_mask_confidence": 0.9895489177805312,
+    "detected_categories": [
+      "bicycle",
+      "car",
+      "motorcycle",
+      "person",
+      "truck"
+    ],
+    "n_interactions": 28
+  },
   "tier1/chennai/drive/9AoxJtnDpgw/9AoxJtnDpgw-094.mp4": {
     "n_agents": 52,
     "n_expected": 6,
@@ -96,6 +1179,255 @@
     ],
     "n_interactions": 33
   },
+  "tier1/chennai/drive/JQdxw90XUjE/JQdxw90XUjE-000.mp4": {
+    "n_agents": 59,
+    "n_expected": 4,
+    "concept_recall": 0.75,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.07387539032006245,
+    "mean_mask_confidence": 0.9920542914205821,
+    "detected_categories": [
+      "bicycle",
+      "car",
+      "motorcycle",
+      "pedestrian",
+      "person",
+      "truck"
+    ],
+    "n_interactions": 93
+  },
+  "tier1/chennai/drive/Khw8imf8af8/Khw8imf8af8-095.mp4": {
+    "n_agents": 24,
+    "n_expected": 3,
+    "concept_recall": 0.667,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.12041236704722873,
+    "mean_mask_confidence": 0.986261060502794,
+    "detected_categories": [
+      "bus",
+      "car",
+      "person",
+      "truck"
+    ],
+    "n_interactions": 12
+  },
+  "tier1/chennai/drive/KjZXX27EcZM/KjZXX27EcZM-054.mp4": {
+    "n_agents": 29,
+    "n_expected": 5,
+    "concept_recall": 0.8,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.13142777859094457,
+    "mean_mask_confidence": 0.9753255780460766,
+    "detected_categories": [
+      "bicycle",
+      "bus",
+      "car",
+      "motorcycle",
+      "pedestrian",
+      "person",
+      "truck"
+    ],
+    "n_interactions": 29
+  },
+  "tier1/chennai/drive/TOniBH8GtgU/TOniBH8GtgU-011.mp4": {
+    "n_agents": 53,
+    "n_expected": 4,
+    "concept_recall": 0.75,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.1110623719262295,
+    "mean_mask_confidence": 0.9849054449759189,
+    "detected_categories": [
+      "car",
+      "motorcycle",
+      "pedestrian",
+      "person",
+      "truck"
+    ],
+    "n_interactions": 53
+  },
+  "tier1/bangalore/walking/JLWC6aY0GAI/JLWC6aY0GAI-136.mp4": {
+    "n_agents": 1,
+    "n_expected": 1,
+    "concept_recall": 0.0,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.00011618120608899298,
+    "mean_mask_confidence": 1.0,
+    "detected_categories": [
+      "car"
+    ],
+    "n_interactions": 0
+  },
+  "tier1/bangalore/walking/MUjW0WOIT6Q/MUjW0WOIT6Q-037.mp4": {
+    "n_agents": 0,
+    "n_expected": 1,
+    "concept_recall": 0.0,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.0,
+    "mean_mask_confidence": 0.0,
+    "detected_categories": [],
+    "n_interactions": 0
+  },
+  "tier1/bangalore/walking/NmDIWHoCzEQ/NmDIWHoCzEQ-032.mp4": {
+    "n_agents": 8,
+    "n_expected": 1,
+    "concept_recall": 1.0,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.011996090700624512,
+    "mean_mask_confidence": 0.999746648594737,
+    "detected_categories": [
+      "bus",
+      "car",
+      "pedestrian",
+      "person"
+    ],
+    "n_interactions": 2
+  },
+  "tier1/bangalore/walking/R404-bHTIQ4/R404-bHTIQ4-056.mp4": {
+    "n_agents": 10,
+    "n_expected": 1,
+    "concept_recall": 1.0,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.1024596262685402,
+    "mean_mask_confidence": 0.9890726549284798,
+    "detected_categories": [
+      "pedestrian",
+      "person",
+      "vendor"
+    ],
+    "n_interactions": 0
+  },
+  "tier1/bangalore/walking/RA0KAMn1-7c/RA0KAMn1-7c-044.mp4": {
+    "n_agents": 14,
+    "n_expected": 1,
+    "concept_recall": 1.0,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.011186329039812646,
+    "mean_mask_confidence": 0.9503546059131622,
+    "detected_categories": [
+      "car",
+      "motorcycle",
+      "pedestrian",
+      "person"
+    ],
+    "n_interactions": 3
+  },
+  "tier1/bangalore/walking/SSj4DGxgah0/SSj4DGxgah0-018.mp4": {
+    "n_agents": 5,
+    "n_expected": 2,
+    "concept_recall": 0.5,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.025621747332812906,
+    "mean_mask_confidence": 0.9369812921473855,
+    "detected_categories": [
+      "car"
+    ],
+    "n_interactions": 3
+  },
+  "tier1/bangalore/walking/V09FI-vaTrM/V09FI-vaTrM-047.mp4": {
+    "n_agents": 48,
+    "n_expected": 3,
+    "concept_recall": 0.667,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.04948526541764247,
+    "mean_mask_confidence": 0.9929375466921472,
+    "detected_categories": [
+      "car",
+      "cart",
+      "motorcycle",
+      "pedestrian",
+      "truck"
+    ],
+    "n_interactions": 54
+  },
+  "tier1/bangalore/walking/W5h3-FyC5aA/W5h3-FyC5aA-030.mp4": {
+    "n_agents": 34,
+    "n_expected": 4,
+    "concept_recall": 1.0,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.23328423838797815,
+    "mean_mask_confidence": 0.9851607024122816,
+    "detected_categories": [
+      "bicycle",
+      "bus",
+      "car",
+      "motorcycle",
+      "pedestrian",
+      "person",
+      "truck"
+    ],
+    "n_interactions": 27
+  },
+  "tier1/bangalore/walking/WQ7zDW50-Ec/WQ7zDW50-Ec-042.mp4": {
+    "n_agents": 6,
+    "n_expected": 0,
+    "concept_recall": 0.0,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.005075533030835285,
+    "mean_mask_confidence": 0.9977005362510681,
+    "detected_categories": [
+      "bull"
+    ],
+    "n_interactions": 4
+  },
+  "tier1/bangalore/walking/YXyobrssTAs/YXyobrssTAs-045.mp4": {
+    "n_agents": 52,
+    "n_expected": 4,
+    "concept_recall": 0.75,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.15354413666081188,
+    "mean_mask_confidence": 0.9882457236774632,
+    "detected_categories": [
+      "bus",
+      "car",
+      "motorcycle",
+      "pedestrian",
+      "person",
+      "truck",
+      "vendor"
+    ],
+    "n_interactions": 69
+  },
+  "tier1/bangalore/drone/Alq5xxKBqdw/Alq5xxKBqdw-287.mp4": {
+    "n_agents": 42,
+    "n_expected": 1,
+    "concept_recall": 0.0,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.08314672295300839,
+    "mean_mask_confidence": 0.9926277935504914,
+    "detected_categories": [
+      "motorcycle",
+      "pedestrian",
+      "person"
+    ],
+    "n_interactions": 128
+  },
+  "tier1/bangalore/drone/_SWTZFnj-qY/_SWTZFnj-qY-104.mp4": {
+    "n_agents": 5,
+    "n_expected": 1,
+    "concept_recall": 1.0,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.01230224799960968,
+    "mean_mask_confidence": 0.8886089424292246,
+    "detected_categories": [
+      "pedestrian",
+      "person",
+      "policeman"
+    ],
+    "n_interactions": 0
+  },
+  "tier1/bangalore/drone/_YltHpZ1MrI/_YltHpZ1MrI-016.mp4": {
+    "n_agents": 18,
+    "n_expected": 3,
+    "concept_recall": 0.667,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.10840026712529274,
+    "mean_mask_confidence": 0.9997092993820414,
+    "detected_categories": [
+      "car",
+      "truck"
+    ],
+    "n_interactions": 9
+  },
   "tier1/bangalore/drone/z7cRTSP0vwo/z7cRTSP0vwo-014.mp4": {
     "n_agents": 0,
     "n_expected": 9,
@@ -107,6 +1439,643 @@
       "car"
     ],
     "n_interactions": 0
+  },
+  "tier1/bangalore/walking/1422DkT5c9g/1422DkT5c9g-075.mp4": {
+    "n_agents": 49,
+    "n_expected": 3,
+    "concept_recall": 1.0,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.059457943013270884,
+    "mean_mask_confidence": 0.9845054619842105,
+    "detected_categories": [
+      "bicycle",
+      "car",
+      "dog",
+      "motorcycle",
+      "pedestrian",
+      "person",
+      "truck"
+    ],
+    "n_interactions": 66
+  },
+  "tier1/bangalore/walking/DZYCzvWqeiY/DZYCzvWqeiY-052.mp4": {
+    "n_agents": 4,
+    "n_expected": 2,
+    "concept_recall": 1.0,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.017331125585480094,
+    "mean_mask_confidence": 0.9997280041376749,
+    "detected_categories": [
+      "cart",
+      "motorcycle",
+      "pedestrian",
+      "policeman"
+    ],
+    "n_interactions": 0
+  },
+  "tier1/bangalore/walking/FPrXzPORd5c/FPrXzPORd5c-032.mp4": {
+    "n_agents": 29,
+    "n_expected": 5,
+    "concept_recall": 0.6,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.05324224848750976,
+    "mean_mask_confidence": 0.9967013132004511,
+    "detected_categories": [
+      "car",
+      "motorcycle",
+      "pedestrian",
+      "truck"
+    ],
+    "n_interactions": 18
+  },
+  "tier1/bangalore/walking/HRZKcmuI9wg/HRZKcmuI9wg-086.mp4": {
+    "n_agents": 1,
+    "n_expected": 0,
+    "concept_recall": 0.0,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.0007291056791569086,
+    "mean_mask_confidence": 0.9998971968889236,
+    "detected_categories": [
+      "person"
+    ],
+    "n_interactions": 0
+  },
+  "tier1/bangalore/walking/J9O6iFn2cjQ/J9O6iFn2cjQ-042.mp4": {
+    "n_agents": 32,
+    "n_expected": 2,
+    "concept_recall": 0.5,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.0576263356264637,
+    "mean_mask_confidence": 0.9987024051963158,
+    "detected_categories": [
+      "car",
+      "pedestrian",
+      "person",
+      "truck"
+    ],
+    "n_interactions": 32
+  },
+  "tier1/bangalore/drive/iWF8CSKTzn0/iWF8CSKTzn0-024.mp4": {
+    "n_agents": 0,
+    "n_expected": 0,
+    "concept_recall": 0.0,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.0,
+    "mean_mask_confidence": 0.0,
+    "detected_categories": [],
+    "n_interactions": 0
+  },
+  "tier1/bangalore/drive/nFOYLKyWx4w/nFOYLKyWx4w-108.mp4": {
+    "n_agents": 4,
+    "n_expected": 1,
+    "concept_recall": 1.0,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.020735905786494927,
+    "mean_mask_confidence": 0.9543803334236145,
+    "detected_categories": [
+      "car",
+      "truck"
+    ],
+    "n_interactions": 0
+  },
+  "tier1/bangalore/drive/qABnYGIilHE/qABnYGIilHE-108.mp4": {
+    "n_agents": 11,
+    "n_expected": 3,
+    "concept_recall": 0.667,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.3058093652419984,
+    "mean_mask_confidence": 0.9999526517731803,
+    "detected_categories": [
+      "car",
+      "pedestrian",
+      "truck"
+    ],
+    "n_interactions": 0
+  },
+  "tier1/bangalore/drive/sSBvCVLcc0k/sSBvCVLcc0k-010.mp4": {
+    "n_agents": 18,
+    "n_expected": 3,
+    "concept_recall": 1.0,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.01445038056206089,
+    "mean_mask_confidence": 0.9883531293970473,
+    "detected_categories": [
+      "bicycle",
+      "car",
+      "cart",
+      "motorcycle",
+      "pedestrian",
+      "person",
+      "truck"
+    ],
+    "n_interactions": 0
+  },
+  "tier1/bangalore/drive/vj0ZXrm0jYA/vj0ZXrm0jYA-012.mp4": {
+    "n_agents": 38,
+    "n_expected": 2,
+    "concept_recall": 1.0,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.1475431181693989,
+    "mean_mask_confidence": 0.9987604965437327,
+    "detected_categories": [
+      "bus",
+      "car",
+      "motorcycle",
+      "pedestrian",
+      "person",
+      "policeman",
+      "truck"
+    ],
+    "n_interactions": 63
+  },
+  "tier1/bangalore/drone/20DKTCHepqQ/20DKTCHepqQ-021.mp4": {
+    "n_agents": 36,
+    "n_expected": 1,
+    "concept_recall": 1.0,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.05523775980679157,
+    "mean_mask_confidence": 0.9778976599375407,
+    "detected_categories": [
+      "pedestrian",
+      "person"
+    ],
+    "n_interactions": 2
+  },
+  "tier1/chennai/walking/R3zmFjjsPy8/R3zmFjjsPy8-040.mp4": {
+    "n_agents": 37,
+    "n_expected": 2,
+    "concept_recall": 1.0,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.13452868852459016,
+    "mean_mask_confidence": 0.9777414066306616,
+    "detected_categories": [
+      "bicycle",
+      "cycle rickshaw",
+      "motorcycle",
+      "pedestrian",
+      "vendor"
+    ],
+    "n_interactions": 18
+  },
+  "tier1/chennai/walking/Sj_byusvCQc/Sj_byusvCQc-035.mp4": {
+    "n_agents": 22,
+    "n_expected": 3,
+    "concept_recall": 1.0,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.33549762758587043,
+    "mean_mask_confidence": 0.9947745443844214,
+    "detected_categories": [
+      "bull",
+      "cart",
+      "dog",
+      "pedestrian",
+      "person",
+      "vendor"
+    ],
+    "n_interactions": 15
+  },
+  "tier1/chennai/walking/Tdd4-bU1q1c/Tdd4-bU1q1c-090.mp4": {
+    "n_agents": 43,
+    "n_expected": 3,
+    "concept_recall": 0.667,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.13414431474434035,
+    "mean_mask_confidence": 0.9776294675279171,
+    "detected_categories": [
+      "motorcycle",
+      "pedestrian",
+      "person",
+      "policeman"
+    ],
+    "n_interactions": 56
+  },
+  "tier1/chennai/walking/U5aOgovzRL0/U5aOgovzRL0-311.mp4": {
+    "n_agents": 39,
+    "n_expected": 3,
+    "concept_recall": 1.0,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.05515954332552693,
+    "mean_mask_confidence": 0.9932801109773142,
+    "detected_categories": [
+      "bicycle",
+      "car",
+      "motorcycle",
+      "person"
+    ],
+    "n_interactions": 75
+  },
+  "tier1/delhi/drive/WEO9QYnE7_g/WEO9QYnE7_g-082.mp4": {
+    "n_agents": 95,
+    "n_expected": 5,
+    "concept_recall": 0.8,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.2454372194574551,
+    "mean_mask_confidence": 0.9911808694966815,
+    "detected_categories": [
+      "bus",
+      "car",
+      "motorcycle",
+      "pedestrian",
+      "person",
+      "truck"
+    ],
+    "n_interactions": 232
+  },
+  "tier1/delhi/drive/bKdHdePqiqo/bKdHdePqiqo-065.mp4": {
+    "n_agents": 5,
+    "n_expected": 1,
+    "concept_recall": 1.0,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.0051668618266978925,
+    "mean_mask_confidence": 0.9999584376811981,
+    "detected_categories": [
+      "car",
+      "truck"
+    ],
+    "n_interactions": 1
+  },
+  "tier1/delhi/drive/dx3kd42tQOE/dx3kd42tQOE-121.mp4": {
+    "n_agents": 1,
+    "n_expected": 1,
+    "concept_recall": 1.0,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.005224342554644809,
+    "mean_mask_confidence": 0.9996255735556284,
+    "detected_categories": [
+      "car",
+      "pedestrian"
+    ],
+    "n_interactions": 0
+  },
+  "tier1/delhi/drive/emAS9JNsm8k/emAS9JNsm8k-085.mp4": {
+    "n_agents": 11,
+    "n_expected": 3,
+    "concept_recall": 0.667,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.021981728142076502,
+    "mean_mask_confidence": 0.9602225565392039,
+    "detected_categories": [
+      "car",
+      "motorcycle",
+      "pedestrian",
+      "person",
+      "truck"
+    ],
+    "n_interactions": 0
+  },
+  "tier1/chennai/walking/uCEPT-9yQU4/uCEPT-9yQU4-081.mp4": {
+    "n_agents": 40,
+    "n_expected": 1,
+    "concept_recall": 1.0,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.08488363583138173,
+    "mean_mask_confidence": 0.9967591195337234,
+    "detected_categories": [
+      "car",
+      "motorcycle",
+      "person"
+    ],
+    "n_interactions": 71
+  },
+  "tier1/delhi/drive/-OJ4E3UA7hI/-OJ4E3UA7hI-127.mp4": {
+    "n_agents": 4,
+    "n_expected": 1,
+    "concept_recall": 1.0,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.0032777737119437937,
+    "mean_mask_confidence": 0.8879529763670528,
+    "detected_categories": [
+      "car",
+      "motorcycle"
+    ],
+    "n_interactions": 1
+  },
+  "tier1/delhi/drive/39EbYRKXDoo/39EbYRKXDoo-001.mp4": {
+    "n_agents": 23,
+    "n_expected": 3,
+    "concept_recall": 0.667,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.0364927912763466,
+    "mean_mask_confidence": 0.9987900408008431,
+    "detected_categories": [
+      "car",
+      "truck"
+    ],
+    "n_interactions": 16
+  },
+  "tier1/delhi/drive/FMDGZeeNG9k/FMDGZeeNG9k-001.mp4": {
+    "n_agents": 60,
+    "n_expected": 2,
+    "concept_recall": 1.0,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.07414968164519907,
+    "mean_mask_confidence": 0.9890291390255985,
+    "detected_categories": [
+      "car",
+      "person",
+      "truck"
+    ],
+    "n_interactions": 86
+  },
+  "tier1/delhi/drive/GF0jiddlmN0/GF0jiddlmN0-065.mp4": {
+    "n_agents": 10,
+    "n_expected": 1,
+    "concept_recall": 1.0,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.014682590505464482,
+    "mean_mask_confidence": 0.9982205867767334,
+    "detected_categories": [
+      "car",
+      "truck"
+    ],
+    "n_interactions": 2
+  },
+  "tier1/delhi/drive/GNmkBx_mZDw/GNmkBx_mZDw-220.mp4": {
+    "n_agents": 52,
+    "n_expected": 2,
+    "concept_recall": 0.5,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.2947710833821233,
+    "mean_mask_confidence": 0.995353158394895,
+    "detected_categories": [
+      "car",
+      "pedestrian"
+    ],
+    "n_interactions": 126
+  },
+  "tier1/delhi/drive/Hc95nEq-u4U/Hc95nEq-u4U-112.mp4": {
+    "n_agents": 73,
+    "n_expected": 5,
+    "concept_recall": 0.8,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.2133271431010929,
+    "mean_mask_confidence": 0.9959323769872369,
+    "detected_categories": [
+      "bus",
+      "car",
+      "motorcycle",
+      "pedestrian",
+      "truck"
+    ],
+    "n_interactions": 198
+  },
+  "tier1/delhi/drive/OvUyLixX7SA/OvUyLixX7SA-003.mp4": {
+    "n_agents": 2,
+    "n_expected": 2,
+    "concept_recall": 1.0,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.0017024663348946135,
+    "mean_mask_confidence": 0.9999189972877502,
+    "detected_categories": [
+      "car",
+      "motorcycle",
+      "person",
+      "truck"
+    ],
+    "n_interactions": 0
+  },
+  "tier1/delhi/drive/Pq0pui8xBFs/Pq0pui8xBFs-174.mp4": {
+    "n_agents": 2,
+    "n_expected": 1,
+    "concept_recall": 1.0,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.002429437451209992,
+    "mean_mask_confidence": 0.9999378389782376,
+    "detected_categories": [
+      "car",
+      "truck"
+    ],
+    "n_interactions": 1
+  },
+  "tier1/delhi/drive/TZUsFIK8cOk/TZUsFIK8cOk-194.mp4": {
+    "n_agents": 26,
+    "n_expected": 2,
+    "concept_recall": 1.0,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.022997932523419203,
+    "mean_mask_confidence": 0.9986346531659365,
+    "detected_categories": [
+      "car",
+      "motorcycle",
+      "person",
+      "truck"
+    ],
+    "n_interactions": 34
+  },
+  "tier1/delhi/drive/VT143EZ_-eA/VT143EZ_-eA-059.mp4": {
+    "n_agents": 59,
+    "n_expected": 5,
+    "concept_recall": 0.8,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.041308822453161594,
+    "mean_mask_confidence": 0.9842369353036745,
+    "detected_categories": [
+      "bus",
+      "car",
+      "motorcycle",
+      "person",
+      "truck"
+    ],
+    "n_interactions": 94
+  },
+  "tier1/chennai/walking/lAGEVzYzsjs/lAGEVzYzsjs-081.mp4": {
+    "n_agents": 20,
+    "n_expected": 2,
+    "concept_recall": 0.5,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.050575722092115534,
+    "mean_mask_confidence": 0.9639893816067622,
+    "detected_categories": [
+      "pedestrian",
+      "policeman"
+    ],
+    "n_interactions": 13
+  },
+  "tier1/chennai/walking/mnC5Etacfnc/mnC5Etacfnc-216.mp4": {
+    "n_agents": 8,
+    "n_expected": 4,
+    "concept_recall": 0.5,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.006851336846213895,
+    "mean_mask_confidence": 0.9158437728881836,
+    "detected_categories": [
+      "motorcycle",
+      "pedestrian",
+      "person"
+    ],
+    "n_interactions": 0
+  },
+  "tier1/chennai/walking/pdcrBWWLGWg/pdcrBWWLGWg-078.mp4": {
+    "n_agents": 2,
+    "n_expected": 3,
+    "concept_recall": 0.333,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.12975611094847775,
+    "mean_mask_confidence": 0.99203060567379,
+    "detected_categories": [
+      "person"
+    ],
+    "n_interactions": 0
+  },
+  "tier1/chennai/walking/q0cW5U4SbFg/q0cW5U4SbFg-159.mp4": {
+    "n_agents": 18,
+    "n_expected": 2,
+    "concept_recall": 0.5,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.10533213797814207,
+    "mean_mask_confidence": 0.9940802156925201,
+    "detected_categories": [
+      "pedestrian",
+      "policeman"
+    ],
+    "n_interactions": 4
+  },
+  "tier1/chennai/walking/qbZnbnk9xKY/qbZnbnk9xKY-196.mp4": {
+    "n_agents": 80,
+    "n_expected": 3,
+    "concept_recall": 0.667,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.2803829100800156,
+    "mean_mask_confidence": 0.9844630407603411,
+    "detected_categories": [
+      "pedestrian",
+      "vendor"
+    ],
+    "n_interactions": 246
+  },
+  "tier1/chennai/walking/CMPpQsKgg9w/CMPpQsKgg9w-002.mp4": {
+    "n_agents": 16,
+    "n_expected": 1,
+    "concept_recall": 1.0,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.03061771199258392,
+    "mean_mask_confidence": 0.9775300103205221,
+    "detected_categories": [
+      "car",
+      "motorcycle",
+      "pedestrian",
+      "person",
+      "policeman"
+    ],
+    "n_interactions": 3
+  },
+  "tier1/chennai/walking/GKRyZW_4mUE/GKRyZW_4mUE-065.mp4": {
+    "n_agents": 85,
+    "n_expected": 4,
+    "concept_recall": 0.75,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.14666276346604215,
+    "mean_mask_confidence": 0.9917280737259616,
+    "detected_categories": [
+      "bicycle",
+      "car",
+      "dog",
+      "motorcycle",
+      "pedestrian",
+      "person",
+      "truck"
+    ],
+    "n_interactions": 146
+  },
+  "tier1/chennai/walking/HzjU1NYa_Vw/HzjU1NYa_Vw-050.mp4": {
+    "n_agents": 88,
+    "n_expected": 3,
+    "concept_recall": 0.333,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.08321273053278688,
+    "mean_mask_confidence": 0.9277837189289893,
+    "detected_categories": [
+      "pedestrian",
+      "policeman"
+    ],
+    "n_interactions": 136
+  },
+  "tier1/chennai/walking/KlBtglkJezI/KlBtglkJezI-106.mp4": {
+    "n_agents": 51,
+    "n_expected": 3,
+    "concept_recall": 1.0,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.18594710553278687,
+    "mean_mask_confidence": 0.9793395647528575,
+    "detected_categories": [
+      "bus",
+      "cart",
+      "pedestrian",
+      "person",
+      "policeman",
+      "truck"
+    ],
+    "n_interactions": 28
+  },
+  "tier1/chennai/walking/NTuskdEjKYs/NTuskdEjKYs-028.mp4": {
+    "n_agents": 2,
+    "n_expected": 2,
+    "concept_recall": 0.5,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.01010624024199844,
+    "mean_mask_confidence": 0.9830662778445652,
+    "detected_categories": [
+      "person"
+    ],
+    "n_interactions": 0
+  },
+  "tier1/chennai/walking/ODj5Cy5Ib8s/ODj5Cy5Ib8s-043.mp4": {
+    "n_agents": 17,
+    "n_expected": 1,
+    "concept_recall": 1.0,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.05246069354996097,
+    "mean_mask_confidence": 0.9944769162980337,
+    "detected_categories": [
+      "pedestrian",
+      "person",
+      "vendor"
+    ],
+    "n_interactions": 3
+  },
+  "tier1/chennai/walking/P06Zj6wVFdc/P06Zj6wVFdc-003.mp4": {
+    "n_agents": 9,
+    "n_expected": 1,
+    "concept_recall": 1.0,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.028569903883684623,
+    "mean_mask_confidence": 0.9956924782858955,
+    "detected_categories": [
+      "pedestrian",
+      "person",
+      "policeman"
+    ],
+    "n_interactions": 3
+  },
+  "tier1/chennai/walking/VX_bCHlvFaw/VX_bCHlvFaw-174.mp4": {
+    "n_agents": 11,
+    "n_expected": 2,
+    "concept_recall": 0.5,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.026315805523028885,
+    "mean_mask_confidence": 0.998872515133449,
+    "detected_categories": [
+      "bus",
+      "pedestrian",
+      "person"
+    ],
+    "n_interactions": 2
+  },
+  "tier1/chennai/walking/a5lXuHER0to/a5lXuHER0to-024.mp4": {
+    "n_agents": 72,
+    "n_expected": 3,
+    "concept_recall": 0.667,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.11219262295081968,
+    "mean_mask_confidence": 0.9872093518911782,
+    "detected_categories": [
+      "bicycle",
+      "car",
+      "motorcycle",
+      "pedestrian",
+      "person"
+    ],
+    "n_interactions": 163
   },
   "tier1/chennai/walking/a7N5JWmRR4E/a7N5JWmRR4E-111.mp4": {
     "n_agents": 46,
@@ -124,6 +2093,126 @@
       "vendor"
     ],
     "n_interactions": 76
+  },
+  "tier1/chennai/walking/dDe_Zf0R4bU/dDe_Zf0R4bU-156.mp4": {
+    "n_agents": 3,
+    "n_expected": 0,
+    "concept_recall": 0.0,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.0023236241217798595,
+    "mean_mask_confidence": 1.0,
+    "detected_categories": [
+      "dog",
+      "pedestrian"
+    ],
+    "n_interactions": 0
+  },
+  "tier1/chennai/walking/dd2JWdJ9ejg/dd2JWdJ9ejg-029.mp4": {
+    "n_agents": 52,
+    "n_expected": 4,
+    "concept_recall": 0.75,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.05159085919203747,
+    "mean_mask_confidence": 0.9454225251134837,
+    "detected_categories": [
+      "car",
+      "motorcycle",
+      "pedestrian",
+      "person",
+      "policeman",
+      "truck"
+    ],
+    "n_interactions": 2
+  },
+  "tier1/chennai/walking/dgapiGk5LKQ/dgapiGk5LKQ-146.mp4": {
+    "n_agents": 51,
+    "n_expected": 3,
+    "concept_recall": 1.0,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.05703109753122561,
+    "mean_mask_confidence": 0.9957461831988869,
+    "detected_categories": [
+      "car",
+      "motorcycle",
+      "pedestrian",
+      "person",
+      "truck"
+    ],
+    "n_interactions": 84
+  },
+  "tier1/chennai/walking/dn3GEZ_psoo/dn3GEZ_psoo-223.mp4": {
+    "n_agents": 26,
+    "n_expected": 2,
+    "concept_recall": 0.5,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.05870291764246682,
+    "mean_mask_confidence": 0.9741782510564441,
+    "detected_categories": [
+      "pedestrian",
+      "person"
+    ],
+    "n_interactions": 15
+  },
+  "tier1/chennai/walking/e8XEODcvogs/e8XEODcvogs-351.mp4": {
+    "n_agents": 39,
+    "n_expected": 4,
+    "concept_recall": 0.75,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.1379551192915691,
+    "mean_mask_confidence": 0.9812588984506172,
+    "detected_categories": [
+      "bicycle",
+      "car",
+      "motorcycle",
+      "pedestrian",
+      "person",
+      "vendor"
+    ],
+    "n_interactions": 6
+  },
+  "tier1/chennai/walking/fwdEV4g3w_c/fwdEV4g3w_c-175.mp4": {
+    "n_agents": 45,
+    "n_expected": 2,
+    "concept_recall": 1.0,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.23177708455308352,
+    "mean_mask_confidence": 0.9921397685058533,
+    "detected_categories": [
+      "pedestrian",
+      "policeman",
+      "vendor"
+    ],
+    "n_interactions": 34
+  },
+  "tier1/chennai/walking/kO1FV5N8A60/kO1FV5N8A60-036.mp4": {
+    "n_agents": 60,
+    "n_expected": 4,
+    "concept_recall": 0.75,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.07262956796448088,
+    "mean_mask_confidence": 0.9920285437945966,
+    "detected_categories": [
+      "bicycle",
+      "car",
+      "motorcycle",
+      "pedestrian",
+      "person"
+    ],
+    "n_interactions": 114
+  },
+  "tier1/delhi/walking/nx7PxZLo4zA/nx7PxZLo4zA-029.mp4": {
+    "n_agents": 74,
+    "n_expected": 5,
+    "concept_recall": 0.6,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.2461949892661983,
+    "mean_mask_confidence": 0.9822996769293371,
+    "detected_categories": [
+      "car",
+      "pedestrian",
+      "vendor"
+    ],
+    "n_interactions": 48
   },
   "tier1/delhi/walking/rkcSj0lFyrA/rkcSj0lFyrA-302.mp4": {
     "n_agents": 49,
@@ -143,6 +2232,50 @@
       "person"
     ],
     "n_interactions": 45
+  },
+  "tier1/hyderabad/drive/AQMiq71sQCo/AQMiq71sQCo-022.mp4": {
+    "n_agents": 16,
+    "n_expected": 3,
+    "concept_recall": 1.0,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.03913842944964871,
+    "mean_mask_confidence": 0.9949573219799605,
+    "detected_categories": [
+      "car",
+      "motorcycle",
+      "person",
+      "truck"
+    ],
+    "n_interactions": 3
+  },
+  "tier1/hyderabad/drive/FhWVP0tRToc/FhWVP0tRToc-037.mp4": {
+    "n_agents": 38,
+    "n_expected": 4,
+    "concept_recall": 0.75,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.030361564451600313,
+    "mean_mask_confidence": 0.937582072801888,
+    "detected_categories": [
+      "car",
+      "motorcycle",
+      "pedestrian",
+      "person",
+      "truck"
+    ],
+    "n_interactions": 6
+  },
+  "tier1/hyderabad/drive/GnW9pF6AAKA/GnW9pF6AAKA-020.mp4": {
+    "n_agents": 13,
+    "n_expected": 1,
+    "concept_recall": 1.0,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.010439536982825917,
+    "mean_mask_confidence": 0.9052240093549092,
+    "detected_categories": [
+      "car",
+      "pedestrian"
+    ],
+    "n_interactions": 0
   },
   "tier1/delhi/walking/kn9RPUNqcrA/kn9RPUNqcrA-013.mp4": {
     "n_agents": 92,
@@ -165,6 +2298,345 @@
     ],
     "n_interactions": 136
   },
+  "tier1/delhi/walking/lDFHLQLh148/lDFHLQLh148-125.mp4": {
+    "n_agents": 75,
+    "n_expected": 4,
+    "concept_recall": 0.75,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.2077301668618267,
+    "mean_mask_confidence": 0.9575214884548544,
+    "detected_categories": [
+      "car",
+      "cart",
+      "motorcycle",
+      "pedestrian",
+      "vendor"
+    ],
+    "n_interactions": 33
+  },
+  "tier1/delhi/walking/lRJA5hWzp18/lRJA5hWzp18-039.mp4": {
+    "n_agents": 90,
+    "n_expected": 2,
+    "concept_recall": 1.0,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.2400730630366901,
+    "mean_mask_confidence": 0.9743533349528755,
+    "detected_categories": [
+      "bicycle",
+      "car",
+      "pedestrian",
+      "person",
+      "policeman",
+      "truck"
+    ],
+    "n_interactions": 133
+  },
+  "tier1/delhi/walking/lt9gVXk5eho/lt9gVXk5eho-087.mp4": {
+    "n_agents": 28,
+    "n_expected": 2,
+    "concept_recall": 0.5,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.030284567720530835,
+    "mean_mask_confidence": 0.9774560205052408,
+    "detected_categories": [
+      "car",
+      "pedestrian",
+      "policeman"
+    ],
+    "n_interactions": 7
+  },
+  "tier1/delhi/walking/JBT_Lff7hN0/JBT_Lff7hN0-204.mp4": {
+    "n_agents": 64,
+    "n_expected": 2,
+    "concept_recall": 0.5,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.06961830967017955,
+    "mean_mask_confidence": 0.9784940381382787,
+    "detected_categories": [
+      "pedestrian",
+      "policeman"
+    ],
+    "n_interactions": 94
+  },
+  "tier1/delhi/walking/MyYeOzDA1AI/MyYeOzDA1AI-235.mp4": {
+    "n_agents": 11,
+    "n_expected": 3,
+    "concept_recall": 1.0,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.04631437231654957,
+    "mean_mask_confidence": 0.9985184326316371,
+    "detected_categories": [
+      "car",
+      "dog",
+      "pedestrian",
+      "person"
+    ],
+    "n_interactions": 1
+  },
+  "tier1/delhi/walking/O7KwpSV7Q4U/O7KwpSV7Q4U-094.mp4": {
+    "n_agents": 39,
+    "n_expected": 2,
+    "concept_recall": 1.0,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.4828216481264637,
+    "mean_mask_confidence": 0.9866448470524379,
+    "detected_categories": [
+      "car",
+      "pedestrian",
+      "truck"
+    ],
+    "n_interactions": 33
+  },
+  "tier1/delhi/drive/lAqjUH0_ymg/lAqjUH0_ymg-096.mp4": {
+    "n_agents": 22,
+    "n_expected": 2,
+    "concept_recall": 1.0,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.053667331430523026,
+    "mean_mask_confidence": 0.9861215491225754,
+    "detected_categories": [
+      "car",
+      "motorcycle",
+      "pedestrian",
+      "person",
+      "truck"
+    ],
+    "n_interactions": 12
+  },
+  "tier1/delhi/drive/oJBJmgso2aU/oJBJmgso2aU-008.mp4": {
+    "n_agents": 81,
+    "n_expected": 3,
+    "concept_recall": 0.333,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.4402079979020297,
+    "mean_mask_confidence": 0.9933809264761503,
+    "detected_categories": [
+      "car"
+    ],
+    "n_interactions": 231
+  },
+  "tier1/delhi/drive/rX8dkRSzdvs/rX8dkRSzdvs-053.mp4": {
+    "n_agents": 54,
+    "n_expected": 5,
+    "concept_recall": 0.8,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.05388856362217018,
+    "mean_mask_confidence": 0.9881902850247959,
+    "detected_categories": [
+      "car",
+      "motorcycle",
+      "pedestrian",
+      "person",
+      "truck",
+      "vendor"
+    ],
+    "n_interactions": 68
+  },
+  "tier1/delhi/drive/whIq0Xu9cDU/whIq0Xu9cDU-121.mp4": {
+    "n_agents": 11,
+    "n_expected": 2,
+    "concept_recall": 1.0,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.017893887831772055,
+    "mean_mask_confidence": 0.9926145590584854,
+    "detected_categories": [
+      "bus",
+      "car",
+      "truck"
+    ],
+    "n_interactions": 1
+  },
+  "tier1/delhi/drive/xwCVvSZU_i4/xwCVvSZU_i4-128.mp4": {
+    "n_agents": 41,
+    "n_expected": 2,
+    "concept_recall": 0.5,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.10387072477556597,
+    "mean_mask_confidence": 0.9630717544155266,
+    "detected_categories": [
+      "car",
+      "person",
+      "truck"
+    ],
+    "n_interactions": 23
+  },
+  "tier1/delhi/drive/yMfgkU9YRms/yMfgkU9YRms-064.mp4": {
+    "n_agents": 31,
+    "n_expected": 3,
+    "concept_recall": 1.0,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.0626373743657299,
+    "mean_mask_confidence": 0.9999511769560517,
+    "detected_categories": [
+      "bus",
+      "car",
+      "motorcycle",
+      "person",
+      "truck"
+    ],
+    "n_interactions": 31
+  },
+  "tier1/delhi/drone/JW1jSINTzaw/JW1jSINTzaw-019.mp4": {
+    "n_agents": 19,
+    "n_expected": 3,
+    "concept_recall": 0.667,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.08539562597580015,
+    "mean_mask_confidence": 0.9932106199363867,
+    "detected_categories": [
+      "bicycle",
+      "car",
+      "pedestrian",
+      "person"
+    ],
+    "n_interactions": 7
+  },
+  "tier1/delhi/drone/UnVOMPmq63g/UnVOMPmq63g-006.mp4": {
+    "n_agents": 6,
+    "n_expected": 2,
+    "concept_recall": 1.0,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.017393942720530835,
+    "mean_mask_confidence": 0.9997961388693916,
+    "detected_categories": [
+      "bus",
+      "car",
+      "pedestrian"
+    ],
+    "n_interactions": 1
+  },
+  "tier1/delhi/drone/kxoshFAPX7k/kxoshFAPX7k-038.mp4": {
+    "n_agents": 0,
+    "n_expected": 1,
+    "concept_recall": 0.0,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.0,
+    "mean_mask_confidence": 0.0,
+    "detected_categories": [],
+    "n_interactions": 0
+  },
+  "tier1/delhi/drone/l-5rGi8_A_4/l-5rGi8_A_4-048.mp4": {
+    "n_agents": 27,
+    "n_expected": 4,
+    "concept_recall": 0.75,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.33613113534348166,
+    "mean_mask_confidence": 0.992410965819857,
+    "detected_categories": [
+      "bicycle",
+      "bus",
+      "car",
+      "person",
+      "truck"
+    ],
+    "n_interactions": 7
+  },
+  "tier1/delhi/drone/wrTojcAompA/wrTojcAompA-004.mp4": {
+    "n_agents": 0,
+    "n_expected": 3,
+    "concept_recall": 0.333,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.0,
+    "mean_mask_confidence": 0.0,
+    "detected_categories": [
+      "car"
+    ],
+    "n_interactions": 0
+  },
+  "tier1/delhi/walking/-Xlzej8RTTU/-Xlzej8RTTU-194.mp4": {
+    "n_agents": 52,
+    "n_expected": 5,
+    "concept_recall": 0.6,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.19511886465651834,
+    "mean_mask_confidence": 0.9955162717385239,
+    "detected_categories": [
+      "car",
+      "motorcycle",
+      "pedestrian",
+      "person",
+      "policeman",
+      "truck"
+    ],
+    "n_interactions": 50
+  },
+  "tier1/delhi/walking/5Voa7WduPtw/5Voa7WduPtw-045.mp4": {
+    "n_agents": 105,
+    "n_expected": 3,
+    "concept_recall": 1.0,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.3763225141491023,
+    "mean_mask_confidence": 0.9975953155224866,
+    "detected_categories": [
+      "bicycle",
+      "car",
+      "motorcycle",
+      "pedestrian",
+      "person",
+      "truck"
+    ],
+    "n_interactions": 340
+  },
+  "tier1/delhi/walking/9tFAMnOQATY/9tFAMnOQATY-031.mp4": {
+    "n_agents": 41,
+    "n_expected": 3,
+    "concept_recall": 0.667,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.060544892905932866,
+    "mean_mask_confidence": 0.9938819260379068,
+    "detected_categories": [
+      "car",
+      "pedestrian"
+    ],
+    "n_interactions": 114
+  },
+  "tier1/delhi/walking/QTumc8sDDtU/QTumc8sDDtU-203.mp4": {
+    "n_agents": 66,
+    "n_expected": 4,
+    "concept_recall": 0.75,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.20610896638368462,
+    "mean_mask_confidence": 0.9809438296977211,
+    "detected_categories": [
+      "bicycle",
+      "bus",
+      "car",
+      "cart",
+      "motorcycle",
+      "pedestrian",
+      "person",
+      "truck"
+    ],
+    "n_interactions": 84
+  },
+  "tier1/delhi/walking/Sn5iX23AET4/Sn5iX23AET4-470.mp4": {
+    "n_agents": 32,
+    "n_expected": 2,
+    "concept_recall": 0.5,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.032016155591334895,
+    "mean_mask_confidence": 0.9965157399956996,
+    "detected_categories": [
+      "car",
+      "pedestrian"
+    ],
+    "n_interactions": 63
+  },
+  "tier1/delhi/walking/TKmWmmbAYdg/TKmWmmbAYdg-035.mp4": {
+    "n_agents": 67,
+    "n_expected": 4,
+    "concept_recall": 1.0,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.13017692476580797,
+    "mean_mask_confidence": 0.9903438603415072,
+    "detected_categories": [
+      "car",
+      "motorcycle",
+      "pedestrian",
+      "vendor"
+    ],
+    "n_interactions": 83
+  },
   "tier1/delhi/walking/eIBW-ol_yb8/eIBW-ol_yb8-131.mp4": {
     "n_agents": 80,
     "n_expected": 7,
@@ -184,6 +2656,332 @@
     ],
     "n_interactions": 68
   },
+  "tier1/delhi/walking/jTrd9cXjTMg/jTrd9cXjTMg-050.mp4": {
+    "n_agents": 20,
+    "n_expected": 2,
+    "concept_recall": 0.5,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.015055834065183451,
+    "mean_mask_confidence": 0.9476961738923017,
+    "detected_categories": [
+      "pedestrian"
+    ],
+    "n_interactions": 0
+  },
+  "tier1/delhi/walking/F61kQgzabUA/F61kQgzabUA-224.mp4": {
+    "n_agents": 46,
+    "n_expected": 5,
+    "concept_recall": 0.4,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.07210050131733022,
+    "mean_mask_confidence": 0.96763802524926,
+    "detected_categories": [
+      "bicycle",
+      "cycle rickshaw",
+      "pedestrian",
+      "person"
+    ],
+    "n_interactions": 29
+  },
+  "tier1/delhi/walking/HgFU4x_aC-8/HgFU4x_aC-8-099.mp4": {
+    "n_agents": 28,
+    "n_expected": 2,
+    "concept_recall": 0.5,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.0780028725117096,
+    "mean_mask_confidence": 0.9779347590037755,
+    "detected_categories": [
+      "car",
+      "motorcycle",
+      "pedestrian"
+    ],
+    "n_interactions": 3
+  },
+  "tier1/hyderabad/walking/qVWBY5afTJ4/qVWBY5afTJ4-134.mp4": {
+    "n_agents": 56,
+    "n_expected": 5,
+    "concept_recall": 0.8,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.23753038194444445,
+    "mean_mask_confidence": 0.9977759232568504,
+    "detected_categories": [
+      "bus",
+      "car",
+      "dog",
+      "motorcycle",
+      "pedestrian",
+      "truck"
+    ],
+    "n_interactions": 122
+  },
+  "tier1/hyderabad/walking/vr3He-6LgyE/vr3He-6LgyE-134.mp4": {
+    "n_agents": 1,
+    "n_expected": 1,
+    "concept_recall": 0.0,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.0007929144965277778,
+    "mean_mask_confidence": 0.9974246223767599,
+    "detected_categories": [
+      "car"
+    ],
+    "n_interactions": 0
+  },
+  "tier1/hyderabad/walking/yR1U9ZkkRr4/yR1U9ZkkRr4-470.mp4": {
+    "n_agents": 20,
+    "n_expected": 2,
+    "concept_recall": 1.0,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.038472140905542546,
+    "mean_mask_confidence": 0.9929704721157367,
+    "detected_categories": [
+      "car",
+      "motorcycle",
+      "person",
+      "truck"
+    ],
+    "n_interactions": 6
+  },
+  "tier1/hyderabad/drive/dgN0x9ednWs/dgN0x9ednWs-375.mp4": {
+    "n_agents": 23,
+    "n_expected": 2,
+    "concept_recall": 1.0,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.13029615534738487,
+    "mean_mask_confidence": 0.9948797762393952,
+    "detected_categories": [
+      "car",
+      "motorcycle",
+      "pedestrian",
+      "person",
+      "truck"
+    ],
+    "n_interactions": 10
+  },
+  "tier1/hyderabad/drive/hOP7vo72ErY/hOP7vo72ErY-085.mp4": {
+    "n_agents": 21,
+    "n_expected": 3,
+    "concept_recall": 1.0,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.05598927839578454,
+    "mean_mask_confidence": 0.99585582219161,
+    "detected_categories": [
+      "bus",
+      "car",
+      "truck"
+    ],
+    "n_interactions": 23
+  },
+  "tier1/hyderabad/drive/j677nKl4aOk/j677nKl4aOk-032.mp4": {
+    "n_agents": 36,
+    "n_expected": 4,
+    "concept_recall": 1.0,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.15054065427400468,
+    "mean_mask_confidence": 0.9942358836640407,
+    "detected_categories": [
+      "bicycle",
+      "bus",
+      "car",
+      "motorcycle",
+      "person",
+      "truck"
+    ],
+    "n_interactions": 37
+  },
+  "tier1/hyderabad/drive/kEBg0pIcsjM/kEBg0pIcsjM-044.mp4": {
+    "n_agents": 9,
+    "n_expected": 3,
+    "concept_recall": 0.667,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.008230721848165496,
+    "mean_mask_confidence": 0.9968757331371307,
+    "detected_categories": [
+      "car",
+      "truck"
+    ],
+    "n_interactions": 2
+  },
+  "tier1/hyderabad/drive/nmYcWZ_4ZO4/nmYcWZ_4ZO4-033.mp4": {
+    "n_agents": 29,
+    "n_expected": 4,
+    "concept_recall": 0.75,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.025259044447697113,
+    "mean_mask_confidence": 0.9798330047044409,
+    "detected_categories": [
+      "bus",
+      "car",
+      "motorcycle",
+      "pedestrian",
+      "person",
+      "truck"
+    ],
+    "n_interactions": 7
+  },
+  "tier1/hyderabad/drive/nwLziRaW5Mc/nwLziRaW5Mc-044.mp4": {
+    "n_agents": 35,
+    "n_expected": 3,
+    "concept_recall": 0.667,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.08945510709406714,
+    "mean_mask_confidence": 0.9985392226113213,
+    "detected_categories": [
+      "car",
+      "motorcycle",
+      "pedestrian",
+      "person",
+      "truck"
+    ],
+    "n_interactions": 37
+  },
+  "tier1/hyderabad/drive/qXDzm_kBYTs/qXDzm_kBYTs-004.mp4": {
+    "n_agents": 2,
+    "n_expected": 1,
+    "concept_recall": 1.0,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.0027947526346604216,
+    "mean_mask_confidence": 0.9848188757896423,
+    "detected_categories": [
+      "car",
+      "motorcycle",
+      "pedestrian"
+    ],
+    "n_interactions": 0
+  },
+  "tier1/hyderabad/drive/t_yb1aqUkKs/t_yb1aqUkKs-005.mp4": {
+    "n_agents": 68,
+    "n_expected": 3,
+    "concept_recall": 1.0,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.2924942671740827,
+    "mean_mask_confidence": 0.9625691484995667,
+    "detected_categories": [
+      "bus",
+      "car",
+      "motorcycle",
+      "pedestrian",
+      "person",
+      "truck"
+    ],
+    "n_interactions": 44
+  },
+  "tier1/hyderabad/drone/E8G_kmVbBq4/E8G_kmVbBq4-014.mp4": {
+    "n_agents": 0,
+    "n_expected": 3,
+    "concept_recall": 0.0,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.0,
+    "mean_mask_confidence": 0.0,
+    "detected_categories": [],
+    "n_interactions": 0
+  },
+  "tier1/hyderabad/drone/EGdQ5QsHlcA/EGdQ5QsHlcA-019.mp4": {
+    "n_agents": 0,
+    "n_expected": 5,
+    "concept_recall": 0.0,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.0,
+    "mean_mask_confidence": 0.0,
+    "detected_categories": [],
+    "n_interactions": 0
+  },
+  "tier1/hyderabad/drone/EPXFc2Dr9mQ/EPXFc2Dr9mQ-009.mp4": {
+    "n_agents": 0,
+    "n_expected": 2,
+    "concept_recall": 0.0,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.0,
+    "mean_mask_confidence": 0.0,
+    "detected_categories": [],
+    "n_interactions": 0
+  },
+  "tier1/hyderabad/drone/EV4VeliTFIs/EV4VeliTFIs-015.mp4": {
+    "n_agents": 1,
+    "n_expected": 4,
+    "concept_recall": 0.5,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.01193205381537861,
+    "mean_mask_confidence": 0.9999954998493195,
+    "detected_categories": [
+      "car",
+      "truck"
+    ],
+    "n_interactions": 0
+  },
+  "tier1/hyderabad/walking/_tq5CktKabc/_tq5CktKabc-053.mp4": {
+    "n_agents": 0,
+    "n_expected": 0,
+    "concept_recall": 0.0,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.0,
+    "mean_mask_confidence": 0.0,
+    "detected_categories": [],
+    "n_interactions": 0
+  },
+  "tier1/hyderabad/walking/ielt9IBVHr0/ielt9IBVHr0-025.mp4": {
+    "n_agents": 75,
+    "n_expected": 4,
+    "concept_recall": 0.75,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.1007902456576893,
+    "mean_mask_confidence": 0.9867964550852776,
+    "detected_categories": [
+      "bicycle",
+      "car",
+      "motorcycle",
+      "pedestrian",
+      "person",
+      "truck"
+    ],
+    "n_interactions": 179
+  },
+  "tier1/hyderabad/walking/mKcSb6OwpZk/mKcSb6OwpZk-018.mp4": {
+    "n_agents": 76,
+    "n_expected": 4,
+    "concept_recall": 0.75,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.14918240017361112,
+    "mean_mask_confidence": 0.9824931207017152,
+    "detected_categories": [
+      "car",
+      "motorcycle",
+      "pedestrian",
+      "person",
+      "truck"
+    ],
+    "n_interactions": 97
+  },
+  "tier1/hyderabad/walking/n3tsxMp8hbs/n3tsxMp8hbs-031.mp4": {
+    "n_agents": 17,
+    "n_expected": 3,
+    "concept_recall": 1.0,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.05127204698477752,
+    "mean_mask_confidence": 0.9844043027786982,
+    "detected_categories": [
+      "auto rickshaw",
+      "bus",
+      "car",
+      "motorcycle",
+      "pedestrian",
+      "person",
+      "truck",
+      "vendor"
+    ],
+    "n_interactions": 0
+  },
+  "tier1/hyderabad/walking/p5s1-12WK0M/p5s1-12WK0M-013.mp4": {
+    "n_agents": 7,
+    "n_expected": 0,
+    "concept_recall": 0.0,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.010449696453529,
+    "mean_mask_confidence": 0.9996866094214576,
+    "detected_categories": [
+      "person"
+    ],
+    "n_interactions": 13
+  },
   "tier1/hyderabad/walking/qI0DtmauUNQ/qI0DtmauUNQ-226.mp4": {
     "n_agents": 44,
     "n_expected": 6,
@@ -202,6 +3000,498 @@
     ],
     "n_interactions": 46
   },
+  "tier1/hyderabad/walking/838dGoDKlJk/838dGoDKlJk-113.mp4": {
+    "n_agents": 56,
+    "n_expected": 4,
+    "concept_recall": 1.0,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.05012624414519906,
+    "mean_mask_confidence": 0.9994633928784784,
+    "detected_categories": [
+      "bicycle",
+      "bus",
+      "car",
+      "dog",
+      "motorcycle",
+      "pedestrian",
+      "truck"
+    ],
+    "n_interactions": 116
+  },
+  "tier1/hyderabad/walking/8CimWrAast0/8CimWrAast0-103.mp4": {
+    "n_agents": 8,
+    "n_expected": 1,
+    "concept_recall": 1.0,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.024139587700908457,
+    "mean_mask_confidence": 0.9901409600720261,
+    "detected_categories": [
+      "car",
+      "motorcycle",
+      "person",
+      "truck"
+    ],
+    "n_interactions": 3
+  },
+  "tier1/hyderabad/walking/CRFKt5_QL5g/CRFKt5_QL5g-299.mp4": {
+    "n_agents": 0,
+    "n_expected": 1,
+    "concept_recall": 0.0,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.0,
+    "mean_mask_confidence": 0.0,
+    "detected_categories": [],
+    "n_interactions": 0
+  },
+  "tier1/hyderabad/walking/DHF9Ds_lF3s/DHF9Ds_lF3s-103.mp4": {
+    "n_agents": 44,
+    "n_expected": 5,
+    "concept_recall": 0.8,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.1016082406323185,
+    "mean_mask_confidence": 0.998055930122917,
+    "detected_categories": [
+      "auto rickshaw",
+      "bicycle",
+      "bus",
+      "car",
+      "cart",
+      "motorcycle",
+      "pedestrian",
+      "person",
+      "truck"
+    ],
+    "n_interactions": 61
+  },
+  "tier1/hyderabad/walking/EN5hGCd5P0w/EN5hGCd5P0w-115.mp4": {
+    "n_agents": 41,
+    "n_expected": 4,
+    "concept_recall": 1.0,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.10252278645833333,
+    "mean_mask_confidence": 0.9927839819462069,
+    "detected_categories": [
+      "bicycle",
+      "car",
+      "motorcycle",
+      "pedestrian",
+      "person",
+      "truck"
+    ],
+    "n_interactions": 5
+  },
+  "tier1/hyderabad/walking/IJbLFCW9540/IJbLFCW9540-363.mp4": {
+    "n_agents": 3,
+    "n_expected": 1,
+    "concept_recall": 1.0,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.008223741319444445,
+    "mean_mask_confidence": 0.9999631941318512,
+    "detected_categories": [
+      "pedestrian",
+      "person",
+      "vendor"
+    ],
+    "n_interactions": 1
+  },
+  "tier1/hyderabad/walking/OAhAnPhZSlE/OAhAnPhZSlE-121.mp4": {
+    "n_agents": 37,
+    "n_expected": 4,
+    "concept_recall": 0.75,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.038104909154437455,
+    "mean_mask_confidence": 0.9921064627581629,
+    "detected_categories": [
+      "bicycle",
+      "bus",
+      "car",
+      "motorcycle",
+      "person",
+      "truck"
+    ],
+    "n_interactions": 67
+  },
+  "tier1/hyderabad/walking/_ja87Kg_usc/_ja87Kg_usc-041.mp4": {
+    "n_agents": 36,
+    "n_expected": 4,
+    "concept_recall": 1.0,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.10043560328844653,
+    "mean_mask_confidence": 0.993598764377927,
+    "detected_categories": [
+      "bicycle",
+      "car",
+      "cart",
+      "motorcycle",
+      "pedestrian",
+      "person",
+      "vendor"
+    ],
+    "n_interactions": 22
+  },
+  "tier1/hyderabad/drive/NlBH2AcNv10/NlBH2AcNv10-184.mp4": {
+    "n_agents": 23,
+    "n_expected": 3,
+    "concept_recall": 0.333,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.042505154079861114,
+    "mean_mask_confidence": 0.996847115457058,
+    "detected_categories": [
+      "car",
+      "truck"
+    ],
+    "n_interactions": 14
+  },
+  "tier1/hyderabad/drive/UtuWJ6KaXHI/UtuWJ6KaXHI-009.mp4": {
+    "n_agents": 55,
+    "n_expected": 3,
+    "concept_recall": 0.667,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.053279298399687744,
+    "mean_mask_confidence": 0.9849691477125091,
+    "detected_categories": [
+      "car",
+      "motorcycle",
+      "person",
+      "truck"
+    ],
+    "n_interactions": 32
+  },
+  "tier1/hyderabad/drive/VRGbT1zxPic/VRGbT1zxPic-001.mp4": {
+    "n_agents": 31,
+    "n_expected": 3,
+    "concept_recall": 1.0,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.08500423863192819,
+    "mean_mask_confidence": 0.9844705720742544,
+    "detected_categories": [
+      "bus",
+      "car",
+      "motorcycle",
+      "pedestrian",
+      "vendor"
+    ],
+    "n_interactions": 5
+  },
+  "tier1/hyderabad/drive/XUd0X939-8g/XUd0X939-8g-040.mp4": {
+    "n_agents": 48,
+    "n_expected": 5,
+    "concept_recall": 0.8,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.08985869193989071,
+    "mean_mask_confidence": 0.9882501012049847,
+    "detected_categories": [
+      "car",
+      "motorcycle",
+      "pedestrian",
+      "person",
+      "truck"
+    ],
+    "n_interactions": 54
+  },
+  "tier1/hyderabad/drive/XaAfqW0TPbg/XaAfqW0TPbg-001.mp4": {
+    "n_agents": 28,
+    "n_expected": 4,
+    "concept_recall": 0.75,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.03916968554839969,
+    "mean_mask_confidence": 0.9957215581367265,
+    "detected_categories": [
+      "bus",
+      "car",
+      "motorcycle",
+      "person",
+      "truck"
+    ],
+    "n_interactions": 8
+  },
+  "tier1/hyderabad/drive/bGGDeCBSRjw/bGGDeCBSRjw-015.mp4": {
+    "n_agents": 5,
+    "n_expected": 2,
+    "concept_recall": 1.0,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.10739671765222482,
+    "mean_mask_confidence": 0.9875704805056255,
+    "detected_categories": [
+      "bus",
+      "car"
+    ],
+    "n_interactions": 0
+  },
+  "tier1/hyderabad/drive/d4FyAkD7ZlY/d4FyAkD7ZlY-016.mp4": {
+    "n_agents": 9,
+    "n_expected": 2,
+    "concept_recall": 0.5,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.03389091164129586,
+    "mean_mask_confidence": 0.998161253604022,
+    "detected_categories": [
+      "car",
+      "truck"
+    ],
+    "n_interactions": 0
+  },
+  "tier1/hyderabad/drone/vu0_ScOaZvg/vu0_ScOaZvg-038.mp4": {
+    "n_agents": 3,
+    "n_expected": 0,
+    "concept_recall": 0.0,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.0034595164910226385,
+    "mean_mask_confidence": 0.9999339526349847,
+    "detected_categories": [
+      "person"
+    ],
+    "n_interactions": 0
+  },
+  "tier1/hyderabad/walking/0t02hvIPRpo/0t02hvIPRpo-431.mp4": {
+    "n_agents": 0,
+    "n_expected": 0,
+    "concept_recall": 0.0,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.0,
+    "mean_mask_confidence": 0.0,
+    "detected_categories": [],
+    "n_interactions": 0
+  },
+  "tier1/hyderabad/walking/3A6uQDLDhTU/3A6uQDLDhTU-068.mp4": {
+    "n_agents": 5,
+    "n_expected": 0,
+    "concept_recall": 0.0,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.016527996156533893,
+    "mean_mask_confidence": 0.9983794887860616,
+    "detected_categories": [
+      "pedestrian",
+      "person"
+    ],
+    "n_interactions": 0
+  },
+  "tier1/hyderabad/walking/3nbLw0IxZXk/3nbLw0IxZXk-059.mp4": {
+    "n_agents": 76,
+    "n_expected": 4,
+    "concept_recall": 0.5,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.32789925096086653,
+    "mean_mask_confidence": 0.9787982433788047,
+    "detected_categories": [
+      "bicycle",
+      "bus",
+      "car",
+      "motorcycle",
+      "pedestrian",
+      "person",
+      "truck"
+    ],
+    "n_interactions": 82
+  },
+  "tier1/kolkata/drive/35X5gdmk0_M/35X5gdmk0_M-108.mp4": {
+    "n_agents": 38,
+    "n_expected": 6,
+    "concept_recall": 0.833,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.22179144711163154,
+    "mean_mask_confidence": 0.9590521543695215,
+    "detected_categories": [
+      "bus",
+      "car",
+      "motorcycle",
+      "pedestrian",
+      "person",
+      "truck"
+    ],
+    "n_interactions": 15
+  },
+  "tier1/kolkata/drive/6LFujaHDaDs/6LFujaHDaDs-010.mp4": {
+    "n_agents": 79,
+    "n_expected": 4,
+    "concept_recall": 0.75,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.11507092847384856,
+    "mean_mask_confidence": 0.9803992498466987,
+    "detected_categories": [
+      "bicycle",
+      "car",
+      "motorcycle",
+      "pedestrian",
+      "person",
+      "truck",
+      "vendor"
+    ],
+    "n_interactions": 114
+  },
+  "tier1/kolkata/drive/6iG9PpV20_U/6iG9PpV20_U-044.mp4": {
+    "n_agents": 5,
+    "n_expected": 2,
+    "concept_recall": 1.0,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.00509215212724434,
+    "mean_mask_confidence": 0.9999219336007771,
+    "detected_categories": [
+      "car",
+      "motorcycle",
+      "truck"
+    ],
+    "n_interactions": 1
+  },
+  "tier1/kolkata/drive/7pYJoXt9FA8/7pYJoXt9FA8-012.mp4": {
+    "n_agents": 38,
+    "n_expected": 3,
+    "concept_recall": 0.667,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.05251344774590164,
+    "mean_mask_confidence": 0.9834472445341257,
+    "detected_categories": [
+      "bicycle",
+      "bus",
+      "car",
+      "pedestrian",
+      "person",
+      "truck"
+    ],
+    "n_interactions": 21
+  },
+  "tier1/kolkata/drive/IMDpIVz28A0/IMDpIVz28A0-075.mp4": {
+    "n_agents": 71,
+    "n_expected": 6,
+    "concept_recall": 0.833,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.2907021491998439,
+    "mean_mask_confidence": 0.9914379837378016,
+    "detected_categories": [
+      "bus",
+      "car",
+      "motorcycle",
+      "person",
+      "truck"
+    ],
+    "n_interactions": 129
+  },
+  "tier1/kolkata/drive/IyouoqVpaSU/IyouoqVpaSU-088.mp4": {
+    "n_agents": 28,
+    "n_expected": 2,
+    "concept_recall": 1.0,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.16536153395784545,
+    "mean_mask_confidence": 0.9778743006966331,
+    "detected_categories": [
+      "car",
+      "person",
+      "truck"
+    ],
+    "n_interactions": 6
+  },
+  "tier1/kolkata/drive/MRA4xTN6-yw/MRA4xTN6-yw-189.mp4": {
+    "n_agents": 31,
+    "n_expected": 3,
+    "concept_recall": 0.667,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.07445858338212334,
+    "mean_mask_confidence": 0.9863380066399435,
+    "detected_categories": [
+      "bicycle",
+      "car",
+      "motorcycle",
+      "person",
+      "truck"
+    ],
+    "n_interactions": 10
+  },
+  "tier1/kolkata/drive/Ma9xlfsIX5U/Ma9xlfsIX5U-024.mp4": {
+    "n_agents": 29,
+    "n_expected": 3,
+    "concept_recall": 1.0,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.04083022297033567,
+    "mean_mask_confidence": 0.9805917936563492,
+    "detected_categories": [
+      "bicycle",
+      "car",
+      "motorcycle",
+      "pedestrian",
+      "person",
+      "truck"
+    ],
+    "n_interactions": 14
+  },
+  "tier1/kolkata/drive/NWI3E6CJTx4/NWI3E6CJTx4-099.mp4": {
+    "n_agents": 65,
+    "n_expected": 4,
+    "concept_recall": 1.0,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.10563981996487119,
+    "mean_mask_confidence": 0.9614449129939753,
+    "detected_categories": [
+      "bicycle",
+      "car",
+      "motorcycle",
+      "pedestrian",
+      "person",
+      "truck"
+    ],
+    "n_interactions": 23
+  },
+  "tier1/kolkata/drive/P18_0Tf3pRg/P18_0Tf3pRg-014.mp4": {
+    "n_agents": 35,
+    "n_expected": 3,
+    "concept_recall": 1.0,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.2659941269028103,
+    "mean_mask_confidence": 0.993288136087358,
+    "detected_categories": [
+      "car",
+      "pedestrian",
+      "truck"
+    ],
+    "n_interactions": 32
+  },
+  "tier1/kolkata/walking/8EfRXFrwwvw/8EfRXFrwwvw-064.mp4": {
+    "n_agents": 32,
+    "n_expected": 3,
+    "concept_recall": 1.0,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.0614197587334114,
+    "mean_mask_confidence": 0.9878695059467006,
+    "detected_categories": [
+      "car",
+      "motorcycle",
+      "pedestrian",
+      "person"
+    ],
+    "n_interactions": 37
+  },
+  "tier1/kolkata/walking/8LNLOpjav1I/8LNLOpjav1I-355.mp4": {
+    "n_agents": 39,
+    "n_expected": 4,
+    "concept_recall": 0.5,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.14644930718188914,
+    "mean_mask_confidence": 0.9837302042090375,
+    "detected_categories": [
+      "bicycle",
+      "car",
+      "motorcycle",
+      "person",
+      "truck"
+    ],
+    "n_interactions": 39
+  },
+  "tier1/kolkata/walking/8xuzb0FeZlc/8xuzb0FeZlc-028.mp4": {
+    "n_agents": 53,
+    "n_expected": 3,
+    "concept_recall": 0.667,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.08726969401041666,
+    "mean_mask_confidence": 0.9988448693927399,
+    "detected_categories": [
+      "car",
+      "motorcycle",
+      "pedestrian",
+      "person",
+      "truck",
+      "vendor"
+    ],
+    "n_interactions": 94
+  },
   "tier1/kolkata/walking/4pI3dd4N3a8/4pI3dd4N3a8-226.mp4": {
     "n_agents": 52,
     "n_expected": 6,
@@ -217,6 +3507,114 @@
     ],
     "n_interactions": 27
   },
+  "tier1/kolkata/walking/88swHNZ0vwA/88swHNZ0vwA-279.mp4": {
+    "n_agents": 17,
+    "n_expected": 5,
+    "concept_recall": 0.8,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.20642899834113973,
+    "mean_mask_confidence": 0.9890973984249054,
+    "detected_categories": [
+      "bicycle",
+      "bus",
+      "car",
+      "cart",
+      "pedestrian",
+      "person",
+      "policeman",
+      "truck"
+    ],
+    "n_interactions": 5
+  },
+  "tier1/kolkata/drive/lZ5hy5nsUro/lZ5hy5nsUro-009.mp4": {
+    "n_agents": 17,
+    "n_expected": 3,
+    "concept_recall": 0.667,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.04390536568110851,
+    "mean_mask_confidence": 0.9948606256028296,
+    "detected_categories": [
+      "car",
+      "motorcycle",
+      "pedestrian",
+      "person",
+      "truck"
+    ],
+    "n_interactions": 6
+  },
+  "tier1/kolkata/drive/mKvA7DASMMg/mKvA7DASMMg-041.mp4": {
+    "n_agents": 20,
+    "n_expected": 1,
+    "concept_recall": 1.0,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.04841097043325527,
+    "mean_mask_confidence": 0.9439901402502349,
+    "detected_categories": [
+      "car"
+    ],
+    "n_interactions": 1
+  },
+  "tier1/kolkata/drive/nI1n1Dk6-YA/nI1n1Dk6-YA-142.mp4": {
+    "n_agents": 43,
+    "n_expected": 3,
+    "concept_recall": 1.0,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.11610009270101483,
+    "mean_mask_confidence": 0.9923815380695254,
+    "detected_categories": [
+      "bus",
+      "car",
+      "motorcycle",
+      "truck"
+    ],
+    "n_interactions": 63
+  },
+  "tier1/kolkata/drive/oBN87fi4uiU/oBN87fi4uiU-016.mp4": {
+    "n_agents": 10,
+    "n_expected": 2,
+    "concept_recall": 1.0,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.016265368852459015,
+    "mean_mask_confidence": 0.9988062083721161,
+    "detected_categories": [
+      "car",
+      "pedestrian"
+    ],
+    "n_interactions": 1
+  },
+  "tier1/kolkata/drive/usx1RGyFQCk/usx1RGyFQCk-069.mp4": {
+    "n_agents": 40,
+    "n_expected": 3,
+    "concept_recall": 1.0,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.053331595189305234,
+    "mean_mask_confidence": 0.9728282199186438,
+    "detected_categories": [
+      "bicycle",
+      "bus",
+      "car",
+      "motorcycle",
+      "pedestrian",
+      "person",
+      "truck",
+      "vendor"
+    ],
+    "n_interactions": 28
+  },
+  "tier1/kolkata/drive/w9IjRZxOQjQ/w9IjRZxOQjQ-015.mp4": {
+    "n_agents": 24,
+    "n_expected": 4,
+    "concept_recall": 0.75,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.05463977727361436,
+    "mean_mask_confidence": 0.9879419354831471,
+    "detected_categories": [
+      "car",
+      "pedestrian",
+      "truck"
+    ],
+    "n_interactions": 15
+  },
   "tier1/kolkata/drone/T1vbtFJKJzc/T1vbtFJKJzc-045.mp4": {
     "n_agents": 7,
     "n_expected": 5,
@@ -230,6 +3628,138 @@
       "person"
     ],
     "n_interactions": 0
+  },
+  "tier1/kolkata/drone/_Sd7JbeN32Y/_Sd7JbeN32Y-027.mp4": {
+    "n_agents": 0,
+    "n_expected": 0,
+    "concept_recall": 0.0,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.0,
+    "mean_mask_confidence": 0.0,
+    "detected_categories": [],
+    "n_interactions": 0
+  },
+  "tier1/kolkata/walking/ABBU0-7of0g/ABBU0-7of0g-060.mp4": {
+    "n_agents": 55,
+    "n_expected": 2,
+    "concept_recall": 1.0,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.23073236851092896,
+    "mean_mask_confidence": 0.9924981416259682,
+    "detected_categories": [
+      "car",
+      "pedestrian",
+      "person",
+      "truck",
+      "vendor"
+    ],
+    "n_interactions": 48
+  },
+  "tier1/kolkata/walking/ALRopmu6wbg/ALRopmu6wbg-303.mp4": {
+    "n_agents": 41,
+    "n_expected": 7,
+    "concept_recall": 0.714,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.13138916015625,
+    "mean_mask_confidence": 0.9886166232449192,
+    "detected_categories": [
+      "bicycle",
+      "car",
+      "cart",
+      "pedestrian",
+      "person",
+      "truck"
+    ],
+    "n_interactions": 35
+  },
+  "tier1/kolkata/drone/tYY4WnfEEkY/tYY4WnfEEkY-002.mp4": {
+    "n_agents": 0,
+    "n_expected": 0,
+    "concept_recall": 0.0,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.0,
+    "mean_mask_confidence": 0.0,
+    "detected_categories": [],
+    "n_interactions": 0
+  },
+  "tier1/kolkata/drone/v4i2bF99WqA/v4i2bF99WqA-039.mp4": {
+    "n_agents": 15,
+    "n_expected": 5,
+    "concept_recall": 0.8,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.016572745901639343,
+    "mean_mask_confidence": 0.9993315488100052,
+    "detected_categories": [
+      "bus",
+      "car",
+      "cart",
+      "person",
+      "truck"
+    ],
+    "n_interactions": 15
+  },
+  "tier1/kolkata/drone/w5BUs6Wj8sU/w5BUs6Wj8sU-020.mp4": {
+    "n_agents": 8,
+    "n_expected": 0,
+    "concept_recall": 0.0,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.1796146199258392,
+    "mean_mask_confidence": 0.9999986961483955,
+    "detected_categories": [
+      "person",
+      "policeman"
+    ],
+    "n_interactions": 4
+  },
+  "tier1/kolkata/walking/-RaG6pedYQ8/-RaG6pedYQ8-068.mp4": {
+    "n_agents": 8,
+    "n_expected": 1,
+    "concept_recall": 1.0,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.00937713456284153,
+    "mean_mask_confidence": 0.9991048090159893,
+    "detected_categories": [
+      "bicycle",
+      "car",
+      "pedestrian"
+    ],
+    "n_interactions": 7
+  },
+  "tier1/kolkata/walking/14jm-ly0Zsg/14jm-ly0Zsg-047.mp4": {
+    "n_agents": 40,
+    "n_expected": 3,
+    "concept_recall": 0.667,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.13157497829861112,
+    "mean_mask_confidence": 0.9995875383245534,
+    "detected_categories": [
+      "bicycle",
+      "bus",
+      "car",
+      "pedestrian",
+      "person",
+      "truck"
+    ],
+    "n_interactions": 69
+  },
+  "tier1/kolkata/walking/2Jiwa5P6zQM/2Jiwa5P6zQM-346.mp4": {
+    "n_agents": 34,
+    "n_expected": 7,
+    "concept_recall": 0.714,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.1336271406615925,
+    "mean_mask_confidence": 0.9736460586709361,
+    "detected_categories": [
+      "bicycle",
+      "car",
+      "cart",
+      "cycle rickshaw",
+      "motorcycle",
+      "pedestrian",
+      "person",
+      "truck"
+    ],
+    "n_interactions": 26
   },
   "tier1/kolkata/walking/3c4Li82qH4Y/3c4Li82qH4Y-101.mp4": {
     "n_agents": 29,
@@ -248,6 +3778,162 @@
     ],
     "n_interactions": 19
   },
+  "tier1/kolkata/walking/462sA2Nqa94/462sA2Nqa94-026.mp4": {
+    "n_agents": 1,
+    "n_expected": 2,
+    "concept_recall": 0.0,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.0070204247170179545,
+    "mean_mask_confidence": 0.9999455511569977,
+    "detected_categories": [
+      "cart"
+    ],
+    "n_interactions": 0
+  },
+  "tier1/kolkata/drive/S5QCPt7hKFs/S5QCPt7hKFs-043.mp4": {
+    "n_agents": 13,
+    "n_expected": 1,
+    "concept_recall": 0.0,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.0159331393930523,
+    "mean_mask_confidence": 0.9514021968841553,
+    "detected_categories": [
+      "bicycle",
+      "car",
+      "truck"
+    ],
+    "n_interactions": 5
+  },
+  "tier1/kolkata/drive/ZF3fhO0cB_U/ZF3fhO0cB_U-048.mp4": {
+    "n_agents": 89,
+    "n_expected": 4,
+    "concept_recall": 0.75,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.17904423424082747,
+    "mean_mask_confidence": 0.984523405378515,
+    "detected_categories": [
+      "car",
+      "motorcycle",
+      "pedestrian",
+      "person",
+      "policeman"
+    ],
+    "n_interactions": 148
+  },
+  "tier1/kolkata/drive/aNIOX9UQu2k/aNIOX9UQu2k-003.mp4": {
+    "n_agents": 61,
+    "n_expected": 4,
+    "concept_recall": 1.0,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.10544008587041374,
+    "mean_mask_confidence": 0.9808507933245076,
+    "detected_categories": [
+      "bus",
+      "car",
+      "motorcycle",
+      "pedestrian",
+      "person",
+      "truck"
+    ],
+    "n_interactions": 121
+  },
+  "tier1/kolkata/drive/aOg84GxDrSE/aOg84GxDrSE-025.mp4": {
+    "n_agents": 21,
+    "n_expected": 3,
+    "concept_recall": 1.0,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.09686219262295082,
+    "mean_mask_confidence": 0.985099036482316,
+    "detected_categories": [
+      "car",
+      "pedestrian",
+      "truck"
+    ],
+    "n_interactions": 8
+  },
+  "tier1/kolkata/drive/gkd1EdphyEI/gkd1EdphyEI-016.mp4": {
+    "n_agents": 0,
+    "n_expected": 1,
+    "concept_recall": 1.0,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.0,
+    "mean_mask_confidence": 0.0,
+    "detected_categories": [
+      "car",
+      "truck"
+    ],
+    "n_interactions": 0
+  },
+  "tier1/kolkata/drive/jD-_RPSWozI/jD-_RPSWozI-001.mp4": {
+    "n_agents": 91,
+    "n_expected": 4,
+    "concept_recall": 1.0,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.2589511368071819,
+    "mean_mask_confidence": 0.9917711094919458,
+    "detected_categories": [
+      "car",
+      "motorcycle",
+      "pedestrian",
+      "person",
+      "truck"
+    ],
+    "n_interactions": 244
+  },
+  "tier1/kolkata/drive/jgs8p14cfm8/jgs8p14cfm8-046.mp4": {
+    "n_agents": 43,
+    "n_expected": 4,
+    "concept_recall": 0.75,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.174059725068306,
+    "mean_mask_confidence": 0.998139330591911,
+    "detected_categories": [
+      "bicycle",
+      "bus",
+      "car",
+      "motorcycle",
+      "pedestrian",
+      "person",
+      "truck",
+      "vendor"
+    ],
+    "n_interactions": 66
+  },
+  "tier1/kolkata/drive/knLWRB410Js/knLWRB410Js-181.mp4": {
+    "n_agents": 55,
+    "n_expected": 6,
+    "concept_recall": 1.0,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.17278325648907103,
+    "mean_mask_confidence": 0.991508892931781,
+    "detected_categories": [
+      "bicycle",
+      "car",
+      "cart",
+      "motorcycle",
+      "pedestrian",
+      "truck",
+      "vendor"
+    ],
+    "n_interactions": 41
+  },
+  "tier1/kolkata/walking/bItcLeEl17E/bItcLeEl17E-506.mp4": {
+    "n_agents": 6,
+    "n_expected": 3,
+    "concept_recall": 0.667,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.014233127170138889,
+    "mean_mask_confidence": 0.995797175500128,
+    "detected_categories": [
+      "bicycle",
+      "car",
+      "motorcycle",
+      "pedestrian",
+      "person",
+      "truck"
+    ],
+    "n_interactions": 1
+  },
   "tier1/kolkata/walking/cMsnU7D1GZ4/cMsnU7D1GZ4-228.mp4": {
     "n_agents": 42,
     "n_expected": 5,
@@ -263,6 +3949,70 @@
       "pedestrian"
     ],
     "n_interactions": 22
+  },
+  "tier1/kolkata/walking/V7TnuqZkVlM/V7TnuqZkVlM-075.mp4": {
+    "n_agents": 29,
+    "n_expected": 1,
+    "concept_recall": 1.0,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.03132562451209992,
+    "mean_mask_confidence": 0.9056422100347631,
+    "detected_categories": [
+      "bus",
+      "car",
+      "pedestrian",
+      "truck"
+    ],
+    "n_interactions": 20
+  },
+  "tier1/kolkata/walking/WCXEXZlVojc/WCXEXZlVojc-375.mp4": {
+    "n_agents": 60,
+    "n_expected": 4,
+    "concept_recall": 0.75,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.4989260099531616,
+    "mean_mask_confidence": 0.984866286609687,
+    "detected_categories": [
+      "bus",
+      "car",
+      "motorcycle",
+      "person",
+      "truck"
+    ],
+    "n_interactions": 43
+  },
+  "tier1/kolkata/walking/_NYJec9eOHM/_NYJec9eOHM-116.mp4": {
+    "n_agents": 15,
+    "n_expected": 3,
+    "concept_recall": 1.0,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.021432993023028885,
+    "mean_mask_confidence": 0.96788823131531,
+    "detected_categories": [
+      "bus",
+      "car",
+      "motorcycle",
+      "pedestrian",
+      "person",
+      "truck"
+    ],
+    "n_interactions": 1
+  },
+  "tier1/kolkata/walking/OdyJ8rBwH0s/OdyJ8rBwH0s-272.mp4": {
+    "n_agents": 32,
+    "n_expected": 3,
+    "concept_recall": 0.667,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.03286403444574551,
+    "mean_mask_confidence": 0.9976116925004929,
+    "detected_categories": [
+      "bicycle",
+      "car",
+      "pedestrian",
+      "person",
+      "truck"
+    ],
+    "n_interactions": 76
   },
   "tier1/kolkata/walking/QsOcWEPqhWg/QsOcWEPqhWg-117.mp4": {
     "n_agents": 71,
@@ -282,6 +4032,47 @@
     ],
     "n_interactions": 138
   },
+  "tier1/kolkata/walking/FTnyilEfnYE/FTnyilEfnYE-035.mp4": {
+    "n_agents": 35,
+    "n_expected": 4,
+    "concept_recall": 0.25,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.1564729093481655,
+    "mean_mask_confidence": 0.9998134983437402,
+    "detected_categories": [
+      "car"
+    ],
+    "n_interactions": 85
+  },
+  "tier1/kolkata/walking/FUNmq_YxqDw/FUNmq_YxqDw-257.mp4": {
+    "n_agents": 6,
+    "n_expected": 1,
+    "concept_recall": 1.0,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.06369916691061671,
+    "mean_mask_confidence": 0.969051722685496,
+    "detected_categories": [
+      "pedestrian",
+      "person",
+      "policeman",
+      "vendor"
+    ],
+    "n_interactions": 1
+  },
+  "tier1/kolkata/walking/CjHoNtCkSGo/CjHoNtCkSGo-172.mp4": {
+    "n_agents": 4,
+    "n_expected": 1,
+    "concept_recall": 1.0,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.03797987196180556,
+    "mean_mask_confidence": 0.9999619796872139,
+    "detected_categories": [
+      "car",
+      "cart",
+      "pedestrian"
+    ],
+    "n_interactions": 1
+  },
   "tier1/kolkata/walking/D9zyrrwGWNk/D9zyrrwGWNk-086.mp4": {
     "n_agents": 56,
     "n_expected": 6,
@@ -299,6 +4090,86 @@
       "truck"
     ],
     "n_interactions": 30
+  },
+  "tier1/kolkata/walking/ETZLeZJCKfk/ETZLeZJCKfk-111.mp4": {
+    "n_agents": 28,
+    "n_expected": 3,
+    "concept_recall": 0.667,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.20095750390320063,
+    "mean_mask_confidence": 0.9930101089772925,
+    "detected_categories": [
+      "car",
+      "pedestrian",
+      "person",
+      "truck"
+    ],
+    "n_interactions": 23
+  },
+  "tier1/kolkata/walking/TG5KTeyEgE0/TG5KTeyEgE0-064.mp4": {
+    "n_agents": 32,
+    "n_expected": 3,
+    "concept_recall": 0.667,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.1777529761904762,
+    "mean_mask_confidence": 0.9976559608906239,
+    "detected_categories": [
+      "bicycle",
+      "car",
+      "cart",
+      "motorcycle",
+      "person",
+      "truck"
+    ],
+    "n_interactions": 32
+  },
+  "tier1/kolkata/walking/UDN-25noUbo/UDN-25noUbo-312.mp4": {
+    "n_agents": 72,
+    "n_expected": 5,
+    "concept_recall": 0.8,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.24862839090554253,
+    "mean_mask_confidence": 0.9984294072551242,
+    "detected_categories": [
+      "bicycle",
+      "car",
+      "motorcycle",
+      "pedestrian",
+      "person",
+      "truck"
+    ],
+    "n_interactions": 184
+  },
+  "tier1/kolkata/walking/UaNuocRTBiA/UaNuocRTBiA-013.mp4": {
+    "n_agents": 2,
+    "n_expected": 1,
+    "concept_recall": 1.0,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.00023663153786104607,
+    "mean_mask_confidence": 1.0,
+    "detected_categories": [
+      "car",
+      "motorcycle",
+      "pedestrian",
+      "person"
+    ],
+    "n_interactions": 0
+  },
+  "tier1/kolkata/walking/cqWryfD1eEU/cqWryfD1eEU-119.mp4": {
+    "n_agents": 33,
+    "n_expected": 2,
+    "concept_recall": 1.0,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.109344506245121,
+    "mean_mask_confidence": 0.9605192567991174,
+    "detected_categories": [
+      "bicycle",
+      "bus",
+      "motorcycle",
+      "pedestrian",
+      "vendor"
+    ],
+    "n_interactions": 12
   },
   "tier1/kolkata/walking/dJ6JWCRoH80/dJ6JWCRoH80-046.mp4": {
     "n_agents": 85,
@@ -318,6 +4189,53 @@
     ],
     "n_interactions": 170
   },
+  "tier1/kolkata/walking/dOKYj7eB6Ew/dOKYj7eB6Ew-189.mp4": {
+    "n_agents": 64,
+    "n_expected": 4,
+    "concept_recall": 0.75,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.442822075039032,
+    "mean_mask_confidence": 0.9937622286714949,
+    "detected_categories": [
+      "car",
+      "motorcycle",
+      "pedestrian",
+      "person",
+      "truck"
+    ],
+    "n_interactions": 96
+  },
+  "tier1/kolkata/walking/HYDH4LxlAG4/HYDH4LxlAG4-347.mp4": {
+    "n_agents": 26,
+    "n_expected": 5,
+    "concept_recall": 0.8,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.016655383977361438,
+    "mean_mask_confidence": 0.9993691129504509,
+    "detected_categories": [
+      "bicycle",
+      "bus",
+      "car",
+      "dog",
+      "motorcycle",
+      "pedestrian",
+      "truck"
+    ],
+    "n_interactions": 53
+  },
+  "tier1/kolkata/walking/IvBfjyfwHug/IvBfjyfwHug-209.mp4": {
+    "n_agents": 42,
+    "n_expected": 4,
+    "concept_recall": 0.5,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.17414306640625,
+    "mean_mask_confidence": 0.9874278217145841,
+    "detected_categories": [
+      "motorcycle",
+      "pedestrian"
+    ],
+    "n_interactions": 42
+  },
   "tier1/kolkata/walking/JDhjlSW6dLk/JDhjlSW6dLk-057.mp4": {
     "n_agents": 58,
     "n_expected": 6,
@@ -334,6 +4252,50 @@
       "vendor"
     ],
     "n_interactions": 30
+  },
+  "tier1/kolkata/walking/NtSwGBeR3UM/NtSwGBeR3UM-070.mp4": {
+    "n_agents": 46,
+    "n_expected": 3,
+    "concept_recall": 1.0,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.050342597336065574,
+    "mean_mask_confidence": 0.98101762130663,
+    "detected_categories": [
+      "car",
+      "motorcycle",
+      "pedestrian",
+      "person",
+      "truck"
+    ],
+    "n_interactions": 31
+  },
+  "tier1/kolkata/walking/rPCgIIt_ll0/rPCgIIt_ll0-146.mp4": {
+    "n_agents": 13,
+    "n_expected": 2,
+    "concept_recall": 1.0,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.01069766661787666,
+    "mean_mask_confidence": 0.919784711088453,
+    "detected_categories": [
+      "bicycle",
+      "car",
+      "motorcycle",
+      "pedestrian",
+      "person",
+      "truck",
+      "vendor"
+    ],
+    "n_interactions": 2
+  },
+  "tier1/kolkata/walking/rUUJ9MrMAeA/rUUJ9MrMAeA-396.mp4": {
+    "n_agents": 0,
+    "n_expected": 1,
+    "concept_recall": 0.0,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.0,
+    "mean_mask_confidence": 0.0,
+    "detected_categories": [],
+    "n_interactions": 0
   },
   "tier1/kolkata/walking/s9ms9PT0btQ/s9ms9PT0btQ-043.mp4": {
     "n_agents": 67,
@@ -352,6 +4314,125 @@
     ],
     "n_interactions": 154
   },
+  "tier1/kolkata/walking/nnYHqHBA5fA/nnYHqHBA5fA-167.mp4": {
+    "n_agents": 13,
+    "n_expected": 3,
+    "concept_recall": 0.333,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.07552068086455895,
+    "mean_mask_confidence": 0.9697752527215264,
+    "detected_categories": [
+      "pedestrian",
+      "person",
+      "policeman"
+    ],
+    "n_interactions": 8
+  },
+  "tier1/kolkata/walking/r5ICefjIDMM/r5ICefjIDMM-406.mp4": {
+    "n_agents": 7,
+    "n_expected": 2,
+    "concept_recall": 0.5,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.05147361070452771,
+    "mean_mask_confidence": 0.899351610077752,
+    "detected_categories": [
+      "pedestrian",
+      "person"
+    ],
+    "n_interactions": 1
+  },
+  "tier1/kolkata/walking/rKtR_bPuiQ0/rKtR_bPuiQ0-309.mp4": {
+    "n_agents": 14,
+    "n_expected": 3,
+    "concept_recall": 1.0,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.010164940720140516,
+    "mean_mask_confidence": 0.99887885928154,
+    "detected_categories": [
+      "bicycle",
+      "car",
+      "motorcycle",
+      "pedestrian",
+      "truck"
+    ],
+    "n_interactions": 16
+  },
+  "tier1/kolkata/walking/fcWWJPxRv1U/fcWWJPxRv1U-134.mp4": {
+    "n_agents": 30,
+    "n_expected": 4,
+    "concept_recall": 0.75,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.13313937717013888,
+    "mean_mask_confidence": 0.9990761139482822,
+    "detected_categories": [
+      "bus",
+      "car",
+      "motorcycle",
+      "pedestrian",
+      "policeman",
+      "truck"
+    ],
+    "n_interactions": 16
+  },
+  "tier1/kolkata/walking/fmN_KPpUd4g/fmN_KPpUd4g-058.mp4": {
+    "n_agents": 6,
+    "n_expected": 2,
+    "concept_recall": 1.0,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.015329058108899297,
+    "mean_mask_confidence": 0.9999816964070002,
+    "detected_categories": [
+      "car",
+      "person"
+    ],
+    "n_interactions": 2
+  },
+  "tier1/kolkata/walking/i-Ip40TEtJ4/i-Ip40TEtJ4-015.mp4": {
+    "n_agents": 41,
+    "n_expected": 4,
+    "concept_recall": 0.75,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.09842013888888888,
+    "mean_mask_confidence": 0.9963562352205414,
+    "detected_categories": [
+      "bus",
+      "car",
+      "pedestrian",
+      "person",
+      "truck"
+    ],
+    "n_interactions": 64
+  },
+  "tier1/kolkata/walking/ifqbrIiTj_8/ifqbrIiTj_8-339.mp4": {
+    "n_agents": 21,
+    "n_expected": 3,
+    "concept_recall": 1.0,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.02933926131928181,
+    "mean_mask_confidence": 0.9688960382571588,
+    "detected_categories": [
+      "bicycle",
+      "bus",
+      "car",
+      "pedestrian",
+      "truck"
+    ],
+    "n_interactions": 10
+  },
+  "tier1/kolkata/walking/wUQcNfJscE0/wUQcNfJscE0-309.mp4": {
+    "n_agents": 12,
+    "n_expected": 2,
+    "concept_recall": 1.0,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.13676311841334896,
+    "mean_mask_confidence": 0.9992813693152534,
+    "detected_categories": [
+      "car",
+      "pedestrian",
+      "person"
+    ],
+    "n_interactions": 0
+  },
   "tier1/kolkata/walking/x-dad-Elxz4/x-dad-Elxz4-148.mp4": {
     "n_agents": 60,
     "n_expected": 6,
@@ -367,6 +4448,318 @@
     ],
     "n_interactions": 22
   },
+  "tier1/kolkata/walking/ds1ijFweccQ/ds1ijFweccQ-103.mp4": {
+    "n_agents": 51,
+    "n_expected": 5,
+    "concept_recall": 0.8,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.14811197916666666,
+    "mean_mask_confidence": 0.9858947385441174,
+    "detected_categories": [
+      "car",
+      "cart",
+      "motorcycle",
+      "pedestrian",
+      "person",
+      "truck",
+      "vendor"
+    ],
+    "n_interactions": 39
+  },
+  "tier1/kolkata/walking/e-_ZYDshVgY/e-_ZYDshVgY-254.mp4": {
+    "n_agents": 1,
+    "n_expected": 1,
+    "concept_recall": 1.0,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.0009312792740046839,
+    "mean_mask_confidence": 0.999941349029541,
+    "detected_categories": [
+      "pedestrian"
+    ],
+    "n_interactions": 0
+  },
+  "tier1/kolkata/walking/fSJyt3XUcmE/fSJyt3XUcmE-240.mp4": {
+    "n_agents": 22,
+    "n_expected": 5,
+    "concept_recall": 0.6,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.0647482638888889,
+    "mean_mask_confidence": 0.9915329258735865,
+    "detected_categories": [
+      "car",
+      "motorcycle",
+      "pedestrian",
+      "truck"
+    ],
+    "n_interactions": 37
+  },
+  "tier1/kolkata/walking/kPt08giYOC8/kPt08giYOC8-156.mp4": {
+    "n_agents": 35,
+    "n_expected": 5,
+    "concept_recall": 0.6,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.04899263880757221,
+    "mean_mask_confidence": 0.99409947792689,
+    "detected_categories": [
+      "bicycle",
+      "bus",
+      "car",
+      "cart",
+      "motorcycle",
+      "pedestrian",
+      "person",
+      "truck"
+    ],
+    "n_interactions": 76
+  },
+  "tier1/kolkata/walking/lln2eah0b3M/lln2eah0b3M-011.mp4": {
+    "n_agents": 24,
+    "n_expected": 2,
+    "concept_recall": 1.0,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.02341828893442623,
+    "mean_mask_confidence": 0.9704732298851013,
+    "detected_categories": [
+      "car",
+      "pedestrian",
+      "person",
+      "truck"
+    ],
+    "n_interactions": 3
+  },
+  "tier1/kolkata/walking/lmktd9qAp8k/lmktd9qAp8k-007.mp4": {
+    "n_agents": 108,
+    "n_expected": 3,
+    "concept_recall": 0.667,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.19397001244145198,
+    "mean_mask_confidence": 0.975398783765127,
+    "detected_categories": [
+      "bicycle",
+      "car",
+      "motorcycle",
+      "pedestrian",
+      "person"
+    ],
+    "n_interactions": 217
+  },
+  "tier1/kolkata/walking/sE7AHq4SzeQ/sE7AHq4SzeQ-010.mp4": {
+    "n_agents": 11,
+    "n_expected": 2,
+    "concept_recall": 0.5,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.007275352507806402,
+    "mean_mask_confidence": 0.994448310136795,
+    "detected_categories": [
+      "car",
+      "pedestrian"
+    ],
+    "n_interactions": 1
+  },
+  "tier1/kolkata/walking/uBWIEZPXMws/uBWIEZPXMws-341.mp4": {
+    "n_agents": 5,
+    "n_expected": 2,
+    "concept_recall": 1.0,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.002387051131928181,
+    "mean_mask_confidence": 0.9999387491317022,
+    "detected_categories": [
+      "bicycle",
+      "car",
+      "cart",
+      "pedestrian",
+      "person"
+    ],
+    "n_interactions": 2
+  },
+  "tier1/mumbai/drive/XnD9FeKPREs/XnD9FeKPREs-074.mp4": {
+    "n_agents": 5,
+    "n_expected": 2,
+    "concept_recall": 0.5,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.004599373048399687,
+    "mean_mask_confidence": 0.9785982569058737,
+    "detected_categories": [
+      "car"
+    ],
+    "n_interactions": 0
+  },
+  "tier1/mumbai/drive/_Wb1ASZ4rBA/_Wb1ASZ4rBA-108.mp4": {
+    "n_agents": 4,
+    "n_expected": 1,
+    "concept_recall": 1.0,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.008600611094847775,
+    "mean_mask_confidence": 0.9999909698963165,
+    "detected_categories": [
+      "car"
+    ],
+    "n_interactions": 0
+  },
+  "tier1/mumbai/drive/aFdYCJimw_M/aFdYCJimw_M-004.mp4": {
+    "n_agents": 39,
+    "n_expected": 5,
+    "concept_recall": 0.8,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.05547759318891491,
+    "mean_mask_confidence": 0.9975755327809466,
+    "detected_categories": [
+      "car",
+      "motorcycle",
+      "pedestrian",
+      "person",
+      "truck"
+    ],
+    "n_interactions": 38
+  },
+  "tier1/mumbai/drive/GlsveccY0xY/GlsveccY0xY-312.mp4": {
+    "n_agents": 19,
+    "n_expected": 3,
+    "concept_recall": 0.667,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.10642046008977361,
+    "mean_mask_confidence": 0.9957457135121027,
+    "detected_categories": [
+      "car",
+      "pedestrian",
+      "person",
+      "truck"
+    ],
+    "n_interactions": 3
+  },
+  "tier1/mumbai/drive/JSH22SdMnFQ/JSH22SdMnFQ-267.mp4": {
+    "n_agents": 60,
+    "n_expected": 4,
+    "concept_recall": 0.75,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.1500399468188915,
+    "mean_mask_confidence": 0.9921086102992565,
+    "detected_categories": [
+      "bus",
+      "car",
+      "pedestrian",
+      "person",
+      "truck"
+    ],
+    "n_interactions": 78
+  },
+  "tier1/mumbai/drive/NCnZ9EeZRF8/NCnZ9EeZRF8-065.mp4": {
+    "n_agents": 8,
+    "n_expected": 2,
+    "concept_recall": 1.0,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.058853099385245904,
+    "mean_mask_confidence": 0.9662454705685377,
+    "detected_categories": [
+      "car",
+      "pedestrian"
+    ],
+    "n_interactions": 0
+  },
+  "tier1/mumbai/drive/BGmoNLSJMGE/BGmoNLSJMGE-394.mp4": {
+    "n_agents": 82,
+    "n_expected": 3,
+    "concept_recall": 0.667,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.4370944330601093,
+    "mean_mask_confidence": 0.9960652341445287,
+    "detected_categories": [
+      "car",
+      "motorcycle",
+      "pedestrian",
+      "person",
+      "truck"
+    ],
+    "n_interactions": 263
+  },
+  "tier1/mumbai/drive/DrVTZPFTCv0/DrVTZPFTCv0-046.mp4": {
+    "n_agents": 43,
+    "n_expected": 3,
+    "concept_recall": 1.0,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.20059722018930523,
+    "mean_mask_confidence": 0.9921700045084342,
+    "detected_categories": [
+      "car",
+      "pedestrian",
+      "truck"
+    ],
+    "n_interactions": 63
+  },
+  "tier1/kolkata/walking/yxuH94ReOUI/yxuH94ReOUI-168.mp4": {
+    "n_agents": 34,
+    "n_expected": 6,
+    "concept_recall": 0.667,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.3386767540007806,
+    "mean_mask_confidence": 0.9987937981688132,
+    "detected_categories": [
+      "bicycle",
+      "bus",
+      "car",
+      "cart",
+      "cycle rickshaw",
+      "pedestrian",
+      "person",
+      "truck"
+    ],
+    "n_interactions": 37
+  },
+  "tier1/mumbai/drive/0tCU8Ysn_nM/0tCU8Ysn_nM-184.mp4": {
+    "n_agents": 41,
+    "n_expected": 3,
+    "concept_recall": 1.0,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.1676911043618267,
+    "mean_mask_confidence": 0.9843354401917294,
+    "detected_categories": [
+      "bus",
+      "car",
+      "pedestrian",
+      "truck"
+    ],
+    "n_interactions": 20
+  },
+  "tier1/mumbai/drive/4w-gJPLrCtM/4w-gJPLrCtM-609.mp4": {
+    "n_agents": 10,
+    "n_expected": 1,
+    "concept_recall": 1.0,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.051060572794691644,
+    "mean_mask_confidence": 0.9975466743493692,
+    "detected_categories": [
+      "car",
+      "truck"
+    ],
+    "n_interactions": 4
+  },
+  "tier1/mumbai/drive/5RevDLnLvrA/5RevDLnLvrA-128.mp4": {
+    "n_agents": 44,
+    "n_expected": 3,
+    "concept_recall": 0.667,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.2402889588212334,
+    "mean_mask_confidence": 0.9900227407383364,
+    "detected_categories": [
+      "car",
+      "pedestrian"
+    ],
+    "n_interactions": 35
+  },
+  "tier1/mumbai/drive/A4Wi2dpDUFY/A4Wi2dpDUFY-012.mp4": {
+    "n_agents": 16,
+    "n_expected": 1,
+    "concept_recall": 1.0,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.0177703881245121,
+    "mean_mask_confidence": 0.9887966957203177,
+    "detected_categories": [
+      "car",
+      "person",
+      "truck"
+    ],
+    "n_interactions": 2
+  },
   "tier1/mumbai/drive/AECb7R804uA/AECb7R804uA-073.mp4": {
     "n_agents": 80,
     "n_expected": 6,
@@ -380,6 +4773,327 @@
       "truck"
     ],
     "n_interactions": 347
+  },
+  "tier1/mumbai/drive/ArHgX2N8drQ/ArHgX2N8drQ-163.mp4": {
+    "n_agents": 8,
+    "n_expected": 2,
+    "concept_recall": 1.0,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.008068800009758001,
+    "mean_mask_confidence": 0.9821137941401937,
+    "detected_categories": [
+      "bicycle",
+      "car",
+      "pedestrian",
+      "truck"
+    ],
+    "n_interactions": 0
+  },
+  "tier1/mumbai/drive/ozOHKd6BxBQ/ozOHKd6BxBQ-317.mp4": {
+    "n_agents": 23,
+    "n_expected": 3,
+    "concept_recall": 1.0,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.022553790983606558,
+    "mean_mask_confidence": 0.9906351243748385,
+    "detected_categories": [
+      "car",
+      "motorcycle",
+      "person",
+      "policeman",
+      "truck"
+    ],
+    "n_interactions": 23
+  },
+  "tier1/mumbai/drive/rMMThxqOAt8/rMMThxqOAt8-027.mp4": {
+    "n_agents": 4,
+    "n_expected": 1,
+    "concept_recall": 1.0,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.005306828161592506,
+    "mean_mask_confidence": 0.9644967828478131,
+    "detected_categories": [
+      "bicycle",
+      "car",
+      "pedestrian"
+    ],
+    "n_interactions": 0
+  },
+  "tier1/mumbai/drive/sNTQBLHiVJc/sNTQBLHiVJc-288.mp4": {
+    "n_agents": 66,
+    "n_expected": 6,
+    "concept_recall": 0.833,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.1441313244047619,
+    "mean_mask_confidence": 0.9702723304430644,
+    "detected_categories": [
+      "bicycle",
+      "bus",
+      "car",
+      "motorcycle",
+      "pedestrian",
+      "person",
+      "truck"
+    ],
+    "n_interactions": 27
+  },
+  "tier1/mumbai/drone/0ckImiKkVLg/0ckImiKkVLg-005.mp4": {
+    "n_agents": 0,
+    "n_expected": 0,
+    "concept_recall": 0.0,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.0,
+    "mean_mask_confidence": 0.0,
+    "detected_categories": [],
+    "n_interactions": 0
+  },
+  "tier1/mumbai/drone/6mZN5BfMR3A/6mZN5BfMR3A-004.mp4": {
+    "n_agents": 0,
+    "n_expected": 2,
+    "concept_recall": 0.0,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.0,
+    "mean_mask_confidence": 0.0,
+    "detected_categories": [],
+    "n_interactions": 0
+  },
+  "tier1/mumbai/drone/afDUnE-a-us/afDUnE-a-us-011.mp4": {
+    "n_agents": 0,
+    "n_expected": 0,
+    "concept_recall": 0.0,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.0,
+    "mean_mask_confidence": 0.0,
+    "detected_categories": [],
+    "n_interactions": 0
+  },
+  "tier1/mumbai/drone/dwIDIeynONI/dwIDIeynONI-004.mp4": {
+    "n_agents": 0,
+    "n_expected": 0,
+    "concept_recall": 0.0,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.0,
+    "mean_mask_confidence": 0.0,
+    "detected_categories": [],
+    "n_interactions": 0
+  },
+  "tier1/mumbai/drone/fFjSkhtvGnM/fFjSkhtvGnM-004.mp4": {
+    "n_agents": 0,
+    "n_expected": 0,
+    "concept_recall": 0.0,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.0,
+    "mean_mask_confidence": 0.0,
+    "detected_categories": [],
+    "n_interactions": 0
+  },
+  "tier1/mumbai/walking/-ZKhs7WiRU0/-ZKhs7WiRU0-022.mp4": {
+    "n_agents": 4,
+    "n_expected": 1,
+    "concept_recall": 1.0,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.2520234131049961,
+    "mean_mask_confidence": 0.940316223181211,
+    "detected_categories": [
+      "pedestrian",
+      "person",
+      "truck"
+    ],
+    "n_interactions": 0
+  },
+  "tier1/mumbai/walking/1zXeL0TeMEY/1zXeL0TeMEY-173.mp4": {
+    "n_agents": 75,
+    "n_expected": 5,
+    "concept_recall": 0.6,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.05567412543911007,
+    "mean_mask_confidence": 0.9982449927572477,
+    "detected_categories": [
+      "car",
+      "pedestrian",
+      "person",
+      "truck"
+    ],
+    "n_interactions": 248
+  },
+  "tier1/mumbai/walking/5YbtFasB9GA/5YbtFasB9GA-004.mp4": {
+    "n_agents": 0,
+    "n_expected": 0,
+    "concept_recall": 0.0,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.0,
+    "mean_mask_confidence": 0.0,
+    "detected_categories": [],
+    "n_interactions": 0
+  },
+  "tier1/mumbai/drive/dTxIyhunxbI/dTxIyhunxbI-128.mp4": {
+    "n_agents": 35,
+    "n_expected": 4,
+    "concept_recall": 1.0,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.0660218762197502,
+    "mean_mask_confidence": 0.9751603873366983,
+    "detected_categories": [
+      "bicycle",
+      "car",
+      "motorcycle",
+      "pedestrian",
+      "person",
+      "truck"
+    ],
+    "n_interactions": 9
+  },
+  "tier1/mumbai/drive/hQYo2AONlBs/hQYo2AONlBs-126.mp4": {
+    "n_agents": 28,
+    "n_expected": 3,
+    "concept_recall": 1.0,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.044420252732240435,
+    "mean_mask_confidence": 0.9981970765569188,
+    "detected_categories": [
+      "bicycle",
+      "bus",
+      "car",
+      "motorcycle",
+      "person"
+    ],
+    "n_interactions": 49
+  },
+  "tier1/mumbai/drive/ovE1WrVtpfk/ovE1WrVtpfk-083.mp4": {
+    "n_agents": 80,
+    "n_expected": 3,
+    "concept_recall": 0.667,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.1371148638758782,
+    "mean_mask_confidence": 0.9945510971121804,
+    "detected_categories": [
+      "bus",
+      "car",
+      "pedestrian",
+      "person",
+      "truck"
+    ],
+    "n_interactions": 134
+  },
+  "tier2/ahmedabad/walking/UD8cPd7yFg8/UD8cPd7yFg8-389.mp4": {
+    "n_agents": 16,
+    "n_expected": 2,
+    "concept_recall": 0.5,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.14709318281615924,
+    "mean_mask_confidence": 0.9988197903884085,
+    "detected_categories": [
+      "bicycle",
+      "bull",
+      "car",
+      "cart",
+      "dog",
+      "pedestrian"
+    ],
+    "n_interactions": 12
+  },
+  "tier2/ahmedabad/walking/ux_J2Zn2OOQ/ux_J2Zn2OOQ-018.mp4": {
+    "n_agents": 59,
+    "n_expected": 5,
+    "concept_recall": 1.0,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.12638029981459797,
+    "mean_mask_confidence": 0.9695000976500426,
+    "detected_categories": [
+      "auto rickshaw",
+      "bicycle",
+      "car",
+      "motorcycle",
+      "pedestrian",
+      "person",
+      "truck",
+      "vendor"
+    ],
+    "n_interactions": 9
+  },
+  "tier1/mumbai/walking/DFQO7Zn-KM4/DFQO7Zn-KM4-842.mp4": {
+    "n_agents": 67,
+    "n_expected": 4,
+    "concept_recall": 0.75,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.10803403712919595,
+    "mean_mask_confidence": 0.9861638941641512,
+    "detected_categories": [
+      "car",
+      "motorcycle",
+      "pedestrian",
+      "person",
+      "policeman",
+      "truck"
+    ],
+    "n_interactions": 96
+  },
+  "tier1/mumbai/walking/DFQO7Zn-KM4-1000/DFQO7Zn-KM4-1000.mp4": {
+    "n_agents": 34,
+    "n_expected": 5,
+    "concept_recall": 0.6,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.11685023907103825,
+    "mean_mask_confidence": 0.9812890944942352,
+    "detected_categories": [
+      "bus",
+      "car",
+      "motorcycle",
+      "pedestrian",
+      "person",
+      "policeman",
+      "truck"
+    ],
+    "n_interactions": 11
+  },
+  "tier1/mumbai/walking/DFQO7Zn-KM4-1001/DFQO7Zn-KM4-1001.mp4": {
+    "n_agents": 46,
+    "n_expected": 5,
+    "concept_recall": 0.6,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.05011816330015613,
+    "mean_mask_confidence": 0.9586633997606048,
+    "detected_categories": [
+      "bicycle",
+      "bus",
+      "car",
+      "motorcycle",
+      "pedestrian",
+      "person",
+      "truck"
+    ],
+    "n_interactions": 31
+  },
+  "tier1/mumbai/walking/DFQO7Zn-KM4-1002/DFQO7Zn-KM4-1002.mp4": {
+    "n_agents": 42,
+    "n_expected": 4,
+    "concept_recall": 0.75,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.08523431401249024,
+    "mean_mask_confidence": 0.9860631814901379,
+    "detected_categories": [
+      "bicycle",
+      "car",
+      "cycle rickshaw",
+      "motorcycle",
+      "pedestrian",
+      "person"
+    ],
+    "n_interactions": 22
+  },
+  "tier1/mumbai/walking/DFQO7Zn-KM4-1003/DFQO7Zn-KM4-1003.mp4": {
+    "n_agents": 45,
+    "n_expected": 2,
+    "concept_recall": 1.0,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.08948392369242779,
+    "mean_mask_confidence": 0.9862937088498098,
+    "detected_categories": [
+      "car",
+      "pedestrian",
+      "policeman"
+    ],
+    "n_interactions": 79
   },
   "tier1/mumbai/walking/DFQO7Zn-KM4-1004/DFQO7Zn-KM4-1004.mp4": {
     "n_agents": 25,
@@ -430,6 +5144,85 @@
       "truck"
     ],
     "n_interactions": 54
+  },
+  "tier1/mumbai/walking/DFQO7Zn-KM4-1007/DFQO7Zn-KM4-1007.mp4": {
+    "n_agents": 38,
+    "n_expected": 3,
+    "concept_recall": 0.667,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.2256568354800937,
+    "mean_mask_confidence": 0.9971090097427369,
+    "detected_categories": [
+      "bus",
+      "car",
+      "pedestrian"
+    ],
+    "n_interactions": 40
+  },
+  "tier1/mumbai/walking/DFQO7Zn-KM4-1008/DFQO7Zn-KM4-1008.mp4": {
+    "n_agents": 49,
+    "n_expected": 4,
+    "concept_recall": 1.0,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.1701932694184231,
+    "mean_mask_confidence": 0.9862005031032927,
+    "detected_categories": [
+      "bus",
+      "car",
+      "motorcycle",
+      "pedestrian",
+      "policeman",
+      "truck"
+    ],
+    "n_interactions": 54
+  },
+  "tier1/mumbai/walking/DFQO7Zn-KM4-1009/DFQO7Zn-KM4-1009.mp4": {
+    "n_agents": 50,
+    "n_expected": 4,
+    "concept_recall": 0.75,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.10164315598165495,
+    "mean_mask_confidence": 0.9930142177258684,
+    "detected_categories": [
+      "bicycle",
+      "car",
+      "motorcycle",
+      "pedestrian",
+      "truck"
+    ],
+    "n_interactions": 86
+  },
+  "tier1/mumbai/walking/DFQO7Zn-KM4-1010/DFQO7Zn-KM4-1010.mp4": {
+    "n_agents": 39,
+    "n_expected": 4,
+    "concept_recall": 0.75,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.15506806206088994,
+    "mean_mask_confidence": 0.9971181309523702,
+    "detected_categories": [
+      "bicycle",
+      "car",
+      "motorcycle",
+      "pedestrian",
+      "person"
+    ],
+    "n_interactions": 26
+  },
+  "tier1/mumbai/walking/DFQO7Zn-KM4-1011/DFQO7Zn-KM4-1011.mp4": {
+    "n_agents": 67,
+    "n_expected": 4,
+    "concept_recall": 0.75,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.15633309548204527,
+    "mean_mask_confidence": 0.9891976556879409,
+    "detected_categories": [
+      "bicycle",
+      "car",
+      "motorcycle",
+      "pedestrian",
+      "policeman"
+    ],
+    "n_interactions": 142
   },
   "tier1/mumbai/walking/DFQO7Zn-KM4-1012/DFQO7Zn-KM4-1012.mp4": {
     "n_agents": 66,
@@ -500,6 +5293,22 @@
     ],
     "n_interactions": 112
   },
+  "tier1/mumbai/walking/DFQO7Zn-KM4-1016/DFQO7Zn-KM4-1016.mp4": {
+    "n_agents": 48,
+    "n_expected": 4,
+    "concept_recall": 0.5,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.19290364583333333,
+    "mean_mask_confidence": 0.981346467184642,
+    "detected_categories": [
+      "car",
+      "motorcycle",
+      "pedestrian",
+      "policeman",
+      "truck"
+    ],
+    "n_interactions": 13
+  },
   "tier1/mumbai/walking/DFQO7Zn-KM4-1017/DFQO7Zn-KM4-1017.mp4": {
     "n_agents": 74,
     "n_expected": 5,
@@ -517,6 +5326,111 @@
       "truck"
     ],
     "n_interactions": 94
+  },
+  "tier1/mumbai/walking/DFQO7Zn-KM4-1018/DFQO7Zn-KM4-1018.mp4": {
+    "n_agents": 87,
+    "n_expected": 4,
+    "concept_recall": 0.75,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.16002055279078845,
+    "mean_mask_confidence": 0.9757901399405962,
+    "detected_categories": [
+      "bicycle",
+      "bus",
+      "car",
+      "cycle rickshaw",
+      "motorcycle",
+      "pedestrian",
+      "person",
+      "truck"
+    ],
+    "n_interactions": 187
+  },
+  "tier1/mumbai/walking/DFQO7Zn-KM4-1019/DFQO7Zn-KM4-1019.mp4": {
+    "n_agents": 110,
+    "n_expected": 4,
+    "concept_recall": 1.0,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.18230188207455114,
+    "mean_mask_confidence": 0.9725319867332777,
+    "detected_categories": [
+      "car",
+      "motorcycle",
+      "pedestrian",
+      "person",
+      "truck"
+    ],
+    "n_interactions": 304
+  },
+  "tier1/mumbai/walking/DFQO7Zn-KM4-1020/DFQO7Zn-KM4-1020.mp4": {
+    "n_agents": 76,
+    "n_expected": 4,
+    "concept_recall": 1.0,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.18104081284153006,
+    "mean_mask_confidence": 0.9807195273392341,
+    "detected_categories": [
+      "car",
+      "motorcycle",
+      "pedestrian",
+      "truck"
+    ],
+    "n_interactions": 89
+  },
+  "tier1/mumbai/walking/DFQO7Zn-KM4-1021/DFQO7Zn-KM4-1021.mp4": {
+    "n_agents": 65,
+    "n_expected": 5,
+    "concept_recall": 0.8,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.11725687329234973,
+    "mean_mask_confidence": 0.9908244437949602,
+    "detected_categories": [
+      "bicycle",
+      "car",
+      "motorcycle",
+      "pedestrian",
+      "person",
+      "policeman",
+      "truck",
+      "vendor"
+    ],
+    "n_interactions": 86
+  },
+  "tier1/mumbai/walking/DFQO7Zn-KM4-1022/DFQO7Zn-KM4-1022.mp4": {
+    "n_agents": 64,
+    "n_expected": 5,
+    "concept_recall": 0.6,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.12738659372560499,
+    "mean_mask_confidence": 0.9943940777045029,
+    "detected_categories": [
+      "bicycle",
+      "car",
+      "motorcycle",
+      "pedestrian",
+      "person",
+      "policeman",
+      "truck"
+    ],
+    "n_interactions": 105
+  },
+  "tier1/mumbai/walking/DFQO7Zn-KM4-1023/DFQO7Zn-KM4-1023.mp4": {
+    "n_agents": 35,
+    "n_expected": 4,
+    "concept_recall": 0.75,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.18848067915690866,
+    "mean_mask_confidence": 0.9645036144980362,
+    "detected_categories": [
+      "bicycle",
+      "bus",
+      "car",
+      "motorcycle",
+      "pedestrian",
+      "person",
+      "truck"
+    ],
+    "n_interactions": 17
   },
   "tier1/mumbai/walking/DFQO7Zn-KM4-1024/DFQO7Zn-KM4-1024.mp4": {
     "n_agents": 82,
@@ -588,6 +5502,55 @@
     ],
     "n_interactions": 61
   },
+  "tier1/mumbai/walking/DFQO7Zn-KM4-1028/DFQO7Zn-KM4-1028.mp4": {
+    "n_agents": 119,
+    "n_expected": 4,
+    "concept_recall": 1.0,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.2176208162568306,
+    "mean_mask_confidence": 0.9722556008709421,
+    "detected_categories": [
+      "bicycle",
+      "car",
+      "motorcycle",
+      "pedestrian",
+      "vendor"
+    ],
+    "n_interactions": 224
+  },
+  "tier1/mumbai/walking/DFQO7Zn-KM4-1029/DFQO7Zn-KM4-1029.mp4": {
+    "n_agents": 98,
+    "n_expected": 4,
+    "concept_recall": 1.0,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.22820931523224045,
+    "mean_mask_confidence": 0.981438790897714,
+    "detected_categories": [
+      "car",
+      "motorcycle",
+      "pedestrian",
+      "person",
+      "truck",
+      "vendor"
+    ],
+    "n_interactions": 153
+  },
+  "tier1/mumbai/walking/DFQO7Zn-KM4-1030/DFQO7Zn-KM4-1030.mp4": {
+    "n_agents": 66,
+    "n_expected": 4,
+    "concept_recall": 0.5,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.30097564768735363,
+    "mean_mask_confidence": 0.9819358265293496,
+    "detected_categories": [
+      "bus",
+      "car",
+      "pedestrian",
+      "person",
+      "truck"
+    ],
+    "n_interactions": 95
+  },
   "tier1/mumbai/walking/DFQO7Zn-KM4-1031/DFQO7Zn-KM4-1031.mp4": {
     "n_agents": 78,
     "n_expected": 6,
@@ -637,6 +5600,308 @@
       "person"
     ],
     "n_interactions": 112
+  },
+  "tier1/mumbai/walking/DFQO7Zn-KM4-1034/DFQO7Zn-KM4-1034.mp4": {
+    "n_agents": 99,
+    "n_expected": 4,
+    "concept_recall": 0.75,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.2726483216237315,
+    "mean_mask_confidence": 0.9804788096384569,
+    "detected_categories": [
+      "bicycle",
+      "car",
+      "motorcycle",
+      "pedestrian",
+      "policeman"
+    ],
+    "n_interactions": 113
+  },
+  "tier1/mumbai/walking/DFQO7Zn-KM4-1035/DFQO7Zn-KM4-1035.mp4": {
+    "n_agents": 100,
+    "n_expected": 3,
+    "concept_recall": 1.0,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.22697843481654956,
+    "mean_mask_confidence": 0.9837429915498567,
+    "detected_categories": [
+      "car",
+      "motorcycle",
+      "pedestrian",
+      "policeman",
+      "truck"
+    ],
+    "n_interactions": 66
+  },
+  "tier1/mumbai/walking/DFQO7Zn-KM4-1036/DFQO7Zn-KM4-1036.mp4": {
+    "n_agents": 86,
+    "n_expected": 4,
+    "concept_recall": 0.75,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.20599156542740046,
+    "mean_mask_confidence": 0.9805830076817543,
+    "detected_categories": [
+      "car",
+      "motorcycle",
+      "pedestrian",
+      "policeman"
+    ],
+    "n_interactions": 165
+  },
+  "tier1/mumbai/walking/DFQO7Zn-KM4-1037/DFQO7Zn-KM4-1037.mp4": {
+    "n_agents": 55,
+    "n_expected": 2,
+    "concept_recall": 1.0,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.1351596043130367,
+    "mean_mask_confidence": 0.9898455974128512,
+    "detected_categories": [
+      "car",
+      "pedestrian",
+      "policeman"
+    ],
+    "n_interactions": 69
+  },
+  "tier1/mumbai/walking/DFQO7Zn-KM4-1038/DFQO7Zn-KM4-1038.mp4": {
+    "n_agents": 62,
+    "n_expected": 4,
+    "concept_recall": 1.0,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.17237677473653396,
+    "mean_mask_confidence": 0.9810344359359225,
+    "detected_categories": [
+      "car",
+      "motorcycle",
+      "pedestrian",
+      "vendor"
+    ],
+    "n_interactions": 90
+  },
+  "tier1/mumbai/walking/DFQO7Zn-KM4-1039/DFQO7Zn-KM4-1039.mp4": {
+    "n_agents": 78,
+    "n_expected": 4,
+    "concept_recall": 0.75,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.16268479215456674,
+    "mean_mask_confidence": 0.9796929357244688,
+    "detected_categories": [
+      "car",
+      "motorcycle",
+      "pedestrian",
+      "policeman"
+    ],
+    "n_interactions": 88
+  },
+  "tier1/mumbai/walking/DFQO7Zn-KM4-1040/DFQO7Zn-KM4-1040.mp4": {
+    "n_agents": 70,
+    "n_expected": 4,
+    "concept_recall": 0.75,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.13500500097580015,
+    "mean_mask_confidence": 0.957532307830467,
+    "detected_categories": [
+      "car",
+      "motorcycle",
+      "pedestrian",
+      "policeman"
+    ],
+    "n_interactions": 67
+  },
+  "tier1/mumbai/walking/DFQO7Zn-KM4-1041/DFQO7Zn-KM4-1041.mp4": {
+    "n_agents": 80,
+    "n_expected": 6,
+    "concept_recall": 0.833,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.19556681791569086,
+    "mean_mask_confidence": 0.9843449265184537,
+    "detected_categories": [
+      "bicycle",
+      "bus",
+      "car",
+      "motorcycle",
+      "pedestrian",
+      "person",
+      "truck"
+    ],
+    "n_interactions": 157
+  },
+  "tier1/mumbai/walking/DFQO7Zn-KM4-1042/DFQO7Zn-KM4-1042.mp4": {
+    "n_agents": 48,
+    "n_expected": 4,
+    "concept_recall": 0.75,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.19590285909445745,
+    "mean_mask_confidence": 0.9781314793755026,
+    "detected_categories": [
+      "bicycle",
+      "bus",
+      "car",
+      "motorcycle",
+      "pedestrian",
+      "policeman"
+    ],
+    "n_interactions": 39
+  },
+  "tier1/mumbai/walking/DFQO7Zn-KM4-1043/DFQO7Zn-KM4-1043.mp4": {
+    "n_agents": 71,
+    "n_expected": 4,
+    "concept_recall": 0.75,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.14687667715651834,
+    "mean_mask_confidence": 0.9654119627475739,
+    "detected_categories": [
+      "car",
+      "motorcycle",
+      "pedestrian",
+      "policeman",
+      "truck"
+    ],
+    "n_interactions": 122
+  },
+  "tier1/mumbai/walking/DFQO7Zn-KM4-1044/DFQO7Zn-KM4-1044.mp4": {
+    "n_agents": 60,
+    "n_expected": 4,
+    "concept_recall": 0.75,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.20473125853825136,
+    "mean_mask_confidence": 0.9773829068456378,
+    "detected_categories": [
+      "bicycle",
+      "car",
+      "motorcycle",
+      "pedestrian",
+      "policeman"
+    ],
+    "n_interactions": 96
+  },
+  "tier1/mumbai/walking/DFQO7Zn-KM4-1045/DFQO7Zn-KM4-1045.mp4": {
+    "n_agents": 45,
+    "n_expected": 4,
+    "concept_recall": 0.75,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.21430035128805622,
+    "mean_mask_confidence": 0.9944312859599184,
+    "detected_categories": [
+      "bicycle",
+      "car",
+      "motorcycle",
+      "pedestrian"
+    ],
+    "n_interactions": 68
+  },
+  "tier1/mumbai/walking/DFQO7Zn-KM4-1046/DFQO7Zn-KM4-1046.mp4": {
+    "n_agents": 39,
+    "n_expected": 4,
+    "concept_recall": 0.75,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.187896418813427,
+    "mean_mask_confidence": 0.9899761808329615,
+    "detected_categories": [
+      "bicycle",
+      "car",
+      "pedestrian"
+    ],
+    "n_interactions": 24
+  },
+  "tier1/mumbai/walking/DFQO7Zn-KM4-1047/DFQO7Zn-KM4-1047.mp4": {
+    "n_agents": 31,
+    "n_expected": 3,
+    "concept_recall": 0.667,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.05668392613192818,
+    "mean_mask_confidence": 0.994741410324254,
+    "detected_categories": [
+      "bicycle",
+      "car",
+      "dog",
+      "pedestrian",
+      "policeman"
+    ],
+    "n_interactions": 27
+  },
+  "tier1/mumbai/walking/DFQO7Zn-KM4-1048/DFQO7Zn-KM4-1048.mp4": {
+    "n_agents": 26,
+    "n_expected": 4,
+    "concept_recall": 0.5,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.29238647175058546,
+    "mean_mask_confidence": 0.9892616115435205,
+    "detected_categories": [
+      "bicycle",
+      "car",
+      "cycle rickshaw",
+      "pedestrian",
+      "person",
+      "truck"
+    ],
+    "n_interactions": 32
+  },
+  "tier1/mumbai/walking/DFQO7Zn-KM4-1049/DFQO7Zn-KM4-1049.mp4": {
+    "n_agents": 20,
+    "n_expected": 5,
+    "concept_recall": 0.8,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.15303748292349728,
+    "mean_mask_confidence": 0.9714529416454372,
+    "detected_categories": [
+      "bus",
+      "car",
+      "pedestrian",
+      "person",
+      "policeman",
+      "truck"
+    ],
+    "n_interactions": 7
+  },
+  "tier1/mumbai/walking/DFQO7Zn-KM4-1050/DFQO7Zn-KM4-1050.mp4": {
+    "n_agents": 28,
+    "n_expected": 5,
+    "concept_recall": 0.6,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.03966170228337237,
+    "mean_mask_confidence": 0.9929365323877882,
+    "detected_categories": [
+      "bicycle",
+      "car",
+      "cart",
+      "motorcycle",
+      "pedestrian",
+      "person"
+    ],
+    "n_interactions": 11
+  },
+  "tier1/mumbai/walking/DFQO7Zn-KM4-1051/DFQO7Zn-KM4-1051.mp4": {
+    "n_agents": 40,
+    "n_expected": 4,
+    "concept_recall": 0.75,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.06823907713700234,
+    "mean_mask_confidence": 0.99158562974232,
+    "detected_categories": [
+      "car",
+      "motorcycle",
+      "pedestrian",
+      "person",
+      "policeman",
+      "truck"
+    ],
+    "n_interactions": 52
+  },
+  "tier1/mumbai/walking/DFQO7Zn-KM4-1052/DFQO7Zn-KM4-1052.mp4": {
+    "n_agents": 75,
+    "n_expected": 4,
+    "concept_recall": 0.75,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.08235646589578455,
+    "mean_mask_confidence": 0.99361192416466,
+    "detected_categories": [
+      "car",
+      "motorcycle",
+      "pedestrian",
+      "person",
+      "truck"
+    ],
+    "n_interactions": 165
   },
   "tier1/mumbai/walking/DFQO7Zn-KM4-1053/DFQO7Zn-KM4-1053.mp4": {
     "n_agents": 67,
@@ -695,6 +5960,24 @@
     ],
     "n_interactions": 124
   },
+  "tier1/mumbai/walking/DFQO7Zn-KM4-1056/DFQO7Zn-KM4-1056.mp4": {
+    "n_agents": 57,
+    "n_expected": 7,
+    "concept_recall": 0.714,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.08079411836455894,
+    "mean_mask_confidence": 0.9881275967898102,
+    "detected_categories": [
+      "bicycle",
+      "bus",
+      "car",
+      "cycle rickshaw",
+      "motorcycle",
+      "pedestrian",
+      "truck"
+    ],
+    "n_interactions": 122
+  },
   "tier1/mumbai/walking/DFQO7Zn-KM4-1057/DFQO7Zn-KM4-1057.mp4": {
     "n_agents": 72,
     "n_expected": 5,
@@ -729,6 +6012,37 @@
     ],
     "n_interactions": 212
   },
+  "tier1/mumbai/walking/DFQO7Zn-KM4-1059/DFQO7Zn-KM4-1059.mp4": {
+    "n_agents": 46,
+    "n_expected": 2,
+    "concept_recall": 0.5,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.06228562890320062,
+    "mean_mask_confidence": 0.9734708755574328,
+    "detected_categories": [
+      "bicycle",
+      "car",
+      "cart",
+      "motorcycle",
+      "pedestrian"
+    ],
+    "n_interactions": 43
+  },
+  "tier1/mumbai/walking/DFQO7Zn-KM4-1060/DFQO7Zn-KM4-1060.mp4": {
+    "n_agents": 62,
+    "n_expected": 3,
+    "concept_recall": 1.0,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.1144956637880562,
+    "mean_mask_confidence": 0.9793918650474907,
+    "detected_categories": [
+      "bicycle",
+      "car",
+      "motorcycle",
+      "pedestrian"
+    ],
+    "n_interactions": 73
+  },
   "tier1/mumbai/walking/DFQO7Zn-KM4-1061/DFQO7Zn-KM4-1061.mp4": {
     "n_agents": 52,
     "n_expected": 5,
@@ -744,6 +6058,74 @@
       "truck"
     ],
     "n_interactions": 41
+  },
+  "tier1/mumbai/walking/DFQO7Zn-KM4-1062/DFQO7Zn-KM4-1062.mp4": {
+    "n_agents": 61,
+    "n_expected": 4,
+    "concept_recall": 0.75,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.06685237363387977,
+    "mean_mask_confidence": 0.9925762611766195,
+    "detected_categories": [
+      "bicycle",
+      "car",
+      "motorcycle",
+      "pedestrian",
+      "person",
+      "policeman",
+      "truck"
+    ],
+    "n_interactions": 65
+  },
+  "tier1/mumbai/walking/DFQO7Zn-KM4-1063/DFQO7Zn-KM4-1063.mp4": {
+    "n_agents": 40,
+    "n_expected": 5,
+    "concept_recall": 0.8,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.11072770296643247,
+    "mean_mask_confidence": 0.9761165579160055,
+    "detected_categories": [
+      "auto rickshaw",
+      "car",
+      "motorcycle",
+      "pedestrian",
+      "person",
+      "policeman"
+    ],
+    "n_interactions": 28
+  },
+  "tier1/mumbai/walking/DFQO7Zn-KM4-1064/DFQO7Zn-KM4-1064.mp4": {
+    "n_agents": 24,
+    "n_expected": 5,
+    "concept_recall": 0.6,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.08163162934231069,
+    "mean_mask_confidence": 0.9985371181839391,
+    "detected_categories": [
+      "bicycle",
+      "car",
+      "pedestrian",
+      "person",
+      "policeman"
+    ],
+    "n_interactions": 27
+  },
+  "tier1/mumbai/walking/DFQO7Zn-KM4-1065/DFQO7Zn-KM4-1065.mp4": {
+    "n_agents": 38,
+    "n_expected": 5,
+    "concept_recall": 0.6,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.09175997755659641,
+    "mean_mask_confidence": 0.9955980584775801,
+    "detected_categories": [
+      "bicycle",
+      "car",
+      "motorcycle",
+      "pedestrian",
+      "person",
+      "policeman"
+    ],
+    "n_interactions": 33
   },
   "tier1/mumbai/walking/DFQO7Zn-KM4-1066/DFQO7Zn-KM4-1066.mp4": {
     "n_agents": 39,
@@ -799,6 +6181,494 @@
     ],
     "n_interactions": 317
   },
+  "tier1/mumbai/walking/DFQO7Zn-KM4-1069/DFQO7Zn-KM4-1069.mp4": {
+    "n_agents": 93,
+    "n_expected": 5,
+    "concept_recall": 0.8,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.227886843774395,
+    "mean_mask_confidence": 0.9788303718018455,
+    "detected_categories": [
+      "car",
+      "motorcycle",
+      "pedestrian",
+      "truck"
+    ],
+    "n_interactions": 245
+  },
+  "tier1/mumbai/walking/DFQO7Zn-KM4-1070/DFQO7Zn-KM4-1070.mp4": {
+    "n_agents": 82,
+    "n_expected": 5,
+    "concept_recall": 0.6,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.19504888148907104,
+    "mean_mask_confidence": 0.9823059329520101,
+    "detected_categories": [
+      "bicycle",
+      "car",
+      "motorcycle",
+      "pedestrian",
+      "person",
+      "truck"
+    ],
+    "n_interactions": 113
+  },
+  "tier1/mumbai/walking/DFQO7Zn-KM4-1071/DFQO7Zn-KM4-1071.mp4": {
+    "n_agents": 75,
+    "n_expected": 4,
+    "concept_recall": 0.75,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.1800811743754879,
+    "mean_mask_confidence": 0.9462739705518864,
+    "detected_categories": [
+      "car",
+      "motorcycle",
+      "pedestrian",
+      "person",
+      "truck"
+    ],
+    "n_interactions": 45
+  },
+  "tier1/mumbai/walking/DFQO7Zn-KM4-1072/DFQO7Zn-KM4-1072.mp4": {
+    "n_agents": 48,
+    "n_expected": 2,
+    "concept_recall": 1.0,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.15608670594262294,
+    "mean_mask_confidence": 0.9871190471469231,
+    "detected_categories": [
+      "car",
+      "pedestrian",
+      "person"
+    ],
+    "n_interactions": 56
+  },
+  "tier1/mumbai/walking/DFQO7Zn-KM4-1073/DFQO7Zn-KM4-1073.mp4": {
+    "n_agents": 38,
+    "n_expected": 3,
+    "concept_recall": 0.667,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.14783174155932866,
+    "mean_mask_confidence": 0.9886182577752355,
+    "detected_categories": [
+      "car",
+      "motorcycle",
+      "truck"
+    ],
+    "n_interactions": 49
+  },
+  "tier1/mumbai/walking/DFQO7Zn-KM4-1074/DFQO7Zn-KM4-1074.mp4": {
+    "n_agents": 36,
+    "n_expected": 3,
+    "concept_recall": 1.0,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.23756632391686183,
+    "mean_mask_confidence": 0.9851392974604422,
+    "detected_categories": [
+      "car",
+      "cart",
+      "motorcycle",
+      "person",
+      "truck"
+    ],
+    "n_interactions": 57
+  },
+  "tier1/mumbai/walking/DFQO7Zn-KM4-1075/DFQO7Zn-KM4-1075.mp4": {
+    "n_agents": 58,
+    "n_expected": 4,
+    "concept_recall": 0.75,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.33485786860850897,
+    "mean_mask_confidence": 0.9754939459148466,
+    "detected_categories": [
+      "bicycle",
+      "car",
+      "motorcycle",
+      "pedestrian"
+    ],
+    "n_interactions": 55
+  },
+  "tier1/mumbai/walking/DFQO7Zn-KM4-1076/DFQO7Zn-KM4-1076.mp4": {
+    "n_agents": 53,
+    "n_expected": 2,
+    "concept_recall": 1.0,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.3310389832162373,
+    "mean_mask_confidence": 0.9938974322117481,
+    "detected_categories": [
+      "bicycle",
+      "car",
+      "motorcycle",
+      "pedestrian"
+    ],
+    "n_interactions": 64
+  },
+  "tier1/mumbai/walking/DFQO7Zn-KM4-1077/DFQO7Zn-KM4-1077.mp4": {
+    "n_agents": 45,
+    "n_expected": 2,
+    "concept_recall": 1.0,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.16069400736729117,
+    "mean_mask_confidence": 0.9946301977937393,
+    "detected_categories": [
+      "car",
+      "motorcycle",
+      "pedestrian",
+      "person",
+      "truck"
+    ],
+    "n_interactions": 99
+  },
+  "tier1/mumbai/walking/DFQO7Zn-KM4-1078/DFQO7Zn-KM4-1078.mp4": {
+    "n_agents": 42,
+    "n_expected": 4,
+    "concept_recall": 1.0,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.15959851922326307,
+    "mean_mask_confidence": 0.9941455840300291,
+    "detected_categories": [
+      "car",
+      "motorcycle",
+      "pedestrian",
+      "truck",
+      "vendor"
+    ],
+    "n_interactions": 46
+  },
+  "tier1/mumbai/walking/DFQO7Zn-KM4-1079/DFQO7Zn-KM4-1079.mp4": {
+    "n_agents": 67,
+    "n_expected": 4,
+    "concept_recall": 1.0,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.2803185682572209,
+    "mean_mask_confidence": 0.9810167049604749,
+    "detected_categories": [
+      "bicycle",
+      "car",
+      "motorcycle",
+      "pedestrian",
+      "truck"
+    ],
+    "n_interactions": 131
+  },
+  "tier1/mumbai/walking/DFQO7Zn-KM4-1080/DFQO7Zn-KM4-1080.mp4": {
+    "n_agents": 73,
+    "n_expected": 3,
+    "concept_recall": 1.0,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.17917108826112413,
+    "mean_mask_confidence": 0.9942514438069228,
+    "detected_categories": [
+      "bicycle",
+      "bus",
+      "car",
+      "motorcycle",
+      "pedestrian",
+      "person",
+      "truck"
+    ],
+    "n_interactions": 183
+  },
+  "tier1/mumbai/walking/DFQO7Zn-KM4-1081/DFQO7Zn-KM4-1081.mp4": {
+    "n_agents": 46,
+    "n_expected": 4,
+    "concept_recall": 0.75,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.2473202088212334,
+    "mean_mask_confidence": 0.9884506797386428,
+    "detected_categories": [
+      "car",
+      "motorcycle",
+      "pedestrian",
+      "truck"
+    ],
+    "n_interactions": 25
+  },
+  "tier1/mumbai/walking/DFQO7Zn-KM4-1082/DFQO7Zn-KM4-1082.mp4": {
+    "n_agents": 17,
+    "n_expected": 4,
+    "concept_recall": 0.75,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.11652212626854021,
+    "mean_mask_confidence": 0.9872504371517109,
+    "detected_categories": [
+      "bicycle",
+      "bus",
+      "car",
+      "motorcycle",
+      "pedestrian",
+      "person"
+    ],
+    "n_interactions": 7
+  },
+  "tier1/mumbai/walking/DFQO7Zn-KM4-1083/DFQO7Zn-KM4-1083.mp4": {
+    "n_agents": 42,
+    "n_expected": 4,
+    "concept_recall": 0.75,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.15303839773614364,
+    "mean_mask_confidence": 0.9909714510363917,
+    "detected_categories": [
+      "bicycle",
+      "car",
+      "pedestrian",
+      "person",
+      "truck"
+    ],
+    "n_interactions": 56
+  },
+  "tier1/mumbai/walking/DFQO7Zn-KM4-1084/DFQO7Zn-KM4-1084.mp4": {
+    "n_agents": 43,
+    "n_expected": 3,
+    "concept_recall": 1.0,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.16452356557377049,
+    "mean_mask_confidence": 0.9906452544804277,
+    "detected_categories": [
+      "bicycle",
+      "car",
+      "cart",
+      "cycle rickshaw",
+      "pedestrian",
+      "person",
+      "truck"
+    ],
+    "n_interactions": 30
+  },
+  "tier1/mumbai/walking/DFQO7Zn-KM4-1085/DFQO7Zn-KM4-1085.mp4": {
+    "n_agents": 73,
+    "n_expected": 4,
+    "concept_recall": 0.75,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.21457113583138174,
+    "mean_mask_confidence": 0.9899969040416181,
+    "detected_categories": [
+      "bicycle",
+      "car",
+      "motorcycle",
+      "pedestrian",
+      "person",
+      "truck"
+    ],
+    "n_interactions": 102
+  },
+  "tier1/mumbai/walking/DFQO7Zn-KM4-1086/DFQO7Zn-KM4-1086.mp4": {
+    "n_agents": 42,
+    "n_expected": 3,
+    "concept_recall": 1.0,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.1269747755659641,
+    "mean_mask_confidence": 0.9902924870958134,
+    "detected_categories": [
+      "car",
+      "motorcycle",
+      "pedestrian"
+    ],
+    "n_interactions": 31
+  },
+  "tier1/mumbai/walking/DFQO7Zn-KM4-1087/DFQO7Zn-KM4-1087.mp4": {
+    "n_agents": 63,
+    "n_expected": 3,
+    "concept_recall": 1.0,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.2530065317622951,
+    "mean_mask_confidence": 0.9917366999646892,
+    "detected_categories": [
+      "car",
+      "motorcycle",
+      "pedestrian",
+      "person",
+      "policeman"
+    ],
+    "n_interactions": 83
+  },
+  "tier1/mumbai/walking/DFQO7Zn-KM4-1088/DFQO7Zn-KM4-1088.mp4": {
+    "n_agents": 83,
+    "n_expected": 4,
+    "concept_recall": 0.75,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.23701636904761905,
+    "mean_mask_confidence": 0.987590010486432,
+    "detected_categories": [
+      "car",
+      "motorcycle",
+      "pedestrian"
+    ],
+    "n_interactions": 169
+  },
+  "tier1/mumbai/walking/DFQO7Zn-KM4-1089/DFQO7Zn-KM4-1089.mp4": {
+    "n_agents": 41,
+    "n_expected": 4,
+    "concept_recall": 0.75,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.10250292740046839,
+    "mean_mask_confidence": 0.9879069674760104,
+    "detected_categories": [
+      "car",
+      "motorcycle",
+      "pedestrian"
+    ],
+    "n_interactions": 51
+  },
+  "tier1/mumbai/walking/DFQO7Zn-KM4-1090/DFQO7Zn-KM4-1090.mp4": {
+    "n_agents": 56,
+    "n_expected": 3,
+    "concept_recall": 0.667,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.10588803912958626,
+    "mean_mask_confidence": 0.9948357679832603,
+    "detected_categories": [
+      "bus",
+      "car",
+      "motorcycle",
+      "pedestrian"
+    ],
+    "n_interactions": 120
+  },
+  "tier1/mumbai/walking/DFQO7Zn-KM4-1091/DFQO7Zn-KM4-1091.mp4": {
+    "n_agents": 47,
+    "n_expected": 5,
+    "concept_recall": 0.8,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.2493045899199844,
+    "mean_mask_confidence": 0.999259322084845,
+    "detected_categories": [
+      "bus",
+      "car",
+      "pedestrian",
+      "person",
+      "truck"
+    ],
+    "n_interactions": 92
+  },
+  "tier1/mumbai/walking/DFQO7Zn-KM4-1092/DFQO7Zn-KM4-1092.mp4": {
+    "n_agents": 62,
+    "n_expected": 4,
+    "concept_recall": 1.0,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.22851913178181107,
+    "mean_mask_confidence": 0.9799319928342646,
+    "detected_categories": [
+      "bus",
+      "car",
+      "motorcycle",
+      "pedestrian",
+      "policeman",
+      "truck",
+      "vendor"
+    ],
+    "n_interactions": 69
+  },
+  "tier1/mumbai/walking/DFQO7Zn-KM4-1093/DFQO7Zn-KM4-1093.mp4": {
+    "n_agents": 79,
+    "n_expected": 4,
+    "concept_recall": 0.75,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.15465441427595628,
+    "mean_mask_confidence": 0.9935174019172274,
+    "detected_categories": [
+      "car",
+      "motorcycle",
+      "pedestrian",
+      "policeman",
+      "truck"
+    ],
+    "n_interactions": 239
+  },
+  "tier1/mumbai/walking/DFQO7Zn-KM4-1094/DFQO7Zn-KM4-1094.mp4": {
+    "n_agents": 77,
+    "n_expected": 4,
+    "concept_recall": 0.75,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.2353849531615925,
+    "mean_mask_confidence": 0.9956970047082333,
+    "detected_categories": [
+      "car",
+      "motorcycle",
+      "pedestrian",
+      "truck"
+    ],
+    "n_interactions": 213
+  },
+  "tier1/mumbai/walking/DFQO7Zn-KM4-1095/DFQO7Zn-KM4-1095.mp4": {
+    "n_agents": 36,
+    "n_expected": 2,
+    "concept_recall": 1.0,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.20725842847384857,
+    "mean_mask_confidence": 0.9904429799034482,
+    "detected_categories": [
+      "car",
+      "pedestrian"
+    ],
+    "n_interactions": 25
+  },
+  "tier1/mumbai/walking/DFQO7Zn-KM4-1096/DFQO7Zn-KM4-1096.mp4": {
+    "n_agents": 38,
+    "n_expected": 3,
+    "concept_recall": 0.333,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.11379994877049181,
+    "mean_mask_confidence": 0.9808950958883061,
+    "detected_categories": [
+      "car",
+      "truck"
+    ],
+    "n_interactions": 46
+  },
+  "tier1/mumbai/walking/DFQO7Zn-KM4-1097/DFQO7Zn-KM4-1097.mp4": {
+    "n_agents": 95,
+    "n_expected": 3,
+    "concept_recall": 1.0,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.23637493291373926,
+    "mean_mask_confidence": 0.9925777285174608,
+    "detected_categories": [
+      "bus",
+      "car",
+      "motorcycle",
+      "pedestrian",
+      "truck"
+    ],
+    "n_interactions": 264
+  },
+  "tier1/mumbai/walking/DFQO7Zn-KM4-1098/DFQO7Zn-KM4-1098.mp4": {
+    "n_agents": 74,
+    "n_expected": 3,
+    "concept_recall": 1.0,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.21156140222482436,
+    "mean_mask_confidence": 0.9836275764289332,
+    "detected_categories": [
+      "bicycle",
+      "bus",
+      "car",
+      "motorcycle",
+      "pedestrian",
+      "person",
+      "truck"
+    ],
+    "n_interactions": 104
+  },
+  "tier1/mumbai/walking/DFQO7Zn-KM4-1099/DFQO7Zn-KM4-1099.mp4": {
+    "n_agents": 65,
+    "n_expected": 5,
+    "concept_recall": 0.8,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.24712703088407495,
+    "mean_mask_confidence": 0.990366847904361,
+    "detected_categories": [
+      "bicycle",
+      "bus",
+      "car",
+      "cycle rickshaw",
+      "motorcycle",
+      "pedestrian",
+      "person",
+      "truck"
+    ],
+    "n_interactions": 256
+  },
   "tier1/mumbai/walking/DFQO7Zn-KM4-1100/DFQO7Zn-KM4-1100.mp4": {
     "n_agents": 27,
     "n_expected": 8,
@@ -816,6 +6686,22 @@
       "truck"
     ],
     "n_interactions": 11
+  },
+  "tier1/mumbai/walking/DFQO7Zn-KM4-1101/DFQO7Zn-KM4-1101.mp4": {
+    "n_agents": 54,
+    "n_expected": 4,
+    "concept_recall": 0.75,
+    "n_frames": 16,
+    "agent_pixel_ratio": 0.14084928156713505,
+    "mean_mask_confidence": 0.9713115714814352,
+    "detected_categories": [
+      "bus",
+      "car",
+      "pedestrian",
+      "policeman",
+      "truck"
+    ],
+    "n_interactions": 65
   },
   "tier1/mumbai/walking/DFQO7Zn-KM4-1102/DFQO7Zn-KM4-1102.mp4": {
     "n_agents": 44,
@@ -850,721 +6736,46 @@
     ],
     "n_interactions": 190
   },
-  "tier1/mumbai/walking/DFQO7Zn-KM4-1112/DFQO7Zn-KM4-1112.mp4": {
-    "n_agents": 50,
-    "n_expected": 6,
-    "concept_recall": 0.833,
-    "n_frames": 16,
-    "agent_pixel_ratio": 0.2782934779957065,
-    "mean_mask_confidence": 0.9492601035414515,
-    "detected_categories": [
-      "bus",
-      "car",
-      "motorcycle",
-      "pedestrian",
-      "truck"
-    ],
-    "n_interactions": 18
-  },
-  "tier1/mumbai/walking/DFQO7Zn-KM4-1116/DFQO7Zn-KM4-1116.mp4": {
-    "n_agents": 37,
-    "n_expected": 5,
-    "concept_recall": 0.6,
-    "n_frames": 16,
-    "agent_pixel_ratio": 0.13217258855386416,
-    "mean_mask_confidence": 0.9839564974945371,
-    "detected_categories": [
-      "bicycle",
-      "car",
-      "motorcycle",
-      "pedestrian",
-      "person",
-      "policeman"
-    ],
-    "n_interactions": 9
-  },
-  "tier1/mumbai/walking/DFQO7Zn-KM4-1126/DFQO7Zn-KM4-1126.mp4": {
-    "n_agents": 34,
-    "n_expected": 5,
-    "concept_recall": 0.6,
-    "n_frames": 16,
-    "agent_pixel_ratio": 0.06476568598750976,
-    "mean_mask_confidence": 0.9830904424699962,
-    "detected_categories": [
-      "car",
-      "motorcycle",
-      "pedestrian",
-      "person"
-    ],
-    "n_interactions": 34
-  },
-  "tier1/mumbai/walking/DFQO7Zn-KM4-1127/DFQO7Zn-KM4-1127.mp4": {
-    "n_agents": 62,
-    "n_expected": 6,
-    "concept_recall": 0.5,
-    "n_frames": 16,
-    "agent_pixel_ratio": 0.09828015222482435,
-    "mean_mask_confidence": 0.9817579833900227,
-    "detected_categories": [
-      "car",
-      "motorcycle",
-      "pedestrian"
-    ],
-    "n_interactions": 14
-  },
-  "tier1/mumbai/walking/DFQO7Zn-KM4-1128/DFQO7Zn-KM4-1128.mp4": {
-    "n_agents": 101,
-    "n_expected": 5,
-    "concept_recall": 0.6,
-    "n_frames": 16,
-    "agent_pixel_ratio": 0.19742236290007806,
-    "mean_mask_confidence": 0.9924213320868356,
-    "detected_categories": [
-      "car",
-      "motorcycle",
-      "pedestrian"
-    ],
-    "n_interactions": 169
-  },
-  "tier1/mumbai/walking/DFQO7Zn-KM4-1129/DFQO7Zn-KM4-1129.mp4": {
-    "n_agents": 137,
-    "n_expected": 5,
-    "concept_recall": 0.6,
-    "n_frames": 16,
-    "agent_pixel_ratio": 0.20472851410031226,
-    "mean_mask_confidence": 0.9798419231230074,
-    "detected_categories": [
-      "car",
-      "motorcycle",
-      "pedestrian",
-      "person",
-      "truck"
-    ],
-    "n_interactions": 320
-  },
-  "tier1/mumbai/walking/DFQO7Zn-KM4-1132/DFQO7Zn-KM4-1132.mp4": {
-    "n_agents": 58,
-    "n_expected": 5,
-    "concept_recall": 0.8,
-    "n_frames": 16,
-    "agent_pixel_ratio": 0.27310511807181886,
-    "mean_mask_confidence": 0.9886887619104335,
-    "detected_categories": [
-      "car",
-      "motorcycle",
-      "pedestrian",
-      "truck"
-    ],
-    "n_interactions": 61
-  },
-  "tier1/mumbai/walking/DFQO7Zn-KM4-1134/DFQO7Zn-KM4-1134.mp4": {
-    "n_agents": 74,
-    "n_expected": 6,
-    "concept_recall": 0.667,
-    "n_frames": 16,
-    "agent_pixel_ratio": 0.33400404347189694,
-    "mean_mask_confidence": 0.9927837921351921,
-    "detected_categories": [
-      "car",
-      "motorcycle",
-      "pedestrian",
-      "person",
-      "truck"
-    ],
-    "n_interactions": 141
-  },
-  "tier1/mumbai/walking/DFQO7Zn-KM4-1138/DFQO7Zn-KM4-1138.mp4": {
-    "n_agents": 79,
-    "n_expected": 5,
-    "concept_recall": 0.8,
-    "n_frames": 16,
-    "agent_pixel_ratio": 0.2627024785323966,
-    "mean_mask_confidence": 0.9831821088739436,
-    "detected_categories": [
-      "bus",
-      "car",
-      "motorcycle",
-      "pedestrian",
-      "policeman",
-      "truck",
-      "vendor"
-    ],
-    "n_interactions": 188
-  },
-  "tier1/mumbai/walking/DFQO7Zn-KM4-1139/DFQO7Zn-KM4-1139.mp4": {
-    "n_agents": 62,
-    "n_expected": 5,
-    "concept_recall": 0.6,
-    "n_frames": 16,
-    "agent_pixel_ratio": 0.13386849873145978,
-    "mean_mask_confidence": 0.9887161598755763,
-    "detected_categories": [
-      "bicycle",
-      "car",
-      "motorcycle",
-      "pedestrian",
-      "person",
-      "policeman",
-      "truck"
-    ],
-    "n_interactions": 100
-  },
-  "tier1/mumbai/walking/DFQO7Zn-KM4-1141/DFQO7Zn-KM4-1141.mp4": {
-    "n_agents": 80,
-    "n_expected": 5,
-    "concept_recall": 0.6,
-    "n_frames": 16,
-    "agent_pixel_ratio": 0.14590606093871974,
-    "mean_mask_confidence": 0.9875843205922087,
-    "detected_categories": [
-      "car",
-      "motorcycle",
-      "pedestrian",
-      "truck"
-    ],
-    "n_interactions": 141
-  },
-  "tier1/mumbai/walking/DFQO7Zn-KM4-1142/DFQO7Zn-KM4-1142.mp4": {
-    "n_agents": 90,
-    "n_expected": 9,
-    "concept_recall": 0.556,
-    "n_frames": 16,
-    "agent_pixel_ratio": 0.3862642405835285,
-    "mean_mask_confidence": 0.9844363491012625,
-    "detected_categories": [
-      "bicycle",
-      "bus",
-      "car",
-      "motorcycle",
-      "pedestrian",
-      "truck"
-    ],
-    "n_interactions": 163
-  },
-  "tier1/mumbai/walking/DFQO7Zn-KM4-1144/DFQO7Zn-KM4-1144.mp4": {
-    "n_agents": 68,
-    "n_expected": 7,
-    "concept_recall": 0.571,
-    "n_frames": 16,
-    "agent_pixel_ratio": 0.19715356045081966,
-    "mean_mask_confidence": 0.9819864582042305,
-    "detected_categories": [
-      "bicycle",
-      "bus",
-      "car",
-      "motorcycle",
-      "pedestrian",
-      "policeman",
-      "truck"
-    ],
-    "n_interactions": 46
-  },
-  "tier1/mumbai/walking/DFQO7Zn-KM4-1149/DFQO7Zn-KM4-1149.mp4": {
-    "n_agents": 102,
-    "n_expected": 6,
-    "concept_recall": 0.833,
-    "n_frames": 16,
-    "agent_pixel_ratio": 0.3041985326405152,
-    "mean_mask_confidence": 0.9820257640304454,
-    "detected_categories": [
-      "bicycle",
-      "bus",
-      "car",
-      "motorcycle",
-      "pedestrian",
-      "truck"
-    ],
-    "n_interactions": 157
-  },
-  "tier1/mumbai/walking/DFQO7Zn-KM4-1150/DFQO7Zn-KM4-1150.mp4": {
-    "n_agents": 69,
-    "n_expected": 6,
-    "concept_recall": 0.833,
-    "n_frames": 16,
-    "agent_pixel_ratio": 0.4446109911690086,
-    "mean_mask_confidence": 0.9909584348093826,
-    "detected_categories": [
-      "bicycle",
-      "bus",
-      "car",
-      "motorcycle",
-      "pedestrian",
-      "person",
-      "policeman",
-      "truck"
-    ],
-    "n_interactions": 95
-  },
-  "tier1/mumbai/walking/DFQO7Zn-KM4-1151/DFQO7Zn-KM4-1151.mp4": {
-    "n_agents": 64,
-    "n_expected": 5,
-    "concept_recall": 0.8,
-    "n_frames": 16,
-    "agent_pixel_ratio": 0.3622493413348946,
-    "mean_mask_confidence": 0.9958624104076849,
-    "detected_categories": [
-      "bicycle",
-      "car",
-      "motorcycle",
-      "pedestrian",
-      "person",
-      "truck"
-    ],
-    "n_interactions": 71
-  },
-  "tier1/mumbai/walking/DFQO7Zn-KM4-1162/DFQO7Zn-KM4-1162.mp4": {
-    "n_agents": 56,
-    "n_expected": 5,
-    "concept_recall": 0.8,
-    "n_frames": 16,
-    "agent_pixel_ratio": 0.47056483582162373,
-    "mean_mask_confidence": 0.978907170749846,
-    "detected_categories": [
-      "bus",
-      "car",
-      "pedestrian",
-      "person",
-      "truck"
-    ],
-    "n_interactions": 84
-  },
-  "tier1/mumbai/walking/DFQO7Zn-KM4-1191/DFQO7Zn-KM4-1191.mp4": {
-    "n_agents": 68,
-    "n_expected": 6,
-    "concept_recall": 0.667,
-    "n_frames": 16,
-    "agent_pixel_ratio": 0.4037911360753318,
-    "mean_mask_confidence": 0.9976362586021423,
-    "detected_categories": [
-      "bus",
-      "car",
-      "dog",
-      "pedestrian",
-      "truck"
-    ],
-    "n_interactions": 127
-  },
-  "tier1/mumbai/walking/DFQO7Zn-KM4-1195/DFQO7Zn-KM4-1195.mp4": {
-    "n_agents": 62,
-    "n_expected": 6,
-    "concept_recall": 0.667,
-    "n_frames": 16,
-    "agent_pixel_ratio": 0.2021001048985168,
-    "mean_mask_confidence": 0.987812138541981,
-    "detected_categories": [
-      "car",
-      "motorcycle",
-      "pedestrian",
-      "policeman",
-      "truck"
-    ],
-    "n_interactions": 114
-  },
-  "tier1/mumbai/walking/DFQO7Zn-KM4-1197/DFQO7Zn-KM4-1197.mp4": {
-    "n_agents": 43,
-    "n_expected": 5,
-    "concept_recall": 0.6,
-    "n_frames": 16,
-    "agent_pixel_ratio": 0.13996968920765027,
-    "mean_mask_confidence": 0.9795512668788433,
-    "detected_categories": [
-      "bus",
-      "car",
-      "pedestrian",
-      "person",
-      "policeman",
-      "truck"
-    ],
-    "n_interactions": 39
-  },
-  "tier1/mumbai/walking/DFQO7Zn-KM4-1211/DFQO7Zn-KM4-1211.mp4": {
-    "n_agents": 99,
-    "n_expected": 6,
-    "concept_recall": 0.667,
-    "n_frames": 16,
-    "agent_pixel_ratio": 0.09354523443598751,
-    "mean_mask_confidence": 0.9930481131762674,
-    "detected_categories": [
-      "bus",
-      "car",
-      "pedestrian",
-      "policeman",
-      "truck"
-    ],
-    "n_interactions": 387
-  },
-  "tier1/mumbai/walking/DFQO7Zn-KM4-1213/DFQO7Zn-KM4-1213.mp4": {
-    "n_agents": 66,
-    "n_expected": 6,
-    "concept_recall": 0.667,
-    "n_frames": 16,
-    "agent_pixel_ratio": 0.10060774053473849,
-    "mean_mask_confidence": 0.9932104624428991,
-    "detected_categories": [
-      "bus",
-      "car",
-      "pedestrian",
-      "person",
-      "truck"
-    ],
-    "n_interactions": 187
-  },
-  "tier1/mumbai/walking/DFQO7Zn-KM4-1216/DFQO7Zn-KM4-1216.mp4": {
-    "n_agents": 65,
-    "n_expected": 7,
-    "concept_recall": 0.714,
-    "n_frames": 16,
-    "agent_pixel_ratio": 0.12555910299570647,
-    "mean_mask_confidence": 0.9737500706555154,
-    "detected_categories": [
-      "bicycle",
-      "bus",
-      "car",
-      "cart",
-      "motorcycle",
-      "pedestrian",
-      "person",
-      "truck"
-    ],
-    "n_interactions": 57
-  },
-  "tier1/mumbai/walking/DFQO7Zn-KM4-1224/DFQO7Zn-KM4-1224.mp4": {
-    "n_agents": 25,
-    "n_expected": 6,
-    "concept_recall": 0.833,
-    "n_frames": 16,
-    "agent_pixel_ratio": 0.15333159518930523,
-    "mean_mask_confidence": 0.9765469209353129,
-    "detected_categories": [
-      "bus",
-      "car",
-      "motorcycle",
-      "pedestrian",
-      "person",
-      "truck",
-      "vendor"
-    ],
-    "n_interactions": 6
-  },
-  "tier1/mumbai/walking/DFQO7Zn-KM4-1225/DFQO7Zn-KM4-1225.mp4": {
-    "n_agents": 32,
-    "n_expected": 6,
-    "concept_recall": 0.833,
-    "n_frames": 16,
-    "agent_pixel_ratio": 0.19818607899102264,
-    "mean_mask_confidence": 0.9972120760902157,
-    "detected_categories": [
-      "bus",
-      "car",
-      "motorcycle",
-      "pedestrian",
-      "person",
-      "policeman",
-      "truck"
-    ],
-    "n_interactions": 32
-  },
-  "tier2/ahmedabad/walking/7NZ5fzDGUAM/7NZ5fzDGUAM-337.mp4": {
-    "n_agents": 95,
-    "n_expected": 5,
-    "concept_recall": 0.8,
-    "n_frames": 16,
-    "agent_pixel_ratio": 0.2619081162177986,
-    "mean_mask_confidence": 0.9535080109323774,
-    "detected_categories": [
-      "car",
-      "motorcycle",
-      "pedestrian",
-      "person",
-      "policeman",
-      "truck",
-      "vendor"
-    ],
-    "n_interactions": 99
-  },
-  "tier2/ahmedabad/walking/DIYHkv1_J8I/DIYHkv1_J8I-408.mp4": {
-    "n_agents": 23,
-    "n_expected": 6,
-    "concept_recall": 0.333,
-    "n_frames": 16,
-    "agent_pixel_ratio": 0.02481200600117096,
-    "mean_mask_confidence": 0.9896786327545459,
-    "detected_categories": [
-      "motorcycle",
-      "pedestrian"
-    ],
-    "n_interactions": 10
-  },
-  "tier2/indore/drive/YRTHHNqU4DI/YRTHHNqU4DI-018.mp4": {
-    "n_agents": 87,
-    "n_expected": 5,
-    "concept_recall": 0.6,
-    "n_frames": 16,
-    "agent_pixel_ratio": 0.1111767578125,
-    "mean_mask_confidence": 0.9643174433882856,
-    "detected_categories": [
-      "car",
-      "motorcycle",
-      "pedestrian",
-      "person",
-      "policeman",
-      "truck",
-      "vendor"
-    ],
-    "n_interactions": 42
-  },
-  "tier2/jaipur/walking/R0wbglRfi5c/R0wbglRfi5c-299.mp4": {
-    "n_agents": 55,
-    "n_expected": 7,
-    "concept_recall": 0.571,
-    "n_frames": 16,
-    "agent_pixel_ratio": 0.3163312353629977,
-    "mean_mask_confidence": 0.9827810637841975,
-    "detected_categories": [
-      "car",
-      "motorcycle",
-      "pedestrian",
-      "person",
-      "truck"
-    ],
-    "n_interactions": 76
-  },
-  "tier2/kochi/drone/ZglsiZMQr84/ZglsiZMQr84-086.mp4": {
-    "n_agents": 0,
-    "n_expected": 5,
-    "concept_recall": 0.0,
-    "n_frames": 16,
-    "agent_pixel_ratio": 0.0,
-    "mean_mask_confidence": 0.0,
-    "detected_categories": [],
-    "n_interactions": 0
-  },
-  "tier2/kochi/drone/bxQ_bBxzfrM/bxQ_bBxzfrM-000.mp4": {
-    "n_agents": 0,
-    "n_expected": 5,
-    "concept_recall": 0.0,
-    "n_frames": 16,
-    "agent_pixel_ratio": 0.0,
-    "mean_mask_confidence": 0.0,
-    "detected_categories": [],
-    "n_interactions": 0
-  },
-  "tier2/indore/walking/xiLOcgHx-jI/xiLOcgHx-jI-078.mp4": {
-    "n_agents": 69,
-    "n_expected": 4,
-    "concept_recall": 0.75,
-    "n_frames": 16,
-    "agent_pixel_ratio": 0.08366482204861111,
-    "mean_mask_confidence": 0.9689265296097201,
-    "detected_categories": [
-      "bus",
-      "car",
-      "motorcycle",
-      "pedestrian",
-      "person",
-      "truck",
-      "vendor"
-    ],
-    "n_interactions": 22
-  },
-  "tier2/nagpur/drive/RZj7mTbPWh8/RZj7mTbPWh8-014.mp4": {
-    "n_agents": 76,
-    "n_expected": 5,
-    "concept_recall": 0.8,
-    "n_frames": 16,
-    "agent_pixel_ratio": 0.46856201171875,
-    "mean_mask_confidence": 0.9944029751667477,
-    "detected_categories": [
-      "bicycle",
-      "bus",
-      "car",
-      "motorcycle",
-      "pedestrian",
-      "person",
-      "truck"
-    ],
-    "n_interactions": 99
-  },
-  "tier2/nagpur/drone/umOJymW60n0/umOJymW60n0-013.mp4": {
-    "n_agents": 4,
-    "n_expected": 5,
-    "concept_recall": 0.2,
-    "n_frames": 16,
-    "agent_pixel_ratio": 0.01449368169398907,
-    "mean_mask_confidence": 0.9999759793281555,
-    "detected_categories": [
-      "car"
-    ],
-    "n_interactions": 0
-  },
-  "tier2/lucknow/walking/0yz8-gvg2FU/0yz8-gvg2FU-156.mp4": {
-    "n_agents": 42,
-    "n_expected": 4,
-    "concept_recall": 0.75,
-    "n_frames": 16,
-    "agent_pixel_ratio": 0.08559307303864169,
-    "mean_mask_confidence": 0.9796746417147214,
-    "detected_categories": [
-      "bicycle",
-      "car",
-      "cart",
-      "motorcycle",
-      "pedestrian",
-      "person",
-      "truck"
-    ],
-    "n_interactions": 3
-  },
-  "tier2/mysuru/rain/0_bwM56GabE/0_bwM56GabE-068.mp4": {
-    "n_agents": 25,
-    "n_expected": 5,
-    "concept_recall": 0.6,
-    "n_frames": 16,
-    "agent_pixel_ratio": 0.6758279054449648,
-    "mean_mask_confidence": 0.9632713879857745,
-    "detected_categories": [
-      "bus",
-      "car",
-      "person",
-      "truck"
-    ],
-    "n_interactions": 16
-  },
-  "tier2/mysuru/rain/Yt3pRiUHQ6s/Yt3pRiUHQ6s-054.mp4": {
-    "n_agents": 0,
-    "n_expected": 6,
-    "concept_recall": 0.0,
-    "n_frames": 16,
-    "agent_pixel_ratio": 0.0,
-    "mean_mask_confidence": 0.0,
-    "detected_categories": [],
-    "n_interactions": 0
-  },
-  "tier2/mysuru/walking/bcLN0GkAvW0/bcLN0GkAvW0-055.mp4": {
-    "n_agents": 63,
-    "n_expected": 4,
-    "concept_recall": 0.75,
-    "n_frames": 16,
-    "agent_pixel_ratio": 0.22765005976775957,
-    "mean_mask_confidence": 0.9860741442206216,
-    "detected_categories": [
-      "car",
-      "motorcycle",
-      "pedestrian",
-      "truck"
-    ],
-    "n_interactions": 35
-  },
-  "tier2/nagpur/walking/2swRYp8mXuE/2swRYp8mXuE-068.mp4": {
-    "n_agents": 73,
-    "n_expected": 5,
-    "concept_recall": 0.6,
-    "n_frames": 16,
-    "agent_pixel_ratio": 0.07687704308157689,
-    "mean_mask_confidence": 0.9902082501455794,
-    "detected_categories": [
-      "bicycle",
-      "car",
-      "motorcycle",
-      "pedestrian",
-      "person"
-    ],
-    "n_interactions": 86
-  },
-  "tier2/pune/drone/RKW6nLIeXGc/RKW6nLIeXGc-013.mp4": {
-    "n_agents": 31,
-    "n_expected": 6,
-    "concept_recall": 0.167,
-    "n_frames": 16,
-    "agent_pixel_ratio": 0.011738418471896956,
-    "mean_mask_confidence": 0.9753902792930603,
-    "detected_categories": [
-      "pedestrian",
-      "person",
-      "policeman"
-    ],
-    "n_interactions": 0
-  },
-  "tier2/pune/rain/-EgBIiZ51nw/-EgBIiZ51nw-011.mp4": {
-    "n_agents": 60,
-    "n_expected": 6,
-    "concept_recall": 0.833,
-    "n_frames": 16,
-    "agent_pixel_ratio": 0.22226399739583333,
-    "mean_mask_confidence": 0.874457756226713,
-    "detected_categories": [
-      "bus",
-      "car",
-      "motorcycle",
-      "pedestrian",
-      "person",
-      "truck"
-    ],
-    "n_interactions": 8
-  },
-  "tier2/surat/drone/rSzWEI01rEM/rSzWEI01rEM-012.mp4": {
-    "n_agents": 26,
+  "tier1/mumbai/walking/DFQO7Zn-KM4-1104/DFQO7Zn-KM4-1104.mp4": {
+    "n_agents": 115,
     "n_expected": 4,
     "concept_recall": 1.0,
     "n_frames": 16,
-    "agent_pixel_ratio": 0.07673771352803417,
-    "mean_mask_confidence": 0.9767832868504074,
+    "agent_pixel_ratio": 0.17021552985948477,
+    "mean_mask_confidence": 0.9654013118219759,
     "detected_categories": [
+      "bicycle",
       "bus",
       "car",
       "motorcycle",
       "pedestrian",
-      "person",
-      "policeman",
-      "truck",
-      "vendor"
+      "truck"
     ],
-    "n_interactions": 1
+    "n_interactions": 281
   },
-  "tier2/varanasi/drive/Ugn-uqKFMJY/Ugn-uqKFMJY-087.mp4": {
-    "n_agents": 94,
+  "tier1/mumbai/walking/DFQO7Zn-KM4-1105/DFQO7Zn-KM4-1105.mp4": {
+    "n_agents": 106,
     "n_expected": 5,
     "concept_recall": 0.8,
     "n_frames": 16,
-    "agent_pixel_ratio": 0.09992635758196722,
-    "mean_mask_confidence": 0.9700953623072969,
+    "agent_pixel_ratio": 0.23850156737900077,
+    "mean_mask_confidence": 0.9855620834938029,
     "detected_categories": [
-      "bicycle",
       "car",
-      "cart",
       "motorcycle",
       "pedestrian",
       "person",
       "truck"
     ],
-    "n_interactions": 76
+    "n_interactions": 417
   },
-  "tier2/varanasi/drive/aK5bK2WAs44/aK5bK2WAs44-144.mp4": {
-    "n_agents": 73,
+  "tier1/mumbai/walking/DFQO7Zn-KM4-1106/DFQO7Zn-KM4-1106.mp4": {
+    "n_agents": 54,
     "n_expected": 5,
     "concept_recall": 0.8,
     "n_frames": 16,
-    "agent_pixel_ratio": 0.572042105776737,
-    "mean_mask_confidence": 0.9647255402344924,
-    "detected_categories": [
-      "bicycle",
-      "car",
-      "cycle rickshaw",
-      "motorcycle",
-      "pedestrian",
-      "person",
-      "truck",
-      "vendor"
-    ],
-    "n_interactions": 48
-  },
-  "tier2/varanasi/drive/5sxCg1OuYds/5sxCg1OuYds-010.mp4": {
-    "n_agents": 56,
-    "n_expected": 4,
-    "concept_recall": 0.75,
-    "n_frames": 16,
-    "agent_pixel_ratio": 0.26143088895394223,
-    "mean_mask_confidence": 0.990648593320403,
+    "agent_pixel_ratio": 0.21404283152810305,
+    "mean_mask_confidence": 0.9929951730370522,
     "detected_categories": [
       "bicycle",
       "car",
@@ -1573,80 +6784,36 @@
       "person",
       "truck"
     ],
-    "n_interactions": 33
+    "n_interactions": 116
   },
-  "tier2/varanasi/drone/XRkM8zuNr-k/XRkM8zuNr-k-000.mp4": {
-    "n_agents": 0,
-    "n_expected": 5,
-    "concept_recall": 0.0,
+  "tier1/mumbai/walking/DFQO7Zn-KM4-1107/DFQO7Zn-KM4-1107.mp4": {
+    "n_agents": 93,
+    "n_expected": 3,
+    "concept_recall": 1.0,
     "n_frames": 16,
-    "agent_pixel_ratio": 0.0,
-    "mean_mask_confidence": 0.0,
-    "detected_categories": [],
-    "n_interactions": 0
-  },
-  "tier2/varanasi/drone/lqMBBy-dZ6Y/lqMBBy-dZ6Y-005.mp4": {
-    "n_agents": 0,
-    "n_expected": 4,
-    "concept_recall": 0.25,
-    "n_frames": 16,
-    "agent_pixel_ratio": 0.0,
-    "mean_mask_confidence": 0.0,
-    "detected_categories": [
-      "car"
-    ],
-    "n_interactions": 0
-  },
-  "tier2/thiruvananthapuram/drive/01eKackXXdg/01eKackXXdg-064.mp4": {
-    "n_agents": 79,
-    "n_expected": 4,
-    "concept_recall": 0.75,
-    "n_frames": 16,
-    "agent_pixel_ratio": 0.12462706137782982,
-    "mean_mask_confidence": 0.9907737987593186,
-    "detected_categories": [
-      "bus",
-      "car",
-      "motorcycle",
-      "pedestrian",
-      "person",
-      "truck"
-    ],
-    "n_interactions": 84
-  },
-  "tier2/thiruvananthapuram/drive/Ly8OkwIgles/Ly8OkwIgles-014.mp4": {
-    "n_agents": 96,
-    "n_expected": 7,
-    "concept_recall": 0.714,
-    "n_frames": 16,
-    "agent_pixel_ratio": 0.3177251048985168,
-    "mean_mask_confidence": 0.9894194319844246,
+    "agent_pixel_ratio": 0.22271617022833723,
+    "mean_mask_confidence": 0.9755284822717005,
     "detected_categories": [
       "bicycle",
-      "bus",
       "car",
       "motorcycle",
-      "pedestrian",
-      "person",
-      "truck"
+      "pedestrian"
     ],
-    "n_interactions": 135
+    "n_interactions": 223
   },
-  "tier2/visakhapatnam/rain/zF7vsaMrCwI/zF7vsaMrCwI-011.mp4": {
-    "n_agents": 55,
+  "tier1/mumbai/walking/DFQO7Zn-KM4-1108/DFQO7Zn-KM4-1108.mp4": {
+    "n_agents": 87,
     "n_expected": 4,
     "concept_recall": 0.75,
     "n_frames": 16,
-    "agent_pixel_ratio": 0.10310167100694445,
-    "mean_mask_confidence": 0.9895068822680293,
+    "agent_pixel_ratio": 0.26161949282786884,
+    "mean_mask_confidence": 0.9867096891326289,
     "detected_categories": [
-      "bus",
       "car",
       "motorcycle",
       "pedestrian",
-      "person",
       "truck"
     ],
-    "n_interactions": 80
+    "n_interactions": 150
   }
 }

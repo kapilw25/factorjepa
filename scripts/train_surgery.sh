@@ -99,7 +99,7 @@ fi
 
 # ── Local data (FATAL if missing for non-SANITY) ─────────────────────
 LOCAL_FLAG=""
-VAL_FLAG=""
+PROBE_FLAG=""
 if [[ "$MODE" == "SANITY" ]]; then
     LOCAL_FLAG=""
 else
@@ -117,27 +117,44 @@ else
         fi
         LOCAL_FLAG="--local-data data/full_local"
     fi
+    # Mid-training probe (Prec@K/mAP@K/Cycle@K with BCa 95% CI at stage
+    # boundaries) — companion to D.4 decision gate. Requires val_1k data +
+    # tags.json. Same set as decision gate (retrieval metric is structural,
+    # test-leak acceptable — see ch11_surgery.yaml probe: block rationale).
     if [[ ! -f "data/val_1k.json" ]] || [[ ! -d "data/val_1k_local" ]]; then
-        log "FATAL: val data missing (data/val_1k.json + data/val_1k_local/)"
+        log "FATAL: probe data missing (data/val_1k.json + data/val_1k_local/)"
         exit 1
     fi
-    VAL_FLAG="--val-subset data/val_1k.json --val-local-data data/val_1k_local"
+    if [[ ! -f "data/val_1k_local/tags.json" ]]; then
+        log "FATAL: data/val_1k_local/tags.json missing — probe needs tags for Prec@K"
+        log "  Run m04 VLM tagging or: python -u src/utils/hf_outputs.py download-data"
+        exit 1
+    fi
+    PROBE_FLAG="--probe-subset data/val_1k.json --probe-local-data data/val_1k_local --probe-tags data/val_1k_local/tags.json"
 fi
 
 # ── Auto batch size detection ─────────────────────────────────────────
+# Fail-loud: no silent `|| echo "32"` fallback. If both profiler AND yaml reads
+# fail, abort with a clear message — do NOT assume BS=32 at an unknown scale
+# (#60/#61 class of silent-config bug).
 BATCH_FLAG=""
 PROFILE_JSON="outputs/profile/training/profile_data.json"
 if [[ -f "$PROFILE_JSON" ]]; then
-    BS=$(python -u src/utils/gpu_batch.py optimal-bs --profile-json "$PROFILE_JSON" 2>/dev/null || echo "")
-    if [[ -n "$BS" ]]; then
+    if BS=$(python -u src/utils/gpu_batch.py optimal-bs --profile-json "$PROFILE_JSON") && [[ -n "$BS" ]]; then
         BATCH_FLAG="--batch-size $BS"
-        log "Batch size: $BS (from profiler)"
+        log "Batch size: $BS (from profiler $PROFILE_JSON)"
     fi
 fi
 if [[ -z "$BATCH_FLAG" ]]; then
-    BS=$(python -u src/utils/config.py get-yaml "$TRAIN_CONFIG" optimization.batch_size 2>/dev/null || echo "32")
-    BATCH_FLAG="--batch-size $BS"
-    log "Batch size: $BS (from YAML / default)"
+    if BS=$(python -u src/utils/config.py get-yaml "$TRAIN_CONFIG" optimization.batch_size) && [[ -n "$BS" ]]; then
+        BATCH_FLAG="--batch-size $BS"
+        log "Batch size: $BS (from YAML: $TRAIN_CONFIG optimization.batch_size)"
+    else
+        log "FATAL: could not resolve batch_size — neither profiler ($PROFILE_JSON)"
+        log "       nor YAML ($TRAIN_CONFIG optimization.batch_size) returned a value."
+        log "       No silent default — fix your config before running."
+        exit 1
+    fi
 fi
 
 # ── GPU pre-flight ────────────────────────────────────────────────────
@@ -199,7 +216,7 @@ run_step "2-surgery" "m09c factor surgery (progressive unfreezing)" \
         --train-config "$TRAIN_CONFIG" \
         --factor-dir "$FACTOR_DIR" \
         --output-dir "$SURGERY_DIR" \
-        $BATCH_FLAG $MODE_FLAG $SUBSET_FLAG $LOCAL_FLAG $VAL_FLAG --no-wandb
+        $BATCH_FLAG $MODE_FLAG $SUBSET_FLAG $LOCAL_FLAG $PROBE_FLAG --no-wandb
 
 STUDENT_PT="${SURGERY_DIR}/student_encoder.pt"
 if [[ ! -f "$STUDENT_PT" ]]; then

@@ -763,6 +763,228 @@ class FactorSampler:
         return factor, clip_key, path
 
 
+# ═════════════════════════════════════════════════════════════════════════
+# MID-TRAINING PROBE EVAL (Prec@K / mAP@K / Cycle@K with BCa 95% CI)
+# ═════════════════════════════════════════════════════════════════════════
+#
+# Purpose: at stage boundaries, embed a held-out probe set through the CURRENT
+# student and compute the same retrieval metrics the D.4 decision gate uses.
+# Watches Surgery > Frozen emerge (or not) across the 3 stages without waiting
+# for the full m05+m06 re-run cycle.
+#
+# Contract (technique-agnostic):
+#   - Input:  student (vjepa2 VisionTransformer), pre-decoded probe tensors,
+#             cfg dict, device.
+#   - Output: dict with {prec_at_k, map_at_k, cycle_at_k} each {mean, ci_half}
+#             and num_clips.
+#   - No persistent state mutation: train()/eval() + return_hierarchical toggled
+#     then restored under try/finally so the stage loop continues cleanly.
+#
+# Pooling matches m05_vjepa_embed.py:242 (outputs.mean(dim=1) over patch dim).
+# Deterministic preprocess (center-crop + ImageNet-norm, no aug) so mid-stage
+# deltas track the encoder, not the augmentation RNG.
+
+
+def _probe_preprocess(video_uint8: torch.Tensor, crop_size: int) -> torch.Tensor:
+    """Deterministic probe pipeline: center-crop → resize → ImageNet-normalize.
+
+    video_uint8: (T, C, H, W) uint8 from decode_video_bytes().
+    Returns: (T, C, crop_size, crop_size) float32, ImageNet-normalized.
+    """
+    _, _, H, W = video_uint8.shape
+    side = min(H, W)
+    top = (H - side) // 2
+    left = (W - side) // 2
+    video = video_uint8[:, :, top:top + side, left:left + side].float() / 255.0
+    video = F.interpolate(video, size=(crop_size, crop_size),
+                          mode="bilinear", align_corners=False)
+    return (video - IMAGENET_MEAN.to(video.device)) / IMAGENET_STD.to(video.device)
+
+
+def build_probe_clips(probe_subset_path: str, probe_local_data: str,
+                      probe_tags_path: str, num_frames: int, crop_size: int) -> list:
+    """Decode + preprocess probe clips ONCE upfront. Returns list of
+    (clip_key, tag_dict, tensor[T,C,H,W]).
+
+    Tag alignment: Path(clip_key).name == tag["source_file"]. Clips without a
+    matching tag record are skipped (not fatal — probe is best-effort signal).
+    Heavy: 1K val_1k clips take ~5-10 min to decode via PyAV. Cost amortized
+    across 3 stage-boundary calls.
+    """
+    subset_keys = set(json.load(open(probe_subset_path))["clip_keys"])
+    tags_list = json.load(open(probe_tags_path))
+    # Fail-loud: tag records without "source_file" are malformed — skip with explicit test, no .get default.
+    tag_by_source = {t["source_file"]: t for t in tags_list if "source_file" in t}
+
+    tmp_dir = tempfile.mkdtemp(prefix="probe_decode_")
+    clips = []
+    n_no_tag = 0
+    try:
+        clip_q, tar_stop, _reader = iter_clips_parallel(probe_local_data, subset_keys=subset_keys)
+        while True:
+            try:
+                item = clip_q.get(timeout=120)
+            except queue.Empty:
+                break
+            if item is None:
+                break
+            clip_key, mp4_bytes = item
+            if not mp4_bytes:
+                continue
+            source_file = Path(clip_key).name
+            if source_file not in tag_by_source:
+                n_no_tag += 1
+                continue
+            tag = tag_by_source[source_file]
+            video_u8 = decode_video_bytes(mp4_bytes, tmp_dir, clip_key, num_frames)
+            if video_u8 is None:
+                continue
+            tensor = _probe_preprocess(video_u8, crop_size)
+            clips.append((clip_key, tag, tensor))
+        tar_stop.set()
+    finally:
+        shutil.rmtree(tmp_dir, ignore_errors=True)
+
+    print(f"  [probe] decoded {len(clips)} clips ({n_no_tag} skipped — no tag match)")
+    if len(clips) < 100:
+        print(f"  WARNING: probe has only {len(clips)} clips — bootstrap CI will be wide (N<100)")
+    return clips
+
+
+@torch.no_grad()
+def run_probe_eval(student, probe_clips: list, cfg: dict, device: torch.device,
+                   k: int, bootstrap_iter: int) -> dict:
+    """Embed probe clips → Prec@K / mAP@K / Cycle@K with BCa 95% CI.
+
+    Reuses utils.bootstrap vectorized per-clip functions so numbers are
+    directly comparable to the D.4 decision gate (modulo deterministic probe
+    preprocessing vs m05's augmented val-time transforms).
+
+    Forward micro-batching: AdaptiveBatchSizer wired per CLAUDE.md B35 +
+    errors_N_fixes.md #47 (universal infra, no hardcoded sub_batch). Sizer
+    params come from pipeline.yaml — same keys m05 uses:
+      - initial_size = gpu.inference_vjepa_initial_bs (safe start)
+      - max_size     = gpu.inference_adapted_bs (cap — guards CPU queue + recompile)
+      - memory_cap   = gpu.gpu_memory_target (universal 0.85)
+    Forward-only (@torch.no_grad), so OOM recovery is clean: shrink → retry
+    same micro, no partial-grad state to discard.
+
+    Pooling matches m05:242 — outputs.mean(dim=1) over patch dim → (B, D=1664).
+    Returns {"prec_at_k": {mean, ci_half, ci_lo, ci_hi}, ..., "num_clips": N}.
+    """
+    from utils.bootstrap import (
+        bootstrap_ci, encode_tags_to_labels,
+        per_clip_prec_at_k, per_clip_map_at_k, per_clip_cycle_at_k,
+    )
+
+    n = len(probe_clips)
+    if n < 10:
+        # Fail-loud: stable BCa CI needs N>=10. Caller wraps in try/except and
+        # logs a WARN. Previously returned a dict with None values — that let
+        # trajectory stats silently degrade. No defaults, no fallback.
+        raise ValueError(
+            f"probe N={n} too small for stable 95% BCa CI (needs N>=10). "
+            f"Check probe.subset JSON clip_keys list + probe.local_data TAR coverage."
+        )
+
+    _gpu = get_pipeline_config()["gpu"]
+    sizer = AdaptiveBatchSizer(
+        initial_size=_gpu["inference_vjepa_initial_bs"],
+        min_size=1,
+        max_size=_gpu["inference_adapted_bs"],
+        memory_cap=_gpu["gpu_memory_target"],
+    )
+    print(f"  [probe] AdaptiveBatchSizer: start={sizer.size}, "
+          f"max={sizer.max_size}, cap={sizer.memory_cap:.0%}")
+
+    was_training = student.training
+    had_hier = getattr(student, "return_hierarchical", None)
+    student.eval()
+    if had_hier is not None:
+        student.return_hierarchical = False
+
+    try:
+        model_dtype = next(student.parameters()).dtype
+        tags = [t for _, t, _ in probe_clips]
+        emb_list = []
+        i = 0
+        while i < n:
+            end = min(i + sizer.size, n)
+            batch = torch.stack([c for _, _, c in probe_clips[i:end]])
+            batch = batch.permute(0, 2, 1, 3, 4).to(device=device, dtype=model_dtype)
+            try:
+                out = student(batch)
+                emb_list.append(out.mean(dim=1).float().cpu().numpy())
+                sizer.after_batch_success()
+                i = end
+            except torch.cuda.OutOfMemoryError:
+                cuda_cleanup()
+                if not sizer.on_oom():
+                    raise RuntimeError(
+                        f"Probe OOM at min sub-batch={sizer.min_size} (N={n}). "
+                        f"Student + activations don't fit even at BS=1 on this GPU. "
+                        f"Reduce inference_vjepa_initial_bs in pipeline.yaml or run "
+                        f"probe on larger hardware."
+                    ) from None
+                # retry same i at shrunken sizer.size
+        embeddings = np.concatenate(emb_list, axis=0)
+    finally:
+        if had_hier is not None:
+            student.return_hierarchical = had_hier
+        if was_training:
+            student.train()
+
+    # L2-normalize: FAISS IndexFlatL2 on normalized vecs ≡ cosine rank.
+    norms = np.linalg.norm(embeddings, axis=1, keepdims=True) + 1e-8
+    embeddings = (embeddings / norms).astype(np.float32)
+
+    # N=1K: IndexFlatL2 is exact + fastest; skip IVF. CPU index fine for this size.
+    import faiss
+    index = faiss.IndexFlatL2(embeddings.shape[1])
+    index.add(embeddings)
+    _D, I = index.search(embeddings, k + 1)  # col 0 = self
+
+    label_arrays = encode_tags_to_labels(tags, ["scene_type"])
+    prec_scores = per_clip_prec_at_k(I, tags, k, field="scene_type", label_arrays=label_arrays)
+    map_scores = per_clip_map_at_k(I, tags, k, field="scene_type", label_arrays=label_arrays) * 100
+    cycle_scores = per_clip_cycle_at_k(I, k) * 100
+
+    return {
+        "num_clips": n,
+        "prec_at_k": bootstrap_ci(prec_scores, n_boot=bootstrap_iter),
+        "map_at_k": bootstrap_ci(map_scores, n_boot=bootstrap_iter),
+        "cycle_at_k": bootstrap_ci(cycle_scores, n_boot=bootstrap_iter),
+    }
+
+
+def compute_trajectory_stats(probe_history: list) -> dict:
+    """Trajectory stats across stage boundaries.
+
+    Single-probe-set regime: BWT degenerates to net improvement R[-1]-R[0] on
+    Prec@K. Real GEM-BWT (per-task eval) would need separate D_L/D_A/D_I probe
+    splits — deferred as future extension; this already flags regressions.
+
+    Forgetting monitor: max_drop > 0 means some stage transition DROPPED Prec@K
+    despite replay → the paper claim "replay prevents forgetting" fails on this
+    run. User should inspect per-stage mode_mixture / warmup_pct.
+    """
+    # Fail-loud on structural issues — every probe_history entry must have the
+    # full metric dict (run_probe_eval always returns it; missing = bug upstream).
+    # Empty / single-entry history is a legit no-trajectory case (returns empty).
+    if len(probe_history) < 2:
+        return {"bwt_prec_at_k": None, "monotonic": None, "trajectory": []}
+
+    traj = [r["prec_at_k"]["mean"] for r in probe_history]
+    deltas = [traj[i] - traj[i - 1] for i in range(1, len(traj))]
+    max_drop = -min(deltas) if min(deltas) < 0 else 0.0
+    return {
+        "bwt_prec_at_k": round(traj[-1] - traj[0], 4),
+        "max_drop_prec_at_k": round(max_drop, 4),
+        "monotonic": all(d >= 0 for d in deltas),
+        "trajectory": [round(v, 4) for v in traj],
+    }
+
+
 def load_factor_clip(path: Path, num_frames: int, crop_size: int) -> torch.Tensor:
     """Load factor-patched clip from .npy → (T, C, H, W) float32 tensor, ImageNet-normalized."""
     frames = np.load(path)

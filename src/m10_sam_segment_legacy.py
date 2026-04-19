@@ -520,17 +520,16 @@ def main():
 
     mode = "SANITY" if args.SANITY else ("POC" if args.POC else "FULL")
 
-    # Clip limit
+    # Clip limit. POC + FULL derive from --subset/--local-data. No yaml fallback (#poc_simplified
+    # removed from ch11_surgery.yaml 2026-04-17 when Phase 2b moved to 1K val_1k).
     if args.SANITY:
         clip_limit = get_sanity_clip_limit("default")
-    elif args.POC:
-        clip_limit = train_cfg["poc_simplified"]["n_clips"]
     else:
         clip_limit = get_total_clips(
             local_data=getattr(args, "local_data", None),
             subset_file=args.subset)
         if clip_limit == 0:
-            print("FATAL: Cannot determine clip count. Use --subset or --local-data with manifest.json")
+            print("FATAL: POC/FULL require explicit --subset or --local-data/manifest.json (no yaml fallback)")
             sys.exit(1)
 
     # Load tags.json (MANDATORY — per-clip agent prompts)

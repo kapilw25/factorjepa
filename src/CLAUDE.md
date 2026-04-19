@@ -74,5 +74,5 @@ Every `src/m*.py` using GPU MUST have: (1) `check_gpu()`, (2) `cleanup_temp()`, 
 - 📋 TODO + status: `iter/iter8/plan_TODO.md` (MID level — kanban, m09c iteration table, time budget)
 - 🚀 Runbook: `iter/iter8/runbook.md` (LOW level — GPU-ready commands + verify tables)
 - 🐛 Bug log: `iter/iter8/errors_N_fixes.md` (ERROR level — 61 entries catalogued, #1-#61 as of 2026-04-17)
-- 🛡️ Preflight CPU-side guards: `.claude/skills/preflight/SKILL.md` (B1-B36 static checks citing errors_N_fixes entries)
+- 🛡️ Preflight CPU-side guards: `.claude/skills/preflight/SKILL.md` (B1-B42 static checks citing errors_N_fixes entries)
 - 📖 Fallback techniques if Surgery fails: `iter/utils/literarure_survey.md` (24 JEPA variants, SIGReg / VLA-JEPA / temporal-projection)
