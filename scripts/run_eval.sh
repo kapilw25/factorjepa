@@ -130,10 +130,14 @@ if [[ $EVAL_FILES -gt 0 ]]; then
     echo ""
     read -p "  Enter choice [1/2]: " EVAL_CHOICE
     if [[ "$EVAL_CHOICE" == "1" ]]; then
-        rm -f "${OUT_DIR}"/m06_* "${OUT_DIR}"/m06b_* "${OUT_DIR}"/m07_* "${OUT_DIR}"/m08_* "${OUT_DIR}"/m08b_* "${OUT_DIR}"/knn_indices* "${OUT_DIR}"/umap_2d*
-        log "Deleted all eval outputs. Starting fresh."
+        # iter11: no shell-level deletion. Choice `1` = recompute → export the
+        # cache-policy env var that each downstream .py reads as --cache-policy 2.
+        # (Each .py's own guarded_delete then wipes its output before recompute.)
+        export CACHE_POLICY_ALL=2
+        log "Fresh recompute authorized — CACHE_POLICY_ALL=2 exported; each .py will gate its own cleanup."
     else
-        log "Using cached eval outputs where available."
+        export CACHE_POLICY_ALL=1
+        log "Using cached eval outputs where available (CACHE_POLICY_ALL=1)."
     fi
 fi
 

@@ -265,8 +265,10 @@ if [[ -n "$WINNER_JSON" ]]; then
         if python -c "exit(0 if float('${EXISTING_EPOCHS}') >= float('${WINNER_EPOCHS}') else 1)"; then
             log "Student already trained for ${EXISTING_EPOCHS} epochs (>= ${WINNER_EPOCHS}). Skipping."
         else
-            log "Student has ${EXISTING_EPOCHS} epochs, need ${WINNER_EPOCHS}. Re-training."
-            rm -f "${WINNER_OUT}/student_encoder.pt"
+            log "Student has ${EXISTING_EPOCHS} epochs, need ${WINNER_EPOCHS}. Re-training (m09a overwrites via os.replace atomic write)."
+            # iter11: no shell-level deletion. m09a's save_training_checkpoint uses
+            # atomic os.replace, so the new training overwrites the existing artifact.
+            # To force an explicit pre-train wipe, use --cache-policy 2 at the prompt.
         fi
     fi
 

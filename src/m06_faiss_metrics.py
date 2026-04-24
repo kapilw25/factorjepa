@@ -504,8 +504,15 @@ def compute_map_per_key(indices: np.ndarray, tags: list, k: int,
 # ── Compute All Metrics for a Mode ──────────────────────────────────────
 
 def compute_all_metrics(embeddings: np.ndarray, D: np.ndarray, I: np.ndarray,
-                        tags: list, k: int, taxonomy: dict, mode: str) -> dict:
-    """Compute all 9 metrics for one mode (easy or hard)."""
+                        tags: list, k: int, taxonomy: dict, mode: str,
+                        clip_paths: list = None, output_dir: Path = None,
+                        encoder: str = None) -> dict:
+    """Compute all 9 metrics for one mode (easy or hard).
+
+    When `clip_paths`, `output_dir`, and `encoder` are all provided, the
+    per-clip metric arrays are also saved to `output_dir/per_clip_{encoder}_{mode}.npz`
+    for downstream paired-bootstrap comparison (iter10 Option C).
+    """
     single_fields = [f for f, spec in taxonomy.items() if spec["type"] == "single"]
     print(f"\n{'='*50}")
     print(f"{mode.upper()} MODE (k={k})")
@@ -602,6 +609,24 @@ def compute_all_metrics(embeddings: np.ndarray, D: np.ndarray, I: np.ndarray,
     ci_map = bootstrap_ci(pc_map)
     ci_cycle = bootstrap_ci(pc_cycle[~np.isnan(pc_cycle)])
     ci_ndcg = bootstrap_ci(pc_ndcg[~np.isnan(pc_ndcg)])
+
+    # iter10 Option C: persist per-clip arrays for paired-bootstrap downstream.
+    # Saved only when caller wired clip_paths + output_dir + encoder (main() does this).
+    if clip_paths is not None and output_dir is not None and encoder is not None:
+        per_clip_file = output_dir / f"per_clip_{encoder}_{mode}.npz"
+        if len(clip_paths) != len(pc_prec):
+            print(f"FATAL: clip_paths length {len(clip_paths)} != pc_prec length {len(pc_prec)} "
+                  f"— cannot align per-clip save for paired bootstrap")
+            sys.exit(1)
+        np.savez_compressed(
+            per_clip_file,
+            clip_keys=np.array(clip_paths, dtype=object),
+            prec_at_k=pc_prec,
+            map_at_k=pc_map,
+            cycle_at_k=pc_cycle,
+            ndcg_at_k=pc_ndcg,
+        )
+        print(f"  Saved per-clip arrays: {per_clip_file} (N={len(pc_prec)})")
 
     print(f"  Prec@K:  {ci_prec['mean']:.2f}% ± {ci_prec['ci_half']:.2f}")
     print(f"  mAP@K:   {ci_map['mean']:.4f} ± {ci_map['ci_half']:.4f}")
@@ -1030,7 +1055,18 @@ def main():
                         help="Use augmented embeddings for True Overlap@K (from m05c)")
     add_encoder_arg(parser)
     add_subset_arg(parser)
+    # --local-data: path to WebDataset TAR dir containing tags.json (e.g., data/val_1k_local).
+    # Required because m06 reads `tags.json` from the data dir, not the outputs dir (tags are
+    # dataset-level metadata, not per-encoder). Previously hardcoded to input_dir/tags.json
+    # which pointed to outputs/poc/tags.json — never existed → FATAL on every fresh run.
+    parser.add_argument("--local-data", type=str, default=None,
+                        help="WebDataset TAR dir containing tags.json (e.g., data/val_1k_local)")
     add_wandb_args(parser)
+    # Cache-policy gate (iter11): every destructive delete in this module must route
+    # through utils.cache_policy.guarded_delete(path, args.cache_policy, ...).
+    # --cache-policy defaults to 1 (keep) so overnight re-runs never destroy cache.
+    from utils.cache_policy import add_cache_policy_arg
+    add_cache_policy_arg(parser)
     args = parser.parse_args()
 
     if not (args.SANITY or args.POC or args.FULL):
@@ -1044,17 +1080,39 @@ def main():
     wb_run = init_wandb("m06", mode, config=vars(args),
                         enabled=not args.no_wandb)
 
-    # Output routing: POC vs Full, encoder-aware paths
-    input_dir = get_output_dir(args.subset, sanity=args.SANITY, poc=args.POC)
+    # Output routing: POC vs Full, encoder-aware paths.
+    # Embeddings live in m05's module output dir (outputs/<mode>/m05_vjepa_embed/) —
+    # previously read from outputs/<mode>/ which never matched m05's write location.
+    # 2026-04-19: symlink band-aid was fragile; this reads the actual write path.
+    m05_input_dir = get_module_output_dir("m05_vjepa_embed", args.subset, sanity=args.SANITY, poc=args.POC)
     output_dir = get_module_output_dir("m06_faiss_metrics", args.subset, sanity=args.SANITY, poc=args.POC)
-    input_enc_files = get_encoder_files(args.encoder, input_dir)
+    input_enc_files = get_encoder_files(args.encoder, m05_input_dir)
     enc_files = get_encoder_files(args.encoder, output_dir)
     metrics_file = enc_files["metrics"]
     emb_file = input_enc_files["embeddings"]
     paths_file = input_enc_files["paths"]
 
-    # Tags are shared across all encoders (not encoder-specific)
-    tags_file = input_dir / "tags.json"
+    # Tags are dataset-level metadata (not per-encoder, not per-run), living under the
+    # WebDataset local-data dir. CLI --local-data wins; otherwise auto-derive from
+    # --subset stem (e.g., --subset data/eval_10k.json → data/eval_10k_local/tags.json).
+    # Only falls back to val_1k_local when neither is provided. Fail-loud if tags.json missing.
+    # iter10 #77 fix: prior code hard-fell back to val_1k_local/tags.json even under
+    # --subset data/eval_10k.json → 0/9297 tag matches at m06 → FATAL cascade-killed
+    # the whole paired_eval queue (v6 log L157).
+    if args.local_data:
+        tags_file = Path(args.local_data) / "tags.json"
+    elif args.subset:
+        derived = Path(args.subset).parent / f"{Path(args.subset).stem}_local" / "tags.json"
+        if derived.exists():
+            tags_file = derived
+            print(f"[tags] auto-derived from --subset: {tags_file}")
+        else:
+            print(f"FATAL: --subset={args.subset} given but auto-derived tags path {derived} "
+                  f"does not exist. Either pre-generate tags.json for this subset (see "
+                  f"scripts/prep_eval_10k.sh) or pass --local-data <dir-with-tags.json>.")
+            sys.exit(1)
+    else:
+        tags_file = Path("data/val_1k_local/tags.json")
 
     enc_info = get_encoder_info(args.encoder)
 
@@ -1091,13 +1149,36 @@ def main():
         clip_paths = np.load(paths_file, allow_pickle=True).tolist()
         print(f"Loaded clip paths: {len(clip_paths):,}")
 
-    # Align + key validation (MUST happen BEFORE any metric computation)
+    # Align + key validation (MUST happen BEFORE any metric computation).
+    # Held-out val-split runs (m09c 90/10) load embeddings for ONLY the 100 val
+    # clips but tags.json still covers the full 1000 val_1k set — filter tags to
+    # match clip_paths via source_file so subset evaluation works without
+    # re-running m04 for every split. Previously this path FATAL'd on any subset.
     n_emb = embeddings.shape[0]
     n_tags = len(tags)
+    if n_tags != n_emb and clip_paths:
+        tag_by_source = {t["source_file"]: t for t in tags if "source_file" in t}
+        filtered_tags = []
+        for p in clip_paths:
+            source = Path(p).name
+            if source in tag_by_source:
+                t = dict(tag_by_source[source])
+                t.setdefault("_clip_key", p)  # needed for alignment check below
+                filtered_tags.append(t)
+        if len(filtered_tags) == n_emb:
+            print(f"Filtered tags: {n_tags:,} → {len(filtered_tags):,} "
+                  f"(matched by source_file to {n_emb} embedding clip_paths)")
+            tags = filtered_tags
+            n_tags = len(tags)
+        else:
+            print(f"FATAL: after filtering by clip_paths, {len(filtered_tags)}/{n_emb} "
+                  f"embeddings matched a tag (via source_file). "
+                  f"Check that tags.json covers the val-split clips.")
+            sys.exit(1)
     if n_tags != n_emb:
         pct_diff = abs(n_tags - n_emb) / max(n_tags, n_emb) * 100
         print(f"FATAL: {n_emb} embeddings vs {n_tags} tags ({pct_diff:.1f}% difference). "
-              "Re-run m04 (tags) or m05 (embeddings) to fix.")
+              "Re-run m04 (tags) or m05 (embeddings) to fix, or ensure embeddings.paths.npy exists.")
         sys.exit(1)
     n = min(n_emb, n_tags)
     embeddings = embeddings[:n]
@@ -1139,7 +1220,8 @@ def main():
     pbar_mode = make_pbar(total=2, desc="m06_modes", unit="mode")
 
     # ── Easy mode ────────────────────────────────────────────────────
-    easy = compute_all_metrics(embeddings, D[:, :k + 1], I[:, :k + 1], tags, k, taxonomy, "easy")
+    easy = compute_all_metrics(embeddings, D[:, :k + 1], I[:, :k + 1], tags, k, taxonomy, "easy",
+                               clip_paths=clip_paths, output_dir=output_dir, encoder=args.encoder)
     pbar_mode.update(1)
 
     # ── Hard mode ────────────────────────────────────────────────────
@@ -1147,7 +1229,8 @@ def main():
         meta = parse_clip_metadata(clip_paths)
         exclusion = build_exclusion_mask(meta, EXCLUSION_WINDOW_SEC, DEFAULT_CLIP_DURATION_SEC)
         D_hard, I_hard = apply_hard_filter(D, I, exclusion, k)
-        hard = compute_all_metrics(embeddings, D_hard, I_hard, tags, k, taxonomy, "hard")
+        hard = compute_all_metrics(embeddings, D_hard, I_hard, tags, k, taxonomy, "hard",
+                                   clip_paths=clip_paths, output_dir=output_dir, encoder=args.encoder)
     else:
         print("\nFATAL: No clip paths found — cannot compute Hard mode exclusion.")
         print("Ensure m05 saved embeddings.paths.npy alongside embeddings.npy")
@@ -1157,7 +1240,13 @@ def main():
 
     # ── True Overlap@K (replaces dim-split if augmented embeddings exist) ──
     if args.true_overlap:
-        result = compute_true_overlap_at_k(input_dir, k)
+        # m05c writes overlap_augA.npy / overlap_augB.npy to its own output dir
+        # (see src/m05c_true_overlap.py:281). Prior code referenced undefined `input_dir`
+        # (ruff F821) — this branch would have NameError'd on any --true-overlap run.
+        m05c_input_dir = get_module_output_dir(
+            "m05c_true_overlap", args.subset, sanity=args.SANITY, poc=args.POC,
+        )
+        result = compute_true_overlap_at_k(m05c_input_dir, k)
         if result is not None:
             true_ov, overlap_ci = result
             print(f"\n  True Overlap@K: {true_ov:.2f}% \u00b1 {overlap_ci['ci_half']:.2f} (multi-crop augmentation)")

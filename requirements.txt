@@ -44,3 +44,9 @@ tqdm>=4.65.0
 
 # Linting (post-edit hook: catches undefined names, unused vars)
 ruff>=0.15.0
+
+# Live process stack sampler — diagnose silent stalls in long GPU runs without
+# modifying code. Attach with `py-spy dump --pid <PID>` to dump Python stacks of
+# a running process (e.g., m09b_explora hang during torch.compile recompile),
+# or `py-spy top --pid <PID>` for live hotspot view. Static Rust binary, no deps.
+py-spy>=0.4.0

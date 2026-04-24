@@ -1,3 +1,0 @@
-wandb: run=m07_POC url=https://wandb.ai/sjsu_llm/walkindia-200k/runs/i51pt0nx
-[output_guard] m07 vjepa_shuffled: ALL VALID — skipping (cached)
-  OK    umap_2d: (115687, 2)

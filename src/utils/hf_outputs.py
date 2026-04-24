@@ -373,8 +373,15 @@ def upload_data():
     uploads = [
         ("data/subset_10k.json", "data/subset_10k.json"),
         ("data/val_1k.json", "data/val_1k.json"),
+        ("data/val_500.json", "data/val_500.json"),
+        ("data/test_500.json", "data/test_500.json"),
+        ("data/sanity_100_dense.json", "data/sanity_100_dense.json"),
         ("data/subset_10k_local", "data/subset_10k_local"),
         ("data/val_1k_local", "data/val_1k_local"),
+        ("data/full_local/tags.json", "data/full_local/tags.json"),
+        # iter10 Option C: paired-bootstrap eval pool (N=10K, disjoint from train+val).
+        ("data/eval_10k.json", "data/eval_10k.json"),
+        ("data/eval_10k_local", "data/eval_10k_local"),
     ]
 
     pbar = make_pbar(total=len(uploads), desc="upload_data", unit="item")
@@ -436,7 +443,8 @@ def download_data():
         repo_id=HF_OUTPUTS_REPO,
         repo_type="dataset",
         local_dir=".",
-        allow_patterns=["data/*.json", "data/subset_10k_local/*", "data/val_1k_local/*"],
+        allow_patterns=["data/*.json", "data/subset_10k_local/*", "data/val_1k_local/*",
+                        "data/full_local/tags.json", "data/eval_10k_local/*"],
         token=token,
         max_workers=16,
     )

@@ -10,6 +10,64 @@ N_BOOTSTRAP = 10_000
 CI_LEVEL = 0.95
 
 
+def paired_bca(deltas: np.ndarray, n_boot: int = N_BOOTSTRAP,
+               ci: float = CI_LEVEL, seed: int = 42) -> dict:
+    """Paired bootstrap BCa 95% CI on per-clip deltas (e.g., Surgical − Frozen).
+
+    Under the paired protocol, each clip contributes ONE delta value rather
+    than two independent samples. Exploits within-clip correlation (both
+    encoders tend to hit the same easy/hard clips) → typically 50-60 % tighter
+    CI than unpaired comparison at equal N. Standard for "same architecture,
+    different heads" evaluation (DINOv2 / MAE / JEPA ablation papers).
+
+    Input `deltas` must be aligned per clip — caller computes
+    `surgical_per_clip - frozen_per_clip` before calling.
+
+    Returns dict with same schema as bootstrap_ci() + two extras:
+      - p_value_vs_zero: two-sided p-value against H0: mean_delta = 0
+      - n: number of valid (non-NaN) clips contributing
+    """
+    d = np.asarray(deltas, dtype=np.float64)
+    d = d[~np.isnan(d)]
+    n = len(d)
+    if n == 0:
+        return {"mean": 0.0, "ci_lo": 0.0, "ci_hi": 0.0, "ci_half": 0.0,
+                "p_value_vs_zero": 1.0, "n": 0}
+
+    mean = float(np.mean(d))
+    method = "BCa" if n <= 50_000 else "percentile"
+
+    result = scipy_bootstrap(
+        (d,),
+        statistic=np.mean,
+        n_resamples=n_boot,
+        confidence_level=ci,
+        method=method,
+        random_state=np.random.default_rng(seed),
+    )
+    ci_lo = float(result.confidence_interval.low)
+    ci_hi = float(result.confidence_interval.high)
+
+    # Two-sided bootstrap p-value vs H0: mean_delta = 0.
+    # Count bootstrap draws on the opposite side of 0 from the observed mean,
+    # double for two-sided. Clamped at 1.0 (can exceed when observed ≈ 0).
+    boot_means = np.asarray(result.bootstrap_distribution)
+    if mean > 0:
+        p = 2.0 * float(np.mean(boot_means <= 0))
+    else:
+        p = 2.0 * float(np.mean(boot_means >= 0))
+    p = min(p, 1.0)
+
+    return {
+        "mean": round(mean, 6),
+        "ci_lo": round(ci_lo, 6),
+        "ci_hi": round(ci_hi, 6),
+        "ci_half": round((ci_hi - ci_lo) / 2, 6),
+        "p_value_vs_zero": round(p, 6),
+        "n": int(n),
+    }
+
+
 def bootstrap_ci(per_query_scores: np.ndarray, n_boot: int = N_BOOTSTRAP,
                  ci: float = CI_LEVEL, seed: int = 42) -> dict:
     """Compute bootstrap 95% CI on per-query metric scores."""

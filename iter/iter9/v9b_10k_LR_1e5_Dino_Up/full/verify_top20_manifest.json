@@ -1,0 +1,175 @@
+{
+  "n_selected": 20,
+  "weights": {
+    "has_D_I": 0.4,
+    "n_tubes": 0.2,
+    "has_D_A": 0.2,
+    "agent_pct": 0.2
+  },
+  "agent_pct_sweet_range": [
+    0.01,
+    0.15
+  ],
+  "diversity_floor": {
+    "cities": 3,
+    "activities": 3
+  },
+  "coverage": {
+    "cities": [
+      "bangalore",
+      "bhopal",
+      "delhi",
+      "jaipur",
+      "kolkata",
+      "mumbai"
+    ],
+    "activities": [
+      "drive",
+      "drone",
+      "rain",
+      "walking"
+    ]
+  },
+  "selected": [
+    {
+      "clip_key": "tier2/bhopal/rain/S9yMXzD2VVs/S9yMXzD2VVs-046.mp4",
+      "video_id": "S9yMXzD2VVs",
+      "city": "bhopal",
+      "activity": "rain",
+      "score": 0.4
+    },
+    {
+      "clip_key": "tier2/bhopal/rain/_35pcCwypA8/_35pcCwypA8-001.mp4",
+      "video_id": "_35pcCwypA8",
+      "city": "bhopal",
+      "activity": "rain",
+      "score": 0.4
+    },
+    {
+      "clip_key": "tier1/bangalore/walking/YXyobrssTAs/YXyobrssTAs-042.mp4",
+      "video_id": "YXyobrssTAs",
+      "city": "bangalore",
+      "activity": "walking",
+      "score": 0.4
+    },
+    {
+      "clip_key": "tier1/bangalore/walking/YnuMd2yWDlQ/YnuMd2yWDlQ-052.mp4",
+      "video_id": "YnuMd2yWDlQ",
+      "city": "bangalore",
+      "activity": "walking",
+      "score": 0.4
+    },
+    {
+      "clip_key": "tier2/bhopal/rain/uDRYoUJ022Y/uDRYoUJ022Y-060.mp4",
+      "video_id": "uDRYoUJ022Y",
+      "city": "bhopal",
+      "activity": "rain",
+      "score": 0.4
+    },
+    {
+      "clip_key": "tier2/bhopal/walking/5MgZboVRiq8/5MgZboVRiq8-008.mp4",
+      "video_id": "5MgZboVRiq8",
+      "city": "bhopal",
+      "activity": "walking",
+      "score": 0.4
+    },
+    {
+      "clip_key": "tier1/bangalore/walking/ZpsgUToz78o/ZpsgUToz78o-000.mp4",
+      "video_id": "ZpsgUToz78o",
+      "city": "bangalore",
+      "activity": "walking",
+      "score": 0.4
+    },
+    {
+      "clip_key": "tier2/jaipur/drone/chcDuY748CM/chcDuY748CM-022.mp4",
+      "video_id": "chcDuY748CM",
+      "city": "jaipur",
+      "activity": "drone",
+      "score": 0.4
+    },
+    {
+      "clip_key": "tier2/bhopal/walking/O3_8Gw96IBc/O3_8Gw96IBc-009.mp4",
+      "video_id": "O3_8Gw96IBc",
+      "city": "bhopal",
+      "activity": "walking",
+      "score": 0.4
+    },
+    {
+      "clip_key": "tier2/jaipur/drone/dh9wl79tI-A/dh9wl79tI-A-075.mp4",
+      "video_id": "dh9wl79tI-A",
+      "city": "jaipur",
+      "activity": "drone",
+      "score": 0.4
+    },
+    {
+      "clip_key": "tier1/mumbai/walking/jgVNtbAJm2I/jgVNtbAJm2I-087.mp4",
+      "video_id": "jgVNtbAJm2I",
+      "city": "mumbai",
+      "activity": "walking",
+      "score": 0.4
+    },
+    {
+      "clip_key": "tier1/kolkata/drive/IyouoqVpaSU/IyouoqVpaSU-135.mp4",
+      "video_id": "IyouoqVpaSU",
+      "city": "kolkata",
+      "activity": "drive",
+      "score": 0.4
+    },
+    {
+      "clip_key": "tier1/delhi/drive/rX8dkRSzdvs/rX8dkRSzdvs-055.mp4",
+      "video_id": "rX8dkRSzdvs",
+      "city": "delhi",
+      "activity": "drive",
+      "score": 0.4
+    },
+    {
+      "clip_key": "tier1/kolkata/walking/s9ms9PT0btQ/s9ms9PT0btQ-149.mp4",
+      "video_id": "s9ms9PT0btQ",
+      "city": "kolkata",
+      "activity": "walking",
+      "score": 0.4
+    },
+    {
+      "clip_key": "tier1/mumbai/walking/kz2zfbeh-Ag/kz2zfbeh-Ag-000.mp4",
+      "video_id": "kz2zfbeh-Ag",
+      "city": "mumbai",
+      "activity": "walking",
+      "score": 0.4
+    },
+    {
+      "clip_key": "tier1/bangalore/walking/dkttf1NYZos/dkttf1NYZos-001.mp4",
+      "video_id": "dkttf1NYZos",
+      "city": "bangalore",
+      "activity": "walking",
+      "score": 0.4
+    },
+    {
+      "clip_key": "tier2/jaipur/rain/XmYuH0OXUfc/XmYuH0OXUfc-011.mp4",
+      "video_id": "XmYuH0OXUfc",
+      "city": "jaipur",
+      "activity": "rain",
+      "score": 0.4
+    },
+    {
+      "clip_key": "tier1/kolkata/walking/sE7AHq4SzeQ/sE7AHq4SzeQ-067.mp4",
+      "video_id": "sE7AHq4SzeQ",
+      "city": "kolkata",
+      "activity": "walking",
+      "score": 0.4
+    },
+    {
+      "clip_key": "tier1/kolkata/drive/MRA4xTN6-yw/MRA4xTN6-yw-032.mp4",
+      "video_id": "MRA4xTN6-yw",
+      "city": "kolkata",
+      "activity": "drive",
+      "score": 0.4
+    },
+    {
+      "clip_key": "tier2/bhopal/walking/T6V3pZxJHDc/T6V3pZxJHDc-003.mp4",
+      "video_id": "T6V3pZxJHDc",
+      "city": "bhopal",
+      "activity": "walking",
+      "score": 0.4
+    }
+  ]
+}

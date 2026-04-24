@@ -76,6 +76,117 @@ def load_all_metrics(output_dir: Path, encoder_list: list = None) -> dict:
     return results
 
 
+def compute_paired_bootstrap(metrics_dir: Path, output_dir: Path,
+                             encoder_list: list = None) -> None:
+    """Paired-bootstrap BCa CI on per-clip (surgical − frozen) deltas.
+
+    iter10 Option C. Requires m06 to have written per_clip_{encoder}_{mode}.npz
+    for at least one "frozen" encoder and one "surgical" encoder under
+    metrics_dir. Writes paired_bootstrap_results.json to output_dir with
+    per-metric Δ mean + BCa 95 % CI + paired p-value vs 0. Silent no-op when
+    per-clip files are missing (back-compat with pre-iter10 m06 runs).
+    """
+    from utils.bootstrap import paired_bca
+
+    names = encoder_list if encoder_list else ENCODER_ORDER
+    frozen_name = next((n for n in names if "frozen" in n.lower()), None)
+    surgical_name = next((n for n in names if "surgical" in n.lower()), None)
+    if frozen_name is None or surgical_name is None:
+        print(f"\n[paired-bootstrap] skip: need BOTH a frozen and a surgical encoder, "
+              f"got frozen={frozen_name} surgical={surgical_name}")
+        return
+
+    results = {"frozen": frozen_name, "surgical": surgical_name, "modes": {}}
+    metrics_list = ["prec_at_k", "map_at_k", "cycle_at_k", "ndcg_at_k"]
+
+    print(f"\n{'='*70}")
+    print(f"PAIRED BOOTSTRAP (BCa 95 % CI, iter10 Option C) — {surgical_name} − {frozen_name}")
+    print(f"{'='*70}")
+
+    any_computed = False
+    for mode in ["easy", "hard"]:
+        frozen_npz = metrics_dir / f"per_clip_{frozen_name}_{mode}.npz"
+        surgical_npz = metrics_dir / f"per_clip_{surgical_name}_{mode}.npz"
+        if not (frozen_npz.exists() and surgical_npz.exists()):
+            print(f"  [paired-bootstrap] skip {mode}: per-clip .npz missing "
+                  f"(frozen={frozen_npz.exists()}, surgical={surgical_npz.exists()}). "
+                  f"Re-run m06 with iter10 patch to produce per_clip_*.npz.")
+            continue
+        f_data = np.load(frozen_npz, allow_pickle=True)
+        s_data = np.load(surgical_npz, allow_pickle=True)
+        f_keys = list(f_data["clip_keys"])
+        s_keys = list(s_data["clip_keys"])
+        # Intersect key sets: m05 writes embeddings in decode-completion order which is
+        # non-deterministic across parallel-worker races, and partial-tolerance (stuck_clips
+        # path, #77) means frozen and surgical runs may also have different failed subsets.
+        # Paired bootstrap requires identical per-clip order, so build the intersection once
+        # and reindex every per-metric array in both .npz files to that common order.
+        common = sorted(set(f_keys) & set(s_keys))
+        if len(common) == 0:
+            print(f"FATAL: zero-overlap clip_keys between {frozen_npz.name} and "
+                  f"{surgical_npz.name} (f={len(f_keys)}, s={len(s_keys)}). "
+                  f"Cannot run paired bootstrap.")
+            sys.exit(1)
+        f_idx = {k: i for i, k in enumerate(f_keys)}
+        s_idx = {k: i for i, k in enumerate(s_keys)}
+        f_order = np.array([f_idx[k] for k in common], dtype=np.int64)
+        s_order = np.array([s_idx[k] for k in common], dtype=np.int64)
+        n_dropped_f = len(f_keys) - len(common)
+        n_dropped_s = len(s_keys) - len(common)
+        if f_keys != s_keys:
+            print(f"  [paired-bootstrap] key-set alignment: frozen={len(f_keys)}, "
+                  f"surgical={len(s_keys)}, common={len(common)} "
+                  f"(dropped frozen-only={n_dropped_f}, surgical-only={n_dropped_s}) — "
+                  f"reindexed both to common order before paired BCa")
+
+        mode_results = {
+            "n_clips": len(common),
+            "n_frozen_only_dropped": n_dropped_f,
+            "n_surgical_only_dropped": n_dropped_s,
+            "metrics": {},
+        }
+        header = f"{'Metric':<14s} {'Frozen':>10s} {'Surgical':>10s} {'Δ':>10s} {'CI_half':>10s} {'p_vs_0':>10s}"
+        print(f"\n--- {mode.upper()} ---")
+        print(header)
+        print("-" * len(header))
+        for metric in metrics_list:
+            f_arr = np.asarray(f_data[metric], dtype=np.float64)[f_order]
+            s_arr = np.asarray(s_data[metric], dtype=np.float64)[s_order]
+            valid = ~(np.isnan(f_arr) | np.isnan(s_arr))
+            deltas = s_arr[valid] - f_arr[valid]
+            paired = paired_bca(deltas)
+            mode_results["metrics"][metric] = {
+                "frozen_mean": float(np.mean(f_arr[valid])),
+                "surgical_mean": float(np.mean(s_arr[valid])),
+                "delta_mean": paired["mean"],
+                "delta_ci_lo": paired["ci_lo"],
+                "delta_ci_hi": paired["ci_hi"],
+                "delta_ci_half": paired["ci_half"],
+                "p_value_vs_zero": paired["p_value_vs_zero"],
+                "n_valid": paired["n"],
+            }
+            print(f"{metric:<14s} {np.mean(f_arr[valid]):>10.4f} "
+                  f"{np.mean(s_arr[valid]):>10.4f} {paired['mean']:>+10.4f} "
+                  f"{paired['ci_half']:>10.4f} {paired['p_value_vs_zero']:>10.4f}")
+        results["modes"][mode] = mode_results
+        any_computed = True
+
+    if any_computed:
+        out = output_dir / "paired_bootstrap_results.json"
+        with open(out, "w") as f:
+            json.dump(results, f, indent=2)
+        print(f"\nSaved: {out}")
+        # Headline one-liner for Prec@K (Easy) — the publishable claim
+        if "easy" in results["modes"]:
+            pk = results["modes"]["easy"]["metrics"]["prec_at_k"]
+            verdict = "✅ Δ significant (CI excludes 0)" if pk["delta_ci_lo"] > 0 or pk["delta_ci_hi"] < 0 \
+                      else "🟡 Δ not significant (CI straddles 0)"
+            print(f"\n🏆 Paired Prec@K (Easy, N={results['modes']['easy']['n_clips']}): "
+                  f"Δ = {pk['delta_mean']:+.4f} ± {pk['delta_ci_half']:.4f} "
+                  f"(95% CI [{pk['delta_ci_lo']:+.4f}, {pk['delta_ci_hi']:+.4f}], "
+                  f"p={pk['p_value_vs_zero']:.4f}) {verdict}")
+
+
 def load_all_temporal(output_dir: Path, encoder_list: list = None) -> dict:
     """Load m06b_temporal_corr_*.json for specified or all registered encoders."""
     results = {}
@@ -143,7 +254,17 @@ def print_summary_table(all_metrics: dict):
 # ── Grouped Bar Chart ────────────────────────────────────────────────
 
 def create_bar_chart(all_metrics: dict, output_dir: Path):
-    """Grouped bar chart: metrics x encoders, Easy mode."""
+    """Per-metric encoder comparison — Easy mode only.
+
+    Why Easy only (#78, 2026-04-21): the paper's decision gate uses `m['easy']['prec_at_k']`
+    (run_iter9_10k.sh:169-187). Hard mode is a separate robustness probe (temporal-locality
+    exclusion), useful for the ablations table but not for the Surgery > Frozen Δ ≥ 3 pp headline.
+    Combining easy+hard hides directional regressions in either side — see chat thread 2026-04-21
+    for full pros/cons.
+
+    Y-axis is auto-scaled to [min-CI-pad, max+CI-pad] so noise-level deltas + CI bars on
+    Cycle@K / nDCG@K are visible (zero-based wasted most of the frame).
+    """
     encoders = [e for e in ENCODER_ORDER if e in all_metrics]
     if len(encoders) < 2:
         print("Need at least 2 encoders for comparison chart.")
@@ -160,30 +281,33 @@ def create_bar_chart(all_metrics: dict, output_dir: Path):
         ax = axes[ax_idx]
         x = np.arange(n_encoders)
         easy_vals = []
-        hard_vals = []
+        easy_errs = []
         colors = []
 
-        easy_errs = []
-        hard_errs = []
         for enc in encoders:
             easy_v = all_metrics[enc].get("easy", {}).get(metric_key)
-            hard_v = all_metrics[enc].get("hard", {}).get(metric_key)
             easy_vals.append(easy_v if easy_v is not None else 0)
-            hard_vals.append(hard_v if hard_v is not None else 0)
             colors.append(ENCODER_COLORS.get(enc, "#888"))
-            # 95% CI half-width for error bars
             easy_ci = all_metrics[enc].get("easy", {}).get("ci", {}).get(metric_key, {})
-            hard_ci = all_metrics[enc].get("hard", {}).get("ci", {}).get(metric_key, {})
             easy_errs.append(easy_ci.get("ci_half", 0))
-            hard_errs.append(hard_ci.get("ci_half", 0))
 
-        bar_w = 0.35
-        ax.bar(x - bar_w / 2, easy_vals, bar_w, label="Easy",
-               color=colors, alpha=0.85,
-               yerr=easy_errs, capsize=3, error_kw={"lw": 1})
-        ax.bar(x + bar_w / 2, hard_vals, bar_w, label="Hard",
-               color=colors, alpha=0.45, hatch="//",
-               yerr=hard_errs, capsize=3, error_kw={"lw": 1})
+        ax.bar(x, easy_vals, 0.6, color=colors, alpha=0.85,
+               yerr=easy_errs, capsize=4, error_kw={"lw": 1.2, "ecolor": "#222"})
+
+        # Auto-scaled y-limit: tight around data ± CI, with 15% padding on each side so
+        # bars don't clip and error caps + value labels have breathing room. Floor at 0
+        # (percentages can't go negative; single-bar metrics otherwise look inverted).
+        vals_arr = np.array(easy_vals, dtype=float)
+        errs_arr = np.array(easy_errs, dtype=float)
+        lo = max(0.0, float((vals_arr - errs_arr).min()))
+        hi = float((vals_arr + errs_arr).max())
+        pad = max(0.15 * (hi - lo), 0.02 * hi) if hi > 0 else 1
+        ax.set_ylim(max(0.0, lo - pad), hi + pad)
+
+        # Value labels above each bar for quick-read at noise-level deltas.
+        for xi, v, e in zip(x, easy_vals, easy_errs):
+            ax.text(xi, v + e + pad * 0.1, f"{v:.2f}",
+                    ha="center", va="bottom", fontsize=8, color="#222")
 
         ax.set_title(metric_label, fontsize=11, fontweight="bold")
         ax.set_xticks(x)
@@ -191,10 +315,8 @@ def create_bar_chart(all_metrics: dict, output_dir: Path):
                            fontsize=8, rotation=0)
         ax.tick_params(axis="y", labelsize=9)
 
-        if ax_idx == 0:
-            ax.legend(fontsize=8, loc="upper right")
-
-    plt.suptitle("Encoder Comparison (Easy vs Hard)", fontsize=13, fontweight="bold", y=1.02)
+    plt.suptitle("Encoder Comparison (Easy mode — paper gate · 95 % CI)",
+                 fontsize=13, fontweight="bold", y=1.02)
     plt.tight_layout()
     for ext in [".png", ".pdf"]:
         plt.savefig(output_dir / f"m08b_encoder_comparison{ext}",
@@ -218,8 +340,13 @@ def create_radar_plot(all_metrics: dict, output_dir: Path,
         return
 
     # 5 spatial + 3 temporal axes (ordered so spatial=left, temporal=right)
-    spatial_keys = ["prec_at_k", "map_at_k", "cycle_at_k", "dim_consistency_at_k", "ndcg_at_k"]
-    spatial_labels = ["Prec@K", "mAP@K", "Cycle@K", "DimConsist@K", "nDCG@K"]
+    # #77: dim_consistency_at_k is NOT produced by m06 (no upstream source in any
+    # src/m*.py — verified 2026-04-21). Including it here created a "ghost axis" that
+    # hit the "all encoders equal" fallback at line ~294 (→ both plotted at 100) and
+    # misled readers into thinking the metric existed. Dropped until m06 actually
+    # computes it. Restore this line when dim-consistency lands in m06.
+    spatial_keys = ["prec_at_k", "map_at_k", "cycle_at_k", "ndcg_at_k"]
+    spatial_labels = ["Prec@K", "mAP@K", "Cycle@K", "nDCG@K"]
 
     temporal_keys = ["spearman_rho", "temporal_prec_at_k", "temporal_locality_inv"]
     temporal_labels = ["Spearman \u03c1", "Temp Prec@K", "Temp Locality"]
@@ -384,11 +511,24 @@ def create_grouped_bar_chart(all_metrics: dict, all_temporal: dict, output_dir: 
             errs.append(ci_h)
 
         colors = [ENCODER_COLORS.get(e, "#888") for e in encoders]
-        ax.bar(x, vals, color=colors, alpha=0.85, yerr=errs, capsize=3, error_kw={"lw": 1})
+        ax.bar(x, vals, color=colors, alpha=0.85, yerr=errs, capsize=4,
+               error_kw={"lw": 1.2, "ecolor": "#222"})
         ax.set_title(metric_label, fontsize=10, fontweight="bold", color=title_color)
         ax.set_xticks(x)
         ax.set_xticklabels([e.replace("_", "\n") for e in encoders], fontsize=7)
         ax.tick_params(axis="y", labelsize=8)
+
+        # #78 auto-scale Y: tight around data ± CI so noise-level deltas + error caps
+        # are visible. Floor at 0 (percentages); 15 % padding so labels don't clip.
+        vals_arr = np.array(vals, dtype=float)
+        errs_arr = np.array(errs, dtype=float)
+        lo = max(0.0, float((vals_arr - errs_arr).min()))
+        hi = float((vals_arr + errs_arr).max())
+        pad = max(0.15 * (hi - lo), 0.02 * hi) if hi > 0 else 1
+        ax.set_ylim(max(0.0, lo - pad), hi + pad)
+        for xi, v, e in zip(x, vals, errs):
+            ax.text(xi, v + e + pad * 0.1, f"{v:.2f}",
+                    ha="center", va="bottom", fontsize=7, color="#222")
 
     # Top row: spatial metrics
     for i, (key, label) in enumerate(spatial_keys):
@@ -579,6 +719,16 @@ def create_ablation_chart(all_metrics: dict, all_temporal: dict, output_dir: Pat
         ax.set_xticklabels(["V-JEPA\n(normal)", "V-JEPA\n(shuffled)"], fontsize=7)
         ax.tick_params(axis="y", labelsize=8)
 
+        # #81 tight Y auto-scale — matches create_bar_chart / create_grouped_bar_chart.
+        # Default matplotlib zoom anchored at 0 wasted space on high-value metrics
+        # (Cycle@K 70+, DimConsist@K 48+). Now: [max(0, min-err), max+err] + 15 % pad.
+        vals_arr = np.array(vals, dtype=float)
+        errs_arr = np.array(errs, dtype=float)
+        lo = max(0.0, float((vals_arr - errs_arr).min()))
+        hi = float((vals_arr + errs_arr).max())
+        pad = max(0.15 * (hi - lo), 0.02 * hi) if hi > 0 else 1
+        ax.set_ylim(max(0.0, lo - pad), hi + pad)
+
     # Top row: spatial
     for i, (key, label, domain) in enumerate(spatial_defs):
         _ablation_bar(axes[0][i], key, label, domain)
@@ -748,6 +898,16 @@ def create_adaptation_ablation(all_metrics: dict, all_temporal: dict, output_dir
         ax.set_xticklabels([sl.replace("\n", " ") for sl in stage_labels],
                            fontsize=6, rotation=15, ha="right")
         ax.tick_params(axis="y", labelsize=8)
+
+        # #81 tight Y auto-scale — matches create_bar_chart pattern. Default
+        # zero-anchored zoom wasted vertical space on high-value metrics.
+        vals_arr = np.array(vals, dtype=float)
+        errs_arr = np.array(errs, dtype=float)
+        lo = max(0.0, float((vals_arr - errs_arr).min()))
+        hi = float((vals_arr + errs_arr).max())
+        pad = max(0.15 * (hi - lo), 0.02 * hi) if hi > 0 else 1
+        # Include delta-annotation head-room (y_pos uses max(vals+errs)*1.02 above)
+        ax.set_ylim(max(0.0, lo - pad), hi + pad * 1.3)
 
     # Top row: spatial
     for i, (key, label, domain) in enumerate(spatial_defs):
@@ -982,6 +1142,11 @@ def main():
                              "If omitted, uses all registered encoders.")
     add_subset_arg(parser)
     add_wandb_args(parser)
+    # Cache-policy gate (iter11): every destructive delete in this module must route
+    # through utils.cache_policy.guarded_delete(path, args.cache_policy, ...).
+    # --cache-policy defaults to 1 (keep) so overnight re-runs never destroy cache.
+    from utils.cache_policy import add_cache_policy_arg
+    add_cache_policy_arg(parser)
     args = parser.parse_args()
 
     if not (args.SANITY or args.POC or args.FULL):
@@ -1016,15 +1181,19 @@ def main():
 
     base_dir = get_output_dir(args.subset, sanity=args.SANITY, poc=args.POC)
     output_dir = get_module_output_dir("m08b_compare", args.subset, sanity=args.SANITY, poc=args.POC)
+    # Per-module restructure (#64): m06 JSONs live under <base_dir>/m06_faiss_metrics/,
+    # not flat at <base_dir>/. Analogous fix at m06_faiss_metrics.py — m08b was missed.
+    # errors_N_fixes #75.
+    metrics_dir = base_dir / "m06_faiss_metrics"
     print(f"Output dir: {output_dir}")
-    print(f"Scanning for encoder metrics...")
+    print(f"Scanning for encoder metrics in: {metrics_dir}")
 
-    all_metrics = load_all_metrics(base_dir, encoder_list=encoder_list)
+    all_metrics = load_all_metrics(metrics_dir, encoder_list=encoder_list)
     if not all_metrics:
-        print("FATAL: No encoder metrics found. Run m06 first.")
+        print(f"FATAL: No encoder metrics found in {metrics_dir}. Run m06 first.")
         sys.exit(1)
 
-    all_temporal = load_all_temporal(base_dir, encoder_list=encoder_list)
+    all_temporal = load_all_temporal(metrics_dir, encoder_list=encoder_list)
 
     print(f"\nFound {len(all_metrics)} encoder(s): {', '.join(all_metrics.keys())}")
     if all_temporal:
@@ -1041,7 +1210,22 @@ def main():
         pbar = make_pbar(total=8, desc="m08b_compare", unit="plot")
         create_bar_chart(all_metrics, output_dir)
         pbar.update(1)
-        create_radar_plot(all_metrics, output_dir, all_temporal=all_temporal)
+        # #77: radar requires ≥3 encoders to be informative. With only 2, per-axis
+        # min-max normalization forces one to 100 and the other to 0 (= center) on
+        # every axis — the visualization becomes winner-takes-all binary and
+        # misleads readers into inferring a lopsided result when deltas are at
+        # noise level. Skipped until ExPLoRA arm lands post-v11 (runbook Step G).
+        if len(all_metrics) >= 3:
+            create_radar_plot(all_metrics, output_dir, all_temporal=all_temporal)
+        else:
+            print(f"  [m08b] skipping radar: n_encoders={len(all_metrics)} < 3 — "
+                  f"min-max normalization degenerates to binary winner/loser "
+                  f"with 2 encoders. Re-runs automatically when ExPLoRA arm lands.")
+            # iter11 META-fix: gate stale-radar purge through --cache-policy.
+            from utils.cache_policy import guarded_delete
+            for ext in (".png", ".pdf"):
+                stale = output_dir / f"m08b_radar{ext}"
+                guarded_delete(stale, args.cache_policy, label=f"stale radar {ext}")
         pbar.update(1)
         create_latex_table(all_metrics, output_dir)
         pbar.update(1)
@@ -1066,6 +1250,11 @@ def main():
                 log_image(wb_run, name, str(png))
     else:
         print("Only 1 encoder found — skipping comparison plots (need >= 2).")
+
+    # iter10 Option C: paired bootstrap on per-clip deltas.
+    # Needs BOTH a frozen arm and a surgical arm with per_clip_{encoder}_{mode}.npz
+    # files written by m06 (iter10 patch). If either arm lacks the npz, skip cleanly.
+    compute_paired_bootstrap(metrics_dir, output_dir, encoder_list=encoder_list)
 
     finish_wandb(wb_run)
     print("\n=== COMPARISON COMPLETE ===")

@@ -1,1 +1,0 @@
-{"_timestamp":1.7752049336916466e+09,"val/epoch_pct":12.5,"epoch":0,"loss/total":0.4933165907859802,"val/jepa_loss":1.6276803016662598,"throughput_steps_per_s":0.02599520292495615,"loss/drift":0,"lr":1e-05,"_step":0,"grad_norm":1.320448637008667,"loss/jepa":0.4933165907859802,"_runtime":67.509444325,"_wandb":{"runtime":67}}

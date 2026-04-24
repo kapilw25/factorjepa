@@ -267,6 +267,11 @@ def main():
     add_local_data_arg(parser)
     add_wandb_args(parser)
     add_gpu_mem_arg(parser)
+    # Cache-policy gate (iter11): every destructive delete in this module must route
+    # through utils.cache_policy.guarded_delete(path, args.cache_policy, ...).
+    # --cache-policy defaults to 1 (keep) so overnight re-runs never destroy cache.
+    from utils.cache_policy import add_cache_policy_arg
+    add_cache_policy_arg(parser)
     args = parser.parse_args()
 
     if not (args.SANITY or args.POC or args.FULL):
@@ -478,8 +483,10 @@ def main():
     np.save(aug_b_file, arr_b)
     np.save(keys_file, np.array(all_keys, dtype=object))
 
-    if checkpoint_file.exists():
-        checkpoint_file.unlink()
+    # iter11 META-fix: gate checkpoint cleanup through --cache-policy (default=1/keep).
+    from utils.cache_policy import guarded_delete
+    guarded_delete(checkpoint_file, args.cache_policy,
+                   label="m05c true_overlap checkpoint")
 
     print(f"\nSaved: {aug_a_file} ({arr_a.shape})")
     print(f"Saved: {aug_b_file} ({arr_b.shape})")

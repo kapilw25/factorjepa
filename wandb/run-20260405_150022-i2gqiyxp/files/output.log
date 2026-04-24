@@ -1,6 +1,0 @@
-wandb: run=m06b_POC url=https://wandb.ai/sjsu_llm/walkindia-200k/runs/i2gqiyxp
-Encoder: vjepa_lambda0_001 (dim=1408, suffix='_vjepa_lambda0_001')
-Output: /workspace/factorjepa/outputs/full
-Motion features: (115687, 13)
-FATAL: embeddings not found: /workspace/factorjepa/outputs/full/embeddings_vjepa_lambda0_001.npy
-  Run m05/m05b with --encoder vjepa_lambda0_001 first.

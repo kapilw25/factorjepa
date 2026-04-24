@@ -24,6 +24,43 @@ log() {
     echo "$msg" | tee -a "$MASTER_LOG"
 }
 
+# ── iter11 cache-policy prompt gatherer ────────────────────────────────
+# Usage at top of orchestrator .sh (BEFORE any long-running step):
+#   prompt_cache P_M05_FROZEN   "m05 frozen"
+#   prompt_cache P_M05_SURGICAL "m05 surgical (all variants)"
+#   prompt_cache P_M06          "m06 metrics (frozen+surgical)"
+#   prompt_cache P_M08B         "m08b compare"
+# Then thread into each python call:
+#   python -u src/m05_vjepa_embed.py --cache-policy "$P_M05_FROZEN" ...
+#
+# UX: 1 = keep (default, Enter) · 2 = recompute. Blocks ONCE up-front so
+# overnight/tmux runs proceed non-interactively from then on.
+prompt_cache() {
+    local varname="$1"
+    local label="$2"
+    local ans
+    # If CACHE_POLICY_ALL is preset (e.g. CACHE_POLICY_ALL=1 ./script.sh),
+    # skip the prompt and use that value for everything.
+    if [[ -n "${CACHE_POLICY_ALL:-}" ]]; then
+        eval "${varname}=${CACHE_POLICY_ALL}"
+        log "  ${label} → ${varname}=${!varname} (via CACHE_POLICY_ALL)"
+        return
+    fi
+    # Non-interactive stdin (e.g. piped input): fall back to default=1 silently.
+    if [[ ! -t 0 ]]; then
+        eval "${varname}=1"
+        log "  ${label} → ${varname}=1 (non-interactive stdin — default=keep)"
+        return
+    fi
+    read -p "  ${label} cache [1=keep / 2=recompute] (Enter=1): " ans
+    eval "${varname}=${ans:-1}"
+    # Normalize: anything that isn't exactly "2" (or word "recompute") → 1.
+    if [[ "${!varname}" != "2" && "${!varname}" != "recompute" ]]; then
+        eval "${varname}=1"
+    fi
+    log "  ${label} → ${varname}=${!varname}"
+}
+
 banner() {
     local step_num="$1"
     local step_name="$2"

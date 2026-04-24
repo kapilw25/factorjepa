@@ -1,5 +1,0 @@
-wandb: run=m08_SANITY url=https://wandb.ai/sjsu_llm/walkindia-200k/runs/nrzlhbuf
-Output dir: /workspace/factorjepa/outputs/sanity
-[output_guard] m08 vjepa_shuffled: ALL VALID — skipping (cached)
-  OK    umap_plot: 98 KB
-  OK    confusion_matrix: 110 KB

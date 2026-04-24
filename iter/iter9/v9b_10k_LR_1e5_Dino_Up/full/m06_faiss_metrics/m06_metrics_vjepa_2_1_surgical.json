@@ -1,0 +1,1651 @@
+{
+  "encoder": "vjepa_2_1_surgical",
+  "encoder_dim": 1664,
+  "easy": {
+    "cycle_at_k": 71.8,
+    "dim_consistency_at_k": 48.35,
+    "silhouette": -0.1668,
+    "prec_at_k": 29.93,
+    "map_at_k": 0.2118,
+    "ndcg_at_k": 0.9466,
+    "ci": {
+      "prec_at_k": {
+        "mean": 29.933333,
+        "ci_lo": 27.566667,
+        "ci_hi": 32.3,
+        "ci_half": 2.366667
+      },
+      "map_at_k": {
+        "mean": 0.211844,
+        "ci_lo": 0.191022,
+        "ci_hi": 0.235106,
+        "ci_half": 0.022042
+      },
+      "cycle_at_k": {
+        "mean": 0.718,
+        "ci_lo": 0.676,
+        "ci_hi": 0.756,
+        "ci_half": 0.04
+      },
+      "ndcg_at_k": {
+        "mean": 0.946559,
+        "ci_lo": 0.942663,
+        "ci_hi": 0.950338,
+        "ci_half": 0.003838
+      },
+      "dim_consistency_at_k": {
+        "mean": 48.346407,
+        "ci_lo": 46.414706,
+        "ci_hi": 50.268686,
+        "ci_half": 1.92699
+      }
+    },
+    "per_scene": {
+      "bazaar": {
+        "prec_at_k": 4.17,
+        "count": 4
+      },
+      "beach_coastal": {
+        "prec_at_k": 16.67,
+        "count": 7
+      },
+      "commercial": {
+        "prec_at_k": 23.57,
+        "count": 70
+      },
+      "flyover_underpass": {
+        "prec_at_k": 5.56,
+        "count": 12
+      },
+      "ghat": {
+        "prec_at_k": 0.0,
+        "count": 5
+      },
+      "heritage_tourist": {
+        "prec_at_k": 14.74,
+        "count": 26
+      },
+      "highway": {
+        "prec_at_k": 26.44,
+        "count": 29
+      },
+      "junction": {
+        "prec_at_k": 22.58,
+        "count": 31
+      },
+      "market": {
+        "prec_at_k": 52.28,
+        "count": 73
+      },
+      "promenade": {
+        "prec_at_k": 19.35,
+        "count": 56
+      },
+      "residential_lane": {
+        "prec_at_k": 31.58,
+        "count": 95
+      },
+      "skyline_aerial": {
+        "prec_at_k": 45.24,
+        "count": 14
+      },
+      "transit": {
+        "prec_at_k": 36.94,
+        "count": 74
+      },
+      "unsure": {
+        "prec_at_k": 0.0,
+        "count": 4
+      }
+    },
+    "multi_attribute_slices": {
+      "time_of_day": {
+        "day": {
+          "prec_at_k": 26.12,
+          "count": 312
+        },
+        "night": {
+          "prec_at_k": 36.26,
+          "count": 188
+        }
+      },
+      "weather": {
+        "clear": {
+          "prec_at_k": 31.98,
+          "count": 393
+        },
+        "cloudy": {
+          "prec_at_k": 24.36,
+          "count": 26
+        },
+        "fog": {
+          "prec_at_k": 22.92,
+          "count": 8
+        },
+        "overcast": {
+          "prec_at_k": 26.67,
+          "count": 20
+        },
+        "rain": {
+          "prec_at_k": 19.81,
+          "count": 53
+        }
+      },
+      "crowd_density": {
+        "high": {
+          "prec_at_k": 41.11,
+          "count": 105
+        },
+        "low": {
+          "prec_at_k": 25.39,
+          "count": 254
+        },
+        "med": {
+          "prec_at_k": 29.79,
+          "count": 141
+        }
+      },
+      "traffic_density": {
+        "high": {
+          "prec_at_k": 34.97,
+          "count": 102
+        },
+        "low": {
+          "prec_at_k": 26.07,
+          "count": 234
+        },
+        "med": {
+          "prec_at_k": 32.32,
+          "count": 164
+        }
+      },
+      "road_surface": {
+        "asphalt": {
+          "prec_at_k": 28.48,
+          "count": 230
+        },
+        "cobblestone": {
+          "prec_at_k": 23.33,
+          "count": 5
+        },
+        "concrete": {
+          "prec_at_k": 36.67,
+          "count": 20
+        },
+        "dirt": {
+          "prec_at_k": 22.92,
+          "count": 8
+        },
+        "paved": {
+          "prec_at_k": 34.42,
+          "count": 184
+        },
+        "unsure": {
+          "prec_at_k": 0.0,
+          "count": 2
+        },
+        "wet": {
+          "prec_at_k": 20.59,
+          "count": 51
+        }
+      },
+      "infrastructure_quality": {
+        "good": {
+          "prec_at_k": 22.39,
+          "count": 134
+        },
+        "moderate": {
+          "prec_at_k": 32.91,
+          "count": 358
+        },
+        "poor": {
+          "prec_at_k": 22.92,
+          "count": 8
+        }
+      },
+      "vegetation": {
+        "dense": {
+          "prec_at_k": 25.93,
+          "count": 54
+        },
+        "moderate": {
+          "prec_at_k": 28.07,
+          "count": 244
+        },
+        "none": {
+          "prec_at_k": 41.36,
+          "count": 54
+        },
+        "sparse": {
+          "prec_at_k": 30.29,
+          "count": 148
+        }
+      },
+      "lighting": {
+        "artificial": {
+          "prec_at_k": 35.88,
+          "count": 190
+        },
+        "mixed": {
+          "prec_at_k": 36.36,
+          "count": 11
+        },
+        "natural": {
+          "prec_at_k": 25.92,
+          "count": 299
+        }
+      }
+    },
+    "silhouette_per_key": {
+      "scene_type": -0.1668,
+      "time_of_day": 0.1245,
+      "weather": 0.0283,
+      "crowd_density": -0.0397,
+      "traffic_density": -0.0386,
+      "traffic_mix": 0.0235,
+      "pedestrian_vehicle_separation": -0.1109,
+      "road_surface": -0.1225,
+      "infrastructure_quality": 0.1221,
+      "road_encroachment": -0.0764,
+      "vegetation": -0.0031,
+      "lighting": 0.0676,
+      "video_quality": 0.0156
+    },
+    "prec_per_key": {
+      "scene_type": 29.93,
+      "time_of_day": 92.03,
+      "weather": 74.5,
+      "crowd_density": 54.47,
+      "traffic_density": 47.97,
+      "traffic_mix": 52.63,
+      "pedestrian_vehicle_separation": 69.97,
+      "road_surface": 55.87,
+      "infrastructure_quality": 75.0,
+      "road_encroachment": 71.2,
+      "vegetation": 46.67,
+      "lighting": 89.07,
+      "video_quality": 60.37
+    },
+    "map_per_key": {
+      "scene_type": 0.2118,
+      "time_of_day": 0.8919,
+      "weather": 0.6911,
+      "crowd_density": 0.439,
+      "traffic_density": 0.3608,
+      "traffic_mix": 0.4233,
+      "pedestrian_vehicle_separation": 0.6224,
+      "road_surface": 0.4636,
+      "infrastructure_quality": 0.6903,
+      "road_encroachment": 0.6363,
+      "vegetation": 0.3446,
+      "lighting": 0.8553,
+      "video_quality": 0.5058
+    },
+    "cycle_per_key": {
+      "scene_type": {
+        "bazaar": {
+          "cycle_at_k": 100.0,
+          "count": 4
+        },
+        "beach_coastal": {
+          "cycle_at_k": 57.14,
+          "count": 7
+        },
+        "commercial": {
+          "cycle_at_k": 72.86,
+          "count": 70
+        },
+        "flyover_underpass": {
+          "cycle_at_k": 66.67,
+          "count": 12
+        },
+        "ghat": {
+          "cycle_at_k": 100.0,
+          "count": 5
+        },
+        "heritage_tourist": {
+          "cycle_at_k": 65.38,
+          "count": 26
+        },
+        "highway": {
+          "cycle_at_k": 72.41,
+          "count": 29
+        },
+        "junction": {
+          "cycle_at_k": 80.65,
+          "count": 31
+        },
+        "market": {
+          "cycle_at_k": 73.97,
+          "count": 73
+        },
+        "promenade": {
+          "cycle_at_k": 60.71,
+          "count": 56
+        },
+        "residential_lane": {
+          "cycle_at_k": 69.47,
+          "count": 95
+        },
+        "skyline_aerial": {
+          "cycle_at_k": 64.29,
+          "count": 14
+        },
+        "transit": {
+          "cycle_at_k": 78.38,
+          "count": 74
+        },
+        "unsure": {
+          "cycle_at_k": 75.0,
+          "count": 4
+        }
+      },
+      "time_of_day": {
+        "day": {
+          "cycle_at_k": 68.59,
+          "count": 312
+        },
+        "night": {
+          "cycle_at_k": 77.13,
+          "count": 188
+        }
+      },
+      "weather": {
+        "clear": {
+          "cycle_at_k": 72.26,
+          "count": 393
+        },
+        "cloudy": {
+          "cycle_at_k": 80.77,
+          "count": 26
+        },
+        "fog": {
+          "cycle_at_k": 75.0,
+          "count": 8
+        },
+        "overcast": {
+          "cycle_at_k": 70.0,
+          "count": 20
+        },
+        "rain": {
+          "cycle_at_k": 64.15,
+          "count": 53
+        }
+      },
+      "crowd_density": {
+        "high": {
+          "cycle_at_k": 77.14,
+          "count": 105
+        },
+        "low": {
+          "cycle_at_k": 65.75,
+          "count": 254
+        },
+        "med": {
+          "cycle_at_k": 78.72,
+          "count": 141
+        }
+      },
+      "traffic_density": {
+        "high": {
+          "cycle_at_k": 76.47,
+          "count": 102
+        },
+        "low": {
+          "cycle_at_k": 64.53,
+          "count": 234
+        },
+        "med": {
+          "cycle_at_k": 79.27,
+          "count": 164
+        }
+      },
+      "traffic_mix": {
+        "mixed_all": {
+          "cycle_at_k": 80.49,
+          "count": 41
+        },
+        "mixed_motorized": {
+          "cycle_at_k": 77.13,
+          "count": 258
+        },
+        "motorized_only": {
+          "cycle_at_k": 71.3,
+          "count": 108
+        },
+        "pedestrian_dominant": {
+          "cycle_at_k": 53.76,
+          "count": 93
+        }
+      },
+      "pedestrian_vehicle_separation": {
+        "partial": {
+          "cycle_at_k": 76.47,
+          "count": 17
+        },
+        "separated": {
+          "cycle_at_k": 60.16,
+          "count": 123
+        },
+        "shared_space": {
+          "cycle_at_k": 75.56,
+          "count": 360
+        }
+      },
+      "road_surface": {
+        "asphalt": {
+          "cycle_at_k": 78.7,
+          "count": 230
+        },
+        "cobblestone": {
+          "cycle_at_k": 100.0,
+          "count": 5
+        },
+        "concrete": {
+          "cycle_at_k": 65.0,
+          "count": 20
+        },
+        "dirt": {
+          "cycle_at_k": 75.0,
+          "count": 8
+        },
+        "paved": {
+          "cycle_at_k": 66.3,
+          "count": 184
+        },
+        "unsure": {
+          "cycle_at_k": 50.0,
+          "count": 2
+        },
+        "wet": {
+          "cycle_at_k": 60.78,
+          "count": 51
+        }
+      },
+      "infrastructure_quality": {
+        "good": {
+          "cycle_at_k": 61.94,
+          "count": 134
+        },
+        "moderate": {
+          "cycle_at_k": 75.7,
+          "count": 358
+        },
+        "poor": {
+          "cycle_at_k": 62.5,
+          "count": 8
+        }
+      },
+      "road_encroachment": {
+        "clear": {
+          "cycle_at_k": 63.04,
+          "count": 184
+        },
+        "heavy": {
+          "cycle_at_k": 100.0,
+          "count": 3
+        },
+        "partial": {
+          "cycle_at_k": 76.68,
+          "count": 313
+        }
+      },
+      "vegetation": {
+        "dense": {
+          "cycle_at_k": 68.52,
+          "count": 54
+        },
+        "moderate": {
+          "cycle_at_k": 74.59,
+          "count": 244
+        },
+        "none": {
+          "cycle_at_k": 57.41,
+          "count": 54
+        },
+        "sparse": {
+          "cycle_at_k": 73.65,
+          "count": 148
+        }
+      },
+      "lighting": {
+        "artificial": {
+          "cycle_at_k": 77.37,
+          "count": 190
+        },
+        "mixed": {
+          "cycle_at_k": 72.73,
+          "count": 11
+        },
+        "natural": {
+          "cycle_at_k": 68.23,
+          "count": 299
+        }
+      },
+      "video_quality": {
+        "blur": {
+          "cycle_at_k": 60.94,
+          "count": 64
+        },
+        "clean": {
+          "cycle_at_k": 68.2,
+          "count": 217
+        },
+        "shake": {
+          "cycle_at_k": 78.54,
+          "count": 219
+        }
+      }
+    },
+    "map_per_value": {
+      "scene_type": {
+        "bazaar": {
+          "map_at_k": 0.0208,
+          "count": 4
+        },
+        "beach_coastal": {
+          "map_at_k": 0.1246,
+          "count": 7
+        },
+        "commercial": {
+          "map_at_k": 0.1402,
+          "count": 70
+        },
+        "flyover_underpass": {
+          "map_at_k": 0.022,
+          "count": 12
+        },
+        "ghat": {
+          "map_at_k": 0.0,
+          "count": 5
+        },
+        "heritage_tourist": {
+          "map_at_k": 0.1013,
+          "count": 26
+        },
+        "highway": {
+          "map_at_k": 0.1846,
+          "count": 29
+        },
+        "junction": {
+          "map_at_k": 0.1625,
+          "count": 31
+        },
+        "market": {
+          "map_at_k": 0.4318,
+          "count": 73
+        },
+        "promenade": {
+          "map_at_k": 0.1206,
+          "count": 56
+        },
+        "residential_lane": {
+          "map_at_k": 0.2047,
+          "count": 95
+        },
+        "skyline_aerial": {
+          "map_at_k": 0.3274,
+          "count": 14
+        },
+        "transit": {
+          "map_at_k": 0.2643,
+          "count": 74
+        },
+        "unsure": {
+          "map_at_k": 0.0,
+          "count": 4
+        }
+      },
+      "time_of_day": {
+        "day": {
+          "map_at_k": 0.867,
+          "count": 312
+        },
+        "night": {
+          "map_at_k": 0.9332,
+          "count": 188
+        }
+      },
+      "weather": {
+        "clear": {
+          "map_at_k": 0.8343,
+          "count": 393
+        },
+        "cloudy": {
+          "map_at_k": 0.0876,
+          "count": 26
+        },
+        "fog": {
+          "map_at_k": 0.058,
+          "count": 8
+        },
+        "overcast": {
+          "map_at_k": 0.0579,
+          "count": 20
+        },
+        "rain": {
+          "map_at_k": 0.2596,
+          "count": 53
+        }
+      },
+      "crowd_density": {
+        "high": {
+          "map_at_k": 0.4968,
+          "count": 105
+        },
+        "low": {
+          "map_at_k": 0.4905,
+          "count": 254
+        },
+        "med": {
+          "map_at_k": 0.3031,
+          "count": 141
+        }
+      },
+      "traffic_density": {
+        "high": {
+          "map_at_k": 0.3126,
+          "count": 102
+        },
+        "low": {
+          "map_at_k": 0.4071,
+          "count": 234
+        },
+        "med": {
+          "map_at_k": 0.3246,
+          "count": 164
+        }
+      },
+      "traffic_mix": {
+        "mixed_all": {
+          "map_at_k": 0.119,
+          "count": 41
+        },
+        "mixed_motorized": {
+          "map_at_k": 0.6083,
+          "count": 258
+        },
+        "motorized_only": {
+          "map_at_k": 0.2126,
+          "count": 108
+        },
+        "pedestrian_dominant": {
+          "map_at_k": 0.289,
+          "count": 93
+        }
+      },
+      "pedestrian_vehicle_separation": {
+        "partial": {
+          "map_at_k": 0.0662,
+          "count": 17
+        },
+        "separated": {
+          "map_at_k": 0.2888,
+          "count": 123
+        },
+        "shared_space": {
+          "map_at_k": 0.7627,
+          "count": 360
+        }
+      },
+      "road_surface": {
+        "asphalt": {
+          "map_at_k": 0.6266,
+          "count": 230
+        },
+        "cobblestone": {
+          "map_at_k": 0.015,
+          "count": 5
+        },
+        "concrete": {
+          "map_at_k": 0.0378,
+          "count": 20
+        },
+        "dirt": {
+          "map_at_k": 0.0278,
+          "count": 8
+        },
+        "paved": {
+          "map_at_k": 0.4041,
+          "count": 184
+        },
+        "unsure": {
+          "map_at_k": 0.0,
+          "count": 2
+        },
+        "wet": {
+          "map_at_k": 0.2412,
+          "count": 51
+        }
+      },
+      "infrastructure_quality": {
+        "good": {
+          "map_at_k": 0.3707,
+          "count": 134
+        },
+        "moderate": {
+          "map_at_k": 0.8253,
+          "count": 358
+        },
+        "poor": {
+          "map_at_k": 0.0,
+          "count": 8
+        }
+      },
+      "road_encroachment": {
+        "clear": {
+          "map_at_k": 0.4181,
+          "count": 184
+        },
+        "heavy": {
+          "map_at_k": 0.0,
+          "count": 3
+        },
+        "partial": {
+          "map_at_k": 0.7707,
+          "count": 313
+        }
+      },
+      "vegetation": {
+        "dense": {
+          "map_at_k": 0.183,
+          "count": 54
+        },
+        "moderate": {
+          "map_at_k": 0.4688,
+          "count": 244
+        },
+        "none": {
+          "map_at_k": 0.2042,
+          "count": 54
+        },
+        "sparse": {
+          "map_at_k": 0.2499,
+          "count": 148
+        }
+      },
+      "lighting": {
+        "artificial": {
+          "map_at_k": 0.9299,
+          "count": 190
+        },
+        "mixed": {
+          "map_at_k": 0.0422,
+          "count": 11
+        },
+        "natural": {
+          "map_at_k": 0.8378,
+          "count": 299
+        }
+      },
+      "video_quality": {
+        "blur": {
+          "map_at_k": 0.1641,
+          "count": 64
+        },
+        "clean": {
+          "map_at_k": 0.5163,
+          "count": 217
+        },
+        "shake": {
+          "map_at_k": 0.5952,
+          "count": 219
+        }
+      }
+    },
+    "macro_avg": {
+      "prec_at_k": 21.37
+    },
+    "micro_avg": {
+      "prec_at_k": 29.93
+    }
+  },
+  "hard": {
+    "cycle_at_k": 66.8,
+    "dim_consistency_at_k": 48.35,
+    "silhouette": -0.1668,
+    "prec_at_k": 28.1,
+    "map_at_k": 0.196,
+    "ndcg_at_k": 0.9464,
+    "ci": {
+      "prec_at_k": {
+        "mean": 28.1,
+        "ci_lo": 25.8,
+        "ci_hi": 30.433333,
+        "ci_half": 2.316667
+      },
+      "map_at_k": {
+        "mean": 0.195961,
+        "ci_lo": 0.176107,
+        "ci_hi": 0.218678,
+        "ci_half": 0.021286
+      },
+      "cycle_at_k": {
+        "mean": 0.668,
+        "ci_lo": 0.624,
+        "ci_hi": 0.708,
+        "ci_half": 0.042
+      },
+      "ndcg_at_k": {
+        "mean": 0.946383,
+        "ci_lo": 0.942515,
+        "ci_hi": 0.950043,
+        "ci_half": 0.003764
+      },
+      "dim_consistency_at_k": {
+        "mean": 48.346407,
+        "ci_lo": 46.414706,
+        "ci_hi": 50.268686,
+        "ci_half": 1.92699
+      }
+    },
+    "per_scene": {
+      "bazaar": {
+        "prec_at_k": 0.0,
+        "count": 4
+      },
+      "beach_coastal": {
+        "prec_at_k": 16.67,
+        "count": 7
+      },
+      "commercial": {
+        "prec_at_k": 22.62,
+        "count": 70
+      },
+      "flyover_underpass": {
+        "prec_at_k": 5.56,
+        "count": 12
+      },
+      "ghat": {
+        "prec_at_k": 0.0,
+        "count": 5
+      },
+      "heritage_tourist": {
+        "prec_at_k": 14.74,
+        "count": 26
+      },
+      "highway": {
+        "prec_at_k": 26.44,
+        "count": 29
+      },
+      "junction": {
+        "prec_at_k": 17.2,
+        "count": 31
+      },
+      "market": {
+        "prec_at_k": 50.68,
+        "count": 73
+      },
+      "promenade": {
+        "prec_at_k": 16.07,
+        "count": 56
+      },
+      "residential_lane": {
+        "prec_at_k": 30.7,
+        "count": 95
+      },
+      "skyline_aerial": {
+        "prec_at_k": 45.24,
+        "count": 14
+      },
+      "transit": {
+        "prec_at_k": 33.11,
+        "count": 74
+      },
+      "unsure": {
+        "prec_at_k": 0.0,
+        "count": 4
+      }
+    },
+    "multi_attribute_slices": {
+      "time_of_day": {
+        "day": {
+          "prec_at_k": 26.12,
+          "count": 312
+        },
+        "night": {
+          "prec_at_k": 31.38,
+          "count": 188
+        }
+      },
+      "weather": {
+        "clear": {
+          "prec_at_k": 29.69,
+          "count": 393
+        },
+        "cloudy": {
+          "prec_at_k": 24.36,
+          "count": 26
+        },
+        "fog": {
+          "prec_at_k": 22.92,
+          "count": 8
+        },
+        "overcast": {
+          "prec_at_k": 26.67,
+          "count": 20
+        },
+        "rain": {
+          "prec_at_k": 19.5,
+          "count": 53
+        }
+      },
+      "crowd_density": {
+        "high": {
+          "prec_at_k": 38.25,
+          "count": 105
+        },
+        "low": {
+          "prec_at_k": 24.67,
+          "count": 254
+        },
+        "med": {
+          "prec_at_k": 26.71,
+          "count": 141
+        }
+      },
+      "traffic_density": {
+        "high": {
+          "prec_at_k": 31.7,
+          "count": 102
+        },
+        "low": {
+          "prec_at_k": 25.43,
+          "count": 234
+        },
+        "med": {
+          "prec_at_k": 29.67,
+          "count": 164
+        }
+      },
+      "road_surface": {
+        "asphalt": {
+          "prec_at_k": 26.23,
+          "count": 230
+        },
+        "cobblestone": {
+          "prec_at_k": 23.33,
+          "count": 5
+        },
+        "concrete": {
+          "prec_at_k": 34.17,
+          "count": 20
+        },
+        "dirt": {
+          "prec_at_k": 22.92,
+          "count": 8
+        },
+        "paved": {
+          "prec_at_k": 32.61,
+          "count": 184
+        },
+        "unsure": {
+          "prec_at_k": 0.0,
+          "count": 2
+        },
+        "wet": {
+          "prec_at_k": 20.26,
+          "count": 51
+        }
+      },
+      "infrastructure_quality": {
+        "good": {
+          "prec_at_k": 21.77,
+          "count": 134
+        },
+        "moderate": {
+          "prec_at_k": 30.59,
+          "count": 358
+        },
+        "poor": {
+          "prec_at_k": 22.92,
+          "count": 8
+        }
+      },
+      "vegetation": {
+        "dense": {
+          "prec_at_k": 25.93,
+          "count": 54
+        },
+        "moderate": {
+          "prec_at_k": 26.09,
+          "count": 244
+        },
+        "none": {
+          "prec_at_k": 39.51,
+          "count": 54
+        },
+        "sparse": {
+          "prec_at_k": 28.04,
+          "count": 148
+        }
+      },
+      "lighting": {
+        "artificial": {
+          "prec_at_k": 31.05,
+          "count": 190
+        },
+        "mixed": {
+          "prec_at_k": 36.36,
+          "count": 11
+        },
+        "natural": {
+          "prec_at_k": 25.92,
+          "count": 299
+        }
+      }
+    },
+    "silhouette_per_key": {
+      "scene_type": -0.1668,
+      "time_of_day": 0.1245,
+      "weather": 0.0283,
+      "crowd_density": -0.0397,
+      "traffic_density": -0.0386,
+      "traffic_mix": 0.0235,
+      "pedestrian_vehicle_separation": -0.1109,
+      "road_surface": -0.1225,
+      "infrastructure_quality": 0.1221,
+      "road_encroachment": -0.0764,
+      "vegetation": -0.0031,
+      "lighting": 0.0676,
+      "video_quality": 0.0156
+    },
+    "prec_per_key": {
+      "scene_type": 28.1,
+      "time_of_day": 92.07,
+      "weather": 74.33,
+      "crowd_density": 53.8,
+      "traffic_density": 46.8,
+      "traffic_mix": 51.9,
+      "pedestrian_vehicle_separation": 69.2,
+      "road_surface": 54.07,
+      "infrastructure_quality": 74.5,
+      "road_encroachment": 71.0,
+      "vegetation": 45.3,
+      "lighting": 89.1,
+      "video_quality": 60.63
+    },
+    "map_per_key": {
+      "scene_type": 0.196,
+      "time_of_day": 0.892,
+      "weather": 0.6896,
+      "crowd_density": 0.4328,
+      "traffic_density": 0.346,
+      "traffic_mix": 0.4168,
+      "pedestrian_vehicle_separation": 0.6151,
+      "road_surface": 0.4421,
+      "infrastructure_quality": 0.6845,
+      "road_encroachment": 0.6359,
+      "vegetation": 0.3313,
+      "lighting": 0.8554,
+      "video_quality": 0.5106
+    },
+    "cycle_per_key": {
+      "scene_type": {
+        "bazaar": {
+          "cycle_at_k": 100.0,
+          "count": 4
+        },
+        "beach_coastal": {
+          "cycle_at_k": 57.14,
+          "count": 7
+        },
+        "commercial": {
+          "cycle_at_k": 68.57,
+          "count": 70
+        },
+        "flyover_underpass": {
+          "cycle_at_k": 66.67,
+          "count": 12
+        },
+        "ghat": {
+          "cycle_at_k": 100.0,
+          "count": 5
+        },
+        "heritage_tourist": {
+          "cycle_at_k": 65.38,
+          "count": 26
+        },
+        "highway": {
+          "cycle_at_k": 72.41,
+          "count": 29
+        },
+        "junction": {
+          "cycle_at_k": 64.52,
+          "count": 31
+        },
+        "market": {
+          "cycle_at_k": 68.49,
+          "count": 73
+        },
+        "promenade": {
+          "cycle_at_k": 51.79,
+          "count": 56
+        },
+        "residential_lane": {
+          "cycle_at_k": 68.42,
+          "count": 95
+        },
+        "skyline_aerial": {
+          "cycle_at_k": 64.29,
+          "count": 14
+        },
+        "transit": {
+          "cycle_at_k": 68.92,
+          "count": 74
+        },
+        "unsure": {
+          "cycle_at_k": 75.0,
+          "count": 4
+        }
+      },
+      "time_of_day": {
+        "day": {
+          "cycle_at_k": 68.59,
+          "count": 312
+        },
+        "night": {
+          "cycle_at_k": 63.83,
+          "count": 188
+        }
+      },
+      "weather": {
+        "clear": {
+          "cycle_at_k": 66.67,
+          "count": 393
+        },
+        "cloudy": {
+          "cycle_at_k": 80.77,
+          "count": 26
+        },
+        "fog": {
+          "cycle_at_k": 75.0,
+          "count": 8
+        },
+        "overcast": {
+          "cycle_at_k": 70.0,
+          "count": 20
+        },
+        "rain": {
+          "cycle_at_k": 58.49,
+          "count": 53
+        }
+      },
+      "crowd_density": {
+        "high": {
+          "cycle_at_k": 69.52,
+          "count": 105
+        },
+        "low": {
+          "cycle_at_k": 63.39,
+          "count": 254
+        },
+        "med": {
+          "cycle_at_k": 70.92,
+          "count": 141
+        }
+      },
+      "traffic_density": {
+        "high": {
+          "cycle_at_k": 69.61,
+          "count": 102
+        },
+        "low": {
+          "cycle_at_k": 62.39,
+          "count": 234
+        },
+        "med": {
+          "cycle_at_k": 71.34,
+          "count": 164
+        }
+      },
+      "traffic_mix": {
+        "mixed_all": {
+          "cycle_at_k": 75.61,
+          "count": 41
+        },
+        "mixed_motorized": {
+          "cycle_at_k": 69.38,
+          "count": 258
+        },
+        "motorized_only": {
+          "cycle_at_k": 68.52,
+          "count": 108
+        },
+        "pedestrian_dominant": {
+          "cycle_at_k": 53.76,
+          "count": 93
+        }
+      },
+      "pedestrian_vehicle_separation": {
+        "partial": {
+          "cycle_at_k": 70.59,
+          "count": 17
+        },
+        "separated": {
+          "cycle_at_k": 58.54,
+          "count": 123
+        },
+        "shared_space": {
+          "cycle_at_k": 69.44,
+          "count": 360
+        }
+      },
+      "road_surface": {
+        "asphalt": {
+          "cycle_at_k": 73.04,
+          "count": 230
+        },
+        "cobblestone": {
+          "cycle_at_k": 80.0,
+          "count": 5
+        },
+        "concrete": {
+          "cycle_at_k": 60.0,
+          "count": 20
+        },
+        "dirt": {
+          "cycle_at_k": 75.0,
+          "count": 8
+        },
+        "paved": {
+          "cycle_at_k": 61.96,
+          "count": 184
+        },
+        "unsure": {
+          "cycle_at_k": 50.0,
+          "count": 2
+        },
+        "wet": {
+          "cycle_at_k": 56.86,
+          "count": 51
+        }
+      },
+      "infrastructure_quality": {
+        "good": {
+          "cycle_at_k": 61.94,
+          "count": 134
+        },
+        "moderate": {
+          "cycle_at_k": 68.72,
+          "count": 358
+        },
+        "poor": {
+          "cycle_at_k": 62.5,
+          "count": 8
+        }
+      },
+      "road_encroachment": {
+        "clear": {
+          "cycle_at_k": 62.5,
+          "count": 184
+        },
+        "heavy": {
+          "cycle_at_k": 66.67,
+          "count": 3
+        },
+        "partial": {
+          "cycle_at_k": 69.33,
+          "count": 313
+        }
+      },
+      "vegetation": {
+        "dense": {
+          "cycle_at_k": 68.52,
+          "count": 54
+        },
+        "moderate": {
+          "cycle_at_k": 71.72,
+          "count": 244
+        },
+        "none": {
+          "cycle_at_k": 50.0,
+          "count": 54
+        },
+        "sparse": {
+          "cycle_at_k": 64.19,
+          "count": 148
+        }
+      },
+      "lighting": {
+        "artificial": {
+          "cycle_at_k": 64.21,
+          "count": 190
+        },
+        "mixed": {
+          "cycle_at_k": 72.73,
+          "count": 11
+        },
+        "natural": {
+          "cycle_at_k": 68.23,
+          "count": 299
+        }
+      },
+      "video_quality": {
+        "blur": {
+          "cycle_at_k": 57.81,
+          "count": 64
+        },
+        "clean": {
+          "cycle_at_k": 66.36,
+          "count": 217
+        },
+        "shake": {
+          "cycle_at_k": 69.86,
+          "count": 219
+        }
+      }
+    },
+    "map_per_value": {
+      "scene_type": {
+        "bazaar": {
+          "map_at_k": 0.0,
+          "count": 4
+        },
+        "beach_coastal": {
+          "map_at_k": 0.1246,
+          "count": 7
+        },
+        "commercial": {
+          "map_at_k": 0.1327,
+          "count": 70
+        },
+        "flyover_underpass": {
+          "map_at_k": 0.022,
+          "count": 12
+        },
+        "ghat": {
+          "map_at_k": 0.0,
+          "count": 5
+        },
+        "heritage_tourist": {
+          "map_at_k": 0.1013,
+          "count": 26
+        },
+        "highway": {
+          "map_at_k": 0.1846,
+          "count": 29
+        },
+        "junction": {
+          "map_at_k": 0.1168,
+          "count": 31
+        },
+        "market": {
+          "map_at_k": 0.4112,
+          "count": 73
+        },
+        "promenade": {
+          "map_at_k": 0.0929,
+          "count": 56
+        },
+        "residential_lane": {
+          "map_at_k": 0.2001,
+          "count": 95
+        },
+        "skyline_aerial": {
+          "map_at_k": 0.3274,
+          "count": 14
+        },
+        "transit": {
+          "map_at_k": 0.2316,
+          "count": 74
+        },
+        "unsure": {
+          "map_at_k": 0.0,
+          "count": 4
+        }
+      },
+      "time_of_day": {
+        "day": {
+          "map_at_k": 0.8675,
+          "count": 312
+        },
+        "night": {
+          "map_at_k": 0.9326,
+          "count": 188
+        }
+      },
+      "weather": {
+        "clear": {
+          "map_at_k": 0.8333,
+          "count": 393
+        },
+        "cloudy": {
+          "map_at_k": 0.0876,
+          "count": 26
+        },
+        "fog": {
+          "map_at_k": 0.058,
+          "count": 8
+        },
+        "overcast": {
+          "map_at_k": 0.0579,
+          "count": 20
+        },
+        "rain": {
+          "map_at_k": 0.2534,
+          "count": 53
+        }
+      },
+      "crowd_density": {
+        "high": {
+          "map_at_k": 0.5061,
+          "count": 105
+        },
+        "low": {
+          "map_at_k": 0.4805,
+          "count": 254
+        },
+        "med": {
+          "map_at_k": 0.2922,
+          "count": 141
+        }
+      },
+      "traffic_density": {
+        "high": {
+          "map_at_k": 0.2976,
+          "count": 102
+        },
+        "low": {
+          "map_at_k": 0.3947,
+          "count": 234
+        },
+        "med": {
+          "map_at_k": 0.3066,
+          "count": 164
+        }
+      },
+      "traffic_mix": {
+        "mixed_all": {
+          "map_at_k": 0.0881,
+          "count": 41
+        },
+        "mixed_motorized": {
+          "map_at_k": 0.6038,
+          "count": 258
+        },
+        "motorized_only": {
+          "map_at_k": 0.2066,
+          "count": 108
+        },
+        "pedestrian_dominant": {
+          "map_at_k": 0.2867,
+          "count": 93
+        }
+      },
+      "pedestrian_vehicle_separation": {
+        "partial": {
+          "map_at_k": 0.0498,
+          "count": 17
+        },
+        "separated": {
+          "map_at_k": 0.2846,
+          "count": 123
+        },
+        "shared_space": {
+          "map_at_k": 0.7547,
+          "count": 360
+        }
+      },
+      "road_surface": {
+        "asphalt": {
+          "map_at_k": 0.598,
+          "count": 230
+        },
+        "cobblestone": {
+          "map_at_k": 0.015,
+          "count": 5
+        },
+        "concrete": {
+          "map_at_k": 0.0475,
+          "count": 20
+        },
+        "dirt": {
+          "map_at_k": 0.0278,
+          "count": 8
+        },
+        "paved": {
+          "map_at_k": 0.382,
+          "count": 184
+        },
+        "unsure": {
+          "map_at_k": 0.0,
+          "count": 2
+        },
+        "wet": {
+          "map_at_k": 0.2346,
+          "count": 51
+        }
+      },
+      "infrastructure_quality": {
+        "good": {
+          "map_at_k": 0.3625,
+          "count": 134
+        },
+        "moderate": {
+          "map_at_k": 0.8204,
+          "count": 358
+        },
+        "poor": {
+          "map_at_k": 0.0,
+          "count": 8
+        }
+      },
+      "road_encroachment": {
+        "clear": {
+          "map_at_k": 0.4123,
+          "count": 184
+        },
+        "heavy": {
+          "map_at_k": 0.0,
+          "count": 3
+        },
+        "partial": {
+          "map_at_k": 0.7735,
+          "count": 313
+        }
+      },
+      "vegetation": {
+        "dense": {
+          "map_at_k": 0.183,
+          "count": 54
+        },
+        "moderate": {
+          "map_at_k": 0.4589,
+          "count": 244
+        },
+        "none": {
+          "map_at_k": 0.1674,
+          "count": 54
+        },
+        "sparse": {
+          "map_at_k": 0.2349,
+          "count": 148
+        }
+      },
+      "lighting": {
+        "artificial": {
+          "map_at_k": 0.9293,
+          "count": 190
+        },
+        "mixed": {
+          "map_at_k": 0.0422,
+          "count": 11
+        },
+        "natural": {
+          "map_at_k": 0.8384,
+          "count": 299
+        }
+      },
+      "video_quality": {
+        "blur": {
+          "map_at_k": 0.1619,
+          "count": 64
+        },
+        "clean": {
+          "map_at_k": 0.515,
+          "count": 217
+        },
+        "shake": {
+          "map_at_k": 0.6082,
+          "count": 219
+        }
+      }
+    },
+    "macro_avg": {
+      "prec_at_k": 19.93
+    },
+    "micro_avg": {
+      "prec_at_k": 28.1
+    }
+  },
+  "confidence_sweep": [
+    {
+      "threshold": 0.3,
+      "coverage": 1.0,
+      "prec_at_k": 29.93,
+      "n_clips": 500
+    },
+    {
+      "threshold": 0.4,
+      "coverage": 1.0,
+      "prec_at_k": 29.93,
+      "n_clips": 500
+    },
+    {
+      "threshold": 0.5,
+      "coverage": 1.0,
+      "prec_at_k": 29.93,
+      "n_clips": 500
+    },
+    {
+      "threshold": 0.6,
+      "coverage": 1.0,
+      "prec_at_k": 29.93,
+      "n_clips": 500
+    },
+    {
+      "threshold": 0.7,
+      "coverage": 1.0,
+      "prec_at_k": 29.93,
+      "n_clips": 500
+    },
+    {
+      "threshold": 0.8,
+      "coverage": 1.0,
+      "prec_at_k": 29.93,
+      "n_clips": 500
+    },
+    {
+      "threshold": 0.9,
+      "coverage": 1.0,
+      "prec_at_k": 29.93,
+      "n_clips": 500
+    }
+  ],
+  "k_neighbors": 6,
+  "num_clips": 500,
+  "exclusion_window_sec": 30,
+  "mode": "poc",
+  "subset_file": "data/test_500.json"
+}

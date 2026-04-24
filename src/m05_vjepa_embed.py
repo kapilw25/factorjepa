@@ -9,7 +9,9 @@ USAGE:
 """
 import argparse
 import contextlib
+import errno
 import gc
+import hashlib
 import json
 import os
 import queue
@@ -71,6 +73,22 @@ _create_stream = create_stream
 
 
 # ── Checkpoint ─────────────────────────────────────────────────────────
+
+def _checkpoint_fingerprint(model_path, is_adapted: bool) -> str:
+    """Stable 8-char hash of (abs_path|size|mtime) for adapted ckpts; empty for frozen.
+    Prevents cross-variant checkpoint collisions — prior to this, all 6 surgical
+    variants shared `.m05_checkpoint_vjepa_2_1_surgical.npz`, so v11 would wrongly
+    resume from v10's embeddings under v11's weights → garbage. iter10 2026-04-22.
+    """
+    if not is_adapted or model_path is None:
+        return ""  # backward-compat: frozen filename unchanged
+    try:
+        p = Path(model_path).resolve()
+        st = p.stat()
+        return "_" + hashlib.sha256(f"{p}|{st.st_size}|{int(st.st_mtime)}".encode()).hexdigest()[:8]
+    except Exception:
+        return "_nockpt"
+
 
 def save_checkpoint(embeddings_list: list, keys_list: list, checkpoint_file: Path):
     """Atomic checkpoint save: embeddings + keys to .npz."""
@@ -283,20 +301,42 @@ def orchestrator_main(args):
     encoder_name = getattr(args, 'encoder', None) or ("vjepa_adapted" if is_adapted else "vjepa")
     from utils.config import get_encoder_info
     embed_suffix = get_encoder_info(encoder_name)["suffix"]
+    ckpt_fp = _checkpoint_fingerprint(model_path, is_adapted)
     embeddings_file = output_dir / f"embeddings{embed_suffix}.npy"
-    checkpoint_file = output_dir / f".m05_checkpoint{embed_suffix}.npz"
+    checkpoint_file = output_dir / f".m05_checkpoint{embed_suffix}{ckpt_fp}.npz"
 
     print(f"Output: {embeddings_file}")
     if args.subset:
         print(f"[POC] Subset: {args.subset}")
 
-    # Output-exists guard
-    from utils.output_guard import verify_or_skip
-    if verify_or_skip(output_dir, {
-        "embeddings": embeddings_file,
-        "paths": embeddings_file.with_suffix('.paths.npy'),
-    }, label="m05 embed"):
-        return
+    # iter11 #80 provenance gate — prevent variant-boundary .npy collision.
+    # Bug: in paired_eval_10k v12, after v14 completed m05 and wrote
+    #   outputs/full/m05_vjepa_embed/embeddings_vjepa_2_1_surgical.npy,
+    # v15a's m05 saw the same-named .npy and verify_or_skip returned True →
+    # v15a silently reused v14's embeddings → paired-bootstrap numbers
+    # identical to v14 across mAP/Cycle/nDCG. Root cause: the output .npy
+    # filename carries no per-variant fingerprint (unlike the checkpoint).
+    # Fix (adapted-model only): if .npy exists but the CURRENT variant's
+    # fingerprinted ckpt `.m05_checkpoint_*_<fp>.npz` is absent, the .npy
+    # was produced by a DIFFERENT variant → bypass verify_or_skip so the
+    # fresh np.save below atomically overwrites the stale .npy. Frozen
+    # models (is_adapted=False) have no fingerprint, so the check is
+    # skipped and behavior is unchanged for them.
+    stale_npy = False
+    if is_adapted and embeddings_file.exists() and not checkpoint_file.exists():
+        print(f"[m05 provenance] .npy exists but ckpt for current fp={ckpt_fp} "
+              f"missing → .npy belongs to a different variant. Forcing recompute "
+              f"(fresh np.save will overwrite atomically; no rm in .sh needed).")
+        stale_npy = True
+
+    # Output-exists guard — bypassed when stale_npy is True.
+    if not stale_npy:
+        from utils.output_guard import verify_or_skip
+        if verify_or_skip(output_dir, {
+            "embeddings": embeddings_file,
+            "paths": embeddings_file.with_suffix('.paths.npy'),
+        }, label="m05 embed"):
+            return
 
     # Determine total clips
     subset_keys = load_subset(args.subset) if args.subset else set()
@@ -322,6 +362,7 @@ def orchestrator_main(args):
             print(f"Resuming from checkpoint: {skip_count:,}/{total_clips:,} clips")
 
         segment_idx = 0
+        exit_reason = "complete"  # "complete" | "stuck_clips" | "worker_crash"
         while skip_count < total_clips:
             segment_size = min(ENGINE_RESTART_EVERY, total_clips - skip_count)
             segment_idx += 1
@@ -355,6 +396,9 @@ def orchestrator_main(args):
                 cmd.extend(["--local-data", args.local_data])
             if getattr(args, 'encoder', None):
                 cmd.extend(["--encoder", args.encoder])
+            # Propagate cache policy to worker (iter11 delete-protection gate).
+            if getattr(args, 'cache_policy', None):
+                cmd.extend(["--cache-policy", args.cache_policy])
             if getattr(args, 'shuffle', False):
                 cmd.append("--shuffle")
 
@@ -366,9 +410,18 @@ def orchestrator_main(args):
                 print(f"Worker done. Progress: {skip_count:,}/{total_clips:,}")
             elif result.returncode != 0:
                 print(f"Worker failed (exit {result.returncode}). Resume with same command.")
+                exit_reason = "worker_crash"
                 break
             else:
+                # Worker exited cleanly but made no progress — the remaining
+                # (total_clips - skip_count) clips all failed to decode/embed
+                # (corrupt MP4, unsupported codec, etc.). Advance past the stuck
+                # segment and record the reason so post-processing can decide
+                # partial-success vs FATAL.
+                print(f"Worker exited cleanly with no progress: "
+                      f"{total_clips - skip_count:,} remaining clips appear irrecoverable.")
                 skip_count = total_clips
+                exit_reason = "stuck_clips"
 
     # ── Post-processing: dedupe + save final output ──
     all_embeddings, all_keys, final_count = load_checkpoint(checkpoint_file)
@@ -376,14 +429,43 @@ def orchestrator_main(args):
         print("ERROR: No embeddings collected.")
         sys.exit(1)
 
-    # GUARD: do NOT save incomplete output as final. If worker loop broke early
-    # (exit -9 SIGKILL, exit -11 SIGSEGV, etc.), the checkpoint has partial data.
-    # Saving it as final .npy would trick downstream steps into using incomplete embeddings.
-    if final_count < total_clips * 0.95:
-        print(f"FATAL: Only {final_count:,}/{total_clips:,} clips embedded ({final_count/total_clips*100:.0f}%). "
-              f"Worker died before completion. Checkpoint preserved for resume.")
-        print("  Re-run with same command to resume from checkpoint.")
+    # GUARD: distinguish worker-crash (partial data is suspect) from stuck-clips
+    # (partial data is complete; some inputs just can't be decoded). Two-tier:
+    #   - final < 80% (emergency floor): FATAL regardless — too little signal.
+    #   - 80%-95% + exit_reason=="worker_crash": FATAL (don't save crash-truncated).
+    #   - 80%-95% + exit_reason=="stuck_clips": PARTIAL OK — save .npy + write
+    #     failed_clip_keys.json so downstream paired eval aligns on embedded keys only.
+    EMERGENCY_FLOOR = 0.80
+    NORMAL_FLOOR = 0.95
+    pct = final_count / total_clips
+    if pct < EMERGENCY_FLOOR:
+        print(f"FATAL: Only {final_count:,}/{total_clips:,} ({pct*100:.0f}%) < emergency "
+              f"floor {EMERGENCY_FLOOR*100:.0f}% (exit_reason={exit_reason}). Resume with same command.")
         sys.exit(1)
+    if pct < NORMAL_FLOOR and exit_reason == "worker_crash":
+        print(f"FATAL: {final_count:,}/{total_clips:,} ({pct*100:.0f}%) + worker_crash — "
+              f"partial data likely truncated by SIGKILL/SIGSEGV; not safe to promote to .npy. "
+              f"Resume with same command.")
+        sys.exit(1)
+    if pct < NORMAL_FLOOR:
+        # Partial success (stuck_clips path). Save .npy + failed_clip_keys.json.
+        n_failed = total_clips - final_count
+        print(f"⚠️  PARTIAL SUCCESS: {final_count:,}/{total_clips:,} ({pct*100:.1f}%) embedded; "
+              f"{n_failed:,} clips irrecoverably failed decode (exit_reason=stuck_clips). "
+              f"Proceeding with partial .npy — downstream (paired BCa, FAISS) aligns on "
+              f"embedded keys only.")
+        if args.subset:
+            try:
+                subset_keys = load_subset(args.subset)
+                embedded = set(all_keys)
+                failed = [k for k in subset_keys if k not in embedded]
+                failed_path = output_dir / f"failed_clip_keys_{args.encoder}.json"
+                with open(failed_path, 'w') as f:
+                    json.dump({"n_failed": len(failed), "n_embedded": final_count,
+                               "n_total": total_clips, "failed_clip_keys": failed}, f, indent=2)
+                print(f"  Failed-clip manifest: {failed_path}")
+            except Exception as e:
+                print(f"  WARN: could not write failed_clip_keys.json: {e}")
 
     embeddings = np.stack(all_embeddings).astype(np.float32)
     clip_keys = all_keys
@@ -396,8 +478,14 @@ def orchestrator_main(args):
     np.save(embeddings_file, embeddings)
     np.save(embeddings_file.with_suffix('.paths.npy'), np.array(clip_keys, dtype=object))
 
-    if checkpoint_file.exists():
-        checkpoint_file.unlink()
+    # iter11 META-fix: the v1→v10 paired_eval cycle lost ~10 h because this unlink
+    # destroyed the checkpoint while the script wiped the .npy elsewhere — no durable
+    # state survived a round-trip. Now gated: unlinks only if user typed `2` at the
+    # .sh prompt (args.cache_policy=2/recompute). Default (1/keep) preserves checkpoint
+    # as a second durable backup alongside the .npy.
+    from utils.cache_policy import guarded_delete
+    guarded_delete(checkpoint_file, args.cache_policy,
+                   label=f"m05 checkpoint ({args.encoder})")
 
     print("\n=== EMBEDDING COMPLETE ===")
     print(f"Saved: {embeddings_file}")
@@ -430,14 +518,12 @@ def worker_main(args):
                 args.batch_size = _profile["optimal_bs"]
                 print(f"Batch size: {args.batch_size} (from inference/vjepa2 profiler)")
         if args.batch_size is None:
-            _pcfg_bs = get_pipeline_config().get("gpu", {}).get("inference_vjepa_bs")
-            if _pcfg_bs:
-                args.batch_size = _pcfg_bs
-                print(f"Batch size: {args.batch_size} (from pipeline.yaml)")
-            else:
-                batch_sizes = compute_batch_sizes(gpu_vram_gb=args.gpu_mem)
-                args.batch_size = batch_sizes["vjepa"]
-                print(f"Batch size: {args.batch_size} (linear estimate)")
+            # iter10 #78 fix: fail-loud on missing pipeline.yaml keys per CLAUDE.md §5.
+            # Prior code used `.get("gpu", {}).get("inference_vjepa_bs")` which returned
+            # None on schema drift → silently fell through to linear estimate → wrong BS,
+            # potential OOM or throughput loss, no warning. Now yaml is mandatory.
+            args.batch_size = get_pipeline_config()["gpu"]["inference_vjepa_bs"]
+            print(f"Batch size: {args.batch_size} (from pipeline.yaml)")
 
     # Adapted models eval at 64f (VJEPA_FRAMES_PER_CLIP) but frozen HF models also use 64f.
     # The difference: adapted uses native vjepa2 (sdp_kernel patched), frozen uses HF AutoModel.
@@ -479,7 +565,8 @@ def worker_main(args):
     encoder_name = getattr(args, 'encoder', None) or ("vjepa_adapted" if is_adapted else "vjepa")
     from utils.config import get_encoder_info
     embed_suffix = get_encoder_info(encoder_name)["suffix"]
-    checkpoint_file = output_dir / f".m05_checkpoint{embed_suffix}.npz"
+    ckpt_fp = _checkpoint_fingerprint(model_path, is_adapted)
+    checkpoint_file = output_dir / f".m05_checkpoint{embed_suffix}{ckpt_fp}.npz"
     subset_keys = load_subset(args.subset) if args.subset else set()
 
     # Load checkpoint for resume (processed_keys used by producer to skip done clips)
@@ -760,8 +847,12 @@ def worker_main(args):
         shutil.rmtree(tmp_dir, ignore_errors=True)
         try:
             tmp_base.rmdir()
-        except OSError:
-            pass
+        except OSError as e:
+            # Only swallow the benign "dir not empty" case — any other OSError
+            # (permission, IO, device) must surface per CLAUDE.md §5 (no silent swallows).
+            if e.errno != errno.ENOTEMPTY:
+                raise
+            print(f"[m05] tmp_base non-empty, leaving for next run: {tmp_base}")
 
     clips_this_run = len(all_embeddings) - resume_count
     if clips_this_run > 0:
@@ -811,6 +902,11 @@ def main():
     parser.add_argument("--start-from", type=int, default=0, help=argparse.SUPPRESS)
     parser.add_argument("--process-count", type=int, default=ENGINE_RESTART_EVERY,
                         help=argparse.SUPPRESS)
+    # Cache-policy gate (iter11): every destructive delete in this module must route
+    # through utils.cache_policy.guarded_delete(path, args.cache_policy, ...).
+    # --cache-policy defaults to 1 (keep) so overnight re-runs never destroy cache.
+    from utils.cache_policy import add_cache_policy_arg
+    add_cache_policy_arg(parser)
     args = parser.parse_args()
 
     # Worker mode (spawned by orchestrator)

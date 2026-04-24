@@ -15,6 +15,12 @@ data:
   hf_dataset: anonymousML123/walkindia-200k
   num_frames: 16                  # Train at 16f (Meta trains 95% at 16f, eval at 64f)
   seed: 42                        # Reproducibility (random, numpy, torch)
+  # SANITY-mode clip caps (m09a/m09b/m09c read these). Small enough for quick
+  # code-path validation; not intended to produce meaningful metrics. Previously
+  # lived in iter7's vitg16_indian.yaml; lost in the base/extends refactor. The
+  # running SANITY test fails with KeyError if these are absent.
+  sanity_train_clips: 20
+  sanity_val_clips: 10
 
 # -- Masking (V-JEPA 2 default: 8 small + 2 large blocks) --
 mask:
@@ -50,6 +56,19 @@ optimization:
   lr_schedule: constant
   warmup_steps: 500
   warmup_cap_pct: 10              # Cap warmup at 10% of total steps
+  min_lr: 1.0e-6                  # LR floor used by cosine-decay branch in build_scheduler.
+                                  # No-op under lr_schedule=constant but still read by the
+                                  # lr_lambda closure (utils/training.py:507).
+
+  # iter11 auto disk-hygiene — mode-gated cache-policy default consumed by
+  # m09a/m09b/m09c's merge_config_with_args. SANITY keeps ALL intermediate ckpts for
+  # debug (1-step run, small total footprint); POC/FULL auto-enable cleanup because
+  # 5-epoch POC writes ~25 × 15 GB periodic ckpts → disk-full without it. Explicit
+  # CLI `--cache-policy 1|2` always wins over this yaml default.
+  cache_policy:
+    sanity: 1
+    poc: 2
+    full: 2
 
   # EMA teacher (fixed momentum, V-JEPA 2 default)
   ema_momentum: 0.99925
@@ -90,8 +109,11 @@ validation:
 
 # -- Checkpointing --
 checkpoint:
-  saves_per_epoch: 10
-  keep_last_n: 2                  # Keep only last 2 checkpoints (~16 GB each)
+  # iter11 (2026-04-24): 10 → 5 so plateau_patience=5 probes = 1 full epoch of no
+  # val-loss improvement (5 probes/epoch × patience=5). Affects probe cadence via
+  # `probe.cadence: saves_per_epoch` in all m09x yamls — 5 epochs × 5 = 25 probes total.
+  saves_per_epoch: 5
+  keep_last_n: 2                  # Keep only last 2 checkpoints (~7 GB each with student-only saves)
 
 # -- Mixed precision --
 mixed_precision:

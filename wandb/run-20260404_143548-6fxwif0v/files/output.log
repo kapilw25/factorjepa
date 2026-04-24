@@ -1,3 +1,0 @@
-wandb: run=m07_SANITY url=https://wandb.ai/sjsu_llm/walkindia-200k/runs/6fxwif0v
-[output_guard] m07 dinov2: ALL VALID — skipping (cached)
-  OK    umap_2d: (50, 2)

@@ -8,21 +8,25 @@
 > Run these commands on GPU. Verify each step before moving to the next.
 > Architecture + decisions: `plan_TODO.md`. Error history: `errors_N_fixes.md`.
 
-### 📊 Progress snapshot (updated 2026-04-19)
+### 📊 Progress snapshot (updated 2026-04-19 17:30 — 1K POC done, decision-gate FAILED)
 
 | Phase | Step | Status | Notes |
 |---|---|---|---|
-| Setup | GPU Setup | ✅ done | 11,444/11,458 files pulled, 112 GB local |
-| A | m10 1K Grounded-SAM (GPU) | 🟢 RUNNING | re-run after 2026-04-19 `rm -rf outputs/poc/` accident; `logs/m10_1k_v1.log` at 145/1000 @ 7:56, ~3.3 s/clip, ETA ~47 min |
-| B | m11 1K factor datasets (CPU) | ⏳ pending | ~10 min factor gen + ~30-60 min per-clip plots (~40-70 min total); `factor_manifest.json` lands at ~10 min — C can launch then, plots continue in background |
-| C | 🎯 m09c POC surgery (GPU) | ⏳ **NEXT after B manifest lands** | ~25 min on 96 GB GPU (5 epochs × 900 train clips × BS=32 ≈ 140 steps); writes `val_split.json` (100 held-out clips); 50-probe trajectory + best-ckpt + kill-switch |
-| D | m05 100-clip frozen embed (GPU) | ⏳ pending — runs AFTER C | ~2 min on val_split.json (100 clips × 1.27 s/clip); held-out, apples-to-apples with E |
-| E | m05 100-clip surgical embed (GPU) | ⏳ pending — runs after D | ~2 min on val_split.json; sequential with D on GPU |
-| F | 🏆 m06 Prec@K decision gate (GPU FAISS) | ⏳ pending — runs after E | ~1 min; reads D + E .npy on 100 held-out clips, produces Surgery vs Frozen metric with BCa 95% CI |
-| G | ExPLoRA arm (m09b + m05 + m06) | 🔒 locked on F pass | conditional on Surgery > Frozen |
-| FULL | 115K scale-up | 🔒 locked | conditional on POC win |
+| Setup | GPU Setup | ✅ | 11,444/11,458 files pulled, 112 GB local |
+| A | m10 1K Grounded-SAM (GPU) | ✅ | 1000/1000 in 1h00m20s (3.62 s/clip); quality_gate PASS |
+| B | m11 1K factor datasets (CPU) | ✅ | 1000/1000 factor-gen in 11m43s + plots |
+| C | m09c Surgery POC (v3, 3-stage, 5 ep) | ✅ | 139 steps / 2h27m; best Prec@K=20.50 @ step 12 (Stage 1); **BWT −0.33**, Stage 3 hurt metric |
+| D | m05 100-val frozen embed | ✅ | 100 clips / 1m58s; shape (100,1664) |
+| E | m05 100-val surgical embed | ✅ | 100 clips / 4m45s (adapted compile slower) |
+| F | 🏆 m06 decision gate | ❌ **FAIL** | Frozen 20.17 ±4.5 vs Surgical 20.33 ±4.67 → Δ +0.17 pp, CIs overlap |
+| G | ExPLoRA arm | 🔒 paused | conditional on F pass (see `plan_TODO.md`) |
+| Patch | 2-stage Surgery + early-stop suite | ✅ landed | Stage 3 dropped, Stage 2 replay 10→30 %, plateau + BWT + kill-switch triggers, `use_permanent_val` flag, `max_epochs: 1` all modes, dual x-axis on train-loss plot |
+| Next | 🎯 10K scale-up run (2-stage yaml) | ⏳ next | `--FULL --subset data/subset_10k.json` — N=1000 val_1k permanent hold-out (CI ±1.5 pp) |
+| FULL | 115K scale-up | 🔒 | conditional on 10K/50K plateau + Surgery > Frozen |
 
-Legend: ✅ done · 🟢 running · ⏳ pending · ⏭️ skipped · 🎯 next target · 🏆 paper-decision gate · 🔒 blocked on upstream result · ❌ failed · 🚫 fatal stop
+Legend: ✅ done · 🟢 running · ⏳ pending · ⏭️ skipped · 🎯 next · 🏆 gate · 🔒 blocked · ❌ failed
+
+> 📖 **Deeper context** — `iter/iter8/plan_TODO.md` (MID), `plan_training.md` (HIGH), `iter/utils/experiment_log.md` (run log).
 
 ---
 
@@ -232,11 +236,11 @@ print(f'L2 norm mean: {np.linalg.norm(e, axis=1).mean():.2f}')"
 
 ## 🏆 Step F: m06 FAISS Prec@K metrics — 🎯 DECISION GATE (~1 min, FAISS-GPU)
 
-Two m06 runs (frozen + surgical) on the SAME 100 held-out val_split clips. m06 takes `--encoder` (NOT `--local-data`). Per-encoder JSON lands at `outputs/poc/m06_metrics_vjepa_2_1_*.json`. BCa 95% CI on N=100 is wider than on N=1000 but still publishable if delta > ~3 Prec@K points.
+Two m06 runs (frozen + surgical) on the SAME 100 held-out val_split clips. m06 takes `--encoder` (NOT `--local-data`). Per-encoder JSON lands at `outputs/poc/m06_faiss_metrics/m06_metrics_vjepa_2_1_*.json`. BCa 95% CI on N=100 is wider than on N=1000 but still publishable if delta > ~3 Prec@K points.
 
 ```bash
 # Frozen baseline — rm stale per-encoder JSON first
-rm -f outputs/poc/m06_metrics_vjepa_2_1_frozen.json outputs/poc/knn_indices_vjepa_2_1_frozen.npy
+rm -f outputs/poc/m06_faiss_metrics/m06_metrics_vjepa_2_1_frozen.json outputs/poc/m06_faiss_metrics/knn_indices_vjepa_2_1_frozen.npy
 python -u src/m06_faiss_metrics.py --POC \
     --subset outputs/poc/m09c_surgery/val_split.json \
     --encoder vjepa_2_1_frozen \
@@ -244,7 +248,7 @@ python -u src/m06_faiss_metrics.py --POC \
     2>&1 | tee logs/m06_100val_frozen.log
 
 # Surgical — the paper-arm result
-rm -f outputs/poc/m06_metrics_vjepa_2_1_surgical.json outputs/poc/knn_indices_vjepa_2_1_surgical.npy
+rm -f outputs/poc/m06_faiss_metrics/m06_metrics_vjepa_2_1_surgical.json outputs/poc/m06_faiss_metrics/knn_indices_vjepa_2_1_surgical.npy
 python -u src/m06_faiss_metrics.py --POC \
     --subset outputs/poc/m09c_surgery/val_split.json \
     --encoder vjepa_2_1_surgical \
@@ -258,7 +262,7 @@ python3 -c "
 import json
 for name in ['frozen', 'surgical']:
     try:
-        m = json.load(open(f'outputs/poc/m06_metrics_vjepa_2_1_{name}.json'))
+        m = json.load(open(f'outputs/poc/m06_faiss_metrics/m06_metrics_vjepa_2_1_{name}.json'))
         pk = m['easy']['precision_at_k']
         print(f'{name:12s}: Prec@K = {pk[\"mean\"]:.2f}% +/- {pk[\"ci\"][\"ci_half\"]:.2f}')
     except FileNotFoundError:
@@ -306,7 +310,7 @@ python -u src/m05_vjepa_embed.py --POC \
     2>&1 | tee logs/m05_1k_explora.log
 
 # m06 Prec@K for ExPLoRA
-rm -f outputs/poc/m06_metrics_vjepa_2_1_explora.json outputs/poc/knn_indices_vjepa_2_1_explora.npy
+rm -f outputs/poc/m06_faiss_metrics/m06_metrics_vjepa_2_1_explora.json outputs/poc/m06_faiss_metrics/knn_indices_vjepa_2_1_explora.npy
 python -u src/m06_faiss_metrics.py --POC \
     --subset data/val_1k.json \
     --encoder vjepa_2_1_explora \
@@ -328,7 +332,7 @@ python -u src/m06_faiss_metrics.py --POC \
 python3 -c "
 import json
 for name in ['frozen', 'explora', 'surgical']:
-    f = f'outputs/poc/m06_metrics_vjepa_2_1_{name}.json'
+    f = f'outputs/poc/m06_faiss_metrics/m06_metrics_vjepa_2_1_{name}.json'
     try:
         m = json.load(open(f))
         pk = m['easy']['precision_at_k']

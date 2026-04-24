@@ -17,6 +17,9 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 
 import json
+
+import av
+import cv2
 import numpy as np
 from PIL import Image as PILImage
 from scipy.ndimage import gaussian_filter
@@ -33,6 +36,7 @@ from utils.plots import init_style, save_fig, COLORS
 from utils.progress import make_pbar
 from utils.video_io import decode_video_bytes
 from utils.wandb_utils import add_wandb_args, init_wandb, log_metrics, finish_wandb
+from utils.curate_verify import select_verify_clips, curate_and_prune
 
 import yaml
 
@@ -302,6 +306,11 @@ def plot_factor_per_clip(dl_dir: Path, da_dir: Path, di_dir: Path,
                         masks_dir: Path, output_dir: Path):
     """2x2 per-clip grid: original | D_L (layout) | D_A (agent) | D_I (interaction).
 
+    Pre-filters to ~100 clips via `utils.curate_verify.select_verify_clips()` — paired
+    with m10's overlay selection (same seed=42 → identical 100 clip_keys for m10 ↔ m11
+    side-by-side spot-check). At 1K writes 100/1000 PNGs; at 10K writes 100/10000
+    PNGs (~100× less CPU + disk than the old "write-all-then-curate" path).
+
     Reads mid_frame_rgb from m10 .npz masks for the original frame.
     Saves individual images per clip to output_dir/m11_per_clip_verify/.
     """
@@ -310,9 +319,23 @@ def plot_factor_per_clip(dl_dir: Path, da_dir: Path, di_dir: Path,
     verify_dir.mkdir(parents=True, exist_ok=True)
 
     dl_files = sorted(dl_dir.glob("*.npy"))
+    # Recover clip_keys from safe_key filenames (safe_key uses "__" as "/" replacement)
+    all_clip_keys = [f.stem.replace("__", "/") + ".mp4" if not f.stem.endswith(".mp4") else f.stem.replace("__", "/")
+                     for f in dl_files]
+    # Normalize: saved as "<tier>__<city>__<activity>__<video>__<video>-<idx>.mp4" → drop final ".mp4"
+    # for consistency with parse_clip_key which expects a trailing ".mp4" path component.
+    all_clip_keys = [f.stem.replace("__", "/") for f in dl_files]
+    selected = select_verify_clips(all_clip_keys, n_target=100, seed=42)
+    print(f"  [m11_per_clip_verify] pre-selected {len(selected)}/{len(dl_files)} clips "
+          f"(paired with m10 via seed=42, round-robin city/activity)")
+
     count = 0
     for dl_file in dl_files:
         safe_key = dl_file.stem
+        # Reconstruct clip_key for membership test (matches what select_verify_clips returned)
+        clip_key = safe_key.replace("__", "/")
+        if clip_key not in selected:
+            continue
         da_file = da_dir / f"{safe_key}.npy"
         mask_file = masks_dir / f"{safe_key}.npz"
 
@@ -392,9 +415,6 @@ def plot_factor_per_videoclip(manifest: dict, dl_dir: Path, da_dir: Path,
     so we get clips with all 3 factors populated and dense agent activity.
     Cost: ~1s/clip encoding × N clips + re-decode top-N MP4s from val_1k_local.
     """
-    from utils.data_download import iter_clips_parallel
-    from utils.video_io import decode_video_bytes
-
     PANEL_H, PANEL_W = 270, 480
     GRID_H, GRID_W = PANEL_H * 2, PANEL_W * 2
     T = 16
@@ -408,10 +428,19 @@ def plot_factor_per_videoclip(manifest: dict, dl_dir: Path, da_dir: Path,
             + v.get("n_interaction_tubes", 0) * 10
             + v.get("agent_pct", 0.0) * 100
         )
+    # Streaming-aware: manifest flags (`has_D_L=True`) cover all eligible clips,
+    # but under `--streaming` only the ~100 verify clips actually have .npy on
+    # disk. Restrict ranking to materialized files to avoid FileNotFoundError
+    # when the top-scored manifest entry was short-circuited. Same code path
+    # works for legacy (non-streaming) where all manifest `has_D_L` clips have .npy.
+    def _has_materialized_dl(clip_key: str) -> bool:
+        return (dl_dir / f"{clip_key.replace('/', '__')}.npy").exists()
+
     ranked = sorted(manifest.items(), key=lambda kv: -_score(kv[1]))
-    top = [(k, v) for k, v in ranked if v.get("has_D_L")][:top_n]
+    top = [(k, v) for k, v in ranked
+           if v.get("has_D_L") and _has_materialized_dl(k)][:top_n]
     if not top:
-        print("  No clips qualify for video grid (need at least D_L)")
+        print("  No clips qualify for video grid (need at least D_L .npy materialized on disk)")
         return
 
     verify_dir = output_dir / "m11_per_Videoclip_verify"
@@ -420,7 +449,6 @@ def plot_factor_per_videoclip(manifest: dict, dl_dir: Path, da_dir: Path,
 
     # Re-decode original MP4 bytes for top N (only ~20 clips, runs in ~30s)
     print(f"  Generating video grids for top {len(top)} clips...")
-    import tempfile
     with tempfile.TemporaryDirectory(prefix="m11_vid_") as tmp_dir:
         clip_q, tar_stop, _reader = iter_clips_parallel(
             local_data=local_data, subset_keys=top_keys)
@@ -476,7 +504,6 @@ def plot_factor_per_videoclip(manifest: dict, dl_dir: Path, da_dir: Path,
 
 def _fit_panel(frame: np.ndarray, panel_h: int, panel_w: int) -> np.ndarray:
     """Resize frame to fit panel preserving aspect ratio; pad rest with black."""
-    import cv2
     h, w = frame.shape[:2]
     scale = min(panel_h / h, panel_w / w)
     new_h, new_w = max(1, int(h * scale)), max(1, int(w * scale))
@@ -493,9 +520,6 @@ def _write_grid_video(out_path: Path, orig: np.ndarray, dl: np.ndarray,
                      T: int, panel_h: int, panel_w: int,
                      grid_h: int, grid_w: int, fps: int):
     """Encode 2x2 grid MP4 (H.264, yuv420p) for one clip. Browser-compatible."""
-    import av
-    import cv2
-
     n_tubes = info.get("n_interaction_tubes", 0)
     pct = info.get("agent_pct", 0.0) * 100
 
@@ -613,6 +637,80 @@ def _process_one_clip(args: tuple) -> tuple:
             "has_D_I": n_tubes > 0,
             "n_interaction_tubes": n_tubes,
             "agent_pct": seg_entry["agent_pixel_ratio"],
+            "tube_category_pairs": [],   # #77: unknown for pre-existing .npy cache
+        })
+
+    # --regen-D_I: rebuild D_I tubes only, leave D_L/D_A .npy untouched.
+    # Reads cached mask.npz (centroids + interactions_json populated by
+    # m10 --interactions-only), decodes MP4 for tube crop, writes tubes to di_dir.
+    if cfg.get("regen_di_only", False):
+        data = np.load(mask_file, allow_pickle=True)
+        interactions = json.loads(str(data["interactions_json"])) if "interactions_json" in data else []
+        centroids = json.loads(str(data["centroids_json"])) if "centroids_json" in data else {}
+        per_object_bboxes = json.loads(str(data["per_object_bboxes_json"])) if "per_object_bboxes_json" in data else {}
+        obj_id_to_cat = json.loads(str(data["obj_id_to_cat_json"])) if "obj_id_to_cat_json" in data else {}
+        with tempfile.TemporaryDirectory(prefix="m11_di_") as tmp:
+            frames_tensor = decode_video_bytes(mp4_bytes, tmp, clip_key, num_frames=16)
+        if frames_tensor is None:
+            return (clip_key, None)
+        frames_np = frames_tensor.permute(0, 2, 3, 1).numpy()
+        frames_np = (frames_np * 255).astype(np.uint8) if frames_np.max() <= 1.0 else frames_np.astype(np.uint8)
+        n_tubes = 0
+        tube_category_pairs: list = []
+        if interactions and cfg["interaction_mining_enabled"]:
+            blacklist = {tuple(sorted(pair)) for pair in cfg["interaction_category_blacklist"]}
+            filtered: list = []
+            for ev in interactions:
+                ca = ev.get("cat_a") or obj_id_to_cat.get(str(ev["obj_a"]))
+                cb = ev.get("cat_b") or obj_id_to_cat.get(str(ev["obj_b"]))
+                if ca is not None and cb is not None and tuple(sorted((ca, cb))) in blacklist:
+                    continue
+                ev = dict(ev)
+                ev["cat_a"], ev["cat_b"] = ca, cb
+                filtered.append(ev)
+            if per_object_bboxes:
+                tubes = make_interaction_tubes_from_bboxes(
+                    frames_np, filtered, per_object_bboxes, cfg["tube_margin"])
+            elif centroids:
+                tubes = make_interaction_tubes_from_centroids(
+                    frames_np, filtered, centroids, cfg["tube_margin"])
+            else:
+                tubes = []
+            for i, tube in enumerate(tubes):
+                np.save(di_dir / f"{safe_key}_tube{i}.npy", tube)
+            n_tubes = len(tubes)
+            tube_category_pairs = [[ev["cat_a"], ev["cat_b"]] for ev in filtered[:n_tubes]]
+        agent_pct = seg_entry["agent_pixel_ratio"]
+        return (clip_key, {
+            "has_D_L": agent_pct <= cfg["max_agent_pct"],
+            "has_D_A": agent_pct >= cfg["min_agent_pct"],
+            "has_D_I": n_tubes > 0,
+            "n_interaction_tubes": n_tubes,
+            "agent_pct": agent_pct,
+            "tube_category_pairs": tube_category_pairs,
+        })
+
+    # Streaming mode: short-circuit for non-verify clips. D_L/D_A/D_I will be
+    # generated on-demand inside m09c DataLoader from (raw_mp4, mask.npz).
+    # Manifest entries derive from seg_entry agent_pct thresholds + mined
+    # interactions count — no mask load, no MP4 decode, no scipy blur, no tube
+    # writes. ~90% m11 wall-time reduction at 10K+; 57 GB D_I disk eliminated.
+    # iter10 2026-04-22: has_D_I / n_interaction_tubes now populate from
+    # seg_entry["n_interactions"] (mined by m10 or m10 --interactions-only)
+    # so StreamingFactorDataset knows which clips have D_I without disk scan.
+    streaming_skip = (cfg.get("streaming", False)
+                      and cfg.get("verify_100_set") is not None
+                      and clip_key not in cfg["verify_100_set"])
+    if streaming_skip:
+        agent_pct = seg_entry["agent_pixel_ratio"]
+        n_ints = seg_entry.get("n_interactions", 0)
+        return (clip_key, {
+            "has_D_L": agent_pct <= cfg["max_agent_pct"],
+            "has_D_A": agent_pct >= cfg["min_agent_pct"],
+            "has_D_I": n_ints > 0 and cfg.get("interaction_mining_enabled", False),
+            "n_interaction_tubes": n_ints,
+            "agent_pct": agent_pct,
+            "tube_category_pairs": [],
         })
 
     data = np.load(mask_file, allow_pickle=True)
@@ -621,6 +719,8 @@ def _process_one_clip(args: tuple) -> tuple:
     interactions = json.loads(str(data["interactions_json"])) if "interactions_json" in data else []
     centroids = json.loads(str(data["centroids_json"])) if "centroids_json" in data else {}
     per_object_bboxes = json.loads(str(data["per_object_bboxes_json"])) if "per_object_bboxes_json" in data else {}
+    # #77: obj_id → canonical 17-cat taxonomy (may be absent for pre-#77 mask caches).
+    obj_id_to_cat = json.loads(str(data["obj_id_to_cat_json"])) if "obj_id_to_cat_json" in data else {}
 
     with tempfile.TemporaryDirectory(prefix="m11_w_") as tmp:
         frames_tensor = decode_video_bytes(mp4_bytes, tmp, clip_key, num_frames=16)
@@ -660,25 +760,48 @@ def _process_one_clip(args: tuple) -> tuple:
                                     feather_sigma=cfg["feather_sigma"])
         np.save(da_file, da_frames)
 
+    # D_I (interaction tubes) gated on interaction_mining.enabled yaml flag.
+    # 2-stage iter9+ recipe retires Stage 3 → D_I is unused training data →
+    # skipping here avoids ~26% of m11 disk waste (1.1 GB @ 10K, ~5 GB @ 50K,
+    # ~12 GB @ 115K). m10 still mines interactions into mask .npz (reversible);
+    # re-enable by flipping yaml flag → m11 rerun produces D_I from cached masks.
     n_tubes = 0
-    if interactions:
+    tube_category_pairs: list = []
+    if interactions and cfg["interaction_mining_enabled"]:
+        # #77: category-pair blacklist (order-insensitive). Empty list = accept all.
+        # Events inherit cat_a / cat_b from m10's mine_interactions annotation; we
+        # rebuild via obj_id_to_cat as a fail-loud fallback when reading a pre-#77
+        # mask cache that lacks the inline annotation.
+        blacklist = {tuple(sorted(pair)) for pair in cfg["interaction_category_blacklist"]}
+        filtered: list = []
+        for ev in interactions:
+            ca = ev.get("cat_a") or obj_id_to_cat.get(str(ev["obj_a"]))
+            cb = ev.get("cat_b") or obj_id_to_cat.get(str(ev["obj_b"]))
+            if ca is not None and cb is not None and tuple(sorted((ca, cb))) in blacklist:
+                continue
+            ev = dict(ev)
+            ev["cat_a"], ev["cat_b"] = ca, cb
+            filtered.append(ev)
+
         if per_object_bboxes:
             tubes = make_interaction_tubes_from_bboxes(
-                frames_np, interactions, per_object_bboxes, cfg["tube_margin"])
+                frames_np, filtered, per_object_bboxes, cfg["tube_margin"])
         elif centroids:
             tubes = make_interaction_tubes_from_centroids(
-                frames_np, interactions, centroids, cfg["tube_margin"])
+                frames_np, filtered, centroids, cfg["tube_margin"])
         else:
             tubes = []
         for i, tube in enumerate(tubes):
             np.save(di_dir / f"{safe_key}_tube{i}.npy", tube)
         n_tubes = len(tubes)
+        tube_category_pairs = [[ev["cat_a"], ev["cat_b"]] for ev in filtered[:n_tubes]]
 
     return (clip_key, {
         "has_D_L": has_dl, "has_D_A": has_da,
         "has_D_I": n_tubes > 0,
         "n_interaction_tubes": n_tubes,
         "agent_pct": agent_pct,
+        "tube_category_pairs": tube_category_pairs,   # #77 typed D_I → paper narrative
     })
 
 
@@ -697,15 +820,41 @@ def main():
     parser.add_argument("--input-dir", default=None,
                         help="m10 output dir (default: {output_dir}/factors/)")
     parser.add_argument("--output-dir", default=None, help="Override output dir")
+    parser.add_argument("--streaming", action="store_true",
+                        help="Skip D_L/D_A .npy writes for non-verify clips (100 curated); "
+                             "m09c reads factors on-demand via utils.factor_streaming. "
+                             "~90%% m11 wall-time reduction + ~340 GB disk saved at 10K. "
+                             "See iter/iter9/plan_code_dev.md.")
+    parser.add_argument("--regen-D_I", dest="regen_di", action="store_true",
+                        help="DEPRECATED (iter10 2026-04-22): D_I tubes are now streamed "
+                             "on-demand inside m09c DataLoader via utils/factor_streaming."
+                             "stream_interaction_tubes(). No disk writes needed — saves "
+                             "57 GB @ 10K / 655 GB @ 115K. Flag kept as no-op for "
+                             "backward-compat; emits a warning when used. Run m10 "
+                             "--interactions-only to populate interactions_json in mask.npz, "
+                             "then m11 --streaming (no --regen-D_I) is enough.")
     add_subset_arg(parser)
     add_local_data_arg(parser)
     add_wandb_args(parser)
+    # Cache-policy gate (iter11): every destructive delete in this module must route
+    # through utils.cache_policy.guarded_delete(path, args.cache_policy, ...).
+    # --cache-policy defaults to 1 (keep) so overnight re-runs never destroy cache.
+    from utils.cache_policy import add_cache_policy_arg
+    add_cache_policy_arg(parser)
     args = parser.parse_args()
 
     if not (args.SANITY or args.POC or args.FULL):
         parser.print_help()
         print("\nERROR: Specify --SANITY, --POC, or --FULL")
         sys.exit(1)
+
+    # iter10 2026-04-22: --regen-D_I is deprecated. D_I streams on-demand
+    # inside m09c via stream_interaction_tubes() — no disk writes required.
+    if args.regen_di:
+        print("\n[DEPRECATED] --regen-D_I is a no-op as of iter10. D_I tubes are "
+              "streamed on-demand by m09c's StreamingFactorDataset.")
+        print("             Continuing as if --regen-D_I was not passed.")
+        args.regen_di = False
 
     # --plot: re-generate plots from existing outputs (no data processing)
     if args.plot:
@@ -757,11 +906,15 @@ def main():
     da_dir.mkdir(parents=True, exist_ok=True)
     di_dir.mkdir(parents=True, exist_ok=True)
 
-    # Skip if done
+    # Skip if done (unless --regen-D_I explicitly requests rebuild of D_I only)
     manifest_file = output_dir / "factor_manifest.json"
-    if verify_or_skip(output_dir, {"manifest": manifest_file},
-                      label="m11 factor_datasets"):
-        return
+    if not args.regen_di:
+        if verify_or_skip(output_dir, {"manifest": manifest_file},
+                          label="m11 factor_datasets"):
+            return
+    else:
+        print(f"\n[--regen-D_I] Bypassing manifest guard; will rebuild D_I tubes only "
+              f"(D_L/D_A .npy preserved on disk). Existing manifest: {manifest_file.exists()}")
 
     # Load segments metadata from m10 (MANDATORY)
     segments_file = input_dir / "segments.json"
@@ -785,9 +938,17 @@ def main():
     max_agent_pct = factor_cfg["max_agent_area_pct"]
     interaction_cfg = train_cfg["interaction_mining"]
     tube_margin = interaction_cfg["tube_margin_pct"]
+    interaction_mining_enabled = interaction_cfg["enabled"]
+    interaction_category_blacklist = interaction_cfg["category_pair_blacklist"]   # #77
 
     local_data = getattr(args, "local_data", None)
     subset_keys = load_subset(args.subset) if args.subset else None
+
+    # Effective work count: TAR reader yields only clips in subset_keys (if given),
+    # so pbar + target must reflect that — not len(segments) from m10's full mask cache.
+    # Avoids a ~10-min timeout stall at end of Step B when subset < segments (F1 fix
+    # for val_1k leak dropped subset_10k from 10000 → 9566). errors_N_fixes #70.
+    n_to_process = len(subset_keys) if subset_keys else len(segments)
 
     print(f"\n{'='*60}")
     print(f"Factor Dataset Generation — {mode}")
@@ -796,11 +957,11 @@ def main():
     print(f"Output D_A: {da_dir}")
     print(f"Output D_I: {di_dir}")
     print(f"Layout method: {layout_method} | Agent method: {agent_method} (factor={matte_factor})")
-    print(f"Clips to process: {len(segments)}")
+    print(f"Clips to process: {n_to_process}")
     print(f"{'='*60}\n")
 
     manifest = {}
-    pbar = make_pbar(total=len(segments), desc="m11 factors", unit="clip")
+    pbar = make_pbar(total=n_to_process, desc="m11 factors", unit="clip")
     t0 = time.time()
 
     # Cgroup-aware worker count. Cap at 32 to bound memory (each worker holds
@@ -808,6 +969,20 @@ def main():
     # get 24; on a host-shared 192-core machine we get 192 → clamped to 32.
     n_workers = _get_cpu_workers(cap=32)
     print(f"CPU workers: {n_workers} (os.sched_getaffinity-based; cap=32)\n")
+
+    # Streaming mode: pre-select 100 verify clips (metadata-only, seed=42) that
+    # STILL get .npy written so plot_factor_per_clip keeps working unchanged.
+    # All other clips short-circuit → m09c streams D_L/D_A from (raw_mp4, mask.npz).
+    # Pool for verify selection must match what the TAR reader will actually yield
+    # (subset_keys under --subset, else all segment keys). Otherwise some verify
+    # picks land on clips the TAR skips → fewer than 100 .npy materialized.
+    verify_100_set = None
+    if args.streaming:
+        verify_pool = list(subset_keys) if subset_keys else list(segments.keys())
+        verify_100 = select_verify_clips(verify_pool, n_target=100, seed=42)
+        verify_100_set = set(verify_100)
+        print(f"Streaming mode: {len(verify_100_set)} verify clips materialized; "
+              f"{n_to_process - len(verify_100_set)} short-circuited (no D_L/D_A .npy).")
 
     worker_cfg = {
         "layout_method": layout_method,
@@ -818,6 +993,11 @@ def main():
         "min_agent_pct": min_agent_pct,
         "max_agent_pct": max_agent_pct,
         "tube_margin": tube_margin,
+        "interaction_mining_enabled": interaction_mining_enabled,
+        "interaction_category_blacklist": interaction_category_blacklist,   # #77
+        "streaming": args.streaming,
+        "verify_100_set": verify_100_set,
+        "regen_di_only": args.regen_di,
     }
     path_args = (str(masks_dir), str(dl_dir), str(da_dir), str(di_dir))
 
@@ -830,7 +1010,7 @@ def main():
             futures: dict = {}
             submitted = 0
             n_done = 0
-            target = len(segments)
+            target = n_to_process
 
             while n_done < target:
                 # Fill pool up to 2× n_workers outstanding to keep decode pipeline warm
@@ -891,6 +1071,18 @@ def main():
     # Top-20 video grid (2x2 MP4s for human eyeballing + docs/index.html embed)
     plot_factor_per_videoclip(manifest, dl_dir, da_dir, di_dir,
                               output_dir, local_data, top_n=20)
+
+    # Top-20 paper-figures sub-selection — the pre-filter in plot_overlay_per_clip
+    # + plot_factor_per_clip already wrote only ~100 per-clip PNGs (metadata-deduped).
+    # curate_and_prune here further picks the best-20 by factor_manifest quality
+    # score (D_I presence + tube count + agent_pct sweet spot) for paper headline
+    # figures. Never deletes originals now — the 100 IS the curated supplementary
+    # set, and the 20 lives inside *_top20/ sibling dirs for easy citation.
+    try:
+        mode_outputs_dir = output_dir.parent   # outputs/<mode>/
+        curate_and_prune(mode_outputs_dir, delete_originals=False)
+    except Exception as e:
+        print(f"[curate_verify] WARN: curation failed (non-fatal): {e}")
 
     log_metrics(wb_run, {"n_clips": len(manifest), "elapsed": elapsed})
     finish_wandb(wb_run)

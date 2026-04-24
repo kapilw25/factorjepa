@@ -617,17 +617,36 @@ def save_training_checkpoint(path: Path, student, teacher, predictor,
                               optimizer, scheduler, scaler,
                               step: int, best_metric: float,
                               full: bool = True):
-    """Save checkpoint. full=True includes optimizer (for resume), False is light (for selection)."""
+    """Save checkpoint.
+
+    iter11 disk-budget fix (2026-04-24, after POC v3 disk-full crash at step 6):
+    teacher + predictor were previously ALWAYS included. For a ViT-G 2B model:
+      student    ≈ 4 GB (bf16) or 8 GB (fp32)
+      teacher    ≈ 4 GB / 8 GB — deepcopy of student, only needed for EMA-resume
+      predictor  ≈ 240 MB
+      optimizer  ≈ 16 GB (AdamW, 2 fp32 moments × 2B params)
+    With `full=True` → ~24 GB per ckpt. POC writes 5 live ckpts → 120 GB → disk-full.
+
+    New semantics:
+      full=True  → resume-capable: student + teacher + predictor + optimizer + scheduler + scaler
+                   (~20-24 GB on ViT-G). Use for m09*_ckpt_latest.pt (one file, resume anchor).
+      full=False → SELECTION-ONLY: student ONLY (~4 GB). Use for step*.pt, best.pt,
+                   best_prec.pt — they're read only to pick the "best" student and export it;
+                   teacher/predictor are rebuilt on resume via student EMA init anyway.
+    POC footprint after fix: 4+4 (2 steps @ keep_n=2) + 20 (latest) + 4 (best) + 4 (best_prec)
+    = 36 GB peak (vs 120 GB before).
+    """
     path.parent.mkdir(parents=True, exist_ok=True)
     tmp_path = path.with_suffix(".tmp")
     ckpt = {
         "student": student.state_dict(),
-        "teacher": teacher.state_dict(),
-        "predictor": predictor.state_dict(),
         "step": step,
         "best_metric": best_metric,
+        "is_full": full,                      # marker for load_training_checkpoint fallback
     }
     if full:
+        ckpt["teacher"] = teacher.state_dict()
+        ckpt["predictor"] = predictor.state_dict()
         ckpt["optimizer"] = optimizer.state_dict()
         ckpt["scheduler"] = scheduler.state_dict()
         ckpt["scaler"] = scaler.state_dict() if scaler else None
@@ -635,18 +654,30 @@ def save_training_checkpoint(path: Path, student, teacher, predictor,
     os.replace(tmp_path, path)
 
 
-def cleanup_old_checkpoints(output_dir: Path, keep_n: int = 2):
-    """Delete oldest m09_ckpt_step*.pt files, keeping only the last keep_n."""
-    pattern = str(output_dir / f"{CHECKPOINT_PREFIX}_step*.pt")
+def cleanup_old_checkpoints(output_dir: Path, prefix: str, keep_n: int = 2,
+                             cache_policy: str = "1"):
+    """Delete oldest {prefix}_step*.pt files, keeping only the last keep_n.
+
+    iter11 META-fix: gated through cache_policy. Default=1/keep short-circuits all
+    deletes (preserves disk vs. resume-safety tradeoff for the user to choose).
+    Caller must pass cache_policy=args.cache_policy to honor the .sh prompt.
+
+    `prefix` MUST match the caller module's CHECKPOINT_PREFIX (e.g. "m09b_ckpt")
+    — previously this was hardcoded to the utils-module CHECKPOINT_PREFIX
+    ("m09_ckpt"), causing a silent zero-match glob for m09b (writes "m09b_ckpt_*")
+    and m09c (writes "m09c_ckpt_*"), which piled up ckpts until disk-full.
+    """
+    from utils.cache_policy import guarded_delete
+    pattern = str(output_dir / f"{prefix}_step*.pt")
     step_files = sorted(glob.glob(pattern),
                         key=lambda f: os.path.getmtime(f))
     if len(step_files) > keep_n:
         for old_file in step_files[:-keep_n]:
-            os.remove(old_file)
-            print(f"  Cleaned old checkpoint: {Path(old_file).name}")
+            guarded_delete(old_file, cache_policy, label="m09 step checkpoint")
 
 
-def cleanup_stage_checkpoints(output_dir: Path, prefix: str, keep_n: int = 1):
+def cleanup_stage_checkpoints(output_dir: Path, prefix: str, keep_n: int = 1,
+                               cache_policy: str = "1"):
     """Delete oldest `{prefix}_stage*.pt` files, keeping only the last `keep_n`.
 
     Mirror of `cleanup_old_checkpoints` but for **stage-suffixed** saves
@@ -667,17 +698,22 @@ def cleanup_stage_checkpoints(output_dir: Path, prefix: str, keep_n: int = 1):
                          key=lambda f: os.path.getmtime(f))
     if len(stage_files) > keep_n:
         target = stage_files[:-keep_n] if keep_n > 0 else stage_files
+        # iter11 META-fix: gate destructive stage-ckpt cleanup through cache_policy.
+        # Default=1/keep is safe; pass cache_policy=args.cache_policy from orchestrator.
+        from utils.cache_policy import guarded_delete
         for old_file in target:
-            os.remove(old_file)
-            print(f"  Cleaned stage checkpoint: {Path(old_file).name}")
+            guarded_delete(old_file, cache_policy,
+                           label="m09c stage checkpoint")
 
 
 def load_training_checkpoint(path: Path, student, teacher, predictor,
                               optimizer, scheduler, scaler) -> tuple:
     ckpt = torch.load(path, map_location="cuda", weights_only=False)
     student.load_state_dict(ckpt["student"])
-    teacher.load_state_dict(ckpt["teacher"])
-    predictor.load_state_dict(ckpt["predictor"])
+    if "teacher" in ckpt:
+        teacher.load_state_dict(ckpt["teacher"])
+    if "predictor" in ckpt:
+        predictor.load_state_dict(ckpt["predictor"])
     if "optimizer" in ckpt:
         optimizer.load_state_dict(ckpt["optimizer"])
     if "scheduler" in ckpt:
@@ -793,17 +829,31 @@ class FactorSampler:
         self.factors = []
         self.weights = []
         for mode_key, weight in mode_mixture.items():
-            if weight > 0:
-                fk = factor_map[mode_key]
-                if self.clips_by_factor[fk]:
-                    self.factors.append(fk)
-                    self.weights.append(weight)
+            if weight <= 0:
+                continue
+            fk = factor_map[mode_key]
+            if not self.clips_by_factor[fk]:
+                counts = {k: len(v) for k, v in self.clips_by_factor.items()}
+                raise ValueError(
+                    f"FactorSampler: mode_mixture requests {mode_key}={weight} "
+                    f"but clips_by_factor[{fk}] is empty (counts={counts}). "
+                    f"Silent renormalization banned per CLAUDE.md §5. Fix: regenerate "
+                    f"{fk} upstream OR set {mode_key}=0.0 in yaml mode_mixture."
+                )
+            self.factors.append(fk)
+            self.weights.append(weight)
         if not self.factors:
-            print("FATAL: No factor clips available for the given mode mixture")
-            sys.exit(1)
+            raise ValueError(
+                f"FactorSampler: no positive weights in mode_mixture={mode_mixture}"
+            )
         total_w = sum(self.weights)
         self.weights = [w / total_w for w in self.weights]
-        print(f"  FactorSampler: {', '.join(f'{f}={w:.0%}' for f, w in zip(self.factors, self.weights))}")
+        requested = {k: v for k, v in mode_mixture.items() if v > 0}
+        actual = dict(zip(self.factors, self.weights))
+        print(
+            f"  FactorSampler: REQUESTED={requested} → "
+            f"ACTUAL={{{', '.join(f'{f}={w:.0%}' for f, w in actual.items())}}}"
+        )
 
     def sample(self) -> tuple:
         """Returns (factor_type, clip_key, path_or_paths)."""
@@ -814,6 +864,301 @@ class FactorSampler:
         if isinstance(path, list):
             path = path[np.random.randint(len(path))]
         return factor, clip_key, path
+
+
+# ═════════════════════════════════════════════════════════════════════════
+# STREAMING FACTOR GENERATION — on-demand D_L / D_A from (raw_mp4, mask) pairs
+# ═════════════════════════════════════════════════════════════════════════
+# Purpose: eliminate m11's ~340 GB disk write at 10K / ~4 TB at 115K by
+# generating D_L / D_A inside DataLoader workers. Keeps m10 masks + raw MP4s
+# on disk; factor arrays materialize only in worker RAM, feed directly to
+# student forward. Unlocks full 10K → 50K → 115K ladder on a single 500 GB
+# instance (vs 500 GB → 3 TB → 5 TB rent ladder).
+#
+# Contract (technique-agnostic):
+#   - StreamingFactorDataset takes (mp4_index, mask_index, factor_cfg,
+#     mode_mixture, ...) as explicit params. NO argparse/technique branching.
+#   - D_L / D_A stream via utils.factor_streaming.stream_factor; D_I stays
+#     on legacy disk path (Stage 3 retired in iter9's 2-stage recipe).
+#   - Worker init forces torch.set_num_threads(1) + PyAV thread_count=1 (R2
+#     in plan_code_dev.md risk register).
+#
+# Bitwise parity with legacy .npy: guaranteed by (a) importing m11's
+# make_layout_only/make_agent_only directly, (b) mirroring m11:652-664 mask
+# alignment, (c) sharing tensor_from_factor_array normalization with
+# load_factor_clip.
+
+def build_streaming_indices(manifest_path: Path, masks_dir: Path, local_data: str) -> tuple:
+    """Map clip_keys → (TAR path, base name) and mask .npz paths.
+
+    One-shot scan of the local TAR pool in the main process. Called once at
+    stage setup, passed to DataLoader workers via dataset __init__ — workers
+    re-open TARs locally (fork-safe), never sharing iter_clips_parallel's
+    threads.
+
+    Args:
+        manifest_path: path to m11 factor_manifest.json
+        masks_dir: directory holding m10 .npz mask files
+        local_data: path to local_data dir with *.tar shards
+
+    Returns:
+        (mp4_index, mask_index, factor_manifest)
+            mp4_index: {clip_key: (tar_path: str, base_name: str)}
+            mask_index: {clip_key: npz_path: Path}
+            factor_manifest: loaded m11 manifest dict (for has_D_L/has_D_A gating)
+    """
+    import tarfile
+    factor_manifest = json.loads(Path(manifest_path).read_text())
+    manifest_keys = set(factor_manifest.keys())
+
+    tar_files = sorted(Path(local_data).glob("*.tar"))
+    if not tar_files:
+        raise FileNotFoundError(
+            f"build_streaming_indices: no *.tar files in {local_data}. "
+            f"Did you run ./git_pull.sh to fetch local_data?")
+
+    mp4_index = {}
+    from utils.data_download import _get_clip_key
+    for tar_path in tar_files:
+        with tarfile.open(tar_path, "r") as tar:
+            entries = {}
+            for member in tar.getmembers():
+                base = member.name.rsplit(".", 1)[0]
+                ext = member.name.rsplit(".", 1)[-1] if "." in member.name else ""
+                entries.setdefault(base, {})[ext] = member
+            for base, parts in entries.items():
+                if "json" not in parts or "mp4" not in parts:
+                    continue
+                json_bytes = tar.extractfile(parts["json"]).read()
+                clip_key = _get_clip_key(json_bytes)
+                if clip_key in manifest_keys and clip_key not in mp4_index:
+                    mp4_index[clip_key] = (str(tar_path), base)
+
+    mask_index = {}
+    masks_dir = Path(masks_dir)
+    for clip_key in manifest_keys:
+        safe_key = clip_key.replace("/", "__")
+        npz_path = masks_dir / f"{safe_key}.npz"
+        if npz_path.exists():
+            mask_index[clip_key] = npz_path
+
+    indexed = set(mp4_index.keys()) & set(mask_index.keys())
+    dropped = manifest_keys - indexed
+    if dropped:
+        print(f"  build_streaming_indices: {len(dropped)} manifest clips missing "
+              f"MP4 or mask — excluded. Sample: {list(dropped)[:3]}")
+    print(f"  build_streaming_indices: {len(indexed)} clips ready "
+          f"({len(mp4_index)} mp4, {len(mask_index)} masks, {len(tar_files)} TARs scanned)")
+    return mp4_index, mask_index, factor_manifest
+
+
+def _streaming_worker_init(worker_id: int) -> None:
+    """DataLoader worker_init_fn — single-threaded CPU + seeded RNG.
+
+    CRITICAL (risk R2): without thread_count=1 on PyAV codecs, each worker
+    spawns ffmpeg threads → host OOM at num_workers=16. See src/CLAUDE.md
+    'Threading' rule.
+    """
+    info = torch.utils.data.get_worker_info()
+    dataset = info.dataset
+    seed = ((dataset.base_seed * 1_000_003) ^ (worker_id * 2_718_281)) & 0xFFFFFFFF
+    np.random.seed(seed)
+    random.seed(seed)
+    torch.manual_seed(seed)
+    torch.set_num_threads(1)
+    try:
+        import av
+        av.logging.set_level(av.logging.ERROR)
+    except ImportError:
+        print(f"  worker {worker_id}: PyAV not importable — thread_count not capped")
+
+
+class StreamingFactorDataset(torch.utils.data.IterableDataset):
+    """On-demand D_L / D_A / D_I factor generator for DataLoader.
+
+    Replaces synchronous FactorSampler.sample() + load_factor_clip() with a
+    DataLoader-driven pipeline. Each worker owns a shard of clip_keys, samples
+    (factor_type, clip_key) per mode_mixture weights, decodes MP4 + mask from
+    disk, runs stream_factor() (D_L/D_A) or stream_interaction_tubes() (D_I)
+    → normalized tensor.
+
+    Yields dicts with keys {"tensor", "factor_type", "clip_key"} — default
+    PyTorch collate stacks tensors, lists strings.
+
+    D_I streaming (iter10 2026-04-22): tubes generated on-demand from
+    (mp4_bytes, mask.npz), no disk reads. `di_legacy_index` param retained
+    for backward-compat but unused when `interaction_cfg` is passed.
+    """
+
+    def __init__(
+        self,
+        mp4_index: dict,
+        mask_index: dict,
+        factor_manifest: dict,
+        factor_cfg: dict,
+        mode_mixture: dict,
+        num_frames: int,
+        crop_size: int,
+        di_legacy_index: dict = None,
+        base_seed: int = 42,
+        steps_per_epoch: int = None,
+        interaction_cfg: dict = None,
+    ):
+        super().__init__()
+        self.mp4_index = mp4_index
+        self.mask_index = mask_index
+        self.factor_cfg = factor_cfg
+        self.num_frames = num_frames
+        self.crop_size = crop_size
+        self.di_legacy_index = di_legacy_index or {}
+        self.interaction_cfg = interaction_cfg
+        self.base_seed = base_seed
+        self.steps_per_epoch = steps_per_epoch
+
+        factor_map = {"L": "D_L", "A": "D_A", "I": "D_I"}
+        indexed_keys = set(mp4_index.keys()) & set(mask_index.keys())
+        self.clips_by_factor = {"D_L": [], "D_A": [], "D_I": []}
+        for clip_key in indexed_keys:
+            info = factor_manifest.get(clip_key, {})
+            if info.get("has_D_L"):
+                self.clips_by_factor["D_L"].append(clip_key)
+            if info.get("has_D_A"):
+                self.clips_by_factor["D_A"].append(clip_key)
+            # iter10: D_I streaming — manifest's has_D_I (populated from m10
+            # mined interactions count) replaces legacy .npy disk presence.
+            if info.get("has_D_I"):
+                self.clips_by_factor["D_I"].append(clip_key)
+        # Back-compat: if legacy disk tubes were provided (pre-iter10) and
+        # manifest lacks has_D_I, still populate from legacy index.
+        if not self.clips_by_factor["D_I"] and self.di_legacy_index:
+            for clip_key, tubes in self.di_legacy_index.items():
+                if tubes:
+                    self.clips_by_factor["D_I"].append(clip_key)
+
+        self.factors = []
+        self.weights = []
+        for mode_key, weight in mode_mixture.items():
+            if weight <= 0:
+                continue
+            fk = factor_map[mode_key]
+            if not self.clips_by_factor[fk]:
+                counts = {k: len(v) for k, v in self.clips_by_factor.items()}
+                raise ValueError(
+                    f"StreamingFactorDataset: mode_mixture requests {mode_key}={weight} "
+                    f"but clips_by_factor[{fk}] is empty (counts={counts}). Silent "
+                    f"renormalization would run a different distribution than yaml — "
+                    f"failing loud per CLAUDE.md §5. Fix: upstream (e.g., re-run m10 "
+                    f"--interactions-only to populate n_interactions for D_I) OR set "
+                    f"{mode_key}=0.0 in yaml mode_mixture."
+                )
+            self.factors.append(fk)
+            self.weights.append(weight)
+        if not self.factors:
+            raise ValueError(
+                f"StreamingFactorDataset: no positive weights in mode_mixture={mode_mixture}"
+            )
+        total_w = sum(self.weights)
+        self.weights = [w / total_w for w in self.weights]
+        requested = {k: v for k, v in mode_mixture.items() if v > 0}
+        actual = dict(zip(self.factors, self.weights))
+        print(
+            f"  StreamingFactorDataset: REQUESTED={requested} → "
+            f"ACTUAL={{{', '.join(f'{f}={w:.0%}' for f, w in actual.items())}}} "
+            f"(indexed={len(indexed_keys)} clips)"
+        )
+
+    def __iter__(self):
+        from utils.factor_streaming import (
+            stream_factor, stream_interaction_tubes, tensor_from_factor_array,
+        )
+        import tarfile
+
+        info = torch.utils.data.get_worker_info()
+        if info is None:
+            worker_id, num_workers = 0, 1
+        else:
+            worker_id, num_workers = info.id, info.num_workers
+
+        rng = np.random.default_rng(
+            ((self.base_seed * 1_000_003) ^ (worker_id * 2_718_281)) & 0xFFFFFFFF)
+
+        per_worker = {}
+        for fk, keys in self.clips_by_factor.items():
+            per_worker[fk] = keys[worker_id::num_workers] if keys else []
+        active_factors = [f for f in self.factors if per_worker[f]]
+        if not active_factors:
+            return
+        active_weights = np.array(
+            [self.weights[self.factors.index(f)] for f in active_factors], dtype=np.float64)
+        active_weights /= active_weights.sum()
+
+        tar_cache = {}
+
+        def _get_mp4_bytes(clip_key):
+            tar_path, base = self.mp4_index[clip_key]
+            if tar_path not in tar_cache:
+                tar_cache[tar_path] = tarfile.open(tar_path, "r")
+            tar = tar_cache[tar_path]
+            mp4_member = tar.getmember(f"{base}.mp4")
+            return tar.extractfile(mp4_member).read()
+
+        try:
+            with tempfile.TemporaryDirectory(prefix="m09c_stream_") as tmp:
+                n_emitted = 0
+                while self.steps_per_epoch is None or n_emitted < self.steps_per_epoch:
+                    factor_type = active_factors[
+                        rng.choice(len(active_factors), p=active_weights)]
+                    clip_key = per_worker[factor_type][
+                        rng.integers(len(per_worker[factor_type]))]
+
+                    if factor_type == "D_I":
+                        # iter10: D_I streaming. Generate tubes on-demand from
+                        # (mp4_bytes, mask.npz); falls back to legacy disk path
+                        # when interaction_cfg not provided (pre-iter10 callers).
+                        if self.interaction_cfg is not None:
+                            mp4_bytes = _get_mp4_bytes(clip_key)
+                            tubes = stream_interaction_tubes(
+                                mp4_bytes=mp4_bytes,
+                                mask_npz_path=self.mask_index[clip_key],
+                                interaction_cfg=self.interaction_cfg,
+                                num_frames=self.num_frames,
+                                tmp_dir=tmp,
+                                clip_key=clip_key,
+                            )
+                            if not tubes:
+                                # Clip lost all tubes to blacklist — re-sample next step.
+                                continue
+                            frames_uint8 = tubes[rng.integers(len(tubes))]
+                        else:
+                            tubes = self.di_legacy_index[clip_key]
+                            tube_path = tubes[rng.integers(len(tubes))]
+                            frames_uint8 = np.load(tube_path)
+                    else:
+                        mp4_bytes = _get_mp4_bytes(clip_key)
+                        frames_uint8 = stream_factor(
+                            mp4_bytes=mp4_bytes,
+                            mask_npz_path=self.mask_index[clip_key],
+                            factor_type=factor_type,
+                            factor_cfg=self.factor_cfg,
+                            num_frames=self.num_frames,
+                            tmp_dir=tmp,
+                            clip_key=clip_key,
+                        )
+
+                    tensor = tensor_from_factor_array(
+                        frames_uint8, self.num_frames, self.crop_size)
+                    yield {
+                        "tensor": tensor,
+                        "factor_type": factor_type,
+                        "clip_key": clip_key,
+                    }
+                    n_emitted += 1
+        finally:
+            for tar_path, tar in tar_cache.items():
+                try:
+                    tar.close()
+                except (OSError, tarfile.TarError) as e:
+                    print(f"  StreamingFactorDataset: error closing {tar_path}: {e}")
 
 
 # ═════════════════════════════════════════════════════════════════════════
@@ -949,14 +1294,19 @@ def run_probe_eval(student, probe_clips: list, cfg: dict, device: torch.device,
         )
 
     _gpu = get_pipeline_config()["gpu"]
+    # iter11 perf fix — start at max_size (not initial_bs). The ramp from 8→44 caused
+    # ~37 torch.compile recompiles per probe (~30 s each = 18 min/probe × 10 probes/ep =
+    # 3 h wasted per epoch on v2 POC log, 2026-04-24). Starting at max=44 hits the
+    # training-side compile cache (training forward already used shape = adapted_bs).
+    # OOM fallback in the while-loop below ramps DOWN via sizer.on_oom() if surprise OOM.
     sizer = AdaptiveBatchSizer(
-        initial_size=_gpu["inference_vjepa_initial_bs"],
+        initial_size=_gpu["inference_adapted_bs"],   # = max_size; skip ramp
         min_size=1,
         max_size=_gpu["inference_adapted_bs"],
         memory_cap=_gpu["gpu_memory_target"],
     )
     print(f"  [probe] AdaptiveBatchSizer: start={sizer.size}, "
-          f"max={sizer.max_size}, cap={sizer.memory_cap:.0%}")
+          f"max={sizer.max_size}, cap={sizer.memory_cap:.0%} (iter11 no-ramp)")
 
     was_training = student.training
     had_hier = getattr(student, "return_hierarchical", None)
@@ -969,6 +1319,7 @@ def run_probe_eval(student, probe_clips: list, cfg: dict, device: torch.device,
         tags = [t for _, t, _ in probe_clips]
         emb_list = []
         i = 0
+        print(f"  [probe] encoding {n} clips...", flush=True)
         while i < n:
             end = min(i + sizer.size, n)
             batch = torch.stack([c for _, _, c in probe_clips[i:end]])
@@ -1046,8 +1397,10 @@ def run_probe_val_loss(student, teacher, predictor, probe_clips: list,
     predictor.eval()
 
     _gpu = get_pipeline_config()["gpu"]
+    # iter11 perf fix — see run_probe_eval note above. Same reasoning applies to
+    # probe-val-loss: skip ramp; start at max=adapted_bs; OOM retry ramps down if needed.
     sizer = AdaptiveBatchSizer(
-        initial_size=_gpu["inference_vjepa_initial_bs"],
+        initial_size=_gpu["inference_adapted_bs"],   # = max_size; skip ramp
         min_size=1, max_size=_gpu["inference_adapted_bs"],
         memory_cap=_gpu["gpu_memory_target"])
 
@@ -1150,24 +1503,238 @@ def compute_trajectory_stats(probe_history: list) -> dict:
 
 
 def load_factor_clip(path: Path, num_frames: int, crop_size: int) -> torch.Tensor:
-    """Load factor-patched clip from .npy → (T, C, H, W) float32 tensor, ImageNet-normalized."""
-    frames = np.load(path)
-    if frames.shape[1] != crop_size or frames.shape[2] != crop_size:
-        from PIL import Image as _PILResize
-        resized = []
-        for t in range(frames.shape[0]):
-            img = _PILResize.fromarray(frames[t])
-            img = img.resize((crop_size, crop_size), _PILResize.BILINEAR)
-            resized.append(np.array(img))
-        frames = np.stack(resized)
-    if frames.shape[0] > num_frames:
-        indices = np.linspace(0, frames.shape[0] - 1, num_frames, dtype=int)
-        frames = frames[indices]
-    elif frames.shape[0] < num_frames:
-        pad = np.repeat(frames[-1:], num_frames - frames.shape[0], axis=0)
-        frames = np.concatenate([frames, pad], axis=0)
-    tensor = torch.from_numpy(frames).permute(0, 3, 1, 2).float() / 255.0
-    mean = torch.tensor([0.485, 0.456, 0.406]).view(1, 3, 1, 1)
-    std = torch.tensor([0.229, 0.224, 0.225]).view(1, 3, 1, 1)
-    tensor = (tensor - mean) / std
-    return tensor
+    """Load factor-patched clip from .npy → (T, C, H, W) float32 tensor, ImageNet-normalized.
+
+    Delegates to tensor_from_factor_array so streaming + legacy paths share
+    ONE normalization routine — guarantees bitwise parity.
+    """
+    from utils.factor_streaming import tensor_from_factor_array
+    return tensor_from_factor_array(np.load(path), num_frames, crop_size)
+
+
+def render_training_plots(
+    probe_history: list,
+    output_dir: Path,
+    *,
+    forgetting_threshold_pct: float,
+    forgetting_patience: int,
+    bwt_trigger_enabled: bool,
+    bwt_ci_fraction: float,
+    bwt_absolute_floor: float,
+    bwt_patience: int,
+    kill_state: dict,
+    best_state: dict,
+    probe_compute_val_loss: bool = True,
+    verbose: bool = False,
+) -> None:
+    """Render probe_trajectory + m09_forgetting + m09_val_loss PNG/PDF from
+    probe_history. Technique-agnostic — works for single-stage (m09b ExPLoRA)
+    and multi-stage (m09c Surgery). Ported from m09c:_render_live_plots (iter11).
+
+    Args:
+        probe_history: list of probe records (each with global_step,
+            prec_at_k/map_at_k/cycle_at_k {mean,ci_lo,ci_hi,ci_half},
+            stage_idx, optional val_jepa_loss/val_masked_loss/val_context_loss,
+            optional bwt, num_clips).
+        output_dir: target dir for PNG/PDF writes.
+        kill_state: {"triggered": bool} — used for title annotation only.
+        best_state: {"global_step": int, "prec_at_k": float} — marker on forgetting plot.
+            Pass {"global_step": -1, "prec_at_k": 0.0} to suppress marker.
+        probe_compute_val_loss: if False, skips the val_jepa 3-panel plot.
+
+    Needs ≥2 probe points; silent no-op below that. Each plot wrapped in
+    try/except so rendering failure never kills training.
+    """
+    import matplotlib
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+
+    if len(probe_history) < 2:
+        return
+
+    steps_ = [r["global_step"] for r in probe_history]
+
+    # Plot 1: probe_trajectory.png/.pdf
+    try:
+        fig, axes = plt.subplots(3, 1, figsize=(9, 9), sharex=True)
+        panels = [
+            (axes[0], "prec_at_k",  "Prec@K (%)",  "#2E7D32"),
+            (axes[1], "map_at_k",   "mAP@K (%)",   "#1565C0"),
+            (axes[2], "cycle_at_k", "Cycle@K (%)", "#E65100"),
+        ]
+        for ax_p, metric, label, color in panels:
+            means = [r[metric]["mean"] for r in probe_history]
+            ci_los = [r[metric]["ci_lo"] for r in probe_history]
+            ci_his = [r[metric]["ci_hi"] for r in probe_history]
+            ax_p.plot(steps_, means, "o-", color=color, linewidth=2,
+                      markersize=6, alpha=0.95)
+            ax_p.fill_between(steps_, ci_los, ci_his, color=color, alpha=0.18)
+            seen = set()
+            for r in probe_history:
+                if r["stage_idx"] not in seen:
+                    ax_p.axvline(r["global_step"], color="gray",
+                                 linestyle=":", alpha=0.5, linewidth=1)
+                    seen.add(r["stage_idx"])
+            ax_p.annotate(f"end={means[-1]:.2f}",
+                          xy=(steps_[-1], means[-1]),
+                          xytext=(5, 0), textcoords="offset points",
+                          fontsize=8, color=color, va="center")
+            ax_p.set_ylabel(label, color=color, fontsize=10, fontweight="bold")
+            ax_p.tick_params(axis="y", labelsize=9, colors=color)
+            ax_p.grid(True, alpha=0.3)
+            mean_lo, mean_hi = min(means), max(means)
+            pad = max((mean_hi - mean_lo) / 18, 0.005)
+            ax_p.set_ylim(mean_lo - pad, mean_hi + pad)
+        axes[-1].set_xlabel("Optimizer step", fontsize=10)
+        fig.suptitle(
+            f"Probe trajectory (N={probe_history[0]['num_clips']} val-split, "
+            f"{len(probe_history)} probes, 95 % BCa CI) — per-panel y-axis auto-scaled",
+            fontsize=11, fontweight="bold", y=0.995)
+        plt.tight_layout()
+        for ext in (".png", ".pdf"):
+            plt.savefig(output_dir / f"probe_trajectory{ext}",
+                        dpi=150 if ext == ".png" else None, bbox_inches="tight")
+        plt.close()
+        if verbose:
+            print(f"  Saved: {output_dir / 'probe_trajectory.png'}")
+    except Exception as e:
+        if verbose:
+            print(f"  [probe] WARN: trajectory plot failed: {e}")
+
+    # Plot 2: m09_forgetting.png/.pdf
+    try:
+        fig, ax = plt.subplots(figsize=(8, 5))
+        prec_ = [r["prec_at_k"]["mean"] for r in probe_history]
+        running_max = []
+        cur_max = -1.0
+        for v in prec_:
+            cur_max = max(cur_max, v)
+            running_max.append(cur_max)
+        strike_x, strike_y = [], []
+        for s, p, m in zip(steps_, prec_, running_max):
+            if m > 0 and p < m - forgetting_threshold_pct:
+                strike_x.append(s)
+                strike_y.append(p)
+        ax.plot(steps_, prec_, "o-", color="#2E7D32", linewidth=2,
+                label="Prec@K (held-out val)", markersize=5, alpha=0.9)
+        ax.plot(steps_, running_max, "--", color="#1565C0", linewidth=1.5,
+                label="running max", alpha=0.8)
+        threshold_low = [m - forgetting_threshold_pct for m in running_max]
+        ax.fill_between(steps_, threshold_low, running_max,
+                        color="#FFA726", alpha=0.15,
+                        label=f"forgetting tolerance ({forgetting_threshold_pct:.1f}pp)")
+        if strike_x:
+            ax.scatter(strike_x, strike_y, marker="x", s=100, color="#C62828",
+                       label=f"forgetting strikes ({len(strike_x)})",
+                       zorder=5, linewidths=2)
+        seen = set()
+        for r in probe_history:
+            if r["stage_idx"] not in seen:
+                ax.axvline(r["global_step"], color="gray",
+                           linestyle=":", alpha=0.4, linewidth=1)
+                seen.add(r["stage_idx"])
+        if best_state.get("global_step", -1) >= 0:
+            ax.axvline(best_state["global_step"], color="#2E7D32",
+                       linestyle="-.", alpha=0.5, linewidth=1.5,
+                       label=f"best ckpt (Prec@K={best_state['prec_at_k']:.2f})")
+        ax2 = ax.twinx()
+        bwt_vals = [r.get("bwt", r["prec_at_k"]["mean"] - prec_[0]) for r in probe_history]
+        ax2.plot(steps_, bwt_vals, "s-", color="#8E24AA", linewidth=1.8,
+                 markersize=4, alpha=0.9, label=f"BWT (latest={bwt_vals[-1]:+.2f} pp)")
+        ax2.axhline(0.0, color="#8E24AA", linestyle=":", alpha=0.4, linewidth=1)
+        if bwt_trigger_enabled and probe_history:
+            latest_ci = probe_history[-1]["prec_at_k"]["ci_half"]
+            ci_thr_vals = [-(bwt_ci_fraction * r["prec_at_k"]["ci_half"]) for r in probe_history]
+            ax2.plot(steps_, ci_thr_vals, color="#C62828", linestyle="--",
+                     alpha=0.6, linewidth=1,
+                     label=f"ci-threshold (−{bwt_ci_fraction:.2f}×CI_half, now={-bwt_ci_fraction*latest_ci:+.2f})")
+            ax2.axhline(-bwt_absolute_floor, color="#E65100", linestyle=":",
+                        alpha=0.7, linewidth=1.2,
+                        label=f"abs floor (−{bwt_absolute_floor:.2f} pp × {bwt_patience} probes)")
+        ax2.set_ylabel("BWT (pp) = Prec@K − Prec@K[first]", color="#8E24AA")
+        ax2.tick_params(axis="y", labelcolor="#8E24AA")
+        prec_lo_tight = min(prec_)
+        prec_hi_tight = max(max(prec_), max(running_max))
+        prec_pad = max((prec_hi_tight - prec_lo_tight) / 18, 0.005)
+        ax.set_ylim(prec_lo_tight - prec_pad, prec_hi_tight + prec_pad)
+        bwt_lo_tight = min(bwt_vals)
+        bwt_hi_tight = max(bwt_vals)
+        bwt_pad = max((bwt_hi_tight - bwt_lo_tight) / 18, 0.005)
+        ax2.set_ylim(bwt_lo_tight - bwt_pad, bwt_hi_tight + bwt_pad)
+        kill_msg = " — TRIGGERED" if kill_state.get("triggered") else ""
+        ax.set_xlabel("Optimizer step")
+        ax.set_ylabel("Prec@K (%)")
+        ax.set_title(
+            f"Forgetting monitor (N={probe_history[0]['num_clips']}, "
+            f"patience={forgetting_patience}, threshold={forgetting_threshold_pct:.1f}pp{kill_msg})")
+        lines1, labels1 = ax.get_legend_handles_labels()
+        lines2, labels2 = ax2.get_legend_handles_labels()
+        ax.legend(lines1 + lines2, labels1 + labels2,
+                  loc="upper left", bbox_to_anchor=(1.15, 1.0),
+                  fontsize=7, framealpha=0.95,
+                  title="legend", title_fontsize=8)
+        ax.grid(True, alpha=0.3)
+        for ext in (".png", ".pdf"):
+            plt.savefig(output_dir / f"m09_forgetting{ext}",
+                        dpi=150 if ext == ".png" else None, bbox_inches="tight")
+        plt.close()
+        if verbose:
+            print(f"  Saved: {output_dir / 'm09_forgetting.png'}")
+    except Exception as e:
+        if verbose:
+            print(f"  [probe] WARN: forgetting plot failed: {e}")
+
+    # Plot 3: m09_val_loss.png/.pdf — 3-panel stacked (optional).
+    # m09b uses "val_jepa_loss"/"masked_loss"/"context_loss" keys; m09c historically
+    # writes "val_jepa_loss"/"val_masked_loss"/"val_context_loss". Support both.
+    if probe_compute_val_loss and probe_history:
+        # Auto-detect key naming convention from first record with val_jepa_loss.
+        sample = next((r for r in probe_history if "val_jepa_loss" in r), None)
+        if sample is None:
+            return
+        if "val_masked_loss" in sample:
+            panel_keys = [("val_jepa_loss", "JEPA total (L1)", "#C62828"),
+                          ("val_masked_loss", "masked loss", "#1565C0"),
+                          ("val_context_loss", "context loss", "#2E7D32")]
+        elif "masked_loss" in sample:
+            panel_keys = [("val_jepa_loss", "JEPA total (L1)", "#C62828"),
+                          ("masked_loss", "masked loss", "#1565C0"),
+                          ("context_loss", "context loss", "#2E7D32")]
+        else:
+            return  # only val_jepa_loss present — skip 3-panel
+        try:
+            fig, axes = plt.subplots(3, 1, figsize=(9, 9), sharex=True,
+                                     gridspec_kw={"hspace": 0.15})
+            stage_boundaries = []
+            seen = set()
+            for r in probe_history:
+                if r["stage_idx"] not in seen:
+                    stage_boundaries.append(r["global_step"])
+                    seen.add(r["stage_idx"])
+            for (key, ylabel, color), ax_i in zip(panel_keys, axes):
+                vals = [r[key] for r in probe_history]
+                ax_i.plot(steps_, vals, "o-", color=color, linewidth=2,
+                          markersize=6, alpha=0.9)
+                for sb in stage_boundaries:
+                    ax_i.axvline(sb, color="gray", linestyle=":", alpha=0.4, linewidth=1)
+                ax_i.set_ylabel(ylabel, color=color, fontsize=10, fontweight="bold")
+                ax_i.tick_params(axis="y", labelcolor=color)
+                ax_i.margins(y=0.05)
+                ax_i.grid(True, alpha=0.3)
+                if vals:
+                    ax_i.annotate(f"end={vals[-1]:.4f}", xy=(steps_[-1], vals[-1]),
+                                  xytext=(5, 0), textcoords="offset points",
+                                  fontsize=8, color=color, va="center")
+            axes[-1].set_xlabel("Optimizer step")
+            axes[0].set_title(
+                f"JEPA val-loss (N={probe_history[0]['num_clips']} val-split, "
+                f"{len(probe_history)} probes) — per-panel y-axis auto-scaled")
+            for ext in (".png", ".pdf"):
+                plt.savefig(output_dir / f"m09_val_loss{ext}",
+                            dpi=150 if ext == ".png" else None, bbox_inches="tight")
+            plt.close()
+            if verbose:
+                print(f"  Saved: {output_dir / 'm09_val_loss.png'}")
+        except Exception as e:
+            if verbose:
+                print(f"  [probe] WARN: val-loss plot failed: {e}")

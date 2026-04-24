@@ -471,6 +471,11 @@ def main():
     add_encoder_arg(parser)
     add_subset_arg(parser)
     add_wandb_args(parser)
+    # Cache-policy gate (iter11): every destructive delete in this module must route
+    # through utils.cache_policy.guarded_delete(path, args.cache_policy, ...).
+    # --cache-policy defaults to 1 (keep) so overnight re-runs never destroy cache.
+    from utils.cache_policy import add_cache_policy_arg
+    add_cache_policy_arg(parser)
     args = parser.parse_args()
 
     if not (args.SANITY or args.POC or args.FULL):

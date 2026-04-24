@@ -211,6 +211,12 @@ def main():
                         help=f"Random seed for reproducibility (default: {SEED})")
     parser.add_argument("--output", type=str, default=None,
                         help="Output path (default: data/subset_<n>k.json)")
+    parser.add_argument("--exclude", type=str, default=None,
+                        help="Comma-separated subset JSONs whose clip_keys must be DISJOINT "
+                             "from the sampled output (e.g., "
+                             "--exclude data/subset_10k.json,data/val_1k.json). "
+                             "iter10 eval_10k usage: build a disjoint N=10K eval pool from "
+                             "clips not used in training or probe.")
     args = parser.parse_args()
 
     # Output path
@@ -236,6 +242,29 @@ def main():
     # Group clips by video
     by_video = load_clips_by_video(clip_durations)
     print(f"Videos: {len(by_video)}")
+
+    # --exclude: drop clip_keys that already appear in listed JSONs.
+    # Required for iter10 eval_10k curation — disjoint from subset_10k / val_1k.
+    if args.exclude:
+        excluded = set()
+        for p in args.exclude.split(","):
+            p = p.strip()
+            if not p:
+                continue
+            data = json.load(open(p))
+            ckeys = data["clip_keys"]   # fail-loud per CLAUDE.md — no .get default
+            excluded.update(ckeys)
+            print(f"  exclude: {len(ckeys):,} clip_keys from {p}")
+        pre_total = sum(len(v) for v in by_video.values())
+        by_video = {vid: [c for c in clips if c["key"] not in excluded]
+                    for vid, clips in by_video.items()}
+        by_video = {vid: clips for vid, clips in by_video.items() if clips}
+        post_total = sum(len(v) for v in by_video.values())
+        print(f"  disjoint pool: {pre_total:,} → {post_total:,} clips across "
+              f"{len(by_video):,} videos ({pre_total - post_total:,} dropped)")
+        if post_total < args.n:
+            print(f"FATAL: disjoint pool ({post_total:,}) < requested n ({args.n:,})")
+            sys.exit(1)
 
     pbar = make_pbar(total=3, desc="m00c_sample", unit="step")
 

@@ -172,6 +172,20 @@ def load_merged_config(model_config: str, train_config: str) -> dict:
     # Merge order: pipeline (base) → model → train (train wins on conflict)
     merged = _deep_merge(pipeline_cfg, model_cfg)
     merged = _deep_merge(merged, train_cfg)
+
+    # iter11 #51-followup: mirror model.{crop_size,patch_size,tubelet_size} into
+    # data.* because legacy m09a/b/c + utils.training.producer_thread still read
+    # cfg["data"][<key>] in several augment/producer code paths (errors_N_fixes #51
+    # partial-renamed these but missed 6 occurrences). DRY reconciliation at merge
+    # time — keeps a single canonical source (model config) while supporting both
+    # access patterns without hunting every call-site.
+    if "model" in merged:
+        _model_section = merged["model"]
+        _data_section = merged.setdefault("data", {})
+        for _k in ("crop_size", "patch_size", "tubelet_size"):
+            if _k in _model_section and _k not in _data_section:
+                _data_section[_k] = _model_section[_k]
+
     return merged
 
 
@@ -352,14 +366,21 @@ def load_subset(subset_path: str = None) -> set:
 def get_output_dir(subset_path: str = None, sanity: bool = False,
                    poc: bool = False) -> Path:
     """
-    Return output directory based on mode.
-    SANITY mode          → outputs_sanity/
-    POC mode (--POC or --subset)  → outputs_poc/
-    Full mode            → outputs/
+    Return output directory based on mode — FLAG-driven, not subset-driven.
+
+    SANITY mode (--SANITY)         → outputs/sanity/
+    POC mode    (--POC)            → outputs/poc/
+    FULL mode   (--FULL [+subset]) → outputs/full/
+
+    Note: subset_path no longer forces POC routing (2026-04-20 fix). Flag name
+    now matches output directory verbatim. An iter9 `--FULL --subset subset_10k.json`
+    call writes to outputs/full/ as expected. Scripts that need the old
+    "subset-implies-POC" behavior must now pass `--POC` explicitly (or pass
+    --output-dir on the python script to override).
     """
     if sanity:
         return OUTPUTS_SANITY_DIR
-    if poc or subset_path:
+    if poc:
         return OUTPUTS_POC_DIR
     return OUTPUTS_DIR
 

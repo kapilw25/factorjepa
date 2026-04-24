@@ -1,15 +1,65 @@
-"""ExPLoRA training — LoRA on blocks 2-47 + unfreeze blocks 0-1, no drift control. GPU-only.
+r"""ExPLoRA training — LoRA on blocks 2-47 + unfreeze blocks 0-1 + all LayerNorms, no drift control. GPU-only.
 
-Split from m09_pretrain.py on 2026-04-15 (#49). Pairs with m09a_pretrain.py (vanilla Ch10)
-and m09c_surgery.py (factor surgery). Shared primitives live in utils.training.
+Pairs with m09a_pretrain.py (vanilla Ch10) and m09c_surgery.py (factor surgery). Shared primitives live in utils.training.
 
-Recipe: Freeze all transformer blocks EXCEPT first 1-2. Add LoRA (rank 8-16) on remaining
-blocks. Continue same SSL objective (JEPA loss) on new domain. Reference:
-https://arxiv.org/abs/2406.10973 (ICML 2025).
+Recipe (arxiv 2406.10973, ICML 2025):
+- Unfreeze first `unfreeze_blocks` transformer blocks (FULLY trainable).
+- LoRA (rank 16) on remaining FROZEN blocks — attention qkv + proj linear layers.
+- Unfreeze all LayerNorms across the whole ViT.
+- Predictor fully trainable (separate from ExPLoRA — JEPA-specific head).
+- Continue same SSL objective (JEPA loss) on new domain. No drift control (LoRA params auto-excluded from init_params).
+- iter11 probe infra (port from m09c): mid-training Prec@K trajectory + best-ckpt-by-Prec@K + BWT / plateau / forgetting early-stop. See iter/iter11/plan_code_dev.md.
 
-    python -u src/m09b_explora.py --SANITY --model-config configs/model/vjepa2_1.yaml --train-config configs/train/explora.yaml --no-wandb 2>&1 | tee logs/m09b_sanity.log
-    python -u src/m09b_explora.py --POC    --subset data/sanity_100_dense.json --local-data data/val_1k_local --no-wandb 2>&1 | tee logs/m09b_dense100.log
-    python -u src/m09b_explora.py --FULL   --local-data data/full_local --no-wandb 2>&1 | tee logs/m09b_full.log
+USAGE (all 4 args valid in every mode; defaults apply when omitted):
+    # SANITY — 1-step smoke run, caps clips via data.sanity_train_clips (typically 20)
+    python -u src/m09b_explora.py --SANITY \
+        --model-config configs/model/vjepa2_1.yaml \
+        --train-config configs/train/explora.yaml \
+        --subset data/sanity_100_dense.json \
+        --local-data data/val_1k_local \
+        --no-wandb 2>&1 | tee logs/m09b_sanity_v1.log
+
+    # POC — short-training end-to-end (typically 5 ep × ~30 steps/ep = 155 steps @ 1K subset)
+python -u src/m09b_explora.py --POC \
+    --model-config configs/model/vjepa2_1.yaml \
+    --train-config configs/train/explora.yaml \
+    --subset data/val_1k.json \
+    --local-data data/val_1k_local \
+    --val-subset data/sanity_100_dense.json \
+    --val-local-data data/val_1k_local \
+    --no-wandb 2>&1 | tee logs/m09b_poc_v2.log
+
+    # FULL — target-scale 10K diagnostic baseline vs Surgery m09c.
+    # Uses 3 MUTUALLY DISJOINT splits (verified zero-overlap on 2026-04-23):
+    #   🏋️  TRAIN  data/subset_10k.json + data/subset_10k_local/   N=9,566 (after m10 filter)
+    #   🧪  VAL    data/val_1k.json     + data/val_1k_local/       N=1,000 (probed 10×/epoch:
+    #                                                              JEPA val-loss + Prec@K/mAP@K/
+    #                                                              Cycle@K + early-stop triggers)
+    #   🎯  EVAL   data/eval_10k.json   + data/eval_10k_local/     N=10,000 (POST-training only,
+    #                                                              via scripts/run_paired_eval_10k.sh
+    #                                                              — NOT this script)
+python -u src/m09b_explora.py --FULL \
+    --model-config configs/model/vjepa2_1.yaml \
+    --train-config configs/train/explora.yaml \
+    --subset data/subset_10k.json \
+    --local-data data/subset_10k_local \
+    --val-subset data/val_1k.json \
+    --val-local-data data/val_1k_local \
+    --no-wandb 2>&1 | tee logs/m09b_full_v1.log
+
+    # POST-TRAINING EVAL (3-step pipeline — m09b is training-only; eval runs in orchestrator):
+    # 1. Stage the trained ckpt into the paired_eval archive layout so run_paired_eval_10k.sh sees it:
+    mkdir -p outputs_versioned/explora_m09c_surgery && cp outputs/full/m09b_explora/student_encoder.pt outputs_versioned/explora_m09c_surgery/
+    # 2. Add 'explora' to VARIANTS list in scripts/run_paired_eval_10k.sh:65 (same pattern as v10/v13/v14).
+    # 3. Launch paired_eval — produces outputs_versioned/explora_eval10k/paired_bootstrap_results.json:
+    ./scripts/run_paired_eval_10k.sh 2>&1 | tee logs/paired_eval_explora.log
+
+CLI DEFAULTS (when arg omitted):
+    --model-config  → configs/model/vjepa2_1.yaml  (V-JEPA 2.1 ViT-G 2B)
+    --train-config  → configs/train/explora.yaml   (lora_rank=16, unfreeze_blocks=2)
+    --subset        → stream full HF dataset (no client-side subset filter)
+    --local-data    → stream from HF (slower than local TAR shards)
+    --cache-policy  → auto-resolved from yaml[mode]: sanity=1(keep), poc/full=2(recompute)
 """
 import os
 os.environ.setdefault("OMP_NUM_THREADS", "1")   # Must be before torch import
@@ -24,6 +74,7 @@ import math
 import queue
 import random
 import shutil
+import subprocess
 import sys
 import tempfile
 import threading
@@ -35,6 +86,12 @@ from tqdm import tqdm
 
 # Add src to path for utils import
 sys.path.insert(0, str(Path(__file__).parent))
+# iter11 live-debug: SIGUSR1/SIGUSR2 stack dump so stuck GPU runs can be
+# inspected without CAP_SYS_PTRACE (py-spy / gdb / strace are blocked in
+# the training container). See src/utils/live_debug.py for usage.
+from utils.live_debug import install_debug_handlers
+install_debug_handlers()
+
 from utils.config import (
     check_gpu,
     add_subset_arg, add_local_data_arg, get_module_output_dir, load_subset,
@@ -43,6 +100,9 @@ from utils.config import (
 )
 from utils.data_download import ensure_local_data
 from utils.gpu_batch import AdaptiveBatchSizer
+from utils.hf_outputs import download_data
+from utils.output_guard import verify_training_output
+from utils.plots import plot_training_curves
 from utils.wandb_utils import (
     add_wandb_args, init_wandb, log_metrics, finish_wandb,
 )
@@ -74,6 +134,11 @@ from utils.training import (
     run_validation,
     save_training_checkpoint, cleanup_old_checkpoints, load_training_checkpoint,
     export_student_for_eval,
+    # iter11 probe infra (ported from m09c_surgery) — mid-training Prec@K trajectory +
+    # best-ckpt-by-Prec@K + BWT/plateau/forgetting early-stop. Technique-agnostic helpers;
+    # ExPLoRA uses them to produce an apples-apples baseline vs Surgery's m09c outputs.
+    build_probe_clips, run_probe_eval, run_probe_val_loss, compute_trajectory_stats,
+    render_training_plots,
 )
 
 # Module-level constants
@@ -109,6 +174,36 @@ def merge_config_with_args(cfg: dict, args) -> dict:
 
     # Hardcode ExPLoRA enabled — module IS the choice.
     cfg.setdefault("explora", {})["enabled"] = True
+
+    # iter11 probe-block mode-gated flatten — port from m09c pattern (src/m09c_surgery.py:94-129).
+    # ExPLoRA is single-stage so every flag collapses from {sanity/poc/full} dict → scalar per
+    # mode_key. Uses .get("probe", {}) for migration compat: pre-patch yaml without a probe
+    # block → empty dict → probe.enabled=False downstream → silent no-op.
+    probe_cfg = cfg.get("probe", {})  # noqa: B6-migration-compat
+    for key in ("enabled", "best_ckpt_enabled", "kill_switch_enabled",
+                "plateau_enabled", "prec_plateau_enabled",
+                "bwt_trigger_enabled", "use_permanent_val"):
+        if key in probe_cfg and isinstance(probe_cfg[key], dict):
+            probe_cfg[key] = probe_cfg[key][mode_key]
+
+    # iter11 auto disk-hygiene — resolve mode-gated cache_policy default from yaml
+    # when user did NOT explicitly pass --cache-policy on CLI. POC/FULL need
+    # cleanup_old_checkpoints to fire (keep_n=2) or ~25 × 15 GB periodic ckpts fill
+    # the disk mid-training. SANITY keeps all ckpts (1-step run, trivial footprint).
+    # Detection of "no CLI override" is done via sys.argv scan because argparse's
+    # default collapses to "1" either way (can't distinguish default-vs-explicit).
+    cp_yaml = cfg.get("optimization", {}).get("cache_policy")
+    if isinstance(cp_yaml, dict):
+        import sys as _sys
+        _cli_explicit = any(a == "--cache-policy" or a.startswith("--cache-policy=")
+                            for a in _sys.argv)
+        if not _cli_explicit and mode_key in cp_yaml:
+            args.cache_policy = str(cp_yaml[mode_key])
+            print(f"  [cache-policy] resolved from yaml[{mode_key}] "
+                  f"→ --cache-policy={args.cache_policy} "
+                  f"(no CLI override; pass --cache-policy 1|2 to force)")
+        # Flatten so downstream reads of cfg['optimization']['cache_policy'] get a scalar
+        cfg["optimization"]["cache_policy"] = str(cp_yaml.get(mode_key, "1"))
 
     # Output dir: explicit --output-dir, or auto from mode
     if getattr(args, "output_dir", None):
@@ -266,25 +361,18 @@ def build_model(cfg: dict, device: torch.device) -> dict:
     gc.collect()
 
     # ExPLoRA: LoRA injection + block freezing (HARDCODED — always applied in m09b).
+    # iter11 bug-fix: PEFT's get_peft_model() calls _mark_only_adapters_as_trainable()
+    # which freezes ALL non-adapter params, including the first-N blocks and LayerNorms
+    # we'd pre-unfrozen. So the unfreeze MUST happen AFTER get_peft_model(). Before this
+    # fix, m09b was effectively running standard LoRA (7.7M adapter-only, 0.4% trainable)
+    # instead of the paper's ExPLoRA recipe (~84M = 2 blocks + norms + adapters, ~4.5%).
     explora_cfg = cfg["explora"]
 
-    # 1. Freeze all student params
+    # 1. Freeze all student params (pre-LoRA)
     for param in student.parameters():
         param.requires_grad = False
 
-    # 2. Unfreeze first N blocks (ExPLoRA recipe: 1-2)
-    n_unfreeze = explora_cfg["unfreeze_blocks"]
-    for i in range(n_unfreeze):
-        for param in student.blocks[i].parameters():
-            param.requires_grad = True
-
-    # 3. Unfreeze all norm layers (ExPLoRA requirement)
-    if explora_cfg["unfreeze_norm_layers"]:
-        for name, param in student.named_parameters():
-            if "norm" in name or "ln" in name:
-                param.requires_grad = True
-
-    # 4. Inject LoRA on frozen attention layers
+    # 2. Inject LoRA on target attention layers (this also re-freezes everything)
     lora_config = LoraConfig(
         r=explora_cfg["lora_rank"],
         lora_alpha=explora_cfg["lora_alpha"],
@@ -294,9 +382,41 @@ def build_model(cfg: dict, device: torch.device) -> dict:
     )
     student = get_peft_model(student, lora_config)
 
+    # 3. Re-unfreeze first N blocks (ExPLoRA recipe: 1-2). PEFT wraps the base model
+    # inside student.base_model.model; iterate there for the original block access.
+    base_vit = student.base_model.model
+    n_unfreeze = explora_cfg["unfreeze_blocks"]
+    unfrozen_blocks = 0
+    for i in range(n_unfreeze):
+        for param in base_vit.blocks[i].parameters():
+            param.requires_grad = True
+        unfrozen_blocks += 1
+
+    # 4. Re-unfreeze all norm layers (ExPLoRA requirement per arxiv 2406.10973 §3).
+    unfrozen_norms = 0
+    if explora_cfg["unfreeze_norm_layers"]:
+        for name, param in student.named_parameters():
+            if ("norm" in name.lower() or ".ln" in name.lower() or "layernorm" in name.lower()) \
+               and not param.requires_grad:
+                param.requires_grad = True
+                unfrozen_norms += 1
+
     trainable = sum(p.numel() for p in student.parameters() if p.requires_grad)
     total = sum(p.numel() for p in student.parameters())
+    # Detailed breakdown so regressions surface immediately:
+    lora_params = sum(p.numel() for n, p in student.named_parameters()
+                      if p.requires_grad and "lora_" in n)
+    block_params = sum(p.numel() for i in range(n_unfreeze)
+                       for p in base_vit.blocks[i].parameters() if p.requires_grad)
+    norm_params = sum(p.numel() for n, p in student.named_parameters()
+                      if p.requires_grad and ("norm" in n.lower() or "layernorm" in n.lower())
+                      and "lora_" not in n)
     print(f"  ExPLoRA: {trainable:,} trainable / {total:,} total ({100*trainable/total:.1f}%)")
+    print(f"    ├─ LoRA adapters: {lora_params:,} ({100*lora_params/total:.2f}%)")
+    print(f"    ├─ First {unfrozen_blocks} blocks (full-unfrozen): {block_params:,} "
+          f"({100*block_params/total:.2f}%)")
+    print(f"    └─ LayerNorms (all blocks + final): {norm_params:,} tensors, "
+          f"{unfrozen_norms} unfrozen")
 
     return {
         "student": student,
@@ -327,7 +447,6 @@ def train(cfg: dict, args):
     gc.collect()
 
     # Output-exists guard
-    from utils.output_guard import verify_training_output
     output_dir = Path(cfg["checkpoint"]["output_dir"])
     student_path = output_dir / "student_encoder.pt"
     if verify_training_output(output_dir, min_epochs=cfg["optimization"]["max_epochs"]):
@@ -353,6 +472,19 @@ def train(cfg: dict, args):
     # Compute epoch geometry
     subset_keys = load_subset(args.subset) if args.subset else set()
     val_key_set = load_val_subset(args.val_subset)
+
+    # iter11: val_split.json (matches m09c:446-453 artifact set for downstream analysis)
+    output_dir.mkdir(parents=True, exist_ok=True)
+    with open(output_dir / "val_split.json", "w") as _vsf:
+        json.dump({
+            "n": len(val_key_set),
+            "seed": None,
+            "source": str(args.val_subset),
+            "split_strategy": "permanent",
+            "split_ratio": None,
+            "max_val_clips": None,
+            "clip_keys": sorted(val_key_set),
+        }, _vsf, indent=2)
 
     # Exclude val keys from training (no leakage)
     if subset_keys and val_key_set:
@@ -395,7 +527,20 @@ def train(cfg: dict, args):
         manifest_path = Path(local_data) / "manifest.json" if local_data else None
         if manifest_path and manifest_path.exists():
             manifest = json.load(open(manifest_path))
-            n_total = manifest.get("n") or manifest.get("n_clips") or manifest.get("total_clips")
+            # Fail-loud (CLAUDE.md §5): prior code used `.get("n") or .get("n_clips") or
+            # .get("total_clips")` which silently returned None on any schema drift, then
+            # `None - len(val_key_set)` → TypeError deep in training. Enumerate expected
+            # keys explicitly; if none match, raise KeyError with the failing path.
+            n_total = None
+            for _k in ("n", "n_clips", "total_clips"):
+                if _k in manifest:
+                    n_total = manifest[_k]
+                    break
+            if n_total is None:
+                raise KeyError(
+                    f"{manifest_path}: expected one of ('n','n_clips','total_clips'), "
+                    f"got keys={list(manifest.keys())}"
+                )
             n_train = n_total - len(val_key_set)
             print(f"Dataset size from manifest: {n_total:,} total, {n_train:,} train "
                   f"({len(val_key_set)} val excluded)")
@@ -433,6 +578,24 @@ def train(cfg: dict, args):
         start_step, best_val_loss = load_training_checkpoint(
             ckpt_path, student, teacher, predictor, optimizer, scheduler, scaler)
         print(f"Resumed from step {start_step}, best val loss: {best_val_loss:.4f}")
+
+    # ── iter11 probe clips: separate from val_batches; deterministic no-aug preprocessing
+    # (canonical 64-frame center crop via build_probe_clips). Used by run_probe_eval to
+    # compute Prec@K/mAP@K/Cycle@K on a held-out set DIFFERENT from val_batches (which
+    # compute JEPA val-loss). Loads once before training; probe runs at val_interval
+    # cadence during training (see per-cadence block below). Only if probe.enabled.
+    probe_clips = None
+    probe_cfg_flat = cfg.get("probe", {})
+    if probe_cfg_flat.get("enabled", False):
+        probe_clips = build_probe_clips(
+            probe_subset_path=probe_cfg_flat["subset"],
+            probe_local_data=probe_cfg_flat["local_data"],
+            probe_tags_path=probe_cfg_flat["tags_path"],
+            num_frames=cfg["data"]["num_frames"],
+            crop_size=cfg["data"]["crop_size"],
+            subset_keys_override=None,
+        )
+        print(f"Probe clips pre-decoded: {len(probe_clips)}")
 
     # ── Collect val clips into memory (from --val-subset, once before training) ──
     val_batches = []
@@ -473,7 +636,6 @@ def train(cfg: dict, args):
         if len(val_collected_keys) < len(val_key_set):
             pct = len(val_collected_keys) / len(val_key_set) * 100
             print(f"WARNING: Only {len(val_collected_keys)}/{len(val_key_set)} val clips ({pct:.0f}%). Auto-downloading...")
-            import subprocess
             subprocess.run([sys.executable, "-u", "src/m00d_download_subset.py",
                            "--FULL", "--subset", args.val_subset, "--no-wandb"], check=True)
             # Retry collection with fresh data
@@ -511,7 +673,6 @@ def train(cfg: dict, args):
         if not getattr(args, "SANITY", False):
             print("No --val-subset provided. Attempting auto-download of val data...")
             try:
-                from utils.hf_outputs import download_data
                 download_data()
                 # Check if val data now exists
                 val_path = Path("data/val_1k.json")
@@ -561,7 +722,6 @@ def train(cfg: dict, args):
             # SANITY mode: still validate with first 50 clips (tests validation code path)
             print("SANITY mode — auto-downloading val data for validation code path test...")
             try:
-                from utils.hf_outputs import download_data
                 download_data()
                 val_path = Path("data/val_1k.json")
                 val_local_path = Path("data/val_1k_local")
@@ -639,6 +799,111 @@ def train(cfg: dict, args):
         jsonl_file.write(json.dumps(record) + "\n")
         jsonl_file.flush()
         os.fsync(jsonl_file.fileno())
+
+    # ── iter11 probe infra state (port from m09c) ──────────────────────────────
+    # best_prec_at_k: running max of probe.prec_at_k.mean, used to promote
+    #   student_best_prec.pt on each new max (parallel to best_val_loss).
+    # probe_history: per-probe records (step, prec_at_k, map_at_k, cycle_at_k,
+    #   optionally val_jepa_loss), appended during training, used by
+    #   compute_trajectory_stats post-training for BWT/max-drop/monotonic.
+    # kill_state: latch for early-stop triggers (forgetting, val-plateau,
+    #   prec-plateau, BWT compound). Mutated by _check_kill_triggers.
+    # *_state dicts: running windows for each trigger's patience/delta logic.
+    best_prec_at_k = float("-inf")
+    best_state = {"global_step": -1, "prec_at_k": 0.0}  # for render_training_plots
+    probe_history = []
+    kill_state = {"triggered": False, "reason": None}
+    forgetting_state = {"strikes": 0, "running_max": float("-inf")}
+    plateau_state = {"recent_val_losses": []}
+    prec_plateau_state = {"recent_prec_at_k": []}
+    bwt_state = {"first_prec_at_k": None, "ci_strikes": 0}
+
+    # probe_history.jsonl — crash-safe, independent from loss_log.jsonl so downstream
+    # analysis (plots, best-ckpt selection verification) can read a clean series.
+    probe_jsonl_path = output_dir / "probe_history.jsonl"
+    probe_jsonl_file = open(probe_jsonl_path, "a") if probe_clips is not None else None
+
+    def _log_probe(record: dict):
+        """Append one probe record to probe_history.jsonl with fsync."""
+        if probe_jsonl_file is None:
+            return
+        probe_jsonl_file.write(json.dumps(record) + "\n")
+        probe_jsonl_file.flush()
+        os.fsync(probe_jsonl_file.fileno())
+
+    def _check_kill_triggers(probe_record, probe_cfg):
+        """Evaluate 4 early-stop triggers against state dicts and mutate kill_state.
+
+        Port of m09c_surgery._run_probe_at_step kill logic (src/m09c_surgery.py:984-1079),
+        simplified for m09b's single-stage invariant: `is_final_stage=True` always, no
+        per-stage state resets (only one continuous probe series exists).
+
+        Mutates: forgetting_state, plateau_state, prec_plateau_state, bwt_state, kill_state.
+        """
+        current_prec = probe_record["prec_at_k"]["mean"]
+        ci_half_now = probe_record["prec_at_k"]["ci_half"]
+
+        # #1 catastrophic-forgetting — drop > threshold_pct from running max for `patience`
+        if probe_cfg.get("kill_switch_enabled"):
+            rm = forgetting_state["running_max"]
+            if current_prec > rm:
+                forgetting_state["running_max"] = current_prec
+                forgetting_state["strikes"] = 0
+            elif rm > 0 and current_prec < rm - probe_cfg["forgetting_threshold_pct"]:
+                forgetting_state["strikes"] += 1
+                print(f"  [forgetting-kill] strike {forgetting_state['strikes']}/"
+                      f"{probe_cfg['forgetting_patience']}: Prec@K {current_prec:.2f} < "
+                      f"max {rm:.2f} - {probe_cfg['forgetting_threshold_pct']:.1f}")
+                if forgetting_state["strikes"] >= probe_cfg["forgetting_patience"]:
+                    kill_state["triggered"] = True
+                    kill_state["reason"] = "catastrophic_forgetting"
+            else:
+                forgetting_state["strikes"] = 0
+
+        # #2 val-loss plateau (fires when max-min over window < min_delta)
+        if (probe_cfg.get("plateau_enabled") and probe_cfg.get("compute_val_loss")
+                and "val_jepa_loss" in probe_record):
+            plateau_state["recent_val_losses"].append(probe_record["val_jepa_loss"])
+            win = plateau_state["recent_val_losses"][-(probe_cfg["plateau_patience"] + 1):]
+            if len(win) >= probe_cfg["plateau_patience"] + 1:
+                spread = max(win) - min(win)
+                if spread < probe_cfg["plateau_min_delta"]:
+                    print(f"  [plateau-kill] val_jepa range over last "
+                          f"{probe_cfg['plateau_patience'] + 1} probes = {spread:.5f} "
+                          f"< {probe_cfg['plateau_min_delta']}")
+                    kill_state["triggered"] = True
+                    kill_state["reason"] = "val_loss_plateau"
+
+        # #2b Prec@K plateau on the gate metric itself
+        if probe_cfg.get("prec_plateau_enabled"):
+            prec_plateau_state["recent_prec_at_k"].append(current_prec)
+            pwin = prec_plateau_state["recent_prec_at_k"][-(probe_cfg["prec_plateau_patience"] + 1):]
+            if len(pwin) >= probe_cfg["prec_plateau_patience"] + 1:
+                pspread = max(pwin) - min(pwin)
+                if pspread < probe_cfg["prec_plateau_min_delta"]:
+                    print(f"  [prec-plateau-kill] Prec@K range over last "
+                          f"{probe_cfg['prec_plateau_patience'] + 1} probes = {pspread:.3f} pp "
+                          f"< {probe_cfg['prec_plateau_min_delta']} pp")
+                    kill_state["triggered"] = True
+                    kill_state["reason"] = "prec_at_k_plateau"
+
+        # #3 negative-BWT compound trigger (noise-scaled + absolute floor)
+        if probe_cfg.get("bwt_trigger_enabled"):
+            if bwt_state["first_prec_at_k"] is None:
+                bwt_state["first_prec_at_k"] = current_prec
+            bwt_now = current_prec - bwt_state["first_prec_at_k"]
+            ci_threshold = -(probe_cfg["bwt_ci_fraction"] * ci_half_now)
+            abs_threshold = -probe_cfg["bwt_absolute_floor"]
+            if bwt_now < ci_threshold and bwt_now < abs_threshold:
+                bwt_state["ci_strikes"] += 1
+                print(f"  [bwt-kill] strike {bwt_state['ci_strikes']}/"
+                      f"{probe_cfg['bwt_patience']}: BWT {bwt_now:+.3f} pp < "
+                      f"ci_thr {ci_threshold:+.3f} AND abs_thr {abs_threshold:+.2f}")
+                if bwt_state["ci_strikes"] >= probe_cfg["bwt_patience"]:
+                    kill_state["triggered"] = True
+                    kill_state["reason"] = "negative_bwt"
+            else:
+                bwt_state["ci_strikes"] = 0
 
     # Also keep CSV for backward compat (plots, wandb upload) — no drift column in m09b.
     csv_path = output_dir / "loss_log.csv"
@@ -850,8 +1115,10 @@ def train(cfg: dict, args):
                     step + 1, best_val_loss, full=False)
                 save_training_checkpoint(
                     ckpt_path, student, teacher, predictor, optimizer, scheduler,
-                    scaler, step + 1, best_val_loss, full=True)
-                cleanup_old_checkpoints(output_dir, keep_n=keep_last_n)
+                    scaler, step + 1, best_val_loss, full=False)
+                cleanup_old_checkpoints(output_dir, prefix=CHECKPOINT_PREFIX,
+                                        keep_n=keep_last_n,
+                                        cache_policy=args.cache_policy)
 
             # Periodic validation (every val_interval steps)
             if (step + 1) % val_interval == 0 and val_batches:
@@ -873,7 +1140,6 @@ def train(cfg: dict, args):
 
                 # Live training plots (regenerate on each validation)
                 try:
-                    from utils.plots import plot_training_curves
                     plot_training_curves(
                         runs=[{"csv_path": str(csv_path),
                                "label": "V-JEPA 2.1 ExPLoRA",
@@ -882,8 +1148,13 @@ def train(cfg: dict, args):
                         output_dir=str(output_dir),
                         title_prefix=f"{n_train:,} clips, ",
                     )
-                except Exception:
-                    pass  # non-fatal: plot failure must never stop training
+                except (OSError, IOError, ValueError, RuntimeError) as _plot_e:
+                    # Plot failure must never stop training, but swallow is also banned
+                    # per CLAUDE.md §5 → narrow to known non-fatal errors (disk-write
+                    # OSError, broken matplotlib state ValueError/RuntimeError, IO
+                    # hiccups) AND log so operator sees it. Unexpected exception types
+                    # (e.g., KeyboardInterrupt, MemoryError, BaseException) still propagate.
+                    print(f"  [plot] WARN: non-fatal plotting error ({type(_plot_e).__name__}): {_plot_e}")
 
                 # Best model selection by lowest val loss
                 if val_loss < best_val_loss:
@@ -893,6 +1164,92 @@ def train(cfg: dict, args):
                         student, teacher, predictor, optimizer, scheduler,
                         scaler, step + 1, best_val_loss, full=False)
                     print(f"  New best val loss: {best_val_loss:.4f}")
+
+            # ── iter11 Probe: mid-training Prec@K trajectory (parallel to val-loss above) ──
+            # Cadence mirrors val_interval. Fires only if probe.enabled (post-flatten).
+            # Augments (does NOT replace) the JEPA-val-loss path — both series go into
+            # training_summary.json and feed the best-ckpt comparison at end-of-training.
+            if (step + 1) % val_interval == 0 and probe_clips is not None:
+                eval_result = run_probe_eval(
+                    student, probe_clips, cfg, device,
+                    k=probe_cfg_flat["k"],
+                    bootstrap_iter=probe_cfg_flat["bootstrap_iter"])
+                probe_record = {
+                    "step": step + 1,
+                    "global_step": step + 1,
+                    "stage_idx": 0,                       # single-stage invariant
+                    "stage_name": "stage1_explora",
+                    "prec_at_k": eval_result["prec_at_k"],
+                    "map_at_k":  eval_result["map_at_k"],
+                    "cycle_at_k": eval_result["cycle_at_k"],
+                }
+                if probe_cfg_flat.get("compute_val_loss"):
+                    val_result = run_probe_val_loss(
+                        student, teacher, predictor, probe_clips,
+                        mask_generators, cfg, device)
+                    probe_record.update({
+                        "val_jepa_loss": val_result["jepa_loss"],
+                        "masked_loss":   val_result["masked_loss"],
+                        "context_loss":  val_result["context_loss"],
+                    })
+                probe_history.append(probe_record)
+                _log_probe(probe_record)
+
+                pk = eval_result["prec_at_k"]
+                mk = eval_result["map_at_k"]
+                ck = eval_result["cycle_at_k"]
+                vl_msg = f" val_jepa={probe_record['val_jepa_loss']:.4f}" \
+                    if "val_jepa_loss" in probe_record else ""
+                print(f"  [probe step {step + 1}] Prec@K={pk['mean']:.2f}±{pk['ci_half']:.2f} "
+                      f"mAP@K={mk['mean']:.2f}±{mk['ci_half']:.2f} "
+                      f"Cycle@K={ck['mean']:.2f}±{ck['ci_half']:.2f}{vl_msg}")
+                log_metrics(wb_run, {
+                    "probe/prec_at_k": pk["mean"],
+                    "probe/prec_at_k_ci_half": pk["ci_half"],
+                    "probe/map_at_k": mk["mean"],
+                    "probe/cycle_at_k": ck["mean"],
+                    **({"probe/val_jepa_loss": probe_record["val_jepa_loss"]}
+                       if "val_jepa_loss" in probe_record else {}),
+                }, step=step)
+
+                # 🏆 Best-ckpt by Prec@K (parallel to best_val_loss above) — iter11
+                if probe_cfg_flat.get("best_ckpt_enabled") and pk["mean"] > best_prec_at_k:
+                    best_prec_at_k = pk["mean"]
+                    best_state["global_step"] = step + 1
+                    best_state["prec_at_k"] = best_prec_at_k
+                    save_training_checkpoint(
+                        output_dir / f"{CHECKPOINT_PREFIX}_best_prec.pt",
+                        student, teacher, predictor, optimizer, scheduler,
+                        scaler, step + 1, best_prec_at_k, full=False)
+                    print(f"  🏆 New best Prec@K: {best_prec_at_k:.2f} (step {step + 1})")
+
+                # Live plots (trajectory + forgetting + val_loss) — same cadence as m09c.
+                # Shared util; silent on <2 probes. Wrapped in try/except in the util itself.
+                render_training_plots(
+                    probe_history=probe_history,
+                    output_dir=output_dir,
+                    forgetting_threshold_pct=probe_cfg_flat["forgetting_threshold_pct"],
+                    forgetting_patience=probe_cfg_flat["forgetting_patience"],
+                    bwt_trigger_enabled=probe_cfg_flat.get("bwt_trigger_enabled", False),
+                    bwt_ci_fraction=probe_cfg_flat.get("bwt_ci_fraction", 0.5),
+                    bwt_absolute_floor=probe_cfg_flat.get("bwt_absolute_floor", 0.3),
+                    bwt_patience=probe_cfg_flat.get("bwt_patience", 3),
+                    kill_state=kill_state,
+                    best_state=best_state,
+                    probe_compute_val_loss=probe_cfg_flat.get("compute_val_loss", True),
+                    verbose=False,
+                )
+
+                # 🛑 Early-stop triggers — mutates kill_state on fire
+                _check_kill_triggers(probe_record, probe_cfg_flat)
+                if kill_state["triggered"]:
+                    print(f"[early-stop] {kill_state['reason']} → halting training "
+                          f"at step {step + 1}")
+                    # Save a final step ckpt before breaking so post-training export can see it
+                    save_training_checkpoint(
+                        ckpt_path, student, teacher, predictor,
+                        optimizer, scheduler, scaler, step + 1, best_val_loss, full=False)
+                    break   # exit inner for-loop; post-loop code handles export
 
             # End-of-epoch logging
             if epoch_step == steps_per_epoch - 1:
@@ -906,9 +1263,11 @@ def train(cfg: dict, args):
         jsonl_file.close()
         stop_event.set()
         gc.enable()
+        # SANITY: student-only (matches periodic-save exception above — no need for a
+        # full resume ckpt on 1-step smoke runs; avoids torch.save disk-full regression).
         save_training_checkpoint(
             ckpt_path, student, teacher, predictor, optimizer, scheduler,
-            scaler, step + 1, best_val_loss, full=True)
+            scaler, step + 1, best_val_loss, full=not args.SANITY)
         print(f"  Checkpoint saved at step {step + 1}/{total_steps}. Resume with same command.")
         sys.exit(0)  # user-initiated, not an error
     finally:
@@ -919,8 +1278,11 @@ def train(cfg: dict, args):
         gc.enable()
 
     # Cooldown phase: switch to 64f, linear LR decay (V-JEPA 2.1 recipe)
-    cooldown_cfg = cfg.get("cooldown", {})
-    if cooldown_cfg.get("enabled") and not args.SANITY:
+    # Fail-loud (CLAUDE.md §5): yaml MUST declare the `cooldown` section with an explicit
+    # `enabled: true|false`. Prior silent `.get("cooldown", {}).get("enabled")` path
+    # would quietly skip cooldown on schema drift → wrong LR schedule → contaminated Δ.
+    cooldown_cfg = cfg["cooldown"]
+    if cooldown_cfg["enabled"] and not args.SANITY:
         print("\n=== COOLDOWN PHASE ===")
         print(f"  Frames: {cfg['data']['num_frames']} → {cooldown_cfg['num_frames']}")
         print(f"  LR: {scheduler.get_last_lr()[0]:.2e} → {cooldown_cfg['final_lr']}")
@@ -947,15 +1309,28 @@ def train(cfg: dict, args):
         print("  NOTE: Full cooldown with 64f data loading requires producer restart.")
         print("  Cooldown is a paper-quality enhancement. POC results valid without it.")
 
+    # ── iter11: Promote best-Prec@K ckpt over best-val-loss ckpt for export ────
+    # v10 evidence (experiment_log.md:L93-95) shows val_jepa DECOUPLES from Prec@K
+    # (val kept ↓ while Prec@K peaked mid-training, then ↓). Exporting the best-val-loss
+    # ckpt loses the Prec@K-peak state. If probe.best_ckpt_enabled, reload the saved
+    # best-Prec@K weights into `student` before export so student_encoder.pt carries
+    # the best-Prec@K state. Falls back to current (end-of-training) student otherwise.
+    best_prec_ckpt = output_dir / f"{CHECKPOINT_PREFIX}_best_prec.pt"
+    if probe_cfg_flat.get("best_ckpt_enabled") and best_prec_ckpt.exists():
+        load_training_checkpoint(best_prec_ckpt, student, teacher, predictor,
+                                 optimizer, scheduler, scaler)
+        print(f"  Promoted {best_prec_ckpt.name} (Prec@K={best_prec_at_k:.2f}) → export")
+
     # Export student encoder (the only deliverable — only reached if training completed).
     # explora_enabled=True triggers peft's merge_and_unload() — converts the LoRA-wrapped
     # student back to a plain ViT that m05 can load.
     export_student_for_eval(student, student_path, explora_enabled=True)
 
-    # Cleanup ALL checkpoints — student_encoder.pt is the deliverable
+    # iter11 META-fix: gate post-training checkpoint cleanup through --cache-policy.
+    from utils.cache_policy import guarded_delete
     for ckpt_file in output_dir.glob(f"{CHECKPOINT_PREFIX}_*.pt"):
-        ckpt_file.unlink()
-        print(f"  Cleaned: {ckpt_file.name}")
+        guarded_delete(ckpt_file, args.cache_policy,
+                       label=f"m09b checkpoint {ckpt_file.name}")
 
     # Save training summary as JSON (no drift / lambda fields in m09b)
     total_epochs_done = (step + 1) / max(steps_per_epoch, 1)
@@ -973,6 +1348,53 @@ def train(cfg: dict, args):
         "unfreeze_blocks": cfg["explora"]["unfreeze_blocks"],
         "lora_rank": cfg["explora"]["lora_rank"],
     }
+
+    # ── iter11 probe-trajectory stats (port from m09c) ─────────────────────────
+    # compute_trajectory_stats produces BWT (Prec@K[last] - Prec@K[first]), max-drop
+    # from running peak, and monotonic flag for post-run analysis. Only populated if
+    # probe was enabled AND collected ≥1 record.
+    if probe_history:
+        traj = compute_trajectory_stats(probe_history)
+        summary["probe_trajectory_stats"] = {
+            "bwt_prec_at_k":      traj.get("bwt_prec_at_k"),
+            "max_drop_prec_at_k": traj.get("max_drop_prec_at_k"),
+            "monotonic":          traj.get("monotonic"),
+        }
+        summary["n_probes"] = len(probe_history)
+        # Final end-of-training render (verbose=True prints "Saved: ..." to log).
+        render_training_plots(
+            probe_history=probe_history,
+            output_dir=output_dir,
+            forgetting_threshold_pct=probe_cfg_flat["forgetting_threshold_pct"],
+            forgetting_patience=probe_cfg_flat["forgetting_patience"],
+            bwt_trigger_enabled=probe_cfg_flat.get("bwt_trigger_enabled", False),
+            bwt_ci_fraction=probe_cfg_flat.get("bwt_ci_fraction", 0.5),
+            bwt_absolute_floor=probe_cfg_flat.get("bwt_absolute_floor", 0.3),
+            bwt_patience=probe_cfg_flat.get("bwt_patience", 3),
+            kill_state=kill_state,
+            best_state=best_state,
+            probe_compute_val_loss=probe_cfg_flat.get("compute_val_loss", True),
+            verbose=True,
+        )
+        summary["best_prec_at_k"] = (best_prec_at_k
+                                     if best_prec_at_k > float("-inf") else None)
+        summary["best_ckpt"] = {
+            "source": (best_prec_ckpt.name if probe_cfg_flat.get("best_ckpt_enabled")
+                       and best_prec_ckpt.exists()
+                       else f"{CHECKPOINT_PREFIX}_best.pt"),
+            "criterion": ("prec_at_k" if probe_cfg_flat.get("best_ckpt_enabled")
+                          and best_prec_ckpt.exists() else "val_loss"),
+        }
+        if kill_state["triggered"]:
+            summary["early_stop"] = {
+                "triggered": True,
+                "reason":    kill_state["reason"],
+                "step":      step + 1,
+            }
+
+    if probe_jsonl_file is not None:
+        probe_jsonl_file.close()
+
     summary_path = output_dir / "training_summary.json"
     with open(summary_path, "w") as f:
         json.dump(summary, f, indent=2)
@@ -1020,6 +1442,11 @@ def main():
     add_subset_arg(parser)
     add_local_data_arg(parser)
     add_wandb_args(parser)
+    # Cache-policy gate (iter11): every destructive delete in this module must route
+    # through utils.cache_policy.guarded_delete(path, args.cache_policy, ...).
+    # --cache-policy defaults to 1 (keep) so overnight re-runs never destroy cache.
+    from utils.cache_policy import add_cache_policy_arg
+    add_cache_policy_arg(parser)
     args = parser.parse_args()
 
     if not (args.SANITY or args.POC or args.FULL):

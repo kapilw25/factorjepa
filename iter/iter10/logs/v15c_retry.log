@@ -1,0 +1,868 @@
+Step C train-config: configs/train/ch11_surgery_v15c.yaml
+
+═══ 03:44:51 · Step A — m10 10K ═══
+GPU: NVIDIA RTX PRO 6000 Blackwell Max-Q Workstation Edition
+CUDA version: 12.8
+[POC] Loaded subset: 9,566 clip keys from subset_10k.json
+[output_guard] m10 SAM3.1: ALL VALID — skipping (cached)
+  OK    segments: 9566 keys
+
+═══ 03:44:56 · Verify A — m10 summary + disk ═══
+{
+    "n_clips": 9566,
+    "n_total_agents": 223826,
+    "n_total_interactions": 200478,
+    "mean_agent_pixel_ratio": 0.08770049046212651,
+    "mean_concept_recall": 0.6320513276186494,
+    "mean_mask_confidence": 0.9856945670469702,
+    "clips_with_agents_pct": 0.852,
+    "min_confidence_threshold": 0.3,
+    "min_mask_area_pct": 0.001,
+    "elapsed_sec": 27784.247876644135,
+    "pipeline": "grounded-sam",
+    "dino_model": "IDEA-Research/grounding-dino-base",
+    "dino_box_threshold": 0.2,
+    "dino_text_threshold": 0.18,
+    "sam_model": "facebook/sam3.1",
+    "agent_taxonomy": [
+        "pedestrian",
+        "person",
+        "vendor",
+        "policeman",
+        "bus",
+        "car",
+        "truck",
+        "motorcycle",
+        "bicycle",
+        "scooter",
+        "auto rickshaw",
+        "cycle rickshaw",
+        "cart",
+        "cow",
+        "dog",
+        "bull",
+        "buffalo"
+    ],
+    "quality_gate": "PASS",
+    "quality_gate_checks": {
+        "pixel_ratio_min": "PASS",
+        "pixel_ratio_max": "PASS",
+        "mask_confidence": "PASS",
+        "clips_with_agents": "PASS"
+    }
+}
+5.9G	outputs/full/m10_sam_segment/
+✅ quality_gate=PASS · n_agents=223826 · clips_with_agents=85%
+
+═══ 03:44:56 · Step B — m11 --streaming ═══
+[output_guard] m11 factor_datasets: ALL VALID — skipping (cached)
+  OK    manifest: 9566 keys
+
+═══ 03:44:59 · Verify B — m11 manifest + verify-clip .npy count ═══
+clips in manifest: 9566 (expected: 9566 from data/subset_10k.json)
+D_I tubes: 0 (expect 0 — interaction_mining disabled)
+D_L eligible: 9518/9566; D_A eligible: 7718/9566
+✅ manifest OK
+99
+3.3G	outputs/full/m11_factor_datasets/
+
+═══ 03:44:59 · Step C — m09c Surgery (probe=val_500) ═══
+GPU: NVIDIA RTX PRO 6000 Blackwell Max-Q Workstation Edition
+CUDA version: 12.8
+[output_guard] m09c surgery: attempting HF download for 1 missing file(s)...
+[output_guard] m09c surgery: HF download failed: 404 Client Error. (Request ID: Root=1-69e8443e-07b50d17465188d82a6cc5be;4d7379e7-b288-4f91-80a5-ef5abc0b28a4)
+
+Entry Not Found for url: https://huggingface.co/api/datasets/anonymousML123/factorjepa-outputs/tree/main/%2Fworkspace%2Ffactorjepa%2Foutputs%2Ffull%2Fm09c_surgery?recursive=true&expand=false.
+/workspace/factorjepa/outputs/full/m09c_surgery does not exist on "main"
+[output_guard] m09c surgery: outputs missing or invalid — will re-compute
+  MISS  student: student_encoder.pt
+/workspace/factorjepa/venv_walkindia/lib/python3.12/site-packages/timm/models/layers/__init__.py:49: FutureWarning: Importing from timm.models.layers is deprecated, please import via timm.layers
+  warnings.warn(f"Importing from {__name__} is deprecated, please import via timm.layers", FutureWarning)
+Loading pretrained weights from /workspace/factorjepa/checkpoints/vjepa2_1_vitG_384.pt
+Student loaded: 1,843,937,152 params (588/588 keys = 100%)
+Teacher created (deepcopy of student, hierarchical output enabled)
+Predictor loaded from checkpoint (300/300 keys = 100%)
+Predictor: 59,430,400 params
+  train/val split: 9566 train / 500 val (PERMANENT data/val_500.json) → /workspace/factorjepa/outputs/full/m09c_surgery/val_split.json
+  Factor index: 100 clips (D_L=99, D_A=74, D_I=0)
+  build_streaming_indices: 9566 clips ready (9566 mp4, 9566 masks, 10 TARs scanned)
+
+============================================================
+SURGERY TRAINING — 3 stages on 9566 factor clips
+Model: vit_gigantic_xformers (48 blocks, 1664-dim)
+Epochs: 1 | Steps: 298 | BS: 32
+Dense loss: predict_all=True | Deep supervision: 4 levels
+============================================================
+AdaptiveBatchSizer (surgery, grad-accum): start=4, max=32 (= effective BS), target VRAM=85%
+
+============================================================
+[probe] N=500 held-out val clips, cadence=saves_per_epoch, saves_per_epoch=10 (probe_every=29 steps, ~10 total probes), val_loss=True
+============================================================
+  Parallel TAR reader: 8 threads, 1 TARs, queue=256
+  [probe] decoded 500 clips (0 skipped — no tag match)
+
+============================================================
+STAGE 1/3: stage1_layout
+  Layers 0-12 trainable | 119 steps | warmup 23
+  Mixture: {'L': 1.0, 'A': 0.0, 'I': 0.0}
+============================================================
+  Trainable prefix: 12/48 blocks (460,593,664/1,843,937,152 = 25.0%)
+  StreamingFactorDataset: D_L=100% (indexed=9566 clips)
+surgery:stage1_layout:   0%|          | 0/119 [00:00<?, ?step/s]/venv/main/lib/python3.12/contextlib.py:105: FutureWarning: `torch.backends.cuda.sdp_kernel()` is deprecated. In the future, this context manager will be removed. Please see `torch.nn.attention.sdpa_kernel()` for the new context manager, with updated signature.
+  self.gen = func(*args, **kwds)
+  AdaptiveBatch: VRAM 26% < 65% → sub-batch 4 → 5
+surgery:stage1_layout:   0%|          | 0/119 [03:00<?, ?step/s]surgery:stage1_layout:   1%|          | 1/119 [03:00<5:54:35, 180.30s/step]  AdaptiveBatch: VRAM 27% < 65% → sub-batch 5 → 6
+surgery:stage1_layout:   2%|▏         | 2/119 [03:22<2:50:06, 87.24s/step]   AdaptiveBatch: VRAM 33% < 65% → sub-batch 6 → 7
+surgery:stage1_layout:   2%|▏         | 2/119 [03:41<2:50:06, 87.24s/step]surgery:stage1_layout:   3%|▎         | 3/119 [03:41<1:48:52, 56.31s/step]  AdaptiveBatch: VRAM 35% < 65% → sub-batch 7 → 8
+surgery:stage1_layout:   3%|▎         | 4/119 [03:59<1:18:42, 41.06s/step]  AdaptiveBatch: VRAM 36% < 65% → sub-batch 8 → 9
+surgery:stage1_layout:   3%|▎         | 4/119 [04:14<1:18:42, 41.06s/step]surgery:stage1_layout:   4%|▍         | 5/119 [04:14<1:00:13, 31.70s/step]  AdaptiveBatch: VRAM 38% < 65% → sub-batch 9 → 10
+surgery:stage1_layout:   5%|▌         | 6/119 [04:30<49:50, 26.47s/step]    AdaptiveBatch: VRAM 39% < 65% → sub-batch 10 → 11
+surgery:stage1_layout:   5%|▌         | 6/119 [04:51<49:50, 26.47s/step]surgery:stage1_layout:   6%|▌         | 7/119 [04:51<45:35, 24.42s/step]  AdaptiveBatch: VRAM 41% < 65% → sub-batch 11 → 12
+surgery:stage1_layout:   7%|▋         | 8/119 [05:11<42:44, 23.10s/step]  AdaptiveBatch: VRAM 43% < 65% → sub-batch 12 → 13
+surgery:stage1_layout:   7%|▋         | 8/119 [05:26<42:44, 23.10s/step]surgery:stage1_layout:   8%|▊         | 9/119 [05:26<37:39, 20.54s/step]  AdaptiveBatch: VRAM 44% < 65% → sub-batch 13 → 14
+surgery:stage1_layout:   8%|▊         | 10/119 [05:41<34:05, 18.77s/step]  AdaptiveBatch: VRAM 45% < 65% → sub-batch 14 → 15
+surgery:stage1_layout:   9%|▉         | 11/119 [05:55<31:25, 17.46s/step]  AdaptiveBatch: VRAM 45% < 65% → sub-batch 15 → 16
+surgery:stage1_layout:   9%|▉         | 11/119 [06:10<31:25, 17.46s/step]surgery:stage1_layout:  10%|█         | 12/119 [06:10<29:38, 16.62s/step]  AdaptiveBatch: VRAM 48% < 65% → sub-batch 16 → 17
+surgery:stage1_layout:  11%|█         | 13/119 [06:23<27:35, 15.61s/step]  AdaptiveBatch: VRAM 48% < 65% → sub-batch 17 → 18
+surgery:stage1_layout:  12%|█▏        | 14/119 [06:37<26:31, 15.16s/step]  AdaptiveBatch: VRAM 50% < 65% → sub-batch 18 → 19
+surgery:stage1_layout:  12%|█▏        | 14/119 [06:51<26:31, 15.16s/step]surgery:stage1_layout:  13%|█▎        | 15/119 [06:51<25:15, 14.57s/step]  AdaptiveBatch: VRAM 52% < 65% → sub-batch 19 → 20
+surgery:stage1_layout:  13%|█▎        | 16/119 [07:05<24:51, 14.48s/step]  AdaptiveBatch: VRAM 54% < 65% → sub-batch 20 → 21
+surgery:stage1_layout:  14%|█▍        | 17/119 [07:19<24:22, 14.34s/step]  AdaptiveBatch: VRAM 54% < 65% → sub-batch 21 → 22
+surgery:stage1_layout:  14%|█▍        | 17/119 [07:38<24:22, 14.34s/step]surgery:stage1_layout:  15%|█▌        | 18/119 [07:38<26:29, 15.74s/step]  AdaptiveBatch: VRAM 57% < 65% → sub-batch 22 → 23
+surgery:stage1_layout:  16%|█▌        | 19/119 [07:53<26:03, 15.64s/step]  AdaptiveBatch: VRAM 57% < 65% → sub-batch 23 → 24
+surgery:stage1_layout:  17%|█▋        | 20/119 [08:08<25:11, 15.27s/step]  AdaptiveBatch: VRAM 58% < 65% → sub-batch 24 → 25
+surgery:stage1_layout:  17%|█▋        | 20/119 [08:22<25:11, 15.27s/step]surgery:stage1_layout:  18%|█▊        | 21/119 [08:22<24:45, 15.16s/step]  AdaptiveBatch: VRAM 59% < 65% → sub-batch 25 → 26
+surgery:stage1_layout:  18%|█▊        | 22/119 [08:37<24:22, 15.08s/step]  AdaptiveBatch: VRAM 62% < 65% → sub-batch 26 → 27
+surgery:stage1_layout:  19%|█▉        | 23/119 [08:52<23:53, 14.94s/step]surgery:stage1_layout:  19%|█▉        | 23/119 [09:08<23:53, 14.94s/step]surgery:stage1_layout:  20%|██        | 24/119 [09:08<24:03, 15.19s/step]surgery:stage1_layout:  21%|██        | 25/119 [09:22<23:06, 14.75s/step]surgery:stage1_layout:  22%|██▏       | 26/119 [09:35<22:11, 14.32s/step]surgery:stage1_layout:  22%|██▏       | 26/119 [09:47<22:11, 14.32s/step]surgery:stage1_layout:  23%|██▎       | 27/119 [09:47<21:06, 13.77s/step]surgery:stage1_layout:  24%|██▎       | 28/119 [10:04<22:26, 14.80s/step]surgery:stage1_layout:  24%|██▎       | 28/119 [10:18<22:26, 14.80s/step]surgery:stage1_layout:  24%|██▍       | 29/119 [10:18<21:31, 14.35s/step]  [probe] AdaptiveBatchSizer: start=8, max=44, cap=85%
+/venv/main/lib/python3.12/contextlib.py:105: FutureWarning: `torch.backends.cuda.sdp_kernel()` is deprecated. In the future, this context manager will be removed. Please see `torch.nn.attention.sdpa_kernel()` for the new context manager, with updated signature.
+  self.gen = func(*args, **kwds)
+  AdaptiveBatch: VRAM 26% < 65% → sub-batch 8 → 9
+  AdaptiveBatch: VRAM 27% < 65% → sub-batch 9 → 10
+  AdaptiveBatch: VRAM 29% < 65% → sub-batch 10 → 11
+  AdaptiveBatch: VRAM 30% < 65% → sub-batch 11 → 12
+  AdaptiveBatch: VRAM 29% < 65% → sub-batch 12 → 13
+  AdaptiveBatch: VRAM 31% < 65% → sub-batch 13 → 14
+  AdaptiveBatch: VRAM 30% < 65% → sub-batch 14 → 15
+  AdaptiveBatch: VRAM 31% < 65% → sub-batch 15 → 16
+  AdaptiveBatch: VRAM 33% < 65% → sub-batch 16 → 17
+  AdaptiveBatch: VRAM 32% < 65% → sub-batch 17 → 18
+  AdaptiveBatch: VRAM 35% < 65% → sub-batch 18 → 19
+  AdaptiveBatch: VRAM 36% < 65% → sub-batch 19 → 20
+  AdaptiveBatch: VRAM 34% < 65% → sub-batch 20 → 21
+  AdaptiveBatch: VRAM 35% < 65% → sub-batch 21 → 22
+  AdaptiveBatch: VRAM 35% < 65% → sub-batch 22 → 23
+  AdaptiveBatch: VRAM 38% < 65% → sub-batch 23 → 24
+  AdaptiveBatch: VRAM 37% < 65% → sub-batch 24 → 25
+  AdaptiveBatch: VRAM 39% < 65% → sub-batch 25 → 26
+  AdaptiveBatch: VRAM 38% < 65% → sub-batch 26 → 27
+  AdaptiveBatch: VRAM 39% < 65% → sub-batch 27 → 28
+  AdaptiveBatch: VRAM 44% < 65% → sub-batch 28 → 29
+  AdaptiveBatch: VRAM 40% < 65% → sub-batch 29 → 30
+  AdaptiveBatch: VRAM 41% < 65% → sub-batch 30 → 31
+  AdaptiveBatch: VRAM 41% < 65% → sub-batch 31 → 32
+  AdaptiveBatch: VRAM 44% < 65% → sub-batch 32 → 33
+/venv/main/lib/python3.12/contextlib.py:105: FutureWarning: `torch.backends.cuda.sdp_kernel()` is deprecated. In the future, this context manager will be removed. Please see `torch.nn.attention.sdpa_kernel()` for the new context manager, with updated signature.
+  self.gen = func(*args, **kwds)
+  AdaptiveBatch: VRAM 44% < 65% → sub-batch 8 → 9
+  AdaptiveBatch: VRAM 44% < 65% → sub-batch 9 → 10
+  AdaptiveBatch: VRAM 44% < 65% → sub-batch 10 → 11
+  AdaptiveBatch: VRAM 44% < 65% → sub-batch 11 → 12
+  AdaptiveBatch: VRAM 44% < 65% → sub-batch 12 → 13
+  AdaptiveBatch: VRAM 44% < 65% → sub-batch 13 → 14
+  AdaptiveBatch: VRAM 44% < 65% → sub-batch 14 → 15
+  AdaptiveBatch: VRAM 44% < 65% → sub-batch 15 → 16
+  AdaptiveBatch: VRAM 44% < 65% → sub-batch 16 → 17
+  AdaptiveBatch: VRAM 44% < 65% → sub-batch 17 → 18
+  AdaptiveBatch: VRAM 44% < 65% → sub-batch 18 → 19
+  AdaptiveBatch: VRAM 44% < 65% → sub-batch 19 → 20
+  AdaptiveBatch: VRAM 44% < 65% → sub-batch 20 → 21
+  AdaptiveBatch: VRAM 44% < 65% → sub-batch 21 → 22
+  AdaptiveBatch: VRAM 44% < 65% → sub-batch 22 → 23
+  AdaptiveBatch: VRAM 44% < 65% → sub-batch 23 → 24
+  AdaptiveBatch: VRAM 48% < 65% → sub-batch 24 → 25
+  AdaptiveBatch: VRAM 48% < 65% → sub-batch 25 → 26
+  AdaptiveBatch: VRAM 48% < 65% → sub-batch 26 → 27
+  AdaptiveBatch: VRAM 48% < 65% → sub-batch 27 → 28
+  AdaptiveBatch: VRAM 49% < 65% → sub-batch 28 → 29
+  AdaptiveBatch: VRAM 49% < 65% → sub-batch 29 → 30
+  AdaptiveBatch: VRAM 51% < 65% → sub-batch 30 → 31
+  AdaptiveBatch: VRAM 49% < 65% → sub-batch 31 → 32
+  AdaptiveBatch: VRAM 51% < 65% → sub-batch 32 → 33
+  [probe] step=29 stage=stage1_layout N=500 Prec@K=29.63±2.38 mAP@K=21.23±2.25 Cycle@K=70.20±3.90 val_jepa=0.4782
+Exported student encoder: /workspace/factorjepa/outputs/full/m09c_surgery/student_best.pt
+  [best] new max Prec@K=29.63 (step 29) → saved student_best.pt
+  [plots] skip m09_val_loss: no val_loss in loss_log (m09c reads val-loss from probe_history instead — see _render_live_plots)
+  Saved: /workspace/factorjepa/outputs/full/m09c_surgery/m09_train_loss.png + .pdf
+  SKIP: drift loss plot (all zeros — drift control disabled)
+/venv/main/lib/python3.12/contextlib.py:105: FutureWarning: `torch.backends.cuda.sdp_kernel()` is deprecated. In the future, this context manager will be removed. Please see `torch.nn.attention.sdpa_kernel()` for the new context manager, with updated signature.
+  self.gen = func(*args, **kwds)
+  AdaptiveBatch: VRAM 62% < 65% → sub-batch 27 → 28
+surgery:stage1_layout:  24%|██▍       | 29/119 [19:59<21:31, 14.35s/step]surgery:stage1_layout:  25%|██▌       | 30/119 [19:59<4:33:27, 184.35s/step]  AdaptiveBatch: VRAM 64% < 65% → sub-batch 28 → 29
+surgery:stage1_layout:  26%|██▌       | 31/119 [20:10<3:14:04, 132.32s/step]  AdaptiveBatch: VRAM 35% < 65% → sub-batch 29 → 30
+surgery:stage1_layout:  27%|██▋       | 32/119 [20:23<2:20:12, 96.70s/step] surgery:stage1_layout:  27%|██▋       | 32/119 [20:35<2:20:12, 96.70s/step]surgery:stage1_layout:  28%|██▊       | 33/119 [20:35<1:42:00, 71.16s/step]surgery:stage1_layout:  29%|██▊       | 34/119 [20:47<1:15:35, 53.36s/step]surgery:stage1_layout:  29%|██▉       | 35/119 [20:59<57:34, 41.12s/step]  surgery:stage1_layout:  29%|██▉       | 35/119 [21:11<57:34, 41.12s/step]surgery:stage1_layout:  30%|███       | 36/119 [21:11<44:33, 32.21s/step]surgery:stage1_layout:  31%|███       | 37/119 [21:23<35:51, 26.24s/step]surgery:stage1_layout:  32%|███▏      | 38/119 [21:35<29:40, 21.98s/step]surgery:stage1_layout:  32%|███▏      | 38/119 [21:48<29:40, 21.98s/step]surgery:stage1_layout:  33%|███▎      | 39/119 [21:48<25:31, 19.15s/step]surgery:stage1_layout:  34%|███▎      | 40/119 [22:00<22:38, 17.20s/step]surgery:stage1_layout:  34%|███▍      | 41/119 [22:11<19:49, 15.25s/step]surgery:stage1_layout:  34%|███▍      | 41/119 [22:23<19:49, 15.25s/step]surgery:stage1_layout:  35%|███▌      | 42/119 [22:23<18:17, 14.26s/step]surgery:stage1_layout:  36%|███▌      | 43/119 [22:34<16:59, 13.42s/step]surgery:stage1_layout:  37%|███▋      | 44/119 [22:47<16:32, 13.23s/step]surgery:stage1_layout:  37%|███▋      | 44/119 [22:58<16:32, 13.23s/step]surgery:stage1_layout:  38%|███▊      | 45/119 [22:58<15:24, 12.49s/step]surgery:stage1_layout:  39%|███▊      | 46/119 [23:10<15:00, 12.33s/step]surgery:stage1_layout:  39%|███▉      | 47/119 [23:20<14:08, 11.79s/step]surgery:stage1_layout:  39%|███▉      | 47/119 [23:32<14:08, 11.79s/step]surgery:stage1_layout:  40%|████      | 48/119 [23:32<13:58, 11.80s/step]surgery:stage1_layout:  41%|████      | 49/119 [23:44<13:42, 11.76s/step]surgery:stage1_layout:  42%|████▏     | 50/119 [23:55<13:16, 11.54s/step]surgery:stage1_layout:  42%|████▏     | 50/119 [24:08<13:16, 11.54s/step]surgery:stage1_layout:  43%|████▎     | 51/119 [24:08<13:30, 11.92s/step]surgery:stage1_layout:  44%|████▎     | 52/119 [24:19<13:14, 11.86s/step]surgery:stage1_layout:  45%|████▍     | 53/119 [24:31<13:06, 11.91s/step]surgery:stage1_layout:  45%|████▍     | 53/119 [24:45<13:06, 11.91s/step]surgery:stage1_layout:  45%|████▌     | 54/119 [24:45<13:19, 12.30s/step]surgery:stage1_layout:  46%|████▌     | 55/119 [24:55<12:36, 11.83s/step]surgery:stage1_layout:  47%|████▋     | 56/119 [25:07<12:20, 11.75s/step]surgery:stage1_layout:  47%|████▋     | 56/119 [25:18<12:20, 11.75s/step]surgery:stage1_layout:  48%|████▊     | 57/119 [25:18<11:51, 11.47s/step]surgery:stage1_layout:  49%|████▊     | 58/119 [25:29<11:40, 11.48s/step]  [probe] AdaptiveBatchSizer: start=8, max=44, cap=85%
+  AdaptiveBatch: VRAM 24% < 65% → sub-batch 8 → 9
+/venv/main/lib/python3.12/contextlib.py:105: FutureWarning: `torch.backends.cuda.sdp_kernel()` is deprecated. In the future, this context manager will be removed. Please see `torch.nn.attention.sdpa_kernel()` for the new context manager, with updated signature.
+  self.gen = func(*args, **kwds)
+  AdaptiveBatch: VRAM 29% < 65% → sub-batch 8 → 9
+  AdaptiveBatch: VRAM 30% < 65% → sub-batch 9 → 10
+  AdaptiveBatch: VRAM 31% < 65% → sub-batch 10 → 11
+  AdaptiveBatch: VRAM 33% < 65% → sub-batch 11 → 12
+  AdaptiveBatch: VRAM 33% < 65% → sub-batch 12 → 13
+  AdaptiveBatch: VRAM 35% < 65% → sub-batch 13 → 14
+  AdaptiveBatch: VRAM 35% < 65% → sub-batch 14 → 15
+  AdaptiveBatch: VRAM 36% < 65% → sub-batch 15 → 16
+  AdaptiveBatch: VRAM 38% < 65% → sub-batch 16 → 17
+  AdaptiveBatch: VRAM 39% < 65% → sub-batch 17 → 18
+  AdaptiveBatch: VRAM 39% < 65% → sub-batch 18 → 19
+  AdaptiveBatch: VRAM 39% < 65% → sub-batch 19 → 20
+  AdaptiveBatch: VRAM 41% < 65% → sub-batch 20 → 21
+  AdaptiveBatch: VRAM 41% < 65% → sub-batch 21 → 22
+  AdaptiveBatch: VRAM 44% < 65% → sub-batch 22 → 23
+  AdaptiveBatch: VRAM 44% < 65% → sub-batch 23 → 24
+  AdaptiveBatch: VRAM 44% < 65% → sub-batch 24 → 25
+  AdaptiveBatch: VRAM 44% < 65% → sub-batch 25 → 26
+  AdaptiveBatch: VRAM 44% < 65% → sub-batch 26 → 27
+  AdaptiveBatch: VRAM 46% < 65% → sub-batch 27 → 28
+  AdaptiveBatch: VRAM 46% < 65% → sub-batch 28 → 29
+  AdaptiveBatch: VRAM 51% < 65% → sub-batch 29 → 30
+  AdaptiveBatch: VRAM 51% < 65% → sub-batch 30 → 31
+  AdaptiveBatch: VRAM 51% < 65% → sub-batch 31 → 32
+  AdaptiveBatch: VRAM 51% < 65% → sub-batch 32 → 33
+  [probe] step=58 stage=stage1_layout N=500 Prec@K=29.70±2.42 mAP@K=21.27±2.26 Cycle@K=70.40±4.00 val_jepa=0.4731
+Exported student encoder: /workspace/factorjepa/outputs/full/m09c_surgery/student_best.pt
+  [best] new max Prec@K=29.70 (step 58) → saved student_best.pt
+  [plots] skip m09_val_loss: no val_loss in loss_log (m09c reads val-loss from probe_history instead — see _render_live_plots)
+  Saved: /workspace/factorjepa/outputs/full/m09c_surgery/m09_train_loss.png + .pdf
+  SKIP: drift loss plot (all zeros — drift control disabled)
+/venv/main/lib/python3.12/contextlib.py:105: FutureWarning: `torch.backends.cuda.sdp_kernel()` is deprecated. In the future, this context manager will be removed. Please see `torch.nn.attention.sdpa_kernel()` for the new context manager, with updated signature.
+  self.gen = func(*args, **kwds)
+surgery:stage1_layout:  49%|████▊     | 58/119 [33:43<11:40, 11.48s/step]surgery:stage1_layout:  50%|████▉     | 59/119 [33:43<2:36:05, 156.09s/step]surgery:stage1_layout:  50%|█████     | 60/119 [33:55<1:50:56, 112.83s/step]surgery:stage1_layout:  51%|█████▏    | 61/119 [34:06<1:19:45, 82.50s/step] surgery:stage1_layout:  51%|█████▏    | 61/119 [34:17<1:19:45, 82.50s/step]surgery:stage1_layout:  52%|█████▏    | 62/119 [34:17<58:01, 61.07s/step]  surgery:stage1_layout:  53%|█████▎    | 63/119 [34:28<42:57, 46.03s/step]surgery:stage1_layout:  54%|█████▍    | 64/119 [34:39<32:33, 35.52s/step]surgery:stage1_layout:  54%|█████▍    | 64/119 [34:52<32:33, 35.52s/step]surgery:stage1_layout:  55%|█████▍    | 65/119 [34:52<25:38, 28.49s/step]surgery:stage1_layout:  55%|█████▌    | 66/119 [35:03<20:43, 23.46s/step]surgery:stage1_layout:  56%|█████▋    | 67/119 [35:15<17:17, 19.96s/step]surgery:stage1_layout:  56%|█████▋    | 67/119 [35:26<17:17, 19.96s/step]surgery:stage1_layout:  57%|█████▋    | 68/119 [35:26<14:40, 17.27s/step]surgery:stage1_layout:  58%|█████▊    | 69/119 [35:38<13:07, 15.75s/step]surgery:stage1_layout:  59%|█████▉    | 70/119 [35:50<11:50, 14.50s/step]surgery:stage1_layout:  59%|█████▉    | 70/119 [36:02<11:50, 14.50s/step]surgery:stage1_layout:  60%|█████▉    | 71/119 [36:02<11:05, 13.87s/step]surgery:stage1_layout:  61%|██████    | 72/119 [36:14<10:23, 13.27s/step]surgery:stage1_layout:  61%|██████▏   | 73/119 [36:26<09:46, 12.75s/step]surgery:stage1_layout:  61%|██████▏   | 73/119 [36:38<09:46, 12.75s/step]surgery:stage1_layout:  62%|██████▏   | 74/119 [36:38<09:25, 12.56s/step]surgery:stage1_layout:  63%|██████▎   | 75/119 [36:50<09:05, 12.39s/step]surgery:stage1_layout:  64%|██████▍   | 76/119 [37:01<08:39, 12.07s/step]surgery:stage1_layout:  64%|██████▍   | 76/119 [37:12<08:39, 12.07s/step]surgery:stage1_layout:  65%|██████▍   | 77/119 [37:12<08:16, 11.82s/step]surgery:stage1_layout:  66%|██████▌   | 78/119 [37:25<08:12, 12.00s/step]surgery:stage1_layout:  66%|██████▋   | 79/119 [37:37<08:01, 12.03s/step]surgery:stage1_layout:  66%|██████▋   | 79/119 [37:48<08:01, 12.03s/step]surgery:stage1_layout:  67%|██████▋   | 80/119 [37:48<07:42, 11.87s/step]surgery:stage1_layout:  68%|██████▊   | 81/119 [38:00<07:25, 11.73s/step]surgery:stage1_layout:  69%|██████▉   | 82/119 [38:12<07:18, 11.85s/step]surgery:stage1_layout:  69%|██████▉   | 82/119 [38:24<07:18, 11.85s/step]surgery:stage1_layout:  70%|██████▉   | 83/119 [38:24<07:10, 11.95s/step]surgery:stage1_layout:  71%|███████   | 84/119 [38:35<06:47, 11.65s/step]surgery:stage1_layout:  71%|███████▏  | 85/119 [38:46<06:29, 11.44s/step]surgery:stage1_layout:  71%|███████▏  | 85/119 [38:57<06:29, 11.44s/step]surgery:stage1_layout:  72%|███████▏  | 86/119 [38:57<06:17, 11.45s/step]surgery:stage1_layout:  73%|███████▎  | 87/119 [39:08<06:00, 11.28s/step]  [probe] AdaptiveBatchSizer: start=8, max=44, cap=85%
+/venv/main/lib/python3.12/contextlib.py:105: FutureWarning: `torch.backends.cuda.sdp_kernel()` is deprecated. In the future, this context manager will be removed. Please see `torch.nn.attention.sdpa_kernel()` for the new context manager, with updated signature.
+  self.gen = func(*args, **kwds)
+  [probe] step=87 stage=stage1_layout N=500 Prec@K=29.60±2.38 mAP@K=21.24±2.25 Cycle@K=70.20±4.00 val_jepa=0.4679
+  [plots] skip m09_val_loss: no val_loss in loss_log (m09c reads val-loss from probe_history instead — see _render_live_plots)
+  Saved: /workspace/factorjepa/outputs/full/m09c_surgery/m09_train_loss.png + .pdf
+  SKIP: drift loss plot (all zeros — drift control disabled)
+/venv/main/lib/python3.12/contextlib.py:105: FutureWarning: `torch.backends.cuda.sdp_kernel()` is deprecated. In the future, this context manager will be removed. Please see `torch.nn.attention.sdpa_kernel()` for the new context manager, with updated signature.
+  self.gen = func(*args, **kwds)
+surgery:stage1_layout:  73%|███████▎  | 87/119 [47:16<06:00, 11.28s/step]surgery:stage1_layout:  74%|███████▍  | 88/119 [47:16<1:19:42, 154.28s/step]surgery:stage1_layout:  75%|███████▍  | 89/119 [47:28<55:42, 111.43s/step]  surgery:stage1_layout:  76%|███████▌  | 90/119 [47:40<39:32, 81.80s/step] surgery:stage1_layout:  76%|███████▌  | 90/119 [47:53<39:32, 81.80s/step]surgery:stage1_layout:  76%|███████▋  | 91/119 [47:53<28:27, 60.99s/step]surgery:stage1_layout:  77%|███████▋  | 92/119 [48:04<20:47, 46.19s/step]surgery:stage1_layout:  78%|███████▊  | 93/119 [48:17<15:35, 35.97s/step]surgery:stage1_layout:  78%|███████▊  | 93/119 [48:28<15:35, 35.97s/step]surgery:stage1_layout:  79%|███████▉  | 94/119 [48:28<11:57, 28.72s/step]surgery:stage1_layout:  80%|███████▉  | 95/119 [48:40<09:25, 23.57s/step]surgery:stage1_layout:  81%|████████  | 96/119 [48:51<07:37, 19.89s/step]surgery:stage1_layout:  81%|████████  | 96/119 [49:01<07:37, 19.89s/step]surgery:stage1_layout:  82%|████████▏ | 97/119 [49:01<06:14, 17.00s/step]surgery:stage1_layout:  82%|████████▏ | 98/119 [49:14<05:28, 15.64s/step]surgery:stage1_layout:  83%|████████▎ | 99/119 [49:27<04:57, 14.90s/step]surgery:stage1_layout:  83%|████████▎ | 99/119 [49:40<04:57, 14.90s/step]surgery:stage1_layout:  84%|████████▍ | 100/119 [49:40<04:31, 14.30s/step]surgery:stage1_layout:  85%|████████▍ | 101/119 [49:53<04:11, 13.98s/step]surgery:stage1_layout:  86%|████████▌ | 102/119 [50:06<03:49, 13.51s/step]surgery:stage1_layout:  86%|████████▌ | 102/119 [50:19<03:49, 13.51s/step]surgery:stage1_layout:  87%|████████▋ | 103/119 [50:19<03:33, 13.34s/step]surgery:stage1_layout:  87%|████████▋ | 104/119 [50:30<03:12, 12.87s/step]surgery:stage1_layout:  88%|████████▊ | 105/119 [50:44<03:02, 13.00s/step]surgery:stage1_layout:  88%|████████▊ | 105/119 [50:56<03:02, 13.00s/step]surgery:stage1_layout:  89%|████████▉ | 106/119 [50:56<02:44, 12.66s/step]surgery:stage1_layout:  90%|████████▉ | 107/119 [51:07<02:28, 12.35s/step]surgery:stage1_layout:  91%|█████████ | 108/119 [51:19<02:15, 12.29s/step]surgery:stage1_layout:  91%|█████████ | 108/119 [51:31<02:15, 12.29s/step]surgery:stage1_layout:  92%|█████████▏| 109/119 [51:31<02:00, 12.02s/step]surgery:stage1_layout:  92%|█████████▏| 110/119 [51:42<01:46, 11.81s/step]surgery:stage1_layout:  93%|█████████▎| 111/119 [51:53<01:33, 11.66s/step]surgery:stage1_layout:  93%|█████████▎| 111/119 [52:04<01:33, 11.66s/step]surgery:stage1_layout:  94%|█████████▍| 112/119 [52:04<01:20, 11.47s/step]surgery:stage1_layout:  95%|█████████▍| 113/119 [52:16<01:09, 11.63s/step]surgery:stage1_layout:  96%|█████████▌| 114/119 [52:29<00:59, 11.80s/step]surgery:stage1_layout:  96%|█████████▌| 114/119 [52:41<00:59, 11.80s/step]surgery:stage1_layout:  97%|█████████▋| 115/119 [52:41<00:48, 12.11s/step]surgery:stage1_layout:  97%|█████████▋| 116/119 [52:54<00:36, 12.25s/step]  [probe] AdaptiveBatchSizer: start=8, max=44, cap=85%
+/venv/main/lib/python3.12/contextlib.py:105: FutureWarning: `torch.backends.cuda.sdp_kernel()` is deprecated. In the future, this context manager will be removed. Please see `torch.nn.attention.sdpa_kernel()` for the new context manager, with updated signature.
+  self.gen = func(*args, **kwds)
+  [probe] step=116 stage=stage1_layout N=500 Prec@K=29.70±2.38 mAP@K=21.27±2.24 Cycle@K=70.60±4.00 val_jepa=0.4668
+  [plots] skip m09_val_loss: no val_loss in loss_log (m09c reads val-loss from probe_history instead — see _render_live_plots)
+  Saved: /workspace/factorjepa/outputs/full/m09c_surgery/m09_train_loss.png + .pdf
+  SKIP: drift loss plot (all zeros — drift control disabled)
+/venv/main/lib/python3.12/contextlib.py:105: FutureWarning: `torch.backends.cuda.sdp_kernel()` is deprecated. In the future, this context manager will be removed. Please see `torch.nn.attention.sdpa_kernel()` for the new context manager, with updated signature.
+  self.gen = func(*args, **kwds)
+surgery:stage1_layout:  97%|█████████▋| 116/119 [1:01:01<00:36, 12.25s/step]surgery:stage1_layout:  98%|█████████▊| 117/119 [1:01:01<05:09, 154.72s/step]surgery:stage1_layout:  99%|█████████▉| 118/119 [1:01:14<01:52, 112.09s/step]surgery:stage1_layout: 100%|██████████| 119/119 [1:01:26<00:00, 82.04s/step] surgery:stage1_layout: 100%|██████████| 119/119 [1:01:26<00:00, 30.98s/step]
+  Stage stage1_layout complete: 119 steps, loss=0.4734
+  [probe] AdaptiveBatchSizer: start=8, max=44, cap=85%
+/venv/main/lib/python3.12/contextlib.py:105: FutureWarning: `torch.backends.cuda.sdp_kernel()` is deprecated. In the future, this context manager will be removed. Please see `torch.nn.attention.sdpa_kernel()` for the new context manager, with updated signature.
+  self.gen = func(*args, **kwds)
+  [probe] step=119 stage=stage1_layout N=500 Prec@K=29.73±2.38 mAP@K=21.28±2.24 Cycle@K=70.60±4.00 val_jepa=0.4661
+Exported student encoder: /workspace/factorjepa/outputs/full/m09c_surgery/student_best.pt
+  [best] new max Prec@K=29.73 (step 119) → saved student_best.pt
+  [plots] skip m09_val_loss: no val_loss in loss_log (m09c reads val-loss from probe_history instead — see _render_live_plots)
+  Saved: /workspace/factorjepa/outputs/full/m09c_surgery/m09_train_loss.png + .pdf
+  SKIP: drift loss plot (all zeros — drift control disabled)
+
+============================================================
+STAGE 2/3: stage2_agent
+  Layers 0-24 trainable | 89 steps | warmup 17
+  Mixture: {'L': 0.3, 'A': 0.7, 'I': 0.0}
+============================================================
+  Inter-stage cleanup: 16.9 GB used / 102.0 GB total after releasing Stage 1 state
+  Trainable prefix: 24/48 blocks (920,854,528/1,843,937,152 = 49.9%)
+  StreamingFactorDataset: D_L=30%, D_A=70% (indexed=9566 clips)
+surgery:stage2_agent:   0%|          | 0/89 [00:00<?, ?step/s]/venv/main/lib/python3.12/contextlib.py:105: FutureWarning: `torch.backends.cuda.sdp_kernel()` is deprecated. In the future, this context manager will be removed. Please see `torch.nn.attention.sdpa_kernel()` for the new context manager, with updated signature.
+  self.gen = func(*args, **kwds)
+surgery:stage2_agent:   0%|          | 0/89 [01:24<?, ?step/s]surgery:stage2_agent:   1%|          | 1/89 [01:24<2:03:56, 84.51s/step]surgery:stage2_agent:   2%|▏         | 2/89 [01:44<1:07:55, 46.85s/step]surgery:stage2_agent:   2%|▏         | 2/89 [01:57<1:07:55, 46.85s/step]surgery:stage2_agent:   3%|▎         | 3/89 [01:57<44:48, 31.26s/step]  surgery:stage2_agent:   4%|▍         | 4/89 [02:10<34:14, 24.17s/step]surgery:stage2_agent:   6%|▌         | 5/89 [02:24<28:38, 20.46s/step]surgery:stage2_agent:   6%|▌         | 5/89 [02:39<28:38, 20.46s/step]surgery:stage2_agent:   7%|▋         | 6/89 [02:39<25:35, 18.50s/step]surgery:stage2_agent:   8%|▊         | 7/89 [02:54<23:40, 17.32s/step]surgery:stage2_agent:   9%|▉         | 8/89 [03:09<22:20, 16.55s/step]surgery:stage2_agent:   9%|▉         | 8/89 [03:24<22:20, 16.55s/step]surgery:stage2_agent:  10%|█         | 9/89 [03:24<21:25, 16.07s/step]surgery:stage2_agent:  11%|█         | 10/89 [03:38<20:18, 15.43s/step]surgery:stage2_agent:  11%|█         | 10/89 [03:54<20:18, 15.43s/step]surgery:stage2_agent:  12%|█▏        | 11/89 [03:54<20:24, 15.70s/step]surgery:stage2_agent:  13%|█▎        | 12/89 [04:10<20:15, 15.79s/step]surgery:stage2_agent:  13%|█▎        | 12/89 [04:27<20:15, 15.79s/step]surgery:stage2_agent:  15%|█▍        | 13/89 [04:27<20:23, 16.10s/step]surgery:stage2_agent:  16%|█▌        | 14/89 [04:42<19:42, 15.76s/step]surgery:stage2_agent:  16%|█▌        | 14/89 [04:57<19:42, 15.76s/step]surgery:stage2_agent:  17%|█▋        | 15/89 [04:57<19:13, 15.59s/step]surgery:stage2_agent:  18%|█▊        | 16/89 [05:12<18:39, 15.33s/step]surgery:stage2_agent:  19%|█▉        | 17/89 [05:26<17:56, 14.95s/step]surgery:stage2_agent:  19%|█▉        | 17/89 [05:40<17:56, 14.95s/step]surgery:stage2_agent:  20%|██        | 18/89 [05:40<17:25, 14.73s/step]surgery:stage2_agent:  21%|██▏       | 19/89 [05:54<17:00, 14.57s/step]surgery:stage2_agent:  22%|██▏       | 20/89 [06:10<17:04, 14.85s/step]surgery:stage2_agent:  22%|██▏       | 20/89 [06:24<17:04, 14.85s/step]surgery:stage2_agent:  24%|██▎       | 21/89 [06:24<16:44, 14.77s/step]surgery:stage2_agent:  25%|██▍       | 22/89 [06:40<16:40, 14.94s/step]surgery:stage2_agent:  25%|██▍       | 22/89 [06:56<16:40, 14.94s/step]surgery:stage2_agent:  26%|██▌       | 23/89 [06:56<16:41, 15.17s/step]surgery:stage2_agent:  27%|██▋       | 24/89 [07:10<16:04, 14.84s/step]surgery:stage2_agent:  28%|██▊       | 25/89 [07:24<15:37, 14.66s/step]surgery:stage2_agent:  28%|██▊       | 25/89 [07:37<15:37, 14.66s/step]surgery:stage2_agent:  29%|██▉       | 26/89 [07:37<14:51, 14.15s/step]  [probe] AdaptiveBatchSizer: start=8, max=44, cap=85%
+/venv/main/lib/python3.12/contextlib.py:105: FutureWarning: `torch.backends.cuda.sdp_kernel()` is deprecated. In the future, this context manager will be removed. Please see `torch.nn.attention.sdpa_kernel()` for the new context manager, with updated signature.
+  self.gen = func(*args, **kwds)
+  [probe] step=145 stage=stage2_agent N=500 Prec@K=29.83±2.40 mAP@K=21.46±2.27 Cycle@K=70.20±4.02 val_jepa=0.4659
+Exported student encoder: /workspace/factorjepa/outputs/full/m09c_surgery/student_best.pt
+  [best] new max Prec@K=29.83 (step 145) → saved student_best.pt
+  [plots] skip m09_val_loss: no val_loss in loss_log (m09c reads val-loss from probe_history instead — see _render_live_plots)
+  Saved: /workspace/factorjepa/outputs/full/m09c_surgery/m09_train_loss.png + .pdf
+  SKIP: drift loss plot (all zeros — drift control disabled)
+/venv/main/lib/python3.12/contextlib.py:105: FutureWarning: `torch.backends.cuda.sdp_kernel()` is deprecated. In the future, this context manager will be removed. Please see `torch.nn.attention.sdpa_kernel()` for the new context manager, with updated signature.
+  self.gen = func(*args, **kwds)
+surgery:stage2_agent:  29%|██▉       | 26/89 [15:48<14:51, 14.15s/step]surgery:stage2_agent:  30%|███       | 27/89 [15:48<2:42:24, 157.17s/step]surgery:stage2_agent:  31%|███▏      | 28/89 [15:58<1:55:08, 113.26s/step]surgery:stage2_agent:  33%|███▎      | 29/89 [16:10<1:22:50, 82.84s/step] surgery:stage2_agent:  33%|███▎      | 29/89 [16:22<1:22:50, 82.84s/step]surgery:stage2_agent:  34%|███▎      | 30/89 [16:22<1:00:36, 61.64s/step]surgery:stage2_agent:  35%|███▍      | 31/89 [16:35<45:13, 46.79s/step]  surgery:stage2_agent:  36%|███▌      | 32/89 [16:48<34:54, 36.75s/step]surgery:stage2_agent:  36%|███▌      | 32/89 [17:00<34:54, 36.75s/step]surgery:stage2_agent:  37%|███▋      | 33/89 [17:00<27:20, 29.30s/step]surgery:stage2_agent:  38%|███▊      | 34/89 [17:12<22:05, 24.10s/step]surgery:stage2_agent:  39%|███▉      | 35/89 [17:25<18:42, 20.78s/step]surgery:stage2_agent:  39%|███▉      | 35/89 [17:37<18:42, 20.78s/step]surgery:stage2_agent:  40%|████      | 36/89 [17:37<16:05, 18.22s/step]surgery:stage2_agent:  42%|████▏     | 37/89 [17:50<14:26, 16.67s/step]surgery:stage2_agent:  43%|████▎     | 38/89 [18:02<13:00, 15.31s/step]surgery:stage2_agent:  43%|████▎     | 38/89 [18:15<13:00, 15.31s/step]surgery:stage2_agent:  44%|████▍     | 39/89 [18:15<12:02, 14.45s/step]surgery:stage2_agent:  45%|████▍     | 40/89 [18:26<11:07, 13.62s/step]surgery:stage2_agent:  46%|████▌     | 41/89 [18:40<10:47, 13.48s/step]surgery:stage2_agent:  46%|████▌     | 41/89 [18:52<10:47, 13.48s/step]surgery:stage2_agent:  47%|████▋     | 42/89 [18:52<10:21, 13.23s/step]surgery:stage2_agent:  48%|████▊     | 43/89 [19:04<09:44, 12.71s/step]surgery:stage2_agent:  49%|████▉     | 44/89 [19:15<09:17, 12.38s/step]surgery:stage2_agent:  49%|████▉     | 44/89 [19:26<09:17, 12.38s/step]surgery:stage2_agent:  51%|█████     | 45/89 [19:26<08:48, 12.01s/step]surgery:stage2_agent:  52%|█████▏    | 46/89 [19:39<08:46, 12.24s/step]surgery:stage2_agent:  53%|█████▎    | 47/89 [19:50<08:20, 11.92s/step]surgery:stage2_agent:  53%|█████▎    | 47/89 [20:02<08:20, 11.92s/step]surgery:stage2_agent:  54%|█████▍    | 48/89 [20:02<08:07, 11.89s/step]surgery:stage2_agent:  55%|█████▌    | 49/89 [20:13<07:41, 11.53s/step]surgery:stage2_agent:  56%|█████▌    | 50/89 [20:25<07:37, 11.74s/step]surgery:stage2_agent:  56%|█████▌    | 50/89 [20:38<07:37, 11.74s/step]surgery:stage2_agent:  57%|█████▋    | 51/89 [20:38<07:35, 12.00s/step]surgery:stage2_agent:  58%|█████▊    | 52/89 [20:51<07:42, 12.50s/step]surgery:stage2_agent:  60%|█████▉    | 53/89 [21:04<07:31, 12.53s/step]surgery:stage2_agent:  60%|█████▉    | 53/89 [21:15<07:31, 12.53s/step]surgery:stage2_agent:  61%|██████    | 54/89 [21:15<07:02, 12.08s/step]surgery:stage2_agent:  62%|██████▏   | 55/89 [21:27<06:52, 12.13s/step]  [probe] AdaptiveBatchSizer: start=8, max=44, cap=85%
+/venv/main/lib/python3.12/contextlib.py:105: FutureWarning: `torch.backends.cuda.sdp_kernel()` is deprecated. In the future, this context manager will be removed. Please see `torch.nn.attention.sdpa_kernel()` for the new context manager, with updated signature.
+  self.gen = func(*args, **kwds)
+  [probe] step=174 stage=stage2_agent N=500 Prec@K=29.50±2.38 mAP@K=21.13±2.22 Cycle@K=70.20±4.00 val_jepa=0.4641
+  [plots] skip m09_val_loss: no val_loss in loss_log (m09c reads val-loss from probe_history instead — see _render_live_plots)
+  Saved: /workspace/factorjepa/outputs/full/m09c_surgery/m09_train_loss.png + .pdf
+  SKIP: drift loss plot (all zeros — drift control disabled)
+/venv/main/lib/python3.12/contextlib.py:105: FutureWarning: `torch.backends.cuda.sdp_kernel()` is deprecated. In the future, this context manager will be removed. Please see `torch.nn.attention.sdpa_kernel()` for the new context manager, with updated signature.
+  self.gen = func(*args, **kwds)
+surgery:stage2_agent:  62%|██████▏   | 55/89 [29:35<06:52, 12.13s/step]surgery:stage2_agent:  63%|██████▎   | 56/89 [29:35<1:25:08, 154.81s/step]surgery:stage2_agent:  64%|██████▍   | 57/89 [29:48<59:54, 112.32s/step]  surgery:stage2_agent:  65%|██████▌   | 58/89 [30:00<42:29, 82.25s/step] surgery:stage2_agent:  65%|██████▌   | 58/89 [30:12<42:29, 82.25s/step]surgery:stage2_agent:  66%|██████▋   | 59/89 [30:12<30:30, 61.03s/step]surgery:stage2_agent:  67%|██████▋   | 60/89 [30:24<22:27, 46.46s/step]surgery:stage2_agent:  69%|██████▊   | 61/89 [30:36<16:51, 36.13s/step]surgery:stage2_agent:  69%|██████▊   | 61/89 [30:48<16:51, 36.13s/step]surgery:stage2_agent:  70%|██████▉   | 62/89 [30:48<13:00, 28.92s/step]surgery:stage2_agent:  71%|███████   | 63/89 [31:01<10:22, 23.94s/step]surgery:stage2_agent:  72%|███████▏  | 64/89 [31:11<08:17, 19.89s/step]surgery:stage2_agent:  72%|███████▏  | 64/89 [31:23<08:17, 19.89s/step]surgery:stage2_agent:  73%|███████▎  | 65/89 [31:23<07:01, 17.55s/step]surgery:stage2_agent:  74%|███████▍  | 66/89 [31:36<06:10, 16.09s/step]surgery:stage2_agent:  75%|███████▌  | 67/89 [31:48<05:26, 14.85s/step]surgery:stage2_agent:  75%|███████▌  | 67/89 [32:00<05:26, 14.85s/step]surgery:stage2_agent:  76%|███████▋  | 68/89 [32:00<04:51, 13.86s/step]surgery:stage2_agent:  78%|███████▊  | 69/89 [32:10<04:17, 12.87s/step]surgery:stage2_agent:  79%|███████▊  | 70/89 [32:21<03:52, 12.23s/step]surgery:stage2_agent:  79%|███████▊  | 70/89 [32:34<03:52, 12.23s/step]surgery:stage2_agent:  80%|███████▉  | 71/89 [32:34<03:43, 12.40s/step]surgery:stage2_agent:  81%|████████  | 72/89 [32:45<03:24, 12.04s/step]surgery:stage2_agent:  82%|████████▏ | 73/89 [32:57<03:13, 12.07s/step]surgery:stage2_agent:  82%|████████▏ | 73/89 [33:10<03:13, 12.07s/step]surgery:stage2_agent:  83%|████████▎ | 74/89 [33:10<03:06, 12.42s/step]surgery:stage2_agent:  84%|████████▍ | 75/89 [33:24<02:58, 12.75s/step]surgery:stage2_agent:  85%|████████▌ | 76/89 [33:36<02:44, 12.68s/step]surgery:stage2_agent:  85%|████████▌ | 76/89 [33:48<02:44, 12.68s/step]surgery:stage2_agent:  87%|████████▋ | 77/89 [33:48<02:29, 12.48s/step]surgery:stage2_agent:  88%|████████▊ | 78/89 [34:00<02:14, 12.27s/step]surgery:stage2_agent:  89%|████████▉ | 79/89 [34:13<02:05, 12.54s/step]surgery:stage2_agent:  89%|████████▉ | 79/89 [34:25<02:05, 12.54s/step]surgery:stage2_agent:  90%|████████▉ | 80/89 [34:25<01:50, 12.33s/step]surgery:stage2_agent:  91%|█████████ | 81/89 [34:37<01:37, 12.25s/step]surgery:stage2_agent:  92%|█████████▏| 82/89 [34:50<01:27, 12.51s/step]surgery:stage2_agent:  92%|█████████▏| 82/89 [35:03<01:27, 12.51s/step]surgery:stage2_agent:  93%|█████████▎| 83/89 [35:03<01:15, 12.57s/step]surgery:stage2_agent:  94%|█████████▍| 84/89 [35:14<01:01, 12.26s/step]  [probe] AdaptiveBatchSizer: start=8, max=44, cap=85%
+/venv/main/lib/python3.12/contextlib.py:105: FutureWarning: `torch.backends.cuda.sdp_kernel()` is deprecated. In the future, this context manager will be removed. Please see `torch.nn.attention.sdpa_kernel()` for the new context manager, with updated signature.
+  self.gen = func(*args, **kwds)
+  [probe] step=203 stage=stage2_agent N=500 Prec@K=29.60±2.38 mAP@K=21.18±2.23 Cycle@K=70.60±4.00 val_jepa=0.4653
+  [plots] skip m09_val_loss: no val_loss in loss_log (m09c reads val-loss from probe_history instead — see _render_live_plots)
+  Saved: /workspace/factorjepa/outputs/full/m09c_surgery/m09_train_loss.png + .pdf
+  SKIP: drift loss plot (all zeros — drift control disabled)
+/venv/main/lib/python3.12/contextlib.py:105: FutureWarning: `torch.backends.cuda.sdp_kernel()` is deprecated. In the future, this context manager will be removed. Please see `torch.nn.attention.sdpa_kernel()` for the new context manager, with updated signature.
+  self.gen = func(*args, **kwds)
+surgery:stage2_agent:  94%|█████████▍| 84/89 [43:23<01:01, 12.26s/step]surgery:stage2_agent:  96%|█████████▌| 85/89 [43:23<10:20, 155.07s/step]surgery:stage2_agent:  97%|█████████▋| 86/89 [43:34<05:35, 111.99s/step]surgery:stage2_agent:  98%|█████████▊| 87/89 [43:47<02:44, 82.13s/step] surgery:stage2_agent:  98%|█████████▊| 87/89 [43:58<02:44, 82.13s/step]surgery:stage2_agent:  99%|█████████▉| 88/89 [43:58<01:01, 61.03s/step]surgery:stage2_agent: 100%|██████████| 89/89 [44:10<00:00, 46.24s/step]surgery:stage2_agent: 100%|██████████| 89/89 [44:10<00:00, 29.78s/step]
+  Cleaned stage checkpoint: m09c_ckpt_stage0.pt
+  Stage stage2_agent complete: 89 steps, loss=0.4619
+  [probe] AdaptiveBatchSizer: start=8, max=44, cap=85%
+/venv/main/lib/python3.12/contextlib.py:105: FutureWarning: `torch.backends.cuda.sdp_kernel()` is deprecated. In the future, this context manager will be removed. Please see `torch.nn.attention.sdpa_kernel()` for the new context manager, with updated signature.
+  self.gen = func(*args, **kwds)
+  [probe] step=208 stage=stage2_agent N=500 Prec@K=29.67±2.38 mAP@K=21.20±2.23 Cycle@K=70.60±4.00 val_jepa=0.4622
+  [plots] skip m09_val_loss: no val_loss in loss_log (m09c reads val-loss from probe_history instead — see _render_live_plots)
+  Saved: /workspace/factorjepa/outputs/full/m09c_surgery/m09_train_loss.png + .pdf
+  SKIP: drift loss plot (all zeros — drift control disabled)
+
+============================================================
+STAGE 3/3: stage3_interaction
+  Layers 0-24 trainable | 89 steps | warmup 17
+  Mixture: {'L': 0.15, 'A': 0.15, 'I': 0.7}
+============================================================
+  Inter-stage cleanup: 16.9 GB used / 102.0 GB total after releasing Stage 2 state
+  Trainable prefix: 24/48 blocks (920,854,528/1,843,937,152 = 49.9%)
+  StreamingFactorDataset: D_L=50%, D_A=50% (indexed=9566 clips)
+surgery:stage3_interaction:   0%|          | 0/89 [00:00<?, ?step/s]/venv/main/lib/python3.12/contextlib.py:105: FutureWarning: `torch.backends.cuda.sdp_kernel()` is deprecated. In the future, this context manager will be removed. Please see `torch.nn.attention.sdpa_kernel()` for the new context manager, with updated signature.
+  self.gen = func(*args, **kwds)
+surgery:stage3_interaction:   0%|          | 0/89 [01:48<?, ?step/s]surgery:stage3_interaction:   1%|          | 1/89 [01:48<2:39:31, 108.76s/step]surgery:stage3_interaction:   2%|▏         | 2/89 [02:03<1:17:37, 53.54s/step] surgery:stage3_interaction:   3%|▎         | 3/89 [02:18<51:06, 35.66s/step]  surgery:stage3_interaction:   3%|▎         | 3/89 [02:32<51:06, 35.66s/step]surgery:stage3_interaction:   4%|▍         | 4/89 [02:32<38:47, 27.39s/step]surgery:stage3_interaction:   6%|▌         | 5/89 [02:47<31:53, 22.78s/step]surgery:stage3_interaction:   6%|▌         | 5/89 [03:02<31:53, 22.78s/step]surgery:stage3_interaction:   7%|▋         | 6/89 [03:02<28:02, 20.27s/step]surgery:stage3_interaction:   8%|▊         | 7/89 [03:16<24:51, 18.18s/step]surgery:stage3_interaction:   9%|▉         | 8/89 [03:32<23:34, 17.46s/step]surgery:stage3_interaction:   9%|▉         | 8/89 [03:48<23:34, 17.46s/step]surgery:stage3_interaction:  10%|█         | 9/89 [03:48<22:27, 16.85s/step]surgery:stage3_interaction:  11%|█         | 10/89 [04:01<20:54, 15.87s/step]surgery:stage3_interaction:  12%|█▏        | 11/89 [04:16<20:05, 15.45s/step]surgery:stage3_interaction:  12%|█▏        | 11/89 [04:31<20:05, 15.45s/step]surgery:stage3_interaction:  13%|█▎        | 12/89 [04:31<19:34, 15.26s/step]surgery:stage3_interaction:  15%|█▍        | 13/89 [04:44<18:48, 14.84s/step]surgery:stage3_interaction:  16%|█▌        | 14/89 [04:59<18:36, 14.89s/step]surgery:stage3_interaction:  16%|█▌        | 14/89 [05:13<18:36, 14.89s/step]surgery:stage3_interaction:  17%|█▋        | 15/89 [05:13<17:59, 14.59s/step]surgery:stage3_interaction:  18%|█▊        | 16/89 [05:29<18:10, 14.94s/step]surgery:stage3_interaction:  18%|█▊        | 16/89 [05:45<18:10, 14.94s/step]surgery:stage3_interaction:  19%|█▉        | 17/89 [05:45<18:19, 15.28s/step]surgery:stage3_interaction:  20%|██        | 18/89 [06:00<17:47, 15.04s/step]surgery:stage3_interaction:  21%|██▏       | 19/89 [06:14<17:17, 14.82s/step]surgery:stage3_interaction:  21%|██▏       | 19/89 [06:29<17:17, 14.82s/step]surgery:stage3_interaction:  22%|██▏       | 20/89 [06:29<17:16, 15.02s/step]surgery:stage3_interaction:  24%|██▎       | 21/89 [06:44<16:48, 14.84s/step]surgery:stage3_interaction:  24%|██▎       | 21/89 [07:00<16:48, 14.84s/step]surgery:stage3_interaction:  25%|██▍       | 22/89 [07:00<16:53, 15.13s/step]surgery:stage3_interaction:  26%|██▌       | 23/89 [07:15<16:40, 15.15s/step]surgery:stage3_interaction:  27%|██▋       | 24/89 [07:29<16:13, 14.98s/step]  [probe] AdaptiveBatchSizer: start=8, max=44, cap=85%
+/venv/main/lib/python3.12/contextlib.py:105: FutureWarning: `torch.backends.cuda.sdp_kernel()` is deprecated. In the future, this context manager will be removed. Please see `torch.nn.attention.sdpa_kernel()` for the new context manager, with updated signature.
+  self.gen = func(*args, **kwds)
+  [probe] step=232 stage=stage3_interaction N=500 Prec@K=29.77±2.42 mAP@K=21.26±2.24 Cycle@K=70.00±4.00 val_jepa=0.4629
+  [plots] skip m09_val_loss: no val_loss in loss_log (m09c reads val-loss from probe_history instead — see _render_live_plots)
+  Saved: /workspace/factorjepa/outputs/full/m09c_surgery/m09_train_loss.png + .pdf
+  SKIP: drift loss plot (all zeros — drift control disabled)
+/venv/main/lib/python3.12/contextlib.py:105: FutureWarning: `torch.backends.cuda.sdp_kernel()` is deprecated. In the future, this context manager will be removed. Please see `torch.nn.attention.sdpa_kernel()` for the new context manager, with updated signature.
+  self.gen = func(*args, **kwds)
+surgery:stage3_interaction:  27%|██▋       | 24/89 [15:39<16:13, 14.98s/step]surgery:stage3_interaction:  28%|██▊       | 25/89 [15:39<2:47:48, 157.33s/step]surgery:stage3_interaction:  29%|██▉       | 26/89 [15:51<1:59:30, 113.81s/step]surgery:stage3_interaction:  30%|███       | 27/89 [16:03<1:25:56, 83.18s/step] surgery:stage3_interaction:  30%|███       | 27/89 [16:14<1:25:56, 83.18s/step]surgery:stage3_interaction:  31%|███▏      | 28/89 [16:14<1:02:43, 61.70s/step]surgery:stage3_interaction:  33%|███▎      | 29/89 [16:25<46:30, 46.50s/step]  surgery:stage3_interaction:  34%|███▎      | 30/89 [16:37<35:29, 36.09s/step]surgery:stage3_interaction:  34%|███▎      | 30/89 [16:50<35:29, 36.09s/step]surgery:stage3_interaction:  35%|███▍      | 31/89 [16:50<28:10, 29.15s/step]surgery:stage3_interaction:  36%|███▌      | 32/89 [17:02<22:36, 23.80s/step]surgery:stage3_interaction:  37%|███▋      | 33/89 [17:14<19:04, 20.43s/step]surgery:stage3_interaction:  37%|███▋      | 33/89 [17:27<19:04, 20.43s/step]surgery:stage3_interaction:  38%|███▊      | 34/89 [17:27<16:36, 18.11s/step]surgery:stage3_interaction:  39%|███▉      | 35/89 [17:39<14:46, 16.42s/step]surgery:stage3_interaction:  40%|████      | 36/89 [17:52<13:31, 15.31s/step]surgery:stage3_interaction:  40%|████      | 36/89 [18:05<13:31, 15.31s/step]surgery:stage3_interaction:  42%|████▏     | 37/89 [18:05<12:37, 14.57s/step]surgery:stage3_interaction:  43%|████▎     | 38/89 [18:16<11:26, 13.45s/step]surgery:stage3_interaction:  44%|████▍     | 39/89 [18:28<10:48, 12.97s/step]surgery:stage3_interaction:  44%|████▍     | 39/89 [18:39<10:48, 12.97s/step]surgery:stage3_interaction:  45%|████▍     | 40/89 [18:39<10:09, 12.43s/step]surgery:stage3_interaction:  46%|████▌     | 41/89 [18:50<09:43, 12.15s/step]surgery:stage3_interaction:  47%|████▋     | 42/89 [19:03<09:39, 12.34s/step]surgery:stage3_interaction:  47%|████▋     | 42/89 [19:16<09:39, 12.34s/step]surgery:stage3_interaction:  48%|████▊     | 43/89 [19:16<09:31, 12.43s/step]surgery:stage3_interaction:  49%|████▉     | 44/89 [19:28<09:18, 12.42s/step]surgery:stage3_interaction:  51%|█████     | 45/89 [19:40<09:05, 12.41s/step]surgery:stage3_interaction:  51%|█████     | 45/89 [19:54<09:05, 12.41s/step]surgery:stage3_interaction:  52%|█████▏    | 46/89 [19:54<09:05, 12.70s/step]surgery:stage3_interaction:  53%|█████▎    | 47/89 [20:07<09:05, 12.98s/step]surgery:stage3_interaction:  54%|█████▍    | 48/89 [20:19<08:38, 12.65s/step]surgery:stage3_interaction:  54%|█████▍    | 48/89 [20:32<08:38, 12.65s/step]surgery:stage3_interaction:  55%|█████▌    | 49/89 [20:32<08:30, 12.77s/step]surgery:stage3_interaction:  56%|█████▌    | 50/89 [20:46<08:23, 12.90s/step]surgery:stage3_interaction:  57%|█████▋    | 51/89 [20:58<08:05, 12.78s/step]surgery:stage3_interaction:  57%|█████▋    | 51/89 [21:09<08:05, 12.78s/step]surgery:stage3_interaction:  58%|█████▊    | 52/89 [21:09<07:29, 12.15s/step]surgery:stage3_interaction:  60%|█████▉    | 53/89 [21:22<07:28, 12.47s/step]  [probe] AdaptiveBatchSizer: start=8, max=44, cap=85%
+/venv/main/lib/python3.12/contextlib.py:105: FutureWarning: `torch.backends.cuda.sdp_kernel()` is deprecated. In the future, this context manager will be removed. Please see `torch.nn.attention.sdpa_kernel()` for the new context manager, with updated signature.
+  self.gen = func(*args, **kwds)
+  [probe] step=261 stage=stage3_interaction N=500 Prec@K=29.70±2.37 mAP@K=21.25±2.24 Cycle@K=71.00±3.90 val_jepa=0.4614
+  [plots] skip m09_val_loss: no val_loss in loss_log (m09c reads val-loss from probe_history instead — see _render_live_plots)
+  Saved: /workspace/factorjepa/outputs/full/m09c_surgery/m09_train_loss.png + .pdf
+  SKIP: drift loss plot (all zeros — drift control disabled)
+/venv/main/lib/python3.12/contextlib.py:105: FutureWarning: `torch.backends.cuda.sdp_kernel()` is deprecated. In the future, this context manager will be removed. Please see `torch.nn.attention.sdpa_kernel()` for the new context manager, with updated signature.
+  self.gen = func(*args, **kwds)
+surgery:stage3_interaction:  60%|█████▉    | 53/89 [29:25<07:28, 12.47s/step]surgery:stage3_interaction:  61%|██████    | 54/89 [29:25<1:29:42, 153.79s/step]surgery:stage3_interaction:  62%|██████▏   | 55/89 [29:38<1:03:06, 111.36s/step]surgery:stage3_interaction:  63%|██████▎   | 56/89 [29:49<44:46, 81.42s/step]   surgery:stage3_interaction:  63%|██████▎   | 56/89 [30:02<44:46, 81.42s/step]surgery:stage3_interaction:  64%|██████▍   | 57/89 [30:02<32:22, 60.69s/step]surgery:stage3_interaction:  65%|██████▌   | 58/89 [30:14<23:48, 46.07s/step]surgery:stage3_interaction:  66%|██████▋   | 59/89 [30:26<17:55, 35.86s/step]surgery:stage3_interaction:  66%|██████▋   | 59/89 [30:39<17:55, 35.86s/step]surgery:stage3_interaction:  67%|██████▋   | 60/89 [30:39<14:03, 29.10s/step]surgery:stage3_interaction:  69%|██████▊   | 61/89 [30:51<11:13, 24.06s/step]surgery:stage3_interaction:  70%|██████▉   | 62/89 [31:04<09:17, 20.66s/step]surgery:stage3_interaction:  70%|██████▉   | 62/89 [31:16<09:17, 20.66s/step]surgery:stage3_interaction:  71%|███████   | 63/89 [31:16<07:49, 18.07s/step]surgery:stage3_interaction:  72%|███████▏  | 64/89 [31:28<06:48, 16.34s/step]surgery:stage3_interaction:  73%|███████▎  | 65/89 [31:41<06:04, 15.19s/step]surgery:stage3_interaction:  73%|███████▎  | 65/89 [31:54<06:04, 15.19s/step]surgery:stage3_interaction:  74%|███████▍  | 66/89 [31:54<05:34, 14.54s/step]surgery:stage3_interaction:  75%|███████▌  | 67/89 [32:06<05:05, 13.87s/step]surgery:stage3_interaction:  76%|███████▋  | 68/89 [32:19<04:41, 13.41s/step]surgery:stage3_interaction:  76%|███████▋  | 68/89 [32:31<04:41, 13.41s/step]surgery:stage3_interaction:  78%|███████▊  | 69/89 [32:31<04:20, 13.00s/step]surgery:stage3_interaction:  79%|███████▊  | 70/89 [32:43<04:05, 12.91s/step]surgery:stage3_interaction:  80%|███████▉  | 71/89 [32:54<03:42, 12.36s/step]surgery:stage3_interaction:  80%|███████▉  | 71/89 [33:07<03:42, 12.36s/step]surgery:stage3_interaction:  81%|████████  | 72/89 [33:07<03:32, 12.50s/step]surgery:stage3_interaction:  82%|████████▏ | 73/89 [33:20<03:19, 12.49s/step]surgery:stage3_interaction:  83%|████████▎ | 74/89 [33:31<03:03, 12.26s/step]surgery:stage3_interaction:  83%|████████▎ | 74/89 [33:43<03:03, 12.26s/step]surgery:stage3_interaction:  84%|████████▍ | 75/89 [33:43<02:50, 12.15s/step]surgery:stage3_interaction:  85%|████████▌ | 76/89 [33:56<02:40, 12.32s/step]surgery:stage3_interaction:  87%|████████▋ | 77/89 [34:09<02:30, 12.53s/step]surgery:stage3_interaction:  87%|████████▋ | 77/89 [34:21<02:30, 12.53s/step]surgery:stage3_interaction:  88%|████████▊ | 78/89 [34:21<02:14, 12.25s/step]surgery:stage3_interaction:  89%|████████▉ | 79/89 [34:34<02:04, 12.47s/step]surgery:stage3_interaction:  90%|████████▉ | 80/89 [34:47<01:54, 12.75s/step]surgery:stage3_interaction:  90%|████████▉ | 80/89 [35:00<01:54, 12.75s/step]surgery:stage3_interaction:  91%|█████████ | 81/89 [35:00<01:42, 12.85s/step]surgery:stage3_interaction:  92%|█████████▏| 82/89 [35:13<01:29, 12.74s/step]  [probe] AdaptiveBatchSizer: start=8, max=44, cap=85%
+/venv/main/lib/python3.12/contextlib.py:105: FutureWarning: `torch.backends.cuda.sdp_kernel()` is deprecated. In the future, this context manager will be removed. Please see `torch.nn.attention.sdpa_kernel()` for the new context manager, with updated signature.
+  self.gen = func(*args, **kwds)
+  [probe] step=290 stage=stage3_interaction N=500 Prec@K=29.63±2.37 mAP@K=21.14±2.23 Cycle@K=71.00±3.90 val_jepa=0.4601
+  [plots] skip m09_val_loss: no val_loss in loss_log (m09c reads val-loss from probe_history instead — see _render_live_plots)
+  Saved: /workspace/factorjepa/outputs/full/m09c_surgery/m09_train_loss.png + .pdf
+  SKIP: drift loss plot (all zeros — drift control disabled)
+/venv/main/lib/python3.12/contextlib.py:105: FutureWarning: `torch.backends.cuda.sdp_kernel()` is deprecated. In the future, this context manager will be removed. Please see `torch.nn.attention.sdpa_kernel()` for the new context manager, with updated signature.
+  self.gen = func(*args, **kwds)
+surgery:stage3_interaction:  92%|█████████▏| 82/89 [43:16<01:29, 12.74s/step]surgery:stage3_interaction:  93%|█████████▎| 83/89 [43:16<15:24, 154.06s/step]surgery:stage3_interaction:  94%|█████████▍| 84/89 [43:29<09:17, 111.56s/step]surgery:stage3_interaction:  96%|█████████▌| 85/89 [43:40<05:26, 81.50s/step] surgery:stage3_interaction:  96%|█████████▌| 85/89 [43:52<05:26, 81.50s/step]surgery:stage3_interaction:  97%|█████████▋| 86/89 [43:52<03:01, 60.54s/step]surgery:stage3_interaction:  98%|█████████▊| 87/89 [44:05<01:32, 46.23s/step]surgery:stage3_interaction:  99%|█████████▉| 88/89 [44:18<00:36, 36.27s/step]surgery:stage3_interaction:  99%|█████████▉| 88/89 [44:30<00:36, 36.27s/step]surgery:stage3_interaction: 100%|██████████| 89/89 [44:30<00:00, 29.08s/step]surgery:stage3_interaction: 100%|██████████| 89/89 [44:30<00:00, 30.00s/step]
+  Cleaned stage checkpoint: m09c_ckpt_stage1.pt
+  Stage stage3_interaction complete: 89 steps, loss=0.4616
+  [probe] AdaptiveBatchSizer: start=8, max=44, cap=85%
+/venv/main/lib/python3.12/contextlib.py:105: FutureWarning: `torch.backends.cuda.sdp_kernel()` is deprecated. In the future, this context manager will be removed. Please see `torch.nn.attention.sdpa_kernel()` for the new context manager, with updated signature.
+  self.gen = func(*args, **kwds)
+  [probe] step=297 stage=stage3_interaction N=500 Prec@K=29.60±2.40 mAP@K=21.11±2.24 Cycle@K=70.60±4.00 val_jepa=0.4614
+  [plots] skip m09_val_loss: no val_loss in loss_log (m09c reads val-loss from probe_history instead — see _render_live_plots)
+  Saved: /workspace/factorjepa/outputs/full/m09c_surgery/m09_train_loss.png + .pdf
+  SKIP: drift loss plot (all zeros — drift control disabled)
+  [best] Promoted student_best.pt (Prec@K=29.83 at step 145, stage stage2_agent) → student_encoder.pt
+  Cleaned stage checkpoint: m09c_ckpt_stage2.pt
+
+============================================================
+[probe] Trajectory across 13 stages:
+  Prec@K: [29.6333, 29.7, 29.6, 29.7, 29.7333, 29.8333, 29.5, 29.6, 29.6667, 29.7667, 29.7, 29.6333, 29.6]
+  ΔPrec@K (BWT-proxy): -0.03
+  ⚠  max_drop = 0.33 — some stage hurt Prec@K despite replay
+============================================================
+  Saved: /workspace/factorjepa/outputs/full/m09c_surgery/probe_trajectory.png
+  Saved: /workspace/factorjepa/outputs/full/m09c_surgery/m09_forgetting.png
+  Saved: /workspace/factorjepa/outputs/full/m09c_surgery/m09_val_loss.png
+  [plots] skip m09_val_loss: no val_loss in loss_log (m09c reads val-loss from probe_history instead — see _render_live_plots)
+  Saved: /workspace/factorjepa/outputs/full/m09c_surgery/m09_train_loss.png + .pdf
+  SKIP: drift loss plot (all zeros — drift control disabled)
+
+SURGERY COMPLETE: 297 steps across 3 stages
+  Exported: /workspace/factorjepa/outputs/full/m09c_surgery/student_encoder.pt
+
+═══ 06:43:19 · Verify C — student_encoder.pt + training summary ═══
+-rw-rw-r-- 1 root root 6.9G Apr 22 05:13 outputs/full/m09c_surgery/student_encoder.pt
+-rw-rw-r-- 1 root root  31K Apr 22 03:45 outputs/full/m09c_surgery/val_split.json
+split:      {'train': 9566, 'val': 500, 'split_ratio': 0.9, 'seed': 42, 'split_strategy': 'permanent', 'max_val_clips': None, 'val_split_path': '/workspace/factorjepa/outputs/full/m09c_surgery/val_split.json'}
+best_ckpt:  {'prec_at_k': 29.833333, 'global_step': 145, 'stage_name': 'stage2_agent', 'probe_record': {'num_clips': 500, 'prec_at_k': {'mean': 29.833333, 'ci_lo': 27.533333, 'ci_hi': 32.333333, 'ci_half': 2.4}, 'map_at_k': {'mean': 21.457778, 'ci_lo': 19.321644, 'ci_hi': 23.864467, 'ci_half': 2.271412}, 'cycle_at_k': {'mean': 70.2, 'ci_lo': 66.169002, 'ci_hi': 74.2, 'ci_half': 4.015499}, 'val_jepa_loss': 0.46586009454727173, 'val_masked_loss': 0.34109270763397215, 'val_context_loss': 0.24953477144241332, 'stage_idx': 1, 'stage_name': 'stage2_agent', 'global_step': 145, 'bwt': 0.1999999999999993}}
+early_stop: {'triggered': False, 'reason': None, 'catastrophic_forgetting': {'enabled': True, 'strikes_at_end': 0, 'threshold_pct': 5.0, 'patience': 3}, 'val_loss_plateau': {'enabled': True, 'min_delta': 0.001, 'patience': 5}, 'prec_at_k_plateau': {'enabled': True, 'min_delta_pp': 0.3, 'patience': 5, 'recent_values': [29.766667, 29.7, 29.633333, 29.6]}, 'negative_bwt': {'enabled': True, 'strikes_at_end': 0, 'first_prec_at_k': 29.633333, 'ci_fraction': 0.5, 'absolute_floor_pp': 0.3, 'tolerance_pct_legacy': 0.5, 'patience': 3}}
+BWT:        -0.0333
+✅ training summary OK
+
+═══ 06:43:19 · Step D — m05 frozen on test_500 ═══
+Output: /workspace/factorjepa/outputs/full/m05_vjepa_embed/embeddings_vjepa_2_1_frozen.npy
+[POC] Subset: data/test_500.json
+[output_guard] m05 embed: attempting HF download for 2 missing file(s)...
+[output_guard] m05 embed: HF download failed: 404 Client Error. (Request ID: Root=1-69e86e0e-2e427e04405fce5b285edded;7fc588fe-d976-4eb3-be63-20552de61c71)
+
+Entry Not Found for url: https://huggingface.co/api/datasets/anonymousML123/factorjepa-outputs/tree/main/%2Fworkspace%2Ffactorjepa%2Foutputs%2Ffull%2Fm05_vjepa_embed?recursive=true&expand=false.
+/workspace/factorjepa/outputs/full/m05_vjepa_embed does not exist on "main"
+[output_guard] m05 embed: outputs missing or invalid — will re-compute
+  MISS  embeddings: embeddings_vjepa_2_1_frozen.npy
+  MISS  paths: embeddings_vjepa_2_1_frozen.paths.npy
+[POC] Loaded subset: 500 clip keys from test_500.json
+Clip limit: 500
+Streaming from: anonymousML123/walkindia-200k
+
+============================================================
+WORKER 1: embeddings 0 → 500
+============================================================
+GPU: NVIDIA RTX PRO 6000 Blackwell Max-Q Workstation Edition
+CUDA version: 12.8
+Batch size: 176 (from inference/vjepa2 profiler)
+Batch size: 176 → 44 (V-JEPA 2.1 native (same native fwd as adapted), from pipeline.yaml)
+AdaptiveBatchSizer: start=8, max=44, target VRAM=85% (from pipeline.yaml)
+[POC] Loaded subset: 500 clip keys from test_500.json
+
+Loading model: None
+Frozen model (vit_gigantic_xformers): native checkpoint at /workspace/factorjepa/checkpoints/vjepa2_1_vitG_384.pt
+/workspace/factorjepa/venv_walkindia/lib/python3.12/site-packages/timm/models/layers/__init__.py:49: FutureWarning: Importing from timm.models.layers is deprecated, please import via timm.layers
+  warnings.warn(f"Importing from {__name__} is deprecated, please import via timm.layers", FutureWarning)
+Frozen encoder: loaded 588/588 params (missing: 0, unexpected: 2)
+Applying torch.compile...
+Warmup: compiling inductor graph...
+Model loaded on cuda (dtype: torch.bfloat16)
+
+=== Streaming Config ===
+batch_size:    44
+video_decoder: PyAV
+prefetch:      8 batches
+checkpoint:    every 500 clips
+m05_vjepa:   0%|          | 0/500 [00:00<?, ?clip/s]  Parallel TAR reader: 8 threads, 1 TARs, queue=256
+  AdaptiveBatch: VRAM 9% < 65% → sub-batch 8 → 9
+  AdaptiveBatch: VRAM 10% < 65% → sub-batch 9 → 10
+  AdaptiveBatch: VRAM 11% < 65% → sub-batch 10 → 11
+  AdaptiveBatch: VRAM 11% < 65% → sub-batch 11 → 12
+  AdaptiveBatch: VRAM 11% < 65% → sub-batch 12 → 13
+m05_vjepa:   9%|▉         | 44/500 [00:59<10:19,  1.36s/clip]m05_vjepa:   9%|▉         | 44/500 [00:59<10:19,  1.36s/clip, 0.7 clips/s | failed=0]  AdaptiveBatch: VRAM 16% < 65% → sub-batch 13 → 14
+  AdaptiveBatch: VRAM 17% < 65% → sub-batch 14 → 15
+  AdaptiveBatch: VRAM 18% < 65% → sub-batch 15 → 16
+  AdaptiveBatch: VRAM 18% < 65% → sub-batch 16 → 17
+m05_vjepa:  18%|█▊        | 88/500 [01:51<08:36,  1.25s/clip, 0.7 clips/s | failed=0]m05_vjepa:  18%|█▊        | 88/500 [01:51<08:36,  1.25s/clip, 0.8 clips/s | failed=0]  AdaptiveBatch: VRAM 20% < 65% → sub-batch 17 → 18
+  AdaptiveBatch: VRAM 20% < 65% → sub-batch 18 → 19
+  AdaptiveBatch: VRAM 20% < 65% → sub-batch 19 → 20
+m05_vjepa:  26%|██▋       | 132/500 [02:29<06:33,  1.07s/clip, 0.8 clips/s | failed=0]m05_vjepa:  26%|██▋       | 132/500 [02:29<06:33,  1.07s/clip, 1.2 clips/s | failed=0]  AdaptiveBatch: VRAM 20% < 65% → sub-batch 20 → 21
+  AdaptiveBatch: VRAM 20% < 65% → sub-batch 21 → 22
+  AdaptiveBatch: VRAM 20% < 65% → sub-batch 22 → 23
+m05_vjepa:  35%|███▌      | 176/500 [03:06<05:17,  1.02clip/s, 1.2 clips/s | failed=0]m05_vjepa:  35%|███▌      | 176/500 [03:06<05:17,  1.02clip/s, 1.2 clips/s | failed=0]  AdaptiveBatch: VRAM 20% < 65% → sub-batch 23 → 24
+  AdaptiveBatch: VRAM 20% < 65% → sub-batch 24 → 25
+m05_vjepa:  44%|████▍     | 220/500 [03:42<04:18,  1.08clip/s, 1.2 clips/s | failed=0]m05_vjepa:  44%|████▍     | 220/500 [03:42<04:18,  1.08clip/s, 1.2 clips/s | failed=0]  AdaptiveBatch: VRAM 20% < 65% → sub-batch 25 → 26
+  AdaptiveBatch: VRAM 20% < 65% → sub-batch 26 → 27
+m05_vjepa:  53%|█████▎    | 264/500 [04:28<03:47,  1.04clip/s, 1.2 clips/s | failed=0]m05_vjepa:  53%|█████▎    | 264/500 [04:28<03:47,  1.04clip/s, 1.0 clips/s | failed=0]  AdaptiveBatch: VRAM 22% < 65% → sub-batch 27 → 28
+  AdaptiveBatch: VRAM 22% < 65% → sub-batch 28 → 29
+m05_vjepa:  62%|██████▏   | 308/500 [05:04<02:56,  1.09clip/s, 1.0 clips/s | failed=0]m05_vjepa:  62%|██████▏   | 308/500 [05:04<02:56,  1.09clip/s, 1.2 clips/s | failed=0]  AdaptiveBatch: VRAM 23% < 65% → sub-batch 29 → 30
+  AdaptiveBatch: VRAM 23% < 65% → sub-batch 30 → 31
+m05_vjepa:  70%|███████   | 352/500 [05:40<02:11,  1.13clip/s, 1.2 clips/s | failed=0]m05_vjepa:  70%|███████   | 352/500 [05:40<02:11,  1.13clip/s, 1.2 clips/s | failed=0]  AdaptiveBatch: VRAM 24% < 65% → sub-batch 31 → 32
+  AdaptiveBatch: VRAM 24% < 65% → sub-batch 32 → 33
+m05_vjepa:  79%|███████▉  | 396/500 [06:16<01:30,  1.15clip/s, 1.2 clips/s | failed=0]m05_vjepa:  79%|███████▉  | 396/500 [06:16<01:30,  1.15clip/s, 1.2 clips/s | failed=0]  AdaptiveBatch: VRAM 25% < 65% → sub-batch 33 → 34
+  AdaptiveBatch: VRAM 25% < 65% → sub-batch 34 → 35
+m05_vjepa:  88%|████████▊ | 440/500 [06:53<00:51,  1.17clip/s, 1.2 clips/s | failed=0]m05_vjepa:  88%|████████▊ | 440/500 [06:53<00:51,  1.17clip/s, 1.2 clips/s | failed=0]  AdaptiveBatch: VRAM 26% < 65% → sub-batch 35 → 36
+  AdaptiveBatch: VRAM 26% < 65% → sub-batch 36 → 37
+m05_vjepa:  97%|█████████▋| 484/500 [07:29<00:13,  1.18clip/s, 1.2 clips/s | failed=0]m05_vjepa:  97%|█████████▋| 484/500 [07:29<00:13,  1.18clip/s, 1.2 clips/s | failed=0]  AdaptiveBatch: VRAM 26% < 65% → sub-batch 37 → 38
+m05_vjepa: 100%|██████████| 500/500 [07:42<00:00,  1.19clip/s, 1.2 clips/s | failed=0]m05_vjepa: 100%|██████████| 500/500 [07:42<00:00,  1.19clip/s, 1.2 clips/s | failed=0]m05_vjepa: 100%|██████████| 500/500 [07:42<00:00,  1.08clip/s, 1.2 clips/s | failed=0]
+
+Segment done: 500 clips in 463s (1.08 clips/s)
+Worker exiting (GPU memory will be released).
+Checkpoint loaded: 500 embeddings from .m05_checkpoint_vjepa_2_1_frozen.npz
+Worker done. Progress: 500/500
+Checkpoint loaded: 500 embeddings from .m05_checkpoint_vjepa_2_1_frozen.npz
+
+=== Processing Stats ===
+Total clips:     500
+Embedding shape: (500, 1664)
+
+=== EMBEDDING COMPLETE ===
+Saved: /workspace/factorjepa/outputs/full/m05_vjepa_embed/embeddings_vjepa_2_1_frozen.npy
+Shape: (500, 1664)
+Unique clips: 500
+
+═══ 06:51:53 · Verify D — frozen embedding shape ═══
+frozen embeddings_vjepa_2_1_frozen.npy: shape=(500, 1664) dtype=float32
+✅ frozen shape OK
+
+═══ 06:51:53 · Step E — m05 surgical on test_500 ═══
+Output: /workspace/factorjepa/outputs/full/m05_vjepa_embed/embeddings_vjepa_2_1_surgical.npy
+[POC] Subset: data/test_500.json
+[output_guard] m05 embed: attempting HF download for 2 missing file(s)...
+[output_guard] m05 embed: HF download failed: 404 Client Error. (Request ID: Root=1-69e8700e-06d04e9350e714305651e35d;1542d7c7-1fcd-406f-883a-6aaa2b64a61d)
+
+Entry Not Found for url: https://huggingface.co/api/datasets/anonymousML123/factorjepa-outputs/tree/main/%2Fworkspace%2Ffactorjepa%2Foutputs%2Ffull%2Fm05_vjepa_embed?recursive=true&expand=false.
+/workspace/factorjepa/outputs/full/m05_vjepa_embed does not exist on "main"
+[output_guard] m05 embed: outputs missing or invalid — will re-compute
+  MISS  embeddings: embeddings_vjepa_2_1_surgical.npy
+  MISS  paths: embeddings_vjepa_2_1_surgical.paths.npy
+[POC] Loaded subset: 500 clip keys from test_500.json
+Clip limit: 500
+Streaming from: anonymousML123/walkindia-200k
+
+============================================================
+WORKER 1: embeddings 0 → 500
+============================================================
+GPU: NVIDIA RTX PRO 6000 Blackwell Max-Q Workstation Edition
+CUDA version: 12.8
+Batch size: 176 (from inference/vjepa2 profiler)
+Batch size: 176 → 44 (adapted model, from pipeline.yaml)
+AdaptiveBatchSizer: start=8, max=44, target VRAM=85% (from pipeline.yaml)
+[POC] Loaded subset: 500 clip keys from test_500.json
+
+Loading model: outputs/full/m09c_surgery/student_encoder.pt
+Adapted model (vit_gigantic_xformers): eval at 64 frames (matching frozen baseline)
+/workspace/factorjepa/venv_walkindia/lib/python3.12/site-packages/timm/models/layers/__init__.py:49: FutureWarning: Importing from timm.models.layers is deprecated, please import via timm.layers
+  warnings.warn(f"Importing from {__name__} is deprecated, please import via timm.layers", FutureWarning)
+Adapted encoder: loaded 588/588 params (missing: 0, unexpected: 0)
+Applying torch.compile...
+Warmup: compiling inductor graph...
+Model loaded on cuda (dtype: torch.float16)
+
+=== Streaming Config ===
+batch_size:    44
+video_decoder: PyAV
+prefetch:      8 batches
+checkpoint:    every 500 clips
+m05_vjepa:   0%|          | 0/500 [00:00<?, ?clip/s]  Parallel TAR reader: 8 threads, 1 TARs, queue=256
+  AdaptiveBatch: VRAM 9% < 65% → sub-batch 8 → 9
+  AdaptiveBatch: VRAM 10% < 65% → sub-batch 9 → 10
+  AdaptiveBatch: VRAM 11% < 65% → sub-batch 10 → 11
+  AdaptiveBatch: VRAM 11% < 65% → sub-batch 11 → 12
+  AdaptiveBatch: VRAM 11% < 65% → sub-batch 12 → 13
+m05_vjepa:   9%|▉         | 44/500 [01:11<12:24,  1.63s/clip]m05_vjepa:   9%|▉         | 44/500 [01:11<12:24,  1.63s/clip, 0.6 clips/s | failed=0]  AdaptiveBatch: VRAM 16% < 65% → sub-batch 13 → 14
+  AdaptiveBatch: VRAM 17% < 65% → sub-batch 14 → 15
+  AdaptiveBatch: VRAM 18% < 65% → sub-batch 15 → 16
+  AdaptiveBatch: VRAM 18% < 65% → sub-batch 16 → 17
+m05_vjepa:  18%|█▊        | 88/500 [01:53<08:29,  1.24s/clip, 0.6 clips/s | failed=0]m05_vjepa:  18%|█▊        | 88/500 [01:53<08:29,  1.24s/clip, 1.0 clips/s | failed=0]  AdaptiveBatch: VRAM 20% < 65% → sub-batch 17 → 18
+  AdaptiveBatch: VRAM 20% < 65% → sub-batch 18 → 19
+  AdaptiveBatch: VRAM 20% < 65% → sub-batch 19 → 20
+m05_vjepa:  26%|██▋       | 132/500 [02:36<06:48,  1.11s/clip, 1.0 clips/s | failed=0]m05_vjepa:  26%|██▋       | 132/500 [02:36<06:48,  1.11s/clip, 1.0 clips/s | failed=0]  AdaptiveBatch: VRAM 20% < 65% → sub-batch 20 → 21
+  AdaptiveBatch: VRAM 20% < 65% → sub-batch 21 → 22
+  AdaptiveBatch: VRAM 20% < 65% → sub-batch 22 → 23
+m05_vjepa:  35%|███▌      | 176/500 [03:17<05:38,  1.05s/clip, 1.0 clips/s | failed=0]m05_vjepa:  35%|███▌      | 176/500 [03:17<05:38,  1.05s/clip, 1.1 clips/s | failed=0]  AdaptiveBatch: VRAM 20% < 65% → sub-batch 23 → 24
+  AdaptiveBatch: VRAM 20% < 65% → sub-batch 24 → 25
+m05_vjepa:  44%|████▍     | 220/500 [03:59<04:42,  1.01s/clip, 1.1 clips/s | failed=0]m05_vjepa:  44%|████▍     | 220/500 [03:59<04:42,  1.01s/clip, 1.1 clips/s | failed=0]  AdaptiveBatch: VRAM 20% < 65% → sub-batch 25 → 26
+  AdaptiveBatch: VRAM 20% < 65% → sub-batch 26 → 27
+m05_vjepa:  53%|█████▎    | 264/500 [04:50<04:09,  1.06s/clip, 1.1 clips/s | failed=0]m05_vjepa:  53%|█████▎    | 264/500 [04:50<04:09,  1.06s/clip, 0.9 clips/s | failed=0]  AdaptiveBatch: VRAM 22% < 65% → sub-batch 27 → 28
+  AdaptiveBatch: VRAM 22% < 65% → sub-batch 28 → 29
+m05_vjepa:  62%|██████▏   | 308/500 [05:31<03:15,  1.02s/clip, 0.9 clips/s | failed=0]m05_vjepa:  62%|██████▏   | 308/500 [05:31<03:15,  1.02s/clip, 1.1 clips/s | failed=0]  AdaptiveBatch: VRAM 23% < 65% → sub-batch 29 → 30
+  AdaptiveBatch: VRAM 23% < 65% → sub-batch 30 → 31
+m05_vjepa:  70%|███████   | 352/500 [06:13<02:27,  1.00clip/s, 1.1 clips/s | failed=0]m05_vjepa:  70%|███████   | 352/500 [06:13<02:27,  1.00clip/s, 1.1 clips/s | failed=0]  AdaptiveBatch: VRAM 24% < 65% → sub-batch 31 → 32
+  AdaptiveBatch: VRAM 24% < 65% → sub-batch 32 → 33
+m05_vjepa:  79%|███████▉  | 396/500 [06:54<01:41,  1.02clip/s, 1.1 clips/s | failed=0]m05_vjepa:  79%|███████▉  | 396/500 [06:54<01:41,  1.02clip/s, 1.1 clips/s | failed=0]  AdaptiveBatch: VRAM 25% < 65% → sub-batch 33 → 34
+  AdaptiveBatch: VRAM 25% < 65% → sub-batch 34 → 35
+m05_vjepa:  88%|████████▊ | 440/500 [07:35<00:57,  1.04clip/s, 1.1 clips/s | failed=0]m05_vjepa:  88%|████████▊ | 440/500 [07:35<00:57,  1.04clip/s, 1.1 clips/s | failed=0]  AdaptiveBatch: VRAM 26% < 65% → sub-batch 35 → 36
+  AdaptiveBatch: VRAM 26% < 65% → sub-batch 36 → 37
+m05_vjepa:  97%|█████████▋| 484/500 [08:17<00:15,  1.04clip/s, 1.1 clips/s | failed=0]m05_vjepa:  97%|█████████▋| 484/500 [08:17<00:15,  1.04clip/s, 1.1 clips/s | failed=0]  AdaptiveBatch: VRAM 26% < 65% → sub-batch 37 → 38
+m05_vjepa: 100%|██████████| 500/500 [08:32<00:00,  1.05clip/s, 1.1 clips/s | failed=0]m05_vjepa: 100%|██████████| 500/500 [08:32<00:00,  1.05clip/s, 1.1 clips/s | failed=0]m05_vjepa: 100%|██████████| 500/500 [08:32<00:00,  1.02s/clip, 1.1 clips/s | failed=0]
+
+Segment done: 500 clips in 512s (0.98 clips/s)
+Worker exiting (GPU memory will be released).
+Checkpoint loaded: 500 embeddings from .m05_checkpoint_vjepa_2_1_surgical.npz
+Worker done. Progress: 500/500
+Checkpoint loaded: 500 embeddings from .m05_checkpoint_vjepa_2_1_surgical.npz
+
+=== Processing Stats ===
+Total clips:     500
+Embedding shape: (500, 1664)
+
+=== EMBEDDING COMPLETE ===
+Saved: /workspace/factorjepa/outputs/full/m05_vjepa_embed/embeddings_vjepa_2_1_surgical.npy
+Shape: (500, 1664)
+Unique clips: 500
+
+═══ 07:01:05 · Verify E — surgical embedding shape ═══
+surgical embeddings_vjepa_2_1_surgical.npy: shape=(500, 1664) dtype=float32
+✅ surgical shape OK
+
+═══ 07:01:05 · Step F — m06 gate (frozen + surgical) on test_500 ═══
+GPU: NVIDIA RTX PRO 6000 Blackwell Max-Q Workstation Edition
+CUDA version: 12.8
+[output_guard] m06 vjepa_2_1_frozen: attempting HF download for 2 missing file(s)...
+[output_guard] m06 vjepa_2_1_frozen: HF download failed: 404 Client Error. (Request ID: Root=1-69e87234-5c144d4341cea82f39fe0d05;91f43504-4a6a-4df4-bfee-e5146a6214ce)
+
+Entry Not Found for url: https://huggingface.co/api/datasets/anonymousML123/factorjepa-outputs/tree/main/%2Fworkspace%2Ffactorjepa%2Foutputs%2Ffull%2Fm06_faiss_metrics?recursive=true&expand=false.
+/workspace/factorjepa/outputs/full/m06_faiss_metrics does not exist on "main"
+[output_guard] m06 vjepa_2_1_frozen: outputs missing or invalid — will re-compute
+  MISS  metrics: m06_metrics_vjepa_2_1_frozen.json
+  MISS  knn_indices: knn_indices_vjepa_2_1_frozen.npy
+Encoder:     vjepa_2_1_frozen (dim=1664, type=video)
+Output dir:  /workspace/factorjepa/outputs/full/m06_faiss_metrics
+Embeddings:  /workspace/factorjepa/outputs/full/m05_vjepa_embed/embeddings_vjepa_2_1_frozen.npy
+Metrics:     /workspace/factorjepa/outputs/full/m06_faiss_metrics/m06_metrics_vjepa_2_1_frozen.json
+[POC] Subset: data/test_500.json
+Loaded embeddings: (500, 1664)
+Loaded tags: 1,000
+Loaded clip paths: 500
+Filtered tags: 1,000 → 500 (matched by source_file to 500 embedding clip_paths)
+Key alignment verified: 500 clips match
+Building FAISS GPU index: 500 vectors, dim=1664
+FAISS GPU index built: 500 vectors
+
+Searching 30 neighbors (k=6, extra for Hard mode)...
+m06_modes:   0%|          | 0/2 [00:00<?, ?mode/s]
+==================================================
+EASY MODE (k=6)
+==================================================
+  Cycle@K:     71.40%
+  DimConsist@K: 48.40% ± 1.90 (dim-split, NOT augmentation invariance)
+  Silhouette:  -0.1672 (scene_type)
+  Prec@K:      29.90%
+  mAP@K:       0.2128
+  nDCG@K:      0.9471
+  Computing per-key breakdowns for 13 fields...
+
+m06_easy_perkey:   0%|          | 0/65 [00:00<?, ?field/s][A  Silhouette per-key: time_of_day=0.1240, infrastructure_quality=0.1218, lighting=0.0676 ...
+  Prec@K per-key: time_of_day=91.87%, lighting=88.90%, infrastructure_quality=74.90% ...
+  mAP@K per-key: time_of_day=0.8910, lighting=0.8542, weather=0.6921 ...
+  Cycle@K per-key: computed for 13 fields
+m06_easy_perkey: 100%|██████████| 65/65 [00:00<00:00, 730.19field/s]
+  Macro avg:   21.41%
+  Micro avg:   29.90%
+  Bootstrap 95% CI (BCa, 10K iterations)...
+  Saved per-clip arrays: /workspace/factorjepa/outputs/full/m06_faiss_metrics/per_clip_vjepa_2_1_frozen_easy.npz (N=500)
+  Prec@K:  29.90% ± 2.38
+  mAP@K:   0.2128 ± 0.0224
+  Cycle@K: 0.71% ± 0.04
+  nDCG@K:  0.9471 ± 0.0037
+  [0.7s]
+m06_modes:  50%|█████     | 1/2 [00:00<00:00,  1.35mode/s]Hard mode exclusion: 146 clips affected (avg 3.1 excluded neighbors)
+
+==================================================
+HARD MODE (k=6)
+==================================================
+  Cycle@K:     66.60%
+  DimConsist@K: 48.40% ± 1.90 (dim-split, NOT augmentation invariance)
+  Silhouette:  -0.1672 (scene_type)
+  Prec@K:      28.10%
+  mAP@K:       0.1965
+  nDCG@K:      0.9469
+  Computing per-key breakdowns for 13 fields...
+
+m06_hard_perkey:   0%|          | 0/65 [00:00<?, ?field/s][A  Silhouette per-key: time_of_day=0.1240, infrastructure_quality=0.1218, lighting=0.0676 ...
+  Prec@K per-key: time_of_day=91.90%, lighting=88.93%, infrastructure_quality=74.47% ...
+  mAP@K per-key: time_of_day=0.8911, lighting=0.8543, weather=0.6906 ...
+  Cycle@K per-key: computed for 13 fields
+m06_hard_perkey: 100%|██████████| 65/65 [00:00<00:00, 732.59field/s]
+  Macro avg:   20.00%
+  Micro avg:   28.10%
+  Bootstrap 95% CI (BCa, 10K iterations)...
+  Saved per-clip arrays: /workspace/factorjepa/outputs/full/m06_faiss_metrics/per_clip_vjepa_2_1_frozen_hard.npz (N=500)
+  Prec@K:  28.10% ± 2.32
+  mAP@K:   0.1965 ± 0.0214
+  Cycle@K: 0.67% ± 0.04
+  nDCG@K:  0.9469 ± 0.0037
+  [0.4s]
+m06_modes: 100%|██████████| 2/2 [00:01<00:00,  1.87mode/s]m06_modes: 100%|██████████| 2/2 [00:01<00:00,  1.77mode/s]
+
+Confidence sweep: 7 thresholds
+
+Saved: /workspace/factorjepa/outputs/full/m06_faiss_metrics/m06_metrics_vjepa_2_1_frozen.json
+Saved: /workspace/factorjepa/outputs/full/m06_faiss_metrics/knn_indices_vjepa_2_1_frozen.npy ((500, 7))
+Saved: /workspace/factorjepa/outputs/full/m06_faiss_metrics/m06_distance_hist.png
+Saved: /workspace/factorjepa/outputs/full/m06_faiss_metrics/m06_confidence_sweep.png
+Saved: /workspace/factorjepa/outputs/full/m06_faiss_metrics/m06_purity_all_keys.png
+Saved: /workspace/factorjepa/outputs/full/m06_faiss_metrics/m06_silhouette_per_key.png
+Saved: /workspace/factorjepa/outputs/full/m06_faiss_metrics/m06_map_per_key.png
+Saved: /workspace/factorjepa/outputs/full/m06_faiss_metrics/m06_cycle_per_key.png
+Saved: /workspace/factorjepa/outputs/full/m06_faiss_metrics/m06_map_per_value.png
+Saved: /workspace/factorjepa/outputs/full/m06_faiss_metrics/m06_metrics_by_key.png
+Saved: /workspace/factorjepa/outputs/full/m06_faiss_metrics/m06_radar.png
+
+============================================================
+                     EVALUATION SUMMARY                     
+============================================================
+Metric                     Easy       Hard
+------------------------------------------
+  Cycle At K              71.40      66.60
+  Dim Consistency At K      48.40      48.40
+  Silhouette            -0.1672    -0.1672
+  Prec At K               29.90      28.10
+  Map At K               0.2128     0.1965
+  Ndcg At K              0.9471     0.9469
+
+  Macro Prec@K:  Easy=21.41%  Hard=20.00%
+  Micro Prec@K:  Easy=29.90%  Hard=28.10%
+GPU: NVIDIA RTX PRO 6000 Blackwell Max-Q Workstation Edition
+CUDA version: 12.8
+[output_guard] m06 vjepa_2_1_surgical: attempting HF download for 2 missing file(s)...
+[output_guard] m06 vjepa_2_1_surgical: HF download failed: 404 Client Error. (Request ID: Root=1-69e8723f-744c65de1759d92d25568944;e9ae1c7f-a840-4f9c-a071-a782eae36bc2)
+
+Entry Not Found for url: https://huggingface.co/api/datasets/anonymousML123/factorjepa-outputs/tree/main/%2Fworkspace%2Ffactorjepa%2Foutputs%2Ffull%2Fm06_faiss_metrics?recursive=true&expand=false.
+/workspace/factorjepa/outputs/full/m06_faiss_metrics does not exist on "main"
+[output_guard] m06 vjepa_2_1_surgical: outputs missing or invalid — will re-compute
+  MISS  metrics: m06_metrics_vjepa_2_1_surgical.json
+  MISS  knn_indices: knn_indices_vjepa_2_1_surgical.npy
+Encoder:     vjepa_2_1_surgical (dim=1664, type=video_adapted)
+Output dir:  /workspace/factorjepa/outputs/full/m06_faiss_metrics
+Embeddings:  /workspace/factorjepa/outputs/full/m05_vjepa_embed/embeddings_vjepa_2_1_surgical.npy
+Metrics:     /workspace/factorjepa/outputs/full/m06_faiss_metrics/m06_metrics_vjepa_2_1_surgical.json
+[POC] Subset: data/test_500.json
+Loaded embeddings: (500, 1664)
+Loaded tags: 1,000
+Loaded clip paths: 500
+Filtered tags: 1,000 → 500 (matched by source_file to 500 embedding clip_paths)
+Key alignment verified: 500 clips match
+Building FAISS GPU index: 500 vectors, dim=1664
+FAISS GPU index built: 500 vectors
+
+Searching 30 neighbors (k=6, extra for Hard mode)...
+m06_modes:   0%|          | 0/2 [00:00<?, ?mode/s]
+==================================================
+EASY MODE (k=6)
+==================================================
+  Cycle@K:     72.00%
+  DimConsist@K: 47.93% ± 1.92 (dim-split, NOT augmentation invariance)
+  Silhouette:  -0.1672 (scene_type)
+  Prec@K:      29.77%
+  mAP@K:       0.2110
+  nDCG@K:      0.9461
+  Computing per-key breakdowns for 13 fields...
+
+m06_easy_perkey:   0%|          | 0/65 [00:00<?, ?field/s][A  Silhouette per-key: time_of_day=0.1245, infrastructure_quality=0.1223, lighting=0.0676 ...
+  Prec@K per-key: time_of_day=91.83%, lighting=88.83%, infrastructure_quality=75.17% ...
+  mAP@K per-key: time_of_day=0.8903, lighting=0.8537, weather=0.6913 ...
+  Cycle@K per-key: computed for 13 fields
+m06_easy_perkey: 100%|██████████| 65/65 [00:00<00:00, 741.69field/s]
+  Macro avg:   21.34%
+  Micro avg:   29.77%
+  Bootstrap 95% CI (BCa, 10K iterations)...
+  Saved per-clip arrays: /workspace/factorjepa/outputs/full/m06_faiss_metrics/per_clip_vjepa_2_1_surgical_easy.npz (N=500)
+  Prec@K:  29.77% ± 2.38
+  mAP@K:   0.2110 ± 0.0221
+  Cycle@K: 0.72% ± 0.04
+  nDCG@K:  0.9461 ± 0.0039
+  [0.8s]
+m06_modes:  50%|█████     | 1/2 [00:00<00:00,  1.23mode/s]Hard mode exclusion: 146 clips affected (avg 3.1 excluded neighbors)
+
+==================================================
+HARD MODE (k=6)
+==================================================
+  Cycle@K:     67.60%
+  DimConsist@K: 47.93% ± 1.92 (dim-split, NOT augmentation invariance)
+  Silhouette:  -0.1672 (scene_type)
+  Prec@K:      28.10%
+  mAP@K:       0.1963
+  nDCG@K:      0.9461
+  Computing per-key breakdowns for 13 fields...
+
+m06_hard_perkey:   0%|          | 0/65 [00:00<?, ?field/s][A  Silhouette per-key: time_of_day=0.1245, infrastructure_quality=0.1223, lighting=0.0676 ...
+  Prec@K per-key: time_of_day=91.87%, lighting=88.87%, infrastructure_quality=74.70% ...
+  mAP@K per-key: time_of_day=0.8904, lighting=0.8538, weather=0.6899 ...
+  Cycle@K per-key: computed for 13 fields
+m06_hard_perkey: 100%|██████████| 65/65 [00:00<00:00, 746.68field/s]
+  Macro avg:   19.99%
+  Micro avg:   28.10%
+  Bootstrap 95% CI (BCa, 10K iterations)...
+  Saved per-clip arrays: /workspace/factorjepa/outputs/full/m06_faiss_metrics/per_clip_vjepa_2_1_surgical_hard.npz (N=500)
+  Prec@K:  28.10% ± 2.32
+  mAP@K:   0.1963 ± 0.0215
+  Cycle@K: 0.68% ± 0.04
+  nDCG@K:  0.9461 ± 0.0038
+  [0.4s]
+m06_modes: 100%|██████████| 2/2 [00:01<00:00,  1.77mode/s]m06_modes: 100%|██████████| 2/2 [00:01<00:00,  1.66mode/s]
+
+Confidence sweep: 7 thresholds
+
+Saved: /workspace/factorjepa/outputs/full/m06_faiss_metrics/m06_metrics_vjepa_2_1_surgical.json
+Saved: /workspace/factorjepa/outputs/full/m06_faiss_metrics/knn_indices_vjepa_2_1_surgical.npy ((500, 7))
+Saved: /workspace/factorjepa/outputs/full/m06_faiss_metrics/m06_distance_hist.png
+Saved: /workspace/factorjepa/outputs/full/m06_faiss_metrics/m06_confidence_sweep.png
+Saved: /workspace/factorjepa/outputs/full/m06_faiss_metrics/m06_purity_all_keys.png
+Saved: /workspace/factorjepa/outputs/full/m06_faiss_metrics/m06_silhouette_per_key.png
+Saved: /workspace/factorjepa/outputs/full/m06_faiss_metrics/m06_map_per_key.png
+Saved: /workspace/factorjepa/outputs/full/m06_faiss_metrics/m06_cycle_per_key.png
+Saved: /workspace/factorjepa/outputs/full/m06_faiss_metrics/m06_map_per_value.png
+Saved: /workspace/factorjepa/outputs/full/m06_faiss_metrics/m06_metrics_by_key.png
+Saved: /workspace/factorjepa/outputs/full/m06_faiss_metrics/m06_radar.png
+
+============================================================
+                     EVALUATION SUMMARY                     
+============================================================
+Metric                     Easy       Hard
+------------------------------------------
+  Cycle At K              72.00      67.60
+  Dim Consistency At K      47.93      47.93
+  Silhouette            -0.1672    -0.1672
+  Prec At K               29.77      28.10
+  Map At K               0.2110     0.1963
+  Ndcg At K              0.9461     0.9461
+
+  Macro Prec@K:  Easy=21.34%  Hard=19.99%
+  Micro Prec@K:  Easy=29.77%  Hard=28.10%
+
+═══ 07:01:28 · Verify F — both m06 metrics JSONs present ═══
+-rw-rw-r-- 1 root root 34K Apr 22 07:01 outputs/full/m06_faiss_metrics/m06_metrics_vjepa_2_1_frozen.json
+-rw-rw-r-- 1 root root 34K Apr 22 07:01 outputs/full/m06_faiss_metrics/m06_metrics_vjepa_2_1_surgical.json
+
+═══ 07:01:28 · Step G — m08b compare (frozen vs surgical plots + LaTeX table) ═══
+Output dir: /workspace/factorjepa/outputs/full/m08b_compare
+Scanning for encoder metrics in: /workspace/factorjepa/outputs/full/m06_faiss_metrics
+  Loaded: vjepa_2_1_frozen (m06_metrics_vjepa_2_1_frozen.json)
+  Loaded: vjepa_2_1_surgical (m06_metrics_vjepa_2_1_surgical.json)
+
+Found 2 encoder(s): vjepa_2_1_frozen, vjepa_2_1_surgical
+
+================================================================================
+                               ENCODER COMPARISON                               
+================================================================================
+Encoder              Dim  Cycle@K (%) DimConsist@K (%)   Prec@K (%)        mAP@K       nDCG@K   Silhouette
+----------------------------------------------------------------------------------------------------------
+vjepa_2_1_frozen    1664        71.40        48.40        29.90       0.2128       0.9471      -0.1672
+vjepa_2_1_surgical  1664        72.00        47.93        29.77       0.2110       0.9461      -0.1672
+
+--- Easy Mode (above) ---
+
+--- Hard Mode ---
+vjepa_2_1_frozen    1664        66.60        48.40        28.10       0.1965       0.9469      -0.1672
+vjepa_2_1_surgical  1664        67.60        47.93        28.10       0.1963       0.9461      -0.1672
+m08b_compare:   0%|          | 0/8 [00:00<?, ?plot/s]Saved: /workspace/factorjepa/outputs/full/m08b_compare/m08b_encoder_comparison.png
+m08b_compare:  12%|█▎        | 1/8 [00:00<00:03,  1.84plot/s]  [m08b] skipping radar: n_encoders=2 < 3 — min-max normalization degenerates to binary winner/loser with 2 encoders. Re-runs automatically when ExPLoRA arm lands.
+Saved: /workspace/factorjepa/outputs/full/m08b_compare/m08b_comparison_table.tex
+Saved: /workspace/factorjepa/outputs/full/m08b_compare/m08b_spatial_temporal_bar.png
+m08b_compare:  50%|█████     | 4/8 [00:01<00:00,  4.22plot/s]  SKIP ablation chart: need both vjepa and vjepa_shuffled
+  SKIP adaptation ablation: need frozen vjepa as baseline
+Saved: /workspace/factorjepa/outputs/full/m08b_compare/m08b_heatmap.png
+m08b_compare: 100%|██████████| 8/8 [00:01<00:00,  8.94plot/s]m08b_compare: 100%|██████████| 8/8 [00:01<00:00,  6.88plot/s]
+
+======================================================================
+PAIRED BOOTSTRAP (BCa 95 % CI, iter10 Option C) — vjepa_2_1_surgical − vjepa_2_1_frozen
+======================================================================
+
+--- EASY ---
+Metric             Frozen   Surgical          Δ    CI_half     p_vs_0
+---------------------------------------------------------------------
+prec_at_k         29.9000    29.7667    -0.1333     0.2833     0.3750
+map_at_k           0.2128     0.2110    -0.0019     0.0021     0.0794
+cycle_at_k         0.7140     0.7200    +0.0060     0.0090     0.2504
+ndcg_at_k          0.9471     0.9461    -0.0010     0.0011     0.0622
+
+--- HARD ---
+Metric             Frozen   Surgical          Δ    CI_half     p_vs_0
+---------------------------------------------------------------------
+prec_at_k         28.1000    28.1000    -0.0000     0.3000     0.9748
+map_at_k           0.1965     0.1963    -0.0002     0.0022     0.8510
+cycle_at_k         0.6660     0.6760    +0.0100     0.0120     0.1124
+ndcg_at_k          0.9469     0.9461    -0.0008     0.0011     0.1234
+
+Saved: /workspace/factorjepa/outputs/full/m08b_compare/paired_bootstrap_results.json
+
+🏆 Paired Prec@K (Easy, N=500): Δ = -0.1333 ± 0.2833 (95% CI [-0.4333, +0.1333], p=0.3750) 🟡 Δ not significant (CI straddles 0)
+
+=== COMPARISON COMPLETE ===
+
+═══ 07:01:30 · Verify G — m08b plot set present ═══
+-rw-rw-r-- 1 root root 85K Apr 22 07:01 outputs/full/m08b_compare/m08b_encoder_comparison.png
+-rw-rw-r-- 1 root root 62K Apr 22 07:01 outputs/full/m08b_compare/m08b_heatmap.png
+-rw-rw-r-- 1 root root 83K Apr 22 07:01 outputs/full/m08b_compare/m08b_spatial_temporal_bar.png
+  [optional] m08b_radar.png SKIPPED (expected when n_encoders<3 or vjepa_shuffled absent)
+  [optional] m08b_adaptation_ablation.png SKIPPED (expected when n_encoders<3 or vjepa_shuffled absent)
+
+═══ 07:01:30 · 🏆 DECISION GATE (train=subset_10k / test=test_500, N=500, CI ~±2.4 pp) ═══
+frozen      : Prec@K = 29.90% +/- 2.38  (CI: [27.53, 32.30])
+surgical    : Prec@K = 29.77% +/- 2.38  (CI: [27.40, 32.17])
+
+Δ = -0.13 pp | CIs overlap: True
+❌ FAIL — apply BWT Options B → C in plan_TODO.md
+
+⏱️  Total wall: 3h 16m
+Filesystem      Size  Used Avail Use% Mounted on
+/dev/nvme0n1p3  199G  159G   41G  80% /workspace

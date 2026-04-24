@@ -1,5 +1,0 @@
-wandb: run=m08_POC url=https://wandb.ai/sjsu_llm/walkindia-200k/runs/oj1lhy2r
-Output dir: /workspace/factorjepa/outputs/full
-[output_guard] m08 random: ALL VALID — skipping (cached)
-  OK    umap_plot: 3773 KB
-  OK    confusion_matrix: 276 KB

@@ -371,6 +371,11 @@ def main():
     add_local_data_arg(parser)
     add_wandb_args(parser)
     add_gpu_mem_arg(parser)
+    # Cache-policy gate (iter11): every destructive delete in this module must route
+    # through utils.cache_policy.guarded_delete(path, args.cache_policy, ...).
+    # --cache-policy defaults to 1 (keep) so overnight re-runs never destroy cache.
+    from utils.cache_policy import add_cache_policy_arg
+    add_cache_policy_arg(parser)
     args = parser.parse_args()
 
     if not (args.SANITY or args.POC or args.FULL):
@@ -590,10 +595,10 @@ def main():
     log_metrics(wb_run, {"total_clips": processed, "total_time_sec": elapsed,
                          "errors": total_errors}, step=processed)
 
-    # Cleanup checkpoint
-    if checkpoint_file.exists():
-        checkpoint_file.unlink()
-        print(f"Removed checkpoint: {checkpoint_file.name}")
+    # iter11 META-fix: gate checkpoint cleanup through --cache-policy (default=1/keep).
+    from utils.cache_policy import guarded_delete
+    guarded_delete(checkpoint_file, args.cache_policy,
+                   label="m04d motion_features checkpoint")
 
     finish_wandb(wb_run)
 

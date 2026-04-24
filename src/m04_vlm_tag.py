@@ -1451,6 +1451,11 @@ def main():
     parser.add_argument("--start-from", type=int, default=0, help=argparse.SUPPRESS)
     parser.add_argument("--process-count", type=int, default=ENGINE_RESTART_EVERY,
                         help=argparse.SUPPRESS)
+    # Cache-policy gate (iter11): every destructive delete in this module must route
+    # through utils.cache_policy.guarded_delete(path, args.cache_policy, ...).
+    # --cache-policy defaults to 1 (keep) so overnight re-runs never destroy cache.
+    from utils.cache_policy import add_cache_policy_arg
+    add_cache_policy_arg(parser)
     args = parser.parse_args()
 
     # Worker mode

@@ -1,3 +1,0 @@
-wandb: run=m07_SANITY url=https://wandb.ai/sjsu_llm/walkindia-200k/runs/neg5e8m6
-[output_guard] m07 vjepa_lambda0_001: ALL VALID — skipping (cached)
-  OK    umap_2d: (50, 2)

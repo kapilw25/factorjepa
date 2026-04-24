@@ -1,0 +1,24 @@
+[15:22:44] iter10 overnight START
+[15:22:44] pre-flight checks:
+[15:22:44]   ✅ m10/m11 caches present; outputs/full/m09c_surgery clean
+[15:22:44] ──────────────────────────────────────────────
+[15:22:44] v15a more-laps (max_epochs=3) START
+[15:22:44] ──────────────────────────────────────────────
+[20:58:27] ❌ v15a FAILED (exit=2) — archiving partial outputs as v15a_FAILED_*, continuing
+[20:58:27]   archived outputs/full/m09c_surgery → outputs_versioned/v15a_FAILED_m09c_surgery
+[20:58:27]   archived outputs/full/m05_vjepa_embed → outputs_versioned/v15a_FAILED_m05_vjepa_embed
+[20:58:27]   archived outputs/full/m06_faiss_metrics → outputs_versioned/v15a_FAILED_m06_faiss_metrics
+[20:58:27]   archived outputs/full/m08b_compare → outputs_versioned/v15a_FAILED_m08b_compare
+[20:58:27] ──────────────────────────────────────────────
+[20:58:27] v15b louder-agent (S2 A=0.85, L=0.15) START
+[20:58:27] ──────────────────────────────────────────────
+[00:04:46] ❌ v15b FAILED (exit=2) — archiving partial outputs as v15b_FAILED_*, continuing
+[00:04:46]   archived outputs/full/m09c_surgery → outputs_versioned/v15b_FAILED_m09c_surgery
+[00:04:46]   archived outputs/full/m05_vjepa_embed → outputs_versioned/v15b_FAILED_m05_vjepa_embed
+[00:04:46]   archived outputs/full/m06_faiss_metrics → outputs_versioned/v15b_FAILED_m06_faiss_metrics
+[00:04:46]   archived outputs/full/m08b_compare → outputs_versioned/v15b_FAILED_m08b_compare
+[00:04:46] ──────────────────────────────────────────────
+[00:04:46] v15c prep: mining interactions + rebuilding D_I tubes
+[00:04:46] ──────────────────────────────────────────────
+[00:04:46] m10 --interactions-only (cached masks, no SAM3)
+[00:18:47] m11 --regen-D_I (rebuild tubes only; D_L/D_A untouched)

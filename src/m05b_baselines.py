@@ -805,8 +805,10 @@ def _finalize(all_embeddings: list, all_keys: list, files: dict, checkpoint_file
     np.save(files["embeddings"], embeddings)
     np.save(files["paths"], np.array(all_keys, dtype=object))
 
-    if checkpoint_file.exists():
-        checkpoint_file.unlink()
+    # iter11 META-fix: gate checkpoint cleanup through --cache-policy (default=1/keep).
+    from utils.cache_policy import guarded_delete
+    guarded_delete(checkpoint_file, args.cache_policy,
+                   label="m05b baselines checkpoint")
 
     print(f"\nSaved: {files['embeddings']} ({embeddings.shape})")
     print(f"Saved: {files['paths']} ({len(all_keys)} keys)")
@@ -831,6 +833,11 @@ def main():
     add_local_data_arg(parser)
     add_wandb_args(parser)
     add_gpu_mem_arg(parser)
+    # Cache-policy gate (iter11): every destructive delete in this module must route
+    # through utils.cache_policy.guarded_delete(path, args.cache_policy, ...).
+    # --cache-policy defaults to 1 (keep) so overnight re-runs never destroy cache.
+    from utils.cache_policy import add_cache_policy_arg
+    add_cache_policy_arg(parser)
     args = parser.parse_args()
 
     if not (args.SANITY or args.POC or args.FULL):

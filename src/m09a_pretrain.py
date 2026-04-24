@@ -21,6 +21,7 @@ import math
 import queue
 import random
 import shutil
+import subprocess
 import sys
 import tempfile
 import threading
@@ -32,6 +33,12 @@ from tqdm import tqdm
 
 # Add src to path for utils import
 sys.path.insert(0, str(Path(__file__).parent))
+# iter11 live-debug: SIGUSR1/SIGUSR2 stack dump so stuck GPU runs can be
+# inspected without CAP_SYS_PTRACE (py-spy / gdb / strace are blocked in
+# the training container). See src/utils/live_debug.py for usage.
+from utils.live_debug import install_debug_handlers
+install_debug_handlers()
+
 from utils.config import (
     check_gpu,
     add_subset_arg, add_local_data_arg, get_module_output_dir, load_subset,
@@ -40,6 +47,9 @@ from utils.config import (
 )
 from utils.data_download import ensure_local_data
 from utils.gpu_batch import AdaptiveBatchSizer
+from utils.hf_outputs import download_data
+from utils.output_guard import verify_training_output
+from utils.plots import plot_training_curves, plot_val_loss_curves
 from utils.wandb_utils import (
     add_wandb_args, init_wandb, log_metrics, finish_wandb,
 )
@@ -80,19 +90,23 @@ _pcfg = get_pipeline_config()
 PREFETCH_QUEUE_SIZE = _pcfg["streaming"]["prefetch_queue_train"]
 
 
-def _cleanup_old_checkpoints(output_dir: Path, keep_n: int = 2):
+def _cleanup_old_checkpoints(output_dir: Path, keep_n: int = 2, cache_policy: str = "1"):
     """Delete oldest {CHECKPOINT_PREFIX}_step*.pt files, keeping only the last keep_n.
 
     Local override of utils.training.cleanup_old_checkpoints because that helper
     hardcodes the legacy m09_ckpt prefix; m09a uses m09a_ckpt.
+
+    iter11 META-fix: gated through cache_policy. Default=1/keep preserves ALL ckpts,
+    catastrophic in the short term (disk use) but user must explicitly type `2` to
+    authorize destruction — prevents unintended resume-point loss.
     """
+    from utils.cache_policy import guarded_delete
     pattern = str(output_dir / f"{CHECKPOINT_PREFIX}_step*.pt")
     step_files = sorted(glob.glob(pattern),
                         key=lambda f: os.path.getmtime(f))
     if len(step_files) > keep_n:
         for old_file in step_files[:-keep_n]:
-            os.remove(old_file)
-            print(f"  Cleaned old checkpoint: {Path(old_file).name}")
+            guarded_delete(old_file, cache_policy, label="m09a intermediate checkpoint")
 
 
 # ═════════════════════════════════════════════════════════════════════════
@@ -319,7 +333,6 @@ def train(cfg: dict, args):
     gc.collect()
 
     # Output-exists guard
-    from utils.output_guard import verify_training_output
     output_dir = Path(cfg["checkpoint"]["output_dir"])
     student_path = output_dir / "student_encoder.pt"
     if verify_training_output(output_dir, min_epochs=cfg["optimization"]["max_epochs"]):
@@ -467,7 +480,6 @@ def train(cfg: dict, args):
         if len(val_collected_keys) < len(val_key_set):
             pct = len(val_collected_keys) / len(val_key_set) * 100
             print(f"WARNING: Only {len(val_collected_keys)}/{len(val_key_set)} val clips ({pct:.0f}%). Auto-downloading...")
-            import subprocess
             subprocess.run([sys.executable, "-u", "src/m00d_download_subset.py",
                            "--FULL", "--subset", args.val_subset, "--no-wandb"], check=True)
             # Retry collection with fresh data
@@ -505,7 +517,6 @@ def train(cfg: dict, args):
         if not getattr(args, "SANITY", False):
             print("No --val-subset provided. Attempting auto-download of val data...")
             try:
-                from utils.hf_outputs import download_data
                 download_data()
                 # Check if val data now exists
                 val_path = Path("data/val_1k.json")
@@ -555,7 +566,6 @@ def train(cfg: dict, args):
             # SANITY mode: still validate with first 50 clips (tests validation code path)
             print("SANITY mode — auto-downloading val data for validation code path test...")
             try:
-                from utils.hf_outputs import download_data
                 download_data()
                 val_path = Path("data/val_1k.json")
                 val_local_path = Path("data/val_1k_local")
@@ -835,7 +845,8 @@ def train(cfg: dict, args):
                 save_training_checkpoint(
                     ckpt_path, student, teacher, predictor, optimizer, scheduler,
                     scaler, step + 1, best_val_loss, full=True)
-                _cleanup_old_checkpoints(output_dir, keep_n=keep_last_n)
+                _cleanup_old_checkpoints(output_dir, keep_n=keep_last_n,
+                                         cache_policy=args.cache_policy)
 
             # Periodic validation (every val_interval steps)
             if (step + 1) % val_interval == 0 and val_batches:
@@ -857,7 +868,6 @@ def train(cfg: dict, args):
 
                 # Live training plots (regenerate on each validation)
                 try:
-                    from utils.plots import plot_training_curves
                     plot_training_curves(
                         runs=[{"csv_path": str(csv_path),
                                "label": f"V-JEPA 2.0 (\u03bb={drift_cfg['lambda_reg']})",
@@ -936,10 +946,13 @@ def train(cfg: dict, args):
     # m09a is vanilla (no LoRA) — explora_enabled is always False.
     export_student_for_eval(student, student_path, explora_enabled=False)
 
-    # Cleanup ALL checkpoints — student_encoder.pt is the deliverable
+    # iter11 META-fix: gate post-training checkpoint cleanup through --cache-policy.
+    # student_encoder.pt is the deliverable, but intermediate step*.pt files are
+    # resume points — user must explicitly authorize their destruction.
+    from utils.cache_policy import guarded_delete
     for ckpt_file in output_dir.glob(f"{CHECKPOINT_PREFIX}_*.pt"):
-        ckpt_file.unlink()
-        print(f"  Cleaned: {ckpt_file.name}")
+        guarded_delete(ckpt_file, args.cache_policy,
+                       label=f"m09a checkpoint {ckpt_file.name}")
 
     # Save training summary as JSON (for winner selection, not stdout parsing)
     total_epochs_done = (step + 1) / max(steps_per_epoch, 1)
@@ -1005,6 +1018,11 @@ def main():
     add_subset_arg(parser)
     add_local_data_arg(parser)
     add_wandb_args(parser)
+    # Cache-policy gate (iter11): every destructive delete in this module must route
+    # through utils.cache_policy.guarded_delete(path, args.cache_policy, ...).
+    # --cache-policy defaults to 1 (keep) so overnight re-runs never destroy cache.
+    from utils.cache_policy import add_cache_policy_arg
+    add_cache_policy_arg(parser)
     args = parser.parse_args()
 
     if not (args.SANITY or args.POC or args.FULL):
@@ -1061,7 +1079,6 @@ def main():
                         continue
 
                 print(f"\n--- Ablation: lambda={lam} ---")
-                import subprocess
                 mode_flag = "--SANITY" if args.SANITY else ("--POC" if args.POC else "--FULL")
                 config_flags = (["--config", args.config] if args.config
                                 else ["--model-config", args.model_config,
@@ -1158,7 +1175,6 @@ def select_ablation_winner(output_dir: str, lambdas=None):
 
     # Plot val_loss curves for all lambdas (publication quality)
     try:
-        from utils.plots import plot_val_loss_curves
         plot_val_loss_curves(out, lambdas, winner)
     except Exception as e:
         print(f"  WARN: ablation plot failed ({e}), continuing")

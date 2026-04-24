@@ -5,12 +5,14 @@
     python -u src/m10_sam_segment.py --SANITY --plot    # re-generate plots only (no GPU, reads existing outputs)
 """
 import argparse
+import gc
 import json
 import os
 import shutil
 import sys
 import tempfile
 import time
+import traceback
 from pathlib import Path
 
 import matplotlib
@@ -353,8 +355,7 @@ def plot_overlay_per_clip(segments: dict, masks_dir: Path, tags_lookup: dict,
         fh, fw = frame_rgb.shape[:2]
         mh, mw = agent_mask.shape
         if (mh, mw) != (fh, fw):
-            from PIL import Image as PILImage
-            agent_mask = np.array(PILImage.fromarray(agent_mask).resize((fw, fh), PILImage.NEAREST))
+            agent_mask = np.array(Image.fromarray(agent_mask).resize((fw, fh), Image.NEAREST))
 
         fig, axes = plt.subplots(1, 3, figsize=(15, 4))
 
@@ -727,7 +728,6 @@ def main():
     # that keep the process alive after main() completes. No shutdown() method exists.
     # Without os._exit, train_surgery.sh hangs indefinitely after m10 step.
     del predictor
-    import gc
     gc.collect()
     os._exit(0)
 
@@ -737,6 +737,5 @@ if __name__ == "__main__":
         main()
     except Exception as e:
         print(f"\nFATAL (unhandled): {e}")
-        import traceback
         traceback.print_exc()
         os._exit(1)  # guarantee exit even with SAM3 async threads

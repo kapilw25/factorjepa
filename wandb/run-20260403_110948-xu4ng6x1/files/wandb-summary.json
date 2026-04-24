@@ -1,1 +1,0 @@
-{"epoch_complete":1,"lr":1e-07,"loss/jepa":0.4843924939632416,"_timestamp":1.775216878595932e+09,"loss/drift":0,"loss/total":0.4843924939632416,"_step":280,"grad_norm":0.047757621854543686,"throughput_steps_per_s":0.04314472115518801,"_runtime":2291.963743853,"val/epoch_pct":99.644128113879,"_wandb":{"runtime":2291},"epoch":0,"val/jepa_loss":1.6306714036247947}

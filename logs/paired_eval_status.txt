@@ -1,0 +1,64 @@
+[21:49:10] paired_eval_10k START
+[21:49:10]   ✅ eval_10k artifacts present
+[21:49:10]   ⚠️  v15c: checkpoint missing — skipping (retry after iter10 completes for v15c)
+[21:49:10]   ✅ variants to evaluate: v10 v13 v14 v15a v15b (N=5)
+[21:49:10] ──────────────────────────────────────────────
+[21:49:10] iter11 cache-policy gather (prompts for existing archived OR mid-flight caches)
+[21:49:10] ──────────────────────────────────────────────
+[21:49:20] ──────────────────────────────────────────────
+[21:49:20] CACHE POLICY PLAN (post-propagation):
+[21:49:20]   m05_frozen -> policy=1 (keep)
+[21:49:20]   m06_frozen -> policy=1 (keep)
+[21:49:20]   m05_v10 -> policy=1 (keep)
+[21:49:20]   m06_v10 -> policy=1 (keep)
+[21:49:20]   m08b_v10 -> policy=1 (keep)
+[21:49:20]   m05_v13 -> policy=1 (keep)
+[21:49:20]   m06_v13 -> policy=1 (keep)
+[21:49:20]   m08b_v13 -> policy=1 (keep)
+[21:49:20]   m05_v14 -> policy=1 (keep)
+[21:49:20]   m06_v14 -> policy=1 (keep)
+[21:49:20]   m08b_v14 -> policy=1 (keep)
+[21:49:20]   m05_v15a -> policy=1 (keep)
+[21:49:20]   m06_v15a -> policy=1 (keep)
+[21:49:20]   m08b_v15a -> policy=1 (keep)
+[21:49:20]   m05_v15b -> policy=1 (keep)
+[21:49:20]   m06_v15b -> policy=1 (keep)
+[21:49:20]   m08b_v15b -> policy=1 (keep)
+[21:49:20] ──────────────────────────────────────────────
+[21:49:23] ──────────────────────────────────────────────
+[21:49:23] Frozen baseline: m05 embed on eval_10k (~2.3 h)
+[21:49:23] ──────────────────────────────────────────────
+[21:49:23]   🔁 Restored frozen .npy from archive → m05 output_guard will skip re-embed (2.3 h saved)
+[21:49:27]   ✅ Frozen m05 schema intact (no missing>0 params)
+[21:49:27] Frozen baseline: m06 faiss metrics + per-clip save
+[21:50:27]   ✅ Frozen per_clip .npz confirmed (both modes)
+[21:50:27]   ✅ Frozen archived early to outputs_versioned/frozen_eval10k (preserves correct embeddings)
+[21:50:27]   ⏩ v10: paired_bootstrap_results.json already archived + policy=keep — skipping (G1)
+[21:50:27]   ⏩ v13: paired_bootstrap_results.json already archived + policy=keep — skipping (G1)
+[21:50:27] ──────────────────────────────────────────────
+[21:50:27] v14: paired eval on eval_10k (~2.3 h GPU + ~7 min metrics + paired)
+[21:50:27] ──────────────────────────────────────────────
+[21:50:27]   🔁 v14 (G3): 2 fingerprinted surgical checkpoint(s) on disk — m05 resumes if hash matches this variant
+[22:12:45]   ✅ v14 surgical m05 schema intact (no missing>0 params)
+[22:13:59]   ✅ v14 archived to outputs_versioned/v14_eval10k
+[22:13:59] ──────────────────────────────────────────────
+[22:13:59] v15a: paired eval on eval_10k (~2.3 h GPU + ~7 min metrics + paired)
+[22:13:59] ──────────────────────────────────────────────
+[22:13:59]   🔁 v15a (G3): 2 fingerprinted surgical checkpoint(s) on disk — m05 resumes if hash matches this variant
+[22:14:04]   ✅ v15a surgical m05 schema intact (no missing>0 params)
+[22:15:16]   ✅ v15a archived to outputs_versioned/v15a_eval10k
+[22:15:16] ──────────────────────────────────────────────
+[22:15:16] v15b: paired eval on eval_10k (~2.3 h GPU + ~7 min metrics + paired)
+[22:15:16] ──────────────────────────────────────────────
+[22:15:16]   🔁 v15b (G3): 2 fingerprinted surgical checkpoint(s) on disk — m05 resumes if hash matches this variant
+[22:15:21]   ✅ v15b surgical m05 schema intact (no missing>0 params)
+[22:16:36]   ✅ v15b archived to outputs_versioned/v15b_eval10k
+[22:16:36]   ✅ Frozen archive at outputs_versioned/frozen_eval10k (preserved pre-variant-loop)
+[22:16:36] ──────────────────────────────────────────────
+[22:16:36] 🏆 PAIRED EVAL SUMMARY (eval_10k, BCa 95% CI)
+[22:16:36] ──────────────────────────────────────────────
+[22:16:36] 🎉 paired_eval_10k ALL DONE
+[22:16:36] Artifacts:
+[22:16:36]   outputs_versioned/frozen_eval10k/       (Frozen baseline — shared)
+[22:16:36]   outputs_versioned/v{10,13,14,15a,15b,15c}_eval10k/  (per-variant paired results)
+[22:16:36]   logs/paired_eval_{frozen,v10,v13,v14,v15a,v15b,v15c}_{m05,m06,m08b}.log

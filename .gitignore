@@ -4,6 +4,8 @@ git_push*
 
 # Directories
 trash
+temp
+!temp/mahirch_factorjepa_segmentation/
 venv*
 deps/
 
@@ -64,6 +66,7 @@ logs/*.log
 # data/*
 # data/LEGACY*
 # data/subset_10k_local/*
+data/full_local/tags.json
 
 # WalkIndia POC - Large files (re-downloadable via m01_download.py)
 src/data/videos/*.mp4
@@ -72,9 +75,7 @@ src/data/
 # Compute outputs — backed up to HF via: python -u src/utils/hf_outputs.py upload outputs/<dir>
 *.npy
 *.npz
-outputs/**/*.npy
-outputs/**/*.npz
-outputs/full/*.json
+outputs/
 # Per-clip verification images (re-generable via --plot, too many for git)
 outputs/**/m10_overlay_verify/
 outputs/**/m11_per_clip_verify/
@@ -98,4 +99,12 @@ src/outputs_sanity/**/*.npz
 
 # secrets
 cookies.txt
-YT_cookies_2.txt
+YT_cookies_2.txtoutputs/
+
+data/
+wandb/
+venv_walkindia/
+__pycache__/
+*.pyc
+.ipynb_checkpoints/
+.claude/scheduled_tasks.lock

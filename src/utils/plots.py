@@ -411,18 +411,26 @@ def plot_training_curves(runs: list, output_dir: str, title_prefix: str = "",
                     COLORS["red"], COLORS["blue"], "#8B4513", "#FF1493", "#00CED1"]
 
     # ── Plot 1: Validation Loss ──────────────────────────────────────
-    fig, ax = plt.subplots(figsize=(10, 6))
-    for run in parsed_runs:
-        if run["x_val"]:
-            ax.plot(run["x_val"], run["val_loss"], "s-",
-                    color=run["color"], linewidth=3.0, markersize=8,
-                    label=run["label"], zorder=10)
-    ax.xaxis.set_major_formatter(plt.FuncFormatter(_fmt_x))
-    ax.set_xlabel(x_label)
-    ax.set_ylabel("Validation JEPA Loss")
-    ax.set_title(f"{title_prefix}Validation Loss")
-    ax.legend(loc="upper right")
-    save_fig(fig, str(out / "m09_val_loss"))
+    # Skip entirely when no run has val_loss data (e.g., m09c_surgery — val_loss
+    # comes from probe_history via _render_live_plots(), NOT from loss_log.csv).
+    # Previously this wrote an empty m09_val_loss.png which overwrote the good
+    # probe-trajectory val-loss plot saved seconds earlier.
+    if any(run.get("val_loss") and run.get("x_val") for run in parsed_runs):
+        fig, ax = plt.subplots(figsize=(10, 6))
+        for run in parsed_runs:
+            if run["x_val"] and run.get("val_loss"):
+                ax.plot(run["x_val"], run["val_loss"], "s-",
+                        color=run["color"], linewidth=3.0, markersize=8,
+                        label=run["label"], zorder=10)
+        ax.xaxis.set_major_formatter(plt.FuncFormatter(_fmt_x))
+        ax.set_xlabel(x_label)
+        ax.set_ylabel("Validation JEPA Loss")
+        ax.set_title(f"{title_prefix}Validation Loss")
+        ax.legend(loc="upper right")
+        save_fig(fig, str(out / "m09_val_loss"))
+    else:
+        print(f"  [plots] skip m09_val_loss: no val_loss in loss_log "
+              f"(m09c reads val-loss from probe_history instead — see _render_live_plots)")
 
     # ── Plot 2: Training Loss — color-segmented by stage when present ──
     fig, ax = plt.subplots(figsize=(12, 6))
@@ -483,6 +491,31 @@ def plot_training_curves(runs: list, output_dir: str, title_prefix: str = "",
     ax.set_ylabel("Training JEPA Loss")
     ax.set_title(f"{title_prefix}Training Loss")
     ax.legend(loc="upper right")
+
+    # Dual x-axis: show "Training samples seen" (= n_unique × n_epochs) on top so
+    # reader sees both granular step count AND "how many passes through the data"
+    # at a glance. Identity: step × BS = n_unique_clips × n_epochs (by construction
+    # since steps = n_clips × epochs / BS). Only added when x_axis_mode="steps" and
+    # we have a training_summary.json nearby to read total_clips + derive n_epochs.
+    if x_axis_mode == "steps":
+        try:
+            first_run = runs[0]
+            summary_path = Path(first_run["csv_path"]).parent / "training_summary.json"
+            if summary_path.exists():
+                s = json.load(open(summary_path))
+                n_unique = s["total_factor_clips"]
+                n_steps = s["steps"]
+                bs = s["batch_size"]
+                n_epochs = round(n_steps * bs / n_unique) if n_unique else 0
+                total_samples = n_unique * n_epochs
+                ax2 = ax.twiny()
+                ax2.set_xlim([v * bs for v in ax.get_xlim()])
+                ax2.set_xlabel(
+                    f"Training samples seen  (= {n_unique:,} unique clips × "
+                    f"{n_epochs} epochs = {total_samples:,})", fontsize=9)
+        except Exception as e:
+            print(f"  [plots] skip dual-axis on m09_train_loss: {e}")
+
     save_fig(fig, str(out / "m09_train_loss"))
 
     # ── Plot 3: Drift Loss ───────────────────────────────────────────

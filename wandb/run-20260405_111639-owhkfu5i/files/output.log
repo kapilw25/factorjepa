@@ -1,4 +1,0 @@
-wandb: run=m06_FULL url=https://wandb.ai/sjsu_llm/walkindia-200k/runs/owhkfu5i
-[output_guard] m06 vjepa: ALL VALID — skipping (cached)
-  OK    metrics: 10 keys
-  OK    knn_indices: (115687, 7)

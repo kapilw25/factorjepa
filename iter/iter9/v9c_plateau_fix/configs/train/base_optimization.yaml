@@ -1,0 +1,99 @@
+# Base optimization config — SHARED across all training techniques (Ch10, Ch11, ExPLoRA, LoRA).
+#
+# Every technique-specific config (ch10_pretrain.yaml, ch11_surgery.yaml, explora.yaml, lora.yaml)
+# inherits from this file via:
+#
+#   extends: base_optimization.yaml
+#
+# Override only what differs. The Python load_merged_config() helper handles the deep-merge.
+#
+# Why a base file? Avoids duplication of masking, augmentation, AdamW betas, EMA, mixed precision
+# across 4+ technique files. Update once, applies everywhere.
+
+# -- Data sampling --
+data:
+  hf_dataset: anonymousML123/walkindia-200k
+  num_frames: 16                  # Train at 16f (Meta trains 95% at 16f, eval at 64f)
+  seed: 42                        # Reproducibility (random, numpy, torch)
+
+# -- Masking (V-JEPA 2 default: 8 small + 2 large blocks) --
+mask:
+  - spatial_scale: [0.15, 0.15]
+    temporal_scale: [1.0, 1.0]
+    aspect_ratio: [0.75, 1.5]
+    num_blocks: 8                 # 8 small blocks (~75-90% total masking)
+  - spatial_scale: [0.7, 0.7]
+    temporal_scale: [1.0, 1.0]
+    aspect_ratio: [0.75, 1.5]
+    num_blocks: 2                 # 2 large blocks
+
+# -- Augmentation --
+augmentation:
+  random_resize_scale: [0.3, 1.0]
+  random_resize_ratio: [0.75, 1.35]
+  horizontal_flip: 0.5
+
+# -- Optimizer base (AdamW) --
+optimization:
+  optimizer: adamw
+  betas: [0.9, 0.999]
+  eps: 1.0e-8
+  weight_decay: 0.04
+  final_weight_decay: 0.04        # Fixed (no WD ramp)
+
+  # Predictor LR — Meta uses SAME LR as encoder (gold standard audit)
+  # Our old 10x multiplier may have caused predictor overfit during Ch10
+  pred_lr_multiplier: 1.0
+
+  # LR schedule — POST-AUDIT: constant (warmup then flat), NOT cosine decay
+  # Cosine re-warming causes forgetting (arXiv:2503.02844)
+  lr_schedule: constant
+  warmup_steps: 500
+  warmup_cap_pct: 10              # Cap warmup at 10% of total steps
+
+  # EMA teacher (fixed momentum, V-JEPA 2 default)
+  ema_momentum: 0.99925
+
+  # Gradient clipping — POST-AUDIT: 10.0 (V-JEPA 1 default), NOT 1.0
+  grad_clip: 10.0
+
+  # Loss
+  loss_exp: 1.0                   # L1 latent prediction
+
+  # NaN safety
+  nan_tolerance: 3                # Crash after 3 consecutive NaN/Inf losses
+  gc_interval: 50                 # Manual GC every N steps
+
+  # Memory-saver flags (#56) — safe defaults OFF; technique-specific configs
+  # override when needed (surgery NEEDS both on 24GB SANITY for 36-block Stage 3).
+  # 8-bit AdamW: ~4× optimizer-state reduction, <1% accuracy (Dettmers 2022).
+  # Gradient checkpointing: ~2-4× activation reduction, ~25% throughput hit.
+  use_8bit_optim: false           # bitsandbytes AdamW8bit (drop-in AdamW replacement)
+  gradient_checkpointing: false   # torch.utils.checkpoint on transformer blocks
+
+# -- Cooldown phase (V-JEPA 2.1: switch to 64f + linear LR decay) --
+cooldown:
+  enabled: true                   # Run cooldown after main training
+  num_frames: 64                  # Match eval frame count (VJEPA_FRAMES_PER_CLIP)
+  epochs: 1                       # 1 epoch for continual training (Meta: 40 for from-scratch)
+  lr_schedule: linear_decay       # Linear decay to final_lr (not cosine)
+  final_lr: 1.0e-6                # Near-zero by end
+  warmup_steps: 0                 # No warmup during cooldown
+  weight_distance_loss: false     # Disable distance weighting (Meta's cooldown config)
+
+# -- Validation --
+validation:
+  evals_per_epoch: 10             # Validate at 10%, 20%, ..., 100% of each epoch
+  max_val_clips: 1000             # Subsample for periodic eval
+  cycle_k: [1, 10]
+  faiss_k: 6
+
+# -- Checkpointing --
+checkpoint:
+  saves_per_epoch: 10
+  keep_last_n: 2                  # Keep only last 2 checkpoints (~16 GB each)
+
+# -- Mixed precision --
+mixed_precision:
+  enabled: true
+  dtype: bfloat16                 # bfloat16 (not float16 — full dynamic range, no GradScaler needed)

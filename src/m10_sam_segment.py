@@ -14,11 +14,13 @@ HF model download: `facebook/sam3` (~12 GB, first-run only) is pre-cached by `se
 via `hf download` which respects `HF_HUB_ENABLE_HF_TRANSFER=1` (Rust multi-stream, 1.5-3× per file).
 """
 import argparse
+import gc
 import json
 import os
 import sys
 import tempfile
 import time
+import traceback
 from pathlib import Path
 
 # Load .env early so HF_TOKEN, HF_HOME, TRANSFORMERS_CACHE are set before
@@ -52,6 +54,7 @@ from utils.plots import init_style, save_fig, COLORS, SCENE_COLORS
 from utils.progress import make_pbar
 from utils.video_io import decode_video_bytes
 from utils.wandb_utils import add_wandb_args, init_wandb, log_metrics, finish_wandb
+from utils.curate_verify import select_verify_clips
 
 import yaml
 import torch
@@ -300,6 +303,7 @@ def segment_clip(sam_model, sam_processor, dino_processor, dino_model,
             "agent_mask": empty_mask, "layout_mask": ~empty_mask,
             "n_agents": 0, "agent_pixel_ratio": 0.0, "mean_mask_confidence": 0.0,
             "centroids": {}, "per_object": {}, "detected_categories": [],
+            "obj_id_to_cat": {},   # #77: always present (contract with main()/save_clip_masks)
         }
 
     # Step 2: one HF video session per clip (reused across anchor × category sub-calls).
@@ -437,13 +441,19 @@ def segment_clip(sam_model, sam_processor, dino_processor, dino_model,
         "centroids": centroids,
         "per_object": per_object,
         "detected_categories": list(boxes_by_cat.keys()),
+        # #77 (2026-04-20): {obj_id → canonical 17-cat taxonomy key} populated on each
+        # anchor frame (line 397). Downstream (mine_interactions / D_I tube builder /
+        # factor_manifest) can now label interactions by category pair — previously
+        # obj_ids were opaque strings so D_I was category-agnostic.
+        "obj_id_to_cat": obj_id_to_cat,
     }
 
 
 # ── Save ─────────────────────────────────────────────────────────────
 
 def mine_interactions(centroids: dict, frame_width: int,
-                      max_dist_frac: float, min_frames: int) -> list:
+                      max_dist_frac: float, min_frames: int,
+                      obj_id_to_cat: dict = None) -> list:
     """Find agent pairs close enough for long enough (D_I interaction mining).
 
     Proposal Sec 11.2: pairs of agent tracklets that stay within d_max
@@ -454,10 +464,14 @@ def mine_interactions(centroids: dict, frame_width: int,
         frame_width: W pixels (for distance normalization)
         max_dist_frac: d_max as fraction of frame_width (default 0.20)
         min_frames: minimum consecutive frames for interaction (default 4)
+        obj_id_to_cat: optional {obj_id: canonical_category_key} from segment_clip();
+            when provided, each interaction event is annotated with `cat_a` + `cat_b`
+            for downstream category-pair filtering / typed D_I tubes (#77, 2026-04-20).
 
     Returns:
         List of interaction events:
-        [{"obj_a": str, "obj_b": str, "frames": [int], "bboxes": [(y1,x1,y2,x2)]}]
+        [{"obj_a": str, "obj_b": str, "frames": [int],
+          "cat_a": str|None, "cat_b": str|None}]  (cat_* = None when obj_id_to_cat absent)
     """
     d_max = max_dist_frac * frame_width
     obj_ids = list(centroids.keys())
@@ -505,10 +519,14 @@ def mine_interactions(centroids: dict, frame_width: int,
             if len(current_run) >= min_frames:
                 runs.append(current_run)
 
+            cat_a = obj_id_to_cat.get(a) if obj_id_to_cat else None
+            cat_b = obj_id_to_cat.get(b) if obj_id_to_cat else None
             for run in runs:
                 interactions.append({
                     "obj_a": str(a),
                     "obj_b": str(b),
+                    "cat_a": cat_a,
+                    "cat_b": cat_b,
                     "frames": run,
                 })
 
@@ -517,10 +535,12 @@ def mine_interactions(centroids: dict, frame_width: int,
 
 def save_clip_masks(clip_key: str, result: dict, interactions: list,
                     masks_dir: Path, mid_frame_rgb: np.ndarray = None):
-    """Save masks + centroids + per-object bboxes + interactions + middle frame as compressed .npz.
+    """Save masks + centroids + per-object bboxes + obj→cat + interactions + middle frame as compressed .npz.
 
     `per_object_bboxes_json` ({obj_id: {t: [y1,x1,y2,x2]}}) enables m11 tight-union-bbox
     D_I tubes instead of fixed 30% centroid squares. ~5 KB/clip vs ~130 MB for full masks.
+    `obj_id_to_cat_json` ({obj_id: canonical_17cat_key}) lets m11 filter D_I tubes by
+    category pair + paper narrative can describe typed interactions (#77, 2026-04-20).
     """
     safe_key = clip_key.replace("/", "__")
     out_path = masks_dir / f"{safe_key}.npz"
@@ -541,12 +561,17 @@ def save_clip_masks(clip_key: str, result: dict, interactions: list,
             per_object_bboxes[str(oid)] = per_frame
     per_object_bboxes_json = json.dumps(per_object_bboxes)
 
+    # #77 stringify obj_ids for JSON compat (match centroids_json pattern above).
+    obj_id_to_cat = result["obj_id_to_cat"]
+    obj_id_to_cat_json = json.dumps({str(k): v for k, v in obj_id_to_cat.items()})
+
     save_dict = dict(
         agent_mask=result["agent_mask"],
         layout_mask=result["layout_mask"],
         centroids_json=np.array(centroids_json),
         interactions_json=np.array(interactions_json),
         per_object_bboxes_json=np.array(per_object_bboxes_json),
+        obj_id_to_cat_json=np.array(obj_id_to_cat_json),
     )
     if mid_frame_rgb is not None:
         save_dict["mid_frame_rgb"] = mid_frame_rgb
@@ -557,11 +582,25 @@ def save_clip_masks(clip_key: str, result: dict, interactions: list,
 
 def plot_overlay_per_clip(segments: dict, masks_dir: Path, tags_lookup: dict,
                          output_dir: Path):
-    """Save per-clip overlay images: original | agent mask (red) | layout (blue)."""
+    """Save per-clip overlay images: original | agent mask (red) | layout (blue).
+
+    Pre-filters to ~100 clips via `utils.curate_verify.select_verify_clips()` — writes
+    one plot per unique video_id, round-robin'd across (city, activity) buckets.
+    At 1K runs 100/1000 PNGs; at 10K runs 100/10000 PNGs (~100× less disk + CPU).
+    Uses seed=42 so m10 and m11 independently pick the SAME clip_keys for paired
+    spot-check (m10 mask overlay ↔ m11 factor grid on the same clips).
+    """
     overlay_dir = output_dir / "m10_overlay_verify"
     overlay_dir.mkdir(parents=True, exist_ok=True)
 
+    selected = select_verify_clips(list(segments.keys()), n_target=100, seed=42)
+    print(f"  [m10_overlay_verify] pre-selected {len(selected)}/{len(segments)} clips "
+          f"(unique video_id × round-robin city/activity, seed=42)")
+
+    n_written = 0
     for clip_key in segments:
+        if clip_key not in selected:
+            continue
         safe_key = clip_key.replace("/", "__")
         mask_file = masks_dir / f"{safe_key}.npz"
         if not mask_file.exists():
@@ -579,8 +618,7 @@ def plot_overlay_per_clip(segments: dict, masks_dir: Path, tags_lookup: dict,
         fh, fw = frame_rgb.shape[:2]
         mh, mw = agent_mask.shape
         if (mh, mw) != (fh, fw):
-            from PIL import Image as PILImage
-            agent_mask = np.array(PILImage.fromarray(agent_mask).resize((fw, fh), PILImage.NEAREST))
+            agent_mask = np.array(Image.fromarray(agent_mask).resize((fw, fh), Image.NEAREST))
 
         fig, axes = plt.subplots(1, 3, figsize=(15, 4))
 
@@ -610,8 +648,9 @@ def plot_overlay_per_clip(segments: dict, masks_dir: Path, tags_lookup: dict,
         plt.tight_layout()
         save_fig(fig, str(overlay_dir / safe_key))
         plt.close(fig)
+        n_written += 1
 
-    print(f"  Saved: {overlay_dir}/ ({len(list(overlay_dir.glob('*.png')))} clips)")
+    print(f"  Saved: {overlay_dir}/ ({n_written} clips — pre-filtered from {len(segments)} via curate_verify.select_verify_clips)")
 
 
 def plot_agent_stats(segments: dict, tags_lookup: dict, output_dir: Path):
@@ -672,6 +711,12 @@ def main():
     parser.add_argument("--FULL", action="store_true", help="All clips")
     parser.add_argument("--plot", action="store_true",
                         help="Re-generate plots only from existing outputs (no GPU needed)")
+    parser.add_argument("--interactions-only", action="store_true",
+                        help="Skip SAM3 inference; read cached masks/*.npz and re-run "
+                             "mine_interactions() on cached centroids + obj_id_to_cat, "
+                             "updating segments.json + each .npz's interactions_json. "
+                             "For iter10 v15c safer-interactions: repopulates D_I when "
+                             "the prior m10 run had interaction_mining.enabled=false.")
     parser.add_argument("--train-config", default="configs/train/ch11_surgery.yaml",
                         help="Factor dataset params YAML")
     parser.add_argument("--output-dir", default=None,
@@ -681,6 +726,11 @@ def main():
     add_subset_arg(parser)
     add_local_data_arg(parser)
     add_wandb_args(parser)
+    # Cache-policy gate (iter11): every destructive delete in this module must route
+    # through utils.cache_policy.guarded_delete(path, args.cache_policy, ...).
+    # --cache-policy defaults to 1 (keep) so overnight re-runs never destroy cache.
+    from utils.cache_policy import add_cache_policy_arg
+    add_cache_policy_arg(parser)
     args = parser.parse_args()
 
     if not (args.SANITY or args.POC or args.FULL):
@@ -716,6 +766,75 @@ def main():
         plot_overlay_per_clip(segments, masks_dir, tags_lookup, output_dir)
         plot_agent_stats(segments, tags_lookup, output_dir)
         print("Done (--plot).")
+        return
+
+    # --interactions-only: iter10 v15c. CPU-only pass over cached masks/*.npz.
+    # Reads centroids + obj_id_to_cat from each .npz, runs mine_interactions(),
+    # rewrites each .npz with fresh interactions_json, and updates segments.json.
+    # No SAM3/DINO/GPU — prior run's segmentation is reused verbatim.
+    if args.interactions_only:
+        with open(args.train_config) as f:
+            train_cfg = yaml.safe_load(f)
+        interaction_cfg = train_cfg["interaction_mining"]
+        if args.output_dir:
+            output_dir = Path(args.output_dir)
+        else:
+            output_dir = get_module_output_dir("m10_sam_segment", args.subset,
+                                               sanity=args.SANITY, poc=args.POC)
+        masks_dir = output_dir / "masks"
+        segments_file = output_dir / "segments.json"
+        if not segments_file.exists():
+            print(f"FATAL: {segments_file} not found. Run m10 (without --interactions-only) first.")
+            sys.exit(1)
+        segments = json.load(open(segments_file))
+        max_dist_frac = interaction_cfg["max_distance_frame_fraction"]
+        min_frames = interaction_cfg["min_overlap_frames"]
+        print(f"\n{'='*60}")
+        print(f"m10 --interactions-only: mining on {len(segments)} cached clips")
+        print(f"  max_distance_frame_fraction={max_dist_frac} · min_overlap_frames={min_frames}")
+        print(f"  masks_dir={masks_dir}")
+        print(f"{'='*60}\n")
+        pbar = make_pbar(total=len(segments), desc="m10_mine_only", unit="clip")
+        n_updated = 0
+        n_missing_mask = 0
+        n_total_interactions = 0
+        for clip_key in list(segments.keys()):
+            safe_key = clip_key.replace("/", "__")
+            mask_file = masks_dir / f"{safe_key}.npz"
+            if not mask_file.exists():
+                n_missing_mask += 1
+                pbar.update(1)
+                continue
+            with np.load(mask_file, allow_pickle=False) as data:
+                save_dict = {k: np.asarray(data[k]) for k in data.files}
+            centroids_raw = json.loads(str(save_dict["centroids_json"]))
+            centroids = {int(k): {int(t): tuple(v) for t, v in frames.items()}
+                         for k, frames in centroids_raw.items()}
+            obj_id_to_cat = {}
+            if "obj_id_to_cat_json" in save_dict:
+                o2c_raw = json.loads(str(save_dict["obj_id_to_cat_json"]))
+                obj_id_to_cat = {int(k): v for k, v in o2c_raw.items()}
+            frame_width = int(save_dict["agent_mask"].shape[-1])
+            interactions = mine_interactions(
+                centroids,
+                frame_width=frame_width,
+                max_dist_frac=max_dist_frac,
+                min_frames=min_frames,
+                obj_id_to_cat=obj_id_to_cat,
+            )
+            save_dict["interactions_json"] = np.array(json.dumps(interactions))
+            np.savez_compressed(mask_file, **save_dict)
+            segments[clip_key]["n_interactions"] = len(interactions)
+            n_updated += 1
+            n_total_interactions += len(interactions)
+            pbar.update(1)
+        pbar.close()
+        with open(segments_file, "w") as f:
+            json.dump(segments, f, indent=2)
+        print("\n✅ m10 --interactions-only complete")
+        print(f"   Clips updated: {n_updated}/{len(segments)} (missing masks: {n_missing_mask})")
+        print(f"   Total interactions mined: {n_total_interactions:,}")
+        print(f"   Updated: {segments_file}")
         return
 
     ensure_local_data(args)
@@ -862,12 +981,13 @@ def main():
                 text_threshold=text_threshold,
             )
 
-            # Mine interactions (D_I)
+            # Mine interactions (D_I) — now annotated with cat_a/cat_b for typed filtering (#77)
             interactions = mine_interactions(
                 result["centroids"],
                 frame_width=frames_np.shape[2],
                 max_dist_frac=interaction_cfg["max_distance_frame_fraction"],
                 min_frames=interaction_cfg["min_overlap_frames"],
+                obj_id_to_cat=result["obj_id_to_cat"],
             )
 
             # Save masks + centroids + interactions + middle frame for overlay plots
@@ -985,7 +1105,6 @@ def main():
 
     # Force exit: HF Sam3 video sessions + DINO hold GPU buffers.
     del sam_model, sam_processor, dino_model, dino_processor
-    import gc
     gc.collect()
     os._exit(0)
 
@@ -995,6 +1114,5 @@ if __name__ == "__main__":
         main()
     except Exception as e:
         print(f"\nFATAL (unhandled): {e}")
-        import traceback
         traceback.print_exc()
         os._exit(1)  # guarantee exit even with SAM3 async threads
