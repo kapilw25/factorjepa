@@ -6,7 +6,7 @@ and m09b_explora.py (LoRA variant). Shared primitives live in utils.training.
 Pipeline: m10 (Grounded-SAM) → m11 (factor datasets) → m09c (surgery training).
 The paper novelty — factor-disentangled surgery on a frozen V-JEPA 2.1 encoder.
 
-    python -u src/m09c_surgery.py --SANITY --model-config configs/model/vjepa2_1.yaml --train-config configs/train/ch11_surgery.yaml --factor-dir outputs/sanity/m11_factor_datasets/ --no-wandb 2>&1 | tee logs/m09c_sanity.log
+    python -u src/m09c_surgery.py --SANITY --model-config configs/model/vjepa2_1.yaml --train-config configs/train/surgery_2stage_noDI.yaml --factor-dir outputs/sanity/m11_factor_datasets/ --no-wandb 2>&1 | tee logs/m09c_sanity.log
     python -u src/m09c_surgery.py --POC --subset data/sanity_100_dense.json --factor-dir outputs/poc/m11_factor_datasets/ --local-data data/val_1k_local --no-wandb 2>&1 | tee logs/m09c_dense100.log
     python -u src/m09c_surgery.py --FULL --factor-dir outputs/full/m11_factor_datasets/ --local-data data/full_local --no-wandb 2>&1 | tee logs/m09c_full.log
 """
@@ -65,7 +65,9 @@ from utils.vjepa2_imports import (
 
 # Constants
 DEFAULT_MODEL_CONFIG = "configs/model/vjepa2_1.yaml"
-DEFAULT_TRAIN_CONFIG = "configs/train/ch11_surgery.yaml"
+# DEFAULT_TRAIN_CONFIG removed (iter11 v2): 4 yamls (explora / surgery_2stage_noDI /
+# surgery_2stage_loud_agent / surgery_3stage_DI) — silently picking one re-creates the
+# silent-renorm class of bug (#73). Per CLAUDE.md "No DEFAULT, FAIL LOUD": --train-config required.
 CHECKPOINT_PREFIX = "m09c_ckpt"
 
 # Shared training primitives — utils/training.py (Phase 1 of iter8 split).
@@ -1380,13 +1382,19 @@ def main():
 
     ensure_local_data(args)
 
-    # Load config: --model-config + --train-config (new) or --config (legacy)
+    # Load config: --model-config + --train-config (new) or --config (legacy).
+    # FAIL LOUD per CLAUDE.md "No DEFAULT": iter11 v2 has multiple surgery variants
+    # (surgery_2stage_noDI / surgery_2stage_loud_agent / surgery_3stage_DI) — must be explicit.
     if args.config:
         cfg = load_config(args.config)
     elif args.train_config:
         cfg = load_merged_config(args.model_config, args.train_config)
     else:
-        cfg = load_merged_config(DEFAULT_MODEL_CONFIG, DEFAULT_TRAIN_CONFIG)
+        raise SystemExit(
+            "FATAL: --train-config is required (no DEFAULT). Pick one of:\n"
+            "  configs/train/surgery_2stage_noDI.yaml\n"
+            "  configs/train/surgery_2stage_loud_agent.yaml\n"
+            "  configs/train/surgery_3stage_DI.yaml")
     cfg = merge_config_with_args(cfg, args)
 
     # Dispatch: surgery (only mode in this module)

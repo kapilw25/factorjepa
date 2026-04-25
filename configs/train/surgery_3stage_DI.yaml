@@ -1,3 +1,15 @@
+# iter10 v15c (safer-interactions) — forked from ch11_surgery.yaml 2026-04-21.
+# Diffs from base:
+#   1. interaction_mining.enabled: false → true (populate n_interactions in segments.json)
+#   2. Re-add stage3_interaction with unfreeze_below: 0.50 (softer than prior iter8 0.75
+#      which caused BWT=-0.33 over-destabilization)
+#   3. max_epochs_pct renormalized to 0.40 / 0.30 / 0.30 (sum 1.00 across 3 stages)
+#   4. stage3 mode_mixture I: 0.70 (moderate vs prior iter8 0.85 that hurt)
+# Hypothesis: shallower unfreeze + typed D_I (cat_a/cat_b from #77 #80) may let
+# Stage 3 add information without catastrophic forgetting of Stages 1+2.
+# REQUIRES: prior run of `m10 --interactions-only` + `m11 --regen-D_I` to populate
+# D_I tubes (SAM3 NOT re-run — masks cached).
+#
 # Ch11: Factor Surgery — Progressive Prefix Unfreezing with Factor Datasets
 # (FactorJEPA proposal Sec 11)
 #
@@ -54,6 +66,21 @@ data:
     poc: 0.9                      # 900 train / 100 held-out val
     full: 0.9                     # 103K train / 12K held-out val
 
+  # iter11 v2 paths — read by scripts/run_train.sh + run_eval.sh + run_factor_prep.sh via yaml_extract.
+  # surgery_3stage_DI.yaml is the MAXIMAL factor config (interaction_mining=true) — pass to
+  # run_factor_prep.sh so m10/m11 generate D_I tubes that all 3 surgery variants can consume.
+  module: m09c
+  adapted_encoder: vjepa_2_1_surgical
+  model_config: configs/model/vjepa2_1.yaml
+  train_subset: data/subset_10k.json
+  train_local_data: data/subset_10k_local
+  val_subset: data/val_1k.json
+  val_local_data: data/val_1k_local
+  factor_dir: outputs/full/m11_factor_datasets
+  output_dir: outputs/full/surgery_3stage_DI
+  eval_subset: data/eval_10k.json
+  eval_local_data: data/eval_10k_local
+
 # -- Streaming factor generation (eliminates m11 D_L/D_A .npy disk writes) --
 # When enabled, m09c DataLoader generates D_L/D_A on-demand from (raw_mp4 +
 # m10_mask.npz) pairs. Unlocks 10K→50K→115K scale ladder on a single 500 GB
@@ -95,7 +122,7 @@ optimization:
   max_epochs:
     sanity: 1
     poc: 1                        # code-path validation only.
-    full: 5                       # iter11 v2 (2026-04-24): 1 → 5 so val-loss plateau (patience=5 probes = 1 epoch at saves_per_epoch=5) can actually fire. Matches SSL canon (V-JEPA 2 / DINOv2) fixed-budget practice.
+    full: 5                       # iter11 v2 (2026-04-24): 1 → 5. Unified budget across all variants; val-loss plateau gates stop. Matches SSL canon.
 
   batch_size: 32                  # Research-LOCKED effective (macro) BS — V-JEPA 2.1 published recipe (Adam β/LR/WD co-tuned at 32). AdaptiveBatchSizer picks MICRO sub-batch (start=4→max=32) for VRAM adaptation; 32 grads always accumulate before optimizer.step(). Changing BS forces LR re-tune (linear scaling) + invalidates "Surgery > Frozen" comparison to V-JEPA baseline.
 
@@ -200,7 +227,7 @@ factor_datasets:
 
 # -- Interaction mining (D_I) --
 interaction_mining:
-  enabled: false                      # iter9 2-stage recipe: D_I retired → m11 skips tube .npy writes (saves 26% m11 disk). Re-enable for Stage-3 ablation.
+  enabled: true                       # iter10 v15c: re-enabled for safer-interactions Stage-3 ablation. m10 --interactions-only populates n_interactions in segments.json; m11 --regen-D_I builds tubes.
   min_overlap_frames: 4               # r in proposal Sec 11.2
   max_distance_frame_fraction: 0.20   # d_max
   cue_types: [approach, crossing, following]
@@ -237,7 +264,7 @@ surgery:
         L: 1.00                     # 100% layout-only
         A: 0.00
         I: 0.00
-      max_epochs_pct: 0.50          # 50% of total epoch budget (2-stage split)
+      max_epochs_pct: 0.40          # iter10 v15c: renormalized 0.50 → 0.40 for 3-stage split (sum 1.00)
 
     - name: stage2_agent
       unfreeze_below: 0.50          # 24 of 48 layers
@@ -245,7 +272,19 @@ surgery:
         L: 0.30                     # 30% replay (CLEAR 2018; was 10 % — too dilute)
         A: 0.70                     # 70% agent-only
         I: 0.00
-      max_epochs_pct: 0.50
+      max_epochs_pct: 0.30          # iter10 v15c: renormalized 0.50 → 0.30
+
+    - name: stage3_interaction
+      # iter10 v15c: re-enabled for safer-interactions ablation.
+      # unfreeze_below: 0.50 (NOT prior iter8's 0.75 which caused BWT=-0.33 over-destabilization).
+      # Same depth as Stage 2 — doesn't unfreeze NEW layers, just changes the input distribution.
+      # This is the critical "safer" knob: prior iter8 tried 0.75 (36/48 layers) → catastrophic.
+      unfreeze_below: 0.50
+      mode_mixture:
+        L: 0.15                     # 15% layout replay (symmetric with Stage 2 replay ratio dropped)
+        A: 0.15                     # 15% agent replay (anti-forgetting of Stage 2 gains)
+        I: 0.70                     # 70% interaction tubes (was 0.85 in iter8 — tempered for safety)
+      max_epochs_pct: 0.30
 
 # -- Drift control: minimal --
 # Surgery uses freezing as the primary anti-forgetting mechanism.
@@ -279,15 +318,10 @@ probe:
     sanity: false
     poc: true
     full: true
-  # iter11 (2026-04-24): ONLY val-loss plateau kept as active early-stop trigger.
-  # All Prec@K-driven triggers (kill_switch / prec_plateau / bwt) operate below the
-  # BCa CI_half noise floor (±2.35 pp @ N=500, ±1.73 pp @ N=1000) → they fire on
-  # sampling jitter. SSL canon (V-JEPA 2 / DINOv2 / ExPLoRA paper) trains to fixed
-  # cosine-to-zero budget or stops only on val-loss plateau.
-  kill_switch_enabled:            # DISABLED — operates below noise floor (iter11 2026-04-24)
+  kill_switch_enabled:            # abort if prec_at_k < running_max - forgetting_threshold_pct for forgetting_patience consecutive probes.
     sanity: false
-    poc: false
-    full: false
+    poc: true
+    full: true
   forgetting_threshold_pct: 5.0   # absolute Prec@K points below running max that count as a forgetting strike.
   forgetting_patience: 3          # consecutive strikes → kill.
   # -- Early-stop #2: val-loss plateau detector --
@@ -309,10 +343,12 @@ probe:
   # gate metric (Prec@K on val_500) is stagnant over the last prec_plateau_patience+1
   # probes (max - min < prec_plateau_min_delta). Prevents the "80 % of compute
   # produced 0 best-ckpt events" waste logged on v10.
-  prec_plateau_enabled:           # DISABLED — operates below noise floor (iter11 2026-04-24)
+  # min_delta sized against N=500 CI_half≈2.35 pp: 0.3 pp is well below noise,
+  # so only true stagnation triggers (same spirit as the val_jepa 0.2 % threshold).
+  prec_plateau_enabled:
     sanity: false
-    poc: false
-    full: false
+    poc: true
+    full: true
   prec_plateau_min_delta: 0.3     # Prec@K percentage-points range required to reset patience (<< CI_half at N=500)
   prec_plateau_patience: 5        # consecutive probes with spread < min_delta → stop + export best-ckpt
   # -- Early-stop #3: negative-BWT cumulative trigger (Option C-adapted, #73) --
@@ -326,10 +362,10 @@ probe:
   # The old flat -0.5pp threshold could NEVER fire at N=500+ (noise floor ≥ ±1.2pp × 0.5).
   # Literature ref: no published BWT kill threshold exists (GEM/EWC/iCaRL REPORT BWT only);
   # this noise-aware compound is novel — document in paper methods.
-  bwt_trigger_enabled:            # DISABLED — operates below noise floor (iter11 2026-04-24)
+  bwt_trigger_enabled:
     sanity: false
-    poc: false
-    full: false
+    poc: true
+    full: true
   bwt_ci_fraction: 0.5            # BWT must exceed 0.5× current CI_half to count as signal
   bwt_absolute_floor: 0.3         # PP — absolute fail-safe below CI-scaled threshold
   bwt_patience: 3                 # consecutive probes passing BOTH checks → stop (was 10, tightened per #73)

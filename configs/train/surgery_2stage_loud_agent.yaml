@@ -61,6 +61,19 @@ data:
     poc: 0.9                      # 900 train / 100 held-out val
     full: 0.9                     # 103K train / 12K held-out val
 
+  # iter11 v2 paths — read by scripts/run_train.sh + run_eval.sh via yaml_extract.
+  module: m09c
+  adapted_encoder: vjepa_2_1_surgical
+  model_config: configs/model/vjepa2_1.yaml
+  train_subset: data/subset_10k.json
+  train_local_data: data/subset_10k_local
+  val_subset: data/val_1k.json
+  val_local_data: data/val_1k_local
+  factor_dir: outputs/full/m11_factor_datasets
+  output_dir: outputs/full/surgery_2stage_loud_agent
+  eval_subset: data/eval_10k.json
+  eval_local_data: data/eval_10k_local
+
 # -- Streaming factor generation (eliminates m11 D_L/D_A .npy disk writes) --
 # When enabled, m09c DataLoader generates D_L/D_A on-demand from (raw_mp4 +
 # m10_mask.npz) pairs. Unlocks 10K→50K→115K scale ladder on a single 500 GB

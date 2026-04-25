@@ -18,6 +18,21 @@
 
 extends: base_optimization.yaml
 
+# -- iter11 v2 paths (read by scripts/run_train.sh + run_eval.sh via yaml_extract) --
+# Every path the runner needs lives here so the shell wrapper takes ONLY this yaml as arg.
+# Per CLAUDE.md "No hardcoded paths" rule.
+data:
+  module: m09b                                       # m09b for explora, m09c for surgery_*
+  adapted_encoder: vjepa_2_1_explora                 # ENCODER_REGISTRY key in configs/pipeline.yaml
+  model_config: configs/model/vjepa2_1.yaml
+  train_subset: data/subset_10k.json
+  train_local_data: data/subset_10k_local
+  val_subset: data/val_1k.json
+  val_local_data: data/val_1k_local
+  output_dir: outputs/full/explora                   # variant-specific
+  eval_subset: data/eval_10k.json
+  eval_local_data: data/eval_10k_local
+
 # -- Optimization overrides --
 optimization:
   # ExPLoRA can use slightly higher LR than full fine-tuning (smaller param surface)

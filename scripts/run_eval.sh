@@ -1,159 +1,127 @@
 #!/usr/bin/env bash
-# ═══════════════════════════════════════════════════════════════════════
-# Standalone Evaluation Pipeline (reusable across Ch9, Ch10, Ch11)
-# Runs: m06→m06b→m07→m08 per encoder, then m08b comparison radar
+# iter11 v2 paired eval — loops over N train yamls; for each, runs m05 frozen +
+# m05 adapted + m06 (×2) + m08b paired bootstrap on the eval subset from the yaml.
+# Frozen m05 + m06 run ONCE before the loop (shared baseline across all variants).
+# Every path is read from the yaml's data: block via scripts/lib/yaml_extract.py.
+# Per CLAUDE.md "No hardcoded paths" + "Shell scripts are THIN wrappers".
+#
+# Reference: scripts/run_paired_eval_10k.sh (frozen-share + per-variant chain pattern).
 #
 # USAGE:
-#   ./scripts/run_eval.sh --SANITY 2>&1 | tee logs/eval_sanity.log
-#   ./scripts/run_eval.sh --POC 2>&1 | tee logs/eval_poc.log
-#   ./scripts/run_eval.sh --FULL   2>&1 | tee logs/eval_full.log
-#   ./scripts/run_eval.sh --FULL --encoders vjepa,dinov2   # specific subset
+#   ./scripts/run_eval.sh <train-yaml1> [<train-yaml2> ...]
 #
-# PREREQUISITES:
-#   - Embeddings must exist (from run_frozen.sh / run_pretrain.sh / run_surgery.sh)
-#   - tags.json must exist (from Ch9 m04)
-#   - motion_features.npy for m06b temporal metrics (from Ch9 m04d)
-# ═══════════════════════════════════════════════════════════════════════
-set -euo pipefail
+# Example:
+#   tmux new -s eval
+#   ./scripts/run_eval.sh \
+#       configs/train/explora.yaml \
+#       configs/train/surgery_2stage_noDI.yaml \
+#       configs/train/surgery_2stage_loud_agent.yaml \
+#       configs/train/surgery_3stage_DI.yaml \
+#       2>&1 | tee logs/run_eval_iter11_v2.log
 
-export PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
+# NO -e: a single variant failure must NOT abort the chain.
+set -uo pipefail
 
-# ── Parse args ────────────────────────────────────────────────────────
-MODE=""
-MODE_FLAG=""
-SUBSET_FLAG=""
-ENCODERS=""
+if [ $# -lt 1 ]; then
+    echo "USAGE: $0 <train-yaml1> [<train-yaml2> ...]" >&2
+    exit 2
+fi
 
-usage() {
-    echo "Usage: $0 --SANITY | --POC | --FULL [--encoders enc1,enc2,...]"
-    echo ""
-    echo "  --SANITY    Evaluate sanity outputs"
-    echo "  --POC       Evaluate POC 10K outputs"
-    echo "  --FULL      Evaluate full 115K outputs"
-    echo "  --encoders  Comma-separated encoder list (default: auto-detect from embeddings)"
-    echo ""
-    echo "Example:"
-    echo "  $0 --POC                                     # all available encoders in outputs/poc"
-    echo "  $0 --FULL --encoders vjepa,vjepa_lambda0_001 # specific encoders"
-    exit 1
-}
+cd "$(dirname "$0")/.."
+source venv_walkindia/bin/activate
+mkdir -p logs
 
-[[ $# -eq 0 ]] && usage
+EX="scripts/lib/yaml_extract.py"
+FROZEN_ENC="vjepa_2_1_frozen"
+T0=$(date +%s)
+stamp() { echo -e "\n═══ $(date '+%H:%M:%S') · $1 ═══"; }
 
-while [[ $# -gt 0 ]]; do
-    case "$1" in
-        --SANITY) MODE="SANITY"; MODE_FLAG="--SANITY"; OUT_DIR="outputs/sanity"; shift ;;
-        --POC)    MODE="POC";    MODE_FLAG="--POC";    OUT_DIR="outputs/poc";    shift ;;
-        --FULL)   MODE="FULL";   MODE_FLAG="--FULL";   OUT_DIR="outputs/full";   shift ;;
-        --encoders) ENCODERS="$2"; shift 2 ;;
-        *) usage ;;
-    esac
+# All variants must agree on (eval_subset, eval_local_data, model_config) — read
+# from the FIRST yaml and verify the rest match (paired BCa requires same eval set).
+FIRST_YAML="$1"
+if [ ! -f "$FIRST_YAML" ]; then
+    echo "FATAL: first yaml not found: $FIRST_YAML" >&2
+    exit 3
+fi
+EVAL_SUBSET=$("$EX" "$FIRST_YAML" data.eval_subset)
+EVAL_LOCAL=$("$EX" "$FIRST_YAML" data.eval_local_data)
+MODEL_CFG=$("$EX" "$FIRST_YAML" data.model_config)
+for yaml in "$@"; do
+    [ -f "$yaml" ] || continue
+    s=$("$EX" "$yaml" data.eval_subset)
+    l=$("$EX" "$yaml" data.eval_local_data)
+    m=$("$EX" "$yaml" data.model_config)
+    if [ "$s" != "$EVAL_SUBSET" ] || [ "$l" != "$EVAL_LOCAL" ] || [ "$m" != "$MODEL_CFG" ]; then
+        echo "FATAL: $yaml diverges on eval_subset/eval_local_data/model_config" >&2
+        echo "  expected: subset=$EVAL_SUBSET local=$EVAL_LOCAL model=$MODEL_CFG" >&2
+        echo "  got:      subset=$s local=$l model=$m" >&2
+        exit 4
+    fi
+done
+for req in "$EVAL_SUBSET" "$EVAL_LOCAL" "$MODEL_CFG"; do
+    if [ ! -e "$req" ]; then
+        echo "FATAL: missing eval path: $req" >&2
+        exit 3
+    fi
 done
 
-[[ -z "$MODE" ]] && usage
+stamp "Shared Frozen baseline · eval_subset=$(basename "$EVAL_SUBSET")"
+echo "  model:        $MODEL_CFG"
+echo "  eval_subset:  $EVAL_SUBSET"
+echo "  eval_local:   $EVAL_LOCAL"
 
-# ── Setup ─────────────────────────────────────────────────────────────
-SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-cd "$SCRIPT_DIR/.."
+stamp "Frozen m05"
+python -u src/m05_vjepa_embed.py --FULL \
+    --subset "$EVAL_SUBSET" \
+    --model-config "$MODEL_CFG" \
+    --encoder "$FROZEN_ENC" \
+    --local-data "$EVAL_LOCAL" --no-wandb \
+    2>&1 | tee "logs/run_eval_frozen_m05.log"
 
-if [[ -d "venv_walkindia" ]]; then
-    source venv_walkindia/bin/activate
-else
-    echo "ERROR: venv_walkindia not found. Run: ./setup_env_uv.sh --gpu"
-    exit 1
-fi
+stamp "Frozen m06"
+python -u src/m06_faiss_metrics.py --FULL \
+    --subset "$EVAL_SUBSET" --encoder "$FROZEN_ENC" \
+    --local-data "$EVAL_LOCAL" --no-wandb \
+    2>&1 | tee "logs/run_eval_frozen_m06.log"
 
-# ── Shared helpers ────────────────────────────────────────────────────
-source "$(dirname "$0")/lib/common.sh"
-
-LOGDIR="logs"
-MASTER_LOG="$LOGDIR/eval_${MODE}_$(date +%Y%m%d_%H%M%S).log"
-mkdir -p "$LOGDIR"
-
-start_watchdog
-
-# ── Auto-detect encoders from available embeddings ────────────────────
-if [[ -z "$ENCODERS" ]]; then
-    ENCODERS=$(python -c "
-from pathlib import Path
-out = Path('${OUT_DIR}')
-found = []
-# Search in per-module dirs (new) and flat dir (backward compat)
-search_dirs = [out / 'm05_vjepa_embed', out / 'm05b_baselines', out]
-for d in search_dirs:
-    for f in sorted(d.glob('embeddings*.npy')):
-        if f.name.endswith('.paths.npy'):
-            continue
-        if f.name == 'embeddings.npy':
-            if 'vjepa' not in found: found.append('vjepa')
-        else:
-            enc = f.name.replace('embeddings_', '').replace('.npy', '')
-            if enc not in found: found.append(enc)
-print(','.join(found))
-")
-    if [[ -z "$ENCODERS" ]]; then
-        log "FATAL: No embeddings found in ${OUT_DIR}/. Run embedding scripts first."
-        exit 1
+for yaml in "$@"; do
+    if [ ! -f "$yaml" ]; then
+        echo "❌ skipping: yaml not found: $yaml" >&2
+        continue
     fi
-    log "Auto-detected encoders: ${ENCODERS}"
-else
-    log "Using specified encoders: ${ENCODERS}"
-fi
 
-# ── Pre-checks ────────────────────────────────────────────────────────
-log "=== EVALUATION PIPELINE (mode=${MODE}) ==="
-log "Output dir: ${OUT_DIR}"
-log "Encoders:   ${ENCODERS}"
-log "Master log: ${MASTER_LOG}"
+    VARIANT_TAG="$(basename "$yaml" .yaml)"
+    stamp "Variant: ${VARIANT_TAG}"
 
-# Check tags exist (needed for m06 metrics)
-TAGS_FILE="${OUT_DIR}/m04_vlm_tag/tags.json"
-# Fallback to old flat location
-if [[ ! -f "$TAGS_FILE" ]]; then
-    TAGS_FILE="${OUT_DIR}/tags.json"
-fi
-if [[ ! -f "$TAGS_FILE" ]]; then
-    log "FATAL: ${TAGS_FILE} not found. Run Ch9 m04 (VLM tagging) first."
-    exit 1
-fi
-TAG_COUNT=$(python -c "import json; print(len(json.load(open('${TAGS_FILE}'))))")
-log "Tags: ${TAG_COUNT} clips in ${TAGS_FILE}"
+    OUT_DIR=$("$EX" "$yaml" data.output_dir)
+    ADAPTED_ENC=$("$EX" "$yaml" data.adapted_encoder)
+    ADAPTED_CKPT="${OUT_DIR}/student_encoder.pt"
 
-# ── Fresh vs cached ────────────────────────────────────────────────────
-EVAL_FILES=$(find "${OUT_DIR}" -maxdepth 1 \( -name "m06_*" -o -name "m06b_*" -o -name "m08_*" -o -name "m08b_*" -o -name "knn_indices_*" -o -name "umap_2d_*" \) 2>/dev/null | wc -l)
-if [[ $EVAL_FILES -gt 0 ]]; then
-    echo ""
-    echo "  Found ${EVAL_FILES} existing eval outputs in ${OUT_DIR}/"
-    echo ""
-    echo "  [1] Delete all eval outputs, start fresh (use after model retrain)"
-    echo "  [2] Use cache, skip existing (use for resume after crash)"
-    echo ""
-    read -p "  Enter choice [1/2]: " EVAL_CHOICE
-    if [[ "$EVAL_CHOICE" == "1" ]]; then
-        # iter11: no shell-level deletion. Choice `1` = recompute → export the
-        # cache-policy env var that each downstream .py reads as --cache-policy 2.
-        # (Each .py's own guarded_delete then wipes its output before recompute.)
-        export CACHE_POLICY_ALL=2
-        log "Fresh recompute authorized — CACHE_POLICY_ALL=2 exported; each .py will gate its own cleanup."
-    else
-        export CACHE_POLICY_ALL=1
-        log "Using cached eval outputs where available (CACHE_POLICY_ALL=1)."
+    if [ ! -f "$ADAPTED_CKPT" ]; then
+        echo "❌ ${VARIANT_TAG}: $ADAPTED_CKPT not found — run scripts/run_train.sh first" >&2
+        continue
     fi
-fi
 
-# ── Run eval_suite ────────────────────────────────────────────────────
-log "Starting evaluation for $(echo "$ENCODERS" | tr ',' '\n' | wc -l) encoders..."
+    python -u src/m05_vjepa_embed.py --FULL \
+        --subset "$EVAL_SUBSET" \
+        --model-config "$MODEL_CFG" \
+        --model "$ADAPTED_CKPT" \
+        --encoder "$ADAPTED_ENC" \
+        --local-data "$EVAL_LOCAL" --no-wandb \
+        2>&1 | tee "logs/run_eval_${VARIANT_TAG}_m05.log"
 
-run_step "eval" "eval suite ($(echo "$ENCODERS" | tr ',' ' '))" "~30-120 min" \
-    "$LOGDIR/eval_suite_${MODE,,}.log" \
-    src/utils/eval_suite.py \
-        --encoders "$ENCODERS" \
-        --compare-encoders "$ENCODERS" \
-        $MODE_FLAG \
-        --log-dir "$LOGDIR" --log-prefix "eval_${MODE,,}" \
-    || { log "WARNING: eval suite had failures. Check $LOGDIR/eval_suite_${MODE,,}.log"; }
+    python -u src/m06_faiss_metrics.py --FULL \
+        --subset "$EVAL_SUBSET" --encoder "$ADAPTED_ENC" \
+        --local-data "$EVAL_LOCAL" --no-wandb \
+        2>&1 | tee "logs/run_eval_${VARIANT_TAG}_m06.log"
 
-bg_upload
+    python -u src/m08b_compare.py --FULL \
+        --subset "$EVAL_SUBSET" \
+        --encoders "${FROZEN_ENC},${ADAPTED_ENC}" \
+        --no-wandb \
+        2>&1 | tee "logs/run_eval_${VARIANT_TAG}_m08b.log"
+done
 
-# ── Summary + cleanup ─────────────────────────────────────────────────
-finalize "Eval"
+DUR=$(( $(date +%s) - T0 ))
+stamp "✅ run_eval chain done · total wall=$((DUR/3600))h$(((DUR%3600)/60))m"
+echo "Per-variant artifacts: outputs/full/<variant>/  +  outputs/full/{m05,m06,m08b}_*/"
