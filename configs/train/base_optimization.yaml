@@ -22,6 +22,22 @@ data:
   sanity_train_clips: 20
   sanity_val_clips: 10
 
+  # iter11 v3 hard-pivot (2026-04-25): 80/10/10 train/val/eval split inside
+  # ultra_hard_3066.json — 3,066 clips with ≥4 Hard triggers AND ≥4 Indian-specific
+  # objects. All 3 splits share the same local TAR dir (data/ultra_hard_3066_local/);
+  # iter_clips_parallel(subset_keys=...) filters at iteration time. Shared across
+  # m09b (ExPLoRA), m09c (Surgery) and m05/m06 eval — single source of truth so
+  # paired-BCa decision gate is apples-to-apples within-category.
+  train_subset: data/ultra_hard_3066_train.json     # 2,452 clips (80%)
+  train_local_data: data/ultra_hard_3066_local
+  val_subset: data/ultra_hard_3066_val.json         # 306 clips (10%) — val_jepa loss + probe trajectory
+  val_local_data: data/ultra_hard_3066_local
+  eval_subset: data/ultra_hard_3066_eval.json       # 308 clips (10%) — paired-BCa decision gate
+  eval_local_data: data/ultra_hard_3066_local
+  # Surgery-only: m11-generated factor datasets (D_L/D_A/D_I).
+  # Read by m09c StreamingFactorDataset; m09b ExPLoRA ignores it.
+  factor_dir: outputs/full/m11_factor_datasets
+
 # -- Masking (V-JEPA 2 default: 8 small + 2 large blocks) --
 mask:
   - spatial_scale: [0.15, 0.15]
@@ -51,14 +67,45 @@ optimization:
   # Our old 10x multiplier may have caused predictor overfit during Ch10
   pred_lr_multiplier: 1.0
 
-  # LR schedule — POST-AUDIT: constant (warmup then flat), NOT cosine decay
-  # Cosine re-warming causes forgetting (arXiv:2503.02844)
-  lr_schedule: constant
+  # Universal V-JEPA 2.1 fine-tuning recipe — locked at the published values
+  # (Adam β/LR/WD co-tuned at BS=32). lr=1e-5 = linear-BS-scaled from Meta's
+  # peak 6e-4 at global BS=1536 (facebookresearch/vjepa2/configs/train_2_1/vitG16/*.yaml,
+  # Goyal et al 2017 "Accurate Large Minibatch SGD", arXiv:1706.02677): 6e-4 × (32/1536)
+  # = 1.25e-5 → rounded to 1e-5. NOT a "paper default" — 6e-4 is from-scratch peak;
+  # at our BS=32 it would reproduce iter8's λ=0.001 catastrophic-forgetting regime
+  # (Prec@K −21.8 pp, 2026-04-05 Run #2). 1e-5 = surgical regime where pretrained
+  # features survive while still moving (v10 grad_norm decayed 15× over 297 steps
+  # at 1e-6 → late-stage updates ≈ 0; 10× bump confirmed under-training hypothesis).
+  # Changing any of these forces re-tuning and breaks apples-to-apples comparison
+  # with the V-JEPA 2.1 baseline.
+  # iter11 v2 (2026-04-26): bumped 1.0e-5 → 5.0e-5 (5×). Re-anchored to Meta's
+  # CONTINUAL-training peak (4.25e-4 @ BS=256 in vjepa2/configs/train/vitg16/droid-256px-8f.yaml),
+  # linearly BS-scaled to BS=32 → 5.3e-5. Previous 1.0e-5 was anchored to the
+  # FROM-SCRATCH peak (6e-4 @ BS=1536 → 1.25e-5) — wrong reference for transfer
+  # learning. Evidence for under-training: surgery_2stage_noDI v2 (5 epochs)
+  # train-loss 0.496 → 0.460 (Δ -7%) and probe Prec@K 75.0 → 75.22 (Δ +0.22 pp,
+  # well within ±3.78 pp BCa CI). Guardrails co-bumped: grad_clip 10→1, warmup_cap
+  # 10→15%, nan_tolerance 3→2. Val-loss plateau (the sole active kill-switch)
+  # backstops divergence.
+  lr: 5.0e-5
+  batch_size: 32                  # Research-LOCKED effective (macro) BS — V-JEPA 2.1 published recipe. AdaptiveBatchSizer picks MICRO sub-batch (start=16→max=32) for VRAM adaptation; 32 grads always accumulate before optimizer.step().
+  max_epochs:
+    sanity: 1
+    poc: 1                        # code-path validation only.
+    full: 15                      # iter11 v2 (2026-04-26): bumped 5→15 — surgery_2stage_noDI v2 showed val-loss still descending at epoch 5 (0.494→0.466) while probe Prec@K plateaued (+0.22 over 27 probes). More steps to let val-loss flatten before plateau-patience fires. Matches SSL canon (V-JEPA 2 / DINOv2 / ExPLoRA paper) fixed-budget training.
+
+  # LR schedule — single cosine decay from peak `lr` to `min_lr` after warmup.
+  # `build_scheduler` (utils/training.py:503-516) is unconditionally cosine — there
+  # is no constant-vs-cosine branch. The previous `lr_schedule: constant` field
+  # was dead (zero Python readers); deleted 2026-04-26 to remove the footgun.
+  # SINGLE cosine, not cyclical re-warming — the arXiv:2503.02844 forgetting
+  # warning applies to re-warming only.
   warmup_steps: 500
-  warmup_cap_pct: 10              # Cap warmup at 10% of total steps
-  min_lr: 1.0e-6                  # LR floor used by cosine-decay branch in build_scheduler.
-                                  # No-op under lr_schedule=constant but still read by the
-                                  # lr_lambda closure (utils/training.py:507).
+  warmup_cap_pct: 15              # iter11 v2 (2026-04-26): 10 → 15. At lr=5e-5 (5× prior),
+                                  # optimizer needs more warmup steps to find a stable basin
+                                  # (171 steps vs 114 for the 1140-step 15-epoch budget).
+  min_lr: 1.0e-6                  # LR floor; cosine decays from `lr` to this value
+                                  # across (total_steps - warmup_steps).
 
   # iter11 auto disk-hygiene — mode-gated cache-policy default consumed by
   # m09a/m09b/m09c's merge_config_with_args. SANITY keeps ALL intermediate ckpts for
@@ -73,14 +120,19 @@ optimization:
   # EMA teacher (fixed momentum, V-JEPA 2 default)
   ema_momentum: 0.99925
 
-  # Gradient clipping — POST-AUDIT: 10.0 (V-JEPA 1 default), NOT 1.0
-  grad_clip: 10.0
+  # Gradient clipping — iter11 v2 (2026-04-26): 10.0 → 1.0. At lr=5e-5 the per-step
+  # parameter movement risk grows; 1.0 is the standard transformer-FT bound (BEiT,
+  # MAE, DINOv2). 10.0 (V-JEPA 1 default) is sized for Meta's 315-epoch budget
+  # which can absorb spikes; our 1140-step run cannot.
+  grad_clip: 1.0
 
   # Loss
   loss_exp: 1.0                   # L1 latent prediction
 
   # NaN safety
-  nan_tolerance: 3                # Crash after 3 consecutive NaN/Inf losses
+  nan_tolerance: 2                # iter11 v2 (2026-04-26): 3 → 2. At lr=5e-5 a NaN
+                                  # is divergence, not a transient — 2 consecutive
+                                  # confirms (1 alone could be a numeric blip).
   gc_interval: 50                 # Manual GC every N steps
 
   # Memory-saver flags (#56) — safe defaults OFF; technique-specific configs
@@ -101,8 +153,11 @@ cooldown:
   weight_distance_loss: false     # Disable distance weighting (Meta's cooldown config)
 
 # -- Validation --
+# iter11 v3 (2026-04-26): `evals_per_epoch` REMOVED. m09a/m09b now reuse
+# `checkpoint.saves_per_epoch` (already what m09c reads via probe.cadence:
+# saves_per_epoch). Single source of truth — val + probe + ckpt all fire
+# on the same 5x/epoch tick.
 validation:
-  evals_per_epoch: 10             # Validate at 10%, 20%, ..., 100% of each epoch
   max_val_clips: 1000             # Subsample for periodic eval
   cycle_k: [1, 10]
   faiss_k: 6
@@ -119,3 +174,57 @@ checkpoint:
 mixed_precision:
   enabled: true
   dtype: bfloat16                 # bfloat16 (not float16 — full dynamic range, no GradScaler needed)
+
+# -- Mid-training probe eval (trajectory monitor + best-ckpt + early-stop) --
+# Probe runs on 306 ultra_hard_3066_val clips → Prec@K / mAP@K / Cycle@K with
+# BCa 95% CI + JEPA val-loss. On `saves_per_epoch` cadence, probe fires every
+# `steps_per_epoch // saves_per_epoch` steps → 5 probes/epoch. Best-ckpt: tracks
+# running max Prec@K; exports student_best.pt on each new max; at end-of-training,
+# student_best.pt is promoted to student_encoder.pt.
+#
+# iter11 v3 B1 pivot (2026-04-26): probe.subset == data.val_subset (same hard
+# distribution as train + eval). Previously val_1k.json (1000 generic clips)
+# decoupled the trajectory metric from the decision gate.
+#
+# iter11 (2026-04-24, universal across all techniques 2026-04-26): val-loss
+# plateau is the ONLY enabled early-stop trigger. All Prec@K-driven triggers
+# (kill_switch / prec_plateau / bwt) operate below the BCa CI_half noise floor
+# (±2.4 pp @ N=306) → they fire on sampling jitter regardless of variant. SSL
+# canon (V-JEPA 2 / DINOv2 / ExPLoRA paper) trains to fixed cosine-to-zero
+# budget or stops only on val-loss plateau. Probe Prec@K stays as monitoring-only
+# (plot + ckpt selection) — NOT as training terminator.
+probe:
+  enabled:                  {sanity: false, poc: true, full: true}
+  subset:                   data/ultra_hard_3066_val.json
+  local_data:               data/ultra_hard_3066_local
+  tags_path:                data/ultra_hard_3066_local/tags.json
+  k:                        6                                          # matches configs/pipeline.yaml eval.K
+  bootstrap_iter:           10000                                      # matches utils/bootstrap.N_BOOTSTRAP
+  cadence:                  saves_per_epoch                            # reuses checkpoint.saves_per_epoch
+  best_ckpt_enabled:        {sanity: false, poc: true, full: true}    # save student_best.pt on each new max Prec@K
+  # -- Early-stop #1: catastrophic-forgetting kill-switch (DISABLED — noise-level) --
+  kill_switch_enabled:      {sanity: false, poc: false, full: false}
+  forgetting_threshold_pct: 5.0
+  forgetting_patience:      3
+  # -- Early-stop #2: val-loss plateau detector (THE ONLY ACTIVE TRIGGER) --
+  plateau_enabled:          {sanity: false, poc: true, full: true}
+  plateau_min_delta:        1.0e-3       # min val_jepa drop to reset patience (~0.2% relative).
+  plateau_patience:         5            # consecutive probes with delta < min_delta → stop + export best-ckpt.
+  # -- Early-stop #2b: Prec@K plateau detector (DISABLED — noise-level) --
+  prec_plateau_enabled:     {sanity: false, poc: false, full: false}
+  prec_plateau_min_delta:   0.3
+  prec_plateau_patience:    5
+  # -- Early-stop #3: negative-BWT cumulative trigger (DISABLED — noise-level) --
+  bwt_trigger_enabled:      {sanity: false, poc: false, full: false}
+  bwt_ci_fraction:          0.5
+  bwt_absolute_floor:       0.3
+  bwt_patience:             3
+  # -- Held-out val source --
+  # use_permanent_val=true → val_keys come from probe.subset (= data.val_subset =
+  # ultra_hard_3066_val.json, 306 clips). Train uses ALL of train_subset.
+  # use_permanent_val=false → falls back to internal data.train_val_split (POC code-test).
+  use_permanent_val:        {sanity: false, poc: false, full: true}
+  compute_val_loss:         true         # also compute JEPA val-loss on probe clips (~2 s per call at N=306).
+  # NOTE: probe forward micro-batch is adaptive — AdaptiveBatchSizer reads pipeline.yaml
+  # gpu.{inference_vjepa_initial_bs, training_adapted_probe_bs, gpu_memory_target} at
+  # runtime. Do NOT hardcode sub_batch here (CLAUDE.md B35, errors_N_fixes #47).

@@ -1,8 +1,17 @@
 """Generate factor datasets D_L (layout-only) + D_A (agent-only) from m10 masks. CPU-only.
-    python -u src/m11_factor_datasets.py --SANITY --local-data data/val_1k_local --no-wandb 2>&1 | tee logs/m11_sanity.log
-    python -u src/m11_factor_datasets.py --POC --local-data data/val_1k_local --no-wandb 2>&1 | tee logs/m11_poc.log
-    python -u src/m11_factor_datasets.py --FULL --local-data data/full_local --no-wandb 2>&1 | tee logs/m11_full.log
-    python -u src/m11_factor_datasets.py --SANITY --plot    # re-generate plots only (reads existing outputs)
+
+USAGE (every path arg required — CLAUDE.md no-default rule):
+    python -u src/m11_factor_datasets.py --SANITY \
+        --train-config configs/train/surgery_3stage_DI.yaml \
+        --local-data data/val_1k_local --no-wandb 2>&1 | tee logs/m11_sanity.log
+    python -u src/m11_factor_datasets.py --POC \
+        --train-config configs/train/surgery_3stage_DI.yaml \
+        --local-data data/val_1k_local --no-wandb 2>&1 | tee logs/m11_poc.log
+    python -u src/m11_factor_datasets.py --FULL --streaming \
+        --train-config configs/train/surgery_3stage_DI.yaml \
+        --local-data data/full_local --no-wandb 2>&1 | tee logs/m11_full.log
+    python -u src/m11_factor_datasets.py --SANITY --plot \
+        --train-config configs/train/surgery_3stage_DI.yaml    # re-plot only
 """
 import argparse
 import os
@@ -31,12 +40,14 @@ from utils.config import (
 )
 from utils.checkpoint import save_json_checkpoint, load_json_checkpoint
 from utils.data_download import ensure_local_data, iter_clips_parallel
-from utils.output_guard import verify_or_skip
 from utils.plots import init_style, save_fig, COLORS
 from utils.progress import make_pbar
 from utils.video_io import decode_video_bytes
 from utils.wandb_utils import add_wandb_args, init_wandb, log_metrics, finish_wandb
 from utils.curate_verify import select_verify_clips, curate_and_prune
+from utils.cache_policy import (
+    add_cache_policy_arg, resolve_cache_policy_interactive, wipe_output_dir,
+)
 
 import yaml
 
@@ -815,8 +826,8 @@ def main():
     parser.add_argument("--FULL", action="store_true", help="All clips")
     parser.add_argument("--plot", action="store_true",
                         help="Re-generate plots only from existing outputs (no data processing)")
-    parser.add_argument("--train-config", default="configs/train/ch11_surgery.yaml",
-                        help="Patching params YAML")
+    parser.add_argument("--train-config", required=True,
+                        help="Patching params YAML (e.g., configs/train/surgery_3stage_DI.yaml)")
     parser.add_argument("--input-dir", default=None,
                         help="m10 output dir (default: {output_dir}/factors/)")
     parser.add_argument("--output-dir", default=None, help="Override output dir")
@@ -839,14 +850,24 @@ def main():
     # Cache-policy gate (iter11): every destructive delete in this module must route
     # through utils.cache_policy.guarded_delete(path, args.cache_policy, ...).
     # --cache-policy defaults to 1 (keep) so overnight re-runs never destroy cache.
-    from utils.cache_policy import add_cache_policy_arg
     add_cache_policy_arg(parser)
     args = parser.parse_args()
+
+    # Cache-policy prompt — shells stay thin (CLAUDE.md DELETE PROTECTION).
+    args.cache_policy = resolve_cache_policy_interactive(args.cache_policy)
 
     if not (args.SANITY or args.POC or args.FULL):
         parser.print_help()
         print("\nERROR: Specify --SANITY, --POC, or --FULL")
         sys.exit(1)
+
+    # iter11 v3 (2026-04-26): cache-policy=2 nukes the WHOLE output_dir at startup.
+    # m11 single-owns outputs/full/m11_factor_datasets/ — safe to wipe. Closes
+    # prompt-trigger ≠ delete-target asymmetry (stale verify/, factor_manifest.json
+    # without per-clip .npy, etc).
+    _m11_out = Path(args.output_dir) if args.output_dir else get_module_output_dir(
+        "m11_factor_datasets", args.subset, sanity=args.SANITY, poc=args.POC)
+    wipe_output_dir(_m11_out, args.cache_policy, label=f"output_dir ({_m11_out.name})")
 
     # iter10 2026-04-22: --regen-D_I is deprecated. D_I streams on-demand
     # inside m09c via stream_interaction_tubes() — no disk writes required.
@@ -906,14 +927,9 @@ def main():
     da_dir.mkdir(parents=True, exist_ok=True)
     di_dir.mkdir(parents=True, exist_ok=True)
 
-    # Skip if done (unless --regen-D_I explicitly requests rebuild of D_I only)
     manifest_file = output_dir / "factor_manifest.json"
-    if not args.regen_di:
-        if verify_or_skip(output_dir, {"manifest": manifest_file},
-                          label="m11 factor_datasets"):
-            return
-    else:
-        print(f"\n[--regen-D_I] Bypassing manifest guard; will rebuild D_I tubes only "
+    if args.regen_di:
+        print(f"\n[--regen-D_I] Will rebuild D_I tubes only "
               f"(D_L/D_A .npy preserved on disk). Existing manifest: {manifest_file.exists()}")
 
     # Load segments metadata from m10 (MANDATORY)

@@ -658,22 +658,28 @@ def cleanup_old_checkpoints(output_dir: Path, prefix: str, keep_n: int = 2,
                              cache_policy: str = "1"):
     """Delete oldest {prefix}_step*.pt files, keeping only the last keep_n.
 
-    iter11 META-fix: gated through cache_policy. Default=1/keep short-circuits all
-    deletes (preserves disk vs. resume-safety tradeoff for the user to choose).
-    Caller must pass cache_policy=args.cache_policy to honor the .sh prompt.
+    iter11 v3 (2026-04-26): UNCONDITIONAL `keep_last_n` rotation. Step ckpts
+    are training scratch (resume points) — they get superseded every
+    `saves_per_epoch` save. Once a newer ckpt exists, older ones are dead
+    weight. At m09b's saves_per_epoch=5 cadence × 5 epochs = 25 step ckpts
+    × ~10 GB each = ~250 GB pile-up if eviction is gated.
+    Reserve cache_policy for catastrophic deletes (whole dirs, m05 .npy,
+    frozen baselines) — NOT routine training-scratch rotation.
+    cache_policy arg retained for backward-compat; ignored.
 
     `prefix` MUST match the caller module's CHECKPOINT_PREFIX (e.g. "m09b_ckpt")
     — previously this was hardcoded to the utils-module CHECKPOINT_PREFIX
     ("m09_ckpt"), causing a silent zero-match glob for m09b (writes "m09b_ckpt_*")
     and m09c (writes "m09c_ckpt_*"), which piled up ckpts until disk-full.
     """
-    from utils.cache_policy import guarded_delete
+    del cache_policy  # iter11 v3: deliberately ignored — see docstring
     pattern = str(output_dir / f"{prefix}_step*.pt")
     step_files = sorted(glob.glob(pattern),
                         key=lambda f: os.path.getmtime(f))
     if len(step_files) > keep_n:
         for old_file in step_files[:-keep_n]:
-            guarded_delete(old_file, cache_policy, label="m09 step checkpoint")
+            Path(old_file).unlink()
+            print(f"  [keep_last_n={keep_n}] rotated out step ckpt: {Path(old_file).name}")
 
 
 def cleanup_stage_checkpoints(output_dir: Path, prefix: str, keep_n: int = 1,
@@ -1294,15 +1300,19 @@ def run_probe_eval(student, probe_clips: list, cfg: dict, device: torch.device,
         )
 
     _gpu = get_pipeline_config()["gpu"]
-    # iter11 perf fix — start at max_size (not initial_bs). The ramp from 8→44 caused
+    # iter11 perf fix — start at max_size (not initial_bs). The ramp from 8→max caused
     # ~37 torch.compile recompiles per probe (~30 s each = 18 min/probe × 10 probes/ep =
-    # 3 h wasted per epoch on v2 POC log, 2026-04-24). Starting at max=44 hits the
-    # training-side compile cache (training forward already used shape = adapted_bs).
-    # OOM fallback in the while-loop below ramps DOWN via sizer.on_oom() if surprise OOM.
+    # 3 h wasted per epoch on v2 POC log, 2026-04-24). Starting at max hits the
+    # training-side compile cache when shape matches.
+    # iter11 v3 fix (2026-04-26) — probe runs DURING training (student+teacher+pred+opt+
+    # grads ≈ 70 GB resident → only ~25 GB headroom on 96 GB), so use training_adapted_probe_bs
+    # (=24) NOT inference_adapted_bs (=44 — the latter is for m05's pure-inference context
+    # with full 96 GB free). Was thrashing 44→22 (17 retries × 2 calls × 54 probes = 30 min
+    # wasted/run, see logs/run_train_explora_v2.log:58-98).
     sizer = AdaptiveBatchSizer(
-        initial_size=_gpu["inference_adapted_bs"],   # = max_size; skip ramp
+        initial_size=_gpu["training_adapted_probe_bs"],   # = max_size; skip ramp
         min_size=1,
-        max_size=_gpu["inference_adapted_bs"],
+        max_size=_gpu["training_adapted_probe_bs"],
         memory_cap=_gpu["gpu_memory_target"],
     )
     print(f"  [probe] AdaptiveBatchSizer: start={sizer.size}, "
@@ -1398,10 +1408,11 @@ def run_probe_val_loss(student, teacher, predictor, probe_clips: list,
 
     _gpu = get_pipeline_config()["gpu"]
     # iter11 perf fix — see run_probe_eval note above. Same reasoning applies to
-    # probe-val-loss: skip ramp; start at max=adapted_bs; OOM retry ramps down if needed.
+    # probe-val-loss: skip ramp; start at max=training_adapted_probe_bs (=24, not 44).
+    # OOM retry ramps down if surprise OOM.
     sizer = AdaptiveBatchSizer(
-        initial_size=_gpu["inference_adapted_bs"],   # = max_size; skip ramp
-        min_size=1, max_size=_gpu["inference_adapted_bs"],
+        initial_size=_gpu["training_adapted_probe_bs"],   # = max_size; skip ramp
+        min_size=1, max_size=_gpu["training_adapted_probe_bs"],
         memory_cap=_gpu["gpu_memory_target"])
 
     mp_cfg = cfg["mixed_precision"]

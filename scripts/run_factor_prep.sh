@@ -13,7 +13,7 @@
 #   ./scripts/run_factor_prep.sh <factor-yaml>
 #
 # Example:
-#   ./scripts/run_factor_prep.sh configs/train/surgery_3stage_DI.yaml
+#   ./scripts/run_factor_prep.sh configs/train/surgery_3stage_DI.yaml 2>&1 | tee logs/run_factor_prep_v2.log
 
 set -euo pipefail
 
@@ -49,6 +49,58 @@ VARIANT_TAG="$(basename "$FACTOR_YAML" .yaml)"
 T0=$(date +%s)
 stamp() { echo -e "\n═══ $(date '+%H:%M:%S') · $1 ═══"; }
 
+# ── Pre-flight: gather cache-policy decisions UPFRONT ─────────────────
+# Mirrors scripts/run_paired_eval_10k.sh pattern: prompts only fire when a cache
+# exists at known paths. Missing caches default to policy=1 (keep). Bypasses:
+# CACHE_POLICY_ALL=1|2 ./run_factor_prep.sh skips prompts; non-TTY stdin → 1.
+declare -A POLICY
+_check_and_prompt() {                 # $1=key  $2..=candidate cache paths/globs
+    local key="$1"; shift
+    local found=""
+    for path in "$@"; do
+        # compgen -G handles literal paths AND globs uniformly. First hit wins.
+        local hit
+        hit=$(compgen -G "$path" 2>/dev/null | head -n1)
+        if [ -n "$hit" ]; then found="$hit"; break; fi
+    done
+    if [ -z "$found" ]; then POLICY[$key]=1; return; fi
+    if [ -n "${CACHE_POLICY_ALL:-}" ]; then
+        POLICY[$key]=$CACHE_POLICY_ALL
+        echo "  $key: cache at $found -> policy=${POLICY[$key]} (CACHE_POLICY_ALL)"
+        return
+    fi
+    if [ ! -t 0 ]; then
+        POLICY[$key]=1
+        echo "  $key: cache at $found -> policy=1 (non-TTY default)"
+        return
+    fi
+    local ans
+    read -p "  $key cache at $found [1=keep / 2=recompute] (Enter=1): " ans
+    case "${ans:-1}" in
+        2|recompute) POLICY[$key]=2 ;;
+        *)           POLICY[$key]=1 ;;
+    esac
+    return 0
+}
+
+echo "──────────────────────────────────────────────"
+echo "factor-prep cache-policy gather (one prompt per existing cache)"
+echo "──────────────────────────────────────────────"
+# iter11 v3 (2026-04-26): prompt-trigger == delete-target. m10 + m11 each own their
+# output dir entirely (single-producer; not shared across variants the way m05/m06 are),
+# so any stray file in the dir is a candidate for cache-policy=2 wipe. Glob `dir/*`
+# matches partial-run state (e.g. .m10_checkpoint.json without segments.json, or stale
+# masks/ from a killed run) that 6-specific-paths would have missed.
+_check_and_prompt m10 "outputs/full/m10_sam_segment/*"
+_check_and_prompt m11 "outputs/full/m11_factor_datasets/*"
+
+# Dependency propagation: m10 recompute invalidates m11.
+# Use if/then (not [...] && ...) — under `set -e`, the && form exits the script
+# when the test is false (its non-zero exit status trips set -e).
+if [ "${POLICY[m10]:-1}" = "2" ]; then
+    POLICY[m11]=2
+fi
+
 stamp "factor-prep START · factor-yaml=${VARIANT_TAG}"
 echo "  train_subset:    $TRAIN_SUBSET"
 echo "  train_local:     $TRAIN_LOCAL"
@@ -57,12 +109,14 @@ stamp "Step A — m10 Grounded-SAM"
 python -u src/m10_sam_segment.py --FULL \
     --train-config "$FACTOR_YAML" \
     --subset "$TRAIN_SUBSET" --local-data "$TRAIN_LOCAL" --no-wandb \
+    --cache-policy "${POLICY[m10]}" \
     2>&1 | tee "logs/run_factor_prep_${VARIANT_TAG}_m10.log"
 
 stamp "Step B — m11 --streaming"
 python -u src/m11_factor_datasets.py --FULL --streaming \
     --train-config "$FACTOR_YAML" \
     --subset "$TRAIN_SUBSET" --local-data "$TRAIN_LOCAL" --no-wandb \
+    --cache-policy "${POLICY[m11]}" \
     2>&1 | tee "logs/run_factor_prep_${VARIANT_TAG}_m11.log"
 
 DUR=$(( $(date +%s) - T0 ))

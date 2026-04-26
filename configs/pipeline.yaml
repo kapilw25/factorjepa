@@ -69,7 +69,16 @@ gpu:
   inference_vjepa_initial_bs: 8        # m05 V-JEPA native fwd (2B bf16 @ 64f) — safe start, max=inference_adapted_bs
   inference_dinov2_initial_bs: 16      # m05b DINOv2-L (300M fp16) — safe start, max=inference_dinov2_bs
   inference_clip_initial_bs: 16        # m05b CLIP-L (400M fp16) — safe start, max=inference_dinov2_bs (same tier)
-  training_initial_bs: 4               # m09 fwd+bwd+grads — safe start, max=training_batch_size
+  training_initial_bs: 16              # m09 fwd+bwd+grads — skip cold ramp (4→16 was 12 steps × ~14 s = ~3 min wasted/run); VRAM ~50% at BS=16, well under 85% cap; AdaptiveBatch OOM-retry handles surprise OOM (e.g. m09c Stage 3 50% unfreeze)
+  # Probe BS — two contexts (probe = model.eval() forward to encode 1000 val_1k clips):
+  # 1. inference_adapted_probe_bs: probe runs in pure-inference context (full 96 GB free).
+  #    Same envelope as inference_adapted_bs → 44 is the established safe ceiling.
+  # 2. training_adapted_probe_bs: probe runs DURING m09b/m09c training, where
+  #    student+teacher+predictor+optimizer+grads ≈ 70 GB resident → only ~25 GB headroom.
+  #    44 thrashes 44→22 (17 OOM retries × 2 calls × 54 probes ≈ 30 min wasted/run).
+  #    24 fits without thrashing on RTX Pro 6000 / V-JEPA 2.1 ViT-G (1.85 B params, bf16).
+  inference_adapted_probe_bs: 44
+  training_adapted_probe_bs: 24
 
 # -- Evaluation --
 eval:

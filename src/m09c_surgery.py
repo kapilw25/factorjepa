@@ -6,9 +6,32 @@ and m09b_explora.py (LoRA variant). Shared primitives live in utils.training.
 Pipeline: m10 (Grounded-SAM) → m11 (factor datasets) → m09c (surgery training).
 The paper novelty — factor-disentangled surgery on a frozen V-JEPA 2.1 encoder.
 
-    python -u src/m09c_surgery.py --SANITY --model-config configs/model/vjepa2_1.yaml --train-config configs/train/surgery_2stage_noDI.yaml --factor-dir outputs/sanity/m11_factor_datasets/ --no-wandb 2>&1 | tee logs/m09c_sanity.log
-    python -u src/m09c_surgery.py --POC --subset data/sanity_100_dense.json --factor-dir outputs/poc/m11_factor_datasets/ --local-data data/val_1k_local --no-wandb 2>&1 | tee logs/m09c_dense100.log
-    python -u src/m09c_surgery.py --FULL --factor-dir outputs/full/m11_factor_datasets/ --local-data data/full_local --no-wandb 2>&1 | tee logs/m09c_full.log
+USAGE (every path arg required — CLAUDE.md no-default rule; --probe-* fall back to yaml):
+    python -u src/m09c_surgery.py --SANITY \
+        --model-config configs/model/vjepa2_1.yaml \
+        --train-config configs/train/surgery_2stage_noDI.yaml \
+        --subset data/sanity_100_dense.json --local-data data/val_1k_local \
+        --factor-dir outputs/sanity/m11_factor_datasets/ \
+        --probe-subset data/val_1k.json --probe-local-data data/val_1k_local \
+        --probe-tags data/val_1k_local/tags.json \
+        --no-wandb 2>&1 | tee logs/m09c_sanity.log
+    python -u src/m09c_surgery.py --POC \
+        --model-config configs/model/vjepa2_1.yaml \
+        --train-config configs/train/surgery_2stage_noDI.yaml \
+        --subset data/sanity_100_dense.json --local-data data/val_1k_local \
+        --factor-dir outputs/poc/m11_factor_datasets/ \
+        --no-wandb 2>&1 | tee logs/m09c_dense100.log
+    python -u src/m09c_surgery.py --FULL \
+        --model-config configs/model/vjepa2_1.yaml \
+        --train-config configs/train/surgery_3stage_DI.yaml \
+        --subset data/ultra_hard_3066_train.json \
+        --local-data data/ultra_hard_3066_local \
+        --factor-dir outputs/full/m11_factor_datasets/ \
+        --probe-subset data/ultra_hard_3066_val.json \
+        --probe-local-data data/ultra_hard_3066_local \
+        --probe-tags data/ultra_hard_3066_local/tags.json \
+        --output-dir outputs/full/surgery_3stage_DI \
+        --no-wandb 2>&1 | tee logs/m09c_full.log
 """
 import os
 os.environ.setdefault("OMP_NUM_THREADS", "1")   # Must be before torch import
@@ -47,10 +70,12 @@ from utils.config import (
 )
 from utils.data_download import ensure_local_data
 from utils.gpu_batch import AdaptiveBatchSizer, cuda_cleanup  # noqa: F401 — wired via utils.training
-from utils.output_guard import verify_or_skip
 from utils.plots import plot_training_curves
 from utils.wandb_utils import (
     add_wandb_args, init_wandb, log_metrics, finish_wandb,
+)
+from utils.cache_policy import (
+    add_cache_policy_arg, resolve_cache_policy_interactive, wipe_output_dir,
 )
 
 import torch
@@ -63,11 +88,8 @@ from utils.vjepa2_imports import (
     get_mask_generator, get_apply_masks,  # noqa: F401 — consumed via utils.training helpers
 )
 
-# Constants
-DEFAULT_MODEL_CONFIG = "configs/model/vjepa2_1.yaml"
-# DEFAULT_TRAIN_CONFIG removed (iter11 v2): 4 yamls (explora / surgery_2stage_noDI /
-# surgery_2stage_loud_agent / surgery_3stage_DI) — silently picking one re-creates the
-# silent-renorm class of bug (#73). Per CLAUDE.md "No DEFAULT, FAIL LOUD": --train-config required.
+# Constants — paths come from CLI args only (CLAUDE.md no-default rule).
+# --model-config and --train-config are both required=True via the helpers in utils.config.
 CHECKPOINT_PREFIX = "m09c_ckpt"
 
 # Shared training primitives — utils/training.py (Phase 1 of iter8 split).
@@ -149,7 +171,18 @@ def merge_config_with_args(cfg: dict, args) -> dict:
 
     # 90/10 train/val split (see data.train_val_split in ch11_surgery.yaml). Capped at
     # 1000 val clips to prevent FULL (115K × 10% = 11.5K) from over-sizing the val-set.
-    cfg["data"]["train_val_split"] = cfg["data"]["train_val_split"][mode_key]
+    # FULL mode intentionally has NO train_val_split key (probe.use_permanent_val.full=true
+    # overrides → external val_subset is used). FAIL LOUD only if the override is also off.
+    _tvs = cfg["data"]["train_val_split"]
+    if mode_key in _tvs:
+        cfg["data"]["train_val_split"] = _tvs[mode_key]
+    elif cfg["probe"]["use_permanent_val"]:
+        cfg["data"]["train_val_split"] = None        # dormant — external val_subset overrides
+    else:
+        raise KeyError(
+            f"data.train_val_split.{mode_key} missing AND probe.use_permanent_val.{mode_key} "
+            f"is false — must specify one (split-internal) or the other (external val_subset)."
+        )
 
     # Streaming factor generation (eliminates m11 D_L/D_A .npy disk writes).
     # Flatten mode-gated enabled + num_workers into scalars. CLI override
@@ -358,11 +391,11 @@ def train_surgery(cfg: dict, args):
     # Output dir
     output_dir = Path(args.output_dir) if args.output_dir else get_module_output_dir(
         "m09c_surgery", args.subset, sanity=args.SANITY, poc=args.POC)
+    # iter11 v3 (2026-04-26): cache-policy=2 nukes the WHOLE output_dir at startup
+    # so load_checkpoint() finds nothing → fresh step-0 run.
+    wipe_output_dir(output_dir, args.cache_policy, label=f"output_dir ({output_dir.name})")
     output_dir.mkdir(parents=True, exist_ok=True)
     student_path = output_dir / "student_encoder.pt"
-
-    if verify_or_skip(output_dir, {"student": student_path}, label="m09c surgery"):
-        return
 
     mode_key = "sanity" if args.SANITY else ("poc" if args.POC else "full")
     mp_cfg = cfg["mixed_precision"]
@@ -1366,9 +1399,11 @@ def main():
     # Cache-policy gate (iter11): every destructive delete in this module must route
     # through utils.cache_policy.guarded_delete(path, args.cache_policy, ...).
     # --cache-policy defaults to 1 (keep) so overnight re-runs never destroy cache.
-    from utils.cache_policy import add_cache_policy_arg
     add_cache_policy_arg(parser)
     args = parser.parse_args()
+
+    # Cache-policy prompt — shells stay thin (CLAUDE.md DELETE PROTECTION).
+    args.cache_policy = resolve_cache_policy_interactive(args.cache_policy)
 
     if not (args.SANITY or args.POC or args.FULL):
         parser.print_help()
@@ -1383,18 +1418,12 @@ def main():
     ensure_local_data(args)
 
     # Load config: --model-config + --train-config (new) or --config (legacy).
-    # FAIL LOUD per CLAUDE.md "No DEFAULT": iter11 v2 has multiple surgery variants
-    # (surgery_2stage_noDI / surgery_2stage_loud_agent / surgery_3stage_DI) — must be explicit.
+    # Both required=True via add_*_config_arg, so args.train_config is guaranteed
+    # unless --config (legacy) is used.
     if args.config:
         cfg = load_config(args.config)
-    elif args.train_config:
-        cfg = load_merged_config(args.model_config, args.train_config)
     else:
-        raise SystemExit(
-            "FATAL: --train-config is required (no DEFAULT). Pick one of:\n"
-            "  configs/train/surgery_2stage_noDI.yaml\n"
-            "  configs/train/surgery_2stage_loud_agent.yaml\n"
-            "  configs/train/surgery_3stage_DI.yaml")
+        cfg = load_merged_config(args.model_config, args.train_config)
     cfg = merge_config_with_args(cfg, args)
 
     # Dispatch: surgery (only mode in this module)

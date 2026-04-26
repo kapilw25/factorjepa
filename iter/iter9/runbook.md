@@ -9,50 +9,6 @@
 > **Architecture + decisions** → `plan_TODO.md`. **Error history** → `errors_N_fixes.md`. **1K POC results + hyperparams + wall-times + disk footprint** → `iter/utils/experiment_log.md` ("Run 2026-04-19" entry).
 
 ---
-
-### 📊 Progress snapshot
-
-| Phase | Step | Status | Notes |
-|---|---|---|---|
-| 1K POC (iter8) | A→F | ✅ 2026-04-19 | gate ❌ FAILED — N=100 CI ±4.5 underpowered |
-| Patch | 2-stage + early-stop suite + `use_permanent_val` | ✅ landed | Stage 3 dropped, replay 30 %, plateau/BWT/kill triggers |
-| iter9 v10: 10K | A→F | 🟡 2026-04-20 | gate SATURATED — Δ +0.14 pp (val_500=30.33 vs test_500=27.97) |
-| iter9 v13: 10K + LR-up + DINO-tight + stratified | A→G | 🟡 2026-04-21 | gate **FLAT Δ=0.00** (Surgical=Frozen=29.93 ±2.37) · plateau kill fired at S2 entry → D_A never trained |
-| **iter9 v14: 10K + plateau-fix** | C (cached A+B) → D → E → F → G | ⏳ **next** | #79 landed: per-stage buffer reset + final-stage-only kill. Budget: ~2 h / ~$2 |
-| iter9 v15: + more-laps + louder-agent | C + yaml | 🔒 only if v14 saturates | `max_epochs: 1→3` + S2 mixture 70/30 → 85/15 D_A. Budget: ~5-6 h / ~$4 |
-| iter9 v16: + safer-interactions | A + B + C (m10/m11 rerun for D_I) | 🔒 only if v15 saturates | Re-enable D_I at `unfreeze_below: 0.50` (NOT 0.75). Budget: ~9 h / ~$7 |
-| iter9+: 50K | same pipeline | 🔒 | scale-ladder → `plan_TODO.md` (Step H.1) |
-| FULL 115K | same pipeline | 🔒 | scale-ladder → `plan_TODO.md` (Step H.2) |
-
-> 🎯 **v14 plan (plateau-fix alone, cached m10/m11)**: v13's H5 plateau state spanned stages → S1's flat window killed at S2 entry (1 step of S2). Fix #79: (1) reset `plateau_state` + `prec_plateau_state` buffers on stage change; (2) only fire kill in final stage (intermediate stages SUPPOSED to plateau). Cached `outputs/full/m10_sam_segment/` + `outputs/full/m11_factor_datasets/` → Steps A+B auto-skip via `verify_or_skip()` (~7 s); only Step C reruns fresh.
-> **Decisive test:** does D_A have any signal under H1+H4+real training? If v14 passes Δ ≥ 3 pp, paper narrative lands; if saturated again, step up to v15.
-
-> 🔒 **v15-v16 fallbacks** (10K-only budget, no scale-up):
-> - **v15 = more-laps + louder-agent** (yaml-only): lift `max_epochs: 1→3` + S2 mixture `70/30 → 85/15` D_A/D_L. Tests whether longer D_A exposure + stronger dose clears the ceiling.
-> - **v16 = safer-interactions**: re-enable Stage 3 with `interaction_mining.enabled: true` + `unfreeze_below: 0.50` (avoid iter8's 0.75 forgetting trigger). Requires m10 rerun for D_I tubes.
-> - If v16 still saturates → 10K is the publishable ceiling ("layout-factor surgery at noise floor"), pivot paper to narrower claim.
-
-Legend: ✅ done · 🟢 running · ⏳ pending · 🎯 next · 🏆 gate · 🔒 blocked · ❌ failed
-
-> 📖 **Deeper context** — `iter/iter9/plan_TODO.md` (MID), `iter/iter9/plan_training.md` (HIGH), `iter/utils/experiment_log.md` (1K POC run log).
-
----
-
-## ⚠️ Prerequisite: vast.ai instance with `/workspace ≥ 200 GB`
-
-Streaming factor generation landed 2026-04-19 (see `iter/iter9/plan_code_dev.md`) — m11 no longer materializes ~340 GB of D_L/D_A `.npy` at 10K. D_L/D_A generate on-demand inside m09c DataLoader from `(raw_mp4, m10_mask.npz)` pairs. Only the 100 `select_verify_clips(seed=42)` curated clips get `.npy` written (for `plot_factor_per_clip`).
-
-| Artifact | 1K measured (iter8) | 10K projected (**streaming**) | Dominant? |
-|---|---|---|---|
-| m10 SAM masks | 3 GB | **30 GB** | ✅ dominant |
-| m09c ckpt + logs + metadata | 10 GB | **10 GB** | |
-| m11 D_L + D_A .npy (100 verify clips only) | — | **~0.5 GB** | negligible (was ~340 GB pre-streaming) |
-| m10_overlay_verify (100 pre-filtered × ~1 MB ea) | — | **~100 MB** | negligible |
-| m11_per_clip_verify (100 pre-filtered × ~3 MB ea) | — | **~300 MB** | negligible |
-| m11_per_Videoclip_verify (20 MP4s × ~5 MB ea) | ~100 MB | **~100 MB** | negligible |
-| `data/subset_10k_local/` (raw TARs from HF pull) | — | **~11 GB** | |
-| **Total** | — | **~52 GB** | |
-
 > 💡 **Streaming savings**: removing the 340 GB m11 D_L/D_A write at 10K (7× reduction: 380 → 52 GB). Unlocks 50K on ~150 GB + 115K on ~345 GB — the full scale-ladder fits on a single 200 GB instance.
 
 **Rent a vast.ai instance with `/workspace` disk ≥ 200 GB** (4× headroom over 52 GB actual). Verify on spin-up:

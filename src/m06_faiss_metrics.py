@@ -3,10 +3,14 @@ Compute 9 evaluation metrics via FAISS-GPU in Easy/Hard mode.
 GPU-only (FAISS-GPU required). Reads embeddings{sfx}.npy + tags.json.
 Plots saved with encoder suffix to avoid overwrite across encoders.
 
-USAGE:
-    python -u src/m06_faiss_metrics.py --encoder vjepa --SANITY 2>&1 | tee logs/m06_vjepa_sanity.log
-    python -u src/m06_faiss_metrics.py --encoder vjepa --POC --subset data/subset_10k.json 2>&1 | tee logs/m06_vjepa_poc.log
-    python -u src/m06_faiss_metrics.py --encoder vjepa --FULL 2>&1 | tee logs/m06_vjepa_full.log
+USAGE (--subset OR --local-data required to locate tags.json — CLAUDE.md no-default rule):
+    python -u src/m06_faiss_metrics.py --encoder vjepa --SANITY \
+        --local-data data/val_1k_local 2>&1 | tee logs/m06_vjepa_sanity.log
+    python -u src/m06_faiss_metrics.py --encoder vjepa --POC \
+        --subset data/subset_10k.json --local-data data/subset_10k_local \
+        2>&1 | tee logs/m06_vjepa_poc.log
+    python -u src/m06_faiss_metrics.py --encoder vjepa --FULL \
+        --local-data data/full_local 2>&1 | tee logs/m06_vjepa_full.log
 """
 import argparse
 import json
@@ -1065,9 +1069,12 @@ def main():
     # Cache-policy gate (iter11): every destructive delete in this module must route
     # through utils.cache_policy.guarded_delete(path, args.cache_policy, ...).
     # --cache-policy defaults to 1 (keep) so overnight re-runs never destroy cache.
-    from utils.cache_policy import add_cache_policy_arg
+    from utils.cache_policy import add_cache_policy_arg, resolve_cache_policy_interactive
     add_cache_policy_arg(parser)
     args = parser.parse_args()
+
+    # Cache-policy prompt — shells stay thin (CLAUDE.md DELETE PROTECTION).
+    args.cache_policy = resolve_cache_policy_interactive(args.cache_policy)
 
     if not (args.SANITY or args.POC or args.FULL):
         parser.print_help()
@@ -1095,10 +1102,7 @@ def main():
     # Tags are dataset-level metadata (not per-encoder, not per-run), living under the
     # WebDataset local-data dir. CLI --local-data wins; otherwise auto-derive from
     # --subset stem (e.g., --subset data/eval_10k.json → data/eval_10k_local/tags.json).
-    # Only falls back to val_1k_local when neither is provided. Fail-loud if tags.json missing.
-    # iter10 #77 fix: prior code hard-fell back to val_1k_local/tags.json even under
-    # --subset data/eval_10k.json → 0/9297 tag matches at m06 → FATAL cascade-killed
-    # the whole paired_eval queue (v6 log L157).
+    # FAIL LOUD if neither is provided (CLAUDE.md no-default rule).
     if args.local_data:
         tags_file = Path(args.local_data) / "tags.json"
     elif args.subset:
@@ -1108,22 +1112,15 @@ def main():
             print(f"[tags] auto-derived from --subset: {tags_file}")
         else:
             print(f"FATAL: --subset={args.subset} given but auto-derived tags path {derived} "
-                  f"does not exist. Either pre-generate tags.json for this subset (see "
-                  f"scripts/prep_eval_10k.sh) or pass --local-data <dir-with-tags.json>.")
+                  f"does not exist. Pre-generate tags.json for this subset (m00d "
+                  f"--master-tags ...) or pass --local-data <dir-with-tags.json>.")
             sys.exit(1)
     else:
-        tags_file = Path("data/val_1k_local/tags.json")
+        print("FATAL: neither --local-data nor --subset provided — cannot locate tags.json. "
+              "Pass --local-data <dir-with-tags.json> (CLAUDE.md no-default rule).")
+        sys.exit(1)
 
     enc_info = get_encoder_info(args.encoder)
-
-    # Output-exists guard
-    from utils.output_guard import verify_or_skip
-    if verify_or_skip(output_dir, {
-        "metrics": metrics_file,
-        "knn_indices": enc_files["knn_indices"],
-    }, label=f"m06 {args.encoder}"):
-        finish_wandb(wb_run)
-        return
 
     print(f"Encoder:     {args.encoder} (dim={enc_info['dim']}, type={enc_info['type']})")
     print(f"Output dir:  {output_dir}")

@@ -79,7 +79,7 @@ Research benchmark testing if V-JEPA 2 (Meta's video foundation model, trained o
 - **utils/hf_utils.py**: HF auth, upload helpers.
 - **utils/wandb_utils.py**: All functions no-op when run=None.
 - **utils/export_metadata.py**: tags.json → per-directory metadata.jsonl.
-- **utils/output_guard.py**: `verify_or_skip(dir, min_clips=N)` returns bool (caller must `if`). JSON branch now sets `clip_count = len(data)` for completeness check (#29). `preflight_pipeline()` for shell scripts — interactive confirm before GPU work.
+- **utils/output_guard.py**: REMOVED 2026-04-26. `utils.cache_policy.guarded_delete()` is now the SOLE cross-module guard (CLAUDE.md DELETE PROTECTION); per-script intra-run resume (load_checkpoint, fingerprint files) handles "skip already-finished clips".
 - **utils/video_io.py**: `_USE_TORCHCODEC = False` (#10 SIGSEGV on Blackwell sm_120); PyAV fallback is the active path.
 - **utils/data_download.py**: `iter_clips_parallel(local_dir, processed_keys=...)` returns `(queue, stop_event, reader_thread)`. Resume-safe.
 
@@ -178,7 +178,7 @@ PyTorch 2.12.0.dev20260228+cu128, CUDA 12.8, FA2 2.8.3, FAISS-GPU 1.14.1 (source
 9. **Gradient accumulation preserves research integrity**: Effective BS must stay = `cfg.optimization.batch_size` so optimizer dynamics are bit-identical to a static-BS run. Micro-batch sub-size is adaptive; scale each micro's loss by `(micro/macro)` (#48).
 10. **m09c Stage 3 memory on 24GB**: fp32 master weights + 8-bit m1/m2 + CUDA context overshoots. Fixes compound: inter-stage optimizer cleanup (None-ref + empty_cache + ipc_collect) + bnb.PagedAdamW8bit (CPU-paged) + gradient_checkpointing + (v8 planned) teacher CPU offload (#56/#57/#58).
 11. **Silent failures are garbage metrics**: Within-step retry loop on OOM (shrink sub-batch, retry SAME macro batch, raise if at min_size); post-loop fail-hard if 0 successful steps (refuse to export misleading checkpoint) (#55).
-12. **verify_or_skip completeness**: Must check output count not just existence. Both JSON and .npy branches set `clip_count = len(data)` (#29).
+12. **Cache-policy is the SOLE guard**: `output_guard.verify_or_skip` removed 2026-04-26. Each .py prompts via `input()` if `--cache-policy` not on CLI; shell wrappers gather all prompts UPFRONT (mirror legacy run_paired_eval_10k.sh preflight pattern) so chains run unattended.
 13. **torchcodec SIGSEGV on Blackwell**: `_USE_TORCHCODEC = False` in `video_io.py`; PyAV fallback is active. Silent C-extension crashes bypass try/except (#10).
 14. **SAM3 async thread shutdown**: `os._exit(0)` on success + `os._exit(1)` on crash — `return` leaks async frame-loading threads that hold VRAM (#14/#16).
 15. **vjepa2 patches must re-apply on fresh clone (#59)**: `setup_env_uv.sh` does `rm -rf deps/vjepa2 && git clone` on every provision — any local edit to `deps/vjepa2/` is wiped. The RoPE Q/K dtype cast (#44) must live as an idempotent heredoc in `setup_env_uv.sh` (anchor-match + SystemExit if anchor missing), not as a one-off file edit.

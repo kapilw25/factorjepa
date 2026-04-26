@@ -21,10 +21,11 @@ optimization:
   pred_lr_multiplier: 1.0         # Meta uses SAME LR (gold standard audit: 10x was wrong)
 
   # POST-AUDIT: 5 epochs + 1 cooldown (was 1 epoch — stability gap, arXiv:2406.14833)
+  # iter11 v2 (2026-04-26): bumped full 5→15 to match base_optimization.yaml (val-loss still descending at epoch 5).
   max_epochs:
     sanity: 1
     poc: 5
-    full: 5
+    full: 15
     cooldown: 1                   # Cooldown epoch at 64f (matches eval frame count)
 
   batch_size: 32                  # Auto-overridden by profiler

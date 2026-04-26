@@ -161,29 +161,6 @@ for v in "${VARIANTS[@]}"; do
     [ "${POLICY[m06_$v]:-1}" = "2" ] && POLICY[m08b_$v]=2
 done
 
-log "──────────────────────────────────────────────"
-log "CACHE POLICY PLAN (post-propagation):"
-for _k in m05_frozen m06_frozen; do
-    _p="${POLICY[$_k]:-1}"; _a="keep"; [ "$_p" = "2" ] && _a="RECOMPUTE"
-    log "  $_k -> policy=$_p ($_a)"
-done
-for v in "${VARIANTS[@]}"; do
-    for _st in m05 m06 m08b; do
-        _k="${_st}_${v}"
-        _p="${POLICY[$_k]:-1}"; _a="keep"; [ "$_p" = "2" ] && _a="RECOMPUTE"
-        log "  $_k -> policy=$_p ($_a)"
-    done
-done
-log "──────────────────────────────────────────────"
-
-if [ -z "${CACHE_POLICY_ALL:-}" ] && [ -t 0 ]; then
-    read -p "Proceed with this plan? [y/N]: " _go
-    if [ "$_go" != "y" ] && [ "$_go" != "Y" ]; then
-        log "aborted by user at cache-policy confirm"
-        exit 0
-    fi
-fi
-
 
 # ── Frozen baseline: embed + metrics ONCE (shared across all paired comparisons) ─
 # Stage A: m05 frozen embed on eval_10k

@@ -100,11 +100,13 @@ from utils.config import (
 )
 from utils.data_download import ensure_local_data
 from utils.gpu_batch import AdaptiveBatchSizer
-from utils.hf_outputs import download_data
-from utils.output_guard import verify_training_output
 from utils.plots import plot_training_curves
 from utils.wandb_utils import (
     add_wandb_args, init_wandb, log_metrics, finish_wandb,
+)
+from utils.cache_policy import (
+    add_cache_policy_arg, resolve_cache_policy_interactive,
+    guarded_delete, wipe_output_dir,
 )
 
 import torch
@@ -141,9 +143,7 @@ from utils.training import (
     render_training_plots,
 )
 
-# Module-level constants
-DEFAULT_MODEL_CONFIG = "configs/model/vjepa2_1.yaml"
-DEFAULT_TRAIN_CONFIG = "configs/train/explora.yaml"
+# Module-level constants — paths come from CLI args only (CLAUDE.md no-default rule)
 CHECKPOINT_PREFIX = "m09b_ckpt"
 _pcfg = get_pipeline_config()
 PREFETCH_QUEUE_SIZE = _pcfg["streaming"]["prefetch_queue_train"]
@@ -446,12 +446,12 @@ def train(cfg: dict, args):
     gc.disable()
     gc.collect()
 
-    # Output-exists guard
     output_dir = Path(cfg["checkpoint"]["output_dir"])
     student_path = output_dir / "student_encoder.pt"
-    if verify_training_output(output_dir, min_epochs=cfg["optimization"]["max_epochs"]):
-        return
-
+    # iter11 v3 (2026-04-26): cache-policy=2 nukes the WHOLE output_dir at startup
+    # so load_checkpoint() finds nothing → fresh step-0 run. Old "recompute" path
+    # only enforced keep_last_n eviction during training (which still resumed).
+    wipe_output_dir(output_dir, args.cache_policy, label=f"output_dir ({output_dir.name})")
     output_dir.mkdir(parents=True, exist_ok=True)
 
     # Build model (LoRA + unfrozen blocks 0..N-1 — hardcoded in build_model)
@@ -555,13 +555,16 @@ def train(cfg: dict, args):
     saves_per_epoch = cfg["checkpoint"]["saves_per_epoch"]
     ckpt_interval = max(1, steps_per_epoch // saves_per_epoch)
     keep_last_n = cfg["checkpoint"]["keep_last_n"]
-    evals_per_epoch = cfg["validation"]["evals_per_epoch"]
-    val_interval = max(1, steps_per_epoch // evals_per_epoch)
+    # iter11 v3 (2026-04-26): val + probe + ckpt all share the SAME cadence
+    # (`checkpoint.saves_per_epoch`). Removed redundant `validation.evals_per_epoch`
+    # — it was 2× saves_per_epoch and made probe fire 10x/epoch instead of 5x/epoch
+    # (15 h wasted/run; m09c was already correct via probe.cadence=saves_per_epoch).
+    val_interval = ckpt_interval
 
     print(f"Train clips: {n_train:,} | Val clips: {len(val_key_set):,}")
     print(f"Epochs: {max_epochs} | Steps/epoch: {steps_per_epoch:,} | Total steps: {total_steps:,}")
     print(f"Checkpoint every {ckpt_interval} steps ({saves_per_epoch}x/epoch, keep last {keep_last_n})")
-    print(f"Validation every {val_interval} steps ({evals_per_epoch}x/epoch, {len(val_key_set)} val clips)")
+    print(f"Validation+probe every {val_interval} steps ({saves_per_epoch}x/epoch, {len(val_key_set)} val clips)")
 
     # Optimizer & scheduler (cosine over total_steps)
     optimizer = build_optimizer(student, predictor, cfg["optimization"])
@@ -670,103 +673,10 @@ def train(cfg: dict, args):
             shutil.rmtree(_val_tmp, ignore_errors=True)
             print(f"Val clips collected (retry): {len(val_collected_keys)} in {len(val_batches)} batches")
     else:
-        if not getattr(args, "SANITY", False):
-            print("No --val-subset provided. Attempting auto-download of val data...")
-            try:
-                download_data()
-                # Check if val data now exists
-                val_path = Path("data/val_1k.json")
-                val_local_path = Path("data/val_1k_local")
-                if val_path.exists() and val_local_path.exists():
-                    print(f"Auto-downloaded val data. Loading {val_path}...")
-                    val_key_set = load_val_subset(str(val_path))
-                    args.val_local_data = str(val_local_path)
-                    # Re-run val collection with downloaded data
-                    _val_tmp2 = tempfile.mkdtemp(prefix="m09b_val_")
-                    _val_ds2 = _create_stream(0, local_data=str(val_local_path))
-                    _val_batch_buf2 = []
-                    for _ex in _val_ds2:
-                        _ck = get_clip_key(_ex)
-                        if _ck not in val_key_set:
-                            continue
-                        _mp4 = _ex.get("mp4", b"")
-                        _mp4b = _mp4["bytes"] if isinstance(_mp4, dict) else _mp4
-                        if not _mp4b:
-                            continue
-                        _vt = decode_video_bytes(_mp4b, _val_tmp2, _ck, cfg["data"]["num_frames"])
-                        if _vt is None:
-                            continue
-                        _aug = augment_clip_consistent(_vt, cfg["augmentation"], cfg["data"]["crop_size"])
-                        _val_batch_buf2.append(_aug)
-                        val_collected_keys.append(_ck)
-                        if len(_val_batch_buf2) >= batch_size:
-                            _batch = torch.stack(_val_batch_buf2, dim=0).permute(0, 2, 1, 3, 4)
-                            val_batches.append(_batch)
-                            _val_batch_buf2 = []
-                        if len(val_collected_keys) >= len(val_key_set):
-                            break
-                    if _val_batch_buf2:
-                        _batch = torch.stack(_val_batch_buf2, dim=0).permute(0, 2, 1, 3, 4)
-                        val_batches.append(_batch)
-                    shutil.rmtree(_val_tmp2, ignore_errors=True)
-                    print(f"Val clips collected: {len(val_collected_keys)} in {len(val_batches)} batches")
-                else:
-                    print("FATAL: Auto-download failed — val data still missing.")
-                    print("  Fix: python -u src/utils/hf_outputs.py download-data")
-                    sys.exit(1)
-            except Exception as e:
-                print(f"FATAL: Auto-download failed ({e}). Val data required for non-SANITY runs.")
-                print("  Fix: python -u src/utils/hf_outputs.py download-data")
-                sys.exit(1)
-        else:
-            # SANITY mode: still validate with first 50 clips (tests validation code path)
-            print("SANITY mode — auto-downloading val data for validation code path test...")
-            try:
-                download_data()
-                val_path = Path("data/val_1k.json")
-                val_local_path = Path("data/val_1k_local")
-                if val_path.exists():
-                    val_key_set = load_val_subset(str(val_path))
-                    # Use only first 50 keys for SANITY speed
-                    sanity_val_cap = cfg["data"]["sanity_val_clips"]
-                    val_key_set = set(list(val_key_set)[:sanity_val_cap])
-                    val_local = str(val_local_path) if val_local_path.exists() else cfg["data"]["local_data"]
-                    _val_tmp3 = tempfile.mkdtemp(prefix="m09b_val_")
-                    _val_ds3 = _create_stream(0, local_data=val_local)
-                    _val_batch_buf3 = []
-                    for _ex in _val_ds3:
-                        _ck = get_clip_key(_ex)
-                        if _ck not in val_key_set:
-                            continue
-                        _mp4 = _ex.get("mp4", b"")
-                        _mp4b = _mp4["bytes"] if isinstance(_mp4, dict) else _mp4
-                        if not _mp4b:
-                            continue
-                        _vt = decode_video_bytes(_mp4b, _val_tmp3, _ck, cfg["data"]["num_frames"])
-                        if _vt is None:
-                            continue
-                        _aug = augment_clip_consistent(_vt, cfg["augmentation"], cfg["data"]["crop_size"])
-                        _val_batch_buf3.append(_aug)
-                        val_collected_keys.append(_ck)
-                        if len(_val_batch_buf3) >= batch_size:
-                            _batch = torch.stack(_val_batch_buf3, dim=0).permute(0, 2, 1, 3, 4)
-                            val_batches.append(_batch)
-                            _val_batch_buf3 = []
-                        if len(val_collected_keys) >= sanity_val_cap:
-                            break
-                    if _val_batch_buf3:
-                        _batch = torch.stack(_val_batch_buf3, dim=0).permute(0, 2, 1, 3, 4)
-                        val_batches.append(_batch)
-                    shutil.rmtree(_val_tmp3, ignore_errors=True)
-                    print(f"SANITY val clips: {len(val_collected_keys)} in {len(val_batches)} batches")
-                else:
-                    print("FATAL: SANITY val data download failed — val_1k.json not found after download.")
-                    print("  Fix: python -u src/utils/hf_outputs.py download-data")
-                    sys.exit(1)
-            except Exception as e:
-                print(f"FATAL: SANITY val data auto-download failed ({e})")
-                print("  Fix: python -u src/utils/hf_outputs.py download-data")
-                sys.exit(1)
+        # --val-subset is required=True (CLAUDE.md no-default rule), so val_key_set
+        # being empty means the JSON file itself was empty — degenerate, FAIL LOUD.
+        print(f"FATAL: --val-subset {args.val_subset} loaded but val_key_set is empty.")
+        sys.exit(1)
 
     # Data stream (producer loops over epochs automatically)
     q = queue.Queue(maxsize=PREFETCH_QUEUE_SIZE)
@@ -1156,13 +1066,13 @@ def train(cfg: dict, args):
                     # (e.g., KeyboardInterrupt, MemoryError, BaseException) still propagate.
                     print(f"  [plot] WARN: non-fatal plotting error ({type(_plot_e).__name__}): {_plot_e}")
 
-                # Best model selection by lowest val loss
+                # iter11 v3 (2026-04-26): val_loss tracker — print only, no ckpt save.
+                # Previously wrote `m09b_ckpt_best.pt` but it was never consumed
+                # downstream (export uses student_best.pt = best-Prec@K, not best-val-loss
+                # — see `iter/utils/experiment_log.md` v10 entry for the val_jepa↔Prec@K
+                # decoupling evidence). Dropped to align filenames with m09c.
                 if val_loss < best_val_loss:
                     best_val_loss = val_loss
-                    save_training_checkpoint(
-                        output_dir / f"{CHECKPOINT_PREFIX}_best.pt",
-                        student, teacher, predictor, optimizer, scheduler,
-                        scaler, step + 1, best_val_loss, full=False)
                     print(f"  New best val loss: {best_val_loss:.4f}")
 
             # ── iter11 Probe: mid-training Prec@K trajectory (parallel to val-loss above) ──
@@ -1174,15 +1084,17 @@ def train(cfg: dict, args):
                     student, probe_clips, cfg, device,
                     k=probe_cfg_flat["k"],
                     bootstrap_iter=probe_cfg_flat["bootstrap_iter"])
-                probe_record = {
-                    "step": step + 1,
+                # iter11 v3 (2026-04-26): mirror m09c's pattern — start from eval_result
+                # (which carries num_clips) so render_training_plots can title the panels
+                # with N=. Filter-copy was dropping num_clips → silent KeyError suppressed
+                # probe_trajectory.png + m09_forgetting.png generation.
+                probe_record = dict(eval_result)
+                probe_record.update({
+                    "step":        step + 1,
                     "global_step": step + 1,
-                    "stage_idx": 0,                       # single-stage invariant
-                    "stage_name": "stage1_explora",
-                    "prec_at_k": eval_result["prec_at_k"],
-                    "map_at_k":  eval_result["map_at_k"],
-                    "cycle_at_k": eval_result["cycle_at_k"],
-                }
+                    "stage_idx":   0,                  # single-stage invariant
+                    "stage_name":  "stage1_explora",
+                })
                 if probe_cfg_flat.get("compute_val_loss"):
                     val_result = run_probe_val_loss(
                         student, teacher, predictor, probe_clips,
@@ -1192,6 +1104,10 @@ def train(cfg: dict, args):
                         "masked_loss":   val_result["masked_loss"],
                         "context_loss":  val_result["context_loss"],
                     })
+                # bwt = Prec@K[current] − Prec@K[first_probe] (matches m09c:783)
+                first_prec = (probe_history[0]["prec_at_k"]["mean"]
+                              if probe_history else probe_record["prec_at_k"]["mean"])
+                probe_record["bwt"] = probe_record["prec_at_k"]["mean"] - first_prec
                 probe_history.append(probe_record)
                 _log_probe(probe_record)
 
@@ -1213,15 +1129,18 @@ def train(cfg: dict, args):
                 }, step=step)
 
                 # 🏆 Best-ckpt by Prec@K (parallel to best_val_loss above) — iter11
+                # iter11 v3 (2026-04-26): rename m09b_ckpt_best_prec.pt → student_best.pt
+                # for filename parity with m09c. Same artifact, same role (running max
+                # Prec@K ckpt, promoted to student_encoder.pt at end-of-training).
                 if probe_cfg_flat.get("best_ckpt_enabled") and pk["mean"] > best_prec_at_k:
                     best_prec_at_k = pk["mean"]
                     best_state["global_step"] = step + 1
                     best_state["prec_at_k"] = best_prec_at_k
                     save_training_checkpoint(
-                        output_dir / f"{CHECKPOINT_PREFIX}_best_prec.pt",
+                        output_dir / "student_best.pt",
                         student, teacher, predictor, optimizer, scheduler,
                         scaler, step + 1, best_prec_at_k, full=False)
-                    print(f"  🏆 New best Prec@K: {best_prec_at_k:.2f} (step {step + 1})")
+                    print(f"  🏆 New best Prec@K: {best_prec_at_k:.2f} (step {step + 1}) → saved student_best.pt")
 
                 # Live plots (trajectory + forgetting + val_loss) — same cadence as m09c.
                 # Shared util; silent on <2 probes. Wrapped in try/except in the util itself.
@@ -1315,7 +1234,7 @@ def train(cfg: dict, args):
     # ckpt loses the Prec@K-peak state. If probe.best_ckpt_enabled, reload the saved
     # best-Prec@K weights into `student` before export so student_encoder.pt carries
     # the best-Prec@K state. Falls back to current (end-of-training) student otherwise.
-    best_prec_ckpt = output_dir / f"{CHECKPOINT_PREFIX}_best_prec.pt"
+    best_prec_ckpt = output_dir / "student_best.pt"
     if probe_cfg_flat.get("best_ckpt_enabled") and best_prec_ckpt.exists():
         load_training_checkpoint(best_prec_ckpt, student, teacher, predictor,
                                  optimizer, scheduler, scaler)
@@ -1327,7 +1246,6 @@ def train(cfg: dict, args):
     export_student_for_eval(student, student_path, explora_enabled=True)
 
     # iter11 META-fix: gate post-training checkpoint cleanup through --cache-policy.
-    from utils.cache_policy import guarded_delete
     for ckpt_file in output_dir.glob(f"{CHECKPOINT_PREFIX}_*.pt"):
         guarded_delete(ckpt_file, args.cache_policy,
                        label=f"m09b checkpoint {ckpt_file.name}")
@@ -1379,11 +1297,11 @@ def train(cfg: dict, args):
         summary["best_prec_at_k"] = (best_prec_at_k
                                      if best_prec_at_k > float("-inf") else None)
         summary["best_ckpt"] = {
-            "source": (best_prec_ckpt.name if probe_cfg_flat.get("best_ckpt_enabled")
+            "source": ("student_best.pt" if probe_cfg_flat.get("best_ckpt_enabled")
                        and best_prec_ckpt.exists()
-                       else f"{CHECKPOINT_PREFIX}_best.pt"),
+                       else "student_encoder.pt"),
             "criterion": ("prec_at_k" if probe_cfg_flat.get("best_ckpt_enabled")
-                          and best_prec_ckpt.exists() else "val_loss"),
+                          and best_prec_ckpt.exists() else "end_of_training"),
         }
         if kill_state["triggered"]:
             summary["early_stop"] = {
@@ -1433,21 +1351,22 @@ def main():
                         help="Override max epochs (SANITY=1, --POC=5, --FULL=1)")
     parser.add_argument("--output-dir", type=str, default=None,
                         help="Override output directory")
-    parser.add_argument("--val-subset", type=str, default=None,
+    parser.add_argument("--val-subset", required=True,
                         help="Path to val subset JSON (e.g., data/val_1k.json). "
                              "These clips are excluded from training and used for periodic val loss.")
-    parser.add_argument("--val-local-data", type=str, default=None,
-                        help="Local WebDataset dir for val clips (e.g., data/val_1k_local). "
-                             "If omitted, val clips are loaded from --local-data.")
+    parser.add_argument("--val-local-data", required=True,
+                        help="Local WebDataset dir for val clips (e.g., data/val_1k_local).")
     add_subset_arg(parser)
     add_local_data_arg(parser)
     add_wandb_args(parser)
     # Cache-policy gate (iter11): every destructive delete in this module must route
     # through utils.cache_policy.guarded_delete(path, args.cache_policy, ...).
     # --cache-policy defaults to 1 (keep) so overnight re-runs never destroy cache.
-    from utils.cache_policy import add_cache_policy_arg
     add_cache_policy_arg(parser)
     args = parser.parse_args()
+
+    # Cache-policy prompt — shells stay thin (CLAUDE.md DELETE PROTECTION).
+    args.cache_policy = resolve_cache_policy_interactive(args.cache_policy)
 
     if not (args.SANITY or args.POC or args.FULL):
         parser.print_help()
@@ -1456,13 +1375,13 @@ def main():
 
     ensure_local_data(args)
 
-    # Load config: --model-config + --train-config (new) or --config (legacy)
+    # Load config: --model-config + --train-config (new) or --config (legacy).
+    # Both required=True via add_*_config_arg, so args.train_config is guaranteed
+    # unless --config (legacy) is used.
     if args.config:
         cfg = load_config(args.config)
-    elif args.train_config:
-        cfg = load_merged_config(args.model_config, args.train_config)
     else:
-        cfg = load_merged_config(DEFAULT_MODEL_CONFIG, DEFAULT_TRAIN_CONFIG)
+        cfg = load_merged_config(args.model_config, args.train_config)
     cfg = merge_config_with_args(cfg, args)
 
     train(cfg, args)

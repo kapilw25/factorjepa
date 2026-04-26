@@ -3,13 +3,17 @@ CPU-only visualization: UMAP scatter + kNN confusion matrix + kNN grids.
 Reads encoder-aware inputs via --encoder flag: umap_2d{sfx}.npy, knn_indices{sfx}.npy.
 Plots saved with encoder suffix to avoid overwrite. No FAISS, no cuML, no torch.
 
-USAGE:
-    python -u src/m08_plot.py --encoder vjepa --SANITY 2>&1 | tee logs/m08_plot_vjepa_sanity.log
-    python -u src/m08_plot.py --encoder vjepa --POC --subset data/subset_10k.json 2>&1 | tee logs/m08_plot_vjepa_poc.log
-    python -u src/m08_plot.py --encoder vjepa --FULL 2>&1 | tee logs/m08_plot_vjepa_full.log
+USAGE (every path arg required — CLAUDE.md no-default rule):
+    python -u src/m08_plot.py --encoder vjepa --SANITY \
+        --tag-taxonomy configs/tag_taxonomy.json 2>&1 | tee logs/m08_plot_vjepa_sanity.log
+    python -u src/m08_plot.py --encoder vjepa --POC --subset data/subset_10k.json \
+        --tag-taxonomy configs/tag_taxonomy.json 2>&1 | tee logs/m08_plot_vjepa_poc.log
+    python -u src/m08_plot.py --encoder vjepa --FULL \
+        --tag-taxonomy configs/tag_taxonomy.json 2>&1 | tee logs/m08_plot_vjepa_full.log
 """
 import argparse
 import json
+import os
 import subprocess
 import sys
 from collections import defaultdict
@@ -26,13 +30,7 @@ from utils.config import (
     get_encoder_files,
 )
 
-TAXONOMY_FILE = Path(__file__).parent.parent / "configs" / "tag_taxonomy.json"
-SINGLE_VALUE_KEYS = []
-if TAXONOMY_FILE.exists():
-    with open(TAXONOMY_FILE) as _f:
-        _tax = json.load(_f)
-    SINGLE_VALUE_KEYS = [k for k, v in _tax.items()
-                         if not k.startswith("_") and v.get("type") == "single"]
+# SINGLE_VALUE_KEYS computed in main() from --tag-taxonomy CLI arg (no module-level path).
 from utils.wandb_utils import (
     add_wandb_args, init_wandb, log_metrics, log_image, finish_wandb,
 )
@@ -468,20 +466,35 @@ def main():
     parser.add_argument("--k", type=int, default=FAISS_K_NEIGHBORS,
                         help=f"kNN neighbors (default: {FAISS_K_NEIGHBORS})")
     parser.add_argument("--no-grid", action="store_true", help="Skip kNN grid (faster)")
+    parser.add_argument("--tag-taxonomy", required=True,
+                        help="Tag taxonomy JSON (e.g., configs/tag_taxonomy.json)")
     add_encoder_arg(parser)
     add_subset_arg(parser)
     add_wandb_args(parser)
     # Cache-policy gate (iter11): every destructive delete in this module must route
     # through utils.cache_policy.guarded_delete(path, args.cache_policy, ...).
     # --cache-policy defaults to 1 (keep) so overnight re-runs never destroy cache.
-    from utils.cache_policy import add_cache_policy_arg
+    from utils.cache_policy import add_cache_policy_arg, resolve_cache_policy_interactive
     add_cache_policy_arg(parser)
     args = parser.parse_args()
+
+    # Cache-policy prompt — shells stay thin (CLAUDE.md DELETE PROTECTION).
+    args.cache_policy = resolve_cache_policy_interactive(args.cache_policy)
 
     if not (args.SANITY or args.POC or args.FULL):
         parser.print_help()
         print("\nERROR: Specify --SANITY, --POC, or --FULL")
         sys.exit(1)
+
+    # Load taxonomy from CLI arg (was module-level TAXONOMY_FILE constant)
+    taxonomy_path = Path(args.tag_taxonomy)
+    if not taxonomy_path.exists():
+        print(f"FATAL: --tag-taxonomy not found: {taxonomy_path}")
+        sys.exit(1)
+    with open(taxonomy_path) as _f:
+        _tax = json.load(_f)
+    SINGLE_VALUE_KEYS = [k for k, v in _tax.items()
+                         if not k.startswith("_") and v.get("type") == "single"]
 
     base_dir = get_output_dir(args.subset, sanity=args.SANITY, poc=args.POC)
     output_dir = get_module_output_dir("m08_plot", args.subset, sanity=args.SANITY, poc=args.POC)
@@ -495,16 +508,6 @@ def main():
     enc_files = get_encoder_files(args.encoder, base_dir)
     enc_sfx = get_encoder_info(args.encoder)["suffix"]
 
-    # Output-exists guard (CPU-only but avoids redundant re-plots)
-    from utils.output_guard import verify_or_skip
-    umap_plot = output_dir / f"m08_umap{enc_sfx}.png"
-    conf_plot = output_dir / f"m08_confusion_matrix{enc_sfx}.png"
-    if verify_or_skip(output_dir, {
-        "umap_plot": umap_plot,
-        "confusion_matrix": conf_plot,
-    }, label=f"m08 {args.encoder}"):
-        finish_wandb(wb_run)
-        return
     tags_file = base_dir / "tags.json"
     paths_file = enc_files["paths"]
     metrics_file = enc_files["metrics"]

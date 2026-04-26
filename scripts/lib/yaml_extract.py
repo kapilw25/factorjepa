@@ -28,8 +28,38 @@ def main() -> int:
         print(f"FATAL: yaml not found: {yaml_path}", file=sys.stderr)
         return 3
 
+    # Walk the `extends:` chain (variant → surgery_base → base_optimization) and
+    # deep-merge each parent under the child so inherited keys (data.train_subset,
+    # probe.subset, etc.) resolve correctly. Mirrors src/utils/config.py:163-181.
+    def _deep_merge(base: dict, overlay: dict) -> dict:
+        merged = base.copy()
+        for k, v in overlay.items():
+            if k in merged and isinstance(merged[k], dict) and isinstance(v, dict):
+                merged[k] = _deep_merge(merged[k], v)
+            else:
+                merged[k] = v
+        return merged
+
     with open(yaml_path) as f:
-        cfg = yaml.safe_load(f)
+        cfg = yaml.safe_load(f) or {}
+    seen = {yaml_path.resolve()}
+    cur_dir = yaml_path.parent
+    while True:
+        extends = cfg.pop("extends", None)
+        if not extends:
+            break
+        parent = (cur_dir / extends).resolve()
+        if parent in seen:
+            print(f"FATAL: extends cycle at {parent}", file=sys.stderr)
+            return 6
+        seen.add(parent)
+        if not parent.is_file():
+            print(f"FATAL: extends target not found: {parent}", file=sys.stderr)
+            return 7
+        with open(parent) as f:
+            parent_cfg = yaml.safe_load(f) or {}
+        cfg = _deep_merge(parent_cfg, cfg)
+        cur_dir = parent.parent
 
     node = cfg
     for part in dotted_key.split("."):

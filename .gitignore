@@ -67,6 +67,9 @@ logs/*.log
 # data/LEGACY*
 # data/subset_10k_local/*
 data/full_local/tags.json
+# manifest.json is a derived artifact of the (gitignored) .tar shards — tracking it
+# alone causes "stale manifest, .tar missing" resume-resets after git_pull.sh.
+data/val_1k_local/manifest.json
 
 # WalkIndia POC - Large files (re-downloadable via m01_download.py)
 src/data/videos/*.mp4

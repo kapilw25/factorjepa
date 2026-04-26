@@ -8,16 +8,22 @@
 > Ref: `Literature/proposal/FactorJEPA/FactorJEPA.md` Sections 10-11
 > **If surgery doesn't improve metrics:** See `iter/utils/literarure_survey.md` — 24 JEPA variants surveyed. Top fallback techniques: SIGReg regularizer (LeJEPA, replaces EMA), leakage-free factor training (VLA-JEPA), temporal straightening diagnostic (LeWorldModel).
 
-## 🟢 Status (2026-04-24): iter10 closed Δ ≈ 0 pp, iter11 v2 active
+## 🟢 Status (2026-04-26): iter11 v2 LR re-anchored to 5e-5, 15-epoch budget, runs in flight
+
+- 🔬 **2026-04-26 LR re-anchoring (`errors_N_fixes.md #78`)**: after `surgery_2stage_noDI` v2 (5 epochs @ lr=1e-5) ended with val_jepa still descending (0.4663 final, curve un-plateaued) and probe Prec@K saturated (Δ +0.22 over 27 probes ≪ ±3.78 BCa CI), re-anchored `base_optimization.yaml` to Meta's continual training recipe BS-scaled (4.25e-4 @ BS=256 → **5.0e-5 @ BS=32**). Five inherited yaml changes: `lr: 1e-5 → 5e-5`, `max_epochs.full: 5 → 15`, `warmup_cap_pct: 10 → 15`, `grad_clip: 10.0 → 1.0`, `nan_tolerance: 3 → 2`. Dead `lr_schedule: constant` field deleted (build_scheduler is unconditionally cosine-to-`min_lr=1e-6`). SANITY (1-epoch FULL-mode at 5e-5) verified: val_jepa 0.4835 → 0.4693 (Δ−0.014 in 1 ep ≈ matches 1e-5 final after 5 ep), Prec@K 75.05–75.22, 0 NaN, max post-warmup grad=0.803. Two 15-epoch FULL runs in flight on 2 boxes (`surgery_2stage_noDI_epoch15_v3` + `surgery_3stage_DI_epoch15_v2`); explora + surgery_2stage_loud_agent queued.
+
+## 🟢 Status (2026-04-25): iter11 v2 infra landed, ready to launch
 
 - ✅ **iter10 closed 2026-04-23**: v10/v13/v14/v15a/v15b all Δ ≈ 0 pp on eval_10k (N=9,297, CI_half ±0.42 pp, paired BCa p ≥ 0.68). See `iter/utils/experiment_log.md` cross-run table. No variant cleared the +3 pp gate. v15c WITHDRAWN (silent L/A renorm, `errors_N_fixes.md #73`); ckpt deleted.
 - 🗑️ **iter11 v1 INVALIDATED 2026-04-24**: m09b ExPLoRA first 10K run halted at step 174/298 by `prec_plateau_enabled` trigger whose threshold (0.3 pp) sat below the CI_half noise floor (1.73 pp at N=1000) → fired on sampling jitter, not stagnation. Ckpts + eval dirs deleted.
-- 🚀 **iter11 v2 active**: 4-variant apples-to-apples at 10K (ExPLoRA + 3 surgery recipes) with unified 5-epoch budget, `saves_per_epoch=5`, val-loss plateau as the ONLY active early-stop (per `feedback_only_val_loss_early_stop.md` — probe-Prec@K triggers all operate below BCa CI_half noise). Yamls edited; shared `render_training_plots` + `val_split.json` landed in `utils/training.py`. Code-dev plan: `iter/iter11/plan_code_dev.md`.
-- ✅ **Prior validations** carried forward into iter11 v2: H2 stratified splits; per-stage plateau reset (iter10 #70); typed-interactions obj_id→cat persistence (#77); fingerprinted m05 surgical-ckpt paths (#75); fail-loud per-factor preflight in `StreamingFactorDataset` (#73).
+- 🚀 **iter11 v2 infra LANDED 2026-04-25** — ready to launch: 4-variant apples-to-apples at 10K (ExPLoRA + 3 surgery recipes) with unified 5-epoch budget, `saves_per_epoch=5`, val-loss plateau as the ONLY active early-stop (per `feedback_only_val_loss_early_stop.md` — probe-Prec@K triggers all operate below BCa CI_half noise). Each train yaml carries a `data:` block (module / model_config / subsets / local_data / output_dir / eval paths / adapted_encoder) so 3 thin wrappers — `scripts/run_factor_prep.sh` + `run_train.sh` + `run_eval.sh` (+ `lib/yaml_extract.py`) — take ONLY yaml paths as args (CLAUDE.md "No hardcoded paths" rule). Terminal commands: `iter/iter11/runbook.md`. Code-dev plan: `iter/iter11/plan_code_dev.md`.
+- 🔮 **FUTURE — Plan B "true-hard" re-curation (deferred 2026-04-26, post-iter11-v3)**: mid-training diagnostic on `ultra_hard_3066_val` showed probe Prec@K saturated at ~75 vs ~28-30 on iter10's random subset_10k. The `ultra_hard` curation rule (≥4 Hard triggers AND ≥4 Indian-specific objects) selected for **tag-richness**, which is the opposite of retrieval-difficulty — tag-rich clips trivially retrieve same-tag neighbors via kNN, leaving no headroom (Δ ceiling ≤ 5 pp vs CI_half ±2.4 pp at N=306, never significant). **Plan B**: build `src/m00g_frozen_hard.py` to encode a 50K candidate pool with frozen V-JEPA 2.1, compute per-clip Prec@K, select bottom quartile (`prec_at_k < 0.30`) as the genuinely-retrieval-hard subset. Then 80/10/10 split + re-run the whole pipeline. Cost: ~3 h GPU re-curation + ~10-15 h GPU re-train. **Trigger**: execute ONLY AFTER current iter11 v3 `run_eval.sh` completes for the 3,066 selected clips (decision rule + step list in `iter/iter11/plan_TODO.md`). Not a current-session change.
+- 🎯 **iter11 v3 hard-pivot — splits ready 2026-04-25**: per-clip post-hoc Δ analysis showed Surgery's signal concentrates on the Indian agent-rich tail. `src/m00f_category_subsets.py` built 9 category subsets + a 3-way 80/10/10 train/val/eval split inside `data/ultra_hard_3066.json` (3,066 clips meeting ≥4 Hard triggers AND ≥4 Indian-specific objects). Two download strategies via `src/m00d_download_subset.py` — verified against HF dataset (130 GB / 115,687 clips = **1.13 MB/clip**): **Strategy A** = 3,066-clip parent only (~4 GB, ~7.5 min, measured); **Strategy B** = all 9 categories (~99K unique, ~**109 GB** — corrected from earlier 250 GB hallucination, ~70 min). Both run on CPU+network, 0 h GPU. Hand-off: each train yaml's `data:` block points `*_local_data` at `data/ultra_hard_3066_local/` and `*_subset` at the 3 split JSONs → existing `run_factor_prep.sh → run_train.sh → run_eval.sh` chain consumes unchanged.
+- ✅ **Prior validations** carried forward into iter11 v2: H2 stratified splits (data/val_500.json + data/test_500.json files retained but iter11 v2 probes against the FULL `data/val_1k.json` instead — paired-comparison fairness); per-stage plateau reset (iter10 #70); typed-interactions obj_id→cat persistence (#77); fingerprinted m05 surgical-ckpt paths (#75); fail-loud per-factor preflight in `StreamingFactorDataset` (#73).
 - 🔒 **50K scale-up escalation**: conditional on iter11 v2 best Δ ∈ [+0.3, +3) pp on eval_10k. Builds `data/subset_50k.json` disjoint from 10K+val+eval_10k. Budget ~52 h / ~$42.
 - 🔒 **Concede tier** (if iter11 v2 all Δ < +0.3 pp): re-pitch paper as narrower **"layout-factor surgery at NOISE FLOOR"** — D_L+D_A+D_I move from recipe stages to ablations table; pretrained-feature preservation (BWT ≈ 0 across scales) becomes the headline.
 - ✅ **Streaming factor generation landed 2026-04-19** (9 files, ~1014 LoC, 10/10 bitwise parity on iter8 D_L/D_A .npy): `StreamingFactorDataset(IterableDataset)` generates D_L/D_A on-demand from `(raw_mp4, mask.npz)` pairs inside m09c's `DataLoader(num_workers=16, persistent_workers, prefetch_factor=4)`. m11 `--streaming` flag short-circuits non-verify clips → ~90 % m11 wall reduction. **Unlocks full 10K→50K→115K ladder on a single 500 GB instance** (was 500 GB → 3 TB → 5 TB tier progression). Projected 10K wall @ num_workers=16: **4.77 h** (Tier-3 regression test). See `iter/iter9/plan_code_dev.md`.
-- ✅ **Val/Test split policy** (methodology fix vs iter8 best-of-K bias): `val_1k.json` → `val_500.json` (m09c probe: best-ckpt / BWT / early-stop) + `test_500.json` (m06 decision gate, touched once). Seed=42, disjoint. Eliminates ~2.2 pp selection bias (σ=0.77 pp × √(2 ln 50) at K=50 probes). CI widens ±1.5 pp → ±2.1 pp at N=500, still < 3 pp gate threshold.
+- ✅ **iter11 v2 val/eval split policy**: probe (mid-training) on `data/val_1k.json` (full 1K, paired-comparison fair across all 4 variants); decision gate on `data/eval_10k.json` (paired BCa, N=9,297, CI_half ±0.42 pp). val_500/test_500 files retained for iter9 reproducibility but no longer used by iter11 v2. iter9 H2 best-of-K bias mitigation context: `val_1k.json` → `val_500.json` (probe) + `test_500.json` (gate, touched once); CI ±1.5 pp → ±2.1 pp at N=500. Iter11 v2 supersedes by tightening to N=9,297 paired BCa (~5× tighter CI).
 - ✅ **Disk cleanup freed ~123 GB pre-launch**: iter8 1K POC outputs (67 GB) archived to HF + deleted; iter8 archive's D_L/D_A/D_I bulk .npy (56 GB) permanently retired by streaming refactor; git gc compacted packs.
 
 
@@ -62,7 +68,7 @@ flowchart TB
         direction TB
         MODEL["model/<br>vjepa2_1.yaml<br>(2B, 1664-dim)"]
         TRAIN_E["train/<br>explora.yaml"]
-        TRAIN_S["train/<br>ch11_surgery.yaml"]
+        TRAIN_S["train/<br>surgery_2stage_noDI.yaml<br>(+ loud_agent / 3stage_DI)"]
         PIPE["pipeline.yaml<br>encoders, limits"]
     end
 
@@ -217,7 +223,7 @@ flowchart LR
 
 ## System Design: Surgery (Step 2) — THE PAPER NOVELTY
 
-> **2026-04-14 update:** m10 architecture pivoted to **Grounded-SAM (Path D)** — Grounding DINO open-vocab box detection on frame 0 + SAM 3.1 text-tracked + box-refined propagation across 16 frames. Replaces the original SAM 3.1 native text grounding which failed on Indian objects (10/15 clips wrong/missing masks). Fixed 17-category agent taxonomy in `configs/train/ch11_surgery.yaml > factor_datasets.grounding_dino.agent_taxonomy` replaces per-clip VLM `notable_objects`. See `errors_N_fixes.md` #20-27 for pivot history.
+> **2026-04-14 update:** m10 architecture pivoted to **Grounded-SAM (Path D)** — Grounding DINO open-vocab box detection on frame 0 + SAM 3.1 text-tracked + box-refined propagation across 16 frames. Replaces the original SAM 3.1 native text grounding which failed on Indian objects (10/15 clips wrong/missing masks). Fixed 17-category agent taxonomy in `configs/train/surgery_*.yaml > factor_datasets.grounding_dino.agent_taxonomy` (was `ch11_surgery.yaml` pre-iter11-v2 rename) replaces per-clip VLM `notable_objects`. See `errors_N_fixes.md` #20-27 for pivot history.
 
 ```mermaid
 flowchart TB
@@ -351,7 +357,7 @@ Proposal (Sec 11.5) originally specified **3-stage** progressive prefix unfreezi
 | 1 | 0 to 25% of L | 100% D_L | Roads, buildings, wires | 50 % |
 | 2 | 0 to 50% of L | 70% D_A + 30% D_L replay | Vehicles, people, animals | 50 % |
 
-Why 30 % replay (was 10 %): CLEAR (NeurIPS 2018) recommends 50/50 novel-replay, reports insensitivity in [20-50 %]. Old 10 % sat below noise floor → Stage-1 layout signal was lost at the Stage 1→2 transition. See `configs/train/ch11_surgery.yaml` comment header for full rationale.
+Why 30 % replay (was 10 %): CLEAR (NeurIPS 2018) recommends 50/50 novel-replay, reports insensitivity in [20-50 %]. Old 10 % sat below noise floor → Stage-1 layout signal was lost at the Stage 1→2 transition. See `configs/train/surgery_2stage_noDI.yaml` comment header for full rationale (was `ch11_surgery.yaml` pre-iter11-v2 rename).
 
 ### 🟡 v10 empirical finding: D_L dominance at current mask quality + LR
 
@@ -415,7 +421,7 @@ Budget: 3 × ~13 h 10K runs = **~$30 + 40 GPU-h**. Publishable artifact: first "
 **Current status:** 📋 `iter/iter9/plan_TODO.md` (Step H scale-ladder §)
 **Error log:** 🐛 `iter/iter9/errors_N_fixes.md`
 **1K POC run log:** 📜 `iter/utils/experiment_log.md` entry 2026-04-19
-**Training configs:** ⚙️ `configs/train/` (ch10_pretrain.yaml, explora.yaml, ch11_surgery.yaml)
+**Training configs:** ⚙️ `configs/train/` (ch10_pretrain.yaml, explora.yaml, surgery_2stage_noDI.yaml, surgery_2stage_loud_agent.yaml, surgery_3stage_DI.yaml — last 3 renamed from ch11_surgery{,_v15b,_v15c}.yaml on 2026-04-25)
 
 ### Historical: 10K POC (DONE ✅)
 
@@ -497,12 +503,12 @@ Audit of m09_pretrain.py against V-JEPA 2/2.1 source code and literature (2026-0
 
 | # | Current | Fix to | Severity | Ref |
 |---|---------|--------|----------|-----|
-| 1 | Cosine LR decay to 1e-7 | **Constant** (warmup then flat) | CRITICAL | [arXiv:2503.02844](https://arxiv.org/abs/2503.02844) |
+| 1 | Cosine LR decay to 1e-7 | **Single cosine to `min_lr=1e-6`** (build_scheduler always cosine; arXiv:2503.02844 forgetting warning applies to *re-warming*, not single decay; matches Meta continual recipe `final_lr: 0.0`. 2026-04-26: dead `lr_schedule: constant` yaml field deleted via `#78`) | RESOLVED | [arXiv:2503.02844](https://arxiv.org/abs/2503.02844) |
 | 2 | V-JEPA 2.0 (1B, 1408d) | **V-JEPA 2.1 (2B, 1664d)** | CRITICAL | [arXiv:2603.14482](https://arxiv.org/abs/2603.14482) |
 | 3 | Masked-only L1 loss | **Dense loss (all tokens)** | CRITICAL | V-JEPA 2.1 paper |
 | 4 | Final layer supervision | **4-layer deep supervision** | CRITICAL | V-JEPA 2.1 paper |
-| 5 | grad_clip=1.0 | **10.0 or remove** | MODERATE | V-JEPA 1/2 configs |
-| 6 | 1 epoch | **5 epochs + 1 cooldown** | HIGH | [arXiv:2406.14833](https://arxiv.org/abs/2406.14833) |
+| 5 | grad_clip=10.0 (V-JEPA 1/2 default for 315-epoch budget) | **1.0** (REVERSED 2026-04-26 via `#78` — at lr=5e-5 over our 1140-step budget, the standard transformer-FT bound bounds outlier batches; Meta's 10.0 is sized for 315-epoch absorbing capacity we don't have) | RESOLVED | BEiT/MAE/DINOv2 FT |
+| 6 | 1 epoch | **15 epochs + 1 cooldown** (was 5; bumped 2026-04-26 via `#78` after surgery_2stage_noDI v2 val-loss un-plateaued) | HIGH | [arXiv:2406.14833](https://arxiv.org/abs/2406.14833) |
 | 7 | All layers trainable | **Freeze 0-20, train 20-48** | HIGH | [arXiv:2509.10156](https://arxiv.org/abs/2509.10156) |
 | 8 | No cooldown phase | **Epoch 6: 64f, linear LR decay** (matches eval frame count) | HIGH | V-JEPA 2 cooldown config |
 | 9 | Predictor LR 10x encoder | **Ablate: 10x vs 1x** (predictor = retention mechanism) | HIGH | [arXiv:2311.13321](https://arxiv.org/abs/2311.13321) |
@@ -548,7 +554,7 @@ Ch11's novelty = factor-decomposed inputs + progressive prefix unfreezing using 
 flowchart TD
     POC1K["1K POC (iter8, DONE ❌)<br>N=100 val-split, CI ±4.5 pp<br>Δ +0.17 pp → gate FAILED<br>→ 2-stage recipe + early-stop suite"]
 
-    T10["Tier 10K (iter9, NEXT ⏳)<br>A→F on 500 GB instance<br>val_1k, N=1000, CI ±1.5 pp<br>~15 h end-to-end"]
+    T10["Tier 10K (iter11 v2, READY ⏳)<br>factor_prep + run_train + run_eval<br>eval_10k paired BCa, N=9,297, CI ±0.42 pp<br>~50-80 h end-to-end"]
 
     G10{"10K gate<br>Δ vs Frozen?"}
     BWT_B["BWT Option B<br>(λ=50, yaml-only)<br>re-run 10K"]
@@ -699,7 +705,7 @@ See "Updated Execution Order" section above for the full week-by-week plan.
 
 ### Decision Tree (updated 2026-04-19, plateau-seeking)
 
-**Per-tier gate** (test_500 Prec@K, N=500, CI ±2.1 pp, bootstrap 95 % BCa — revised 2026-04-20 for val/test split policy):
+**Per-tier gate** — iter11 v2: paired BCa Δ Prec@K on `data/eval_10k.json` (N=9,297, CI_half ±0.42 pp). iter9 used test_500 (N=500, CI ±2.1 pp); iter11 v2 supersedes with ~5× tighter CI:
 
 | Current tier | Δ (Surgery − Frozen) | Δ vs prior tier | Next action |
 |---|---|---|---|

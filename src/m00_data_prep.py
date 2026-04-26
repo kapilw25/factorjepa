@@ -1,11 +1,22 @@
 """
-Convert YT_videos_raw.md to structured JSON, generate word frequency analysis and city matrix.
-Re-run whenever raw.md is updated.
+Convert YT_videos_raw.md to structured JSON + word-frequency + city matrix. CPU-only.
 
 USAGE:
-    python -u src/m00_data_prep.py --SANITY 2>&1 | tee logs/m00_data_prep_sanity.log
-    python -u src/m00_data_prep.py --POC 2>&1 | tee logs/m00_data_prep_poc.log
-    python -u src/m00_data_prep.py --FULL 2>&1 | tee logs/m00_data_prep_full.log
+    python -u src/m00_data_prep.py --SANITY \
+        --raw-md Literature/Prev_work4/YT_videos_raw.md \
+        --output-json src/utils/YT_videos_raw.json \
+        --output-dir outputs/data_prep \
+        2>&1 | tee logs/m00_data_prep_sanity.log
+    python -u src/m00_data_prep.py --POC \
+        --raw-md Literature/Prev_work4/YT_videos_raw.md \
+        --output-json src/utils/YT_videos_raw.json \
+        --output-dir outputs/data_prep \
+        2>&1 | tee logs/m00_data_prep_poc.log
+    python -u src/m00_data_prep.py --FULL \
+        --raw-md Literature/Prev_work4/YT_videos_raw.md \
+        --output-json src/utils/YT_videos_raw.json \
+        --output-dir outputs/data_prep \
+        2>&1 | tee logs/m00_data_prep_full.log
 """
 import argparse
 import json
@@ -17,12 +28,6 @@ from pathlib import Path
 # Add src to path for utils import
 sys.path.insert(0, str(Path(__file__).parent))
 from utils.progress import make_pbar
-
-# Paths
-from utils.config import OUTPUTS_DATA_PREP_DIR
-RAW_MD = Path("Literature/Prev_work4/YT_videos_raw.md")
-OUTPUT_JSON = Path("src/utils/YT_videos_raw.json")
-OUTPUT_DIR = OUTPUTS_DATA_PREP_DIR
 
 
 def extract_youtube_id(url: str) -> str:
@@ -647,6 +652,12 @@ def main():
     parser.add_argument("--SANITY", action="store_true", help="Parse and show summary only")
     parser.add_argument("--POC", action="store_true", help="10K subset")
     parser.add_argument("--FULL", action="store_true", help="Full 115K corpus")
+    parser.add_argument("--raw-md", required=True,
+                        help="Input raw markdown (e.g., Literature/Prev_work4/YT_videos_raw.md)")
+    parser.add_argument("--output-json", required=True,
+                        help="Output structured JSON path (e.g., src/utils/YT_videos_raw.json)")
+    parser.add_argument("--output-dir", required=True,
+                        help="Output dir for word_frequency.json + city_matrix.json (e.g., outputs/data_prep)")
     args = parser.parse_args()
 
     if not (args.SANITY or args.POC or args.FULL):
@@ -654,13 +665,17 @@ def main():
         print("\nERROR: Specify --SANITY, --POC, or --FULL")
         sys.exit(1)
 
+    raw_md = Path(args.raw_md)
+    output_json = Path(args.output_json)
+    output_dir = Path(args.output_dir)
+
     # Check input file
-    if not RAW_MD.exists():
-        print(f"ERROR: {RAW_MD} not found")
+    if not raw_md.exists():
+        print(f"ERROR: {raw_md} not found")
         sys.exit(1)
 
-    print(f"=== Reading {RAW_MD} ===")
-    md_content = RAW_MD.read_text(encoding='utf-8')
+    print(f"=== Reading {raw_md} ===")
+    md_content = raw_md.read_text(encoding='utf-8')
     print(f"File size: {len(md_content)} chars, {len(md_content.splitlines())} lines")
 
     # Task 1 & 2: Parse and convert to JSON
@@ -709,20 +724,20 @@ def main():
 
     elif args.POC or args.FULL:
         # Save JSON
-        OUTPUT_JSON.parent.mkdir(parents=True, exist_ok=True)
-        with open(OUTPUT_JSON, 'w', encoding='utf-8') as f:
+        output_json.parent.mkdir(parents=True, exist_ok=True)
+        with open(output_json, 'w', encoding='utf-8') as f:
             json.dump(data, f, indent=2, ensure_ascii=False)
-        print(f"\nSaved: {OUTPUT_JSON}")
+        print(f"\nSaved: {output_json}")
 
         # Save word frequency
-        OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
-        freq_file = OUTPUT_DIR / "word_frequency.json"
+        output_dir.mkdir(parents=True, exist_ok=True)
+        freq_file = output_dir / "word_frequency.json"
         with open(freq_file, 'w', encoding='utf-8') as f:
             json.dump(freq_data, f, indent=2, ensure_ascii=False)
         print(f"Saved: {freq_file}")
 
         # Save matrix
-        matrix_file = OUTPUT_DIR / "city_matrix.json"
+        matrix_file = output_dir / "city_matrix.json"
         with open(matrix_file, 'w', encoding='utf-8') as f:
             json.dump(matrix_data, f, indent=2, ensure_ascii=False)
         print(f"Saved: {matrix_file}")

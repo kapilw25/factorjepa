@@ -2,10 +2,16 @@
 Generate baseline embeddings: Random, DINOv2, CLIP, Shuffled V-JEPA.
 GPU-only for DINOv2/CLIP/Shuffled (no CPU fallback). Random is CPU-safe.
 
-USAGE:
-    python -u src/m05b_baselines.py --encoder all --SANITY 2>&1 | tee logs/m05b_all_sanity.log
-    python -u src/m05b_baselines.py --encoder all --POC --subset data/subset_10k.json --local-data data/subset_10k_local 2>&1 | tee logs/m05b_all_poc.log
-    python -u src/m05b_baselines.py --encoder all --FULL --local-data data/full_local 2>&1 | tee logs/m05b_all_full.log
+USAGE (--profile-data optional; per-encoder profile JSON path; CLAUDE.md no-default rule):
+    python -u src/m05b_baselines.py --encoder all --SANITY \
+        --subset data/sanity_100_dense.json --local-data data/val_1k_local \
+        2>&1 | tee logs/m05b_all_sanity.log
+    python -u src/m05b_baselines.py --encoder dinov2 --POC \
+        --subset data/subset_10k.json --local-data data/subset_10k_local \
+        --profile-data outputs/profile/inference/dinov2/profile_data.json \
+        2>&1 | tee logs/m05b_dinov2_poc.log
+    python -u src/m05b_baselines.py --encoder all --FULL \
+        --local-data data/full_local 2>&1 | tee logs/m05b_all_full.log
 """
 import argparse
 import io
@@ -292,17 +298,18 @@ def generate_dinov2(output_dir: Path, args, clip_limit: int, subset_keys: set):
     all_embeddings, all_keys, resume_count = load_checkpoint(checkpoint_file)
     processed_keys = set(all_keys)
 
-    # Read from: 1) CLI arg, 2) profiler JSON, 3) pipeline.yaml, 4) linear estimate
+    # Read from: 1) CLI arg, 2) --profile-data CLI arg, 3) pipeline.yaml, 4) linear estimate
     batch_size = None
     if args.batch_size:
         batch_size = args.batch_size
     else:
-        _prof_path = Path("outputs/profile/inference/dinov2/profile_data.json")
-        if _prof_path.exists():
-            _prof = json.load(open(_prof_path))
-            if "optimal_bs" in _prof:
-                batch_size = _prof["optimal_bs"]
-                print(f"Batch size: {batch_size} (from inference/dinov2 profiler)")
+        if args.profile_data:
+            _prof_path = Path(args.profile_data)
+            if _prof_path.exists():
+                _prof = json.load(open(_prof_path))
+                if "optimal_bs" in _prof:
+                    batch_size = _prof["optimal_bs"]
+                    print(f"Batch size: {batch_size} (from --profile-data {_prof_path})")
         if batch_size is None:
             batch_size = get_pipeline_config()["gpu"].get("inference_dinov2_bs",
                          compute_batch_sizes(gpu_vram_gb=args.gpu_mem)["image_encoder"])
@@ -711,12 +718,13 @@ def generate_shuffled_vjepa(output_dir: Path, args, clip_limit: int, subset_keys
     if args.batch_size:
         batch_size = args.batch_size
     else:
-        profile_path = Path("outputs/profile/inference/vjepa2/profile_data.json")
-        if profile_path.exists():
-            _profile = json.load(open(profile_path))
-            if "optimal_bs" in _profile:
-                batch_size = _profile["optimal_bs"]
-                print(f"Batch size: {batch_size} (from inference/vjepa2 profiler)")
+        if args.profile_data:
+            profile_path = Path(args.profile_data)
+            if profile_path.exists():
+                _profile = json.load(open(profile_path))
+                if "optimal_bs" in _profile:
+                    batch_size = _profile["optimal_bs"]
+                    print(f"Batch size: {batch_size} (from --profile-data {profile_path})")
         if batch_size is None:
             batch_size = get_pipeline_config()["gpu"].get("inference_vjepa_bs",
                          compute_batch_sizes(gpu_vram_gb=args.gpu_mem)["vjepa"])
@@ -829,6 +837,10 @@ def main():
     parser.add_argument("--FULL", action="store_true", help="Process all clips")
     parser.add_argument("--batch-size", type=int, default=None,
                         help="Override batch size (auto-computed if omitted)")
+    parser.add_argument("--profile-data", type=str, default=None,
+                        help="Optional profile JSON from src/utils/profile_vram.py "
+                             "(e.g., outputs/profile/inference/{dinov2,vjepa2}/profile_data.json). "
+                             "If omitted, falls back to pipeline.yaml gpu.inference_*_bs.")
     add_subset_arg(parser)
     add_local_data_arg(parser)
     add_wandb_args(parser)
@@ -836,9 +848,12 @@ def main():
     # Cache-policy gate (iter11): every destructive delete in this module must route
     # through utils.cache_policy.guarded_delete(path, args.cache_policy, ...).
     # --cache-policy defaults to 1 (keep) so overnight re-runs never destroy cache.
-    from utils.cache_policy import add_cache_policy_arg
+    from utils.cache_policy import add_cache_policy_arg, resolve_cache_policy_interactive
     add_cache_policy_arg(parser)
     args = parser.parse_args()
+
+    # Cache-policy prompt — shells stay thin (CLAUDE.md DELETE PROTECTION).
+    args.cache_policy = resolve_cache_policy_interactive(args.cache_policy)
 
     if not (args.SANITY or args.POC or args.FULL):
         parser.print_help()
@@ -886,14 +901,6 @@ def _run_single_encoder(encoder: str, args):
     print(f"Type:     {info['type']}")
     print(f"Output:   {files['embeddings']}")
     print(f"{'='*60}")
-
-    # Output-exists guard
-    from utils.output_guard import verify_or_skip
-    if verify_or_skip(output_dir, {
-        "embeddings": files["embeddings"],
-        "paths": files["paths"],
-    }, label=f"m05b {encoder}"):
-        return
 
     # Determine clip limit + subset
     subset_keys = load_subset(args.subset) if args.subset else set()

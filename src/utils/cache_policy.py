@@ -31,9 +31,11 @@ Python pattern (src/m*.py):
 
 from __future__ import annotations
 
+import os
 import shutil
+import sys
 from pathlib import Path
-from typing import Iterable, Union
+from typing import Iterable, Optional, Union
 
 # Accept both digit (user-facing) and word (back-compat / self-documenting code).
 _KEEP = {"1", "keep"}
@@ -44,23 +46,57 @@ _VALID = sorted(_KEEP | _RECOMPUTE)
 def add_cache_policy_arg(parser) -> None:
     """Register --cache-policy on an argparse.ArgumentParser.
 
-    Non-interactive. Accepts 1 (keep, default) or 2 (recompute). The .sh
-    orchestrator is the only place that prompts the user; .py callees never
-    block on input so overnight/tmux runs proceed unattended.
+    Default is None so each .py main() can detect "user did not pass the flag"
+    and prompt interactively via input(). Per src/CLAUDE.md DELETE PROTECTION:
+    shells stay THIN (no read -p), .py owns the prompt. Overnight/tmux runs
+    bypass the prompt by passing `--cache-policy 1|2` or setting env var
+    `CACHE_POLICY_ALL=1|2`.
     """
     parser.add_argument(
         "--cache-policy",
         type=str,
         choices=_VALID,
-        default="1",
+        default=None,
         help=(
-            "1 = keep (default, preserve all cached checkpoints/intermediates; "
-            "deletion call-sites become no-ops with a log line). "
-            "2 = recompute (authorize destructive deletes — user must type "
-            "`2` at the .sh read -p prompt before a run can wipe cache). "
-            "Word aliases `keep`/`recompute` also accepted."
+            "1 = keep (preserve cached checkpoints/intermediates; delete call-sites "
+            "no-op with a log line). 2 = recompute (authorize destructive deletes "
+            "via guarded_delete). If omitted: each .py prompts via input() in TTY, "
+            "honors CACHE_POLICY_ALL env var, or falls back to '1' in non-TTY. "
+            "Word aliases keep/recompute also accepted."
         ),
     )
+
+
+def resolve_cache_policy_interactive(value: Optional[str]) -> str:
+    """Resolve --cache-policy after parse_args. Returns one of '1','2','keep','recompute'.
+
+    Call from each m*.py main() right after parse_args:
+        args.cache_policy = resolve_cache_policy_interactive(args.cache_policy)
+
+    Resolution order (high → low priority):
+        1. CLI flag (`value`) — if not None, return as-is (post-validate).
+        2. CACHE_POLICY_ALL env var — FATAL if set to invalid value (FAIL LOUD).
+        3. input() TTY prompt — only when stdin is a TTY.
+        4. '1' (keep) — non-TTY silent fallback (overnight/CI/subprocess).
+
+    EOFError on input() (e.g. Ctrl-D) is caught → silent fallback to '1'.
+    """
+    if value is not None:
+        _validate(value)
+        return value
+    env = os.environ.get("CACHE_POLICY_ALL", "").strip()
+    if env:
+        if env not in _VALID:
+            print(f"FATAL: invalid CACHE_POLICY_ALL={env!r} (must be one of {_VALID})")
+            sys.exit(1)
+        return env
+    if not sys.stdin.isatty():
+        return "1"
+    try:
+        ans = input("  [cache-policy] [1=keep / 2=recompute] (Enter=1): ").strip()
+    except EOFError:
+        ans = ""
+    return ans if ans in _VALID else "1"
 
 
 def is_recompute(policy: str) -> bool:
@@ -100,6 +136,46 @@ def guarded_delete_many(paths: Iterable[Union[str, Path]], policy: str,
         if guarded_delete(p, policy, label=label):
             n += 1
     return n
+
+
+def wipe_output_dir(output_dir: Union[str, Path], policy: str,
+                    label: str = "output_dir") -> bool:
+    """Nuke the entire output_dir when policy=2 ("recompute"). No-op when policy=1.
+
+    iter11 v3 (2026-04-26): semantic upgrade — "recompute" used to mean
+    "enforce keep_last_n eviction of stale periodic ckpts during training",
+    which still resumed from the latest ckpt. That defeated the user-intent
+    of "fresh start". Now `cache-policy=2` deletes the WHOLE output_dir at
+    startup so the next load_checkpoint() finds nothing → step 0 fresh run.
+
+    Call this from m09a/m09b/m09c main() right after args.cache_policy is
+    resolved and BEFORE any checkpoint discovery. The directory is recreated
+    empty so downstream writes (logs, plots, ckpts) succeed.
+
+    Args:
+        output_dir: Variant results directory (e.g. outputs/full/explora).
+        policy:     '1'/'keep' or '2'/'recompute'.
+        label:      Log prefix shown to the user (default 'output_dir').
+
+    Returns True iff the directory was actually wiped.
+    """
+    _validate(policy)
+    p = Path(output_dir)
+    if policy in _KEEP:
+        if p.exists():
+            print(f"  [cache-policy=1/keep] preserved {label}: {p} — "
+                  f"rerun with --cache-policy 2 to delete (whole folder wipe)")
+        return False
+    # policy in _RECOMPUTE
+    if not p.exists():
+        p.mkdir(parents=True, exist_ok=True)
+        return False
+    n_files = sum(1 for _ in p.rglob("*") if _.is_file())
+    print(f"  [cache-policy=2/recompute] WIPING {label}: {p} ({n_files} file(s))")
+    shutil.rmtree(p)
+    p.mkdir(parents=True, exist_ok=True)
+    print(f"  [cache-policy=2/recompute] {label} recreated empty: {p}")
+    return True
 
 
 def guarded_glob_delete(parent: Union[str, Path], pattern: str, policy: str,

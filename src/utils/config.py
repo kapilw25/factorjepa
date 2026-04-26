@@ -160,14 +160,27 @@ def load_merged_config(model_config: str, train_config: str) -> dict:
     with open(train_path) as f:
         train_cfg = yaml.safe_load(f)
 
-    # Handle 'extends' in train config (inheritance from base_optimization.yaml)
-    extends = train_cfg.pop("extends", None)
-    if extends:
-        base_path = train_path.parent / extends
-        if base_path.exists():
-            with open(base_path) as f:
-                base_cfg = yaml.safe_load(f)
-            train_cfg = _deep_merge(base_cfg, train_cfg)
+    # Handle 'extends' in train config (recursive — supports chains like
+    # surgery_2stage_noDI.yaml → surgery_base.yaml → base_optimization.yaml).
+    # iter11 v3 (2026-04-26): walk the chain until the parent has no `extends`
+    # key. Each level overlays its child via _deep_merge (child wins on conflict).
+    seen = {train_path.resolve()}
+    while True:
+        extends = train_cfg.pop("extends", None)
+        if not extends:
+            break
+        base_path = (train_path.parent / extends).resolve()
+        if base_path in seen:
+            print(f"FATAL: extends cycle detected at {base_path}")
+            sys.exit(1)
+        seen.add(base_path)
+        if not base_path.exists():
+            print(f"FATAL: extends target not found: {base_path}")
+            sys.exit(1)
+        with open(base_path) as f:
+            base_cfg = yaml.safe_load(f)
+        train_cfg = _deep_merge(base_cfg, train_cfg)
+        train_path = base_path  # next iteration resolves further `extends:` relative to the parent's dir
 
     # Merge order: pipeline (base) → model → train (train wins on conflict)
     merged = _deep_merge(pipeline_cfg, model_cfg)
@@ -204,16 +217,16 @@ def get_model_config(model_config: str = None) -> dict:
 
 
 def add_model_config_arg(parser):
-    """Add --model-config flag. Default: configs/model/vjepa2_1.yaml (PRIMARY target)."""
+    """Add --model-config flag. Required (no default — FAIL LOUD per src/CLAUDE.md)."""
     parser.add_argument(
-        "--model-config", default="configs/model/vjepa2_1.yaml",
-        help="Model config YAML (default: configs/model/vjepa2_1.yaml)")
+        "--model-config", required=True,
+        help="Model config YAML (e.g., configs/model/vjepa2_1.yaml)")
 
 
 def add_train_config_arg(parser):
-    """Add --train-config flag (for m09 training scripts)."""
+    """Add --train-config flag. Required (no default — FAIL LOUD per src/CLAUDE.md)."""
     parser.add_argument(
-        "--train-config", default=None,
+        "--train-config", required=True,
         help="Training config YAML (e.g., configs/train/explora.yaml)")
 
 

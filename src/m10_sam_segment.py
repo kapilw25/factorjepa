@@ -5,10 +5,19 @@ propagates per-anchor within its 4-frame segment via `max_frame_num_to_track=3` 
 pkg couldn't — errors #33/#34/#35). Measured ~11 s/clip = 4.21× faster than raw sam3 pkg,
 → FULL 115K ETA ~14.7 days on 24GB. See `iter/iter8/plan_TODO.md` for architecture.
 
-    python -u src/m10_sam_segment.py --SANITY --local-data data/val_1k_local --no-wandb 2>&1 | tee logs/m10_sanity.log
-    python -u src/m10_sam_segment.py --POC --subset data/sanity_100_dense.json --local-data data/val_1k_local --no-wandb 2>&1 | tee logs/m10_poc.log
-    python -u src/m10_sam_segment.py --FULL --local-data data/full_local --no-wandb 2>&1 | tee logs/m10_full.log
-    python -u src/m10_sam_segment.py --SANITY --plot    # re-generate plots only (no GPU)
+USAGE (every path arg required — CLAUDE.md no-default rule):
+    python -u src/m10_sam_segment.py --SANITY \
+        --train-config configs/train/surgery_3stage_DI.yaml \
+        --local-data data/val_1k_local --no-wandb 2>&1 | tee logs/m10_sanity.log
+    python -u src/m10_sam_segment.py --POC \
+        --train-config configs/train/surgery_3stage_DI.yaml \
+        --subset data/sanity_100_dense.json --local-data data/val_1k_local --no-wandb \
+        2>&1 | tee logs/m10_poc.log
+    python -u src/m10_sam_segment.py --FULL \
+        --train-config configs/train/surgery_3stage_DI.yaml \
+        --local-data data/full_local --no-wandb 2>&1 | tee logs/m10_full.log
+    python -u src/m10_sam_segment.py --SANITY --plot \
+        --train-config configs/train/surgery_3stage_DI.yaml    # re-generate plots only (no GPU)
 
 HF model download: `facebook/sam3` (~12 GB, first-run only) is pre-cached by `setup_env_uv.sh` step [10/10]
 via `hf download` which respects `HF_HUB_ENABLE_HF_TRANSFER=1` (Rust multi-stream, 1.5-3× per file).
@@ -49,12 +58,14 @@ from utils.config import (
 from utils.checkpoint import save_json_checkpoint, load_json_checkpoint
 from utils.data_download import ensure_local_data, iter_clips_parallel
 from utils.gpu_batch import cleanup_temp
-from utils.output_guard import verify_or_skip
 from utils.plots import init_style, save_fig, COLORS, SCENE_COLORS
 from utils.progress import make_pbar
 from utils.video_io import decode_video_bytes
 from utils.wandb_utils import add_wandb_args, init_wandb, log_metrics, finish_wandb
 from utils.curate_verify import select_verify_clips
+from utils.cache_policy import (
+    add_cache_policy_arg, resolve_cache_policy_interactive, wipe_output_dir,
+)
 
 import yaml
 import torch
@@ -717,8 +728,8 @@ def main():
                              "updating segments.json + each .npz's interactions_json. "
                              "For iter10 v15c safer-interactions: repopulates D_I when "
                              "the prior m10 run had interaction_mining.enabled=false.")
-    parser.add_argument("--train-config", default="configs/train/ch11_surgery.yaml",
-                        help="Factor dataset params YAML")
+    parser.add_argument("--train-config", required=True,
+                        help="Factor dataset params YAML (e.g., configs/train/surgery_3stage_DI.yaml)")
     parser.add_argument("--output-dir", default=None,
                         help="Override output dir (used by train_surgery.sh)")
     parser.add_argument("--tags-json", default=None,
@@ -729,14 +740,25 @@ def main():
     # Cache-policy gate (iter11): every destructive delete in this module must route
     # through utils.cache_policy.guarded_delete(path, args.cache_policy, ...).
     # --cache-policy defaults to 1 (keep) so overnight re-runs never destroy cache.
-    from utils.cache_policy import add_cache_policy_arg
     add_cache_policy_arg(parser)
     args = parser.parse_args()
+
+    # Cache-policy prompt — shells stay thin (CLAUDE.md DELETE PROTECTION).
+    args.cache_policy = resolve_cache_policy_interactive(args.cache_policy)
 
     if not (args.SANITY or args.POC or args.FULL):
         parser.print_help()
         print("\nERROR: Specify --SANITY, --POC, or --FULL")
         sys.exit(1)
+
+    # iter11 v3 (2026-04-26): cache-policy=2 nukes the WHOLE output_dir at startup.
+    # m10 single-owns outputs/full/m10_sam_segment/ — safe to wipe (no shared state
+    # with other variants/modules). Mirror of m09b/c wipe_output_dir() — closes the
+    # prompt-trigger ≠ delete-target asymmetry where partial-run state (stale
+    # masks/, .m10_checkpoint.json without segments.json) survived recompute.
+    _m10_out = Path(args.output_dir) if args.output_dir else get_module_output_dir(
+        "m10_sam_segment", args.subset, sanity=args.SANITY, poc=args.POC)
+    wipe_output_dir(_m10_out, args.cache_policy, label=f"output_dir ({_m10_out.name})")
 
     # --plot: re-generate plots from existing outputs (no GPU, no SAM3)
     if args.plot:
@@ -884,13 +906,6 @@ def main():
             print("FATAL: POC/FULL require explicit --subset (JSON with clip_keys list) or "
                   "--local-data (directory with manifest.json). No yaml fallback.")
             sys.exit(1)
-
-    # Skip if done — but only if segments.json has the FULL expected clip count.
-    # Without min_clips, a partial segments.json (e.g., 50/100 from a crashed run)
-    # would make the guard return early without resuming.
-    if verify_or_skip(output_dir, {"segments": output_dir / "segments.json"},
-                      min_clips=clip_limit, label="m10 SAM3.1"):
-        return
 
     # Load tags.json (MANDATORY — per-clip agent prompts)
     if args.tags_json:

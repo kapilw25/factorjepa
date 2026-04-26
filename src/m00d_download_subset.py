@@ -1,12 +1,24 @@
 """
 Pre-download clips from HF to local WebDataset TAR shards. CPU-only.
-Parallel download (4 workers) + hf_transfer (Rust multi-stream) = 5-10x faster.
+Parallel download (8 workers) — see DOWNLOAD_WORKERS.
 
 USAGE:
-    python -u src/m00d_download_subset.py --SANITY --subset data/subset_10k.json 2>&1 | tee logs/m00d_sanity.log
-    python -u src/m00d_download_subset.py --POC --subset data/subset_10k.json 2>&1 | tee logs/m00d_poc.log
-    python -u src/m00d_download_subset.py --FULL --subset data/val_1k.json --no-wandb 2>&1 | tee logs/m00d_val_1k.log
-    python -u src/m00d_download_subset.py --FULL --no-wandb 2>&1 | tee logs/m00d_full.log
+    python -u src/m00d_download_subset.py --SANITY \
+        --subset data/subset_10k.json \
+        --master-tags data/full_local/tags.json \
+        2>&1 | tee logs/m00d_sanity.log
+    python -u src/m00d_download_subset.py --FULL \
+        --subset data/ultra_hard_3066.json \
+        --master-tags data/full_local/tags.json \
+        --no-wandb 2>&1 | tee logs/m00d_ultra_hard.log
+    python -u src/m00d_download_subset.py --FULL \
+        --master-tags data/full_local/tags.json \
+        --no-wandb 2>&1 | tee logs/m00d_full.log
+    # Skip tags filter (rare — m10 will FATAL on tags.json absence):
+    python -u src/m00d_download_subset.py --FULL \
+        --subset data/val_1k.json \
+        --master-tags data/full_local/tags.json --no-tags-filter \
+        --no-wandb 2>&1 | tee logs/m00d_val_1k.log
 """
 import argparse
 import io
@@ -86,6 +98,50 @@ def _output_dir_from_subset(subset_path: str) -> Path:
     """Derive local data dir from subset filename: data/subset_10k.json → data/subset_10k_local/"""
     p = Path(subset_path)
     return p.parent / f"{p.stem}_local"
+
+
+def _filter_master_tags(saved_keys: list, master_tags_path: Path,
+                        output_path: Path) -> None:
+    """Filter the master m04 tags.json to a subset's saved clip_keys; write
+    `<output_dir>/tags.json` so downstream m10 (line 142 FATAL guard),
+    m06 (per #77 auto-derive), and m09c (--probe-tags) find it.
+
+    Convention: every `*_local/` dir produced by m00d MUST contain a tags.json
+    matching its TAR shards' clip set. Mirrors data/{val_1k,subset_10k,eval_10k}_local/.
+
+    Args:
+        saved_keys: list of clip_keys actually saved to the local TARs (from manifest)
+        master_tags_path: data/full_local/tags.json (master m04 VLM-tag list of 115,687 dicts)
+        output_path: <output_dir>/tags.json — filtered LIST (same schema as master)
+    """
+    if not master_tags_path.is_file():
+        print(f"FATAL: master tags.json missing at {master_tags_path}.")
+        print(f"  Run ./git_pull.sh or python -u src/utils/hf_outputs.py download-data first")
+        print(f"  to fetch m04 VLM tags from anonymousML123/factorjepa-outputs.")
+        sys.exit(1)
+
+    with open(master_tags_path) as f:
+        master = json.load(f)
+    if not isinstance(master, list):
+        print(f"FATAL: {master_tags_path} is type {type(master).__name__}; expected list "
+              f"of clip-tag dicts (m04 VLM output schema).")
+        sys.exit(1)
+
+    saved_set = set(saved_keys)
+
+    def _key(t: dict) -> str:
+        return f"{t.get('section', '')}/{t.get('video_id', '')}/{t.get('source_file', '')}"
+
+    filtered = [t for t in master if _key(t) in saved_set]
+
+    with open(output_path, "w") as f:
+        json.dump(filtered, f, indent=2)
+
+    print(f"  Filtered tags.json: {len(filtered)}/{len(master)} master entries -> {output_path}")
+    n_missing = len(saved_set) - len(filtered)
+    if n_missing > 0:
+        print(f"  WARNING: {n_missing} saved clip_keys lack a tag in master "
+              f"(m04 may not have run on those clips; downstream m10/m06 will skip them)")
 
 
 def _load_manifest(manifest_path: Path) -> dict:
@@ -347,6 +403,14 @@ def download_subset(args):
     }
     _save_manifest(manifest_path, manifest)
 
+    # Filter master m04 tags.json into output_dir/tags.json so downstream m10/m06/m09c
+    # find it at the canonical `<*_local>/tags.json` path. Skip if --no-tags-filter.
+    if not getattr(args, "no_tags_filter", False):
+        master_tags = Path(args.master_tags)
+        out_tags = output_dir / "tags.json"
+        print(f"\nFiltering master tags ({master_tags}) -> {out_tags} ...")
+        _filter_master_tags(all_saved_keys, master_tags, out_tags)
+
     elapsed = time.time() - start_time
     print(f"\n=== Download complete ===")
     limit_str = f"{clip_limit:,}" if clip_limit else "ALL"
@@ -383,6 +447,14 @@ def main():
                         help=f"Download first {SANITY_CLIP_LIMIT} matching clips only")
     parser.add_argument("--FULL", action="store_true",
                         help="Download all subset clips (default behavior)")
+    parser.add_argument("--master-tags", required=True,
+                        help="Master m04 tags.json to filter into <output_dir>/tags.json. "
+                             "Required by m10 (FATAL guard L142), m06 (#77 auto-derive), m09c probe. "
+                             "Pass explicit path (e.g., data/full_local/tags.json) — no default per CLAUDE.md FAIL-LOUD rule. "
+                             "Pair with --no-tags-filter to opt out.")
+    parser.add_argument("--no-tags-filter", action="store_true",
+                        help="Skip filtering master tags.json into output_dir (rare; m10 will then FATAL). "
+                             "If set, --master-tags value is ignored but still required by argparse.")
     add_subset_arg(parser)
     add_wandb_args(parser)
     args = parser.parse_args()

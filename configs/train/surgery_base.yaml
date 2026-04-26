@@ -1,0 +1,208 @@
+# Surgery base config — shared across all m09c factor-surgery variants.
+# Three variants extend this file:
+#   - surgery_2stage_noDI.yaml      (D_L + D_A, 2 stages, no interaction tubes)
+#   - surgery_2stage_loud_agent.yaml (D_L + D_A, 2 stages, A=0.85 louder agent)
+#   - surgery_3stage_DI.yaml        (D_L + D_A + D_I, 3 stages, safer interactions)
+#
+# Each variant's yaml only contains its DIFFs:
+#   - data.adapted_encoder        (unique — m05/m06 outputs don't collide)
+#   - data.output_dir             (variant-specific results directory)
+#   - interaction_mining.enabled  (3stage_DI only re-enables D_I)
+#   - surgery.stages              (mixtures + depths + epoch budgets per recipe)
+#
+# Inheritance chain (resolved by load_merged_config recursive `extends`):
+#   variant.yaml → surgery_base.yaml → base_optimization.yaml
+#
+# Common recipe (from FactorJEPA proposal Sec 11; 1K POC diagnosis 2026-04-19):
+#   1. SAM3 segments video clips into agent vs layout (motion filter)
+#   2. m11 generates factor datasets:
+#        D_L = layout-only (blur agents)
+#        D_A = agent-only (suppress background)
+#        D_I = interaction tubes (multi-agent events; only consumed by 3stage_DI)
+#   3. Progressive prefix unfreezing on FROZEN V-JEPA 2.1
+#   4. Same JEPA loss — only input distribution and trainable depth change.
+
+extends: base_optimization.yaml
+
+# -- Data: surgery-specific overrides (paths inherited from base_optimization.yaml) --
+# Deterministic 90/10 internal split via seeded shuffle (cfg.data.seed from base_optimization.yaml)
+# is used ONLY for POC code-path validation (when probe.use_permanent_val.poc=false).
+# In FULL mode, probe.use_permanent_val.full=true → train uses ALL of train_subset (2452 clips)
+# and val/probe use the permanent ultra_hard_3066_val (306 clips).
+# Held-out val clip_keys are written to outputs/.../m09c_surgery/val_split.json for downstream
+# Step D (Frozen m05), Step E (Surgical m05), Step F (m06 decision gate) — apples-to-apples
+# on the same held-out 10 %.
+data:
+  module: m09c                                       # m09b for explora, m09c for surgery_*
+  model_config: configs/model/vjepa2_1.yaml
+  train_val_split:
+    sanity: 1.0                   # no split (N=20 too small)
+    poc: 0.9                      # 900 train / 100 held-out val
+    # full: dormant — probe.use_permanent_val.full=true overrides → external val_subset is used.
+  # train/val/eval subsets + factor_dir inherited from base_optimization.yaml.
+  # Per-variant overrides (in surgery_2stage_*.yaml / surgery_3stage_DI.yaml):
+  #   - adapted_encoder    (unique m05/m06 output suffix per variant)
+  #   - output_dir         (variant-specific results dir)
+
+# -- Streaming factor generation (eliminates m11 D_L/D_A .npy disk writes) --
+# When enabled, m09c DataLoader generates D_L/D_A on-demand from (raw_mp4 +
+# m10_mask.npz) pairs. Unlocks 10K→50K→115K scale ladder on a single 500 GB
+# instance (vs 500 GB → 3 TB → 5 TB rent). See iter/iter9/plan_code_dev.md.
+# Legacy POC run stays on FactorSampler disk path for bitwise reproducibility.
+factor_streaming:
+  sanity: false                   # legacy .npy path (iter8 SANITY reproducible)
+  poc:    false                   # iter8 1K POC: bitwise reproducible on legacy
+  full:   true                    # 🎯 unlocks scale ladder
+  num_workers:
+    sanity: 0                     # in-process debug path, deterministic
+    poc:    4
+    full:   16                    # scipy gaussian σ=15 is CPU-bound; need processes
+  prefetch_factor:     4          # 2 full batches lead → GPU never stalls
+  persistent_workers:  true       # amortize worker-fork cost within a stage
+  pin_memory:          true
+
+# -- Optimization: surgery-specific overrides only (lr/BS/max_epochs from base) --
+optimization:
+  # Layer-wise LR decay — surgery-only, smaller LR for earlier (already-frozen) layers.
+  layer_wise_lr_decay: true
+  layer_wise_lr_decay_factor: 0.75
+
+  # Memory saver flags — MODE-GATED (#57).
+  #
+  # SANITY runs on 24GB RTX Pro 4000 (cheap, fast iteration) — needs both flags
+  # ON: Stage 3 unfreezes 36/48 blocks → 1.38B trainable params → fp32 AdamW
+  # state ~16.5 GB alone overflows 24 GB. Without savers, v5 OOMed at sub-batch=1
+  # even after within-step retry (#55). 8-bit AdamW (bitsandbytes, Dettmers 2022
+  # arXiv:2110.02861) reduces optimizer state 4×; gradient checkpointing
+  # (torch.utils.checkpoint) cuts activation memory 2-4×. Combined fits all 3
+  # stages with ~25% throughput hit. Acceptable — SANITY purpose per CLAUDE.md
+  # is "code correctness, NOT model performance."
+  #
+  # POC/FULL runs on 96GB RTX Pro 6000 Blackwell — flags OFF. Research-quality
+  # comparisons (Surgery > Frozen on Prec@K, non-overlapping 95% CIs) use the
+  # published V-JEPA recipe (fp32 AdamW, no checkpointing) to eliminate 8-bit
+  # as an accuracy confound. Dettmers' <1% accuracy claim was benchmarked ≤1.3B;
+  # V-JEPA ViT-G is 2B (extrapolation). For a NeurIPS comparison where Surgery's
+  # advantage might be ~1-5% Prec@K, the ~0.5% 8-bit noise would widen CIs and
+  # threaten the win condition. 96 GB has headroom → no savers needed. ~33%
+  # throughput gain vs 24GB path. Matches user priority: Accuracy > Throughput.
+  use_8bit_optim:
+    sanity: true      # 24GB SANITY: need memory saver (code correctness only)
+    poc: false        # 96GB POC: clean fp32 for research-quality comparison
+    full: false       # 96GB FULL: clean fp32 for paper-quality result
+  gradient_checkpointing:
+    sanity: true
+    poc: false
+    full: false
+  # Paged optimizer (#58) — ONLY read when use_8bit_optim is true. SANITY Stage 3
+  # (36 trainable blocks) needs CPU paging of optimizer state: fp32 master
+  # weights (~5.5 GB) + 8-bit m1/m2 (~3 GB) + model + activations don't all fit
+  # simultaneously in 24 GB even after inter-stage cleanup. `bnb.optim.PagedAdamW8bit`
+  # uses unified memory — cold optimizer tensors page to CPU RAM on pressure,
+  # warm ones stay on GPU. Same 8-bit quantization (no accuracy change), ~10-20%
+  # throughput hit. HF QLoRA's default for fine-tuning 7-65B on consumer GPUs.
+  paged_optim:
+    sanity: true      # 24GB SANITY: page optimizer state on pressure
+    poc: false        # 96GB POC: not needed (never used anyway since use_8bit_optim=false)
+    full: false
+
+# -- Factor datasets (m10/m11 prerequisite) --
+factor_datasets:
+  # Grounded-SAM pipeline: Grounding DINO (text → boxes) → SAM 3.1 (box → masks + propagation)
+  # Replaces SAM 3.1 native text grounding (too weak on Indian objects: 10/15 clips had
+  # n_agents=0 on SANITY). DINO trained on Objects365+GoldG (365 open-vocab categories).
+  sam_model: facebook/sam3.1            # raw sam3 pkg (m10_sam_segment.py): SAM 3.1 weights
+  sam_hf_model: facebook/sam3           # HF transformers wrapper (m10_sam_segment_v2_HF.py): Sam3TrackerVideoModel
+  grounding_dino:
+    model_id: "IDEA-Research/grounding-dino-base"   # Swin-B, 233M params, ~1.2 GB VRAM
+    # H4 #76 (2026-04-20 post-v10): 0.15/0.12 → 0.20/0.18 — tighter DINO precision.
+    # Evidence v10: m10 mean_concept_recall=0.655 (moderate); 12% clips had zero agents.
+    # Hypothesis: noisy masks at 0.15 produce D_L leakage (agents not fully blurred) and
+    # D_A contamination (background in agent-only). Tighter thresholds trade recall for
+    # precision — acceptable because clips with no agents still contribute D_L (layout-only).
+    # REQUIRES m10 cache invalidation (~9h re-run on 96GB, ~$7.40 GPU). User decides when
+    # to `rm -rf outputs/full/m10_sam_segment/` to pick up new thresholds.
+    # Baseline retained: 0.15/0.12 = was 0.25/0.20 aggressive-recall tune for SANITY dense100.
+    box_threshold: 0.20                  # was 0.15 → 0.20 for v11+ (HF default 0.35)
+    text_threshold: 0.18                 # was 0.12 → 0.18 for v11+ (HF default 0.25)
+    # 17-category agent taxonomy (accuracy-first; goal = Surgery > ExPLoRA > Frozen on Prec@K).
+    # Extended beyond tag_taxonomy.json's 11 agents with finer Objects365-aligned classes.
+    agent_taxonomy:
+      - pedestrian
+      - person
+      - vendor
+      - policeman
+      - bus
+      - car
+      - truck
+      - motorcycle
+      - bicycle
+      - scooter
+      - auto rickshaw
+      - cycle rickshaw
+      - cart
+      - cow
+      - dog
+      - bull
+      - buffalo
+
+  iou_threshold: 0.3                  # Tracklet matching threshold
+  motion_threshold: 0.05              # Frame width fraction (agent vs layout filter)
+  motion_min_frames: 4                # Persistence required for "agent" classification
+  agent_dilation_pixels: 4            # Mask dilation for thin structures (legs, bike spokes)
+  min_confidence: 0.3                  # SAM 3.1 out_probs threshold (lowered from 0.5 to catch small/distant objects)
+  min_mask_area_pct: 0.001             # Minimum mask area as fraction of frame (filters tree trunk false positives)
+
+  # Patch operators (rendering)
+  layout_patch_method: blur            # blur | inpaint
+  agent_patch_method: soft_matte       # hard_zero | soft_matte
+  soft_matte_factor: 0.1               # Background attenuation (1.0 = no change, 0 = hard zero)
+  blur_sigma: 15.0                     # Gaussian blur sigma for D_L agent suppression
+  feather_sigma: 3.0                   # Mask edge feathering sigma (prevents shortcut learning)
+  min_agent_area_pct: 0.003            # Drop D_A if agent < 0.3% (calibrated to Grounded-SAM
+                                       # output distribution: tight precise masks avg 0.5-1.0%).
+                                       # Was 0.02 (calibrated for OLD noisy SAM3-text pipeline with
+                                       # mean ~3-5% from false positives). At new distribution 0.02
+                                       # would skip D_A on ~16/20 clips → starve Stage 2.
+  max_agent_area_pct: 0.70             # Drop D_L if agent > 70% (layout invisible)
+
+# -- Interaction mining (D_I) --
+# Default disabled (2-stage variants). 3stage_DI.yaml overrides enabled=true to populate
+# D_I tubes (m10 --interactions-only writes n_interactions; m11 --regen-D_I builds tubes).
+interaction_mining:
+  enabled: false                      # iter9 2-stage default: D_I retired → m11 skips tube .npy writes (saves 26% m11 disk).
+  min_overlap_frames: 4               # r in proposal Sec 11.2
+  max_distance_frame_fraction: 0.20   # d_max
+  cue_types: [approach, crossing, following]
+  tube_margin_pct: 0.15               # Box expansion margin
+  # #77 (2026-04-20): optional category-pair blacklist for typed D_I filtering.
+  # m10 now annotates each interaction with cat_a + cat_b (canonical 17-cat taxonomy);
+  # m11 drops interactions whose (cat_a, cat_b) or (cat_b, cat_a) matches any entry.
+  # Default [] = accept all (no filter; back-compat). Example when re-enabling D_I
+  # for Stage-3 ablation: [[cart, cart], [cow, cow]] drops "static × static" pairs
+  # that don't produce meaningful interaction tubes.
+  category_pair_blacklist: []
+
+# -- Surgery: progressive prefix unfreezing --
+# Sec 11.5 of proposal. Per-variant `surgery.stages` overrides this file's empty default.
+surgery:
+  # Per-stage warmup as a fraction of stage_steps. Replaces the old fixed
+  # warmup_steps=200 which broke POC (stage_steps≈99 < 200 → never reached full
+  # LR). 0.20 = 20% of stage spent warming LR from 0→target, 80% at full LR.
+  # Auto-scales: POC 100 clips → 19 warmup, POC 10K → 206, FULL 115K → 718.
+  warmup_pct: 0.20
+  # `stages` is variant-specific — see {noDI,loud_agent,3stage_DI}.yaml.
+
+# -- Drift control: minimal --
+# Surgery uses freezing as the primary anti-forgetting mechanism.
+# Light drift control on unfrozen layers as belt-and-suspenders.
+drift_control:
+  enabled: true
+  type: l2_uniform                  # Simple L2 (not EWC) for surgery
+  lambda_reg: 1.0
+
+# -- Probe: surgery-specific overrides only (universal probe config in base) --
+# Surgery-specific extras (m09c reads these via merge_config_with_args at line 94-129):
+probe:
+  n_points: 30                    # kept for every_n_steps backward-compat (unused when cadence=saves_per_epoch).
+  bwt_tolerance_pct: 0.5          # DEPRECATED — kept to not break older configs; unused when new keys present.

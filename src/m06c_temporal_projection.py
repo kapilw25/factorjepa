@@ -18,7 +18,6 @@ sys.path.insert(0, str(Path(__file__).parent))
 from utils.config import get_output_dir, get_module_output_dir, add_subset_arg
 from utils.checkpoint import save_array_checkpoint, save_json_checkpoint
 from utils.gpu_batch import cleanup_temp
-from utils.output_guard import verify_or_skip
 from utils.progress import make_pbar
 from utils.wandb_utils import add_wandb_args, init_wandb, log_metrics, finish_wandb
 
@@ -142,13 +141,6 @@ def main():
     k_values = K_SWEEP
     if args.k_sweep:
         k_values = [int(x.strip()) for x in args.k_sweep.split(",")]
-
-    # Output-exists guard — skip full run if summary already exists
-    summary_file = output_dir / "m06c_projection_results.json"
-    if verify_or_skip(output_dir, {
-        "projection summary": summary_file,
-    }, label="m06c temporal_projection"):
-        return
 
     print(f"\n{'='*60}")
     print(f"Temporal Interference Projection — {mode} mode")

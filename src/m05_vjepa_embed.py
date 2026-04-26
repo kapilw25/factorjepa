@@ -2,10 +2,19 @@
 Generate V-JEPA 2 embeddings via HF WebDataset streaming + producer-consumer GPU inference.
 GPU-only (Nvidia CUDA required, no CPU fallback). Streams from HF — no local clips needed.
 
-USAGE:
-    python -u src/m05_vjepa_embed.py --SANITY 2>&1 | tee logs/m05_vjepa_embed_sanity.log
-    python -u src/m05_vjepa_embed.py --POC --subset data/subset_10k.json --local-data data/subset_10k_local 2>&1 | tee logs/m05_vjepa_embed_poc.log
-    python -u src/m05_vjepa_embed.py --FULL --local-data data/full_local 2>&1 | tee logs/m05_vjepa_embed_full.log
+USAGE (every path arg required — CLAUDE.md no-default rule; --profile-data optional):
+    python -u src/m05_vjepa_embed.py --SANITY \
+        --model-config configs/model/vjepa2_1.yaml \
+        --subset data/sanity_100_dense.json --local-data data/val_1k_local \
+        2>&1 | tee logs/m05_vjepa_embed_sanity.log
+    python -u src/m05_vjepa_embed.py --POC \
+        --model-config configs/model/vjepa2_1.yaml \
+        --subset data/subset_10k.json --local-data data/subset_10k_local \
+        --profile-data outputs/profile/inference/vjepa2/profile_data.json \
+        2>&1 | tee logs/m05_vjepa_embed_poc.log
+    python -u src/m05_vjepa_embed.py --FULL \
+        --model-config configs/model/vjepa2_1.yaml \
+        --local-data data/full_local 2>&1 | tee logs/m05_vjepa_embed_full.log
 """
 import argparse
 import contextlib
@@ -309,35 +318,6 @@ def orchestrator_main(args):
     if args.subset:
         print(f"[POC] Subset: {args.subset}")
 
-    # iter11 #80 provenance gate — prevent variant-boundary .npy collision.
-    # Bug: in paired_eval_10k v12, after v14 completed m05 and wrote
-    #   outputs/full/m05_vjepa_embed/embeddings_vjepa_2_1_surgical.npy,
-    # v15a's m05 saw the same-named .npy and verify_or_skip returned True →
-    # v15a silently reused v14's embeddings → paired-bootstrap numbers
-    # identical to v14 across mAP/Cycle/nDCG. Root cause: the output .npy
-    # filename carries no per-variant fingerprint (unlike the checkpoint).
-    # Fix (adapted-model only): if .npy exists but the CURRENT variant's
-    # fingerprinted ckpt `.m05_checkpoint_*_<fp>.npz` is absent, the .npy
-    # was produced by a DIFFERENT variant → bypass verify_or_skip so the
-    # fresh np.save below atomically overwrites the stale .npy. Frozen
-    # models (is_adapted=False) have no fingerprint, so the check is
-    # skipped and behavior is unchanged for them.
-    stale_npy = False
-    if is_adapted and embeddings_file.exists() and not checkpoint_file.exists():
-        print(f"[m05 provenance] .npy exists but ckpt for current fp={ckpt_fp} "
-              f"missing → .npy belongs to a different variant. Forcing recompute "
-              f"(fresh np.save will overwrite atomically; no rm in .sh needed).")
-        stale_npy = True
-
-    # Output-exists guard — bypassed when stale_npy is True.
-    if not stale_npy:
-        from utils.output_guard import verify_or_skip
-        if verify_or_skip(output_dir, {
-            "embeddings": embeddings_file,
-            "paths": embeddings_file.with_suffix('.paths.npy'),
-        }, label="m05 embed"):
-            return
-
     # Determine total clips
     subset_keys = load_subset(args.subset) if args.subset else set()
     if args.SANITY:
@@ -510,13 +490,14 @@ def worker_main(args):
     device = "cuda"
 
     if args.batch_size is None:
-        # Read from: 1) profiler JSON, 2) pipeline.yaml, 3) linear estimate
-        profile_path = Path("outputs/profile/inference/vjepa2/profile_data.json")
-        if profile_path.exists():
-            _profile = json.load(open(profile_path))
-            if "optimal_bs" in _profile:
-                args.batch_size = _profile["optimal_bs"]
-                print(f"Batch size: {args.batch_size} (from inference/vjepa2 profiler)")
+        # Read from: 1) --profile-data CLI arg, 2) pipeline.yaml, 3) linear estimate
+        if args.profile_data:
+            profile_path = Path(args.profile_data)
+            if profile_path.exists():
+                _profile = json.load(open(profile_path))
+                if "optimal_bs" in _profile:
+                    args.batch_size = _profile["optimal_bs"]
+                    print(f"Batch size: {args.batch_size} (from --profile-data {profile_path})")
         if args.batch_size is None:
             # iter10 #78 fix: fail-loud on missing pipeline.yaml keys per CLAUDE.md §5.
             # Prior code used `.get("gpu", {}).get("inference_vjepa_bs")` which returned
@@ -887,6 +868,10 @@ def main():
                         help="Model ID or adapted checkpoint path")
     parser.add_argument("--batch-size", type=int, default=None,
                         help="Override batch size (auto-computed if omitted)")
+    parser.add_argument("--profile-data", type=str, default=None,
+                        help="Optional profile JSON from src/utils/profile_vram.py "
+                             "(e.g., outputs/profile/inference/vjepa2/profile_data.json). "
+                             "If omitted, falls back to pipeline.yaml gpu.inference_vjepa_bs.")
     parser.add_argument("--encoder", type=str, default=None,
                         help="Encoder name for output files (e.g., vjepa_lambda0)")
     parser.add_argument("--shuffle", action="store_true",
@@ -905,9 +890,12 @@ def main():
     # Cache-policy gate (iter11): every destructive delete in this module must route
     # through utils.cache_policy.guarded_delete(path, args.cache_policy, ...).
     # --cache-policy defaults to 1 (keep) so overnight re-runs never destroy cache.
-    from utils.cache_policy import add_cache_policy_arg
+    from utils.cache_policy import add_cache_policy_arg, resolve_cache_policy_interactive
     add_cache_policy_arg(parser)
     args = parser.parse_args()
+
+    # Cache-policy prompt — shells stay thin (CLAUDE.md DELETE PROTECTION).
+    args.cache_policy = resolve_cache_policy_interactive(args.cache_policy)
 
     # Worker mode (spawned by orchestrator)
     if args._worker:

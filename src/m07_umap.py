@@ -62,14 +62,6 @@ def main():
     enc_files = get_encoder_files(args.encoder, output_dir)
     emb_file = input_enc_files["embeddings"]
 
-    # Output-exists guard
-    from utils.output_guard import verify_or_skip
-    if verify_or_skip(output_dir, {
-        "umap_2d": enc_files["umap_2d"],
-    }, label=f"m07 {args.encoder}"):
-        finish_wandb(wb_run)
-        return
-
     print(f"Encoder: {args.encoder}")
     if not emb_file.exists():
         print(f"FATAL: embeddings not found: {emb_file}")

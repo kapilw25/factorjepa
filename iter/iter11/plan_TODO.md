@@ -1,11 +1,94 @@
 # TODO — iter11
 
-> **Final GOAL: Surgery > ExPLoRA > Frozen on Prec@K, 115K clips.**
-> **Immediate GOAL (iter11 v2): 4-variant apples-to-apples at 10K with 5-epoch unified budget, val-loss-plateau-only early-stop.**
+> **Final GOAL: Surgery > ExPLoRA > Frozen on @src/m08b_compare.py, 115K clips.**
+> **Immediate GOAL (iter11 v2, re-anchored 2026-04-26): 4-variant apples-to-apples at ultra_hard_3066 with 15-epoch budget @ lr=5e-5 (Meta continual recipe BS-scaled), cosine to min_lr=1e-6, val-loss-plateau-only early-stop.**
 > **m10/m11 Goal = maximize D_A/D_L/D_I accuracy for Prec@K**
 > **Deadline: NeurIPS May 04 (10 days remaining from 2026-04-24).**
 > **If surgery doesn't improve:** `iter/utils/literarure_survey.md` — 24 JEPA variants, 3 fallback techniques.
-> **Live code plan: `iter/iter11/plan_code_dev.md` (rename yamls → train.sh → eval.sh).**
+> **Live code plan: `iter/iter11/plan_code_dev.md` (✅ landed 2026-04-25 — yamls renamed, `scripts/run_factor_prep.sh` + `run_train.sh` + `run_eval.sh` + `lib/yaml_extract.py` shipped).**
+> **Runbook (terminal commands): `iter/iter11/runbook.md`.**
+
+---
+
+## 🎯 iter11 v3 — Hard-tier dataset pivot (2026-04-25)
+
+Per-clip post-hoc Δ analysis (`outputs/data_prep/posthoc_difficulty_stratification.json`) showed Surgery's signal lives on the **extreme tail** of Indian agent-rich clips, NOT the random eval_10k. Splitter `src/m00f_category_subsets.py` produced 9 category subsets + a 3-way 80/10/10 split inside `ultra_hard_3066.json` (3,066 clips with ≥4 Hard triggers AND ≥4 Indian-specific objects).
+
+### Splits produced (verifiable against `data/full_local/tags.json`)
+| File | Clips | Role |
+|---|---:|---|
+| `data/ultra_hard_3066.json` | 3,066 | parent set (intersection of strict criteria) |
+| `data/ultra_hard_3066_train.json` | 2,452 | m09c training |
+| `data/ultra_hard_3066_val.json` | 306 | mid-training Prec@K probe |
+| `data/ultra_hard_3066_eval.json` | 308 | paired-BCa decision gate |
+| 8 single-condition subsets (ge3/4/5_indian, crowd_high, traffic_high, ...) | 2,201 – 43,319 | ablation matrix |
+
+### Two download strategies (verified against HF dataset = 130 GB / 115,687 clips = 1.13 MB/clip)
+
+**Strategy A ⭐ RECOMMENDED** — single download, share across train/val/eval:
+```bash
+python -u src/m00d_download_subset.py --FULL \
+    --subset data/ultra_hard_3066.json --no-wandb 2>&1 | tee logs/m00d_ultra_hard.log
+# → data/ultra_hard_3066_local/  (used by ALL 3 split JSONs via --subset filtering)
+```
+Yamls update: each train yaml's `data:` block sets `train_subset/val_subset/eval_subset` to the 3 split JSONs but `*_local_data` all point to `data/ultra_hard_3066_local`.
+
+**Strategy B** — also download the 8 single-condition category subsets for ablation (loop `m00d` over each):
+```bash
+for sub in ultra_hard_3066 ge3_indian_objects crowd_high traffic_mix_pedestrian_dominant \
+           traffic_high traffic_mix_mixed_all ge4_indian_objects road_encroachment_heavy ge5_indian_objects; do
+    python -u src/m00d_download_subset.py --FULL \
+        --subset "data/${sub}.json" --no-wandb 2>&1 | tee "logs/m00d_${sub}.log" ;
+done
+```
+
+### Disk + wall time
+
+| Action | Clips | Disk | Wall time |
+|---|---:|---:|---:|
+| **A**: ultra_hard_3066 parent only | 3,066 | **~4 GB** (measured: m00d log L25 = 3.96 GB) | **~7.5 min** (measured) |
+| **B**: all 9 categories union (deduped) | ~99K unique | **~109 GB** (NOT 250 GB — that prior estimate was wrong; corrected via HF dataset query 2026-04-25) | **~70 min** (9 × 7.5 min, m00d re-walks 116 HF TARs per subset) |
+| Full 115K reference | 115,687 | **~127 GB** | ~7 min/HF-TAR-walk |
+| GPU cost | — | — | **0 h GPU** (CPU+network only) |
+
+### Concrete next step
+Run Strategy A → update each yaml `data:` block to point `*_local_data` at `data/ultra_hard_3066_local/` while `*_subset` points at the 3 separate split JSONs → launch existing `run_factor_prep.sh → run_train.sh → run_eval.sh` chain unchanged.
+
+---
+
+## 🔮 FUTURE (post-iter11-v3) — Re-curate "hard" via frozen-Prec@K threshold (Option B)
+
+> **Trigger**: execute ONLY AFTER current iter11 v3 pipeline completes through `scripts/run_eval.sh` for the 3,066-clip selected set. Not a current-session change.
+
+**Observation (2026-04-26 mid-training diagnostic)**: `ultra_hard_3066` was curated by **tag-richness** (≥4 Hard triggers AND ≥4 Indian-specific objects). This is the **opposite** of retrieval-difficulty:
+- Probe Prec@K on `ultra_hard_3066_val` (306 clips): **~75** (saturated near ceiling)
+- Probe Prec@K on `subset_10k` random sample (iter9/iter10): **~28-30** (genuine retrieval headroom)
+
+Tag-rich clips share many labels with each other → kNN retrieval trivially finds same-tag neighbors → metric saturates. Surgery has **no headroom** to demonstrate gain (Δ ≤ 5 pp ceiling vs ±2.4 pp CI_half at N=306 → never significant).
+
+**Plan B — Re-curate "hard" by retrieval difficulty**:
+
+| step | action | cost |
+|---|---|---|
+| 1 | New module `src/m00g_frozen_hard.py`: encode 50K candidate pool (random sample from 115K) with frozen V-JEPA 2.1 via existing m05 pipeline | ~2 h GPU on 96GB |
+| 2 | Run m06 to compute per-clip Prec@K @ k=6 with BCa CI | ~30 min |
+| 3 | Select bottom quartile (clips where `prec_at_k.mean < 0.30`) → genuinely-retrieval-hard subset of ~12.5K clips | CPU-only, ~5 min |
+| 4 | 80/10/10 split inside the new "true-hard" set → `data/true_hard_train.json` (~10K), `data/true_hard_val.json` (~1.25K), `data/true_hard_eval.json` (~1.25K) | CPU-only |
+| 5 | Update `base_optimization.yaml` data paths to point at the new splits | 1-line edit |
+| 6 | Re-run `run_factor_prep.sh → run_train.sh → run_eval.sh` chain on the new splits | ~10-15 h GPU (4 variants) |
+
+**Expected outcome**: frozen baseline Prec@K ~25-30 with ~10pp headroom for Surgery to demonstrate gain. CI at N=1.25K eval ≈ ±1.4 pp → Δ ≥ 3 pp would be paper-worthy.
+
+**Total Plan B budget**: ~3 h GPU for re-curation + ~10-15 h GPU for re-train = ~13-18 h. Adds ~1 day to schedule.
+
+**Why deferred**: current iter11 v3 pipeline must complete first to:
+- Validate the 4-variant orchestration code path end-to-end through `run_eval.sh`
+- Confirm post-B1-pivot probe metrics are wired correctly
+- Provide a documented "saturation baseline" result to contrast against the Plan B re-run
+
+**Decision rule** (after iter11 v3 `run_eval.sh` completes):
+- If any variant Δ ≥ +0.5 pp on the 308-clip ultra_hard_eval (despite saturation) → ship with current splits
+- If all Δ < +0.3 pp (likely outcome given saturation) → execute Plan B before paper submission
 
 ---
 
@@ -114,15 +197,20 @@ v15c was invalidated by `errors_N_fixes.md #73` (silent `StreamingFactorDataset`
 
 All 5 non-withdrawn iter10 variants cluster at Δ Prec@K ≈ 0 on eval_10k (see `iter/utils/experiment_log.md` cross-run table). None cleared the +3 pp gate. v14 remained leader-among-narrow-taxonomy (Δ=+0.07/+0.13 on test_500 at N=500) but Δ ≈ 0 with p ≥ 0.68 under paired BCa at N=9,297.
 
-### 🚀 iter11 v2 — next active run (4-variant apples-to-apples at 10K)
+### 🚀 iter11 v2 — active run (4-variant apples-to-apples at ultra_hard_3066)
 
-Design lives in `iter/iter11/plan_code_dev.md`. Key changes from iter10:
-- 🎯 **Unified 5-epoch budget** across all 4 variants (yamls already edited: `max_epochs.full: 5`, `saves_per_epoch: 5`)
+Design in `iter/iter11/plan_code_dev.md`; terminal commands in `iter/iter11/runbook.md`. Key changes from iter10:
+- 🎯 **15-epoch budget @ lr=5e-5** across all 4 variants (re-anchored 2026-04-26 — see `errors_N_fixes.md #78`). Prior 5-epoch @ 1e-5 left val-loss still descending (surgery_2stage_noDI v2 final: 0.4663) and probe Prec@K saturated (Δ +0.22 across 27 probes ≪ ±3.78 CI). New base_optimization.yaml: `lr: 5.0e-5`, `max_epochs.full: 15`, `warmup_cap_pct: 15`, `grad_clip: 1.0`, `nan_tolerance: 2`. Dead `lr_schedule: constant` field deleted (build_scheduler is unconditionally cosine to min_lr=1e-6). SANITY (1-epoch FULL-mode at 5e-5) verified 2026-04-26: val_jepa 0.4835 → 0.4693 (Δ−0.014), Prec@K 75.05–75.22, 0 NaN, max post-warmup grad=0.803. Killer signal: 5e-5 in 1 epoch ≈ 1e-5 in 5 epochs on val_loss → under-training hypothesis confirmed.
 - 🧹 **Only val-loss plateau trigger active** (kill_switch/prec_plateau/bwt all disabled — each fires below CI noise floor, see `feedback_only_val_loss_early_stop.md`)
-- 🏷️ **Semantic yaml naming**: `surgery_2stage_noDI` / `surgery_2stage_loud_agent` / `surgery_3stage_DI` + `explora`
-- 📂 **Per-config output dir** (`outputs/full/<config_name>/`, no more `outputs_versioned/<tag>_m09c_surgery/` archive shuffle)
-- 🚀 **New thin wrappers**: `scripts/train.sh` (4 trainings) + `scripts/eval.sh` (adapted from `run_paired_eval_10k.sh`)
-- ⏱️ **Budget**: ~30-60 h train + ~10 h eval ≈ ~$32-56 GPU
+- 🏷️ **Semantic yaml naming** + per-yaml `data:` block (paths via yaml_extract, not CLI): `surgery_2stage_noDI` / `surgery_2stage_loud_agent` / `surgery_3stage_DI` + `explora`. Each yaml's `data.{module, model_config, train_subset, train_local_data, val_subset, val_local_data, factor_dir, output_dir, eval_subset, eval_local_data, adapted_encoder}` is the SOLE source of paths for the runner.
+- 📂 **Per-config output dir** (`outputs/full/<yaml_stem>/`, no more `outputs_versioned/<tag>_m09c_surgery/` archive shuffle)
+- 🚀 **3 new thin wrappers** (✅ landed 2026-04-25):
+  - `scripts/run_factor_prep.sh <maximal-yaml>` — m10 + m11 ONCE with `surgery_3stage_DI.yaml` (interaction_mining=true) so D_I tubes are reusable across variants
+  - `scripts/run_train.sh <yaml1> [<yaml2> ...]` — loops + dispatches m09b/m09c per yaml's `data.module`
+  - `scripts/run_eval.sh <yaml1> [<yaml2> ...]` — shared frozen m05+m06 once, then per-variant adapted m05+m06+m08b
+  - `scripts/lib/yaml_extract.py` — fail-loud `<yaml> <dotted.key>` reader so shell stays a thin wrapper
+- 🗄️ **Legacy archive**: 13 superseded files moved to `scripts/legacy/` (run_iter9_10k, run_iter10_overnight, run_eval, train_*.sh, tests_*, prep_*, build_stratified_splits, regen_m09c_plots). `scripts/run_paired_eval_10k.sh` kept at top level as the iter10 reference for run_eval.sh.
+- ⏱️ **Budget @ 15 epochs**: ~10 h factor prep + ~24-28 h train per variant (1140 steps × ~13 s/step + ~75 probes × ~5 min) + ~10-12 h eval ≈ ~$80-100 GPU per box (2 boxes parallel → ~2 days wall to all 4 variants)
 
 ### 🔒 Conditional escalation (if iter11 v2 also saturates)
 
@@ -132,15 +220,15 @@ Design lives in `iter/iter11/plan_code_dev.md`. Key changes from iter10:
 | Best Δ ∈ [+0.3, +3) pp | 🟡 marginal signal | 50K scale-up with leader recipe (~52 h / ~$42) |
 | All Δ < +0.3 pp on eval_10k | 🔴 10K dataset-limited | **Concede tier**: "layout-factor surgery at NOISE FLOOR" paper pitch; D_L/D_A/D_I → ablation table; BWT ≈ 0 across scales becomes headline |
 
-### 🔒 v12-era Meta-paper audit queue (deferred, not blocking v14-v16)
+### 🔒 v12-era Meta-paper audit queue (post-2026-04-26 status)
 
 Source: 2026-04-20 audit of `configs/train_2_1/vitG16/*.yaml` (Meta official). These are paper-methodology fixes, not expected to unlock Δ ≥ 3 pp on their own — queue behind the D_A signal test.
 
 | # | Keyword | Intervention | Status |
 |---|---|---|---|
 | — | **no-rewarmup** | Single scheduler spans all stages (build LambdaLR before stage loop) | 🔒 queued |
-| — | **linear-decay** | `lr_schedule: constant → linear_decay` (start 1e-5 → final 1e-6), matches Meta cooldown | 🔒 queued |
-| — | **clean-yaml** | Delete dead `warmup_steps=500` + `warmup_cap_pct=10` from base_optimization.yaml (surgery uses `surgery.warmup_pct` instead) | 🔒 queued |
+| — | **linear-decay** | OBSOLETED 2026-04-26: build_scheduler is unconditionally cosine-to-`min_lr` (single schedule, never re-warms across stages — the linear_decay alternative isn't implemented and isn't needed; cosine matches Meta's continual recipe `final_lr: 0.0` shape) | ✅ closed |
+| — | **clean-yaml** | PARTIAL 2026-04-26 (`#78`): dead `lr_schedule: constant` field deleted from base_optimization.yaml (zero Python readers). `warmup_steps=500` kept — actively read by build_scheduler (capped by `warmup_cap_pct=15`). | 🟡 partial |
 | — | **unfreeze-sweep** | 1D coordinate sweep on n₁:n₂=1:2 diagonal `{0.20/0.40, 0.25/0.50, 0.30/0.60}` — publishable ablation | 🔒 queued |
 
 ### ✅ v11/v13 interventions — completed 2026-04-20 → 2026-04-21
@@ -212,7 +300,7 @@ All iter10 10K gates closed: Δ ≈ 0 pp on eval_10k for v10/v13/v14/v15a/v15b (
 
 ### ✅ ExPLoRA arm landed (iter11 #step3)
 
-m09b_explora.py ported probe infra from m09c (shared `render_training_plots` in `utils/training.py`) + `val_split.json` writer + `--cache-policy` gate. Variant now part of `scripts/eval.sh` (and previously `run_paired_eval_10k.sh:L72`).
+m09b_explora.py ported probe infra from m09c (shared `render_training_plots` in `utils/training.py`) + `val_split.json` writer + `--cache-policy` gate. Variant now part of `scripts/run_eval.sh` (iter11 v2; previously `scripts/legacy/run_paired_eval_10k.sh:L72`).
 
 ### 📈 Step H: Scale-ladder — plateau-seeking 50K → 115K (conditional on 10K gate-pass)
 
@@ -480,7 +568,7 @@ Priority if time-constrained: **A3** (proves factoring matters) then **A4** (Neu
 | Phase 2a-2b: POC 100-dense + 1K val_1k (iter8) | ~8h | ✅ recipe landed |
 | Phase 2c: iter9/iter10 10K × 6 variants + paired_eval | ~45h | ✅ all closed Δ ≈ 0 pp |
 | Phase 2d: iter11 v1 (10K ExPLoRA, halted by prec-plateau at 174/298) | ~3h | 🗑️ INVALIDATED (trigger was below noise floor; ckpts deleted) |
-| **Phase 2e (active): iter11 v2 — 4 variants × 5 epochs × only val-loss plateau** | **~30-60h train + ~10h eval projected** | 🟢 yamls edited; plan in `plan_code_dev.md`; train.sh/eval.sh pending |
+| **Phase 2e (active): iter11 v2 — 4 variants × 15 epochs @ lr=5e-5 × only val-loss plateau** | **~10h factor prep + ~24-28h train per variant + ~10-12h eval projected** | 🟢 LR re-anchored 2026-04-26 (`#78`) after surgery_2stage_noDI v2 (5ep @ 1e-5) showed under-training; SANITY @ 5e-5 passed; 15-epoch FULL runs in flight on 2 boxes → `logs/run_train_surgery_2stage_noDI_epoch15_v3.log` + `logs/run_train_surgery_3stage_DI_epoch15_v2.log` |
 | Phase 3a: 50K scale-up (conditional) | ~52h projected | 🔒 contingent on iter11 v2 Δ ≥ +0.3 pp on eval_10k |
 | Phase 3b: 115K (conditional) | ~117h projected | 🔒 contingent on 50K Δ ≥ 0.5 pp |
 | Phase 4: Paper writing | ~14h | ⬜ |
@@ -496,9 +584,14 @@ Priority if time-constrained: **A3** (proves factoring matters) then **A4** (Neu
 | `iter/iter11/plan_code_dev.md` | 🚀 LIVE iter11 v2 code-dev plan (rename + train.sh + eval.sh) |
 | `iter/iter11/plan_training.md` | System design, architecture, literature |
 | `iter/iter11/errors_N_fixes.md` | Bugs catalogued (iter8 → iter11) |
-| `configs/train/ch11_surgery.yaml` (→ `surgery_2stage_noDI.yaml` post-rename) | Surgery base config |
+| `configs/train/surgery_2stage_noDI.yaml` | Surgery base (2-stage, no D_I) — iter11 v2 baseline |
+| `configs/train/surgery_2stage_loud_agent.yaml` | Surgery 2-stage with louder agent weight (S2 A=0.85, L=0.15) |
+| `configs/train/surgery_3stage_DI.yaml` | Surgery 3-stage with D_I re-enabled (`interaction_mining: true`) — also feeds `run_factor_prep.sh` as the maximal config |
 | `configs/train/explora.yaml` | ExPLoRA config (LoRA rank=16 + 2 unfrozen blocks) |
 | `configs/model/vjepa2_1.yaml` | V-JEPA 2.1 model config |
+| `iter/iter11/runbook.md` | iter11 v2 terminal-command runbook (Setup → factor_prep → train → eval → decision gate) |
 | `iter/utils/literarure_survey.md` | 24 JEPA variants (fallback) |
 | `iter/utils/experiment_log.md` | POST-completion experiment results only (iter10 cross-run table) |
-| `scripts/train.sh` (pending) / `scripts/eval.sh` (pending) | iter11 v2 thin wrappers |
+| `scripts/run_factor_prep.sh` / `scripts/run_train.sh` / `scripts/run_eval.sh` | iter11 v2 thin wrappers (✅ landed 2026-04-25) |
+| `scripts/lib/yaml_extract.py` | Tiny `<yaml> <dotted.key>` reader used by all 3 wrappers |
+| `scripts/run_paired_eval_10k.sh` | iter10 paired-eval reference (kept for run_eval.sh design lineage) |

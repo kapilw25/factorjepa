@@ -9,6 +9,7 @@ USAGE:
 """
 import argparse
 import json
+import os
 import re
 import sys
 from pathlib import Path
@@ -22,6 +23,10 @@ from utils.config import (
     get_encoder_files, get_encoder_info,
 )
 from utils.wandb_utils import add_wandb_args, init_wandb, log_image, finish_wandb
+from utils.cache_policy import (
+    add_cache_policy_arg, resolve_cache_policy_interactive,
+    guarded_delete, wipe_output_dir,
+)
 
 import matplotlib
 matplotlib.use("Agg")
@@ -1140,19 +1145,40 @@ def main():
                         help="Comma-separated encoder names to compare "
                              "(e.g., vjepa,vjepa_adapted,vjepa_lambda0_01). "
                              "If omitted, uses all registered encoders.")
+    parser.add_argument("--output-dir", type=str, default=None,
+                        help="Per-variant output dir override. When omitted, "
+                             "writes to outputs/full/m08b_compare/ (shared — "
+                             "collides if multiple variants run eval in parallel). "
+                             "run_eval.sh passes <yaml.data.output_dir>/eval/ "
+                             "so paired_bootstrap_results.json + plots stay per-variant.")
     add_subset_arg(parser)
     add_wandb_args(parser)
     # Cache-policy gate (iter11): every destructive delete in this module must route
     # through utils.cache_policy.guarded_delete(path, args.cache_policy, ...).
     # --cache-policy defaults to 1 (keep) so overnight re-runs never destroy cache.
-    from utils.cache_policy import add_cache_policy_arg
     add_cache_policy_arg(parser)
     args = parser.parse_args()
+
+    # Cache-policy prompt — shells stay thin (CLAUDE.md DELETE PROTECTION).
+    args.cache_policy = resolve_cache_policy_interactive(args.cache_policy)
 
     if not (args.SANITY or args.POC or args.FULL):
         parser.print_help()
         print("\nERROR: Specify --SANITY, --POC, or --FULL")
         sys.exit(1)
+
+    # iter11 v3 (2026-04-26): cache-policy=2 nukes the WHOLE output_dir at startup.
+    # When called from run_eval.sh, args.output_dir = "${OUT_DIR}/eval" (per-variant,
+    # single-owner) — wipe_output_dir() only nukes that subdir, NOT the m09 training
+    # parent. When called standalone, it falls back to get_module_output_dir which
+    # is also single-owner (m08b_compare/). Closes prompt-trigger ≠ delete-target
+    # asymmetry (stale plots / tex tables without paired_bootstrap_results.json).
+    if args.output_dir:
+        _m08b_out = Path(args.output_dir)
+    else:
+        _m08b_out = get_module_output_dir(
+            "m08b_compare", args.subset, sanity=args.SANITY, poc=args.POC)
+    wipe_output_dir(_m08b_out, args.cache_policy, label=f"output_dir ({_m08b_out.name})")
 
     # Parse custom encoder list
     encoder_list = None
@@ -1180,10 +1206,16 @@ def main():
         ENCODER_ORDER = encoder_list
 
     base_dir = get_output_dir(args.subset, sanity=args.SANITY, poc=args.POC)
-    output_dir = get_module_output_dir("m08b_compare", args.subset, sanity=args.SANITY, poc=args.POC)
+    # Per-variant output_dir override prevents 4-way overwrite when multiple
+    # variants run eval in parallel (paired_bootstrap_results.json + plots).
+    if args.output_dir:
+        output_dir = Path(args.output_dir)
+        output_dir.mkdir(parents=True, exist_ok=True)
+    else:
+        output_dir = get_module_output_dir("m08b_compare", args.subset, sanity=args.SANITY, poc=args.POC)
     # Per-module restructure (#64): m06 JSONs live under <base_dir>/m06_faiss_metrics/,
     # not flat at <base_dir>/. Analogous fix at m06_faiss_metrics.py — m08b was missed.
-    # errors_N_fixes #75.
+    # errors_N_fixes #75. metrics_dir stays SHARED (all variants read each other's m06 metrics).
     metrics_dir = base_dir / "m06_faiss_metrics"
     print(f"Output dir: {output_dir}")
     print(f"Scanning for encoder metrics in: {metrics_dir}")
@@ -1222,7 +1254,6 @@ def main():
                   f"min-max normalization degenerates to binary winner/loser "
                   f"with 2 encoders. Re-runs automatically when ExPLoRA arm lands.")
             # iter11 META-fix: gate stale-radar purge through --cache-policy.
-            from utils.cache_policy import guarded_delete
             for ext in (".png", ".pdf"):
                 stale = output_dir / f"m08b_radar{ext}"
                 guarded_delete(stale, args.cache_policy, label=f"stale radar {ext}")

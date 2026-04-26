@@ -14,37 +14,24 @@
 #   python -u src/m09b_explora.py \
 #       --model-config configs/model/vjepa2_1.yaml \
 #       --train-config configs/train/explora.yaml \
-#       --FULL --subset data/subset_10k.json --local-data data/subset_10k_local
+#       --FULL
+#   (train/val/eval paths read from base_optimization.yaml: ultra_hard_3066_{train,val,eval}.json)
 
 extends: base_optimization.yaml
 
-# -- iter11 v2 paths (read by scripts/run_train.sh + run_eval.sh via yaml_extract) --
-# Every path the runner needs lives here so the shell wrapper takes ONLY this yaml as arg.
-# Per CLAUDE.md "No hardcoded paths" rule.
+# -- Variant-specific paths (read by scripts/run_train.sh + run_eval.sh via yaml_extract) --
+# Train/val/eval dataset paths inherited from base_optimization.yaml (single source of truth
+# for the 80:10:10 ultra_hard_3066 split). Only technique-specific overrides live here.
 data:
   module: m09b                                       # m09b for explora, m09c for surgery_*
   adapted_encoder: vjepa_2_1_explora                 # ENCODER_REGISTRY key in configs/pipeline.yaml
   model_config: configs/model/vjepa2_1.yaml
-  train_subset: data/subset_10k.json
-  train_local_data: data/subset_10k_local
-  val_subset: data/val_1k.json
-  val_local_data: data/val_1k_local
-  output_dir: outputs/full/explora                   # variant-specific
-  eval_subset: data/eval_10k.json
-  eval_local_data: data/eval_10k_local
+  output_dir: outputs/full/explora                   # variant-specific results dir
 
-# -- Optimization overrides --
-optimization:
-  # ExPLoRA can use slightly higher LR than full fine-tuning (smaller param surface)
-  lr: 1.0e-5
-  pred_lr_multiplier: 1.0         # Meta uses SAME LR (gold standard audit: 10x was wrong)
-
-  max_epochs:
-    sanity: 1
-    poc: 1                         # code-path validation only; 5 probes at saves_per_epoch=5 suffice.
-    full: 5                        # iter11 v2 (2026-04-24): 1 → 5 so val-loss plateau (patience=5 = 1 epoch of no improvement at saves_per_epoch=5) can actually fire. Matches SSL canon fixed-budget training.
-
-  batch_size: 32                  # Auto-overridden by profiler
+# -- Optimization: lr / batch_size / max_epochs all inherited from base_optimization.yaml --
+# (V-JEPA 2.1 published recipe: lr=1e-5, BS=32, 5 epochs FULL). No ExPLoRA-specific
+# optim overrides — LoRA's smaller param surface still benefits from the recipe-locked
+# values (validated by iter11 v3 runs).
 
 # -- ExPLoRA configuration --
 explora:
@@ -72,48 +59,9 @@ drift_control:
   enabled: false
   lambda_reg: 0
 
-# -- Probe: mid-training Prec@K trajectory + best-ckpt + early-stop (iter11 port from ch11_surgery) --
+# -- Probe: fully inherited from base_optimization.yaml --
 # ExPLoRA is single-stage (unlike m09c's 2-3 stage surgery), so all kill-trigger state
 # tracks ONE continuous series (no stage boundaries → no resets needed). Mode-gated flags
 # flatten to scalars in merge_config_with_args() per the m09c pattern (src/m09c_surgery.py:94-129).
-# See iter/iter11/plan_code_dev.md for the full design rationale (diagnostic baseline vs Surgery).
-probe:
-  enabled:              {sanity: false, poc: true, full: true}  # N too small for stable BCa CI on SANITY
-  subset:               data/val_1k.json                         # 1000-clip held-out eval set (disjoint from subset_10k)
-  local_data:           data/val_1k_local                        # WebDataset TAR dir (1 shard for val_1k)
-  tags_path:            data/val_1k_local/tags.json
-  k:                    6                                         # matches configs/pipeline.yaml eval.K
-  bootstrap_iter:       10000                                     # matches utils/bootstrap.N_BOOTSTRAP
-  cadence:              saves_per_epoch                           # reuses checkpoint.saves_per_epoch (base_optimization.yaml)
-  best_ckpt_enabled:    {sanity: false, poc: true, full: true}   # save m09b_ckpt_best_prec.pt on each new max Prec@K
-  # iter11 (2026-04-24): val-loss plateau is the ONLY enabled early-stop.
-  # Probe-Prec@K-based triggers (forgetting kill / prec plateau / BWT compound) all
-  # operate below the BCa CI_half noise floor (±1.73 pp @ N=1000) → they fire on
-  # sampling jitter. SSL canon (V-JEPA 2 / DINOv2 / ExPLoRA paper) trains to fixed
-  # cosine-to-zero budget or stops only on val-loss plateau. Keeping probe metrics
-  # as monitoring-only (plot + ckpt selection) — NOT as training terminators.
-  # -- Early-stop #1: catastrophic-forgetting kill-switch (DISABLED — noise-level) --
-  kill_switch_enabled:  {sanity: false, poc: false, full: false}
-  forgetting_threshold_pct: 5.0
-  forgetting_patience:      3
-  # -- Early-stop #2: val-loss plateau detector (THE ONLY ACTIVE TRIGGER) --
-  plateau_enabled:          {sanity: false, poc: true, full: true}
-  plateau_min_delta:        1.0e-3
-  plateau_patience:         5
-  # -- Early-stop #2b: Prec@K plateau detector (DISABLED — noise-level) --
-  prec_plateau_enabled:     {sanity: false, poc: false, full: false}
-  prec_plateau_min_delta:   0.3
-  prec_plateau_patience:    5
-  # -- Early-stop #3: negative-BWT cumulative trigger (DISABLED — noise-level) --
-  bwt_trigger_enabled:      {sanity: false, poc: false, full: false}
-  bwt_ci_fraction:          0.5
-  bwt_absolute_floor:       0.3
-  bwt_patience:             3
-  # -- Held-out val source: use permanent val_1k for FULL (disjoint from subset_10k/subset_50k) --
-  # POC trains on val_1k itself → must fall back to internal data.train_val_split (use_permanent_val=false).
-  # FULL trains on subset_10k/subset_50k (disjoint from val_1k by m00c construction) → use val_1k as probe.
-  use_permanent_val:        {sanity: false, poc: false, full: true}
-  compute_val_loss:         true   # also compute JEPA val-loss on probe clips (~6s per call at N=1000)
-  # NOTE: probe forward micro-batch is adaptive — AdaptiveBatchSizer reads pipeline.yaml
-  # gpu.{inference_vjepa_initial_bs, inference_adapted_bs, gpu_memory_target} at runtime.
-  # Do NOT hardcode sub_batch here (CLAUDE.md B35 universal-infra rule, errors_N_fixes #47).
+# Universal probe config (paths, kill triggers, plateau, BWT, use_permanent_val) lives in
+# base_optimization.yaml — no technique-specific overrides needed for ExPLoRA.
