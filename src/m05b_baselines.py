@@ -36,6 +36,7 @@ from utils.config import (
     check_gpu, load_subset, add_subset_arg, add_local_data_arg,
     get_output_dir, get_module_output_dir, get_encoder_files,
     get_sanity_clip_limit, get_total_clips, get_pipeline_config,
+    verify_npy_matches_subset,
 )
 from utils.data_download import ensure_local_data, iter_clips_parallel
 from utils.gpu_batch import compute_batch_sizes, add_gpu_mem_arg, cuda_cleanup, cleanup_temp, AdaptiveBatchSizer
@@ -422,7 +423,8 @@ def generate_dinov2(output_dir: Path, args, clip_limit: int, subset_keys: set):
         producer.join(timeout=10)
         shutil.rmtree(tmp_dir, ignore_errors=True)
 
-    _finalize(all_embeddings, all_keys, files, checkpoint_file)
+    _finalize(all_embeddings, all_keys, files, checkpoint_file,
+              subset_path=getattr(args, "subset", None), label="m05b dinov2")
     return np.stack(all_embeddings).astype(np.float32), all_keys
 
 
@@ -557,7 +559,8 @@ def generate_clip(output_dir: Path, args, clip_limit: int, subset_keys: set):
         producer.join(timeout=10)
         shutil.rmtree(tmp_dir, ignore_errors=True)
 
-    _finalize(all_embeddings, all_keys, files, checkpoint_file)
+    _finalize(all_embeddings, all_keys, files, checkpoint_file,
+              subset_path=getattr(args, "subset", None), label="m05b clip")
     return np.stack(all_embeddings).astype(np.float32), all_keys
 
 
@@ -796,19 +799,23 @@ def generate_shuffled_vjepa(output_dir: Path, args, clip_limit: int, subset_keys
         except OSError:
             pass
 
-    _finalize(all_embeddings, all_keys, files, checkpoint_file)
+    _finalize(all_embeddings, all_keys, files, checkpoint_file,
+              subset_path=getattr(args, "subset", None), label="m05b vjepa_shuffled")
     return np.stack(all_embeddings).astype(np.float32), all_keys
 
 
 # ── Shared Finalize ──────────────────────────────────────────────────
 
-def _finalize(all_embeddings: list, all_keys: list, files: dict, checkpoint_file: Path):
+def _finalize(all_embeddings: list, all_keys: list, files: dict, checkpoint_file: Path,
+              subset_path: str = None, label: str = "m05b embeddings"):
     """Save final output, clean checkpoint."""
     if not all_embeddings:
         print("ERROR: No embeddings collected.")
         sys.exit(1)
 
     embeddings = np.stack(all_embeddings).astype(np.float32)
+    # Defensive shape check (incident 2026-04-26 — see utils.config).
+    verify_npy_matches_subset(embeddings, subset_path, label=label)
     files["embeddings"].parent.mkdir(parents=True, exist_ok=True)
     np.save(files["embeddings"], embeddings)
     np.save(files["paths"], np.array(all_keys, dtype=object))

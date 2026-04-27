@@ -1537,6 +1537,11 @@ def render_training_plots(
     best_state: dict,
     probe_compute_val_loss: bool = True,
     verbose: bool = False,
+    n_train_clips: int = None,
+    n_epochs: int = None,
+    total_steps: int = None,
+    batch_size: int = None,
+    lr: float = None,
 ) -> None:
     """Render probe_trajectory + m09_forgetting + m09_val_loss PNG/PDF from
     probe_history. Technique-agnostic — works for single-stage (m09b ExPLoRA)
@@ -1564,6 +1569,22 @@ def render_training_plots(
         return
 
     steps_ = [r["global_step"] for r in probe_history]
+
+    # Run-context tag: woven into every plot title so reader knows the
+    # training scale at a glance (epochs × clips × batch). Falls back to ""
+    # for callers that don't pass these kwargs (backward compat).
+    _tag_parts = []
+    if n_train_clips is not None:
+        _tag_parts.append(f"{n_train_clips:,} train clips")
+    if n_epochs is not None:
+        _tag_parts.append(f"{n_epochs} ep")
+    if total_steps is not None:
+        _tag_parts.append(f"{total_steps:,} steps")
+    if batch_size is not None:
+        _tag_parts.append(f"BS={batch_size}")
+    if lr is not None:
+        _tag_parts.append(f"LR={lr:.1e}")
+    _run_tag = ("\n" + " × ".join(_tag_parts)) if _tag_parts else ""
 
     # Plot 1: probe_trajectory.png/.pdf
     try:
@@ -1599,7 +1620,7 @@ def render_training_plots(
         axes[-1].set_xlabel("Optimizer step", fontsize=10)
         fig.suptitle(
             f"Probe trajectory (N={probe_history[0]['num_clips']} val-split, "
-            f"{len(probe_history)} probes, 95 % BCa CI) — per-panel y-axis auto-scaled",
+            f"{len(probe_history)} probes, 95 % BCa CI){_run_tag}",
             fontsize=11, fontweight="bold", y=0.995)
         plt.tight_layout()
         for ext in (".png", ".pdf"):
@@ -1677,7 +1698,7 @@ def render_training_plots(
         ax.set_ylabel("Prec@K (%)")
         ax.set_title(
             f"Forgetting monitor (N={probe_history[0]['num_clips']}, "
-            f"patience={forgetting_patience}, threshold={forgetting_threshold_pct:.1f}pp{kill_msg})")
+            f"patience={forgetting_patience}, threshold={forgetting_threshold_pct:.1f}pp{kill_msg}){_run_tag}")
         lines1, labels1 = ax.get_legend_handles_labels()
         lines2, labels2 = ax2.get_legend_handles_labels()
         ax.legend(lines1 + lines2, labels1 + labels2,
@@ -1739,7 +1760,7 @@ def render_training_plots(
             axes[-1].set_xlabel("Optimizer step")
             axes[0].set_title(
                 f"JEPA val-loss (N={probe_history[0]['num_clips']} val-split, "
-                f"{len(probe_history)} probes) — per-panel y-axis auto-scaled")
+                f"{len(probe_history)} probes){_run_tag}")
             for ext in (".png", ".pdf"):
                 plt.savefig(output_dir / f"m09_val_loss{ext}",
                             dpi=150 if ext == ".png" else None, bbox_inches="tight")
@@ -1749,3 +1770,57 @@ def render_training_plots(
         except Exception as e:
             if verbose:
                 print(f"  [probe] WARN: val-loss plot failed: {e}")
+
+        # Plot 3b: m09_val_loss_jepa.png/.pdf — single-panel JEPA total (L1)
+        # zoom with rolling-mean overlay (companion to m09_train_loss smoothing).
+        try:
+            jepa_vals = [r["val_jepa_loss"] for r in probe_history
+                         if "val_jepa_loss" in r]
+            jepa_steps = [r["global_step"] for r in probe_history
+                          if "val_jepa_loss" in r]
+            if len(jepa_vals) >= 2:
+                fig, ax = plt.subplots(figsize=(10, 5))
+                ax.plot(jepa_steps, jepa_vals, "o-", color="#C62828",
+                        linewidth=0.8, markersize=4, alpha=0.35,
+                        label="val_jepa (raw)", zorder=2)
+                window = max(1, len(jepa_vals) // 10)
+                if window > 1:
+                    k = np.ones(window) / window
+                    sm = np.convolve(jepa_vals, k, mode="valid")
+                    sm_x = jepa_steps[window - 1:]
+                    ax.plot(sm_x, sm, color="#C62828", linewidth=2.8,
+                            label=f"rolling mean (w={window} probes)", zorder=10)
+                seen_ = set()
+                for r in probe_history:
+                    if r["stage_idx"] not in seen_:
+                        ax.axvline(r["global_step"], color="gray",
+                                   linestyle=":", alpha=0.5, linewidth=1)
+                        seen_.add(r["stage_idx"])
+                ax.annotate(f"end={jepa_vals[-1]:.4f}",
+                            xy=(jepa_steps[-1], jepa_vals[-1]),
+                            xytext=(5, 0), textcoords="offset points",
+                            fontsize=9, color="#C62828", va="center")
+                best_i = int(np.argmin(jepa_vals))
+                ax.scatter([jepa_steps[best_i]], [jepa_vals[best_i]],
+                           marker="*", s=140, color="#1565C0",
+                           zorder=11, label=f"best={jepa_vals[best_i]:.4f}"
+                           f" @ step {jepa_steps[best_i]}")
+                ax.set_xlabel("Optimizer step", fontsize=10)
+                ax.set_ylabel("JEPA total (L1)", color="#C62828",
+                              fontsize=10, fontweight="bold")
+                ax.tick_params(axis="y", labelcolor="#C62828")
+                ax.grid(True, alpha=0.3)
+                ax.legend(loc="upper right", fontsize=9)
+                ax.set_title(
+                    f"JEPA val-loss zoom (N={probe_history[0]['num_clips']} "
+                    f"val-split, {len(jepa_vals)} probes) — raw + rolling mean{_run_tag}")
+                for ext in (".png", ".pdf"):
+                    plt.savefig(output_dir / f"m09_val_loss_jepa{ext}",
+                                dpi=150 if ext == ".png" else None,
+                                bbox_inches="tight")
+                plt.close()
+                if verbose:
+                    print(f"  Saved: {output_dir / 'm09_val_loss_jepa.png'}")
+        except Exception as e:
+            if verbose:
+                print(f"  [probe] WARN: val-loss-jepa plot failed: {e}")

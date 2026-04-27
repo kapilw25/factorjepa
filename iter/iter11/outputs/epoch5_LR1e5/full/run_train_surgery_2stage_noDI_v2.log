@@ -1,0 +1,389 @@
+──────────────────────────────────────────────
+run_train cache-policy gather (one prompt per variant if checkpoint exists)
+──────────────────────────────────────────────
+
+═══ 06:05:56 · Variant: surgery_2stage_noDI ═══
+[live-debug] installed — pid=830592. Force a stack dump anytime via:
+[live-debug]   kill -USR1 830592   # signal-safe native dump
+[live-debug]   kill -USR2 830592   # Python dump with banner
+GPU: NVIDIA RTX PRO 6000 Blackwell Max-Q Workstation Edition
+CUDA version: 12.8
+/workspace/factorjepa/venv_walkindia/lib/python3.12/site-packages/timm/models/layers/__init__.py:49: FutureWarning: Importing from timm.models.layers is deprecated, please import via timm.layers
+  warnings.warn(f"Importing from {__name__} is deprecated, please import via timm.layers", FutureWarning)
+Loading pretrained weights from /workspace/factorjepa/checkpoints/vjepa2_1_vitG_384.pt
+Student loaded: 1,843,937,152 params (588/588 keys = 100%)
+Teacher created (deepcopy of student, hierarchical output enabled)
+Predictor loaded from checkpoint (300/300 keys = 100%)
+Predictor: 59,430,400 params
+  train/val split: 2452 train / 306 val (PERMANENT data/ultra_hard_3066_val.json) → outputs/full/surgery_2stage_noDI/val_split.json
+  Factor index: 100 clips (D_L=100, D_A=70, D_I=64)
+  build_streaming_indices: 2452 clips ready (2452 mp4, 2452 masks, 4 TARs scanned)
+  [pre-flight] mode_mixture vs manifest availability OK: {'D_L': 2451, 'D_A': 2378, 'D_I': 2344}
+
+============================================================
+SURGERY TRAINING — 2 stages on 2452 factor clips
+Model: vit_gigantic_xformers (48 blocks, 1664-dim)
+Epochs: 5 | Steps: 380 | BS: 32
+Dense loss: predict_all=True | Deep supervision: 4 levels
+============================================================
+AdaptiveBatchSizer (surgery, grad-accum): start=4, max=32 (= effective BS), target VRAM=85%
+
+============================================================
+[probe] N=306 held-out val clips, cadence=saves_per_epoch, saves_per_epoch=5 (probe_every=15 steps, ~25 total probes), val_loss=True
+============================================================
+  Parallel TAR reader: 8 threads, 4 TARs, queue=256
+  [probe] decoded 306 clips (0 skipped — no tag match)
+
+============================================================
+STAGE 1/2: stage1_layout
+  Layers 0-12 trainable | 190 steps | warmup 38
+  Mixture: {'L': 1.0, 'A': 0.0, 'I': 0.0}
+============================================================
+  Trainable prefix: 12/48 blocks (460,593,664/1,843,937,152 = 25.0%)
+  StreamingFactorDataset: REQUESTED={'L': 1.0} → ACTUAL={D_L=100%} (indexed=2452 clips)
+surgery:stage1_layout:   0%|          | 0/190 [00:00<?, ?step/s]/venv/main/lib/python3.12/contextlib.py:105: FutureWarning: `torch.backends.cuda.sdp_kernel()` is deprecated. In the future, this context manager will be removed. Please see `torch.nn.attention.sdpa_kernel()` for the new context manager, with updated signature.
+  self.gen = func(*args, **kwds)
+  AdaptiveBatch: VRAM 26% < 65% → sub-batch 4 → 5
+surgery:stage1_layout:   0%|          | 0/190 [01:37<?, ?step/s]surgery:stage1_layout:   1%|          | 1/190 [01:37<5:06:51, 97.42s/step]  AdaptiveBatch: VRAM 27% < 65% → sub-batch 5 → 6
+surgery:stage1_layout:   1%|          | 2/190 [01:50<2:29:08, 47.60s/step]  AdaptiveBatch: VRAM 33% < 65% → sub-batch 6 → 7
+surgery:stage1_layout:   2%|▏         | 3/190 [02:02<1:37:59, 31.44s/step]  AdaptiveBatch: VRAM 35% < 65% → sub-batch 7 → 8
+surgery:stage1_layout:   2%|▏         | 3/190 [02:16<1:37:59, 31.44s/step]surgery:stage1_layout:   2%|▏         | 4/190 [02:16<1:16:14, 24.60s/step]  AdaptiveBatch: VRAM 36% < 65% → sub-batch 8 → 9
+surgery:stage1_layout:   3%|▎         | 5/190 [02:29<1:03:11, 20.50s/step]  AdaptiveBatch: VRAM 38% < 65% → sub-batch 9 → 10
+surgery:stage1_layout:   3%|▎         | 6/190 [02:42<55:12, 18.00s/step]    AdaptiveBatch: VRAM 39% < 65% → sub-batch 10 → 11
+surgery:stage1_layout:   3%|▎         | 6/190 [02:57<55:12, 18.00s/step]surgery:stage1_layout:   4%|▎         | 7/190 [02:57<51:58, 17.04s/step]  AdaptiveBatch: VRAM 41% < 65% → sub-batch 11 → 12
+surgery:stage1_layout:   4%|▍         | 8/190 [03:10<46:58, 15.48s/step]  AdaptiveBatch: VRAM 43% < 65% → sub-batch 12 → 13
+surgery:stage1_layout:   5%|▍         | 9/190 [03:24<45:34, 15.11s/step]  AdaptiveBatch: VRAM 44% < 65% → sub-batch 13 → 14
+surgery:stage1_layout:   5%|▍         | 9/190 [03:37<45:34, 15.11s/step]surgery:stage1_layout:   5%|▌         | 10/190 [03:37<43:13, 14.41s/step]  AdaptiveBatch: VRAM 45% < 65% → sub-batch 14 → 15
+surgery:stage1_layout:   6%|▌         | 11/190 [03:50<42:00, 14.08s/step]  AdaptiveBatch: VRAM 45% < 65% → sub-batch 15 → 16
+surgery:stage1_layout:   6%|▋         | 12/190 [04:02<39:31, 13.32s/step]  AdaptiveBatch: VRAM 48% < 65% → sub-batch 16 → 17
+surgery:stage1_layout:   6%|▋         | 12/190 [04:14<39:31, 13.32s/step]surgery:stage1_layout:   7%|▋         | 13/190 [04:14<38:03, 12.90s/step]  AdaptiveBatch: VRAM 48% < 65% → sub-batch 17 → 18
+surgery:stage1_layout:   7%|▋         | 14/190 [04:29<39:46, 13.56s/step]  AdaptiveBatch: VRAM 50% < 65% → sub-batch 18 → 19
+surgery:stage1_layout:   8%|▊         | 15/190 [04:41<38:53, 13.33s/step]  [probe] AdaptiveBatchSizer: start=24, max=24, cap=85% (iter11 no-ramp)
+  [probe] encoding 306 clips...
+/venv/main/lib/python3.12/contextlib.py:105: FutureWarning: `torch.backends.cuda.sdp_kernel()` is deprecated. In the future, this context manager will be removed. Please see `torch.nn.attention.sdpa_kernel()` for the new context manager, with updated signature.
+  self.gen = func(*args, **kwds)
+/venv/main/lib/python3.12/contextlib.py:105: FutureWarning: `torch.backends.cuda.sdp_kernel()` is deprecated. In the future, this context manager will be removed. Please see `torch.nn.attention.sdpa_kernel()` for the new context manager, with updated signature.
+  self.gen = func(*args, **kwds)
+  [probe] step=15 stage=stage1_layout N=306 Prec@K=75.00±3.79 mAP@K=70.26±4.07 Cycle@K=78.43±4.74 val_jepa=0.4946
+Exported student encoder: outputs/full/surgery_2stage_noDI/student_best.pt
+  [best] new max Prec@K=75.00 (step 15) → saved student_best.pt
+  [plots] skip m09_val_loss: no val_loss in loss_log (m09c reads val-loss from probe_history instead — see _render_live_plots)
+  Saved: outputs/full/surgery_2stage_noDI/m09_train_loss.png + .pdf
+  SKIP: drift loss plot (all zeros — drift control disabled)
+/venv/main/lib/python3.12/contextlib.py:105: FutureWarning: `torch.backends.cuda.sdp_kernel()` is deprecated. In the future, this context manager will be removed. Please see `torch.nn.attention.sdpa_kernel()` for the new context manager, with updated signature.
+  self.gen = func(*args, **kwds)
+  AdaptiveBatch: VRAM 53% < 65% → sub-batch 19 → 20
+surgery:stage1_layout:   8%|▊         | 15/190 [10:10<38:53, 13.33s/step]surgery:stage1_layout:   8%|▊         | 16/190 [10:10<5:13:42, 108.18s/step]  AdaptiveBatch: VRAM 52% < 65% → sub-batch 20 → 21
+surgery:stage1_layout:   9%|▉         | 17/190 [10:22<3:48:13, 79.15s/step]   AdaptiveBatch: VRAM 56% < 65% → sub-batch 21 → 22
+surgery:stage1_layout:   9%|▉         | 18/190 [10:34<2:49:19, 59.07s/step]  AdaptiveBatch: VRAM 57% < 65% → sub-batch 22 → 23
+surgery:stage1_layout:   9%|▉         | 18/190 [10:47<2:49:19, 59.07s/step]surgery:stage1_layout:  10%|█         | 19/190 [10:47<2:09:04, 45.29s/step]  AdaptiveBatch: VRAM 58% < 65% → sub-batch 23 → 24
+surgery:stage1_layout:  11%|█         | 20/190 [10:59<1:39:57, 35.28s/step]  AdaptiveBatch: VRAM 62% < 65% → sub-batch 24 → 25
+surgery:stage1_layout:  11%|█         | 21/190 [11:12<1:20:10, 28.46s/step]  AdaptiveBatch: VRAM 60% < 65% → sub-batch 25 → 26
+surgery:stage1_layout:  11%|█         | 21/190 [11:24<1:20:10, 28.46s/step]surgery:stage1_layout:  12%|█▏        | 22/190 [11:24<1:05:52, 23.53s/step]  AdaptiveBatch: VRAM 63% < 65% → sub-batch 26 → 27
+surgery:stage1_layout:  12%|█▏        | 23/190 [11:37<57:24, 20.63s/step]    AdaptiveBatch: VRAM 63% < 65% → sub-batch 27 → 28
+surgery:stage1_layout:  13%|█▎        | 24/190 [11:50<50:40, 18.32s/step]surgery:stage1_layout:  13%|█▎        | 24/190 [12:04<50:40, 18.32s/step]surgery:stage1_layout:  13%|█▎        | 25/190 [12:04<46:15, 16.82s/step]surgery:stage1_layout:  14%|█▎        | 26/190 [12:17<42:47, 15.65s/step]surgery:stage1_layout:  14%|█▍        | 27/190 [12:28<39:13, 14.44s/step]surgery:stage1_layout:  14%|█▍        | 27/190 [12:41<39:13, 14.44s/step]surgery:stage1_layout:  15%|█▍        | 28/190 [12:41<37:44, 13.98s/step]surgery:stage1_layout:  15%|█▌        | 29/190 [12:52<35:24, 13.19s/step]surgery:stage1_layout:  16%|█▌        | 30/190 [13:06<35:04, 13.15s/step]  [probe] AdaptiveBatchSizer: start=24, max=24, cap=85% (iter11 no-ramp)
+  [probe] encoding 306 clips...
+/venv/main/lib/python3.12/contextlib.py:105: FutureWarning: `torch.backends.cuda.sdp_kernel()` is deprecated. In the future, this context manager will be removed. Please see `torch.nn.attention.sdpa_kernel()` for the new context manager, with updated signature.
+  self.gen = func(*args, **kwds)
+  [probe] step=30 stage=stage1_layout N=306 Prec@K=74.95±3.79 mAP@K=70.13±4.06 Cycle@K=78.43±4.74 val_jepa=0.4855
+  [plots] skip m09_val_loss: no val_loss in loss_log (m09c reads val-loss from probe_history instead — see _render_live_plots)
+  Saved: outputs/full/surgery_2stage_noDI/m09_train_loss.png + .pdf
+  SKIP: drift loss plot (all zeros — drift control disabled)
+/venv/main/lib/python3.12/contextlib.py:105: FutureWarning: `torch.backends.cuda.sdp_kernel()` is deprecated. In the future, this context manager will be removed. Please see `torch.nn.attention.sdpa_kernel()` for the new context manager, with updated signature.
+  self.gen = func(*args, **kwds)
+surgery:stage1_layout:  16%|█▌        | 30/190 [18:19<35:04, 13.15s/step]surgery:stage1_layout:  16%|█▋        | 31/190 [18:19<4:33:25, 103.18s/step]surgery:stage1_layout:  17%|█▋        | 32/190 [18:31<3:20:08, 76.01s/step] surgery:stage1_layout:  17%|█▋        | 33/190 [18:44<2:28:55, 56.92s/step]surgery:stage1_layout:  17%|█▋        | 33/190 [18:56<2:28:55, 56.92s/step]surgery:stage1_layout:  18%|█▊        | 34/190 [18:56<1:52:47, 43.38s/step]surgery:stage1_layout:  18%|█▊        | 35/190 [19:07<1:27:30, 33.87s/step]surgery:stage1_layout:  19%|█▉        | 36/190 [19:20<1:10:44, 27.56s/step]surgery:stage1_layout:  19%|█▉        | 36/190 [19:32<1:10:44, 27.56s/step]surgery:stage1_layout:  19%|█▉        | 37/190 [19:32<58:13, 22.84s/step]  surgery:stage1_layout:  20%|██        | 38/190 [19:44<49:47, 19.65s/step]surgery:stage1_layout:  21%|██        | 39/190 [19:54<42:14, 16.79s/step]surgery:stage1_layout:  21%|██        | 39/190 [20:06<42:14, 16.79s/step]surgery:stage1_layout:  21%|██        | 40/190 [20:06<38:01, 15.21s/step]surgery:stage1_layout:  22%|██▏       | 41/190 [20:18<35:38, 14.35s/step]surgery:stage1_layout:  22%|██▏       | 42/190 [20:30<33:34, 13.61s/step]surgery:stage1_layout:  22%|██▏       | 42/190 [20:43<33:34, 13.61s/step]surgery:stage1_layout:  23%|██▎       | 43/190 [20:43<33:02, 13.49s/step]surgery:stage1_layout:  23%|██▎       | 44/190 [20:54<31:10, 12.81s/step]surgery:stage1_layout:  24%|██▎       | 45/190 [21:07<31:04, 12.86s/step]  [probe] AdaptiveBatchSizer: start=24, max=24, cap=85% (iter11 no-ramp)
+  [probe] encoding 306 clips...
+/venv/main/lib/python3.12/contextlib.py:105: FutureWarning: `torch.backends.cuda.sdp_kernel()` is deprecated. In the future, this context manager will be removed. Please see `torch.nn.attention.sdpa_kernel()` for the new context manager, with updated signature.
+  self.gen = func(*args, **kwds)
+  [probe] step=45 stage=stage1_layout N=306 Prec@K=75.00±3.79 mAP@K=70.12±4.06 Cycle@K=78.10±4.74 val_jepa=0.4850
+  [plots] skip m09_val_loss: no val_loss in loss_log (m09c reads val-loss from probe_history instead — see _render_live_plots)
+  Saved: outputs/full/surgery_2stage_noDI/m09_train_loss.png + .pdf
+  SKIP: drift loss plot (all zeros — drift control disabled)
+/venv/main/lib/python3.12/contextlib.py:105: FutureWarning: `torch.backends.cuda.sdp_kernel()` is deprecated. In the future, this context manager will be removed. Please see `torch.nn.attention.sdpa_kernel()` for the new context manager, with updated signature.
+  self.gen = func(*args, **kwds)
+surgery:stage1_layout:  24%|██▎       | 45/190 [26:15<31:04, 12.86s/step]surgery:stage1_layout:  24%|██▍       | 46/190 [26:15<4:02:57, 101.23s/step]surgery:stage1_layout:  25%|██▍       | 47/190 [26:28<2:58:23, 74.85s/step] surgery:stage1_layout:  25%|██▌       | 48/190 [26:39<2:11:37, 55.62s/step]surgery:stage1_layout:  25%|██▌       | 48/190 [26:50<2:11:37, 55.62s/step]surgery:stage1_layout:  26%|██▌       | 49/190 [26:50<1:39:15, 42.24s/step]surgery:stage1_layout:  26%|██▋       | 50/190 [27:01<1:16:52, 32.94s/step]surgery:stage1_layout:  27%|██▋       | 51/190 [27:14<1:02:42, 27.07s/step]surgery:stage1_layout:  27%|██▋       | 51/190 [27:27<1:02:42, 27.07s/step]surgery:stage1_layout:  27%|██▋       | 52/190 [27:27<52:03, 22.63s/step]  surgery:stage1_layout:  28%|██▊       | 53/190 [27:38<44:12, 19.36s/step]surgery:stage1_layout:  28%|██▊       | 54/190 [27:49<38:08, 16.83s/step]surgery:stage1_layout:  28%|██▊       | 54/190 [28:02<38:08, 16.83s/step]surgery:stage1_layout:  29%|██▉       | 55/190 [28:02<34:50, 15.48s/step]surgery:stage1_layout:  29%|██▉       | 56/190 [28:13<31:32, 14.12s/step]surgery:stage1_layout:  30%|███       | 57/190 [28:25<29:53, 13.49s/step]surgery:stage1_layout:  30%|███       | 57/190 [28:38<29:53, 13.49s/step]surgery:stage1_layout:  31%|███       | 58/190 [28:38<29:17, 13.31s/step]surgery:stage1_layout:  31%|███       | 59/190 [28:51<28:50, 13.21s/step]surgery:stage1_layout:  32%|███▏      | 60/190 [29:03<27:50, 12.85s/step]  [probe] AdaptiveBatchSizer: start=24, max=24, cap=85% (iter11 no-ramp)
+  [probe] encoding 306 clips...
+/venv/main/lib/python3.12/contextlib.py:105: FutureWarning: `torch.backends.cuda.sdp_kernel()` is deprecated. In the future, this context manager will be removed. Please see `torch.nn.attention.sdpa_kernel()` for the new context manager, with updated signature.
+  self.gen = func(*args, **kwds)
+  [probe] step=60 stage=stage1_layout N=306 Prec@K=75.00±3.81 mAP@K=70.15±4.07 Cycle@K=78.10±4.74 val_jepa=0.4805
+  [plots] skip m09_val_loss: no val_loss in loss_log (m09c reads val-loss from probe_history instead — see _render_live_plots)
+  Saved: outputs/full/surgery_2stage_noDI/m09_train_loss.png + .pdf
+  SKIP: drift loss plot (all zeros — drift control disabled)
+/venv/main/lib/python3.12/contextlib.py:105: FutureWarning: `torch.backends.cuda.sdp_kernel()` is deprecated. In the future, this context manager will be removed. Please see `torch.nn.attention.sdpa_kernel()` for the new context manager, with updated signature.
+  self.gen = func(*args, **kwds)
+surgery:stage1_layout:  32%|███▏      | 60/190 [34:12<27:50, 12.85s/step]surgery:stage1_layout:  32%|███▏      | 61/190 [34:12<3:39:12, 101.95s/step]surgery:stage1_layout:  33%|███▎      | 62/190 [34:25<2:40:08, 75.07s/step] surgery:stage1_layout:  33%|███▎      | 63/190 [34:37<1:58:59, 56.22s/step]surgery:stage1_layout:  33%|███▎      | 63/190 [34:49<1:58:59, 56.22s/step]surgery:stage1_layout:  34%|███▎      | 64/190 [34:49<1:30:19, 43.01s/step]surgery:stage1_layout:  34%|███▍      | 65/190 [35:00<1:09:13, 33.23s/step]surgery:stage1_layout:  35%|███▍      | 66/190 [35:11<55:04, 26.65s/step]  surgery:stage1_layout:  35%|███▍      | 66/190 [35:24<55:04, 26.65s/step]surgery:stage1_layout:  35%|███▌      | 67/190 [35:24<46:08, 22.51s/step]surgery:stage1_layout:  36%|███▌      | 68/190 [35:36<39:40, 19.51s/step]surgery:stage1_layout:  36%|███▋      | 69/190 [35:49<35:00, 17.36s/step]surgery:stage1_layout:  36%|███▋      | 69/190 [36:00<35:00, 17.36s/step]surgery:stage1_layout:  37%|███▋      | 70/190 [36:00<31:21, 15.68s/step]surgery:stage1_layout:  37%|███▋      | 71/190 [36:13<29:14, 14.74s/step]surgery:stage1_layout:  38%|███▊      | 72/190 [36:24<26:53, 13.68s/step]surgery:stage1_layout:  38%|███▊      | 72/190 [36:36<26:53, 13.68s/step]surgery:stage1_layout:  38%|███▊      | 73/190 [36:36<25:52, 13.27s/step]surgery:stage1_layout:  39%|███▉      | 74/190 [36:49<25:15, 13.07s/step]surgery:stage1_layout:  39%|███▉      | 75/190 [37:02<24:45, 12.92s/step]  [probe] AdaptiveBatchSizer: start=24, max=24, cap=85% (iter11 no-ramp)
+  [probe] encoding 306 clips...
+/venv/main/lib/python3.12/contextlib.py:105: FutureWarning: `torch.backends.cuda.sdp_kernel()` is deprecated. In the future, this context manager will be removed. Please see `torch.nn.attention.sdpa_kernel()` for the new context manager, with updated signature.
+  self.gen = func(*args, **kwds)
+  [probe] step=75 stage=stage1_layout N=306 Prec@K=75.05±3.79 mAP@K=70.18±4.08 Cycle@K=78.10±4.74 val_jepa=0.4789
+Exported student encoder: outputs/full/surgery_2stage_noDI/student_best.pt
+  [best] new max Prec@K=75.05 (step 75) → saved student_best.pt
+  [plots] skip m09_val_loss: no val_loss in loss_log (m09c reads val-loss from probe_history instead — see _render_live_plots)
+  Saved: outputs/full/surgery_2stage_noDI/m09_train_loss.png + .pdf
+  SKIP: drift loss plot (all zeros — drift control disabled)
+/venv/main/lib/python3.12/contextlib.py:105: FutureWarning: `torch.backends.cuda.sdp_kernel()` is deprecated. In the future, this context manager will be removed. Please see `torch.nn.attention.sdpa_kernel()` for the new context manager, with updated signature.
+  self.gen = func(*args, **kwds)
+surgery:stage1_layout:  39%|███▉      | 75/190 [42:24<24:45, 12.92s/step]surgery:stage1_layout:  40%|████      | 76/190 [42:24<3:20:45, 105.66s/step]surgery:stage1_layout:  41%|████      | 77/190 [42:36<2:26:32, 77.81s/step] surgery:stage1_layout:  41%|████      | 78/190 [42:51<1:49:46, 58.80s/step]surgery:stage1_layout:  41%|████      | 78/190 [43:03<1:49:46, 58.80s/step]surgery:stage1_layout:  42%|████▏     | 79/190 [43:03<1:22:42, 44.71s/step]surgery:stage1_layout:  42%|████▏     | 80/190 [43:15<1:04:22, 35.11s/step]surgery:stage1_layout:  43%|████▎     | 81/190 [43:27<51:05, 28.12s/step]  surgery:stage1_layout:  43%|████▎     | 81/190 [43:40<51:05, 28.12s/step]surgery:stage1_layout:  43%|████▎     | 82/190 [43:40<42:09, 23.42s/step]surgery:stage1_layout:  44%|████▎     | 83/190 [43:53<36:11, 20.30s/step]surgery:stage1_layout:  44%|████▍     | 84/190 [44:05<31:49, 18.01s/step]surgery:stage1_layout:  44%|████▍     | 84/190 [44:19<31:49, 18.01s/step]surgery:stage1_layout:  45%|████▍     | 85/190 [44:19<29:26, 16.82s/step]surgery:stage1_layout:  45%|████▌     | 86/190 [44:32<26:42, 15.41s/step]surgery:stage1_layout:  46%|████▌     | 87/190 [44:44<25:01, 14.57s/step]surgery:stage1_layout:  46%|████▌     | 87/190 [44:57<25:01, 14.57s/step]surgery:stage1_layout:  46%|████▋     | 88/190 [44:57<24:06, 14.19s/step]surgery:stage1_layout:  47%|████▋     | 89/190 [45:11<23:28, 13.95s/step]surgery:stage1_layout:  47%|████▋     | 90/190 [45:22<21:53, 13.14s/step]  [probe] AdaptiveBatchSizer: start=24, max=24, cap=85% (iter11 no-ramp)
+  [probe] encoding 306 clips...
+/venv/main/lib/python3.12/contextlib.py:105: FutureWarning: `torch.backends.cuda.sdp_kernel()` is deprecated. In the future, this context manager will be removed. Please see `torch.nn.attention.sdpa_kernel()` for the new context manager, with updated signature.
+  self.gen = func(*args, **kwds)
+  [probe] step=90 stage=stage1_layout N=306 Prec@K=74.95±3.76 mAP@K=70.04±4.07 Cycle@K=78.10±4.74 val_jepa=0.4772
+  [plots] skip m09_val_loss: no val_loss in loss_log (m09c reads val-loss from probe_history instead — see _render_live_plots)
+  Saved: outputs/full/surgery_2stage_noDI/m09_train_loss.png + .pdf
+  SKIP: drift loss plot (all zeros — drift control disabled)
+/venv/main/lib/python3.12/contextlib.py:105: FutureWarning: `torch.backends.cuda.sdp_kernel()` is deprecated. In the future, this context manager will be removed. Please see `torch.nn.attention.sdpa_kernel()` for the new context manager, with updated signature.
+  self.gen = func(*args, **kwds)
+surgery:stage1_layout:  47%|████▋     | 90/190 [50:32<21:53, 13.14s/step]surgery:stage1_layout:  48%|████▊     | 91/190 [50:32<2:48:44, 102.27s/step]surgery:stage1_layout:  48%|████▊     | 92/190 [50:45<2:03:03, 75.34s/step] surgery:stage1_layout:  49%|████▉     | 93/190 [50:56<1:30:43, 56.12s/step]surgery:stage1_layout:  49%|████▉     | 93/190 [51:08<1:30:43, 56.12s/step]surgery:stage1_layout:  49%|████▉     | 94/190 [51:08<1:08:25, 42.76s/step]surgery:stage1_layout:  50%|█████     | 95/190 [51:20<53:04, 33.52s/step]  surgery:stage1_layout:  51%|█████     | 96/190 [51:31<42:08, 26.90s/step]surgery:stage1_layout:  51%|█████     | 96/190 [51:43<42:08, 26.90s/step]surgery:stage1_layout:  51%|█████     | 97/190 [51:43<34:31, 22.27s/step]surgery:stage1_layout:  52%|█████▏    | 98/190 [51:55<29:42, 19.38s/step]surgery:stage1_layout:  52%|█████▏    | 99/190 [52:08<26:09, 17.25s/step]surgery:stage1_layout:  52%|█████▏    | 99/190 [52:20<26:09, 17.25s/step]surgery:stage1_layout:  53%|█████▎    | 100/190 [52:20<23:45, 15.84s/step]surgery:stage1_layout:  53%|█████▎    | 101/190 [52:32<21:47, 14.69s/step]surgery:stage1_layout:  54%|█████▎    | 102/190 [52:45<20:54, 14.25s/step]surgery:stage1_layout:  54%|█████▎    | 102/190 [52:57<20:54, 14.25s/step]surgery:stage1_layout:  54%|█████▍    | 103/190 [52:57<19:43, 13.60s/step]surgery:stage1_layout:  55%|█████▍    | 104/190 [53:10<18:54, 13.19s/step]surgery:stage1_layout:  55%|█████▌    | 105/190 [53:23<18:38, 13.16s/step]  [probe] AdaptiveBatchSizer: start=24, max=24, cap=85% (iter11 no-ramp)
+  [probe] encoding 306 clips...
+/venv/main/lib/python3.12/contextlib.py:105: FutureWarning: `torch.backends.cuda.sdp_kernel()` is deprecated. In the future, this context manager will be removed. Please see `torch.nn.attention.sdpa_kernel()` for the new context manager, with updated signature.
+  self.gen = func(*args, **kwds)
+  [probe] step=105 stage=stage1_layout N=306 Prec@K=75.11±3.79 mAP@K=70.22±4.07 Cycle@K=78.10±4.74 val_jepa=0.4767
+Exported student encoder: outputs/full/surgery_2stage_noDI/student_best.pt
+  [best] new max Prec@K=75.11 (step 105) → saved student_best.pt
+  [plots] skip m09_val_loss: no val_loss in loss_log (m09c reads val-loss from probe_history instead — see _render_live_plots)
+  Saved: outputs/full/surgery_2stage_noDI/m09_train_loss.png + .pdf
+  SKIP: drift loss plot (all zeros — drift control disabled)
+/venv/main/lib/python3.12/contextlib.py:105: FutureWarning: `torch.backends.cuda.sdp_kernel()` is deprecated. In the future, this context manager will be removed. Please see `torch.nn.attention.sdpa_kernel()` for the new context manager, with updated signature.
+  self.gen = func(*args, **kwds)
+surgery:stage1_layout:  55%|█████▌    | 105/190 [58:49<18:38, 13.16s/step]surgery:stage1_layout:  56%|█████▌    | 106/190 [58:49<2:30:01, 107.16s/step]surgery:stage1_layout:  56%|█████▋    | 107/190 [59:02<1:48:51, 78.70s/step] surgery:stage1_layout:  57%|█████▋    | 108/190 [59:13<1:19:58, 58.52s/step]surgery:stage1_layout:  57%|█████▋    | 108/190 [59:24<1:19:58, 58.52s/step]surgery:stage1_layout:  57%|█████▋    | 109/190 [59:24<59:37, 44.16s/step]  surgery:stage1_layout:  58%|█████▊    | 110/190 [59:36<46:07, 34.59s/step]surgery:stage1_layout:  58%|█████▊    | 111/190 [59:48<36:33, 27.76s/step]surgery:stage1_layout:  58%|█████▊    | 111/190 [1:00:00<36:33, 27.76s/step]surgery:stage1_layout:  59%|█████▉    | 112/190 [1:00:00<30:06, 23.16s/step]surgery:stage1_layout:  59%|█████▉    | 113/190 [1:00:13<25:47, 20.10s/step]surgery:stage1_layout:  60%|██████    | 114/190 [1:00:25<22:19, 17.62s/step]surgery:stage1_layout:  60%|██████    | 114/190 [1:00:37<22:19, 17.62s/step]surgery:stage1_layout:  61%|██████    | 115/190 [1:00:37<19:50, 15.87s/step]surgery:stage1_layout:  61%|██████    | 116/190 [1:00:48<17:56, 14.54s/step]surgery:stage1_layout:  62%|██████▏   | 117/190 [1:01:01<16:55, 13.91s/step]surgery:stage1_layout:  62%|██████▏   | 117/190 [1:01:13<16:55, 13.91s/step]surgery:stage1_layout:  62%|██████▏   | 118/190 [1:01:13<16:08, 13.46s/step]surgery:stage1_layout:  63%|██████▎   | 119/190 [1:01:25<15:21, 12.98s/step]surgery:stage1_layout:  63%|██████▎   | 120/190 [1:01:37<14:46, 12.66s/step]  [probe] AdaptiveBatchSizer: start=24, max=24, cap=85% (iter11 no-ramp)
+  [probe] encoding 306 clips...
+/venv/main/lib/python3.12/contextlib.py:105: FutureWarning: `torch.backends.cuda.sdp_kernel()` is deprecated. In the future, this context manager will be removed. Please see `torch.nn.attention.sdpa_kernel()` for the new context manager, with updated signature.
+  self.gen = func(*args, **kwds)
+  [probe] step=120 stage=stage1_layout N=306 Prec@K=75.00±3.76 mAP@K=70.07±4.03 Cycle@K=77.78±4.74 val_jepa=0.4742
+  [plots] skip m09_val_loss: no val_loss in loss_log (m09c reads val-loss from probe_history instead — see _render_live_plots)
+  Saved: outputs/full/surgery_2stage_noDI/m09_train_loss.png + .pdf
+  SKIP: drift loss plot (all zeros — drift control disabled)
+/venv/main/lib/python3.12/contextlib.py:105: FutureWarning: `torch.backends.cuda.sdp_kernel()` is deprecated. In the future, this context manager will be removed. Please see `torch.nn.attention.sdpa_kernel()` for the new context manager, with updated signature.
+  self.gen = func(*args, **kwds)
+surgery:stage1_layout:  63%|██████▎   | 120/190 [1:06:45<14:46, 12.66s/step]surgery:stage1_layout:  64%|██████▎   | 121/190 [1:06:45<1:56:37, 101.41s/step]surgery:stage1_layout:  64%|██████▍   | 122/190 [1:06:57<1:24:23, 74.46s/step] surgery:stage1_layout:  65%|██████▍   | 123/190 [1:07:08<1:01:58, 55.50s/step]surgery:stage1_layout:  65%|██████▍   | 123/190 [1:07:20<1:01:58, 55.50s/step]surgery:stage1_layout:  65%|██████▌   | 124/190 [1:07:20<46:44, 42.49s/step]  surgery:stage1_layout:  66%|██████▌   | 125/190 [1:07:32<36:01, 33.25s/step]surgery:stage1_layout:  66%|██████▋   | 126/190 [1:07:45<28:55, 27.11s/step]surgery:stage1_layout:  66%|██████▋   | 126/190 [1:07:58<28:55, 27.11s/step]surgery:stage1_layout:  67%|██████▋   | 127/190 [1:07:58<24:06, 22.96s/step]surgery:stage1_layout:  67%|██████▋   | 128/190 [1:08:10<20:17, 19.64s/step]surgery:stage1_layout:  68%|██████▊   | 129/190 [1:08:22<17:42, 17.41s/step]surgery:stage1_layout:  68%|██████▊   | 129/190 [1:08:34<17:42, 17.41s/step]surgery:stage1_layout:  68%|██████▊   | 130/190 [1:08:34<15:49, 15.83s/step]surgery:stage1_layout:  69%|██████▉   | 131/190 [1:08:47<14:38, 14.88s/step]surgery:stage1_layout:  69%|██████▉   | 132/190 [1:08:58<13:20, 13.80s/step]surgery:stage1_layout:  69%|██████▉   | 132/190 [1:09:09<13:20, 13.80s/step]surgery:stage1_layout:  70%|███████   | 133/190 [1:09:09<12:14, 12.88s/step]surgery:stage1_layout:  71%|███████   | 134/190 [1:09:22<12:01, 12.88s/step]surgery:stage1_layout:  71%|███████   | 135/190 [1:09:33<11:26, 12.48s/step]  [probe] AdaptiveBatchSizer: start=24, max=24, cap=85% (iter11 no-ramp)
+  [probe] encoding 306 clips...
+/venv/main/lib/python3.12/contextlib.py:105: FutureWarning: `torch.backends.cuda.sdp_kernel()` is deprecated. In the future, this context manager will be removed. Please see `torch.nn.attention.sdpa_kernel()` for the new context manager, with updated signature.
+  self.gen = func(*args, **kwds)
+  [probe] step=135 stage=stage1_layout N=306 Prec@K=74.89±3.76 mAP@K=69.93±4.05 Cycle@K=77.78±4.74 val_jepa=0.4745
+  [plots] skip m09_val_loss: no val_loss in loss_log (m09c reads val-loss from probe_history instead — see _render_live_plots)
+  Saved: outputs/full/surgery_2stage_noDI/m09_train_loss.png + .pdf
+  SKIP: drift loss plot (all zeros — drift control disabled)
+/venv/main/lib/python3.12/contextlib.py:105: FutureWarning: `torch.backends.cuda.sdp_kernel()` is deprecated. In the future, this context manager will be removed. Please see `torch.nn.attention.sdpa_kernel()` for the new context manager, with updated signature.
+  self.gen = func(*args, **kwds)
+surgery:stage1_layout:  71%|███████   | 135/190 [1:14:49<11:26, 12.48s/step]surgery:stage1_layout:  72%|███████▏  | 136/190 [1:14:49<1:33:03, 103.40s/step]surgery:stage1_layout:  72%|███████▏  | 137/190 [1:15:01<1:07:17, 76.17s/step] surgery:stage1_layout:  73%|███████▎  | 138/190 [1:15:14<49:27, 57.06s/step]  surgery:stage1_layout:  73%|███████▎  | 138/190 [1:15:27<49:27, 57.06s/step]surgery:stage1_layout:  73%|███████▎  | 139/190 [1:15:27<37:11, 43.75s/step]surgery:stage1_layout:  74%|███████▎  | 140/190 [1:15:38<28:20, 34.02s/step]surgery:stage1_layout:  74%|███████▍  | 141/190 [1:15:50<22:28, 27.52s/step]surgery:stage1_layout:  74%|███████▍  | 141/190 [1:16:02<22:28, 27.52s/step]surgery:stage1_layout:  75%|███████▍  | 142/190 [1:16:02<18:07, 22.66s/step]surgery:stage1_layout:  75%|███████▌  | 143/190 [1:16:13<14:59, 19.13s/step]surgery:stage1_layout:  76%|███████▌  | 144/190 [1:16:25<13:04, 17.06s/step]surgery:stage1_layout:  76%|███████▌  | 144/190 [1:16:38<13:04, 17.06s/step]surgery:stage1_layout:  76%|███████▋  | 145/190 [1:16:38<11:50, 15.78s/step]surgery:stage1_layout:  77%|███████▋  | 146/190 [1:16:50<10:47, 14.71s/step]surgery:stage1_layout:  77%|███████▋  | 147/190 [1:17:01<09:49, 13.71s/step]surgery:stage1_layout:  77%|███████▋  | 147/190 [1:17:13<09:49, 13.71s/step]surgery:stage1_layout:  78%|███████▊  | 148/190 [1:17:13<09:11, 13.14s/step]surgery:stage1_layout:  78%|███████▊  | 149/190 [1:17:25<08:51, 12.96s/step]surgery:stage1_layout:  79%|███████▉  | 150/190 [1:17:38<08:32, 12.82s/step]  [probe] AdaptiveBatchSizer: start=24, max=24, cap=85% (iter11 no-ramp)
+  [probe] encoding 306 clips...
+/venv/main/lib/python3.12/contextlib.py:105: FutureWarning: `torch.backends.cuda.sdp_kernel()` is deprecated. In the future, this context manager will be removed. Please see `torch.nn.attention.sdpa_kernel()` for the new context manager, with updated signature.
+  self.gen = func(*args, **kwds)
+  [probe] step=150 stage=stage1_layout N=306 Prec@K=74.89±3.76 mAP@K=69.89±4.05 Cycle@K=78.10±4.74 val_jepa=0.4749
+  [plots] skip m09_val_loss: no val_loss in loss_log (m09c reads val-loss from probe_history instead — see _render_live_plots)
+  Saved: outputs/full/surgery_2stage_noDI/m09_train_loss.png + .pdf
+  SKIP: drift loss plot (all zeros — drift control disabled)
+/venv/main/lib/python3.12/contextlib.py:105: FutureWarning: `torch.backends.cuda.sdp_kernel()` is deprecated. In the future, this context manager will be removed. Please see `torch.nn.attention.sdpa_kernel()` for the new context manager, with updated signature.
+  self.gen = func(*args, **kwds)
+surgery:stage1_layout:  79%|███████▉  | 150/190 [1:22:47<08:32, 12.82s/step]surgery:stage1_layout:  79%|███████▉  | 151/190 [1:22:47<1:06:01, 101.57s/step]surgery:stage1_layout:  80%|████████  | 152/190 [1:22:59<47:20, 74.74s/step]   surgery:stage1_layout:  81%|████████  | 153/190 [1:23:11<34:30, 55.95s/step]surgery:stage1_layout:  81%|████████  | 153/190 [1:23:23<34:30, 55.95s/step]surgery:stage1_layout:  81%|████████  | 154/190 [1:23:23<25:41, 42.81s/step]surgery:stage1_layout:  82%|████████▏ | 155/190 [1:23:35<19:30, 33.45s/step]surgery:stage1_layout:  82%|████████▏ | 156/190 [1:23:48<15:27, 27.28s/step]surgery:stage1_layout:  82%|████████▏ | 156/190 [1:23:59<15:27, 27.28s/step]surgery:stage1_layout:  83%|████████▎ | 157/190 [1:23:59<12:26, 22.62s/step]surgery:stage1_layout:  83%|████████▎ | 158/190 [1:24:11<10:20, 19.39s/step]surgery:stage1_layout:  84%|████████▎ | 159/190 [1:24:23<08:49, 17.07s/step]surgery:stage1_layout:  84%|████████▎ | 159/190 [1:24:35<08:49, 17.07s/step]surgery:stage1_layout:  84%|████████▍ | 160/190 [1:24:35<07:46, 15.54s/step]surgery:stage1_layout:  85%|████████▍ | 161/190 [1:24:47<06:59, 14.48s/step]surgery:stage1_layout:  85%|████████▌ | 162/190 [1:25:00<06:32, 14.00s/step]surgery:stage1_layout:  85%|████████▌ | 162/190 [1:25:11<06:32, 14.00s/step]surgery:stage1_layout:  86%|████████▌ | 163/190 [1:25:11<05:56, 13.19s/step]surgery:stage1_layout:  86%|████████▋ | 164/190 [1:25:23<05:33, 12.83s/step]surgery:stage1_layout:  87%|████████▋ | 165/190 [1:25:35<05:15, 12.63s/step]  [probe] AdaptiveBatchSizer: start=24, max=24, cap=85% (iter11 no-ramp)
+  [probe] encoding 306 clips...
+/venv/main/lib/python3.12/contextlib.py:105: FutureWarning: `torch.backends.cuda.sdp_kernel()` is deprecated. In the future, this context manager will be removed. Please see `torch.nn.attention.sdpa_kernel()` for the new context manager, with updated signature.
+  self.gen = func(*args, **kwds)
+  [probe] step=165 stage=stage1_layout N=306 Prec@K=74.89±3.76 mAP@K=69.90±4.05 Cycle@K=77.78±4.74 val_jepa=0.4742
+  [plots] skip m09_val_loss: no val_loss in loss_log (m09c reads val-loss from probe_history instead — see _render_live_plots)
+  Saved: outputs/full/surgery_2stage_noDI/m09_train_loss.png + .pdf
+  SKIP: drift loss plot (all zeros — drift control disabled)
+/venv/main/lib/python3.12/contextlib.py:105: FutureWarning: `torch.backends.cuda.sdp_kernel()` is deprecated. In the future, this context manager will be removed. Please see `torch.nn.attention.sdpa_kernel()` for the new context manager, with updated signature.
+  self.gen = func(*args, **kwds)
+surgery:stage1_layout:  87%|████████▋ | 165/190 [1:30:42<05:15, 12.63s/step]surgery:stage1_layout:  87%|████████▋ | 166/190 [1:30:42<40:23, 100.96s/step]surgery:stage1_layout:  88%|████████▊ | 167/190 [1:30:54<28:26, 74.20s/step] surgery:stage1_layout:  88%|████████▊ | 168/190 [1:31:05<20:14, 55.19s/step]surgery:stage1_layout:  88%|████████▊ | 168/190 [1:31:16<20:14, 55.19s/step]surgery:stage1_layout:  89%|████████▉ | 169/190 [1:31:16<14:42, 42.02s/step]surgery:stage1_layout:  89%|████████▉ | 170/190 [1:31:28<10:57, 32.89s/step]surgery:stage1_layout:  90%|█████████ | 171/190 [1:31:39<08:21, 26.39s/step]surgery:stage1_layout:  90%|█████████ | 171/190 [1:31:51<08:21, 26.39s/step]surgery:stage1_layout:  91%|█████████ | 172/190 [1:31:51<06:36, 22.01s/step]surgery:stage1_layout:  91%|█████████ | 173/190 [1:32:02<05:21, 18.93s/step]surgery:stage1_layout:  92%|█████████▏| 174/190 [1:32:14<04:26, 16.67s/step]surgery:stage1_layout:  92%|█████████▏| 174/190 [1:32:25<04:26, 16.67s/step]surgery:stage1_layout:  92%|█████████▏| 175/190 [1:32:25<03:47, 15.17s/step]surgery:stage1_layout:  93%|█████████▎| 176/190 [1:32:38<03:20, 14.31s/step]surgery:stage1_layout:  93%|█████████▎| 177/190 [1:32:50<02:59, 13.82s/step]surgery:stage1_layout:  93%|█████████▎| 177/190 [1:33:02<02:59, 13.82s/step]surgery:stage1_layout:  94%|█████████▎| 178/190 [1:33:02<02:37, 13.14s/step]surgery:stage1_layout:  94%|█████████▍| 179/190 [1:33:16<02:25, 13.27s/step]surgery:stage1_layout:  95%|█████████▍| 180/190 [1:33:27<02:07, 12.78s/step]  [probe] AdaptiveBatchSizer: start=24, max=24, cap=85% (iter11 no-ramp)
+  [probe] encoding 306 clips...
+/venv/main/lib/python3.12/contextlib.py:105: FutureWarning: `torch.backends.cuda.sdp_kernel()` is deprecated. In the future, this context manager will be removed. Please see `torch.nn.attention.sdpa_kernel()` for the new context manager, with updated signature.
+  self.gen = func(*args, **kwds)
+  [probe] step=180 stage=stage1_layout N=306 Prec@K=75.05±3.79 mAP@K=70.04±4.06 Cycle@K=77.78±4.74 val_jepa=0.4727
+  [plots] skip m09_val_loss: no val_loss in loss_log (m09c reads val-loss from probe_history instead — see _render_live_plots)
+  Saved: outputs/full/surgery_2stage_noDI/m09_train_loss.png + .pdf
+  SKIP: drift loss plot (all zeros — drift control disabled)
+/venv/main/lib/python3.12/contextlib.py:105: FutureWarning: `torch.backends.cuda.sdp_kernel()` is deprecated. In the future, this context manager will be removed. Please see `torch.nn.attention.sdpa_kernel()` for the new context manager, with updated signature.
+  self.gen = func(*args, **kwds)
+surgery:stage1_layout:  95%|█████████▍| 180/190 [1:38:37<02:07, 12.78s/step]surgery:stage1_layout:  95%|█████████▌| 181/190 [1:38:37<15:16, 101.78s/step]surgery:stage1_layout:  96%|█████████▌| 182/190 [1:38:50<10:00, 75.11s/step] surgery:stage1_layout:  96%|█████████▋| 183/190 [1:39:01<06:32, 56.14s/step]surgery:stage1_layout:  96%|█████████▋| 183/190 [1:39:13<06:32, 56.14s/step]surgery:stage1_layout:  97%|█████████▋| 184/190 [1:39:13<04:16, 42.78s/step]surgery:stage1_layout:  97%|█████████▋| 185/190 [1:39:24<02:46, 33.23s/step]surgery:stage1_layout:  98%|█████████▊| 186/190 [1:39:35<01:46, 26.60s/step]surgery:stage1_layout:  98%|█████████▊| 186/190 [1:39:47<01:46, 26.60s/step]surgery:stage1_layout:  98%|█████████▊| 187/190 [1:39:47<01:06, 22.06s/step]surgery:stage1_layout:  99%|█████████▉| 188/190 [1:39:59<00:38, 19.27s/step]surgery:stage1_layout:  99%|█████████▉| 189/190 [1:40:11<00:17, 17.04s/step]surgery:stage1_layout:  99%|█████████▉| 189/190 [1:40:23<00:17, 17.04s/step]surgery:stage1_layout: 100%|██████████| 190/190 [1:40:23<00:00, 15.58s/step]surgery:stage1_layout: 100%|██████████| 190/190 [1:40:23<00:00, 31.70s/step]
+  Stage stage1_layout complete: 190 steps, loss=0.4581
+  [probe] AdaptiveBatchSizer: start=24, max=24, cap=85% (iter11 no-ramp)
+  [probe] encoding 306 clips...
+/venv/main/lib/python3.12/contextlib.py:105: FutureWarning: `torch.backends.cuda.sdp_kernel()` is deprecated. In the future, this context manager will be removed. Please see `torch.nn.attention.sdpa_kernel()` for the new context manager, with updated signature.
+  self.gen = func(*args, **kwds)
+  [probe] step=190 stage=stage1_layout N=306 Prec@K=75.05±3.79 mAP@K=70.00±4.06 Cycle@K=77.78±4.74 val_jepa=0.4707
+  [plots] skip m09_val_loss: no val_loss in loss_log (m09c reads val-loss from probe_history instead — see _render_live_plots)
+  Saved: outputs/full/surgery_2stage_noDI/m09_train_loss.png + .pdf
+  SKIP: drift loss plot (all zeros — drift control disabled)
+
+============================================================
+STAGE 2/2: stage2_agent
+  Layers 0-24 trainable | 190 steps | warmup 38
+  Mixture: {'L': 0.3, 'A': 0.7, 'I': 0.0}
+============================================================
+  Inter-stage cleanup: 16.9 GB used / 102.0 GB total after releasing Stage 1 state
+  Trainable prefix: 24/48 blocks (920,854,528/1,843,937,152 = 49.9%)
+  StreamingFactorDataset: REQUESTED={'L': 0.3, 'A': 0.7} → ACTUAL={D_L=30%, D_A=70%} (indexed=2452 clips)
+surgery:stage2_agent:   0%|          | 0/190 [00:00<?, ?step/s]/venv/main/lib/python3.12/contextlib.py:105: FutureWarning: `torch.backends.cuda.sdp_kernel()` is deprecated. In the future, this context manager will be removed. Please see `torch.nn.attention.sdpa_kernel()` for the new context manager, with updated signature.
+  self.gen = func(*args, **kwds)
+  AdaptiveBatch: VRAM 63% < 65% → sub-batch 28 → 29
+surgery:stage2_agent:   0%|          | 0/190 [00:57<?, ?step/s]surgery:stage2_agent:   1%|          | 1/190 [00:57<2:59:41, 57.05s/step]  AdaptiveBatch: VRAM 41% < 65% → sub-batch 29 → 30
+surgery:stage2_agent:   1%|          | 2/190 [01:11<1:40:14, 31.99s/step]surgery:stage2_agent:   2%|▏         | 3/190 [01:26<1:14:49, 24.01s/step]surgery:stage2_agent:   2%|▏         | 3/190 [01:38<1:14:49, 24.01s/step]surgery:stage2_agent:   2%|▏         | 4/190 [01:38<1:00:36, 19.55s/step]surgery:stage2_agent:   3%|▎         | 5/190 [01:51<52:21, 16.98s/step]    [probe] AdaptiveBatchSizer: start=24, max=24, cap=85% (iter11 no-ramp)
+  [probe] encoding 306 clips...
+/venv/main/lib/python3.12/contextlib.py:105: FutureWarning: `torch.backends.cuda.sdp_kernel()` is deprecated. In the future, this context manager will be removed. Please see `torch.nn.attention.sdpa_kernel()` for the new context manager, with updated signature.
+  self.gen = func(*args, **kwds)
+  [probe] step=195 stage=stage2_agent N=306 Prec@K=75.05±3.79 mAP@K=70.00±4.06 Cycle@K=77.78±4.74 val_jepa=0.4735
+  [plots] skip m09_val_loss: no val_loss in loss_log (m09c reads val-loss from probe_history instead — see _render_live_plots)
+  Saved: outputs/full/surgery_2stage_noDI/m09_train_loss.png + .pdf
+  SKIP: drift loss plot (all zeros — drift control disabled)
+/venv/main/lib/python3.12/contextlib.py:105: FutureWarning: `torch.backends.cuda.sdp_kernel()` is deprecated. In the future, this context manager will be removed. Please see `torch.nn.attention.sdpa_kernel()` for the new context manager, with updated signature.
+  self.gen = func(*args, **kwds)
+surgery:stage2_agent:   3%|▎         | 5/190 [07:01<52:21, 16.98s/step]surgery:stage2_agent:   3%|▎         | 6/190 [07:01<5:57:54, 116.71s/step]surgery:stage2_agent:   4%|▎         | 7/190 [07:16<4:14:18, 83.38s/step] surgery:stage2_agent:   4%|▍         | 8/190 [07:28<3:03:53, 60.62s/step]surgery:stage2_agent:   4%|▍         | 8/190 [07:40<3:03:53, 60.62s/step]surgery:stage2_agent:   5%|▍         | 9/190 [07:40<2:16:59, 45.41s/step]surgery:stage2_agent:   5%|▌         | 10/190 [07:51<1:44:58, 34.99s/step]surgery:stage2_agent:   6%|▌         | 11/190 [08:04<1:24:03, 28.18s/step]surgery:stage2_agent:   6%|▌         | 11/190 [08:18<1:24:03, 28.18s/step]surgery:stage2_agent:   6%|▋         | 12/190 [08:18<1:10:34, 23.79s/step]surgery:stage2_agent:   7%|▋         | 13/190 [08:30<1:00:03, 20.36s/step]surgery:stage2_agent:   7%|▋         | 14/190 [08:44<53:34, 18.26s/step]  surgery:stage2_agent:   7%|▋         | 14/190 [08:56<53:34, 18.26s/step]surgery:stage2_agent:   8%|▊         | 15/190 [08:56<48:05, 16.49s/step]surgery:stage2_agent:   8%|▊         | 16/190 [09:10<45:18, 15.62s/step]surgery:stage2_agent:   9%|▉         | 17/190 [09:23<42:44, 14.82s/step]surgery:stage2_agent:   9%|▉         | 17/190 [09:36<42:44, 14.82s/step]surgery:stage2_agent:   9%|▉         | 18/190 [09:36<41:11, 14.37s/step]surgery:stage2_agent:  10%|█         | 19/190 [09:51<41:36, 14.60s/step]surgery:stage2_agent:  11%|█         | 20/190 [10:05<40:57, 14.46s/step]  [probe] AdaptiveBatchSizer: start=24, max=24, cap=85% (iter11 no-ramp)
+  [probe] encoding 306 clips...
+/venv/main/lib/python3.12/contextlib.py:105: FutureWarning: `torch.backends.cuda.sdp_kernel()` is deprecated. In the future, this context manager will be removed. Please see `torch.nn.attention.sdpa_kernel()` for the new context manager, with updated signature.
+  self.gen = func(*args, **kwds)
+  [probe] step=210 stage=stage2_agent N=306 Prec@K=75.05±3.79 mAP@K=69.91±4.04 Cycle@K=78.10±4.90 val_jepa=0.4735
+  [plots] skip m09_val_loss: no val_loss in loss_log (m09c reads val-loss from probe_history instead — see _render_live_plots)
+  Saved: outputs/full/surgery_2stage_noDI/m09_train_loss.png + .pdf
+  SKIP: drift loss plot (all zeros — drift control disabled)
+/venv/main/lib/python3.12/contextlib.py:105: FutureWarning: `torch.backends.cuda.sdp_kernel()` is deprecated. In the future, this context manager will be removed. Please see `torch.nn.attention.sdpa_kernel()` for the new context manager, with updated signature.
+  self.gen = func(*args, **kwds)
+surgery:stage2_agent:  11%|█         | 20/190 [15:32<40:57, 14.46s/step]surgery:stage2_agent:  11%|█         | 21/190 [15:32<5:05:15, 108.38s/step]surgery:stage2_agent:  12%|█▏        | 22/190 [15:46<3:43:24, 79.79s/step] surgery:stage2_agent:  12%|█▏        | 23/190 [16:01<2:48:07, 60.41s/step]surgery:stage2_agent:  12%|█▏        | 23/190 [16:14<2:48:07, 60.41s/step]surgery:stage2_agent:  13%|█▎        | 24/190 [16:14<2:08:12, 46.34s/step]surgery:stage2_agent:  13%|█▎        | 25/190 [16:29<1:41:00, 36.73s/step]surgery:stage2_agent:  14%|█▎        | 26/190 [16:43<1:22:04, 30.03s/step]surgery:stage2_agent:  14%|█▎        | 26/190 [16:55<1:22:04, 30.03s/step]surgery:stage2_agent:  14%|█▍        | 27/190 [16:55<1:07:01, 24.67s/step]surgery:stage2_agent:  15%|█▍        | 28/190 [17:08<56:42, 21.00s/step]  surgery:stage2_agent:  15%|█▌        | 29/190 [17:20<49:14, 18.35s/step]surgery:stage2_agent:  15%|█▌        | 29/190 [17:33<49:14, 18.35s/step]surgery:stage2_agent:  16%|█▌        | 30/190 [17:33<44:45, 16.78s/step]surgery:stage2_agent:  16%|█▋        | 31/190 [17:46<41:46, 15.77s/step]surgery:stage2_agent:  17%|█▋        | 32/190 [17:58<38:41, 14.69s/step]surgery:stage2_agent:  17%|█▋        | 32/190 [18:09<38:41, 14.69s/step]surgery:stage2_agent:  17%|█▋        | 33/190 [18:09<35:03, 13.40s/step]surgery:stage2_agent:  18%|█▊        | 34/190 [18:22<34:31, 13.28s/step]surgery:stage2_agent:  18%|█▊        | 35/190 [18:35<34:15, 13.26s/step]  [probe] AdaptiveBatchSizer: start=24, max=24, cap=85% (iter11 no-ramp)
+  [probe] encoding 306 clips...
+/venv/main/lib/python3.12/contextlib.py:105: FutureWarning: `torch.backends.cuda.sdp_kernel()` is deprecated. In the future, this context manager will be removed. Please see `torch.nn.attention.sdpa_kernel()` for the new context manager, with updated signature.
+  self.gen = func(*args, **kwds)
+  [probe] step=225 stage=stage2_agent N=306 Prec@K=75.11±3.76 mAP@K=69.93±4.04 Cycle@K=77.45±4.90 val_jepa=0.4704
+  [plots] skip m09_val_loss: no val_loss in loss_log (m09c reads val-loss from probe_history instead — see _render_live_plots)
+  Saved: outputs/full/surgery_2stage_noDI/m09_train_loss.png + .pdf
+  SKIP: drift loss plot (all zeros — drift control disabled)
+/venv/main/lib/python3.12/contextlib.py:105: FutureWarning: `torch.backends.cuda.sdp_kernel()` is deprecated. In the future, this context manager will be removed. Please see `torch.nn.attention.sdpa_kernel()` for the new context manager, with updated signature.
+  self.gen = func(*args, **kwds)
+surgery:stage2_agent:  18%|█▊        | 35/190 [23:45<34:15, 13.26s/step]surgery:stage2_agent:  19%|█▉        | 36/190 [23:45<4:22:10, 102.15s/step]surgery:stage2_agent:  19%|█▉        | 37/190 [23:56<3:11:22, 75.05s/step] surgery:stage2_agent:  20%|██        | 38/190 [24:12<2:24:53, 57.19s/step]surgery:stage2_agent:  20%|██        | 38/190 [24:24<2:24:53, 57.19s/step]surgery:stage2_agent:  21%|██        | 39/190 [24:24<1:49:56, 43.69s/step]surgery:stage2_agent:  21%|██        | 40/190 [24:36<1:25:39, 34.26s/step]surgery:stage2_agent:  22%|██▏       | 41/190 [24:50<1:09:35, 28.02s/step]surgery:stage2_agent:  22%|██▏       | 41/190 [25:03<1:09:35, 28.02s/step]surgery:stage2_agent:  22%|██▏       | 42/190 [25:03<57:58, 23.51s/step]  surgery:stage2_agent:  23%|██▎       | 43/190 [25:16<50:11, 20.48s/step]surgery:stage2_agent:  23%|██▎       | 44/190 [25:29<44:30, 18.29s/step]surgery:stage2_agent:  23%|██▎       | 44/190 [25:42<44:30, 18.29s/step]surgery:stage2_agent:  24%|██▎       | 45/190 [25:42<40:15, 16.66s/step]surgery:stage2_agent:  24%|██▍       | 46/190 [25:54<36:23, 15.16s/step]surgery:stage2_agent:  25%|██▍       | 47/190 [26:05<33:29, 14.05s/step]surgery:stage2_agent:  25%|██▍       | 47/190 [26:18<33:29, 14.05s/step]surgery:stage2_agent:  25%|██▌       | 48/190 [26:18<32:20, 13.67s/step]surgery:stage2_agent:  26%|██▌       | 49/190 [26:31<31:39, 13.47s/step]surgery:stage2_agent:  26%|██▋       | 50/190 [26:44<30:55, 13.25s/step]  [probe] AdaptiveBatchSizer: start=24, max=24, cap=85% (iter11 no-ramp)
+  [probe] encoding 306 clips...
+/venv/main/lib/python3.12/contextlib.py:105: FutureWarning: `torch.backends.cuda.sdp_kernel()` is deprecated. In the future, this context manager will be removed. Please see `torch.nn.attention.sdpa_kernel()` for the new context manager, with updated signature.
+  self.gen = func(*args, **kwds)
+  [probe] step=240 stage=stage2_agent N=306 Prec@K=74.95±3.79 mAP@K=69.89±4.06 Cycle@K=77.78±4.90 val_jepa=0.4714
+  [plots] skip m09_val_loss: no val_loss in loss_log (m09c reads val-loss from probe_history instead — see _render_live_plots)
+  Saved: outputs/full/surgery_2stage_noDI/m09_train_loss.png + .pdf
+  SKIP: drift loss plot (all zeros — drift control disabled)
+/venv/main/lib/python3.12/contextlib.py:105: FutureWarning: `torch.backends.cuda.sdp_kernel()` is deprecated. In the future, this context manager will be removed. Please see `torch.nn.attention.sdpa_kernel()` for the new context manager, with updated signature.
+  self.gen = func(*args, **kwds)
+surgery:stage2_agent:  26%|██▋       | 50/190 [31:59<30:55, 13.25s/step]surgery:stage2_agent:  27%|██▋       | 51/190 [31:59<4:00:11, 103.68s/step]surgery:stage2_agent:  27%|██▋       | 52/190 [32:12<2:56:06, 76.57s/step] surgery:stage2_agent:  28%|██▊       | 53/190 [32:25<2:11:26, 57.57s/step]surgery:stage2_agent:  28%|██▊       | 53/190 [32:42<2:11:26, 57.57s/step]surgery:stage2_agent:  28%|██▊       | 54/190 [32:42<1:42:29, 45.22s/step]surgery:stage2_agent:  29%|██▉       | 55/190 [32:54<1:19:48, 35.47s/step]surgery:stage2_agent:  29%|██▉       | 56/190 [33:07<1:03:52, 28.60s/step]surgery:stage2_agent:  29%|██▉       | 56/190 [33:19<1:03:52, 28.60s/step]surgery:stage2_agent:  30%|███       | 57/190 [33:19<52:18, 23.60s/step]  surgery:stage2_agent:  31%|███       | 58/190 [33:32<44:53, 20.41s/step]surgery:stage2_agent:  31%|███       | 59/190 [33:45<39:45, 18.21s/step]surgery:stage2_agent:  31%|███       | 59/190 [33:57<39:45, 18.21s/step]surgery:stage2_agent:  32%|███▏      | 60/190 [33:57<35:18, 16.30s/step]surgery:stage2_agent:  32%|███▏      | 61/190 [34:09<32:35, 15.16s/step]surgery:stage2_agent:  33%|███▎      | 62/190 [34:23<31:24, 14.72s/step]surgery:stage2_agent:  33%|███▎      | 62/190 [34:36<31:24, 14.72s/step]surgery:stage2_agent:  33%|███▎      | 63/190 [34:36<30:21, 14.35s/step]surgery:stage2_agent:  34%|███▎      | 64/190 [34:48<28:34, 13.61s/step]surgery:stage2_agent:  34%|███▍      | 65/190 [35:00<26:59, 12.96s/step]  [probe] AdaptiveBatchSizer: start=24, max=24, cap=85% (iter11 no-ramp)
+  [probe] encoding 306 clips...
+/venv/main/lib/python3.12/contextlib.py:105: FutureWarning: `torch.backends.cuda.sdp_kernel()` is deprecated. In the future, this context manager will be removed. Please see `torch.nn.attention.sdpa_kernel()` for the new context manager, with updated signature.
+  self.gen = func(*args, **kwds)
+  [probe] step=255 stage=stage2_agent N=306 Prec@K=75.00±3.79 mAP@K=69.98±4.05 Cycle@K=78.10±4.90 val_jepa=0.4723
+  [plots] skip m09_val_loss: no val_loss in loss_log (m09c reads val-loss from probe_history instead — see _render_live_plots)
+  Saved: outputs/full/surgery_2stage_noDI/m09_train_loss.png + .pdf
+  SKIP: drift loss plot (all zeros — drift control disabled)
+/venv/main/lib/python3.12/contextlib.py:105: FutureWarning: `torch.backends.cuda.sdp_kernel()` is deprecated. In the future, this context manager will be removed. Please see `torch.nn.attention.sdpa_kernel()` for the new context manager, with updated signature.
+  self.gen = func(*args, **kwds)
+surgery:stage2_agent:  34%|███▍      | 65/190 [40:13<26:59, 12.96s/step]surgery:stage2_agent:  35%|███▍      | 66/190 [40:13<3:32:57, 103.04s/step]surgery:stage2_agent:  35%|███▌      | 67/190 [40:24<2:34:45, 75.49s/step] surgery:stage2_agent:  36%|███▌      | 68/190 [40:39<1:56:26, 57.27s/step]surgery:stage2_agent:  36%|███▌      | 68/190 [40:51<1:56:26, 57.27s/step]surgery:stage2_agent:  36%|███▋      | 69/190 [40:51<1:27:54, 43.59s/step]surgery:stage2_agent:  37%|███▋      | 70/190 [41:03<1:08:19, 34.16s/step]surgery:stage2_agent:  37%|███▋      | 71/190 [41:13<53:45, 27.10s/step]  surgery:stage2_agent:  37%|███▋      | 71/190 [41:26<53:45, 27.10s/step]surgery:stage2_agent:  38%|███▊      | 72/190 [41:26<44:57, 22.86s/step]surgery:stage2_agent:  38%|███▊      | 73/190 [41:38<38:03, 19.52s/step]surgery:stage2_agent:  39%|███▉      | 74/190 [41:50<33:32, 17.35s/step]surgery:stage2_agent:  39%|███▉      | 74/190 [42:04<33:32, 17.35s/step]surgery:stage2_agent:  39%|███▉      | 75/190 [42:04<31:17, 16.33s/step]surgery:stage2_agent:  40%|████      | 76/190 [42:16<28:08, 14.81s/step]surgery:stage2_agent:  41%|████      | 77/190 [42:28<26:17, 13.96s/step]surgery:stage2_agent:  41%|████      | 77/190 [42:39<26:17, 13.96s/step]surgery:stage2_agent:  41%|████      | 78/190 [42:39<24:43, 13.25s/step]surgery:stage2_agent:  42%|████▏     | 79/190 [42:52<24:30, 13.25s/step]surgery:stage2_agent:  42%|████▏     | 80/190 [43:05<23:40, 12.92s/step]  [probe] AdaptiveBatchSizer: start=24, max=24, cap=85% (iter11 no-ramp)
+  [probe] encoding 306 clips...
+/venv/main/lib/python3.12/contextlib.py:105: FutureWarning: `torch.backends.cuda.sdp_kernel()` is deprecated. In the future, this context manager will be removed. Please see `torch.nn.attention.sdpa_kernel()` for the new context manager, with updated signature.
+  self.gen = func(*args, **kwds)
+  [probe] step=270 stage=stage2_agent N=306 Prec@K=75.11±3.79 mAP@K=70.04±4.05 Cycle@K=78.43±4.74 val_jepa=0.4703
+  [plots] skip m09_val_loss: no val_loss in loss_log (m09c reads val-loss from probe_history instead — see _render_live_plots)
+  Saved: outputs/full/surgery_2stage_noDI/m09_train_loss.png + .pdf
+  SKIP: drift loss plot (all zeros — drift control disabled)
+/venv/main/lib/python3.12/contextlib.py:105: FutureWarning: `torch.backends.cuda.sdp_kernel()` is deprecated. In the future, this context manager will be removed. Please see `torch.nn.attention.sdpa_kernel()` for the new context manager, with updated signature.
+  self.gen = func(*args, **kwds)
+surgery:stage2_agent:  42%|████▏     | 80/190 [48:17<23:40, 12.92s/step]surgery:stage2_agent:  43%|████▎     | 81/190 [48:17<3:06:47, 102.82s/step]surgery:stage2_agent:  43%|████▎     | 82/190 [48:31<2:17:12, 76.22s/step] surgery:stage2_agent:  44%|████▎     | 83/190 [48:43<1:41:23, 56.86s/step]surgery:stage2_agent:  44%|████▎     | 83/190 [48:55<1:41:23, 56.86s/step]surgery:stage2_agent:  44%|████▍     | 84/190 [48:55<1:16:45, 43.45s/step]surgery:stage2_agent:  45%|████▍     | 85/190 [49:07<59:40, 34.10s/step]  surgery:stage2_agent:  45%|████▌     | 86/190 [49:21<48:27, 27.96s/step]surgery:stage2_agent:  45%|████▌     | 86/190 [49:33<48:27, 27.96s/step]surgery:stage2_agent:  46%|████▌     | 87/190 [49:33<39:52, 23.23s/step]surgery:stage2_agent:  46%|████▋     | 88/190 [49:46<34:24, 20.24s/step]surgery:stage2_agent:  47%|████▋     | 89/190 [49:59<30:19, 18.01s/step]surgery:stage2_agent:  47%|████▋     | 89/190 [50:11<30:19, 18.01s/step]surgery:stage2_agent:  47%|████▋     | 90/190 [50:11<26:52, 16.13s/step]surgery:stage2_agent:  48%|████▊     | 91/190 [50:22<24:14, 14.69s/step]surgery:stage2_agent:  48%|████▊     | 92/190 [50:36<23:25, 14.34s/step]surgery:stage2_agent:  48%|████▊     | 92/190 [50:50<23:25, 14.34s/step]surgery:stage2_agent:  49%|████▉     | 93/190 [50:50<23:12, 14.36s/step]surgery:stage2_agent:  49%|████▉     | 94/190 [51:03<22:09, 13.85s/step]surgery:stage2_agent:  50%|█████     | 95/190 [51:15<21:18, 13.46s/step]  [probe] AdaptiveBatchSizer: start=24, max=24, cap=85% (iter11 no-ramp)
+  [probe] encoding 306 clips...
+/venv/main/lib/python3.12/contextlib.py:105: FutureWarning: `torch.backends.cuda.sdp_kernel()` is deprecated. In the future, this context manager will be removed. Please see `torch.nn.attention.sdpa_kernel()` for the new context manager, with updated signature.
+  self.gen = func(*args, **kwds)
+  [probe] step=285 stage=stage2_agent N=306 Prec@K=75.11±3.79 mAP@K=70.11±4.08 Cycle@K=77.45±4.90 val_jepa=0.4696
+  [plots] skip m09_val_loss: no val_loss in loss_log (m09c reads val-loss from probe_history instead — see _render_live_plots)
+  Saved: outputs/full/surgery_2stage_noDI/m09_train_loss.png + .pdf
+  SKIP: drift loss plot (all zeros — drift control disabled)
+/venv/main/lib/python3.12/contextlib.py:105: FutureWarning: `torch.backends.cuda.sdp_kernel()` is deprecated. In the future, this context manager will be removed. Please see `torch.nn.attention.sdpa_kernel()` for the new context manager, with updated signature.
+  self.gen = func(*args, **kwds)
+surgery:stage2_agent:  50%|█████     | 95/190 [56:25<21:18, 13.46s/step]surgery:stage2_agent:  51%|█████     | 96/190 [56:25<2:40:25, 102.40s/step]surgery:stage2_agent:  51%|█████     | 97/190 [56:39<1:57:20, 75.70s/step] surgery:stage2_agent:  52%|█████▏    | 98/190 [56:52<1:27:18, 56.94s/step]surgery:stage2_agent:  52%|█████▏    | 98/190 [57:03<1:27:18, 56.94s/step]surgery:stage2_agent:  52%|█████▏    | 99/190 [57:03<1:05:39, 43.29s/step]surgery:stage2_agent:  53%|█████▎    | 100/190 [57:16<51:08, 34.10s/step] surgery:stage2_agent:  53%|█████▎    | 101/190 [57:29<40:59, 27.63s/step]surgery:stage2_agent:  53%|█████▎    | 101/190 [57:40<40:59, 27.63s/step]surgery:stage2_agent:  54%|█████▎    | 102/190 [57:40<33:34, 22.89s/step]surgery:stage2_agent:  54%|█████▍    | 103/190 [57:54<28:56, 19.96s/step]surgery:stage2_agent:  55%|█████▍    | 104/190 [58:05<24:47, 17.30s/step]surgery:stage2_agent:  55%|█████▍    | 104/190 [58:17<24:47, 17.30s/step]surgery:stage2_agent:  55%|█████▌    | 105/190 [58:17<22:21, 15.79s/step]surgery:stage2_agent:  56%|█████▌    | 106/190 [58:31<21:20, 15.25s/step]surgery:stage2_agent:  56%|█████▋    | 107/190 [58:43<19:53, 14.39s/step]surgery:stage2_agent:  56%|█████▋    | 107/190 [58:56<19:53, 14.39s/step]surgery:stage2_agent:  57%|█████▋    | 108/190 [58:56<19:06, 13.98s/step]surgery:stage2_agent:  57%|█████▋    | 109/190 [59:09<18:20, 13.59s/step]surgery:stage2_agent:  58%|█████▊    | 110/190 [59:22<17:42, 13.28s/step]  [probe] AdaptiveBatchSizer: start=24, max=24, cap=85% (iter11 no-ramp)
+  [probe] encoding 306 clips...
+/venv/main/lib/python3.12/contextlib.py:105: FutureWarning: `torch.backends.cuda.sdp_kernel()` is deprecated. In the future, this context manager will be removed. Please see `torch.nn.attention.sdpa_kernel()` for the new context manager, with updated signature.
+  self.gen = func(*args, **kwds)
+  [probe] step=300 stage=stage2_agent N=306 Prec@K=75.16±3.76 mAP@K=70.06±4.07 Cycle@K=77.78±4.90 val_jepa=0.4692
+Exported student encoder: outputs/full/surgery_2stage_noDI/student_best.pt
+  [best] new max Prec@K=75.16 (step 300) → saved student_best.pt
+  [plots] skip m09_val_loss: no val_loss in loss_log (m09c reads val-loss from probe_history instead — see _render_live_plots)
+  Saved: outputs/full/surgery_2stage_noDI/m09_train_loss.png + .pdf
+  SKIP: drift loss plot (all zeros — drift control disabled)
+/venv/main/lib/python3.12/contextlib.py:105: FutureWarning: `torch.backends.cuda.sdp_kernel()` is deprecated. In the future, this context manager will be removed. Please see `torch.nn.attention.sdpa_kernel()` for the new context manager, with updated signature.
+  self.gen = func(*args, **kwds)
+surgery:stage2_agent:  58%|█████▊    | 110/190 [1:04:38<17:42, 13.28s/step]surgery:stage2_agent:  58%|█████▊    | 111/190 [1:04:38<2:17:03, 104.10s/step]surgery:stage2_agent:  59%|█████▉    | 112/190 [1:04:48<1:38:56, 76.11s/step] surgery:stage2_agent:  59%|█████▉    | 113/190 [1:05:02<1:13:34, 57.33s/step]surgery:stage2_agent:  59%|█████▉    | 113/190 [1:05:14<1:13:34, 57.33s/step]surgery:stage2_agent:  60%|██████    | 114/190 [1:05:14<55:32, 43.85s/step]  surgery:stage2_agent:  61%|██████    | 115/190 [1:05:26<42:48, 34.25s/step]surgery:stage2_agent:  61%|██████    | 116/190 [1:05:38<34:03, 27.62s/step]surgery:stage2_agent:  61%|██████    | 116/190 [1:05:51<34:03, 27.62s/step]surgery:stage2_agent:  62%|██████▏   | 117/190 [1:05:51<28:02, 23.05s/step]surgery:stage2_agent:  62%|██████▏   | 118/190 [1:06:02<23:24, 19.51s/step]surgery:stage2_agent:  63%|██████▎   | 119/190 [1:06:15<20:45, 17.54s/step]surgery:stage2_agent:  63%|██████▎   | 119/190 [1:06:28<20:45, 17.54s/step]surgery:stage2_agent:  63%|██████▎   | 120/190 [1:06:28<18:48, 16.12s/step]surgery:stage2_agent:  64%|██████▎   | 121/190 [1:06:39<17:00, 14.79s/step]surgery:stage2_agent:  64%|██████▍   | 122/190 [1:06:53<16:22, 14.45s/step]surgery:stage2_agent:  64%|██████▍   | 122/190 [1:07:06<16:22, 14.45s/step]surgery:stage2_agent:  65%|██████▍   | 123/190 [1:07:06<15:32, 13.92s/step]surgery:stage2_agent:  65%|██████▌   | 124/190 [1:07:18<14:43, 13.39s/step]surgery:stage2_agent:  66%|██████▌   | 125/190 [1:07:31<14:22, 13.28s/step]  [probe] AdaptiveBatchSizer: start=24, max=24, cap=85% (iter11 no-ramp)
+  [probe] encoding 306 clips...
+/venv/main/lib/python3.12/contextlib.py:105: FutureWarning: `torch.backends.cuda.sdp_kernel()` is deprecated. In the future, this context manager will be removed. Please see `torch.nn.attention.sdpa_kernel()` for the new context manager, with updated signature.
+  self.gen = func(*args, **kwds)
+  [probe] step=315 stage=stage2_agent N=306 Prec@K=75.22±3.79 mAP@K=70.14±4.05 Cycle@K=78.10±4.90 val_jepa=0.4721
+Exported student encoder: outputs/full/surgery_2stage_noDI/student_best.pt
+  [best] new max Prec@K=75.22 (step 315) → saved student_best.pt
+  [plots] skip m09_val_loss: no val_loss in loss_log (m09c reads val-loss from probe_history instead — see _render_live_plots)
+  Saved: outputs/full/surgery_2stage_noDI/m09_train_loss.png + .pdf
+  SKIP: drift loss plot (all zeros — drift control disabled)
+/venv/main/lib/python3.12/contextlib.py:105: FutureWarning: `torch.backends.cuda.sdp_kernel()` is deprecated. In the future, this context manager will be removed. Please see `torch.nn.attention.sdpa_kernel()` for the new context manager, with updated signature.
+  self.gen = func(*args, **kwds)
+surgery:stage2_agent:  66%|██████▌   | 125/190 [1:12:47<14:22, 13.28s/step]surgery:stage2_agent:  66%|██████▋   | 126/190 [1:12:47<1:51:04, 104.14s/step]surgery:stage2_agent:  67%|██████▋   | 127/190 [1:12:59<1:20:23, 76.56s/step] surgery:stage2_agent:  67%|██████▋   | 128/190 [1:13:11<59:07, 57.22s/step]  surgery:stage2_agent:  67%|██████▋   | 128/190 [1:13:24<59:07, 57.22s/step]surgery:stage2_agent:  68%|██████▊   | 129/190 [1:13:24<44:36, 43.88s/step]surgery:stage2_agent:  68%|██████▊   | 130/190 [1:13:39<35:09, 35.16s/step]surgery:stage2_agent:  69%|██████▉   | 131/190 [1:13:50<27:32, 28.01s/step]surgery:stage2_agent:  69%|██████▉   | 131/190 [1:14:04<27:32, 28.01s/step]surgery:stage2_agent:  69%|██████▉   | 132/190 [1:14:04<22:52, 23.67s/step]surgery:stage2_agent:  70%|███████   | 133/190 [1:14:17<19:28, 20.51s/step]surgery:stage2_agent:  71%|███████   | 134/190 [1:14:29<16:48, 18.00s/step]surgery:stage2_agent:  71%|███████   | 134/190 [1:14:44<16:48, 18.00s/step]surgery:stage2_agent:  71%|███████   | 135/190 [1:14:44<15:32, 16.96s/step]surgery:stage2_agent:  72%|███████▏  | 136/190 [1:14:57<14:11, 15.76s/step]surgery:stage2_agent:  72%|███████▏  | 137/190 [1:15:09<12:57, 14.67s/step]surgery:stage2_agent:  72%|███████▏  | 137/190 [1:15:21<12:57, 14.67s/step]surgery:stage2_agent:  73%|███████▎  | 138/190 [1:15:21<12:10, 14.06s/step]surgery:stage2_agent:  73%|███████▎  | 139/190 [1:15:33<11:23, 13.41s/step]surgery:stage2_agent:  74%|███████▎  | 140/190 [1:15:46<11:01, 13.23s/step]  [probe] AdaptiveBatchSizer: start=24, max=24, cap=85% (iter11 no-ramp)
+  [probe] encoding 306 clips...
+/venv/main/lib/python3.12/contextlib.py:105: FutureWarning: `torch.backends.cuda.sdp_kernel()` is deprecated. In the future, this context manager will be removed. Please see `torch.nn.attention.sdpa_kernel()` for the new context manager, with updated signature.
+  self.gen = func(*args, **kwds)
+  [probe] step=330 stage=stage2_agent N=306 Prec@K=74.95±3.76 mAP@K=69.91±4.07 Cycle@K=77.45±4.90 val_jepa=0.4709
+  [plots] skip m09_val_loss: no val_loss in loss_log (m09c reads val-loss from probe_history instead — see _render_live_plots)
+  Saved: outputs/full/surgery_2stage_noDI/m09_train_loss.png + .pdf
+  SKIP: drift loss plot (all zeros — drift control disabled)
+/venv/main/lib/python3.12/contextlib.py:105: FutureWarning: `torch.backends.cuda.sdp_kernel()` is deprecated. In the future, this context manager will be removed. Please see `torch.nn.attention.sdpa_kernel()` for the new context manager, with updated signature.
+  self.gen = func(*args, **kwds)
+surgery:stage2_agent:  74%|███████▎  | 140/190 [1:20:57<11:01, 13.23s/step]surgery:stage2_agent:  74%|███████▍  | 141/190 [1:20:57<1:23:40, 102.47s/step]surgery:stage2_agent:  75%|███████▍  | 142/190 [1:21:09<1:00:17, 75.36s/step] surgery:stage2_agent:  75%|███████▌  | 143/190 [1:21:22<44:22, 56.64s/step]  surgery:stage2_agent:  75%|███████▌  | 143/190 [1:21:33<44:22, 56.64s/step]surgery:stage2_agent:  76%|███████▌  | 144/190 [1:21:33<33:04, 43.14s/step]surgery:stage2_agent:  76%|███████▋  | 145/190 [1:21:48<25:54, 34.55s/step]surgery:stage2_agent:  77%|███████▋  | 146/190 [1:21:59<20:13, 27.59s/step]surgery:stage2_agent:  77%|███████▋  | 146/190 [1:22:11<20:13, 27.59s/step]surgery:stage2_agent:  77%|███████▋  | 147/190 [1:22:11<16:27, 22.96s/step]surgery:stage2_agent:  78%|███████▊  | 148/190 [1:22:24<13:58, 19.96s/step]surgery:stage2_agent:  78%|███████▊  | 149/190 [1:22:37<12:05, 17.70s/step]surgery:stage2_agent:  78%|███████▊  | 149/190 [1:22:50<12:05, 17.70s/step]surgery:stage2_agent:  79%|███████▉  | 150/190 [1:22:50<10:49, 16.24s/step]surgery:stage2_agent:  79%|███████▉  | 151/190 [1:23:02<09:53, 15.22s/step]surgery:stage2_agent:  80%|████████  | 152/190 [1:23:15<09:03, 14.30s/step]surgery:stage2_agent:  80%|████████  | 152/190 [1:23:28<09:03, 14.30s/step]surgery:stage2_agent:  81%|████████  | 153/190 [1:23:28<08:35, 13.93s/step]surgery:stage2_agent:  81%|████████  | 154/190 [1:23:41<08:13, 13.72s/step]surgery:stage2_agent:  82%|████████▏ | 155/190 [1:23:53<07:46, 13.33s/step]  [probe] AdaptiveBatchSizer: start=24, max=24, cap=85% (iter11 no-ramp)
+  [probe] encoding 306 clips...
+/venv/main/lib/python3.12/contextlib.py:105: FutureWarning: `torch.backends.cuda.sdp_kernel()` is deprecated. In the future, this context manager will be removed. Please see `torch.nn.attention.sdpa_kernel()` for the new context manager, with updated signature.
+  self.gen = func(*args, **kwds)
+  [probe] step=345 stage=stage2_agent N=306 Prec@K=75.33±3.79 mAP@K=70.28±4.08 Cycle@K=77.12±4.90 val_jepa=0.4697
+Exported student encoder: outputs/full/surgery_2stage_noDI/student_best.pt
+  [best] new max Prec@K=75.33 (step 345) → saved student_best.pt
+  [plots] skip m09_val_loss: no val_loss in loss_log (m09c reads val-loss from probe_history instead — see _render_live_plots)
+  Saved: outputs/full/surgery_2stage_noDI/m09_train_loss.png + .pdf
+  SKIP: drift loss plot (all zeros — drift control disabled)
+/venv/main/lib/python3.12/contextlib.py:105: FutureWarning: `torch.backends.cuda.sdp_kernel()` is deprecated. In the future, this context manager will be removed. Please see `torch.nn.attention.sdpa_kernel()` for the new context manager, with updated signature.
+  self.gen = func(*args, **kwds)
+surgery:stage2_agent:  82%|████████▏ | 155/190 [1:29:08<07:46, 13.33s/step]surgery:stage2_agent:  82%|████████▏ | 156/190 [1:29:08<58:52, 103.89s/step]surgery:stage2_agent:  83%|████████▎ | 157/190 [1:29:21<42:04, 76.51s/step] surgery:stage2_agent:  83%|████████▎ | 158/190 [1:29:32<30:19, 56.85s/step]surgery:stage2_agent:  83%|████████▎ | 158/190 [1:29:45<30:19, 56.85s/step]surgery:stage2_agent:  84%|████████▎ | 159/190 [1:29:45<22:35, 43.72s/step]surgery:stage2_agent:  84%|████████▍ | 160/190 [1:29:57<17:00, 34.01s/step]surgery:stage2_agent:  85%|████████▍ | 161/190 [1:30:10<13:27, 27.83s/step]surgery:stage2_agent:  85%|████████▍ | 161/190 [1:30:24<13:27, 27.83s/step]surgery:stage2_agent:  85%|████████▌ | 162/190 [1:30:24<11:02, 23.65s/step]surgery:stage2_agent:  86%|████████▌ | 163/190 [1:30:37<09:17, 20.64s/step]surgery:stage2_agent:  86%|████████▋ | 164/190 [1:30:50<07:49, 18.07s/step]surgery:stage2_agent:  86%|████████▋ | 164/190 [1:31:02<07:49, 18.07s/step]surgery:stage2_agent:  87%|████████▋ | 165/190 [1:31:02<06:53, 16.53s/step]surgery:stage2_agent:  87%|████████▋ | 166/190 [1:31:16<06:12, 15.51s/step]surgery:stage2_agent:  88%|████████▊ | 167/190 [1:31:28<05:38, 14.73s/step]surgery:stage2_agent:  88%|████████▊ | 167/190 [1:31:40<05:38, 14.73s/step]surgery:stage2_agent:  88%|████████▊ | 168/190 [1:31:40<05:03, 13.81s/step]surgery:stage2_agent:  89%|████████▉ | 169/190 [1:31:53<04:42, 13.43s/step]surgery:stage2_agent:  89%|████████▉ | 170/190 [1:32:06<04:25, 13.29s/step]  [probe] AdaptiveBatchSizer: start=24, max=24, cap=85% (iter11 no-ramp)
+  [probe] encoding 306 clips...
+/venv/main/lib/python3.12/contextlib.py:105: FutureWarning: `torch.backends.cuda.sdp_kernel()` is deprecated. In the future, this context manager will be removed. Please see `torch.nn.attention.sdpa_kernel()` for the new context manager, with updated signature.
+  self.gen = func(*args, **kwds)
+  [probe] step=360 stage=stage2_agent N=306 Prec@K=75.22±3.76 mAP@K=70.18±4.05 Cycle@K=77.45±4.90 val_jepa=0.4689
+  [plots] skip m09_val_loss: no val_loss in loss_log (m09c reads val-loss from probe_history instead — see _render_live_plots)
+  Saved: outputs/full/surgery_2stage_noDI/m09_train_loss.png + .pdf
+  SKIP: drift loss plot (all zeros — drift control disabled)
+/venv/main/lib/python3.12/contextlib.py:105: FutureWarning: `torch.backends.cuda.sdp_kernel()` is deprecated. In the future, this context manager will be removed. Please see `torch.nn.attention.sdpa_kernel()` for the new context manager, with updated signature.
+  self.gen = func(*args, **kwds)
+surgery:stage2_agent:  89%|████████▉ | 170/190 [1:37:16<04:25, 13.29s/step]surgery:stage2_agent:  90%|█████████ | 171/190 [1:37:16<32:28, 102.55s/step]surgery:stage2_agent:  91%|█████████ | 172/190 [1:37:29<22:39, 75.53s/step] surgery:stage2_agent:  91%|█████████ | 173/190 [1:37:42<16:03, 56.65s/step]surgery:stage2_agent:  91%|█████████ | 173/190 [1:37:55<16:03, 56.65s/step]surgery:stage2_agent:  92%|█████████▏| 174/190 [1:37:55<11:39, 43.71s/step]surgery:stage2_agent:  92%|█████████▏| 175/190 [1:38:08<08:36, 34.46s/step]surgery:stage2_agent:  93%|█████████▎| 176/190 [1:38:21<06:31, 27.96s/step]surgery:stage2_agent:  93%|█████████▎| 176/190 [1:38:34<06:31, 27.96s/step]surgery:stage2_agent:  93%|█████████▎| 177/190 [1:38:34<05:06, 23.59s/step]surgery:stage2_agent:  94%|█████████▎| 178/190 [1:38:45<03:58, 19.86s/step]surgery:stage2_agent:  94%|█████████▍| 179/190 [1:38:58<03:14, 17.71s/step]surgery:stage2_agent:  94%|█████████▍| 179/190 [1:39:10<03:14, 17.71s/step]surgery:stage2_agent:  95%|█████████▍| 180/190 [1:39:10<02:40, 16.05s/step]surgery:stage2_agent:  95%|█████████▌| 181/190 [1:39:23<02:15, 15.05s/step]surgery:stage2_agent:  96%|█████████▌| 182/190 [1:39:36<01:55, 14.48s/step]surgery:stage2_agent:  96%|█████████▌| 182/190 [1:39:48<01:55, 14.48s/step]surgery:stage2_agent:  96%|█████████▋| 183/190 [1:39:48<01:35, 13.67s/step]surgery:stage2_agent:  97%|█████████▋| 184/190 [1:40:01<01:21, 13.62s/step]surgery:stage2_agent:  97%|█████████▋| 185/190 [1:40:13<01:05, 13.12s/step]  [probe] AdaptiveBatchSizer: start=24, max=24, cap=85% (iter11 no-ramp)
+  [probe] encoding 306 clips...
+/venv/main/lib/python3.12/contextlib.py:105: FutureWarning: `torch.backends.cuda.sdp_kernel()` is deprecated. In the future, this context manager will be removed. Please see `torch.nn.attention.sdpa_kernel()` for the new context manager, with updated signature.
+  self.gen = func(*args, **kwds)
+  [probe] step=375 stage=stage2_agent N=306 Prec@K=75.22±3.76 mAP@K=70.17±4.05 Cycle@K=78.10±4.90 val_jepa=0.4699
+  [plots] skip m09_val_loss: no val_loss in loss_log (m09c reads val-loss from probe_history instead — see _render_live_plots)
+  Saved: outputs/full/surgery_2stage_noDI/m09_train_loss.png + .pdf
+  SKIP: drift loss plot (all zeros — drift control disabled)
+/venv/main/lib/python3.12/contextlib.py:105: FutureWarning: `torch.backends.cuda.sdp_kernel()` is deprecated. In the future, this context manager will be removed. Please see `torch.nn.attention.sdpa_kernel()` for the new context manager, with updated signature.
+  self.gen = func(*args, **kwds)
+surgery:stage2_agent:  97%|█████████▋| 185/190 [1:45:24<01:05, 13.12s/step]surgery:stage2_agent:  98%|█████████▊| 186/190 [1:45:24<06:49, 102.41s/step]surgery:stage2_agent:  98%|█████████▊| 187/190 [1:45:37<03:46, 75.65s/step] surgery:stage2_agent:  99%|█████████▉| 188/190 [1:45:50<01:53, 56.77s/step]surgery:stage2_agent:  99%|█████████▉| 188/190 [1:46:02<01:53, 56.77s/step]surgery:stage2_agent:  99%|█████████▉| 189/190 [1:46:02<00:43, 43.34s/step]surgery:stage2_agent: 100%|██████████| 190/190 [1:46:16<00:00, 34.51s/step]surgery:stage2_agent: 100%|██████████| 190/190 [1:46:16<00:00, 33.56s/step]
+  [cache-policy=1/keep] preserved m09c stage checkpoint: outputs/full/surgery_2stage_noDI/m09c_ckpt_stage0.pt — rerun with --cache-policy 2 to delete
+  Stage stage2_agent complete: 190 steps, loss=0.4598
+  [probe] AdaptiveBatchSizer: start=24, max=24, cap=85% (iter11 no-ramp)
+  [probe] encoding 306 clips...
+/venv/main/lib/python3.12/contextlib.py:105: FutureWarning: `torch.backends.cuda.sdp_kernel()` is deprecated. In the future, this context manager will be removed. Please see `torch.nn.attention.sdpa_kernel()` for the new context manager, with updated signature.
+  self.gen = func(*args, **kwds)
+  [probe] step=380 stage=stage2_agent N=306 Prec@K=75.22±3.76 mAP@K=70.18±4.05 Cycle@K=77.45±4.90 val_jepa=0.4663
+  [plots] skip m09_val_loss: no val_loss in loss_log (m09c reads val-loss from probe_history instead — see _render_live_plots)
+  Saved: outputs/full/surgery_2stage_noDI/m09_train_loss.png + .pdf
+  SKIP: drift loss plot (all zeros — drift control disabled)
+  [best] Promoted student_best.pt (Prec@K=75.33 at step 345, stage stage2_agent) → student_encoder.pt
+  [cache-policy=1/keep] preserved m09c stage checkpoint: outputs/full/surgery_2stage_noDI/m09c_ckpt_stage0.pt — rerun with --cache-policy 2 to delete
+  [cache-policy=1/keep] preserved m09c stage checkpoint: outputs/full/surgery_2stage_noDI/m09c_ckpt_stage1.pt — rerun with --cache-policy 2 to delete
+
+============================================================
+[probe] Trajectory across 27 stages:
+  Prec@K: [75.0, 74.9455, 75.0, 75.0, 75.0545, 74.9455, 75.1089, 75.0, 74.8911, 74.8911, 74.8911, 75.0545, 75.0545, 75.0545, 75.0545, 75.1089, 74.9455, 75.0, 75.1089, 75.1089, 75.1634, 75.2179, 74.9455, 75.3268, 75.2179, 75.2179, 75.2179]
+  ΔPrec@K (BWT-proxy): +0.22
+  ⚠  max_drop = 0.27 — some stage hurt Prec@K despite replay
+============================================================
+  Saved: outputs/full/surgery_2stage_noDI/probe_trajectory.png
+  Saved: outputs/full/surgery_2stage_noDI/m09_forgetting.png
+  Saved: outputs/full/surgery_2stage_noDI/m09_val_loss.png
+  [plots] skip m09_val_loss: no val_loss in loss_log (m09c reads val-loss from probe_history instead — see _render_live_plots)
+  Saved: outputs/full/surgery_2stage_noDI/m09_train_loss.png + .pdf
+  SKIP: drift loss plot (all zeros — drift control disabled)
+
+SURGERY COMPLETE: 380 steps across 2 stages
+  Exported: outputs/full/surgery_2stage_noDI/student_encoder.pt
+-rw-rw-r-- 1 root root 6.9G Apr 26 09:23 outputs/full/surgery_2stage_noDI/student_encoder.pt
+
+═══ 09:46:16 · ✅ run_train chain done · total wall=3h40m ═══

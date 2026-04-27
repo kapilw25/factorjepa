@@ -376,6 +376,45 @@ def load_subset(subset_path: str = None) -> set:
     return keys
 
 
+def verify_npy_matches_subset(arr_or_path, subset_path: str, label: str = "embeddings"):
+    """Fail-loud guard: row-count of `.npy` (or already-loaded ndarray) must match
+    `len(load_subset(subset_path))`. Catches stale-cache + partial-write bugs that
+    silently feed downstream m06/m08b the wrong data (incident 2026-04-26 — the
+    9297-row eval_10k cache survived an ultra_hard_3066_eval (308) re-run because
+    no module verified the subset axis).
+
+    Args:
+        arr_or_path: numpy ndarray OR path to .npy file. Path form mmaps the file
+            so a 60-MB .npy doesn't trigger a full read just to inspect shape[0].
+        subset_path: subset JSON path passed via --subset (None → no-op).
+        label: short tag for the FATAL message (e.g. "frozen embeddings",
+            "augA overlap").
+
+    On mismatch: prints FATAL with both numbers + remediation, then `sys.exit(1)`.
+    On match: silent. Subset=None → silent (caller is in --FULL no-subset mode).
+    """
+    if subset_path is None:
+        return
+    import numpy as _np
+    if isinstance(arr_or_path, (str, Path)):
+        arr = _np.load(arr_or_path, mmap_mode="r")
+    else:
+        arr = arr_or_path
+    actual_n = arr.shape[0]
+    expected_n = len(load_subset(subset_path))
+    if actual_n != expected_n:
+        print(f"FATAL: {label} row-count {actual_n} != --subset clip count "
+              f"{expected_n} ({subset_path}).")
+        if isinstance(arr_or_path, (str, Path)):
+            print(f"  Cache file: {arr_or_path}")
+            print(f"  This .npy was produced by a prior run on a DIFFERENT subset.")
+        else:
+            print(f"  Likely cause: partial worker run or stale checkpoint.")
+        print(f"  Fix: re-run upstream with --cache-policy 2 (or set "
+              f"CACHE_POLICY_ALL=2 for the eval chain).")
+        sys.exit(1)
+
+
 def get_output_dir(subset_path: str = None, sanity: bool = False,
                    poc: bool = False) -> Path:
     """

@@ -15,7 +15,10 @@ from sklearn.decomposition import TruncatedSVD
 
 # Project imports
 sys.path.insert(0, str(Path(__file__).parent))
-from utils.config import get_output_dir, get_module_output_dir, add_subset_arg
+from utils.config import (
+    get_output_dir, get_module_output_dir, add_subset_arg,
+    verify_npy_matches_subset,
+)
 from utils.checkpoint import save_array_checkpoint, save_json_checkpoint
 from utils.gpu_batch import cleanup_temp
 from utils.progress import make_pbar
@@ -152,6 +155,14 @@ def main():
     t0 = time.time()
     emb_normal, emb_shuffled, _paths = load_and_verify(input_dir)
     N, D = emb_normal.shape
+
+    # Defensive subset-vs-cache shape check (incident 2026-04-26 — see utils.config).
+    # Projected outputs at line ~210 inherit emb_normal's shape exactly, so this
+    # single check at the source covers the whole k-sweep transitively.
+    verify_npy_matches_subset(emb_normal, getattr(args, "subset", None),
+                              label="m06c emb_normal source")
+    verify_npy_matches_subset(emb_shuffled, getattr(args, "subset", None),
+                              label="m06c emb_shuffled source")
 
     # ── Compute difference stats ────────────────────────────────
     diffs = emb_normal - emb_shuffled

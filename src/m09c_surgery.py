@@ -748,6 +748,11 @@ def train_surgery(cfg: dict, args):
             best_state=best_state,
             probe_compute_val_loss=probe_compute_val_loss,
             verbose=verbose,
+            n_train_clips=total_clips,
+            n_epochs=max_epochs,
+            total_steps=total_steps,
+            batch_size=batch_size,
+            lr=cfg["optimization"]["lr"],
         )
 
     def _run_probe_at_step(stage_idx_, stage_name_, global_step_):
@@ -926,7 +931,7 @@ def train_surgery(cfg: dict, args):
                 plot_training_curves(
                     [{"csv_path": str(csv_path), "label": "Surgery", "batch_size": batch_size}],
                     str(output_dir),
-                    title_prefix=f"Surgery ({total_clips} unique clips, BS={batch_size}): ",
+                    title_prefix=f"Surgery · {total_clips:,} clips × {max_epochs} ep × BS={batch_size} × LR={cfg['optimization']['lr']:.1e} ({total_steps:,} steps)\n",
                     x_axis_mode="steps")
             except Exception as _e:
                 print(f"  [live-plot] WARN: train-curve render failed at step "
@@ -1185,16 +1190,18 @@ def train_surgery(cfg: dict, args):
 
             pbar.close()
             if kill_state["triggered"]:
-                # Skip remaining stages; stage ckpt still saved for resume/post-mortem.
+                # Stage ckpt = resume/rollback anchor → full=True so optimizer +
+                # scheduler + scaler restore correctly. Bug fix 2026-04-27 — same
+                # root cause as m09b lines 1026/1175 (silent re-warm on resume).
                 save_training_checkpoint(output_dir / f"{CHECKPOINT_PREFIX}_stage{stage_idx}.pt",
                                          student, teacher, predictor, optimizer, scheduler,
-                                         scaler, global_step, best_state["prec_at_k"], full=False)
+                                         scaler, global_step, best_state["prec_at_k"], full=True)
                 cleanup_stage_checkpoints(output_dir, CHECKPOINT_PREFIX, keep_n=1, cache_policy=args.cache_policy)
                 _run_probe_at_step(stage_idx, stage_name, global_step)
                 break
             save_training_checkpoint(output_dir / f"{CHECKPOINT_PREFIX}_stage{stage_idx}.pt",
                                      student, teacher, predictor, optimizer, scheduler,
-                                     scaler, global_step, 0.0, full=False)
+                                     scaler, global_step, 0.0, full=True)
             # Per-stage rotation: keep only the newest stage checkpoint on disk. Without
             # this, the run accumulates 3 × ~15 GB = ~45 GB of redundant rollback points
             # (cause of the 2026-04-19 disk-full halt on 199 GB /workspace). `keep_n=1`
@@ -1338,7 +1345,7 @@ def train_surgery(cfg: dict, args):
     plot_training_curves(
         [{"csv_path": str(csv_path), "label": "Surgery", "batch_size": batch_size}],
         str(output_dir),
-        title_prefix=f"Surgery ({n_unique_clips} unique clips, BS={batch_size}): ",
+        title_prefix=f"Surgery · {n_unique_clips:,} clips × {max_epochs} ep × BS={batch_size} × LR={cfg['optimization']['lr']:.1e} ({total_steps:,} steps)\n",
         x_axis_mode="steps")
 
     finish_wandb(wb_run)

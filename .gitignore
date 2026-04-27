@@ -79,6 +79,7 @@ src/data/
 *.npy
 *.npz
 outputs/
+!iter/iter11/outputs/
 # Per-clip verification images (re-generable via --plot, too many for git)
 outputs/**/m10_overlay_verify/
 outputs/**/m11_per_clip_verify/
@@ -86,13 +87,6 @@ outputs/**/m11_per_clip_verify/
 outputs/**/m11_factor_datasets/D_L/
 outputs/**/m11_factor_datasets/D_A/
 outputs/**/m11_factor_datasets/D_I/
-# Symlinks under src/ point to outputs/ — gitignore both paths
-src/outputs/**/*.npy
-src/outputs/**/*.npz
-src/outputs_poc/**/*.npy
-src/outputs_poc/**/*.npz
-src/outputs_sanity/**/*.npy
-src/outputs_sanity/**/*.npz
 
 # Large binary
 *.mp4

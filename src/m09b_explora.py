@@ -1023,9 +1023,14 @@ def train(cfg: dict, args):
                     output_dir / f"{CHECKPOINT_PREFIX}_step{step+1}.pt",
                     student, teacher, predictor, optimizer, scheduler, scaler,
                     step + 1, best_val_loss, full=False)
+                # CKPT_PATH (= _latest.pt) is the resume anchor — must be full=True
+                # so load_training_checkpoint can restore optimizer + scheduler +
+                # scaler state. Bug fix 2026-04-27 after v10 resume re-fired the LR
+                # warmup (lr=5.85e-7 at step 286) because v9's _latest.pt was
+                # full=False → no scheduler state → fresh cosine from step 0.
                 save_training_checkpoint(
                     ckpt_path, student, teacher, predictor, optimizer, scheduler,
-                    scaler, step + 1, best_val_loss, full=False)
+                    scaler, step + 1, best_val_loss, full=True)
                 cleanup_old_checkpoints(output_dir, prefix=CHECKPOINT_PREFIX,
                                         keep_n=keep_last_n,
                                         cache_policy=args.cache_policy)
@@ -1056,7 +1061,7 @@ def train(cfg: dict, args):
                                "color": "green",
                                "batch_size": batch_size}],
                         output_dir=str(output_dir),
-                        title_prefix=f"{n_train:,} clips, ",
+                        title_prefix=f"ExPLoRA · {n_train:,} clips × {max_epochs} ep × BS={batch_size} × LR={cfg['optimization']['lr']:.1e} ({total_steps:,} steps)\n",
                     )
                 except (OSError, IOError, ValueError, RuntimeError) as _plot_e:
                     # Plot failure must never stop training, but swallow is also banned
@@ -1157,6 +1162,11 @@ def train(cfg: dict, args):
                     best_state=best_state,
                     probe_compute_val_loss=probe_cfg_flat.get("compute_val_loss", True),
                     verbose=False,
+                    n_train_clips=n_train,
+                    n_epochs=max_epochs,
+                    total_steps=total_steps,
+                    batch_size=batch_size,
+                    lr=cfg["optimization"]["lr"],
                 )
 
                 # 🛑 Early-stop triggers — mutates kill_state on fire
@@ -1164,10 +1174,11 @@ def train(cfg: dict, args):
                 if kill_state["triggered"]:
                     print(f"[early-stop] {kill_state['reason']} → halting training "
                           f"at step {step + 1}")
-                    # Save a final step ckpt before breaking so post-training export can see it
+                    # Save a final ckpt before breaking — full=True so post-training
+                    # export AND any future resume-from-early-stop both work.
                     save_training_checkpoint(
                         ckpt_path, student, teacher, predictor,
-                        optimizer, scheduler, scaler, step + 1, best_val_loss, full=False)
+                        optimizer, scheduler, scaler, step + 1, best_val_loss, full=True)
                     break   # exit inner for-loop; post-loop code handles export
 
             # End-of-epoch logging
@@ -1293,6 +1304,11 @@ def train(cfg: dict, args):
             best_state=best_state,
             probe_compute_val_loss=probe_cfg_flat.get("compute_val_loss", True),
             verbose=True,
+            n_train_clips=n_train,
+            n_epochs=max_epochs,
+            total_steps=total_steps,
+            batch_size=batch_size,
+            lr=cfg["optimization"]["lr"],
         )
         summary["best_prec_at_k"] = (best_prec_at_k
                                      if best_prec_at_k > float("-inf") else None)

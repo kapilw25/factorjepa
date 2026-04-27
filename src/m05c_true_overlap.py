@@ -26,6 +26,7 @@ from utils.config import (
     VJEPA_FRAMES_PER_CLIP, check_gpu, check_output_exists,
     load_subset, add_subset_arg, add_local_data_arg, get_output_dir, get_module_output_dir,
     get_sanity_clip_limit, get_total_clips, get_pipeline_config,
+    verify_npy_matches_subset,
 )
 from utils.data_download import ensure_local_data, iter_clips_parallel
 from utils.gpu_batch import compute_batch_sizes, add_gpu_mem_arg, cuda_cleanup, cleanup_temp, AdaptiveBatchSizer
@@ -481,6 +482,12 @@ def main():
         arr_b = arr_b[keep]
         all_keys = [k for k, m in zip(all_keys, keep) if m]
         print(f"  Filtered: {n_before:,} → {len(all_keys):,} (removed {n_before - len(all_keys):,} non-deduped)")
+
+    # Defensive shape check (incident 2026-04-26 — see utils.config).
+    # NOTE: m05c filters non-deduped clips just above (lines 477-483) so the
+    # post-filter row-count is what should match --subset.
+    verify_npy_matches_subset(arr_a, args.subset, label="m05c overlap_augA")
+    verify_npy_matches_subset(arr_b, args.subset, label="m05c overlap_augB")
 
     np.save(aug_a_file, arr_a)
     np.save(aug_b_file, arr_b)

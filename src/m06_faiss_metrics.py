@@ -28,6 +28,7 @@ from utils.config import (
     FAISS_K_NEIGHBORS, TAG_TAXONOMY_JSON,
     check_gpu, add_subset_arg, get_output_dir, get_module_output_dir,
     add_encoder_arg, get_encoder_files, get_encoder_info, get_pipeline_config,
+    load_subset, verify_npy_matches_subset,
 )
 from utils.wandb_utils import (
     add_wandb_args, init_wandb, log_metrics, log_image, log_artifact, finish_wandb,
@@ -691,7 +692,7 @@ def generate_plots(easy: dict, hard: dict, conf_sweep: list,
     ax.axvline(x=med, color='red', linestyle='--', label=f'Median: {med:.2f}')
     ax.set_xlabel('L2 Distance')
     ax.set_ylabel('Count')
-    ax.set_title(f'kNN Distance Distribution (k={k}, clipped to 99.9th pctile)')
+    ax.set_title(f'kNN Distance Distribution (n={n:,} clips, k={k}, clipped to 99.9th pctile)')
     ax.legend()
     plt.tight_layout()
     for ext in [".png", ".pdf"]:
@@ -718,7 +719,7 @@ def generate_plots(easy: dict, hard: dict, conf_sweep: list,
         ax2.set_ylabel('Coverage (%)', color=c2)
         ax2.tick_params(axis='y', labelcolor=c2)
 
-        ax1.set_title(f'Confidence Sweep: Prec@K vs Coverage (k={k})')
+        ax1.set_title(f'Confidence Sweep: Prec@K vs Coverage (n={n:,} clips, k={k})')
         h1, l1 = ax1.get_legend_handles_labels()
         h2, l2 = ax2.get_legend_handles_labels()
         ax1.legend(h1 + h2, l1 + l2, loc='center left')
@@ -1139,6 +1140,10 @@ def main():
         tags = json.load(f)
     print(f"Loaded embeddings: {embeddings.shape}")
     print(f"Loaded tags: {len(tags):,}")
+
+    # Defensive subset-vs-cache shape check (incident 2026-04-26 — see utils.config).
+    verify_npy_matches_subset(embeddings, getattr(args, "subset", None),
+                              label=f"m06 cached embeddings ({emb_file.name})")
 
     # Clip paths for Hard mode
     clip_paths = []

@@ -428,6 +428,40 @@ def plot_training_curves(runs: list, output_dir: str, title_prefix: str = "",
         ax.set_title(f"{title_prefix}Validation Loss")
         ax.legend(loc="upper right")
         save_fig(fig, str(out / "m09_val_loss"))
+
+        # Companion zoom: m09_val_loss_jepa.png — raw + rolling mean overlay.
+        # Mirrors utils.training.render_training_plots so all 3 m09 modules
+        # produce the same smoothed JEPA-zoom artifact.
+        fig, ax = plt.subplots(figsize=(10, 5))
+        for run in parsed_runs:
+            if not (run["x_val"] and run.get("val_loss")):
+                continue
+            x = np.array(run["x_val"])
+            v = np.array(run["val_loss"])
+            ax.plot(x, v, "o-", color=run["color"], linewidth=0.8,
+                    markersize=4, alpha=0.35,
+                    label=f"{run['label']} (raw)", zorder=2)
+            window = max(1, len(v) // 10)
+            if window > 1:
+                k = np.ones(window) / window
+                sm = np.convolve(v, k, mode="valid")
+                ax.plot(x[window - 1:], sm, color=run["color"], linewidth=2.8,
+                        label=f"{run['label']} rolling mean (w={window})",
+                        zorder=10)
+            best_i = int(np.argmin(v))
+            ax.scatter([x[best_i]], [v[best_i]], marker="*", s=140,
+                       color="#1565C0", zorder=11,
+                       label=f"best={v[best_i]:.4f} @ {x[best_i]:.0f}")
+            ax.annotate(f"end={v[-1]:.4f}", xy=(x[-1], v[-1]),
+                        xytext=(5, 0), textcoords="offset points",
+                        fontsize=9, color=run["color"], va="center")
+        ax.xaxis.set_major_formatter(plt.FuncFormatter(_fmt_x))
+        ax.set_xlabel(x_label)
+        ax.set_ylabel("JEPA total (L1)")
+        ax.set_title(f"{title_prefix}Val-loss zoom — raw + rolling mean")
+        ax.legend(loc="upper right", fontsize=9)
+        ax.grid(True, alpha=0.3)
+        save_fig(fig, str(out / "m09_val_loss_jepa"))
     else:
         print(f"  [plots] skip m09_val_loss: no val_loss in loss_log "
               f"(m09c reads val-loss from probe_history instead — see _render_live_plots)")

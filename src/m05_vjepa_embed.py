@@ -44,6 +44,7 @@ from utils.config import (
     get_module_output_dir,
     get_pipeline_config, get_sanity_clip_limit, get_total_clips,
     add_model_config_arg, get_model_config,
+    verify_npy_matches_subset,
 )
 from utils.data_download import ensure_local_data, iter_clips_parallel
 from utils.gpu_batch import compute_batch_sizes, add_gpu_mem_arg, cleanup_temp, AdaptiveBatchSizer
@@ -376,6 +377,8 @@ def orchestrator_main(args):
                 cmd.extend(["--local-data", args.local_data])
             if getattr(args, 'encoder', None):
                 cmd.extend(["--encoder", args.encoder])
+            if getattr(args, 'model_config', None):
+                cmd.extend(["--model-config", args.model_config])
             # Propagate cache policy to worker (iter11 delete-protection gate).
             if getattr(args, 'cache_policy', None):
                 cmd.extend(["--cache-policy", args.cache_policy])
@@ -453,6 +456,9 @@ def orchestrator_main(args):
     print("\n=== Processing Stats ===")
     print(f"Total clips:     {len(clip_keys):,}")
     print(f"Embedding shape: {embeddings.shape}")
+
+    # Defensive shape check (incident 2026-04-26 — see utils.config).
+    verify_npy_matches_subset(embeddings, args.subset, label=f"m05 {encoder_name}")
 
     embeddings_file.parent.mkdir(parents=True, exist_ok=True)
     np.save(embeddings_file, embeddings)

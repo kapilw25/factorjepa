@@ -23,6 +23,7 @@ from utils.config import (
     ENCODER_REGISTRY, FAISS_K_NEIGHBORS,
     add_encoder_arg, add_subset_arg, get_output_dir, get_module_output_dir,
     get_encoder_files, get_encoder_info, get_pipeline_config,
+    verify_npy_matches_subset,
 )
 from utils.wandb_utils import (
     add_wandb_args, init_wandb, log_metrics, finish_wandb,
@@ -361,6 +362,10 @@ def main():
     embeddings = np.load(emb_file).astype(np.float32)
     emb_keys = np.load(emb_keys_file, allow_pickle=True)
     print(f"Embeddings: {embeddings.shape}")
+
+    # Defensive subset-vs-cache shape check (incident 2026-04-26 — see utils.config).
+    verify_npy_matches_subset(embeddings, getattr(args, "subset", None),
+                              label=f"m06b cached embeddings ({emb_file.name})")
 
     # ── Load kNN indices (optional, for temporal_prec_at_k) ───────
     knn_file = enc_files["knn_indices"]

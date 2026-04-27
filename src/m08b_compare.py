@@ -320,7 +320,9 @@ def create_bar_chart(all_metrics: dict, output_dir: Path):
                            fontsize=8, rotation=0)
         ax.tick_params(axis="y", labelsize=9)
 
-    plt.suptitle("Encoder Comparison (Easy mode — paper gate · 95 % CI)",
+    _n_eval = all_metrics[encoders[0]].get("num_clips", "")
+    _eval_str = f", N={_n_eval:,} eval clips" if _n_eval else ""
+    plt.suptitle(f"Encoder Comparison (Easy mode — paper gate · 95 % CI{_eval_str})",
                  fontsize=13, fontweight="bold", y=1.02)
     plt.tight_layout()
     for ext in [".png", ".pdf"]:

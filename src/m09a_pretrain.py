@@ -796,7 +796,7 @@ def train(cfg: dict, args):
                                "color": "blue",
                                "batch_size": batch_size}],
                         output_dir=str(output_dir),
-                        title_prefix=f"{n_train:,} clips, ",
+                        title_prefix=f"{n_train:,} clips × {max_epochs} ep × BS={batch_size} × LR={cfg['optimization']['lr']:.1e} ({total_steps:,} steps)\n",
                     )
                 except Exception:
                     pass  # non-fatal: plot failure must never stop training
