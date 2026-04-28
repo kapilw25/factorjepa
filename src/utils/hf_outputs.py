@@ -199,16 +199,41 @@ def _mirror_cleanup(api, local_path: Path, subfolder: str):
                   f"all match local upload set, 0 stale)")
             return
 
+        # BATCHED delete via api.delete_files() — single commit per chunk of 1000
+        # operations. Was per-file api.delete_file() which made N HTTP round-trips
+        # (11,029 deletes ≈ 30-60 min). Batched: ~12 commits total ≈ 30-60 sec.
+        # Per HF docs, create_commit (which delete_files wraps) is the recommended
+        # bulk-delete pattern; concurrent commits to the same branch race on
+        # parent_commit so we serialize chunks. (Did not parallelize across chunks
+        # — would create CommitConflictError on same-branch races.)
+        CHUNK = 1000
+        n_chunks = (len(stale) + CHUNK - 1) // CHUNK
         print(f"  Mirror cleanup: {len(remote_paths)} remote, "
               f"{len(upload_set)} local upload-set, "
-              f"{len(stale)} stale → deleting from HF...")
-        for path in stale:
+              f"{len(stale)} stale → deleting in {n_chunks} batched commit(s) of ≤{CHUNK} ops each...")
+        t_del = time.time()
+        for i in range(0, len(stale), CHUNK):
+            chunk = stale[i:i + CHUNK]
+            batch_idx = i // CHUNK + 1
+            t_chunk = time.time()
             try:
-                api.delete_file(path_in_repo=path, repo_id=HF_OUTPUTS_REPO, repo_type="dataset")
-                print(f"    DEL {path}")
+                api.delete_files(
+                    repo_id=HF_OUTPUTS_REPO,
+                    delete_patterns=chunk,
+                    repo_type="dataset",
+                    commit_message=f"Mirror cleanup batch {batch_idx}/{n_chunks}: "
+                                   f"delete {len(chunk)} stale files",
+                )
+                dt = time.time() - t_chunk
+                # Sample first 3 + last 3 paths per batch (full list would be 11K lines)
+                sample = (chunk[:3] + ["..."] + chunk[-3:]) if len(chunk) > 6 else chunk
+                print(f"    batch {batch_idx}/{n_chunks}: DEL {len(chunk)} files in {dt:.1f}s")
+                for p in sample:
+                    print(f"      {p}")
             except Exception as e:
-                print(f"    SKIP {path}: {e}")
-        print(f"  Mirror cleanup: done ({len(stale)} delete attempt(s))")
+                print(f"    batch {batch_idx}/{n_chunks} FAILED: {e}")
+                print(f"      (chunk had {len(chunk)} paths; first 3: {chunk[:3]})")
+        print(f"  Mirror cleanup: done ({len(stale)} files in {n_chunks} commits, {time.time() - t_del:.1f}s)")
     except Exception as e:
         print(f"FATAL: mirror cleanup failed ({e})")
         print("  Stale files on HF will be re-downloaded to other machines.")
