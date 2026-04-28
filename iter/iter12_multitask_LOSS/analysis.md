@@ -292,6 +292,75 @@ This is now even more interesting given the bigger picture. It says: **whatever 
 
 ---
 
-*✻ Revised after user's 115K full-pretrain history + E v3 completion + Q2 challenge that switching eval metrics doesn't fix a training problem.*
+## Q7) NEXT STEPS — Framing B: adopt Meta's actual V-JEPA 2 transfer recipe
 
-> ※ recap (revised): Goal: stop wasting GPU on training recipes that have already been empirically shown not to lift V-JEPA features on Indian video. Run 4 cheap diagnostic tests (≤ 2 h GPU total) to determine if it's a silent bug (fixable) or true saturation (not fixable — pivot paper to dataset + pipeline + negative-finding contribution).
+**Non-negotiable goal**: `vjepa_surgical` must outperform `vjepa_frozen` on the gate metric.
+
+**The reframe**: drop "surgical = continual-pretrained encoder" (4 recipes failed). Re-define `surgical` = **frozen V-JEPA 2.1 encoder + factor-conditioned probe head**. This is the only V-JEPA 2 transfer pattern that works in published evidence (Meta's own V-JEPA 2-AC on Droid 62h, SSv2 attentive probe at 77.3 %).
+
+### What stays the same vs what changes
+
+| Component | iter12 (failed) | iter13 (Framing B) |
+|---|---|---|
+| Encoder | continual-pretrain ViT-G (1.84B params, 12-25 % trainable) | **🔒 FROZEN** ViT-G (0 % trainable) |
+| Trainable surface | full prefix or LoRA on encoder | **only the probe head** (~1-10M params) |
+| Training data | 2452 Indian clips, 1140 steps | same 2452 clips, but used to train **the probe head**, not encoder |
+| Loss | JEPA L1 + InfoNCE + (TCC) on encoder outputs | **task-specific** on probe head: cross-entropy for classification, MSE for regression |
+| Gate metric | Prec@K (cross-clip retrieval — wrong for V-JEPA) | **action / factor classification accuracy** (V-JEPA-aligned, Meta-validated) |
+| `surgical` vs `frozen` differ in | encoder weights (failed to differ) | **probe head architecture** (factor-conditioned vs vanilla) |
+
+### How surgical BEATS frozen under this framing
+
+`vjepa_frozen`'s probe = stock 4-layer attentive probe (Meta's reference implementation).
+`vjepa_surgical`'s probe = **factor-conditioned head that exploits our D_L / D_A / D_I labels** that vjepa_frozen cannot use. The moat is the **labels** (which Meta's frozen probe doesn't know about), not the encoder.
+
+| Probe-head option | Architecture | Why surgical might beat frozen |
+|---|---|---|
+| **A: Vanilla attentive** (= frozen baseline) | 4-layer attention pooling → MLP → softmax | reference; trained on same labels surgical sees |
+| **B: Factor-conditioned cross-attention** | attention pooling with D_L/D_A/D_I tokens injected as cross-attn keys | head learns to attend to layout/agent/interaction tubes specifically |
+| **C: Multi-task probe** (auxiliary heads) | shared trunk → 4 heads: action + D_L_class + D_A_class + D_I_class with co-training | factor-classification gradient regularizes the action head |
+| **D: Factor-routed MoE probe** | router(D_L/D_A/D_I) → expert head per factor combination | exploits factor structure for specialization |
+
+**Likeliest winner**: B or C. They exploit the factor labels (our novelty) without needing encoder fine-tuning (which doesn't work).
+
+### iter13 concrete plan (NO encoder training — only probe heads)
+
+| # | Step | GPU cost | What it produces | Pass criterion |
+|---|---|---|---|---|
+| 1 | Bucket the 2452 train + 308 eval clips into Indian action labels (walking / driving / drone / monument-scene) — write `m12_action_labels.py` reading existing tags.json | 0 (CPU, ~30 min) | `data/ultra_hard_3066_action_labels.json` (~2760 rows × 1 label each) | label distribution > 50 clips per class |
+| 2 | Build `m13_probe_train.py` — generic 4-layer attentive probe trainer on top of frozen V-JEPA 2.1 features. Same as Meta's stock recipe | ~2 h | `vjepa_frozen_action_probe.pt` + accuracy + 95 % CI | runs without crash; baseline accuracy reported |
+| 3 | Add `m13b_factor_probe_train.py` — factor-conditioned probe (Option B or C above) using D_L/D_A/D_I labels as auxiliary signal | ~2 h | `vjepa_surgical_action_probe.pt` (= frozen encoder + factor-aware head) | runs without crash |
+| 4 | Paired-bootstrap accuracy diff: `surgical_probe − frozen_probe` on 308-clip eval | ~10 min | Δ accuracy + p-value (BCa CI) | **Δ > 0 with p < 0.05** = paper-worthy result |
+| 5 | Ablation: which factor (D_L vs D_A vs D_I) contributes most to the lift? Run probe with one factor at a time | ~6 h (3 × 2 h) | per-factor accuracy contribution | identifies which factor dominates the moat |
+| **Total** | | **~10 h GPU @ ~$8** | | vs the **~50 h** spent on iter11/iter12 encoder-training that produced 0 lift |
+
+### Why this satisfies the non-negotiable goal
+
+- Both `frozen` and `surgical` use the **same V-JEPA 2.1 ViT-G encoder weights** (no continual pretraining)
+- They differ only in the **probe head**, which is what we've shown actually works for V-JEPA transfer
+- `surgical` wins by USING the factor labels (`D_L / D_A / D_I` from our `m10` + `m11` pipeline) that the frozen baseline doesn't have access to
+- This is the publishable "FactorJEPA contribution" reframed honestly: the **dataset + pipeline + factor-aware probe** is the contribution, NOT a "better encoder"
+
+### What this saves us from doing
+
+| Activity | Cancelled because |
+|---|---|
+| Variant F (3stage_DI_multitask) | E v3 stage 2 D_A added 0 — F's stage 3 D_I won't either |
+| Optuna / grid sweep on (α, β, γ) | gradient share rebalance already tested in v3 → didn't move Prec@K |
+| 50K-clip continual pretraining | 115K full-pretrain already produced no lift → larger scale won't help V-JEPA's L1 task |
+| LR sweep / longer epochs | mismatched recipe (encoder fine-tune is not Meta's pattern); fixing the layer doesn't help |
+| Switching to DINOv2/CLIP/SigLIP | constraint: paper is V-JEPA 2.1 only |
+
+### Risk: what if the factor-conditioned probe ALSO fails to beat the vanilla one?
+
+| Outcome | Reading | Paper framing |
+|---|---|---|
+| **Δ accuracy > 0, p < 0.05** | factor labels add real signal beyond what frozen V-JEPA features encode | **WIN**: "FactorJEPA: factor-conditioned probes lift V-JEPA 2.1 on Indian-context action recognition" |
+| **Δ accuracy ≈ 0, p > 0.05** | frozen V-JEPA features already implicitly encode the factor structure → labels redundant | **NEGATIVE**: even probe-level surgical doesn't help; the dataset + pipeline are the only contributions. Drop "vjepa_surgical > vjepa_frozen" claim entirely |
+| **Δ accuracy < 0** (unlikely) | factor head over-regularizes or is mis-spec'd | iterate on probe arch (Options B/C/D); doesn't invalidate the dataset/pipeline contribution |
+
+**Worst case** = same as current (dataset + pipeline + negative finding). **Best case** = first reportable `surgical > frozen` lift on Indian video. Asymmetric upside, ~10 h GPU cost. Worth running.
+
+---
+
+*✻ Q7 added 2026-04-28 after WEBSEARCH confirmed Meta's actual V-JEPA 2 transfer recipe (V-JEPA 2-AC on Droid 62h, SSv2 attentive probe at 77.3 %) is **frozen encoder + small new head**, never continual-pretrain. iter13 = adopt that pattern with our factor labels as the surgical-vs-frozen differentiator.*
