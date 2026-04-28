@@ -53,6 +53,8 @@ _UPLOAD_SKIP_PATTERNS = [
     "**/m11_factor_datasets/D_A/**",                  # gitignore:83
     "**/m11_factor_datasets/D_I/**",                  # gitignore:84
     "**/m11_factor_datasets/m11_per_clip_verify/**",  # gitignore:80
+    "**/m10_sam_segment/masks/**",                    # 12,309 .npz mask files (~7 GB) — regeneratable from m10_sam_segment.py
+    "**/m10_sam_segment/m10_overlay_verify/**",       # 598 .png overlays (~700 MB) — visual debug only
 ]
 
 _CHECKPOINT_AGE_THRESHOLD = 120  # seconds — skip checkpoints modified within this window
@@ -135,54 +137,78 @@ def _list_local_files(output_path: Path, extensions: set,
 
 
 def _list_remote_files(api, subfolder: str) -> list:
-    """List remote files under subfolder on HF, returns list of (rpath, size_bytes)."""
+    """List remote files under subfolder on HF, returns list of (path, size_bytes).
+
+    huggingface_hub list_repo_tree() returns RepoFile (has .path + .size + .blob_id)
+    and RepoFolder (has .path + .tree_id). Discriminate via isinstance — old code
+    used hasattr('rpath') which silently no-op'd after the API renamed rpath → path,
+    so _mirror_cleanup deleted nothing for months and HF accumulated orphans.
+    """
+    from huggingface_hub.hf_api import RepoFile
     files = []
     for item in api.list_repo_tree(
             HF_OUTPUTS_REPO, path_in_repo=subfolder, repo_type="dataset",
             recursive=True):
-        if hasattr(item, 'rpath') and not hasattr(item, 'tree_id'):
+        if isinstance(item, RepoFile):
             size = getattr(item, 'size', 0) or 0
-            files.append((item.rpath, size))
+            files.append((item.path, size))
     return sorted(files)
 
 
 def _mirror_cleanup(api, local_path: Path, subfolder: str):
-    """Delete remote HF files that no longer exist locally (exact mirror).
+    """Delete remote HF files not in the current local upload set (true rsync --delete mirror).
 
-    Prevents download from pulling back stale files (e.g., 73GB of old checkpoints
-    that caused OOM during training). Scans all files under subfolder on HF,
-    compares with local disk, deletes remote-only files.
+    A remote file is "stale" if EITHER:
+      (a) it does not exist on local disk at all (renamed/deleted file), OR
+      (b) it exists locally but matches _UPLOAD_SKIP_PATTERNS (we deliberately don't
+          want to back it up — masks/overlays/factor-tubes that are regeneratable).
+
+    Prevents HF from accumulating orphans across iterations. Bug history: the old
+    filter used hasattr(item, 'rpath') which became False after huggingface_hub
+    renamed rpath → path → 0 stale files always → silent no-op for months → 73 GB
+    of stale checkpoints + every renamed iter11/ path remained on HF forever.
     """
+    from huggingface_hub.hf_api import RepoFile
     try:
-        # List all files on HF under this subfolder (recursive)
-        remote_files = []
+        # 1. List all files on HF under this subfolder (recursive)
+        remote_paths = []
         for item in api.list_repo_tree(
                 HF_OUTPUTS_REPO, path_in_repo=subfolder, repo_type="dataset",
                 recursive=True):
-            if hasattr(item, 'rpath') and not hasattr(item, 'tree_id'):
-                remote_files.append(item.rpath)
+            if isinstance(item, RepoFile):
+                remote_paths.append(item.path)
 
-        if not remote_files:
+        if not remote_paths:
+            print(f"  Mirror: no remote files under '{subfolder}' (fresh repo or empty subfolder)")
             return
 
-        # Find remote files not present locally
-        stale = []
-        for hf_path in remote_files:
-            rel = hf_path[len(subfolder):].lstrip("/") if hf_path.startswith(subfolder) else hf_path
-            local_file = local_path / rel
-            if not local_file.exists():
-                stale.append(hf_path)
+        # 2. Compute the local UPLOAD SET (passes ext + skip filters) as a set of
+        #    repo-relative posix paths matching how upload_folder names them on HF.
+        local_files = _list_local_files(local_path, _UPLOAD_EXTENSIONS,
+                                        skip_patterns=_UPLOAD_SKIP_PATTERNS)
+        upload_set = {
+            f"{subfolder}/{f.relative_to(local_path).as_posix()}"
+            for f in local_files
+        }
 
-        if stale:
-            print(f"  Mirror cleanup: deleting {len(stale)} stale file(s) from HF")
-            for path in stale:
-                try:
-                    api.delete_file(path_in_repo=path, repo_id=HF_OUTPUTS_REPO, repo_type="dataset")
-                    print(f"    DEL {path}")
-                except Exception as e:
-                    print(f"    SKIP {path}: {e}")
-        else:
-            print(f"  Mirror: HF in sync ({len(remote_files)} files, 0 stale)")
+        # 3. Anything on remote not in upload_set is stale → delete.
+        stale = sorted(p for p in remote_paths if p not in upload_set)
+
+        if not stale:
+            print(f"  Mirror: HF in sync ({len(remote_paths)} files on remote, "
+                  f"all match local upload set, 0 stale)")
+            return
+
+        print(f"  Mirror cleanup: {len(remote_paths)} remote, "
+              f"{len(upload_set)} local upload-set, "
+              f"{len(stale)} stale → deleting from HF...")
+        for path in stale:
+            try:
+                api.delete_file(path_in_repo=path, repo_id=HF_OUTPUTS_REPO, repo_type="dataset")
+                print(f"    DEL {path}")
+            except Exception as e:
+                print(f"    SKIP {path}: {e}")
+        print(f"  Mirror cleanup: done ({len(stale)} delete attempt(s))")
     except Exception as e:
         print(f"FATAL: mirror cleanup failed ({e})")
         print("  Stale files on HF will be re-downloaded to other machines.")
