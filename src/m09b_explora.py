@@ -914,10 +914,14 @@ def train(cfg: dict, args):
             step_succeeded = False
             while not step_succeeded:
                 try:
-                    jepa_val, masked_val, context_val, _unused = _train_step_grad_accum(
+                    (jepa_val, masked_val, context_val, _unused,
+                     _infonce_val, _tcc_val,
+                     _uw_w_jepa, _uw_w_infonce, _uw_w_tcc) = _train_step_grad_accum(
                         student, teacher, predictor, batch_clips,
                         all_masks_enc, all_masks_pred,
-                        cfg, dtype, mp_cfg, scaler, train_sizer, loss_exp)
+                        cfg, dtype, mp_cfg, scaler, train_sizer, loss_exp,
+                        init_params=None, drift_cfg=None,
+                        loss_cfg=cfg["optimization"]["loss"], uw=None)
                     step_succeeded = True
                 except torch.cuda.OutOfMemoryError:
                     optimizer.zero_grad()  # discard partial grads from incomplete macro

@@ -128,6 +128,13 @@ def decode_video_bytes(mp4_bytes: bytes, tmp_dir: str, key: str,
         torch.Tensor: (T, C, H, W) uint8 tensor, or None if decode fails.
     """
     safe_key = key.replace("/", "_").replace("\\", "_")
+    # HF stream clip keys end in ".mp4" (e.g. "tier1/.../abc-119.mp4"); strip
+    # before re-appending so we don't write/read "abc-119.mp4.mp4". The doubled
+    # extension is consistent across write+read in the same call (path is reused),
+    # so it's not the ENOENT cause — but the doubled name made the explora v10
+    # decode-failure logs misleading. Idempotent: keys without .mp4 unaffected.
+    if safe_key.endswith(".mp4"):
+        safe_key = safe_key[:-4]
     tmp_path = os.path.join(tmp_dir, f"{safe_key}.mp4")
     try:
         with open(tmp_path, "wb") as f:

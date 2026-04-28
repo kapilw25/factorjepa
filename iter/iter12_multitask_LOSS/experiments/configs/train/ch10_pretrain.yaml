@@ -1,0 +1,71 @@
+# Ch10: Continual Pretraining — JEPA loss + drift control + lambda sweep
+#
+# This is the BRUTE-FORCE adaptation baseline. Demoted to comparison arm in Week 1
+# (see iter/iter8/next_steps.md). Ch11 surgery is the primary path.
+#
+# Status: λ=0.001 caused catastrophic forgetting (Prec@K 36.1% → 14.3%) on 2026-04-05.
+# This config applies the gold standard audit fixes (12 discrepancies, see plan_training.md).
+#
+# USAGE:
+#   python -u src/m09a_pretrain.py \
+#       --model-config configs/model/vjepa2_1.yaml \
+#       --train-config configs/train/ch10_pretrain.yaml \
+#       --FULL --subset data/subset_10k.json --local-data data/subset_10k_local
+
+extends: base_optimization.yaml
+
+# -- Optimization overrides (POST-AUDIT) --
+optimization:
+  # POST-AUDIT: 10x smaller (was 1e-5 in failed run)
+  lr: 1.0e-6
+  pred_lr_multiplier: 1.0         # Meta uses SAME LR (gold standard audit: 10x was wrong)
+
+  # POST-AUDIT: 5 epochs + 1 cooldown (was 1 epoch — stability gap, arXiv:2406.14833)
+  # iter11 v2 (2026-04-26): bumped full 5→15 to match base_optimization.yaml (val-loss still descending at epoch 5).
+  max_epochs:
+    sanity: 1
+    poc: 5
+    full: 15
+    cooldown: 1                   # Cooldown epoch at 64f (matches eval frame count)
+
+  batch_size: 32                  # Auto-overridden by profiler
+
+# -- Layer freezing (POST-AUDIT: freeze early layers) --
+# LayerLock (arXiv:2509.10156): ViT layers converge in depth order.
+# For V-JEPA 2.1 ViT-G (depth=48): freeze 0-20, train 20-48 (only top half).
+layer_freeze:
+  enabled: true
+  freeze_below: 20                # Freeze layers [0, freeze_below); train [freeze_below, depth)
+
+# -- Drift control (POST-AUDIT: λ ∈ [10, 100, 1000], not [0, 0.001, 0.01, 0.1]) --
+# Failed run used λ=0.001 → drift penalty 1000x smaller than JEPA loss → zero regularization.
+# EWC literature uses λ=10²–10⁹ (arXiv:1612.00796).
+drift_control:
+  enabled: true
+  type: ewc                       # POST-AUDIT: EWC with FIM-weighted L2 (was uniform L2)
+  lambda_reg: null                # MUST be set via --lambda-reg or ablation_winner.json
+  ablation_lambdas: [10, 100, 1000]
+  ablation_epochs: 1
+  ablation_subset: data/subset_10k.json
+  ablation_val_subset: data/val_1k.json
+  ablation_local_data: data/subset_10k_local
+  ablation_val_local_data: data/val_1k_local
+
+  # Fisher Information Matrix (one-time computation on frozen model, ~30 min)
+  fim:
+    enabled: true                 # Use FIM-weighted drift instead of uniform L2
+    fim_path: checkpoints/vjepa2_1_fim.pt
+    fim_n_clips: 1000             # Clips for FIM estimation
+
+  # VICReg variance-covariance regularization (prevents collapse, arXiv:2410.19560)
+  vicreg:
+    enabled: true
+    var_weight: 1.0
+    cov_weight: 0.04
+
+# -- Monitoring + early stopping triggers --
+monitoring:
+  drift_loss_ratio_min: 0.01      # FAIL if drift_loss / jepa_loss < 0.01 (regularization too weak)
+  effective_rank_min_ratio: 0.95  # STOP if embedding rank drops below 95% of frozen baseline
+  knn_probe_clips: 1000           # kNN probe on val clips for early stop
+  knn_min_accuracy: null          # Set to frozen baseline kNN accuracy

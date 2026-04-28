@@ -6,11 +6,55 @@ USAGE:
     python -u src/m08b_compare.py --SANITY 2>&1 | tee logs/m08b_compare_sanity.log
     python -u src/m08b_compare.py --POC --subset data/subset_10k.json 2>&1 | tee logs/m08b_compare_poc.log
     python -u src/m08b_compare.py --FULL 2>&1 | tee logs/m08b_compare_full.log
+
+═════════════════════════════════════════════════════════════════════════
+DELETE-PROTECTION POLICY — m08b ALWAYS RECOMPUTES (no `--cache-policy`).
+═════════════════════════════════════════════════════════════════════════
+This script does NOT route through `utils.cache_policy` (no `add_cache_policy_arg`,
+no `guarded_delete`, no `wipe_output_dir`). DO NOT re-add cache_policy gating
+to this script in the future. Reasons:
+
+  1. m08b is a PURE VISUALIZATION FUNCTION of (m05 .npy + m06 .json + tags.json).
+     Same inputs → same outputs. There is NO expensive intermediate state worth
+     preserving (no GPU model load, no checkpoint, no resume cursor). Wall-time
+     is ~30s CPU at full eval scale (308 clips × N encoders).
+
+  2. m08b OUTPUTS ARE READ-ONLY ARTIFACTS — they are PNG/PDF plots, a .tex table,
+     and a paired_bootstrap_results.json that downstream stages NEVER consume.
+     Their only audience is humans (papers, PRs, decision tables). So the failure
+     mode of preserving stale plots is "wrong claim in research artifact",
+     which is *worse* than the cost of recomputing.
+
+  3. The 2026-04-27 INCIDENT (errors_N_fixes #80): `outputs/full/m08b_compare/`
+     held 2-encoder PNGs from an Apr 25 run; today's 4-variant `run_eval.sh`
+     wrote NEW per-variant `outputs/full/<variant>/eval/m08b_*.png` but the stale
+     dir remained, masking the missing aggregate-4-encoder plots from a casual
+     `ls outputs/full/m08b_compare/` inspection. Cache-policy=1/keep was the
+     enabler — Option A removed it entirely so this class of bug cannot recur.
+
+  4. CLAUDE.md GPU PIPELINE CHECKLIST item (3) ("add_cache_policy_arg + interactive
+     prompt") gates DESTRUCTIVE deletes of expensive caches (m05 frozen embeds,
+     m09 training checkpoints, etc.). m08b has nothing destructive to delete —
+     its `output_dir` contains only its own write-once outputs that get re-written
+     this very run. The checklist item is intentionally bypassed here; this is
+     the FIRST documented exception.
+
+  5. Adding cache_policy back would also re-introduce a `args.cache_policy` access
+     site — i.e. one more place where the F821 silent-fallback class (errors_N_fixes
+     #79) could regress.
+
+  Behavioral spec post-removal:
+    - On every invocation, m08b WIPES `--output-dir` (shutil.rmtree + mkdir empty)
+      before writing its 8 plots + tex + paired_bootstrap_results.json.
+    - No `--cache-policy` CLI arg. Orchestrators (`scripts/run_eval.sh`) MUST NOT
+      pass `--cache-policy` to m08b — it will fail-loud with `unrecognized arg`.
+    - Stale-radar (n<3) PURGE is unconditional (was guarded_delete before).
+═════════════════════════════════════════════════════════════════════════
 """
 import argparse
 import json
-import os
 import re
+import shutil
 import sys
 from pathlib import Path
 
@@ -19,14 +63,11 @@ import numpy as np
 sys.path.insert(0, str(Path(__file__).parent))
 from utils.progress import make_pbar
 from utils.config import (
-    ENCODER_REGISTRY, add_subset_arg, get_output_dir, get_module_output_dir,
+    add_subset_arg, get_output_dir, get_module_output_dir,
     get_encoder_files, get_encoder_info,
 )
 from utils.wandb_utils import add_wandb_args, init_wandb, log_image, finish_wandb
-from utils.cache_policy import (
-    add_cache_policy_arg, resolve_cache_policy_interactive,
-    guarded_delete, wipe_output_dir,
-)
+# DO NOT import utils.cache_policy here. m08b is exempt — see module docstring.
 
 import matplotlib
 matplotlib.use("Agg")
@@ -83,113 +124,246 @@ def load_all_metrics(output_dir: Path, encoder_list: list = None) -> dict:
 
 def compute_paired_bootstrap(metrics_dir: Path, output_dir: Path,
                              encoder_list: list = None) -> None:
-    """Paired-bootstrap BCa CI on per-clip (surgical − frozen) deltas.
+    """Paired-bootstrap BCa CI on per-clip (surgical_i − frozen) deltas for ALL surgicals.
 
-    iter10 Option C. Requires m06 to have written per_clip_{encoder}_{mode}.npz
-    for at least one "frozen" encoder and one "surgical" encoder under
-    metrics_dir. Writes paired_bootstrap_results.json to output_dir with
-    per-metric Δ mean + BCa 95 % CI + paired p-value vs 0. Silent no-op when
-    per-clip files are missing (back-compat with pre-iter10 m06 runs).
+    iter10 Option C, extended 2026-04-27 (errors_N_fixes #80 follow-up): aggregate-mode
+    run_eval.sh passes multiple surgical encoders (e.g. surgical_noDI, surgical_3stage_DI,
+    surgical_3stage_DI_multitask) — this function now loops over EVERY encoder containing
+    "surgical" in its name and pairs each against the single frozen baseline.
+
+    Requires m06 to have written per_clip_{encoder}_{mode}.npz for the frozen encoder
+    and each surgical encoder under metrics_dir. Writes paired_bootstrap_results.json
+    with `comparisons: [{surgical, modes}, ...]` — one entry per surgical. Per-mode
+    schema unchanged (frozen_mean / surgical_mean / delta_mean / delta_ci_* /
+    p_value_vs_zero / n_valid). Silent no-op when per-clip files are missing for a
+    given (surgical, mode) pair (back-compat with pre-iter10 m06 runs).
+
+    Headline 🏆 line picks the BEST surgical by Easy Prec@K Δ — publishable claim.
+    Multi-surgical ranking table follows for at-a-glance technique comparison.
     """
     from utils.bootstrap import paired_bca
 
     names = encoder_list if encoder_list else ENCODER_ORDER
     frozen_name = next((n for n in names if "frozen" in n.lower()), None)
-    surgical_name = next((n for n in names if "surgical" in n.lower()), None)
-    if frozen_name is None or surgical_name is None:
-        print(f"\n[paired-bootstrap] skip: need BOTH a frozen and a surgical encoder, "
-              f"got frozen={frozen_name} surgical={surgical_name}")
+    # Widened 2026-04-27 (errors_N_fixes #80 follow-up): match every adapted-from-frozen
+    # encoder, not just "surgical". Includes ExPLoRA + future "_adapted" variants so each
+    # gets its own paired Δ vs frozen. Baseline encoders (random/oracle/dinov2/clip/
+    # vjepa_shuffled) are intentionally EXCLUDED — they are different model families,
+    # paired-bootstrap-vs-frozen would answer "is V-JEPA better than DINOv2" which is a
+    # different research question than "did our adaptation move the needle".
+    ADAPTED_KEYWORDS = ("surgical", "explora", "adapted")
+    adapted_names = [n for n in names
+                     if any(k in n.lower() for k in ADAPTED_KEYWORDS)]
+    if frozen_name is None or not adapted_names:
+        print(f"\n[paired-bootstrap] skip: need BOTH a frozen and ≥1 adapted encoder "
+              f"(name contains one of {ADAPTED_KEYWORDS}), "
+              f"got frozen={frozen_name} adapted={adapted_names}")
         return
 
-    results = {"frozen": frozen_name, "surgical": surgical_name, "modes": {}}
     metrics_list = ["prec_at_k", "map_at_k", "cycle_at_k", "ndcg_at_k"]
+    results = {"frozen": frozen_name, "comparisons": []}
+    headline_pool = []  # (adapted_name, easy_prec_delta_mean) — for 🏆 selection
 
-    print(f"\n{'='*70}")
-    print(f"PAIRED BOOTSTRAP (BCa 95 % CI, iter10 Option C) — {surgical_name} − {frozen_name}")
-    print(f"{'='*70}")
+    for adapted_name in adapted_names:
+        print(f"\n{'='*70}")
+        print(f"PAIRED BOOTSTRAP (BCa 95 % CI, iter10 Option C) — {adapted_name} − {frozen_name}")
+        print(f"{'='*70}")
 
-    any_computed = False
-    for mode in ["easy", "hard"]:
-        frozen_npz = metrics_dir / f"per_clip_{frozen_name}_{mode}.npz"
-        surgical_npz = metrics_dir / f"per_clip_{surgical_name}_{mode}.npz"
-        if not (frozen_npz.exists() and surgical_npz.exists()):
-            print(f"  [paired-bootstrap] skip {mode}: per-clip .npz missing "
-                  f"(frozen={frozen_npz.exists()}, surgical={surgical_npz.exists()}). "
-                  f"Re-run m06 with iter10 patch to produce per_clip_*.npz.")
-            continue
-        f_data = np.load(frozen_npz, allow_pickle=True)
-        s_data = np.load(surgical_npz, allow_pickle=True)
-        f_keys = list(f_data["clip_keys"])
-        s_keys = list(s_data["clip_keys"])
-        # Intersect key sets: m05 writes embeddings in decode-completion order which is
-        # non-deterministic across parallel-worker races, and partial-tolerance (stuck_clips
-        # path, #77) means frozen and surgical runs may also have different failed subsets.
-        # Paired bootstrap requires identical per-clip order, so build the intersection once
-        # and reindex every per-metric array in both .npz files to that common order.
-        common = sorted(set(f_keys) & set(s_keys))
-        if len(common) == 0:
-            print(f"FATAL: zero-overlap clip_keys between {frozen_npz.name} and "
-                  f"{surgical_npz.name} (f={len(f_keys)}, s={len(s_keys)}). "
-                  f"Cannot run paired bootstrap.")
-            sys.exit(1)
-        f_idx = {k: i for i, k in enumerate(f_keys)}
-        s_idx = {k: i for i, k in enumerate(s_keys)}
-        f_order = np.array([f_idx[k] for k in common], dtype=np.int64)
-        s_order = np.array([s_idx[k] for k in common], dtype=np.int64)
-        n_dropped_f = len(f_keys) - len(common)
-        n_dropped_s = len(s_keys) - len(common)
-        if f_keys != s_keys:
-            print(f"  [paired-bootstrap] key-set alignment: frozen={len(f_keys)}, "
-                  f"surgical={len(s_keys)}, common={len(common)} "
-                  f"(dropped frozen-only={n_dropped_f}, surgical-only={n_dropped_s}) — "
-                  f"reindexed both to common order before paired BCa")
+        comp = {"adapted": adapted_name, "modes": {}}
+        any_mode_computed = False
+        for mode in ["easy", "hard"]:
+            frozen_npz = metrics_dir / f"per_clip_{frozen_name}_{mode}.npz"
+            adapted_npz = metrics_dir / f"per_clip_{adapted_name}_{mode}.npz"
+            if not (frozen_npz.exists() and adapted_npz.exists()):
+                print(f"  [paired-bootstrap] skip {mode}: per-clip .npz missing "
+                      f"(frozen={frozen_npz.exists()}, adapted={adapted_npz.exists()}). "
+                      f"Re-run m06 with iter10 patch to produce per_clip_*.npz.")
+                continue
+            f_data = np.load(frozen_npz, allow_pickle=True)
+            a_data = np.load(adapted_npz, allow_pickle=True)
+            f_keys = list(f_data["clip_keys"])
+            a_keys = list(a_data["clip_keys"])
+            # Intersect key sets: m05 writes embeddings in decode-completion order which
+            # is non-deterministic across parallel-worker races, and partial-tolerance
+            # (stuck_clips path, #77) means frozen and adapted runs may have different
+            # failed subsets. Paired bootstrap requires identical per-clip order, so build
+            # the intersection once and reindex every per-metric array in both .npz files
+            # to that common order.
+            common = sorted(set(f_keys) & set(a_keys))
+            if len(common) == 0:
+                print(f"FATAL: zero-overlap clip_keys between {frozen_npz.name} and "
+                      f"{adapted_npz.name} (f={len(f_keys)}, a={len(a_keys)}). "
+                      f"Cannot run paired bootstrap.")
+                sys.exit(1)
+            f_idx = {k: i for i, k in enumerate(f_keys)}
+            a_idx = {k: i for i, k in enumerate(a_keys)}
+            f_order = np.array([f_idx[k] for k in common], dtype=np.int64)
+            a_order = np.array([a_idx[k] for k in common], dtype=np.int64)
+            n_dropped_f = len(f_keys) - len(common)
+            n_dropped_a = len(a_keys) - len(common)
+            if f_keys != a_keys:
+                print(f"  [paired-bootstrap] key-set alignment: frozen={len(f_keys)}, "
+                      f"adapted={len(a_keys)}, common={len(common)} "
+                      f"(dropped frozen-only={n_dropped_f}, adapted-only={n_dropped_a}) — "
+                      f"reindexed both to common order before paired BCa")
 
-        mode_results = {
-            "n_clips": len(common),
-            "n_frozen_only_dropped": n_dropped_f,
-            "n_surgical_only_dropped": n_dropped_s,
-            "metrics": {},
-        }
-        header = f"{'Metric':<14s} {'Frozen':>10s} {'Surgical':>10s} {'Δ':>10s} {'CI_half':>10s} {'p_vs_0':>10s}"
-        print(f"\n--- {mode.upper()} ---")
-        print(header)
-        print("-" * len(header))
-        for metric in metrics_list:
-            f_arr = np.asarray(f_data[metric], dtype=np.float64)[f_order]
-            s_arr = np.asarray(s_data[metric], dtype=np.float64)[s_order]
-            valid = ~(np.isnan(f_arr) | np.isnan(s_arr))
-            deltas = s_arr[valid] - f_arr[valid]
-            paired = paired_bca(deltas)
-            mode_results["metrics"][metric] = {
-                "frozen_mean": float(np.mean(f_arr[valid])),
-                "surgical_mean": float(np.mean(s_arr[valid])),
-                "delta_mean": paired["mean"],
-                "delta_ci_lo": paired["ci_lo"],
-                "delta_ci_hi": paired["ci_hi"],
-                "delta_ci_half": paired["ci_half"],
-                "p_value_vs_zero": paired["p_value_vs_zero"],
-                "n_valid": paired["n"],
+            mode_results = {
+                "n_clips": len(common),
+                "n_frozen_only_dropped": n_dropped_f,
+                "n_adapted_only_dropped": n_dropped_a,
+                "metrics": {},
             }
-            print(f"{metric:<14s} {np.mean(f_arr[valid]):>10.4f} "
-                  f"{np.mean(s_arr[valid]):>10.4f} {paired['mean']:>+10.4f} "
-                  f"{paired['ci_half']:>10.4f} {paired['p_value_vs_zero']:>10.4f}")
-        results["modes"][mode] = mode_results
-        any_computed = True
+            header = f"{'Metric':<14s} {'Frozen':>10s} {'Adapted':>10s} {'Δ':>10s} {'CI_half':>10s} {'p_vs_0':>10s}"
+            print(f"\n--- {mode.upper()} ---")
+            print(header)
+            print("-" * len(header))
+            for metric in metrics_list:
+                f_arr = np.asarray(f_data[metric], dtype=np.float64)[f_order]
+                a_arr = np.asarray(a_data[metric], dtype=np.float64)[a_order]
+                valid = ~(np.isnan(f_arr) | np.isnan(a_arr))
+                deltas = a_arr[valid] - f_arr[valid]
+                paired = paired_bca(deltas)
+                mode_results["metrics"][metric] = {
+                    "frozen_mean": float(np.mean(f_arr[valid])),
+                    "adapted_mean": float(np.mean(a_arr[valid])),
+                    "delta_mean": paired["mean"],
+                    "delta_ci_lo": paired["ci_lo"],
+                    "delta_ci_hi": paired["ci_hi"],
+                    "delta_ci_half": paired["ci_half"],
+                    "p_value_vs_zero": paired["p_value_vs_zero"],
+                    "n_valid": paired["n"],
+                }
+                print(f"{metric:<14s} {np.mean(f_arr[valid]):>10.4f} "
+                      f"{np.mean(a_arr[valid]):>10.4f} {paired['mean']:>+10.4f} "
+                      f"{paired['ci_half']:>10.4f} {paired['p_value_vs_zero']:>10.4f}")
+            comp["modes"][mode] = mode_results
+            any_mode_computed = True
 
-    if any_computed:
-        out = output_dir / "paired_bootstrap_results.json"
-        with open(out, "w") as f:
-            json.dump(results, f, indent=2)
-        print(f"\nSaved: {out}")
-        # Headline one-liner for Prec@K (Easy) — the publishable claim
-        if "easy" in results["modes"]:
-            pk = results["modes"]["easy"]["metrics"]["prec_at_k"]
-            verdict = "✅ Δ significant (CI excludes 0)" if pk["delta_ci_lo"] > 0 or pk["delta_ci_hi"] < 0 \
-                      else "🟡 Δ not significant (CI straddles 0)"
-            print(f"\n🏆 Paired Prec@K (Easy, N={results['modes']['easy']['n_clips']}): "
-                  f"Δ = {pk['delta_mean']:+.4f} ± {pk['delta_ci_half']:.4f} "
-                  f"(95% CI [{pk['delta_ci_lo']:+.4f}, {pk['delta_ci_hi']:+.4f}], "
-                  f"p={pk['p_value_vs_zero']:.4f}) {verdict}")
+        if any_mode_computed:
+            results["comparisons"].append(comp)
+            if "easy" in comp["modes"]:
+                headline_pool.append(
+                    (adapted_name, comp["modes"]["easy"]["metrics"]["prec_at_k"]["delta_mean"])
+                )
+
+    if not results["comparisons"]:
+        return
+
+    out = output_dir / "paired_bootstrap_results.json"
+    with open(out, "w") as f:
+        json.dump(results, f, indent=2)
+    print(f"\nSaved: {out}")
+
+    if not headline_pool:
+        return
+
+    # Headline: BEST adapted encoder by Easy Prec@K Δ — publishable claim.
+    headline_pool_sorted = sorted(headline_pool, key=lambda x: -x[1])
+    best_name, best_delta = headline_pool_sorted[0]
+    best_comp = next(c for c in results["comparisons"] if c["adapted"] == best_name)
+    pk = best_comp["modes"]["easy"]["metrics"]["prec_at_k"]
+    verdict = ("✅ Δ significant (CI excludes 0)"
+               if pk["delta_ci_lo"] > 0 or pk["delta_ci_hi"] < 0
+               else "🟡 Δ not significant (CI straddles 0)")
+    print(f"\n🏆 BEST adapted encoder (by Easy Prec@K Δ): {best_name}")
+    print(f"   Paired Prec@K (Easy, N={best_comp['modes']['easy']['n_clips']}): "
+          f"Δ = {pk['delta_mean']:+.4f} ± {pk['delta_ci_half']:.4f} "
+          f"(95% CI [{pk['delta_ci_lo']:+.4f}, {pk['delta_ci_hi']:+.4f}], "
+          f"p={pk['p_value_vs_zero']:.4f}) {verdict}")
+
+    # Multi-adapted ranking table — at-a-glance technique comparison.
+    if len(headline_pool) > 1:
+        print(f"\nAll adapted encoder comparisons vs {frozen_name} "
+              f"(Easy Prec@K Δ, ranked best-first):")
+        print(f"  {'Adapted encoder':<48s} {'Δ Prec@K':>10s} {'p_vs_0':>10s}  Verdict")
+        for sname, _ in headline_pool_sorted:
+            spk = next(c for c in results["comparisons"]
+                       if c["adapted"] == sname)["modes"]["easy"]["metrics"]["prec_at_k"]
+            sv = ("✅" if spk["delta_ci_lo"] > 0 or spk["delta_ci_hi"] < 0 else "🟡")
+            print(f"  {sname:<48s} {spk['delta_mean']:>+10.4f} {spk['p_value_vs_zero']:>10.4f}  {sv}")
+
+
+def create_paired_delta_chart(output_dir: Path) -> None:
+    """Δ-vs-frozen bar chart with paired-bootstrap 95 % CI per adapted encoder.
+
+    Reads {output_dir}/paired_bootstrap_results.json (written by compute_paired_bootstrap).
+    Solves the "all encoders look identical" visualization gotcha: the standard
+    encoder_comparison plot uses INDEPENDENT 95 % CIs (~±3.5 pp at N=308), which
+    visually overlap and hide the real ~±0.6 pp paired CIs that actually catch
+    significance. This Δ chart shows ONLY paired CIs centered on Δ=0 — bars
+    excluding 0 are statistically significant gains over frozen.
+
+    Layout: 2 rows (Easy/Hard) × 4 cols (prec, mAP, cycle, nDCG). Bars per
+    adapted encoder, height = Δ vs frozen, error = paired CI half. Color: green
+    (✅) if CI excludes 0; gray (🟡) if straddles 0. Horizontal red dashed line at
+    Δ=0 for "no improvement" reference.
+    """
+    pbr_path = output_dir / "paired_bootstrap_results.json"
+    if not pbr_path.exists():
+        print(f"  [m08b] skip paired-Δ chart: {pbr_path.name} not found")
+        return
+    pbr = json.load(open(pbr_path))
+    comps = pbr.get("comparisons", [])
+    if not comps:
+        print(f"  [m08b] skip paired-Δ chart: no comparisons in {pbr_path.name}")
+        return
+
+    # Per-metric display scale: m06 stores Prec@K in percent (0–100), but
+    # mAP@K / Cycle@K / nDCG@K as fractions (0–1). To put Cycle@K Δ on the
+    # same pp axis as Prec@K, multiply its fraction-Δ by 100. mAP and nDCG
+    # stay as fractions (conventional reporting).
+    metrics = [("prec_at_k",  "Prec@K Δ (pp)",  1.0),    # already pp
+               ("map_at_k",   "mAP@K Δ",        1.0),    # fraction
+               ("cycle_at_k", "Cycle@K Δ (pp)", 100.0),  # fraction → pp
+               ("ndcg_at_k",  "nDCG@K Δ",       1.0)]    # fraction
+    modes = ["easy", "hard"]
+    encoder_short = [c["adapted"].replace("vjepa_2_1_", "") for c in comps]
+
+    fig, axes = plt.subplots(len(modes), len(metrics),
+                             figsize=(3.6 * len(metrics), 3.4 * len(modes)),
+                             squeeze=False)
+    fig.suptitle(f"Paired-bootstrap Δ vs {pbr['frozen']} (BCa 95 % CI · "
+                 f"green = CI excludes 0 / gray = straddles 0 · '*' = significant)",
+                 fontsize=11, fontweight="bold", y=0.995)
+
+    for r, mode in enumerate(modes):
+        for col, (mkey, mlabel, scale) in enumerate(metrics):
+            ax = axes[r][col]
+            x = np.arange(len(comps))
+            vals, errs, colors = [], [], []
+            for c in comps:
+                if mode not in c["modes"] or mkey not in c["modes"][mode]["metrics"]:
+                    vals.append(0.0); errs.append(0.0); colors.append("#cccccc")
+                    continue
+                pk = c["modes"][mode]["metrics"][mkey]
+                vals.append(pk["delta_mean"] * scale)
+                errs.append(pk["delta_ci_half"] * scale)
+                sig = pk["delta_ci_lo"] > 0 or pk["delta_ci_hi"] < 0
+                colors.append("#2E7D32" if sig else "#888888")  # green=sig, gray=ns
+            ax.bar(x, vals, color=colors, alpha=0.85, yerr=errs,
+                   capsize=4, error_kw={"lw": 1.2, "ecolor": "#222"})
+            ax.axhline(0.0, color="#C62828", linestyle="--", alpha=0.6, linewidth=1.0)
+            ax.set_xticks(x)
+            ax.set_xticklabels(encoder_short, fontsize=7, rotation=20, ha="right")
+            ax.tick_params(axis="y", labelsize=8)
+            ax.set_title(f"{mlabel} — {mode.capitalize()}",
+                         fontsize=10, fontweight="bold")
+            ax.grid(axis="y", alpha=0.25, linewidth=0.6)
+            # Annotate bar tops with Δ value + ASCII significance marker
+            # ('*' = CI excludes 0; DejaVu Sans lacks ✅/✓ glyphs).
+            for xi, v, e in zip(x, vals, errs):
+                marker = "*" if e > 0 and abs(v) > e else ""
+                ax.text(xi, v + (e if v >= 0 else -e),
+                        f"{v:+.3f}{marker}", ha="center",
+                        va="bottom" if v >= 0 else "top",
+                        fontsize=7, color="#222")
+
+    plt.tight_layout(rect=[0, 0, 1, 0.96])
+    for ext in (".png", ".pdf"):
+        out = output_dir / f"m08b_paired_delta{ext}"
+        plt.savefig(out, dpi=150 if ext == ".png" else None, bbox_inches="tight")
+    plt.close()
+    print(f"  Saved: {output_dir / 'm08b_paired_delta.png'} + .pdf")
 
 
 def load_all_temporal(output_dir: Path, encoder_list: list = None) -> dict:
@@ -237,7 +411,7 @@ def print_summary_table(all_metrics: dict):
 
     for mode in ["easy", "hard"]:
         if mode == "hard":
-            print(f"\n--- Hard Mode ---")
+            print("\n--- Hard Mode ---")
         for enc in encoders:
             m = all_metrics[enc].get(mode, {})
             dim = all_metrics[enc].get("encoder_dim", get_encoder_info(enc)["dim"])
@@ -253,7 +427,7 @@ def print_summary_table(all_metrics: dict):
             print(row)
 
         if mode == "easy":
-            print(f"\n--- Easy Mode (above) ---")
+            print("\n--- Easy Mode (above) ---")
 
 
 # ── Grouped Bar Chart ────────────────────────────────────────────────
@@ -1155,32 +1329,31 @@ def main():
                              "so paired_bootstrap_results.json + plots stay per-variant.")
     add_subset_arg(parser)
     add_wandb_args(parser)
-    # Cache-policy gate (iter11): every destructive delete in this module must route
-    # through utils.cache_policy.guarded_delete(path, args.cache_policy, ...).
-    # --cache-policy defaults to 1 (keep) so overnight re-runs never destroy cache.
-    add_cache_policy_arg(parser)
+    # NO --cache-policy arg here on purpose — see module docstring DELETE-PROTECTION
+    # POLICY block (m08b is a pure visualization function, always recomputes).
     args = parser.parse_args()
-
-    # Cache-policy prompt — shells stay thin (CLAUDE.md DELETE PROTECTION).
-    args.cache_policy = resolve_cache_policy_interactive(args.cache_policy)
 
     if not (args.SANITY or args.POC or args.FULL):
         parser.print_help()
         print("\nERROR: Specify --SANITY, --POC, or --FULL")
         sys.exit(1)
 
-    # iter11 v3 (2026-04-26): cache-policy=2 nukes the WHOLE output_dir at startup.
+    # Always wipe + recreate the output_dir at startup — m08b owns it exclusively.
     # When called from run_eval.sh, args.output_dir = "${OUT_DIR}/eval" (per-variant,
-    # single-owner) — wipe_output_dir() only nukes that subdir, NOT the m09 training
-    # parent. When called standalone, it falls back to get_module_output_dir which
-    # is also single-owner (m08b_compare/). Closes prompt-trigger ≠ delete-target
-    # asymmetry (stale plots / tex tables without paired_bootstrap_results.json).
+    # single-owner) — this rmtree only nukes that subdir, NOT the m09 training parent.
+    # When called standalone, it falls back to get_module_output_dir which is also
+    # single-owner (m08b_compare/). Stale-plot bug fix — see module docstring reason #3.
     if args.output_dir:
         _m08b_out = Path(args.output_dir)
     else:
         _m08b_out = get_module_output_dir(
             "m08b_compare", args.subset, sanity=args.SANITY, poc=args.POC)
-    wipe_output_dir(_m08b_out, args.cache_policy, label=f"output_dir ({_m08b_out.name})")
+    if _m08b_out.exists():
+        n_files = sum(1 for _ in _m08b_out.rglob("*") if _.is_file())
+        print(f"  [m08b] wiping output_dir ({_m08b_out.name}) "
+              f"({n_files} stale file(s)) — always-recompute policy, see docstring")
+        shutil.rmtree(_m08b_out)
+    _m08b_out.mkdir(parents=True, exist_ok=True)
 
     # Parse custom encoder list
     encoder_list = None
@@ -1255,10 +1428,14 @@ def main():
             print(f"  [m08b] skipping radar: n_encoders={len(all_metrics)} < 3 — "
                   f"min-max normalization degenerates to binary winner/loser "
                   f"with 2 encoders. Re-runs automatically when ExPLoRA arm lands.")
-            # iter11 META-fix: gate stale-radar purge through --cache-policy.
+            # Unconditional stale-radar purge — m08b is always-recompute (see docstring).
+            # output_dir was wiped at startup in main(), so this is belt-and-suspenders
+            # for cases where create_radar_plot wrote a partial file before erroring.
             for ext in (".png", ".pdf"):
                 stale = output_dir / f"m08b_radar{ext}"
-                guarded_delete(stale, args.cache_policy, label=f"stale radar {ext}")
+                if stale.exists():
+                    stale.unlink()
+                    print(f"  [m08b] purged stale radar {stale.name}")
         pbar.update(1)
         create_latex_table(all_metrics, output_dir)
         pbar.update(1)
@@ -1285,9 +1462,19 @@ def main():
         print("Only 1 encoder found — skipping comparison plots (need >= 2).")
 
     # iter10 Option C: paired bootstrap on per-clip deltas.
-    # Needs BOTH a frozen arm and a surgical arm with per_clip_{encoder}_{mode}.npz
-    # files written by m06 (iter10 patch). If either arm lacks the npz, skip cleanly.
+    # Needs BOTH a frozen arm and ≥1 adapted arm (surgical/explora/adapted) with
+    # per_clip_{encoder}_{mode}.npz files written by m06 (iter10 patch). If either
+    # arm lacks the npz, skip cleanly.
     compute_paired_bootstrap(metrics_dir, output_dir, encoder_list=encoder_list)
+
+    # Δ-vs-frozen chart with PAIRED CI (errors_N_fixes #80 follow-up). The 8 main
+    # plots above show INDEPENDENT CIs (~±3.5 pp at N=308) which visually overlap
+    # and hide significance — this chart uses paired CIs (~±0.6 pp) so 0.87 pp
+    # gains become visually obvious. No-op if paired_bootstrap_results.json missing.
+    create_paired_delta_chart(output_dir)
+    paired_png = output_dir / "m08b_paired_delta.png"
+    if paired_png.exists():
+        log_image(wb_run, "m08b_paired_delta", str(paired_png))
 
     finish_wandb(wb_run)
     print("\n=== COMPARISON COMPLETE ===")

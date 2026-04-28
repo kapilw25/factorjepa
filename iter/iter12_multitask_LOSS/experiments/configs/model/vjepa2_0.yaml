@@ -1,0 +1,46 @@
+# V-JEPA 2.0 ViT-g (1B, 1408-dim) — LEGACY FALLBACK
+#
+# This is the ORIGINAL V-JEPA 2 model used for Ch9 baseline.
+# V-JEPA 2.1 (vjepa2_1.yaml) is the PRIMARY target — use that for new experiments.
+# Kept here only for: (a) backward compat with existing 2.0 embeddings, (b) ablation comparison.
+#
+# Source: https://arxiv.org/abs/2506.09985
+# Checkpoint: https://dl.fbaipublicfiles.com/vjepa2/vitg-384.pt
+# HF model:   facebook/vjepa2-vitg-fpc64-384
+
+model:
+  version: "2.0"
+  arch: vit_giant_xformers       # 22 heads (NOT vit_giant which has 16)
+  embed_dim: 1408
+  depth: 40
+  num_heads: 22
+  mlp_ratio: 4.36                # = 48/11
+
+  # Predictor (2.0 uses shallower predictor than 2.1)
+  pred_depth: 12
+  pred_embed_dim: 384
+  pred_num_heads: 12
+  num_mask_tokens: 2
+  zero_init_mask_tokens: true
+
+  # Architecture features
+  use_rope: true                 # RoPE positional embeddings (no learnable pos_embed)
+  use_activation_checkpointing: true
+
+  # Loss (2.0 = masked-only L1)
+  loss_exp: 1.0
+  predict_all: false             # 2.0: loss on masked tokens only
+  weight_distance_loss: false    # 2.0: no deep supervision
+  n_output_distillation: 1       # 2.0: no deep supervision (single output layer; 2.1 uses 4). Required per CLAUDE.md fail-hard — no `.get()` defaults on YAML.
+
+  # Resolution / temporal
+  crop_size: 384                 # match pretrained ViT-g/384
+  patch_size: 16
+  tubelet_size: 2
+
+  # Checkpoint loading
+  hf_model_id: facebook/vjepa2-vitg-fpc64-384
+  checkpoint_url: https://dl.fbaipublicfiles.com/vjepa2/vitg-384.pt
+  checkpoint_path: checkpoints/vjepa2_vitg384.pt
+  min_student_load_pct: 90
+  min_predictor_load_pct: 50

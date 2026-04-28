@@ -1,0 +1,45 @@
+# Ch11: Factor Surgery — 2-stage (D_L + D_A only, no D_I)
+# (FactorJEPA proposal Sec 11)
+#
+# Recipe (revised 2026-04-19 after 1K POC Surgery≈Frozen diagnosis):
+#   Stage 1: layers 0 → 25%L, 100% D_L                   (50% of step budget)
+#   Stage 2: layers 0 → 50%L, 70% D_A + 30% D_L replay   (50% of step budget)
+#
+# WHY Stage 3 dropped: 1K POC run (logs/m09c_1k_surgery_v3.log, 2026-04-19) showed
+# Prec@K peaked at 20.50 in Stage 1 (step 12), held through Stage 2, then DROPPED
+# to 19.83-20.00 in Stage 3 (BWT=-0.33). The 75%-unfreeze + 85% D_I in Stage 3
+# over-destabilized the representation. Stages 1+2 captured the useful gain.
+#
+# WHY replay 10% → 30% in Stage 2: CLEAR (NeurIPS 2018, Rolnick et al.) recommends
+# 50/50 novel-replay mix and reports insensitivity to exact ratio in [20-50%].
+# Our old 10% sat below their empirical noise floor → old-factor (layout) signal
+# was lost at the Stage 1→2 transition. 30% is a conservative move toward CLEAR's
+# recipe without fully halving Stage 2's agent-factor exposure.
+#
+# USAGE:
+#   python -u src/m09c_surgery.py \
+#       --model-config configs/model/vjepa2_1.yaml \
+#       --train-config configs/train/surgery_2stage_noDI.yaml \
+#       --FULL
+
+extends: surgery_base.yaml
+
+data:
+  adapted_encoder: vjepa_2_1_surgical_noDI           # unique per-variant — m05/m06 outputs don't collide across surgery variants (dynamic suffix via get_encoder_info)
+  output_dir: outputs/full/surgery_2stage_noDI
+
+# -- Surgery: 2-stage progressive prefix unfreezing (D_L + D_A only) --
+# iter9 2-stage recipe (landed 2026-04-20 per plan_TODO.md:115). D_I factor still
+# materialized by m11 if interaction_mining.enabled overridden elsewhere — this
+# variant keeps the surgery_base.yaml default `enabled: false`.
+surgery:
+  stages:
+    - name: stage1_layout
+      unfreeze_below: 0.25          # 12 of 48 layers
+      mode_mixture: {L: 1.00, A: 0.00, I: 0.00}
+      max_epochs_pct: 0.50          # 50% of total epoch budget (2-stage split)
+
+    - name: stage2_agent
+      unfreeze_below: 0.50          # 24 of 48 layers
+      mode_mixture: {L: 0.30, A: 0.70, I: 0.00}   # 30% layout replay (CLEAR 2018), 70% agent
+      max_epochs_pct: 0.50

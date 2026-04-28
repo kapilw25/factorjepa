@@ -11,6 +11,47 @@ USAGE (--subset OR --local-data required to locate tags.json — CLAUDE.md no-de
         2>&1 | tee logs/m06_vjepa_poc.log
     python -u src/m06_faiss_metrics.py --encoder vjepa --FULL \
         --local-data data/full_local 2>&1 | tee logs/m06_vjepa_full.log
+
+═════════════════════════════════════════════════════════════════════════
+DELETE-PROTECTION POLICY — m06 ALWAYS RECOMPUTES (no `--cache-policy`).
+═════════════════════════════════════════════════════════════════════════
+This script does NOT route through `utils.cache_policy`. DO NOT re-add
+cache_policy gating to this script in the future. Reasons:
+
+  1. m06 is a PURE FUNCTION of (embeddings_<enc>.npy + tags.json + clip subset).
+     Same inputs → same outputs (deterministic FAISS-GPU kNN + BCa bootstrap).
+     Wall-time is ~30–60 s per encoder at full eval scale (308 clips).
+
+  2. m06 had cache_policy registered (add_cache_policy_arg + resolve_cache_policy_
+     interactive prompt) BUT NEVER CALLED guarded_delete OR wipe_output_dir
+     anywhere — it was 100% ceremonial (false sense of protection). The 2026-04-27
+     audit (errors_N_fixes #80) caught this: m06 always overwrote its outputs
+     regardless of policy=1/keep vs policy=2/recompute, so the prompt UX was
+     misleading every operator into thinking they were guarding a cache.
+
+  3. m06 OUTPUTS ARE DOWNSTREAM INPUTS to m08b (m06_metrics_*.json + knn_indices_*.npy
+     + per_clip_*.npz). If m05 embeddings change, m06 metrics MUST also change —
+     a stale m06 cache would silently feed wrong metrics to m08b paired-bootstrap.
+     Always-recompute eliminates this entire stale-input bug class.
+
+  4. CLAUDE.md GPU PIPELINE CHECKLIST item (3) ("add_cache_policy_arg + interactive
+     prompt") gates DESTRUCTIVE deletes of expensive caches (m05 frozen embeds,
+     m09 training checkpoints). m06 has nothing destructive to delete — its
+     outputs are write-once-per-run with encoder-suffixed filenames (no shared
+     state across encoders). The checklist item is intentionally bypassed here;
+     this is the SECOND documented exception (m08b is the first — same docstring
+     pattern, same reasons).
+
+  5. Adding cache_policy back would re-introduce a `args.cache_policy` access
+     site — i.e. one more place the F821 silent-fallback class (errors_N_fixes
+     #79) could regress.
+
+  Behavioral spec post-removal:
+    - On every invocation, m06 OVERWRITES its output files (m06_metrics_<enc>.json,
+      knn_indices_<enc>.npy, per_clip_<enc>_{easy,hard}.npz, all m06_*<enc>.png/pdf).
+    - No `--cache-policy` CLI arg. Orchestrators (`scripts/run_eval.sh`) MUST NOT
+      pass `--cache-policy` to m06 — it will fail-loud with `unrecognized arg`.
+═════════════════════════════════════════════════════════════════════════
 """
 import argparse
 import json
@@ -26,9 +67,9 @@ sys.path.insert(0, str(Path(__file__).parent))
 from utils.progress import make_pbar
 from utils.config import (
     FAISS_K_NEIGHBORS, TAG_TAXONOMY_JSON,
-    check_gpu, add_subset_arg, get_output_dir, get_module_output_dir,
+    check_gpu, add_subset_arg, get_module_output_dir,
     add_encoder_arg, get_encoder_files, get_encoder_info, get_pipeline_config,
-    load_subset, verify_npy_matches_subset,
+    verify_npy_matches_subset,
 )
 from utils.wandb_utils import (
     add_wandb_args, init_wandb, log_metrics, log_image, log_artifact, finish_wandb,
@@ -1067,15 +1108,10 @@ def main():
     parser.add_argument("--local-data", type=str, default=None,
                         help="WebDataset TAR dir containing tags.json (e.g., data/val_1k_local)")
     add_wandb_args(parser)
-    # Cache-policy gate (iter11): every destructive delete in this module must route
-    # through utils.cache_policy.guarded_delete(path, args.cache_policy, ...).
-    # --cache-policy defaults to 1 (keep) so overnight re-runs never destroy cache.
-    from utils.cache_policy import add_cache_policy_arg, resolve_cache_policy_interactive
-    add_cache_policy_arg(parser)
+    # NO --cache-policy arg here on purpose — see module docstring DELETE-PROTECTION
+    # POLICY block (m06 is pure function of inputs, always recomputes; cache_policy
+    # was 100% ceremonial — never called guarded_delete).
     args = parser.parse_args()
-
-    # Cache-policy prompt — shells stay thin (CLAUDE.md DELETE PROTECTION).
-    args.cache_policy = resolve_cache_policy_interactive(args.cache_policy)
 
     if not (args.SANITY or args.POC or args.FULL):
         parser.print_help()

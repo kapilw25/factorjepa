@@ -1,0 +1,68 @@
+# Ch11: Factor Surgery — 3-stage with D_I + multi-task retrieval-aware loss.
+#
+# Forked from surgery_3stage_DI.yaml 2026-04-27. Same surgery recipe (3 stages,
+# D_I enabled, layer-wise unfreeze 0.25 / 0.50 / 0.50). Only diff: optimization.loss
+# overrides the default α=1/β=0/γ=0 to actually use InfoNCE + TCC.
+#
+# Motivation: probe-vs-jepa correlation analysis on the 4 prior runs (iter11 v3
+# Cross-Run Comparison) found JEPA L1 anti-correlated with Prec@K/mAP@K/Cycle@K
+# in 11/12 cells (Pearson r = -0.21 to -0.68). Pure JEPA fits the pretext task
+# while leaving probe metrics flat-to-slightly-worse.
+#
+# Loss recipe — total = α · JEPA + β · InfoNCE(same-clip vs in-batch) + γ · TCC(soft-NN cycle)
+#
+#   ┌──────────┬──────┬────────────────────────────────────┬───────────────────────────┐
+#   │ Component│ wt   │ Downstream eval metric it drives   │ Reference                 │
+#   ├──────────┼──────┼────────────────────────────────────┼───────────────────────────┤
+#   │ JEPA L1  │ α=0.5│ Generative regulariser (preserves  │ V-JEPA 2.1 (Bardes 2024)  │
+#   │          │      │ V-JEPA 2.1 prior; NOT a retrieval  │                           │
+#   │          │      │ surrogate — anti-corr proven r=    │                           │
+#   │          │      │ -0.21 to -0.68 in iter11 v3 runs)  │                           │
+#   │ InfoNCE  │ β=0.3│ Prec@K + mAP@K  (per-clip pooled   │ Patel CVPR 2022 Recall@K  │
+#   │          │      │ student↔teacher positive, in-batch │ Chen SimCLR ICML 2020     │
+#   │          │      │ negatives, τ=0.07 symmetric XE)    │                           │
+#   │ TCC      │ γ=0.2│ Cycle@K  (soft-NN cycle on tokens  │ Dwibedi CVPR 2019 TCC     │
+#   │          │      │ within a clip, identity target,    │ (Google Research)         │
+#   │          │      │ τ=0.10 forward-back XE)            │                           │
+#   └──────────┴──────┴────────────────────────────────────┴───────────────────────────┘
+#
+# Pattern is the standard multi-task scaffold used by VICReg / V-JEPA 2 + CLIP heads
+# in the facebookresearch / openai stacks: a generative anchor (JEPA) paired with
+# discriminative heads (contrastive + temporal alignment).
+#
+# Math lives in src/utils/training.compute_multitask_loss(); _train_step_grad_accum
+# pulls per-clip pooled vectors from `pf[0]` + `apply_masks(h, [m_pred[0]])`.
+#
+# USAGE:
+#   python -u src/m09c_surgery.py \
+#       --model-config configs/model/vjepa2_1.yaml \
+#       --train-config configs/train/surgery_3stage_DI_multitask.yaml \
+#       --FULL --factor-dir <factor_dir> --train-subset <train.json> \
+#       --probe-subset <val.json> --eval-subset <eval.json> \
+#       --eval-local-data <local_dir> --output-dir outputs/full/surgery_3stage_DI_multitask
+
+extends: surgery_3stage_DI.yaml
+
+data:
+  adapted_encoder: vjepa_2_1_surgical_3stage_DI_multitask
+  output_dir: outputs/full/surgery_3stage_DI_multitask
+
+# Activate Uncertainty Weighting (Kendall et al. CVPR 2018) — α/β/γ are NOT set
+# here on purpose (NO FALLBACK rule — CLAUDE.md "no DEFAULT, no silent error").
+# N nn.Parameter log-variances added to the optimizer LEARN the weights jointly
+# with the model (N = 2 with tcc_enabled=false, N = 3 with true).
+#
+# v2 (2026-04-27, errors_N_fixes #81) — DROP TCC ENTIRELY:
+# v1 diagnostic on the 2stage_noDI_multitask sibling showed raw TCC = 6.6 vs
+# JEPA = 0.5 → TCC consumed ~80 % of the gradient signal, starving InfoNCE
+# (the actual Prec@K driver) at ~11 %. UW couldn't rebalance fast enough at
+# LR=5e-5 (w_tcc only −2.7 % in 770 steps, Prec@K plateaued at 75.6). Setting
+# tcc_enabled=false skips TCC compute AND omits the TCC log-var from UW →
+# 2-task UW [JEPA, InfoNCE] gives InfoNCE ~85 % of the gradient signal —
+# the genuine "retrieval-aware FT" configuration.
+optimization:
+  loss:
+    infonce_temperature:  0.07
+    tcc_temperature:      0.10
+    tcc_enabled:          false   # 🎯 v2 fix: drop TCC entirely (Cycle@K not the bottleneck; InfoNCE drives Prec@K)
+    uncertainty_weighting: true   # 🎯 Kendall 2018 — learn α/β/γ jointly with model

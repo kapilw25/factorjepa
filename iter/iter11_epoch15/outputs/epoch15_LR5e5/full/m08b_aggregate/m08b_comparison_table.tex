@@ -1,0 +1,15 @@
+\begin{table}[ht]
+\centering
+\caption{Encoder comparison on 10K Indian urban clips (Easy mode, $k=6$)}
+\label{tab:encoder_comparison}
+\begin{tabular}{lrrrrrr}
+\toprule
+Encoder & Dim & Cycle@K & Overlap@K & Prec@K & mAP@K & nDCG@K \\
+\midrule
+vjepa\_2\_1\_frozen & 1664 & 73.0{\tiny$\pm$0.0} & 51.9{\tiny$\pm$2.3} & 77.0{\tiny$\pm$3.5} & 0.716{\tiny$\pm$0.038} & 0.975{\tiny$\pm$0.002} \\
+vjepa\_2\_1\_explora & 1664 & 72.4{\tiny$\pm$0.1} & 52.7{\tiny$\pm$2.4} & 77.3{\tiny$\pm$3.5} & 0.719{\tiny$\pm$0.038} & 0.976{\tiny$\pm$0.002} \\
+vjepa\_2\_1\_surgical\_noDI & 1664 & 73.0{\tiny$\pm$0.1} & 52.9{\tiny$\pm$2.4} & 77.3{\tiny$\pm$3.5} & 0.721{\tiny$\pm$0.039} & 0.975{\tiny$\pm$0.003} \\
+vjepa\_2\_1\_surgical\_3stage\_DI & 1664 & 73.4{\tiny$\pm$0.1} & 52.8{\tiny$\pm$2.3} & 77.9{\tiny$\pm$3.6} & 0.727{\tiny$\pm$0.039} & 0.975{\tiny$\pm$0.003} \\
+\bottomrule
+\end{tabular}
+\end{table}

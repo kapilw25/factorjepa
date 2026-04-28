@@ -175,23 +175,19 @@
 
 ---
 
-## 📊 iter11 v3 `ultra_hard_3066` Cross-Run Comparison (2026-04-27, BCa CI ±~3.7 pp at N=306 val)
+## 📊 iter11 v3 + iter12 multi-task `ultra_hard_3066` Cross-Run Comparison (2026-04-27, BCa CI ±~3.7 pp at N=306 val)
 
-- Source: `iter/iter11/outputs/epoch5_LR1e5/full/surgery_2stage_noDI/probe_history.jsonl` (A baseline, 27 probes) · `iter/iter11/outputs/epoch15_LR5e5/full/{surgery_2stage_noDI,surgery_3stage_DI}/probe_history.jsonl` (B,C done at 1140 steps, 76 + 78 probes) · `outputs/full/explora/probe_history.jsonl` (D in-flight, 36 probes / 50 % done @ step 555).
-- Color rule: 🟢 ≥5 % real progress · 🟡 3–5 % · 🟠 0–3 % inside CI noise · 🔴 ≤0 regression. **All Δ in this table are vs A (5ep LR1e-5 noDI baseline).**
+Color rule (Δ vs A baseline; val_jepa inverted: lower=better): 🟢 ≥5 % · 🟡 3–5 % · 🟠 0–3 % (CI noise) · 🔴 ≤0 (regression).
 
-| Metric | A: 5ep LR1e-5 noDI | B: 15ep LR5e-5 noDI | C: 15ep LR5e-5 DI | D: explora v10 (50 %) |
-|---|---|---|---|---|
-| Prec@K (%) end | 75.22 | 75.11  🔴 −0.1 % | 75.05  🔴 −0.2 % | **76.03**  🟠 +1.1 % |
-| mAP@K (%) end | 70.18 | 69.93  🔴 −0.4 % | 70.02  🔴 −0.2 % | **71.37**  🟠 +1.7 % |
-| Cycle@K (%) end | 77.45 | 77.12  🔴 −0.4 % | 75.49  🔴 −2.5 % | **79.41**  🟠 +2.5 % |
-| val_jepa best ↓ | 0.4663 | **0.4545**  🟠 −2.5 % | **0.4532**  🟠 −2.8 % | 0.4606  🔴 +1.6 % worse |
-| within-run val_jepa Δ (end−first) | −5.7 % | −7.2 % | −6.7 % | −6.5 % (mid-flight) |
-| Probes recorded | 27 | 76 | 78 | 36 (running) |
-| Trainable surface | full prefix (~hundreds M) | full prefix | full prefix | 4.6 % (LoRA + 2 blocks + LN) |
-| GPU-hours | ~5 h | ~15 h | ~15 h | ~7.6 h projected |
-| Paired-eval Δ Prec@K vs Frozen (Easy, N=308) | n/a | +0.32 ± 0.57 · p=0.31 🟠 not sig | **+0.87 ± 0.60 · p=0.0038 ✅ first-ever-significant** 🟠 | TBD |
-| ROI (pp paired-Δ per GPU-hour) | n/a | ~0 🔴 | ~0.06 🟠 | TBD |
-| Trajectory verdict | flat plateau | flat plateau | flat plateau | flat plateau (slightly higher band) |
-
-**Verdict** — Is explora v10 learning better than the 3 surgery variants? Marginally — it's the only run that moves probes in the right direction (+1.1 to +2.5 %), but still entirely inside the ±3 % noise band 🟠 and val_jepa is 1.6 % worse than the best surgery 🔴; **no run earns a single green emoji on probes** — bottleneck is the loss function (JEPA L1 reconstruction is not a retrieval surrogate), not the technique.
+| Metric | A: 5ep LR1e-5 noDI | B: 15ep LR5e-5 noDI | C: 15ep LR5e-5 DI | D: explora v10 | E v3: noDI_multitask UW 2-task | F: 3stage_DI_multitask UW 2-task |
+|---|---|---|---|---|---|---|
+| Status | done 297 steps | done 1140 steps | done 1140 steps | killed 792/1140 | done 1140/1140 | killed 45/1140 (user) |
+| Prec@K best (%) | 75.22 (ref) | 75.11 🔴 −0.15 % | 75.05 🔴 −0.23 % | 75.87 🟠 +0.86 % | 75.87 🟠 +0.86 % (stage1; stage2 best 75.82 = no D_A lift) | n/a |
+| mAP@K best (%) | 70.18 (ref) | 69.93 🔴 −0.36 % | 70.02 🔴 −0.23 % | 71.15 🟠 +1.38 % | 70.79 🟠 +0.87 % | n/a |
+| Cycle@K best (%) | 77.45 (ref) | 77.12 🔴 −0.43 % | 75.49 🔴 −2.53 % | 80.07 🟡 +3.38 % | 81.70 🟡 +5.49 % (final probe, step 1140) | n/a |
+| val_jepa min ↓ | 0.4663 (ref) | 0.4545 🟠 −2.53 % | 0.4532 🟠 −2.81 % | 0.4528 🟠 −2.90 % | 0.4997 🔴 +7.16 % | n/a |
+| Probes | 27 | 76 | 78 | 51 | 76 (38 stage1 + 38 stage2) | 0 |
+| GPU-h | 5 | 15 | 15 | 5.55 | ~10 | 0.4 (killed) |
+| Paired-Δ Prec@K vs Frozen (Easy, N=308) | n/a | +0.32 ± 0.57 · p=0.31 🟠 | +0.87 ± 0.60 · p=0.0038 🟠 | +0.27 ± 0.49 · p=0.29 🟠 | TBD (eval pending) | n/a |
+| ROI pp/GPU-h | n/a | ~0 🔴 | 0.06 🟠 | 0.049 🟠 | TBD | n/a |
+| UW final w_jepa : w_infonce | n/a | n/a | n/a | n/a | 1.053 : 1.016 (step 1139) | n/a |

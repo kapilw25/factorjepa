@@ -1,0 +1,58 @@
+# Ch11: Factor Surgery — 3-stage with D_I (safer-interactions ablation)
+# (FactorJEPA proposal Sec 11)
+#
+# Forked from surgery_2stage_noDI 2026-04-21 (iter10 v15c "safer-interactions").
+# Diffs vs noDI:
+#   1. interaction_mining.enabled: false → true (populate n_interactions in segments.json,
+#      m11 builds D_I tubes for Stage 3).
+#   2. Re-add stage3_interaction with unfreeze_below 0.50 (NOT prior iter8's 0.75 which
+#      caused BWT=-0.33 over-destabilization). Same depth as Stage 2 — only the input
+#      distribution changes.
+#   3. max_epochs_pct renormalized 0.40 / 0.30 / 0.30 (sum = 1.00 across 3 stages).
+#   4. Stage 3 mode_mixture I: 0.70 (moderate vs prior iter8 0.85 that hurt).
+#
+# Hypothesis: shallower unfreeze + typed D_I (cat_a/cat_b from #77 #80) may let
+# Stage 3 add information without catastrophic forgetting of Stages 1+2.
+#
+# REQUIRES: prior run of `m10 --interactions-only` + `m11 --regen-D_I` to populate
+# D_I tubes (SAM3 NOT re-run — masks cached). Pass this yaml to run_factor_prep.sh
+# as the MAXIMAL factor config — m10/m11 generate tubes that all 3 surgery variants
+# can share via outputs/full/m11_factor_datasets/.
+#
+# USAGE:
+#   python -u src/m09c_surgery.py \
+#       --model-config configs/model/vjepa2_1.yaml \
+#       --train-config configs/train/surgery_3stage_DI.yaml \
+#       --FULL
+
+extends: surgery_base.yaml
+
+data:
+  adapted_encoder: vjepa_2_1_surgical_3stage_DI      # unique per-variant — m05/m06 outputs don't collide across surgery variants (dynamic suffix via get_encoder_info)
+  output_dir: outputs/full/surgery_3stage_DI
+
+# -- Interaction mining: re-enable D_I (only variant that consumes interaction tubes) --
+interaction_mining:
+  enabled: true                       # m10 --interactions-only + m11 --regen-D_I
+
+# -- Surgery: 3-stage with safer interactions Stage 3 --
+surgery:
+  stages:
+    - name: stage1_layout
+      unfreeze_below: 0.25          # 12 of 48 layers
+      mode_mixture: {L: 1.00, A: 0.00, I: 0.00}
+      max_epochs_pct: 0.40          # iter10 v15c: renormalized 0.50 → 0.40 for 3-stage split
+
+    - name: stage2_agent
+      unfreeze_below: 0.50          # 24 of 48 layers
+      mode_mixture: {L: 0.30, A: 0.70, I: 0.00}   # 30% replay (CLEAR 2018), 70% agent
+      max_epochs_pct: 0.30          # iter10 v15c: renormalized 0.50 → 0.30
+
+    - name: stage3_interaction
+      # iter10 v15c: re-enabled for safer-interactions ablation.
+      # unfreeze_below 0.50 — same as Stage 2 (NOT prior iter8's 0.75 which caused
+      # BWT=-0.33 over-destabilization). Doesn't unfreeze new layers — only the
+      # input distribution changes.
+      unfreeze_below: 0.50
+      mode_mixture: {L: 0.15, A: 0.15, I: 0.70}   # 15/15 replay (anti-forgetting Stages 1+2), 70% interactions (was 0.85 in iter8 — tempered)
+      max_epochs_pct: 0.30

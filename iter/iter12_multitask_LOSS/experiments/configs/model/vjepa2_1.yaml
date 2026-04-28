@@ -1,0 +1,50 @@
+# V-JEPA 2.1 ViT-G (2B, 1664-dim) — PRIMARY TARGET MODEL
+#
+# This is the model for ALL new experiments (Ch10/Ch11/ExPLoRA).
+# Strongest V-JEPA variant — best spatial features (+23.5 mIoU on ADE20K vs 2.0).
+#
+# Source: https://arxiv.org/abs/2603.14482
+# Checkpoint: https://dl.fbaipublicfiles.com/vjepa2/vjepa2_1_vitG_384.pt (~8 GB)
+#
+# Download command (run on GPU instance):
+#   wget https://dl.fbaipublicfiles.com/vjepa2/vjepa2_1_vitG_384.pt -P checkpoints/
+
+model:
+  version: "2.1"
+  arch: vit_gigantic_xformers    # 26 heads, 48 blocks (vs 22 heads, 40 blocks in 2.0)
+  embed_dim: 1664
+  depth: 48
+  num_heads: 26
+  mlp_ratio: 4.92                # = 64/13
+
+  # Predictor (2.1 doubles depth for deeper supervision)
+  pred_depth: 24                 # vs 12 in 2.0
+  pred_embed_dim: 384
+  pred_num_heads: 12
+  num_mask_tokens: 2
+  zero_init_mask_tokens: true
+
+  # Deep supervision (V-JEPA 2.1: output at 4 intermediate layers)
+  n_output_distillation: 4        # layers [11, 23, 37, 47] for depth=48
+
+  # Architecture features
+  use_rope: true
+  use_activation_checkpointing: true
+
+  # Loss — 2.1 KEY CHANGES
+  loss_exp: 1.0                  # L1 latent prediction
+  predict_all: true              # DENSE LOSS: L1 on ALL tokens (not just masked) — the reason 2.1 is better
+  weight_distance_loss: true     # DEEP SUPERVISION: loss at intermediate layers
+
+  # Resolution / temporal (same as 2.0)
+  crop_size: 384
+  patch_size: 16
+  tubelet_size: 2
+
+  # Checkpoint loading — V-JEPA 2.1 has NO HuggingFace model release.
+  # Must download via wget from fbaipublicfiles and load via native vjepa2 ViT.
+  hf_model_id: null              # Not on HF — load native checkpoint instead
+  checkpoint_url: https://dl.fbaipublicfiles.com/vjepa2/vjepa2_1_vitG_384.pt
+  checkpoint_path: checkpoints/vjepa2_1_vitG_384.pt
+  min_student_load_pct: 90
+  min_predictor_load_pct: 50

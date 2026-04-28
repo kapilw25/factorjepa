@@ -7,9 +7,7 @@ argparse flags (explora / surgery) or config technique keys — mode-specific
 behavior is configured via explicit parameters (e.g. `init_params=None`,
 `drift_cfg=None`, `explora_enabled=False`).
 """
-import copy
 import csv  # noqa: F401 — retained for future logging helpers
-import gc
 import glob
 import json
 import math  # noqa: F401 — retained for future scheduler helpers
@@ -134,7 +132,16 @@ def producer_thread(cfg: dict, q: queue.Queue, stop_event: threading.Event,
     retries = 0
     epoch = 0
 
-    tmp_dir = tempfile.mkdtemp(prefix="m09_")
+    # Per-epoch tmp_dir rotation (errors_N_fixes #80, 2026-04-27): the prior
+    # function-lifetime tmp_dir accumulated 1.98M write/unlink cycles over
+    # explora v10's ~5 h run and degraded — every subsequent decode_video_bytes
+    # write→read failed with ENOENT on /tmp/m09_a5sblfdp/*.mp4, starving the
+    # GPU queue and tripping the 10-min producer timeout at step 791/1140.
+    # Rotation: rmtree old dir + mkdtemp fresh dir at each epoch boundary; the
+    # decode pool is drained synchronously by `_decode_batch` so no in-flight
+    # future references the about-to-be-deleted dir. Closure picks up the new
+    # binding by Python LEGB (free-var lookup at call time).
+    tmp_dir = tempfile.mkdtemp(prefix="m09_e1_")
 
     def _decode_batch(pool, pending_bytes, pending_keys):
         """Decode + augment a batch using the shared thread pool."""
@@ -162,7 +169,13 @@ def producer_thread(cfg: dict, q: queue.Queue, stop_event: threading.Event,
                 try:
                     epoch += 1
                     if epoch > 1:
-                        print(f"  Producer: starting epoch {epoch}")
+                        # Rotate tmp_dir: drop epoch N-1's dir (decode pool was
+                        # drained by _decode_batch's blocking f.result(), so no
+                        # in-flight future references it), allocate fresh one
+                        # for epoch N. Bounds tmp_dir lifetime to one epoch.
+                        shutil.rmtree(tmp_dir, ignore_errors=True)
+                        tmp_dir = tempfile.mkdtemp(prefix=f"m09_e{epoch}_")
+                        print(f"  Producer: starting epoch {epoch} (rotated tmp_dir → {tmp_dir})")
                     pending_bytes, pending_keys = [], []
 
                     if local_data:
@@ -291,6 +304,165 @@ def compute_jepa_loss(pred_features: list, pred_context: list,
     return total, loss_masked, loss_context
 
 
+class UncertaintyWeights(torch.nn.Module):
+    """Kendall, Gal, Cipolla CVPR 2018 — learnable log-variance per task.
+
+    Replaces fixed (α, β, γ) yaml weights with task-specific homoscedastic
+    uncertainty learned jointly with the model:
+        weighted_loss = Σ exp(-s_i) · L_i + s_i           (s_i = log σ²_i)
+    Gradient w.r.t. s_i pushes high-noise tasks toward s_i ↑ → lower weight.
+    Init s_i=0 → σ²=1 → all weights = 1 (matches default α=β=γ=1 init).
+
+    Standard for VICReg / V-JEPA 2 / MultiMAE multi-head training. Per IJCV 2025
+    follow-up, "task uncertainty weights can perform better than optimal weights
+    found through fine-grained grid search" — saving ~600 GPU-h vs grid for 3 HP.
+
+    Per-task semantics (order = task_names, e.g. ["jepa","infonce","tcc"]):
+        s[0] = log σ² for JEPA L1 (generative regulariser)
+        s[1] = log σ² for InfoNCE (drives Prec@K + mAP@K)
+        s[2] = log σ² for TCC     (pins Cycle@K)        ← optional
+    Caller passes task_names; len drives shape, names drive weight-dict keys.
+    Allows the "drop TCC entirely" fix (errors_N_fixes #81): construct as
+    UncertaintyWeights(["jepa","infonce"]) when loss_cfg.tcc_enabled=false.
+    """
+
+    def __init__(self, task_names: list):
+        super().__init__()
+        if not task_names:
+            raise ValueError("UncertaintyWeights: task_names must be non-empty list.")
+        self.task_names = list(task_names)
+        self.log_var = torch.nn.Parameter(torch.zeros(len(task_names)))
+
+    def forward(self, losses: list) -> tuple:
+        """Combine per-task scalar losses via learned uncertainty.
+
+        Returns (weighted_total, weights_dict) where weights_dict has the
+        precision weights exp(-s_i) for logging, keyed by task_names.
+        """
+        if len(losses) != self.log_var.size(0):
+            raise ValueError(
+                f"UncertaintyWeights got {len(losses)} losses but n_tasks="
+                f"{self.log_var.size(0)} — pass exactly {len(self.task_names)} "
+                f"losses in order {self.task_names}.")
+        precs = torch.exp(-self.log_var)
+        total = sum(precs[i] * losses[i] + self.log_var[i]
+                    for i in range(self.log_var.size(0)))
+        weights = {f"uw_w_{name}": precs[i].detach().item()
+                   for i, name in enumerate(self.task_names)}
+        return total, weights
+
+
+def compute_multitask_loss(jepa_loss: torch.Tensor,
+                           teacher_features: torch.Tensor,
+                           student_features: torch.Tensor,
+                           loss_cfg: dict,
+                           uw) -> tuple:
+    """Retrieval-aware multi-task loss: α·JEPA + β·InfoNCE(same-clip vs in-batch) + γ·TCC(soft-NN cycle).
+
+    Motivation: JEPA L1 reconstruction is anti-correlated with Prec@K/mAP@K/Cycle@K
+    in 11/12 cells across 4 m09b/m09c runs (Pearson r = -0.21 to -0.68; see
+    iter/utils/experiment_log.md "iter11 v3 Cross-Run Comparison").
+
+    Per-component → downstream eval metric mapping:
+      • α·JEPA      = generative regulariser, preserves V-JEPA 2.1 pretrained prior
+                      (NOT a retrieval surrogate — anti-corr documented above).
+      • β·InfoNCE   → drives Prec@K and mAP@K. Per-clip pooled (student, teacher)
+                      positive pairs; other batch clips are negatives. Symmetric
+                      cross-entropy on (B × B) cosine similarity at τ_infonce.
+                      Refs: Patel et al. CVPR 2022 (Recall@K Surrogate);
+                      Chen et al. ICML 2020 (SimCLR).
+      • γ·TCC       → pins Cycle@K. Soft-NN cycle on token positions: forward
+                      (student→teacher), backward (→student), cross-entropy
+                      target = identity. Refs: Dwibedi et al. CVPR 2019
+                      (Temporal Cycle-Consistency Learning, Google Research).
+
+    Standard multi-task pattern from VICReg / V-JEPA 2 + CLIP-head stacks
+    (facebookresearch / openai): a generative anchor + discriminative heads.
+
+    Args:
+        jepa_loss: scalar JEPA L1 (output of compute_jepa_loss).
+        teacher_features: (B, T_tokens, D) — usually `apply_masks(h, [m_pred[0]])`.
+        student_features: (B, T_tokens, D) — usually `pf[0]` (predictor output).
+        loss_cfg: dict with keys alpha_jepa, beta_infonce, gamma_tcc,
+                  infonce_temperature, tcc_temperature (no-default contract).
+
+    Returns (total_loss, components) where components is
+        {"infonce": float, "tcc": float, ...} (scalar items; jepa is logged
+        elsewhere). When uw is active, components also includes
+        {"uw_w_jepa", "uw_w_infonce", "uw_w_tcc"} = exp(-s_i) precision weights.
+
+    When β=γ=0 AND uw=None (default), no extra compute is done — total_loss = α·jepa,
+    identical to pure-JEPA training. This is the SCAFFOLD-default safe path.
+
+    When uw is provided AND loss_cfg["uncertainty_weighting"]=True, all 3 losses
+    are ALWAYS computed and combined via Kendall et al. CVPR 2018 (α/β/γ ignored).
+    """
+    components = {"infonce": 0.0, "tcc": 0.0, "tcc_raw": 0.0}
+    use_uw = uw is not None and loss_cfg["uncertainty_weighting"]
+    beta = loss_cfg["beta_infonce"]
+    gamma = loss_cfg["gamma_tcc"]
+    # errors_N_fixes #81 (2026-04-27): two new yaml knobs (no defaults — fail-loud)
+    #   • tcc_enabled — drop TCC entirely from gradient + UW state when false
+    #     (option #3: keep JEPA + InfoNCE only for retrieval-aware FT).
+    #   • tcc_scale   — pre-scale raw TCC before UW/fixed sees it. iter12 v1
+    #     diagnostic: raw TCC = 6.6 vs JEPA = 0.5 (11×) → TCC dominated 80% of
+    #     gradient signal, InfoNCE (the actual Prec@K driver) starved at 11%.
+    #     Setting tcc_scale=0.0833 (≈1/12) brings all 3 raw losses into ~[0.5, 2.0]
+    #     so UW starts from a balanced precision floor (option #1, HF/Kendall §4
+    #     standard "loss normalization").
+    tcc_enabled = loss_cfg["tcc_enabled"]
+    tcc_scale = loss_cfg["tcc_scale"]
+
+    # InfoNCE — compute when UW active OR β>0 (gates compute when UW disabled).
+    infonce = None
+    if use_uw or beta > 0.0:
+        s_pool = F.normalize(student_features.mean(dim=1).float(), dim=-1)
+        t_pool = F.normalize(teacher_features.mean(dim=1).float(), dim=-1)
+        logits = s_pool @ t_pool.transpose(0, 1) / loss_cfg["infonce_temperature"]
+        labels = torch.arange(s_pool.size(0), device=s_pool.device)
+        infonce = 0.5 * (F.cross_entropy(logits, labels)
+                         + F.cross_entropy(logits.transpose(0, 1), labels))
+        components["infonce"] = infonce.detach().item()
+
+    # TCC — compute when tcc_enabled AND (UW active OR γ>0). When tcc_enabled=false
+    # we skip compute entirely (saves the bmm+cross_entropy on (B,T,T)) AND omit TCC
+    # from the UW task list (UW must be constructed with task_names accordingly).
+    tcc = None
+    if tcc_enabled and (use_uw or gamma > 0.0):
+        s = F.normalize(student_features.float(), dim=-1)
+        t = F.normalize(teacher_features.float(), dim=-1)
+        temp = loss_cfg["tcc_temperature"]
+        sim_st = torch.bmm(s, t.transpose(1, 2)) / temp                # (B, T, T)
+        soft_t = torch.bmm(F.softmax(sim_st, dim=-1), t)               # (B, T, D)
+        sim_ts = torch.bmm(soft_t, s.transpose(1, 2)) / temp           # (B, T, T)
+        T_tokens = s.size(1)
+        targets = torch.arange(T_tokens, device=s.device).unsqueeze(0).expand(s.size(0), T_tokens).reshape(-1)
+        tcc = F.cross_entropy(sim_ts.reshape(-1, T_tokens), targets)
+        components["tcc_raw"] = tcc.detach().item()                    # raw, pre-scale (for diagnostics)
+        if tcc_scale != 1.0:
+            tcc = tcc * tcc_scale
+        components["tcc"] = tcc.detach().item()                        # scaled (what UW/γ actually see)
+
+    if use_uw:
+        # Kendall 2018 — learned weights replace α/β/γ. Task list MUST match
+        # the order UW was constructed with in m09c_surgery (otherwise log-var
+        # binding gets scrambled).
+        if tcc_enabled:
+            total, uw_weights = uw([jepa_loss, infonce, tcc])
+        else:
+            total, uw_weights = uw([jepa_loss, infonce])
+        components.update(uw_weights)
+    else:
+        # Fixed yaml weights — original SCAFFOLD path.
+        total = loss_cfg["alpha_jepa"] * jepa_loss
+        if beta > 0.0:
+            total = total + beta * infonce
+        if tcc_enabled and gamma > 0.0:
+            total = total + gamma * tcc                                # tcc already pre-scaled
+
+    return total, components
+
+
 def compute_drift_loss(student: torch.nn.Module, init_params: dict,
                        lambda_reg: float) -> torch.Tensor:
     """L2 drift control: lambda * ||theta - theta_0||^2 (Sec 10.4)."""
@@ -305,7 +477,7 @@ def compute_drift_loss(student: torch.nn.Module, init_params: dict,
 def _train_step_grad_accum(student, teacher, predictor, batch_clips,
                            all_masks_enc, all_masks_pred,
                            cfg, dtype, mp_cfg, scaler, sizer, loss_exp,
-                           init_params=None, drift_cfg=None):
+                           init_params, drift_cfg, loss_cfg, uw):
     """Forward+backward with adaptive micro-batch sizing + gradient accumulation (#48).
 
     Splits the macro batch into micro-batches of `sizer.size`, runs forward+backward
@@ -329,7 +501,8 @@ def _train_step_grad_accum(student, teacher, predictor, batch_clips,
     predict_all = cfg["model"]["predict_all"]
     macro_bs = batch_clips.shape[0]
 
-    j_val, m_val, c_val = 0.0, 0.0, 0.0
+    j_val, m_val, c_val, infonce_val, tcc_val = 0.0, 0.0, 0.0, 0.0, 0.0
+    uw_w_jepa_val, uw_w_infonce_val, uw_w_tcc_val = 0.0, 0.0, 0.0
     i = 0
     while i < macro_bs:
         end = min(i + sizer.size, macro_bs)
@@ -361,7 +534,24 @@ def _train_step_grad_accum(student, teacher, predictor, batch_clips,
                         pf.append(out)
                 jl, lm, lc = compute_jepa_loss(pf, pc, h, m_pred_list, m_enc_list,
                                                 loss_exp, predict_all, lambda_context=0.5)
-            scaler.scale(jl * weight).backward()
+
+                # Multi-task gating — caller passes loss_cfg explicitly (no None
+                # fallback per CLAUDE.md NO DEFAULT rule). Pure JEPA fast path
+                # taken iff β=γ=0 AND uncertainty_weighting=False (zero overhead).
+                # Multi-task path activates when β>0 OR γ>0 OR (uw + UW flag).
+                _uw_active = uw is not None and loss_cfg["uncertainty_weighting"]
+                if (loss_cfg["beta_infonce"] > 0.0
+                        or loss_cfg["gamma_tcc"] > 0.0
+                        or _uw_active):
+                    apply_masks_fn = get_apply_masks()
+                    teacher_tok_mt = apply_masks_fn(h, [m_pred_list[0]])
+                    student_tok_mt = pf[0]
+                    total_step_loss, mt_components = compute_multitask_loss(
+                        jl, teacher_tok_mt, student_tok_mt, loss_cfg, uw=uw)
+                else:
+                    total_step_loss = jl
+                    mt_components = {"infonce": 0.0, "tcc": 0.0}
+            scaler.scale(total_step_loss * weight).backward()
         except torch.cuda.OutOfMemoryError:
             cuda_cleanup()
             sizer.on_oom()
@@ -370,6 +560,18 @@ def _train_step_grad_accum(student, teacher, predictor, batch_clips,
         j_val += jl.item() * weight
         m_val += lm.item() * weight
         c_val += lc.item() * weight
+        infonce_val += mt_components["infonce"] * weight
+        tcc_val += mt_components["tcc"] * weight
+        # UW weights — only present when UW active; zero otherwise (see compute_multitask_loss).
+        # errors_N_fixes #81 v2 fix: uw_w_tcc absent when loss_cfg.tcc_enabled=false
+        # (2-task UW [jepa, infonce]). Gate explicitly on the yaml flag — leaves
+        # uw_w_tcc_val at 0.0 (init from line 505) so downstream CSV/probe records
+        # show "0.0" for the disabled task instead of KeyError-crashing.
+        if "uw_w_jepa" in mt_components:
+            uw_w_jepa_val += mt_components["uw_w_jepa"] * weight
+            uw_w_infonce_val += mt_components["uw_w_infonce"] * weight
+            if loss_cfg["tcc_enabled"]:
+                uw_w_tcc_val += mt_components["uw_w_tcc"] * weight
         i = end
 
     drift_val = 0.0
@@ -380,7 +582,8 @@ def _train_step_grad_accum(student, teacher, predictor, batch_clips,
         drift_val = drift_loss.item()
 
     sizer.after_batch_success()
-    return j_val, m_val, c_val, drift_val
+    return (j_val, m_val, c_val, drift_val, infonce_val, tcc_val,
+            uw_w_jepa_val, uw_w_infonce_val, uw_w_tcc_val)
 
 
 # ═════════════════════════════════════════════════════════════════════════
@@ -616,7 +819,7 @@ def run_validation(student, teacher, predictor, mask_generators,
 def save_training_checkpoint(path: Path, student, teacher, predictor,
                               optimizer, scheduler, scaler,
                               step: int, best_metric: float,
-                              full: bool = True):
+                              full: bool = True, uw=None):
     """Save checkpoint.
 
     iter11 disk-budget fix (2026-04-24, after POC v3 disk-full crash at step 6):
@@ -650,6 +853,8 @@ def save_training_checkpoint(path: Path, student, teacher, predictor,
         ckpt["optimizer"] = optimizer.state_dict()
         ckpt["scheduler"] = scheduler.state_dict()
         ckpt["scaler"] = scaler.state_dict() if scaler else None
+        if uw is not None:
+            ckpt["uw"] = uw.state_dict()
     torch.save(ckpt, tmp_path)
     os.replace(tmp_path, path)
 
@@ -713,7 +918,7 @@ def cleanup_stage_checkpoints(output_dir: Path, prefix: str, keep_n: int = 1,
 
 
 def load_training_checkpoint(path: Path, student, teacher, predictor,
-                              optimizer, scheduler, scaler) -> tuple:
+                              optimizer, scheduler, scaler, uw=None) -> tuple:
     ckpt = torch.load(path, map_location="cuda", weights_only=False)
     student.load_state_dict(ckpt["student"])
     if "teacher" in ckpt:
@@ -726,6 +931,8 @@ def load_training_checkpoint(path: Path, student, teacher, predictor,
         scheduler.load_state_dict(ckpt["scheduler"])
     if scaler and ckpt.get("scaler"):
         scaler.load_state_dict(ckpt["scaler"])
+    if uw is not None and "uw" in ckpt:
+        uw.load_state_dict(ckpt["uw"])
     return ckpt["step"], ckpt.get("best_metric", float("inf"))
 
 

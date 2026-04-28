@@ -20,7 +20,7 @@
 - **All imports at TOP.** Only exception: guarded `try/except ImportError` for optional deps.
 - **Docstrings**: max 2-line + terminal commands. Format: `"""One-line. GPU-only.\n    python -u src/file.py --SANITY 2>&1 | tee logs/file.log\n"""`
 - **Dependencies**: update `setup_env_uv.sh` + `requirements.txt`/`requirements_gpu.txt`. Install via `setup_env_uv.sh` ONLY for reproducibility purpose, no individual installation.
-- **FAIL HARD.** No `|| continue`, `|| true`, WARNING-without-exit in shell. No bare `except: pass` in Python. Silent failures = garbage metrics.
+- **FAIL HARD.** No `|| continue`, `|| true`, WARNING-without-exit in shell. No bare `except: pass` in Python. **No `getattr(args, key, default)`** — argparse `required=True` already guarantees presence; `getattr` defaults swallow the error and let `None` propagate to multi-h GPU runs that silently produce wrong `.npy`. Pass values as explicit function parameters instead. See errors_N_fixes #79. Silent failures = garbage metrics.
 - **95% CI MANDATORY**: Every metric needs bootstrap 95% CI (BCa, 10K iter via `utils/bootstrap.py`). No point estimates without CI.
 - **Vectorize**: Replace Python for-loops with NumPy when iterating 1K+ items. Incident: m06 bootstrap 88 min → <1 min vectorized.
 - **Organize outputs** into clean subdirectories. Each logical group owns its own dir + JSON. Never flatten structures.

@@ -79,14 +79,8 @@ src/data/
 *.npy
 *.npz
 outputs/
-!iter/iter11/outputs/
-# Per-clip verification images (re-generable via --plot, too many for git)
-outputs/**/m10_overlay_verify/
-outputs/**/m11_per_clip_verify/
-# Factor dataset dirs (large .npy arrays, backed up to HF)
-outputs/**/m11_factor_datasets/D_L/
-outputs/**/m11_factor_datasets/D_A/
-outputs/**/m11_factor_datasets/D_I/
+!iter/iter11_epoch15/outputs
+!iter/iter8/outputs/
 
 # Large binary
 *.mp4

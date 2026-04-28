@@ -1,0 +1,68 @@
+# Ch11: Factor Surgery — 2-stage noDI + multi-task retrieval-aware loss.
+#
+# Forked from surgery_2stage_noDI.yaml 2026-04-27. Same surgery recipe (2 stages,
+# D_I disabled, layer-wise unfreeze 0.25 / 0.50). Only diff: optimization.loss
+# activates Uncertainty Weighting (Kendall et al. CVPR 2018) — α/β/γ are LEARNED
+# jointly with the model via 3 nn.Parameter log-variances added to the optimizer.
+#
+# Pairs with surgery_3stage_DI_multitask.yaml as the 2× ablation arm: this run
+# isolates the multi-task loss contribution WITHOUT the D_I-tube confound. If both
+# multitask variants beat their pure-JEPA counterparts by similar Δ, that confirms
+# the loss is the driver (not D_I); if only 3stage_DI_multitask wins, D_I × loss
+# interaction matters.
+#
+# Loss recipe — total = exp(-s_jepa)·JEPA + exp(-s_infonce)·InfoNCE + exp(-s_tcc)·TCC + s_jepa + s_infonce + s_tcc
+#
+#   ┌──────────┬────────────────┬────────────────────────────────────┬───────────────────────────┐
+#   │ Component│ weight         │ Downstream eval metric it drives   │ Reference                 │
+#   ├──────────┼────────────────┼────────────────────────────────────┼───────────────────────────┤
+#   │ JEPA L1  │ exp(-s_jepa)   │ Generative regulariser (preserves  │ V-JEPA 2.1 (Bardes 2024)  │
+#   │          │ learned, init=1│ V-JEPA 2.1 prior; NOT a retrieval  │                           │
+#   │          │                │ surrogate — anti-corr proven r=    │                           │
+#   │          │                │ -0.21 to -0.68 in iter11 v3 runs)  │                           │
+#   │ InfoNCE  │ exp(-s_infonce)│ Prec@K + mAP@K  (per-clip pooled   │ Patel CVPR 2022 Recall@K  │
+#   │          │ learned, init=1│ student↔teacher positive, in-batch │ Chen SimCLR ICML 2020     │
+#   │          │                │ negatives, τ=0.07 symmetric XE)    │                           │
+#   │ TCC      │ exp(-s_tcc)    │ Cycle@K  (soft-NN cycle on tokens  │ Dwibedi CVPR 2019 TCC     │
+#   │          │ learned, init=1│ within a clip, identity target,    │ (Google Research)         │
+#   │          │                │ τ=0.10 forward-back XE)            │                           │
+#   └──────────┴────────────────┴────────────────────────────────────┴───────────────────────────┘
+#
+# Uncertainty Weighting wires 3 nn.Parameter log-vars into the optimizer (init s_i=0
+# → all weights=1). Per IJCV 2025 follow-up, learned UW typically beats grid-search
+# weights — saves ~600 GPU-h vs full HP sweep on (α, β, γ).
+#
+# Math lives in src/utils/training.{UncertaintyWeights, compute_multitask_loss};
+# m09c_surgery instantiates UW once + adds params to every per-stage optimizer rebuild.
+#
+# USAGE:
+#   python -u src/m09c_surgery.py \
+#       --model-config configs/model/vjepa2_1.yaml \
+#       --train-config configs/train/surgery_2stage_noDI_multitask.yaml \
+#       --FULL --factor-dir <factor_dir> --train-subset <train.json> \
+#       --probe-subset <val.json> --eval-subset <eval.json> \
+#       --eval-local-data <local_dir> --output-dir outputs/full/surgery_2stage_noDI_multitask
+
+extends: surgery_2stage_noDI.yaml
+
+data:
+  adapted_encoder: vjepa_2_1_surgical_noDI_multitask
+  output_dir: outputs/full/surgery_2stage_noDI_multitask
+
+# Activate Uncertainty Weighting — α/β/γ NOT set here on purpose (NO FALLBACK rule,
+# CLAUDE.md "no DEFAULT, no silent error"). UW learns weights via N log-vars
+# (N = 2 with tcc_enabled=false, N = 3 with true).
+#
+# v2 (2026-04-27, errors_N_fixes #81) — DROP TCC ENTIRELY:
+# v1 diagnostic showed raw TCC = 6.6 vs JEPA = 0.5 → TCC consumed ~80 % of the
+# gradient signal, starving InfoNCE (the actual Prec@K driver) at ~11 %. UW
+# couldn't rebalance fast enough at LR=5e-5 (w_tcc only −2.7 % in 770 steps,
+# Prec@K plateaued at 75.6). Setting tcc_enabled=false skips TCC compute AND
+# omits the TCC log-var from UW → 2-task UW [JEPA, InfoNCE] gives InfoNCE
+# ~85 % of the gradient signal, closest to "pure retrieval-aware FT".
+optimization:
+  loss:
+    infonce_temperature:  0.07
+    tcc_temperature:      0.10
+    tcc_enabled:          false   # 🎯 v2 fix: drop TCC entirely (Cycle@K not the bottleneck; InfoNCE drives Prec@K)
+    uncertainty_weighting: true   # 🎯 Kendall 2018 — learn weights jointly with model

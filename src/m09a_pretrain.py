@@ -658,11 +658,14 @@ def train(cfg: dict, args):
             # accumulated gradient is bit-equivalent to a single full-batch step), but the
             # micro-batch is sized by AdaptiveBatchSizer to track VRAM target.
             try:
-                jepa_val, masked_val, context_val, drift_val = _train_step_grad_accum(
+                (jepa_val, masked_val, context_val, drift_val,
+                 _infonce_val, _tcc_val,
+                 _uw_w_jepa, _uw_w_infonce, _uw_w_tcc) = _train_step_grad_accum(
                     student, teacher, predictor, batch_clips,
                     all_masks_enc, all_masks_pred,
                     cfg, dtype, mp_cfg, scaler, train_sizer, loss_exp,
-                    init_params=init_params, drift_cfg=drift_cfg)
+                    init_params=init_params, drift_cfg=drift_cfg,
+                    loss_cfg=cfg["optimization"]["loss"], uw=None)
             except torch.cuda.OutOfMemoryError:
                 # Discard partial grads from incomplete macro; sizer already shrank via on_oom.
                 optimizer.zero_grad()
@@ -1041,15 +1044,19 @@ def main():
     train(cfg, args)
 
 
-def select_ablation_winner(output_dir: str, lambdas=None):
+def select_ablation_winner(output_dir: str, lambdas: list):
     """Compare best_val_loss across lambda ablation runs → write ablation_winner.json.
 
-    USAGE:
-        python -u src/m09a_pretrain.py --select-winner outputs/poc 2>&1 | tee logs/m09a_select_winner.log
+    USAGE (lambdas + configs all required — NO DEFAULT per CLAUDE.md):
+        python -u src/m09a_pretrain.py --select-winner outputs/poc \\
+            configs/model/vjepa2_1.yaml configs/train/ch10_pretrain.yaml \\
+            2>&1 | tee logs/m09a_select_winner.log
     """
-    if lambdas is None:
-        cfg = load_merged_config(DEFAULT_MODEL_CONFIG, DEFAULT_TRAIN_CONFIG)
-        lambdas = [str(l) for l in cfg["drift_control"]["ablation_lambdas"]]
+    # Bug fix 2026-04-27: removed `if lambdas is None` fallback that referenced
+    # DEFAULT_MODEL_CONFIG / DEFAULT_TRAIN_CONFIG (undefined names — F821 crash).
+    # Per CLAUDE.md NO DEFAULT: caller MUST pass `lambdas` explicitly.
+    assert isinstance(lambdas, list) and lambdas, \
+        "select_ablation_winner: `lambdas` must be a non-empty list"
 
     out = Path(output_dir)
     results = {}
@@ -1105,9 +1112,19 @@ def select_ablation_winner(output_dir: str, lambdas=None):
 
 
 if __name__ == "__main__":
-    # Check for --select-winner subcommand before argparse
-    if len(sys.argv) >= 3 and sys.argv[1] == "--select-winner":
-        select_ablation_winner(sys.argv[2])
+    # --select-winner subcommand: positional args = output_dir, model_config, train_config.
+    # All required — derive lambdas from cfg["drift_control"]["ablation_lambdas"]
+    # (NO DEFAULT, per CLAUDE.md "no hardcoded paths" rule).
+    if len(sys.argv) >= 2 and sys.argv[1] == "--select-winner":
+        if len(sys.argv) != 5:
+            print("FATAL: --select-winner requires 3 positional args:")
+            print("  python -u src/m09a_pretrain.py --select-winner "
+                  "<output_dir> <model_config.yaml> <train_config.yaml>")
+            sys.exit(2)
+        _out_dir, _model_cfg_path, _train_cfg_path = sys.argv[2], sys.argv[3], sys.argv[4]
+        _cfg = load_merged_config(_model_cfg_path, _train_cfg_path)
+        _lambdas = [str(l) for l in _cfg["drift_control"]["ablation_lambdas"]]
+        select_ablation_winner(_out_dir, _lambdas)
     else:
         main()
 

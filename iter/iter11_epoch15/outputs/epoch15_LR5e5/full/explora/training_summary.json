@@ -1,0 +1,25 @@
+{
+  "steps": 792,
+  "epochs": 10.42,
+  "clips_seen": 25344,
+  "final_jepa_loss": 0.4478120803833008,
+  "final_total_loss": 0.4478120803833008,
+  "best_val_loss": 0.456753870844841,
+  "final_lr": 3.664843190471086e-05,
+  "final_grad_norm": 0.06443945318460464,
+  "batch_size": 32,
+  "explora_enabled": true,
+  "unfreeze_blocks": 2,
+  "lora_rank": 16,
+  "probe_trajectory_stats": {
+    "bwt_prec_at_k": -0.1634,
+    "max_drop_prec_at_k": 0.2723,
+    "monotonic": false
+  },
+  "n_probes": 33,
+  "best_prec_at_k": 76.198257,
+  "best_ckpt": {
+    "source": "student_best.pt",
+    "criterion": "prec_at_k"
+  }
+}

@@ -96,7 +96,7 @@ CHECKPOINT_PREFIX = "m09c_ckpt"
 from utils.training import (
     load_config,
     build_mask_generators,
-    compute_jepa_loss, _train_step_grad_accum,  # noqa: F401 — _train_step_grad_accum kept for future grad-accum wiring
+    compute_jepa_loss, _train_step_grad_accum, UncertaintyWeights,  # noqa: F401 — _train_step_grad_accum kept for future grad-accum wiring
     update_teacher_ema,
     build_optimizer, build_scheduler, update_weight_decay,  # noqa: F401 — build_scheduler/update_weight_decay kept for future stage schedulers
     save_training_checkpoint, cleanup_old_checkpoints, cleanup_stage_checkpoints, load_training_checkpoint,  # noqa: F401 — cleanup_old_checkpoints/load_training_checkpoint kept for resume
@@ -479,9 +479,20 @@ def train_surgery(cfg: dict, args):
     applied_max_val_clips = None if use_permanent_val else 1000
     train_manifest = {k: manifest[k] for k in train_keys}
     val_split_path = output_dir / "val_split.json"
+    # `source` records WHICH subset JSON drove the val_keys. Modern multi-subset
+    # YAMLs (iter11 v3+) split data into train_subset / val_subset / eval_subset;
+    # legacy single-subset YAMLs used data.subset. Fail-loud fallback chain:
+    # CLI override → yaml val_subset (permanent-val mode) → yaml train_subset
+    # (internal-split mode). NO `data.subset` fallback — that key was retired.
+    if args.subset:
+        source = str(args.subset)
+    elif use_permanent_val:
+        source = str(cfg["data"]["val_subset"])
+    else:
+        source = str(cfg["data"]["train_subset"])
     with open(val_split_path, "w") as f:
         json.dump({"n": len(val_keys), "seed": seed,
-                   "source": str(args.subset) if args.subset else str(cfg["data"]["subset"]),
+                   "source": source,
                    "split_strategy": "permanent" if use_permanent_val else "internal_split",
                    "split_ratio": split_ratio,
                    "max_val_clips": applied_max_val_clips,
@@ -533,6 +544,31 @@ def train_surgery(cfg: dict, args):
     # Surgery config
     surgery_cfg = cfg["surgery"]
     stages = surgery_cfg["stages"]
+
+    # Multi-task loss + Uncertainty Weighting (Kendall et al. CVPR 2018) — enabled
+    # when cfg["optimization"]["loss"]["uncertainty_weighting"]=true. nn.Module
+    # holds N log-variance parameters (one per active task) — added to every
+    # rebuilt per-stage optimizer below via add_param_group(). State persists across
+    # stages (UW gradients are smooth, no Adam-moment reset needed).
+    # errors_N_fixes #81: tcc_enabled drives UW shape (3-task with TCC, 2-task
+    # without). compute_multitask_loss MUST be called with the matching task list.
+    loss_cfg_top = cfg["optimization"]["loss"]
+    uw_module = None
+    if loss_cfg_top["uncertainty_weighting"]:
+        uw_task_names = ["jepa", "infonce", "tcc"] if loss_cfg_top["tcc_enabled"] \
+                        else ["jepa", "infonce"]
+        uw_module = UncertaintyWeights(task_names=uw_task_names).to(device)
+        print(f"[loss] Uncertainty Weighting ENABLED — α/β/γ ignored, "
+              f"learning log-vars for {uw_task_names} "
+              f"(init s=0 → all weights=1, will adapt during training); "
+              f"tcc_scale={loss_cfg_top['tcc_scale']}")
+    elif loss_cfg_top["beta_infonce"] > 0.0 or loss_cfg_top["gamma_tcc"] > 0.0:
+        print(f"[loss] Multi-task FIXED weights: α={loss_cfg_top['alpha_jepa']} "
+              f"β={loss_cfg_top['beta_infonce']} γ={loss_cfg_top['gamma_tcc']} "
+              f"tcc_enabled={loss_cfg_top['tcc_enabled']} "
+              f"tcc_scale={loss_cfg_top['tcc_scale']}")
+    else:
+        print("[loss] Pure JEPA L1 (α=1, β=γ=0) — default scaffold path, no multi-task active")
 
     # Fail-loud pre-flight: cross-check every stage's non-zero mode_mixture keys
     # against available factor data BEFORE the stage loop starts. Catches the iter10
@@ -637,7 +673,10 @@ def train_surgery(cfg: dict, args):
     jsonl_path = output_dir / "loss_log.jsonl"
     csv_file = open(csv_path, "w", newline="")
     csv_writer = csv.writer(csv_file)
-    csv_writer.writerow(["step", "stage", "loss_jepa", "loss_masked", "loss_context", "lr", "grad_norm"])
+    csv_writer.writerow(["step", "stage", "loss_jepa", "loss_masked", "loss_context",
+                         "loss_infonce", "loss_tcc",
+                         "uw_w_jepa", "uw_w_infonce", "uw_w_tcc",
+                         "lr", "grad_norm"])
     jsonl_file = open(jsonl_path, "w")
 
     def _log_step(record):
@@ -982,6 +1021,16 @@ def train_surgery(cfg: dict, args):
 
             # Rebuild optimizer (only trainable params)
             optimizer = build_optimizer(student, predictor, cfg["optimization"])
+            # Re-attach UW log-variance params to the freshly-built optimizer
+            # (build_optimizer re-creates fresh Adam moments per stage; UW params
+            # need their own param_group every time). Same base LR as encoder;
+            # weight_decay=0 (don't regularize log-vars).
+            if uw_module is not None:
+                optimizer.add_param_group({
+                    "params": list(uw_module.parameters()),
+                    "lr": cfg["optimization"]["lr"],
+                    "weight_decay": 0.0,
+                })
 
             # Per-stage LR scheduler (warmup then constant)
             def lr_lambda(step, ws=warmup_steps):
@@ -1082,11 +1131,15 @@ def train_surgery(cfg: dict, args):
                 step_succeeded = False
                 while not step_succeeded:
                     try:
-                        jepa_val, masked_val, context_val, _drift_val = _train_step_grad_accum(
+                        (jepa_val, masked_val, context_val, _drift_val,
+                         infonce_val, tcc_val,
+                         uw_w_jepa, uw_w_infonce, uw_w_tcc) = _train_step_grad_accum(
                             student, teacher, predictor, batch_clips,
                             all_masks_enc, all_masks_pred,
                             cfg, dtype, mp_cfg, scaler, train_sizer, loss_exp,
-                            init_params=None, drift_cfg=None)
+                            init_params=None, drift_cfg=None,
+                            loss_cfg=cfg["optimization"]["loss"],
+                            uw=uw_module)
                         step_succeeded = True
                     except torch.cuda.OutOfMemoryError:
                         optimizer.zero_grad()  # discard partial grads from incomplete macro
@@ -1129,16 +1182,28 @@ def train_surgery(cfg: dict, args):
                     "loss_jepa": round(jepa_val, 6),
                     "loss_masked": round(masked_val, 6),
                     "loss_context": round(context_val, 6),
+                    "loss_infonce": round(infonce_val, 6),
+                    "loss_tcc": round(tcc_val, 6),
+                    "uw_w_jepa": round(uw_w_jepa, 6),
+                    "uw_w_infonce": round(uw_w_infonce, 6),
+                    "uw_w_tcc": round(uw_w_tcc, 6),
                     "lr": lr_val, "grad_norm": round(gn_val, 4),
                 }
                 _log_step(step_record)
                 csv_writer.writerow([global_step, stage_name, f"{jepa_val:.6f}",
                                      f"{masked_val:.6f}", f"{context_val:.6f}",
+                                     f"{infonce_val:.6f}", f"{tcc_val:.6f}",
+                                     f"{uw_w_jepa:.6f}", f"{uw_w_infonce:.6f}", f"{uw_w_tcc:.6f}",
                                      f"{lr_val:.2e}", f"{gn_val:.4f}"])
 
                 log_metrics(wb_run, {
                     "loss/jepa": jepa_val, "loss/masked": masked_val,
-                    "loss/context": context_val, "lr": lr_val,
+                    "loss/context": context_val,
+                    "loss/infonce": infonce_val, "loss/tcc": tcc_val,
+                    "loss/uw_w_jepa": uw_w_jepa,
+                    "loss/uw_w_infonce": uw_w_infonce,
+                    "loss/uw_w_tcc": uw_w_tcc,
+                    "lr": lr_val,
                     "grad_norm": gn_val, "stage": stage_idx,
                 }, step=global_step)
 
@@ -1195,13 +1260,15 @@ def train_surgery(cfg: dict, args):
                 # root cause as m09b lines 1026/1175 (silent re-warm on resume).
                 save_training_checkpoint(output_dir / f"{CHECKPOINT_PREFIX}_stage{stage_idx}.pt",
                                          student, teacher, predictor, optimizer, scheduler,
-                                         scaler, global_step, best_state["prec_at_k"], full=True)
+                                         scaler, global_step, best_state["prec_at_k"], full=True,
+                                         uw=uw_module)
                 cleanup_stage_checkpoints(output_dir, CHECKPOINT_PREFIX, keep_n=1, cache_policy=args.cache_policy)
                 _run_probe_at_step(stage_idx, stage_name, global_step)
                 break
             save_training_checkpoint(output_dir / f"{CHECKPOINT_PREFIX}_stage{stage_idx}.pt",
                                      student, teacher, predictor, optimizer, scheduler,
-                                     scaler, global_step, 0.0, full=True)
+                                     scaler, global_step, 0.0, full=True,
+                                     uw=uw_module)
             # Per-stage rotation: keep only the newest stage checkpoint on disk. Without
             # this, the run accumulates 3 × ~15 GB = ~45 GB of redundant rollback points
             # (cause of the 2026-04-19 disk-full halt on 199 GB /workspace). `keep_n=1`

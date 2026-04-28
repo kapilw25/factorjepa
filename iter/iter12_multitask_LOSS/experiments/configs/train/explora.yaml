@@ -1,0 +1,67 @@
+# ExPLoRA: Parameter-Efficient Extended Pre-Training to Adapt ViTs under Domain Shifts
+# ICML 2025 — https://arxiv.org/abs/2406.10973
+#
+# Recipe: Freeze all blocks EXCEPT first 1-2 + add LoRA (rank 8-16) on remaining blocks
+# + continue same SSL objective (JEPA loss) on new domain.
+#
+# Result on DINOv2 + satellite: +8% linear probing accuracy with <10% trainable params.
+# Outperformed full fine-tuning. Our hypothesis: same wins on V-JEPA + Indian streets.
+#
+# Status (Week 1): This is the BASELINE that Ch11 factor surgery must beat.
+# If ExPLoRA alone improves Prec@K, we have a publishable result in 3h GPU.
+#
+# USAGE:
+#   python -u src/m09b_explora.py \
+#       --model-config configs/model/vjepa2_1.yaml \
+#       --train-config configs/train/explora.yaml \
+#       --FULL
+#   (train/val/eval paths read from base_optimization.yaml: ultra_hard_3066_{train,val,eval}.json)
+
+extends: base_optimization.yaml
+
+# -- Variant-specific paths (read by scripts/run_train.sh + run_eval.sh via yaml_extract) --
+# Train/val/eval dataset paths inherited from base_optimization.yaml (single source of truth
+# for the 80:10:10 ultra_hard_3066 split). Only technique-specific overrides live here.
+data:
+  module: m09b                                       # m09b for explora, m09c for surgery_*
+  adapted_encoder: vjepa_2_1_explora                 # ENCODER_REGISTRY key in configs/pipeline.yaml
+  model_config: configs/model/vjepa2_1.yaml
+  output_dir: outputs/full/explora                   # variant-specific results dir
+
+# -- Optimization: lr / batch_size / max_epochs all inherited from base_optimization.yaml --
+# (V-JEPA 2.1 published recipe: lr=1e-5, BS=32, 5 epochs FULL). No ExPLoRA-specific
+# optim overrides — LoRA's smaller param surface still benefits from the recipe-locked
+# values (validated by iter11 v3 runs).
+
+# -- ExPLoRA configuration --
+explora:
+  enabled: true                   # Toggle: false = standard full training
+  unfreeze_blocks: 2              # Unfreeze first N blocks (ExPLoRA recipe: 1-2)
+  unfreeze_norm_layers: true      # Always unfreeze LayerNorm (ExPLoRA requirement)
+
+  # LoRA parameters (applied to all FROZEN blocks)
+  lora_rank: 16                   # 8-32 typical
+  lora_alpha: 32                  # Scaling, typically 2x rank
+  lora_dropout: 0.0               # Zero for SSL (no overfitting risk)
+  lora_target_modules:
+    - qkv                         # Fused Q/K/V attention
+    - proj                        # Attention output projection
+
+  # PEFT library (preferred). If incompatible with vjepa2 custom ViT,
+  # fallback to manual LoRALinear wrapper (~30 lines, no external dep).
+  use_peft: true
+
+# -- Drift control: DISABLED for ExPLoRA --
+# LoRA params are auto-excluded from compute_drift_loss() because they don't exist
+# in init_params dict (created BEFORE LoRA injection). Frozen block params are
+# anchored by requires_grad=False, so drift control is redundant.
+drift_control:
+  enabled: false
+  lambda_reg: 0
+
+# -- Probe: fully inherited from base_optimization.yaml --
+# ExPLoRA is single-stage (unlike m09c's 2-3 stage surgery), so all kill-trigger state
+# tracks ONE continuous series (no stage boundaries → no resets needed). Mode-gated flags
+# flatten to scalars in merge_config_with_args() per the m09c pattern (src/m09c_surgery.py:94-129).
+# Universal probe config (paths, kill triggers, plateau, BWT, use_permanent_val) lives in
+# base_optimization.yaml — no technique-specific overrides needed for ExPLoRA.
