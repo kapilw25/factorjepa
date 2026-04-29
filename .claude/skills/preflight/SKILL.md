@@ -464,11 +464,149 @@ if g==0: print(f'B51 FAIL: {len(calls)} python -u under set-e+trap-ERR with no p
 print(f'B51 PASS: {g}/{len(calls)} guarded')"
 ```
 
+## Part M: iter12 regressions (B52-B61) — catch BEFORE GPU spend
+
+> Sources: `iter/iter12_multitask_LOSS/errors_N_fixes.md` #62-#81. Each guard catches a specific bug class that wasted GPU-h or invalidated a result. Run on the file glob in the rightmost column.
+
+**B52.** `data/subset_*.json ∩ data/val_1k.json` test leak (iter12 #69 — 41 % overlap silently invalidated paired-eval). `.json` files only.
+```bash
+python3 -c "import json,sys,glob;a=set(json.load(open('data/val_1k.json'))['clip_keys']);bad=[(p,len(a&set(json.load(open(p))['clip_keys']))) for p in glob.glob('data/subset_*.json') if 'with_leak' not in p and a&set(json.load(open(p))['clip_keys'])];print(f'B52 FAIL:{bad}' if bad else 'B52 PASS');sys.exit(1 if bad else 0)"
+```
+
+**B53.** Shell-level blanket `rm -rf outputs/full/m05*` nukes hidden `.m05_checkpoint*.npz` (iter12 #74 — multi-hour GPU loss). `.sh` only.
+```bash
+python3 -c "import re,sys,os;t='<file>'
+if not t.endswith('.sh'): print('B53 SKIP');sys.exit(0)
+s=open(t).read();b=[i for i,l in enumerate(s.split(chr(10)),1) if re.search(r'\brm\s+-rf?\s+\S*outputs/\S*m05[_\w/]*\s*$',l) and '.m05_checkpoint' not in s[max(0,sum(len(x)+1 for x in s.split(chr(10))[:i-1])-200):sum(len(x)+1 for x in s.split(chr(10))[:i])+400]]
+print(f'B53 FAIL:{b}' if b else 'B53 PASS');sys.exit(1 if b else 0)"
+```
+
+**B54.** `from utils.X import Y` *inside a function* shadowing a top-level import → `UnboundLocalError` if any earlier line in the same function references `Y` (iter12 #68). `src/m*.py`, `src/utils/*.py`.
+```bash
+source venv_walkindia/bin/activate && python3 << 'PY'
+import ast,sys;t=ast.parse(open('<file>').read())
+top={a.name for n in t.body if isinstance(n,ast.ImportFrom) for a in n.names}
+b=[]
+for fn in [n for n in ast.walk(t) if isinstance(n,(ast.FunctionDef,ast.AsyncFunctionDef))]:
+    locals_imp={a.name:imp.lineno for imp in ast.walk(fn) if isinstance(imp,ast.ImportFrom) and imp is not fn for a in imp.names if a.name in top}
+    for nm,lno in locals_imp.items():
+        uses=[u.lineno for u in ast.walk(fn) if isinstance(u,ast.Name) and u.id==nm and u.lineno<lno]
+        if uses: b.append((fn.name,nm,uses[0],lno))
+print(f'B54 FAIL:{b}' if b else 'B54 PASS');sys.exit(1 if b else 0)
+PY
+```
+
+**B55.** YAML dead-cap field — `n_clips`/`clip_limit`/`poc_simplified`/`sanity_clips` silently downscope `--subset` (iter12 #62). `.yaml` only.
+```bash
+source venv_walkindia/bin/activate && python3 -c "
+import yaml,sys;y='<file>'
+if not y.endswith(('.yaml','.yml')): print('B55 SKIP');sys.exit(0)
+d=yaml.safe_load(open(y)) or {};b=[]
+def w(n,p=''):
+    if isinstance(n,dict):
+        for k,v in n.items():
+            pp=f'{p}.{k}' if p else str(k)
+            if k in ('n_clips','clip_limit','poc_simplified','sanity_clips'): b.append(pp)
+            else: w(v,pp)
+w(d);print(f'B55 FAIL:dead-cap {b}' if b else 'B55 PASS');sys.exit(1 if b else 0)"
+```
+
+**B56.** `tempfile.mkdtemp()` outside per-stage/per-epoch loop OR inside loop without matching `shutil.rmtree` (iter12 #80 — tmpfs ENOENT after ~2M write/unlink). `src/utils/training.py` + `src/m*.py`.
+```bash
+python3 << 'PY'
+import ast,sys;t='<file>'
+if not t.endswith('.py'): print('B56 SKIP');sys.exit(0)
+tr=ast.parse(open(t).read());b=[]
+for fn in [n for n in ast.walk(tr) if isinstance(n,(ast.FunctionDef,ast.AsyncFunctionDef)) and any(x in n.name.lower() for x in ('producer','stream','decode'))]:
+    mk=[c for c in ast.walk(fn) if isinstance(c,ast.Call) and isinstance(c.func,ast.Attribute) and c.func.attr=='mkdtemp']
+    if not mk: continue
+    loops=[l for l in ast.walk(fn) if isinstance(l,(ast.For,ast.While))]
+    for c in mk:
+        in_loop=any(c.lineno>=l.lineno and c.lineno<=getattr(l,'end_lineno',c.lineno) for l in loops)
+        has_rmtree=any('rmtree' in (ast.unparse(s) if hasattr(ast,'unparse') else '') for s in ast.walk(fn))
+        if not in_loop or not has_rmtree: b.append((fn.name,c.lineno))
+print(f'B56 FAIL:{b}' if b else 'B56 PASS');sys.exit(1 if b else 0)
+PY
+```
+
+**B57.** `m06_faiss_metrics.py` hardcodes `data/val_1k_local/tags.json` default → eval_10k workflow reads wrong tags (iter12 #77).
+```bash
+python3 -c "import os,re,sys;t='<file>'
+if os.path.basename(t)!='m06_faiss_metrics.py': print('B57 SKIP');sys.exit(0)
+s=open(t).read()
+bad=bool(re.search(r'[\\x22\\x27]data/val_1k_local/tags\.json[\\x22\\x27]',s)) and not re.search(r'Path\(args\.subset\)\.parent.*tags',s)
+print('B57 FAIL: hardcoded val_1k tags default; auto-derive from --subset instead' if bad else 'B57 PASS');sys.exit(1 if bad else 0)"
+```
+
+**B58.** `m05_vjepa_embed.py` checkpoint filename keyed only by encoder-name → cross-variant collision (iter12 #75). Must include model-content fingerprint.
+```bash
+python3 -c "import os,re,sys;t='<file>'
+if os.path.basename(t)!='m05_vjepa_embed.py': print('B58 SKIP');sys.exit(0)
+s=open(t).read();has_fp=bool(re.search(r'_checkpoint_fingerprint|_compute_m05_fp',s))
+bad=bool(re.search(r'\.m05_checkpoint_\{embed_suffix\}\.npz',s)) and not has_fp
+print('B58 FAIL: m05 ckpt path lacks fingerprint — variants will collide' if bad else 'B58 PASS');sys.exit(1 if bad else 0)"
+```
+
+**B59.** Mode-gated yaml dict (`{sanity:..., poc:..., full:...}`) declared but never flattened by reader (iter12 #57/#67) → `TypeError: 'dict' is not subscriptable`. `.yaml` only; cross-checks `src/m09c_surgery.py`.
+```bash
+source venv_walkindia/bin/activate && python3 -c "
+import yaml,re,sys,pathlib;y='<file>'
+if not y.endswith(('.yaml','.yml')): print('B59 SKIP');sys.exit(0)
+d=yaml.safe_load(open(y)) or {}
+def gated(n): return isinstance(n,dict) and set(n.keys())>={'sanity','poc','full'} and all(not isinstance(v,(dict,list)) for v in n.values())
+gk=[]
+def w(n,p=''):
+    if isinstance(n,dict):
+        for k,v in n.items():
+            pp=f'{p}.{k}' if p else str(k)
+            if gated(v): gk.append(pp)
+            else: w(v,pp)
+w(d)
+src=pathlib.Path('src/m09c_surgery.py')
+if not src.exists(): print(f'B59 PASS:{len(gk)} gated (m09c missing — skip cross-check)');sys.exit(0)
+py=src.read_text();missed=[k for k in gk if k.split('.')[-1] not in py]
+print(f'B59 WARN:gated keys not flattened in m09c: {missed}' if missed else f'B59 PASS:{len(gk)} gated, all flattened');sys.exit(0)"
+```
+
+**B60.** `m11_factor_datasets.py` under `--streaming` flags `has_D_L=True` without disk-exists guard, OR pbar `total=len(segments)` ignores `--subset` count (iter12 #67/#70).
+```bash
+python3 -c "import os,re,sys;t='<file>'
+if os.path.basename(t)!='m11_factor_datasets.py': print('B60 SKIP');sys.exit(0)
+s=open(t).read();f=[]
+if '--streaming' in s or 'streaming' in s:
+    if not re.search(r'\.exists\(\)|_has_materialized_dl|materialized|streaming.*has_D_L\s*=\s*False',s): f.append('manifest:has_D_L without disk-exists guard')
+if re.search(r'target\s*=\s*len\(segments\)',s) and 'subset_keys' in s and not re.search(r'(target|n_to_process)\s*=\s*len\(subset_keys',s): f.append('pbar:target ignores subset')
+print(f'B60 FAIL:{f}' if f else 'B60 PASS');sys.exit(1 if f else 0)"
+```
+
+**B61.** Dead yaml field — `lr_schedule`/`schedule_type`/`optimizer_type`/`sampler_type` declared but read by zero `.py` (iter12 #78 — operator believed one schedule, code ran another). `.yaml` only; greps `src/**/*.py`.
+```bash
+source venv_walkindia/bin/activate && python3 -c "
+import yaml,sys,pathlib,re;y='<file>'
+if not y.endswith(('.yaml','.yml')): print('B61 SKIP');sys.exit(0)
+d=yaml.safe_load(open(y)) or {}
+SUSPECT={'lr_schedule','schedule_type','optimizer_type','sampler_type'}
+found=set()
+def w(n):
+    if isinstance(n,dict):
+        for k,v in n.items():
+            if k in SUSPECT: found.add(k)
+            w(v)
+    elif isinstance(n,list):
+        for it in n: w(it)
+w(d);sus=found&SUSPECT
+if not sus: print('B61 PASS');sys.exit(0)
+src=''.join(p.read_text() for p in pathlib.Path('src').rglob('*.py'))
+dead=[k for k in sus if not re.search(rf'[\\x22\\x27]{k}[\\x22\\x27]',src)]
+print(f'B61 FAIL:dead yaml field {dead}' if dead else f'B61 PASS:{len(sus)} live');sys.exit(1 if dead else 0)"
+```
+
 ## Output Format
 ```
 === PREFLIGHT: <file> ===
 AUTO:[A1-A3] GENERIC:[B1-B9] iter8:[B10-B15] TX5:[B16-B20] G-SAM:[B21-B25] SAM3:[B26-B27]
 VJEPA/CFG:[B28-B31] m09:[B32-B36] DURABILITY:[B37-B42] AGNOSTIC:[B43-B47] ORCH:[B48-B49] SEL/QUEUE:[B50-B51]
-TOTAL: X/54 passed. Y FAILs.
+ITER12:[B52-B61]
+TOTAL: X/64 passed. Y FAILs.
 ```
 List FAILs with line numbers + fix. Runtime assertions → `src/m*.py`.
