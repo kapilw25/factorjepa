@@ -1,8 +1,18 @@
-# Training Plan: FactorJEPA — iter13 Framing B (Frozen encoder + factor-conditioned probe)
+# Training Plan — FactorJEPA iter13 (Motion-Centric Probe Gate)
 
-> **GOAL (REVISED 2026-04-29):** Demonstrate `vjepa_surgical` > `vjepa_frozen` on a V-JEPA-aligned downstream gate metric, where `surgical` = same FROZEN V-JEPA 2.1 ViT-G + a probe head that exploits the D_L/D_A/D_I factor labels the frozen baseline cannot see.
+> ## 🎯 Paper goal — three priorities (durable across iter13 work)
 >
-> **Why the goal moved**: 5 distinct encoder-fine-tuning recipes (small surgery, multi-task with Kendall UW, 115K full-encoder pretrain, staged factor unfreeze, loss-balance fix) all failed to lift Prec@K meaningfully on this data. Encoder is at equilibrium; no eval-metric switch will rescue a no-shift training problem. iter13 reframes — keep the encoder frozen (Meta's actual transfer pattern) and let the **factor labels** be the moat.
+> 🥇 **P1**: `vjepa_frozen` outperforms `dinov2_frozen` (and DINOv3 if checkpoint available) on Meta's published motion-centric benchmark (SSv2 attentive probe, target **≥ +20 pp**).
+>
+> 🥈 **P2**: `vjepa_explora` outperforms `vjepa_frozen` on the same benchmark.
+>
+> 🥉 **P3**: `vjepa_surgery` outperforms `vjepa_explora` on the same benchmark.
+>
+> ---
+>
+> **Why iter13 exists.** 5 distinct encoder-fine-tuning recipes (small surgery, multi-task with Kendall UW, 115K full-encoder pretrain, staged factor unfreeze, loss-balance fix) all failed to lift **Prec@K** meaningfully — but Prec@K is NOT in Meta's published V-JEPA 2 / 2.1 evaluation suite. Meta uses **frozen encoder + 4-layer attentive probe** on SSv2 / Diving-48 / Ego4D / EK100. iter13 pivots the gate metric to Meta's published recipe.
+>
+> **Sequencing**: P1 must pass (paired BCa CI_lo > 0, Δ ≥ +20 pp) before P2. P2 must pass (Δ > 0, p < 0.05) before P3. P3 last. Each priority gates the next.
 >
 > Live state: `iter/utils/experiment_log.md` (post-completion only) · `iter/iter12_multitask_LOSS/runbook.md` (terminal commands) · `iter/iter12_multitask_LOSS/errors_N_fixes.md` (#1–#81) · `iter/iter12_multitask_LOSS/analysis.md` (Q1–Q7 + iter13 design).
 
@@ -56,53 +66,59 @@ If the probe wins (Δ > 0, p < 0.05): add **first reportable `surgical > frozen`
 
 Per Meta's V-JEPA 2 paper (DeepWiki cross-ref [§5.3 downstream tasks](https://deepwiki.com/facebookresearch/vjepa2/5.3-downstream-tasks-and-benchmarks)): *"V-JEPA 2 exhibits competitive performance in the frozen setup, outperforming DINOv2, SigLIP, and Perception Encoder in all of the tested benchmarks."*
 
-### Script decision: build `src/m06d_motion_probe.py`
+### Implemented architecture — 3 m06d modules + 2 shared utils + 1 orchestrator
 
-Why a NEW script (not extending m06/m06b/m06c):
+> 🛠️ Track 1 ships as **3 sibling modules** (per CLAUDE.md "one purpose per `m*.py`") backed by 2 new shared utils. Single orchestrator wires the full 9-stage pipeline.
 
-| Existing | Does | Why insufficient |
-|---|---|---|
-| `m06_faiss_metrics.py` | FAISS-GPU kNN distance metrics on `.npy` embeddings | no training, no labels, retrieval-only — wrong gate |
-| `m06b_temporal_corr.py` | CPU Spearman corr emb-dist vs motion-feat-dist | no probe, no class accuracy |
-| `m06c_temporal_projection.py` | CPU PCA on (normal − shuffled) → project out → re-run m06 | still retrieval, not classification |
+```text
+        ┌──────────────────────────────────────┐
+        │   utils/action_labels.py  (CPU)      │  shared 3/4-class derivation, splits
+        │   utils/frozen_features.py (GPU)     │  shared encoder loaders + extractor
+        │   utils/vjepa2_imports.py (CPU)      │  + get_attentive_classifier()
+        └──────────────────────────────────────┘
+                        │
+              ┌─────────┼─────────┐
+              ▼         ▼         ▼
+   m06d_action_probe.py  m06d_motion_cos.py  m06d_future_mse.py
+   (4-stage gate)        (3-stage motion proxy) (2-stage V-JEPA-only)
+                        │
+                        ▼
+                scripts/run_m06d.sh
+        (9 stages: labels → features × 2 enc → train × 2 enc → P1 GATE
+                  → motion features × 2 enc → cosine × 2 enc → motion_cos Δ
+                  → future_mse forward → future_mse Δ)
+```
 
-Motion-centric attentive probes need: GPU **training** of a 4-layer attention probe head with **cross-entropy / anticipation loss** on **labeled video clips** from SSv2/Diving-48/Ego4D/EPIC. That's a different shape — separate module per CLAUDE.md "one purpose per `m*.py`" rule.
+> 📦 **Why `m06d_action_probe.py` does NOT reimplement Meta's probe**: it uses Meta's *exact* `AttentiveClassifier` module from `deps/vjepa2/src/models/attentive_pooler.py` via `utils.vjepa2_imports.get_attentive_classifier()` (single line). The recipe (AdamW lr=5e-4 wd=0.05 + cosine 10 % warmup + 50 epochs + cross-entropy) matches V-JEPA 2.1 paper §4.2. Numbers are bit-identical to Meta's published when applied to their data, and directly comparable on our Indian-action data.
 
-### Per "STICK TO Official V-JEPA 2 transfer code ONLY" — `m06d` is a THIN WRAPPER
+> 📦 **Why we run on `data/eval_10k_local` instead of subprocess-wrapping `deps/vjepa2/evals/main_distributed.py`**: our paper claim is on Indian-context retrieval, not Meta's curated SSv2/Diving-48 sets. The same Meta-published probe protocol applied to our own labeled clips gives a domain-relevant gate. Module 3 (`m06d_future_mse.py`) additionally exercises the V-JEPA training objective forward-only on Indian clips — a separate health check that DINOv2 cannot match (no future-frame predictor head).
 
-`m06d_motion_probe.py` does NOT reimplement Meta's probe. It:
-1. Pulls `deps/vjepa2/evals/main_distributed.py` + the appropriate `configs/eval/<arch>/<benchmark>.yaml` from the cloned repo.
-2. Substitutes our V-JEPA 2.1 ViT-G checkpoint (`checkpoints/vjepa2_1_vitG_384.pt`) and DINOv2 ViT-G14 checkpoint into Meta's eval config.
-3. Subprocess-launches `python -m evals.main_distributed --fname <yaml>` (one process per encoder × benchmark).
-4. Parses the resulting accuracy + 95 % CI and writes `outputs/full/m06d_motion_probe/<encoder>_<benchmark>.json`.
-5. Aggregates a 4-row × 2-encoder comparison table for the paper figure.
+### Plan — 9 stages, ~2.5 GPU-h total, run via `scripts/run_m06d.sh`
 
-That keeps numbers bit-identical to Meta's published results (no risk of "we re-implemented and got different numbers") and minimizes our LoC.
+| # | Stage | Module | Cost | Pass criterion |
+|:-:|:--|:--|:-:|:--|
+| 1 | `labels` (3-class action labels + 70/15/15 stratified split on 9,951 clips) | action_probe | CPU, ~1 min | ≥ 5 val + ≥ 5 test per class |
+| 2 | `features` × 2 enc (V-JEPA + DINOv2 token grids on train/val/test) | action_probe | GPU, ~1 h | per-encoder `(N, n_tokens, D)` `.npy` written |
+| 3 | `train` × 2 enc (AttentiveClassifier head, 50 ep, best-by-val-acc) | action_probe | GPU, ~30 min | `probe.pt` exported; `test_metrics.json` has `top1_acc` + 95 % BCa CI |
+| 4 | 🔥 `paired_delta` — **PRIORITY 1 GATE** | action_probe | CPU, ~5 min | **Δ accuracy CI_lo > 0** = V-JEPA significantly outperforms DINOv2 |
+| 5 | motion `features` × 2 enc (mean-pool from action_probe cache via `--share-features`, or fresh GPU extract) | motion_cos | CPU ~2 min (or GPU ~30 min) | `pooled_features_test.npy` written |
+| 6 | motion `cosine` × 2 enc (intra-class − inter-class cos vectorised) | motion_cos | CPU, ~1 min | `per_clip_motion_cos.npy` + `intra_inter_ratio.json` |
+| 7 | motion `paired_delta` | motion_cos | CPU, ~1 min | `m06d_motion_cos_paired.json` |
+| 8 | future_mse `forward` (V-JEPA-only — encoder + predictor + mask_gen) | future_mse | GPU, ~30 min | `per_clip_mse.npy` + `aggregate_mse.json` |
+| 9 | future_mse `paired_per_variant` | future_mse | CPU, ~1 min | DINOv2 reported as `n/a — no future-frame predictor` |
+| **Total** | | | **~2.5 GPU-h ≈ $2** | All 3 paired-Δ JSONs + per-encoder probe ckpts |
 
-### Plan
+### Outcome decision matrix (Stage 4 — Priority 1 gate)
 
-| # | Step | GPU cost | Output | Pass criterion |
-|---|---|---|---|---|
-| 1 | Verify `deps/vjepa2/` is fresh (`setup_env_uv.sh` already clones it). Pull pretrained probes from `dl.fbaipublicfiles.com/vjepa2/evals/ssv2-vitg-384-64x2x3.pt` (and Diving-48 / Ego4D / EPIC equivalents) for inference-only baseline | 0 GPU | local checkpoints | downloads succeed |
-| 2 | Write `src/m06d_motion_probe.py` thin wrapper — args: `--encoder {vjepa_2_1_frozen,dinov2}`, `--benchmark {ssv2,diving48,ego4d,epic}`, `--FULL`. Subprocess-invoke Meta's `evals/main_distributed.py` | ~0.5 h dev | new script + 8 YAML configs (4 benchmarks × 2 encoders) | passes preflight A1-A3 + B1-B61 |
-| 3 | Run V-JEPA 2.1 frozen attentive probe on **SSv2** (~64 frames, ViT-G/384) | ~3 h | `outputs/full/m06d_motion_probe/vjepa_2_1_frozen_ssv2.json` (acc + 95% CI) | acc ≥ 75 % (within 3 pp of Meta's 77.7 %) |
-| 4 | Run DINOv2 ViT-G14 frozen attentive probe on SSv2 (frame-tile + temporal pool, V-JEPA 2 paper recipe) | ~3 h | `outputs/full/m06d_motion_probe/dinov2_ssv2.json` | acc roughly ≤ 53 % (within 3 pp of V-JEPA 2 paper's reported gap) |
-| 5 | **GATE**: Δ accuracy V-JEPA 2.1 − DINOv2 on SSv2 with paired 95 % CI | ~5 min | `outputs/full/m06d_motion_probe/m06d_paired_ssv2.json` | **Δ ≥ +20 pp, CI_lo > 0 → pass; else FAIL → backbone broken on our pipeline** |
-| 6 | If Step 5 PASS: replicate on Diving-48 + Ego4D OSC + EPIC | ~12 h (3 benchmarks × ~4 h each) | per-benchmark JSON + aggregate table | each benchmark within 5 pp of Meta's published number |
-| 7 | If Step 5 PASS: proceed to Track 2 (iter13 Indian factor probe) | — | — | — |
-| **Total (PASS path)** | | **~18 h GPU @ ~$15** | 4-benchmark × 2-encoder Meta-replication table | Track 2 unblocked |
+| Δ accuracy V-JEPA − DINOv2 | Reading | Next action |
+|:--|:--|:--|
+| ✅ **Δ > 0, CI_lo > 0, p < 0.05** | V-JEPA 2.1 frozen features beat DINOv2 ViT-G14 on motion-centric Indian action probe | Proceed to Priority 2 (build `m06d_explora_*.py` for vjepa_explora vs vjepa_frozen) |
+| 🟡 **Δ > 0, CI_lo ≤ 0** (overlap) | V-JEPA leads on point estimate but CI overlap → underpowered or noise floor | Diagnose: try `--num-frames 64` (Meta default), `--enable-monument-class` (4-class harder task) — add headroom before declaring fail |
+| ❌ **Δ ≤ 0** | DINOv2 ties or beats V-JEPA on our domain | **Cancel Priority 2 / 3.** Diff `m05` inference path vs `vjepa2_demo.ipynb`. If reproducible → backbone or pipeline broken; pivot paper to "V-JEPA 2.1 frozen features under-perform DINOv2 on Indian-context video" |
 
-### Outcome decision matrix
+### Caveat — DINOv2 video recipe
 
-| Step 5 result | Reading | Next action |
-|---|---|---|
-| **Δ SSv2 ≥ +20 pp, CI_lo > 0** ✅ | V-JEPA 2.1 backbone reproduces Meta's published frozen lift; m06 retrieval Prec@K underperformance is a wrong-gate phenomenon, not a backbone problem | Run Steps 6–7. Proceed to Track 2 with confidence the encoder is sound |
-| **Δ SSv2 ∈ [0, +20) pp** 🟡 | Backbone partially works but not at Meta's level → either our `--frames=16` vs Meta's 64 mismatch, or our SDPA / dtype config diverges from Meta's reference | Diagnose: run Meta's exact eval recipe (64f, fp32 attention, no torch.compile) and re-test. If still <+10 pp, escalate to FAIL path |
-| **Δ SSv2 ≤ 0 pp** ❌ | Frozen V-JEPA 2.1 doesn't beat DINOv2 even on Meta's headline motion-centric benchmark → either (a) our V-JEPA 2.1 ckpt is corrupted, (b) our pipeline silently breaks the model, or (c) backbone is wrong for our task class | **Cancel Track 2.** Open critical bug. Diff our m05 inference path vs Meta's `vjepa2_demo.ipynb` line by line. If reproducible → consider switching backbone (constraint break — needs user approval) or pivot paper to "V-JEPA 2.1 frozen features fail to generalize beyond Meta's curated benchmarks" |
-
-### Caveat — DINOv2 on video benchmarks
-
-DINOv2 is image-only. Meta's V-JEPA 2 paper compares to it via the standard "tile DINOv2 features over T frames + attentive pool over time" recipe ([V-JEPA 2 §4.1](https://arxiv.org/abs/2506.09985)). `m06d` adopts that exact recipe — no DINOv2 modifications, just temporal aggregation in the probe head. Both encoders see the same probe-head architecture (4-layer attentive); only the underlying frozen features differ.
+DINOv2 is image-only. We process each of T=16 frames independently → `(B*T, n_spatial, D)` token sequence, then concatenate over time → `(B, T*n_spatial, D)`. Matches V-JEPA 2 paper §4.1 "tile + temporal pool" baseline. Both encoders feed the SAME 4-layer `AttentiveClassifier` architecture; only the underlying frozen features differ → any Δ accuracy is encoder-attributable.
 
 ---
 
@@ -180,16 +196,21 @@ flowchart TB
         SAM --> FAC
     end
 
-    subgraph TRACK1 ["Track 1 — Backbone sanity gate (Meta benchmarks)"]
+    subgraph TRACK1 ["Track 1 — Indian-action probe gate (3-module pipeline)"]
         direction LR
-        M06D["m06d_motion_probe.py<br>thin wrapper around<br>deps/vjepa2/evals/main_distributed.py"]
-        VJ_PROBE["V-JEPA 2.1 frozen<br>+ attentive probe"]
-        DINO_PROBE["DINOv2 ViT-G14 frozen<br>+ attentive probe (tile+pool)"]
-        BENCH["SSv2 / Diving-48<br>Ego4D OSC / EPIC"]
-        GATE["Δ accuracy ≥ +20 pp<br>CI_lo > 0 → unblock Track 2"]
-        M06D --> VJ_PROBE --> BENCH
-        M06D --> DINO_PROBE --> BENCH
-        BENCH --> GATE
+        SHARED["utils/action_labels.py (CPU)<br>utils/frozen_features.py (GPU)<br>utils/vjepa2_imports.py (CPU)"]
+        ACTION["m06d_action_probe.py<br>4-stage gate"]
+        COS["m06d_motion_cos.py<br>3-stage motion proxy"]
+        MSE["m06d_future_mse.py<br>2-stage V-JEPA-only"]
+        SH["scripts/run_m06d.sh<br>9-stage orchestrator"]
+        GATE["paired BCa Δ on test split<br>CI_lo > 0 → unblock P2"]
+        SHARED --> ACTION
+        SHARED --> COS
+        SHARED --> MSE
+        ACTION --> SH
+        COS --> SH
+        MSE --> SH
+        SH --> GATE
     end
 
     subgraph TRACK2 ["Track 2 — iter13 Indian factor-conditioned probe (BLOCKED on Track 1 PASS)"]

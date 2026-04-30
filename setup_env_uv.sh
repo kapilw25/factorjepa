@@ -12,7 +12,7 @@
 #   mkdir -p logs && ./setup_env_uv.sh --gpu 2>&1 | tee logs/setup_env_gpu.log
 #
 #   # GPU Server with prebuilt wheels (skip FA2 + FAISS source build)
-#   mkdir -p logs && ./setup_env_uv.sh --gpu --from-wheels 2>&1 | tee logs/setup_env_gpu_v2.log
+#   mkdir -p logs && bash setup_env_uv.sh --gpu --from-wheels 2>&1 | tee logs/setup_env_gpu_v1.log
 #
 #   # Activate
 #   # source venv_walkindia/bin/activate # replace    
@@ -24,7 +24,18 @@ mkdir -p logs  # Ensure logs/ exists early (for tee piping)
 # ============================================================================
 # Pinned versions (Blackwell sm_120 + CUDA 13.0 + Python 3.12)
 # ============================================================================
-TORCH_VERSION="2.12.0.dev20260228"  # PyTorch nightly cu128 — pinned for FA2 wheel compat
+TORCH_VERSION="2.12.0.dev20260407"  # PyTorch nightly cu128 — pinned for FA2 wheel compat.
+                                    # 2026-04-30 bump #1: dev20260228 was rotated off the nightly CDN
+                                    # (logs/setup_env_gpu_v1.log:277-279).
+                                    # 2026-04-30 bump #2: dev20260408 has no paired torchvision build
+                                    # — latest torchvision (0.27.0.dev20260407) only declares compat
+                                    # with torch 20260406/20260407, so we drop one day to dev20260407
+                                    # which DOES have a paired torchvision (logs/setup_env_gpu_v2.log:414).
+                                    # NOTE: the prebuilt FA2 wheel in wheels/ was built against the
+                                    # 20260228 ABI. With this pin the auto-detect at line ~343 will
+                                    # take the source-rebuild path (~30-90 min) unless a fresh
+                                    # FA2 wheel matching dev20260407 is uploaded to GitHub release
+                                    # `sm120-cu128-py312` first. Same applies to FAISS-GPU.
 RELEASE_TAG="sm120-cu128-py312"     # GitHub release tag for prebuilt FA2 + FAISS wheels
 
 # ============================================================================

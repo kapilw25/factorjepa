@@ -48,6 +48,7 @@ def _ensure_loaded_base():
         importlib.import_module("src.models.utils.pos_embs")
         importlib.import_module("src.models.vision_transformer")
         importlib.import_module("src.models.predictor")
+        importlib.import_module("src.models.attentive_pooler")   # m06d_action_probe — AttentivePooler + AttentiveClassifier
         importlib.import_module("src.masks.utils")
         importlib.import_module("src.masks.multiseq_multiblock3d")
     finally:
@@ -170,3 +171,23 @@ def get_mask_generator():
 def get_apply_masks():
     _ensure_loaded_base()
     return sys.modules["src.masks.utils"].apply_masks
+
+
+# ── Attentive probe head (used by Meta's evals + m06d_action_probe) ──
+
+def get_attentive_classifier():
+    """Meta's AttentiveClassifier from deps/vjepa2/src/models/attentive_pooler.py.
+
+    Wraps an N-layer AttentivePooler + Linear head. Constructor kwargs:
+        embed_dim, num_classes, depth, num_heads, mlp_ratio,
+        complete_block, use_activation_checkpointing.
+    EXACT module Meta uses for SSv2/K400/Diving-48/EK100 attentive probes.
+    """
+    _ensure_loaded_base()
+    return sys.modules["src.models.attentive_pooler"].AttentiveClassifier
+
+
+def get_attentive_pooler():
+    """Bare AttentivePooler (no Linear head). Use when only pooled features are needed."""
+    _ensure_loaded_base()
+    return sys.modules["src.models.attentive_pooler"].AttentivePooler

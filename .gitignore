@@ -67,6 +67,10 @@ logs/*.log
 # data/LEGACY*
 # data/subset_10k_local/*
 data/full_local/tags.json
+# eval_10k_local/tags.json — 148 MB, exceeds GitHub's 100 MB single-file limit
+# (push rejected on commit b576c4a). Re-downloadable via:
+#   python -u src/utils/hf_outputs.py download-data
+data/eval_10k_local/tags.json
 # manifest.json is a derived artifact of the (gitignored) .tar shards — tracking it
 # alone causes "stale manifest, .tar missing" resume-resets after git_pull.sh.
 data/val_1k_local/manifest.json
