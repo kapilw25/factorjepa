@@ -14,7 +14,7 @@ USAGE:
     # Upload/download: from @data/
     # poc 10K (10 TARs, 10.5GB) + val 1K (1 TAR, 0.9GB) + JSON manifests
     python -u src/utils/hf_outputs.py upload-data 2>&1 | tee logs/upload_poc_val.log    # ~15 min upload
-    python -u src/utils/hf_outputs.py download-data 2>&1 | tee logs/download_poc_val.log # ~3 min measured
+    python -u src/utils/hf_outputs.py download-data 2>&1 | tee logs/download_poc_val_v1.log # ~3 min measured
 
 
 

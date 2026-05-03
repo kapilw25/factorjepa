@@ -27,6 +27,7 @@ USAGE (priority 1: forward on V-JEPA frozen only — DINOv2 path intentionally a
         --output-root outputs/full/m06d_future_mse --cache-policy 1
 """
 import argparse
+import contextlib
 import json
 import os
 import queue
@@ -51,13 +52,13 @@ from utils.config import add_local_data_arg, check_gpu, get_pipeline_config
 from utils.data_download import ensure_local_data, iter_clips_parallel
 from utils.frozen_features import (
     decode_to_tensor,
-    load_vjepa_2_1_frozen,
 )
 from utils.gpu_batch import AdaptiveBatchSizer, cleanup_temp, cuda_cleanup
 from utils.progress import make_pbar
 from utils.vjepa2_imports import (
     get_apply_masks,
     get_mask_generator,
+    get_vit_gigantic_xformers,
     get_vit_predictor_2_1,
 )
 from utils.wandb_utils import add_wandb_args, finish_wandb, init_wandb, log_metrics
@@ -96,6 +97,50 @@ KNOWN_VARIANTS = (
 
 
 # ── Encoder / predictor / mask-generator loaders ──────────────────────
+
+def _load_vjepa_2_1_encoder_hierarchical(ckpt_path: Path, num_frames: int):
+    """V-JEPA 2.1 ViT-G encoder with deep-supervision hierarchical output ON.
+
+    Why this lives here and NOT in utils/frozen_features.py:
+    `load_vjepa_2_1_frozen` returns the LAST layer (1664-dim) — what every other
+    m*.py probe needs. The predictor in this module is built with
+    `predictor_embed_dim_in = embed_dim * len(hierarchical_layers) = 6656`
+    (deps/vjepa2/app/vjepa_2_1/models/predictor.py:85-89), so it expects the
+    4-layer concat. Setting `return_hierarchical=True` makes the encoder's
+    own forward path do the concat (vision_transformer.py:335-337) → returns
+    a single (B, N, 6656) tensor that lines up with the predictor input.
+
+    Returns (model, crop=384, embed_dim_concat=6656).
+    """
+    if not ckpt_path.exists():
+        sys.exit(f"FATAL: encoder ckpt not found: {ckpt_path}")
+    print(f"Loading V-JEPA 2.1 ViT-G hierarchical (vit_gigantic_xformers, crop={CROP}, T={num_frames}) ...")
+    ckpt = torch.load(ckpt_path, map_location="cpu", weights_only=False)
+    state_dict = ckpt.get("target_encoder", ckpt.get("encoder", ckpt))
+    state_dict = {k.replace("module.", "").replace("backbone.", ""): v
+                  for k, v in state_dict.items()}
+
+    vit_constructor = get_vit_gigantic_xformers()
+    model = vit_constructor(
+        img_size=(CROP, CROP), patch_size=PATCH_SIZE, num_frames=num_frames,
+        tubelet_size=TUBELET_SIZE, use_sdpa=True, use_silu=False, wide_silu=True,
+        uniform_power=False, use_rope=True,
+    )
+    msg = model.load_state_dict(state_dict, strict=False)
+    loaded = len(state_dict) - len(msg.unexpected_keys)
+    total = len(list(model.state_dict().keys()))
+    print(f"  Loaded {loaded}/{total} params  (missing={len(msg.missing_keys)}, unexpected={len(msg.unexpected_keys)})")
+    if loaded < total * 0.9:
+        sys.exit(f"FATAL: only {loaded}/{total} V-JEPA params loaded — key mismatch")
+
+    # Flip to hierarchical: encoder forward returns (B, N, 1664*4=6656) instead of (B, N, 1664).
+    model.return_hierarchical = True
+
+    model = model.to(device="cuda", dtype=torch.bfloat16).eval()
+    torch.backends.cuda.sdp_kernel = contextlib.nullcontext
+    embed_dim_concat = model.embed_dim * len(model.hierarchical_layers)
+    return model, CROP, embed_dim_concat
+
 
 def _load_predictor_2_1(ckpt_path: Path, num_frames: int):
     """Load V-JEPA 2.1 predictor from the same .pt that holds the encoder.
@@ -188,15 +233,23 @@ def _forward_one_batch(encoder, predictor, mask_gen, batch: torch.Tensor) -> np.
     pixel = batch.to(device, dtype=torch.bfloat16).permute(0, 2, 1, 3, 4).contiguous()  # (B,3,T,H,W)
 
     # 1) Context features (encoder applied with m_enc → only visible tokens).
+    # V-JEPA 2.1 with n_output_distillation=4 returns a list of hierarchical-layer
+    # outputs (4 × 1664-dim each). predictor_embed is built as a Sequential whose
+    # first Linear maps `embed_dim * len(hierarchical_layers) = 1664*4 = 6656` →
+    # 1664 (deps/vjepa2/app/vjepa_2_1/models/predictor.py:85-89), so the predictor
+    # expects ALL 4 layers concatenated along the feature dim — NOT just the last
+    # layer. Taking z[-1] gave a 1664-dim tensor that crashed the 6656-dim Linear.
     z = encoder(pixel, masks=[m_enc])
     if isinstance(z, (list, tuple)):
-        z = z[-1]
+        z = torch.cat(list(z), dim=-1)                 # (B, N_vis, embed_dim * n_distill = 6656)
 
     # 2) Target features — full forward (no mask) → all tokens; mask post-hoc.
+    # Same concat: predictor_proj outputs 6656-dim per token (predictor.py:178-184),
+    # so h_target must be the 4-layer-concat as well for the L1 loss to align.
     h = encoder(pixel)
     if isinstance(h, (list, tuple)):
-        h = h[-1]
-    h_target = apply_masks(h, [m_pred])               # (B, n_pred_tokens, D)
+        h = torch.cat(list(h), dim=-1)                 # (B, N, 6656)
+    h_target = apply_masks(h, [m_pred])               # (B, n_pred_tokens, 6656)
 
     # 3) Predict.
     out = predictor(z, [m_enc], [m_pred], mask_index=0)
@@ -214,9 +267,13 @@ def _forward_one_batch(encoder, predictor, mask_gen, batch: torch.Tensor) -> np.
 # ── Stage 1 — forward on test split ───────────────────────────────────
 
 def _save_mse_ckpt(ckpt_file: Path, mse_acc, keys_acc) -> None:
+    """Atomic .npz checkpoint. Suffix is .tmp.npz (not .npz.tmp) —
+    np.savez auto-appends .npz when the path doesn't end in .npz, which
+    would silently rename our tmp behind our back. See errors_N_fixes.md #82.
+    """
     if not mse_acc:
         return
-    tmp = ckpt_file.with_suffix(".npz.tmp")
+    tmp = ckpt_file.with_suffix(".tmp.npz")
     np.savez(tmp,
              mse=np.array(mse_acc, dtype=np.float32),
              keys=np.array(keys_acc, dtype=object))
@@ -286,11 +343,13 @@ def run_forward_stage(args, wb) -> None:
     print(f"Forward on {len(test_keys)} test clips, variant={args.variant}")
 
     # Encoder + predictor + mask-gen
-    encoder, crop, embed_dim = load_vjepa_2_1_frozen(args.encoder_ckpt, args.num_frames)
+    encoder, crop, embed_dim_concat = _load_vjepa_2_1_encoder_hierarchical(
+        args.encoder_ckpt, args.num_frames)
     if crop != CROP:
         sys.exit(f"FATAL: encoder crop {crop} != module CROP {CROP}; predictor was built for {CROP}")
-    if embed_dim != 1664:
-        sys.exit(f"FATAL: encoder embed_dim {embed_dim} != 1664; predictor was built for 1664")
+    # predictor_embed.0 is Linear(1664*n_distill -> 1664) = Linear(6656 -> 1664).
+    if embed_dim_concat != 1664 * 4:
+        sys.exit(f"FATAL: hierarchical concat dim {embed_dim_concat} != 6656; predictor expects 1664*4")
     predictor = _load_predictor_2_1(args.encoder_ckpt, args.num_frames)
     mask_gen = _build_mask_gen(args.num_frames)
     print(f"  predictor: {sum(p.numel() for p in predictor.parameters()) / 1e6:.1f}M params")
@@ -516,4 +575,15 @@ def main() -> None:
 
 
 if __name__ == "__main__":
-    main()
+    # Fail-fast: any uncaught exception → traceback + sys.exit(1) so the
+    # parent shell (run_m06d.sh under `set -e`) sees non-zero and aborts the
+    # chain. Mirrors m10_sam_segment.py pattern (errors_N_fixes #14/#16).
+    try:
+        main()
+    except SystemExit:
+        raise
+    except BaseException:
+        import traceback
+        print(f"\n❌ FATAL: {Path(__file__).name} crashed — see traceback below", file=sys.stderr)
+        traceback.print_exc()
+        sys.exit(1)

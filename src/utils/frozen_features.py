@@ -180,10 +180,14 @@ def forward_dinov2(model, batch: torch.Tensor, num_frames: int) -> torch.Tensor:
 # ── Extraction loop (producer-consumer, OOM-safe, resumable) ─────────
 
 def _save_features_ckpt(ckpt_file: Path, feats_acc, keys_acc) -> None:
-    """Atomic .npz checkpoint of features-so-far."""
+    """Atomic .npz checkpoint of features-so-far.
+    Suffix is .tmp.npz (not .npz.tmp) — np.savez auto-appends .npz when the
+    path doesn't already end in .npz, which would silently rename our tmp
+    file behind our back and break the os.replace. See errors_N_fixes.md #82.
+    """
     if not feats_acc:
         return
-    tmp = ckpt_file.with_suffix(".npz.tmp")
+    tmp = ckpt_file.with_suffix(".tmp.npz")
     np.savez(tmp,
              features=np.stack(feats_acc).astype(np.float32),
              keys=np.array(keys_acc, dtype=object))

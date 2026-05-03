@@ -23,7 +23,7 @@ Research benchmark testing whether V-JEPA 2.1 (Meta's video foundation model, tr
 - **m02b_scene_fetch_duration.py**: ffprobe scan → `clip_durations.json` + `docs/static/stats.json`.
 - **m03_pack_shards.py**: Streaming TAR packing → HF upload → delete; generates README on HF.
 
-### m04-m08b: Evaluation Pipeline
+### m04-m08b: Evaluation Pipeline (m06d trio added in iter13 for the motion-centric P1 gate)
 - **m04_vlm_tag.py**: 3 VLM backends (Qwen3-VL default / VideoLLaMA3 / LLaVA-NeXT). Orchestrator/worker for VRAM, AdaptiveBatchSizer, checkpoint/resume. 16 closed-vocab fields per clip.
 - **m04_vlm_tag_vllm.py**: vLLM (Qwen3-VL only) variant for full 115K — separate `venv_vllm`.
 - **m04b_vlm_select.py**: CPU 5-criterion bake-off scoring (parse rate, agreement, speed, taxonomy fit, confidence cal).
@@ -35,6 +35,9 @@ Research benchmark testing whether V-JEPA 2.1 (Meta's video foundation model, tr
 - **m06_faiss_metrics.py**: FAISS-GPU kNN → 9 metrics × Easy/Hard + bootstrap 95% CI. Exclusion window + clip duration from `pipeline.yaml`. **Always-recomputes** (no cache_policy). Hard-fail on missing inputs.
 - **m06b_temporal_corr.py**: 5 temporal metrics per encoder (Spearman embedding-vs-motion). k-means motion clusters from `pipeline.yaml`.
 - **m06c_temporal_projection.py**: CPU PCA: project out (normal − shuffled) subspace from V-JEPA embeddings; 30-min experiment, potential paper centerpiece.
+- **m06d_action_probe.py** (iter13 P1, ~412 LoC): 4 stages (`labels` → `features` → `train` → `paired_delta`). Uses Meta's exact `AttentiveClassifier` from `deps/vjepa2/src/models/attentive_pooler.py` via `utils.vjepa2_imports.get_attentive_classifier()`. AdamW lr=5e-4 wd=0.05 + cosine 10 % warmup + 50 ep + cross-entropy + best-by-val-acc. Per-clip `test_predictions.npy` ∈ {0,1} for paired-bootstrap. `paired_delta` runs BCa Δ V-JEPA − DINOv2 with `gate_pass = ci_lo > 0`.
+- **m06d_motion_cos.py** (iter13 P1 secondary, ~353 LoC): 3 stages (`features` → `cosine` → `paired_delta`). Default `--share-features`: mean-pools m06d_action_probe's cached `(N, n_tokens, D)` features over the n_tokens axis (no GPU re-extract). Vectorised intra-class − inter-class cosine via `S = emb_n @ emb_n.T` + class-mask reduction. Per-clip `motion_score = pos − neg`. BCa Δ paired test V-JEPA − DINOv2.
+- **m06d_future_mse.py** (iter13 P1 health check, V-JEPA-only, ~519 LoC): 2 stages (`forward` → `paired_per_variant`). Loads encoder + predictor + MaskGenerator from same V-JEPA `.pt` (target_encoder + predictor keys). 8-block ~15 % spatial mask via `_MaskGenerator(num_frames=…)`. Per-clip L1 between predictor output and EMA-target tokens on masked positions. AdaptiveBatchSizer + resumable `.m06d_future_mse_ckpt.npz`. `paired_per_variant` does pairwise BCa across `vjepa_2_1_{frozen,explora,surgical}` (DINOv2 reported as `n/a — no future-frame predictor`).
 - **m07_umap.py**: cuML GPU UMAP → 2D.
 - **m08_plot.py**: CPU matplotlib UMAP scatter + kNN confusion matrix + kNN grids. Reads pre-computed `.npy`.
 - **m08b_compare.py**: CPU multi-encoder grouped bars / radar / paired-Δ plots / LaTeX table with 95% CI. **Always-recomputes**. Auto-scans m06/m06b JSON.
@@ -68,6 +71,8 @@ Research benchmark testing whether V-JEPA 2.1 (Meta's video foundation model, tr
 - **build_faiss_sm120.sh**: Source-build FAISS-GPU 1.14.1 for Blackwell sm_120. `--install` reuses `/tmp/faiss_build`.
 
 ### Utils (`src/utils/`)
+- **`action_labels.py`** (218 LoC, iter13) — `parse_action_from_clip_key` (path-prefix `tier1/<city>/<activity>`; `rain → walking`; optional 4-class monument override via `tags.scene_type=="heritage_tourist"`). `load_subset_with_labels`, `stratified_split` (rejects classes <5 per split — BCa CI floor), `write_action_labels_json` + `class_counts.json`. CPU self-test CLI. Used by m06d_action_probe + m06d_motion_cos + m06d_future_mse.
+- **`frozen_features.py`** (327 LoC, iter13) — Shared encoder loaders + extractor for the m06d trio. `ENCODERS = {vjepa_2_1_frozen, dinov2}`. `load_vjepa_2_1_frozen` (mirrors m05:629-670 — bf16, RoPE patch, SDPA monkey-patch). `load_dinov2_frozen` (fp16, FA2). `decode_to_tensor` (PyAV + ImageNet normalize + resize-shorter-side + center-crop). `forward_vjepa` (B,T,3,H,W → permute B,3,T,H,W; deep-supervision unwrap to last layer). `forward_dinov2` (B*T flatten → tile + concat over T, matches V-JEPA 2 paper §4.1 "tile + temporal pool"). `extract_features_for_keys` producer-consumer with AdaptiveBatchSizer + atomic `.m06d_<label>_ckpt.npz` resume.
 - **`bootstrap.py`** — BCa 10K-iter `scipy.stats.bootstrap`, vectorized.
 - **`cache_policy.py`** — **SOLE cross-module destructive-delete guard**. `add_cache_policy_arg`, `resolve_cache_policy_interactive`, `guarded_delete`. Replaces removed `output_guard.py` (2026-04-26).
 - **`checkpoint.py`** — Atomic `os.replace` save/load for `.npy` / `.npz` / `.json`. Returns empty defaults on missing/corrupt; never raises.
@@ -87,7 +92,7 @@ Research benchmark testing whether V-JEPA 2.1 (Meta's video foundation model, tr
 - **`profile_vram.py`** — Empirical V-JEPA 2 ViT-G VRAM cost model → `outputs/profile/training/profile_data.json`.
 - **`progress.py`** — `make_pbar(...)` tqdm factory with consistent ETA format.
 - **`training.py`** (787 LoC, post-#49) — 20 technique-agnostic helpers shared by m09a/b/c. ZERO `if cfg["technique"]` branches. `build_model`, `build_optimizer` (`use_8bit_optim` → `bnb.optim.AdamW8bit` or `PagedAdamW8bit` per `paged_optim`), `build_mask_generators` (reads `cfg["model"]` per #51), `enable_gradient_checkpointing` (block-wise `torch.utils.checkpoint(use_reentrant=False)`), `_train_step_grad_accum` (#48), `compute_drift_loss`, `update_teacher_ema`, `export_student_for_eval`, `render_training_plots` (iter11 extraction). Houses `StreamingFactorDataset` (IterableDataset, fork-safe per-worker TAR cache + RNG), `UncertaintyWeights`, `compute_multitask_loss`.
-- **`vjepa2_imports.py`** — CWD-based shim avoiding `src/utils/` namespace collision with vjepa2's own `src/utils/`. `finally:` block restores ALL saved `src.*` modules (#50). Exposes `get_vit_by_arch`, `get_vit_predictor`, `get_vit_predictor_2_1`, `get_mask_generator`, `get_apply_masks`.
+- **`vjepa2_imports.py`** — CWD-based shim avoiding `src/utils/` namespace collision with vjepa2's own `src/utils/`. `finally:` block restores ALL saved `src.*` modules (#50). Exposes `get_vit_by_arch`, `get_vit_predictor`, `get_vit_predictor_2_1`, `get_mask_generator`, `get_apply_masks`, `get_attentive_classifier` (iter13 — Meta's exact `AttentiveClassifier` from `deps/vjepa2/src/models/attentive_pooler.py`, used by m06d_action_probe).
 - **`video_io.py`** — `_USE_TORCHCODEC = False` (#10 SIGSEGV on Blackwell sm_120); PyAV is the active path. `decode_video_bytes`, `get_clip_key`, `create_stream`.
 - **`wandb_utils.py`** — All functions no-op when `run=None`.
 
@@ -162,29 +167,40 @@ Multi-task (same surgery flow, alt yaml):      m10 → m11 → m09c (UW) → m05
 | **iter12 multitask E v3** | UW 2-task drop TCC | +0.05 pp vs v1 | ❌ loss balance fixed; Prec@K still flat |
 | **115K full m09a pretrain** | full encoder all layers | no improvement | ❌ scale + capacity also don't unlock |
 
-### Pivot (iter13 — 2026-04-28)
+### Pivot (iter13 — 2026-04-28, refined to 2-track plan 2026-04-29)
+
 Five distinct recipes (small surgery / 115K full pretrain / multi-task / staged factor unfreeze / loss-balance fix) all failed to lift Prec@K meaningfully. Encoder is at equilibrium on this data; no eval metric will rescue a no-shift training problem.
 
-**iter13 = Framing B: frozen encoder + factor-conditioned probe head.** Both `vjepa_frozen` and `vjepa_surgical` use the same V-JEPA 2.1 ViT-G weights. They differ only in the probe head — vanilla 4-layer attentive (frozen baseline) vs factor-conditioned head exploiting D_L/D_A/D_I labels (surgical). The labels are the moat, not the encoder. Cost ~10 GPU-h vs ~50+ already spent; asymmetric upside (worst case = dataset + pipeline + negative-finding paper; best case = first reportable `surgical > frozen` lift on Indian video).
+**iter13 = adopt Meta's actual V-JEPA 2 transfer recipe: frozen encoder + small new head, evaluated on motion-centric tasks (Meta's published bench), not cross-clip retrieval.**
+
+| | Track 1 (motion-centric backbone sanity gate) | Track 2 (Indian factor-conditioned probe) |
+|---|---|---|
+| Goal | 🥇 P1: `vjepa_frozen > dinov2_frozen` on a SSv2-style action probe | 🥈🥉 P2/P3: `vjepa_explora > vjepa_frozen`, then `vjepa_surgical > vjepa_explora`, on the same probe |
+| Modules | `m06d_action_probe.py` + `m06d_motion_cos.py` + `m06d_future_mse.py` (+ utils `action_labels.py`, `frozen_features.py`); orchestrated by `scripts/run_m06d.sh` | `m12_action_labels.py` + `m13_probe_train.py` + `m13b_factor_probe_train.py` (NOT YET BUILT) |
+| Data | `data/eval_10k.json` + `data/eval_10k_local/` (3-class default; 4-class with `--enable-monument-class`) | `data/ultra_hard_3066{,_train,_val,_eval}.json` + D_L/D_A/D_I from m10/m11 |
+| Gate | Δ accuracy V-JEPA − DINOv2 (BCa, gate=ci_lo>0 ∧ p<0.05) | Δ accuracy surgical_probe − vanilla_probe (same paired BCa) |
+| Budget | ~2.5 GPU-h | ~10 GPU-h |
+| Decision | If Δ ≤ 0 → cancel P2/P3, diff `m05` vs `vjepa2_demo.ipynb`, pivot harder | Worst case = dataset + pipeline + negative finding paper |
 
 ### Active research artifacts
 - iter12 ultra_hard_3066 5-variant comparison done (logged in `iter/utils/experiment_log.md`).
 - Variants F (3stage_DI_multitask) **killed by user** at step 45/1140 — predicted to add 0 over E v3 stage 2 = +0 D_A lift.
-- Iter13 plan in `iter/iter12_multitask_LOSS/analysis.md` (Q7 Framing B).
+- Iter13 plan in `iter/iter13_motion_probe_eval/{plan_training.md, analysis.md, runbook.md, errors_N_fixes.md, plan_code_dev.md}`.
 
-## Env Stack (pinned, 2026-04-15)
-PyTorch 2.12.0.dev20260228+cu128, CUDA 12.8, FA2 2.8.3, FAISS-GPU 1.14.1 (source-built sm_120), cuML 26.04, SAM 3.1 (raw pkg via `--no-deps`), transformers **5.5.4** (`Sam3TrackerVideoModel`), bitsandbytes 0.49.2, Python 3.12, UV. Release tag: `sm120-cu128-py312`.
+## Env Stack (pinned, 2026-04-30)
+PyTorch **2.12.0.dev20260407+cu128** (rotated twice off CDN — see setup_env_uv.sh:27-38 for 2026-04-30 bumps), CUDA 12.8, FA2 2.8.3, FAISS-GPU 1.14.1 (source-built sm_120), cuML 26.04, SAM 3.1 (raw pkg via `--no-deps`), transformers **5.5.4** (`Sam3TrackerVideoModel`), bitsandbytes 0.49.2, Python 3.12, UV. Release tag: `sm120-cu128-py312`.
 
-## Reference Paths (Iteration Docs)
-- HIGH: `iter/iter12_multitask_LOSS/plan_training.md` — multi-task loss design + UW + ablations.
-- LOW: `iter/iter12_multitask_LOSS/runbook.md` — terminal commands. Iter11 runbook at `iter/iter11_epoch15/runbook.md` (no plan_TODO.md / errors_N_fixes.md exist for iter11).
-- ERROR: `iter/iter12_multitask_LOSS/errors_N_fixes.md` — 79 entries iter8 → iter12 (most recent). NOTE: `iter/iter10/` only contains `logs/`; no errors file.
-- ANALYSIS: `iter/iter12_multitask_LOSS/analysis.md` — Q1-Q7 deep research with iter13 Framing B pivot.
+## Reference Paths (Iteration Docs — iter13 is ACTIVE)
+- HIGH: `iter/iter13_motion_probe_eval/plan_training.md` — Track 1 backbone sanity gate + Track 2 factor-conditioned probe (BLOCKED on Track 1 PASS). Supersedes iter12 multi-task plan.
+- LOW: `iter/iter13_motion_probe_eval/runbook.md` — terminal commands for `scripts/run_m06d.sh`. Iter12 runbook still useful for m13/m13b pattern (`iter/iter12_multitask_LOSS/runbook.md`); iter11 runbook at `iter/iter11_epoch15/runbook.md`.
+- DEV: `iter/iter13_motion_probe_eval/plan_code_dev.md` — per-module specs + LoC budget for the m06d trio.
+- ERROR: `iter/iter13_motion_probe_eval/errors_N_fixes.md` — **80** entries iter8 → iter12 (rolled-up history; header still says "iter8 → iter11"). NOTE: `iter/iter10/` only contains `logs/`; no errors file.
+- ANALYSIS: `iter/iter13_motion_probe_eval/analysis.md` — Q2 wrong-metric finding + Q7 Framing B pivot (probe-head options A/B/C/D, outcome matrix).
 - LIVE: `iter/utils/experiment_log.md` — append-only post-completion experiment log.
 - FALLBACKS: `iter/utils/literarure_survey.md` — 24 JEPA variants (SIGReg / VLA-JEPA / temporal projection).
-- PROPOSAL (outdated, kept for reference): `iter/utils/FactorJEPA.md` Sections 8-11.
+- PROPOSAL (outdated, kept for reference): `iter/utils/FactorJEPA.md` Sections 8-11 — original surgery proposal; §10 (continual pretrain) and §11 (progressive unfreezing) retired by iter13.
 
-## Lessons Learned (selected — full history in `iter/iter12_multitask_LOSS/errors_N_fixes.md` #1-79)
+## Lessons Learned (selected — full history in `iter/iter13_motion_probe_eval/errors_N_fixes.md` #1-80)
 1. **vjepa2 namespace collision**: `src/utils/__init__.py` shadows vjepa2's `src/utils/`. CWD-based import shim + `finally:` restores ALL saved `src.*` modules (#50).
 2. **SAM3 `--no-deps` undeclared deps**: Every runtime import must be in `requirements_gpu.txt` (pycocotools, einops, iopath, ftfy). Pattern: #5/#6/#7/#18/#19.
 3. **transformers 4.57 → 5.5.4 migration**: `torch_dtype=` → `dtype=` (#37/#43); DINO text fp16 crashes → fp32 (#37); `box_threshold` → `threshold` + `labels` → `text_labels` (#24); `Sam3TrackerVideoProcessor.add_inputs_to_inference_session` wants depth-3 boxes (#38); reset on session not processor (#39); `output.object_score_logits` not `iou_scores` (#40).
@@ -207,6 +223,8 @@ PyTorch 2.12.0.dev20260228+cu128, CUDA 12.8, FA2 2.8.3, FAISS-GPU 1.14.1 (source
 20. **Hardware upgrade can beat code complexity** (#58 postscript): v8 teacher-CPU-offload superseded by 24GB → 96GB Blackwell migration (~$0.60/h delta, cents per SANITY).
 21. **iter11 v3 anti-corr finding**: JEPA L1 anti-correlated with downstream Prec@K/mAP@K/Cycle@K (Pearson r = −0.21 to −0.68 across 11/12 cells). Motivated multi-task loss; multi-task didn't rescue Prec@K either.
 22. **iter12 #81 — TCC dominated gradient**: raw TCC=6.6 vs JEPA=0.5 → TCC consumed ~80 % of signal, starving InfoNCE (~11 %). UW couldn't rebalance fast enough at LR=5e-5. Fix: `tcc_enabled: false` + 2-task UW [JEPA, InfoNCE] gives InfoNCE ~85 % gradient share.
+23. **#79 — `getattr(args, key, default)` is BANNED** alongside `\|\| true`, `.get(k, non_None_default)`, bare `except: pass`. `_finalize` referenced `args.cache_policy` via inferred lexical scope; would NameError on first invocation, but dormant code paths hid it for months. Fix: positional kwargs everywhere (no defaults). codified in `src/CLAUDE.md` FAIL HARD bullet.
+24. **#80 — long-lived shared `tmp_dir` causes tmpfs ENOENT after ~2M write/unlink cycles** (~5 h of m09b producer-thread). Fix: per-epoch `tempfile.mkdtemp(prefix=f"m09_e{epoch}_")` rotation in `producer_thread`. Also: `safe_key.endswith(".mp4")` strip in `decode_video_bytes` (doubled `.mp4.mp4` was misleading log noise, not the ENOENT cause). Lesson: any tmpfs handle held >1 h on a busy `/tmp` needs rotation cadence (per-epoch / per-stage / per-N-clips).
 
 ## User Preferences
 - Never be a yes-man — give pros/cons like a Sr. AI/ML Research Engineer.

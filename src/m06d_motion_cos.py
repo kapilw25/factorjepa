@@ -272,10 +272,21 @@ def run_paired_delta_stage(args, wb) -> None:
 
     vj = np.load(vj_dir / "per_clip_motion_cos.npy").astype(np.float64)
     dn = np.load(dn_dir / "per_clip_motion_cos.npy").astype(np.float64)
-    vj_keys = np.load(vj_dir / "clip_keys_test.npy", allow_pickle=True)
-    dn_keys = np.load(dn_dir / "clip_keys_test.npy", allow_pickle=True)
-    if not np.array_equal(vj_keys, dn_keys):
-        sys.exit("FATAL: clip_keys disagree between encoders -- re-run --stage features for both")
+    vj_keys = [str(k) for k in np.load(vj_dir / "clip_keys_test.npy", allow_pickle=True)]
+    dn_keys = [str(k) for k in np.load(dn_dir / "clip_keys_test.npy", allow_pickle=True)]
+
+    # Align by clip_key — Stage 2's parallel TAR readers permute order across
+    # encoders. Subtraction without alignment silently pairs DIFFERENT clips.
+    # Same pattern as m06d_action_probe + m06d_future_mse.
+    vj_idx = {k: i for i, k in enumerate(vj_keys)}
+    dn_idx = {k: i for i, k in enumerate(dn_keys)}
+    shared = sorted(set(vj_keys) & set(dn_keys))
+    if not shared:
+        sys.exit("FATAL: no overlapping clip_keys between encoders -- re-run --stage features for both")
+    if len(shared) < len(vj_keys) or len(shared) < len(dn_keys):
+        print(f"  WARN: encoder test sets differ (vjepa={len(vj_keys)}, dinov2={len(dn_keys)}) -- using {len(shared)} shared")
+    vj = np.array([vj[vj_idx[k]] for k in shared], dtype=np.float64)
+    dn = np.array([dn[dn_idx[k]] for k in shared], dtype=np.float64)
 
     delta = vj - dn
     bca = paired_bca(delta)
@@ -350,4 +361,15 @@ def main() -> None:
 
 
 if __name__ == "__main__":
-    main()
+    # Fail-fast: any uncaught exception → traceback + sys.exit(1) so the
+    # parent shell (run_m06d.sh under `set -e`) sees non-zero and aborts the
+    # chain. Mirrors m10_sam_segment.py pattern (errors_N_fixes #14/#16).
+    try:
+        main()
+    except SystemExit:
+        raise
+    except BaseException:
+        import traceback
+        print(f"\n❌ FATAL: {Path(__file__).name} crashed — see traceback below", file=sys.stderr)
+        traceback.print_exc()
+        sys.exit(1)

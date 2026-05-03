@@ -601,12 +601,137 @@ dead=[k for k in sus if not re.search(rf'[\\x22\\x27]{k}[\\x22\\x27]',src)]
 print(f'B61 FAIL:dead yaml field {dead}' if dead else f'B61 PASS:{len(sus)} live');sys.exit(1 if dead else 0)"
 ```
 
+## Part N: iter13 regressions (B62-B65) — catch BEFORE GPU spend
+
+> Sources: `iter/iter13_motion_probe_eval/errors_N_fixes.md` #71 + #79 + #82 + `logs/run_src_m06d_v1.log` (2026-05-03 cache-policy + np.savez regressions). Each guard catches a bug class B1-B61 misses.
+> NOTE: #80 (long-lived `tmp_dir` ENOENT after ~2M cycles) is already covered by **B56** — `producer_thread` mkdtemp at fn-level pre-fix trips B56's `not in_loop` branch when `fn.name` matches `producer/stream/decode`. No additional guard needed.
+
+**B62.** `getattr(<argparse_args>, "<key>", <non_None_default>)` silent fallback. argparse `required=True` already guarantees presence; a `getattr` default suppresses missing flags as `None` instead of crashing at argparse-time, letting bad state propagate into long GPU runs. Fix: drop the default; let `AttributeError` surface immediately. `.py` only; flags only when receiver name looks like an argparse Namespace.
+```bash
+python3 -c "
+import ast,sys;t='<file>'
+if not t.endswith('.py'): print('B62 SKIP');sys.exit(0)
+tr=ast.parse(open(t).read())
+b=[]
+for n in ast.walk(tr):
+ if isinstance(n,ast.Call) and isinstance(n.func,ast.Name) and n.func.id=='getattr' and len(n.args)>=3:
+  default=n.args[2]
+  if isinstance(default,ast.Constant) and default.value is None: continue
+  recv=n.args[0].id if isinstance(n.args[0],ast.Name) else None
+  if recv and recv.lower() in ('args','ns','namespace','opts','cli','flags'):
+   b.append((n.lineno,recv))
+print(f'B62 FAIL:{b}; argparse Namespace getattr-default suppresses missing flags — use args.<key> directly (required=True guarantees presence; AttributeError surfaces immediately at use)' if b else 'B62 PASS');sys.exit(1 if b else 0)"
+```
+
+**B63.** Bash brace-expanded `ls foo/{a,b,…}.ext` under `set -e + pipefail` is fragile: any missing file in the brace list makes `ls` exit non-zero, which `pipefail` propagates and `-e` turns into a whole-pipeline abort — even when only some of the listed files are required. Fix: per-file `[ -f X ] && ls -lh X` loop, or append `|| true` to the `ls` call only. `.sh` only.
+```bash
+python3 -c "
+import re,sys;t='<file>'
+if not t.endswith('.sh'): print('B63 SKIP');sys.exit(0)
+s=open(t).read()
+strict=bool(re.search(r'^\s*set\s+-\w*e\w*',s,re.M)) and bool(re.search(r'pipefail',s))
+if not strict: print('B63 SKIP');sys.exit(0)
+b=[]
+for i,l in enumerate(s.split(chr(10)),1):
+ ls=l.lstrip()
+ if ls.startswith('#') or not ls.strip(): continue
+ if not re.search(r'\bls\b',l): continue
+ if not re.search(r'\{[^}]*,[^}]*\}',l): continue
+ if '||' in l: continue
+ b.append((i,l.strip()[:90]))
+print(f'B63 FAIL:{b}; ls brace-expansion can fail-cascade under set -e+pipefail when any listed file is optional. Use a for-loop with [ -f ] guard, or append || true on JUST the ls call.' if b else 'B63 PASS');sys.exit(1 if b else 0)"
+```
+
+**B65.** Atomic-rename anti-pattern: a writer that **silently mutates its path argument** (numpy's `save`/`savez`/`savez_compressed` auto-append `.npy` / `.npz` per [docs](https://numpy.org/doc/stable/reference/generated/numpy.save.html)) followed by `os.replace(<tmp>, final)` — when `<tmp>` doesn't end in the writer's expected suffix, numpy writes to `<tmp>.{ext}` instead, and the rename targets the un-mutated name → `FileNotFoundError` at the first checkpoint save. Detection is **default-to-FAIL**: when static analysis can't *prove* `<tmp>` ends in the expected ext, we flag rather than skip — so the same bug class can't slip through a new binding idiom we haven't seen yet. Add new auto-mangling writers to `WRITERS` to extend coverage. `.py` only.
+```bash
+python3 << 'PY'
+import re,sys
+t='<file>'
+if not t.endswith('.py'): print('B65 SKIP'); sys.exit(0)
+s=open(t).read()
+
+# Writer → suffix that the writer auto-appends when the path arg lacks it.
+# Add new entries here when a future writer with the same anti-pattern appears
+# (e.g., third-party libs that silently rewrite their path arg).
+WRITERS = {'save':'.npy', 'savez':'.npz', 'savez_compressed':'.npz'}
+
+# Regex helpers — direction-aware concat patterns.
+# SAFE-by-inheritance:  with_suffix("<literal>" + X.suffix)  → literal prefixes, X.suffix is the last → ext inherited
+SAFE_INHERIT = re.compile(r'\.with_suffix\(\s*[\'"](\.[^\'"]*)[\'"]\s*\+\s*\w+\.suffix\b')
+# BUG-by-append:        with_suffix(X.suffix + "<literal>")  → X.suffix prefixes, literal appends → final ends in literal
+BUG_APPEND = re.compile(r'\.with_suffix\(\s*\w+\.suffix\s*\+\s*[\'"](\.[^\'"]*)[\'"]\s*\)')
+
+bugs = []
+for m in re.finditer(r'np\.(save|savez|savez_compressed)\(\s*(\w+)\s*[,\)]', s):
+    writer, var = m.group(1), m.group(2)
+    expected = WRITERS[writer]
+    pos = m.start(); line = s[:pos].count('\n') + 1
+    # Must be paired with os.replace(var, ...) within ~800 chars (same fn).
+    if not re.search(rf'\bos\.replace\(\s*{var}\s*,', s[pos:pos+800]): continue
+    # Find the most recent assignment to var.
+    back = s[max(0, pos-1500):pos]
+    binds = list(re.finditer(rf'(?:^|\n)\s*{var}\s*=\s*([^\n]+)', back))
+    if not binds:
+        bugs.append((line, var, writer, expected, '<no binding found — manually verify>'))
+        continue
+    rhs = binds[-1].group(1).strip()
+    # Decision tree:
+    if BUG_APPEND.search(rhs):                                         # 1) appended literal → BUG
+        sx = BUG_APPEND.search(rhs).group(1)
+        if not sx.endswith(expected):
+            bugs.append((line, var, writer, expected, f'<X.suffix>+{sx!r}'))
+        continue
+    if SAFE_INHERIT.search(rhs):                                       # 2) prefix literal + .suffix → safe-by-inheritance
+        continue
+    literals = re.findall(r'[\'"]([^\'"]*)[\'"]', rhs)                 # 3) any literal ends in expected ext → safe
+    if literals and any(lit.endswith(expected) for lit in literals):
+        continue
+    # 4) DEFAULT-TO-FAIL: nothing in the binding proves safety.
+    bugs.append((line, var, writer, expected, f'unverifiable RHS: {rhs[:80]!r}'))
+
+if bugs:
+    fmt = '; '.join(f'L{l}: np.{w}({v}) needs tmp ending in {e}, got {sx}' for l,v,w,e,sx in bugs)
+    print(f'B65 FAIL: numpy auto-append → silent path mutation → os.replace fails. {fmt}. Fix: bind tmp so a literal ending in the expected ext appears in the RHS (e.g., with_suffix(".tmp{{ext}}")), use safe-inheritance (with_suffix("<lit>" + X.suffix)), OR pass an open file handle to the writer (file objects are not auto-renamed).')
+    sys.exit(1)
+print('B65 PASS')
+PY
+```
+
+**B64.** Cache-policy must be gathered UPFRONT and passed per-call (`scripts/delete_protection_for_each_variant.md`). `.sh` orchestrators with ≥2 invocations of `python -u .../m*.py` (whose `.py` all use `add_cache_policy_arg` + `resolve_cache_policy_interactive`) MUST pass `--cache-policy <N>` to **every** call. Otherwise the `.py`-level `input()` prompt fires per-stage during overnight runs and gets eaten by interleaved log noise. Compliant pattern: `declare -A POLICY` + an upfront `_check_and_prompt` loop. `.sh` only.
+```bash
+python3 << 'PY'
+import re,sys
+t='<file>'
+if not t.endswith('.sh'): print('B64 SKIP');sys.exit(0)
+s=open(t).read()
+positions=[m.start() for m in re.finditer(r'python\s+-u\s+\S*m\w*\.py',s)]
+if len(positions)<2: print(f'B64 SKIP (<2 python -u m*.py calls: {len(positions)})');sys.exit(0)
+missing=[]
+for pos in positions:
+    chunk=s[pos:pos+1000]
+    lines=chunk.split('\n')
+    cmd_lines=[lines[0]]
+    for l in lines[1:]:
+        if cmd_lines[-1].rstrip().endswith('\\'):
+            cmd_lines.append(l)
+        else: break
+    cmd=' '.join(cmd_lines)
+    if '--cache-policy' not in cmd:
+        line_no=s[:pos].count('\n')+1
+        missing.append(line_no)
+if missing:
+    print(f'B64 FAIL: {len(missing)}/{len(positions)} python -u m*.py calls lack --cache-policy at lines {missing}. Gather UPFRONT (declare -A POLICY + _check_and_prompt loop) and pass --cache-policy "$P_X" to each call. See scripts/delete_protection_for_each_variant.md for the contract.')
+    sys.exit(1)
+print(f'B64 PASS: {len(positions)} python -u m*.py calls, all pass --cache-policy')
+PY
+```
+
 ## Output Format
 ```
 === PREFLIGHT: <file> ===
 AUTO:[A1-A3] GENERIC:[B1-B9] iter8:[B10-B15] TX5:[B16-B20] G-SAM:[B21-B25] SAM3:[B26-B27]
 VJEPA/CFG:[B28-B31] m09:[B32-B36] DURABILITY:[B37-B42] AGNOSTIC:[B43-B47] ORCH:[B48-B49] SEL/QUEUE:[B50-B51]
-ITER12:[B52-B61]
-TOTAL: X/64 passed. Y FAILs.
+ITER12:[B52-B61] ITER13:[B62-B65]
+TOTAL: X/68 passed. Y FAILs.
 ```
 List FAILs with line numbers + fix. Runtime assertions → `src/m*.py`.

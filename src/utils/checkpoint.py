@@ -72,19 +72,28 @@ def load_embedding_checkpoint(checkpoint_file: Path) -> tuple:
 def save_array_checkpoint(array: np.ndarray, checkpoint_file: Path) -> None:
     """Atomic save of a single numpy array (no keys). Use for projected embeddings,
     intermediate features, etc. Writes .npy atomically via tmp + os.replace().
+
+    Suffix order: tmp ends in `.npy` (NOT `.npy.tmp`) because np.save auto-appends
+    `.npy` when the filename doesn't already end in it (per numpy docs). If we
+    wrote to `....npy.tmp`, numpy would silently rename to `....npy.tmp.npy` and
+    the subsequent os.replace(tmp, final) would fail. errors_N_fixes.md #82.
     """
     checkpoint_file = Path(checkpoint_file)
     checkpoint_file.parent.mkdir(parents=True, exist_ok=True)
-    tmp_file = checkpoint_file.with_suffix(checkpoint_file.suffix + ".tmp")
+    tmp_file = checkpoint_file.with_suffix(".tmp" + checkpoint_file.suffix)
     np.save(tmp_file, array)
     os.replace(tmp_file, checkpoint_file)
 
 
 def save_json_checkpoint(data: dict | list, checkpoint_file: Path) -> None:
-    """Atomic JSON checkpoint save. Use for tags, metadata, config summaries."""
+    """Atomic JSON checkpoint save. Use for tags, metadata, config summaries.
+    Suffix order matches save_array_checkpoint for consistency (json.dump uses a
+    file handle so isn't affected by numpy's auto-append, but the symmetric
+    pattern keeps the codebase free of the #82 anti-pattern).
+    """
     checkpoint_file = Path(checkpoint_file)
     checkpoint_file.parent.mkdir(parents=True, exist_ok=True)
-    tmp_file = checkpoint_file.with_suffix(checkpoint_file.suffix + ".tmp")
+    tmp_file = checkpoint_file.with_suffix(".tmp" + checkpoint_file.suffix)
     with open(tmp_file, "w") as f:
         json.dump(data, f, indent=2)
         f.flush()

@@ -107,10 +107,14 @@ def _train_attentive_classifier(probe, X_tr, y_tr, X_val, y_val, args, jsonl_pat
     bs = max(8, min(args.train_batch_size, n_tr))
     steps_per_epoch = math.ceil(n_tr / bs)
     total_steps = steps_per_epoch * args.epochs
-    warmup_steps = max(1, int(total_steps * 0.10))
+    # Meta's published recipe (deps/vjepa2/configs/eval/vitg-384/ssv2.yaml) uses
+    # warmup=0.0 with the 5-LR multihead sweep. Our default is 0.10 (single-LR
+    # variant) for stability at higher peak LR; FULL can override to 0.0 for
+    # paper-faithful comparison.
+    warmup_steps = max(0, int(total_steps * args.warmup_pct))
 
     def lr_lambda(step):
-        if step < warmup_steps:
+        if warmup_steps > 0 and step < warmup_steps:
             return step / warmup_steps
         progress = (step - warmup_steps) / max(1, total_steps - warmup_steps)
         return 0.5 * (1.0 + math.cos(math.pi * progress))
@@ -127,6 +131,11 @@ def _train_attentive_classifier(probe, X_tr, y_tr, X_val, y_val, args, jsonl_pat
     jsonl_path.parent.mkdir(parents=True, exist_ok=True)
     log_f = open(jsonl_path, "w")
 
+    # Adaptive micro-batch (gradient accumulation): macro batch stays = bs so AdamW
+    # + cosine schedule are unchanged; micro-batch shrinks on OOM. Fixes 24 GB OOM
+    # at fc1(x) inside AttentiveClassifier blocks (depth=4 × 4608 tokens × 1664 dim).
+    micro_bs = bs
+
     step = 0
     for epoch in range(args.epochs):
         probe.train()
@@ -136,18 +145,42 @@ def _train_attentive_classifier(probe, X_tr, y_tr, X_val, y_val, args, jsonl_pat
             sub = idx[s:s + bs]
             xb = X_tr_t[sub].to(device, non_blocking=True)
             yb = y_tr_t[sub].to(device, non_blocking=True)
-            logits = probe(xb)
-            loss = F.cross_entropy(logits, yb)
+            macro_n = xb.shape[0]
             optim.zero_grad(set_to_none=True)
-            loss.backward()
+            macro_loss_sum, macro_correct = 0.0, 0
+            i = 0
+            while i < macro_n:
+                end = min(i + micro_bs, macro_n)
+                sub_xb, sub_yb = xb[i:end], yb[i:end]
+                try:
+                    sub_logits = probe(sub_xb)
+                    # Scale by micro/macro so sum-of-grads = full-batch grads.
+                    sub_loss = F.cross_entropy(sub_logits, sub_yb) * (sub_xb.shape[0] / macro_n)
+                    sub_loss.backward()
+                except torch.cuda.OutOfMemoryError:
+                    torch.cuda.empty_cache()
+                    new_micro = max(1, micro_bs // 2)
+                    if new_micro == micro_bs:
+                        # Already at min; can't shrink further → re-raise.
+                        raise
+                    print(f"  OOM at micro_bs={micro_bs} → shrinking to {new_micro}, retrying chunk")
+                    micro_bs = new_micro
+                    optim.zero_grad(set_to_none=True)  # discard partial grads
+                    macro_loss_sum, macro_correct = 0.0, 0
+                    i = 0  # restart the macro batch from scratch
+                    continue
+                # Track unscaled loss + accuracy for logging.
+                macro_loss_sum += float(sub_loss.item()) * macro_n  # unscale for sum
+                macro_correct += int((sub_logits.argmax(-1) == sub_yb).sum().item())
+                i = end
             optim.step()
             sched.step()
             step += 1
-            ep_loss += float(loss.item()) * yb.size(0)
-            ep_correct += int((logits.argmax(-1) == yb).sum().item())
-            ep_total += yb.size(0)
+            ep_loss += macro_loss_sum
+            ep_correct += macro_correct
+            ep_total += macro_n
 
-        val_acc = _eval_top1(probe, X_val_t, y_val_t, bs)
+        val_acc = _eval_top1(probe, X_val_t, y_val_t, micro_bs)
         train_acc = ep_correct / ep_total
         train_loss = ep_loss / ep_total
         cur_lr = optim.param_groups[0]["lr"]
@@ -167,27 +200,50 @@ def _train_attentive_classifier(probe, X_tr, y_tr, X_val, y_val, args, jsonl_pat
     return best_val_acc, best_state
 
 
+def _eval_forward_oom_safe(probe, X_t: torch.Tensor, bs: int) -> tuple:
+    """Forward CPU tensor `X_t` with adaptive micro-batch shrinking on OOM.
+
+    CRITICAL: slices on CPU then moves chunk-by-chunk to GPU. Moving the WHOLE
+    tensor first would OOM at FULL scale (e.g. 1492 val clips × 4608 × 1664 fp32
+    = 45.7 GiB — exceeds even a 96 GB GPU). Returns (preds_np, used_bs).
+    """
+    n = X_t.shape[0]
+    preds = np.empty(n, dtype=np.int64)
+    micro = bs
+    i = 0
+    while i < n:
+        end = min(i + micro, n)
+        sub_xb = None
+        try:
+            with torch.no_grad():
+                sub_xb = X_t[i:end].to("cuda", non_blocking=True)
+                preds[i:end] = probe(sub_xb).argmax(-1).cpu().numpy()
+        except torch.cuda.OutOfMemoryError:
+            del sub_xb
+            torch.cuda.empty_cache()
+            new_micro = max(1, micro // 2)
+            if new_micro == micro:
+                raise
+            print(f"  eval OOM at micro={micro} → {new_micro}, retrying chunk")
+            micro = new_micro
+            continue
+        i = end
+    return preds, micro
+
+
 def _eval_top1(probe, X_t: torch.Tensor, y_t: torch.Tensor, bs: int) -> float:
-    """Top-1 accuracy (scalar). No-grad, eval mode."""
+    """Top-1 accuracy (scalar). No-grad, eval mode. OOM-safe (CPU-side slicing)."""
     probe.eval()
-    correct = 0
-    with torch.no_grad():
-        for s in range(0, len(y_t), bs):
-            xb = X_t[s:s + bs].to("cuda", non_blocking=True)
-            yb = y_t[s:s + bs].to("cuda", non_blocking=True)
-            correct += int((probe(xb).argmax(-1) == yb).sum().item())
-    return correct / len(y_t)
+    preds, _ = _eval_forward_oom_safe(probe, X_t, bs)
+    correct = (preds == y_t.numpy()).sum()
+    return float(correct) / len(y_t)
 
 
 def _eval_per_clip(probe, X_t: torch.Tensor, y_t: torch.Tensor, bs: int):
-    """Per-clip {0,1} correctness vector + scalar acc + BCa CI dict."""
+    """Per-clip {0,1} correctness vector + scalar acc + BCa CI dict. OOM-safe."""
     probe.eval()
-    correct = np.zeros(len(y_t), dtype=np.int8)
-    with torch.no_grad():
-        for s in range(0, len(y_t), bs):
-            xb = X_t[s:s + bs].to("cuda", non_blocking=True)
-            yb = y_t[s:s + bs].to("cuda", non_blocking=True)
-            correct[s:s + bs] = (probe(xb).argmax(-1) == yb).cpu().numpy().astype(np.int8)
+    preds, _ = _eval_forward_oom_safe(probe, X_t, bs)
+    correct = (preds == y_t.numpy()).astype(np.int8)
     acc = float(correct.mean())
     ci = bootstrap_ci(correct.astype(np.float64))
     return correct, acc, ci
@@ -280,7 +336,10 @@ def run_train_stage(args, wb) -> None:
     check_gpu()
     cleanup_temp()
 
+    # Read features from canonical <encoder>/, write probe outputs to optional subdir.
     enc_dir = args.output_root / args.encoder
+    out_dir = enc_dir / args.output_subdir if args.output_subdir else enc_dir
+    out_dir.mkdir(parents=True, exist_ok=True)
     labels = load_action_labels(args.output_root / "action_labels.json")
     class_names = CLASS_NAMES_4CLASS if args.enable_monument_class else CLASS_NAMES_3CLASS
 
@@ -299,28 +358,78 @@ def run_train_stage(args, wb) -> None:
     print(f"Probe: AttentiveClassifier(embed_dim={d_in}, n_classes={n_classes}, depth={args.probe_depth})")
     probe = _make_probe(d_in, n_classes, args.probe_depth)
     n_params = sum(p.numel() for p in probe.parameters())
-    print(f"  params: {n_params/1e6:.2f}M")
+    print(f"  params: {n_params/1e6:.2f}M  → output_dir={out_dir}")
 
     best_val_acc, best_state = _train_attentive_classifier(
         probe, feats_train, y_train, feats_val, y_val,
-        args, jsonl_path=enc_dir / "train_log.jsonl", wb=wb)
-    torch.save(best_state, enc_dir / "probe.pt")
-    print(f"Saved best probe → {enc_dir / 'probe.pt'} (val_acc={best_val_acc:.4f})")
+        args, jsonl_path=out_dir / "train_log.jsonl", wb=wb)
+    torch.save(best_state, out_dir / "probe.pt")
+    print(f"Saved best probe → {out_dir / 'probe.pt'} (val_acc={best_val_acc:.4f})")
 
     probe.load_state_dict(best_state)
     X_test_t = torch.from_numpy(feats_test).float()
     y_test_t = torch.from_numpy(y_test).long()
     test_correct, test_acc, test_ci = _eval_per_clip(probe, X_test_t, y_test_t, args.train_batch_size)
 
-    np.save(enc_dir / "test_predictions.npy", test_correct)
-    np.save(enc_dir / "test_clip_keys.npy", keys_test)
+    np.save(out_dir / "test_predictions.npy", test_correct)
+    np.save(out_dir / "test_clip_keys.npy", keys_test)
     save_json_checkpoint({
         "encoder": args.encoder, "n_classes": n_classes, "class_names": class_names,
         "n_test": int(len(test_correct)), "top1_acc": test_acc, "top1_ci": test_ci,
         "best_val_acc": float(best_val_acc),
-    }, enc_dir / "test_metrics.json")
+        "probe_lr": float(args.probe_lr), "warmup_pct": float(args.warmup_pct),
+        "epochs": int(args.epochs),
+    }, out_dir / "test_metrics.json")
     print(f"Test top-1 acc: {test_acc:.4f}  ±{test_ci['ci_half']:.4f}  (95% BCa CI)")
     log_metrics(wb, {"test_top1_acc": test_acc, "test_top1_ci_half": test_ci["ci_half"]})
+
+
+def run_select_best_lr_stage(args, wb) -> None:
+    """Multi-LR sweep best-by-val-acc selection (post-hoc, idempotent).
+
+    Scans `<output_root>/<encoder>/lr_*/test_metrics.json`, picks the subdir with
+    highest `best_val_acc`, and symlinks its outputs to the canonical
+    `<output_root>/<encoder>/<file>` paths so paired_delta reads the winner with
+    no further code changes. Mirrors the spirit of Meta's multihead probe sweep
+    (`deps/vjepa2/configs/eval/vitg-384/ssv2.yaml` selects best-of-N at eval time).
+    Idempotent: re-running just re-symlinks. No-op if only one lr_* subdir exists.
+    """
+    if args.encoder is None:
+        sys.exit("FATAL: --stage select_best_lr requires --encoder")
+    enc_dir = args.output_root / args.encoder
+    if not enc_dir.exists():
+        sys.exit(f"FATAL: encoder dir not found: {enc_dir}")
+    lr_dirs = sorted(enc_dir.glob("lr_*"))
+    if not lr_dirs:
+        print(f"  no lr_* subdirs under {enc_dir} — nothing to select (single-LR run, canonical paths already populated)")
+        return
+    best_dir, best_acc = None, -1.0
+    for sub in lr_dirs:
+        mf = sub / "test_metrics.json"
+        if not mf.exists():
+            continue
+        val = json.loads(mf.read_text()).get("best_val_acc", -1.0)
+        if val > best_acc:
+            best_acc, best_dir = val, sub
+    if best_dir is None:
+        sys.exit(f"FATAL: no lr_*/test_metrics.json found under {enc_dir}")
+    print(f"Best LR for {args.encoder}: {best_dir.name} (best_val_acc={best_acc:.4f}) "
+          f"out of {len(lr_dirs)} swept LRs")
+    n_linked = 0
+    for fname in ("probe.pt", "test_predictions.npy", "test_clip_keys.npy",
+                  "test_metrics.json", "train_log.jsonl"):
+        if not (best_dir / fname).exists():
+            continue
+        target = enc_dir / fname
+        if target.exists() or target.is_symlink():
+            target.unlink()
+        target.symlink_to(best_dir.name + "/" + fname)
+        print(f"  symlink: {target.name} -> {best_dir.name}/{fname}")
+        n_linked += 1
+    log_metrics(wb, {f"{args.encoder}_best_lr": best_dir.name,
+                     f"{args.encoder}_best_val_acc": best_acc,
+                     f"{args.encoder}_n_lrs_swept": len(lr_dirs),
+                     f"{args.encoder}_n_files_linked": n_linked})
 
 
 def run_paired_delta_stage(args, wb) -> None:
@@ -332,18 +441,35 @@ def run_paired_delta_stage(args, wb) -> None:
 
     vj = np.load(vj_dir / "test_predictions.npy").astype(np.float32)
     dn = np.load(dn_dir / "test_predictions.npy").astype(np.float32)
-    vj_keys = np.load(vj_dir / "test_clip_keys.npy", allow_pickle=True)
-    dn_keys = np.load(dn_dir / "test_clip_keys.npy", allow_pickle=True)
-    if not np.array_equal(vj_keys, dn_keys):
-        sys.exit("FATAL: test_clip_keys disagree between encoders — re-run features stage")
+    vj_keys = [str(k) for k in np.load(vj_dir / "test_clip_keys.npy", allow_pickle=True)]
+    dn_keys = [str(k) for k in np.load(dn_dir / "test_clip_keys.npy", allow_pickle=True)]
 
-    delta = vj - dn                                    # (N,) ∈ {-1, 0, +1}
+    # Align by clip_key — Stage 2's iter_clips_parallel uses 8 concurrent TAR
+    # readers, so per-encoder key order is non-deterministic across runs (and
+    # differs between encoders). Subtraction without alignment would silently
+    # pair predictions for DIFFERENT clips. Same pattern as m06d_future_mse.py.
+    vj_idx = {k: i for i, k in enumerate(vj_keys)}
+    dn_idx = {k: i for i, k in enumerate(dn_keys)}
+    shared = sorted(set(vj_keys) & set(dn_keys))
+    if not shared:
+        sys.exit("FATAL: no overlapping test_clip_keys between encoders — both Stage-2 runs must "
+                 "have produced disjoint test sets; re-run features stage with cache-policy=2")
+    if len(shared) < len(vj_keys) or len(shared) < len(dn_keys):
+        print(f"  WARN: encoder test sets differ (vjepa={len(vj_keys)}, dinov2={len(dn_keys)}) — "
+              f"using {len(shared)} shared clips for paired-Δ")
+    vj_aligned = np.array([vj[vj_idx[k]] for k in shared], dtype=np.float32)
+    dn_aligned = np.array([dn[dn_idx[k]] for k in shared], dtype=np.float32)
+
+    delta = vj_aligned - dn_aligned                    # (N_shared,) ∈ {-1, 0, +1}
     bca = paired_bca(delta)
     out = {
         "metric": "top1_accuracy",
         "n_clips_test": int(len(delta)),
-        "vjepa_acc_pct":   round(float(vj.mean()) * 100, 4),
-        "dinov2_acc_pct":  round(float(dn.mean()) * 100, 4),
+        "n_clips_vjepa": len(vj_keys),
+        "n_clips_dinov2": len(dn_keys),
+        "n_clips_shared": len(shared),
+        "vjepa_acc_pct":   round(float(vj_aligned.mean()) * 100, 4),
+        "dinov2_acc_pct":  round(float(dn_aligned.mean()) * 100, 4),
         "delta_pp":        round(float(delta.mean()) * 100, 4),
         "ci_lo_pp":        round(float(bca["ci_lo"]) * 100, 4),
         "ci_hi_pp":        round(float(bca["ci_hi"]) * 100, 4),
@@ -365,9 +491,13 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--POC",    action="store_true")
     p.add_argument("--FULL",   action="store_true")
     p.add_argument("--stage", required=True,
-                   choices=["labels", "features", "train", "paired_delta"])
+                   choices=["labels", "features", "train", "select_best_lr", "paired_delta"])
     p.add_argument("--encoder", choices=list(ENCODERS), default=None)
     p.add_argument("--encoder-ckpt", type=Path, default=None)
+    p.add_argument("--output-subdir", type=str, default="",
+                   help="Optional sub-directory under <output_root>/<encoder>/ for nesting per-LR-sweep "
+                        "probe outputs. Empty (default) writes probe.pt + test_predictions.npy at the "
+                        "canonical location. Set to e.g. 'lr_5e-4' to enable multi-LR sweeps without collision.")
     p.add_argument("--eval-subset", type=Path, default=None)
     p.add_argument("--tags-json", type=Path, default=None)
     add_local_data_arg(p)
@@ -377,6 +507,9 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--epochs", type=int, default=50)
     p.add_argument("--probe-lr", type=float, default=5e-4)
     p.add_argument("--probe-wd", type=float, default=0.05)
+    p.add_argument("--warmup-pct", type=float, default=0.10,
+                   help="Fraction of total_steps for linear LR warmup. "
+                        "0.10 = our single-LR default. 0.0 = Meta's published recipe (deps/vjepa2/configs/eval/vitg-384/ssv2.yaml).")
     p.add_argument("--probe-depth", type=int, default=4,
                    help="N attentive-pool layers (V-JEPA 2.1 published: 4)")
     p.add_argument("--train-batch-size", type=int, default=64)
@@ -402,6 +535,8 @@ def main() -> None:
             run_features_stage(args, wb)
         elif args.stage == "train":
             run_train_stage(args, wb)
+        elif args.stage == "select_best_lr":
+            run_select_best_lr_stage(args, wb)
         elif args.stage == "paired_delta":
             run_paired_delta_stage(args, wb)
     finally:
@@ -409,4 +544,15 @@ def main() -> None:
 
 
 if __name__ == "__main__":
-    main()
+    # Fail-fast: any uncaught exception → traceback + sys.exit(1) so the
+    # parent shell (run_m06d.sh under `set -e`) sees non-zero and aborts the
+    # chain. Mirrors m10_sam_segment.py pattern (errors_N_fixes #14/#16).
+    try:
+        main()
+    except SystemExit:
+        raise  # respect explicit sys.exit(N) calls inside main()
+    except BaseException:
+        import traceback
+        print(f"\n❌ FATAL: {Path(__file__).name} crashed — see traceback below", file=sys.stderr)
+        traceback.print_exc()
+        sys.exit(1)
