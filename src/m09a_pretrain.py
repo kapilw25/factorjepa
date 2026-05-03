@@ -6,19 +6,19 @@ and m09c_surgery.py (factor surgery). Shared primitives live in utils.training.
 USAGE (every path arg required — CLAUDE.md no-default rule):
     python -u src/m09a_pretrain.py --SANITY \
         --model-config configs/model/vjepa2_1.yaml \
-        --train-config configs/train/ch10_pretrain.yaml \
+        --train-config configs/legacy2/ch10_pretrain.yaml \
         --subset data/sanity_100_dense.json --local-data data/val_1k_local \
         --val-subset data/val_1k.json --val-local-data data/val_1k_local \
         --no-wandb 2>&1 | tee logs/m09a_sanity.log
     python -u src/m09a_pretrain.py --POC \
         --model-config configs/model/vjepa2_1.yaml \
-        --train-config configs/train/ch10_pretrain.yaml \
+        --train-config configs/legacy2/ch10_pretrain.yaml \
         --subset data/sanity_100_dense.json --local-data data/val_1k_local \
         --val-subset data/val_1k.json --val-local-data data/val_1k_local \
         --no-wandb 2>&1 | tee logs/m09a_poc.log
     python -u src/m09a_pretrain.py --FULL \
         --model-config configs/model/vjepa2_1.yaml \
-        --train-config configs/train/ch10_pretrain.yaml \
+        --train-config configs/legacy2/ch10_pretrain.yaml \
         --subset data/subset_10k.json --local-data data/subset_10k_local \
         --val-subset data/val_1k.json --val-local-data data/val_1k_local \
         --no-wandb 2>&1 | tee logs/m09a_full.log
@@ -63,7 +63,10 @@ from utils.config import (
 )
 from utils.data_download import ensure_local_data
 from utils.gpu_batch import AdaptiveBatchSizer
-from utils.plots import plot_training_curves, plot_val_loss_curves
+from utils.plots import plot_training_curves, plot_val_loss_curves, COLORS, init_style, save_fig
+import matplotlib
+matplotlib.use("Agg")  # headless — no display
+import matplotlib.pyplot as plt
 from utils.wandb_utils import (
     add_wandb_args, init_wandb, log_metrics, finish_wandb,
 )
@@ -98,6 +101,13 @@ from utils.training import (
     run_validation,
     save_training_checkpoint, load_training_checkpoint,
     export_student_for_eval,
+    enable_gradient_checkpointing,
+    build_probe_clips, run_probe_acc_eval,
+)
+from utils.action_labels import load_action_labels
+from utils.multi_task_loss import (
+    merge_multi_task_config, build_multi_task_head_from_cfg,
+    attach_head_to_optimizer, run_multi_task_step, export_multi_task_head,
 )
 
 # Constants — paths come from CLI args only (CLAUDE.md no-default rule)
@@ -124,6 +134,62 @@ def _cleanup_old_checkpoints(output_dir: Path, keep_n: int = 2, cache_policy: st
             guarded_delete(old_file, cache_policy, label="m09a intermediate checkpoint")
 
 
+def _render_m09a_probe_plots(probe_history: list, output_dir: Path,
+                              best_state: dict, kill_state: dict, drift_cfg: dict) -> None:
+    """Live mid-training plots for m09a — val_jepa loss curve + probe-acc trajectory.
+
+    Called every val/probe interval; failure is non-fatal (caller wraps in try/except).
+    Mirrors m09c_surgery._render_live_plots's intent but targets m09a's metrics:
+      - PNG 1: val_jepa_loss(step) with best marker + kill-switch annotations
+      - PNG 2: probe_acc trajectory(step) with 95% CI band (skipped if no probe-acc data)
+    """
+    if not probe_history:
+        return
+    init_style()
+
+    steps = [r["step"] for r in probe_history]
+    val_losses = [r["val_jepa_loss"] for r in probe_history]
+
+    # Plot 1 — val_jepa_loss curve.
+    fig, ax = plt.subplots(figsize=(10, 6))
+    ax.plot(steps, val_losses, "o-", color=COLORS["blue"], linewidth=2.5,
+            markersize=6, label=f"val_jepa (λ={drift_cfg['lambda_reg']})")
+    if best_state["step"] >= 0:
+        ax.axhline(best_state["val_loss"], color=COLORS["green"], linestyle=":",
+                   linewidth=1.5, alpha=0.7,
+                   label=f"best={best_state['val_loss']:.4f} @ step {best_state['step']}")
+    if kill_state["triggered"]:
+        ax.axvline(steps[-1], color=COLORS["red"], linestyle="--", linewidth=1.5,
+                   label=f"early-stop: {kill_state['reason']}")
+    ax.set_xlabel("Optimizer step")
+    ax.set_ylabel("val_jepa loss")
+    ax.set_title("m09a — Validation JEPA loss + kill-switch state")
+    ax.legend(loc="best")
+    save_fig(fig, str(output_dir / "m09a_val_loss_jepa"))
+
+    # Plot 2 — probe-acc trajectory with CI band (only if any probe_acc collected).
+    has_acc = [r for r in probe_history if "probe_acc_mean" in r]
+    if not has_acc:
+        return
+    fig, ax = plt.subplots(figsize=(10, 6))
+    s = [r["step"] for r in has_acc]
+    m = [r["probe_acc_mean"] for r in has_acc]
+    lo = [r["probe_acc_ci_lo"] for r in has_acc]
+    hi = [r["probe_acc_ci_hi"] for r in has_acc]
+    ax.fill_between(s, lo, hi, color=COLORS["purple"], alpha=0.20, label="95% BCa CI")
+    ax.plot(s, m, "o-", color=COLORS["purple"], linewidth=2.5, markersize=6,
+            label="probe-acc (LOO kNN-centroid)")
+    if best_state.get("probe_acc", -1) > 0:
+        ax.axhline(best_state["probe_acc"], color=COLORS["green"], linestyle=":",
+                   linewidth=1.5, alpha=0.7, label=f"best probe-acc={best_state['probe_acc']:.4f}")
+    ax.set_xlabel("Optimizer step")
+    ax.set_ylabel("Top-1 probe accuracy")
+    ax.set_ylim(0, 1.02)
+    ax.set_title("m09a — Probe-accuracy trajectory (action top-1, mid-training)")
+    ax.legend(loc="best")
+    save_fig(fig, str(output_dir / "m09a_probe_trajectory"))
+
+
 # ═════════════════════════════════════════════════════════════════════════
 # CONFIG (merge_config_with_args stays here — argparse-coupled dispatch)
 # ═════════════════════════════════════════════════════════════════════════
@@ -140,6 +206,39 @@ def merge_config_with_args(cfg: dict, args) -> dict:
     else:
         mode_key = "full"
     cfg["optimization"]["max_epochs"] = cfg["optimization"]["max_epochs"][mode_key]
+    # Per-mode memory-saver flatten (probe_pretrain.yaml uses dicts; ch10_pretrain
+    # uses scalars). Mirror m09c_surgery.py:130-139 pattern. SANITY (24GB) → True
+    # for all three; FULL (96GB) → False for clean fp32 paper-quality runs.
+    # Membership check (NOT .get()) — CLAUDE.md fail-loud rule on YAML subscripts;
+    # paged_optim isn't in base_optimization.yaml so it may be absent under ch10.
+    for k in ("use_8bit_optim", "gradient_checkpointing", "paged_optim"):
+        if k in cfg["optimization"] and isinstance(cfg["optimization"][k], dict):
+            cfg["optimization"][k] = cfg["optimization"][k][mode_key]
+    # Mid-training probe block flatten (mirror m09c_surgery.py:145-170). The
+    # `probe:` schema lives in base_optimization.yaml:249-283 and is shared
+    # with m09c surgery — same field names. Per-mode flatten so the train loop
+    # reads scalars directly. CLI overrides win over yaml. SANITY mode disables
+    # probe by default (n=21 too small for stable BCa CI).
+    if "probe" in cfg:
+        probe_cfg = cfg["probe"]
+        # CLI overrides for paths (mirror m09c:152-157).
+        if getattr(args, "probe_subset", None):
+            probe_cfg["subset"] = args.probe_subset
+        if getattr(args, "probe_local_data", None):
+            probe_cfg["local_data"] = args.probe_local_data
+        if getattr(args, "probe_tags", None):
+            probe_cfg["tags_path"] = args.probe_tags
+        # Per-mode flatten of all gate-style booleans (mirror m09c:160-170).
+        for k in ("enabled", "best_ckpt_enabled", "kill_switch_enabled",
+                  "plateau_enabled", "prec_plateau_enabled",
+                  "bwt_trigger_enabled", "use_permanent_val"):
+            if k in probe_cfg and isinstance(probe_cfg[k], dict):
+                probe_cfg[k] = probe_cfg[k][mode_key]
+        # --no-probe CLI flag overrides yaml (force-disable).
+        if getattr(args, "no_probe", False):
+            probe_cfg["enabled"] = False
+    # Multi-task probe block — per-mode flatten + CLI overrides (utils helper).
+    merge_multi_task_config(cfg, args, mode_key)
     if args.batch_size is not None:
         cfg["optimization"]["batch_size"] = args.batch_size
     if args.max_epochs is not None:
@@ -365,6 +464,19 @@ def train(cfg: dict, args):
     student.train()
     predictor.train()
 
+    # Gradient checkpointing — enabled at SANITY 24GB to fit ViT-G; disabled at
+    # FULL 96GB for max throughput. Mirrors m09c_surgery.py:418-420. Flag value
+    # was flattened from per-mode dict by merge_config_with_args() above.
+    # Direct subscript (NOT .get()) — base_optimization.yaml provides scalar
+    # default `gradient_checkpointing: false` so the key is always present.
+    if cfg["optimization"]["gradient_checkpointing"]:
+        enable_gradient_checkpointing(student)
+
+    # Multi-task probe head — adds CrossEntropy/BCE loss on 16 taxonomy dims
+    # to JEPA L1 → direct gradient signal toward eval metric. See
+    # utils/multi_task_loss.py + base_optimization.yaml `multi_task_probe`.
+    mt_head, mt_labels_by_clip, mt_dims_spec, mt_cfg = build_multi_task_head_from_cfg(cfg, device)
+
     # Build mask generators
     mask_generators = build_mask_generators(cfg)
     print(f"Mask generators: {len(mask_generators)} "
@@ -442,6 +554,9 @@ def train(cfg: dict, args):
 
     # Optimizer & scheduler (cosine over total_steps)
     optimizer = build_optimizer(student, predictor, cfg["optimization"])
+    # Multi-task head gets its own param group at base_lr × head_lr_multiplier.
+    # Must run AFTER build_optimizer so 8-bit/paged AdamW machinery is intact.
+    attach_head_to_optimizer(optimizer, mt_head, mt_cfg, cfg["optimization"]["lr"])
     scheduler = build_scheduler(optimizer, cfg["optimization"], total_steps)
     mp_cfg = cfg["mixed_precision"]
     use_scaler = mp_cfg["enabled"] and mp_cfg["dtype"] == "float16"
@@ -494,45 +609,89 @@ def train(cfg: dict, args):
         print(f"Val clips collected: {len(val_collected_keys)} in {len(val_batches)} batches")
         if len(val_collected_keys) < len(val_key_set):
             pct = len(val_collected_keys) / len(val_key_set) * 100
-            print(f"WARNING: Only {len(val_collected_keys)}/{len(val_key_set)} val clips ({pct:.0f}%). Auto-downloading...")
-            subprocess.run([sys.executable, "-u", "src/m00d_download_subset.py",
-                           "--FULL", "--subset", args.val_subset, "--no-wandb"], check=True)
-            # Retry collection with fresh data
-            val_batches = []
-            val_collected_keys = []
-            _val_tmp = tempfile.mkdtemp(prefix="m09a_val_retry_")
-            _val_ds = _create_stream(0, local_data=val_local)
-            _val_batch_buf = []
-            for _ex in _val_ds:
-                _ck = get_clip_key(_ex)
-                if _ck not in val_key_set:
-                    continue
-                _mp4 = _ex.get("mp4", b"")
-                _mp4b = _mp4["bytes"] if isinstance(_mp4, dict) else _mp4
-                if not _mp4b:
-                    continue
-                _vt = decode_video_bytes(_mp4b, _val_tmp, _ck, cfg["data"]["num_frames"])
-                if _vt is None:
-                    continue
-                _aug = augment_clip_consistent(_vt, cfg["augmentation"], cfg["data"]["crop_size"])
-                _val_batch_buf.append(_aug)
-                val_collected_keys.append(_ck)
-                if len(_val_batch_buf) >= batch_size:
+            # SANITY validates code paths only — partial val coverage is fine. Skip
+            # the auto-download (which requires --master-tags that this caller
+            # doesn't have) and proceed with whatever val clips were collected.
+            if args.SANITY:
+                print(f"  [SANITY] Only {len(val_collected_keys)}/{len(val_key_set)} val clips ({pct:.0f}%) — proceeding (SANITY = code-path validation, not metric quality)")
+            elif len(val_collected_keys) >= 5:
+                print(f"  WARN: Only {len(val_collected_keys)}/{len(val_key_set)} val clips ({pct:.0f}%) — proceeding with partial coverage (>=5 clips ok for val_jepa)")
+            else:
+                print(f"WARNING: Only {len(val_collected_keys)}/{len(val_key_set)} val clips ({pct:.0f}%). Auto-downloading...")
+                subprocess.run([sys.executable, "-u", "src/m00d_download_subset.py",
+                               "--FULL", "--subset", args.val_subset, "--no-wandb"], check=True)
+                # Retry collection with fresh data — ONLY after auto-download (which
+                # may have fetched the missing clips). Skipped when SANITY bypass or
+                # >=5-clips bypass fired above (those already have usable val_batches).
+                val_batches = []
+                val_collected_keys = []
+                _val_tmp = tempfile.mkdtemp(prefix="m09a_val_retry_")
+                _val_ds = _create_stream(0, local_data=val_local)
+                _val_batch_buf = []
+                for _ex in _val_ds:
+                    _ck = get_clip_key(_ex)
+                    if _ck not in val_key_set:
+                        continue
+                    _mp4 = _ex.get("mp4", b"")
+                    _mp4b = _mp4["bytes"] if isinstance(_mp4, dict) else _mp4
+                    if not _mp4b:
+                        continue
+                    _vt = decode_video_bytes(_mp4b, _val_tmp, _ck, cfg["data"]["num_frames"])
+                    if _vt is None:
+                        continue
+                    _aug = augment_clip_consistent(_vt, cfg["augmentation"], cfg["data"]["crop_size"])
+                    _val_batch_buf.append(_aug)
+                    val_collected_keys.append(_ck)
+                    if len(_val_batch_buf) >= batch_size:
+                        _batch = torch.stack(_val_batch_buf, dim=0).permute(0, 2, 1, 3, 4)
+                        val_batches.append(_batch)
+                        _val_batch_buf = []
+                    if len(val_collected_keys) >= len(val_key_set):
+                        break
+                if _val_batch_buf:
                     _batch = torch.stack(_val_batch_buf, dim=0).permute(0, 2, 1, 3, 4)
                     val_batches.append(_batch)
-                    _val_batch_buf = []
-                if len(val_collected_keys) >= len(val_key_set):
-                    break
-            if _val_batch_buf:
-                _batch = torch.stack(_val_batch_buf, dim=0).permute(0, 2, 1, 3, 4)
-                val_batches.append(_batch)
-            shutil.rmtree(_val_tmp, ignore_errors=True)
-            print(f"Val clips collected (retry): {len(val_collected_keys)} in {len(val_batches)} batches")
+                shutil.rmtree(_val_tmp, ignore_errors=True)
+                print(f"Val clips collected (retry): {len(val_collected_keys)} in {len(val_batches)} batches")
     else:
         # --val-subset is required=True (CLAUDE.md no-default rule), so val_key_set
         # being empty means the JSON file itself was empty — degenerate, FAIL LOUD.
         print(f"FATAL: --val-subset {args.val_subset} loaded but val_key_set is empty.")
         sys.exit(1)
+
+    # ── Mid-training probe init (iter13 backport from m09c) ─────────────
+    # Pre-decode probe clips ONCE so subsequent run_probe_acc_eval calls only
+    # do GPU forwards (~10-30 s/eval). Skipped when cfg.probe.enabled=False
+    # (SANITY mode auto-disables — n=21 too small for stable BCa CI).
+    probe_clips, probe_labels = None, None
+    probe_history = []
+    probe_history_path = output_dir / "probe_history.jsonl"
+    plateau_state = {"recent_val_losses": []}      # plateau detector state
+    best_state = {"val_loss": float("inf"), "step": -1, "probe_acc": -1.0}
+    kill_state = {"triggered": False, "reason": None}
+    if cfg.get("probe", {}).get("enabled"):
+        probe_cfg = cfg["probe"]
+        action_labels_path = (args.probe_action_labels or
+                              str(Path(probe_cfg["subset"]).parent / "action_labels.json"))
+        if not Path(action_labels_path).exists():
+            print(f"  [probe] WARN: action_labels.json not found at {action_labels_path} — "
+                  f"falling back to val_jepa-only probe (no top-1 acc)", flush=True)
+            probe_labels = {}
+        else:
+            probe_labels = load_action_labels(Path(action_labels_path))
+        try:
+            print(f"  [probe] decoding clips from {probe_cfg['subset']} ...", flush=True)
+            probe_clips = build_probe_clips(
+                probe_subset_path=probe_cfg["subset"],
+                probe_local_data=probe_cfg["local_data"],
+                probe_tags_path=probe_cfg["tags_path"],
+                num_frames=cfg["data"]["num_frames"],
+                crop_size=cfg["model"]["crop_size"],
+            )
+            print(f"  [probe] decoded {len(probe_clips)} clips ({len(probe_labels)} have action labels)", flush=True)
+        except Exception as e:
+            print(f"  [probe] WARN: build_probe_clips failed ({e}) — disabling mid-train probe", flush=True)
+            probe_clips = None
 
     # Data stream (producer loops over epochs automatically)
     q = queue.Queue(maxsize=PREFETCH_QUEUE_SIZE)
@@ -608,6 +767,14 @@ def train(cfg: dict, args):
     # Danger zone #1 fix: local NaN-strike counter (was main._nan_strikes in m09_pretrain.py).
     nan_strikes = 0
 
+    # Pre-init loss locals — they'd otherwise be UnboundLocalError if 0
+    # successful steps complete before the train loop exits (SANITY OOM
+    # retry path can do this; see probe_pretrain_sanity_v3.log crash).
+    jepa_val = drift_val = total_val = masked_val = context_val = 0.0
+    lr_val = cfg["optimization"]["lr"]
+    gn_val = 0.0
+    mt_loss_val = 0.0
+
     step = start_step
     # Per-epoch memory hygiene — clears fragmented blocks accumulated across steps.
     # Paired with PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True env at shell level (#47).
@@ -657,27 +824,71 @@ def train(cfg: dict, args):
             # forward/backward block — same semantics (loss-scaled by micro/macro ratio so
             # accumulated gradient is bit-equivalent to a single full-batch step), but the
             # micro-batch is sized by AdaptiveBatchSizer to track VRAM target.
-            try:
-                (jepa_val, masked_val, context_val, drift_val,
-                 _infonce_val, _tcc_val,
-                 _uw_w_jepa, _uw_w_infonce, _uw_w_tcc) = _train_step_grad_accum(
-                    student, teacher, predictor, batch_clips,
-                    all_masks_enc, all_masks_pred,
-                    cfg, dtype, mp_cfg, scaler, train_sizer, loss_exp,
-                    init_params=init_params, drift_cfg=drift_cfg,
-                    loss_cfg=cfg["optimization"]["loss"], uw=None)
-            except torch.cuda.OutOfMemoryError:
-                # Discard partial grads from incomplete macro; sizer already shrank via on_oom.
-                optimizer.zero_grad()
-                print(f"  OOM at step {step}: macro discarded, sizer shrunk to {train_sizer.size}, retrying")
-                continue
+            #
+            # Bug B fix (iter13, mirrors m09c #55): retry the SAME macro on OOM
+            # rather than `continue` to the next step. The old `continue` advanced
+            # the for-loop iterator → SANITY total_steps=1 exited the loop with 0
+            # successful steps → exported untrained Meta weights silently
+            # (probe_pretrain_sanity_v3.log:60). The while-loop here halves the
+            # sub-batch via sizer.on_oom() (fired inside the helper) and retries
+            # at the new size until success OR sub-batch hits min — at which point
+            # we fail-hard with the standard #55 mitigation hint.
+            step_succeeded = False
+            while not step_succeeded:
+                try:
+                    (jepa_val, masked_val, context_val, drift_val,
+                     _infonce_val, _tcc_val,
+                     _uw_w_jepa, _uw_w_infonce, _uw_w_tcc) = _train_step_grad_accum(
+                        student, teacher, predictor, batch_clips,
+                        all_masks_enc, all_masks_pred,
+                        cfg, dtype, mp_cfg, scaler, train_sizer, loss_exp,
+                        init_params=init_params, drift_cfg=drift_cfg,
+                        loss_cfg=cfg["optimization"]["loss"], uw=None)
+                    step_succeeded = True
+                except torch.cuda.OutOfMemoryError:
+                    optimizer.zero_grad()  # discard partial grads from incomplete macro
+                    # Force release of fragmented memory between retries (probe_pretrain_sanity_v4.log
+                    # bug: orphan tensors from the failed forward stayed allocated, so each
+                    # successive sub-batch shrink started with LESS free VRAM than the previous
+                    # → eventually OOM at sub-batch=1 even though sub-batch=1 forward should fit).
+                    # gc.collect() releases Python references; empty_cache() returns blocks to
+                    # the CUDA driver. Without these, ~3 OOMs of orphan memory accumulated.
+                    gc.collect()
+                    torch.cuda.empty_cache()
+                    if train_sizer.size <= train_sizer.min_size:
+                        raise RuntimeError(
+                            f"m09a step {step}: OOM persists at minimum sub-batch="
+                            f"{train_sizer.size}. GPU memory budget cannot fit V-JEPA "
+                            f"ViT-G + AdamW state. Gold-standard mitigations: (1) gradient "
+                            f"checkpointing on transformer blocks, (2) bitsandbytes AdamW8bit, "
+                            f"(3) move pretrain to FULL hardware (96GB). See errors_N_fixes.md #55."
+                        ) from None
+                    print(f"  OOM at step {step}: sub-batch shrunk to "
+                          f"{train_sizer.size}, retrying SAME macro")
             total_val = jepa_val + drift_val
+
+            # Multi-task forward+backward (no-op when mt_head is None).
+            # Accumulates onto the same param.grad buffer as the JEPA grads
+            # → single optimizer.step() below consumes both losses.
+            try:
+                mt_loss_val, mt_per_dim = run_multi_task_step(
+                    student, mt_head, mt_cfg, mt_labels_by_clip, mt_dims_spec,
+                    batch_clips, batch_keys, scaler, mp_cfg, dtype, device)
+            except torch.cuda.OutOfMemoryError:
+                optimizer.zero_grad()
+                print(f"  OOM at step {step} (multi-task forward): macro discarded, retrying")
+                torch.cuda.empty_cache()
+                continue
+            if mt_head is not None:
+                total_val = jepa_val + drift_val + mt_loss_val * float(mt_cfg["weight_probe"])
 
             # Single optimizer step per macro batch — preserves effective BS = batch_size
             scaler.unscale_(optimizer)
+            _clip_params = list(student.parameters()) + list(predictor.parameters())
+            if mt_head is not None:
+                _clip_params += list(mt_head.parameters())
             grad_norm = torch.nn.utils.clip_grad_norm_(
-                list(student.parameters()) + list(predictor.parameters()),
-                cfg["optimization"]["grad_clip"])
+                _clip_params, cfg["optimization"]["grad_clip"])
             scaler.step(optimizer)
             scaler.update()
             optimizer.zero_grad()
@@ -726,6 +937,10 @@ def train(cfg: dict, args):
                 "loss_total": round(total_val, 6), "lr": lr_val,
                 "grad_norm": round(gn_val, 4), "throughput": round(throughput, 2),
             }
+            if mt_head is not None:
+                step_record["loss_multi_task"] = round(mt_loss_val, 6)
+                step_record["loss_multi_task_per_dim"] = {
+                    d: round(v, 6) for d, v in mt_per_dim.items()}
             _log_step(step_record)  # JSONL: crash-safe (fsync per write)
 
             csv_writer.writerow([step, epoch, f"{jepa_val:.6f}", f"{drift_val:.6f}",
@@ -734,7 +949,7 @@ def train(cfg: dict, args):
             if step % 10 == 0:
                 csv_file.flush()
 
-            log_metrics(wb_run, {
+            wb_metrics = {
                 "loss/jepa": jepa_val,
                 "loss/masked": masked_val,
                 "loss/context": context_val,
@@ -744,7 +959,12 @@ def train(cfg: dict, args):
                 "grad_norm": gn_val,
                 "epoch": epoch,
                 "throughput_steps_per_s": throughput,
-            }, step=step)
+            }
+            if mt_head is not None:
+                wb_metrics["loss/multi_task"] = mt_loss_val
+                for d, v in mt_per_dim.items():
+                    wb_metrics[f"loss/multi_task/{d}"] = v
+            log_metrics(wb_run, wb_metrics, step=step)
 
             if window_elapsed >= 30:
                 pbar.set_postfix_str(
@@ -804,13 +1024,86 @@ def train(cfg: dict, args):
                 except Exception:
                     pass  # non-fatal: plot failure must never stop training
 
-                # Best model selection by lowest val loss
+                # ── Mid-training probe-accuracy eval + probe_history.jsonl ──
+                # Cheap (~10-30 s on FULL 96 GB). Single-writer policy mirrors
+                # m09c_surgery.py:797-870. Skipped when probe_clips is None.
+                probe_record = {"step": step, "epoch": epoch,
+                                "val_jepa_loss": round(val_loss, 6),
+                                "epoch_pct": round(pct, 1)}
+                if probe_clips is not None and probe_labels:
+                    try:
+                        pacc = run_probe_acc_eval(
+                            student, probe_clips, probe_labels,
+                            cfg, device,
+                            bootstrap_iter=cfg["probe"]["bootstrap_iter"])
+                        probe_record.update({
+                            "probe_acc_mean":  round(pacc["top1_acc"]["mean"], 6),
+                            "probe_acc_ci_lo": round(pacc["top1_acc"]["ci_lo"], 6),
+                            "probe_acc_ci_hi": round(pacc["top1_acc"]["ci_hi"], 6),
+                            "probe_acc_n":     int(pacc["num_clips"]),
+                        })
+                        log_metrics(wb_run, {"val/probe_acc": pacc["top1_acc"]["mean"]}, step=step)
+                        print(f"  [probe-acc] step={step} top1={pacc['top1_acc']['mean']:.4f} "
+                              f"±{pacc['top1_acc']['ci_half']:.4f} (N={pacc['num_clips']})")
+                    except Exception as e:
+                        print(f"  [probe-acc] eval failed: {e} (continuing without probe-acc this step)")
+                probe_history.append(probe_record)
+                with open(probe_history_path, "a") as ph_f:
+                    ph_f.write(json.dumps(probe_record) + "\n")
+                    ph_f.flush()
+                    os.fsync(ph_f.fileno())
+
+                # ── Kill-switch ensemble: catastrophic + plateau on val_jepa ──
+                # Both opt-in via cfg.probe.{kill_switch_enabled, plateau_enabled}
+                # (per-mode-flattened). Same spread-window pattern as
+                # m09c_surgery.py:892-905, but no stage gate (m09a is single-phase).
+                probe_cfg_local = cfg.get("probe", {})
+                if val_loss < best_state["val_loss"]:
+                    best_state["val_loss"] = val_loss
+                    best_state["step"] = step
+                    if "probe_acc_mean" in probe_record:
+                        best_state["probe_acc"] = probe_record["probe_acc_mean"]
+                if probe_cfg_local.get("kill_switch_enabled"):
+                    max_inc_pct = probe_cfg_local["forgetting_threshold_pct"]
+                    bound = best_state["val_loss"] * (1.0 + max_inc_pct / 100.0)
+                    if val_loss > bound:
+                        kill_state["triggered"] = True
+                        kill_state["reason"] = "catastrophic_val_jepa_increase"
+                        print(f"  [kill] val_jepa {val_loss:.4f} > best {best_state['val_loss']:.4f} "
+                              f"x (1 + {max_inc_pct}%) = {bound:.4f} -> catastrophic forgetting")
+                if probe_cfg_local.get("plateau_enabled"):
+                    plateau_state["recent_val_losses"].append(val_loss)
+                    patience = probe_cfg_local["plateau_patience"]
+                    min_delta = probe_cfg_local["plateau_min_delta"]
+                    window = plateau_state["recent_val_losses"][-(patience + 1):]
+                    if len(window) >= patience + 1:
+                        spread = max(window) - min(window)
+                        if spread < min_delta:
+                            kill_state["triggered"] = True
+                            kill_state["reason"] = "val_jepa_plateau"
+                            print(f"  [plateau] val_jepa range over last {patience+1} probes = "
+                                  f"{spread:.5f} < {min_delta} -> early-stop (plateau)")
+
+                # m09a-specific live plots: val_loss curve + probe_acc trajectory.
+                try:
+                    _render_m09a_probe_plots(probe_history, output_dir,
+                                             best_state, kill_state, drift_cfg)
+                except Exception as e:
+                    print(f"  [plot] live probe-plot render failed: {e}")
+
+                # Best model selection by lowest val loss.
+                # full=True (Bug A fix, iter13): include predictor + teacher + opt
+                # state so probe_future_mse Stage 8 can load the predictor key.
+                # Pre-iter13 used full=False which saved encoder-only → Stage 8
+                # FATAL on KeyError 'predictor' (run_src_probe_sanity_v2.log:778).
+                # File grows ~7GB → ~15GB; acceptable on 200GB workspace and
+                # symmetric with surgery_base.yaml convention.
                 if val_loss < best_val_loss:
                     best_val_loss = val_loss
                     save_training_checkpoint(
                         output_dir / f"{CHECKPOINT_PREFIX}_best.pt",
                         student, teacher, predictor, optimizer, scheduler,
-                        scaler, step + 1, best_val_loss, full=False)
+                        scaler, step + 1, best_val_loss, full=True)
                     print(f"  New best val loss: {best_val_loss:.4f}")
 
             # End-of-epoch logging
@@ -867,9 +1160,28 @@ def train(cfg: dict, args):
         print("  NOTE: Full cooldown with 64f data loading requires producer restart.")
         print("  Cooldown is a paper-quality enhancement. POC results valid without it.")
 
+    # Bug B fix (iter13, mirrors m09c #55): fail-hard if zero successful training
+    # steps completed. Without this, m09a would silently export the *initial*
+    # (frozen Meta) student weights and report "TRAINING COMPLETE" — passing CI
+    # but producing untrained encoders downstream (probe_pretrain_sanity_v3.log
+    # was the canonical case: OOM at step 0, sizer shrunk, then for-loop ended
+    # because total_steps=1). Per CLAUDE.md "Silent failures = garbage metrics".
+    if step + 1 == start_step:
+        raise RuntimeError(
+            f"M09A FAILED: 0 successful training steps (start_step={start_step}, "
+            f"step+1={step + 1}). The exported student would be identical to the input "
+            f"frozen V-JEPA weights — refusing to write a misleading checkpoint. "
+            f"See errors_N_fixes.md #55 for memory-budget mitigations. Likely cause: "
+            f"OOM-retry exhausted sub-batch shrink budget in SANITY's total_steps=1 run."
+        )
+
     # Export student encoder (the only deliverable — only reached if training completed).
     # m09a is vanilla (no LoRA) — explora_enabled is always False.
     export_student_for_eval(student, student_path, explora_enabled=False)
+
+    # Multi-task probe head export (no-op when mt_head is None).
+    export_multi_task_head(mt_head, mt_dims_spec, cfg["model"]["embed_dim"],
+                           output_dir / "multi_task_head.pt")
 
     # iter11 META-fix: gate post-training checkpoint cleanup through --cache-policy.
     # student_encoder.pt is the deliverable, but intermediate step*.pt files are
@@ -938,6 +1250,31 @@ def main():
                              "These clips are excluded from training and used for periodic val loss.")
     parser.add_argument("--val-local-data", required=True,
                         help="Local WebDataset dir for val clips (e.g., data/val_1k_local).")
+    # Mid-training probe (iter13 backport from m09c). When --probe-subset is given,
+    # m09a runs run_probe_acc_eval (top-1 action accuracy) every probe interval +
+    # writes to probe_history.jsonl + applies plateau/catastrophic kill-switch.
+    # SANITY mode auto-disables (n=21 too small for stable BCa CI).
+    parser.add_argument("--probe-subset", type=str, default=None,
+                        help="Path to probe-eval subset JSON (overrides cfg.probe.subset).")
+    parser.add_argument("--probe-local-data", type=str, default=None,
+                        help="Local WebDataset dir for probe clips (overrides cfg.probe.local_data).")
+    parser.add_argument("--probe-tags", type=str, default=None,
+                        help="Path to tags.json for probe clips (overrides cfg.probe.tags_path).")
+    parser.add_argument("--probe-action-labels", type=str, default=None,
+                        help="Path to action_labels.json (REQUIRED if --probe-subset given). "
+                             "Provides clip_key → class_id mapping for top-1 accuracy compute.")
+    parser.add_argument("--no-probe", action="store_true",
+                        help="Force-disable mid-training probe (overrides cfg.probe.enabled).")
+    # Multi-task probe head supervision (iter13). When enabled, adds CrossEntropy /
+    # BCEWithLogits losses on 16 taxonomy dims (action + 15 taxonomy) on top of
+    # JEPA L1 → direct gradient signal toward the eval metric. See
+    # utils/multi_task_loss.py + base_optimization.yaml `multi_task_probe:` block.
+    parser.add_argument("--taxonomy-labels-json", type=str, default=None,
+                        help="Path to taxonomy_labels.json (overrides cfg.multi_task_probe.labels_path). "
+                             "Produced by `probe_taxonomy.py --stage labels`.")
+    parser.add_argument("--no-multi-task", action="store_true",
+                        help="Force-disable multi-task probe-head supervision "
+                             "(overrides cfg.multi_task_probe.enabled).")
     add_subset_arg(parser)
     add_local_data_arg(parser)
     add_wandb_args(parser)
@@ -1049,7 +1386,7 @@ def select_ablation_winner(output_dir: str, lambdas: list):
 
     USAGE (lambdas + configs all required — NO DEFAULT per CLAUDE.md):
         python -u src/m09a_pretrain.py --select-winner outputs/poc \\
-            configs/model/vjepa2_1.yaml configs/train/ch10_pretrain.yaml \\
+            configs/model/vjepa2_1.yaml configs/legacy2/ch10_pretrain.yaml \\
             2>&1 | tee logs/m09a_select_winner.log
     """
     # Bug fix 2026-04-27: removed `if lambdas is None` fallback that referenced

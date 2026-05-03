@@ -1,0 +1,35 @@
+# Ch11: Factor Surgery — 2-stage louder-agent variant (D_L + D_A only, no D_I)
+# (FactorJEPA proposal Sec 11)
+#
+# Forked from surgery_2stage_noDI 2026-04-21 (iter10 v15b "louder-agent").
+# Sole diff vs noDI: stage2 mode_mixture L 0.30 → 0.15, A 0.70 → 0.85.
+#
+# Hypothesis: noDI's Stage-2 D_L replay at 30 % diluted D_A signal. Bumping A
+# to 0.85 doubles agent-exposure per step while keeping 15 % replay as minimum
+# anti-forgetting (CLEAR 2018 noted [20-50 %] insensitive but 15 % still above
+# the 10 % noise floor that hurt iter8).
+#
+# USAGE:
+#   python -u src/m09c_surgery.py \
+#       --model-config configs/model/vjepa2_1.yaml \
+#       --train-config configs/train/surgery_2stage_loud_agent.yaml \
+#       --FULL
+
+extends: ../train/surgery_base.yaml
+
+data:
+  adapted_encoder: vjepa_2_1_surgical_loud_agent     # unique per-variant — m05/m06 outputs don't collide across surgery variants (dynamic suffix via get_encoder_info)
+  output_dir: outputs/full/surgery_2stage_loud_agent
+
+# -- Surgery: 2-stage with louder Stage-2 agent ratio --
+surgery:
+  stages:
+    - name: stage1_layout
+      unfreeze_below: 0.25          # 12 of 48 layers
+      mode_mixture: {L: 1.00, A: 0.00, I: 0.00}
+      max_epochs_pct: 0.50
+
+    - name: stage2_agent
+      unfreeze_below: 0.50          # 24 of 48 layers
+      mode_mixture: {L: 0.15, A: 0.85, I: 0.00}   # iter10 v15b "louder-agent" — still above 10% noise floor
+      max_epochs_pct: 0.50

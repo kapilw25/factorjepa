@@ -1,0 +1,140 @@
+# probe_pretrain — P2 continual SSL pretraining on the probe eval pool.
+#
+# Trains m09a_pretrain.py for 5 epochs on the train-split keys produced by
+# probe Stage 1 (action_labels.json), with a strong L2 anchor to Meta's weights.
+# Output checkpoint feeds probe eval as encoder = vjepa_2_1_pretrain.
+#
+# Differs from ch10_pretrain.yaml by:
+#   1. lr 1e-6 → 1e-5 (10× higher than ch10's failed value; 10× lower than
+#      Meta's continual peak — sweet spot where weights move but stay near Meta's basin)
+#   2. max_epochs.full 15 → 5 (per user spec; ~6,966 train clips × 5 ≈ 35K samples)
+#   3. drift_control: ewc + λ sweep → l2_uniform with lambda_reg=1.0 (single
+#      anchor; mirrors surgery_base.yaml:206-209 idiom)
+#   4. layer_freeze: keep [20, 48) trainable (LayerLock; same as ch10)
+#   5. Per-mode memory savers (SANITY 24GB true / FULL 96GB false) — mirrors
+#      surgery_base.yaml:96-114
+#   6. data.module: m09a, data.output_dir: outputs/<mode>/probe_pretrain
+#   7. data.subset/local_data: SUPPLIED at runtime via --subset / --local-data
+#      (run_probe_train.sh extracts train-split keys from action_labels.json)
+#
+# Output: outputs/<mode>/probe_pretrain/{m09a_ckpt_best.pt, student_encoder.pt}
+# Consumed by probe eval as encoder=vjepa_2_1_pretrain.
+#
+# USAGE:
+#   ./scripts/run_probe_train.sh pretrain --SANITY     # 24 GB validation
+#   ./scripts/run_probe_train.sh pretrain --FULL       # 96 GB
+#
+# Or direct (advanced):
+#   python -u src/m09a_pretrain.py --SANITY \
+#       --model-config configs/model/vjepa2_1.yaml \
+#       --train-config configs/train/probe_pretrain.yaml \
+#       --subset data/eval_10k_train_split.json \
+#       --local-data data/eval_10k_local \
+#       --val-subset data/eval_10k_val_split.json \
+#       --val-local-data data/eval_10k_local \
+#       --output-dir outputs/sanity/probe_pretrain \
+#       --no-wandb 2>&1 | tee logs/probe_pretrain_sanity.log
+
+extends: base_optimization.yaml
+
+# -- Data: m09a entry-point + probe output namespace --
+# train/val subsets + local_data come from CLI (--subset, --val-subset,
+# --local-data, --val-local-data) — base_optimization's ultra_hard_3066 paths
+# are NOT used; run_probe_train.sh feeds eval_10k train/val split JSONs.
+data:
+  module: m09a
+  output_dir: outputs/full/probe_pretrain    # auto-overridden by --output-dir per mode
+  # num_frames inherits from base_optimization.yaml scalar (16). The 8-frame
+  # SANITY override (probe_pretrain_sanity_v6.log experiment) didn't help — even
+  # at sub-batch=1 + 8 frames + all memory savers, V-JEPA ViT-G + teacher copy +
+  # optimizer state exceeded 24 GB. Pretrain training requires 96 GB; SANITY at
+  # 24 GB is for eval-side validation only.
+
+# -- Optimization overrides (the 3 user-spec deltas) --
+optimization:
+  lr: 1.0e-5                       # 10× higher than ch10's failed 1e-6;
+                                   # 10× lower than Meta's continual peak (~1e-4 @ BS=256).
+                                   # Keeps weights moving but anchored near Meta's basin.
+  pred_lr_multiplier: 1.0          # Meta convention (gold standard audit).
+
+  max_epochs:
+    sanity: 1                      # 24 GB code-path validation only
+    poc: 2
+    full: 5                        # user spec — 5 × ~6,966 train clips ≈ 35K samples
+
+  batch_size: 32                   # auto-overridden by AdaptiveBatchSizer
+
+  # Per-mode memory savers — 24 GB SANITY needs all three; 96 GB FULL clean fp32
+  # for paper-quality runs. Matches surgery_base.yaml:96-114 pattern.
+  use_8bit_optim:
+    sanity: true                   # bitsandbytes AdamW8bit (~4× optim-state reduction)
+    poc:    false
+    full:   false                  # clean fp32 — eliminates 8-bit accuracy confound
+  gradient_checkpointing:
+    sanity: true                   # ~2-4× activation memory reduction
+    poc:    false
+    full:   false
+  paged_optim:
+    sanity: true                   # CPU paging when 8-bit optim still pressures 24 GB
+    poc:    false
+    full:   false
+
+# -- Layer freezing (LayerLock — train top half) --
+# Same as ch10_pretrain.yaml. ViT layers converge in depth order
+# (LayerLock arXiv:2509.10156); freeze 0-20, train 20-48 → only top half updates.
+# SANITY: combined with grad-ckpt, 28 trainable blocks fit in 24 GB.
+layer_freeze:
+  enabled: true
+  freeze_below: 20
+
+# -- Drift control: L2 anchor to Meta's weights (NOT EWC sweep) --
+# init_params is captured at build_model() (m09a_pretrain.py:315) = a CPU clone
+# of the loaded checkpoints/vjepa2_1_vitG_384.pt weights. compute_drift_loss
+# (utils/training.py:466) computes lambda * ||theta - theta_0||^2 — type-agnostic
+# L2; the `type: l2_uniform` field is documentation-only (no Python branch reads
+# it, kept for parity with surgery_base.yaml:208).
+drift_control:
+  enabled: true
+  type: l2_uniform                 # mirrors surgery_base.yaml:208 (doc only)
+  lambda_reg: 1.0                  # user spec — strong anchor; matches surgery_base.yaml:209
+  # Below blocks are inert when type=l2_uniform (no FIM, no ablation sweep).
+  # Kept null/false to avoid KeyError in any defensive .get() in older code.
+  ablation_lambdas: []
+  fim:
+    enabled: false
+    fim_path: null
+    fim_n_clips: 0
+  vicreg:
+    enabled: false                 # off — keep loss = JEPA + lambda*L2 only.
+    var_weight: 0.0
+    cov_weight: 0.0
+
+# -- Monitoring (loose; val-loss plateau is the only kill switch via probe block) --
+monitoring:
+  drift_loss_ratio_min: 0.001      # warn-only (m09a logs but doesn't kill); ch10 had 0.01 for EWC
+  effective_rank_min_ratio: 0.95
+  knn_probe_clips: 1000
+  knn_min_accuracy: null
+
+# -- Mid-training probe (action-classification top-1 accuracy via leave-one-out
+#    kNN-centroid). Inherits the SCHEMA from base_optimization.yaml:probe but
+#    overrides paths to point at the eval_10k val split (not ultra_hard_3066).
+#    Per iter13 pivot, the probe metric is TOP-1 ACCURACY (NOT Prec@K).
+#    SANITY: disabled (n=21 too small for stable BCa CI). POC/FULL: enabled.
+probe:
+  subset:     data/eval_10k_val_split.json    # generated by run_probe_train.sh from action_labels.json
+  local_data: data/eval_10k_local             # same TARs as run_probe_eval.sh reads
+  tags_path:  data/eval_10k_local/tags.json   # for class derivation (3-class default)
+  # All other knobs (enabled, k, bootstrap_iter, kill_switch_*, plateau_*, etc.)
+  # inherited from base_optimization.yaml:249-283. SANITY mode disables probe.
+
+# -- Multi-task probe-loss supervision (iter13) — opt-in for THIS config.
+# Base ships {sanity:false, poc:false, full:false}; we flip ALL three to true so
+# the SANITY runs on 24 GB exercise the SAME multi-task code path that FULL on
+# 96 GB will use. Catches wiring bugs (clip_keys threading, head param-group
+# attach, OOM under extra encoder forward) at SANITY cost — not 96 GB cost.
+# taxonomy_labels.json is auto-generated by scripts/run_probe_train.sh
+# (probe_taxonomy --stage labels) — mode-scoped path overrides labels_path
+# from base_optimization.yaml at runtime via --taxonomy-labels-json CLI flag.
+multi_task_probe:
+  enabled: {sanity: true, poc: true, full: true}

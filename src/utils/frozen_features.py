@@ -1,6 +1,6 @@
-"""Shared frozen-encoder feature extraction for m06d_* modules. GPU-only.
+"""Shared frozen-encoder feature extraction for probe_* modules. GPU-only.
 
-Lives in `utils/` because both m06d_action_probe.py and m06d_motion_cos.py need
+Lives in `utils/` because both probe_action.py and probe_motion_cos.py need
 the SAME forward pass over local TARs. Factored here per CLAUDE.md rule 32
 ("no cross-imports between m*.py files").
 
@@ -51,23 +51,50 @@ CHECKPOINT_EVERY = _PCFG["streaming"]["checkpoint_every"]
 IMAGENET_MEAN = (0.485, 0.456, 0.406)
 IMAGENET_STD  = (0.229, 0.224, 0.225)
 
-ENCODERS = {
-    "vjepa_2_1_frozen": {
-        "kind": "vjepa",
-        "arch": "vit_gigantic_xformers",
-        "crop": 384,
-        "embed_dim": 1664,
-    },
-    "dinov2": {
-        "kind": "dinov2",
-        "model_id": "facebook/dinov2-with-registers-giant",
-        "crop": 224,
-        "embed_dim": 1536,
-    },
-}
+def _load_encoders_registry() -> dict:
+    """Load the probe encoder registry from configs/probe_encoders.yaml.
+
+    Single source of truth — adding a new V-JEPA variant means editing the YAML,
+    not this Python file. Schema documented in that YAML's header.
+    """
+    import yaml
+    cfg_path = Path(__file__).resolve().parents[2] / "configs" / "probe_encoders.yaml"
+    if not cfg_path.exists():
+        sys.exit(f"FATAL: encoder registry config missing: {cfg_path}")
+    with open(cfg_path) as f:
+        data = yaml.safe_load(f)
+    if "encoders" not in data:
+        sys.exit(f"FATAL: {cfg_path} missing top-level 'encoders' key")
+    return data["encoders"]
+
+
+ENCODERS = _load_encoders_registry()
 
 
 # ── Encoder loaders ───────────────────────────────────────────────────
+
+def resolve_encoder_state_dict(ckpt: dict) -> dict:
+    """Pick the encoder state_dict from a V-JEPA-style checkpoint.
+
+    Single source of truth for ckpt-key dispatch across all eval-side loaders
+    (probe_action features, probe_future_mse forward). Recognized schemas:
+      - "target_encoder" — Meta's V-JEPA 2.1 frozen ckpt (EMA teacher)
+      - "encoder"        — older Meta convention
+      - "student_state_dict" — written by utils.training.export_student_for_eval
+                               (student_encoder.pt — the m09a/m09c export artifact)
+      - "student"        — written by utils.training.save_training_checkpoint(full=True)
+                           (m09{a,c}_ckpt_best.pt — full periodic ckpt)
+      - raw dict         — last-resort fallback (state_dict already at top level)
+
+    Without this, an m09a-exported student_encoder.pt would fall through to
+    the raw-dict path and report 0/588 missing keys (the wrapper dict's
+    {"student_state_dict", "model_id", "type"} get treated as state).
+    """
+    for key in ("target_encoder", "encoder", "student_state_dict", "student"):
+        if key in ckpt:
+            return ckpt[key]
+    return ckpt
+
 
 def load_vjepa_2_1_frozen(ckpt_path: Path, num_frames: int):
     """V-JEPA 2.1 ViT-G frozen. Mirrors m05_vjepa_embed.py:629-670.
@@ -79,7 +106,7 @@ def load_vjepa_2_1_frozen(ckpt_path: Path, num_frames: int):
     crop = enc["crop"]
     print(f"Loading V-JEPA 2.1 ViT-G ({enc['arch']}, crop={crop}, T={num_frames}) ...")
     ckpt = torch.load(ckpt_path, map_location="cpu", weights_only=False)
-    state_dict = ckpt.get("target_encoder", ckpt.get("encoder", ckpt))
+    state_dict = resolve_encoder_state_dict(ckpt)
     state_dict = {k.replace("module.", "").replace("backbone.", ""): v for k, v in state_dict.items()}
 
     vit_constructor = get_vit_by_arch(enc["arch"])
@@ -232,7 +259,7 @@ def extract_features_for_keys(args, model, encoder_kind: str, crop: int, embed_d
         crop:           Encoder's expected square input size.
         embed_dim:      Encoder's hidden dim D (used only when no clips processed).
         keys:           Iterable of clip_keys to extract.
-        output_dir:     Where to write the resume checkpoint (.m06d_<label>_ckpt.npz).
+        output_dir:     Where to write the resume checkpoint (.probe_<label>_ckpt.npz).
         label:          Prefix for the resume checkpoint filename.
 
     Returns:
@@ -240,7 +267,7 @@ def extract_features_for_keys(args, model, encoder_kind: str, crop: int, embed_d
     """
     output_dir = Path(output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
-    ckpt_file = output_dir / f".m06d_{label}_ckpt.npz"
+    ckpt_file = output_dir / f".probe_{label}_ckpt.npz"
 
     feats_acc, keys_acc, processed = [], [], set()
     if ckpt_file.exists():
@@ -268,7 +295,7 @@ def extract_features_for_keys(args, model, encoder_kind: str, crop: int, embed_d
     )
     print(f"  AdaptiveBatchSizer({label}): start={sizer.size}, max=32, target_vram={_PCFG['gpu']['gpu_memory_target']:.0%}")
 
-    pbar = make_pbar(total=len(keys), desc=f"m06d_{label}", unit="clip", initial=len(processed))
+    pbar = make_pbar(total=len(keys), desc=f"probe_{label}", unit="clip", initial=len(processed))
 
     tmp_base = output_dir / f"tmp_decode_{label}"
     tmp_base.mkdir(parents=True, exist_ok=True)

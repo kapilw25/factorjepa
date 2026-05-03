@@ -1,0 +1,15 @@
+{
+  "metric": "top1_accuracy",
+  "n_clips_test": 22,
+  "n_clips_vjepa": 22,
+  "n_clips_dinov2": 22,
+  "n_clips_shared": 22,
+  "vjepa_acc_pct": 77.2727,
+  "dinov2_acc_pct": 95.4545,
+  "delta_pp": -18.1818,
+  "ci_lo_pp": -36.3636,
+  "ci_hi_pp": -4.5455,
+  "ci_half_pp": 15.9091,
+  "p_value": 0.0242,
+  "gate_pass": false
+}

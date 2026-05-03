@@ -1,7 +1,7 @@
-"""Path-based action-label derivation for m06d_* modules. CPU-only.
+"""Path-based action-label derivation for probe_* modules. CPU-only.
 Mirrors m00b_fetch_durations.py extract_all_videos section schema.
 
-USAGE (called by m06d_*.py — direct __main__ entry exists for self-test only):
+USAGE (called by probe_*.py — direct __main__ entry exists for self-test only):
     from utils.action_labels import (
         parse_action_from_clip_key, load_subset_with_labels,
         stratified_split, write_action_labels_json, load_action_labels,

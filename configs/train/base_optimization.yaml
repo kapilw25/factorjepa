@@ -281,3 +281,26 @@ probe:
   # NOTE: probe forward micro-batch is adaptive — AdaptiveBatchSizer reads pipeline.yaml
   # gpu.{inference_vjepa_initial_bs, training_adapted_probe_bs, gpu_memory_target} at
   # runtime. Do NOT hardcode sub_batch here (CLAUDE.md B35, errors_N_fixes #47).
+
+# -- Multi-task probe-loss supervision (iter13 — adds DIRECT gradient signal
+# from classification toward the encoder, on top of pure JEPA L1 SSL).
+# Default DISABLED in base — opt-in per training config (probe_pretrain.yaml,
+# surgery_*.yaml). When enabled, training adds:
+#     total_loss = weight_jepa·JEPA_L1 + weight_probe·Σ_d (1/n_dims)·L_d + drift_loss
+# where L_d is CrossEntropy for the 14 single-label dims (action + 13 from
+# tag_taxonomy) and BCE for the 2 multi-label dims (road_layout, notable_objects).
+# Per-dim labels read from outputs/<mode>/probe_taxonomy/taxonomy_labels.json
+# (must have run `probe_taxonomy.py --stage labels` first).
+multi_task_probe:
+  enabled:                  {sanity: false, poc: false, full: false}    # opt-in per config
+  labels_path:              outputs/full/probe_taxonomy/taxonomy_labels.json
+  weight_jepa:              1.0       # α — keep JEPA L1 dominant; drift_control still applies
+  weight_probe:             0.1       # β — multi-task signal as 10% of total objective
+  # weight_per_dim — controls relative gradient pressure across the 16 dims.
+  # Resolution (utils/multi_task_loss.py:compute_multi_task_probe_loss):
+  #   null       → each dim gets 1/n_dims (equal split — recommended default)
+  #   <float>    → scalar broadcast (every dim weighted equally to that value)
+  #   <dict>     → per-dim override e.g. {action: 0.5, scene_type: 0.1}; missing dims fall back to 1/n_dims
+  #   "kendall_uw" → learnable log-σ per dim (Kendall CVPR 2018); NOT yet implemented (NotImplementedError raised)
+  weight_per_dim:           null
+  head_lr_multiplier:       10.0      # probe heads get 10× the encoder LR (standard for linear probes)

@@ -48,7 +48,7 @@ def _ensure_loaded_base():
         importlib.import_module("src.models.utils.pos_embs")
         importlib.import_module("src.models.vision_transformer")
         importlib.import_module("src.models.predictor")
-        importlib.import_module("src.models.attentive_pooler")   # m06d_action_probe — AttentivePooler + AttentiveClassifier
+        importlib.import_module("src.models.attentive_pooler")   # probe_action — AttentivePooler + AttentiveClassifier
         importlib.import_module("src.masks.utils")
         importlib.import_module("src.masks.multiseq_multiblock3d")
     finally:
@@ -173,7 +173,7 @@ def get_apply_masks():
     return sys.modules["src.masks.utils"].apply_masks
 
 
-# ── Attentive probe head (used by Meta's evals + m06d_action_probe) ──
+# ── Attentive probe head (used by Meta's evals + probe_action) ──
 
 def get_attentive_classifier():
     """Meta's AttentiveClassifier from deps/vjepa2/src/models/attentive_pooler.py.

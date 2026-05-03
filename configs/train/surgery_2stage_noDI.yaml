@@ -43,3 +43,11 @@ surgery:
       unfreeze_below: 0.50          # 24 of 48 layers
       mode_mixture: {L: 0.30, A: 0.70, I: 0.00}   # 30% layout replay (CLEAR 2018), 70% agent
       max_epochs_pct: 0.50
+
+# -- Multi-task probe-loss supervision (iter13) — opt-in for THIS config.
+# Base ships {sanity:false, poc:false, full:false}; we flip ALL three to true so
+# the SANITY runs on 24 GB exercise the SAME multi-task code path that FULL on
+# 96 GB will use. Strict subset of surgery_3stage_DI's memory envelope (no
+# Stage 3) → multi-task should be safer here than in 3stage_DI.
+multi_task_probe:
+  enabled: {sanity: true, poc: true, full: true}

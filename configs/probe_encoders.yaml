@@ -1,0 +1,50 @@
+# probe encoder registry — single source of truth for src/utils/frozen_features.ENCODERS.
+#
+# Schema (per encoder name):
+#   kind        — dispatcher key in probe_action / probe_motion_cos
+#                 ("vjepa" → load_vjepa_2_1_frozen, "dinov2" → load_dinov2_frozen)
+#   arch        — vjepa2 ViT constructor name (only for kind=vjepa)
+#   model_id    — HF model id (only for kind=dinov2)
+#   crop        — input image side length (matches encoder's pretrain resolution)
+#   embed_dim   — output feature dim (matches encoder's hidden state)
+#
+# Adding a new V-JEPA variant: copy the vjepa_2_1_frozen entry, rename the key,
+# point the orchestrator's encoder→ckpt resolver (run_probe_eval.sh) at the new .pt.
+# No new loader function needed — load_vjepa_2_1_frozen handles all V-JEPA ckpts
+# via target_encoder → encoder → raw key fallback.
+
+encoders:
+  vjepa_2_1_frozen:
+    kind: vjepa
+    arch: vit_gigantic_xformers
+    crop: 384
+    embed_dim: 1664
+
+  # P2 — m09a continual SSL pretrain output (lr=1e-5, 5 epochs, drift L2 anchor).
+  vjepa_2_1_pretrain:
+    kind: vjepa
+    arch: vit_gigantic_xformers
+    crop: 384
+    embed_dim: 1664
+
+  # P3 variant A — m09c 3-stage surgery (D_L → D_A → D_I, 40/30/30 epoch split).
+  # Uses interaction tubes (D_I); iter9 v15c showed BWT=-0.33 here vs noDI variant.
+  vjepa_2_1_surgical_3stage_DI:
+    kind: vjepa
+    arch: vit_gigantic_xformers
+    crop: 384
+    embed_dim: 1664
+
+  # P3 variant B — m09c 2-stage surgery (D_L → D_A only, 50/50 epoch split, NO D_I).
+  # Tests skepticism that D_I worsens learning; same encoder arch, different yaml.
+  vjepa_2_1_surgical_noDI:
+    kind: vjepa
+    arch: vit_gigantic_xformers
+    crop: 384
+    embed_dim: 1664
+
+  dinov2:
+    kind: dinov2
+    model_id: facebook/dinov2-with-registers-giant
+    crop: 224
+    embed_dim: 1536

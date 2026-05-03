@@ -7,7 +7,7 @@ USAGE:
     scripts/lib/yaml_extract.py <yaml-path> <dotted.key>
 
 Example:
-    scripts/lib/yaml_extract.py configs/train/explora.yaml data.module
+    scripts/lib/yaml_extract.py configs/legacy2/explora.yaml data.module
     # → "m09b"
 """
 import sys

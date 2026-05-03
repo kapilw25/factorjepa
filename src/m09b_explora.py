@@ -14,7 +14,7 @@ USAGE (all 4 args valid in every mode; defaults apply when omitted):
     # SANITY — 1-step smoke run, caps clips via data.sanity_train_clips (typically 20)
     python -u src/m09b_explora.py --SANITY \
         --model-config configs/model/vjepa2_1.yaml \
-        --train-config configs/train/explora.yaml \
+        --train-config configs/legacy2/explora.yaml \
         --subset data/sanity_100_dense.json \
         --local-data data/val_1k_local \
         --no-wandb 2>&1 | tee logs/m09b_sanity_v1.log
@@ -22,7 +22,7 @@ USAGE (all 4 args valid in every mode; defaults apply when omitted):
     # POC — short-training end-to-end (typically 5 ep × ~30 steps/ep = 155 steps @ 1K subset)
 python -u src/m09b_explora.py --POC \
     --model-config configs/model/vjepa2_1.yaml \
-    --train-config configs/train/explora.yaml \
+    --train-config configs/legacy2/explora.yaml \
     --subset data/val_1k.json \
     --local-data data/val_1k_local \
     --val-subset data/sanity_100_dense.json \
@@ -36,11 +36,11 @@ python -u src/m09b_explora.py --POC \
     #                                                              JEPA val-loss + Prec@K/mAP@K/
     #                                                              Cycle@K + early-stop triggers)
     #   🎯  EVAL   data/eval_10k.json   + data/eval_10k_local/     N=10,000 (POST-training only,
-    #                                                              via scripts/run_paired_eval_10k.sh
+    #                                                              via scripts/legacy2/run_paired_eval_10k.sh
     #                                                              — NOT this script)
 python -u src/m09b_explora.py --FULL \
     --model-config configs/model/vjepa2_1.yaml \
-    --train-config configs/train/explora.yaml \
+    --train-config configs/legacy2/explora.yaml \
     --subset data/subset_10k.json \
     --local-data data/subset_10k_local \
     --val-subset data/val_1k.json \
@@ -50,13 +50,13 @@ python -u src/m09b_explora.py --FULL \
     # POST-TRAINING EVAL (3-step pipeline — m09b is training-only; eval runs in orchestrator):
     # 1. Stage the trained ckpt into the paired_eval archive layout so run_paired_eval_10k.sh sees it:
     mkdir -p outputs_versioned/explora_m09c_surgery && cp outputs/full/m09b_explora/student_encoder.pt outputs_versioned/explora_m09c_surgery/
-    # 2. Add 'explora' to VARIANTS list in scripts/run_paired_eval_10k.sh:65 (same pattern as v10/v13/v14).
+    # 2. Add 'explora' to VARIANTS list in scripts/legacy2/run_paired_eval_10k.sh:65 (same pattern as v10/v13/v14).
     # 3. Launch paired_eval — produces outputs_versioned/explora_eval10k/paired_bootstrap_results.json:
-    ./scripts/run_paired_eval_10k.sh 2>&1 | tee logs/paired_eval_explora.log
+    ./scripts/legacy2/run_paired_eval_10k.sh 2>&1 | tee logs/paired_eval_explora.log
 
 CLI DEFAULTS (when arg omitted):
     --model-config  → configs/model/vjepa2_1.yaml  (V-JEPA 2.1 ViT-G 2B)
-    --train-config  → configs/train/explora.yaml   (lora_rank=16, unfreeze_blocks=2)
+    --train-config  → configs/legacy2/explora.yaml   (lora_rank=16, unfreeze_blocks=2)
     --subset        → stream full HF dataset (no client-side subset filter)
     --local-data    → stream from HF (slower than local TAR shards)
     --cache-policy  → auto-resolved from yaml[mode]: sanity=1(keep), poc/full=2(recompute)

@@ -56,3 +56,15 @@ surgery:
       unfreeze_below: 0.50
       mode_mixture: {L: 0.15, A: 0.15, I: 0.70}   # 15/15 replay (anti-forgetting Stages 1+2), 70% interactions (was 0.85 in iter8 — tempered)
       max_epochs_pct: 0.30
+
+# -- Multi-task probe-loss supervision (iter13) — opt-in for THIS config.
+# Base ships {sanity:false, poc:false, full:false}; we flip ALL three to true so
+# the SANITY runs on 24 GB exercise the SAME multi-task code path that FULL on
+# 96 GB will use. Surgery's per-stage optimizer rebuild re-attaches the head's
+# param group every stage (via attach_head_to_optimizer). Stage 3 + 8-bit +
+# grad-ckpt + paged is the highest-VRAM combo on 24 GB; multi-task adds one
+# extra unmasked encoder forward per macro-batch — AdaptiveBatchSizer will
+# settle at a smaller sub-batch under MT. If Stage 3 OOMs at sub-batch=1, the
+# m09c retry-loop raises hard with the iter8 #55 mitigation hint.
+multi_task_probe:
+  enabled: {sanity: true, poc: true, full: true}

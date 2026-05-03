@@ -1,0 +1,92 @@
+═══ 16:01:23 · Generating train/val split JSONs ═══
+Generated data/eval_10k_train_split.json: 105 clips (split=train)
+Generated data/eval_10k_val_split.json: 21 clips (split=val)
+  [multi-task] Using taxonomy labels: outputs/sanity/probe_taxonomy/taxonomy_labels.json
+═══ 16:01:23 · m09a continual SSL pretrain (SANITY) ═══
+  config:    configs/train/probe_pretrain.yaml
+  subset:    data/eval_10k_train_split.json
+  val:       data/eval_10k_val_split.json
+  local:     data/eval_10k_local
+  output:    outputs/sanity/probe_pretrain
+  lambda:    1.0 (read from yaml; bypasses auto-ablation gate)
+[live-debug] installed — pid=1013936. Force a stack dump anytime via:
+[live-debug]   kill -USR1 1013936   # signal-safe native dump
+[live-debug]   kill -USR2 1013936   # Python dump with banner
+GPU: NVIDIA RTX PRO 4000 Blackwell
+CUDA version: 12.8
+  [cache-policy=2/recompute] WIPING output_dir (probe_pretrain): outputs/sanity/probe_pretrain (2 file(s))
+  [cache-policy=2/recompute] output_dir (probe_pretrain) recreated empty: outputs/sanity/probe_pretrain
+
+=== Building Model ===
+/workspace/factorjepa/venv_walkindia/lib/python3.12/site-packages/timm/models/layers/__init__.py:49: FutureWarning: Importing from timm.models.layers is deprecated, please import via timm.layers
+  warnings.warn(f"Importing from {__name__} is deprecated, please import via timm.layers", FutureWarning)
+Loading pretrained weights from /workspace/factorjepa/checkpoints/vjepa2_1_vitG_384.pt
+Student loaded: 1,843,937,152 params (588/588 keys = 100%)
+Teacher created (deepcopy of student, hierarchical output enabled)
+Predictor loaded from checkpoint (300/300 keys = 100%)
+Predictor: 59,430,400 params
+  Gradient checkpointing enabled on 48 blocks (~2-4× activation memory reduction, ~25% throughput cost)
+  [multi-task] enabled: 16 dims, 150 clips labeled, 139,860 head params, weight_jepa=1.0, weight_probe=0.1
+Mask generators: 2 (blocks: [8, 2])
+[POC] Loaded subset: 105 clip keys from eval_10k_train_split.json
+[VAL] Loaded val subset: 21 clips from eval_10k_val_split.json
+Train clips: 20 | Val clips: 10
+Epochs: 1 | Steps/epoch: 1 | Total steps: 1
+Checkpoint every 1 steps (5x/epoch, keep last 2)
+Validation every 1 steps (5x/epoch, 10 val clips)
+  Optimizer: PagedAdamW8bit (bitsandbytes, unified-memory CPU paging) — 888 param groups, 8-bit block-wise quantized m1/m2 (4× memory reduction)
+
+Collecting 10 val clips into memory...
+Val clips collected: 8 in 1 batches
+  [SANITY] Only 8/10 val clips (80%) — proceeding (SANITY = code-path validation, not metric quality)
+m09a_pretrain:   0%|          | 0/1 [00:00<?, ?step/s]  Parallel TAR reader: 8 threads, 10 TARs, queue=256
+
+=== Training: 0 → 1 steps (1 epochs) ===
+Batch size: 32
+Grad checkpointing: True
+Mixed precision: bfloat16
+EMA momentum: 0.99925
+Drift control: lambda=1.0
+Loss log: outputs/sanity/probe_pretrain/loss_log.csv
+AdaptiveBatchSizer (training, grad-accum): start=16, max=32 (= effective BS), target VRAM=85%
+  Producer: starting epoch 2 (rotated tmp_dir → /tmp/m09_e2_rl44jvv0)
+  Parallel TAR reader: 8 threads, 10 TARs, queue=256
+/usr/lib/python3.12/contextlib.py:105: FutureWarning: `torch.backends.cuda.sdp_kernel()` is deprecated. In the future, this context manager will be removed. Please see `torch.nn.attention.sdpa_kernel()` for the new context manager, with updated signature.
+  self.gen = func(*args, **kwds)
+  Producer: starting epoch 3 (rotated tmp_dir → /tmp/m09_e3_r1qoj8v9)
+  Parallel TAR reader: 8 threads, 10 TARs, queue=256
+  Producer: starting epoch 4 (rotated tmp_dir → /tmp/m09_e4_o7vcvdgt)
+  Parallel TAR reader: 8 threads, 10 TARs, queue=256
+  AdaptiveBatch: OOM #1! sub-batch 16 → 8
+  OOM at step 0: sub-batch shrunk to 8, retrying SAME macro
+  Producer: starting epoch 5 (rotated tmp_dir → /tmp/m09_e5_fucie5_p)
+  Parallel TAR reader: 8 threads, 10 TARs, queue=256
+  AdaptiveBatch: OOM #2! sub-batch 8 → 4
+  OOM at step 0: sub-batch shrunk to 4, retrying SAME macro
+  Producer: starting epoch 6 (rotated tmp_dir → /tmp/m09_e6_n5mf6cy8)
+  Parallel TAR reader: 8 threads, 10 TARs, queue=256
+  AdaptiveBatch: OOM #3! sub-batch 4 → 2
+  OOM at step 0: sub-batch shrunk to 2, retrying SAME macro
+  Producer: starting epoch 7 (rotated tmp_dir → /tmp/m09_e7_7k355m5w)
+  Parallel TAR reader: 8 threads, 10 TARs, queue=256
+  AdaptiveBatch: OOM #4! sub-batch 2 → 1
+m09a_pretrain:   0%|          | 0/1 [00:30<?, ?step/s]
+Traceback (most recent call last):
+  File "/workspace/factorjepa/src/m09a_pretrain.py", line 1466, in <module>
+    main()
+  File "/workspace/factorjepa/src/m09a_pretrain.py", line 1381, in main
+    train(cfg, args)
+  File "/workspace/factorjepa/src/m09a_pretrain.py", line 859, in train
+    raise RuntimeError(
+RuntimeError: m09a step 0: OOM persists at minimum sub-batch=1. GPU memory budget cannot fit V-JEPA ViT-G + AdamW state. Gold-standard mitigations: (1) gradient checkpointing on transformer blocks, (2) bitsandbytes AdamW8bit, (3) move pretrain to FULL hardware (96GB). See errors_N_fixes.md #55.
+terminate called without an active exception
+Fatal Python error: Aborted
+
+Thread 0x00007fa92bccc140 (most recent call first):
+  <no Python frame>
+
+Extension modules: numpy._core._multiarray_umath, numpy.linalg._umath_linalg, yaml._yaml, PIL._imaging, kiwisolver._cext, torch._C, torch._C._dynamo.autograd_compiler, torch._C._dynamo.eval_frame, torch._C._dynamo.guards, torch._C._dynamo.utils, torch._C._fft, torch._C._linalg, torch._C._nested, torch._C._nn, torch._C._sparse, torch._C._special, av._core, av.logging, av.buffer, av.audio.format, av.error, av.dictionary, av.container.pyio, av.option, av.descriptor, av.format, av.index, av.utils, av.stream, av.container.streams, av.sidedata.encparams, av.sidedata.motionvectors, av.sidedata.sidedata, av.opaque, av.packet, av.container.input, av.container.output, av.container.core, av.codec.context, av.video.format, av.video.reformatter, av.plane, av.video.plane, av.video.frame, av.video.stream, av.codec.hwaccel, av.codec.codec, av.frame, av.audio.layout, av.audio.plane, av.audio.frame, av.audio.stream, av.filter.link, av.filter.context, av.filter.graph, av.filter.filter, av.filter.loudnorm, av.audio.resampler, av.audio.codeccontext, av.audio.fifo, av.bitstream, av.device, av.video.codeccontext, numpy.random._common, numpy.random.bit_generator, numpy.random._bounded_integers, numpy.random._pcg64, numpy.random._mt19937, numpy.random._generator, numpy.random._philox, numpy.random._sfc64, numpy.random.mtrand, PIL._imagingft, google._upb._message, charset_normalizer.md, charset_normalizer.cd, requests.packages.charset_normalizer.md, requests.packages.chardet.md, requests.packages.charset_normalizer.cd, requests.packages.chardet.cd, markupsafe._speedups, pyarrow.lib, pandas._libs.tslibs.ccalendar, pandas._libs.tslibs.np_datetime, pandas._libs.tslibs.dtypes, pandas._libs.tslibs.base, pandas._libs.tslibs.nattype, pandas._libs.tslibs.timezones, pandas._libs.tslibs.fields, pandas._libs.tslibs.timedeltas, pandas._libs.tslibs.tzconversion, pandas._libs.tslibs.timestamps, pandas._libs.properties, pandas._libs.tslibs.offsets, pandas._libs.tslibs.strptime, pandas._libs.tslibs.parsing, pandas._libs.tslibs.conversion, pandas._libs.tslibs.period, pandas._libs.tslibs.vectorized, pandas._libs.ops_dispatch, pandas._libs.missing, pandas._libs.hashtable, pandas._libs.algos, pandas._libs.interval, pandas._libs.lib, pyarrow._compute, pandas._libs.ops, pandas._libs.hashing, pandas._libs.arrays, pandas._libs.tslib, pandas._libs.sparse, pandas._libs.internals, pandas._libs.indexing, pandas._libs.index, pandas._libs.writers, pandas._libs.join, pandas._libs.window.aggregations, pandas._libs.window.indexers, pandas._libs.reshape, pandas._libs.groupby, pandas._libs.json, pandas._libs.parsers, pandas._libs.testing, pyarrow._acero, pyarrow._fs, pyarrow._csv, pyarrow._json, pyarrow._substrait, pyarrow._dataset, pyarrow._dataset_orc, pyarrow._parquet, pyarrow._azurefs, pyarrow._hdfs, pyarrow._gcsfs, pyarrow._s3fs, pyarrow._parquet_encryption, pyarrow._dataset_parquet_encryption, pyarrow._dataset_parquet, multidict._multidict, yarl._quoting_c, propcache._helpers_c, aiohttp._http_writer, aiohttp._http_parser, aiohttp._websocket.mask, aiohttp._websocket.reader_c, frozenlist._frozenlist, xxhash._xxhash, _cyutility, scipy._cyutility, scipy._lib._ccallback_c, scipy.sparse._sparsetools, _csparsetools, scipy.sparse._csparsetools, scipy.io.matlab._mio_utils, scipy.io.matlab._streams, scipy.io.matlab._mio5_utils, av.subtitles.stream (total: 157)
+./scripts/run_probe_train.sh: line 139: 1013936 Aborted                 python -u src/m09a_pretrain.py "${MODE_FLAG}" --model-config "$MODEL_CFG" --train-config "$TRAIN_CFG" --subset "$TRAIN_SPLIT" --local-data "$LOCAL_DATA" --val-subset "$VAL_SPLIT" --val-local-data "$LOCAL_DATA" --output-dir "$OUT_DIR" --no-wandb --cache-policy "$P_M09" --lambda-reg "$LAMBDA_REG" --probe-subset "outputs/${mode_dir}/probe_action/action_labels.json" --probe-local-data "$LOCAL_DATA" --probe-tags "${LOCAL_DATA}/tags.json" --probe-action-labels "outputs/${mode_dir}/probe_action/action_labels.json" "${TAXONOMY_ARGS[@]}" 2>&1
+     1013937 Done                    | tee "logs/probe_pretrain_${mode_dir}.log"
+
+❌ FATAL: run_probe_train.sh aborted at line 170 (exit=134)

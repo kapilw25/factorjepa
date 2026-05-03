@@ -1,180 +1,193 @@
-# 🚀 iter13 m06d Runbook — terminal commands only
+# iter13 Runbook — terminal commands for SANITY → FULL
 
-> All logic lives in `scripts/run_m06d.sh` (9-stage thin orchestrator). This runbook = bootstrap, pre-flight `ls`, launch, post-flight `cat`.
-
----
-
-## -1 · Fresh GPU bootstrap (skip if `venv_walkindia/` already exists)
-
-```bash
-cd /workspace
-git clone https://github.com/kapilw25/factorjepa
-cd factorjepa
-
-# Env: torch nightly + FA2 + FAISS + cuML + SAM 3.1 + Grounding DINO + V-JEPA 2.1 ckpt
-./setup_env_uv.sh --gpu --from-wheels 2>&1 | tee logs/setup_env_gpu.log
-```
-
-> ⚠️ **Torch-nightly rotation gotcha** — if `[1/9] Installing PyTorch` fails with `× No solution found when resolving dependencies`, the pinned nightly was rotated off `download.pytorch.org/whl/nightly/cu128`. Fix:
-> ```bash
-> source venv_walkindia/bin/activate                       # use whatever torch was already partially-installed
-> uv pip install --dry-run --pre torch \
->     --index-url https://download.pytorch.org/whl/nightly/cu128 \
->     2>&1 | grep -oE 'torch==[0-9.dev+a-z]+' | head -1
-> # Edit setup_env_uv.sh:27 → TORCH_VERSION="<dev2026MMDD from above>"
-> # IMPORTANT: torchvision lags torch by 1-2 days — pick a torch nightly that has a paired torchvision
-> # (logs/setup_env_gpu_v2.log:414 case study).  Re-run setup.
-> ```
-
-```bash
-source venv_walkindia/bin/activate
-
-# Data: 10K Indian clips (10 TARs) + tags.json + manifest.json (~7 GB total) — pulls from HF
-python -u src/utils/hf_outputs.py download-data 2>&1 | tee logs/download_data.log
-
-# Quick sanity: required inputs all present + correct sizes
-ls -lh data/eval_10k.json \
-       data/eval_10k_local/manifest.json \
-       data/eval_10k_local/tags.json \
-       data/eval_10k_local/subset-00000.tar \
-       checkpoints/vjepa2_1_vitG_384.pt
-```
-
-> 🟡 **3-class default**: `--enable-monument-class` is unviable on this 10K subset (only 49 monument clips, fails the ≥5/test-split BCa floor). Default 3-class (walking/driving/drone) gives ≥200 test clips per class — robust statistics. See `plan_training.md:74-79`.
+> **Hardware split** (validated 2026-05-03):
+> - **Eval pipeline** (`run_probe_eval.sh`) — runs on **24 GB** SANITY OR 96 GB FULL.
+> - **Training** (`run_probe_train.sh pretrain | surgery_*`) — requires **96 GB FULL** (V-JEPA ViT-G + EMA teacher + optimizer state OOMs at 24 GB even with all mitigations stacked: 8-bit Adam + paged optim + grad-ckpt + sub-batch=1 + 8 frames). See `probe_pretrain_sanity_v6.log` for the OOM evidence.
+>
+> **Encoder roster** (4 V-JEPA + 1 DINOv2):
+> - `vjepa_2_1_frozen` — Meta's checkpoint (P1 control)
+> - `vjepa_2_1_pretrain` — m09a continual SSL with multi-task probe loss (P2)
+> - `vjepa_2_1_surgical_3stage_DI` — m09c factor surgery WITH interaction tubes (P3a)
+> - `vjepa_2_1_surgical_noDI` — m09c factor surgery WITHOUT D_I (P3b)
+> - `dinov2` — frozen DINOv2 ViT-G/14 (P1 baseline)
 
 ---
 
-## 0 · Pre-flight (verify INPUTS)
+## Phase A — SANITY on 24 GB (eval-side validation; ~6-8 min)
+
+> Validates the eval pipeline end-to-end on 150 stratified clips (50/class). Numbers are NOT meaningful (n_test ≈ 22 after stratified split → BCa CIs degenerate to NaN on perfect predictions). Purpose: code-path correctness, NOT model performance.
 
 ```bash
-cd /workspace/factorjepa
-source venv_walkindia/bin/activate
+# Full SANITY eval pipeline. Drops trainer-output encoders that aren't on disk
+# (vjepa_2_1_frozen + dinov2 always available; m09a/m09c outputs only if Phase B already ran).
+CACHE_POLICY_ALL=2 ./scripts/run_probe_eval.sh --sanity \
+  2>&1 | tee logs/run_src_probe_sanity_v1.log
 
-# (a) Inputs exist
-ls -lh data/eval_10k.json \
-       data/eval_10k_local/manifest.json \
-       data/eval_10k_local/tags.json \
-       data/eval_10k_local/subset-00000.tar \
-       checkpoints/vjepa2_1_vitG_384.pt \
-       deps/vjepa2/src/models/attentive_pooler.py \
-       scripts/run_m06d.sh
-
-# (b) Imports + AttentiveClassifier shim wired
-python -c "
-import sys; sys.path.insert(0, 'src')
-from utils.action_labels import load_subset_with_labels
-from utils.frozen_features import ENCODERS, load_vjepa_2_1_frozen, load_dinov2_frozen, extract_features_for_keys
-from utils.vjepa2_imports import get_attentive_classifier
-import m06d_action_probe, m06d_motion_cos, m06d_future_mse
-print('✓ all m06d imports + utils.frozen_features OK')
-"
-
-# (c) Bash syntax + executable
-bash -n scripts/run_m06d.sh && [ -x scripts/run_m06d.sh ] && echo '✓ run_m06d.sh syntax OK + executable'
+# Re-run only Stage 10 (plotting) without recomputing Stages 1-9:
+SKIP_STAGES="1,2,3,4,5,6,7,8,9" CACHE_POLICY_ALL=1 \
+  ./scripts/run_probe_eval.sh --sanity \
+  2>&1 | tee logs/run_src_probe_sanity_plot_only.log
 ```
 
-If any line fails → fix before launching. Otherwise →
+**Verify SANITY pass:**
+```bash
+ls outputs/sanity/probe_plot/    # → 3 PNGs + 3 PDFs
+jq '.pairwise_deltas | keys'  outputs/sanity/probe_action/probe_paired_delta.json
+jq '.by_encoder | keys'       outputs/sanity/probe_motion_cos/probe_motion_cos_paired.json
+jq '.by_variant | keys'       outputs/sanity/probe_future_mse/probe_future_mse_per_variant.json
+```
+
+**Expected outcomes at SANITY** (per `run_src_probe_sanity_v4.log`):
+- All 10 stages complete (Stage 8 will SKIP V-JEPA variants whose `m09{a,c}_ckpt_best.pt` isn't on disk; that's by-design)
+- DINOv2 ≈ 95.45% top-1; V-JEPA frozen = 100% (saturation on N=22; expected per CLAUDE.md SANITY rule)
+- BCa CIs may report `NaN` for perfect-prediction encoders — `probe_plot._bar_with_ci` is NaN-safe (iter13 fix)
 
 ---
 
-## 1 · SANITY (Stage 1 only — labels, ~1 min CPU)
+## Phase B — Training on 96 GB FULL (~10-15 GPU-h)
+
+> All three trainers ship their `m09{a,c}_ckpt_best.pt` (predictor-bearing) artifact that probe Stage 8 (future_mse) consumes. Multi-task probe loss is `enabled: {sanity:true, poc:true, full:true}` in each per-config YAML, so multi-task supervision runs by default at FULL.
+
+### B.1 — Bootstrap labels first (CPU, ~2 min, only needed once)
 
 ```bash
-SKIP_STAGES="2,3,4,5,6,7,8,9" CACHE_POLICY_ALL=2 \
-    OUTPUT_ACTION=outputs/sanity/m06d_action_probe \
-    ./scripts/run_m06d.sh 2>&1 | tee logs/run_m06d_sanity.log
-
-# Verify Stage 1 output
-cat outputs/sanity/m06d_action_probe/class_counts.json
-# Expect: {"walking":{"train":3894,...}, "driving":{...}, "drone":{...}} — 3 classes, all >5 per split
+# Generates outputs/full/probe_action/action_labels.json (P1 split source)
+# AND outputs/full/probe_taxonomy/taxonomy_labels.json (multi-task supervision source).
+# Both consumed by Phase B trainers and Phase C eval.
+SKIP_STAGES="2,3,4,5,6,7,8,9,10" CACHE_POLICY_ALL=2 \
+  ./scripts/run_probe_eval.sh --FULL \
+  2>&1 | tee logs/run_probe_eval_full_stage1_only.log
 ```
 
----
-
-## 2 · FULL launch (~2.5 GPU-h end-to-end)
+### B.2 — Train all 3 V-JEPA variants (sequential or parallel via tmux)
 
 ```bash
-tmux new -s m06d
-CACHE_POLICY_ALL=1 ./scripts/run_m06d.sh 2>&1 | tee logs/run_m06d_v1.log
-# Ctrl-B d to detach · tmux attach -t m06d
+tmux new -s p2_pretrain
+CACHE_POLICY_ALL=2 ./scripts/run_probe_train.sh pretrain --FULL \
+  2>&1 | tee logs/probe_pretrain_full_v1.log
+# ~3 GPU-h on 96 GB; produces:
+#   outputs/full/probe_pretrain/student_encoder.pt   (~7 GB, encoder only)
+#   outputs/full/probe_pretrain/m09a_ckpt_best.pt    (~15 GB, encoder+predictor for Stage 8)
+#   outputs/full/probe_pretrain/multi_task_head.pt   (~1 MB, mt_head state)
+
+# Detach from tmux: Ctrl-b d, then re-attach: tmux attach -t p2_pretrain
+
+tmux new -s p3_surgery_3stage_DI
+CACHE_POLICY_ALL=2 ./scripts/run_probe_train.sh surgery_3stage_DI --FULL \
+  2>&1 | tee logs/probe_surgery_3stage_DI_full_v1.log
+# ~6-8 GPU-h on 96 GB; produces:
+#   outputs/full/probe_surgery_3stage_DI/student_encoder.pt
+#   outputs/full/probe_surgery_3stage_DI/m09c_ckpt_best.pt
+#   outputs/full/probe_surgery_3stage_DI/multi_task_head.pt
+
+tmux new -s p3_surgery_noDI
+CACHE_POLICY_ALL=2 ./scripts/run_probe_train.sh surgery_noDI --FULL \
+  2>&1 | tee logs/probe_surgery_noDI_full_v1.log
+# ~4-6 GPU-h on 96 GB (no Stage 3 D_I); produces:
+#   outputs/full/probe_surgery_noDI/student_encoder.pt
+#   outputs/full/probe_surgery_noDI/m09c_ckpt_best.pt
+#   outputs/full/probe_surgery_noDI/multi_task_head.pt
 ```
 
-> `CACHE_POLICY_ALL=1` reuses caches between re-runs (fast resume). Use `=2` for fresh recompute.
-> Resume from a specific stage after a crash: `SKIP_STAGES="1,2,3" ./scripts/run_m06d.sh ...`.
-
----
-
-## 3 · Post-flight (verify OUTPUTS, ✅ when each present)
-
+**Verify training success per variant:**
 ```bash
-# Stage 1 — labels
-ls -lh outputs/full/m06d_action_probe/action_labels.json \
-       outputs/full/m06d_action_probe/class_counts.json
-
-# Stage 2 — features × 2 encoders (shape: (N, n_tokens, D) fp32)
-python -c "
-import numpy as np
-for enc in ['vjepa_2_1_frozen', 'dinov2']:
-    for sp in ['train', 'val', 'test']:
-        a = np.load(f'outputs/full/m06d_action_probe/{enc}/features_{sp}.npy', mmap_mode='r')
-        print(f'  {enc:18s} {sp:5s}: shape={a.shape} dtype={a.dtype}')
-"
-
-# Stage 3 — probe ckpts + test metrics × 2 encoders
-for enc in vjepa_2_1_frozen dinov2; do
-    ls -lh outputs/full/m06d_action_probe/$enc/probe.pt
-    cat outputs/full/m06d_action_probe/$enc/test_metrics.json | python -m json.tool
+for v in probe_pretrain probe_surgery_3stage_DI probe_surgery_noDI; do
+  echo "── $v ──"
+  ls -lh outputs/full/$v/{student_encoder,m09{a,c}_ckpt_best,multi_task_head}.pt 2>/dev/null
+  wc -l outputs/full/$v/loss_log.jsonl       # should be > 0 (silent-Meta-export Bug B is fixed)
 done
-
-# 🔥 Stage 4 — P1 GATE verdict
-cat outputs/full/m06d_action_probe/m06d_paired_delta.json | python -m json.tool
-# PASS criteria: ci_lo_pp > 0  AND  delta_pp > 0  AND  p_value < 0.05  AND  gate_pass = true
-
-# Stage 5–7 — motion_cos
-ls -lh outputs/full/m06d_motion_cos/{vjepa_2_1_frozen,dinov2}/pooled_features_test.npy \
-       outputs/full/m06d_motion_cos/{vjepa_2_1_frozen,dinov2}/per_clip_motion_cos.npy
-cat outputs/full/m06d_motion_cos/m06d_motion_cos_paired.json | python -m json.tool
-
-# Stage 8–9 — future_mse (V-JEPA only)
-ls -lh outputs/full/m06d_future_mse/vjepa_2_1_frozen/per_clip_mse.npy
-cat outputs/full/m06d_future_mse/m06d_future_mse_per_variant.json | python -m json.tool
 ```
 
----
+### B.3 — Optional: SANITY smoke for each trainer on 96 GB before committing FULL hours
 
-## 4 · One-shot gate verdict
+If you want a 5-min code-path verify per trainer before kicking the multi-hour FULL runs:
 
 ```bash
-python -c "
-import json
-g = json.load(open('outputs/full/m06d_action_probe/m06d_paired_delta.json'))
-m = json.load(open('outputs/full/m06d_motion_cos/m06d_motion_cos_paired.json'))
-f = json.load(open('outputs/full/m06d_future_mse/m06d_future_mse_per_variant.json'))
-print()
-print(f'🥇 P1 ACTION-PROBE GATE  Δ={g[\"delta_pp\"]:+.2f} pp  CI [{g[\"ci_lo_pp\"]:+.2f}, {g[\"ci_hi_pp\"]:+.2f}]  p={g[\"p_value\"]:.4f}  → {\"✅ PASS\" if g[\"gate_pass\"] else \"❌ FAIL\"}')
-print(f'   motion_cos Δ={m[\"delta_mean\"]:+.4f}  CI_half=±{m[\"delta_ci_half\"]:.4f}  p={m[\"p_value\"]:.4f}  → {\"✅\" if m[\"gate_pass\"] else \"🟡\"}')
-print(f'   future_mse vjepa_frozen mse_mean={f[\"by_variant\"][\"vjepa_2_1_frozen\"][\"mse_mean\"]:.4f}   (DINOv2={f[\"by_variant\"][\"dinov2\"]})')
-"
+# Each ~3-10 min on 96 GB; useful only on 96 GB hardware (24 GB OOMs per Phase A note above)
+CACHE_POLICY_ALL=2 ./scripts/run_probe_train.sh pretrain --SANITY          2>&1 | tee logs/probe_pretrain_sanity_smoke.log
+CACHE_POLICY_ALL=2 ./scripts/run_probe_train.sh surgery_3stage_DI --SANITY 2>&1 | tee logs/probe_surgery_3stage_DI_sanity_smoke.log
+CACHE_POLICY_ALL=2 ./scripts/run_probe_train.sh surgery_noDI --SANITY      2>&1 | tee logs/probe_surgery_noDI_sanity_smoke.log
 ```
 
 ---
 
-## 5 · Cleanup / re-run
+## Phase C — Eval all 4 V-JEPA variants + DINOv2 on FULL (~2.5 GPU-h)
+
+> Once Phase B has produced all `m09{a,c}_ckpt_best.pt` artifacts, run the eval pipeline at FULL scale (eval_10k = ~9.9k clips → ~6,966 train / ~1,492 val / ~1,492 test).
 
 ```bash
-# Re-run stage N only (e.g., re-train probe with different lr)
-SKIP_STAGES=\"1,2,5,6,7,8,9\" CACHE_POLICY_ALL=2 ./scripts/run_m06d.sh
+tmux new -s probe_eval_full
+CACHE_POLICY_ALL=2 ./scripts/run_probe_eval.sh --FULL \
+  2>&1 | tee logs/run_src_probe_full_v1.log
+```
 
-# Single-encoder debug (V-JEPA only, all stages)
-ENCODERS=\"vjepa_2_1_frozen\" SKIP_STAGES=\"4,8,9\" ./scripts/run_m06d.sh
+**Read the gates:**
+```bash
+# P1 GATE — Δ V-JEPA frozen vs DINOv2 frozen on top-1 acc (target +20 pp)
+jq '.pairwise_deltas.dinov2_minus_vjepa_2_1_frozen' \
+  outputs/full/probe_action/probe_paired_delta.json
+
+# P2 GATE — Δ pretrain vs frozen (target Δ > 0, p < 0.05)
+jq '.pairwise_deltas.vjepa_2_1_pretrain_minus_vjepa_2_1_frozen' \
+  outputs/full/probe_action/probe_paired_delta.json
+
+# P3 GATE — Δ surgical_3stage_DI vs surgical_noDI (D_I helps?)
+jq '.pairwise_deltas.vjepa_2_1_surgical_3stage_DI_minus_vjepa_2_1_surgical_noDI' \
+  outputs/full/probe_action/probe_paired_delta.json
+
+# Future MSE — V-JEPA's native objective (lower is better)
+jq '.by_variant | to_entries | map(select(.value != null and .value != "n/a — no future-frame predictor"))' \
+  outputs/full/probe_future_mse/probe_future_mse_per_variant.json
+
+# Final 4-encoder bar comparison
+xdg-open outputs/full/probe_plot/probe_encoder_comparison.png 2>/dev/null \
+  || echo "Plots: outputs/full/probe_plot/{probe_action_loss,probe_action_acc,probe_encoder_comparison}.{png,pdf}"
 ```
 
 ---
 
-## 🚦 Decision matrix on P1 gate output
+## End-to-end one-liner (Phase A → B → C, ~12-18 GPU-h on 96 GB)
 
-| `m06d_paired_delta.json` | Reading | Next |
-|:--|:--|:--|
-| `gate_pass: true`, `p_value < 0.05` | V-JEPA frozen > DINOv2 on Indian motion-centric probe | proceed to **Priority 2** (`vjepa_explora` vs `vjepa_frozen`) |
-| `gate_pass: false`, `delta_pp > 0`, CI overlap | underpowered or noise floor | re-run with `NUM_FRAMES=64` (~4× slower); add `--enable-monument-class` for harder 4-class task |
-| `delta_pp ≤ 0` | DINOv2 ties or beats V-JEPA on our domain | 🛑 cancel P2/P3, diff `m05` vs `vjepa2_demo.ipynb`, open critical bug |
+```bash
+# 1. SANITY smoke (~6-8 min on 24 GB OR 96 GB)
+CACHE_POLICY_ALL=2 ./scripts/run_probe_eval.sh --sanity \
+  2>&1 | tee logs/run_src_probe_sanity.log
+
+# 2. Bootstrap labels at FULL scale (~2 min)
+SKIP_STAGES="2,3,4,5,6,7,8,9,10" CACHE_POLICY_ALL=2 \
+  ./scripts/run_probe_eval.sh --FULL \
+  2>&1 | tee logs/run_probe_eval_full_stage1_only.log
+
+# 3. Train all 3 V-JEPA variants (semicolons — independent, no early-abort cascade)
+CACHE_POLICY_ALL=2 ./scripts/run_probe_train.sh pretrain --FULL          2>&1 | tee logs/probe_pretrain_full_v1.log ; \
+CACHE_POLICY_ALL=2 ./scripts/run_probe_train.sh surgery_3stage_DI --FULL 2>&1 | tee logs/probe_surgery_3stage_DI_full_v1.log ; \
+CACHE_POLICY_ALL=2 ./scripts/run_probe_train.sh surgery_noDI --FULL      2>&1 | tee logs/probe_surgery_noDI_full_v1.log
+
+# 4. FULL eval — all 4 V-JEPA + DINOv2
+CACHE_POLICY_ALL=2 ./scripts/run_probe_eval.sh --FULL \
+  2>&1 | tee logs/run_src_probe_full_v1.log
+```
+
+> Why semicolons (not `&&`) between trainers: per CLAUDE.md "OVERNIGHT CHAINS — `;` NOT `&&`". A failure in one trainer must not cancel the next; each writes independent artifacts that the eval pipeline can consume independently.
+
+---
+
+## Failure recovery
+
+| Symptom | Diagnosis | Fix |
+|---|---|---|
+| Training OOMs at sub-batch=1 | Hardware too small (24 GB) | Move to 96 GB; SANITY pretrain/surgery are 96-GB-only |
+| Stage 8 FATAL: `m09{a,c}_ckpt_best.pt missing` | Pre-iter13 trainer didn't save full ckpt | iter13 Bug A/R8 fixes ensure `_best.pt` is `full=True`; re-train with `CACHE_POLICY_ALL=2` |
+| Pretrain `loss_log.jsonl` is 0 bytes | Bug B (silent 0-step exit) | iter13 fix raises hard with `M09A FAILED: 0 successful training steps`; re-run on bigger GPU |
+| `probe_encoder_comparison.png` missing / FATAL ValueError "Axis limits cannot be NaN" | Degenerate BCa CI (perfect predictions on tiny test set) | iter13 NaN-safe ylim in `probe_plot.py:_bar_with_ci`; only fires at SANITY n=22 |
+| `taxonomy_labels.json` missing → multi-task auto-disabled | Phase B.1 not run | Run Phase B.1 once; `run_probe_train.sh` auto-generates if sources are present |
+
+---
+
+## Reference
+
+- **Plan**: `iter/iter13_motion_probe_eval/plan_training.md`
+- **Deep research**: `iter/iter13_motion_probe_eval/analysis.md`
+- **Code-dev plan**: `iter/iter13_motion_probe_eval/plan_code_dev.md`
+- **Bug log**: `iter/iter13_motion_probe_eval/errors_N_fixes.md`
+- **Onboarding**: `.claude/memory/MEMORY.md` (iter13 state for fresh Claude Code sessions)

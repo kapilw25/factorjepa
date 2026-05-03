@@ -407,10 +407,10 @@ print(f'B47 FAIL:{bad}' if bad else 'B47 PASS');sys.exit(1 if bad else 0)"
 **B48.** `&&` chain between `python -u src/m*.py` (iter10 2026-04-22): use `;`.
 ```bash
 source venv_walkindia/bin/activate && python3 -c "import re,sys
-fp=sys.argv[1] if len(sys.argv)>1 else 'scripts/run_paired_eval_10k.sh';s=open(fp).read()
+fp=sys.argv[1] if len(sys.argv)>1 else 'scripts/legacy2/run_paired_eval_10k.sh';s=open(fp).read()
 p=re.compile(r'python\s+-u\s+src/m[0-9]\w*\.py.*?&&\s*\\\\?\s*\n.*?python\s+-u\s+src/m[0-9]\w*\.py',re.DOTALL)
 if p.search(s): sys.exit(f'B48 FAIL:{len(p.findall(s))} in {fp}')
-print(f'B48 PASS:{fp}')" scripts/run_paired_eval_10k.sh
+print(f'B48 PASS:{fp}')" scripts/legacy2/run_paired_eval_10k.sh
 ```
 **B49.** `outputs_versioned/` writer↔reader contract (iter10 2026-04-22):
 ```bash
@@ -603,7 +603,7 @@ print(f'B61 FAIL:dead yaml field {dead}' if dead else f'B61 PASS:{len(sus)} live
 
 ## Part N: iter13 regressions (B62-B65) — catch BEFORE GPU spend
 
-> Sources: `iter/iter13_motion_probe_eval/errors_N_fixes.md` #71 + #79 + #82 + `logs/run_src_m06d_v1.log` (2026-05-03 cache-policy + np.savez regressions). Each guard catches a bug class B1-B61 misses.
+> Sources: `iter/iter13_motion_probe_eval/errors_N_fixes.md` #71 + #79 + #82 + `logs/run_src_probe_v1.log` (2026-05-03 cache-policy + np.savez regressions). Each guard catches a bug class B1-B61 misses.
 > NOTE: #80 (long-lived `tmp_dir` ENOENT after ~2M cycles) is already covered by **B56** — `producer_thread` mkdtemp at fn-level pre-fix trips B56's `not in_loop` branch when `fn.name` matches `producer/stream/decode`. No additional guard needed.
 
 **B62.** `getattr(<argparse_args>, "<key>", <non_None_default>)` silent fallback. argparse `required=True` already guarantees presence; a `getattr` default suppresses missing flags as `None` instead of crashing at argparse-time, letting bad state propagate into long GPU runs. Fix: drop the default; let `AttributeError` surface immediately. `.py` only; flags only when receiver name looks like an argparse Namespace.

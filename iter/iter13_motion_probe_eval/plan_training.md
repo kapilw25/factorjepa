@@ -18,7 +18,39 @@
 
 ---
 
-## ⚡ Status (2026-04-29)
+## 🚀 Status (2026-05-03 16:30 PDT) — code shipped; FULL training PENDING on 96 GB
+
+### Code ready (24 GB validated)
+
+- ✅ `utils/multi_task_loss.py` — 5 helpers (`merge_multi_task_config`, `build_multi_task_head_from_cfg`, `attach_head_to_optimizer`, `run_multi_task_step`, `export_multi_task_head`) wrapping `MultiTaskProbeHead` + `compute_multi_task_probe_loss` + `get_probe_head_param_groups`. 11-test REPL smoke gate. Each m09 call site collapses from ~22 LoC to ~3 LoC.
+- ✅ `m09a_pretrain.py` + `m09c_surgery.py` — multi-task wired (head init / optimizer attach / forward+backward / export); per-mode flatten in `merge_config_with_args`; CLI `--taxonomy-labels-json` + `--no-multi-task` plumbed.
+- ✅ Per-config opt-in: `probe_pretrain.yaml`, `surgery_3stage_DI.yaml`, `surgery_2stage_noDI.yaml` ship `multi_task_probe.enabled: {sanity:true, poc:true, full:true}`. Legacy ch10/explora unchanged.
+- ✅ `scripts/run_probe_train.sh` — auto-generates `taxonomy_labels.json` if missing (calls `probe_taxonomy --stage labels` from inputs already on disk).
+- ✅ `scripts/run_probe_eval.sh` — Stage 1 emits BOTH `action_labels.json` AND `taxonomy_labels.json`; pre-flight builds `STAGE8_ENCODERS` subset (predictor-bearing ckpts only); Stage 8 in-loop WARN+continue (defense-in-depth); reaches Stage 10 plots even when V-JEPA variants lack predictor ckpt.
+- ✅ `utils/frozen_features.resolve_encoder_state_dict()` — single source of truth for the 4 ckpt schemas (`target_encoder` / `encoder` / `student_state_dict` / `student`); used by `load_vjepa_2_1_frozen` + `probe_future_mse`.
+- ✅ `probe_plot._bar_with_ci` — NaN-safe ylim + value-label placement (degenerate BCa CIs no longer crash plotting).
+- ✅ Bug A: m09a `_best.pt` saved with `full=True` → carries predictor key for Stage 8.
+- ✅ Bug B: m09a OOM-retry uses `while not step_succeeded:` retry-same-macro (was `continue` → silent 0-step exit at SANITY total_steps=1); plus fail-hard `M09A FAILED: 0 successful training steps` post-train guard.
+- ✅ Bug R8: m09c writes `m09c_ckpt_best.pt` with `full=True` after best-promotion (survives `cleanup_stage_checkpoints(_stage*.pt)` glob).
+- ✅ OOM-fragmentation fix: `gc.collect() + torch.cuda.empty_cache()` between retries in BOTH m09a and m09c OOM handlers.
+
+### Empirically validated 2026-05-03
+
+| Pipeline | 24 GB SANITY | Result |
+|---|---|---|
+| `run_probe_eval.sh --sanity` (10 stages, 150 clips) | ✅ green end-to-end (`run_src_probe_sanity_v4.log`) | DINOv2 95.45% / V-JEPA frozen 100% (saturation expected at N=22) |
+| `run_probe_train.sh pretrain --SANITY` | ❌ OOM at sub-batch=1 even with 8 frames + all memory savers (`probe_pretrain_sanity_v6.log`) | V-JEPA ViT-G + teacher EMA + 8-bit Adam state ≈ 25 GB FIXED footprint exceeds 24 GB before activations |
+
+### Decision: split hardware by stage
+
+- **24 GB SANITY**: eval pipeline only. Validates code correctness. Numbers NOT meaningful (n_test ≈ 22).
+- **96 GB FULL**: training (`run_probe_train.sh pretrain | surgery_3stage_DI | surgery_noDI`) AND meaningful eval (`run_probe_eval.sh --FULL` on ~9.9k clips → ~1,492 test → tight CIs).
+
+See `iter/iter13_motion_probe_eval/runbook.md` for the canonical SANITY → FULL command sequence. Open question (the actual paper claim): does multi-task supervision move V-JEPA pretrain/surgical above frozen on 16-dim probe top-1? Cannot answer until Phase B+C runs on 96 GB.
+
+---
+
+## ⚡ Status (2026-04-29) — pre-iter13-multi-task pivot
 
 ### Empirical record (5 failed encoder recipes)
 
@@ -83,7 +115,7 @@ Per Meta's V-JEPA 2 paper (DeepWiki cross-ref [§5.3 downstream tasks](https://d
    (4-stage gate)        (3-stage motion proxy) (2-stage V-JEPA-only)
                         │
                         ▼
-                scripts/run_m06d.sh
+                scripts/run_m06d_eval.sh
         (9 stages: labels → features × 2 enc → train × 2 enc → P1 GATE
                   → motion features × 2 enc → cosine × 2 enc → motion_cos Δ
                   → future_mse forward → future_mse Δ)
@@ -93,7 +125,7 @@ Per Meta's V-JEPA 2 paper (DeepWiki cross-ref [§5.3 downstream tasks](https://d
 
 > 📦 **Why we run on `data/eval_10k_local` instead of subprocess-wrapping `deps/vjepa2/evals/main_distributed.py`**: our paper claim is on Indian-context retrieval, not Meta's curated SSv2/Diving-48 sets. The same Meta-published probe protocol applied to our own labeled clips gives a domain-relevant gate. Module 3 (`m06d_future_mse.py`) additionally exercises the V-JEPA training objective forward-only on Indian clips — a separate health check that DINOv2 cannot match (no future-frame predictor head).
 
-### Plan — 9 stages, ~2.5 GPU-h total, run via `scripts/run_m06d.sh`
+### Plan — 9 stages, ~2.5 GPU-h total, run via `scripts/run_m06d_eval.sh`
 
 | # | Stage | Module | Cost | Pass criterion |
 |:-:|:--|:--|:-:|:--|
@@ -202,7 +234,7 @@ flowchart TB
         ACTION["m06d_action_probe.py<br>4-stage gate"]
         COS["m06d_motion_cos.py<br>3-stage motion proxy"]
         MSE["m06d_future_mse.py<br>2-stage V-JEPA-only"]
-        SH["scripts/run_m06d.sh<br>9-stage orchestrator"]
+        SH["scripts/run_m06d_eval.sh<br>9-stage orchestrator"]
         GATE["paired BCa Δ on test split<br>CI_lo > 0 → unblock P2"]
         SHARED --> ACTION
         SHARED --> COS

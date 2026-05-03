@@ -1,6 +1,160 @@
 # Deep-research answers — V-JEPA 2.1 ultrathink
 
---- 
+---
+
+## 🚦 iter13 state snapshot (2026-05-03 16:30 PDT)
+
+> **TL;DR**: Multi-task probe-loss wiring shipped end-to-end (m09a + m09c + utils/multi_task_loss.py + 5 helpers + 11-test REPL gate). Eval pipeline runs clean on 24 GB SANITY (4-encoder pre-flight + Stage 8 graceful skip + NaN-safe plotting all landed). **Training of pretrain + surgery_3stage_DI + surgery_noDI requires 96 GB** — 24 GB OOMs even at sub-batch=1 + 8 frames + all memory savers stacked. All known bugs fixed (Bug A: `_best.pt` full=True; Bug B: while-not-step-succeeded retry; Bug R8: m09c writes `m09c_ckpt_best.pt`). Next concrete step: kick the FULL pipeline per `runbook.md` Phases A→B→C on 96 GB hardware.
+
+### Multi-task probe-loss supervision (user pivot, 2026-05-03)
+
+**Why added**: pure-SSL m09a/m09c have ZERO gradient signal toward the 16-dim probe metric (action + 15 taxonomy dims). Without direct supervision, probability of trained encoder beating frozen on probe accuracy depends on incidental alignment (~5-15%). Multi-task adds:
+
+```
+total_loss = α · JEPA_L1  +  β · Σ_d (1/n_dims) · L_d  +  drift_L2
+            (α=1.0)        (β=0.1, weight_probe)
+```
+where L_d is CrossEntropy for 14 single-label dims (action + 13 taxonomy) and BCEWithLogits for 2 multi-label dims (road_layout, notable_objects).
+
+**Code surface** — 5 helpers in `utils/multi_task_loss.py` (technique-agnostic per #49 contract):
+| Helper | Purpose |
+|---|---|
+| `merge_multi_task_config(cfg, args, mode_key)` | Per-mode flatten + CLI overrides |
+| `build_multi_task_head_from_cfg(cfg, device)` | Returns `(mt_head, labels, dims, mt_cfg)`; silent-disable on missing labels file |
+| `attach_head_to_optimizer(optimizer, mt_head, mt_cfg, base_lr)` | Adds head param group at `base_lr × head_lr_multiplier` (10×) |
+| `run_multi_task_step(student, mt_head, ..., batch_clips, batch_keys, scaler, mp_cfg, dtype, device)` | One forward+backward; returns `(mt_loss_val, mt_per_dim)`; re-raises OOM |
+| `export_multi_task_head(mt_head, dims_spec, d_encoder, path)` | Writes `multi_task_head.pt` |
+
+Each m09 call site shrinks from ~22 LoC to ~3 LoC; net 120 duplicated LoC → 30 LoC across both files + 95 LoC of helpers (single test surface).
+
+**Per-config opt-in** (`probe_pretrain.yaml`, `surgery_3stage_DI.yaml`, `surgery_2stage_noDI.yaml`):
+```yaml
+multi_task_probe:
+  enabled: {sanity: true, poc: true, full: true}    # opt-in for THIS config
+```
+Base ships `false` for all modes; opt-in is per-config so legacy ch10/explora are unaffected.
+
+### Bug fixes that landed in iter13 (2026-05-03)
+
+| # | Bug | Fix | Where |
+|---|---|---|---|
+| **A** | m09a `_best.pt` saved with `full=False` → no predictor key → Stage 8 future_mse FATAL on `KeyError 'predictor'` | Flip to `full=True` | `m09a_pretrain.py:1098` |
+| **B** | OOM-retry used `continue` → SANITY `total_steps=1` exited with 0 successful steps → silently exported untrained Meta weights | `while not step_succeeded:` retry-same-macro loop + post-train `M09A FAILED: 0 successful training steps` fail-hard | `m09a_pretrain.py:836-866` + `:1166-1177` |
+| **R8** | m09c writes `student_best.pt` (encoder-only, full=False); cleanup wipes stage ckpts; eval expects `m09c_ckpt_best.pt` (full ckpt) | Add explicit `save_training_checkpoint(_best.pt, ..., full=True)` after best-promotion; survives `cleanup_stage_checkpoints` (different glob pattern) | `m09c_surgery.py:1372-1385` |
+| **OOM frag** | Each OOM-retry left orphan tensors → next sub-batch shrink had less free VRAM → eventually OOM at sub-batch=1 even though sub-batch=1 should fit | Add `gc.collect() + torch.cuda.empty_cache()` after `optimizer.zero_grad()` in OOM handler | both `m09a:849-857` + `m09c:1170-1179` |
+| **eval ckpt schema** | `utils.frozen_features.load_vjepa_2_1_frozen` only knew Meta's `target_encoder`/`encoder` keys; m09a `student_state_dict` (export) and `student` (full ckpt) → 0/588 loaded | Add `resolve_encoder_state_dict()` helper recognizing 4 schemas in priority order | `utils/frozen_features.py:74-95` + `probe_future_mse.py:121` |
+| **Stage 8 FATAL** | Eval-side hard-stop when predictor-bearing ckpt missing → killed Stages 9+10 even though future_mse is V-JEPA-only and partial result is valid | Pre-flight builds `STAGE8_ENCODERS` subset; in-loop WARN+continue (defense-in-depth) | `scripts/run_probe_eval.sh:289-326` + `:484-512` |
+| **Plot NaN ylim** | `_bar_with_ci` computed `ax.set_ylim(NaN, NaN)` when any encoder had degenerate BCa CI (perfect predictions → zero variance → ci_half=NaN) | NaN-safe ylim via `np.nan_to_num(real_e, nan=0.0)` before `min/max`; same for value-label placement | `src/probe_plot.py:196-218` |
+
+### What runs where (hardware split, validated 2026-05-03)
+
+| Pipeline | 24 GB SANITY | 96 GB FULL |
+|---|---|---|
+| `run_probe_eval.sh --sanity` (10 stages) | ✅ ~6-8 min, all stages green | ✅ trivially |
+| `run_probe_train.sh pretrain --SANITY` | ❌ OOM at sub-batch=1 (probe_pretrain_sanity_v6.log) | ✅ ~3 GPU-h |
+| `run_probe_train.sh surgery_* --SANITY` | ❌ same OOM regime | ✅ ~4-8 GPU-h |
+| `run_probe_eval.sh --FULL` (10 stages, ~9.9k clips) | ⚠️ ~4 h on 24 GB feasible per spec but 96 GB recommended | ✅ ~2.5 GPU-h |
+
+**Why 24 GB can't train V-JEPA ViT-G** (`probe_pretrain_sanity_v6.log` evidence, fixed memory math):
+- Student ViT-G fp32 (1.84B params): ~7.4 GB
+- Teacher EMA copy: ~7.4 GB (NOT shared with student — m09a builds via `copy.deepcopy`)
+- Predictor 60M: ~0.24 GB
+- Master fp32 + 8-bit Adam state for trainable params: ~7-9 GB (paged optim has SOME state on GPU)
+- PyTorch + bitsandbytes overhead: ~2 GB
+- **Subtotal (FIXED) ≈ 24-26 GB** — already exceeds the 24 GB budget before any activations
+
+The 8-bit + paged + grad-ckpt + sub-batch=1 + 8-frame stack (probe_pretrain_sanity_v6.log) couldn't shrink the FIXED footprint enough. errors_N_fixes #55 documents this; the fail-hard message in `m09a:851-857` points users at the right answer (move to FULL hardware).
+
+### What's NOT yet validated empirically (post-fix-but-pre-FULL)
+
+- ❌ Multi-task loss values on real training data — only REPL smoke (mock dims + random pooled feats) covers the math
+- ❌ `m09a_ckpt_best.pt` (~15 GB full ckpt) actually being written and loaded by Stage 8 — only static glob-safety REPL covers this
+- ❌ `m09c_ckpt_best.pt` round-trip from m09c training → Stage 8 future_mse load
+- ❌ All 6 pairwise Δ comparisons in `probe_paired_delta.json` for the full 4-encoder roster
+- ❌ Stage 10 `probe_encoder_comparison.png` with 4 V-JEPA bars + 1 DINOv2 bar
+- ❌ Whether multi-task supervision actually moves probe top-1 acc (the open empirical question)
+
+These get answered when `runbook.md` Phase B+C fires on 96 GB.
+
+---
+
+## 🆕 SANITY-mode P1 result (2026-05-03) — ⚠️ NOT P1-defining, AWAITING FULL
+
+> 🚨 **Headline**: SANITY direction is **WRONG WAY** (DINOv2 beats V-JEPA by 18 pp). 🚨
+> ⏳ **DO NOT update P1 verdict from this** — n_test = 22 is too small to draw any population-level conclusion. Re-run on **FULL eval_10k (~9.9k clips → ~1,492 test)** before judging the gate.
+
+### 📊 SANITY verdict table (`outputs/sanity/m06d_action_probe/m06d_paired_delta.json`, n=22)
+
+| Metric | 🎯 P1 target | 📉 SANITY plot | 🚦 Verdict (per `plan_training.md` decision matrix) |
+|---|---|---|---|
+| Δ top-1 acc (V-JEPA − DINOv2) | ≥ +20 pp, CI_lo > 0, p < 0.05 | **−18.18 pp** (V-JEPA 77.27 % vs DINOv2 95.45 %), CI [−36.36, −4.55], p = 0.024 | ❌ **Δ ≤ 0** — the *worst* row of the matrix |
+| Direction | V-JEPA above DINOv2 | DINOv2 above V-JEPA by 18 pp | 🔄 **inverted** |
+| CI containment | Δ-CI must exclude 0 from below | Δ-CI excludes 0 from **above** (CI_hi = −4.55) | ⚠️ **statistically significant in the WRONG direction** |
+
+### 🖼️ What the 3-panel SANITY plot shows (`outputs/sanity/m08d_plot_m06d/m06d_encoder_comparison.png`)
+
+| Panel | 🥇 V-JEPA 2.1 frozen | 🥈 DINOv2 frozen | Sign |
+|---|---|---|---|
+| 1 — Action probe top-1 (n=22) | 77.273 % (CI ~[59, 95]) | **95.454 %** (CI ~[84, 100]) | ❌ DINOv2 wins |
+| 2 — Motion cosine intra-inter (n=22) | 0.050 (CI [0.034, 0.067]) | **0.089** (CI [0.061, 0.118]) | ❌ DINOv2 wins (signal echoes panel 1) |
+| 3 — Future-frame L1 (n=22) | 0.555 (CI [0.549, 0.563]) | N/A (no predictor head) | ⛔ no comparison possible |
+
+### ⚠️ Why we **cannot** treat SANITY as the P1 verdict
+
+- 🪙 **n_test = 22** clips total (8 + 7 + 7 per class) — the smallest split that clears `stratified_split`'s ≥5/split floor with 2-clip margin. The ±18 pp CI half-width on V-JEPA's accuracy is exactly Wilson-noise at n=22.
+- 🧠 **Probe overfit signal**: `train_acc = 1.0, val_acc = 0.857` after 50 epochs on 105 train clips → comparing two overfit probes on 22 test clips is signal-poor by design.
+- 📏 **Scale check**: FULL test split = ~1,492 clips → Δ-CI shrinks ~8× (√(1492/22) ≈ 8.2). At that N, both a +20 pp lift and a −18 pp deficit are detectable; **SANITY cannot tell us which side of zero the population lives on.**
+- 🚧 **CLAUDE.md rule**: *"SANITY validates code correctness (no crashes), NOT model performance. Never draw conclusions from insufficient data."*
+
+### ⏳ What we are waiting for
+
+```bash
+# kicks off all 10 stages on eval_10k (~2.5 GPU-h on 24 GB)
+./scripts/run_m06d_eval.sh 2>&1 | tee logs/run_src_m06d_full_v1.log
+```
+
+| Run | n_test | Δ-CI half-width target | What it answers |
+|---|---|---|---|
+| ✅ SANITY (done) | 22 | ±15.9 pp | code correctness — pipeline runs end-to-end without crash |
+| ⏳ FULL (next) | ~1,492 | ~±2 pp | **the actual P1 gate** — does V-JEPA 2.1 frozen beat DINOv2 frozen on Indian motion-centric action probe? |
+
+### 🚨 If FULL ALSO flips — pipeline-validation gap to close FIRST
+
+**Critical missing experiment**: we have NO Meta-published-benchmark reproduction. Until we run frozen V-JEPA 2.1 + Meta's `ssv2-vitg-384-64x2x3.pt` probe on SSv2 val and reproduce Meta's published **75.3 %** ([V-JEPA 2 paper Table 4, arxiv 2506.09985](https://arxiv.org/html/2506.09985v1)), we cannot distinguish:
+
+- 🅰️ **Domain shift** — Indian outdoor video genuinely flips the SSv2-domain +24.6 pp gap (publishable negative result)
+- 🅱️ **Pipeline bug** — our `m05`/`m06d` extractor / probe trainer has a silent error that corrupts V-JEPA features (silent metric corruption, must fix before claiming anything)
+
+#### 📌 Proposed pre-FULL pipeline-validation experiment (~1 GPU-h)
+
+| Step | Action | Expected | If we see |
+|---|---|---|---|
+| 1 | Download SSv2 val split (~10 GB) | — | — |
+| 2 | Run frozen V-JEPA 2.1 ViT-G + Meta's released SSv2 probe ckpt `ssv2-vitg-384-64x2x3.pt` (inference-only, no training) | **75.3 %** top-1 (Meta's published number) | ✅ infra correct → trust m06d FULL number<br>❌ ≠ 75.3 % → debug `m05` / `frozen_features.py` extractor before reading FULL m06d as P1 verdict |
+
+### 📚 Why our 3 metrics ≠ Meta's 4 motion-centric benchmarks (similarity audit)
+
+Meta's published frozen-encoder + 4-layer attentive-probe motion-centric suite: **SSv2 / Diving-48 / Ego4D OSC / EPIC-KITCHENS-100** ([V-JEPA 2 Table 4 + 5](https://arxiv.org/html/2506.09985v1)).
+
+| Our metric | Meta's closest | Same recipe? | Same task? | Same data? | Grade |
+|---|---|---|---|---|---|
+| 🥇 Indian action probe top-1 | SSv2 top-1 (174-class) | ✅ identical 4-layer `AttentiveClassifier` | ✅ supervised action classification | ❌ Indian outdoor 3-class vs SSv2 indoor 174-class | **B−** |
+| 🥈 Motion cosine intra-inter | none in Meta's published suite | ❌ probe-free | ❌ feature-similarity, not classification | ❌ Indian outdoor | **D** |
+| 🥉 Future-frame L1 (V-JEPA only) | closest = Ego4D OSC mAP | ❌ raw training loss vs labeled state-change mAP | ❌ unsupervised L1 vs supervised anticipation | ❌ Indian outdoor vs Ego4D kitchen | **D−** |
+
+**Honest read**: only the action probe is in the same *family* as one of Meta's 4 benchmarks. Motion cosine + future MSE are domain-specific *supplementary* probes — useful as secondary signals in our paper but **NOT a substitute for SSv2/Diving-48 reproduction** as a pipeline-correctness check.
+
+### 🎯 Action items, ordered by priority
+
+| Priority | Item | Cost | Unblocks |
+|---|---|---|---|
+| 🥇 P0 | Run **FULL m06d** on eval_10k → produce real P1 verdict at n=1,492 | ~2.5 GPU-h | the entire iter13 plan |
+| 🥈 P0.5 | Run **SSv2 reproduction** with Meta's published probe ckpt | ~1 GPU-h + 10 GB download | disambiguate "domain shift" vs "pipeline bug" if FULL also flips |
+| 🥉 P1 | If FULL P1 PASSES (Δ ≥ 0, CI_lo > 0): proceed to Track 2 (m12/m13/m13b factor-conditioned probe) | ~10 GPU-h | publishable surgical > frozen claim |
+| 🛑 P1 | If FULL P1 FAILS (Δ < 0 or CI overlap): execute the decision-matrix branch (`plan_training.md` §"Outcome decision matrix") — diff `m05` extractor vs `vjepa2_demo.ipynb`, then either pivot paper framing or fix pipeline | varies | paper recovery path |
+
+---
+
 **The wrong-metric finding itself is publishable**: "Cross-clip retrieval Prec@K is not the right gate metric for V-JEPA-style generative SSL; here are the metrics that DO move (Cycle@K, val_jepa, action recognition probe)." That's a legitimate negative-result + corrective contribution.
 
 **Pivot the paper's gate metric** from Prec@K to V-JEPA's native metrics (Q2). On those, you have real numbers to defend.

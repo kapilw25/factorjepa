@@ -46,7 +46,7 @@ to this script in the future. Reasons:
   Behavioral spec post-removal:
     - On every invocation, m08b WIPES `--output-dir` (shutil.rmtree + mkdir empty)
       before writing its 8 plots + tex + paired_bootstrap_results.json.
-    - No `--cache-policy` CLI arg. Orchestrators (`scripts/run_eval.sh`) MUST NOT
+    - No `--cache-policy` CLI arg. Orchestrators (`scripts/legacy2/run_eval.sh`) MUST NOT
       pass `--cache-policy` to m08b — it will fail-loud with `unrecognized arg`.
     - Stale-radar (n<3) PURGE is unconditional (was guarded_delete before).
 ═════════════════════════════════════════════════════════════════════════

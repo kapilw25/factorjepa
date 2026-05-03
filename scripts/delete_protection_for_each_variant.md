@@ -54,13 +54,13 @@ python -u src/m08b_compare.py --FULL ... --cache-policy "${POLICY[m08b_$v]}"
 
 ```bash
 # 🟢 Keep all caches, no prompts
-CACHE_POLICY_ALL=1 ./scripts/run_train.sh <yaml1> <yaml2>
+CACHE_POLICY_ALL=1 ./scripts/legacy2/run_train.sh <yaml1> <yaml2>
 
 # 🔴 Recompute everything, no prompts
-CACHE_POLICY_ALL=2 ./scripts/run_train.sh <yaml1> <yaml2>
+CACHE_POLICY_ALL=2 ./scripts/legacy2/run_train.sh <yaml1> <yaml2>
 
 # 🤖 Non-TTY auto-default (e.g., piping or running detached)
-nohup ./scripts/run_train.sh <yaml1> <yaml2> > overnight.log 2>&1 &
+nohup ./scripts/legacy2/run_train.sh <yaml1> <yaml2> > overnight.log 2>&1 &
 ```
 
 ---
@@ -69,7 +69,7 @@ nohup ./scripts/run_train.sh <yaml1> <yaml2> > overnight.log 2>&1 &
 
 ❌ **DON'T** call `python -u src/m*.py` from a shell loop **without** `--cache-policy` — each invocation will hit the `.py`-level `input()` prompt:
 - 🧑 In a TTY: blocks waiting for keypress per stage (interrupts overnight).
-- 🤖 In non-TTY: silently defaults to `1`, but the operator can't see *which* stages were prompted (logs get swallowed by wandb chatter — see `logs/run_src_m06d_v1.log:13,44`).
+- 🤖 In non-TTY: silently defaults to `1`, but the operator can't see *which* stages were prompted (logs get swallowed by wandb chatter — see `logs/run_src_probe_v1.log:13,44`).
 
 ✅ **DO** gather upfront → `declare -A POLICY` → `_check_and_prompt` → pass `--cache-policy "$P"` to every `.py` call.
 
@@ -79,8 +79,8 @@ nohup ./scripts/run_train.sh <yaml1> <yaml2> > overnight.log 2>&1 &
 
 | Script | Pattern |
 |---|---|
-| `scripts/run_train.sh:43-89, 124, 133, 152` | 🥇 Gold-standard reference — per-variant prompt + per-call propagation |
-| `scripts/run_paired_eval_10k.sh` | 🏆 3-tier idempotency gates (G1/G2/G3) + dependency propagation (m05→m06→m08b) |
+| `scripts/legacy2/run_train.sh:43-89, 124, 133, 152` | 🥇 Gold-standard reference — per-variant prompt + per-call propagation |
+| `scripts/legacy2/run_paired_eval_10k.sh` | 🏆 3-tier idempotency gates (G1/G2/G3) + dependency propagation (m05→m06→m08b) |
 | `scripts/lib/common.sh::prompt_cache` | 🧰 Shared helper if you don't want to copy `_check_and_prompt` |
 
 ---

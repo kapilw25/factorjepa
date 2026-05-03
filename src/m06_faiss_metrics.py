@@ -49,7 +49,7 @@ cache_policy gating to this script in the future. Reasons:
   Behavioral spec post-removal:
     - On every invocation, m06 OVERWRITES its output files (m06_metrics_<enc>.json,
       knn_indices_<enc>.npy, per_clip_<enc>_{easy,hard}.npz, all m06_*<enc>.png/pdf).
-    - No `--cache-policy` CLI arg. Orchestrators (`scripts/run_eval.sh`) MUST NOT
+    - No `--cache-policy` CLI arg. Orchestrators (`scripts/legacy2/run_eval.sh`) MUST NOT
       pass `--cache-policy` to m06 — it will fail-loud with `unrecognized arg`.
 ═════════════════════════════════════════════════════════════════════════
 """

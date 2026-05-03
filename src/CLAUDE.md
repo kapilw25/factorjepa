@@ -103,8 +103,8 @@ Shared `utils/wandb_utils.py`. `--no-wandb` on every module. All functions no-op
 - `configs/model/vjepa2_1.yaml` — PRIMARY (V-JEPA 2.1 ViT-G 2B, 1664-dim)
 - `configs/model/vjepa2_0.yaml` — legacy (V-JEPA 2.0 ViT-g 1B, 1408-dim)
 - `configs/train/base_optimization.yaml` — shared: masking, augmentation, AdamW, EMA, mixed precision
-- `configs/train/ch10_pretrain.yaml` — continual pretraining (drift control, lambda sweep)
-- `configs/train/explora.yaml` — ExPLoRA (LoRA rank=16 + unfreeze 2 blocks)
+- `configs/legacy2/ch10_pretrain.yaml` — continual pretraining (drift control, lambda sweep)
+- `configs/legacy2/explora.yaml` — ExPLoRA (LoRA rank=16 + unfreeze 2 blocks)
 - `configs/train/ch11_surgery.yaml` — factor surgery (2-stage progressive unfreezing, SAM3 params, early-stop triggers, `factor_streaming` block)
 
 # 📚 REFERENCE

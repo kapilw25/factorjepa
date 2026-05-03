@@ -4,7 +4,7 @@ Picks N clips per action class from a source eval JSON, writing a derived JSON
 that keeps the same path semantics + TAR layout as the source — so any subset
 (SANITY, ablation slice, debugging cut) shares codec/path semantics with FULL.
 
-USAGE (called by scripts/run_m06d.sh under MODE=SANITY; also a standalone CLI):
+USAGE (called by scripts/run_probe_eval.sh under MODE=SANITY; also a standalone CLI):
     python -u src/utils/eval_subset.py \\
         --eval-subset data/eval_10k.json \\
         --n-per-class 50 \\

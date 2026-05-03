@@ -59,11 +59,11 @@ scripts/
 ./scripts/train_pretrain.sh --FULL
 ./scripts/run_embed.sh --FULL --subset data/subset_10k.json \
     --local-data data/subset_10k_local --encoders vjepa_lambda0_001
-./scripts/run_eval.sh --POC
+./scripts/legacy2/run_eval.sh --POC
 
 # Paper result (~22h): full embed + eval
 ./scripts/run_embed.sh --FULL --local-data data/full_local
-./scripts/run_eval.sh --FULL
+./scripts/legacy2/run_eval.sh --FULL
 ```
 
 ### Ch9: Frozen encoder data (tags + motion)
@@ -92,7 +92,7 @@ Progressive prefix unfreezing with factor datasets (Layout &#8594; Agent &#8594;
 
 ```bash
 ./scripts/run_embed.sh --FULL --local-data data/full_local   # all encoders
-./scripts/run_eval.sh --FULL                                  # m06→m08b radar
+./scripts/legacy2/run_eval.sh --FULL                                  # m06→m08b radar
 ```
 
 ---

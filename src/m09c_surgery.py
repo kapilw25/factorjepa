@@ -9,7 +9,7 @@ The paper novelty — factor-disentangled surgery on a frozen V-JEPA 2.1 encoder
 USAGE (every path arg required — CLAUDE.md no-default rule; --probe-* fall back to yaml):
     python -u src/m09c_surgery.py --SANITY \
         --model-config configs/model/vjepa2_1.yaml \
-        --train-config configs/train/surgery_2stage_noDI.yaml \
+        --train-config configs/legacy2/surgery_2stage_noDI.yaml \
         --subset data/sanity_100_dense.json --local-data data/val_1k_local \
         --factor-dir outputs/sanity/m11_factor_datasets/ \
         --probe-subset data/val_1k.json --probe-local-data data/val_1k_local \
@@ -17,7 +17,7 @@ USAGE (every path arg required — CLAUDE.md no-default rule; --probe-* fall bac
         --no-wandb 2>&1 | tee logs/m09c_sanity.log
     python -u src/m09c_surgery.py --POC \
         --model-config configs/model/vjepa2_1.yaml \
-        --train-config configs/train/surgery_2stage_noDI.yaml \
+        --train-config configs/legacy2/surgery_2stage_noDI.yaml \
         --subset data/sanity_100_dense.json --local-data data/val_1k_local \
         --factor-dir outputs/poc/m11_factor_datasets/ \
         --no-wandb 2>&1 | tee logs/m09c_dense100.log
@@ -107,6 +107,10 @@ from utils.training import (
     build_probe_clips, run_probe_eval, run_probe_val_loss, compute_trajectory_stats,
     render_training_plots,
 )
+from utils.multi_task_loss import (
+    merge_multi_task_config, build_multi_task_head_from_cfg,
+    attach_head_to_optimizer, run_multi_task_step, export_multi_task_head,
+)
 from torch.utils.data import DataLoader
 
 
@@ -195,6 +199,9 @@ def merge_config_with_args(cfg: dict, args) -> dict:
         fs_enabled = fs_override
     cfg["factor_streaming"]["enabled"] = fs_enabled
     cfg["factor_streaming"]["num_workers"] = fs_cfg["num_workers"][mode_key]
+
+    # Multi-task probe block — per-mode flatten + CLI overrides (utils helper).
+    merge_multi_task_config(cfg, args, mode_key)
 
     # Output dir: explicit --output-dir, or auto from module + mode
     if getattr(args, "output_dir", None):
@@ -418,6 +425,12 @@ def train_surgery(cfg: dict, args):
     # Enabled via configs/train/ch11_surgery.yaml:optimization.gradient_checkpointing.
     if cfg["optimization"]["gradient_checkpointing"]:
         enable_gradient_checkpointing(student)
+
+    # Multi-task probe head — adds CrossEntropy/BCE loss on 16 taxonomy dims
+    # to JEPA L1. Surgery's factor data path (StreamingFactorDataset OR
+    # FactorSampler) already provides per-clip clip_key — we thread it
+    # through into run_multi_task_step.
+    mt_head, mt_labels_by_clip, mt_dims_spec, mt_cfg = build_multi_task_head_from_cfg(cfg, device)
 
     mask_generators = build_mask_generators(cfg)
 
@@ -1031,6 +1044,9 @@ def train_surgery(cfg: dict, args):
                     "lr": cfg["optimization"]["lr"],
                     "weight_decay": 0.0,
                 })
+            # Re-attach multi-task probe head every stage — fresh optimizer
+            # per stage drops the head's param group, same rationale as UW above.
+            attach_head_to_optimizer(optimizer, mt_head, mt_cfg, cfg["optimization"]["lr"])
 
             # Per-stage LR scheduler (warmup then constant)
             def lr_lambda(step, ws=warmup_steps):
@@ -1095,16 +1111,25 @@ def train_surgery(cfg: dict, args):
 
             for local_step in range(stage_steps):
                 # Build batch from factor clips — streaming DataLoader or legacy sampler.
+                # batch_keys threaded for multi-task probe loss (iter13). Streaming
+                # yields {"tensor", "factor_type", "clip_key"} (utils/training.py:1363);
+                # collator turns clip_key into a list. Sampler returns
+                # (factor, clip_key, path) (utils/training.py:1071) — capture the key.
+                batch_keys = []
                 if stream_iter is not None:
                     batch = next(stream_iter)
                     batch_clips = batch["tensor"].to(device)              # (B, T, C, H, W)
                     batch_clips = batch_clips.permute(0, 2, 1, 3, 4)      # (B, C, T, H, W)
+                    if "clip_key" in batch:
+                        _ck = batch["clip_key"]
+                        batch_keys = list(_ck) if not isinstance(_ck, list) else _ck
                 else:
                     batch_tensors = []
                     for _ in range(batch_size):
-                        _, _, clip_path = sampler.sample()
+                        _, clip_key, clip_path = sampler.sample()
                         clip_tensor = load_factor_clip(clip_path, num_frames, crop_size)
                         batch_tensors.append(clip_tensor)
+                        batch_keys.append(clip_key)
                     batch_clips = torch.stack(batch_tensors).to(device)
                     batch_clips = batch_clips.permute(0, 2, 1, 3, 4)      # (B, C, T, H, W)
 
@@ -1143,6 +1168,14 @@ def train_surgery(cfg: dict, args):
                         step_succeeded = True
                     except torch.cuda.OutOfMemoryError:
                         optimizer.zero_grad()  # discard partial grads from incomplete macro
+                        # Force release of fragmented GPU memory between retries (mirrors
+                        # m09a fix from probe_pretrain_sanity_v4.log: orphan tensors from
+                        # the failed forward stayed allocated, so each successive sub-batch
+                        # shrink started with LESS free VRAM → eventual OOM at sub-batch=1
+                        # even though sub-batch=1 forward should fit). gc.collect() releases
+                        # Python references; empty_cache() returns blocks to the CUDA driver.
+                        gc.collect()
+                        torch.cuda.empty_cache()
                         # sizer.on_oom() ran inside helper. If at min and still OOMing, fail hard.
                         if train_sizer.size <= train_sizer.min_size:
                             raise RuntimeError(
@@ -1159,10 +1192,27 @@ def train_surgery(cfg: dict, args):
                         print(f"  OOM at step {global_step}: sub-batch shrunk to "
                               f"{train_sizer.size}, retrying SAME macro")
 
+                # Multi-task forward+backward (no-op when mt_head is None or
+                # batch_keys empty). Accumulates onto the same param.grad
+                # buffer as the JEPA grads → single optimizer.step() consumes both.
+                try:
+                    mt_loss_val, mt_per_dim = run_multi_task_step(
+                        student, mt_head, mt_cfg, mt_labels_by_clip, mt_dims_spec,
+                        batch_clips, batch_keys, scaler, mp_cfg, dtype, device)
+                except torch.cuda.OutOfMemoryError:
+                    optimizer.zero_grad()
+                    torch.cuda.empty_cache()
+                    print(f"  OOM at step {global_step} (multi-task forward): "
+                          f"discarding step, continuing")
+                    continue
+
                 # Single optimizer step per macro batch — preserves effective BS = batch_size
                 scaler.unscale_(optimizer)
+                _clip_params = list(student.parameters()) + list(predictor.parameters())
+                if mt_head is not None:
+                    _clip_params += list(mt_head.parameters())
                 grad_norm = torch.nn.utils.clip_grad_norm_(
-                    list(student.parameters()) + list(predictor.parameters()),
+                    _clip_params,
                     cfg["optimization"]["grad_clip"])
                 scaler.step(optimizer)
                 scaler.update()
@@ -1189,6 +1239,10 @@ def train_surgery(cfg: dict, args):
                     "uw_w_tcc": round(uw_w_tcc, 6),
                     "lr": lr_val, "grad_norm": round(gn_val, 4),
                 }
+                if mt_head is not None:
+                    step_record["loss_multi_task"] = round(mt_loss_val, 6)
+                    step_record["loss_multi_task_per_dim"] = {
+                        d: round(v, 6) for d, v in mt_per_dim.items()}
                 _log_step(step_record)
                 csv_writer.writerow([global_step, stage_name, f"{jepa_val:.6f}",
                                      f"{masked_val:.6f}", f"{context_val:.6f}",
@@ -1196,7 +1250,7 @@ def train_surgery(cfg: dict, args):
                                      f"{uw_w_jepa:.6f}", f"{uw_w_infonce:.6f}", f"{uw_w_tcc:.6f}",
                                      f"{lr_val:.2e}", f"{gn_val:.4f}"])
 
-                log_metrics(wb_run, {
+                wb_metrics = {
                     "loss/jepa": jepa_val, "loss/masked": masked_val,
                     "loss/context": context_val,
                     "loss/infonce": infonce_val, "loss/tcc": tcc_val,
@@ -1205,7 +1259,12 @@ def train_surgery(cfg: dict, args):
                     "loss/uw_w_tcc": uw_w_tcc,
                     "lr": lr_val,
                     "grad_norm": gn_val, "stage": stage_idx,
-                }, step=global_step)
+                }
+                if mt_head is not None:
+                    wb_metrics["loss/multi_task"] = mt_loss_val
+                    for d, v in mt_per_dim.items():
+                        wb_metrics[f"loss/multi_task/{d}"] = v
+                log_metrics(wb_run, wb_metrics, step=global_step)
 
                 # tqdm postfix — windowed rolling mean (matches m09a:814-823 pattern).
                 # At surgery's ~60 s/step wall, 30-s window usually fires every step →
@@ -1314,10 +1373,32 @@ def train_surgery(cfg: dict, args):
     else:
         export_student_for_eval(student, student_path, explora_enabled=False)
 
-    # Final checkpoint cleanup: `student_encoder.pt` is the only downstream artifact
-    # (consumed by m05 surgical re-embed + m06 Prec@K). Stage rollback ckpts are
+    # Multi-task probe head export (no-op when mt_head is None).
+    export_multi_task_head(mt_head, mt_dims_spec, cfg["model"]["embed_dim"],
+                           output_dir / "multi_task_head.pt")
+
+    # Bug R8 fix (iter13): write m09c_ckpt_best.pt with full=True so probe
+    # eval Stage 8 (probe_future_mse) can load the predictor. Without this,
+    # m09c writes student_best.pt (full=False, encoder-only) which gets
+    # promoted to student_encoder.pt and the only full ckpts are stage rollbacks
+    # that get nuked by cleanup_stage_checkpoints(keep_n=0) below. The new
+    # filename is OUTSIDE the cleanup pattern ({prefix}_stage*.pt) so survives.
+    # Mirrors m09a:_best.pt full=True convention. run_probe_eval.sh:158 expects
+    # this exact filename. ~15GB on disk; acceptable on 200GB workspace.
+    save_training_checkpoint(
+        output_dir / f"{CHECKPOINT_PREFIX}_best.pt",
+        student, teacher, predictor, optimizer, scheduler, scaler,
+        global_step, best_state["prec_at_k"], full=True, uw=uw_module)
+    print(f"Exported predictor-bearing best ckpt: "
+          f"{output_dir / f'{CHECKPOINT_PREFIX}_best.pt'}")
+
+    # Final checkpoint cleanup: `student_encoder.pt` + m09c_ckpt_best.pt are
+    # the downstream artifacts (consumed by m05 surgical re-embed + m06 Prec@K
+    # and probe_future_mse Stage 8 respectively). Stage rollback ckpts are
     # disposable once the run completes cleanly. Per CLAUDE.md "Clean all
     # intermediates after training." Saves ~15 GB per run at 2B model scale.
+    # The keep_n=0 pattern only matches `{prefix}_stage*.pt`, NOT `_best.pt`
+    # (different glob), so the predictor-bearing ckpt survives this call.
     cleanup_stage_checkpoints(output_dir, CHECKPOINT_PREFIX, keep_n=0, cache_policy=args.cache_policy)
 
     # Trajectory stats across stage boundaries. Single-probe-set regime so BWT
@@ -1460,6 +1541,16 @@ def main():
                         help="Probe tags.json path (default: cfg.probe.tags_path)")
     parser.add_argument("--no-probe", action="store_true",
                         help="Skip mid-training probe regardless of yaml setting")
+    # Multi-task probe head supervision (iter13). When enabled, adds CrossEntropy /
+    # BCEWithLogits losses on 16 taxonomy dims (action + 15 taxonomy) on top of
+    # JEPA L1 → direct gradient signal toward the eval metric. See
+    # utils/multi_task_loss.py + base_optimization.yaml `multi_task_probe:` block.
+    parser.add_argument("--taxonomy-labels-json", type=str, default=None,
+                        help="Path to taxonomy_labels.json (overrides cfg.multi_task_probe.labels_path). "
+                             "Produced by `probe_taxonomy.py --stage labels`.")
+    parser.add_argument("--no-multi-task", action="store_true",
+                        help="Force-disable multi-task probe-head supervision "
+                             "(overrides cfg.multi_task_probe.enabled).")
     fs_group = parser.add_mutually_exclusive_group()
     fs_group.add_argument("--factor-streaming", dest="factor_streaming_override",
                           action="store_true", default=None,

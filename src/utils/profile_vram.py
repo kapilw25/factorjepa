@@ -63,7 +63,7 @@ from utils.video_io import decode_video_bytes
 # utils.training. DEFAULT_CONFIG was a legacy name (never defined post-rename to
 # DEFAULT_TRAIN_CONFIG); define locally here to preserve the one consumer at line 625.
 from utils.training import load_config
-DEFAULT_CONFIG = "configs/train/ch10_pretrain.yaml"  # profiler defaults to Ch10 pretrain config
+DEFAULT_CONFIG = "configs/legacy2/ch10_pretrain.yaml"  # profiler defaults to Ch10 pretrain config
 _MaskGenerator = sys.modules["src.masks.multiseq_multiblock3d"]._MaskGenerator
 apply_masks = sys.modules["src.masks.utils"].apply_masks
 

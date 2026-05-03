@@ -135,7 +135,7 @@ def load_merged_config(model_config: str, train_config: str) -> dict:
 
     Args:
         model_config: Path to model YAML (e.g., 'configs/model/vjepa2_1.yaml')
-        train_config: Path to train YAML (e.g., 'configs/train/explora.yaml')
+        train_config: Path to train YAML (e.g., 'configs/legacy2/explora.yaml')
 
     Returns:
         Single merged dict with all config values.
@@ -227,7 +227,7 @@ def add_train_config_arg(parser):
     """Add --train-config flag. Required (no default — FAIL LOUD per src/CLAUDE.md)."""
     parser.add_argument(
         "--train-config", required=True,
-        help="Training config YAML (e.g., configs/train/explora.yaml)")
+        help="Training config YAML (e.g., configs/legacy2/explora.yaml)")
 
 
 def get_sanity_clip_limit(module: str) -> int:

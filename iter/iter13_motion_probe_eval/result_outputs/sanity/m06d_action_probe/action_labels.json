@@ -1,0 +1,752 @@
+{
+  "tier2/bhopal/rain/--pBu8H35ro/--pBu8H35ro-004.mp4": {
+    "class": "walking",
+    "class_id": 2,
+    "split": "train"
+  },
+  "tier2/bhopal/rain/--pBu8H35ro/--pBu8H35ro-010.mp4": {
+    "class": "walking",
+    "class_id": 2,
+    "split": "train"
+  },
+  "tier2/bhopal/rain/--pBu8H35ro/--pBu8H35ro-013.mp4": {
+    "class": "walking",
+    "class_id": 2,
+    "split": "val"
+  },
+  "tier2/bhopal/rain/--pBu8H35ro/--pBu8H35ro-016.mp4": {
+    "class": "walking",
+    "class_id": 2,
+    "split": "val"
+  },
+  "tier2/bhopal/rain/--pBu8H35ro/--pBu8H35ro-020.mp4": {
+    "class": "walking",
+    "class_id": 2,
+    "split": "train"
+  },
+  "tier2/bhopal/rain/--pBu8H35ro/--pBu8H35ro-021.mp4": {
+    "class": "walking",
+    "class_id": 2,
+    "split": "train"
+  },
+  "tier2/bhopal/rain/--pBu8H35ro/--pBu8H35ro-023.mp4": {
+    "class": "walking",
+    "class_id": 2,
+    "split": "train"
+  },
+  "tier2/bhopal/rain/--pBu8H35ro/--pBu8H35ro-026.mp4": {
+    "class": "walking",
+    "class_id": 2,
+    "split": "val"
+  },
+  "tier2/bhopal/rain/--pBu8H35ro/--pBu8H35ro-028.mp4": {
+    "class": "walking",
+    "class_id": 2,
+    "split": "train"
+  },
+  "tier2/bhopal/rain/--pBu8H35ro/--pBu8H35ro-032.mp4": {
+    "class": "walking",
+    "class_id": 2,
+    "split": "train"
+  },
+  "tier2/bhopal/rain/--pBu8H35ro/--pBu8H35ro-035.mp4": {
+    "class": "walking",
+    "class_id": 2,
+    "split": "train"
+  },
+  "tier2/bhopal/rain/--pBu8H35ro/--pBu8H35ro-036.mp4": {
+    "class": "walking",
+    "class_id": 2,
+    "split": "test"
+  },
+  "tier2/bhopal/rain/--pBu8H35ro/--pBu8H35ro-038.mp4": {
+    "class": "walking",
+    "class_id": 2,
+    "split": "train"
+  },
+  "tier2/bhopal/rain/--pBu8H35ro/--pBu8H35ro-047.mp4": {
+    "class": "walking",
+    "class_id": 2,
+    "split": "test"
+  },
+  "tier2/bhopal/rain/--pBu8H35ro/--pBu8H35ro-048.mp4": {
+    "class": "walking",
+    "class_id": 2,
+    "split": "train"
+  },
+  "tier2/kochi/walking/-65OxoMJcGQ/-65OxoMJcGQ-025.mp4": {
+    "class": "walking",
+    "class_id": 2,
+    "split": "train"
+  },
+  "tier2/kochi/walking/-65OxoMJcGQ/-65OxoMJcGQ-041.mp4": {
+    "class": "walking",
+    "class_id": 2,
+    "split": "train"
+  },
+  "tier2/kochi/walking/-65OxoMJcGQ/-65OxoMJcGQ-048.mp4": {
+    "class": "walking",
+    "class_id": 2,
+    "split": "test"
+  },
+  "tier2/kochi/walking/-65OxoMJcGQ/-65OxoMJcGQ-057.mp4": {
+    "class": "walking",
+    "class_id": 2,
+    "split": "train"
+  },
+  "tier2/kochi/walking/-65OxoMJcGQ/-65OxoMJcGQ-061.mp4": {
+    "class": "walking",
+    "class_id": 2,
+    "split": "test"
+  },
+  "tier2/kochi/walking/-65OxoMJcGQ/-65OxoMJcGQ-062.mp4": {
+    "class": "walking",
+    "class_id": 2,
+    "split": "train"
+  },
+  "tier2/kochi/walking/-65OxoMJcGQ/-65OxoMJcGQ-093.mp4": {
+    "class": "walking",
+    "class_id": 2,
+    "split": "train"
+  },
+  "tier2/kochi/walking/-65OxoMJcGQ/-65OxoMJcGQ-103.mp4": {
+    "class": "walking",
+    "class_id": 2,
+    "split": "test"
+  },
+  "tier2/kochi/walking/-65OxoMJcGQ/-65OxoMJcGQ-108.mp4": {
+    "class": "walking",
+    "class_id": 2,
+    "split": "train"
+  },
+  "tier2/kochi/walking/-65OxoMJcGQ/-65OxoMJcGQ-116.mp4": {
+    "class": "walking",
+    "class_id": 2,
+    "split": "test"
+  },
+  "tier2/kochi/walking/-65OxoMJcGQ/-65OxoMJcGQ-127.mp4": {
+    "class": "walking",
+    "class_id": 2,
+    "split": "train"
+  },
+  "tier2/kochi/walking/-65OxoMJcGQ/-65OxoMJcGQ-135.mp4": {
+    "class": "walking",
+    "class_id": 2,
+    "split": "train"
+  },
+  "tier2/kochi/walking/-65OxoMJcGQ/-65OxoMJcGQ-158.mp4": {
+    "class": "walking",
+    "class_id": 2,
+    "split": "train"
+  },
+  "tier2/kochi/walking/-65OxoMJcGQ/-65OxoMJcGQ-163.mp4": {
+    "class": "walking",
+    "class_id": 2,
+    "split": "train"
+  },
+  "tier2/kochi/walking/-65OxoMJcGQ/-65OxoMJcGQ-170.mp4": {
+    "class": "walking",
+    "class_id": 2,
+    "split": "train"
+  },
+  "tier2/kochi/walking/-65OxoMJcGQ/-65OxoMJcGQ-173.mp4": {
+    "class": "walking",
+    "class_id": 2,
+    "split": "train"
+  },
+  "tier2/pune/rain/-EgBIiZ51nw/-EgBIiZ51nw-000.mp4": {
+    "class": "walking",
+    "class_id": 2,
+    "split": "train"
+  },
+  "tier2/pune/rain/-EgBIiZ51nw/-EgBIiZ51nw-005.mp4": {
+    "class": "walking",
+    "class_id": 2,
+    "split": "val"
+  },
+  "tier2/pune/rain/-EgBIiZ51nw/-EgBIiZ51nw-006.mp4": {
+    "class": "walking",
+    "class_id": 2,
+    "split": "train"
+  },
+  "tier2/pune/rain/-EgBIiZ51nw/-EgBIiZ51nw-009.mp4": {
+    "class": "walking",
+    "class_id": 2,
+    "split": "test"
+  },
+  "tier2/pune/rain/-EgBIiZ51nw/-EgBIiZ51nw-010.mp4": {
+    "class": "walking",
+    "class_id": 2,
+    "split": "val"
+  },
+  "tier2/pune/rain/-EgBIiZ51nw/-EgBIiZ51nw-013.mp4": {
+    "class": "walking",
+    "class_id": 2,
+    "split": "train"
+  },
+  "tier2/pune/rain/-EgBIiZ51nw/-EgBIiZ51nw-015.mp4": {
+    "class": "walking",
+    "class_id": 2,
+    "split": "train"
+  },
+  "tier2/pune/rain/-EgBIiZ51nw/-EgBIiZ51nw-018.mp4": {
+    "class": "walking",
+    "class_id": 2,
+    "split": "val"
+  },
+  "tier2/pune/rain/-EgBIiZ51nw/-EgBIiZ51nw-021.mp4": {
+    "class": "walking",
+    "class_id": 2,
+    "split": "train"
+  },
+  "tier2/pune/rain/-EgBIiZ51nw/-EgBIiZ51nw-026.mp4": {
+    "class": "walking",
+    "class_id": 2,
+    "split": "train"
+  },
+  "tier2/pune/rain/-EgBIiZ51nw/-EgBIiZ51nw-027.mp4": {
+    "class": "walking",
+    "class_id": 2,
+    "split": "train"
+  },
+  "tier2/pune/rain/-EgBIiZ51nw/-EgBIiZ51nw-028.mp4": {
+    "class": "walking",
+    "class_id": 2,
+    "split": "train"
+  },
+  "tier2/pune/rain/-EgBIiZ51nw/-EgBIiZ51nw-029.mp4": {
+    "class": "walking",
+    "class_id": 2,
+    "split": "train"
+  },
+  "tier2/pune/rain/-EgBIiZ51nw/-EgBIiZ51nw-030.mp4": {
+    "class": "walking",
+    "class_id": 2,
+    "split": "train"
+  },
+  "tier2/pune/rain/-EgBIiZ51nw/-EgBIiZ51nw-031.mp4": {
+    "class": "walking",
+    "class_id": 2,
+    "split": "train"
+  },
+  "tier2/jaipur/walking/-MoRGHs81zw/-MoRGHs81zw-005.mp4": {
+    "class": "walking",
+    "class_id": 2,
+    "split": "val"
+  },
+  "tier2/jaipur/walking/-MoRGHs81zw/-MoRGHs81zw-057.mp4": {
+    "class": "walking",
+    "class_id": 2,
+    "split": "train"
+  },
+  "tier2/jaipur/walking/-MoRGHs81zw/-MoRGHs81zw-086.mp4": {
+    "class": "walking",
+    "class_id": 2,
+    "split": "test"
+  },
+  "tier2/jaipur/walking/-MoRGHs81zw/-MoRGHs81zw-091.mp4": {
+    "class": "walking",
+    "class_id": 2,
+    "split": "train"
+  },
+  "tier1/chennai/drive/-Bl2EIufMNQ/-Bl2EIufMNQ-001.mp4": {
+    "class": "driving",
+    "class_id": 0,
+    "split": "train"
+  },
+  "tier1/chennai/drive/-Bl2EIufMNQ/-Bl2EIufMNQ-006.mp4": {
+    "class": "driving",
+    "class_id": 0,
+    "split": "test"
+  },
+  "tier1/chennai/drive/-Bl2EIufMNQ/-Bl2EIufMNQ-014.mp4": {
+    "class": "driving",
+    "class_id": 0,
+    "split": "val"
+  },
+  "tier1/chennai/drive/-Bl2EIufMNQ/-Bl2EIufMNQ-015.mp4": {
+    "class": "driving",
+    "class_id": 0,
+    "split": "val"
+  },
+  "tier1/chennai/drive/-Bl2EIufMNQ/-Bl2EIufMNQ-017.mp4": {
+    "class": "driving",
+    "class_id": 0,
+    "split": "train"
+  },
+  "tier1/chennai/drive/-Bl2EIufMNQ/-Bl2EIufMNQ-031.mp4": {
+    "class": "driving",
+    "class_id": 0,
+    "split": "train"
+  },
+  "tier1/chennai/drive/-Bl2EIufMNQ/-Bl2EIufMNQ-036.mp4": {
+    "class": "driving",
+    "class_id": 0,
+    "split": "train"
+  },
+  "tier1/chennai/drive/-Bl2EIufMNQ/-Bl2EIufMNQ-044.mp4": {
+    "class": "driving",
+    "class_id": 0,
+    "split": "train"
+  },
+  "tier1/chennai/drive/-Bl2EIufMNQ/-Bl2EIufMNQ-051.mp4": {
+    "class": "driving",
+    "class_id": 0,
+    "split": "train"
+  },
+  "tier1/chennai/drive/-Bl2EIufMNQ/-Bl2EIufMNQ-064.mp4": {
+    "class": "driving",
+    "class_id": 0,
+    "split": "train"
+  },
+  "tier1/chennai/drive/-Bl2EIufMNQ/-Bl2EIufMNQ-072.mp4": {
+    "class": "driving",
+    "class_id": 0,
+    "split": "test"
+  },
+  "tier1/chennai/drive/-Bl2EIufMNQ/-Bl2EIufMNQ-073.mp4": {
+    "class": "driving",
+    "class_id": 0,
+    "split": "val"
+  },
+  "tier1/chennai/drive/-Bl2EIufMNQ/-Bl2EIufMNQ-078.mp4": {
+    "class": "driving",
+    "class_id": 0,
+    "split": "train"
+  },
+  "tier1/chennai/drive/-Bl2EIufMNQ/-Bl2EIufMNQ-079.mp4": {
+    "class": "driving",
+    "class_id": 0,
+    "split": "train"
+  },
+  "tier1/chennai/drive/-Bl2EIufMNQ/-Bl2EIufMNQ-081.mp4": {
+    "class": "driving",
+    "class_id": 0,
+    "split": "train"
+  },
+  "tier1/delhi/drive/-OJ4E3UA7hI/-OJ4E3UA7hI-028.mp4": {
+    "class": "driving",
+    "class_id": 0,
+    "split": "train"
+  },
+  "tier1/delhi/drive/-OJ4E3UA7hI/-OJ4E3UA7hI-065.mp4": {
+    "class": "driving",
+    "class_id": 0,
+    "split": "train"
+  },
+  "tier1/delhi/drive/-OJ4E3UA7hI/-OJ4E3UA7hI-068.mp4": {
+    "class": "driving",
+    "class_id": 0,
+    "split": "train"
+  },
+  "tier1/delhi/drive/-OJ4E3UA7hI/-OJ4E3UA7hI-112.mp4": {
+    "class": "driving",
+    "class_id": 0,
+    "split": "train"
+  },
+  "tier1/delhi/drive/-OJ4E3UA7hI/-OJ4E3UA7hI-137.mp4": {
+    "class": "driving",
+    "class_id": 0,
+    "split": "train"
+  },
+  "tier1/delhi/drive/-OJ4E3UA7hI/-OJ4E3UA7hI-188.mp4": {
+    "class": "driving",
+    "class_id": 0,
+    "split": "val"
+  },
+  "tier1/delhi/drive/-OJ4E3UA7hI/-OJ4E3UA7hI-214.mp4": {
+    "class": "driving",
+    "class_id": 0,
+    "split": "train"
+  },
+  "tier1/delhi/drive/-OJ4E3UA7hI/-OJ4E3UA7hI-234.mp4": {
+    "class": "driving",
+    "class_id": 0,
+    "split": "train"
+  },
+  "tier1/delhi/drive/-OJ4E3UA7hI/-OJ4E3UA7hI-251.mp4": {
+    "class": "driving",
+    "class_id": 0,
+    "split": "train"
+  },
+  "tier1/delhi/drive/-OJ4E3UA7hI/-OJ4E3UA7hI-288.mp4": {
+    "class": "driving",
+    "class_id": 0,
+    "split": "val"
+  },
+  "tier1/delhi/drive/-OJ4E3UA7hI/-OJ4E3UA7hI-317.mp4": {
+    "class": "driving",
+    "class_id": 0,
+    "split": "test"
+  },
+  "tier1/delhi/drive/-OJ4E3UA7hI/-OJ4E3UA7hI-339.mp4": {
+    "class": "driving",
+    "class_id": 0,
+    "split": "train"
+  },
+  "tier1/delhi/drive/-OJ4E3UA7hI/-OJ4E3UA7hI-370.mp4": {
+    "class": "driving",
+    "class_id": 0,
+    "split": "val"
+  },
+  "tier1/delhi/drive/-OJ4E3UA7hI/-OJ4E3UA7hI-382.mp4": {
+    "class": "driving",
+    "class_id": 0,
+    "split": "train"
+  },
+  "tier1/delhi/drive/-OJ4E3UA7hI/-OJ4E3UA7hI-393.mp4": {
+    "class": "driving",
+    "class_id": 0,
+    "split": "test"
+  },
+  "tier1/delhi/drive/-OJ4E3UA7hI/-OJ4E3UA7hI-406.mp4": {
+    "class": "driving",
+    "class_id": 0,
+    "split": "train"
+  },
+  "tier2/thiruvananthapuram/drive/01eKackXXdg/01eKackXXdg-021.mp4": {
+    "class": "driving",
+    "class_id": 0,
+    "split": "train"
+  },
+  "tier2/thiruvananthapuram/drive/01eKackXXdg/01eKackXXdg-029.mp4": {
+    "class": "driving",
+    "class_id": 0,
+    "split": "train"
+  },
+  "tier2/thiruvananthapuram/drive/01eKackXXdg/01eKackXXdg-059.mp4": {
+    "class": "driving",
+    "class_id": 0,
+    "split": "test"
+  },
+  "tier2/thiruvananthapuram/drive/01eKackXXdg/01eKackXXdg-061.mp4": {
+    "class": "driving",
+    "class_id": 0,
+    "split": "train"
+  },
+  "tier2/thiruvananthapuram/drive/01eKackXXdg/01eKackXXdg-062.mp4": {
+    "class": "driving",
+    "class_id": 0,
+    "split": "train"
+  },
+  "tier2/thiruvananthapuram/drive/01eKackXXdg/01eKackXXdg-069.mp4": {
+    "class": "driving",
+    "class_id": 0,
+    "split": "train"
+  },
+  "tier2/thiruvananthapuram/drive/01eKackXXdg/01eKackXXdg-071.mp4": {
+    "class": "driving",
+    "class_id": 0,
+    "split": "train"
+  },
+  "tier2/thiruvananthapuram/drive/01eKackXXdg/01eKackXXdg-081.mp4": {
+    "class": "driving",
+    "class_id": 0,
+    "split": "test"
+  },
+  "tier2/thiruvananthapuram/drive/01eKackXXdg/01eKackXXdg-085.mp4": {
+    "class": "driving",
+    "class_id": 0,
+    "split": "test"
+  },
+  "tier2/thiruvananthapuram/drive/01eKackXXdg/01eKackXXdg-086.mp4": {
+    "class": "driving",
+    "class_id": 0,
+    "split": "train"
+  },
+  "tier2/thiruvananthapuram/drive/01eKackXXdg/01eKackXXdg-103.mp4": {
+    "class": "driving",
+    "class_id": 0,
+    "split": "train"
+  },
+  "tier2/thiruvananthapuram/drive/01eKackXXdg/01eKackXXdg-106.mp4": {
+    "class": "driving",
+    "class_id": 0,
+    "split": "train"
+  },
+  "tier2/thiruvananthapuram/drive/01eKackXXdg/01eKackXXdg-111.mp4": {
+    "class": "driving",
+    "class_id": 0,
+    "split": "val"
+  },
+  "tier2/thiruvananthapuram/drive/01eKackXXdg/01eKackXXdg-116.mp4": {
+    "class": "driving",
+    "class_id": 0,
+    "split": "train"
+  },
+  "tier2/thiruvananthapuram/drive/01eKackXXdg/01eKackXXdg-121.mp4": {
+    "class": "driving",
+    "class_id": 0,
+    "split": "test"
+  },
+  "tier2/thiruvananthapuram/drive/01eKackXXdg/01eKackXXdg-122.mp4": {
+    "class": "driving",
+    "class_id": 0,
+    "split": "train"
+  },
+  "tier1/bangalore/drive/0dsDjXBthT0/0dsDjXBthT0-001.mp4": {
+    "class": "driving",
+    "class_id": 0,
+    "split": "train"
+  },
+  "tier1/bangalore/drive/0dsDjXBthT0/0dsDjXBthT0-002.mp4": {
+    "class": "driving",
+    "class_id": 0,
+    "split": "train"
+  },
+  "tier1/bangalore/drive/0dsDjXBthT0/0dsDjXBthT0-003.mp4": {
+    "class": "driving",
+    "class_id": 0,
+    "split": "train"
+  },
+  "tier2/kochi/drone/0ZCRYfmgkkU/0ZCRYfmgkkU-001.mp4": {
+    "class": "drone",
+    "class_id": 1,
+    "split": "train"
+  },
+  "tier2/kochi/drone/0ZCRYfmgkkU/0ZCRYfmgkkU-002.mp4": {
+    "class": "drone",
+    "class_id": 1,
+    "split": "train"
+  },
+  "tier2/kochi/drone/0ZCRYfmgkkU/0ZCRYfmgkkU-006.mp4": {
+    "class": "drone",
+    "class_id": 1,
+    "split": "train"
+  },
+  "tier2/kochi/drone/0ZCRYfmgkkU/0ZCRYfmgkkU-007.mp4": {
+    "class": "drone",
+    "class_id": 1,
+    "split": "train"
+  },
+  "tier2/kochi/drone/0ZCRYfmgkkU/0ZCRYfmgkkU-011.mp4": {
+    "class": "drone",
+    "class_id": 1,
+    "split": "test"
+  },
+  "tier2/kochi/drone/0ZCRYfmgkkU/0ZCRYfmgkkU-012.mp4": {
+    "class": "drone",
+    "class_id": 1,
+    "split": "train"
+  },
+  "tier2/kochi/drone/0ZCRYfmgkkU/0ZCRYfmgkkU-015.mp4": {
+    "class": "drone",
+    "class_id": 1,
+    "split": "val"
+  },
+  "tier2/kochi/drone/0ZCRYfmgkkU/0ZCRYfmgkkU-017.mp4": {
+    "class": "drone",
+    "class_id": 1,
+    "split": "train"
+  },
+  "tier2/kochi/drone/0ZCRYfmgkkU/0ZCRYfmgkkU-020.mp4": {
+    "class": "drone",
+    "class_id": 1,
+    "split": "train"
+  },
+  "tier1/mumbai/drone/0ckImiKkVLg/0ckImiKkVLg-000.mp4": {
+    "class": "drone",
+    "class_id": 1,
+    "split": "train"
+  },
+  "tier1/mumbai/drone/0ckImiKkVLg/0ckImiKkVLg-013.mp4": {
+    "class": "drone",
+    "class_id": 1,
+    "split": "train"
+  },
+  "tier1/mumbai/drone/0ckImiKkVLg/0ckImiKkVLg-016.mp4": {
+    "class": "drone",
+    "class_id": 1,
+    "split": "test"
+  },
+  "tier1/mumbai/drone/0ckImiKkVLg/0ckImiKkVLg-017.mp4": {
+    "class": "drone",
+    "class_id": 1,
+    "split": "train"
+  },
+  "tier1/mumbai/drone/0ckImiKkVLg/0ckImiKkVLg-021.mp4": {
+    "class": "drone",
+    "class_id": 1,
+    "split": "train"
+  },
+  "tier1/mumbai/drone/0ckImiKkVLg/0ckImiKkVLg-023.mp4": {
+    "class": "drone",
+    "class_id": 1,
+    "split": "train"
+  },
+  "tier1/mumbai/drone/0ckImiKkVLg/0ckImiKkVLg-024.mp4": {
+    "class": "drone",
+    "class_id": 1,
+    "split": "test"
+  },
+  "tier1/mumbai/drone/0ckImiKkVLg/0ckImiKkVLg-032.mp4": {
+    "class": "drone",
+    "class_id": 1,
+    "split": "val"
+  },
+  "tier1/mumbai/drone/0ckImiKkVLg/0ckImiKkVLg-035.mp4": {
+    "class": "drone",
+    "class_id": 1,
+    "split": "test"
+  },
+  "tier1/mumbai/drone/0ckImiKkVLg/0ckImiKkVLg-037.mp4": {
+    "class": "drone",
+    "class_id": 1,
+    "split": "test"
+  },
+  "tier1/mumbai/drone/0ckImiKkVLg/0ckImiKkVLg-040.mp4": {
+    "class": "drone",
+    "class_id": 1,
+    "split": "train"
+  },
+  "tier1/mumbai/drone/0ckImiKkVLg/0ckImiKkVLg-041.mp4": {
+    "class": "drone",
+    "class_id": 1,
+    "split": "test"
+  },
+  "tier1/mumbai/drone/0ckImiKkVLg/0ckImiKkVLg-042.mp4": {
+    "class": "drone",
+    "class_id": 1,
+    "split": "train"
+  },
+  "tier1/mumbai/drone/0ckImiKkVLg/0ckImiKkVLg-054.mp4": {
+    "class": "drone",
+    "class_id": 1,
+    "split": "train"
+  },
+  "tier1/mumbai/drone/0ckImiKkVLg/0ckImiKkVLg-059.mp4": {
+    "class": "drone",
+    "class_id": 1,
+    "split": "train"
+  },
+  "tier1/bangalore/drone/20DKTCHepqQ/20DKTCHepqQ-026.mp4": {
+    "class": "drone",
+    "class_id": 1,
+    "split": "train"
+  },
+  "tier1/bangalore/drone/20DKTCHepqQ/20DKTCHepqQ-029.mp4": {
+    "class": "drone",
+    "class_id": 1,
+    "split": "val"
+  },
+  "tier1/bangalore/drone/20DKTCHepqQ/20DKTCHepqQ-039.mp4": {
+    "class": "drone",
+    "class_id": 1,
+    "split": "train"
+  },
+  "tier1/bangalore/drone/20DKTCHepqQ/20DKTCHepqQ-040.mp4": {
+    "class": "drone",
+    "class_id": 1,
+    "split": "train"
+  },
+  "tier1/bangalore/drone/20DKTCHepqQ/20DKTCHepqQ-047.mp4": {
+    "class": "drone",
+    "class_id": 1,
+    "split": "train"
+  },
+  "tier1/bangalore/drone/20DKTCHepqQ/20DKTCHepqQ-051.mp4": {
+    "class": "drone",
+    "class_id": 1,
+    "split": "train"
+  },
+  "tier1/bangalore/drone/20DKTCHepqQ/20DKTCHepqQ-058.mp4": {
+    "class": "drone",
+    "class_id": 1,
+    "split": "train"
+  },
+  "tier1/bangalore/drone/20DKTCHepqQ/20DKTCHepqQ-060.mp4": {
+    "class": "drone",
+    "class_id": 1,
+    "split": "train"
+  },
+  "tier1/bangalore/drone/20DKTCHepqQ/20DKTCHepqQ-066.mp4": {
+    "class": "drone",
+    "class_id": 1,
+    "split": "val"
+  },
+  "tier1/bangalore/drone/20DKTCHepqQ/20DKTCHepqQ-096.mp4": {
+    "class": "drone",
+    "class_id": 1,
+    "split": "val"
+  },
+  "tier1/bangalore/drone/20DKTCHepqQ/20DKTCHepqQ-103.mp4": {
+    "class": "drone",
+    "class_id": 1,
+    "split": "train"
+  },
+  "tier1/bangalore/drone/20DKTCHepqQ/20DKTCHepqQ-122.mp4": {
+    "class": "drone",
+    "class_id": 1,
+    "split": "train"
+  },
+  "tier1/bangalore/drone/20DKTCHepqQ/20DKTCHepqQ-133.mp4": {
+    "class": "drone",
+    "class_id": 1,
+    "split": "train"
+  },
+  "tier1/bangalore/drone/20DKTCHepqQ/20DKTCHepqQ-135.mp4": {
+    "class": "drone",
+    "class_id": 1,
+    "split": "train"
+  },
+  "tier1/bangalore/drone/20DKTCHepqQ/20DKTCHepqQ-139.mp4": {
+    "class": "drone",
+    "class_id": 1,
+    "split": "val"
+  },
+  "tier1/bangalore/drone/20DKTCHepqQ/20DKTCHepqQ-159.mp4": {
+    "class": "drone",
+    "class_id": 1,
+    "split": "train"
+  },
+  "tier2/mysuru/drone/2clcTLPNdfg/2clcTLPNdfg-000.mp4": {
+    "class": "drone",
+    "class_id": 1,
+    "split": "train"
+  },
+  "tier2/mysuru/drone/2clcTLPNdfg/2clcTLPNdfg-004.mp4": {
+    "class": "drone",
+    "class_id": 1,
+    "split": "val"
+  },
+  "tier2/mysuru/drone/2clcTLPNdfg/2clcTLPNdfg-005.mp4": {
+    "class": "drone",
+    "class_id": 1,
+    "split": "train"
+  },
+  "tier2/mysuru/drone/2clcTLPNdfg/2clcTLPNdfg-009.mp4": {
+    "class": "drone",
+    "class_id": 1,
+    "split": "train"
+  },
+  "tier2/mysuru/drone/2clcTLPNdfg/2clcTLPNdfg-010.mp4": {
+    "class": "drone",
+    "class_id": 1,
+    "split": "train"
+  },
+  "tier2/mysuru/drone/2clcTLPNdfg/2clcTLPNdfg-012.mp4": {
+    "class": "drone",
+    "class_id": 1,
+    "split": "test"
+  },
+  "tier2/mysuru/drone/2clcTLPNdfg/2clcTLPNdfg-014.mp4": {
+    "class": "drone",
+    "class_id": 1,
+    "split": "train"
+  },
+  "tier2/mysuru/drone/2clcTLPNdfg/2clcTLPNdfg-017.mp4": {
+    "class": "drone",
+    "class_id": 1,
+    "split": "train"
+  },
+  "tier2/mysuru/drone/2clcTLPNdfg/2clcTLPNdfg-018.mp4": {
+    "class": "drone",
+    "class_id": 1,
+    "split": "test"
+  },
+  "tier2/mysuru/drone/2clcTLPNdfg/2clcTLPNdfg-023.mp4": {
+    "class": "drone",
+    "class_id": 1,
+    "split": "train"
+  }
+}

@@ -1586,6 +1586,137 @@ def run_probe_eval(student, probe_clips: list, cfg: dict, device: torch.device,
     }
 
 
+# ─────────────────────────────────────────────────────────────────────────
+# Probe-accuracy mid-training eval (iter13 — top-1 action accuracy via LOO
+# kNN-centroid). NEW companion to run_probe_eval (Prec@K). Per iter13 pivot,
+# probe-accuracy is the gate metric that aligns with deps/vjepa2/evals/main.py.
+# ─────────────────────────────────────────────────────────────────────────
+
+@torch.no_grad()
+def run_probe_acc_eval(student, probe_clips: list, probe_labels: dict,
+                       cfg: dict, device: torch.device, bootstrap_iter: int) -> dict:
+    """Embed probe clips → top-1 action accuracy via leave-one-out kNN-centroid.
+
+    Per iter13: this is the PROBE-ACCURACY metric (Meta SSv2 attentive-probe
+    family), NOT Prec@K (retrieval). Use for mid-training observability — does
+    the encoder still produce features that cluster by action class?
+
+    Algorithm (cheap — no probe head training):
+      1. Forward probe clips through student → (N, D) mean-pooled features
+      2. L2-normalize features
+      3. For each clip i: compute per-class centroid from features[j != i, y[j] == c]
+         for each class c; predict argmax cosine(feat_i, centroids)
+      4. Bootstrap 95 % BCa CI on per-clip {0,1} correctness.
+
+    Args:
+        student: encoder (eval-mode toggled internally; restored on exit)
+        probe_clips: list of (clip_key, tag_dict, tensor[T,C,H,W]) from build_probe_clips
+        probe_labels: dict {clip_key → {"class_id": int, "class": str, "split": str}}
+                      from utils/action_labels.load_action_labels(action_labels.json)
+        bootstrap_iter: BCa iterations (typically cfg["probe"]["bootstrap_iter"] = 10000)
+
+    Returns: {"num_clips", "num_classes", "top1_acc": {mean, ci_lo, ci_hi, ci_half}}
+    """
+    from utils.bootstrap import bootstrap_ci
+
+    n = len(probe_clips)
+    if n < 10:
+        raise ValueError(
+            f"probe N={n} too small for stable 95% BCa CI (needs N>=10). "
+            f"Check probe.subset JSON clip_keys + action_labels coverage."
+        )
+
+    # Forward path mirrors run_probe_eval's batched no-ramp AdaptiveBatchSizer.
+    _gpu = get_pipeline_config()["gpu"]
+    sizer = AdaptiveBatchSizer(
+        initial_size=_gpu["training_adapted_probe_bs"],
+        min_size=1,
+        max_size=_gpu["training_adapted_probe_bs"],
+        memory_cap=_gpu["gpu_memory_target"],
+    )
+
+    was_training = student.training
+    had_hier = getattr(student, "return_hierarchical", None)
+    student.eval()
+    if had_hier is not None:
+        student.return_hierarchical = False
+
+    try:
+        model_dtype = next(student.parameters()).dtype
+        emb_list = []
+        i = 0
+        print(f"  [probe-acc] encoding {n} clips...", flush=True)
+        while i < n:
+            end = min(i + sizer.size, n)
+            batch = torch.stack([c for _, _, c in probe_clips[i:end]])
+            batch = batch.permute(0, 2, 1, 3, 4).to(device=device, dtype=model_dtype)
+            try:
+                out = student(batch)
+                emb_list.append(out.mean(dim=1).float().cpu().numpy())
+                sizer.after_batch_success()
+                i = end
+            except torch.cuda.OutOfMemoryError:
+                cuda_cleanup()
+                if not sizer.on_oom():
+                    raise RuntimeError(
+                        f"Probe-acc OOM at min sub-batch={sizer.min_size} (N={n})."
+                    ) from None
+        embeddings = np.concatenate(emb_list, axis=0)
+    finally:
+        if had_hier is not None:
+            student.return_hierarchical = had_hier
+        if was_training:
+            student.train()
+
+    # L2-normalize → cosine sim becomes a dot product.
+    norms = np.linalg.norm(embeddings, axis=1, keepdims=True) + 1e-8
+    feats = (embeddings / norms).astype(np.float32)                  # (N, D)
+
+    # Look up labels in clip-key order. Skip clips without a label record
+    # (probe is best-effort signal — no fail-loud on missing labels).
+    keys = [k for k, _, _ in probe_clips]
+    y_list, keep_idx = [], []
+    for idx, k in enumerate(keys):
+        if k in probe_labels:
+            y_list.append(int(probe_labels[k]["class_id"]))
+            keep_idx.append(idx)
+    if len(y_list) < 10:
+        raise ValueError(
+            f"probe-acc: only {len(y_list)}/{n} probe clips have action labels — "
+            f"check that --probe-subset clip_keys overlap with action_labels.json"
+        )
+    y = np.asarray(y_list, dtype=np.int64)
+    feats = feats[keep_idx]                                          # (N_labeled, D)
+    n_labeled = len(y)
+    classes = np.unique(y)
+    n_classes = len(classes)
+
+    # Leave-one-out per-class centroid kNN. For each clip i: build centroids
+    # from features[j != i] grouped by class, then predict argmax cosine sim.
+    # Vectorized — build (N, C) cosine-sim matrix using LOO centroids.
+    sum_per_class = np.stack([feats[y == c].sum(axis=0) for c in classes])           # (C, D)
+    cnt_per_class = np.array([(y == c).sum() for c in classes], dtype=np.float64)    # (C,)
+    sims = np.zeros((n_labeled, n_classes), dtype=np.float64)
+    for c_idx, c in enumerate(classes):
+        is_self = (y == c).astype(np.float64)                          # (N,) — 1 if clip i ∈ class c
+        cnt = cnt_per_class[c_idx] - is_self                          # (N,) — denom for each i
+        # Defensive: cnt > 0 since len(probe_clips) >= 10 → every class has >= 2 clips typically.
+        cnt = np.where(cnt > 0, cnt, 1.0)
+        sub = feats * is_self[:, None]                                # (N, D) — feats[i] if i ∈ c else 0
+        centroids = (sum_per_class[c_idx][None, :] - sub) / cnt[:, None]  # (N, D) LOO centroid
+        cn = np.linalg.norm(centroids, axis=1, keepdims=True) + 1e-8
+        centroids = centroids / cn
+        sims[:, c_idx] = (feats * centroids).sum(axis=1)              # cos(feat_i, centroid_c@i)
+    pred = classes[sims.argmax(axis=1)]
+    correct = (pred == y).astype(np.float64)
+
+    return {
+        "num_clips":   n_labeled,
+        "num_classes": int(n_classes),
+        "top1_acc":    bootstrap_ci(correct, n_boot=bootstrap_iter),
+    }
+
+
 @torch.no_grad()
 def run_probe_val_loss(student, teacher, predictor, probe_clips: list,
                        mask_generators: list, cfg: dict,

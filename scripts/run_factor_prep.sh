@@ -6,7 +6,7 @@
 # emits D_I interaction metadata and m11 builds D_I tubes. The two noDI variants ignore
 # D_I tubes at training time (mode_mixture has I=0) — same outputs work for all 3.
 #
-# Reference: scripts/run_paired_eval_10k.sh / scripts/run_iter9_10k.sh Steps A→B.
+# Reference: scripts/legacy2/run_paired_eval_10k.sh / scripts/run_iter9_10k.sh Steps A→B.
 # Per CLAUDE.md "No hardcoded paths" — every path comes from the yaml's data: block.
 #
 # USAGE:
@@ -50,7 +50,7 @@ T0=$(date +%s)
 stamp() { echo -e "\n═══ $(date '+%H:%M:%S') · $1 ═══"; }
 
 # ── Pre-flight: gather cache-policy decisions UPFRONT ─────────────────
-# Mirrors scripts/run_paired_eval_10k.sh pattern: prompts only fire when a cache
+# Mirrors scripts/legacy2/run_paired_eval_10k.sh pattern: prompts only fire when a cache
 # exists at known paths. Missing caches default to policy=1 (keep). Bypasses:
 # CACHE_POLICY_ALL=1|2 ./run_factor_prep.sh skips prompts; non-TTY stdin → 1.
 declare -A POLICY

@@ -1,0 +1,17 @@
+{
+  "walking": {
+    "train": 35,
+    "val": 7,
+    "test": 8
+  },
+  "driving": {
+    "train": 35,
+    "val": 7,
+    "test": 8
+  },
+  "drone": {
+    "train": 35,
+    "val": 7,
+    "test": 8
+  }
+}
