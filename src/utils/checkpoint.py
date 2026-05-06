@@ -65,8 +65,9 @@ def load_embedding_checkpoint(checkpoint_file: Path) -> tuple:
         print(f"Checkpoint loaded: {len(emb_list):,} items from {checkpoint_file.name}")
         return emb_list, keys_list, len(emb_list)
     except Exception as e:
-        print(f"  WARN: checkpoint corrupt ({e}), starting fresh")
-        return [], [], 0
+        # iter13 (2026-05-05): per CLAUDE.md FAIL HARD.
+        print(f"  FATAL: checkpoint corrupt ({e}); delete {checkpoint_file.name} to recover", flush=True)
+        raise
 
 
 def save_array_checkpoint(array: np.ndarray, checkpoint_file: Path) -> None:
@@ -110,5 +111,6 @@ def load_json_checkpoint(checkpoint_file: Path, default=None):
         with open(checkpoint_file) as f:
             return json.load(f)
     except Exception as e:
-        print(f"  WARN: JSON checkpoint corrupt ({e}), using default")
-        return default if default is not None else {}
+        # iter13 (2026-05-05): per CLAUDE.md FAIL HARD.
+        print(f"  FATAL: JSON checkpoint corrupt ({e}); delete {checkpoint_file.name} to recover", flush=True)
+        raise

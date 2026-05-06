@@ -1,15 +1,22 @@
-"""Path-based action-label derivation for probe_* modules. CPU-only.
-Mirrors m00b_fetch_durations.py extract_all_videos section schema.
+"""Optical-flow-derived motion-class label derivation for probe_* modules. CPU-only.
+
+Reads m04d_motion_features.py outputs (RAFT 13D per-clip flow features) and
+bins them into PURE motion classes (mean_magnitude × dominant_direction = 16
+classes) that cannot be solved from a single frame. Replaces the legacy
+3/4-class path-derived action labels (saturated frozen V-JEPA at 0.94+).
 
 USAGE (called by probe_*.py — direct __main__ entry exists for self-test only):
     from utils.action_labels import (
-        parse_action_from_clip_key, load_subset_with_labels,
-        stratified_split, write_action_labels_json, load_action_labels,
-        CLASS_NAMES_3CLASS, CLASS_NAMES_4CLASS,
+        parse_optical_flow_class, compute_magnitude_quartiles,
+        load_subset_with_labels, stratified_split,
+        write_action_labels_json, load_action_labels,
+        MOTION_MAGNITUDE_BINS, MOTION_DIRECTION_BINS,
     )
 
-Self-test (CPU sanity):
-    python -u src/utils/action_labels.py --eval-subset data/eval_10k.json
+Self-test (CPU sanity, prints per-class clip counts + split sizes):
+    python -u src/utils/action_labels.py \\
+        --eval-subset data/eval_10k.json \\
+        --motion-features data/eval_10k_local/motion_features.npy
 """
 import argparse
 import json
@@ -25,81 +32,110 @@ from utils.checkpoint import save_json_checkpoint, load_json_checkpoint
 
 # ── Constants ────────────────────────────────────────────────────────
 
-# Path activity (from clip_key) → semantic class. Must match m00b extract_all_videos buckets.
-PATH_TO_CLASS_3CLASS: dict = {
-    "walking":  "walking",
-    "rain":     "walking",   # tier2 rain bucket = rainy walking tour
-    "drive":    "driving",
-    "drone":    "drone",
-}
+# Motion-magnitude bins: 4 quantile-derived buckets over the dataset's
+# `mean_magnitude` column (vec[0] from m04d). Stable alphabetical-by-id order.
+MOTION_MAGNITUDE_BINS: list = ["fast", "medium", "slow", "still"]
 
-# Stable ID order — alphabetical → reproducible across runs.
-CLASS_NAMES_3CLASS: list = ["driving", "drone", "walking"]                       # n=3
-CLASS_NAMES_4CLASS: list = ["driving", "drone", "monument", "walking"]           # n=4
+# Motion-direction bins: 4 grouped buckets over the 8-bin angle histogram
+# (vec[3:11] from m04d). Bins 0,1 → rightward; 2,3 → upward; 4,5 → leftward;
+# 6,7 → downward. Index ordering (0..3) is FIXED and matches np.argmax order;
+# the public name list below is sorted for class_id stability.
+MOTION_DIRECTION_BINS: list = ["downward", "leftward", "rightward", "upward"]
+_DIRECTION_BIN_ORDER: list = ["rightward", "upward", "leftward", "downward"]   # argmax index → name
 
-# scene_type override for 4-class mode — VLM tag value that triggers "monument".
-HERITAGE_SCENE_TYPE: str = "heritage_tourist"
+MOTION_SEPARATOR: str = "__"
+MIN_CLIPS_PER_CLASS_DEFAULT: int = 34   # ≥34 → ≥5 per split at 70/15/15 (BCa CI floor)
+MIN_PER_SPLIT_DEFAULT: int = 5          # BCa CI floor per split
 
 
 # ── Public API ───────────────────────────────────────────────────────
 
-def parse_action_from_clip_key(clip_key, *, enable_monument, tags=None):
-    """Derive 3- or 4-class action label from a clip_key (+ optional VLM tags).
+def compute_magnitude_quartiles(flow_features_array: np.ndarray) -> list:
+    """Return [Q1, Q2, Q3] cut-points over the dataset's mean_magnitude column.
 
     Args:
-        clip_key: e.g. "tier1/mumbai/walking/<vid>/<vid>-007.mp4"
-        enable_monument: if True, route monuments/* AND tags[clip_key].scene_type=="heritage_tourist" → "monument"
-        tags: optional {clip_key: tag_record} lookup; required when enable_monument=True
-              and the route is via VLM tag rather than path prefix.
+        flow_features_array: (N_clips, 13) float32 from m04d motion_features.npy
+    Returns:
+        [Q1, Q2, Q3] floats — global quartile cut-points so each magnitude bin
+        receives ~25 % of clips.
+    """
+    mean_mags = flow_features_array[:, 0]
+    return [float(np.quantile(mean_mags, q)) for q in (0.25, 0.5, 0.75)]
+
+
+def parse_optical_flow_class(clip_key, flow_features_by_key, magnitude_quartiles):
+    """Pure-motion class string = `<magnitude_bin>__<direction_bin>`,
+    e.g. 'fast__rightward', 'still__downward', 'medium__upward'.
+
+    Args:
+        clip_key:               full clip key e.g. 'tier1/mumbai/walking/<vid>/<vid>-007.mp4'
+        flow_features_by_key:   {clip_key: 13D float32 vec from m04d motion_features.npy}
+        magnitude_quartiles:    [Q1, Q2, Q3] cut-points over dataset mean_magnitude column
+
+    m04d FEATURE_NAMES indices:
+        [0]   mean_magnitude
+        [1]   magnitude_std
+        [2]   max_magnitude
+        [3-10] dir_hist_0..7  (8-bin angle histogram; bin i covers [-π + i·π/4, -π + (i+1)·π/4))
+        [11]  camera_motion_x
+        [12]  camera_motion_y
+
+    Magnitude bins (4): still / slow / medium / fast — three quartile cut-points.
+    Direction bins (4): rightward / upward / leftward / downward — argmax over
+    the 4 grouped angle buckets:
+        [0,1] → rightward;  [2,3] → upward;  [4,5] → leftward;  [6,7] → downward.
 
     Returns:
-        One of {"driving", "drone", "walking"} (3-class) or
-        adds "monument" (4-class with enable_monument=True), or None for
-        monuments/* clips when enable_monument=False (caller filters them out).
-
-    Raises:
-        ValueError: clip_key has unrecognized prefix or activity (FAIL-LOUD per CLAUDE.md).
+        Class name string (e.g. 'fast__rightward') or None if the clip has no
+        motion-features record (caller filters None).
     """
-    if not clip_key:
-        raise ValueError(f"Empty clip_key: {clip_key!r}")
-
-    parts = clip_key.split("/")
-
-    # Monument override: path-based first
-    if enable_monument and parts[0] == "monuments":
-        return "monument"
-    # Monument override: VLM tag-based (heritage_tourist clips from any city)
-    if enable_monument and tags is not None:
-        rec = tags.get(clip_key)
-        if isinstance(rec, dict) and rec.get("scene_type") == HERITAGE_SCENE_TYPE:
-            return "monument"
-
-    # monuments/ without enable_monument → return None (caller filters out)
-    if parts[0] == "monuments":
+    vec = flow_features_by_key.get(clip_key)
+    if vec is None:
         return None
 
-    # Path-based 3-class derivation
-    if parts[0] in ("tier1", "tier2"):
-        if len(parts) < 3:
-            raise ValueError(f"tier{{1,2}} clip_key missing activity segment: {clip_key!r}")
-        activity = parts[2]
-    elif parts[0] == "goa":
-        if len(parts) < 2:
-            raise ValueError(f"goa clip_key missing activity segment: {clip_key!r}")
-        activity = parts[1]
+    mean_mag = float(vec[0])
+    q1, q2, q3 = magnitude_quartiles
+    if mean_mag < q1:
+        mag_bin = "still"
+    elif mean_mag < q2:
+        mag_bin = "slow"
+    elif mean_mag < q3:
+        mag_bin = "medium"
     else:
-        raise ValueError(f"Unrecognized clip_key prefix '{parts[0]}': {clip_key!r}")
+        mag_bin = "fast"
 
-    if activity not in PATH_TO_CLASS_3CLASS:
-        raise ValueError(f"Unrecognized activity '{activity}' in clip_key: {clip_key!r}")
-    return PATH_TO_CLASS_3CLASS[activity]
+    dir_hist = vec[3:11]
+    grouped = np.array([
+        dir_hist[0] + dir_hist[1],   # rightward
+        dir_hist[2] + dir_hist[3],   # upward
+        dir_hist[4] + dir_hist[5],   # leftward
+        dir_hist[6] + dir_hist[7],   # downward
+    ], dtype=np.float64)
+    dir_bin = _DIRECTION_BIN_ORDER[int(np.argmax(grouped))]
+
+    return f"{mag_bin}{MOTION_SEPARATOR}{dir_bin}"
 
 
-def load_subset_with_labels(subset_path, tags_path, *, enable_monument):
-    """Load eval subset JSON + tags, return per-clip records with action labels.
+def load_subset_with_labels(subset_path, motion_features_path, *,
+                             min_clips_per_class=MIN_CLIPS_PER_CLASS_DEFAULT):
+    """Load eval subset + m04d motion features, return per-clip records with
+    optical-flow-derived motion-class labels.
 
-    Returns: list of {"clip_key": str, "class": str, "class_id": int}.
-    Drops clips with class=None silently (monuments/* with enable_monument=False).
+    Args:
+        subset_path:           data/eval_*.json with "clip_keys" list
+        motion_features_path:  <local_data>/motion_features.npy from m04d (13D × N_clips)
+        min_clips_per_class:   drop classes with fewer than this many clips (default 34
+                               → ≥5 per split at 70/15/15)
+
+    Returns:
+        (records, class_names):
+          records: list of {"clip_key": str, "class": str, "class_id": int}
+          class_names: sorted list of surviving class strings (alphabetical →
+                       deterministic class_id assignment across runs)
+
+    Schema of m04d output:
+        motion_features.npy        — (N_clips, 13) float32 RAFT optical-flow features
+        motion_features.paths.npy  — (N_clips,) clip-key strings aligned by row
     """
     subset_path = Path(subset_path)
     if not subset_path.exists():
@@ -107,34 +143,75 @@ def load_subset_with_labels(subset_path, tags_path, *, enable_monument):
     subset = json.loads(subset_path.read_text())
     clip_keys = subset["clip_keys"]   # fail-loud — no .get(default)
 
-    tags = None
-    if enable_monument:
-        if tags_path is None:
-            sys.exit("FATAL: --tags-json required when --enable-monument-class is set")
-        tags_path = Path(tags_path)
-        if not tags_path.exists():
-            sys.exit(f"FATAL: --tags-json not found: {tags_path}")
-        tags_list = json.loads(tags_path.read_text())
-        # tags.json schema: list of dicts with section/video_id/source_file fields
-        # Build {clip_key: record} lookup matching m04_vlm_tag.py output.
-        tags = {f"{t['section']}/{t['video_id']}/{t['source_file']}": t for t in tags_list}
+    motion_features_path = Path(motion_features_path)
+    paths_path = motion_features_path.with_name(
+        motion_features_path.stem + ".paths.npy")
+    if not motion_features_path.exists():
+        sys.exit(
+            f"FATAL: motion_features.npy not found at {motion_features_path}.\n"
+            f"  Run first: python -u src/m04d_motion_features.py --FULL "
+            f"--subset {subset_path} --local-data <local_data> "
+            f"--features-out {motion_features_path}"
+        )
+    if not paths_path.exists():
+        sys.exit(f"FATAL: motion_features.paths.npy not found at {paths_path} "
+                 f"(must be next to motion_features.npy)")
+    flow_features = np.load(motion_features_path)                 # (N, 13)
+    flow_paths = np.load(paths_path, allow_pickle=True)           # (N,) clip keys
+    if flow_features.shape[0] != flow_paths.shape[0]:
+        sys.exit(f"FATAL: motion_features.npy rows ({flow_features.shape[0]}) "
+                 f"!= paths.npy rows ({flow_paths.shape[0]})")
+    flow_features_by_key = {str(k): flow_features[i]
+                            for i, k in enumerate(flow_paths)}
 
-    class_names = CLASS_NAMES_4CLASS if enable_monument else CLASS_NAMES_3CLASS
-    class_to_id = {c: i for i, c in enumerate(class_names)}
+    # Compute global magnitude quartiles over the FULL motion-features set (not
+    # just the eval subset) so the bin cut-points are dataset-wide stable.
+    quartiles = compute_magnitude_quartiles(flow_features)
+    print(f"  [motion-flow] magnitude quartiles: "
+          f"Q1={quartiles[0]:.3f}  Q2={quartiles[1]:.3f}  Q3={quartiles[2]:.3f}")
 
-    records = []
+    # Pass 1 — derive flow class per clip (None means no m04d record → filter)
+    raw = []
+    n_no_record = 0
     for k in clip_keys:
-        cls = parse_action_from_clip_key(k, enable_monument=enable_monument, tags=tags)
+        cls = parse_optical_flow_class(k, flow_features_by_key, quartiles)
         if cls is None:
+            n_no_record += 1
             continue
-        records.append({"clip_key": k, "class": cls, "class_id": class_to_id[cls]})
-    return records
+        raw.append((k, cls))
+    if n_no_record:
+        print(f"  [motion-flow] {n_no_record}/{len(clip_keys)} clip_keys had no "
+              f"motion_features record (m04d may not have processed them yet)")
+
+    # Pass 2 — filter sparse classes (>= min_clips_per_class)
+    counts = Counter(cls for _, cls in raw)
+    surviving = {cls for cls, n in counts.items() if n >= min_clips_per_class}
+    if not surviving:
+        sys.exit(f"FATAL: no flow class has >= {min_clips_per_class} clips. "
+                 f"All counts: {dict(counts)}")
+
+    # Pass 3 — alphabetical class_id assignment (deterministic across runs)
+    class_names = sorted(surviving)
+    class_to_id = {c: i for i, c in enumerate(class_names)}
+    records = [{"clip_key": k, "class": cls, "class_id": class_to_id[cls]}
+               for k, cls in raw if cls in surviving]
+    n_dropped = len(raw) - len(records)
+    print(f"  [motion-flow] {len(class_names)} classes after >= "
+          f"{min_clips_per_class}-clip filter: {class_names}")
+    print(f"  [motion-flow] kept {len(records)} clips, dropped {n_dropped} "
+          f"in {len(counts) - len(surviving)} sparse classes "
+          f"(dropped counts: "
+          f"{dict((c, n) for c, n in counts.items() if c not in surviving)})")
+    return records, class_names
 
 
-def stratified_split(records, train_pct=0.70, val_pct=0.15, seed=99):
+def stratified_split(records, train_pct=0.70, val_pct=0.15, seed=99,
+                     *, min_per_split=MIN_PER_SPLIT_DEFAULT):
     """Stratified-by-class 70/15/15 split. Returns {clip_key: "train"|"val"|"test"}.
 
-    Raises ValueError if any class has < 5 clips in any split (BCa CI floor).
+    Raises ValueError if any class has < min_per_split clips in any split.
+    Default min_per_split=5 (BCa CI floor). SANITY can pass a lower value if
+    class data is sparse — at the cost of meaningless per-class CI.
     """
     rng = np.random.default_rng(seed)
     by_class = defaultdict(list)
@@ -149,10 +226,10 @@ def stratified_split(records, train_pct=0.70, val_pct=0.15, seed=99):
         n_train = int(n * train_pct)
         n_val = int(n * val_pct)
         n_test = n - n_train - n_val
-        if min(n_train, n_val, n_test) < 5:
+        if min(n_train, n_val, n_test) < min_per_split:
             raise ValueError(
                 f"Class '{cls}' has only n={n} → train={n_train}/val={n_val}/test={n_test}; "
-                f"each split must have >=5 clips for BCa CI to be meaningful."
+                f"each split must have >={min_per_split} clips for BCa CI to be meaningful."
             )
         for k in keys[:n_train]:
             splits[k] = "train"
@@ -194,24 +271,27 @@ def load_action_labels(labels_path):
 # ── Self-test (CLI entry point) ─────────────────────────────────────
 
 def _self_test():
-    p = argparse.ArgumentParser(description="Self-test: derive labels + print class counts")
+    p = argparse.ArgumentParser(description="Self-test: derive motion-flow labels + print class counts")
     p.add_argument("--eval-subset", type=Path, required=True)
-    p.add_argument("--tags-json", type=Path, default=None)
-    p.add_argument("--enable-monument-class", action="store_true")
+    p.add_argument("--motion-features", type=Path, required=True,
+                   help="m04d motion_features.npy path. Companion .paths.npy must exist next to it.")
+    p.add_argument("--min-clips-per-class", type=int, default=MIN_CLIPS_PER_CLASS_DEFAULT)
+    p.add_argument("--min-per-split", type=int, default=MIN_PER_SPLIT_DEFAULT)
     args = p.parse_args()
 
-    records = load_subset_with_labels(args.eval_subset, args.tags_json,
-                                      enable_monument=args.enable_monument_class)
-    splits = stratified_split(records)
+    records, class_names = load_subset_with_labels(
+        args.eval_subset, args.motion_features,
+        min_clips_per_class=args.min_clips_per_class)
+    splits = stratified_split(records, min_per_split=args.min_per_split)
     counts = Counter(r["class"] for r in records)
-    print(f"Total: {len(records)} clips ({len(counts)} classes)")
+    print(f"\nTotal: {len(records)} clips ({len(counts)} classes after filter)")
     by_clip = {r["clip_key"]: r["class"] for r in records}
     for cls in sorted(counts.keys()):
         n = counts[cls]
         n_train = sum(1 for k, c in by_clip.items() if c == cls and splits[k] == "train")
         n_val   = sum(1 for k, c in by_clip.items() if c == cls and splits[k] == "val")
         n_test  = sum(1 for k, c in by_clip.items() if c == cls and splits[k] == "test")
-        print(f"  {cls:10s}: total={n:>5d}  train={n_train:>5d}  val={n_val:>5d}  test={n_test:>5d}")
+        print(f"  {cls:24s}: total={n:>5d}  train={n_train:>5d}  val={n_val:>5d}  test={n_test:>5d}")
 
 
 if __name__ == "__main__":

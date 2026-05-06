@@ -29,7 +29,7 @@ extends: surgery_base.yaml
 
 data:
   adapted_encoder: vjepa_2_1_surgical_3stage_DI      # unique per-variant — m05/m06 outputs don't collide across surgery variants (dynamic suffix via get_encoder_info)
-  output_dir: outputs/full/surgery_3stage_DI
+  output_dir: outputs/full/m09c_surgery_3stage_DI    # auto-overridden by run_probe_train.sh
 
 # -- Interaction mining: re-enable D_I (only variant that consumes interaction tubes) --
 interaction_mining:
@@ -57,14 +57,27 @@ surgery:
       mode_mixture: {L: 0.15, A: 0.15, I: 0.70}   # 15/15 replay (anti-forgetting Stages 1+2), 70% interactions (was 0.85 in iter8 — tempered)
       max_epochs_pct: 0.30
 
-# -- Multi-task probe-loss supervision (iter13) — opt-in for THIS config.
-# Base ships {sanity:false, poc:false, full:false}; we flip ALL three to true so
-# the SANITY runs on 24 GB exercise the SAME multi-task code path that FULL on
-# 96 GB will use. Surgery's per-stage optimizer rebuild re-attaches the head's
-# param group every stage (via attach_head_to_optimizer). Stage 3 + 8-bit +
-# grad-ckpt + paged is the highest-VRAM combo on 24 GB; multi-task adds one
-# extra unmasked encoder forward per macro-batch — AdaptiveBatchSizer will
-# settle at a smaller sub-batch under MT. If Stage 3 OOMs at sub-batch=1, the
-# m09c retry-loop raises hard with the iter8 #55 mitigation hint.
+# -- Multi-task probe (15 retrieval dims) — DISABLED v12+.
+# iter13 v11 showed retrieval gradient steals capacity from motion learning;
+# m09c surgery follows the same swap m09a did in v12 (probe_pretrain.yaml:161).
 multi_task_probe:
-  enabled: {sanity: true, poc: true, full: true}
+  enabled: {sanity: false, poc: false, full: false}
+
+# -- Motion-features auxiliary loss (Phase 4, iter13 v12+, 2026-05-06).
+# Mirrors probe_pretrain.yaml:176-189. Surgery's per-stage optimizer rebuild
+# re-attaches the motion_aux head param group every stage (via
+# attach_motion_aux_to_optimizer). Same K=8 motion-flow classes as v12 m09a.
+motion_aux:
+  enabled:
+    sanity: true
+    poc:    true
+    full:   true
+  motion_features_path: data/eval_10k_local/motion_features.npy
+  action_labels_path:   outputs/full/probe_action/action_labels.json
+  weight_motion: 0.1
+  weight_ce:     1.0
+  weight_mse:    1.0
+  head:
+    hidden_dim: 256
+    dropout:    0.1
+  head_lr_multiplier: 10.0

@@ -200,13 +200,16 @@ surgery:
   warmup_pct: 0.20
   # `stages` is variant-specific — see {noDI,loud_agent,3stage_DI}.yaml.
 
-# -- Drift control: minimal --
-# Surgery uses freezing as the primary anti-forgetting mechanism.
-# Light drift control on unfrozen layers as belt-and-suspenders.
+# -- Drift control: DISABLED (iter13 v12+, 2026-05-06).
+# v10 (probe_pretrain) showed λ=1.0 L2 anchor caused encoder collapse to init
+# (drift 1.26e-4 peak → 3.96e-5 by step 971, 95% pullback). v11 (anchor-fix)
+# + v12 (motion_aux) confirmed: EMA teacher + layer_freeze + per-stage
+# unfreeze_below provide sufficient anti-forgetting without L2 anchor pullback.
+# Surgery inherits the same finding — drift anchor was redundant + harmful.
 drift_control:
-  enabled: true
-  type: l2_uniform                  # Simple L2 (not EWC) for surgery
-  lambda_reg: 1.0
+  enabled: false
+  type: l2_uniform                  # doc-only (no Python branch reads it when enabled=false)
+  lambda_reg: 0.0                   # was 1.0 pre-iter13-v12; nuked alongside multi_task_probe swap
 
 # -- Probe: surgery-specific overrides only (universal probe config in base) --
 # Surgery-specific extras (m09c reads these via merge_config_with_args at line 94-129):

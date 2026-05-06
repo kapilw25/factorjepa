@@ -1,0 +1,14 @@
+{
+  "variant": "vjepa_2_1_pretrain",
+  "n_test": 1394,
+  "mse_mean": 0.527205,
+  "mse_std": 0.021305,
+  "mse_ci": {
+    "mean": 0.527205,
+    "ci_lo": 0.526093,
+    "ci_hi": 0.52829,
+    "ci_half": 0.001099
+  },
+  "num_frames": 16,
+  "predictor_loaded_from": "outputs/full/probe_pretrain/m09a_ckpt_best.pt"
+}

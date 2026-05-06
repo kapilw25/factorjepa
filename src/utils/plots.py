@@ -16,6 +16,7 @@ import json
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
+from matplotlib.ticker import MultipleLocator
 import numpy as np
 from pathlib import Path
 
@@ -37,9 +38,21 @@ COLORS = {
     "lambda0_1": "#E65100",    # orange
 }
 
-# Encoder colors (consistent across m08, m08b, radar)
+# Encoder colors (consistent across m08, m08b, radar, probe_plot).
+# iter13: explicit per-variant entries for the 4 V-JEPA encoders so they
+# render with distinct hues across all plots (probe_action_loss/acc +
+# probe_encoder_comparison). Without these, all 4 fall through to the
+# generic "vjepa" key and render as identical #1565C0 blue → train/val
+# curves overlap visually + bar chart shows 4 indistinguishable bars.
+# Palette: colorblind-safe, distinct from dinov2 green / clip orange /
+# random gray / vjepa_shuffled #6A1B9A purple. baseline-frozen keeps the
+# canonical #1565C0 blue so legacy plots stay anchored.
 ENCODER_COLORS = {
-    "vjepa": "#1565C0",
+    "vjepa": "#1565C0",                       # generic fallback (legacy)
+    "vjepa_2_1_frozen":              "#1565C0",   # blue — baseline anchor
+    "vjepa_2_1_pretrain":            "#D81B60",   # magenta — continual SSL
+    "vjepa_2_1_surgical_3stage_DI":  "#5E35B1",   # deep indigo — surgery WITH D_I
+    "vjepa_2_1_surgical_noDI":       "#00ACC1",   # cyan — surgery WITHOUT D_I
     "random": "#9E9E9E",
     "dinov2": "#2E7D32",
     "clip": "#E65100",
@@ -265,6 +278,7 @@ def _read_loss_log(csv_path: str) -> dict:
     steps_train, jepa_loss, drift_loss, total_loss = [], [], [], []
     steps_val, val_loss = [], []
     stages_train = []  # m09c only — empty for m09a/m09b
+    lr_train: list = []  # iter13 (2026-05-05): per-step LR for live LR-curve plot
 
     # Try JSONL first (crash-safe, no data loss)
     jsonl_path = Path(csv_path).with_suffix(".jsonl")
@@ -288,10 +302,11 @@ def _read_loss_log(csv_path: str) -> dict:
                     drift_loss.append(record.get("loss_drift", 0.0))
                     total_loss.append(record.get("loss_total", 0.0))
                     stages_train.append(record.get("stage", ""))
+                    lr_train.append(record.get("lr", 0.0))
         return {
             "steps_train": steps_train, "jepa_loss": jepa_loss,
             "drift_loss": drift_loss, "total_loss": total_loss,
-            "stages_train": stages_train,
+            "stages_train": stages_train, "lr_train": lr_train,
             "steps_val": steps_val, "val_loss": val_loss,
         }
 
@@ -321,14 +336,20 @@ def _read_loss_log(csv_path: str) -> dict:
     return {
         "steps_train": steps_train, "jepa_loss": jepa_loss,
         "drift_loss": drift_loss, "total_loss": total_loss,
-        "stages_train": stages_train,
+        "stages_train": stages_train, "lr_train": lr_train,
         "steps_val": steps_val, "val_loss": val_loss,
     }
 
 
 def plot_training_curves(runs: list, output_dir: str, title_prefix: str = "",
-                         x_axis_mode: str = "steps"):
+                         x_axis_mode: str = "steps",
+                         file_prefix: str = "m09"):
     """Generate 3 separate publication-quality plots from training loss_log.csv files.
+
+    iter13 v12 (2026-05-06): added `file_prefix` so each m09{a,b,c} module's
+    plots get its own filename namespace — m09a/* from m09a_pretrain.py,
+    m09c/* from m09c_surgery.py, m09b/* from m09b_explora.py. Default "m09"
+    preserves backwards-compat for any caller that hasn't migrated.
 
     Supports multiple runs for comparison (e.g., V-JEPA 2.0 vs 2.1).
 
@@ -427,11 +448,13 @@ def plot_training_curves(runs: list, output_dir: str, title_prefix: str = "",
         ax.set_ylabel("Validation JEPA Loss")
         ax.set_title(f"{title_prefix}Validation Loss")
         ax.legend(loc="upper right")
-        save_fig(fig, str(out / "m09_val_loss"))
+        save_fig(fig, str(out / f"{file_prefix}_val_loss"))
 
-        # Companion zoom: m09_val_loss_jepa.png — raw + rolling mean overlay.
-        # Mirrors utils.training.render_training_plots so all 3 m09 modules
-        # produce the same smoothed JEPA-zoom artifact.
+        # Companion zoom: <file_prefix>_val_loss_jepa.png — raw + rolling mean.
+        # For m09a, this is overwritten later by m09a_pretrain._render_m09a_probe_plots
+        # which renders a richer version (best-step star + kill-switch overlay) under
+        # the SAME filename — last write wins, no duplicate file. m09b/m09c rely on
+        # this version since they don't have a per-module rich renderer.
         fig, ax = plt.subplots(figsize=(10, 5))
         for run in parsed_runs:
             if not (run["x_val"] and run.get("val_loss")):
@@ -461,10 +484,10 @@ def plot_training_curves(runs: list, output_dir: str, title_prefix: str = "",
         ax.set_title(f"{title_prefix}Val-loss zoom — raw + rolling mean")
         ax.legend(loc="upper right", fontsize=9)
         ax.grid(True, alpha=0.3)
-        save_fig(fig, str(out / "m09_val_loss_jepa"))
+        save_fig(fig, str(out / f"{file_prefix}_val_loss_jepa"))
     else:
-        print(f"  [plots] skip m09_val_loss: no val_loss in loss_log "
-              f"(m09c reads val-loss from probe_history instead — see _render_live_plots)")
+        print(f"  [plots] skip {file_prefix}_val_loss: no val_loss in loss_log "
+              "(m09c reads val-loss from probe_history instead — see _render_live_plots)")
 
     # ── Plot 2: Training Loss — color-segmented by stage when present ──
     fig, ax = plt.subplots(figsize=(12, 6))
@@ -548,9 +571,35 @@ def plot_training_curves(runs: list, output_dir: str, title_prefix: str = "",
                     f"Training samples seen  (= {n_unique:,} unique clips × "
                     f"{n_epochs} epochs = {total_samples:,})", fontsize=9)
         except Exception as e:
-            print(f"  [plots] skip dual-axis on m09_train_loss: {e}")
+            # iter13 (2026-05-05): per CLAUDE.md FAIL HARD.
+            print(f"  [plots] FATAL: dual-axis on m09_train_loss failed: {e}", flush=True)
+            raise
 
-    save_fig(fig, str(out / "m09_train_loss"))
+    # iter13 (2026-05-05): LR overlay on right y-axis. Reads `lr` per step from
+    # loss_log.jsonl (per-step) so the warmup ramp + cosine decay are visible
+    # alongside the training-loss trajectory. Helps diagnose "loss flat because
+    # LR is still in warmup" (the iter13 v9 case where step 43 LR was 4.94e-5,
+    # 49% of peak — drift was slow simply because LR hadn't peaked yet).
+    if any(run.get("lr_train") for run in parsed_runs):
+        ax_lr = ax.twinx()
+        for run in parsed_runs:
+            lr = run.get("lr_train") or []
+            if not lr:
+                continue
+            lx = (np.array(run["x_train"]) if x_axis_mode == "steps"
+                  else np.array(run["x_train"]))
+            ax_lr.plot(lx[:len(lr)], np.array(lr),
+                       color="#FF8C00", linewidth=1.5, linestyle="--",
+                       alpha=0.85, zorder=20, label="LR")
+        ax_lr.set_ylabel("Learning rate", color="#FF8C00", fontsize=10)
+        ax_lr.tick_params(axis="y", labelcolor="#FF8C00")
+        ax_lr.set_yscale("log")
+        # Merge LR legend into main ax
+        h1, l1 = ax.get_legend_handles_labels()
+        h2, l2 = ax_lr.get_legend_handles_labels()
+        ax.legend(h1 + h2, l1 + l2, loc="upper right")
+
+    save_fig(fig, str(out / f"{file_prefix}_train_loss"))
 
     # ── Plot 3: Drift Loss ───────────────────────────────────────────
     has_drift = any(run["drift_loss"] and max(run["drift_loss"]) > 0 for run in parsed_runs)
@@ -566,6 +615,354 @@ def plot_training_curves(runs: list, output_dir: str, title_prefix: str = "",
         ax.set_ylabel("Drift Loss ($\\lambda \\|\\theta - \\theta_0\\|^2$)")
         ax.set_title(f"{title_prefix}Drift Control Loss")
         ax.legend(loc="upper right")
-        save_fig(fig, str(out / "m09_drift_loss"))
+        save_fig(fig, str(out / f"{file_prefix}_drift_loss"))
     else:
         print("  SKIP: drift loss plot (all zeros — drift control disabled)")
+
+
+def plot_combined_losses(jsonl_path, output_dir, title_prefix: str = "",
+                          file_prefix: str = "m09") -> None:
+    """4-loss decomposition plot — single image, dual y-axis.
+
+    iter13 v12: file_prefix for per-module namespacing (m09a/m09b/m09c).
+
+    Plots `loss_jepa` / `loss_multi_task` / `loss_total` on the left axis (similar
+    magnitude 0.4–1.5) and `loss_drift` on the right axis (1000× smaller scale).
+    `loss_total` is BOLD/thick (linewidth=3.5) since it is the optimizer's actual
+    minimization target — visually emphasizes which component dominates the gradient.
+
+    Reads `loss_log.jsonl` (per-step training records); skips val rows (those
+    have `val_loss` instead of `loss_jepa`). Saves
+    `output_dir/m09_loss_decomposition.{png,pdf}`. No-op when fewer than 2 train
+    rows are present (avoids degenerate single-point plot).
+    """
+    init_style()
+    jsonl_path = Path(jsonl_path)
+    output_dir = Path(output_dir)
+    if not jsonl_path.exists():
+        print(f"  SKIP plot_combined_losses: {jsonl_path} not found")
+        return
+
+    rows = []
+    with open(jsonl_path) as f:
+        for line in f:
+            line = line.strip()
+            if not line:
+                continue
+            try:
+                r = json.loads(line)
+            except json.JSONDecodeError:
+                continue
+            if "loss_jepa" not in r:
+                continue   # val rows have `val_loss` only
+            rows.append(r)
+
+    if len(rows) < 2:
+        print(f"  SKIP plot_combined_losses: only {len(rows)} train rows in {jsonl_path}")
+        return
+
+    steps = [r["step"] for r in rows]
+    jepa  = [r["loss_jepa"] for r in rows]
+    drift = [r.get("loss_drift", 0.0) for r in rows]
+    mt    = [r.get("loss_multi_task", 0.0) for r in rows]
+    total = [r["loss_total"] for r in rows]
+
+    # Detect whether multi-task is active in this run
+    has_mt = any(v > 0 for v in mt)
+
+    # Portrait orientation (7:11 ≈ 1:1.6) — fits NeurIPS single column and
+    # stretches the y-axis so per-step Δ in jepa/total is eyeball-readable.
+    fig, ax_left = plt.subplots(figsize=(7, 11))
+    ax_right = ax_left.twinx()
+
+    # Rolling-mean smoother. Mirrors plot_training_curves pattern (utils/plots.py:526-534)
+    # so all m09* training plots share the same raw + smoothed convention.
+    # window = max(1, len(y) // 20) → 5% of run, balances responsiveness vs noise.
+    steps_arr = np.asarray(steps)
+    def _smoothed(y):
+        y = np.asarray(y)
+        w = max(1, len(y) // 20)
+        if w <= 1:
+            return None, None
+        k = np.ones(w) / w
+        return steps_arr[w - 1:], np.convolve(y, k, mode="valid")
+
+    # Left axis — raw (light, thin, alpha=0.20) + smoothed (full opacity, thick) for
+    # jepa, mt, total. Raw shows variance band; smoothed carries the trend.
+    ax_left.plot(steps, jepa, color=COLORS["orange"], linewidth=0.6, alpha=0.20, zorder=2)
+    sx, sm = _smoothed(jepa)
+    if sm is not None:
+        ax_left.plot(sx, sm, color=COLORS["orange"], linewidth=2.2, alpha=0.95,
+                     label="loss_jepa  (V-JEPA L1, native objective)", zorder=8)
+    else:
+        ax_left.plot(steps, jepa, color=COLORS["orange"], linewidth=1.8, alpha=0.85,
+                     label="loss_jepa  (V-JEPA L1, native objective)")
+
+    if has_mt:
+        ax_left.plot(steps, mt, color=COLORS["purple"], linewidth=0.6, alpha=0.20, zorder=2)
+        sx, sm = _smoothed(mt)
+        if sm is not None:
+            ax_left.plot(sx, sm, color=COLORS["purple"], linewidth=2.2, alpha=0.95,
+                         label="loss_multi_task  (16-dim taxonomy CE+BCE)", zorder=8)
+        else:
+            ax_left.plot(steps, mt, color=COLORS["purple"], linewidth=1.8, alpha=0.85,
+                         label="loss_multi_task  (16-dim taxonomy CE+BCE)")
+
+    # total_loss = optimizer target — raw underlay + BOLD smoothed on top (zorder=10)
+    ax_left.plot(steps, total, color=COLORS["red"], linewidth=0.6, alpha=0.20, zorder=2)
+    sx, sm = _smoothed(total)
+    if sm is not None:
+        ax_left.plot(sx, sm, color=COLORS["red"], linewidth=3.5, alpha=1.0,
+                     label="loss_total  (= jepa + 0.1*mt + drift)  [OPTIMIZER TARGET]",
+                     zorder=10)
+    else:
+        ax_left.plot(steps, total, color=COLORS["red"], linewidth=3.5, alpha=1.0,
+                     label="loss_total  (= jepa + 0.1*mt + drift)  [OPTIMIZER TARGET]",
+                     zorder=10)
+
+    # Right axis — drift raw + smoothed (1000× smaller scale)
+    if max(drift) > 0:
+        ax_right.plot(steps, drift, color=COLORS["green"], linewidth=0.5, alpha=0.20,
+                      linestyle="--", zorder=2)
+        sx, sm = _smoothed(drift)
+        if sm is not None:
+            ax_right.plot(sx, sm, color=COLORS["green"], linewidth=2.2, alpha=0.95,
+                          linestyle="--",
+                          label="loss_drift  (||θ−θ₀||²)  [right axis]", zorder=8)
+        else:
+            ax_right.plot(steps, drift, color=COLORS["green"], linewidth=1.8, alpha=0.85,
+                          linestyle="--",
+                          label="loss_drift  (||θ−θ₀||²)  [right axis]")
+        ax_right.set_ylabel("Drift L2 (right axis, ~1000× smaller)",
+                            color=COLORS["green"], fontsize=11)
+        ax_right.tick_params(axis='y', labelcolor=COLORS["green"])
+        ax_right.spines['right'].set_color(COLORS["green"])
+    else:
+        ax_right.set_ylabel("")
+        ax_right.set_yticks([])
+
+    ax_left.set_xlabel("Optimizer step", fontsize=11)
+    ax_left.set_ylabel("Loss (left: jepa / multi_task / total)", fontsize=11)
+    # Major ticks every 0.1 (was implicit 0.2) + minor ticks every 0.05 so per-step
+    # Δ in jepa/total is eyeball-readable. Grid both: major solid, minor dotted.
+    ax_left.yaxis.set_major_locator(MultipleLocator(0.1))
+    ax_left.yaxis.set_minor_locator(MultipleLocator(0.05))
+    ax_left.grid(axis='y', which='major', alpha=0.4)
+    ax_left.grid(axis='y', which='minor', alpha=0.15, linestyle=':')
+    ax_left.set_title(
+        f"{title_prefix}Loss decomposition · {len(steps)} train steps\n"
+        f"jepa={jepa[-1]:.4f}  mt={mt[-1]:.4f}  total={total[-1]:.4f}",
+        fontsize=11)
+
+    # Combined legend (left + right axes)
+    h1, l1 = ax_left.get_legend_handles_labels()
+    h2, l2 = ax_right.get_legend_handles_labels()
+    ax_left.legend(h1 + h2, l1 + l2, loc="upper right", fontsize=9, framealpha=0.92)
+
+    save_fig(fig, str(output_dir / f"{file_prefix}_loss_decomposition"))
+
+
+def plot_block_drift_heatmap(drift_history: list, output_dir, title_prefix: str = "",
+                              file_prefix: str = "m09") -> None:
+    """Per-block weight-drift diagnostic — catches "frozen-in-practice" symptoms.
+
+    Each row of `drift_history` is one validation checkpoint:
+        {"step": int, "rel_l2_per_block": [float, ...]}
+    where `rel_l2_per_block[i]` is the relative L2 norm
+        ||θ_block_i_now − θ_block_i_init|| / ||θ_block_i_init||
+
+    Renders TWO panels:
+      - Top: heatmap (steps × blocks) on log color scale → spot uniform drift
+        across blocks (the iter13 v5+v6+v7 pathology) vs healthy gradient where
+        trainable blocks have visibly larger drift than frozen ones.
+      - Bottom: per-block trajectory lines colored frozen vs trainable per
+        `freeze_below` config. Healthy run: trainable lines climb to ~1e-3;
+        frozen lines stay at 0. Stuck run: all lines bunch at ~1e-5.
+
+    The whole point of this plot is to FAIL LOUD if pretrain isn't moving the
+    encoder — visible in 1 min instead of waiting 5 hours for downstream metrics
+    to confirm. Iter13 audit (2026-05-04) documented uniform ~1e-5 drift across
+    all 48 blocks as proof the encoder didn't move.
+
+    Args:
+        drift_history: list of {"step", "rel_l2_per_block", optional "freeze_below"}
+        output_dir:    where to save the PNG/PDF
+        title_prefix:  optional prefix for the figure title
+    """
+    init_style()
+    output_dir = Path(output_dir)
+    if len(drift_history) < 1:
+        print(f"  [plot] skip block_drift_heatmap: only {len(drift_history)} records")
+        return
+
+    steps = np.array([r["step"] for r in drift_history])
+    drift = np.array([r["rel_l2_per_block"] for r in drift_history])  # (T, n_blocks)
+    n_blocks = drift.shape[1]
+    # Read freeze_below from the LAST record (it's a constant per-run, but
+    # tolerate it being missing — diagnostic should still render).
+    freeze_below = drift_history[-1].get("freeze_below", 0)
+
+    fig, (ax_h, ax_t) = plt.subplots(2, 1, figsize=(12, 10),
+                                      gridspec_kw={"height_ratios": [1, 1]})
+
+    # ── Panel 1 — heatmap (log color scale) ─────────────────────────────
+    # Log scale because healthy drift varies 10⁻⁵ (frozen) to 10⁻² (trainable).
+    # Linear color would compress everything into one bin and hide the signal.
+    drift_safe = np.maximum(drift, 1e-12)   # log10 needs strictly positive
+    im = ax_h.imshow(np.log10(drift_safe.T), aspect="auto", origin="lower",
+                     cmap="viridis", interpolation="nearest",
+                     extent=[steps[0], steps[-1], -0.5, n_blocks - 0.5])
+    cbar = fig.colorbar(im, ax=ax_h, pad=0.02)
+    cbar.set_label("log₁₀(rel L2 drift)", fontsize=10)
+    ax_h.set_ylabel("Block index (0=earliest, 47=top)", fontsize=11)
+    ax_h.set_title(f"{title_prefix}Per-block weight drift vs Meta init  "
+                   f"(rows=blocks, cols=val checkpoints)", fontsize=11)
+    if freeze_below > 0:
+        # Horizontal line marking the frozen/trainable boundary
+        ax_h.axhline(freeze_below - 0.5, color="red", linestyle="--", linewidth=1.5,
+                     alpha=0.7, label=f"freeze_below={freeze_below}")
+        ax_h.legend(loc="upper right", fontsize=9, framealpha=0.92)
+
+    # ── Panel 2 — per-block trajectory lines ────────────────────────────
+    # Color frozen blocks blue, trainable blocks red, with low alpha so the
+    # band-vs-band separation is the visual story.
+    for i in range(n_blocks):
+        is_frozen = i < freeze_below
+        color = COLORS["blue"] if is_frozen else COLORS["red"]
+        alpha = 0.25 if is_frozen else 0.5
+        ax_t.plot(steps, drift[:, i], color=color, linewidth=1.0, alpha=alpha)
+    # Mean of frozen vs trainable on top, thick
+    if freeze_below > 0 and freeze_below < n_blocks:
+        ax_t.plot(steps, drift[:, :freeze_below].mean(axis=1),
+                  color=COLORS["blue"], linewidth=3.0,
+                  label=f"frozen mean (blocks 0–{freeze_below-1})")
+        ax_t.plot(steps, drift[:, freeze_below:].mean(axis=1),
+                  color=COLORS["red"], linewidth=3.0,
+                  label=f"trainable mean (blocks {freeze_below}–{n_blocks-1})")
+    else:
+        ax_t.plot(steps, drift.mean(axis=1),
+                  color=COLORS["red"], linewidth=3.0,
+                  label="all-block mean")
+    # iter13 v12 (2026-05-06): five-zone reference bands matching /tmp/drift_table.py
+    # verdict() — gives a 1-glance answer to "is the encoder moving healthily?"
+    #   < 1e-5         STUCK         (v7 ceiling)
+    #   1e-5 .. 1e-4   BORDERLINE    (early warmup)
+    #   1e-4 .. 1e-2   HEALTHY       (active fine-tuning — the desirable zone)
+    #   1e-2 .. 1e-1   AGGRESSIVE    (1-10 % rel L2; proceed with caution)
+    #   >= 1e-1        CATASTROPHIC  (>=10 % rel L2; likely forgetting)
+    ax_t.axhspan(1e-12, 1e-5, color="red",    alpha=0.07, zorder=0)
+    ax_t.axhspan(1e-5,  1e-4, color="orange", alpha=0.07, zorder=0)
+    ax_t.axhspan(1e-4,  1e-2, color="green",  alpha=0.07, zorder=0)
+    ax_t.axhspan(1e-2,  1e-1, color="gold",   alpha=0.10, zorder=0)
+    ax_t.axhspan(1e-1,  1.0,  color="red",    alpha=0.15, zorder=0)
+    for y, name, c in [(1e-5, "STUCK",        "red"),
+                       (1e-4, "BORDERLINE",   "orange"),
+                       (1e-2, "HEALTHY",      "green"),
+                       (1e-1, "AGGRESSIVE",   "gold"),
+                       (1.0,  "CATASTROPHIC", "red")]:
+        ax_t.axhline(y, color=c, linestyle=":", linewidth=1.0, alpha=0.6)
+        ax_t.text(steps[0], y * 1.1, f"  {name} (>= {y:.0e})",
+                  color=c, fontsize=8, va="bottom")
+    ax_t.set_yscale("log")
+    ax_t.set_ylim(1e-7, 1.0)                   # cap to keep zone bands visible
+    ax_t.set_xlabel("Optimizer step", fontsize=11)
+    ax_t.set_ylabel("rel L2 drift  (||Δθ_block||/||θ_block_init||)", fontsize=11)
+    ax_t.grid(True, which="both", alpha=0.25)
+    ax_t.legend(loc="best", fontsize=9, framealpha=0.92)
+
+    save_fig(fig, str(output_dir / f"{file_prefix}_block_drift"))
+
+
+def plot_probe_trajectory_trio(probe_history: list, output_dir, title_prefix: str = "",
+                                file_prefix: str = "m09") -> None:
+    """3-panel trajectory: top-1 / motion-cos / future-L1 vs optimizer step.
+
+    Mirrors iter12 probe_trajectory.png layout. Backward-compat: filters
+    records that have all three trio keys, so a re-run over a mixed-schema
+    jsonl renders only post-cutover records.
+
+    Iter13 design (plan_code_dev.md §4): trajectory uses VAL split,
+    paper-final m06d uses TEST split — numbers may differ; this is by design.
+    """
+    init_style()
+    output_dir = Path(output_dir)
+    recs = [r for r in probe_history
+            if "probe_top1" in r and "motion_cos" in r and "future_l1" in r]
+    # iter13 (2026-05-05): render from the 1st checkpoint. Was `< 2` (skipped
+    # the first val cycle's plot, leaving the user wondering where it was). With
+    # 1 record we plot a single marker per panel — degenerate trajectory but
+    # the val-vs-step axis is still established and subsequent val cycles
+    # extend the line in place. Empty (0) still skips with a clear log line.
+    if len(recs) < 1:
+        print("  [plot] skip probe_trajectory_trio: no trio records yet")
+        return
+    single_point = (len(recs) == 1)
+
+    fig, axes = plt.subplots(3, 1, figsize=(7, 11), sharex=True)
+    steps = [r["step"] for r in recs]
+
+    panels = [
+        ("Top-1 accuracy (action probe)",     "probe_top1", COLORS["green"],  ""),
+        ("Intra−Inter cosine (motion sep.)",  "motion_cos", COLORS["blue"],   ""),
+        ("Future-frame L1 (lower=better)",    "future_l1",  COLORS["orange"], ""),
+    ]
+    for ax, (title, key, color, unit) in zip(axes, panels):
+        y = [r[key] for r in recs]
+        # Larger marker when single-point so the dot is visible without a line
+        markersize = 12 if single_point else 4
+        ax.plot(steps, y, marker="o", color=color, linewidth=2.0,
+                markersize=markersize)
+        ax.set_ylabel(f"{title}{(' (' + unit + ')') if unit else ''}", fontsize=10)
+        ax.grid(True, alpha=0.3)
+        ax.annotate(f"{'val' if single_point else 'end'}={y[-1]:.4f}",
+                    xy=(steps[-1], y[-1]),
+                    xytext=(5, 0), textcoords="offset points",
+                    fontsize=9, color=color, va="center", weight="bold")
+        if single_point:
+            # Pad x-axis so the single dot doesn't sit at the right edge
+            ax.set_xlim(left=max(0, steps[0] - 5), right=steps[0] + 50)
+
+    n_clips = recs[0].get("n_probe_clips", "?")
+    axes[0].set_title(
+        f"{title_prefix}Probe trajectory  (N={n_clips} probe-clips, val split)",
+        fontsize=11)
+    axes[-1].set_xlabel("Optimizer step", fontsize=11)
+    save_fig(fig, str(output_dir / f"{file_prefix}_probe_trajectory_trio"))
+
+
+def compute_block_drift(student, init_params: dict) -> list:
+    """Per-block relative L2 norm of (current θ − init θ).
+
+    Iterates `student.named_parameters()`, groups by block index parsed from
+    the parameter name (`blocks.{i}.*`). Returns a list of length `n_blocks`
+    with mean rel-L2 per block. Catch-all bucket (patch_embed, norms outside
+    blocks, etc.) is collapsed into block index 0 to keep the array shape
+    simple — it's a diagnostic, not a paper number.
+
+    `init_params` is the dict snapshotted at build_model time
+    (m09a_pretrain.py:412). On CPU. Same keys as student.state_dict().
+
+    Cost: ~0.5 s on ViT-G with 588 named params. Negligible vs val cycle.
+    """
+    import re
+    bucket: dict = {}   # block_idx → list of rel_l2 scalars
+    for name, p_cur in student.named_parameters():
+        if name not in init_params:
+            continue
+        p_init = init_params[name]
+        if p_cur.shape != p_init.shape:
+            continue
+        # Cast to fp32 on CPU for stable norm; tiny tensors so cost is trivial.
+        p_cur_f = p_cur.detach().float().cpu()
+        p_init_f = p_init.detach().float().cpu()
+        diff_l2 = (p_cur_f - p_init_f).norm().item()
+        init_l2 = p_init_f.norm().item() + 1e-12
+        rel = diff_l2 / init_l2
+        m = re.search(r"blocks\.(\d+)\.", name)
+        idx = int(m.group(1)) if m else 0   # catch-all → block 0
+        bucket.setdefault(idx, []).append(rel)
+    if not bucket:
+        return []
+    n_blocks = max(bucket.keys()) + 1
+    return [float(np.mean(bucket.get(i, [0.0]))) for i in range(n_blocks)]
+

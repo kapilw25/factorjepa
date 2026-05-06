@@ -1,0 +1,37 @@
+{
+  "metric": "top1_accuracy",
+  "by_encoder": {
+    "vjepa_2_1_frozen": {
+      "acc_pct": 94.4763,
+      "n": 1394,
+      "top1_ci": {
+        "mean": 0.944763,
+        "ci_lo": 0.931851,
+        "ci_hi": 0.955524,
+        "ci_half": 0.011836
+      }
+    },
+    "vjepa_2_1_pretrain": {
+      "acc_pct": 95.3372,
+      "n": 1394,
+      "top1_ci": {
+        "mean": 0.953372,
+        "ci_lo": 0.941176,
+        "ci_hi": 0.963415,
+        "ci_half": 0.011119
+      }
+    }
+  },
+  "pairwise_deltas": {
+    "vjepa_2_1_frozen_minus_vjepa_2_1_pretrain": {
+      "n_shared": 1394,
+      "delta_pp": -0.8608,
+      "ci_lo_pp": -1.8651,
+      "ci_hi_pp": 0.0717,
+      "ci_half_pp": 0.9684,
+      "p_value": 0.0946,
+      "gate_pass": false,
+      "interpretation": "vjepa_2_1_frozen - vjepa_2_1_pretrain > 0 means vjepa_2_1_frozen more accurate than vjepa_2_1_pretrain"
+    }
+  }
+}

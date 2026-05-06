@@ -516,7 +516,13 @@ def _train_step_grad_accum(student, teacher, predictor, batch_clips,
         try:
             with torch.amp.autocast("cuda", dtype=dtype, enabled=mp_cfg["enabled"]):
                 with torch.no_grad():
-                    h = teacher(bc)
+                    # iter13 Fix #3 (2026-05-04): pass training=True explicitly to
+                    # match Meta's reference call style (deps/vjepa2/app/vjepa_2_1/
+                    # train.py:593). Semantically equivalent to setting
+                    # return_hierarchical=True (vit:335 has `if training or
+                    # self.return_hierarchical:`), but aligns intent with the
+                    # official train script.
+                    h = teacher(bc, training=True)
                     if h.size(-1) == n_levels * embed_dim:
                         chunks = [F.layer_norm(h[:, :, lvl * embed_dim:(lvl + 1) * embed_dim],
                                                (embed_dim,))
@@ -526,8 +532,8 @@ def _train_step_grad_accum(student, teacher, predictor, batch_clips,
                         h = F.layer_norm(h, (h.size(-1),))
                 pf, pc = [], []
                 for k, (me, mp) in enumerate(zip(m_enc_list, m_pred_list)):
-                    z = student(bc, masks=[me])
-                    out = predictor(z, [me], [mp], mask_index=k)
+                    z = student(bc, masks=[me], training=True)
+                    out = predictor(z, [me], [mp], mod="video", mask_index=k)
                     if isinstance(out, tuple) and len(out) == 2:
                         pf.append(out[0]); pc.append(out[1])
                     else:
@@ -704,9 +710,16 @@ def enable_gradient_checkpointing(model):
 
 
 def build_scheduler(optimizer, cfg_opt: dict, total_steps: int):
-    # Cap warmup to 10% of total steps (avoids never leaving warmup on short runs)
-    warmup_cap_pct = cfg_opt["warmup_cap_pct"]
-    warmup_steps = min(cfg_opt["warmup_steps"], max(1, total_steps * warmup_cap_pct // 100))
+    # iter13 (2026-05-05): single-knob warmup. `warmup_pct` is a fraction in
+    # [0, 1]; warmup_steps computed at runtime as `int(total_steps * warmup_pct)`.
+    # Was dual-knob (warmup_steps absolute + warmup_cap_pct percent cap) which let
+    # yamls hardcode warmup_steps=1500 that got silently dominated by the cap and
+    # never noticed. Convention matches surgery.warmup_pct + probe_action CLI.
+    warmup_pct = cfg_opt["warmup_pct"]
+    if not 0.0 <= warmup_pct <= 1.0:
+        sys.exit(f"FATAL: warmup_pct must be in [0, 1] (fraction); got {warmup_pct}. "
+                 f"Did you mean {warmup_pct/100} (e.g., 0.12 for 12%)?")
+    warmup_steps = max(1, int(total_steps * warmup_pct))
     min_lr = cfg_opt["min_lr"]
     base_lr = cfg_opt["lr"]
 
@@ -742,10 +755,37 @@ def update_weight_decay(optimizer, cfg_opt: dict, step: int, total_steps: int):
 
 def run_validation(student, teacher, predictor, mask_generators,
                    val_batches: list, cfg: dict, device: torch.device,
-                   step: int) -> float:
-    """Compute JEPA L1 loss on val clips. Same as training loss, different data.
+                   step: int, *,
+                   val_keys: list = None,
+                   mt_head=None, mt_dims_spec: dict = None,
+                   mt_labels_by_clip: dict = None, mt_cfg: dict = None,
+                   init_params: dict = None, drift_cfg: dict = None) -> dict:
+    """Compute val losses on val clips — same metrics as training loss.
 
-    Returns mean val loss (scalar).
+    iter13 (2026-05-05): extended from "JEPA only" to all 4 components, mirroring
+    training (_train_step_grad_accum):
+      - val_jepa:       L1 reconstruction loss on masked tokens (always)
+      - val_multi_task: 16-dim CE+BCE on taxonomy labels (when mt_head provided)
+      - val_drift:      lambda · ||θ - θ_init||² (data-independent, computed once
+                        per val cycle when init_params + drift_cfg provided)
+      - val_total:      α·jepa + β·mt + λ·drift (yaml weights from
+                        cfg.optimization.loss + cfg.drift_control)
+    Backward-compat: keyword args default None → only val_jepa is computed,
+    others = 0.0. Caller pulls `result["jepa"]` for the legacy scalar-tracking
+    code paths (kill-switch, best-ckpt, plateau).
+
+    Args:
+        val_keys:           Flat list of clip_keys aligned with val_batches
+                            (i-th batch's keys = val_keys[sum_bs_so_far : ...]).
+                            Required when mt_head is provided.
+        mt_head:            MultiTaskProbeHead (unmasked-features path).
+        mt_dims_spec:       16-dim taxonomy spec dict.
+        mt_labels_by_clip:  {clip_key → {dim_name → label}}.
+        mt_cfg:             Multi-task yaml block (provides weight_probe + weight_per_dim).
+        init_params:        Dict of CPU-clones of student params at start of training.
+        drift_cfg:          Drift-control yaml block (provides lambda_reg).
+
+    Returns dict with keys: jepa, multi_task, drift, total, n_batches.
     """
     student.eval()
     predictor.eval()
@@ -753,13 +793,23 @@ def run_validation(student, teacher, predictor, mask_generators,
     mp_cfg = cfg["mixed_precision"]
     dtype = getattr(torch, mp_cfg["dtype"])
     loss_exp = cfg["optimization"]["loss_exp"]
-    total_loss = 0.0
+    total_jepa = 0.0
+    total_mt = 0.0
     n_batches = 0
+    n_seen_clips = 0   # cursor into val_keys for per-batch slicing
+
+    # Lazy import to avoid circular: multi_task_loss imports from training-adjacent paths.
+    if mt_head is not None:
+        from utils.multi_task_loss import compute_multi_task_probe_loss
 
     with torch.no_grad():
         for batch_clips in val_batches:
             batch_clips = batch_clips.to(device)
             actual_bs = batch_clips.shape[0]
+            # Slice the per-batch keys (only needed for multi-task; harmless otherwise).
+            batch_keys = (val_keys[n_seen_clips:n_seen_clips + actual_bs]
+                          if val_keys is not None else None)
+            n_seen_clips += actual_bs
 
             # Generate masks (same as training)
             all_masks_enc, all_masks_pred = [], []
@@ -772,7 +822,10 @@ def run_validation(student, teacher, predictor, mask_generators,
                 # Teacher: all tokens + per-chunk LayerNorm (deep supervision)
                 embed_dim_val = cfg["model"]["embed_dim"]
                 n_levels_val = cfg["model"]["n_output_distillation"]
-                h = teacher(batch_clips)
+                # iter13 Fix #3: pass training=True / mod="video" to match Meta's
+                # reference call style (deps/vjepa2/app/vjepa_2_1/train.py:593+618).
+                # Semantically equivalent to return_hierarchical=True attribute path.
+                h = teacher(batch_clips, training=True)
                 if h.size(-1) == n_levels_val * embed_dim_val:
                     chunks = []
                     for lvl in range(n_levels_val):
@@ -787,8 +840,8 @@ def run_validation(student, teacher, predictor, mask_generators,
                 pred_features = []
                 pred_context_val = []
                 for i, (m_enc, m_pred) in enumerate(zip(all_masks_enc, all_masks_pred)):
-                    z = student(batch_clips, masks=[m_enc])
-                    outputs = predictor(z, [m_enc], [m_pred], mask_index=i)
+                    z = student(batch_clips, masks=[m_enc], training=True)
+                    outputs = predictor(z, [m_enc], [m_pred], mod="video", mask_index=i)
                     if isinstance(outputs, tuple) and len(outputs) == 2:
                         pred_features.append(outputs[0])
                         pred_context_val.append(outputs[1])
@@ -801,15 +854,73 @@ def run_validation(student, teacher, predictor, mask_generators,
                     all_masks_pred, all_masks_enc,
                     loss_exp, predict_all_val, lambda_context=0.5)
 
-            total_loss += jepa_loss.item()
+                # iter13: multi-task forward on UNMASKED features (one extra
+                # student forward per batch, ~10% val time overhead). Mirrors
+                # the train-time pattern at multi_task_loss.py:run_multi_task_step
+                # (toggle return_hierarchical OFF, mean-pool last layer, run head).
+                # Skipped when mt_head/labels not provided — pure-JEPA fast path.
+                if (mt_head is not None
+                        and mt_labels_by_clip is not None
+                        and batch_keys):
+                    had_hier_mt = getattr(student, "return_hierarchical", None)
+                    if had_hier_mt is True:
+                        student.return_hierarchical = False
+                    try:
+                        feats_unmasked = student(batch_clips)
+                        if isinstance(feats_unmasked, (list, tuple)):
+                            feats_unmasked = feats_unmasked[-1]
+                        pooled = feats_unmasked.mean(dim=1)              # (B, D)
+                        mt_loss_t, _ = compute_multi_task_probe_loss(
+                            pooled, mt_head, batch_keys,
+                            mt_labels_by_clip, mt_dims_spec,
+                            weight_per_dim=mt_cfg["weight_per_dim"],
+                            device=device)
+                        total_mt += float(mt_loss_t.item())
+                    finally:
+                        if had_hier_mt is not None:
+                            student.return_hierarchical = had_hier_mt
+
+            total_jepa += jepa_loss.item()
             n_batches += 1
 
-    val_loss = total_loss / max(n_batches, 1)
-    print(f"  Step {step} | Val JEPA loss: {val_loss:.4f} ({len(val_batches)} batches)")
+    val_jepa = total_jepa / max(n_batches, 1)
+    val_mt   = total_mt   / max(n_batches, 1)
+
+    # iter13: drift loss is data-INDEPENDENT (||θ-θ_init||²), so compute once
+    # post-loop instead of per-batch. Matches the train-time semantics at
+    # _train_step_grad_accum's once-per-macro drift add.
+    val_drift = 0.0
+    if (init_params is not None and drift_cfg is not None
+            and drift_cfg.get("enabled") and drift_cfg.get("lambda_reg", 0) > 0):
+        with torch.no_grad():
+            val_drift = float(
+                compute_drift_loss(student, init_params, drift_cfg["lambda_reg"]).item())
+
+    # iter13: total = α·jepa + β·mt + λ·drift (yaml weights). Mirrors
+    # _train_step_grad_accum's accounting at line ~530-560. Defaults reproduce
+    # the legacy "jepa-only" total when mt_cfg/drift inputs are absent.
+    weight_mt = float(mt_cfg["weight_probe"]) if mt_cfg is not None else 0.0
+    val_total = val_jepa + weight_mt * val_mt + val_drift
+
+    print(f"  Step {step} | Val JEPA loss: {val_jepa:.4f} "
+          f"(mt={val_mt:.4f} · drift={val_drift:.6f} · total={val_total:.4f}; "
+          f"{len(val_batches)} batches)")
 
     student.train()
     predictor.train()
-    return val_loss
+    # Post-val cache hygiene: PyTorch's caching allocator retains freed val
+    # blocks (mem_get_info reports them as "used" → AdaptiveBatchSizer reads
+    # >85% post-val and shrinks training sub-batch from 8→1, ETA 7h→14h, see
+    # logs/probe_train_pretrain_full_v1.log:99-111). cuda_cleanup() returns the
+    # cached pool to the driver so the sizer sees true free memory next step.
+    cuda_cleanup()
+    return {
+        "jepa":       val_jepa,
+        "multi_task": val_mt,
+        "drift":      val_drift,
+        "total":      val_total,
+        "n_batches":  n_batches,
+    }
 
 
 # ═════════════════════════════════════════════════════════════════════════
@@ -819,7 +930,8 @@ def run_validation(student, teacher, predictor, mask_generators,
 def save_training_checkpoint(path: Path, student, teacher, predictor,
                               optimizer, scheduler, scaler,
                               step: int, best_metric: float,
-                              full: bool = True, uw=None):
+                              full: bool = True, uw=None,
+                              include_optimizer: bool = True):
     """Save checkpoint.
 
     iter11 disk-budget fix (2026-04-24, after POC v3 disk-full crash at step 6):
@@ -836,6 +948,15 @@ def save_training_checkpoint(path: Path, student, teacher, predictor,
       full=False → SELECTION-ONLY: student ONLY (~4 GB). Use for step*.pt, best.pt,
                    best_prec.pt — they're read only to pick the "best" student and export it;
                    teacher/predictor are rebuilt on resume via student EMA init anyway.
+
+    iter13 disk-budget fix (2026-05-04, after v6 ENOSPC crash at step 744):
+      `include_optimizer=False` (with full=True) → eval-ready ckpt with student +
+      teacher + predictor (~8 GB on ViT-G), but NO optimizer/scheduler/scaler. Used
+      for `_best.pt` since downstream (m05 surgical re-embed, m06 Prec@K, Stage 8
+      probe_future_mse) needs only encoder + predictor — optimizer state (16 GB)
+      is dead weight. Saves 22 GB durable + 22 GB transient per best.pt rewrite.
+      latest.pt keeps include_optimizer=True (resume requires it).
+
     POC footprint after fix: 4+4 (2 steps @ keep_n=2) + 20 (latest) + 4 (best) + 4 (best_prec)
     = 36 GB peak (vs 120 GB before).
     """
@@ -846,17 +967,41 @@ def save_training_checkpoint(path: Path, student, teacher, predictor,
         "step": step,
         "best_metric": best_metric,
         "is_full": full,                      # marker for load_training_checkpoint fallback
+        "has_optimizer": full and include_optimizer,  # marker so load can dispatch
     }
     if full:
         ckpt["teacher"] = teacher.state_dict()
         ckpt["predictor"] = predictor.state_dict()
+    if full and include_optimizer:
         ckpt["optimizer"] = optimizer.state_dict()
         ckpt["scheduler"] = scheduler.state_dict()
         ckpt["scaler"] = scaler.state_dict() if scaler else None
         if uw is not None:
             ckpt["uw"] = uw.state_dict()
-    torch.save(ckpt, tmp_path)
-    os.replace(tmp_path, path)
+    # Atomic write (tmp -> rename). On torch.save failure (almost always disk-full
+    # at ViT-G ~24 GB ckpt scale), clean up the partial .tmp so disk does not keep
+    # filling on retry, and re-raise with disk-free context. errors_N_fixes.md
+    # (2026-05-03 disk-full at step 86 left m09a_ckpt_latest.tmp at 24 GB).
+    try:
+        torch.save(ckpt, tmp_path)
+        os.replace(tmp_path, path)
+    except (RuntimeError, OSError) as e:
+        if tmp_path.exists():
+            try:
+                tmp_path.unlink()
+            except OSError as _unlink_err:
+                print(f"  WARN: could not remove partial {tmp_path}: {_unlink_err}")
+        free_gb = -1.0
+        try:
+            free_gb = shutil.disk_usage(path.parent).free / 1e9
+        except OSError as _du_err:
+            print(f"  WARN: disk_usage probe failed: {_du_err}")
+        kind = "full=True (~24GB)" if full else "full=False (~7GB)"
+        raise RuntimeError(
+            f"save_training_checkpoint FAILED writing {path.name} ({kind}); "
+            f"disk free: {free_gb:.1f} GB at {path.parent.resolve()}. "
+            f"Underlying: {type(e).__name__}: {e}"
+        ) from e
 
 
 def cleanup_old_checkpoints(output_dir: Path, prefix: str, keep_n: int = 2,
@@ -951,6 +1096,100 @@ def export_student_for_eval(student, path: Path, explora_enabled: bool = False):
         "type": "vjepa2_adapted",
     }, path)
     print(f"Exported student encoder: {path}")
+
+
+def assert_encoder_diverged_from_init(
+    student,
+    init_ckpt_path,
+    *,
+    init_keys: tuple = ("target_encoder", "encoder"),
+    init_prefix: str = "module.backbone.",
+    min_rel_l2: float = 1e-7,
+    label: str = "encoder",
+) -> float:
+    """Fail-hard if `student` weights are bit-identical to the initial Meta ckpt.
+
+    Catches silent training no-ops where the loop runs end-to-end but
+    optimizer.step() applied no change to the parameters. Three known causes:
+
+      1. LR-warmup eats all training steps (total_steps < warmup horizon → step 0
+         has lr=0 → optimizer.step() is a no-op). Hits SANITY when total_steps=1
+         with 10% warmup. Fix: bump SANITY total_steps ≥ ceil(1/(warmup_pct))+1,
+         or shrink warmup_pct, or run --POC/--FULL.
+      2. GradScaler skipped every step (NaN/Inf grads tripped the safety guard).
+         Symptom: loss_log.csv has NaN entries.
+      3. Param groups frozen by mistake (lr=0 in a group that should be trainable).
+         Symptom: an audit of optimizer.param_groups[*]['lr'] shows a 0 where
+         a positive base_lr was expected.
+
+    Compares student.state_dict() (flat keys) against the first matching key in
+    `init_keys` from `init_ckpt_path` (after stripping `init_prefix`). Computes
+    relative L2 norm ||student - init|| / ||init|| over the intersection of keys.
+    Raises RuntimeError with diagnostic if rel L2 < `min_rel_l2`.
+
+    Returns the measured rel L2 norm so the caller can log it.
+
+    Threshold rationale: 1e-7 is at FP32 precision noise floor; even one real
+    SGD step at LR=1e-5 typically produces ≥1e-5 relative shift. Anything below
+    1e-7 is indistinguishable from "no update happened".
+
+    Used by m09a_pretrain.py + m09c_surgery.py post-training, mirrors the
+    fail-hard spirit of "M09A FAILED: 0 successful training steps" (Bug B):
+    refuse to silently export Meta-frozen weights as a "trained" encoder.
+    """
+    init_full = torch.load(init_ckpt_path, map_location="cpu", weights_only=False)
+    init_sd = None
+    for key in init_keys:
+        if isinstance(init_full, dict) and key in init_full:
+            init_sd = init_full[key]
+            break
+    if init_sd is None:
+        raise RuntimeError(
+            f"assert_encoder_diverged_from_init: init ckpt {init_ckpt_path} missing "
+            f"all expected keys {init_keys}; got top-level "
+            f"{list(init_full.keys()) if isinstance(init_full, dict) else type(init_full).__name__}"
+        )
+    if init_prefix:
+        init_sd = {k[len(init_prefix):]: v for k, v in init_sd.items()
+                   if k.startswith(init_prefix)}
+    student_sd = student.state_dict()
+    common = set(init_sd) & set(student_sd)
+    if not common:
+        raise RuntimeError(
+            f"assert_encoder_diverged_from_init: no common keys after prefix "
+            f"strip (init has {len(init_sd)} keys, student has {len(student_sd)}); "
+            f"first 3 init: {list(init_sd)[:3]}; "
+            f"first 3 student: {list(student_sd)[:3]}"
+        )
+    sq_diff = sq_init = 0.0
+    for k in common:
+        a = init_sd[k].float()
+        b = student_sd[k].detach().cpu().float()
+        if a.shape != b.shape:
+            continue
+        sq_diff += (a - b).norm().item() ** 2
+        sq_init += a.norm().item() ** 2
+    rel = (sq_diff ** 0.5) / max(sq_init ** 0.5, 1e-12)
+    if rel < min_rel_l2:
+        raise RuntimeError(
+            f"TRAINING NO-OP — {label} weights bit-identical to initialization\n"
+            f"  init ckpt:   {init_ckpt_path}\n"
+            f"  rel L2 norm: {rel:.3e}  (threshold: {min_rel_l2:.0e})\n"
+            f"  common keys: {len(common)}/{len(init_sd)}\n"
+            f"\n"
+            f"Likely causes:\n"
+            f"  1. LR warmup ate all training steps (SANITY total_steps < warmup horizon\n"
+            f"     → step 0 has lr=0 → optimizer.step() is a no-op).\n"
+            f"     Fix: bump SANITY total_steps, shrink warmup_pct, or run --POC/--FULL.\n"
+            f"  2. GradScaler skipped every step (NaN/Inf grads). Check loss_log.csv\n"
+            f"     for NaN entries; reduce LR or check for upstream numerical issues.\n"
+            f"  3. Param groups have lr=0 (frozen by mistake). Audit\n"
+            f"     optimizer.param_groups[*]['lr'] right after build_optimizer.\n"
+            f"\n"
+            f"Aborting before downstream eval consumes Meta-frozen weights\n"
+            f"mislabeled as a trained encoder (would corrupt P2/P3 paired-Δ verdict)."
+        )
+    return rel
 
 
 # ═════════════════════════════════════════════════════════════════════════
@@ -1396,6 +1635,26 @@ class StreamingFactorDataset(torch.utils.data.IterableDataset):
 # deltas track the encoder, not the augmentation RNG.
 
 
+def _decode_probe_clip_worker(args):
+    """Subprocess worker for parallel probe-clip decode. Module-top-level so
+    ProcessPoolExecutor can pickle it. Returns (clip_key, tag, tensor) | None.
+
+    Each worker re-imports (CPU-only — no CUDA touch) and runs single-threaded
+    so 8 workers can saturate 8 cores without OMP/MKL oversubscription.
+    """
+    import os as _os
+    _os.environ.setdefault("OMP_NUM_THREADS", "1")
+    _os.environ.setdefault("MKL_NUM_THREADS", "1")
+    import torch as _torch
+    _torch.set_num_threads(1)
+    from utils.video_io import decode_video_bytes as _decode
+    clip_key, mp4_bytes, tag, num_frames, crop_size, tmp_dir = args
+    video_u8 = _decode(mp4_bytes, tmp_dir, clip_key, num_frames)
+    if video_u8 is None:
+        return None
+    return (clip_key, tag, _probe_preprocess(video_u8, crop_size))
+
+
 def _probe_preprocess(video_uint8: torch.Tensor, crop_size: int) -> torch.Tensor:
     """Deterministic probe pipeline: center-crop → resize → ImageNet-normalize.
 
@@ -1414,23 +1673,63 @@ def _probe_preprocess(video_uint8: torch.Tensor, crop_size: int) -> torch.Tensor
 
 def build_probe_clips(probe_subset_path: str, probe_local_data: str,
                       probe_tags_path: str, num_frames: int, crop_size: int,
-                      subset_keys_override: set = None) -> list:
+                      subset_keys_override: set = None,
+                      max_clips: int = None) -> list:
     """Decode + preprocess probe clips ONCE upfront. Returns list of
     (clip_key, tag_dict, tensor[T,C,H,W]).
 
     Tag alignment: Path(clip_key).name == tag["source_file"]. Clips without a
     matching tag record are skipped (not fatal — probe is best-effort signal).
-    Heavy: 1K val_1k clips take ~5-10 min to decode via PyAV. Cost amortized
-    across multiple probe calls.
+    Decode runs in 8 ProcessPoolExecutor workers (~30 clips/sec). Caller should
+    pass `max_clips` (typically `cfg["monitoring"]["knn_probe_clips"]`) to bound
+    work AND avoid /dev/shm overflow when shipping decoded tensors back to main:
+    9248 × 9.4 MB = 86 GB > 48 GB SHM cap (incident 2026-05-03 v4 log:65).
 
     subset_keys_override: if provided (e.g., m09c held-out 10% split), skip the
-    JSON load and use these keys directly. Lets callers plumb an in-memory split
-    without writing a temp JSON to disk.
+    JSON load and use these keys directly.
+    max_clips: cap subsample size (deterministic seed=42 for run-reproducibility).
+        None = use all clips (legacy behavior; risk of SHM overflow if N > ~5000).
     """
     if subset_keys_override is not None:
         subset_keys = set(subset_keys_override)
     else:
-        subset_keys = set(json.load(open(probe_subset_path))["clip_keys"])
+        # Schema dispatch — supports BOTH conventions:
+        #   (legacy)  {"clip_keys": ["a.mp4", "b.mp4", ...]}
+        #   (iter13)  {"a.mp4": {"class": ..., "class_id": ..., "split": ...}, ...}
+        # The iter13 schema is what probe_action.py --stage labels writes today
+        # (action_labels.json). Pre-iter13 schema kept for backward compat with
+        # any cached val_subset JSONs in the wild. errors_N_fixes (2026-05-03
+        # silent disable of mid-train probe in v1+v2 FULL pretrain).
+        _data = json.load(open(probe_subset_path))
+        if isinstance(_data, dict) and "clip_keys" in _data:
+            subset_keys = set(_data["clip_keys"])
+        elif isinstance(_data, dict) and _data and isinstance(next(iter(_data.values())), dict):
+            # iter13 clip-keyed dict — values are records; keys are clip paths
+            subset_keys = set(_data.keys())
+        elif isinstance(_data, list):
+            subset_keys = set(_data)
+        else:
+            raise ValueError(
+                f"build_probe_clips: unrecognized schema in {probe_subset_path}; "
+                f"expected one of: {{clip_keys: [...]}}, {{clip_key: {{...}}, ...}}, [list of keys]; "
+                f"got top-level {type(_data).__name__} with "
+                f"{len(_data) if hasattr(_data, '__len__') else '?'} entries"
+            )
+    # iter13 (2026-05-03): subsample BEFORE heavy decode to (a) bound /dev/shm
+    # IPC budget — each decoded tensor is ~9.4 MB, /dev/shm cap is ~48 GB on
+    # 96 GB box → ~5000 clips max before SHM overflow killed v4 at clip 4284
+    # (logs/probe_train_pretrain_full_v4.log:65); (b) honor the design intent
+    # of `monitoring.knn_probe_clips: 1000` in base_optimization.yaml which
+    # was previously ignored. Random subsample with deterministic seed=42 so
+    # the same probe set is used across all val checkpoints in this run AND
+    # across re-runs with the same seed.
+    if max_clips is not None and len(subset_keys) > max_clips:
+        import random as _rand
+        _rng = _rand.Random(42)
+        subset_keys = set(_rng.sample(sorted(subset_keys), max_clips))
+        print(f"  [probe] subsampled to {max_clips} clips (seed=42, "
+              f"deterministic across val checkpoints + re-runs)")
+
     tags_list = json.load(open(probe_tags_path))
     # Fail-loud: tag records without "source_file" are malformed — skip with explicit test, no .get default.
     tag_by_source = {t["source_file"]: t for t in tags_list if "source_file" in t}
@@ -1438,8 +1737,20 @@ def build_probe_clips(probe_subset_path: str, probe_local_data: str,
     tmp_dir = tempfile.mkdtemp(prefix="probe_decode_")
     clips = []
     n_no_tag = 0
+    # iter13 perf fix (2026-05-03): the prior implementation decoded ~1.5K probe
+    # clips serially in the main thread (PyAV is GIL-locked → 1 core busy, 7
+    # idle → ~12 sec/clip → 5 GPU-h wasted before training starts on FULL).
+    # Two-stage pipeline now: (1) TAR threads stream mp4_bytes into a list (fast,
+    # already parallel via iter_clips_parallel), (2) ProcessPoolExecutor with
+    # 8 workers does decode+preprocess in parallel (CPU-only — subprocess never
+    # touches CUDA, fork-from-CUDA-parent is safe). Mirrors m11_factor_datasets
+    # ProcessPool pattern. Adds tqdm so progress is visible (no more silent stalls).
+    from concurrent.futures import ProcessPoolExecutor
+    from utils.progress import make_pbar
     try:
         clip_q, tar_stop, _reader = iter_clips_parallel(probe_local_data, subset_keys=subset_keys)
+        # Stage 1 — gather (clip_key, mp4_bytes, tag) tuples (fast: TAR readers parallel)
+        work_items = []
         while True:
             try:
                 item = clip_q.get(timeout=120)
@@ -1454,13 +1765,29 @@ def build_probe_clips(probe_subset_path: str, probe_local_data: str,
             if source_file not in tag_by_source:
                 n_no_tag += 1
                 continue
-            tag = tag_by_source[source_file]
-            video_u8 = decode_video_bytes(mp4_bytes, tmp_dir, clip_key, num_frames)
-            if video_u8 is None:
-                continue
-            tensor = _probe_preprocess(video_u8, crop_size)
-            clips.append((clip_key, tag, tensor))
+            work_items.append((clip_key, mp4_bytes, tag_by_source[source_file],
+                               num_frames, crop_size, tmp_dir))
         tar_stop.set()
+
+        if not work_items:
+            print("  [probe] WARN: 0 clips after TAR + tag filter — nothing to decode")
+            return clips
+
+        # Stage 2 — parallel decode + preprocess (8 workers, CPU-bound)
+        try:
+            n_cpu = len(os.sched_getaffinity(0))
+        except (AttributeError, OSError):
+            n_cpu = os.cpu_count() or 1
+        n_workers = max(1, min(8, n_cpu - 1))   # leave 1 core for main + TAR threads
+        print(f"  [probe] decoding {len(work_items)} clips with {n_workers} CPU workers "
+              f"(was serial → ~8x speedup expected)")
+        pbar = make_pbar(total=len(work_items), desc="probe_decode", unit="clip")
+        with ProcessPoolExecutor(max_workers=n_workers) as pool:
+            for result in pool.map(_decode_probe_clip_worker, work_items, chunksize=4):
+                if result is not None:
+                    clips.append(result)
+                pbar.update(1)
+        pbar.close()
     finally:
         shutil.rmtree(tmp_dir, ignore_errors=True)
 
@@ -1710,6 +2037,10 @@ def run_probe_acc_eval(student, probe_clips: list, probe_labels: dict,
     pred = classes[sims.argmax(axis=1)]
     correct = (pred == y).astype(np.float64)
 
+    # Post-probe cache hygiene: see note in run_validation. Probe-acc forward
+    # pass leaves freed activations in PyTorch's caching allocator; without
+    # cleanup, AdaptiveBatchSizer reads inflated VRAM% and shrinks training.
+    cuda_cleanup()
     return {
         "num_clips":   n_labeled,
         "num_classes": int(n_classes),
@@ -1814,6 +2145,9 @@ def run_probe_val_loss(student, teacher, predictor, probe_clips: list,
             teacher.train()
         if predictor_was_training:
             predictor.train()
+        # Post-eval cache hygiene (see run_validation note). Inside `finally`
+        # so it runs even on exception/OOM.
+        cuda_cleanup()
 
     return {
         "jepa_loss": total_j / max(n_seen, 1),
@@ -1880,6 +2214,7 @@ def render_training_plots(
     total_steps: int = None,
     batch_size: int = None,
     lr: float = None,
+    file_prefix: str = "m09",
 ) -> None:
     """Render probe_trajectory + m09_forgetting + m09_val_loss PNG/PDF from
     probe_history. Technique-agnostic — works for single-stage (m09b ExPLoRA)
@@ -1968,8 +2303,9 @@ def render_training_plots(
         if verbose:
             print(f"  Saved: {output_dir / 'probe_trajectory.png'}")
     except Exception as e:
-        if verbose:
-            print(f"  [probe] WARN: trajectory plot failed: {e}")
+        # iter13 (2026-05-05): per CLAUDE.md FAIL HARD.
+        print(f"  [probe] FATAL: trajectory plot failed: {e}", flush=True)
+        raise
 
     # Plot 2: m09_forgetting.png/.pdf
     try:
@@ -2051,8 +2387,9 @@ def render_training_plots(
         if verbose:
             print(f"  Saved: {output_dir / 'm09_forgetting.png'}")
     except Exception as e:
-        if verbose:
-            print(f"  [probe] WARN: forgetting plot failed: {e}")
+        # iter13 (2026-05-05): per CLAUDE.md FAIL HARD.
+        print(f"  [probe] FATAL: forgetting plot failed: {e}", flush=True)
+        raise
 
     # Plot 3: m09_val_loss.png/.pdf — 3-panel stacked (optional).
     # m09b uses "val_jepa_loss"/"masked_loss"/"context_loss" keys; m09c historically
@@ -2100,14 +2437,15 @@ def render_training_plots(
                 f"JEPA val-loss (N={probe_history[0]['num_clips']} val-split, "
                 f"{len(probe_history)} probes){_run_tag}")
             for ext in (".png", ".pdf"):
-                plt.savefig(output_dir / f"m09_val_loss{ext}",
+                plt.savefig(output_dir / f"{file_prefix}_val_loss{ext}",
                             dpi=150 if ext == ".png" else None, bbox_inches="tight")
             plt.close()
             if verbose:
-                print(f"  Saved: {output_dir / 'm09_val_loss.png'}")
+                print(f"  Saved: {output_dir / f'{file_prefix}_val_loss.png'}")
         except Exception as e:
-            if verbose:
-                print(f"  [probe] WARN: val-loss plot failed: {e}")
+            # iter13 (2026-05-05): per CLAUDE.md FAIL HARD.
+            print(f"  [probe] FATAL: val-loss plot failed: {e}", flush=True)
+            raise
 
         # Plot 3b: m09_val_loss_jepa.png/.pdf — single-panel JEPA total (L1)
         # zoom with rolling-mean overlay (companion to m09_train_loss smoothing).
@@ -2153,12 +2491,159 @@ def render_training_plots(
                     f"JEPA val-loss zoom (N={probe_history[0]['num_clips']} "
                     f"val-split, {len(jepa_vals)} probes) — raw + rolling mean{_run_tag}")
                 for ext in (".png", ".pdf"):
-                    plt.savefig(output_dir / f"m09_val_loss_jepa{ext}",
+                    plt.savefig(output_dir / f"{file_prefix}_val_loss_jepa{ext}",
                                 dpi=150 if ext == ".png" else None,
                                 bbox_inches="tight")
                 plt.close()
                 if verbose:
-                    print(f"  Saved: {output_dir / 'm09_val_loss_jepa.png'}")
+                    print(f"  Saved: {output_dir / f'{file_prefix}_val_loss_jepa.png'}")
         except Exception as e:
-            if verbose:
-                print(f"  [probe] WARN: val-loss-jepa plot failed: {e}")
+            # iter13 (2026-05-05): per CLAUDE.md FAIL HARD.
+            print(f"  [probe] FATAL: val-loss-jepa plot failed: {e}", flush=True)
+            raise
+
+
+# ═════════════════════════════════════════════════════════════════════════
+# SHARED VAL-CYCLE HOOKS (iter13 — m06d trio + block-drift + best-ckpt)
+# ═════════════════════════════════════════════════════════════════════════
+# These three helpers are imported by both m09a (vanilla pretrain) and m09c
+# (factor surgery) so the val-cycle wiring stays identical. They mutate the
+# probe_record dict in place — caller appends to probe_history.jsonl.
+
+def run_trio_at_val(student, predictor, probe_clips, probe_labels, mask_gen,
+                    cfg, device, step: int, wb_run, probe_record: dict) -> dict:
+    """Run m06d trio (top-1 + motion-cos + future-L1) and update probe_record.
+
+    Wraps utils.probe_trio.compute_metric_trio with the standard try/except
+    + fail-loud traceback + log_metrics + record-update plumbing. Used by both
+    m09a and m09c val cycles. Mutates `probe_record` in place; caller appends.
+
+    Returns the trio dict on success, None on failure (already logged).
+    """
+    # Lazy imports to avoid circular: probe_trio imports from utils.training
+    # via build_probe_clips path indirectly. log_metrics is wandb wrapper.
+    from utils.probe_trio import compute_metric_trio
+    from utils.wandb_utils import log_metrics
+    try:
+        trio = compute_metric_trio(
+            student, predictor, probe_clips, probe_labels,
+            mask_gen=mask_gen, cfg=cfg, device=device,
+            dist_layers=cfg["model"]["n_output_distillation"],
+        )
+        probe_record.update({
+            "probe_top1":    trio["top1"],
+            "motion_cos":    trio["motion_cos"],
+            "future_l1":     trio["future_l1"],
+            "n_probe_clips": trio["n_clips"],
+        })
+        log_metrics(wb_run, {
+            "val/probe_top1": trio["top1"],
+            "val/motion_cos": trio["motion_cos"],
+            "val/future_l1":  trio["future_l1"],
+        }, step=step)
+        print(f"  [probe-trio] step={step} "
+              f"top1={trio['top1']:.4f}  "
+              f"motion_cos={trio['motion_cos']:.4f}  "
+              f"future_l1={trio['future_l1']:.4f}  "
+              f"(N={trio['n_clips']})", flush=True)
+        return trio
+    except Exception as e:
+        # iter13 (2026-05-05): per CLAUDE.md "FAIL HARD — no WARN-without-exit".
+        # The trio metric (top1 + motion_cos + future_l1) is the actual signal
+        # we run pretrain to measure; silently dropping it across val cycles
+        # leaves probe_trajectory_trio.png empty and lets shape/dtype bugs hide
+        # for the entire run. Re-raise — let the outer m09a top-level handler
+        # print the traceback and exit non-zero so the shell wrapper aborts.
+        # The OOM-retry inside compute_metric_trio (utils/probe_trio.py:191) is
+        # preserved — only TRULY fatal errors propagate here.
+        print(f"  [probe-trio] FATAL: eval failed at step {step}: {e}", flush=True)
+        print("  [probe-trio] traceback follows; aborting run per CLAUDE.md FAIL HARD:", flush=True)
+        raise
+
+
+def track_block_drift_at_val(student, init_params: dict, freeze_below: int,
+                              block_drift_history: list, output_dir,
+                              step: int, probe_record: dict,
+                              title_prefix: str = "",
+                              file_prefix: str = "m09") -> None:
+    """Per-block weight-drift diagnostic + heatmap render.
+
+    Computes rel-L2(θ_i_now − θ_i_init) per block, appends to history,
+    renders 2-panel heatmap+trajectory plot. Catches "frozen-in-practice"
+    pathology in 1 min. Used by both m09a and m09c val cycles.
+    Mutates probe_record (adds "block_drift_mean") + history list in place.
+
+    Best deployed alongside `assert_encoder_diverged_from_init`: this gives
+    per-checkpoint mid-training visibility; the assertion is a fail-loud
+    end-of-training gate.
+    """
+    from utils.plots import compute_block_drift, plot_block_drift_heatmap
+    try:
+        drift_per_block = compute_block_drift(student, init_params)
+        drift_record = {
+            "step": step,
+            "rel_l2_per_block": drift_per_block,
+            "freeze_below": int(freeze_below),
+        }
+        if drift_per_block:
+            probe_record["block_drift_mean"] = round(
+                float(sum(drift_per_block) / len(drift_per_block)), 8)
+        block_drift_history.append(drift_record)
+        # iter13 v12 (2026-05-06): persist per-block data each val checkpoint so
+        # offline diagnosis / cross-run comparison doesn't depend on in-memory state.
+        # File grows by ~48 floats × 16 bytes per checkpoint = ~1 KB/probe ≈ 10-20 KB total.
+        # Atomic via tmp + os.replace so crash mid-write doesn't corrupt the existing file.
+        try:
+            json_path = Path(output_dir) / f"{file_prefix}_block_drift_history.json"
+            tmp_path = json_path.with_suffix(".tmp.json")
+            with open(tmp_path, "w") as _f:
+                json.dump(block_drift_history, _f, indent=2)
+            os.replace(tmp_path, json_path)
+        except Exception as _e:
+            print(f"  [block-drift] WARN: history JSON write failed: {_e}", flush=True)
+        plot_block_drift_heatmap(
+            block_drift_history, output_dir,
+            title_prefix=title_prefix,
+            file_prefix=file_prefix)
+    except Exception as e:
+        # iter13 (2026-05-05): per CLAUDE.md FAIL HARD. The block-drift diagnostic
+        # is the v5/v6/v7 stuck-encoder detector — silencing it would let the
+        # exact bug we built this for slip through unnoticed.
+        print(f"  [block-drift] FATAL: diagnostic failed: {e}", flush=True)
+        print("  [block-drift] traceback follows; aborting run per CLAUDE.md FAIL HARD:", flush=True)
+        raise
+
+
+def update_best_state_on_score(best_state: dict, current_score: float,
+                                score_key: str, *,
+                                higher_is_better: bool,
+                                step: int, save_callback=None) -> bool:
+    """Generic best-ckpt tracker. Returns True iff `current_score` improved
+    `best_state[score_key]` in the configured direction.
+
+    Used by:
+      - m09a: best.pt selected by val_loss (higher_is_better=False)
+      - m09c: best.pt selected by trio_score=top1 (higher_is_better=True)
+              [iter13 cutover from prec_at_k per plan_code_dev.md §5]
+
+    `save_callback` is invoked on improvement (typical: save_training_checkpoint
+    of the best-ckpt path). Caller is responsible for any extra side effects
+    (logging, marker files, etc.).
+
+    Mutates best_state in place. Initial value of best_state[score_key] should
+    be -inf (higher_is_better) or +inf (lower_is_better) so the first non-NaN
+    score always wins.
+    """
+    if current_score is None or (isinstance(current_score, float) and
+                                  (current_score != current_score)):  # NaN check
+        return False
+    cur = best_state.get(score_key,
+                          -float("inf") if higher_is_better else float("inf"))
+    improved = (current_score > cur) if higher_is_better else (current_score < cur)
+    if improved:
+        best_state[score_key] = current_score
+        best_state["step"] = step
+        if save_callback is not None:
+            save_callback()
+        return True
+    return False

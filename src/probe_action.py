@@ -1,16 +1,21 @@
-"""Indian action attentive probe (Priority 1 gate). GPU-only.
+"""Motion-flow attentive probe (Priority 1 gate). GPU-only.
+
+iter13 v12 (2026-05-05): replaces saturated 3-class path-derived action labels
+with optical-flow-derived motion classes (16 classes of magnitude×direction
+from m04d motion_features.npy). See plan_code_dev.md Phase 2.
 
 Stages:
-  labels        — derive 3/4-class action labels + 70/15/15 split (CPU)
+  labels        — derive motion-flow class labels + 70/15/15 split (CPU)
   features      — extract frozen spatiotemporal token features per encoder (GPU)
   train         — train AttentiveClassifier head on cached features (GPU)
-  paired_delta  — paired BCa Δ between V-JEPA and DINOv2 (CPU)
+  paired_delta  — paired BCa Δ between encoders (CPU)
 
 USAGE (sequence — every path arg required, no defaults):
-    # Stage 1: labels (CPU, ~1 min)
+    # Stage 1: labels (CPU, ~1 min). --motion-features is m04d's output,
+    # default location <local_data>/motion_features.npy.
     python -u src/probe_action.py --SANITY \\
         --stage labels --eval-subset data/eval_10k.json \\
-        --tags-json data/eval_10k_local/tags.json \\
+        --motion-features data/eval_10k_local/motion_features.npy \\
         --output-root outputs/sanity/probe_action \\
         --cache-policy 1 2>&1 | tee logs/probe_action_labels_sanity.log
 
@@ -46,8 +51,6 @@ import torch.nn.functional as F
 
 sys.path.insert(0, str(Path(__file__).parent))
 from utils.action_labels import (
-    CLASS_NAMES_3CLASS,
-    CLASS_NAMES_4CLASS,
     load_action_labels,
     load_subset_with_labels,
     stratified_split,
@@ -254,6 +257,9 @@ def _eval_per_clip(probe, X_t: torch.Tensor, y_t: torch.Tensor, bs: int):
 def run_labels_stage(args, wb) -> None:
     if args.eval_subset is None:
         sys.exit("FATAL: --stage labels requires --eval-subset")
+    if args.motion_features is None:
+        sys.exit("FATAL: --stage labels requires --motion-features "
+                 "(m04d's motion_features.npy — see plan_code_dev.md Phase 2)")
     args.output_root.mkdir(parents=True, exist_ok=True)
     labels_path = args.output_root / "action_labels.json"
     if labels_path.exists() and args.cache_policy == "1":
@@ -262,16 +268,23 @@ def run_labels_stage(args, wb) -> None:
     guarded_delete(labels_path, args.cache_policy, "action_labels.json")
     guarded_delete(args.output_root / "class_counts.json", args.cache_policy, "class_counts.json")
 
-    records = load_subset_with_labels(args.eval_subset, args.tags_json,
-                                      enable_monument=args.enable_monument_class)
-    print(f"Loaded {len(records)} labeled clips from {args.eval_subset}")
-    splits = stratified_split(records, seed=args.seed)
+    # iter13 v12 (2026-05-05): MOTION-flow labels (RAFT optical-flow → 16 classes
+    # of <magnitude>__<direction>, filter to ≥34 clips/class). Drops the legacy
+    # path-derived 3-class action probe (saturated frozen V-JEPA at 0.94+).
+    records, class_names = load_subset_with_labels(
+        args.eval_subset, args.motion_features,
+        min_clips_per_class=args.min_clips_per_class)
+    print(f"Loaded {len(records)} labeled clips from {args.eval_subset} "
+          f"({len(class_names)} motion-flow classes)")
+    splits = stratified_split(records, seed=args.seed,
+                              min_per_split=args.min_per_split)
     write_action_labels_json(records, splits, labels_path)
 
     counts = load_json_checkpoint(args.output_root / "class_counts.json")
     for cls, c in counts.items():
-        if c["test"] < 5 or c["val"] < 5:
-            sys.exit(f"FATAL: class '{cls}' val={c['val']}/test={c['test']} (need >=5 each)")
+        if c["test"] < args.min_per_split or c["val"] < args.min_per_split:
+            sys.exit(f"FATAL: class '{cls}' val={c['val']}/test={c['test']} "
+                     f"(need >= {args.min_per_split} each)")
         if c["train"] < 30:
             print(f"  WARN: class '{cls}' train={c['train']} (recommended >=30)")
     log_metrics(wb, {"n_clips_labeled": len(records), "n_classes": len(counts)})
@@ -302,9 +315,21 @@ def run_features_stage(args, wb) -> None:
     else:
         sys.exit(f"FATAL: unknown encoder kind '{enc_kind}'")
 
-    by_split = {"train": [], "val": [], "test": []}
+    # iter13 lazy-feature-extraction (2026-05-05): only save splits the user
+    # explicitly listed in --features-splits (default ["test"]). train+val are
+    # extracted in-process by Stage 3 (run_train_stage) — the .probe_features_
+    # <split>_ckpt.npz resume side-effect doubles as a cross-LR cache. See
+    # iter/iter13_motion_probe_eval/plan_code_dev.md and
+    # /root/.claude/plans/wiggly-sniffing-muffin.md for design rationale.
+    splits_to_save = list(args.features_splits)
+    by_split = {s: [] for s in splits_to_save}
     for k, info in labels.items():
-        by_split[info["split"]].append(k)
+        if info["split"] in splits_to_save:
+            by_split[info["split"]].append(k)
+    if splits_to_save != ["train", "val", "test"]:
+        skipped = [s for s in ("train", "val", "test") if s not in splits_to_save]
+        print(f"  [features] saving splits {splits_to_save}; lazy splits "
+              f"(extracted by Stage 3): {skipped}")
 
     for split, keys in by_split.items():
         out_features = enc_dir / f"features_{split}.npy"
@@ -315,11 +340,13 @@ def run_features_stage(args, wb) -> None:
         guarded_delete(out_features, args.cache_policy, f"features_{split}")
         guarded_delete(out_keys, args.cache_policy, f"clip_keys_{split}")
 
-        print(f"\n=== Stage 2 features: {split} ({len(keys)} clips, encoder={args.encoder}) ===")
+        print(f"\n=== Stage 2 features: {split} ({len(keys)} clips, encoder={args.encoder}, "
+              f"pool_tokens={args.pool_tokens or 'OFF'}) ===")
         t0 = time.time()
         feats, ordered_keys = extract_features_for_keys(
             args, model, enc_kind, crop, embed_dim,
             keys, enc_dir, label=f"features_{split}",
+            pool_tokens=(args.pool_tokens if args.pool_tokens > 0 else None),
         )
         elapsed = time.time() - t0
         save_array_checkpoint(feats, out_features)
@@ -330,25 +357,156 @@ def run_features_stage(args, wb) -> None:
                          f"features_{split}_sec": round(elapsed, 1)})
 
 
+def _cleanup_lazy_feature_caches(enc_dir: Path) -> None:
+    """Remove transient .probe_features_{train,val}_ckpt.npz after Stage 3 done.
+
+    The lazy-extraction path (iter13 plan_code_dev.md) writes train+val
+    feature cache .npz files via extract_features_for_keys' resume mechanism.
+    Those caches are PER-RUN scratch — they're not consumed by Stage 4
+    (paired_delta) or Stage 5 (motion_cos), only by Stage 3 train+val LR sweeps.
+    Once Stage 3's best-LR is selected, the caches become dead disk weight
+    (~30 GB per encoder per the v2 ENOSPC measurement).
+
+    Called from end of run_train_stage (single-LR) AND
+    run_select_best_lr_stage (multi-LR). test ckpt is preserved — Stage 4 +
+    Stage 5 may consume it as a fallback if features_test.npy was wiped.
+    """
+    for split in ("train", "val"):
+        for path in (enc_dir / f".probe_features_{split}_ckpt.npz",
+                      enc_dir / f".probe_features_{split}_ckpt.tmp.npz"):
+            if path.exists():
+                try:
+                    sz_gb = path.stat().st_size / 1e9
+                    path.unlink()
+                    print(f"  [lazy-cleanup] removed {path.name} ({sz_gb:.1f} GB)")
+                except OSError as e:
+                    print(f"  [lazy-cleanup] WARN: could not remove {path}: {e}")
+
+
 def run_train_stage(args, wb) -> None:
     if args.encoder is None:
         sys.exit("FATAL: --stage train requires --encoder")
+    if ENCODERS[args.encoder]["kind"] == "vjepa" and args.encoder_ckpt is None:
+        sys.exit("FATAL: V-JEPA encoder requires --encoder-ckpt (lazy extract needs the model)")
+    if args.local_data is None:
+        sys.exit("FATAL: --stage train requires --local-data (lazy extract reads the TARs)")
     check_gpu()
     cleanup_temp()
+    ensure_local_data(args)
 
     # Read features from canonical <encoder>/, write probe outputs to optional subdir.
     enc_dir = args.output_root / args.encoder
     out_dir = enc_dir / args.output_subdir if args.output_subdir else enc_dir
     out_dir.mkdir(parents=True, exist_ok=True)
     labels = load_action_labels(args.output_root / "action_labels.json")
-    class_names = CLASS_NAMES_4CLASS if args.enable_monument_class else CLASS_NAMES_3CLASS
+    # iter13 v12 (2026-05-05): runtime-derived class_names from labels (motion-flow
+    # classes are dataset-driven, K varies). Sorted alphabetically — matches
+    # load_subset_with_labels' deterministic class_id assignment so class_id i ↔
+    # class_names[i] is invariant.
+    class_names = sorted({info["class"] for info in labels.values()})
 
-    feats_train = np.load(enc_dir / "features_train.npy")
-    feats_val   = np.load(enc_dir / "features_val.npy")
-    feats_test  = np.load(enc_dir / "features_test.npy")
-    keys_train  = np.load(enc_dir / "clip_keys_train.npy", allow_pickle=True)
-    keys_val    = np.load(enc_dir / "clip_keys_val.npy", allow_pickle=True)
-    keys_test   = np.load(enc_dir / "clip_keys_test.npy", allow_pickle=True)
+    # iter13 lazy-extract (2026-05-05): for any split whose features_<split>.npy
+    # is missing on disk, extract in-memory via extract_features_for_keys. The
+    # function's resume side-effect (.probe_features_<split>_ckpt.npz) acts as
+    # a cross-LR cache for multi-LR sweeps. See plan_code_dev.md.
+    enc_kind = ENCODERS[args.encoder]["kind"]
+    by_split = {"train": [], "val": [], "test": []}
+    for k, info in labels.items():
+        by_split[info["split"]].append(k)
+
+    # iter13 (2026-05-05): stream-and-discard branch. Skips ALL feature persistence
+    # AND the lazy-extract RAM cache; per-batch fwd-pool-head-loss-backward,
+    # discard. Use when pooled features still don't fit RAM (>1M clips at
+    # pool_tokens=128) OR for ablating multiple pool_tokens settings without
+    # re-extracting. Single LR (no sweep) — for sweeps stick with the
+    # disk-cached lazy path.
+    if args.stream_train:
+        from utils.probe_stream import stream_train_attentive_probe
+        if enc_kind == "vjepa":
+            model, crop, embed_dim = load_vjepa_2_1_frozen(args.encoder_ckpt, args.num_frames)
+        elif enc_kind == "dinov2":
+            model, _proc, crop, embed_dim = load_dinov2_frozen()
+        else:
+            sys.exit(f"FATAL: unknown encoder kind '{enc_kind}'")
+
+        labels_by_clip = {k: info["class_id"] for k, info in labels.items()}
+        n_classes = len(class_names)
+        print(f"[stream-train] encoder={args.encoder}, embed_dim={embed_dim}, "
+              f"pool_tokens={args.pool_tokens}, n_classes={n_classes}")
+        best_val_acc, best_state, test_correct, test_keys = stream_train_attentive_probe(
+            args, model, enc_kind, crop, embed_dim,
+            by_split, labels_by_clip, n_classes, out_dir, wb)
+        # Persist probe + test predictions in canonical layout (matches lazy path).
+        torch.save(best_state, out_dir / "probe.pt")
+        np.save(out_dir / "test_predictions.npy", test_correct)
+        np.save(out_dir / "test_clip_keys.npy", np.array(test_keys, dtype=object))
+        test_acc = float(test_correct.mean()) if test_correct.size else 0.0
+        test_ci = bootstrap_ci(test_correct.astype(np.float64))
+        save_json_checkpoint({
+            "encoder": args.encoder, "n_classes": n_classes, "class_names": class_names,
+            "n_test": int(test_correct.size), "top1_acc": test_acc, "top1_ci": test_ci,
+            "best_val_acc": float(best_val_acc),
+            "probe_lr": float(args.probe_lr), "warmup_pct": float(args.warmup_pct),
+            "epochs": int(args.epochs),
+            "stream_train": True,
+        }, out_dir / "test_metrics.json")
+        print(f"[stream-train] test top-1: {test_acc:.4f} ±{test_ci['ci_half']:.4f} (95% BCa CI)")
+        log_metrics(wb, {"test_top1_acc": test_acc,
+                         "test_top1_ci_half": test_ci["ci_half"],
+                         "stream_train": 1})
+        # Free encoder; no lazy caches to clean up (none were written).
+        del model
+        import gc as _gc
+        _gc.collect()
+        torch.cuda.empty_cache()
+        return
+
+    # Detect missing on-disk features → load encoder lazily (only when needed).
+    needs_extract = [s for s in ("train", "val", "test")
+                     if not (enc_dir / f"features_{s}.npy").exists()]
+    model = crop = embed_dim = None
+    if needs_extract:
+        print(f"  [lazy-extract] missing splits on disk: {needs_extract} — "
+              f"loading {args.encoder} encoder for in-memory extraction")
+        if enc_kind == "vjepa":
+            model, crop, embed_dim = load_vjepa_2_1_frozen(args.encoder_ckpt, args.num_frames)
+        elif enc_kind == "dinov2":
+            model, _proc, crop, embed_dim = load_dinov2_frozen()
+        else:
+            sys.exit(f"FATAL: unknown encoder kind '{enc_kind}'")
+
+    def _load_or_extract(split: str):
+        """Return (features (N,T,D) np.float32, ordered_keys np.array) for `split`.
+        Disk-first; falls back to extract_features_for_keys with resume cache.
+        """
+        npy_path  = enc_dir / f"features_{split}.npy"
+        keys_path = enc_dir / f"clip_keys_{split}.npy"
+        if npy_path.exists() and keys_path.exists():
+            return np.load(npy_path), np.load(keys_path, allow_pickle=True)
+        feats, ordered_keys = extract_features_for_keys(
+            args, model, enc_kind, crop, embed_dim,
+            by_split[split], enc_dir, label=f"features_{split}",
+            pool_tokens=(args.pool_tokens if args.pool_tokens > 0 else None),
+        )
+        return feats, np.array(ordered_keys, dtype=object)
+
+    feats_train, keys_train = _load_or_extract("train")
+    feats_val,   keys_val   = _load_or_extract("val")
+    feats_test,  keys_test  = _load_or_extract("test")
+    # iter13 (2026-05-05): free encoder GPU memory BEFORE probe-head training.
+    # The encoder (~7.5 GB ViT-G weights + 1.5 GB activation buffers) is no
+    # longer needed once features are extracted — keeping it resident competes
+    # with the probe-head attention matrix and triggers spurious OOM-shrink at
+    # micro_bs=64 (see iter13 v3 log L297). gc.collect() is required because
+    # `del model` only drops the local reference; the actual frees happen when
+    # Python finalises the underlying nn.Modules — which means the dangling
+    # references inside torch.cuda allocator block reuse until gc runs.
+    if model is not None:
+        del model
+        import gc
+        gc.collect()
+        torch.cuda.empty_cache()
+        torch.cuda.ipc_collect()
     y_train = np.array([labels[str(k)]["class_id"] for k in keys_train], dtype=np.int64)
     y_val   = np.array([labels[str(k)]["class_id"] for k in keys_val], dtype=np.int64)
     y_test  = np.array([labels[str(k)]["class_id"] for k in keys_test], dtype=np.int64)
@@ -382,6 +540,13 @@ def run_train_stage(args, wb) -> None:
     }, out_dir / "test_metrics.json")
     print(f"Test top-1 acc: {test_acc:.4f}  ±{test_ci['ci_half']:.4f}  (95% BCa CI)")
     log_metrics(wb, {"test_top1_acc": test_acc, "test_top1_ci_half": test_ci["ci_half"]})
+
+    # iter13 lazy-extract cleanup: for single-LR runs (no output_subdir), the
+    # train+val .probe_features_<split>_ckpt.npz caches are dead weight after
+    # this point. For multi-LR sweeps (output_subdir="lr_xxx"), DEFER cleanup
+    # to run_select_best_lr_stage — sibling LR runs still need the cache.
+    if not args.output_subdir:
+        _cleanup_lazy_feature_caches(enc_dir)
 
 
 def run_select_best_lr_stage(args, wb) -> None:
@@ -430,6 +595,9 @@ def run_select_best_lr_stage(args, wb) -> None:
                      f"{args.encoder}_best_val_acc": best_acc,
                      f"{args.encoder}_n_lrs_swept": len(lr_dirs),
                      f"{args.encoder}_n_files_linked": n_linked})
+
+    # iter13 lazy-extract cleanup: all sibling LR runs are done — caches are dead.
+    _cleanup_lazy_feature_caches(enc_dir)
 
 
 def run_paired_delta_stage(args, wb) -> None:
@@ -527,11 +695,44 @@ def build_parser() -> argparse.ArgumentParser:
                         "probe outputs. Empty (default) writes probe.pt + test_predictions.npy at the "
                         "canonical location. Set to e.g. 'lr_5e-4' to enable multi-LR sweeps without collision.")
     p.add_argument("--eval-subset", type=Path, default=None)
-    p.add_argument("--tags-json", type=Path, default=None)
     add_local_data_arg(p)
     p.add_argument("--output-root", type=Path, required=True)
-    p.add_argument("--enable-monument-class", action="store_true")
+    # iter13 v12 (2026-05-05): MOTION-flow class derivation (Phase 2). Replaces
+    # legacy 3/4-class path-derived action labels (saturated). --motion-features
+    # is required for --stage labels; --min-clips-per-class + --min-per-split
+    # gate sparse-class filtering. See plan_code_dev.md.
+    p.add_argument("--motion-features", type=Path, default=None,
+                   help="m04d motion_features.npy path (RAFT optical-flow 13D × N_clips). "
+                        "Required for --stage labels. Companion .paths.npy must exist next to it. "
+                        "Default location: <local_data>/motion_features.npy.")
+    p.add_argument("--min-clips-per-class", type=int, default=34,
+                   help="Drop motion-flow classes with fewer than this many clips. "
+                        "Default 34 = ≥5 clips per split at 70/15/15 stratification.")
+    p.add_argument("--min-per-split", type=int, default=5,
+                   help="Minimum clips per split (train/val/test) per class for BCa CI floor. "
+                        "Default 5. SANITY runs may need a lower value if class data is sparse.")
     p.add_argument("--num-frames", type=int, default=NUM_FRAMES_DEFAULT)
+    # iter13 (2026-05-05): lazy-feature-extraction. Stage 2 saves only the listed
+    # splits as features_<split>.npy. train+val are NOT durable by default —
+    # Stage 3 lazily re-extracts them in-memory (with disk-resume across LR
+    # sweeps via .probe_features_<split>_ckpt.npz). Saves ~80 GB per FULL eval.
+    # Override with --features-splits train val test for the legacy all-3 layout.
+    p.add_argument("--features-splits", nargs="+", default=["test"],
+                   choices=["train", "val", "test"],
+                   help="Which splits Stage 2 (--stage features) saves to disk as "
+                        "features_<split>.npy. Default: 'test' only — train/val are "
+                        "extracted lazily in Stage 3 to save ~80 GB durable disk per FULL eval.")
+    p.add_argument("--pool-tokens", type=int, default=16,
+                   help="Adaptive-avg-pool encoder output to N tokens BEFORE storage / probe. "
+                        "Default 16 (V-JEPA paper §4 attentive-probe regime; 290× smaller .npy "
+                        "and 290× less probe-head attention compute). Use 0 to disable pooling "
+                        "(legacy 4608-token storage; needs ~21 MB/clip and 43 GB attention matrix "
+                        "at BS=64 — see iter13 OOM diagnosis).")
+    p.add_argument("--stream-train", action="store_true",
+                   help="Stream-and-discard Stage 3 training: no .npy persistence; per-batch "
+                        "TAR-decode → encoder forward (no_grad) → pool → head → loss → backward. "
+                        "Use for 100k+ clip datasets where even pooled features don't fit RAM. "
+                        "Cost: encoder runs once per epoch (~1× the lazy-extract cost). Disk: 0 GB.")
     p.add_argument("--epochs", type=int, default=50)
     p.add_argument("--probe-lr", type=float, default=5e-4)
     p.add_argument("--probe-wd", type=float, default=0.05)

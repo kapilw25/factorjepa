@@ -312,21 +312,34 @@ def run_multi_task_step(student, mt_head: "MultiTaskProbeHead | None",
     """
     if mt_head is None or not batch_keys:
         return 0.0, {}
-    with torch.amp.autocast("cuda", enabled=mp_cfg["enabled"], dtype=dtype):
-        feats = student(batch_clips)
-        if isinstance(feats, (list, tuple)):
-            feats = feats[-1]
-        pooled = feats.mean(dim=1)              # (B, D)
-        mt_loss, mt_per_dim = compute_multi_task_probe_loss(
-            pooled, mt_head, batch_keys,
-            mt_labels_by_clip, mt_dims_spec,
-            weight_per_dim=mt_cfg["weight_per_dim"],
-            device=device)
-        mt_loss_scaled = mt_loss * float(mt_cfg["weight_probe"])
-    if mt_loss_scaled.requires_grad and float(mt_loss_scaled.detach().item()) > 0.0:
-        scaler.scale(mt_loss_scaled).backward()
-        return float(mt_loss.detach().item()), mt_per_dim
-    return 0.0, mt_per_dim
+    # V-JEPA 2.1 ViT has return_hierarchical=True at training time (m09a_pretrain.py:351),
+    # so student(x) returns (B, N, 4*D) — 4 deep-supervision layers concatenated along the
+    # feature dim. The multi-task head expects (B, D), so we toggle hierarchical OFF for
+    # this forward only. Mirrors the toggle-and-restore pattern used 3× in
+    # utils/training.py (1529-1562, 1639-1667, 1738-1810). try/finally guarantees
+    # restoration even on OOM. errors_N_fixes.md (m09a multi-task hierarchical-shape).
+    had_hier = getattr(student, "return_hierarchical", None)
+    if had_hier is True:
+        student.return_hierarchical = False
+    try:
+        with torch.amp.autocast("cuda", enabled=mp_cfg["enabled"], dtype=dtype):
+            feats = student(batch_clips)
+            if isinstance(feats, (list, tuple)):
+                feats = feats[-1]
+            pooled = feats.mean(dim=1)              # (B, D)
+            mt_loss, mt_per_dim = compute_multi_task_probe_loss(
+                pooled, mt_head, batch_keys,
+                mt_labels_by_clip, mt_dims_spec,
+                weight_per_dim=mt_cfg["weight_per_dim"],
+                device=device)
+            mt_loss_scaled = mt_loss * float(mt_cfg["weight_probe"])
+        if mt_loss_scaled.requires_grad and float(mt_loss_scaled.detach().item()) > 0.0:
+            scaler.scale(mt_loss_scaled).backward()
+            return float(mt_loss.detach().item()), mt_per_dim
+        return 0.0, mt_per_dim
+    finally:
+        if had_hier is not None:
+            student.return_hierarchical = had_hier
 
 
 def export_multi_task_head(mt_head: "MultiTaskProbeHead | None",

@@ -147,6 +147,17 @@ class AdaptiveBatchSizer:
                 print(f"  AdaptiveBatch: VRAM {used_ratio:.0%} > {self.memory_cap:.0%} "
                       f"cap → sub-batch {self.current_size} → {new}")
                 self.current_size = new
+                # Release allocator-cached pool. Without this, mem_get_info stays
+                # at the prior larger sub-batch's peak (cached blocks reserved by
+                # PyTorch's caching allocator never go back to the driver until
+                # empty_cache fires). Result observed in v4 log steps 16-43:
+                # sub-batch cascaded 32→5 over 27 steps with VRAM stuck at 90% —
+                # even though each successive forward needed smaller blocks. With
+                # this cleanup, mem_get_info reflects the SHRUNK sub-batch's true
+                # peak → sizer can stabilize at the largest size that actually
+                # fits instead of cascading to min_size.
+                # Cost: ~10-50ms per shrink; shrinks are rare in steady state.
+                cuda_cleanup()
         elif used_ratio < self.memory_cap - 0.20 and self._oom_count == 0:
             # Well below cap (< 65%) AND no OOM history — grow by 1
             new = min(self.max_size, self.current_size + 1)

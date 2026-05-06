@@ -31,7 +31,6 @@ import argparse
 import copy
 import csv
 import gc
-import glob
 import json
 import math
 import queue
@@ -45,7 +44,6 @@ import time
 from pathlib import Path
 
 import numpy as np
-from tqdm import tqdm
 
 # Add src to path for utils import
 sys.path.insert(0, str(Path(__file__).parent))
@@ -63,7 +61,12 @@ from utils.config import (
 )
 from utils.data_download import ensure_local_data
 from utils.gpu_batch import AdaptiveBatchSizer
-from utils.plots import plot_training_curves, plot_val_loss_curves, COLORS, init_style, save_fig
+from utils.progress import make_pbar
+from utils.plots import (
+    plot_training_curves, plot_val_loss_curves, plot_combined_losses,
+    plot_probe_trajectory_trio,
+    COLORS, init_style, save_fig,
+)
 import matplotlib
 matplotlib.use("Agg")  # headless — no display
 import matplotlib.pyplot as plt
@@ -100,15 +103,26 @@ from utils.training import (
     build_optimizer, build_scheduler, update_weight_decay,
     run_validation,
     save_training_checkpoint, load_training_checkpoint,
-    export_student_for_eval,
+    export_student_for_eval, assert_encoder_diverged_from_init,
     enable_gradient_checkpointing,
-    build_probe_clips, run_probe_acc_eval,
+    build_probe_clips,
+    cleanup_old_checkpoints,
+    run_trio_at_val, track_block_drift_at_val, update_best_state_on_score,
 )
 from utils.action_labels import load_action_labels
 from utils.multi_task_loss import (
     merge_multi_task_config, build_multi_task_head_from_cfg,
     attach_head_to_optimizer, run_multi_task_step, export_multi_task_head,
 )
+# iter13 v12 (2026-05-06): motion_aux loss — joint K-class CE + 13-D MSE on
+# RAFT optical-flow targets. REPLACES multi_task_probe (15 retrieval tag dims)
+# as the sole supervised aux loss for v12. See plan_v12_motion_aux.md.
+from utils.motion_aux_loss import (
+    merge_motion_aux_config, build_motion_aux_head_from_cfg,
+    attach_motion_aux_to_optimizer, run_motion_aux_step,
+    export_motion_aux_head,
+)
+from utils.probe_labels import ensure_probe_labels_for_mode
 
 # Constants — paths come from CLI args only (CLAUDE.md no-default rule)
 CHECKPOINT_PREFIX = "m09a_ckpt"
@@ -117,21 +131,18 @@ PREFETCH_QUEUE_SIZE = _pcfg["streaming"]["prefetch_queue_train"]
 
 
 def _cleanup_old_checkpoints(output_dir: Path, keep_n: int = 2, cache_policy: str = "1"):
-    """Delete oldest {CHECKPOINT_PREFIX}_step*.pt files, keeping only the last keep_n.
+    """Rotate oldest {CHECKPOINT_PREFIX}_step*.pt files, keeping only the last keep_n.
 
-    Local override of utils.training.cleanup_old_checkpoints because that helper
-    hardcodes the legacy m09_ckpt prefix; m09a uses m09a_ckpt.
-
-    iter11 META-fix: gated through cache_policy. Default=1/keep preserves ALL ckpts,
-    catastrophic in the short term (disk use) but user must explicitly type `2` to
-    authorize destruction — prevents unintended resume-point loss.
+    Thin delegate to utils.training.cleanup_old_checkpoints — which now accepts
+    a `prefix` arg and does UNCONDITIONAL rotation (iter11 v3, 2026-04-26).
+    Step ckpts are training-scratch resume points — superseded every save and
+    safe to evict on a `keep_last_n` window. cache_policy gates only catastrophic
+    deletes (whole dirs, baselines), NOT routine training-scratch rotation.
+    Without rotation, FULL run = 25 ckpts × 7.4 GB = 185 GB pile-up = disk-full.
+    `_best.pt` and `_latest.pt` do NOT match `_step*.pt` glob → unaffected.
     """
-    pattern = str(output_dir / f"{CHECKPOINT_PREFIX}_step*.pt")
-    step_files = sorted(glob.glob(pattern),
-                        key=lambda f: os.path.getmtime(f))
-    if len(step_files) > keep_n:
-        for old_file in step_files[:-keep_n]:
-            guarded_delete(old_file, cache_policy, label="m09a intermediate checkpoint")
+    del cache_policy
+    cleanup_old_checkpoints(output_dir, prefix=CHECKPOINT_PREFIX, keep_n=keep_n)
 
 
 def _render_m09a_probe_plots(probe_history: list, output_dir: Path,
@@ -155,9 +166,14 @@ def _render_m09a_probe_plots(probe_history: list, output_dir: Path,
     ax.plot(steps, val_losses, "o-", color=COLORS["blue"], linewidth=2.5,
             markersize=6, label=f"val_jepa (λ={drift_cfg['lambda_reg']})")
     if best_state["step"] >= 0:
-        ax.axhline(best_state["val_loss"], color=COLORS["green"], linestyle=":",
+        # iter13 v11: best now tracked by probe_top1 (downstream metric), not val_loss.
+        # Plot still shows val_jepa curve for context; horizontal line marks the val_loss
+        # AT the best-top1 step (informational, not the optimization criterion).
+        best_top1 = best_state.get("probe_top1", -1.0)
+        best_at_step_val = best_state.get("val_loss_at_best", best_state.get("val_loss", 0.0))
+        ax.axhline(best_at_step_val, color=COLORS["green"], linestyle=":",
                    linewidth=1.5, alpha=0.7,
-                   label=f"best={best_state['val_loss']:.4f} @ step {best_state['step']}")
+                   label=f"best top1={best_top1:.4f} @ step {best_state['step']}")
     if kill_state["triggered"]:
         ax.axvline(steps[-1], color=COLORS["red"], linestyle="--", linewidth=1.5,
                    label=f"early-stop: {kill_state['reason']}")
@@ -167,27 +183,14 @@ def _render_m09a_probe_plots(probe_history: list, output_dir: Path,
     ax.legend(loc="best")
     save_fig(fig, str(output_dir / "m09a_val_loss_jepa"))
 
-    # Plot 2 — probe-acc trajectory with CI band (only if any probe_acc collected).
-    has_acc = [r for r in probe_history if "probe_acc_mean" in r]
-    if not has_acc:
-        return
-    fig, ax = plt.subplots(figsize=(10, 6))
-    s = [r["step"] for r in has_acc]
-    m = [r["probe_acc_mean"] for r in has_acc]
-    lo = [r["probe_acc_ci_lo"] for r in has_acc]
-    hi = [r["probe_acc_ci_hi"] for r in has_acc]
-    ax.fill_between(s, lo, hi, color=COLORS["purple"], alpha=0.20, label="95% BCa CI")
-    ax.plot(s, m, "o-", color=COLORS["purple"], linewidth=2.5, markersize=6,
-            label="probe-acc (LOO kNN-centroid)")
-    if best_state.get("probe_acc", -1) > 0:
-        ax.axhline(best_state["probe_acc"], color=COLORS["green"], linestyle=":",
-                   linewidth=1.5, alpha=0.7, label=f"best probe-acc={best_state['probe_acc']:.4f}")
-    ax.set_xlabel("Optimizer step")
-    ax.set_ylabel("Top-1 probe accuracy")
-    ax.set_ylim(0, 1.02)
-    ax.set_title("m09a — Probe-accuracy trajectory (action top-1, mid-training)")
-    ax.legend(loc="best")
-    save_fig(fig, str(output_dir / "m09a_probe_trajectory"))
+    # Plot 2 — m06d trio trajectory (top-1 / motion-cos / future-L1).
+    # iter13 Task #11: replaces the old single-panel kNN-centroid probe-acc
+    # render with the 3-panel trio that mirrors m08d_plot_m06d's post-training
+    # bars. Backward-compat: if any record lacks all three trio keys it's
+    # filtered inside plot_probe_trajectory_trio (no crash on mixed schemas).
+    plot_probe_trajectory_trio(probe_history, output_dir,
+                               title_prefix=f"m09a · λ={drift_cfg['lambda_reg']} · ",
+                               file_prefix="m09a")
 
 
 # ═════════════════════════════════════════════════════════════════════════
@@ -239,6 +242,8 @@ def merge_config_with_args(cfg: dict, args) -> dict:
             probe_cfg["enabled"] = False
     # Multi-task probe block — per-mode flatten + CLI overrides (utils helper).
     merge_multi_task_config(cfg, args, mode_key)
+    # iter13 v12: motion_aux block — same per-mode flatten + CLI override pattern.
+    merge_motion_aux_config(cfg, args, mode_key)
     if args.batch_size is not None:
         cfg["optimization"]["batch_size"] = args.batch_size
     if args.max_epochs is not None:
@@ -356,6 +361,41 @@ def build_model(cfg: dict, device: torch.device) -> dict:
             print("FATAL: V-JEPA 2.1 requires use_rope=True (no pos_embed registered in model)")
             sys.exit(1)
 
+    # iter13 Fix #2 (2026-05-04): wire `layer_freeze` from yaml into m09a.
+    # The yaml directive (probe_pretrain.yaml:layer_freeze) was previously a SILENT
+    # NO-OP — m09a never read it, so all 48 blocks were nominally trainable. With
+    # the LR bump from 1e-5 → 1e-4 (Fix #1), an actual freeze of early blocks
+    # anchors low-level visual features against catastrophic forgetting. Mirrors
+    # the LayerLock convention (arXiv:2509.10156): ViT layers converge in depth
+    # order, so the bottom is most stable and benefits least from continual
+    # training. Freeze [0, freeze_below); train [freeze_below, n_blocks).
+    # Norms (LayerNorm/LN) stay trainable everywhere — Meta convention.
+    layer_freeze_cfg = cfg["layer_freeze"]
+    if layer_freeze_cfg["enabled"]:
+        freeze_below = layer_freeze_cfg["freeze_below"]
+        n_blocks = len(student.blocks)
+        for i, blk in enumerate(student.blocks):
+            req = i >= freeze_below
+            for param in blk.parameters():
+                param.requires_grad = req
+        # Norms are always trainable (Meta convention)
+        for name, param in student.named_parameters():
+            if "norm" in name or "ln" in name:
+                param.requires_grad = True
+        # patch_embed stays trainable iff freeze_below == 0 (consistent with
+        # "freeze nothing" mode); otherwise frozen alongside early blocks.
+        if freeze_below > 0:
+            for name, param in student.named_parameters():
+                if name.startswith("patch_embed"):
+                    param.requires_grad = False
+        trainable = sum(p.numel() for p in student.parameters() if p.requires_grad)
+        total = sum(p.numel() for p in student.parameters())
+        print(f"  layer_freeze: blocks [0, {freeze_below}) frozen + "
+              f"[{freeze_below}, {n_blocks}) trainable + norms always trainable. "
+              f"Trainable params: {trainable:,}/{total:,} = {100*trainable/total:.1f}%")
+    else:
+        print("  layer_freeze: disabled (all blocks trainable)")
+
     # Teacher (EMA copy, frozen)
     teacher = copy.deepcopy(student)
     for p in teacher.parameters():
@@ -446,6 +486,17 @@ def train(cfg: dict, args):
     gc.disable()
     gc.collect()
 
+    # Auto-bootstrap probe labels (action_labels.json + taxonomy_labels.json) if
+    # missing. Lets `python -u src/m09a_pretrain.py ...` run end-to-end without
+    # the shell having pre-run run_probe_eval.sh Stage 1. No-op when both files
+    # already exist (~1ms stat()s). Mirrors run_probe_eval.sh:342-358 exactly.
+    mode_flag = "--SANITY" if args.SANITY else ("--POC" if args.POC else "--FULL")
+    ensure_probe_labels_for_mode(
+        mode_flag=mode_flag,
+        project_root=Path(__file__).parent.parent,
+        cache_policy=args.cache_policy,
+    )
+
     output_dir = Path(cfg["checkpoint"]["output_dir"])
     student_path = output_dir / "student_encoder.pt"
     # iter11 v3 (2026-04-26): cache-policy=2 nukes the WHOLE output_dir at startup
@@ -476,6 +527,12 @@ def train(cfg: dict, args):
     # to JEPA L1 → direct gradient signal toward eval metric. See
     # utils/multi_task_loss.py + base_optimization.yaml `multi_task_probe`.
     mt_head, mt_labels_by_clip, mt_dims_spec, mt_cfg = build_multi_task_head_from_cfg(cfg, device)
+
+    # iter13 v12 (2026-05-06): motion_aux head — JOINT K-class CE + 13-D MSE on
+    # RAFT optical-flow targets from m04d. Sole supervised aux loss in v12 (replaces
+    # multi_task_probe which was disabled in probe_pretrain.yaml; v11 confirmed
+    # 15 retrieval tag dims gave flat motion-flow top1).
+    ma_head, ma_lookup, ma_cfg = build_motion_aux_head_from_cfg(cfg, device)
 
     # Build mask generators
     mask_generators = build_mask_generators(cfg)
@@ -557,6 +614,9 @@ def train(cfg: dict, args):
     # Multi-task head gets its own param group at base_lr × head_lr_multiplier.
     # Must run AFTER build_optimizer so 8-bit/paged AdamW machinery is intact.
     attach_head_to_optimizer(optimizer, mt_head, mt_cfg, cfg["optimization"]["lr"])
+    # iter13 v12: motion_aux head gets its own param group too (independent
+    # head_lr_multiplier from multi_task — both default to 10×).
+    attach_motion_aux_to_optimizer(optimizer, ma_head, ma_cfg, cfg["optimization"]["lr"])
     scheduler = build_scheduler(optimizer, cfg["optimization"], total_steps)
     mp_cfg = cfg["mixed_precision"]
     use_scaler = mp_cfg["enabled"] and mp_cfg["dtype"] == "float16"
@@ -564,12 +624,17 @@ def train(cfg: dict, args):
 
     # Resume from checkpoint
     start_step = 0
-    best_val_loss = float("inf")
+    # iter13 v11 (2026-05-05): track best by probe_top1 (higher=better), not val_loss.
+    # v10 demonstrated val_loss keeps dropping while encoder reverts to init under L2
+    # anchor pullback — picking the lowest-val_loss ckpt picks a degraded encoder.
+    # probe_top1 reflects actual representation quality at every val cycle.
+    best_probe_top1 = -1.0
     ckpt_path = output_dir / f"{CHECKPOINT_PREFIX}_latest.pt"
     if ckpt_path.exists():
-        start_step, best_val_loss = load_training_checkpoint(
+        # `best_metric` slot in the ckpt now stores best_probe_top1 (was best_val_loss in v10).
+        start_step, best_probe_top1 = load_training_checkpoint(
             ckpt_path, student, teacher, predictor, optimizer, scheduler, scaler)
-        print(f"Resumed from step {start_step}, best val loss: {best_val_loss:.4f}")
+        print(f"Resumed from step {start_step}, best probe_top1: {best_probe_top1:.4f}")
 
     # ── Collect val clips into memory (from --val-subset, once before training) ──
     val_batches = []
@@ -666,6 +731,23 @@ def train(cfg: dict, args):
     probe_clips, probe_labels = None, None
     probe_history = []
     probe_history_path = output_dir / "probe_history.jsonl"
+    # iter13 Task #19: per-validation block-drift diagnostic. Each entry is
+    # {"step", "rel_l2_per_block": [n_blocks], "freeze_below": int}. Plot
+    # rendered every val cycle to m09_block_drift.{png,pdf} → catches the
+    # uniform-noise pathology (all 48 blocks at ~1e-5) in 1 min instead of 5 h.
+    block_drift_history = []
+
+    # iter13 (2026-05-05): per-STEP block_drift_mean uses the SAME metric as
+    # per-val block_drift_mean — `mean_i(‖Δθ_block_i‖ / ‖θ₀_block_i‖)` over the
+    # 48 transformer blocks. Calls utils.plots.compute_block_drift each step.
+    # Earlier (same-day) we used a cheap global rel_l2 proxy
+    # (`sqrt(loss_drift / lambda / theta_init_l2_sq)`) — that worked but gave
+    # NUMERICALLY DIFFERENT values from the val-cycle metric, causing user
+    # confusion when drift_table.py merged both sources. Now both per-step and
+    # per-val records carry identical-semantics block_drift_mean. Cost: ~100 ms
+    # per step (588 named_parameters × .cpu() + norm + reduction). Total run
+    # overhead: ~100ms × 1085 ≈ 1.8 min on a 7-h run = 0.4%.
+    from utils.plots import compute_block_drift  # local import: avoid circular
     plateau_state = {"recent_val_losses": []}      # plateau detector state
     best_state = {"val_loss": float("inf"), "step": -1, "probe_acc": -1.0}
     kill_state = {"triggered": False, "reason": None}
@@ -687,11 +769,16 @@ def train(cfg: dict, args):
                 probe_tags_path=probe_cfg["tags_path"],
                 num_frames=cfg["data"]["num_frames"],
                 crop_size=cfg["model"]["crop_size"],
+                max_clips=cfg["monitoring"]["knn_probe_clips"],   # cap N to avoid /dev/shm overflow
             )
             print(f"  [probe] decoded {len(probe_clips)} clips ({len(probe_labels)} have action labels)", flush=True)
-        except Exception as e:
-            print(f"  [probe] WARN: build_probe_clips failed ({e}) — disabling mid-train probe", flush=True)
-            probe_clips = None
+        except Exception as _probe_build_err:
+            # iter13 (2026-05-05): per CLAUDE.md FAIL HARD — no WARN-without-exit.
+            # Mid-train probe is research signal (top1 trajectory across val cycles),
+            # not optional telemetry. Re-raise so the run aborts and the bug gets fixed.
+            print(f"  [probe] FATAL: build_probe_clips failed: {_probe_build_err}", flush=True)
+            print("  [probe] traceback follows; aborting per CLAUDE.md FAIL HARD:", flush=True)
+            raise
 
     # Data stream (producer loops over epochs automatically)
     q = queue.Queue(maxsize=PREFETCH_QUEUE_SIZE)
@@ -715,8 +802,8 @@ def train(cfg: dict, args):
     drift_cfg = cfg["drift_control"]
     dtype = getattr(torch, mp_cfg["dtype"])
 
-    pbar = tqdm(total=total_steps, initial=start_step,
-                desc="m09a_pretrain", unit="step")
+    pbar = make_pbar(total=total_steps, initial=start_step,
+                     desc="m09a_pretrain", unit="step")
 
     # JSONL loss log — crash-safe (fsync after every write, survives OOM/SIGKILL)
     # Each line is a self-contained JSON record. Partial last line = only that step lost.
@@ -879,6 +966,19 @@ def train(cfg: dict, args):
                 print(f"  OOM at step {step} (multi-task forward): macro discarded, retrying")
                 torch.cuda.empty_cache()
                 continue
+
+            # iter13 v12: motion_aux forward+backward (no-op when ma_head is None).
+            # Same param.grad accumulation pattern → optimizer.step() consumes
+            # JEPA + multi_task + motion_aux gradients in one update.
+            try:
+                ma_loss_val, ma_per_branch = run_motion_aux_step(
+                    student, ma_head, ma_cfg, ma_lookup,
+                    batch_clips, batch_keys, scaler, mp_cfg, dtype, device)
+            except torch.cuda.OutOfMemoryError:
+                optimizer.zero_grad()
+                print(f"  OOM at step {step} (motion_aux forward): macro discarded, retrying")
+                torch.cuda.empty_cache()
+                continue
             if mt_head is not None:
                 total_val = jepa_val + drift_val + mt_loss_val * float(mt_cfg["weight_probe"])
 
@@ -928,6 +1028,14 @@ def train(cfg: dict, args):
             window_elapsed = now - window_start
             throughput = window_steps / window_elapsed if window_elapsed > 0 else 0
 
+            # iter13 (2026-05-05): per-step block_drift_mean — IDENTICAL metric
+            # to per-val (utils.training.track_block_drift_at_val). Both compute
+            # `mean_i(‖Δθ_block_i‖ / ‖θ₀_block_i‖)`. Earlier same-day we used a
+            # cheap global rel_l2 proxy — fast but numerically different, causing
+            # drift_table.py to mix two metrics under one column. Now unified.
+            drift_per_block = compute_block_drift(student, init_params)
+            block_drift_mean = (float(sum(drift_per_block) / len(drift_per_block))
+                                if drift_per_block else 0.0)
             step_record = {
                 "step": step, "epoch": epoch,
                 "loss_jepa": round(jepa_val, 6),
@@ -936,11 +1044,18 @@ def train(cfg: dict, args):
                 "loss_drift": round(drift_val, 6),
                 "loss_total": round(total_val, 6), "lr": lr_val,
                 "grad_norm": round(gn_val, 4), "throughput": round(throughput, 2),
+                "block_drift_mean": round(block_drift_mean, 8),
             }
             if mt_head is not None:
                 step_record["loss_multi_task"] = round(mt_loss_val, 6)
                 step_record["loss_multi_task_per_dim"] = {
                     d: round(v, 6) for d, v in mt_per_dim.items()}
+            # iter13 v12: motion_aux per-step logging (CE + MSE branches, n_kept).
+            if ma_head is not None:
+                step_record["loss_motion_aux"]     = round(ma_loss_val, 6)
+                step_record["loss_motion_aux_ce"]  = round(ma_per_branch.get("ce", 0.0), 6)
+                step_record["loss_motion_aux_mse"] = round(ma_per_branch.get("mse", 0.0), 6)
+                step_record["motion_aux_n_kept"]   = ma_per_branch.get("n_kept", 0)
             _log_step(step_record)  # JSONL: crash-safe (fsync per write)
 
             csv_writer.writerow([step, epoch, f"{jepa_val:.6f}", f"{drift_val:.6f}",
@@ -964,6 +1079,11 @@ def train(cfg: dict, args):
                 wb_metrics["loss/multi_task"] = mt_loss_val
                 for d, v in mt_per_dim.items():
                     wb_metrics[f"loss/multi_task/{d}"] = v
+            # iter13 v12: motion_aux wandb metrics.
+            if ma_head is not None:
+                wb_metrics["loss/motion_aux"]     = ma_loss_val
+                wb_metrics["loss/motion_aux/ce"]  = ma_per_branch.get("ce", 0.0)
+                wb_metrics["loss/motion_aux/mse"] = ma_per_branch.get("mse", 0.0)
             log_metrics(wb_run, wb_metrics, step=step)
 
             if window_elapsed >= 30:
@@ -986,26 +1106,43 @@ def train(cfg: dict, args):
                 save_training_checkpoint(
                     output_dir / f"{CHECKPOINT_PREFIX}_step{step+1}.pt",
                     student, teacher, predictor, optimizer, scheduler, scaler,
-                    step + 1, best_val_loss, full=False)
+                    step + 1, best_probe_top1, full=False)
                 save_training_checkpoint(
                     ckpt_path, student, teacher, predictor, optimizer, scheduler,
-                    scaler, step + 1, best_val_loss, full=True)
+                    scaler, step + 1, best_probe_top1, full=True)
                 _cleanup_old_checkpoints(output_dir, keep_n=keep_last_n,
                                          cache_policy=args.cache_policy)
 
             # Periodic validation (every val_interval steps)
             if (step + 1) % val_interval == 0 and val_batches:
                 pct = (epoch_step + 1) / steps_per_epoch * 100
-                val_loss = run_validation(
+                # iter13 (2026-05-05): run_validation now returns dict with
+                # all 4 losses (jepa + multi_task + drift + total). Backward-
+                # compat: pull `val_loss = result["jepa"]` for downstream
+                # kill-switch / best-ckpt / plateau (which expect a scalar).
+                # New fields land in probe_record (see end-of-val block).
+                val_result = run_validation(
                     student, teacher, predictor, mask_generators,
-                    val_batches, cfg, device, step + 1)
+                    val_batches, cfg, device, step + 1,
+                    val_keys=val_collected_keys,
+                    mt_head=mt_head, mt_dims_spec=mt_dims_spec,
+                    mt_labels_by_clip=mt_labels_by_clip, mt_cfg=mt_cfg,
+                    init_params=init_params, drift_cfg=drift_cfg)
+                val_loss = val_result["jepa"]
                 log_metrics(wb_run, {
-                    "val/jepa_loss": val_loss,
-                    "val/epoch_pct": pct,
+                    "val/jepa_loss":       val_result["jepa"],
+                    "val/multi_task_loss": val_result["multi_task"],
+                    "val/drift_loss":      val_result["drift"],
+                    "val/total_loss":      val_result["total"],
+                    "val/epoch_pct":       pct,
                 }, step=step)
 
-                # Write val_loss to JSONL (crash-safe) + CSV
-                _log_step({"step": step, "epoch": epoch, "val_loss": round(val_loss, 6),
+                # Write all 4 val losses to JSONL (crash-safe) + CSV (legacy: jepa only).
+                _log_step({"step": step, "epoch": epoch,
+                           "val_loss":            round(val_result["jepa"], 6),
+                           "val_multi_task_loss": round(val_result["multi_task"], 6),
+                           "val_drift_loss":      round(val_result["drift"], 8),
+                           "val_total_loss":      round(val_result["total"], 6),
                            "epoch_pct": round(pct, 1)})
                 csv_writer.writerow([step, epoch, "", "", "",
                                      "", "", "", f"{val_loss:.6f}"])
@@ -1020,33 +1157,64 @@ def train(cfg: dict, args):
                                "batch_size": batch_size}],
                         output_dir=str(output_dir),
                         title_prefix=f"{n_train:,} clips × {max_epochs} ep × BS={batch_size} × LR={cfg['optimization']['lr']:.1e} ({total_steps:,} steps)\n",
+                        file_prefix="m09a",
                     )
-                except Exception:
-                    pass  # non-fatal: plot failure must never stop training
+                except Exception as e:
+                    # iter13 (2026-05-05): per CLAUDE.md FAIL HARD — no silent
+                    # except: pass. Plot failures often hide real bugs (mismatched
+                    # CSV schema, missing column). Surface and abort.
+                    print(f"  [plot] FATAL: training_curves render failed: {e}", flush=True)
+                    print("  [plot] traceback follows; aborting per CLAUDE.md FAIL HARD:", flush=True)
+                    raise
 
-                # ── Mid-training probe-accuracy eval + probe_history.jsonl ──
-                # Cheap (~10-30 s on FULL 96 GB). Single-writer policy mirrors
-                # m09c_surgery.py:797-870. Skipped when probe_clips is None.
+                # iter13: 4-loss decomposition (jepa | drift | multi_task | total) on
+                # one image — total_loss BOLD shows which component drives the optimizer.
+                # Critical for diagnosing the "multi-task dominates" pattern visible in
+                # FULL training where jepa-L1 saturates but mt-loss drives total drop.
+                try:
+                    plot_combined_losses(
+                        jsonl_path=output_dir / "loss_log.jsonl",
+                        output_dir=output_dir,
+                        title_prefix=f"m09a · LR={cfg['optimization']['lr']:.1e} · ",
+                        file_prefix="m09a",
+                    )
+                except Exception as e:
+                    # iter13 (2026-05-05): per CLAUDE.md FAIL HARD.
+                    print(f"  [plot] FATAL: combined-loss render failed: {e}", flush=True)
+                    print("  [plot] traceback follows; aborting per CLAUDE.md FAIL HARD:", flush=True)
+                    raise
+
+                # ── Mid-training m06d trio (top-1 + motion-cos + future-L1) ──
+                # iter13 Task #11: replaces the iter11 kNN-centroid action probe.
+                # Single shared encoder forward emits all 3 metrics (~25% cheaper
+                # than running probe_action+probe_motion_cos+probe_future_mse
+                # separately). Trajectory uses VAL split; paper-final m06d uses
+                # TEST split (different N, different absolute numbers — by design).
                 probe_record = {"step": step, "epoch": epoch,
-                                "val_jepa_loss": round(val_loss, 6),
+                                "val_jepa_loss":       round(val_result["jepa"], 6),
+                                "val_multi_task_loss": round(val_result["multi_task"], 6),
+                                "val_drift_loss":      round(val_result["drift"], 8),
+                                "val_total_loss":      round(val_result["total"], 6),
                                 "epoch_pct": round(pct, 1)}
                 if probe_clips is not None and probe_labels:
-                    try:
-                        pacc = run_probe_acc_eval(
-                            student, probe_clips, probe_labels,
-                            cfg, device,
-                            bootstrap_iter=cfg["probe"]["bootstrap_iter"])
-                        probe_record.update({
-                            "probe_acc_mean":  round(pacc["top1_acc"]["mean"], 6),
-                            "probe_acc_ci_lo": round(pacc["top1_acc"]["ci_lo"], 6),
-                            "probe_acc_ci_hi": round(pacc["top1_acc"]["ci_hi"], 6),
-                            "probe_acc_n":     int(pacc["num_clips"]),
-                        })
-                        log_metrics(wb_run, {"val/probe_acc": pacc["top1_acc"]["mean"]}, step=step)
-                        print(f"  [probe-acc] step={step} top1={pacc['top1_acc']['mean']:.4f} "
-                              f"±{pacc['top1_acc']['ci_half']:.4f} (N={pacc['num_clips']})")
-                    except Exception as e:
-                        print(f"  [probe-acc] eval failed: {e} (continuing without probe-acc this step)")
+                    run_trio_at_val(
+                        student, predictor, probe_clips, probe_labels,
+                        mask_gen=mask_generators[0], cfg=cfg, device=device,
+                        step=step, wb_run=wb_run, probe_record=probe_record)
+
+                # iter13 Task #19: per-block drift diagnostic. Catches the
+                # v5+v6+v7 "uniform ~1e-5 across all 48 blocks" pathology in
+                # 1 min instead of 5 h of waiting on downstream metrics.
+                _freeze_below = (cfg["layer_freeze"]["freeze_below"]
+                                 if cfg["layer_freeze"]["enabled"] else 0)
+                track_block_drift_at_val(
+                    student, init_params, freeze_below=_freeze_below,
+                    block_drift_history=block_drift_history,
+                    output_dir=output_dir, step=step,
+                    probe_record=probe_record,
+                    title_prefix=f"m09a step={step} · ",
+                    file_prefix="m09a")
+
                 probe_history.append(probe_record)
                 with open(probe_history_path, "a") as ph_f:
                     ph_f.write(json.dumps(probe_record) + "\n")
@@ -1058,18 +1226,36 @@ def train(cfg: dict, args):
                 # (per-mode-flattened). Same spread-window pattern as
                 # m09c_surgery.py:892-905, but no stage gate (m09a is single-phase).
                 probe_cfg_local = cfg.get("probe", {})
-                if val_loss < best_state["val_loss"]:
-                    best_state["val_loss"] = val_loss
-                    best_state["step"] = step
-                    if "probe_acc_mean" in probe_record:
-                        best_state["probe_acc"] = probe_record["probe_acc_mean"]
+                # iter13 Task #25: use shared update_best_state_on_score helper
+                # so m09a + m09c share identical best-ckpt selection plumbing.
+                # m09a tracks val_loss (lower=better); the actual best.pt save
+                # is gated separately at line ~1170 (different code path —
+                # save_callback=None here).
+                # iter13 v11 (2026-05-05): track best_state by probe_top1 (downstream
+                # metric), NOT val_loss. v10 showed val_loss keeps dropping while
+                # encoder reverts to init under L2 anchor pullback — picking
+                # lowest-val_loss ckpt picks a degraded encoder. probe_top1 reflects
+                # actual representation quality at every val cycle.
+                probe_top1_for_best = probe_record.get("probe_top1", -1.0)
+                update_best_state_on_score(
+                    best_state, probe_top1_for_best, score_key="probe_top1",
+                    higher_is_better=True, step=step)
+                # Mirror val_loss onto best_state for the plot helper (line 161-163)
+                # which annotates the "val_loss AT best-top1 step" for context.
+                best_state["val_loss_at_best"] = val_loss
+                # Kill-switch tracks lowest-val_loss-EVER independently (different
+                # purpose than best.pt selection — detect catastrophic INCREASE in
+                # val_loss regardless of probe_top1 trajectory).
+                if val_loss < best_state.get("min_val_loss_seen", float("inf")):
+                    best_state["min_val_loss_seen"] = val_loss
                 if probe_cfg_local.get("kill_switch_enabled"):
                     max_inc_pct = probe_cfg_local["forgetting_threshold_pct"]
-                    bound = best_state["val_loss"] * (1.0 + max_inc_pct / 100.0)
+                    min_val_seen = best_state.get("min_val_loss_seen", float("inf"))
+                    bound = min_val_seen * (1.0 + max_inc_pct / 100.0)
                     if val_loss > bound:
                         kill_state["triggered"] = True
                         kill_state["reason"] = "catastrophic_val_jepa_increase"
-                        print(f"  [kill] val_jepa {val_loss:.4f} > best {best_state['val_loss']:.4f} "
+                        print(f"  [kill] val_jepa {val_loss:.4f} > min_seen {min_val_seen:.4f} "
                               f"x (1 + {max_inc_pct}%) = {bound:.4f} -> catastrophic forgetting")
                 if probe_cfg_local.get("plateau_enabled"):
                     plateau_state["recent_val_losses"].append(val_loss)
@@ -1089,7 +1275,10 @@ def train(cfg: dict, args):
                     _render_m09a_probe_plots(probe_history, output_dir,
                                              best_state, kill_state, drift_cfg)
                 except Exception as e:
-                    print(f"  [plot] live probe-plot render failed: {e}")
+                    # iter13 (2026-05-05): per CLAUDE.md FAIL HARD.
+                    print(f"  [plot] FATAL: live probe-plot render failed: {e}", flush=True)
+                    print("  [plot] traceback follows; aborting per CLAUDE.md FAIL HARD:", flush=True)
+                    raise
 
                 # Best model selection by lowest val loss.
                 # full=True (Bug A fix, iter13): include predictor + teacher + opt
@@ -1098,13 +1287,24 @@ def train(cfg: dict, args):
                 # FATAL on KeyError 'predictor' (run_src_probe_sanity_v2.log:778).
                 # File grows ~7GB → ~15GB; acceptable on 200GB workspace and
                 # symmetric with surgery_base.yaml convention.
-                if val_loss < best_val_loss:
-                    best_val_loss = val_loss
+                # iter13 v11 (2026-05-05): best.pt save gate uses probe_top1 (higher=better),
+                # not val_loss. v10 demonstrated val_loss keeps dropping while encoder
+                # reverts to init — picking lowest-val_loss ckpt picks a degraded encoder.
+                probe_top1_now = probe_record.get("probe_top1", -1.0)
+                if probe_top1_now > best_probe_top1:
+                    best_probe_top1 = probe_top1_now
+                    # iter13 disk-budget fix (2026-05-04, after v6 ENOSPC at step 744):
+                    # include_optimizer=False → best.pt drops 16 GB optimizer state.
+                    # Downstream (m05 re-embed, Stage 8 future_mse) needs only
+                    # student+teacher+predictor; optimizer is dead weight here.
+                    # latest.pt still saves include_optimizer=True for resume.
                     save_training_checkpoint(
                         output_dir / f"{CHECKPOINT_PREFIX}_best.pt",
                         student, teacher, predictor, optimizer, scheduler,
-                        scaler, step + 1, best_val_loss, full=True)
-                    print(f"  New best val loss: {best_val_loss:.4f}")
+                        scaler, step + 1, best_probe_top1,
+                        full=True, include_optimizer=False)
+                    print(f"  🎯 New best probe_top1: {best_probe_top1:.4f} "
+                          f"(val_jepa at this step: {val_loss:.4f})")
 
             # End-of-epoch logging
             if epoch_step == steps_per_epoch - 1:
@@ -1120,7 +1320,7 @@ def train(cfg: dict, args):
         gc.enable()
         save_training_checkpoint(
             ckpt_path, student, teacher, predictor, optimizer, scheduler,
-            scaler, step + 1, best_val_loss, full=True)
+            scaler, step + 1, best_probe_top1, full=True)
         print(f"  Checkpoint saved at step {step + 1}/{total_steps}. Resume with same command.")
         sys.exit(0)  # user-initiated, not an error
     finally:
@@ -1179,14 +1379,35 @@ def train(cfg: dict, args):
     # m09a is vanilla (no LoRA) — explora_enabled is always False.
     export_student_for_eval(student, student_path, explora_enabled=False)
 
+    # Post-training divergence check: fail-hard if the exported encoder is
+    # bit-identical to the Meta init ckpt. Catches LR-warmup-eats-all-steps,
+    # NaN-skipped GradScaler, and frozen-by-mistake param groups. Mirrors
+    # Bug B's "0 successful training steps" guard — no silent export of
+    # untrained Meta weights as a "pretrain" artifact. See
+    # utils.training.assert_encoder_diverged_from_init for full diagnostic.
+    init_ckpt_path = Path(__file__).parent.parent / cfg["model"]["checkpoint_path"]
+    rel = assert_encoder_diverged_from_init(
+        student, init_ckpt_path, label="m09a pretrain encoder")
+    print(f"  ✓ encoder training-effect verified: ||Δ||/||init|| = {rel:.3e}")
+
     # Multi-task probe head export (no-op when mt_head is None).
     export_multi_task_head(mt_head, mt_dims_spec, cfg["model"]["embed_dim"],
                            output_dir / "multi_task_head.pt")
 
+    # iter13 v12: motion_aux head export (no-op when ma_head is None).
+    export_motion_aux_head(ma_head, output_dir / "motion_aux_head.pt")
+
     # iter11 META-fix: gate post-training checkpoint cleanup through --cache-policy.
     # student_encoder.pt is the deliverable, but intermediate step*.pt files are
     # resume points — user must explicitly authorize their destruction.
+    # Bug A complement (iter13): preserve `_best.pt`. Bug A fixed content (full=True)
+    # so it carries the predictor; this glob would still wipe the file. Stage 8
+    # future_mse requires it as input; without this skip, downstream FATAL.
+    # Mirrors m09c R8 pattern (cleanup glob `_stage*.pt` excludes `_best.pt`).
+    BEST_NAME = f"{CHECKPOINT_PREFIX}_best.pt"
     for ckpt_file in output_dir.glob(f"{CHECKPOINT_PREFIX}_*.pt"):
+        if ckpt_file.name == BEST_NAME:
+            continue
         guarded_delete(ckpt_file, args.cache_policy,
                        label=f"m09a checkpoint {ckpt_file.name}")
 
@@ -1199,7 +1420,12 @@ def train(cfg: dict, args):
         "final_jepa_loss": jepa_val,
         "final_drift_loss": drift_val,
         "final_total_loss": total_val,
-        "best_val_loss": best_val_loss,
+        # iter13 v11: best_state now tracked by probe_top1; keep "best_val_loss"
+        # field name in training_summary.json for backward compat with downstream
+        # consumers (lambda-ablation winner picker), but value is now NaN-equivalent
+        # (-1.0) when probe_top1 path is active.
+        "best_probe_top1": best_probe_top1,
+        "best_val_loss": -1.0,    # legacy field — see above
         "final_lr": lr_val,
         "final_grad_norm": gn_val,
         "lambda_reg": drift_cfg["lambda_reg"],
@@ -1275,6 +1501,16 @@ def main():
     parser.add_argument("--no-multi-task", action="store_true",
                         help="Force-disable multi-task probe-head supervision "
                              "(overrides cfg.multi_task_probe.enabled).")
+    # iter13 v12 (2026-05-06): motion_aux loss — joint K-class CE + 13-D MSE
+    # on m04d's RAFT optical-flow targets. See utils/motion_aux_loss.py +
+    # configs/train/probe_pretrain.yaml `motion_aux:` block.
+    parser.add_argument("--motion-features-path", type=Path, default=None,
+                        help="Path to m04d motion_features.npy (overrides "
+                             "cfg.motion_aux.motion_features_path). Companion "
+                             ".paths.npy must exist alongside.")
+    parser.add_argument("--no-motion-aux", action="store_true",
+                        help="Force-disable motion_aux supervised loss "
+                             "(overrides cfg.motion_aux.enabled).")
     add_subset_arg(parser)
     add_local_data_arg(parser)
     add_wandb_args(parser)
@@ -1445,26 +1681,43 @@ def select_ablation_winner(output_dir: str, lambdas: list):
     try:
         plot_val_loss_curves(out, lambdas, winner)
     except Exception as e:
-        print(f"  WARN: ablation plot failed ({e}), continuing")
+        # iter13 (2026-05-05): per CLAUDE.md FAIL HARD.
+        print(f"  FATAL: ablation plot failed: {e}", flush=True)
+        raise
 
 
 if __name__ == "__main__":
-    # --select-winner subcommand: positional args = output_dir, model_config, train_config.
-    # All required — derive lambdas from cfg["drift_control"]["ablation_lambdas"]
-    # (NO DEFAULT, per CLAUDE.md "no hardcoded paths" rule).
-    if len(sys.argv) >= 2 and sys.argv[1] == "--select-winner":
-        if len(sys.argv) != 5:
-            print("FATAL: --select-winner requires 3 positional args:")
-            print("  python -u src/m09a_pretrain.py --select-winner "
-                  "<output_dir> <model_config.yaml> <train_config.yaml>")
-            sys.exit(2)
-        _out_dir, _model_cfg_path, _train_cfg_path = sys.argv[2], sys.argv[3], sys.argv[4]
-        _cfg = load_merged_config(_model_cfg_path, _train_cfg_path)
-        _lambdas = [str(l) for l in _cfg["drift_control"]["ablation_lambdas"]]
-        select_ablation_winner(_out_dir, _lambdas)
-    else:
-        main()
-
-    # Force exit: CUDA atexit cleanup can deadlock on futex_wait_queue
-    sys.stdout.flush()
-    sys.stderr.flush()
+    import traceback as _traceback
+    try:
+        # --select-winner subcommand: positional args = output_dir, model_config, train_config.
+        # All required — derive lambdas from cfg["drift_control"]["ablation_lambdas"]
+        # (NO DEFAULT, per CLAUDE.md "no hardcoded paths" rule).
+        if len(sys.argv) >= 2 and sys.argv[1] == "--select-winner":
+            if len(sys.argv) != 5:
+                print("FATAL: --select-winner requires 3 positional args:")
+                print("  python -u src/m09a_pretrain.py --select-winner "
+                      "<output_dir> <model_config.yaml> <train_config.yaml>")
+                sys.exit(2)
+            _out_dir, _model_cfg_path, _train_cfg_path = sys.argv[2], sys.argv[3], sys.argv[4]
+            _cfg = load_merged_config(_model_cfg_path, _train_cfg_path)
+            _lambdas = [str(l) for l in _cfg["drift_control"]["ablation_lambdas"]]
+            select_ablation_winner(_out_dir, _lambdas)
+        else:
+            main()
+        sys.stdout.flush()
+        sys.stderr.flush()
+        os._exit(0)   # force exit: CUDA atexit + producer threads can deadlock at exit
+    except SystemExit:
+        raise         # honor explicit sys.exit() codes
+    except BaseException as _exc:
+        # Fail-loud + force-kill non-daemon threads (producer TAR readers, multi_task
+        # forwards) that otherwise keep the process alive after the main thread raised.
+        # 2026-05-03 incident: disk-full at step 86 left PID 294680 alive 1h+ after
+        # torch.save raised — log captured the traceback but tmux session never freed.
+        # Mirrors m10_sam_segment.py:1127-1133 pattern.
+        print(f"\nFATAL (unhandled m09a exception): {type(_exc).__name__}: {_exc}",
+              file=sys.stderr)
+        _traceback.print_exc()
+        sys.stdout.flush()
+        sys.stderr.flush()
+        os._exit(1)

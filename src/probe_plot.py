@@ -12,7 +12,7 @@ or any future fine-tuning technique that lands a row in by_encoder):
 
 Writes (under --output-dir):
   probe_action_loss.{png,pdf}       train loss per encoder/LR
-  probe_action_acc.{png,pdf}        train (dashed) + val (solid) acc per encoder/LR
+  probe_action_acc.{png,pdf}        val acc per encoder/LR (train dropped — see loss plot for overfit signal)
   probe_encoder_comparison.{png,pdf}      3-panel (acc, cos, mse) — N bars with 95% CI
 
 USAGE:
@@ -150,11 +150,8 @@ def plot_acc_curves(action_probe_root: Path, encoders: list, n_classes: int,
         for run in runs:
             recs = run["records"]
             x = [r["step"] for r in recs]
-            tr = [r["train_acc"] for r in recs]
             va = [r["val_acc"]   for r in recs]
             sweep = "" if len(runs) == 1 else f" ({run['label']})"
-            ax.plot(x, tr, linestyle="--", color=color, linewidth=1.6, alpha=0.6,
-                    label=f"{_display_label(enc)} train{sweep}")
             ax.plot(x, va, linestyle="-", color=color, linewidth=2.6,
                     label=f"{_display_label(enc)} val{sweep}")
             drew = True
@@ -167,7 +164,7 @@ def plot_acc_curves(action_probe_root: Path, encoders: list, n_classes: int,
     ax.set_ylim(0, 1.02)
     ax.axhline(1.0 / n_classes, color="black", linestyle=":", linewidth=1.0,
                label=f"chance ({n_classes}-class)")
-    ax.set_title("probe Action Probe — Train (dashed) vs Val (solid) Accuracy")
+    ax.set_title("probe Action Probe — Validation Top-1 Accuracy")
     ax.legend(loc="lower right", fontsize=10)
     save_fig(fig, str(output_dir / "probe_action_acc"))
 

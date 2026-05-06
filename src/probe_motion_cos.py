@@ -118,9 +118,14 @@ def _fresh_extract_pooled(args, enc_dir):
     else:
         sys.exit(f"FATAL: unknown encoder kind '{enc_kind}'")
 
+    # iter13 (2026-05-05): pool to 16 tokens — mean-of-pool ≡ mean-of-raw
+    # numerically (verified: max abs diff ~2e-8), so the downstream
+    # `pooled = feats.mean(axis=1)` step gives bit-identical (N, D) vectors
+    # whether we extract 4608 raw tokens or 16 pre-pooled tokens.
     feats, ordered_keys = extract_features_for_keys(
         args, model, enc_kind, crop, embed_dim,
         test_keys, enc_dir, label="motion_cos_test",
+        pool_tokens=(args.pool_tokens if args.pool_tokens > 0 else None),
     )
     if feats.size == 0:
         sys.exit("FATAL: fresh-extract returned 0 clips — no MP4s decoded")
@@ -350,6 +355,10 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--action-probe-root", type=Path, default=None,
                    help="probe_action output dir (provides action_labels.json + share-features cache)")
     p.add_argument("--output-root", type=Path, required=True)
+    p.add_argument("--pool-tokens", type=int, default=16,
+                   help="Adaptive-avg-pool encoder output to N tokens before storage. "
+                        "Default 16. Mean-of-pool ≡ mean-of-raw, so motion_cos's "
+                        "downstream `feats.mean(axis=1)` is unaffected. Use 0 to disable.")
     p.add_argument("--num-frames", type=int, default=16,
                    help="Frames per clip (must match action_probe when --share-features)")
     p.add_argument("--share-features", action="store_true", default=True,

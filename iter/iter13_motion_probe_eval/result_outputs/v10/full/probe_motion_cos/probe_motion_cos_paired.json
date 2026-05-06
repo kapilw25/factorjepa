@@ -1,0 +1,37 @@
+{
+  "metric": "intra_minus_inter_cosine",
+  "by_encoder": {
+    "vjepa_2_1_frozen": {
+      "score_mean": 0.038063,
+      "n": 1394,
+      "score_ci": {
+        "mean": 0.038063,
+        "ci_lo": 0.036622,
+        "ci_hi": 0.039431,
+        "ci_half": 0.001405
+      }
+    },
+    "vjepa_2_1_pretrain": {
+      "score_mean": 0.038158,
+      "n": 1394,
+      "score_ci": {
+        "mean": 0.038158,
+        "ci_lo": 0.03675,
+        "ci_hi": 0.039564,
+        "ci_half": 0.001407
+      }
+    }
+  },
+  "pairwise_deltas": {
+    "vjepa_2_1_frozen_minus_vjepa_2_1_pretrain": {
+      "n_shared": 1394,
+      "delta_mean": -9.6e-05,
+      "delta_ci_lo": -0.000103,
+      "delta_ci_hi": -8.8e-05,
+      "delta_ci_half": 8e-06,
+      "p_value": 0.0,
+      "gate_pass": false,
+      "interpretation": "vjepa_2_1_frozen - vjepa_2_1_pretrain > 0 means vjepa_2_1_frozen has stronger intra-class motion clustering than vjepa_2_1_pretrain"
+    }
+  }
+}

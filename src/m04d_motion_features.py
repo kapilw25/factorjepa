@@ -7,12 +7,44 @@ Producer-consumer pipeline: CPU thread decodes video + preprocesses frame
 pairs → queue → GPU thread batches multiple clips' pairs into one RAFT
 forward pass. ~5-10x faster than sequential.
 
-USAGE:
-    python -u src/m04d_motion_features.py --SANITY --subset data/subset_10k.json \
-        --local-data data/subset_10k_local 2>&1 | tee logs/m04d_sanity.log
+OUTPUT ROUTING (iter13 v12, 2026-05-05):
+    motion_features.npy + .paths.npy default to <local_data>/ (alongside the
+    dataset TAR shards) so they become a durable per-dataset artifact —
+    auto-uploaded by `hf_outputs.py upload-data`, auto-downloaded on every
+    fresh GPU spin-up via `download-data`. The mid-run .m04d_checkpoint.npz
+    stays in the legacy outputs/<mode>/m04d_motion_features/ dir (scratch).
+    Override the output path with --features-out if needed.
+
+USAGE (per-dataset; one run per local_data dir, durable artifact thereafter):
+    # eval_10k (FULL eval target):
+    python -u src/m04d_motion_features.py --FULL --subset data/eval_10k.json \
+        --local-data data/eval_10k_local \
+        --features-out data/eval_10k_local/motion_features.npy \
+        2>&1 | tee logs/m04d_full_eval10k.log
+
+    # subset_10k (POC):
     python -u src/m04d_motion_features.py --POC --subset data/subset_10k.json \
-        --local-data data/subset_10k_local 2>&1 | tee logs/m04d_poc.log
-    python -u src/m04d_motion_features.py --FULL --local-data data/full_local 2>&1 | tee logs/m04d_full.log
+        --local-data data/subset_10k_local \
+        --features-out data/subset_10k_local/motion_features.npy \
+        2>&1 | tee logs/m04d_poc.log
+
+    # val_1k:
+    python -u src/m04d_motion_features.py --FULL --subset data/val_1k.json \
+        --local-data data/val_1k_local \
+        --features-out data/val_1k_local/motion_features.npy \
+        2>&1 | tee logs/m04d_val1k.log
+
+    # full_local (training data; HF will only upload the small .npy/.paths.npy,
+    # NOT the multi-TB TAR shards — see hf_outputs.py:upload_data()):
+    python -u src/m04d_motion_features.py --FULL --local-data data/full_local \
+        --features-out data/full_local/motion_features.npy \
+        2>&1 | tee logs/m04d_full.log
+
+    # SANITY (smoke test):
+    python -u src/m04d_motion_features.py --SANITY --subset data/subset_10k.json \
+        --local-data data/subset_10k_local \
+        --features-out data/subset_10k_local/motion_features.npy \
+        2>&1 | tee logs/m04d_sanity.log
 """
 import argparse
 import gc
@@ -26,6 +58,16 @@ import time
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
+# iter13 v12 fix (2026-05-05): pin torch._inductor's kernel-compile pool to a
+# single thread. The default (`= num_cpu`) parallel compile was racing with
+# our producer's ThreadPoolExecutor — torch.compile's pool shutdown set the
+# global `concurrent.futures._shutdown=True` flag prematurely, so the next
+# producer batch raised `RuntimeError: cannot schedule new futures after
+# interpreter shutdown` mid-run (logs/m04d_full_eval10k.log:19). MUST be set
+# BEFORE any torch import. Costs ~30s extra one-time on warm-up, free
+# afterwards. Belt-and-suspenders alongside the persistent-pool fix below.
+os.environ.setdefault("TORCHINDUCTOR_COMPILE_THREADS", "1")
+
 import av
 import cv2
 import numpy as np
@@ -34,7 +76,7 @@ from tqdm import tqdm
 sys.path.insert(0, str(Path(__file__).parent))
 from utils.config import (
     HF_DATASET_REPO, check_gpu,
-    add_subset_arg, add_local_data_arg, get_output_dir, load_subset,
+    add_subset_arg, add_local_data_arg, load_subset,
     get_pipeline_config, get_sanity_clip_limit, get_total_clips,
     get_module_output_dir,
 )
@@ -155,10 +197,18 @@ def load_raft_model(device):
 
     weights = Raft_Large_Weights.C_T_SKHT_V2
     model = raft_large(weights=weights).to(device).eval()
-    print("Applying torch.compile to RAFT (first batch will be slow)...")
-    model = torch.compile(model)
+    # iter13 v12 fix (2026-05-05): torch.compile DISABLED for RAFT.
+    # Reason: AdaptiveBatchSizer preemptively shrinks the batch (e.g. 512 → 511)
+    # when post-batch VRAM > cap, which triggers torch._inductor recompilation
+    # under dynamic shapes. Recompile hits a known PyTorch bug:
+    #   InductorError: CantSplit: 1123200*s11+1123200*s15 not divisible by 96*s11+96*s15
+    # (see logs/m04d_full_eval10k_v1.log:96). torch.compile is also what pushes
+    # VRAM to the cap in the first place (compile workspace ~70 GB on Blackwell),
+    # so disabling it ALSO eliminates the trigger for AdaptiveBatch shrink.
+    # Cost: ~1.5-2× slower RAFT inference. Acceptable: m04d is one-time-per-
+    # dataset (durable artifact, runs once on each <local_data>/).
     transforms = weights.transforms()
-    print(f"RAFT-Large loaded on {device} (weights: C_T_SKHT_V2, compiled, fp16)")
+    print(f"RAFT-Large loaded on {device} (weights: C_T_SKHT_V2, eager, fp16)")
     return model, transforms
 
 
@@ -245,23 +295,33 @@ def _producer_thread(q: queue.Queue, stop_event: threading.Event,
 
     tar_stop = None
 
+    # iter13 v12 fix (2026-05-05): single persistent ThreadPoolExecutor for
+    # the producer's entire lifetime. The previous per-batch pool creation
+    # (`with ThreadPoolExecutor(...) as pool:` inside _flush_batch) raced with
+    # torch._inductor's internal compile pool — at the boundary between
+    # batches, concurrent.futures' global shutdown state was sometimes
+    # already True, raising RuntimeError "cannot schedule new futures after
+    # interpreter shutdown". Persistent pool sidesteps that race AND avoids
+    # spawning 8 workers per batch (~32 batches/min × 8 spawns = 256/min).
+    pool = ThreadPoolExecutor(max_workers=DECODE_WORKERS,
+                              thread_name_prefix="m04d-decode")
+
     def _flush_batch(batch):
         """Parallel-decode a batch and enqueue for GPU."""
         nonlocal produced, errors
         pending_prevs, pending_currs = [], []
         pending_keys, pending_n_pairs = [], []
-        with ThreadPoolExecutor(max_workers=DECODE_WORKERS) as pool:
-            futures = [pool.submit(_decode_one, b, k, n_pairs) for b, k in batch]
-            for fut in futures:
-                result, key = fut.result()
-                if result is None:
-                    errors += 1
-                else:
-                    prev_b, curr_b, n_p = result
-                    pending_prevs.append(prev_b)
-                    pending_currs.append(curr_b)
-                    pending_keys.append(key)
-                    pending_n_pairs.append(n_p)
+        futures = [pool.submit(_decode_one, b, k, n_pairs) for b, k in batch]
+        for fut in futures:
+            result, key = fut.result()
+            if result is None:
+                errors += 1
+            else:
+                prev_b, curr_b, n_p = result
+                pending_prevs.append(prev_b)
+                pending_currs.append(curr_b)
+                pending_keys.append(key)
+                pending_n_pairs.append(n_p)
         if pending_keys:
             cat_prev = torch.cat(pending_prevs, dim=0)
             cat_curr = torch.cat(pending_currs, dim=0)
@@ -322,6 +382,7 @@ def _producer_thread(q: queue.Queue, stop_event: threading.Event,
     finally:
         if tar_stop:
             tar_stop.set()
+        pool.shutdown(wait=True)
         q.put(("done", errors, skipped))
 
 
@@ -371,6 +432,15 @@ def main():
     add_local_data_arg(parser)
     add_wandb_args(parser)
     add_gpu_mem_arg(parser)
+    # iter13 v12 (2026-05-05): explicit output path for the durable per-dataset
+    # artifact. Defaults to <local_data>/motion_features.npy when omitted so the
+    # .npy + .paths.npy live next to the dataset's TAR shards, auto-uploaded by
+    # hf_outputs.py upload-data, auto-downloaded on every fresh GPU instance.
+    parser.add_argument("--features-out", type=Path, default=None,
+                        help="Output path for motion_features.npy. Default: "
+                             "<local_data>/motion_features.npy (durable per-"
+                             "dataset artifact alongside TAR shards). The "
+                             ".paths.npy is derived from the same stem.")
     # Cache-policy gate (iter11): every destructive delete in this module must route
     # through utils.cache_policy.guarded_delete(path, args.cache_policy, ...).
     # --cache-policy defaults to 1 (keep) so overnight re-runs never destroy cache.
@@ -390,13 +460,30 @@ def main():
     check_gpu()
 
     # Output routing
+    # iter13 v12 (2026-05-05): split output_dir (mid-run scratch) from
+    # features_file (durable per-dataset artifact). The .m04d_checkpoint.npz
+    # mid-run resume state stays in outputs/<mode>/m04d_motion_features/ — it
+    # MUST NOT pollute the dataset dir (otherwise hf_outputs.py would ship a
+    # half-written checkpoint to other GPU instances). The features_file +
+    # paths_file land in <local_data>/ so they become a durable artifact that
+    # rides with the dataset's TAR shards.
     output_dir = get_module_output_dir("m04d_motion_features", args.subset, sanity=args.SANITY, poc=args.POC)
     output_dir.mkdir(parents=True, exist_ok=True)
+    checkpoint_file = output_dir / ".m04d_checkpoint.npz"
+
+    if args.features_out is not None:
+        features_file = Path(args.features_out)
+    elif args.local_data is not None:
+        features_file = Path(args.local_data) / "motion_features.npy"
+    else:
+        features_file = output_dir / "motion_features.npy"      # legacy fallback
+    features_file.parent.mkdir(parents=True, exist_ok=True)
+    paths_file = features_file.with_name(features_file.stem + ".paths.npy")
+    print(f"Motion-features output: {features_file}")
+    print(f"Paths output:           {paths_file}")
+    print(f"Mid-run checkpoint:     {checkpoint_file}")
 
     # Skip if output already exists (motion features are encoder-independent)
-    features_file = output_dir / "motion_features.npy"
-    paths_file = output_dir / "motion_features.paths.npy"
-    checkpoint_file = output_dir / ".m04d_checkpoint.npz"
     if features_file.exists() and paths_file.exists() and not checkpoint_file.exists():
         print(f"Motion features already exist: {features_file}")
         print(f"  Skipping (delete {features_file} to re-run)")
@@ -423,8 +510,7 @@ def main():
             print("FATAL: Cannot determine clip count. Use --subset or --local-data with manifest.json")
             sys.exit(1)
 
-    # Checkpoint
-    checkpoint_file = output_dir / ".m04d_checkpoint.npz"
+    # Checkpoint (already resolved above; load resume state if present).
     features_list, keys_list, start_count = load_checkpoint(checkpoint_file)
     processed_keys = set(keys_list)
 
@@ -564,8 +650,9 @@ def main():
     features_arr = np.stack(features_list).astype(np.float32)
     keys_arr = np.array(keys_list, dtype=object)
 
-    features_file = output_dir / "motion_features.npy"
-    paths_file = output_dir / "motion_features.paths.npy"
+    # features_file + paths_file already resolved above (durable per-dataset
+    # path). meta_file stays in output_dir — it's run scratch (mode/timestamp/
+    # error counts), not durable.
     meta_file = output_dir / "motion_features_meta.json"
 
     np.save(features_file, features_arr)

@@ -1,0 +1,42 @@
+{
+  "medium__upward": {
+    "train": 1316,
+    "val": 282,
+    "test": 283
+  },
+  "slow__upward": {
+    "train": 919,
+    "val": 197,
+    "test": 198
+  },
+  "fast__upward": {
+    "train": 1576,
+    "val": 337,
+    "test": 339
+  },
+  "still__upward": {
+    "train": 415,
+    "val": 89,
+    "test": 90
+  },
+  "still__rightward": {
+    "train": 1197,
+    "val": 256,
+    "test": 257
+  },
+  "slow__rightward": {
+    "train": 706,
+    "val": 151,
+    "test": 152
+  },
+  "fast__rightward": {
+    "train": 51,
+    "val": 10,
+    "test": 12
+  },
+  "medium__rightward": {
+    "train": 310,
+    "val": 66,
+    "test": 67
+  }
+}

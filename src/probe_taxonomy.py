@@ -1,12 +1,9 @@
 """Unified per-dimension probe — top-1 accuracy (single-label) +
-sample-F1 (multi-label) across **16 dims**: 13 single-label + 2 multi-label
-from configs/tag_taxonomy.json + 1 single-label `action` (3-class:
-walking/driving/drone, path-derived from utils.action_labels).
-
-REPLACES the previous hybrid (probe_action.py for P1 gate + probe_taxonomy.py
-for paper analysis). Single source of truth for all probe metrics: the
-`action` dim is now one of 16 reported here. The hybrid was redundant
-(both used the same encoder features + same AttentiveClassifier head).
+sample-F1 (multi-label) across **15 dims**: 13 single-label + 2 multi-label
+from configs/tag_taxonomy.json. The legacy 16th dim (path-derived 3-class
+action) was DROPPED in iter13 v12 (2026-05-05) — its replacement is the
+optical-flow-derived motion class in probe_action.py (Phase 2 of
+plan_code_dev.md), which is no longer single-frame-solvable retrieval.
 
 Multi-label dims (road_layout, notable_objects) use per-clip F1 (sample-F1)
 — bootstrap-friendly. Single-label dims (action + 13 from taxonomy) use top-1.
@@ -54,7 +51,6 @@ import torch
 import torch.nn.functional as F
 
 sys.path.insert(0, str(Path(__file__).parent))
-from utils.action_labels import CLASS_NAMES_3CLASS, parse_action_from_clip_key
 from utils.bootstrap import bootstrap_ci, paired_bca
 from utils.cache_policy import (
     add_cache_policy_arg, guarded_delete, resolve_cache_policy_interactive,
@@ -89,15 +85,11 @@ def derive_taxonomy_labels(tags_json: Path, tag_taxonomy: Path,
     taxonomy = json.loads(tag_taxonomy.read_text())
     dims_raw = _filter_dims(taxonomy)
     dims = {}
-    # Action dim — 3-class (walking/driving/drone), path-derived (NOT from tags.json).
-    # Added FIRST so it's the canonical "action" probe (formerly probe_action.py).
-    # Path-derived = no VLM noise; same labels probe_action used in iter13 P1 gate.
-    dims["action"] = {
-        "type":      "single",
-        "values":    list(CLASS_NAMES_3CLASS),
-        "default":   None,                     # no default — fail-loud if path can't be parsed
-        "n_classes": len(CLASS_NAMES_3CLASS),
-    }
+    # iter13 v12 (2026-05-05): "action" dim DROPPED here. The path-derived
+    # 3-class (walking/driving/drone) was retrieval, not motion. Its replacement
+    # — optical-flow-derived motion class — lives in probe_action.py
+    # (action_labels.json from m04d motion_features.npy). Taxonomy now reports
+    # 15 dims: 13 single-label + 2 multi-label, all from tag_taxonomy.json.
     for name, spec in dims_raw.items():
         dims[name] = {
             "type":      spec["type"],          # 'single' or 'multi'
@@ -115,7 +107,6 @@ def derive_taxonomy_labels(tags_json: Path, tag_taxonomy: Path,
 
     labels_by_clip = {}
     skipped_no_tag = 0
-    skipped_no_action = 0
     for k in eval_keys:
         basename = Path(k).name
         if basename not in tag_by_basename:
@@ -123,20 +114,9 @@ def derive_taxonomy_labels(tags_json: Path, tag_taxonomy: Path,
             continue
         t = tag_by_basename[basename]
         per_dim = {}
-        # Action label first — derived from clip_key path, not from tag dict.
-        # parse_action_from_clip_key returns class name (e.g. "walking") or None
-        # if path doesn't match the 3-class taxonomy (e.g., monuments under 3-class).
-        action_name = parse_action_from_clip_key(k, enable_monument=False, tags=t)
-        if action_name is None or action_name not in CLASS_NAMES_3CLASS:
-            skipped_no_action += 1
-            # Skip the entire clip — no point evaluating other dims for clips
-            # we can't action-classify (consistent test set across all dims).
-            continue
-        per_dim["action"] = CLASS_NAMES_3CLASS.index(action_name)
-        # Then taxonomy dims.
+        # iter13 v12 (2026-05-05): action dim removed here. All 15 dims come
+        # from tag_taxonomy.json now.
         for dim_name, spec in dims.items():
-            if dim_name == "action":
-                continue                                   # already handled
             v = t.get(dim_name, spec["default"])
             if spec["type"] == "single":
                 # Coerce VLM-out-of-vocab values to default.
@@ -156,8 +136,7 @@ def derive_taxonomy_labels(tags_json: Path, tag_taxonomy: Path,
         labels_by_clip[k] = per_dim
 
     print(f"  derived labels for {len(labels_by_clip)}/{len(eval_keys)} clips "
-          f"({skipped_no_tag} skipped — no tag record, "
-          f"{skipped_no_action} skipped — no action class)")
+          f"({skipped_no_tag} skipped — no tag record)")
     return labels_by_clip, dims
 
 
@@ -302,12 +281,80 @@ def run_train_stage(args, wb) -> None:
     dims, labels_by_clip = tx["dims"], tx["labels"]
 
     enc_dir = args.features_root / args.encoder
-    feats_train = np.load(enc_dir / "features_train.npy")
-    feats_val   = np.load(enc_dir / "features_val.npy")
-    feats_test  = np.load(enc_dir / "features_test.npy")
-    keys_train  = [str(k) for k in np.load(enc_dir / "clip_keys_train.npy", allow_pickle=True)]
-    keys_val    = [str(k) for k in np.load(enc_dir / "clip_keys_val.npy",   allow_pickle=True)]
-    keys_test   = [str(k) for k in np.load(enc_dir / "clip_keys_test.npy",  allow_pickle=True)]
+
+    # iter13 lazy-extract (2026-05-05): mirrors probe_action.run_train_stage —
+    # if features_<split>.npy is missing on disk (the new default per the
+    # eval-disk-budget refactor), extract in-memory via extract_features_for_keys.
+    # The function's resume side-effect (.probe_features_<split>_ckpt.npz) is
+    # SHARED with probe_action's lazy cache, so when probe_taxonomy runs
+    # AFTER probe_action --stage train (per scripts/run_probe_eval.sh's
+    # per-encoder loop), the cache is already populated → near-zero re-extract
+    # cost. Encoder is loaded only when at least one split needs extraction.
+    from utils.frozen_features import (
+        ENCODERS, extract_features_for_keys,
+        load_dinov2_frozen, load_vjepa_2_1_frozen,
+    )
+    from utils.action_labels import load_action_labels
+    from utils.data_download import ensure_local_data
+
+    enc_kind = ENCODERS[args.encoder]["kind"]
+    needs_extract = [s for s in ("train", "val", "test")
+                     if not (enc_dir / f"features_{s}.npy").exists()]
+    model = crop = embed_dim = None
+    if needs_extract:
+        if (enc_kind == "vjepa" and args.encoder_ckpt is None) or args.local_data is None:
+            sys.exit(
+                f"FATAL: probe_taxonomy --stage train needs to lazily extract "
+                f"{needs_extract} features but --encoder-ckpt and/or --local-data "
+                f"are missing. Pass them so the encoder can be loaded.\n"
+                f"  Alternatively, re-run probe_action with "
+                f"`--features-splits train val test` to materialise the .npy files."
+            )
+        print(f"  [lazy-extract] missing splits on disk: {needs_extract} — "
+              f"loading {args.encoder} encoder for in-memory extraction")
+        ensure_local_data(args)
+        if enc_kind == "vjepa":
+            model, crop, embed_dim = load_vjepa_2_1_frozen(args.encoder_ckpt, args.num_frames)
+        elif enc_kind == "dinov2":
+            model, _proc, crop, embed_dim = load_dinov2_frozen()
+        else:
+            sys.exit(f"FATAL: unknown encoder kind '{enc_kind}'")
+
+    # Group clip_keys by split (deterministic order from action_labels.json,
+    # which is the source-of-truth for the 70/15/15 split per iter13 plan).
+    action_labels_path = args.features_root / "action_labels.json"
+    action_labels = load_action_labels(action_labels_path)
+    by_split = {"train": [], "val": [], "test": []}
+    for k, info in action_labels.items():
+        by_split[info["split"]].append(k)
+
+    def _load_or_extract(split: str):
+        npy_path  = enc_dir / f"features_{split}.npy"
+        keys_path = enc_dir / f"clip_keys_{split}.npy"
+        if npy_path.exists() and keys_path.exists():
+            return np.load(npy_path), [str(k) for k in np.load(keys_path, allow_pickle=True)]
+        feats, ordered_keys = extract_features_for_keys(
+            args, model, enc_kind, crop, embed_dim,
+            by_split[split], enc_dir, label=f"features_{split}",
+            pool_tokens=(args.pool_tokens if args.pool_tokens > 0 else None),
+        )
+        return feats, [str(k) for k in ordered_keys]
+
+    feats_train, keys_train = _load_or_extract("train")
+    feats_val,   keys_val   = _load_or_extract("val")
+    feats_test,  keys_test  = _load_or_extract("test")
+
+    # iter13 (2026-05-05): free encoder GPU memory BEFORE per-dim probe-head
+    # training. Heads are tiny (~140K params each, 16 dims) but they still
+    # compete with the dangling 7.5 GB encoder for cuda allocator blocks.
+    # gc.collect() is required (see probe_action.py:run_train_stage comment).
+    if model is not None:
+        del model
+        import gc
+        gc.collect()
+        import torch as _torch
+        _torch.cuda.empty_cache()
+        _torch.cuda.ipc_collect()
 
     out_dir = args.output_root / args.encoder
     out_dir.mkdir(parents=True, exist_ok=True)
@@ -507,7 +554,8 @@ def run_plot_stage(args, wb) -> None:
 
 def build_parser():
     p = argparse.ArgumentParser(
-        description="Per-dimension taxonomy probe (single + multi-label across all 15 dims).")
+        description="Per-dimension taxonomy probe (single + multi-label across 15 tag dims; "
+                    "action dim dropped iter13 v12 in favor of optical-flow probe_action).")
     p.add_argument("--SANITY", action="store_true")
     p.add_argument("--POC",    action="store_true")
     p.add_argument("--FULL",   action="store_true")
@@ -520,6 +568,19 @@ def build_parser():
     p.add_argument("--tags-json", type=Path, default=None)
     p.add_argument("--tag-taxonomy", type=Path, default=None)
     p.add_argument("--eval-subset", type=Path, default=None)
+    # iter13 (2026-05-05): args needed for lazy-extract path (Stage 2 default
+    # only saves features_test.npy now; Stage 3 train extracts train+val
+    # in-memory). When all 3 splits are already on disk, these are unused.
+    p.add_argument("--encoder-ckpt", type=Path, default=None,
+                   help="V-JEPA encoder ckpt (required when train/val features need lazy extraction)")
+    from utils.config import add_local_data_arg as _add_local_data_arg
+    _add_local_data_arg(p)
+    p.add_argument("--num-frames", type=int, default=NUM_FRAMES_DEFAULT,
+                   help="Frames per clip for lazy extraction; ignored when features already on disk")
+    p.add_argument("--pool-tokens", type=int, default=16,
+                   help="Adaptive-avg-pool encoder output to N tokens before storage / probe. "
+                        "Default 16 (V-JEPA paper §4 attentive-probe regime). "
+                        "Use 0 to disable pooling.")
     p.add_argument("--output-root", type=Path, required=True)
     p.add_argument("--epochs", type=int, default=50)
     p.add_argument("--probe-lr", type=float, default=5e-4)

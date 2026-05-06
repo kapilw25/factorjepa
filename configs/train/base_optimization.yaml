@@ -153,10 +153,16 @@ optimization:
   # was dead (zero Python readers); deleted 2026-04-26 to remove the footgun.
   # SINGLE cosine, not cyclical re-warming — the arXiv:2503.02844 forgetting
   # warning applies to re-warming only.
-  warmup_steps: 500
-  warmup_cap_pct: 15              # iter11 v2 (2026-04-26): 10 → 15. At lr=5e-5 (5× prior),
-                                  # optimizer needs more warmup steps to find a stable basin
-                                  # (171 steps vs 114 for the 1140-step 15-epoch budget).
+  # iter13 (2026-05-05): single warmup knob `warmup_pct` (10-15% of total_steps).
+  # Was dual-knob (warmup_steps=500 + warmup_cap_pct=15) which led to silently-
+  # ignored hardcoded values in downstream yamls (probe_pretrain.yaml had
+  # warmup_steps=1500 that was dominated by the 15% cap = 162 at total_steps=1085;
+  # nobody noticed for two iter13 runs). Now: warmup_steps is computed at runtime
+  # as `total_steps * warmup_pct / 100`, scales automatically with epochs/BS.
+  warmup_pct: 0.12                # 12% of total_steps (V-JEPA paper uses 10-15%).
+                                  # Fraction-of-1 convention (matches surgery.warmup_pct=0.20
+                                  # and probe_action --warmup-pct CLI). Computed at runtime
+                                  # as `int(total_steps * warmup_pct)` in build_scheduler.
   min_lr: 1.0e-6                  # LR floor; cosine decays from `lr` to this value
                                   # across (total_steps - warmup_steps).
 
@@ -220,8 +226,17 @@ checkpoint:
   # iter11 (2026-04-24): 10 → 5 so plateau_patience=5 probes = 1 full epoch of no
   # val-loss improvement (5 probes/epoch × patience=5). Affects probe cadence via
   # `probe.cadence: saves_per_epoch` in all m09x yamls — 5 epochs × 5 = 25 probes total.
-  saves_per_epoch: 5
-  keep_last_n: 2                  # Keep only last 2 checkpoints (~7 GB each with student-only saves)
+  # iter13 (2026-05-05): 5 → 2. v9 measured 17.8 min per val cycle (probe-trio
+  # over 925 clips dominates). At 5/epoch × 5 epochs = 25 vals = 7.4 hrs of pure
+  # validation — half the run wall. 2/epoch keeps stuck-encoder kill signal at
+  # ~50 min wall (1 val ≈ 50% epoch) while saving ~4.4 hrs/run. Plateau-patience
+  # math: was patience=5 vals = 1 epoch; now patience=5 = 2.5 epochs (acceptable
+  # given v8 layer_freeze + lr=1e-4 should not need long plateau detection).
+  saves_per_epoch: 2
+  # iter13 v11 (2026-05-05): 2 → 5. v10 lost the peak-top1 ckpt at step 323
+  # because anchor pullback continued into epochs 2-4 and step rotation
+  # discarded it. 5 step ckpts × ~7 GB = 35 GB, fits 200 GB budget.
+  keep_last_n: 5                  # Keep last 5 step ckpts (~7 GB each with student-only saves)
 
 # -- Mixed precision --
 mixed_precision:

@@ -26,7 +26,7 @@ extends: surgery_base.yaml
 
 data:
   adapted_encoder: vjepa_2_1_surgical_noDI           # unique per-variant — m05/m06 outputs don't collide across surgery variants (dynamic suffix via get_encoder_info)
-  output_dir: outputs/full/surgery_2stage_noDI
+  output_dir: outputs/full/m09c_surgery_noDI    # auto-overridden by run_probe_train.sh
 
 # -- Surgery: 2-stage progressive prefix unfreezing (D_L + D_A only) --
 # iter9 2-stage recipe (landed 2026-04-20 per plan_TODO.md:115). D_I factor still
@@ -44,10 +44,24 @@ surgery:
       mode_mixture: {L: 0.30, A: 0.70, I: 0.00}   # 30% layout replay (CLEAR 2018), 70% agent
       max_epochs_pct: 0.50
 
-# -- Multi-task probe-loss supervision (iter13) — opt-in for THIS config.
-# Base ships {sanity:false, poc:false, full:false}; we flip ALL three to true so
-# the SANITY runs on 24 GB exercise the SAME multi-task code path that FULL on
-# 96 GB will use. Strict subset of surgery_3stage_DI's memory envelope (no
-# Stage 3) → multi-task should be safer here than in 3stage_DI.
+# -- Multi-task probe (15 retrieval dims) — DISABLED v12+ (mirror surgery_3stage_DI).
 multi_task_probe:
-  enabled: {sanity: true, poc: true, full: true}
+  enabled: {sanity: false, poc: false, full: false}
+
+# -- Motion-features auxiliary loss (Phase 4, iter13 v12+, 2026-05-06).
+# Mirrors probe_pretrain.yaml:176-189. 2-stage variant has no Stage 3 D_I —
+# motion_aux still attaches at Stage 1 + Stage 2 optimizer rebuilds.
+motion_aux:
+  enabled:
+    sanity: true
+    poc:    true
+    full:   true
+  motion_features_path: data/eval_10k_local/motion_features.npy
+  action_labels_path:   outputs/full/probe_action/action_labels.json
+  weight_motion: 0.1
+  weight_ce:     1.0
+  weight_mse:    1.0
+  head:
+    hidden_dim: 256
+    dropout:    0.1
+  head_lr_multiplier: 10.0

@@ -1065,6 +1065,7 @@ def train(cfg: dict, args):
                                "color": "green",
                                "batch_size": batch_size}],
                         output_dir=str(output_dir),
+                        file_prefix="m09b",
                         title_prefix=f"ExPLoRA · {n_train:,} clips × {max_epochs} ep × BS={batch_size} × LR={cfg['optimization']['lr']:.1e} ({total_steps:,} steps)\n",
                     )
                 except (OSError, IOError, ValueError, RuntimeError) as _plot_e:
@@ -1171,6 +1172,7 @@ def train(cfg: dict, args):
                     total_steps=total_steps,
                     batch_size=batch_size,
                     lr=cfg["optimization"]["lr"],
+                    file_prefix="m09b",
                 )
 
                 # 🛑 Early-stop triggers — mutates kill_state on fire
@@ -1313,6 +1315,7 @@ def train(cfg: dict, args):
             total_steps=total_steps,
             batch_size=batch_size,
             lr=cfg["optimization"]["lr"],
+            file_prefix="m09b",
         )
         summary["best_prec_at_k"] = (best_prec_at_k
                                      if best_prec_at_k > float("-inf") else None)

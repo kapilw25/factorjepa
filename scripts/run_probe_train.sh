@@ -59,13 +59,44 @@ case "$MODE_FLAG" in
     *) echo "FATAL: mode flag must be --SANITY|--POC|--FULL (got: $MODE_FLAG)" >&2; exit 2 ;;
 esac
 
-# ── Pre-flight: probe Stage 1 (action_labels.json) must exist ─────────────
+# ── Probe Stage 1 (action_labels.json) — auto-bootstrap by m09a/m09c ─────
+# iter13 v12 (2026-05-06): the FATAL preflight here was removed because
+# src/utils/probe_labels.ensure_probe_labels_for_mode (called by m09a:478 and
+# m09c equivalent) already auto-generates action_labels.json + taxonomy_labels.json
+# when missing. Each .py runs independently — no dependency on having run
+# scripts/run_probe_eval.sh first. ACTION_LABELS path is still resolved
+# below (used by probe_train_subset.py) — m09a's bootstrap will create it
+# before probe_train_subset.py reads it (auto-bootstrap fires inside m09a's
+# build phase, but probe_train_subset.py runs FIRST in the shell wrapper at
+# lines 89-94 — so we must also ensure it exists at this layer if absent).
 ACTION_LABELS="outputs/${mode_dir}/probe_action/action_labels.json"
 if [ ! -f "$ACTION_LABELS" ]; then
-    echo "❌ FATAL: $ACTION_LABELS not found." >&2
-    echo "  Run probe Stage 1 first to generate the train/val/test split:" >&2
-    echo "    SKIP_STAGES=\"2,3,4,5,6,7,8,9,10\" ./scripts/run_probe_eval.sh ${MODE_FLAG}" >&2
-    exit 3
+    echo "  [run_probe_train] $ACTION_LABELS missing — auto-bootstrapping via probe_action.py --stage labels (CPU, ~1 min)"
+    LOCAL_DATA_BOOTSTRAP="data/eval_10k_local"
+    MOTION_FEATURES_BOOTSTRAP="${LOCAL_DATA_BOOTSTRAP}/motion_features.npy"
+    if [ ! -f "$MOTION_FEATURES_BOOTSTRAP" ]; then
+        echo "❌ FATAL: $MOTION_FEATURES_BOOTSTRAP not found — run m04d_motion_features.py first" >&2
+        exit 3
+    fi
+    if [ "$MODE" = "SANITY" ]; then
+        EVAL_SUBSET_BOOTSTRAP="data/eval_10k_sanity.json"
+        MIN_CLIPS_BOOTSTRAP=5
+        MIN_SPLIT_BOOTSTRAP=1
+    else
+        EVAL_SUBSET_BOOTSTRAP="data/eval_10k.json"
+        MIN_CLIPS_BOOTSTRAP=34
+        MIN_SPLIT_BOOTSTRAP=5
+    fi
+    python -u src/probe_action.py "${MODE_FLAG}" \
+        --stage labels \
+        --eval-subset "$EVAL_SUBSET_BOOTSTRAP" \
+        --motion-features "$MOTION_FEATURES_BOOTSTRAP" \
+        --min-clips-per-class "$MIN_CLIPS_BOOTSTRAP" \
+        --min-per-split "$MIN_SPLIT_BOOTSTRAP" \
+        --output-root "outputs/${mode_dir}/probe_action" \
+        --cache-policy "${CACHE_POLICY_ALL:-1}" \
+        --no-wandb \
+        2>&1 | tee "logs/probe_action_labels_${mode_dir}.log"
 fi
 
 # ── Pre-flight: bitsandbytes for SANITY 8-bit optim path ────────────────
@@ -77,14 +108,21 @@ if [ "$MODE" = "SANITY" ]; then
     fi
 fi
 
-# ── Generate train/val split JSONs from action_labels.json ────────────────
+# ── Generate train/val/test split JSONs from action_labels.json ──────────
+# action_labels.json carries 70/15/15 split (train=6964, val=1491, test=1496)
+# — paper-final m06d trio uses TEST clips that m09a never sees during pretrain.
+# iter13 Task #23 (2026-05-04): added test split externalisation here so eval
+# stages downstream can reference data/eval_10k_test_split.json directly.
 TRAIN_SPLIT="data/eval_10k_train_split.json"
 VAL_SPLIT="data/eval_10k_val_split.json"
-echo "═══ $(date '+%H:%M:%S') · Generating train/val split JSONs ═══"
+TEST_SPLIT="data/eval_10k_test_split.json"
+echo "═══ $(date '+%H:%M:%S') · Generating train/val/test split JSONs ═══"
 python -u src/utils/probe_train_subset.py \
     --action-labels "$ACTION_LABELS" --split train --output "$TRAIN_SPLIT"
 python -u src/utils/probe_train_subset.py \
     --action-labels "$ACTION_LABELS" --split val --output "$VAL_SPLIT"
+python -u src/utils/probe_train_subset.py \
+    --action-labels "$ACTION_LABELS" --split test --output "$TEST_SPLIT"
 
 LOCAL_DATA="data/eval_10k_local"
 [ -d "$LOCAL_DATA" ] || { echo "❌ FATAL: $LOCAL_DATA missing"; exit 3; }
@@ -121,6 +159,7 @@ if [ ! -f "$TAXONOMY_LABELS" ]; then
             --tag-taxonomy "$TAG_TAXONOMY" \
             --output-root "outputs/${mode_dir}/probe_taxonomy" \
             --cache-policy "$P_M09" \
+            --no-wandb \
             2>&1 | tee "logs/probe_taxonomy_labels_${mode_dir}.log"
     else
         echo "  [multi-task] cannot auto-generate $TAXONOMY_LABELS — sources missing:"
@@ -138,7 +177,10 @@ fi
 # ── Dispatch ──────────────────────────────────────────────────────────────
 case "$SUBCMD" in
     pretrain)
-        OUT_DIR="outputs/${mode_dir}/probe_pretrain"
+        # iter13 v12+ (2026-05-06): renamed probe_pretrain → m09a_pretrain to
+        # match the source module's name (CLAUDE.md "m*.py = each module is
+        # independent"). Mirror rename in run_probe_eval.sh + yaml output_dir.
+        OUT_DIR="outputs/${mode_dir}/m09a_pretrain"
         TRAIN_CFG="configs/train/probe_pretrain.yaml"
         # Read lambda_reg from YAML so it stays the single source of truth.
         # Passing it explicitly to m09a bypasses the legacy auto-ablation gate
@@ -159,15 +201,17 @@ case "$SUBCMD" in
             --train-config "$TRAIN_CFG" \
             --subset "$TRAIN_SPLIT" --local-data "$LOCAL_DATA" \
             --val-subset "$VAL_SPLIT" --val-local-data "$LOCAL_DATA" \
-            --output-dir "$OUT_DIR" --no-wandb \
+            --output-dir "$OUT_DIR" \
             --cache-policy "$P_M09" \
             --lambda-reg "$LAMBDA_REG" \
             --probe-subset "outputs/${mode_dir}/probe_action/action_labels.json" \
             --probe-local-data "$LOCAL_DATA" \
             --probe-tags "${LOCAL_DATA}/tags.json" \
             --probe-action-labels "outputs/${mode_dir}/probe_action/action_labels.json" \
+            --motion-features-path "${LOCAL_DATA}/motion_features.npy" \
             "${TAXONOMY_ARGS[@]}" \
-            2>&1 | tee "logs/probe_pretrain_${mode_dir}.log"
+            --no-wandb \
+            2>&1 | tee "logs/m09a_pretrain_${mode_dir}.log"
         ;;
     surgery_3stage_DI|surgery_noDI)
         # Map subcommand → yaml + variant tag (used in output dir + log name).
@@ -181,7 +225,9 @@ case "$SUBCMD" in
                 VARIANT_TAG="noDI"
                 ;;
         esac
-        OUT_DIR="outputs/${mode_dir}/probe_surgery_${VARIANT_TAG}"
+        # iter13 v12+ (2026-05-06): renamed probe_surgery_* → m09c_surgery_* to
+        # match m09c_surgery.py module name. Mirror in run_probe_eval.sh.
+        OUT_DIR="outputs/${mode_dir}/m09c_surgery_${VARIANT_TAG}"
         FACTOR_DIR="outputs/full/m11_factor_datasets"
         VAL_TAGS="${LOCAL_DATA}/tags.json"
         # Surgery prereq: m10/m11 factor datasets (D_L/D_A/D_I) generated by run_factor_prep.sh.
@@ -208,10 +254,12 @@ case "$SUBCMD" in
             --probe-subset "$VAL_SPLIT" \
             --probe-local-data "$LOCAL_DATA" \
             --probe-tags "$VAL_TAGS" \
-            --output-dir "$OUT_DIR" --no-wandb \
+            --output-dir "$OUT_DIR" \
             --cache-policy "$P_M09" \
+            --motion-features-path "${LOCAL_DATA}/motion_features.npy" \
             "${TAXONOMY_ARGS[@]}" \
-            2>&1 | tee "logs/probe_surgery_${VARIANT_TAG}_${mode_dir}.log"
+            --no-wandb \
+            2>&1 | tee "logs/m09c_surgery_${VARIANT_TAG}_${mode_dir}.log"
         ;;
 esac
 

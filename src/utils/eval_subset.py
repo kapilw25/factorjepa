@@ -1,18 +1,36 @@
 """Stratified eval subset generator. CPU-only.
 
-Picks N clips per action class from a source eval JSON, writing a derived JSON
-that keeps the same path semantics + TAR layout as the source — so any subset
-(SANITY, ablation slice, debugging cut) shares codec/path semantics with FULL.
+Picks N clips per **POV class** (walking/driving/drone — derived from clip_key
+path prefix) from a source eval JSON, writing a derived JSON that keeps the
+same path + TAR layout. POV diversity is preserved so any subset (SANITY,
+ablation slice, debugging cut) shares codec/path/motion-pattern coverage with
+FULL.
 
-USAGE (called by scripts/run_probe_eval.sh under MODE=SANITY; also a standalone CLI):
+iter13 v12 (2026-05-06): the downstream probe_action.py now derives 16
+optical-flow MOTION classes (magnitude × direction) from m04d, NOT this 3-class
+POV. Why we still stratify by POV here:
+  - POV class is path-derived → no GPU/m04d dependency; eval_subset.py runs
+    BEFORE m04d in the orchestration order.
+  - POV diversity (handheld walking / forward-sweep driving / aerial drone)
+    naturally spreads the resulting 16-class motion distribution — drone clips
+    populate fast__*, walking clips populate slow/still__*, etc.
+  - SANITY's job is code-correctness validation; full motion-class coverage is
+    FULL eval's job (10K clips, all 16 classes naturally represented).
+The legacy `utils.action_labels.PATH_TO_CLASS_3CLASS` constant was deleted in
+iter13 v12; this module now owns its own POV mapping (no cross-import).
+
+USAGE (called by scripts/run_probe_eval.sh under MODE=SANITY; also standalone):
     python -u src/utils/eval_subset.py \\
         --eval-subset data/eval_10k.json \\
-        --n-per-class 50 \\
+        --n-per-class 200 \\
         --output data/eval_10k_sanity.json
 
-  Note: 50/class × 3 classes = 150 clips total. With 70/15/15 stratified split
-  this gives 35/7/8 per class — clears action_labels.stratified_split's >=5/split
-  floor with a 2-clip margin. Lowering below ~34/class WILL fail that floor.
+  Sizing notes (post-iter13-v12):
+    - 200/POV × 3 = 600 clips → ~37 clips/motion-class avg → splits cleanly
+      under run_probe_eval.sh's SANITY defaults (MIN_CLIPS_PER_CLASS=5,
+      MIN_PER_SPLIT=1) even after several rare motion classes get filtered.
+    - Lowering below ~150/POV (450 clips) risks all motion classes being
+      filtered → action_labels.load_subset_with_labels FATALs.
 """
 import argparse
 import json
@@ -20,9 +38,8 @@ import sys
 from pathlib import Path
 
 
-# Path-prefix → semantic class. Mirrors utils/action_labels.PATH_TO_CLASS_3CLASS.
-# Kept as a module-level constant so importers (and tests) can introspect it
-# without having to re-derive from action_labels (avoids cyclic import risk).
+# Path-prefix → POV class. Self-contained (no cross-import from action_labels;
+# the legacy PATH_TO_CLASS_3CLASS constant there was deleted in iter13 v12).
 PATH_TO_CLS = {
     "walking": "walking",
     "rain":    "walking",   # tier2 rain bucket = rainy walking tour
@@ -34,8 +51,8 @@ CLASSES = ("walking", "driving", "drone")
 
 
 def _path_class(clip_key: str):
-    """Return the semantic class for a clip_key, or None if it should be skipped
-    (e.g. monuments/* in 3-class mode, unrecognized prefix).
+    """Return the POV class (walking|driving|drone) for a clip_key, or None to
+    skip (monuments/* — no POV derivable; or unrecognized path prefix).
     """
     p = clip_key.split("/")
     if not p:

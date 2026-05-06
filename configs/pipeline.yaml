@@ -36,6 +36,16 @@ data:
 streaming:
   max_retries: 5              # HF stream reconnect attempts
   checkpoint_every: 500       # clips between checkpoint saves (m04/m05)
+  # iter13 (2026-05-05): probe extraction (utils/frozen_features.py) gets a
+  # COARSER flush cadence. Probe Stage 2 train-split = ~6964 clips / ~30 min;
+  # at the m04/m05 default of 500 that's 13 mid-flushes, each writing the
+  # cumulative-so-far .npz (O(N²) total I/O). Bumping to 5000 reduces this
+  # to 1 mid-flush + 1 final, ~10× less I/O without sacrificing crash safety
+  # in any meaningful way (re-extract from clip 0 = 30 min, vs 13 partial
+  # rewrites = 1+ hour at fp16 file sizes). m04/m05 keep their 500 cadence
+  # because their extractions are hour-scale and finer resume granularity
+  # IS load-bearing there.
+  probe_features_checkpoint_every: 5000
   engine_restart_every: 10000 # m04/m05: worker subprocess restart interval
   prefetch_queue_vlm: 8       # m04: VLM producer queue depth (was 4, GPU starved)
   prefetch_queue_embed: 8     # m05/m05b/m05c: embedding producer queue depth (was 2, CRITICAL)
@@ -67,9 +77,16 @@ gpu:
   # ═════════════════════════════════════════════════════════════════════════
   gpu_memory_target: 0.85              # UNIVERSAL VRAM ceiling for all sizers (m04/m05/m05b/m05c/m09/...)
   inference_vjepa_initial_bs: 8        # m05 V-JEPA native fwd (2B bf16 @ 64f) — safe start, max=inference_adapted_bs
+  # iter13 (2026-05-05): probe extraction (utils/frozen_features.py) runs V-JEPA
+  # at 16-FRAME (vs m05's 64-frame), so 4× fewer tokens per clip → 4× VRAM
+  # headroom. Skip the slow 8 → 9 → ... → 24 cold ramp by starting at 20.
+  # Observed VRAM at BS=8 was 8% of 96 GB ≈ 7.7 GB → linear extrapolation
+  # → BS=20 ≈ 19% ≈ 18 GB, still well under the 85% cap (81 GB).
+  # Saves ~30-60 sec ramp time per encoder × N_encoders.
+  inference_vjepa_probe_initial_bs: 20
   inference_dinov2_initial_bs: 16      # m05b DINOv2-L (300M fp16) — safe start, max=inference_dinov2_bs
   inference_clip_initial_bs: 16        # m05b CLIP-L (400M fp16) — safe start, max=inference_dinov2_bs (same tier)
-  training_initial_bs: 16              # m09 fwd+bwd+grads — skip cold ramp (4→16 was 12 steps × ~14 s = ~3 min wasted/run); VRAM ~50% at BS=16, well under 85% cap; AdaptiveBatch OOM-retry handles surprise OOM (e.g. m09c Stage 3 50% unfreeze)
+  training_initial_bs: 30              # iter13 (2026-05-05): 16 → 30. v9 measured AdaptiveBatch ramped 16→32 over 15 steps (~6.5 min cold ramp wasted). VRAM at BS=32 was ~50% (target 85%), so 30 is safely below the actual ceiling. Skips ~6 min of cold ramp per training run. Surprise OOM still recovered via AdaptiveBatchSizer.on_oom().
   # Probe BS — two contexts (probe = model.eval() forward to encode 1000 val_1k clips):
   # 1. inference_adapted_probe_bs: probe runs in pure-inference context (full 96 GB free).
   #    Same envelope as inference_adapted_bs → 44 is the established safe ceiling.
@@ -88,6 +105,36 @@ eval:
   motion_checkpoint_every: 200   # m04d: checkpoint interval
   llava_num_frames: 16           # m04: LLaVA-NeXT frame count (8-32 range)
   overlap_subsample: 30000       # m05c: random subsample for True Overlap@K (stat. sufficient for bootstrap CI)
+
+# -- Probe-head training (Stage 3 of run_probe_eval.sh, src/probe_action.py) --
+# This is the ATTENTIVE PROBE CLASSIFIER — ~140K params trained on FROZEN
+# encoder features (NOT the encoder pretrain in src/m09a_pretrain.py, which
+# has its own LR config in configs/train/probe_pretrain.yaml at 1e-4).
+# Stage 3 sweeps probe-head LRs to mimic Meta's multihead-best-LR convention
+# (deps/vjepa2/configs/eval/vitg-384/ssv2.yaml has 5 LRs at fixed wd=0.8).
+# Per-mode separation: SANITY uses 50 epochs to validate code paths quickly
+# on small-N; FULL uses 20 epochs (Meta-faithful for ssv2/jester family).
+# Single-LR fast-path: leave lr_sweep as a single-element list [5.0e-4] to
+# skip the multi-LR sweep + run_select_best_lr_stage symlinking.
+# Override at run-time: `LR_SWEEP="..." EPOCHS=N WARMUP_PCT=P ./run_probe_eval.sh`.
+probe_head_train:
+  sanity:
+    epochs: 50
+    warmup_pct: 0.10
+    lr_sweep: "5e-4"                  # single LR (validate code paths)
+  poc:
+    epochs: 20
+    warmup_pct: 0.0
+    lr_sweep: "5e-4"
+  full:
+    epochs: 20                        # Meta-faithful (vs SANITY's 50)
+    warmup_pct: 0.0                   # Meta's published recipe (warmup=0 for the head)
+    # Default single-LR string. For paper-faithful Meta-style multihead sweep,
+    # set: lr_sweep: "1e-4 3e-4 1e-3 3e-3"
+    # Multi-LR multiplies Stage 3 wall by N_lrs and invokes
+    # run_select_best_lr_stage to symlink the winner to canonical paths so
+    # Stage 4 paired_delta reads the best automatically.
+    lr_sweep: "5e-4"
 
 # -- Encoder registry (all model IDs + dims — no hardcoding in Python) --
 encoders:

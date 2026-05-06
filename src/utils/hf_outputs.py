@@ -406,13 +406,71 @@ def upload_after_step(output_dir: str):
         print(f"  HF upload failed (non-fatal): {e}")
 
 
-def upload_data():
-    """Upload POC + val data to HF for reproducibility across GPU instances.
+def _discover_data_uploads(data_root: Path) -> list:
+    """Discover everything under data_root that should be uploaded — dynamic.
 
-    Uploads:
-      data/subset_10k.json + data/subset_10k_local/*.tar  → factorjepa-outputs/data/subset_10k_local/
-      data/val_1k.json + data/val_1k_local/*.tar           → factorjepa-outputs/data/val_1k_local/
+    iter13 v12+ (2026-05-06): replaces the hardcoded uploads list.
+    Rules (NO hardcoded subfolder names):
+      - every *.json directly under data_root             → upload as file
+      - every subdirectory of data_root                   → upload as folder (bundle)
+
+    Returns: [(local_path: str, repo_path: str), ...].
     """
+    if not data_root.is_dir():
+        return []
+    pairs: list = []
+    for f in sorted(data_root.glob("*.json")):
+        pairs.append((str(f), str(f)))
+    for d in sorted(data_root.iterdir()):
+        if d.is_dir():
+            pairs.append((str(d), str(d)))
+    return pairs
+
+
+def _pre_upload_pack_masks(data_root: Path, n_shards: int = 10) -> None:
+    """Pack m10 masks/*.npz → masks-*.tar shards before HF upload (HF 10k-file cap).
+
+    iter13 v12+ (2026-05-06): discovers any data_root/<subdir>/m10_sam_segment/masks/
+    via Path.iterdir() — NO hardcoded list of which local-data subdirs to scan.
+    """
+    from utils.tar_shard import pack_dir_to_shards
+    if not data_root.is_dir():
+        return
+    for d in sorted(data_root.iterdir()):
+        if not d.is_dir():
+            continue
+        masks_dir = d / "m10_sam_segment" / "masks"
+        if not masks_dir.is_dir():
+            continue
+        if not any(masks_dir.iterdir()):
+            continue
+        shard_template = str(d / "m10_sam_segment" / "masks-{shard:05d}.tar")
+        print(f"\n  [hf_outputs] pre-upload pack: {masks_dir} → {n_shards} shards")
+        pack_dir_to_shards(
+            input_dir=masks_dir,
+            shard_template=shard_template,
+            n_shards=n_shards,
+            keep_source=True,    # m11 + m09c read .npz at runtime; never delete
+            force=False,         # idempotent — skip if shards already exist
+        )
+
+
+def upload_data(data_root: Path = None):
+    """Upload data_root/ contents to HF — files via discovery, no hardcoded subfolder list.
+
+    iter13 v12+ (2026-05-06): dynamically iterates data_root for *.json files +
+    subdir bundles. m10 masks/ subfolders get pre-packed into TAR shards
+    (HF 10k-file cap workaround). m10/m11 outputs are CO-LOCATED inside each
+    local-data subdir (data_root/<subdir>/m10_sam_segment/, m11_factor_datasets/)
+    so they ride along automatically.
+
+    Args:
+      data_root: directory to upload. Defaults to "data" (project convention).
+    """
+    if data_root is None:
+        data_root = Path("data")
+    data_root = Path(data_root)
+
     token = _get_token()
     if not token:
         print("SKIP: HF_TOKEN not found")
@@ -421,19 +479,18 @@ def upload_data():
     _ensure_repo(token)
     api = HfApi(token=token)
 
-    uploads = [
-        ("data/subset_10k.json", "data/subset_10k.json"),
-        ("data/val_1k.json", "data/val_1k.json"),
-        ("data/val_500.json", "data/val_500.json"),
-        ("data/test_500.json", "data/test_500.json"),
-        ("data/sanity_100_dense.json", "data/sanity_100_dense.json"),
-        ("data/subset_10k_local", "data/subset_10k_local"),
-        ("data/val_1k_local", "data/val_1k_local"),
-        ("data/full_local/tags.json", "data/full_local/tags.json"),
-        # iter10 Option C: paired-bootstrap eval pool (N=10K, disjoint from train+val).
-        ("data/eval_10k.json", "data/eval_10k.json"),
-        ("data/eval_10k_local", "data/eval_10k_local"),
-    ]
+    # Pre-upload: TAR-shard m10 masks/*.npz across every <subdir>/m10_sam_segment/
+    # under data_root (HF 10k-file repo cap). Uses dynamic discovery — no
+    # hardcoded list of local-data subdirs. _UPLOAD_SKIP_PATTERNS keeps the
+    # raw .npz out of the upload (they live on disk for runtime random-access
+    # reads by m11 + m09c; only the shards ride to HF).
+    _pre_upload_pack_masks(data_root)
+
+    uploads = _discover_data_uploads(data_root)
+    if not uploads:
+        print(f"SKIP: no *.json or subdirs found under {data_root}/")
+        return
+    print(f"Discovered {len(uploads)} upload items under {data_root}/")
 
     pbar = make_pbar(total=len(uploads), desc="upload_data", unit="item")
     for local_path, repo_path in uploads:
@@ -460,6 +517,19 @@ def upload_data():
                 repo_id=HF_OUTPUTS_REPO,
                 repo_type="dataset",
                 path_in_repo=repo_path,
+                # iter13 v12+: skip masks/*.npz (replaced by masks-*.tar shards
+                # produced by _pre_upload_pack_masks above) + m11 large
+                # regeneratable subdirs. Mirrors _UPLOAD_SKIP_PATTERNS used by
+                # upload_outputs() — kept inline here so upload_data is self-
+                # contained without depending on outputs/ skip rules.
+                ignore_patterns=[
+                    "**/m10_sam_segment/masks/*.npz",
+                    "**/m10_sam_segment/m10_overlay_verify/**",
+                    "**/m11_factor_datasets/D_L/**",
+                    "**/m11_factor_datasets/D_A/**",
+                    "**/m11_factor_datasets/D_I/**",
+                    "**/m11_factor_datasets/m11_per_clip_verify/**",
+                ],
             )
         pbar.update(1)
     pbar.close()
@@ -467,8 +537,45 @@ def upload_data():
     print(f"Data upload complete → https://huggingface.co/datasets/{HF_OUTPUTS_REPO}")
 
 
-def download_data():
-    """Download POC + val data from HF to local data/ directory."""
+def _post_download_unpack_masks(data_root: Path) -> None:
+    """Unpack m10 masks-*.tar shards back into masks/*.npz after HF download.
+
+    iter13 v12+ (2026-05-06): mirror of _pre_upload_pack_masks. Discovers any
+    data_root/<subdir>/m10_sam_segment/masks-*.tar via Path.iterdir() — NO
+    hardcoded list. Skips already-extracted .npz to allow incremental restore.
+    """
+    from utils.tar_shard import unpack_shards_to_dir
+    if not data_root.is_dir():
+        return
+    for d in sorted(data_root.iterdir()):
+        if not d.is_dir():
+            continue
+        seg_dir = d / "m10_sam_segment"
+        if not seg_dir.is_dir():
+            continue
+        # check if any masks-*.tar exists
+        if not list(seg_dir.glob("masks-*.tar")):
+            continue
+        masks_dir = seg_dir / "masks"
+        print(f"\n  [hf_outputs] post-download unpack: {seg_dir}/masks-*.tar → {masks_dir}/")
+        unpack_shards_to_dir(
+            shards_glob=str(seg_dir / "masks-*.tar"),
+            output_dir=masks_dir,
+            skip_existing=True,
+        )
+
+
+def download_data(data_root: Path = None):
+    """Download data_root/ from HF — dynamic, no hardcoded subfolder allow-list.
+
+    iter13 v12+ (2026-05-06): pulls everything under <repo>/data_root/, then
+    unpacks any m10 masks-*.tar shards back into masks/ (for runtime random
+    access by m11 + m09c).
+    """
+    if data_root is None:
+        data_root = Path("data")
+    data_root = Path(data_root)
+
     token = _get_token()
     if not token:
         print("SKIP: HF_TOKEN not found")
@@ -478,14 +585,14 @@ def download_data():
         print(f"SKIP: {HF_OUTPUTS_REPO} does not exist")
         return False
 
-    # Pre-list remote data files
+    subfolder = str(data_root)
     api = HfApi(token=token)
-    remote_files = _list_remote_files(api, "data")
+    remote_files = _list_remote_files(api, subfolder)
     total_bytes = sum(size for _, size in remote_files)
-    print(f"Downloading data from {HF_OUTPUTS_REPO}/data/ → data/")
+    print(f"Downloading {HF_OUTPUTS_REPO}/{subfolder}/ → {data_root}/")
     print(f"  {len(remote_files)} files ({_fmt_size(total_bytes)}) on HF:")
     for rpath, size in remote_files:
-        rel = rpath[len("data"):].lstrip("/") if rpath.startswith("data") else rpath
+        rel = rpath[len(subfolder):].lstrip("/") if rpath.startswith(subfolder) else rpath
         print(f"    {rel} ({_fmt_size(size)})")
 
     t0 = time.time()
@@ -494,11 +601,14 @@ def download_data():
         repo_id=HF_OUTPUTS_REPO,
         repo_type="dataset",
         local_dir=".",
-        allow_patterns=["data/*.json", "data/subset_10k_local/*", "data/val_1k_local/*",
-                        "data/full_local/tags.json", "data/eval_10k_local/*"],
+        allow_patterns=[f"{subfolder}/*"],
         token=token,
         max_workers=16,
     )
+
+    # iter13 v12+: restore masks/*.npz from masks-*.tar shards (HF only stored
+    # the shards). Discovers all <subdir>/m10_sam_segment/masks-*.tar dynamically.
+    _post_download_unpack_masks(data_root)
 
     print(f"Data download complete: {time.time() - t0:.0f}s")
     return True
@@ -511,8 +621,8 @@ if __name__ == "__main__":
         print("Usage:")
         print("  python -u src/utils/hf_outputs.py upload <output_dir>")
         print("  python -u src/utils/hf_outputs.py download <output_dir>")
-        print("  python -u src/utils/hf_outputs.py upload-data")
-        print("  python -u src/utils/hf_outputs.py download-data")
+        print("  python -u src/utils/hf_outputs.py upload-data [data_dir]      # default 'data'")
+        print("  python -u src/utils/hf_outputs.py download-data [data_dir]    # default 'data'")
         sys.exit(1)
 
     cmd = sys.argv[1]
@@ -522,9 +632,11 @@ if __name__ == "__main__":
     elif cmd == "download" and len(sys.argv) >= 3:
         download_outputs(sys.argv[2])
     elif cmd == "upload-data":
-        upload_data()
+        # iter13 v12+ (2026-05-06): optional positional <data_dir> override.
+        # Default = "data" (project convention). No more hardcoded subfolder list.
+        upload_data(Path(sys.argv[2]) if len(sys.argv) >= 3 else None)
     elif cmd == "download-data":
-        download_data()
+        download_data(Path(sys.argv[2]) if len(sys.argv) >= 3 else None)
     else:
         print(f"Unknown command: {cmd}")
         sys.exit(1)

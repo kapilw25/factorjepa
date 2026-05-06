@@ -45,7 +45,17 @@ from utils.vjepa2_imports import get_vit_by_arch
 _PCFG = get_pipeline_config()
 PATCH_SIZE = 16
 TUBELET_SIZE = 2
-CHECKPOINT_EVERY = _PCFG["streaming"]["checkpoint_every"]
+# Mid-extract flush cadence. Lower = finer-grained crash resume but more I/O;
+# higher = less I/O but bigger re-extract on crash. Probe extraction is a
+# ~30-min job — at the legacy m04/m05 default of 500, that's ~13 flushes
+# during a single FULL train-split extraction. Probe-specific override to
+# `streaming.probe_features_checkpoint_every` lets us cut to ~1-2 flushes
+# without affecting m04/m05 (which keep their finer cadence for hour-long
+# extractions). Falls back to the global value if the probe key is absent.
+CHECKPOINT_EVERY = _PCFG["streaming"].get(
+    "probe_features_checkpoint_every",
+    _PCFG["streaming"]["checkpoint_every"],
+)
 
 # ImageNet normalization — both V-JEPA 2.1 + DINOv2 expect this.
 IMAGENET_MEAN = (0.485, 0.456, 0.406)
@@ -211,19 +221,72 @@ def _save_features_ckpt(ckpt_file: Path, feats_acc, keys_acc) -> None:
     Suffix is .tmp.npz (not .npz.tmp) — np.savez auto-appends .npz when the
     path doesn't already end in .npz, which would silently rename our tmp
     file behind our back and break the os.replace. See errors_N_fixes.md #82.
+
+    iter13 disk-saving (2026-05-05): features stored as float16 instead of
+    float32 — saves 50% disk per cache (~146 GB train cache → 73 GB on FULL
+    eval). Information-equivalent: V-JEPA's forward returns bf16 internally,
+    upcast to fp32 in forward_vjepa via .float() — saving back as fp16 has no
+    information loss vs the bf16 source. PyTorch consumers (probe head, motion
+    cos) all do `.float()` on load, NumPy consumers do explicit `astype(float32)`.
     """
     if not feats_acc:
         return
     tmp = ckpt_file.with_suffix(".tmp.npz")
+    # iter13 (2026-05-05): drop OLD ckpt BEFORE writing NEW tmp so peak transient
+    # is 1× cache (73 GB at fp16) instead of 2× (146 GB). Required to fit eval on
+    # 199 GB disk — otherwise mid-extract checkpoint flushes ENOSPC. Trade-off:
+    # if killed mid-write, no resume cache (re-extract from clip 0, ~30 min loss);
+    # without this, ENOSPC during write is ~80% per flush. Strict improvement.
+    if ckpt_file.exists():
+        ckpt_file.unlink()
+    # iter13 (2026-05-05): plain np.savez (not _compressed). Tried compression
+    # earlier — turned out to cost ~3 hours on Stage 3 train extraction because
+    # each flush re-compresses CUMULATIVE features (O(N²) work on 13 flushes
+    # × growing 5→68 GB). Uncompressed write is ~5 sec per flush at SSD speed.
+    # Disk savings from compression (~50 GB peak) weren't worth 3 h wall-cost
+    # given fp16 + unlink-before-write already brought peak from 261 GB → 73 GB
+    # transient (fits 199 GB budget with 11 GB margin).
     np.savez(tmp,
-             features=np.stack(feats_acc).astype(np.float32),
+             features=np.stack(feats_acc).astype(np.float16),
              keys=np.array(keys_acc, dtype=object))
+    # fsync the tmp file to ensure data hits the disk BEFORE the atomic rename.
+    # Without this, a crash between np.savez return and os.replace could leave
+    # tmp.npz with not-yet-flushed pages — recovery via the orphan-tmp cleanup
+    # is fine, but fsync makes the safe-completion path durable.
+    with open(tmp, "rb") as _fp:
+        os.fsync(_fp.fileno())
     os.replace(tmp, ckpt_file)
 
 
+def _pool_tokens(feats: torch.Tensor, n_out: int) -> torch.Tensor:
+    """(N, T, D) → (N, n_out, D) via adaptive_avg_pool1d on token axis.
+
+    Encoder-agnostic block-mean pool over contiguous token chunks. Works for
+    V-JEPA's (T_temp×H×W=4608) layout AND DINOv2's (T_frames×n_spatial=4112)
+    layout — both collapse to `n_out` tokens with no encoder-specific reshape.
+    Pooling is information-equivalent to mean-pool over the same blocks; the
+    AttentiveClassifier's cross-attention then attends over n_out queries × n_out
+    keys (e.g. 16² = 256 vs the unpooled 4608² = 21M) — ~290× attention compute
+    savings at the head with negligible accuracy impact (V-JEPA paper §4 evals
+    use 16-32 tokens at the attentive probe input).
+    """
+    if feats.shape[1] == n_out:
+        return feats
+    # adaptive_avg_pool1d expects (..., C, L); we have (N, T, D) → transpose to
+    # (N, D, T) → pool L axis to n_out → transpose back → (N, n_out, D).
+    pooled = F.adaptive_avg_pool1d(feats.transpose(1, 2).contiguous(), n_out)
+    return pooled.transpose(1, 2).contiguous()
+
+
 def _flush_batch(pending_tensors, pending_keys, model, encoder_kind, num_frames,
-                 sizer, feats_acc, keys_acc, pbar):
-    """Sub-batch and run encoder. AdaptiveBatchSizer halves on OOM and retries."""
+                 sizer, feats_acc, keys_acc, pbar, pool_tokens=None):
+    """Sub-batch and run encoder. AdaptiveBatchSizer halves on OOM and retries.
+
+    iter13 (2026-05-05): if `pool_tokens` is set, apply token-axis adaptive
+    avg-pool BEFORE the .numpy() materialisation so feats_acc accumulates the
+    pooled (N, pool_tokens, D) shape. Disk-saving is HUGE for ViT-G FULL evals:
+    4608 → 16 tokens = 288× per-clip reduction (~21 MB → ~73 KB at fp16).
+    """
     batch = torch.stack(pending_tensors)
     n_total = batch.shape[0]
     i = 0
@@ -239,6 +302,8 @@ def _flush_batch(pending_tensors, pending_keys, model, encoder_kind, num_frames,
             if not sizer.on_oom():
                 raise
             continue
+        if pool_tokens is not None:
+            feats = _pool_tokens(feats, pool_tokens)
         feats_np = feats.numpy()
         for r in range(feats_np.shape[0]):
             feats_acc.append(feats_np[r])
@@ -249,7 +314,8 @@ def _flush_batch(pending_tensors, pending_keys, model, encoder_kind, num_frames,
 
 
 def extract_features_for_keys(args, model, encoder_kind: str, crop: int, embed_dim: int,
-                              keys, output_dir: Path, *, label: str = "feat"):
+                              keys, output_dir: Path, *, label: str = "feat",
+                              pool_tokens: int = None):
     """Producer-consumer feature extraction over local TARs.
 
     Args:
@@ -261,39 +327,99 @@ def extract_features_for_keys(args, model, encoder_kind: str, crop: int, embed_d
         keys:           Iterable of clip_keys to extract.
         output_dir:     Where to write the resume checkpoint (.probe_<label>_ckpt.npz).
         label:          Prefix for the resume checkpoint filename.
+        pool_tokens:    If int, adaptive-avg-pool the token axis from N_raw → pool_tokens
+                        BEFORE storage. Default None = no pool (legacy path; (N, 4608, D)
+                        for V-JEPA ViT-G). Set to 16 for V-JEPA-paper-style attentive probe
+                        with 290× less downstream compute + 290× smaller .npy artifacts.
 
     Returns:
-        (features (N, n_tokens, D) fp32, ordered_keys list[str]) — aligned by row.
+        (features (N, n_tokens, D) **fp16**, ordered_keys list[str]) — aligned by row.
+        n_tokens = pool_tokens if set, else encoder-native token count.
+        Float16 storage (iter13, 2026-05-05) saves 50% disk + RAM. Consumers
+        upcast via `.float()` (PyTorch) or `astype(np.float32)` (NumPy).
     """
     output_dir = Path(output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
     ckpt_file = output_dir / f".probe_{label}_ckpt.npz"
 
+    # iter13 (2026-05-05): orphan-tmp cleanup. The 2026-05-04 v2 ENOSPC crash
+    # left a 35 GB `.probe_features_train_ckpt.tmp.npz` behind because torch.save
+    # didn't reach `os.replace`. Sweep stale .tmp.npz BEFORE we start so the
+    # disk pressure doesn't snowball across reruns. Only safe to delete because:
+    #   (a) tmp files are write-only intermediates; readers ALWAYS open the
+    #       atomic-renamed final ckpt_file (no consumer reads .tmp.npz);
+    #   (b) any in-flight writer in another process would have the file locked
+    #       on POSIX, and we don't kill in-flight processes — only sweep dead orphans.
+    tmp_npz = ckpt_file.with_suffix(".tmp.npz")
+    if tmp_npz.exists():
+        try:
+            sz_gb = tmp_npz.stat().st_size / 1e9
+            tmp_npz.unlink()
+            print(f"  [orphan-cleanup] removed stale {tmp_npz.name} ({sz_gb:.1f} GB) "
+                  f"— prior crash left it behind")
+        except OSError as e:
+            print(f"  WARN: could not remove stale {tmp_npz}: {e}")
+
     feats_acc, keys_acc, processed = [], [], set()
     if ckpt_file.exists():
         try:
             data = np.load(ckpt_file, allow_pickle=True)
-            feats_acc = list(data["features"])
-            keys_acc = list(data["keys"])
-            processed = set(keys_acc)
-            print(f"  Resume: {len(processed)} clips already cached")
+            cached_features = data["features"]
+            # iter13 (2026-05-05): if pool_tokens differs from cached shape, the
+            # cache is from a prior run with a different pooling regime — drop it.
+            # Otherwise the resume path would mix raw+pooled rows and the np.stack
+            # would explode at flush time.
+            if pool_tokens is not None and cached_features.shape[1] != pool_tokens:
+                print(f"  resume ckpt token mismatch (cached={cached_features.shape[1]}, "
+                      f"requested pool_tokens={pool_tokens}) — dropping stale cache, "
+                      f"re-extracting from scratch")
+                ckpt_file.unlink()
+            else:
+                feats_acc = list(cached_features)
+                keys_acc = list(data["keys"])
+                processed = set(keys_acc)
+                print(f"  Resume: {len(processed)} clips already cached")
         except Exception as e:
-            print(f"  WARN: resume ckpt corrupt ({e}), starting fresh")
+            # iter13 (2026-05-05): per CLAUDE.md FAIL HARD. Corrupt resume cache
+            # is a real bug (crash mid-flush, schema mismatch) — surface it instead
+            # of silently re-extracting and burning ~30 min of GPU on something
+            # the user probably wants to investigate. Re-run with cache-policy 2
+            # to wipe the cache deliberately.
+            print(f"  [resume] FATAL: resume ckpt corrupt ({e})", flush=True)
+            print(f"  [resume] delete {ckpt_file} and re-run if you want a fresh extract", flush=True)
+            raise
 
     keys = list(keys)
     target = set(keys) - processed
     if not target:
-        feats = (np.stack(feats_acc).astype(np.float32)
-                 if feats_acc else np.empty((0, 0, embed_dim), dtype=np.float32))
+        # iter13: float16 storage matches _save_features_ckpt; saves 50% RAM at
+        # the resume short-circuit (when the ckpt already covers all target keys).
+        feats = (np.stack(feats_acc).astype(np.float16)
+                 if feats_acc else np.empty((0, 0, embed_dim), dtype=np.float16))
         return feats, keys_acc
 
-    # Producer batch size 32; AdaptiveBatchSizer adjusts the GPU sub-batch.
-    initial_bs = 8 if encoder_kind == "vjepa" else 32
+    # iter13 (2026-05-05): batch envelope read from pipeline.yaml gpu block —
+    # was hardcoded `initial=8, max=32` (legacy pre-Blackwell). On 96 GB
+    # Blackwell, ViT-G fwd-only feature extraction can run at BS=44 (matches
+    # m05 inference profile at 64-frame; here we use 16-frame so headroom is
+    # even larger). AdaptiveBatchSizer ramps from initial → max based on actual
+    # VRAM utilisation. DINOv2 (300M params) tolerates BS=96.
+    if encoder_kind == "vjepa":
+        # iter13: probe-specific initial BS (yaml key inference_vjepa_probe_initial_bs).
+        # Falls back to the m05 64-frame default (8) if probe key is absent.
+        initial_bs = _PCFG["gpu"].get(
+            "inference_vjepa_probe_initial_bs",
+            _PCFG["gpu"]["inference_vjepa_initial_bs"],
+        )
+        max_bs     = _PCFG["gpu"]["inference_adapted_probe_bs"]   # 44
+    else:
+        initial_bs = _PCFG["gpu"]["inference_dinov2_initial_bs"]  # 16
+        max_bs     = _PCFG["gpu"]["inference_dinov2_bs"]          # 96
     sizer = AdaptiveBatchSizer(
-        initial_size=initial_bs, min_size=1, max_size=32,
+        initial_size=initial_bs, min_size=1, max_size=max_bs,
         memory_cap=_PCFG["gpu"]["gpu_memory_target"],
     )
-    print(f"  AdaptiveBatchSizer({label}): start={sizer.size}, max=32, target_vram={_PCFG['gpu']['gpu_memory_target']:.0%}")
+    print(f"  AdaptiveBatchSizer({label}): start={sizer.size}, max={max_bs}, target_vram={_PCFG['gpu']['gpu_memory_target']:.0%}")
 
     pbar = make_pbar(total=len(keys), desc=f"probe_{label}", unit="clip", initial=len(processed))
 
@@ -326,7 +452,8 @@ def extract_features_for_keys(args, model, encoder_kind: str, crop: int, embed_d
             if len(pending_tensors) >= 32:
                 _flush_batch(pending_tensors, pending_keys,
                              model, encoder_kind, args.num_frames,
-                             sizer, feats_acc, keys_acc, pbar)
+                             sizer, feats_acc, keys_acc, pbar,
+                             pool_tokens=pool_tokens)
                 n_since_ckpt += len(pending_keys)
                 pending_tensors, pending_keys = [], []
                 if n_since_ckpt >= CHECKPOINT_EVERY:
@@ -335,7 +462,8 @@ def extract_features_for_keys(args, model, encoder_kind: str, crop: int, embed_d
         if pending_tensors:
             _flush_batch(pending_tensors, pending_keys,
                          model, encoder_kind, args.num_frames,
-                         sizer, feats_acc, keys_acc, pbar)
+                         sizer, feats_acc, keys_acc, pbar,
+                         pool_tokens=pool_tokens)
     finally:
         tar_stop.set()
         pbar.close()
@@ -343,8 +471,14 @@ def extract_features_for_keys(args, model, encoder_kind: str, crop: int, embed_d
     elapsed = time.time() - t0
     print(f"  extract_features_for_keys({label}): {len(keys_acc)}/{len(keys)} clips in {elapsed:.0f}s")
 
-    feats = (np.stack(feats_acc).astype(np.float32)
-             if feats_acc else np.empty((0, 0, embed_dim), dtype=np.float32))
+    # iter13: float16 storage. Matches _save_features_ckpt. Downstream consumers
+    # (probe head training in probe_action.py:380, motion-cos in
+    # probe_motion_cos.py:81-87) all upcast to fp32 explicitly via .float() or
+    # .astype(np.float32) — fp16 storage is information-equivalent (V-JEPA
+    # forward is bf16 internally; .float() in forward_vjepa already loses bf16
+    # precision; round-tripping through fp16 storage adds zero new loss).
+    feats = (np.stack(feats_acc).astype(np.float16)
+             if feats_acc else np.empty((0, 0, embed_dim), dtype=np.float16))
     return feats, keys_acc
 
 

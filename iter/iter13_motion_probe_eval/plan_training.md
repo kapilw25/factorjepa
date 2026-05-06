@@ -1,12 +1,6 @@
 # Training Plan — FactorJEPA iter13 (Motion-Centric Probe Gate)
 
-> ## 🎯 Paper goal — three priorities (durable across iter13 work)
->
-> 🥇 **P1**: `vjepa_frozen` outperforms `dinov2_frozen` (and DINOv3 if checkpoint available) on Meta's published motion-centric benchmark (SSv2 attentive probe, target **≥ +20 pp**).
->
-> 🥈 **P2**: `vjepa_explora` outperforms `vjepa_frozen` on the same benchmark.
->
-> 🥉 **P3**: `vjepa_surgery` outperforms `vjepa_explora` on the same benchmark.
+> **🎯 Paper goal**: `vjepa_surgery` >>  `vjepa_pretrain` >> `vjepa_frozen` on the motion / temporal features
 >
 > ---
 >

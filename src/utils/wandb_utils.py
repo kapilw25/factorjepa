@@ -37,8 +37,10 @@ def init_wandb(module_name: str, mode: str, config: dict = None,
         print(f"wandb: run={run.name} url={run.url}")
         return run
     except Exception as e:
-        print(f"wandb: init failed ({e}), continuing without wandb")
-        return None
+        # iter13 (2026-05-05): per CLAUDE.md FAIL HARD + "No bare except: pass".
+        # Use --no-wandb to opt out explicitly; don't silently degrade.
+        print(f"wandb: FATAL: init failed ({e}); use --no-wandb to opt out", flush=True)
+        raise
 
 
 def log_metrics(run, metrics: dict, step: int = None):
@@ -50,8 +52,10 @@ def log_metrics(run, metrics: dict, step: int = None):
             run.log(metrics, step=step)
         else:
             run.log(metrics)
-    except Exception:
-        pass
+    except Exception as e:
+        # iter13 (2026-05-05): per CLAUDE.md FAIL HARD.
+        print(f"wandb: FATAL: log_metrics failed ({e})", flush=True)
+        raise
 
 
 def log_image(run, key: str, path: str):
@@ -64,8 +68,10 @@ def log_image(run, key: str, path: str):
         p = Path(path)
         if p.exists():
             run.log({key: wandb.Image(str(p))})
-    except Exception:
-        pass
+    except Exception as e:
+        # iter13 (2026-05-05): per CLAUDE.md FAIL HARD.
+        print(f"wandb: FATAL: log_image failed ({e})", flush=True)
+        raise
 
 
 def log_artifact(run, name: str, path: str, artifact_type: str = "output"):
@@ -80,8 +86,10 @@ def log_artifact(run, name: str, path: str, artifact_type: str = "output"):
             art = wandb.Artifact(name, type=artifact_type)
             art.add_file(str(p))
             run.log_artifact(art)
-    except Exception:
-        pass
+    except Exception as e:
+        # iter13 (2026-05-05): per CLAUDE.md FAIL HARD.
+        print(f"wandb: FATAL: log_artifact failed ({e})", flush=True)
+        raise
 
 
 def finish_wandb(run):
@@ -90,5 +98,7 @@ def finish_wandb(run):
         return
     try:
         run.finish()
-    except Exception:
-        pass
+    except Exception as e:
+        # iter13 (2026-05-05): per CLAUDE.md FAIL HARD.
+        print(f"wandb: FATAL: finish_wandb failed ({e})", flush=True)
+        raise

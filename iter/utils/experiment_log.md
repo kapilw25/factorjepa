@@ -191,3 +191,50 @@ Color rule (Δ vs A baseline; val_jepa inverted: lower=better): 🟢 ≥5 % · �
 | Paired-Δ Prec@K vs Frozen (Easy, N=308) | n/a | +0.32 ± 0.57 · p=0.31 🟠 | +0.87 ± 0.60 · p=0.0038 🟠 | +0.27 ± 0.49 · p=0.29 🟠 | TBD (eval pending) | n/a |
 | ROI pp/GPU-h | n/a | ~0 🔴 | 0.06 🟠 | 0.049 🟠 | TBD | n/a |
 | UW final w_jepa : w_infonce | n/a | n/a | n/a | n/a | 1.053 : 1.016 (step 1139) | n/a |
+
+---
+
+## 📊 iter13 m09a continual SSL — `eval_10k` v5+v6+v7 Diagnostic (2026-05-04, **STUCK ENCODER**)
+
+iter13's first attempt at continual SSL pretrain on the 10K eval-pool. Multi-attempt run across 3 wall-clock days due to disk-full crashes; v6 patched cleanup, v7 patched best.pt slimming. Final state — **encoder didn't move in any of the 3 attempts**. Empirical proof that LR=1e-5 is below the threshold where ViT-G moves while a 60M-param predictor competes for gradient.
+
+| Metric | v5 (initial) | v6 (post-cleanup-fix) | v7 (post-best.pt-slim) | Combined verdict |
+|---|---|---|---|---|
+| Status | crashed step 86 (disk-full) | crashed step 744 (disk-full) | done 1085/1085 | 3 attempts → 1 completion |
+| LR (peak / floor) | 1e-5 / 1e-6 | 1e-5 / 1e-6 | 1e-5 / 1e-6 | uniform (the bug) |
+| Resume start step | 0 | 86 | 731 | resumed forward |
+| top1 (kNN-centroid, mid-train) | 0.8259 ↔ 0.8281 over 8 probes | 0.8249 ↔ 0.8281 over 7 probes | 0.8249 ↔ 0.8270 over 6 probes | **🔴 plateau ±3 clips of 925 (0.32 pp = pure noise)** |
+| val_jepa best | 0.4641 | 0.4604 | 0.4597 | 🟠 −0.95% over 860 steps (CI noise band) |
+| Per-block weight rel_l2 vs Meta init | (not measured) | (not measured) | **~2e-5 across ALL 48 blocks** | 🔴 **100-1000× too small for active fine-tune** |
+| Frozen vs trainable layer drift signature | n/a | n/a | indistinguishable | layer_freeze yaml directive was a SILENT NO-OP |
+| Probes | 8 | 7 | 6 | 21 total — none showed encoder movement |
+| GPU-h | ~0.5 (killed early) | ~3.5 (killed) | ~5.5 (completed) | ~9.5 wasted |
+
+**Root-cause diagnosis** (audit at `iter/iter13_motion_probe_eval/audit.md`):
+1. **LR too low** — yaml's lr=1e-5 is 10× lower than Meta's continual SSL peak (1e-4). For ViT-G's 1.84B params, this falls below the threshold where the encoder moves visibly within 1000 steps while a 60M-param predictor also competes for gradient.
+2. **`layer_freeze` ignored** — yaml said `enabled: true, freeze_below: 20` but m09a never read it. All 48 blocks were nominally trainable; in practice none of them moved.
+3. **MultiSeqWrapper missing** — minor stylistic divergence from Meta's reference, semantically a no-op for our setup.
+
+**Three fixes committed before v8 launch**: (1) `lr 1e-5 → 1e-4` + `warmup 500 → 1500` + `min_lr 1e-6 → 1e-5`; (2) `layer_freeze` actually wired; (3) explicit `training=True` + `mod="video"` to align with Meta's call style. v8 is the diagnostic run — if encoder still doesn't move after Fix #1+#2+#3, deeper rewrite needed.
+
+---
+
+## 📊 iter13 v10 m09a continual SSL pretrain — `eval_10k` (2026-05-05, 🔻 ANCHOR-SATURATION COLLAPSE)
+
+> Source: `outputs/full/probe_pretrain/{loss_log.jsonl,probe_history.jsonl,training_summary.json,m09_block_drift.png}` + v4 eval JSONs (`probe_action/probe_paired_delta_3class.json`, `probe_future_mse/probe_future_mse_per_variant.json`, `probe_motion_cos/probe_motion_cos_paired.json`). Recipe: lr=1e-4 (Meta continual peak, post-v7 LR-bump), `drift_control: l2_uniform, lambda_reg=1.0`, layer_freeze blocks 0-19, 5 epochs / 1085 steps / 34,720 clips_seen. best_state by `val_loss` (NOT probe_top1).
+
+| Aspect | Value |
+|---|---|
+| **🏃 Training (1085 steps, 5 epochs, 34,720 clips_seen)** | |
+| `block_drift_mean` trajectory | 9.7e-5 (s107) → **🔺 1.26e-4 (s215, peak)** → 1.16e-4 (s323) → 9.2e-5 → 8.0e-5 → 6.5e-5 → 4.9e-5 → **🔻 3.2e-5 (s863, min)** → 3.5e-5 (s1079) — **rise-then-fall = anchor-saturation signature** |
+| `probe_top1` trajectory | 0.8249 (s107) → 0.8270 → **🔺 0.8281 (s323, peak)** → 0.8270 → 0.8259 (s755-971) → 0.8270 (s1079) — peaked at 1.5 epochs, regressed |
+| `val_drift_loss` shrinkage | 0.0205 (s107) → 0.0196 → 0.0106 → 0.00914 → ... → **0.00108 (s1079) — 95% drop** = anchor had nothing to penalize because weights were back at init |
+| training_summary | `lambda_reg: 1.0`, `final_jepa_loss: 0.4461`, `best_val_loss: 0.4486` (s863, **collapsed**), `final_lr: 1e-5`, `batch_size: 32` |
+| best_state failure | `val_loss` selection picked s863 (collapsed) instead of s323 peak; `student_encoder.pt` exported from collapsed ckpt |
+| **🎯 Eval (N=1394 walkindia test, 3-class action probe, BCa 95% CI 10K-iter)** | |
+| 🔥 Stage 4 action top-1 | frozen 94.48 % [93.19, 95.55]; pretrain 95.34 % [94.12, 96.34]; **Δ +0.86 pp** [−0.07, +1.87], p=0.095, ❌ CI crosses 0 (saturated 3-class probe) |
+| Stage 7 motion_cos (intra−inter) | frozen 0.03806; pretrain 0.03816; Δ +9.6e−5 [+8.8e−5, +1.0e−4], p=0.000, ❌ trivial Δ |
+| Stage 9 future_mse (L1 ↓ better) | frozen 0.5576; pretrain **0.5272**; **Δ −0.0304** [−0.0312, −0.0297], p=0.000, ✅ **pretrain wins (−5.5 % rel, only positive signal)** |
+| **🩹 v11 fixes wired (code in; RUN pending)** | `drift_control.enabled: false`, `lambda_reg: 0.0` (`probe_pretrain.yaml:119,121`); best_state by `probe_top1` not val_loss (`m09a_pretrain.py:1192-1247`); `keep_last_n: 2 → 5` (`base_optimization.yaml:239`); Phase 2 16-class motion-flow probe (eval-side); Phase 3 motion_aux CE+MSE loss in m09a (training-side) |
+
+**Verdict**: 🔻 **diagnostic-only, no paper signal**. v10 conclusively proves anchor-saturation collapse — encoder peaked at s323 then reverted to init by s863. The lone positive signal (future_mse −5.5 %) is invisible to the saturated 3-class probe. ~$5.20 GPU spent (~$2.40 train + ~$2.40 eval + buffer); locks in v11 + Phase 2 + Phase 3 design.
