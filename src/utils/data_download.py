@@ -111,7 +111,16 @@ def _get_clip_key(json_bytes: bytes) -> str:
 def _read_one_tar(tar_path: Path, out_q: queue.Queue,
                   subset_keys: set, processed_keys: set,
                   stop_event: threading.Event):
-    """Read a single TAR, extract (clip_key, mp4_bytes) pairs into shared queue. Thread-safe."""
+    """Read a single TAR, extract (clip_key, mp4_bytes) pairs into shared queue. Thread-safe.
+
+    iter13 v13 FIX-27 (2026-05-07): logs per-tar emit/drop/filter counts at exit.
+    Previously the four `continue` branches silently dropped clips — at FULL v1
+    (2026-05-07) 703 of 10,000 manifest-listed clips never reached m10 because
+    of `missing_part` (corrupt TAR member) or `empty_mp4` (0-byte body) anomalies,
+    and there was no way to tell from the log. Now visible as a one-liner per TAR.
+    """
+    drops = {"missing_part": 0, "subset_miss": 0, "resume_skip": 0, "empty_mp4": 0}
+    n_emitted = 0
     try:
         with tarfile.open(tar_path, "r") as tar:
             entries = {}
@@ -125,24 +134,43 @@ def _read_one_tar(tar_path: Path, out_q: queue.Queue,
             for base, parts in entries.items():
                 if stop_event.is_set():
                     return
+                # Anomaly: TAR member is missing one of the json/mp4 pair (corrupt
+                # or partial m00d save). Counted as DATA DROP (not filter).
                 if "json" not in parts or "mp4" not in parts:
+                    drops["missing_part"] += 1
                     continue
 
                 json_bytes = tar.extractfile(parts["json"]).read()
                 clip_key = _get_clip_key(json_bytes)
 
+                # Filter: caller-requested subset filter (intentional, not an anomaly).
                 if subset_keys and clip_key not in subset_keys:
+                    drops["subset_miss"] += 1
                     continue
+                # Filter: caller-requested resume skip (intentional).
                 if clip_key in processed_keys:
+                    drops["resume_skip"] += 1
                     continue
 
                 mp4_bytes = tar.extractfile(parts["mp4"]).read()
+                # Anomaly: TAR member exists but body is 0-byte (m00d wrote a
+                # placeholder for a failed YouTube fetch). DATA DROP.
                 if not mp4_bytes:
+                    drops["empty_mp4"] += 1
                     continue
 
                 out_q.put((clip_key, mp4_bytes))
+                n_emitted += 1
     except (tarfile.TarError, OSError) as e:
         print(f"  ERROR: failed reading {tar_path.name}: {e}")
+
+    n_anomaly = drops["missing_part"] + drops["empty_mp4"]
+    n_filtered = drops["subset_miss"] + drops["resume_skip"]
+    print(f"  [tar reader] {tar_path.name}: emitted={n_emitted}, "
+          f"dropped={n_anomaly} (missing_part={drops['missing_part']}, "
+          f"empty_mp4={drops['empty_mp4']}), "
+          f"filtered={n_filtered} (subset={drops['subset_miss']}, "
+          f"resume={drops['resume_skip']})")
 
 
 def iter_clips_parallel(local_data: str, subset_keys: set = None,

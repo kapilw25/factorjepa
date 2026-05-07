@@ -3,7 +3,9 @@
 #
 # Both .py modules self-resolve their I/O dirs from --local-data
 # (co-located: <local_data>/m10_sam_segment/ + <local_data>/m11_factor_datasets/).
-# m10 also self-handles the end-of-run TAR-shard pack for HF upload.
+# iter13 v13 FIX-25 (2026-05-07): m10/m11 produce raw .npz/.npy only — TAR
+# packing for HF transit moved to `python src/utils/hf_outputs.py upload-data`
+# (single source of truth, packs + deletes raws + uploads in one shot).
 # This wrapper does ONLY:
 #   1. SANITY/POC/FULL mode flag passthrough
 #   2. cache-policy gather + propagate (m10 recompute → m11 recompute)
@@ -175,6 +177,7 @@ python -u src/m11_factor_datasets.py "${MODE_FLAG}" --streaming \
 
 DUR=$(( $(date +%s) - T0 ))
 stamp "✅ factor-prep done · mode=${MODE} · wall=$((DUR/3600))h$(((DUR%3600)/60))m"
-echo "Outputs (co-located inside ${TRAIN_LOCAL} — uploaded as one HF bundle):"
-echo "  ${M10_OUT}/  (segments.json + summary.json + masks/*.npz + masks-*.tar shards)"
-echo "  ${M11_OUT}/  (factor_manifest.json + verify samples)"
+echo "Outputs (co-located inside ${TRAIN_LOCAL} — raw per-clip files only;"
+echo "         tar shards + HF push are produced by 'hf_outputs.py upload-data'):"
+echo "  ${M10_OUT}/  (segments.json + summary.json + masks/*.npz + plots)"
+echo "  ${M11_OUT}/  (factor_manifest.json + D_L,D_A,D_I/*.npy + verify samples)"

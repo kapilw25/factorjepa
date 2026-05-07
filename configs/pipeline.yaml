@@ -33,11 +33,18 @@ poc:
 
 # -- Data processing --
 data:
-  clips_per_shard: 1000       # m03/m00d: WebDataset shard size
+  clips_per_shard: 1000       # m03/m00d: WebDataset shard size (≈1 GB each at 480p MP4 × 1000 clips)
   data_prep_workers: 10       # m00b: concurrent duration fetchers
   clip_duration_sec: 10       # m06: default clip length for ±30s exclusion
   exclusion_window_sec: 30    # m06: hard mode temporal exclusion window
   download_resolution: 480    # m01: yt-dlp resolution
+  # iter13 v13 FIX-23 (2026-05-07): soft-cap per TAR shard. utils.tar_shard.pack_dir_to_shards
+  # WARNs (does NOT FATAL) if any shard exceeds this. Mirrors HF's recommended
+  # per-file size for fast upload/download (HF's hard limit is much larger via LFS,
+  # but >1 GB shards slow `hf download` significantly). m10 packs masks/ into N=10
+  # shards; m11 packs D_L/D_A/D_I each into N shards. If WARN fires, bump
+  # `--tar-shards` (m10) / `--tar-shards` (m11) on the next run.
+  max_tar_shard_gb: 1.0
 
 # -- Streaming & checkpointing --
 streaming:

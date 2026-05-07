@@ -52,94 +52,141 @@ def _shard_path(template: str, shard_idx: int) -> Path:
 def pack_dir_to_shards(
     input_dir: Path,
     shard_template: str,
-    n_shards: int,
-    keep_source: bool,
-    force: bool,
+    max_shard_size_gb: float,
+    keep_source: bool = True,
+    force: bool = False,
 ) -> dict:
-    """Pack all files in input_dir into N TAR shards.
+    """Pack all files in input_dir into TAR shards, rolling over at size cap.
 
-    Returns: {n_files_packed, n_shards_written, total_bytes, elapsed_sec}.
+    iter13 v13 FIX-24 (2026-05-07): redesigned to m00d-style size-driven
+    streaming. Files are sorted (deterministic order) then streamed into a
+    growing shard; when adding the next file would push the shard over
+    `max_shard_size_gb`, the current shard closes and a new one opens.
+    Naturally auto-scales 10K → 115K → larger without ANY n_shards retuning
+    by the caller. Drops the prior hash-based bucketing approach (which
+    produced uneven shard sizes — some 9 GB, some 50 MB at 115K).
+
+    Idempotency: if any shard matching `shard_template` already exists and
+    `force=False`, skip the entire pack (caller is expected to wipe via
+    cache-policy=2 before re-packing).
+
+    Args:
+      input_dir: directory of leaf files to pack (e.g., masks/, D_L/, D_A/, D_I/)
+      shard_template: format string with {shard:05d} placeholder
+      max_shard_size_gb: soft cap per shard. A single file larger than this
+                         FATALs (cannot fit in any shard). HF's fast-upload
+                         sweet spot is ~1 GB; pipeline.yaml data.max_tar_shard_gb
+                         is the canonical value.
+      keep_source: leave .npz/.npy on disk after packing (default True since
+                   m11 + m09c read individual files at runtime)
+      force: repack even if shards already exist
+
+    Returns: {n_files_packed, n_shards_written, total_bytes, elapsed_sec,
+              max_shard_gb_observed, max_shard_size_gb}.
     """
     input_dir = Path(input_dir)
     if not input_dir.is_dir():
         print(f"FATAL: input_dir not a directory: {input_dir}")
         sys.exit(1)
 
-    # Collect candidate files (top-level only; nested dirs not supported here —
-    # caller should pass leaf .npz/.npy dirs like masks/ or D_L/, not parent).
+    # Deterministic order: sorted by name → reproducible shard contents.
     files = sorted(p for p in input_dir.iterdir() if p.is_file())
     if not files:
         print(f"  [tar_shard pack] no files under {input_dir} — skipping")
-        return {"n_files_packed": 0, "n_shards_written": 0, "total_bytes": 0, "elapsed_sec": 0.0}
+        return {"n_files_packed": 0, "n_shards_written": 0, "total_bytes": 0,
+                "elapsed_sec": 0.0, "max_shard_gb_observed": 0.0,
+                "max_shard_size_gb": max_shard_size_gb}
 
-    # Idempotency: if all N shards exist + non-zero, skip
-    existing_shards = [_shard_path(shard_template, i) for i in range(n_shards)]
-    if not force and all(p.is_file() and p.stat().st_size > 0 for p in existing_shards):
-        existing_total = sum(p.stat().st_size for p in existing_shards)
-        print(f"  [tar_shard pack] all {n_shards} shards already exist "
-              f"({existing_total / 1e9:.2f} GB total) → skipping (use --force to repack)")
-        return {"n_files_packed": 0, "n_shards_written": 0,
-                "total_bytes": existing_total, "elapsed_sec": 0.0}
+    max_bytes = int(max_shard_size_gb * 1e9)
 
-    # Bucket files into shards via stable hash
-    buckets: list = [[] for _ in range(n_shards)]
+    # Single-file size guard — if any input file is larger than the shard cap,
+    # we cannot pack it. FATAL with diagnostic so the operator either bumps
+    # max_shard_size_gb in pipeline.yaml or splits the file upstream.
     for f in files:
-        idx = _stable_shard_index(f.name, n_shards)
-        buckets[idx].append(f)
+        if f.stat().st_size > max_bytes:
+            print(f"FATAL: single file {f.name} = {f.stat().st_size / 1e9:.2f} GB exceeds "
+                  f"max_shard_size_gb={max_shard_size_gb:.2f}. Bump pipeline.yaml "
+                  f"data.max_tar_shard_gb or split this file upstream.")
+            sys.exit(1)
 
-    # Open all shards for write — overwrite if --force, append-skip-existing otherwise
+    # Idempotency: skip if any shard already exists (caller wipes via
+    # cache-policy=2 before re-packing). Discovers existing shards by globbing
+    # the template's parent dir for matching prefix.
+    sample_path = _shard_path(shard_template, 0)
+    if not force:
+        # Use the {shard:NNNNN} prefix from sample_path's stem to glob siblings.
+        prefix = sample_path.stem.rsplit("-", 1)[0] + "-"
+        existing = sorted(sample_path.parent.glob(f"{prefix}*.tar"))
+        if existing:
+            existing_total = sum(p.stat().st_size for p in existing)
+            print(f"  [tar_shard pack] {len(existing)} shards already exist "
+                  f"({existing_total / 1e9:.2f} GB total) → skipping (use force=True to repack)")
+            return {"n_files_packed": 0, "n_shards_written": len(existing),
+                    "total_bytes": existing_total, "elapsed_sec": 0.0,
+                    "max_shard_gb_observed": max(p.stat().st_size for p in existing) / 1e9,
+                    "max_shard_size_gb": max_shard_size_gb}
+
+    # Stream-pack: open shard, add files until next file would exceed cap, roll.
     t0 = time.time()
     n_files_packed = 0
     total_bytes = 0
-    n_shards_written = 0
+    shard_idx = 0
+    shard_path = _shard_path(shard_template, shard_idx)
+    shard_path.parent.mkdir(parents=True, exist_ok=True)
+    cur_tar = tarfile.open(shard_path, "w")
+    cur_size = 0
+    cur_count = 0
+    written_paths: list = []
 
-    for shard_idx, bucket in enumerate(buckets):
-        shard_path = _shard_path(shard_template, shard_idx)
-        if not bucket:
-            print(f"  shard {shard_idx:05d}: empty → skipping write")
-            continue
+    def _close_current(tar, sp, size, count):
+        tar.close()
+        if count > 0:
+            print(f"  shard {sp.stem.rsplit('-', 1)[-1]}: {count:5d} files, "
+                  f"{size / 1e9:.3f} GB → {sp.name}")
+            written_paths.append(sp)
+        else:
+            sp.unlink()  # remove empty shard
 
-        # Determine existing members (skip on incremental resume)
-        existing_members: set = set()
-        if shard_path.is_file() and not force:
-            try:
-                with tarfile.open(shard_path, "r") as tar_ro:
-                    existing_members = {m.name for m in tar_ro.getmembers()}
-            except tarfile.TarError:
-                # Corrupt → start fresh
-                existing_members = set()
+    for f in files:
+        sz = f.stat().st_size
+        # Roll over if adding this file would exceed cap (and current shard non-empty).
+        if cur_count > 0 and cur_size + sz > max_bytes:
+            _close_current(cur_tar, shard_path, cur_size, cur_count)
+            shard_idx += 1
+            shard_path = _shard_path(shard_template, shard_idx)
+            cur_tar = tarfile.open(shard_path, "w")
+            cur_size = 0
+            cur_count = 0
 
-        # Open in append mode if shard exists, else write
-        mode = "a" if (shard_path.is_file() and not force and existing_members) else "w"
-        shard_path.parent.mkdir(parents=True, exist_ok=True)
-        with tarfile.open(shard_path, mode) as tar:
-            for f in bucket:
-                if f.name in existing_members:
-                    continue
-                tar.add(str(f), arcname=f.name)
-                n_files_packed += 1
-                total_bytes += f.stat().st_size
+        cur_tar.add(str(f), arcname=f.name)
+        cur_size += sz
+        cur_count += 1
+        n_files_packed += 1
+        total_bytes += sz
 
-        n_shards_written += 1
-        sz = shard_path.stat().st_size
-        print(f"  shard {shard_idx:05d}: {len(bucket):4d} files, "
-              f"{sz / 1e9:.2f} GB → {shard_path}")
+    # Close final shard.
+    _close_current(cur_tar, shard_path, cur_size, cur_count)
 
     elapsed = time.time() - t0
+    max_shard_gb_observed = max(
+        (p.stat().st_size / 1e9 for p in written_paths), default=0.0)
 
-    # Optional source cleanup (--keep-source flips this off)
+    # Optional source cleanup
     if not keep_source:
         for f in files:
             f.unlink()
         print(f"  [tar_shard pack] deleted {len(files)} source files from {input_dir}/")
     else:
         print(f"  [tar_shard pack] --keep-source: left {len(files)} source files in "
-              f"{input_dir}/ (m11 + m09c read .npz directly during training)")
+              f"{input_dir}/ (downstream code reads individual files at runtime)")
 
-    print(f"\n✅ tar_shard pack done: {n_files_packed} files → {n_shards_written} shards, "
-          f"{total_bytes / 1e9:.2f} GB in {elapsed:.0f}s")
-    return {"n_files_packed": n_files_packed, "n_shards_written": n_shards_written,
-            "total_bytes": total_bytes, "elapsed_sec": elapsed}
+    print(f"\n✅ tar_shard pack done: {n_files_packed} files → {len(written_paths)} shards, "
+          f"{total_bytes / 1e9:.2f} GB in {elapsed:.0f}s "
+          f"(max shard = {max_shard_gb_observed:.3f} GB, cap = {max_shard_size_gb:.2f} GB)")
+    return {"n_files_packed": n_files_packed, "n_shards_written": len(written_paths),
+            "total_bytes": total_bytes, "elapsed_sec": elapsed,
+            "max_shard_gb_observed": max_shard_gb_observed,
+            "max_shard_size_gb": max_shard_size_gb}
 
 
 def unpack_shards_to_dir(
@@ -192,19 +239,23 @@ def main() -> None:
     sub = parser.add_subparsers(dest="cmd", required=True)
 
     # ── pack ──
-    p_pack = sub.add_parser("pack", help="Pack input_dir/* → N tar shards")
+    p_pack = sub.add_parser("pack", help="Pack input_dir/* → size-driven TAR shards")
     p_pack.add_argument("--input-dir", type=Path, required=True,
                         help="Directory of small files to pack (e.g., masks/)")
     p_pack.add_argument("--shard-template", required=True,
                         help='Output template, e.g., "masks-{shard:05d}.tar"')
-    p_pack.add_argument("--n-shards", type=int, required=True,
-                        help="Number of shards (HF allows ~10k files; pick so files-per-shard ≤ 1500)")
+    p_pack.add_argument("--max-shard-size-gb", type=float, default=1.0,
+                        help="Soft size cap per shard in GB (default 1.0 = HF's "
+                             "fast-upload sweet spot; matches pipeline.yaml "
+                             "data.max_tar_shard_gb). Files stream-fill the current "
+                             "shard until adding the next would exceed this cap, "
+                             "then a new shard rolls over (m00d-style auto-shard).")
     p_pack.add_argument("--keep-source", action="store_true",
                         help="Leave the per-file .npz/.npy on disk after packing "
                              "(default = delete to save disk; pass --keep-source if "
                              "downstream code reads individual files at runtime).")
     p_pack.add_argument("--force", action="store_true",
-                        help="Repack even if all shards exist (otherwise idempotent skip)")
+                        help="Repack even if shards exist (otherwise idempotent skip)")
 
     # ── unpack ──
     p_unpack = sub.add_parser("unpack", help="Extract tar shards → output_dir/")
@@ -223,7 +274,7 @@ def main() -> None:
         pack_dir_to_shards(
             input_dir=args.input_dir,
             shard_template=args.shard_template,
-            n_shards=args.n_shards,
+            max_shard_size_gb=args.max_shard_size_gb,
             keep_source=args.keep_source,
             force=args.force,
         )

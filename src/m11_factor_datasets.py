@@ -1299,6 +1299,13 @@ def main():
     except Exception as e:
         print(f"[curate_verify] WARN: curation failed (non-fatal): {e}")
 
+    # iter13 v13 FIX-25 (2026-05-07): TAR packing moved out of m11. m11 produces
+    # only raw D_L/D_A/D_I/*.npy here. `python src/utils/hf_outputs.py upload-data`
+    # tars + uploads + cleans up raws in one shot (single source of truth for
+    # HF transit format). m09c streaming reads .npy directly at training time
+    # when running on the same machine; on a fresh machine it would re-download
+    # from HF (auto-unpacked by _post_download_unpack_masks).
+
     log_metrics(wb_run, {"n_clips": len(manifest), "elapsed": elapsed})
     finish_wandb(wb_run)
 

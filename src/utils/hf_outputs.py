@@ -11,8 +11,7 @@ USAGE:
     python -u src/utils/hf_outputs.py upload outputs/full 2>&1 | tee logs/hf_upload.log
     python -u src/utils/hf_outputs.py download outputs/full 2>&1 | tee logs/hf_download.log
 
-    # Upload/download: from @data/
-    # poc 10K (10 TARs, 10.5GB) + val 1K (1 TAR, 0.9GB) + JSON manifests
+    # Upload/download: from @data/{eval_10k_local/ , full_local/ , subset_10k_local/ , val_1k_local/ }
     python -u src/utils/hf_outputs.py upload-data 2>&1 | tee logs/upload_poc_val.log    # ~15 min upload
     python -u src/utils/hf_outputs.py download-data 2>&1 | tee logs/download_poc_val_v1.log # ~3 min measured
 
@@ -427,32 +426,60 @@ def _discover_data_uploads(data_root: Path) -> list:
     return pairs
 
 
-def _pre_upload_pack_masks(data_root: Path, n_shards: int = 10) -> None:
-    """Pack m10 masks/*.npz → masks-*.tar shards before HF upload (HF 10k-file cap).
+def _pre_upload_pack_outputs(data_root: Path) -> None:
+    """Pack m10/m11 raw per-clip outputs → TAR shards before HF upload.
 
-    iter13 v12+ (2026-05-06): discovers any data_root/<subdir>/m10_sam_segment/masks/
-    via Path.iterdir() — NO hardcoded list of which local-data subdirs to scan.
+    iter13 v13 FIX-25 (2026-05-07): single source of truth for tar packing.
+    Compute scripts (m10, m11) produce raw .npz / .npy only. This helper
+    converts them into HF-uploadable tar shards (HF 10k-file repo cap) and
+    DELETES the raw sources (`keep_source=False`) so disk stays clean.
+
+    Packs four shard families per local-data subdir (dynamic discovery — NO
+    hardcoded list of subdir names):
+      <subdir>/m10_sam_segment/masks/*.npz       → masks-{shard:05d}.tar
+      <subdir>/m11_factor_datasets/D_L/*.npy     → D_L-{shard:05d}.tar
+      <subdir>/m11_factor_datasets/D_A/*.npy     → D_A-{shard:05d}.tar
+      <subdir>/m11_factor_datasets/D_I/*.npy     → D_I-{shard:05d}.tar
+
+    Size-driven (m00d-style) — rolls a new shard whenever adding the next file
+    would exceed `pipeline.yaml.data.max_tar_shard_gb`. Auto-scales 10K → 115K.
+
+    NOTE on cleanup: raw files are deleted after a successful pack. If m09c
+    needs them on the same machine after this runs, re-download via HF (the
+    download path auto-unpacks via _post_download_unpack_masks).
     """
     from utils.tar_shard import pack_dir_to_shards
+    from utils.config import get_pipeline_config
     if not data_root.is_dir():
         return
+    max_shard_gb = get_pipeline_config()["data"]["max_tar_shard_gb"]
+
+    # (raw_subdir, shard_template_relative_to_parent) — packed in this order so
+    # that m10's masks/ goes first (m11 already finished, doesn't need them).
+    pack_specs = [
+        ("m10_sam_segment", "masks", "masks-{shard:05d}.tar"),
+        ("m11_factor_datasets", "D_L", "D_L-{shard:05d}.tar"),
+        ("m11_factor_datasets", "D_A", "D_A-{shard:05d}.tar"),
+        ("m11_factor_datasets", "D_I", "D_I-{shard:05d}.tar"),
+    ]
+
     for d in sorted(data_root.iterdir()):
         if not d.is_dir():
             continue
-        masks_dir = d / "m10_sam_segment" / "masks"
-        if not masks_dir.is_dir():
-            continue
-        if not any(masks_dir.iterdir()):
-            continue
-        shard_template = str(d / "m10_sam_segment" / "masks-{shard:05d}.tar")
-        print(f"\n  [hf_outputs] pre-upload pack: {masks_dir} → {n_shards} shards")
-        pack_dir_to_shards(
-            input_dir=masks_dir,
-            shard_template=shard_template,
-            n_shards=n_shards,
-            keep_source=True,    # m11 + m09c read .npz at runtime; never delete
-            force=False,         # idempotent — skip if shards already exist
-        )
+        for parent_name, raw_subdir, shard_pattern in pack_specs:
+            raw_dir = d / parent_name / raw_subdir
+            if not raw_dir.is_dir() or not any(raw_dir.iterdir()):
+                continue
+            shard_template = str(d / parent_name / shard_pattern)
+            print(f"\n  [hf_outputs] pre-upload pack: {raw_dir} "
+                  f"(cap={max_shard_gb:.2f} GB/shard, raws DELETED after pack)")
+            pack_dir_to_shards(
+                input_dir=raw_dir,
+                shard_template=shard_template,
+                max_shard_size_gb=max_shard_gb,
+                keep_source=False,   # FIX-25: clean disk after pack
+                force=False,
+            )
 
 
 def upload_data(data_root: Path = None):
@@ -479,12 +506,13 @@ def upload_data(data_root: Path = None):
     _ensure_repo(token)
     api = HfApi(token=token)
 
-    # Pre-upload: TAR-shard m10 masks/*.npz across every <subdir>/m10_sam_segment/
-    # under data_root (HF 10k-file repo cap). Uses dynamic discovery — no
-    # hardcoded list of local-data subdirs. _UPLOAD_SKIP_PATTERNS keeps the
-    # raw .npz out of the upload (they live on disk for runtime random-access
-    # reads by m11 + m09c; only the shards ride to HF).
-    _pre_upload_pack_masks(data_root)
+    # Pre-upload: TAR-shard m10 masks + m11 D_L/D_A/D_I raws across every
+    # <subdir>/ under data_root (HF 10k-file repo cap). Dynamic discovery — no
+    # hardcoded subdir list. iter13 v13 FIX-25 (2026-05-07): packs ALL FOUR
+    # raw dirs and DELETES sources (`keep_source=False`) so post-upload disk
+    # contains only tars. m09c on the same machine would need to either read
+    # tars or re-download from HF (auto-unpacked via _post_download_unpack_masks).
+    _pre_upload_pack_outputs(data_root)
 
     uploads = _discover_data_uploads(data_root)
     if not uploads:
@@ -517,13 +545,12 @@ def upload_data(data_root: Path = None):
                 repo_id=HF_OUTPUTS_REPO,
                 repo_type="dataset",
                 path_in_repo=repo_path,
-                # iter13 v12+: skip masks/*.npz (replaced by masks-*.tar shards
-                # produced by _pre_upload_pack_masks above) + m11 large
-                # regeneratable subdirs. Mirrors _UPLOAD_SKIP_PATTERNS used by
-                # upload_outputs() — kept inline here so upload_data is self-
-                # contained without depending on outputs/ skip rules.
+                # iter13 v13 FIX-25 (2026-05-07): skip raw m10/m11 per-clip files
+                # (already packed into tars by _pre_upload_pack_outputs above —
+                # raw dirs are empty post-pack, but glob-skip is still cheaper
+                # than walking them). Subset-*.tar inputs ride along as-is.
                 ignore_patterns=[
-                    "**/m10_sam_segment/masks/*.npz",
+                    "**/m10_sam_segment/masks/**",
                     "**/m10_sam_segment/m10_overlay_verify/**",
                     "**/m11_factor_datasets/D_L/**",
                     "**/m11_factor_datasets/D_A/**",
@@ -538,11 +565,16 @@ def upload_data(data_root: Path = None):
 
 
 def _post_download_unpack_masks(data_root: Path) -> None:
-    """Unpack m10 masks-*.tar shards back into masks/*.npz after HF download.
+    """Unpack m10/m11 TAR shards back into per-clip files after HF download.
 
-    iter13 v12+ (2026-05-06): mirror of _pre_upload_pack_masks. Discovers any
-    data_root/<subdir>/m10_sam_segment/masks-*.tar via Path.iterdir() — NO
-    hardcoded list. Skips already-extracted .npz to allow incremental restore.
+    iter13 v13 FIX-25 (2026-05-07): mirror of _pre_upload_pack_outputs.
+    Discovers shards via Path.iterdir() — NO hardcoded subdir list — and
+    extracts them back into the dirs that m10/m11 read from at runtime:
+      <subdir>/m10_sam_segment/masks-*.tar      → masks/*.npz
+      <subdir>/m11_factor_datasets/D_L-*.tar    → D_L/*.npy
+      <subdir>/m11_factor_datasets/D_A-*.tar    → D_A/*.npy
+      <subdir>/m11_factor_datasets/D_I-*.tar    → D_I/*.npy
+    Skips already-extracted files to allow incremental restore.
     """
     from utils.tar_shard import unpack_shards_to_dir
     if not data_root.is_dir():
@@ -550,19 +582,31 @@ def _post_download_unpack_masks(data_root: Path) -> None:
     for d in sorted(data_root.iterdir()):
         if not d.is_dir():
             continue
+        # m10 masks
         seg_dir = d / "m10_sam_segment"
-        if not seg_dir.is_dir():
-            continue
-        # check if any masks-*.tar exists
-        if not list(seg_dir.glob("masks-*.tar")):
-            continue
-        masks_dir = seg_dir / "masks"
-        print(f"\n  [hf_outputs] post-download unpack: {seg_dir}/masks-*.tar → {masks_dir}/")
-        unpack_shards_to_dir(
-            shards_glob=str(seg_dir / "masks-*.tar"),
-            output_dir=masks_dir,
-            skip_existing=True,
-        )
+        if seg_dir.is_dir() and list(seg_dir.glob("masks-*.tar")):
+            masks_dir = seg_dir / "masks"
+            print(f"\n  [hf_outputs] post-download unpack: {seg_dir}/masks-*.tar → {masks_dir}/")
+            unpack_shards_to_dir(
+                shards_glob=str(seg_dir / "masks-*.tar"),
+                output_dir=masks_dir,
+                skip_existing=True,
+            )
+        # m11 factor shards (D_L / D_A / D_I)
+        m11_dir = d / "m11_factor_datasets"
+        if m11_dir.is_dir():
+            for factor in ("D_L", "D_A", "D_I"):
+                shards = list(m11_dir.glob(f"{factor}-*.tar"))
+                if not shards:
+                    continue
+                out_dir = m11_dir / factor
+                print(f"\n  [hf_outputs] post-download unpack: "
+                      f"{m11_dir}/{factor}-*.tar → {out_dir}/")
+                unpack_shards_to_dir(
+                    shards_glob=str(m11_dir / f"{factor}-*.tar"),
+                    output_dir=out_dir,
+                    skip_existing=True,
+                )
 
 
 def download_data(data_root: Path = None):
@@ -606,8 +650,9 @@ def download_data(data_root: Path = None):
         max_workers=16,
     )
 
-    # iter13 v12+: restore masks/*.npz from masks-*.tar shards (HF only stored
-    # the shards). Discovers all <subdir>/m10_sam_segment/masks-*.tar dynamically.
+    # iter13 v13 FIX-25: restore m10 masks/*.npz + m11 D_L/D_A/D_I/*.npy from
+    # the four tar-shard families (HF only stored the shards, raws were deleted
+    # pre-upload). Discovery is dynamic — no hardcoded subdir list.
     _post_download_unpack_masks(data_root)
 
     print(f"Data download complete: {time.time() - t0:.0f}s")

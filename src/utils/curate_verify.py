@@ -99,7 +99,7 @@ def score_clip(entry: dict) -> float:
     return s
 
 
-def curate(manifest: dict) -> list:
+def curate(manifest: dict, renderable_video_ids: set = None) -> list:
     """Rank clips + greedy unique-video dedup + diversity floor.
 
     Returns list of up to min(TOP_N, n_unique_videos) clip_keys in descending
@@ -114,10 +114,21 @@ def curate(manifest: dict) -> list:
       (3) diversity-floor target = min(configured, available_in_pool): a 100-clip
           urban-only POC can't hit MIN_DISTINCT_ACTIVITIES=3 if only walking +
           drive are present; soften the floor to what the pool can support.
+
+    iter13 v13 FIX-27 (2026-05-07): added `renderable_video_ids` filter so the
+    top-N can only contain videos with already-rendered verify PNGs. At FULL
+    scale (9297 clips, verify-100 cap), curate's score-rank picked top-20
+    videos that were NOT in select_verify_clips's round-robin verify-100 set
+    → copy_pngs missed 38/40 files. With the filter, top-N is guaranteed
+    copyable. None = no filter (backward compat).
     """
     scored = []
     for clip_key, entry in manifest.items():
         meta = parse_clip_key(clip_key)
+        # FIX-27: restrict ranking pool to videos that actually have rendered
+        # PNGs (caller intersects m10_overlay_verify ∩ m11_per_clip_verify).
+        if renderable_video_ids is not None and meta["video_id"] not in renderable_video_ids:
+            continue
         meta["clip_key"] = clip_key
         meta["score"] = score_clip(entry)
         scored.append(meta)
@@ -179,6 +190,44 @@ def curate(manifest: dict) -> list:
             selected.sort(key=lambda m: m["score"], reverse=True)
 
     return selected[:target]
+
+
+def _discover_renderable_video_ids(*src_dirs) -> set:
+    """Scan verify dirs for rendered PNGs, extract video_ids from filenames.
+
+    iter13 v13 FIX-27 (2026-05-07): used by curate_and_prune() to restrict
+    curate()'s ranking pool to videos that actually have rendered PNGs in
+    BOTH m10 and m11 verify dirs. Without this restriction, top-N can include
+    videos NOT in select_verify_clips()'s round-robin pool → copy_pngs misses.
+
+    Returns the INTERSECTION of video_ids across all non-empty src_dirs (a
+    video must have PNGs in EVERY supplied dir to be eligible). Returns None
+    if no dir has any *.png (caller should fall back to no filtering — same
+    behavior as pre-FIX-27).
+
+    Filename → clip_key reverse mapping uses split("__") + join("/") rather
+    than replace("__", "/") because the latter corrupts monument-style keys
+    where the original clip_key has a leading-underscore video_id (e.g.
+    `monuments/_NofLLZazeA/...` → safe_key contains `___` triplets).
+    """
+    sets = []
+    for d in src_dirs:
+        if not d.exists():
+            continue
+        vids = set()
+        for f in d.glob("*.png"):
+            stem = f.with_suffix("").name   # strip .png; leaves .mp4 clip-key
+            clip_key = "/".join(stem.split("__"))
+            try:
+                meta = parse_clip_key(clip_key)
+            except Exception:
+                continue
+            vids.add(meta["video_id"])
+        if vids:
+            sets.append(vids)
+    if not sets:
+        return None
+    return set.intersection(*sets) if len(sets) > 1 else sets[0]
 
 
 def copy_pngs(selected: list, src_dir: Path, dst_dir: Path, exts=(".png", ".pdf")) -> int:
@@ -307,11 +356,32 @@ def curate_and_prune(outputs_dir, delete_originals: bool = False) -> dict:
     manifest = json.load(open(manifest_path))
     print(f"[curate_verify] Loaded {len(manifest)} clips from {manifest_path.name}")
 
-    selected = curate(manifest)
+    # FIX-27 (2026-05-07): restrict curate's ranking pool to video_ids that
+    # actually have rendered PNGs in BOTH m10 and m11 verify dirs. This MUST
+    # happen before curate() so top-N is guaranteed copyable. Without this,
+    # at FULL=9297 the score-ranked top-20 included videos outside
+    # select_verify_clips's round-robin verify-100 set → 38/40 missing in
+    # copy_pngs. m10_src/m11_src declarations moved up from below for this.
+    m10_src = out / "m10_sam_segment" / "m10_overlay_verify"
+    m11_src = out / "m11_factor_datasets" / "m11_per_clip_verify"
+    renderable = _discover_renderable_video_ids(m10_src, m11_src)
+    if renderable is not None:
+        print(f"[curate_verify] FIX-27: ranking pool restricted to "
+              f"{len(renderable)} renderable video_ids "
+              f"(intersection of m10_overlay_verify ∩ m11_per_clip_verify)")
+    else:
+        print("[curate_verify] FIX-27: no rendered PNGs found in verify dirs — "
+              "ranking unrestricted (copy_pngs may miss files)")
+
+    selected = curate(manifest, renderable_video_ids=renderable)
     # iter13 v13 FIX-22 (2026-05-07): WARN only when we got fewer than the pool
     # can support, not when the pool itself is < TOP_N (which is normal at
     # POC=100 / SANITY=20 where unique-video dedup naturally caps below 20).
-    n_unique_videos = len({parse_clip_key(k)["video_id"] for k in manifest})
+    # FIX-27: when filter is on, "n_unique_videos" is the renderable pool size.
+    if renderable is not None:
+        n_unique_videos = len(renderable)
+    else:
+        n_unique_videos = len({parse_clip_key(k)["video_id"] for k in manifest})
     expected = min(TOP_N, n_unique_videos)
     if len(selected) < expected:
         print(f"[curate_verify] WARN: produced {len(selected)} clips "
@@ -330,8 +400,8 @@ def curate_and_prune(outputs_dir, delete_originals: bool = False) -> dict:
     print(f"[curate_verify] Coverage: {len(seen_cities)} cities {seen_cities}, "
           f"{len(seen_activities)} activities {seen_activities}")
 
-    m10_src = out / "m10_sam_segment" / "m10_overlay_verify"
-    m11_src = out / "m11_factor_datasets" / "m11_per_clip_verify"
+    # m10_src/m11_src already declared above (FIX-27 reuses them for the
+    # renderable filter); only the *_top20 destination dirs are new here.
     m10_dst = out / "m10_sam_segment" / "m10_overlay_verify_top20"
     m11_dst = out / "m11_factor_datasets" / "m11_per_clip_verify_top20"
     copy_pngs(selected, m10_src, m10_dst)

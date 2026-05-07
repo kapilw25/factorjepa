@@ -65,7 +65,6 @@ from utils.curate_verify import select_verify_clips
 from utils.cache_policy import (
     add_cache_policy_arg, resolve_cache_policy_interactive, wipe_output_dir,
 )
-from utils.tar_shard import pack_dir_to_shards
 # iter13 v13 FIX-18 (2026-05-07): observability metrics M1/M5/M6 — see plan_code_dev.md
 # Layer C. M2 is reused from existing mean_mask_confidence (line 1037).
 from utils.mask_metrics import (
@@ -819,16 +818,6 @@ def main():
                              "<--local-data>/m10_sam_segment/ (co-located with input).")
     parser.add_argument("--tags-json", default=None,
                         help="Path to tags.json (auto-detected from output dir if omitted)")
-    # iter13 v12+ Task 3 (2026-05-06): TAR-shard at end-of-run, lives in Python so
-    # standalone `python src/m10_sam_segment.py` produces an HF-uploadable bundle
-    # with no shell glue (HF 10k-file repo cap workaround).
-    parser.add_argument("--tar-pack", dest="tar_pack", action="store_true", default=None,
-                        help="Pack masks/*.npz into N TAR shards at end-of-run. "
-                             "Default ON for FULL/POC, OFF for SANITY.")
-    parser.add_argument("--no-tar-pack", dest="tar_pack", action="store_false",
-                        help="Force-disable TAR-shard pack regardless of mode.")
-    parser.add_argument("--tar-shards", type=int, default=10,
-                        help="Number of TAR shards (default 10; aim for ≤1500 files/shard).")
     add_subset_arg(parser)
     add_local_data_arg(parser)
     add_wandb_args(parser)
@@ -1226,25 +1215,11 @@ def main():
     plot_overlay_per_clip(segments, masks_dir, tags_lookup, output_dir)
     plot_agent_stats(segments, tags_lookup, output_dir)
 
-    # iter13 v12+ Task 3 (2026-05-06): TAR-shard masks/*.npz so HF upload can
-    # ship the bundle (10k-file repo cap). Lives here, not in run_factor_prep.sh
-    # — m10 owns its output layout end-to-end. Default ON for FULL/POC, OFF for
-    # SANITY (file count too small to need sharding). --keep-source so m11 + m09c
-    # can still read individual .npz at runtime; only the shards ride to HF.
-    tar_pack_default = not args.SANITY
-    do_tar_pack = tar_pack_default if args.tar_pack is None else args.tar_pack
-    if do_tar_pack:
-        print(f"\n[m10 tar-pack] packing {masks_dir}/*.npz into {args.tar_shards} shards "
-              f"(end-of-run, mirrors subset-XXXXX.tar pattern)")
-        pack_dir_to_shards(
-            input_dir=masks_dir,
-            shard_template=str(output_dir / "masks-{shard:05d}.tar"),
-            n_shards=args.tar_shards,
-            keep_source=True,
-            force=False,
-        )
-    else:
-        print(f"\n[m10 tar-pack] skipped (mode={mode}, args.tar_pack={args.tar_pack})")
+    # iter13 v13 FIX-25 (2026-05-07): TAR packing moved out of m10. m10 produces
+    # only raw masks/*.npz here. `python src/utils/hf_outputs.py upload-data`
+    # tars + uploads + cleans up raws in one shot (single source of truth for
+    # HF transit format). m11 reads masks/*.npz directly at runtime; the tar
+    # shards never need to exist mid-pipeline.
 
     # Quality gate: FATAL if composite check fails (Rule 33: quality gates in Python, not shell)
     if not quality_gate:
