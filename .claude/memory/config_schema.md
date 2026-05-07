@@ -68,18 +68,44 @@ Single source of truth for the architecture (`probe_pretrain.yaml` is one file d
 2. Add the flatten in `merge_config_with_args` of EACH consumer (`m09a_pretrain.py`, `m09c_surgery.py`, etc.) — the membership-check pattern (`if k in cfg[...] and isinstance(cfg[...][k], dict)`) makes the flatten safe for legacy configs that ship a scalar.
 3. Add CLI override flag (default `None` so unspecified CLI doesn't shadow YAML).
 
-## The opt-in-per-config pattern (iter13)
+## The opt-in-per-config pattern (iter13 multi_task_probe — RETIRED in v12)
 
-`multi_task_probe.enabled` ships as `{sanity: false, poc: false, full: false}` in `base_optimization.yaml`. iter13 leaf configs (`probe_pretrain.yaml`, `surgery_3stage_DI.yaml`, `surgery_2stage_noDI.yaml`) opt in by overriding:
+`multi_task_probe.enabled` ships as `{sanity: false, poc: false, full: false}` in `base_optimization.yaml`. iter13 leaf configs (`probe_pretrain.yaml`, `surgery_3stage_DI.yaml`, `surgery_2stage_noDI.yaml`) originally opted in by overriding:
 
 ```yaml
 multi_task_probe:
   enabled: {sanity: true, poc: true, full: true}
 ```
 
-Legacy `configs/legacy2/ch10_pretrain.yaml` and `configs/legacy2/explora.yaml` don't override → inherit base default `false` for all modes. Validated in [iter13_multi_task.md](iter13_multi_task.md).
+**Status (v12 + iter14)**: `probe_pretrain.yaml` now sets `multi_task_probe.enabled: {sanity:false, poc:false, full:false}` (motion_aux replaced it). Phase 4 will do the same in surgery yamls. Legacy `configs/legacy2/ch10_pretrain.yaml` and `configs/legacy2/explora.yaml` don't override → inherit base default `false` for all modes. See [legacy/iter13_multi_task.md](legacy/iter13_multi_task.md) for retired-pivot history.
 
 **Why opt-in per-config and not just enable in base**: scoping. The base file is shared; iter13's pivot shouldn't auto-enable for legacy training paths a future contributor might re-run.
+
+## The motion_aux block (iter13 v12 + iter14 — declared per-config, NOT inherited)
+
+Unlike `multi_task_probe`, **`motion_aux` is declared directly in each leaf config** that wants it — no entry in `base_optimization.yaml`. Trade-off: simpler (no opt-in indirection) but adding it to a new config requires copying the full ~14-line block, not flipping `enabled: true`.
+
+```yaml
+# configs/train/probe_pretrain.yaml:178-191 (live; v12 anchor)
+# Phase 4 will copy this block into configs/train/surgery_3stage_DI.yaml
+# and configs/train/surgery_2stage_noDI.yaml.
+motion_aux:
+  enabled:
+    sanity: true                              # validate code path on 24 GB
+    poc:    true
+    full:   true                              # the actual research run
+  motion_features_path: data/eval_10k_local/motion_features.npy   # m04d output, (9297, 13)
+  action_labels_path:   outputs/full/probe_action/action_labels.json
+  weight_motion: 0.1                          # λ_motion (overall scaler in L_total)
+  weight_ce:     1.0                          # CE branch weight (8-class motion-flow)
+  weight_mse:    1.0                          # MSE branch weight (13-D z-normed vec)
+  head:
+    hidden_dim: 256                           # ~430 K head params total
+    dropout:    0.1
+  head_lr_multiplier: 10.0                    # head LR = base_lr × 10
+```
+
+Per-mode flatten happens in `utils.motion_aux_loss.merge_motion_aux_config(cfg, args, mode_key)` (mirrors `merge_multi_task_config` contract). See [iter14_motion_aux_pivot.md](iter14_motion_aux_pivot.md) for the full design.
 
 ## The CLI-overrides-YAML pattern
 

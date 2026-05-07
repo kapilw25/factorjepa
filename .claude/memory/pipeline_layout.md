@@ -11,10 +11,11 @@ type: project
 | Script | Subcommand / mode | Modules invoked | Output namespace |
 |---|---|---|---|
 | `run_probe_eval.sh` | `--sanity` / `--FULL` | probe_action.py + probe_taxonomy.py + probe_motion_cos.py + probe_future_mse.py + probe_plot.py | `outputs/{sanity,full}/probe_*/` |
-| `run_probe_train.sh` | `pretrain --SANITY/--POC/--FULL` | m09a_pretrain.py + (auto-gen) probe_taxonomy.py + utils/probe_train_subset.py | `outputs/{mode}/probe_pretrain/` |
-| `run_probe_train.sh` | `surgery_3stage_DI --SANITY/--POC/--FULL` | m09c_surgery.py | `outputs/{mode}/probe_surgery_3stage_DI/` |
-| `run_probe_train.sh` | `surgery_noDI --SANITY/--POC/--FULL` | m09c_surgery.py | `outputs/{mode}/probe_surgery_noDI/` |
+| `run_probe_train.sh` | `pretrain --SANITY/--POC/--FULL` | m09a_pretrain.py + (auto-gen) probe_taxonomy.py + utils/probe_train_subset.py + (iter13 v12) m04d_motion_features.py inputs | `outputs/{mode}/probe_pretrain/` |
+| `run_probe_train.sh` | `surgery_3stage_DI --SANITY/--POC/--FULL` | m09c_surgery.py + (Phase 4) motion_features.npy input | `outputs/{mode}/probe_surgery_3stage_DI/` |
+| `run_probe_train.sh` | `surgery_noDI --SANITY/--POC/--FULL` | m09c_surgery.py + (Phase 4) motion_features.npy input | `outputs/{mode}/probe_surgery_noDI/` |
 | `run_factor_prep.sh` | `--FULL` | m10_sam_segment.py + m11_factor_datasets.py | `outputs/full/m10_*/` + `outputs/full/m11_factor_datasets/` (m09c surgery prereq) |
+| `run_factor_prep_parallel.sh` | `--FULL` | N parallel m10 workers + merge + m11 (FIX-26) | same as serial; ~2× speedup at N=4. UX-parity gaps in `iter/iter14_*/plan_run_factor_prep_parallel.md` |
 
 ## Eval pipeline stages (`run_probe_eval.sh`)
 
@@ -89,15 +90,43 @@ Outputs per trainer (consumed by run_probe_eval.sh Stages 2-9)
    (same 5-file pattern for probe_surgery_3stage_DI/ and probe_surgery_noDI/, with m09c_ckpt_best.pt instead)
 ```
 
+## Motion features pipeline (iter13 v12 — m04d → motion_aux_loss)
+
+```
+m04d_motion_features.py
+   --subset data/eval_10k.json --local-data data/eval_10k_local
+   --features-out data/eval_10k_local/motion_features.npy   (shape: (9297, 13))
+                                                            (Phase 5 will extend to (N, 23) — FG motion)
+   FEATURE_NAMES (m04d:84-90):
+   [0] mean_mag  [1] std_mag  [2] max_mag  [3-10] dir_hist (8 bins)
+   [11] cam_x  [12] cam_y
+   (Phase 5 adds [13] fg_mean_mag  [14] fg_max_mag  [15-22] fg_dir_hist)
+
+probe_action.py --stage labels (Stage 1 of run_probe_eval.sh)
+   reads motion_features.npy + tags.json
+   → outputs/<mode>/probe_action/action_labels.json
+   uses utils/action_labels.parse_optical_flow_class to derive 8-class motion-flow labels
+   from (mean_mag quartile bin × 4-direction argmax) — these become the CE target for motion_aux
+
+m09a_pretrain.py (v12) + m09c_surgery.py (Phase 4)
+   load motion_features.npy + action_labels.json via utils/motion_aux_loss.build_motion_aux_head_from_cfg
+   run_motion_aux_step adds CE(motion_class) + MSE(z-normalized 13-D vec) per macro batch
+```
+
 ## Shared utils (`src/utils/`)
 
 | Module | Purpose | Consumers |
 |---|---|---|
-| `multi_task_loss.py` | MultiTaskProbeHead + compute_multi_task_probe_loss + 5 integration helpers (merge_config / build_head / attach_optim / run_step / export) | m09a + m09c |
+| `motion_aux_loss.py` | MotionAuxHead (CE + MSE branches) + compute_motion_aux_loss + 5 integration helpers (merge_config / build_head / attach_optim / run_step / export) | **m09a v12** ✅ + **m09c (Phase 4 pending)** |
+| `multi_task_loss.py` | MultiTaskProbeHead + compute_multi_task_probe_loss + 5 integration helpers (RETIRED in v12 — disabled in probe_pretrain.yaml; surgery yaml will also disable in Phase 4) | m09a + m09c (legacy code path) |
+| `action_labels.py` | 3-class (walking/driving/drone) action label derivation + **`parse_optical_flow_class`** (8-class motion-flow target for motion_aux CE branch) + `compute_magnitude_quartiles` | probe_action.py + m09a v12 / m09c Phase 4 motion_aux |
 | `frozen_features.py` | ENCODERS registry + `load_vjepa_2_1_frozen` + `load_dinov2_frozen` + `extract_features_for_keys` + **`resolve_encoder_state_dict`** (4-schema dispatch — Bug fix iter13) | probe_action, probe_motion_cos (via mean-pool), probe_future_mse |
 | `training.py` | Shared SSL training primitives — load_config, producer_thread, build_mask_generators, _train_step_grad_accum, build_optimizer, save/load_training_checkpoint, export_student_for_eval, build_probe_clips, run_probe_acc_eval, FactorSampler, StreamingFactorDataset, **technique-agnostic** per #49 contract | m09a + m09c |
-| `action_labels.py` | 3-class (walking/driving/drone) and 4-class action label derivation from path + tags | probe_action.py + m09a/m09c probe_history |
+| `probe_labels.py` | (NEW, iter13 v12) — additional motion-flow label derivation helpers (currently untracked — confirm its consumers before relying on it) | TBD |
 | `probe_train_subset.py` | Extract per-split clip_keys from action_labels.json | run_probe_train.sh |
+| `hf_outputs.py` | HF dataset/model repo IO: `upload outputs/full` (auto-pack masks/+D_{L,A,I}/ into tars per FIX-25) + `download outputs` (auto-unpack tars then auto-delete per FIX-28) + `_mirror_cleanup` (batched HF delete of stale remote files, scoped to single subfolder) | `git_push.sh` + manual invocation |
+| `data_download.py` | HF dataset download + tar reading (`_read_one_tar` with FIX-27a drop logging for missing_part/empty_mp4) | m04/m04d/m05/m09a/m09c (clip iteration) |
+| `curate_verify.py` | Top-N curation filter (FIX-27b: top-N restricted to renderable video_ids) | m04/curate path |
 | `gpu_batch.py` | AdaptiveBatchSizer + cuda_cleanup | m09a + m09c (training); probe_action features extraction |
 | `vjepa2_imports.py` | Shim around `deps/vjepa2/` to avoid src/ namespace collision | everywhere V-JEPA models are constructed |
 | `cache_policy.py` | DELETE PROTECTION machinery: add_cache_policy_arg + resolve_cache_policy_interactive + guarded_delete + wipe_output_dir | every m*.py + probe_*.py |

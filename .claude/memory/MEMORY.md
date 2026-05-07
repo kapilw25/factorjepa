@@ -4,20 +4,21 @@
 
 ## Project pulse
 
-- [project_pulse.md](project_pulse.md) — current iter (iter13), where the work is, what's done, what's next
+- [project_pulse.md](project_pulse.md) — current iter (iter14), v12/0.808 anchor, what's done on HF, the 3 approval gates blocking iter14 execution
 - [hardware_split.md](hardware_split.md) — what runs on 24 GB vs 96 GB (ironclad — confirmed empirically 2026-05-03)
-- [next_actions.md](next_actions.md) — concrete commands to run next on a fresh 96 GB instance
+- [next_actions.md](next_actions.md) — concrete commands to resume iter14 on a fresh 96 GB instance
 
 ## Architecture
 
-- [pipeline_layout.md](pipeline_layout.md) — module map (m04 → m11, scripts/, utils/), what consumes what
-- [iter13_multi_task.md](iter13_multi_task.md) — multi-task probe-loss wiring (5 helpers + 16-dim taxonomy + 4-encoder eval) — the iter13 pivot
-- [config_schema.md](config_schema.md) — per-mode YAML flatten convention, opt-in pattern, ckpt-schema dispatch
+- [pipeline_layout.md](pipeline_layout.md) — module map (m04 → m11 + m04d motion features, scripts/, utils/), what consumes what
+- [iter14_motion_aux_pivot.md](iter14_motion_aux_pivot.md) — current pivot: motion_aux (CE+MSE) replaced multi_task_probe in v12; pointer to iter14 plans
+- [config_schema.md](config_schema.md) — per-mode YAML flatten convention, opt-in pattern, ckpt-schema dispatch, motion_aux block
+- [legacy/iter13_multi_task.md](legacy/iter13_multi_task.md) — RETIRED iter13 multi_task_probe pivot (replaced by motion_aux in v12; kept for historical context)
 
 ## Operating notes (copy-paste safe)
 
-- [bug_log.md](bug_log.md) — known bugs with their fixes (A/B/R8/OOM-frag/eval-ckpt-schema/Stage-8/plot-NaN)
-- [conventions.md](conventions.md) — CLAUDE.md's load-bearing rules condensed (no hardcoded defaults, fail-hard, cache-policy contract, semicolon-not-&&)
+- [bug_log.md](bug_log.md) — known bug classes with their fixes (A/B/R8/OOM-frag/eval-ckpt-schema/Stage-8/plot-NaN — all merged but watch for regressions)
+- [conventions.md](conventions.md) — CLAUDE.md's load-bearing rules condensed (no hardcoded defaults, fail-hard, cache-policy contract, semicolon-not-&&, never-rm)
 
 ## Active feedback memories
 

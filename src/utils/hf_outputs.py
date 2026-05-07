@@ -9,6 +9,7 @@ USAGE:
 
     # Upload/download: from outputs/full/ ONLY
     python -u src/utils/hf_outputs.py upload outputs/full 2>&1 | tee logs/hf_upload.log
+    HF_HUB_ENABLE_HF_TRANSFER=1 python -u src/utils/hf_outputs.py upload outputs/full  2>&1 | tee logs/hf_upload_outputs_full.log
     python -u src/utils/hf_outputs.py download outputs/full 2>&1 | tee logs/hf_download.log
 
     # Upload/download: from @data/{eval_10k_local/ , full_local/ , subset_10k_local/ , val_1k_local/ }
@@ -564,6 +565,26 @@ def upload_data(data_root: Path = None):
     print(f"Data upload complete → https://huggingface.co/datasets/{HF_OUTPUTS_REPO}")
 
 
+def _delete_shards_after_unpack(shards: list, label: str) -> None:
+    """Reclaim disk by deleting tar shards after a successful unpack.
+
+    iter13 v13 FIX-28 (2026-05-08): post-download `data/` dir was holding BOTH
+    the unpacked raws AND the source tars (~10 GB redundancy at FULL scale).
+    Now: tars get deleted as soon as their unpack returns successfully. Tars
+    are regenerable via re-download from HF, so deletion is safe.
+    """
+    if not shards:
+        return
+    freed_bytes = sum(t.stat().st_size for t in shards if t.is_file())
+    n_deleted = 0
+    for tar_path in shards:
+        if tar_path.is_file():
+            tar_path.unlink()
+            n_deleted += 1
+    print(f"  [hf_outputs] cleaned up {n_deleted} {label} "
+          f"({freed_bytes / 1e9:.2f} GB freed)")
+
+
 def _post_download_unpack_masks(data_root: Path) -> None:
     """Unpack m10/m11 TAR shards back into per-clip files after HF download.
 
@@ -575,6 +596,12 @@ def _post_download_unpack_masks(data_root: Path) -> None:
       <subdir>/m11_factor_datasets/D_A-*.tar    → D_A/*.npy
       <subdir>/m11_factor_datasets/D_I-*.tar    → D_I/*.npy
     Skips already-extracted files to allow incremental restore.
+
+    iter13 v13 FIX-28 (2026-05-08): after each shard family unpacks
+    successfully, delete its tars to reclaim disk (~10 GB at FULL scale).
+    Tars are regenerable via re-download — safe to drop. Failures during
+    unpack raise out of `unpack_shards_to_dir` BEFORE the deletion call,
+    so tars are preserved on error (defensive — no data loss on partial unpack).
     """
     from utils.tar_shard import unpack_shards_to_dir
     if not data_root.is_dir():
@@ -584,7 +611,8 @@ def _post_download_unpack_masks(data_root: Path) -> None:
             continue
         # m10 masks
         seg_dir = d / "m10_sam_segment"
-        if seg_dir.is_dir() and list(seg_dir.glob("masks-*.tar")):
+        masks_shards = list(seg_dir.glob("masks-*.tar")) if seg_dir.is_dir() else []
+        if masks_shards:
             masks_dir = seg_dir / "masks"
             print(f"\n  [hf_outputs] post-download unpack: {seg_dir}/masks-*.tar → {masks_dir}/")
             unpack_shards_to_dir(
@@ -592,6 +620,7 @@ def _post_download_unpack_masks(data_root: Path) -> None:
                 output_dir=masks_dir,
                 skip_existing=True,
             )
+            _delete_shards_after_unpack(masks_shards, "masks-*.tar")
         # m11 factor shards (D_L / D_A / D_I)
         m11_dir = d / "m11_factor_datasets"
         if m11_dir.is_dir():
@@ -607,6 +636,7 @@ def _post_download_unpack_masks(data_root: Path) -> None:
                     output_dir=out_dir,
                     skip_existing=True,
                 )
+                _delete_shards_after_unpack(shards, f"{factor}-*.tar")
 
 
 def download_data(data_root: Path = None):
