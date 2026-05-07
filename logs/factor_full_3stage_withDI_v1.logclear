@@ -1,0 +1,9 @@
+──────────────────────────────────────────────
+factor-prep · mode=FULL · variant=surgery_3stage_DI
+  LOCAL_DATA:   data/eval_10k_local  (single source for SANITY/POC/FULL — m10/m11 outputs co-located inside)
+  TRAIN_SUBSET: <unset>     (iterate all clips in LOCAL_DATA, cap at mode's clip-limit)
+──────────────────────────────────────────────
+  m10: cache at data/eval_10k_local/m10_sam_segment/m10_overlay_verify_top20 -> policy=2 (CACHE_POLICY_ALL)
+  m11: cache at data/eval_10k_local/m11_factor_datasets/m11_per_clip_verify_top20 -> policy=2 (CACHE_POLICY_ALL)
+
+═══ 20:12:07 · Step A — m10 Grounded-SAM (mode=FULL; output → $LOCAL_DATA/m10_sam_segment) ═══

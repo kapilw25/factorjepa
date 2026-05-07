@@ -5,18 +5,20 @@ Auto-generates README.md (model card) from training_summary.json + probe_history
 mirroring the cita_ecliptica/push_automation.py pattern.
 
 USAGE:
-    # Push the pretrain endpoint (default: skip the 14 GB resume ckpt; weights-only)
-    python -u src/utils/push_to_hf.py \\
-        --source-dir outputs/full/probe_pretrain \\
-        --repo-id anonymousML123/factorjepa-pretrain-vjepa21-vitg-5ep \\
-        --base-model facebook/v-jepa-2-vitg \\
-        --stage pretrain
-
-    # Include the 14 GB optimizer-state ckpt (for resume / Stage 8 future_mse downstream)
-    python -u src/utils/push_to_hf.py ... --include-resume-ckpt
+    # Push pretrain endpoint — uploads ~21 GB (student_encoder.pt 7 GB + m09a_ckpt_best.pt 14 GB + metrics).
+    # Both checkpoints are uploaded because the HF endpoint serves BOTH downstream paths:
+    #   • surgery training  : m09c --init-from-ckpt reads student_encoder.pt
+    #   • probe_eval Stage 8: probe_future_mse reads m09a_ckpt_best.pt (predictor key)
+    
+    HF_HUB_ENABLE_HF_TRANSFER=1 python -u src/utils/hf_finetuned_push.py \                                                    
+        --source-dir outputs/full/probe_pretrain \                 
+        --repo-id anonymousML123/factorjepa-pretrain-vjepa21-vitg-5ep \                                                       
+        --base-model facebook/v-jepa-2-vitg \                      
+        --stage pretrain \                                                                                                    
+        2>&1 | tee logs/hf_push_pretrain_v1.log 
 
     # Dry-run (preview model card + planned uploads, no API calls)
-    python -u src/utils/push_to_hf.py ... --dry-run
+    python -u src/utils/hf_finetuned_push.py ... --dry-run
 
 After upload, the model is loadable via:
     from huggingface_hub import hf_hub_download
@@ -41,17 +43,18 @@ except ImportError:
 from huggingface_hub import HfApi, repo_exists
 
 
-# Files that should NEVER be uploaded (resume anchors, temp scratch).
-# `m09a_ckpt_best.pt` is 14 GB optimizer-state-bearing; opt-in via --include-resume-ckpt.
+# Files that are NEVER needed by downstream consumers (surgery training or
+# probe_eval Stage 8) — always exclude. `_best.pt` is NOT in this list because
+# probe_eval Stage 8 future_mse reads its `predictor` key. `student_encoder.pt`
+# isn't excluded either — surgery m09c --init-from-ckpt reads it.
 _DEFAULT_IGNORE = [
     "*.tmp",
     "tmp_*",
-    ".m09*_checkpoint*",
-    "m09*_ckpt_latest.pt",
-    "m09*_ckpt_step*.pt",
+    ".m09*_checkpoint*",        # hidden in-progress anchor (mid-run only)
+    "m09*_ckpt_latest.pt",      # training-resume anchor (no downstream use)
+    "m09*_ckpt_step*.pt",       # rotation-buffer step ckpts (no downstream use)
     "README.md.bak",
 ]
-_RESUME_CKPT_PATTERNS = ["m09a_ckpt_best.pt", "m09c_ckpt_best.pt"]
 
 
 def _get_token():
@@ -98,8 +101,7 @@ def _format_lift_row(key: str, label: str, fmt: str, initial: dict, final: dict)
 
 
 def _generate_model_card(repo_id: str, base_model: str, stage: str,
-                         metrics: dict, paired_results: dict = None,
-                         include_resume_ckpt: bool = False) -> str:
+                         metrics: dict, paired_results: dict = None) -> str:
     """Build README.md content with HF YAML frontmatter + metrics + usage example.
 
     paired_results: optional dict from probe_eval's paired_delta JSON; emits the
@@ -124,17 +126,14 @@ def _generate_model_card(repo_id: str, base_model: str, stage: str,
     lift_block = "\n".join(lift_rows) if lift_rows else "_(no probe_history.jsonl found)_"
 
     files_table = [
-        "| `student_encoder.pt` | ~7 GB | Inference-ready ViT-G encoder weights — **use this for downstream init** |",
+        "| `student_encoder.pt` | ~7 GB | Inference-ready ViT-G encoder weights — **use for surgery init / m09c `--init-from-ckpt`** |",
+        "| `m09a_ckpt_best.pt` | ~14 GB | Best-val ckpt w/ optimizer + **predictor** — **required for `probe_eval.sh` Stage 8 `future_mse`** |",
         "| `motion_aux_head.pt` | ~2 MB | Motion auxiliary head (paired with student_encoder) |",
         "| `training_summary.json` | ~2 KB | Final-step metrics |",
         "| `probe_history.jsonl` | ~few KB/step | Per-checkpoint probe + drift metrics |",
         "| `loss_log.{jsonl,csv}` | ~several KB | Per-step JEPA loss trajectory |",
         "| `*.png` / `*.pdf` | ~few MB | Training trajectory plots (loss, drift, probe trio) |",
     ]
-    if include_resume_ckpt:
-        files_table.insert(1,
-            "| `m09a_ckpt_best.pt` | ~14 GB | Best-validation checkpoint w/ optimizer + predictor (resume + Stage 8 future_mse) |"
-        )
 
     paired_block = ""
     if paired_results:
@@ -260,13 +259,13 @@ Pipeline source: `iter/iter14_surgery_on_pretrain/plan_HIGH_LEVEL.md`
   title  = {{FactorJEPA: Factor-disentangled SSL for Indian-context urban video}},
   author = {{Wanaskar, Kapil and others}},
   year   = {{2026}},
-  note   = {{HF model card auto-generated by src/utils/push_to_hf.py}}
+  note   = {{HF model card auto-generated by src/utils/hf_finetuned_push.py}}
 }}
 ```
 
 ---
 
-*Model card auto-generated by `src/utils/push_to_hf.py` at {timestamp}.*
+*Model card auto-generated by `src/utils/hf_finetuned_push.py` at {timestamp}.*
 """
 
 
@@ -275,19 +274,16 @@ def push_to_huggingface(
     repo_id: str,
     base_model: str = "facebook/v-jepa-2-vitg",
     stage: str = "pretrain",
-    include_resume_ckpt: bool = False,
     paired_results: dict = None,
     private: bool = False,
     dry_run: bool = False,
 ) -> str:
     """Create HF MODEL repo, upload weights + plots + metrics, push README model card.
 
+    Uploads the entire source dir minus `_DEFAULT_IGNORE` (resume anchors that
+    serve no downstream purpose). Both `student_encoder.pt` (surgery init) and
+    `m09a_ckpt_best.pt` (probe_eval Stage 8 future_mse) are ALWAYS uploaded.
     Returns the published-model URL (or a dry-run preview path).
-
-    Defaults match the cita_ecliptica/push_automation.py contract:
-      - public model repo (paper companion)
-      - skip 14 GB optimizer-state ckpt unless include_resume_ckpt=True
-      - auto-generated model card from training_summary + probe_history
     """
     token = _get_token()
     if not token:
@@ -300,11 +296,7 @@ def push_to_huggingface(
         sys.exit(1)
 
     api = HfApi(token=token)
-
-    # Build the ignore_patterns list — defaults + maybe the resume ckpt.
     ignore_patterns = list(_DEFAULT_IGNORE)
-    if not include_resume_ckpt:
-        ignore_patterns.extend(_RESUME_CKPT_PATTERNS)
 
     # 1. Create model repo if missing.
     if not repo_exists(repo_id, repo_type="model", token=token):
@@ -321,7 +313,6 @@ def push_to_huggingface(
     card = _generate_model_card(
         repo_id=repo_id, base_model=base_model, stage=stage,
         metrics=metrics, paired_results=paired_results,
-        include_resume_ckpt=include_resume_ckpt,
     )
     card_path = source_dir / "README.md"
     if dry_run:
@@ -334,7 +325,6 @@ def push_to_huggingface(
 
     # 3. Inventory the upload.
     all_files = sorted(f for f in source_dir.rglob("*") if f.is_file())
-    # Apply ignore patterns to the preview list (so logged size ≈ actual upload).
     def _ignored(p: Path) -> bool:
         rel = str(p.relative_to(source_dir))
         for pat in ignore_patterns:
@@ -349,7 +339,7 @@ def push_to_huggingface(
     for f in upload_files:
         print(f"    + {f.relative_to(source_dir)}  ({_fmt_size(f.stat().st_size)})")
     if skipped:
-        print(f"  skipped:    {len(skipped)} files (ignore_patterns)")
+        print(f"  skipped:    {len(skipped)} files (ignore_patterns — resume anchors only)")
         for f in skipped:
             print(f"    - {f.relative_to(source_dir)}  ({_fmt_size(f.stat().st_size)})")
 
@@ -383,9 +373,6 @@ def main():
                    choices=["pretrain", "pretrain_long",
                             "surgery_3stage_DI", "surgery_noDI"],
                    help="Training stage label (drives model-card framing + tags)")
-    p.add_argument("--include-resume-ckpt", action="store_true",
-                   help="Also upload m09a_ckpt_best.pt (~14 GB, optimizer state). "
-                        "Default: skipped (only inference-ready student_encoder.pt + metrics).")
     p.add_argument("--private", action="store_true",
                    help="Create as private repo (default: public — paper companion).")
     p.add_argument("--dry-run", action="store_true",
@@ -397,7 +384,6 @@ def main():
         repo_id=args.repo_id,
         base_model=args.base_model,
         stage=args.stage,
-        include_resume_ckpt=args.include_resume_ckpt,
         private=args.private,
         dry_run=args.dry_run,
     )
