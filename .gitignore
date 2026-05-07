@@ -58,6 +58,7 @@ checkpoints/
 
 # Logs
 logs/*.log
+*.logclear
 
 # Weights & Biases
 # wandb/
