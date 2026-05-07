@@ -48,13 +48,25 @@ cd "$(dirname "$0")/.."
 source venv_walkindia/bin/activate
 mkdir -p logs
 
-EX="scripts/lib/yaml_extract.py"
-TRAIN_SUBSET=$("$EX" "$FACTOR_YAML" data.train_subset)
-TRAIN_LOCAL=$("$EX" "$FACTOR_YAML" data.train_local_data)
+# iter13 v13 FIX-3 (2026-05-07): hardcode the canonical iter13 paths so that
+# factor-prep writes to the SAME dir surgery reads from. Previously this script
+# read data.train_{subset,local_data} from yaml, which inherits from
+# base_optimization.yaml:31-35 → data/ultra_hard_3066_* (the OLD ch10 pipeline).
+# But run_probe_train.sh:127 hardcodes LOCAL_DATA=data/eval_10k_local. Result:
+# factor-prep wrote to data/ultra_hard_3066_local/, surgery looked in
+# data/eval_10k_local/m11_factor_datasets → "FATAL: factor-dir missing" on
+# every fresh FULL run. Single source of truth now: both shells use
+# data/eval_10k_local + data/eval_10k.json (the m00d 10k uniform sample of
+# the 115k corpus). Override via env vars LOCAL_DATA / TRAIN_SUBSET if needed.
+TRAIN_LOCAL="${LOCAL_DATA:-data/eval_10k_local}"
+TRAIN_SUBSET="${TRAIN_SUBSET:-data/eval_10k.json}"
 
 for req in "$TRAIN_SUBSET" "$TRAIN_LOCAL"; do
     if [ ! -e "$req" ]; then
-        echo "FATAL: missing path from $FACTOR_YAML: $req" >&2
+        echo "FATAL: missing canonical path: $req" >&2
+        echo "  iter13 v13 expects: TRAIN_LOCAL=$TRAIN_LOCAL, TRAIN_SUBSET=$TRAIN_SUBSET" >&2
+        echo "  Use hf_outputs.py download-data to fetch eval_10k_local, OR" >&2
+        echo "  override via env vars: LOCAL_DATA=... TRAIN_SUBSET=... $0 $@" >&2
         exit 3
     fi
 done

@@ -175,12 +175,43 @@ def merge_config_with_args(cfg: dict, args) -> dict:
     cfg["factor_streaming"]["enabled"] = fs_enabled
     cfg["factor_streaming"]["num_workers"] = fs_cfg["num_workers"][mode_key]
 
-    # Output dir: explicit --output-dir, or auto from module + mode
+    # iter13 v13 FIX-4 (2026-05-07): output dir resolution — two-tier priority:
+    #   1. explicit --output-dir CLI flag (highest; shell wrapper uses this)
+    #   2. derive variant tag from --train-config filename + use mode subdir from
+    #      args. The yaml's data.output_dir field (e.g. "outputs/full/...") is
+    #      INFORMATIONAL only — it hardcodes "full", so honoring it when running
+    #      --SANITY would write SANITY artifacts to the FULL dir. The filename
+    #      derivation matches the shell wrapper's VARIANT_TAG convention exactly:
+    #        surgery_3stage_DI.yaml  → m09c_surgery_3stage_DI
+    #        surgery_2stage_noDI.yaml → m09c_surgery_noDI  (yaml says "noDI"; see surgery_2stage_noDI.yaml:30)
+    # Without this, two standalone m09c runs with different variants silently
+    # overwrite the same outputs/<mode>/m09c_surgery/ dir → variant collision +
+    # broken downstream eval.
     if getattr(args, "output_dir", None):
         cfg["checkpoint"]["output_dir"] = args.output_dir
         return cfg
-    base_out = get_module_output_dir("m09c_surgery", args.subset,
-                                    sanity=args.SANITY, poc=args.POC)
+    train_cfg_path = getattr(args, "train_config", None) or getattr(args, "config", None)
+    if train_cfg_path:
+        stem = Path(train_cfg_path).stem  # e.g. "surgery_3stage_DI"
+        # Match shell wrapper convention: 2stage_noDI yaml → noDI tag (the "2stage_"
+        # is run-recipe info, not a directory tag). Strip leading "surgery_" then
+        # strip leading "2stage_" / "3stage_" if present so the tag is just the variant
+        # discriminator (DI / noDI / loud_agent / ...).
+        if stem.startswith("surgery_"):
+            stem = stem[len("surgery_"):]
+        for prefix in ("2stage_", "3stage_"):
+            if stem.startswith(prefix):
+                # 3stage_DI → DI is too short / collides with multi-stage variants;
+                # keep the stage prefix for 3stage_DI (preserves yaml→shell mapping).
+                # Drop ONLY for 2stage_noDI → noDI (matches shell VARIANT_TAG=noDI).
+                if prefix == "2stage_":
+                    stem = stem[len(prefix):]
+                break
+        module_name = f"m09c_surgery_{stem}"
+    else:
+        module_name = "m09c_surgery"
+    base_out = get_module_output_dir(module_name, args.subset,
+                                     sanity=args.SANITY, poc=args.POC)
     cfg["checkpoint"]["output_dir"] = str(base_out)
     return cfg
 
@@ -852,17 +883,23 @@ def train(cfg: dict, args):
                 # surgery configs disable both knobs (current default) values are
                 # genuinely 0.0; if a future config re-enables them the val plots
                 # will reflect the real numbers without any code change.
+                # iter13 v13 FIX-5 (2026-05-07): added ma_head + ma_lookup + ma_cfg
+                # kwargs so val_motion_aux_loss is genuinely computed (motion_aux is
+                # surgery's primary aux loss per Phase 4 lever swap; previously
+                # invisible at val time → NaN'd head only surfaced in train records).
                 vl = run_probe_val_loss(
                     student, teacher, predictor, probe_clips,
                     mask_generators, cfg, device,
                     mt_head=mt_head, mt_dims_spec=mt_dims_spec,
                     mt_labels_by_clip=mt_labels_by_clip, mt_cfg=mt_cfg,
                     init_params=init_params, drift_cfg=cfg.get("drift_control"),
+                    ma_head=ma_head, ma_lookup=ma_lookup, ma_cfg=ma_cfg,
                 )
                 pr["val_jepa_loss"] = vl["jepa_loss"]
                 pr["val_masked_loss"] = vl["masked_loss"]
                 pr["val_context_loss"] = vl["context_loss"]
                 pr["val_multi_task_loss"] = vl["multi_task_loss"]
+                pr["val_motion_aux_loss"] = vl["motion_aux_loss"]
                 pr["val_drift_loss"] = vl["drift_loss"]
                 pr["val_total_loss"] = vl["total_loss"]
 

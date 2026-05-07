@@ -759,7 +759,9 @@ def run_validation(student, teacher, predictor, mask_generators,
                    val_keys: list = None,
                    mt_head=None, mt_dims_spec: dict = None,
                    mt_labels_by_clip: dict = None, mt_cfg: dict = None,
-                   init_params: dict = None, drift_cfg: dict = None) -> dict:
+                   init_params: dict = None, drift_cfg: dict = None,
+                   ma_head=None, ma_lookup: dict = None,
+                   ma_cfg: dict = None) -> dict:
     """Compute val losses on val clips — same metrics as training loss.
 
     iter13 (2026-05-05): extended from "JEPA only" to all 4 components, mirroring
@@ -785,7 +787,13 @@ def run_validation(student, teacher, predictor, mask_generators,
         init_params:        Dict of CPU-clones of student params at start of training.
         drift_cfg:          Drift-control yaml block (provides lambda_reg).
 
-    Returns dict with keys: jepa, multi_task, drift, total, n_batches.
+    Returns dict with keys: jepa, multi_task, drift, motion_aux, total, n_batches.
+
+    iter13 v13 FIX-5 (2026-05-07): added ma_head/ma_lookup/ma_cfg kwargs +
+    per-batch motion_aux compute mirroring multi_task — closes the same
+    asymmetry that D6-FIX closed for mt. Without this, motion_aux trains
+    invisibly at val time → a NaN'd head shows up only in train step records,
+    not in val plots.
     """
     student.eval()
     predictor.eval()
@@ -795,12 +803,17 @@ def run_validation(student, teacher, predictor, mask_generators,
     loss_exp = cfg["optimization"]["loss_exp"]
     total_jepa = 0.0
     total_mt = 0.0
+    total_ma = 0.0
     n_batches = 0
+    n_batches_ma = 0
     n_seen_clips = 0   # cursor into val_keys for per-batch slicing
 
-    # Lazy import to avoid circular: multi_task_loss imports from training-adjacent paths.
+    # Lazy imports to avoid circular: multi_task_loss + motion_aux_loss import
+    # from training-adjacent paths.
     if mt_head is not None:
         from utils.multi_task_loss import compute_multi_task_probe_loss
+    if ma_head is not None:
+        from utils.motion_aux_loss import compute_motion_aux_loss
 
     with torch.no_grad():
         for batch_clips in val_batches:
@@ -859,32 +872,54 @@ def run_validation(student, teacher, predictor, mask_generators,
                 # the train-time pattern at multi_task_loss.py:run_multi_task_step
                 # (toggle return_hierarchical OFF, mean-pool last layer, run head).
                 # Skipped when mt_head/labels not provided — pure-JEPA fast path.
-                if (mt_head is not None
-                        and mt_labels_by_clip is not None
-                        and batch_keys):
-                    had_hier_mt = getattr(student, "return_hierarchical", None)
-                    if had_hier_mt is True:
+                # iter13 v13 FIX-5 (2026-05-07): merged mt + motion_aux unmasked
+                # forward into ONE student call when both heads are active —
+                # halves the eval-time forward cost (was 2 separate forwards).
+                # Skipped when neither head is provided → pure-JEPA fast path
+                # preserved.
+                need_unmasked = (
+                    (mt_head is not None and mt_labels_by_clip is not None and batch_keys)
+                    or (ma_head is not None and ma_lookup is not None and batch_keys)
+                )
+                if need_unmasked:
+                    had_hier_un = getattr(student, "return_hierarchical", None)
+                    if had_hier_un is True:
                         student.return_hierarchical = False
                     try:
                         feats_unmasked = student(batch_clips)
                         if isinstance(feats_unmasked, (list, tuple)):
                             feats_unmasked = feats_unmasked[-1]
                         pooled = feats_unmasked.mean(dim=1)              # (B, D)
-                        mt_loss_t, _ = compute_multi_task_probe_loss(
-                            pooled, mt_head, batch_keys,
-                            mt_labels_by_clip, mt_dims_spec,
-                            weight_per_dim=mt_cfg["weight_per_dim"],
-                            device=device)
-                        total_mt += float(mt_loss_t.item())
+                        if (mt_head is not None
+                                and mt_labels_by_clip is not None
+                                and batch_keys):
+                            mt_loss_t, _ = compute_multi_task_probe_loss(
+                                pooled, mt_head, batch_keys,
+                                mt_labels_by_clip, mt_dims_spec,
+                                weight_per_dim=mt_cfg["weight_per_dim"],
+                                device=device)
+                            total_mt += float(mt_loss_t.item())
+                        if (ma_head is not None
+                                and ma_lookup is not None
+                                and batch_keys):
+                            ma_loss_t, ma_branches = compute_motion_aux_loss(
+                                pooled, ma_head, batch_keys, ma_lookup,
+                                weight_ce=ma_cfg["weight_ce"] if ma_cfg else 1.0,
+                                weight_mse=ma_cfg["weight_mse"] if ma_cfg else 1.0,
+                                device=device)
+                            if ma_branches.get("n_kept", 0) > 0:
+                                total_ma += float(ma_loss_t.item())
+                                n_batches_ma += 1
                     finally:
-                        if had_hier_mt is not None:
-                            student.return_hierarchical = had_hier_mt
+                        if had_hier_un is not None:
+                            student.return_hierarchical = had_hier_un
 
             total_jepa += jepa_loss.item()
             n_batches += 1
 
     val_jepa = total_jepa / max(n_batches, 1)
     val_mt   = total_mt   / max(n_batches, 1)
+    val_ma   = total_ma   / max(n_batches_ma, 1)
 
     # iter13: drift loss is data-INDEPENDENT (||θ-θ_init||²), so compute once
     # post-loop instead of per-batch. Matches the train-time semantics at
@@ -896,15 +931,16 @@ def run_validation(student, teacher, predictor, mask_generators,
             val_drift = float(
                 compute_drift_loss(student, init_params, drift_cfg["lambda_reg"]).item())
 
-    # iter13: total = α·jepa + β·mt + λ·drift (yaml weights). Mirrors
-    # _train_step_grad_accum's accounting at line ~530-560. Defaults reproduce
-    # the legacy "jepa-only" total when mt_cfg/drift inputs are absent.
+    # iter13 v13 FIX-5: total = α·jepa + β·mt + γ·motion_aux + λ·drift (yaml weights).
+    # Mirrors _train_step_grad_accum's accounting. Defaults reproduce the legacy
+    # "jepa-only" total when mt_cfg/ma_cfg/drift inputs are absent.
     weight_mt = float(mt_cfg["weight_probe"]) if mt_cfg is not None else 0.0
-    val_total = val_jepa + weight_mt * val_mt + val_drift
+    weight_ma = float(ma_cfg["weight_motion"]) if ma_cfg is not None else 0.0
+    val_total = val_jepa + weight_mt * val_mt + weight_ma * val_ma + val_drift
 
     print(f"  Step {step} | Val JEPA loss: {val_jepa:.4f} "
-          f"(mt={val_mt:.4f} · drift={val_drift:.6f} · total={val_total:.4f}; "
-          f"{len(val_batches)} batches)")
+          f"(mt={val_mt:.4f} · ma={val_ma:.4f} · drift={val_drift:.6f} · "
+          f"total={val_total:.4f}; {len(val_batches)} batches)")
 
     student.train()
     predictor.train()
@@ -917,6 +953,7 @@ def run_validation(student, teacher, predictor, mask_generators,
     return {
         "jepa":       val_jepa,
         "multi_task": val_mt,
+        "motion_aux": val_ma,
         "drift":      val_drift,
         "total":      val_total,
         "n_batches":  n_batches,
@@ -2097,7 +2134,9 @@ def run_probe_val_loss(student, teacher, predictor, probe_clips: list,
                        device: torch.device, *,
                        mt_head=None, mt_dims_spec: dict = None,
                        mt_labels_by_clip: dict = None, mt_cfg: dict = None,
-                       init_params: dict = None, drift_cfg: dict = None) -> dict:
+                       init_params: dict = None, drift_cfg: dict = None,
+                       ma_head=None, ma_lookup: dict = None,
+                       ma_cfg: dict = None) -> dict:
     """Compute JEPA + (optional) multi-task + (optional) drift val-loss on probe clips.
 
     iter13 v13 D6-FIX (2026-05-07): extended from JEPA-only to all 4 components,
@@ -2116,7 +2155,11 @@ def run_probe_val_loss(student, teacher, predictor, probe_clips: list,
     hierarchical output). Caller-safe: train() / eval() toggled and restored.
 
     Returns {"jepa_loss", "masked_loss", "context_loss", "n_val_clips",
-             "multi_task_loss", "drift_loss", "total_loss"}.
+             "multi_task_loss", "motion_aux_loss", "drift_loss", "total_loss"}.
+
+    iter13 v13 FIX-5 (2026-05-07): added ma_head/ma_lookup/ma_cfg kwargs +
+    per-batch motion_aux compute mirroring multi_task. Closes asymmetry
+    where surgery's primary aux loss (motion_aux) was invisible at val time.
     """
     n = len(probe_clips)
     if n < 10:
@@ -2151,10 +2194,15 @@ def run_probe_val_loss(student, teacher, predictor, probe_clips: list,
     total_j, total_m, total_c, n_seen = 0.0, 0.0, 0.0, 0
     total_mt = 0.0   # multi-task per-batch (averaged at end)
     n_batches_mt = 0
+    total_ma = 0.0   # motion_aux per-batch (averaged at end)
+    n_batches_ma = 0
 
-    # Lazy import to avoid circular: multi_task_loss imports from training-adjacent paths.
+    # Lazy imports to avoid circular: multi_task_loss + motion_aux_loss import
+    # from training-adjacent paths.
     if mt_head is not None:
         from utils.multi_task_loss import compute_multi_task_probe_loss
+    if ma_head is not None:
+        from utils.motion_aux_loss import compute_motion_aux_loss
 
     try:
         i = 0
@@ -2190,31 +2238,46 @@ def run_probe_val_loss(student, teacher, predictor, probe_clips: list,
                     jl, lm, lc = compute_jepa_loss(pf, pc, h, all_mpred, all_menc,
                                                    loss_exp, predict_all, lambda_context=0.5)
 
-                    # iter13 v13 D6-FIX: multi-task forward on UNMASKED features
-                    # (mirrors run_validation:857-881). Toggles return_hierarchical
-                    # OFF, mean-pools the last layer, runs the head. Skipped when
-                    # mt_head/labels not provided → pure-JEPA fast path preserved.
-                    if (mt_head is not None
-                            and mt_labels_by_clip is not None
-                            and batch_keys):
-                        had_hier_mt = getattr(student, "return_hierarchical", None)
-                        if had_hier_mt is True:
+                    # iter13 v13 D6/FIX-5: shared UNMASKED forward feeds mt + motion_aux
+                    # heads. Halves eval-time forward cost when both are active. Skipped
+                    # when neither head is provided → pure-JEPA fast path preserved.
+                    need_unmasked = (
+                        (mt_head is not None and mt_labels_by_clip is not None and batch_keys)
+                        or (ma_head is not None and ma_lookup is not None and batch_keys)
+                    )
+                    if need_unmasked:
+                        had_hier_un = getattr(student, "return_hierarchical", None)
+                        if had_hier_un is True:
                             student.return_hierarchical = False
                         try:
                             feats_unmasked = student(batch)
                             if isinstance(feats_unmasked, (list, tuple)):
                                 feats_unmasked = feats_unmasked[-1]
                             pooled = feats_unmasked.mean(dim=1)              # (B, D)
-                            mt_loss_t, _ = compute_multi_task_probe_loss(
-                                pooled, mt_head, batch_keys,
-                                mt_labels_by_clip, mt_dims_spec,
-                                weight_per_dim=mt_cfg["weight_per_dim"],
-                                device=device)
-                            total_mt += float(mt_loss_t.item())
-                            n_batches_mt += 1
+                            if (mt_head is not None
+                                    and mt_labels_by_clip is not None
+                                    and batch_keys):
+                                mt_loss_t, _ = compute_multi_task_probe_loss(
+                                    pooled, mt_head, batch_keys,
+                                    mt_labels_by_clip, mt_dims_spec,
+                                    weight_per_dim=mt_cfg["weight_per_dim"],
+                                    device=device)
+                                total_mt += float(mt_loss_t.item())
+                                n_batches_mt += 1
+                            if (ma_head is not None
+                                    and ma_lookup is not None
+                                    and batch_keys):
+                                ma_loss_t, ma_branches = compute_motion_aux_loss(
+                                    pooled, ma_head, batch_keys, ma_lookup,
+                                    weight_ce=ma_cfg["weight_ce"] if ma_cfg else 1.0,
+                                    weight_mse=ma_cfg["weight_mse"] if ma_cfg else 1.0,
+                                    device=device)
+                                if ma_branches.get("n_kept", 0) > 0:
+                                    total_ma += float(ma_loss_t.item())
+                                    n_batches_ma += 1
                         finally:
-                            if had_hier_mt is not None:
-                                student.return_hierarchical = had_hier_mt
+                            if had_hier_un is not None:
+                                student.return_hierarchical = had_hier_un
                 total_j += jl.item() * micro_bs
                 total_m += lm.item() * micro_bs
                 total_c += lc.item() * micro_bs
@@ -2242,6 +2305,7 @@ def run_probe_val_loss(student, teacher, predictor, probe_clips: list,
 
     val_jepa = total_j / max(n_seen, 1)
     val_mt = total_mt / max(n_batches_mt, 1)
+    val_ma = total_ma / max(n_batches_ma, 1)
 
     # iter13 v13 D6-FIX: drift loss is data-INDEPENDENT (||θ-θ_init||²), so
     # compute once post-loop instead of per-batch. Mirrors run_validation:889-897.
@@ -2253,7 +2317,8 @@ def run_probe_val_loss(student, teacher, predictor, probe_clips: list,
                 compute_drift_loss(student, init_params, drift_cfg["lambda_reg"]).item())
 
     weight_mt = float(mt_cfg["weight_probe"]) if mt_cfg is not None else 0.0
-    val_total = val_jepa + weight_mt * val_mt + val_drift
+    weight_ma = float(ma_cfg["weight_motion"]) if ma_cfg is not None else 0.0
+    val_total = val_jepa + weight_mt * val_mt + weight_ma * val_ma + val_drift
 
     return {
         "jepa_loss": val_jepa,
@@ -2261,6 +2326,7 @@ def run_probe_val_loss(student, teacher, predictor, probe_clips: list,
         "context_loss": total_c / max(n_seen, 1),
         "n_val_clips": n_seen,
         "multi_task_loss": val_mt,
+        "motion_aux_loss": val_ma,
         "drift_loss": val_drift,
         "total_loss": val_total,
     }

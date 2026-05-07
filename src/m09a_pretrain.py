@@ -1041,26 +1041,32 @@ def train(cfg: dict, args):
                 # compat: pull `val_loss = result["jepa"]` for downstream
                 # kill-switch / best-ckpt / plateau (which expect a scalar).
                 # New fields land in probe_record (see end-of-val block).
+                # iter13 v13 FIX-5 (2026-05-07): pass ma_head + ma_lookup + ma_cfg
+                # so val_motion_aux_loss is computed alongside mt + drift —
+                # closes the asymmetry where motion_aux trained invisibly at val time.
                 val_result = run_validation(
                     student, teacher, predictor, mask_generators,
                     val_batches, cfg, device, step + 1,
                     val_keys=val_collected_keys,
                     mt_head=mt_head, mt_dims_spec=mt_dims_spec,
                     mt_labels_by_clip=mt_labels_by_clip, mt_cfg=mt_cfg,
-                    init_params=init_params, drift_cfg=drift_cfg)
+                    init_params=init_params, drift_cfg=drift_cfg,
+                    ma_head=ma_head, ma_lookup=ma_lookup, ma_cfg=ma_cfg)
                 val_loss = val_result["jepa"]
                 log_metrics(wb_run, {
                     "val/jepa_loss":       val_result["jepa"],
                     "val/multi_task_loss": val_result["multi_task"],
+                    "val/motion_aux_loss": val_result["motion_aux"],
                     "val/drift_loss":      val_result["drift"],
                     "val/total_loss":      val_result["total"],
                     "val/epoch_pct":       pct,
                 }, step=step)
 
-                # Write all 4 val losses to JSONL (crash-safe) + CSV (legacy: jepa only).
+                # Write all 5 val losses to JSONL (crash-safe) + CSV (legacy: jepa only).
                 _log_step({"step": step, "epoch": epoch,
                            "val_loss":            round(val_result["jepa"], 6),
                            "val_multi_task_loss": round(val_result["multi_task"], 6),
+                           "val_motion_aux_loss": round(val_result["motion_aux"], 6),
                            "val_drift_loss":      round(val_result["drift"], 8),
                            "val_total_loss":      round(val_result["total"], 6),
                            "epoch_pct": round(pct, 1)})
@@ -1113,6 +1119,7 @@ def train(cfg: dict, args):
                 probe_record = {"step": step, "epoch": epoch,
                                 "val_jepa_loss":       round(val_result["jepa"], 6),
                                 "val_multi_task_loss": round(val_result["multi_task"], 6),
+                                "val_motion_aux_loss": round(val_result["motion_aux"], 6),
                                 "val_drift_loss":      round(val_result["drift"], 8),
                                 "val_total_loss":      round(val_result["total"], 6),
                                 "epoch_pct": round(pct, 1)}

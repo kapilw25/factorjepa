@@ -57,27 +57,5 @@ surgery:
       mode_mixture: {L: 0.15, A: 0.15, I: 0.70}   # 15/15 replay (anti-forgetting Stages 1+2), 70% interactions (was 0.85 in iter8 — tempered)
       max_epochs_pct: 0.30
 
-# -- Multi-task probe (15 retrieval dims) — DISABLED v12+.
-# iter13 v11 showed retrieval gradient steals capacity from motion learning;
-# m09c surgery follows the same swap m09a did in v12 (probe_pretrain.yaml:161).
-multi_task_probe:
-  enabled: {sanity: false, poc: false, full: false}
-
-# -- Motion-features auxiliary loss (Phase 4, iter13 v12+, 2026-05-06).
-# Mirrors probe_pretrain.yaml:176-189. Surgery's per-stage optimizer rebuild
-# re-attaches the motion_aux head param group every stage (via
-# attach_motion_aux_to_optimizer). Same K=8 motion-flow classes as v12 m09a.
-motion_aux:
-  enabled:
-    sanity: true
-    poc:    true
-    full:   true
-  motion_features_path: data/eval_10k_local/motion_features.npy
-  action_labels_path:   outputs/full/probe_action/action_labels.json
-  weight_motion: 0.1
-  weight_ce:     1.0
-  weight_mse:    1.0
-  head:
-    hidden_dim: 256
-    dropout:    0.1
-  head_lr_multiplier: 10.0
+# -- Multi-task probe + motion_aux INHERITED from surgery_base.yaml (v13 FIX-6).
+# Override here only if 3stage_DI needs to differ. Currently no overrides.

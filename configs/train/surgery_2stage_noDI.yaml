@@ -44,24 +44,6 @@ surgery:
       mode_mixture: {L: 0.30, A: 0.70, I: 0.00}   # 30% layout replay (CLEAR 2018), 70% agent
       max_epochs_pct: 0.50
 
-# -- Multi-task probe (15 retrieval dims) — DISABLED v12+ (mirror surgery_3stage_DI).
-multi_task_probe:
-  enabled: {sanity: false, poc: false, full: false}
-
-# -- Motion-features auxiliary loss (Phase 4, iter13 v12+, 2026-05-06).
-# Mirrors probe_pretrain.yaml:176-189. 2-stage variant has no Stage 3 D_I —
-# motion_aux still attaches at Stage 1 + Stage 2 optimizer rebuilds.
-motion_aux:
-  enabled:
-    sanity: true
-    poc:    true
-    full:   true
-  motion_features_path: data/eval_10k_local/motion_features.npy
-  action_labels_path:   outputs/full/probe_action/action_labels.json
-  weight_motion: 0.1
-  weight_ce:     1.0
-  weight_mse:    1.0
-  head:
-    hidden_dim: 256
-    dropout:    0.1
-  head_lr_multiplier: 10.0
+# -- Multi-task probe + motion_aux INHERITED from surgery_base.yaml (v13 FIX-6).
+# 2-stage variant has no Stage 3 D_I — motion_aux still attaches at Stage 1 +
+# Stage 2 optimizer rebuilds via attach_motion_aux_to_optimizer.

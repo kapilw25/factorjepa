@@ -211,6 +211,35 @@ drift_control:
   type: l2_uniform                  # doc-only (no Python branch reads it when enabled=false)
   lambda_reg: 0.0                   # was 1.0 pre-iter13-v12; nuked alongside multi_task_probe swap
 
+# -- Multi-task probe (15 retrieval dims) — DISABLED v12+ for ALL surgery variants.
+# iter13 v11 showed retrieval gradient steals capacity from motion learning.
+# v12 swap → motion_aux (see below). Variants don't override unless they
+# specifically want retrieval dims back.
+multi_task_probe:
+  enabled: {sanity: false, poc: false, full: false}
+
+# -- Motion-features auxiliary loss (Phase 4, iter13 v12+, 2026-05-07).
+# iter13 v13 FIX-6 (2026-05-07): hoisted from per-variant yamls (3stage_DI +
+# 2stage_noDI) to surgery_base so all surgery variants inherit motion_aux by
+# default. Mirrors probe_pretrain.yaml:176-189. Surgery's per-stage optimizer
+# rebuild re-attaches the motion_aux head param group every stage (via
+# attach_motion_aux_to_optimizer). Same K=8 motion-flow classes as v12 m09a.
+# Per-variant yamls only override fields they want to differ.
+motion_aux:
+  enabled:
+    sanity: true
+    poc:    true
+    full:   true
+  motion_features_path: data/eval_10k_local/motion_features.npy
+  action_labels_path:   outputs/full/probe_action/action_labels.json
+  weight_motion: 0.1
+  weight_ce:     1.0
+  weight_mse:    1.0
+  head:
+    hidden_dim: 256
+    dropout:    0.1
+  head_lr_multiplier: 10.0
+
 # -- Probe: surgery-specific overrides only (universal probe config in base) --
 # Surgery-specific extras (m09c reads these via merge_config_with_args at line 94-129):
 probe:
