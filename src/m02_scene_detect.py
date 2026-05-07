@@ -256,10 +256,18 @@ def main():
     POLL_INTERVAL = 300  # 5 min between polls
 
     section_map = build_video_section_map()
-    if section_map:
-        print(f"Section map: {len(section_map)} videos mapped to hierarchical dirs")
-    else:
-        print("WARNING: No section map available, clips will go to 'unsorted/'")
+    if not section_map:
+        # iter13 v13 FIX-16 (2026-05-07): FAIL HARD per CLAUDE.md (no
+        # WARN-without-exit). Without a section map, every clip falls into
+        # 'unsorted/' which breaks downstream subset JSON organization
+        # (m00c_sample_subset, m00f_category_subsets etc. select BY section).
+        # Better to surface the upstream failure than ship corrupt data.
+        print("FATAL: No section map available — build_video_section_map() returned empty.")
+        print("  Without per-video section mapping, clips would be dumped into 'unsorted/'")
+        print("  and miss every downstream section-organized subset (m00c/m00e/m00f).")
+        print("  Investigate the YT_videos_raw.md → JSON conversion (m00_data_prep).")
+        sys.exit(1)
+    print(f"Section map: {len(section_map)} videos mapped to hierarchical dirs")
 
     if args.SANITY:
         print("=== SANITY MODE: Process 1 video ===")

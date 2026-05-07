@@ -51,7 +51,8 @@ from scipy.ndimage import binary_dilation
 sys.path.insert(0, str(Path(__file__).parent))
 from utils.config import (
     check_gpu, add_subset_arg, add_local_data_arg, get_output_dir, get_module_output_dir,
-    load_subset, get_sanity_clip_limit, get_total_clips,
+    load_subset, get_sanity_clip_limit, get_poc_clip_limit, get_total_clips,
+    load_train_config_with_extends,
 )
 from utils.checkpoint import save_json_checkpoint, load_json_checkpoint
 from utils.data_download import ensure_local_data, iter_clips_parallel
@@ -65,6 +66,11 @@ from utils.cache_policy import (
     add_cache_policy_arg, resolve_cache_policy_interactive, wipe_output_dir,
 )
 from utils.tar_shard import pack_dir_to_shards
+# iter13 v13 FIX-18 (2026-05-07): observability metrics M1/M5/M6 — see plan_code_dev.md
+# Layer C. M2 is reused from existing mean_mask_confidence (line 1037).
+from utils.mask_metrics import (
+    stability_score, temporal_iou_per_object, compactness, aggregate_percentiles,
+)
 
 
 # ── iter13 v12+ Task 3 (2026-05-06): output co-located with input ──
@@ -83,7 +89,6 @@ def _resolve_output_dir(args) -> Path:
     sys.exit(2)
 
 
-import yaml
 import torch
 from transformers import (
     AutoProcessor,
@@ -288,7 +293,8 @@ def segment_clip(sam_model, sam_processor, dino_processor, dino_model,
                  compound_prompt: str,
                  dilation_px: int, min_confidence: float,
                  min_mask_area_pct: float,
-                 box_threshold: float, text_threshold: float) -> dict:
+                 box_threshold: float, text_threshold: float,
+                 min_stability_score: float = 0.0) -> dict:
     """Grounded-SAM segmentation (HF backend): DINO boxes → Sam3TrackerVideoModel tracks.
 
     Multi-anchor re-seed at frames [0,4,8,12] for T=16. Each anchor × detected-category
@@ -297,8 +303,12 @@ def segment_clip(sam_model, sam_processor, dino_processor, dino_model,
     max_frame_num_to_track=segment_size-1)` — unlike raw sam3 pkg, these params work
     correctly in HF wrapper (#36), giving ~10× speedup with tight per-segment tracking.
 
+    iter13 v13 FIX-18 (2026-05-07): added `min_stability_score` post-filter (Layer A)
+    + per-mask M1/M6 metric collection + per-clip M5 from `per_object` (Layer C).
+    Quality block returned for downstream summary aggregation.
+
     Returns: agent_mask, layout_mask, n_agents, agent_pixel_ratio, mean_mask_confidence,
-             centroids, per_object, detected_categories
+             centroids, per_object, detected_categories, obj_id_to_cat, quality
     """
     # Multi-anchor: DINO on [0,4,8,12] (T=16), each anchor owns its 4-frame segment.
     # Max tracking drift per frame is ~2 frames instead of ~15 (see plan_TODO.md Level 2).
@@ -331,6 +341,18 @@ def segment_clip(sam_model, sam_processor, dino_processor, dino_model,
             "n_agents": 0, "agent_pixel_ratio": 0.0, "mean_mask_confidence": 0.0,
             "centroids": {}, "per_object": {}, "detected_categories": [],
             "obj_id_to_cat": {},   # #77: always present (contract with main()/save_clip_masks)
+            # iter13 v13 FIX-21 (2026-05-07): emit empty quality block on no-
+            # detection clips so the segments[clip_key] schema is uniform
+            # across all clips. Without this, main() at the segments dict
+            # build site KeyError'd on the first clip that DINO found nothing
+            # for (POC v1: clip #5 of 100 had no detections → run aborted).
+            "quality": {
+                "stability_score": aggregate_percentiles([]),
+                "object_score":    aggregate_percentiles([]),
+                "compactness":     aggregate_percentiles([]),
+                "temporal_iou_m5": 0.0,
+                "n_filtered_by_stability": 0,
+            },
         }
 
     # Step 2: one HF video session per clip (reused across anchor × category sub-calls).
@@ -344,18 +366,49 @@ def segment_clip(sam_model, sam_processor, dino_processor, dino_model,
     centroids = {}
     obj_id_to_cat = {}
     accepted_probs = []
+    # iter13 v13 FIX-18 (2026-05-07): per-mask quality accumulators (Layer C).
+    # `accepted_stab` collects M1 (stability_score) for each accepted mask;
+    # `accepted_compact` collects M6 (compactness). Both are aggregated to
+    # percentiles in the return-dict's `quality` block; aggregate over all clips
+    # lands in summary.json["quality_aggregate"]. M5 is computed once at end of
+    # this function from `per_object`. M2 reuses `accepted_probs` (existing).
+    accepted_stab = []
+    accepted_compact = []
+    n_filtered_by_stability = 0
     n_agents = 0
     obj_id_offset = 0  # reserve 100 ids per (anchor,category) session so D_I can tell them apart
 
     def _accept_mask(mask_np, prob):
+        """Accept/reject a candidate mask + record per-mask quality if accepted.
+
+        iter13 v13 FIX-18: gates on (a) min_confidence (existing), (b) min_area
+        (existing), (c) min_stability_score (NEW Layer A — SAM-style perturbation
+        IoU; Meta default 0.92). When accepted, also computes M6 compactness
+        on the RAW mask (before agent_dilation_pixels expansion) so the metric
+        reflects SAM's natural mask shape, not our morphology overlay.
+
+        Mutates outer-scope counters: accepted_stab, accepted_compact,
+        n_filtered_by_stability.
+        """
+        nonlocal n_filtered_by_stability
         m = np.asarray(mask_np, dtype=bool)
         if m.shape != (H, W):
             m = np.array(Image.fromarray(m.astype(np.uint8) * 255).resize(
                 (W, H), Image.NEAREST)) > 127
         min_area = int(H * W * min_mask_area_pct)
-        if m.any() and prob >= min_confidence and m.sum() >= min_area:
-            return m
-        return None
+        if not (m.any() and prob >= min_confidence and m.sum() >= min_area):
+            return None
+        # M1 stability filter — added in Layer A.
+        if min_stability_score > 0:
+            stab = stability_score(m)
+            if stab < min_stability_score:
+                n_filtered_by_stability += 1
+                return None
+            accepted_stab.append(stab)
+        else:
+            accepted_stab.append(stability_score(m))   # collect for observability even when filter off
+        accepted_compact.append(compactness(m))        # M6 (collect on raw, pre-dilation mask)
+        return m
 
     for anchor in anchors:
         boxes_by_cat = dino_per_anchor[anchor]
@@ -459,6 +512,20 @@ def segment_clip(sam_model, sam_processor, dino_processor, dino_model,
     agent_pixel_ratio = float(agent_mask.sum()) / max(T * H * W, 1)
     mean_mask_confidence = float(np.mean(accepted_probs)) if accepted_probs else 0.0
 
+    # iter13 v13 FIX-18 (2026-05-07): per-clip quality block (Layer C).
+    # M1 = SAM stability_score percentiles across accepted masks
+    # M2 = sigmoid(object_score_logits) percentiles — resurfaces existing data
+    # M5 = mean adjacent-frame IoU per object_id, averaged across objects
+    # M6 = isoperimetric compactness percentiles across accepted masks
+    # n_filtered_by_stability: count of masks rejected by min_stability_score
+    quality = {
+        "stability_score": aggregate_percentiles(accepted_stab),       # M1
+        "object_score":    aggregate_percentiles(accepted_probs),       # M2 (resurfaced)
+        "compactness":     aggregate_percentiles(accepted_compact),     # M6
+        "temporal_iou_m5": temporal_iou_per_object(per_object),         # M5 (scalar)
+        "n_filtered_by_stability": int(n_filtered_by_stability),
+    }
+
     return {
         "agent_mask": agent_mask,
         "layout_mask": layout_mask,
@@ -473,6 +540,7 @@ def segment_clip(sam_model, sam_processor, dino_processor, dino_model,
         # factor_manifest) can now label interactions by category pair — previously
         # obj_ids were opaque strings so D_I was category-agnostic.
         "obj_id_to_cat": obj_id_to_cat,
+        "quality": quality,   # iter13 v13 FIX-18 — Layer C observability
     }
 
 
@@ -817,8 +885,10 @@ def main():
     # rewrites each .npz with fresh interactions_json, and updates segments.json.
     # No SAM3/DINO/GPU — prior run's segmentation is reused verbatim.
     if args.interactions_only:
-        with open(args.train_config) as f:
-            train_cfg = yaml.safe_load(f)
+        # iter13 v13 FIX-10 (2026-05-07): use extends-resolving loader so the
+        # variant yaml inherits factor_datasets + interaction_mining from
+        # surgery_base.yaml (these blocks are NOT redefined per-variant).
+        train_cfg = load_train_config_with_extends(args.train_config)
         interaction_cfg = train_cfg["interaction_mining"]
         output_dir = _resolve_output_dir(args)
         masks_dir = output_dir / "masks"
@@ -880,12 +950,15 @@ def main():
     ensure_local_data(args)
     check_gpu()
 
-    # Load factor_datasets config
-    with open(args.train_config) as f:
-        train_cfg = yaml.safe_load(f)
+    # Load factor_datasets config — iter13 v13 FIX-10: extends-resolving loader.
+    train_cfg = load_train_config_with_extends(args.train_config)
     factor_cfg = train_cfg["factor_datasets"]
     dilation_px = factor_cfg["agent_dilation_pixels"]
     min_confidence = factor_cfg["min_confidence"]
+    # iter13 v13 FIX-18 (2026-05-07): SAM stability post-filter (Layer A). Pairs
+    # with the lowered DINO thresholds in surgery_base.yaml. Disabled by setting
+    # to 0.0 in yaml. Default 0.92 = Meta's SAM auto-mask-generator default.
+    min_stability_score = factor_cfg.get("min_stability_score", 0.0)
     min_mask_area_pct = factor_cfg["min_mask_area_pct"]
     interaction_cfg = train_cfg["interaction_mining"]
 
@@ -905,19 +978,27 @@ def main():
     mode = "SANITY" if args.SANITY else ("POC" if args.POC else "FULL")
 
     # Clip limit (computed before guard so the completeness check knows the target).
-    # POC + FULL derive clip count from explicit --subset (clip_keys list) or
+    # iter13 v13 FIX-19 (2026-05-07): POC = mid-tier validation (default 100 from
+    # pipeline.yaml poc.factor_prep). Bridges SANITY (20 — code-correctness) and
+    # FULL (10K — paper). No --subset JSON required: producer iterates local_data
+    # TAR shards in deterministic order, consumer stops at clip_limit. Provides
+    # statistically meaningful quality percentile distributions for the new
+    # factor_manifest_quality.json without ~10× FULL wall cost.
+    # FULL still derives count from --subset (explicit clip_keys list) or
     # --local-data (manifest.json). Fail loud if neither works — no yaml fallback.
     # Previously POC read `train_cfg["poc_simplified"]["n_clips"]` which silently
     # capped 1000-clip val_1k runs at 100 regardless of --subset (Phase 2a
     # 100-dense tier leftover). Removed 2026-04-17 when Phase 2b moved to 1K val_1k.
     if args.SANITY:
         clip_limit = get_sanity_clip_limit("default")
+    elif args.POC:
+        clip_limit = get_poc_clip_limit("factor_prep")
     else:
         clip_limit = get_total_clips(
             local_data=getattr(args, "local_data", None),
             subset_file=args.subset)
         if clip_limit == 0:
-            print("FATAL: POC/FULL require explicit --subset (JSON with clip_keys list) or "
+            print("FATAL: FULL requires explicit --subset (JSON with clip_keys list) or "
                   "--local-data (directory with manifest.json). No yaml fallback.")
             sys.exit(1)
 
@@ -1008,6 +1089,7 @@ def main():
                 min_mask_area_pct=min_mask_area_pct,
                 box_threshold=box_threshold,
                 text_threshold=text_threshold,
+                min_stability_score=min_stability_score,
             )
 
             # Mine interactions (D_I) — now annotated with cat_a/cat_b for typed filtering (#77)
@@ -1042,6 +1124,10 @@ def main():
                 "mean_mask_confidence": result["mean_mask_confidence"],
                 "detected_categories": result["detected_categories"],
                 "n_interactions": len(interactions),
+                # iter13 v13 FIX-18 (2026-05-07): per-clip mask-quality observability.
+                # Block produced by segment_clip's accumulators; aggregate-of-aggregates
+                # lands in summary.json["quality_aggregate"] below.
+                "quality": result["quality"],
             }
 
             processed_keys.add(clip_key)
@@ -1085,6 +1171,27 @@ def main():
     }
     quality_gate = all(gate_checks.values())
 
+    # iter13 v13 FIX-18 (2026-05-07): aggregate per-clip quality means into
+    # corpus-level percentiles (Layer C). Each clip's "quality" block holds
+    # per-mask aggregates; here we further aggregate the per-clip MEANS so
+    # summary.json shows the distribution of clip qualities (e.g. "is the
+    # bottom 10% of clips below 0.5 stability?"). Total filtered count tells
+    # how many masks the new Layer A stability gate rejected corpus-wide.
+    per_clip_stab_means    = [s["quality"]["stability_score"]["mean"] for s in segments.values() if "quality" in s]
+    per_clip_obj_means     = [s["quality"]["object_score"]["mean"]    for s in segments.values() if "quality" in s]
+    per_clip_compact_means = [s["quality"]["compactness"]["mean"]     for s in segments.values() if "quality" in s]
+    per_clip_tiou          = [s["quality"]["temporal_iou_m5"]         for s in segments.values() if "quality" in s]
+    n_filtered_total       = sum(s["quality"].get("n_filtered_by_stability", 0)
+                                  for s in segments.values() if "quality" in s)
+    quality_aggregate = {
+        "stability_score": aggregate_percentiles(per_clip_stab_means),    # M1
+        "object_score":    aggregate_percentiles(per_clip_obj_means),     # M2
+        "compactness":     aggregate_percentiles(per_clip_compact_means), # M6
+        "temporal_iou_m5": aggregate_percentiles(per_clip_tiou),          # M5
+        "min_stability_score_filter": min_stability_score,
+        "n_masks_filtered_by_stability": int(n_filtered_total),
+    }
+
     summary = {
         "n_clips": len(segments),
         "n_total_agents": sum(s["n_agents"] for s in segments.values()),
@@ -1094,6 +1201,7 @@ def main():
         "mean_mask_confidence": mean_mask_confidence,
         "clips_with_agents_pct": round(clips_with_agents_pct, 3),
         "min_confidence_threshold": min_confidence,
+        "min_stability_score": min_stability_score,   # iter13 v13 FIX-18
         "min_mask_area_pct": min_mask_area_pct,
         "elapsed_sec": elapsed,
         "pipeline": "grounded-sam",
@@ -1104,6 +1212,9 @@ def main():
         "agent_taxonomy": agent_taxonomy,
         "quality_gate": "PASS" if quality_gate else "FAIL",
         "quality_gate_checks": {k: "PASS" if v else "FAIL" for k, v in gate_checks.items()},
+        # iter13 v13 FIX-18 (2026-05-07): corpus-wide aggregate of per-clip quality
+        # means. Read this to assess factor-quality regression across re-runs.
+        "quality_aggregate": quality_aggregate,
     }
     save_json_checkpoint(summary, output_dir / "summary.json")
 

@@ -472,7 +472,18 @@ def generate_dinov2(output_dir: Path, args, clip_limit: int, subset_keys: set):
                 _sub_embs.append(_emb_sub)
                 sizer.after_batch_success()
                 _i += _sub[_tensor_keys[0]].shape[0] if _tensor_keys else 1
-            emb = np.concatenate(_sub_embs, axis=0) if _sub_embs else np.empty((0, _out.last_hidden_state.shape[-1]), dtype=np.float32)
+            # iter13 v13 FIX-14 (2026-05-07): FAIL HARD on zero embeddings.
+            # Previous `np.empty((0, _out.last_hidden_state.shape[-1]))` fallback
+            # silently saved a zero-row .npy, which downstream m06/m07 hit as
+            # cryptic shape errors. Plus _out may be undefined if every forward
+            # pass OOM'd before assignment → NameError. Either way, garbage in.
+            if not _sub_embs:
+                raise RuntimeError(
+                    "m05b DINOv2 batch produced 0 embeddings — sub-batch loop "
+                    "never accumulated. Likely cause: empty input batch OR every "
+                    "sub-batch OOM'd at min size (sizer.on_oom raises before this)."
+                )
+            emb = np.concatenate(_sub_embs, axis=0)
 
             # L2-normalize
             norms = np.linalg.norm(emb, axis=1, keepdims=True)
@@ -609,7 +620,15 @@ def generate_clip(output_dir: Path, args, clip_limit: int, subset_keys: set):
                 _sub_embs.append(_emb_sub)
                 sizer.after_batch_success()
                 _i += _sub[_tensor_keys[0]].shape[0] if _tensor_keys else 1
-            emb = np.concatenate(_sub_embs, axis=0) if _sub_embs else np.empty((0, 768), dtype=np.float32)
+            # iter13 v13 FIX-14 (2026-05-07): mirror DINOv2 path — FAIL HARD on
+            # zero embeddings instead of silently writing a zero-row .npy.
+            if not _sub_embs:
+                raise RuntimeError(
+                    "m05b CLIP batch produced 0 embeddings — sub-batch loop "
+                    "never accumulated. Likely cause: empty input batch OR every "
+                    "sub-batch OOM'd at min size (sizer.on_oom raises before this)."
+                )
+            emb = np.concatenate(_sub_embs, axis=0)
 
             # L2-normalize
             norms = np.linalg.norm(emb, axis=1, keepdims=True)
@@ -1061,8 +1080,18 @@ def _run_single_encoder(encoder: str, args):
             ref_keys = list(np.load(vjepa_files["paths"], allow_pickle=True))
             print(f"Using {len(ref_keys):,} clip keys from V-JEPA embeddings.paths.npy")
         else:
-            print(f"WARNING: {vjepa_files['paths']} not found. Generating {clip_limit} keys.")
-            ref_keys = [f"clip_{i:06d}" for i in range(clip_limit)]
+            # iter13 v13 FIX-13 (2026-05-07): FAIL HARD per CLAUDE.md.
+            # Previously this fabricated synthetic clip keys ("clip_000000",
+            # "clip_000001", ...) which match NOTHING downstream — paired-Δ
+            # m06 silently produced wrong numbers because the random_baseline
+            # embeddings carried fake IDs. Random baseline EXISTS to anchor
+            # the BCa CI on the SAME clip-key universe as V-JEPA, so missing
+            # paths.npy is a hard prerequisite failure, not a recoverable warn.
+            print(f"FATAL: {vjepa_files['paths']} not found.")
+            print("  m05b random_baseline requires V-JEPA's clip-key set as")
+            print("  the reference (paired-Δ across encoders demands identical")
+            print("  clip-key universe). Run m05_vjepa_embed.py first.")
+            sys.exit(1)
 
         if args.SANITY:
             ref_keys = ref_keys[:get_sanity_clip_limit("embed")]

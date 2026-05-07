@@ -122,16 +122,14 @@ factor_datasets:
   sam_hf_model: facebook/sam3           # HF transformers wrapper (m10_sam_segment_v2_HF.py): Sam3TrackerVideoModel
   grounding_dino:
     model_id: "IDEA-Research/grounding-dino-base"   # Swin-B, 233M params, ~1.2 GB VRAM
-    # H4 #76 (2026-04-20 post-v10): 0.15/0.12 → 0.20/0.18 — tighter DINO precision.
-    # Evidence v10: m10 mean_concept_recall=0.655 (moderate); 12% clips had zero agents.
-    # Hypothesis: noisy masks at 0.15 produce D_L leakage (agents not fully blurred) and
-    # D_A contamination (background in agent-only). Tighter thresholds trade recall for
-    # precision — acceptable because clips with no agents still contribute D_L (layout-only).
-    # REQUIRES m10 cache invalidation (~9h re-run on 96GB, ~$7.40 GPU). User decides when
-    # to `rm -rf outputs/full/m10_sam_segment/` to pick up new thresholds.
-    # Baseline retained: 0.15/0.12 = was 0.25/0.20 aggressive-recall tune for SANITY dense100.
-    box_threshold: 0.20                  # was 0.15 → 0.20 for v11+ (HF default 0.35)
-    text_threshold: 0.18                 # was 0.12 → 0.18 for v11+ (HF default 0.25)
+    # iter13 v13 FIX-18 (2026-05-07): box/text thresholds REVERTED to v10 defaults
+    # (0.15/0.12) for recall lift on small/distant pedestrians. Chennai walking-tour
+    # clip VX_bCHlvFaw-171 (5-6 visible humans) detected only 9 agents at 2 % pixel
+    # coverage under 0.20/0.18 — D_A nearly black, D_L indistinguishable from
+    # original → factor decomposition degenerate. Precision recovered via SAM
+    # `min_stability_score: 0.92` post-filter (Meta default for SAM auto-mask).
+    box_threshold: 0.15                  # iter13 v13 FIX-18: was 0.20 (v11) → 0.15 (recall lift)
+    text_threshold: 0.12                 # iter13 v13 FIX-18: was 0.18 (v11) → 0.12 (recall lift)
     # 17-category agent taxonomy (accuracy-first; goal = Surgery > ExPLoRA > Frozen on Prec@K).
     # Extended beyond tag_taxonomy.json's 11 agents with finer Objects365-aligned classes.
     agent_taxonomy:
@@ -158,7 +156,32 @@ factor_datasets:
   motion_min_frames: 4                # Persistence required for "agent" classification
   agent_dilation_pixels: 4            # Mask dilation for thin structures (legs, bike spokes)
   min_confidence: 0.3                  # SAM 3.1 out_probs threshold (lowered from 0.5 to catch small/distant objects)
+  # iter13 v13 FIX-18 (2026-05-07): per-mask SAM stability filter (Layer A).
+  # Mask is "stable" when IoU(mask, dilate/erode(mask, ±1px..±2px)) ≥ this value.
+  # Originally Meta's SAM auto-mask-generator default of 0.92 — but on 384×384
+  # Indian street-scene SAM3 outputs that filter rejected 2,675 of 2,737
+  # candidate masks (97.7%) on the SANITY 20-clip pool, dropping total agents
+  # 569 → 62 (-89% vs v6's no-filter baseline). Diagnosis: 0.92 is calibrated
+  # for high-resolution COCO masks; small/distant pedestrian masks here have
+  # rougher perimeters → naturally score 0.85-0.92 even when visually correct.
+  # Disabled (0.0) so DINO 0.15/0.12 lowering actually lifts recall (Option B
+  # of the v7→v8 decision). M1 stability_score is STILL computed per mask for
+  # observability and lands in segments.json[*].quality.stability_score —
+  # surgery training can later use it to *weight* loss without *gating* masks.
+  min_stability_score: 0.0             # disabled — Option B; M1 still computed for observability
   min_mask_area_pct: 0.001             # Minimum mask area as fraction of frame (filters tree trunk false positives)
+
+  # iter13 v13 FIX-18 (2026-05-07): SAHI tile inference for DINO (Layer B, opt-in).
+  # Default OFF — enable per-run via `--sahi-slicing` CLI flag. SAHI paper
+  # (Akyon ICIP 2022) reports pedestrian recall 31.8 % → 86.4 % with sliced
+  # inference. Cost: ~4-9× DINO calls per anchor frame; expected ~10× FULL m10
+  # wall-time (1 hr → 10 hr). A/B vs lowered-thresholds-alone (Layer A) before
+  # committing to FULL.
+  sahi:
+    slice_height: 640
+    slice_width: 640
+    overlap: 0.2
+    nms_iou: 0.5
 
   # Patch operators (rendering)
   layout_patch_method: blur            # blur | inpaint

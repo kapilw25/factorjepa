@@ -1359,7 +1359,8 @@ def apply_val_cycle_triggers(
 # m09a_pretrain.py and m09c_surgery.py.
 def finalize_training(*, student, mt_head, mt_dims_spec, ma_head,
                       output_dir, init_ckpt_path, embed_dim: int,
-                      label: str = "encoder") -> float:
+                      label: str = "encoder",
+                      skip_diverged_check: bool = False) -> float:
     """End-of-training 3-call sequence shared by m09a + m09c.
 
     Caller is responsible for `student_encoder.pt` export (m09a calls
@@ -1370,12 +1371,20 @@ def finalize_training(*, student, mt_head, mt_dims_spec, ma_head,
     Steps:
       1. assert_encoder_diverged_from_init(student, init_ckpt_path, label)
          — FAILS LOUD if encoder weights bit-identical to Meta init.
+         GATED by skip_diverged_check: in SANITY mode, total_steps=1 with
+         20% warmup gives lr=0 at step 0 → optimizer.step() is a no-op →
+         encoder is correctly identical to init. The assert is a paper-grade
+         safety gate (catches "frozen encoder mislabeled as trained"); for
+         POC/FULL it stays ON. SANITY validates code paths only — no
+         research conclusions can be drawn from a 1-step run, so the assert
+         doesn't apply.
       2. export_multi_task_head(mt_head, mt_dims_spec, embed_dim,
          output_dir/multi_task_head.pt) — no-op when mt_head is None.
       3. export_motion_aux_head(ma_head, output_dir/motion_aux_head.pt)
          — no-op when ma_head is None.
 
-    Returns: rel_l2 = ||student - init|| / ||init|| (divergence metric).
+    Returns: rel_l2 = ||student - init|| / ||init|| (divergence metric),
+             or 0.0 when skip_diverged_check=True.
     """
     from pathlib import Path
     from utils.multi_task_loss import export_multi_task_head
@@ -1383,8 +1392,12 @@ def finalize_training(*, student, mt_head, mt_dims_spec, ma_head,
 
     output_dir = Path(output_dir)
 
-    rel = assert_encoder_diverged_from_init(student, init_ckpt_path, label=label)
-    print(f"  ✓ encoder training-effect verified: ||Δ||/||init|| = {rel:.3e}")
+    if skip_diverged_check:
+        print("  [SANITY] skip encoder-diverged assert (1-step warmup → lr=0 expected)")
+        rel = 0.0
+    else:
+        rel = assert_encoder_diverged_from_init(student, init_ckpt_path, label=label)
+        print(f"  ✓ encoder training-effect verified: ||Δ||/||init|| = {rel:.3e}")
 
     export_multi_task_head(mt_head, mt_dims_spec, embed_dim,
                            output_dir / "multi_task_head.pt")

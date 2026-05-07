@@ -178,8 +178,13 @@ def print_summary(results: list) -> dict:
     failed = [r for r in results if r["status"] != "ok"]
 
     if not ok_results:
-        print("ERROR: No successful results")
-        return
+        # iter13 v13 FIX-15 (2026-05-07): FAIL HARD per CLAUDE.md.
+        # Previously `return` from a non-Optional-typed function let main()
+        # bind summary=None and silently write {"summary": null, ...} JSON
+        # → exit 0 with empty results. Same pattern as m11 silent-success bug.
+        print("FATAL: No successful results from any video duration fetch.")
+        print("  Check upstream yt-dlp logs in --output-dir for per-video errors.")
+        sys.exit(1)
 
     total_sec = sum(r["duration_sec"] for r in ok_results)
     total_hours = total_sec / 3600

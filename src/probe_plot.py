@@ -36,6 +36,9 @@ sys.path.insert(0, str(Path(__file__).parent))
 from utils.plots import COLORS, ENCODER_COLORS, init_style, save_fig
 from utils.progress import make_pbar
 from utils.wandb_utils import add_wandb_args, finish_wandb, init_wandb, log_metrics
+# iter13 v13 (2026-05-07): pull bootstrap iter count from the single source of
+# truth (utils.bootstrap.N_BOOTSTRAP) instead of hardcoding "10 K" in caption.
+from utils.bootstrap import N_BOOTSTRAP
 
 
 # ── Display helpers (no hardcoded encoder list — derived per-call) ───
@@ -255,7 +258,35 @@ def plot_encoder_comparison(paired_delta: dict, motion_cos: dict,
     if not encoders:
         sys.exit("FATAL: no encoders found in any paired-Δ JSON")
 
-    fig, axes = plt.subplots(1, 3, figsize=(max(12, 3.5 * len(encoders)), 5.5))
+    # iter13 v13 (2026-05-07): per-panel captions live UNDER each subplot.
+    # Figsize height bumped 5.5 → 8.0 to make room for caption blocks; widened
+    # via 4× per-encoder so 3-line caption text doesn't wrap awkwardly.
+    fig, axes = plt.subplots(1, 3, figsize=(max(13, 4.0 * len(encoders)), 8.0))
+
+    # Per-panel captions (positioned UNDER each subplot, not in a combined block).
+    # Lines kept ≤ ~55 chars so they don't truncate at narrow column width.
+    # Bootstrap iter count pulled from utils.bootstrap.N_BOOTSTRAP (single source).
+    if N_BOOTSTRAP >= 1000:
+        boot_str = f"{N_BOOTSTRAP // 1000} K bootstrap"
+    else:
+        boot_str = f"{N_BOOTSTRAP} bootstrap"
+    panel_captions = [
+        # Panel 1 — Action probe
+        "AttentiveClassifier on encoder features →\n"
+        "K-class motion-flow accuracy (magnitude × direction).\n"
+        "Tests linear separability — are motion classes encoded?\n"
+        f"TEST split;  whiskers = BCa 95 % CI from {boot_str}.",
+        # Panel 2 — Motion cosine
+        "Same-class minus different-class cosine separation.\n"
+        "> 0 ⇒ encoder clusters clips semantically by motion;\n"
+        "near 0 ⇒ no clustering.\n"
+        f"TEST split;  whiskers = BCa 95 % CI from {boot_str}.",
+        # Panel 3 — Future MSE
+        "V-JEPA predictor L1 on masked next-frame tokens —\n"
+        "the JEPA objective itself.\n"
+        "Tests temporal predictive capability.\n"
+        "V-JEPA-only (no predictor for DINOv2 / CLIP → N/A).",
+    ]
 
     # Panel 1 — top-1 action accuracy (per-encoder CI from by_encoder.top1_ci).
     ap_be = paired_delta.get("by_encoder", {})
@@ -300,9 +331,22 @@ def plot_encoder_comparison(paired_delta: dict, motion_cos: dict,
                  title=f"Future-frame MSE (n={n_test_mse})",
                  na_set=fm_na, direction="lower")
 
-    fig.suptitle(f"probe trio · {len(encoders)} encoders · 95 % CI",
-                 fontsize=14, fontweight="bold")
-    fig.tight_layout(rect=[0, 0, 1, 0.94])
+    # Per-panel caption — anchored to each axis via transAxes so it stays
+    # under its own subplot regardless of figure-level layout.
+    # iter13 v13 (2026-05-07): darkened color (#333 → #000) + bumped fontsize
+    # (8.5 → 9.5) + fontweight=medium so caption text reads at the same
+    # visual weight as panel labels and tick labels.
+    for ax, cap in zip(axes, panel_captions):
+        ax.text(0.5, -0.27, cap,
+                transform=ax.transAxes, ha="center", va="top",
+                fontsize=9.5, color="#000", fontweight="medium",
+                linespacing=1.5,
+                bbox=dict(boxstyle="round,pad=0.4", facecolor="#FAFAFA",
+                          edgecolor="#888", linewidth=0.8))
+
+    fig.suptitle(f"Probe trio · {len(encoders)} encoders · 95 % BCa CI",
+                 fontsize=14, fontweight="bold", y=0.97)
+    fig.tight_layout(rect=[0, 0.18, 1, 0.94])
     save_fig(fig, str(output_dir / "probe_encoder_comparison"))
 
 

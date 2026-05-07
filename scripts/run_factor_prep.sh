@@ -1,24 +1,36 @@
 #!/usr/bin/env bash
 # iter13 v12+ Task 3 (2026-05-06) — THIN wrapper around m10 → m11.
 #
-# Both .py modules now self-resolve their I/O dirs from --local-data
+# Both .py modules self-resolve their I/O dirs from --local-data
 # (co-located: <local_data>/m10_sam_segment/ + <local_data>/m11_factor_datasets/).
 # m10 also self-handles the end-of-run TAR-shard pack for HF upload.
-# This shell wrapper does ONLY:
-#   1. yaml extract → train_subset + train_local_data
-#   2. SANITY/POC/FULL mode flag passthrough
-#   3. cache-policy gather + propagate (m10 recompute → m11 recompute)
-#   4. dispatch m10 then m11 with --local-data and --subset
+# This wrapper does ONLY:
+#   1. SANITY/POC/FULL mode flag passthrough
+#   2. cache-policy gather + propagate (m10 recompute → m11 recompute)
+#   3. dispatch m10 then m11 with --local-data and (optional) --subset
+#
+# Canonical dataset path is hardcoded HERE (in the shell wrapper). CLAUDE.md's
+# no-default rule targets src/m0*.py — shell wrappers ARE the layer that pins
+# the canonical paths, then forward them as `--local-data`/`--subset` CLI flags
+# to the .py modules (which themselves accept no defaults).
+#
+# Optional env-var overrides:
+#   LOCAL_DATA       Override the hardcoded data/eval_10k_local (rare).
+#   TRAIN_SUBSET     Subset JSON to filter clip set further. Unset → iterate
+#                    all clips in $LOCAL_DATA, cap at mode's clip-limit.
+#   CACHE_POLICY_ALL 1=keep cache, 2=recompute (else interactive prompt).
 #
 # USAGE:
 #   ./scripts/run_factor_prep.sh <factor-yaml> [--SANITY|--POC|--FULL]
 #
 # Examples:
-#   ./scripts/run_factor_prep.sh configs/train/surgery_3stage_DI.yaml --SANITY
-#   ./scripts/run_factor_prep.sh configs/train/surgery_3stage_DI.yaml --FULL
+#   CACHE_POLICY_ALL=2 ./scripts/run_factor_prep.sh configs/train/surgery_3stage_DI.yaml --SANITY
+#   CACHE_POLICY_ALL=2 ./scripts/run_factor_prep.sh configs/train/surgery_3stage_DI.yaml --POC
+#   CACHE_POLICY_ALL=2 ./scripts/run_factor_prep.sh configs/train/surgery_3stage_DI.yaml --FULL
 #
-# Bypass cache prompts in tmux/CI:
-#   CACHE_POLICY_ALL=2 ./scripts/run_factor_prep.sh <yaml> --FULL
+# 3stage_DI factor-prep produces a strict superset (D_L + D_A + D_I) of what
+# 2stage_noDI's run would produce (D_L + D_A only). The 2stage training will
+# simply ignore D_I tubes. Run factor-prep ONCE with 3stage_DI to feed both.
 
 set -euo pipefail
 
@@ -48,28 +60,30 @@ cd "$(dirname "$0")/.."
 source venv_walkindia/bin/activate
 mkdir -p logs
 
-# iter13 v13 FIX-3 (2026-05-07): hardcode the canonical iter13 paths so that
-# factor-prep writes to the SAME dir surgery reads from. Previously this script
-# read data.train_{subset,local_data} from yaml, which inherits from
-# base_optimization.yaml:31-35 → data/ultra_hard_3066_* (the OLD ch10 pipeline).
-# But run_probe_train.sh:127 hardcodes LOCAL_DATA=data/eval_10k_local. Result:
-# factor-prep wrote to data/ultra_hard_3066_local/, surgery looked in
-# data/eval_10k_local/m11_factor_datasets → "FATAL: factor-dir missing" on
-# every fresh FULL run. Single source of truth now: both shells use
-# data/eval_10k_local + data/eval_10k.json (the m00d 10k uniform sample of
-# the 115k corpus). Override via env vars LOCAL_DATA / TRAIN_SUBSET if needed.
+# iter13 v13 FIX-20 (2026-05-07): canonical dataset hardcoded in the wrapper
+# (CLAUDE.md targets src/m0*.py, not shells). Single source of truth for all
+# three modes (SANITY/POC/FULL) — mode only changes the clip-count cap from
+# pipeline.yaml (sanity.default=20 / poc.factor_prep=100 / FULL=all-of-manifest),
+# NOT the data source. Override via env var LOCAL_DATA=<other-dir> only when
+# running on a non-canonical dataset.
+#
+# TRAIN_SUBSET stays optional. When unset, m10/m11 iterate ALL clips in
+# $TRAIN_LOCAL; consumer caps at the mode's clip-limit.
 TRAIN_LOCAL="${LOCAL_DATA:-data/eval_10k_local}"
-TRAIN_SUBSET="${TRAIN_SUBSET:-data/eval_10k.json}"
+TRAIN_SUBSET="${TRAIN_SUBSET:-}"
 
-for req in "$TRAIN_SUBSET" "$TRAIN_LOCAL"; do
-    if [ ! -e "$req" ]; then
-        echo "FATAL: missing canonical path: $req" >&2
-        echo "  iter13 v13 expects: TRAIN_LOCAL=$TRAIN_LOCAL, TRAIN_SUBSET=$TRAIN_SUBSET" >&2
-        echo "  Use hf_outputs.py download-data to fetch eval_10k_local, OR" >&2
-        echo "  override via env vars: LOCAL_DATA=... TRAIN_SUBSET=... $0 $@" >&2
-        exit 3
-    fi
-done
+if [ ! -d "$TRAIN_LOCAL" ]; then
+    echo "FATAL: TRAIN_LOCAL=$TRAIN_LOCAL is not a directory." >&2
+    echo "  Fetch the canonical dataset:" >&2
+    echo "    python -u src/utils/hf_outputs.py download-data" >&2
+    echo "  Or override via env var: LOCAL_DATA=<your-dir> $0 $@" >&2
+    exit 3
+fi
+if [ -n "$TRAIN_SUBSET" ] && [ ! -e "$TRAIN_SUBSET" ]; then
+    echo "FATAL: TRAIN_SUBSET=$TRAIN_SUBSET set but file not found." >&2
+    echo "  Unset TRAIN_SUBSET to iterate all clips in $TRAIN_LOCAL." >&2
+    exit 3
+fi
 
 VARIANT_TAG="$(basename "$FACTOR_YAML" .yaml)"
 T0=$(date +%s)
@@ -85,8 +99,15 @@ _check_and_prompt() {
     local key="$1"; shift
     local found=""
     for path in "$@"; do
-        local hit
-        hit=$(compgen -G "$path" 2>/dev/null | head -n1)
+        # iter13 v13 (2026-05-07): single-statement `local hit=$(...)` form is
+        # REQUIRED. The split form (`local hit; hit=$(...)`) inherits the
+        # substitution's exit code on the regular assignment → with set -e +
+        # pipefail, compgen -G's exit 1 (no glob match — expected on first run
+        # when m10_sam_segment/ doesn't exist yet) propagates → script aborts
+        # silently (no ERR trap installed). The merged form has `local` as the
+        # outer command, whose own exit status is 0, so the substitution failure
+        # is swallowed.
+        local hit=$(compgen -G "$path" 2>/dev/null | head -n1)
         if [ -n "$hit" ]; then found="$hit"; break; fi
     done
     if [ -z "$found" ]; then POLICY[$key]=1; return; fi
@@ -111,8 +132,12 @@ _check_and_prompt() {
 
 echo "──────────────────────────────────────────────"
 echo "factor-prep · mode=${MODE} · variant=${VARIANT_TAG}"
-echo "  train_subset: $TRAIN_SUBSET"
-echo "  train_local:  $TRAIN_LOCAL  (m10/m11 outputs co-located inside)"
+echo "  LOCAL_DATA:   $TRAIN_LOCAL  (single source for SANITY/POC/FULL — m10/m11 outputs co-located inside)"
+if [ -n "$TRAIN_SUBSET" ]; then
+    echo "  TRAIN_SUBSET: $TRAIN_SUBSET  (filtering clip set)"
+else
+    echo "  TRAIN_SUBSET: <unset>     (iterate all clips in LOCAL_DATA, cap at mode's clip-limit)"
+fi
 echo "──────────────────────────────────────────────"
 _check_and_prompt m10 "${M10_OUT}/*"
 _check_and_prompt m11 "${M11_OUT}/*"
@@ -122,10 +147,20 @@ if [ "${POLICY[m10]:-1}" = "2" ]; then
     POLICY[m11]=2
 fi
 
+# iter13 v13 FIX-19 (2026-05-07): conditionally pass --subset only when set.
+# Empty SUBSET_FLAG → m10/m11 iterate all clips in --local-data + cap at the
+# mode's clip-limit (sanity.default / poc.factor_prep / FULL). Unquoted
+# expansion of $SUBSET_FLAG is intentional so it expands to 2 tokens when set
+# and 0 tokens when empty.
+SUBSET_FLAG=""
+if [ -n "$TRAIN_SUBSET" ]; then
+    SUBSET_FLAG="--subset $TRAIN_SUBSET"
+fi
+
 stamp "Step A — m10 Grounded-SAM (mode=${MODE}; output → \$LOCAL_DATA/m10_sam_segment)"
 python -u src/m10_sam_segment.py "${MODE_FLAG}" \
     --train-config "$FACTOR_YAML" \
-    --subset "$TRAIN_SUBSET" --local-data "$TRAIN_LOCAL" \
+    $SUBSET_FLAG --local-data "$TRAIN_LOCAL" \
     --no-wandb \
     --cache-policy "${POLICY[m10]}" \
     2>&1 | tee "logs/run_factor_prep_${VARIANT_TAG}_${MODE,,}_m10.log"
@@ -133,7 +168,7 @@ python -u src/m10_sam_segment.py "${MODE_FLAG}" \
 stamp "Step B — m11 --streaming (mode=${MODE}; output → \$LOCAL_DATA/m11_factor_datasets)"
 python -u src/m11_factor_datasets.py "${MODE_FLAG}" --streaming \
     --train-config "$FACTOR_YAML" \
-    --subset "$TRAIN_SUBSET" --local-data "$TRAIN_LOCAL" \
+    $SUBSET_FLAG --local-data "$TRAIN_LOCAL" \
     --no-wandb \
     --cache-policy "${POLICY[m11]}" \
     2>&1 | tee "logs/run_factor_prep_${VARIANT_TAG}_${MODE,,}_m11.log"

@@ -43,8 +43,28 @@ def parse_clip_key(clip_key: str) -> dict:
     Example: "tier1/mumbai/walking/DFQO7Zn-KM4-1000/DFQO7Zn-KM4-1000.mp4"
         → {tier: "tier1", city: "mumbai", activity: "walking",
            video_id: "DFQO7Zn-KM4", stem: "DFQO7Zn-KM4-1000"}
+
+    iter13 v13 FIX-22 (2026-05-07): special-case "monuments/<monument>/..."
+    layouts. Monuments don't have an activity dim — previously the parser
+    treated <monument_name> as the activity, polluting the coverage table
+    with values like 'gateway_of_india_mumbai' / 'mysore_palace' alongside
+    real activities (drive / walking / rain). Now city='monuments' (single
+    bucket, since monuments aren't cities) + activity='monument' (uniform),
+    with the specific monument name preserved in `monument` field.
     """
     parts = clip_key.split("/")
+    # Special-case: monuments/<monument>/<video_id>/<clip>.mp4
+    if parts and parts[0] == "monuments":
+        stem = Path(parts[-1]).stem
+        video_id = stem.rsplit("-", 1)[0] if "-" in stem else stem
+        return {
+            "tier": "monuments",
+            "city": "monuments",
+            "activity": "monument",
+            "monument": parts[1] if len(parts) > 1 else "unknown",
+            "video_id": video_id,
+            "stem": stem,
+        }
     tier = parts[0] if len(parts) > 3 else ""
     # Handle both tier-prefixed ("tier1/city/activity/video/clip.mp4")
     # and tier-less ("goa/walking/video/clip.mp4") layouts
@@ -82,7 +102,18 @@ def score_clip(entry: dict) -> float:
 def curate(manifest: dict) -> list:
     """Rank clips + greedy unique-video dedup + diversity floor.
 
-    Returns list of TOP_N clip_keys in descending score order.
+    Returns list of up to min(TOP_N, n_unique_videos) clip_keys in descending
+    score order, filtered to score > 0.
+
+    iter13 v13 FIX-22 (2026-05-07): three changes —
+      (1) drop zero-score clips before selection (a clip with no D_I + no D_A +
+          zero agent_pct contributes nothing to spot-checks; previously these
+          filled top-N slots in monument-heavy POC pools).
+      (2) dynamic target = min(TOP_N, n_unique_videos): when the manifest pool
+          is smaller than TOP_N, don't fail to fill — just return what's there.
+      (3) diversity-floor target = min(configured, available_in_pool): a 100-clip
+          urban-only POC can't hit MIN_DISTINCT_ACTIVITIES=3 if only walking +
+          drive are present; soften the floor to what the pool can support.
     """
     scored = []
     for clip_key, entry in manifest.items():
@@ -90,7 +121,14 @@ def curate(manifest: dict) -> list:
         meta["clip_key"] = clip_key
         meta["score"] = score_clip(entry)
         scored.append(meta)
+
+    # FIX-22 (1): drop zero-score clips before selection.
+    scored = [m for m in scored if m["score"] > 0]
     scored.sort(key=lambda m: m["score"], reverse=True)
+
+    # FIX-22 (2): cap target by what the pool can support.
+    n_unique_videos = len({m["video_id"] for m in scored})
+    target = min(TOP_N, n_unique_videos)
 
     # Greedy: unique video_id first
     selected = []
@@ -104,14 +142,19 @@ def curate(manifest: dict) -> list:
         seen_videos.add(m["video_id"])
         seen_cities.add(m["city"])
         seen_activities.add(m["activity"])
-        if len(selected) >= TOP_N:
+        if len(selected) >= target:
             break
 
-    # Diversity floor — if we didn't hit min cities/activities, swap in
-    # the highest-scoring clip from under-represented bucket
+    # FIX-22 (3): diversity floor uses min(configured, available_in_pool) so
+    # narrow pools don't trigger a WARN that the pool itself can't satisfy.
+    available_cities = {m["city"] for m in scored}
+    available_activities = {m["activity"] for m in scored}
+    min_cities_eff = min(MIN_DISTINCT_CITIES, len(available_cities))
+    min_acts_eff = min(MIN_DISTINCT_ACTIVITIES, len(available_activities))
+
     for required_field, min_count, seen_set in [
-        ("city", MIN_DISTINCT_CITIES, seen_cities),
-        ("activity", MIN_DISTINCT_ACTIVITIES, seen_activities),
+        ("city", min_cities_eff, seen_cities),
+        ("activity", min_acts_eff, seen_activities),
     ]:
         while len(seen_set) < min_count:
             # Find highest-scored clip NOT in any seen bucket of this field
@@ -119,8 +162,8 @@ def curate(manifest: dict) -> list:
                        if m[required_field] not in seen_set
                        and m["video_id"] not in seen_videos]
             if not missing:
-                print(f"  WARN: can't reach min {required_field}={min_count} "
-                      f"(have {len(seen_set)}: {seen_set}) — dataset too narrow")
+                # Reachable only if the eff target cap above failed to bound;
+                # keep silent break (pool truly cannot support more diversity).
                 break
             swap_in = missing[0]
             # Drop the lowest-scoring over-represented entry
@@ -135,11 +178,22 @@ def curate(manifest: dict) -> list:
             seen_set.add(swap_in[required_field])
             selected.sort(key=lambda m: m["score"], reverse=True)
 
-    return selected[:TOP_N]
+    return selected[:target]
 
 
 def copy_pngs(selected: list, src_dir: Path, dst_dir: Path, exts=(".png", ".pdf")) -> int:
-    """Copy selected clips' verify plots from src_dir → dst_dir. Returns n_copied."""
+    """Copy selected clips' verify plots from src_dir → dst_dir. Returns n_copied.
+
+    iter13 v13 FIX-22 (2026-05-07): when exact-clip_key match misses, fall back
+    to a video_id substring glob. Why: m10's `select_verify_clips(seed=42)`
+    does round-robin by (city, activity) bucket; m11's `curate()` does
+    greedy-by-score. Both dedupe by video_id, but their respective picks for
+    the SAME video may be different temporal segments (e.g. m10 saves
+    `lZ5hy5nsUro-020`, m11's curate ranks `lZ5hy5nsUro-098` higher → exact
+    safe_key match fails). Since each verify dir contains exactly ONE file
+    per video_id (both algorithms dedupe), the video_id glob recovers the
+    correct file regardless of which clip-segment was picked.
+    """
     if not src_dir.exists():
         print(f"  SKIP: {src_dir} does not exist")
         return 0
@@ -147,20 +201,27 @@ def copy_pngs(selected: list, src_dir: Path, dst_dir: Path, exts=(".png", ".pdf"
     n_copied = 0
     n_missing = 0
     for m in selected:
-        # Filename pattern: clip_key with "/" → "__" + ".mp4" + ext
+        # Primary: exact clip_key safe_key match.
         # e.g. "tier1/mumbai/walking/DFQO7Zn-KM4-1000/DFQO7Zn-KM4-1000.mp4"
         #   → "tier1__mumbai__walking__DFQO7Zn-KM4-1000__DFQO7Zn-KM4-1000.mp4.png"
         stem = m["clip_key"].replace("/", "__")
+        video_id = m["video_id"]
         for ext in exts:
-            fname = f"{stem}{ext}"
-            src = src_dir / fname
+            src = src_dir / f"{stem}{ext}"
             if src.exists():
-                shutil.copy2(src, dst_dir / fname)
+                shutil.copy2(src, dst_dir / src.name)
+                n_copied += 1
+                continue
+            # Fallback: glob by video_id (m10/m11 both produce one file per video).
+            # The "__<video_id>__" pattern is unique within a safe_key path.
+            matches = sorted(src_dir.glob(f"*__{video_id}__*{ext}"))
+            if matches:
+                shutil.copy2(matches[0], dst_dir / matches[0].name)
                 n_copied += 1
             else:
                 n_missing += 1
     print(f"  {src_dir.name}: copied {n_copied} files to {dst_dir} "
-          f"({n_missing} missing — OK if exts partial)")
+          f"({n_missing} missing)")
     return n_copied
 
 
@@ -247,9 +308,17 @@ def curate_and_prune(outputs_dir, delete_originals: bool = False) -> dict:
     print(f"[curate_verify] Loaded {len(manifest)} clips from {manifest_path.name}")
 
     selected = curate(manifest)
-    if len(selected) < TOP_N:
-        print(f"[curate_verify] WARN: curation produced only {len(selected)} clips "
-              f"(expected {TOP_N}) — dataset may be too narrow")
+    # iter13 v13 FIX-22 (2026-05-07): WARN only when we got fewer than the pool
+    # can support, not when the pool itself is < TOP_N (which is normal at
+    # POC=100 / SANITY=20 where unique-video dedup naturally caps below 20).
+    n_unique_videos = len({parse_clip_key(k)["video_id"] for k in manifest})
+    expected = min(TOP_N, n_unique_videos)
+    if len(selected) < expected:
+        print(f"[curate_verify] WARN: produced {len(selected)} clips "
+              f"(expected {expected} = min(TOP_N={TOP_N}, n_unique_videos={n_unique_videos}))")
+    elif n_unique_videos < TOP_N:
+        print(f"[curate_verify] INFO: pool has {n_unique_videos} unique videos "
+              f"(< TOP_N={TOP_N}); selected {len(selected)} (max possible)")
 
     print(f"[curate_verify] Top {len(selected)} (score-ranked, unique videos):")
     for i, m in enumerate(selected, 1):

@@ -20,9 +20,16 @@ sanity:
 bakeoff:
   clips: 2500                 # m04b: VLM comparison subset
 
-# -- POC subset --
+# -- POC mode clip limits (per module) --
+# Mirrors `sanity:` pattern. Purpose: bridge between SANITY (20 — code correctness)
+# and FULL (10K+ — paper) for statistically meaningful per-clip quality distributions.
+# Read via utils.config.get_poc_clip_limit("<module>") with `default` fallback.
 poc:
-  default_n: 10000            # m00c: default subset size
+  default_n: 10000            # m00c: default subset size for download (legacy alias)
+  factor_prep: 100            # m10/m11 (run_factor_prep.sh --POC): 5× SANITY pool — gives
+                               # meaningful percentiles in factor_manifest_quality.json
+                               # without the ~10× FULL wall cost. iter13 v13 FIX-19.
+  default: 100                # fallback for modules calling get_poc_clip_limit()
 
 # -- Data processing --
 data:

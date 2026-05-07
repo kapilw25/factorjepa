@@ -219,13 +219,24 @@ def stratified_split(records, train_pct=0.70, val_pct=0.15, seed=99,
         by_class[r["class"]].append(r["clip_key"])
 
     splits = {}
+    test_pct = 1.0 - train_pct - val_pct
     for cls in sorted(by_class.keys()):       # deterministic class order
         keys = list(by_class[cls])
         rng.shuffle(keys)
         n = len(keys)
-        n_train = int(n * train_pct)
-        n_val = int(n * val_pct)
-        n_test = n - n_train - n_val
+        # iter13 v13 (2026-05-07): greedy allocation. Previously used
+        # `int(n*pct)` floor for val + test which gave 0 when pct*n < 1
+        # (e.g. n=5, val_pct=0.15 → val=0 → ValueError). The min_per_split
+        # contract is ≥1 per split (BCa CI floor = 1 sample minimum) so
+        # promote val + test to 1 and let train absorb the rounding loss.
+        # For large n where int(n*pct) ≥ 1 the allocation is unchanged
+        # (max(1, k) == k for k≥1), so paper-grade ratios are preserved.
+        # Net effect: keeps small-n classes that otherwise FATAL'd, making
+        # the probe HARDER (more classes to discriminate). Min keepable n=3
+        # (val=1, test=1, train=1).
+        n_val = max(1, int(n * val_pct))
+        n_test = max(1, int(n * test_pct))
+        n_train = n - n_val - n_test
         if min(n_train, n_val, n_test) < min_per_split:
             raise ValueError(
                 f"Class '{cls}' has only n={n} → train={n_train}/val={n_val}/test={n_test}; "

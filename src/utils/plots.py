@@ -944,17 +944,29 @@ def plot_probe_trajectory_trio(probe_history: list, output_dir, title_prefix: st
         return
     single_point = (len(recs) == 1)
 
-    fig, axes = plt.subplots(3, 1, figsize=(7, 11), sharex=True)
+    # iter13 v13 (2026-05-07): figsize height bumped 11 → 14; gridspec hspace
+    # increased so each panel has room for its own caption between it and the
+    # next panel (per-panel captions, not one combined block at the bottom).
+    fig, axes = plt.subplots(3, 1, figsize=(7, 14), sharex=True,
+                             gridspec_kw={"hspace": 0.55})
     steps = [r["step"] for r in recs]
 
     # iter13 v12+ (2026-05-06): each panel carries its optimization direction so
     # the reader knows whether ↑ trajectory is good (top-1, motion_cos) or bad (future-L1).
+    # iter13 v13 (2026-05-07): per-panel caption text moved INTO the panel tuple
+    # so each is anchored under its own axes (not in a combined block).
     panels = [
-        ("Top-1 accuracy (action probe)",     "probe_top1", COLORS["green"],  "", "higher"),
-        ("Intra−Inter cosine (motion sep.)",  "motion_cos", COLORS["blue"],   "", "higher"),
-        ("Future-frame L1 (lower=better)",    "future_l1",  COLORS["orange"], "", "lower"),
+        ("Top-1 accuracy (action probe)",     "probe_top1", COLORS["green"],  "", "higher",
+         "AttentiveClassifier accuracy on K-class motion-flow probe at each val cycle.\n"
+         "Should TREND UP as the encoder learns to separate motion classes."),
+        ("Intra−Inter cosine (motion sep.)",  "motion_cos", COLORS["blue"],   "", "higher",
+         "Same-class minus different-class cosine separation.\n"
+         "> 0 ⇒ semantic clustering;  near 0 ⇒ encoder doesn't separate motion classes."),
+        ("Future-frame L1 (lower=better)",    "future_l1",  COLORS["orange"], "", "lower",
+         "V-JEPA predictor's L1 on masked next-frame tokens — the JEPA objective.\n"
+         "Should TREND DOWN.  If it climbs ⇒ encoder forgetting predictive structure."),
     ]
-    for ax, (title, key, color, unit, direction) in zip(axes, panels):
+    for ax, (title, key, color, unit, direction, caption) in zip(axes, panels):
         y = [r[key] for r in recs]
         # Larger marker when single-point so the dot is visible without a line
         markersize = 12 if single_point else 4
@@ -983,11 +995,26 @@ def plot_probe_trajectory_trio(probe_history: list, output_dir, title_prefix: st
             # Pad x-axis so the single dot doesn't sit at the right edge
             ax.set_xlim(left=max(0, steps[0] - 5), right=steps[0] + 50)
 
+        # Per-panel caption — anchored under THIS axes via transAxes so it
+        # stays with its own panel. Lives in the gridspec_kw hspace gap.
+        # iter13 v13 (2026-05-07): pushed to fontweight=bold + fontsize 10.0
+        # + edgecolor #555 (darker border) — earlier "medium" looked washed out
+        # against the line-plot panels (more whitespace + thinner data lines
+        # than the bar-chart sibling, so the eye reads caption text as fainter).
+        ax.text(0.5, -0.30, caption,
+                transform=ax.transAxes, ha="center", va="top",
+                fontsize=10.0, color="#000", fontweight="bold",
+                linespacing=1.5,
+                bbox=dict(boxstyle="round,pad=0.4", facecolor="#FFFFFF",
+                          edgecolor="#555", linewidth=1.0))
+
     n_clips = recs[0].get("n_probe_clips", "?")
     axes[0].set_title(
-        f"{title_prefix}Probe trajectory  (N={n_clips} probe-clips, val split)",
+        f"{title_prefix}Probe trajectory — encoder evolution across SSL training\n"
+        f"(VAL split · N={n_clips} probe-clips · per-step diagnostic, NOT paper-final eval)",
         fontsize=11)
     axes[-1].set_xlabel("Optimizer step", fontsize=11)
+    fig.tight_layout(rect=[0, 0.02, 1, 0.97])
     save_fig(fig, str(output_dir / f"{file_prefix}_probe_trajectory_trio"))
 
 

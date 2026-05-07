@@ -1458,6 +1458,8 @@ def train(cfg: dict, args):
         init_ckpt_path=init_ckpt_path,
         embed_dim=cfg["model"]["embed_dim"],
         label="m09c surgical encoder",
+        # iter13 v13 (2026-05-07): SANITY: 1-step warmup → encoder ≡ init.
+        skip_diverged_check=args.SANITY,
     )
 
     # Bug R8 fix (iter13): write m09c_ckpt_best.pt carrying the predictor so

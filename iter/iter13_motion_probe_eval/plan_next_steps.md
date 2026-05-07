@@ -1,4 +1,7 @@
 # 🎬 iter13 — Phase 4 code plan: motion_aux in m09c surgery
+# Training Plan — FactorJEPA iter13 (Motion-Centric Probe Gate)
+
+> **🎯 Paper goal**: `vjepa_surgery` >>  `vjepa_pretrain` >> `vjepa_frozen` on the motion / temporal features
 
 > **Sister docs**: [`plan_v12_motion_aux.md`](./plan_v12_motion_aux.md) · [`runbook.md`](./runbook.md)
   Recommend: train surgery on CURRENT 8-class motion features first. Phase 5 only if Δ < +5 pp.                          

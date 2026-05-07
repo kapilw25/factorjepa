@@ -127,6 +127,58 @@ def _deep_merge(base: dict, overlay: dict) -> dict:
     return merged
 
 
+def load_train_config_with_extends(train_config: str) -> dict:
+    """Load a single train yaml + resolve its `extends:` chain (no model/pipeline merge).
+
+    iter13 v13 (2026-05-07): factored out of load_merged_config so callers like
+    m10_sam_segment + m11_factor_datasets — which need ONLY the resolved train
+    config (factor_datasets / interaction_mining blocks) and don't have a
+    --model-config arg — can still see the full inheritance chain.
+
+    Walks `extends: surgery_base.yaml → base_optimization.yaml` so a variant
+    yaml's child fields override base, but base fields the variant doesn't
+    mention stay inherited.
+
+    Args:
+        train_config: Path to train YAML (e.g., 'configs/train/surgery_3stage_DI.yaml').
+
+    Returns:
+        Resolved dict with full inheritance chain merged (variant wins on conflict).
+    """
+    train_path = Path(train_config)
+    if not train_path.is_absolute():
+        train_path = PROJECT_ROOT / train_path
+
+    if not train_path.exists():
+        print(f"FATAL: Train config not found: {train_path}")
+        sys.exit(1)
+
+    with open(train_path) as f:
+        train_cfg = yaml.safe_load(f)
+
+    # Extends-chain resolution mirrors load_merged_config's loop. See full
+    # comment there for the design rationale.
+    seen = {train_path.resolve()}
+    while True:
+        extends = train_cfg.pop("extends", None)
+        if not extends:
+            break
+        base_path = (train_path.parent / extends).resolve()
+        if base_path in seen:
+            print(f"FATAL: extends cycle detected at {base_path}")
+            sys.exit(1)
+        seen.add(base_path)
+        if not base_path.exists():
+            print(f"FATAL: extends target not found: {base_path}")
+            sys.exit(1)
+        with open(base_path) as f:
+            base_cfg = yaml.safe_load(f)
+        train_cfg = _deep_merge(base_cfg, train_cfg)
+        train_path = base_path
+
+    return train_cfg
+
+
 def load_merged_config(model_config: str, train_config: str) -> dict:
     """Load and merge: pipeline.yaml (base) + model/*.yaml + train/*.yaml.
 
@@ -234,6 +286,18 @@ def get_sanity_clip_limit(module: str) -> int:
     """Get SANITY clip limit for a module from configs/pipeline.yaml."""
     cfg = get_pipeline_config()
     return cfg["sanity"].get(module, cfg["sanity"]["default"])
+
+
+def get_poc_clip_limit(module: str) -> int:
+    """Get POC clip limit for a module from configs/pipeline.yaml.
+
+    iter13 v13 FIX-19 (2026-05-07): mirrors get_sanity_clip_limit pattern. POC
+    sits between SANITY (n=20 — code correctness) and FULL (n=10K+ — paper),
+    giving statistically meaningful per-clip quality distributions for ~10×
+    less wall time than FULL. Per-module overrides in pipeline.yaml `poc:` block.
+    """
+    cfg = get_pipeline_config()
+    return cfg["poc"].get(module, cfg["poc"]["default"])
 
 
 def get_total_clips(local_data: str = None, subset_file: str = None) -> int:

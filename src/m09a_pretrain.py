@@ -1313,6 +1313,10 @@ def train(cfg: dict, args):
         init_ckpt_path=init_ckpt_path,
         embed_dim=cfg["model"]["embed_dim"],
         label="m09a pretrain encoder",
+        # iter13 v13 (2026-05-07): SANITY runs total_steps=1 with 20% warmup
+        # → lr=0 at step 0 → encoder bit-identical to init by design.
+        # The assert is a paper-grade gate; gate it on mode.
+        skip_diverged_check=args.SANITY,
     )
 
     # iter11 META-fix: gate post-training checkpoint cleanup through --cache-policy.

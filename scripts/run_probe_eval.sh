@@ -153,7 +153,11 @@ MOTION_FEATURES="${MOTION_FEATURES:-${LOCAL_DATA}/motion_features.npy}"
 # → ≥5 per split at 70/15/15). SANITY relaxes them since 150-clip stratified
 # subsets give ~9 clips per motion-flow class (would crash stratified_split).
 if [ "$MODE" = "SANITY" ]; then
-    DEFAULT_MIN_CLIPS_PER_CLASS=5
+    # iter13 v13 (2026-05-07): floor=3 with greedy split (utils/action_labels.py
+    # stratified_split). Keeps every motion-flow class with n≥3 → harder probe →
+    # better signal for the paper goal `surgery > pretrain > frozen`. Mirror in
+    # run_probe_train.sh.
+    DEFAULT_MIN_CLIPS_PER_CLASS=3
     DEFAULT_MIN_PER_SPLIT=1
 else
     DEFAULT_MIN_CLIPS_PER_CLASS=34

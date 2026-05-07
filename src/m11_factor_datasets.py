@@ -37,6 +37,7 @@ sys.path.insert(0, str(Path(__file__).parent))
 from utils.config import (
     add_subset_arg, add_local_data_arg,
     load_subset,
+    load_train_config_with_extends,
 )
 from utils.checkpoint import save_json_checkpoint, load_json_checkpoint
 from utils.data_download import ensure_local_data, iter_clips_parallel
@@ -48,8 +49,10 @@ from utils.curate_verify import select_verify_clips, curate_and_prune
 from utils.cache_policy import (
     add_cache_policy_arg, resolve_cache_policy_interactive, wipe_output_dir,
 )
+# iter13 v13 FIX-18 (2026-05-07): factor-quality observability — see plan_code_dev.md
+# Layer D. Propagates m10 quality block + adds D_L/D_A specific metrics.
+from utils.mask_metrics import aggregate_percentiles
 
-import yaml
 
 
 # ── iter13 v12+ Task 3 (2026-05-06): output co-located with input ──
@@ -646,6 +649,72 @@ def _get_cpu_workers(cap: int = 32) -> int:
     return max(1, min(cap, n))
 
 
+def _compute_dl_blur_completeness(original: np.ndarray, dl_frames: np.ndarray,
+                                   agent_mask: np.ndarray) -> float:
+    """D_L blur-completeness: how strongly were agent pixels actually blurred?
+
+    iter13 v13 FIX-18 (2026-05-07): per-clip D_L quality metric (Layer D).
+
+    Compares the original frame's agent-pixel region against the SAME region in
+    the D_L-patched frame. Strong blurring → large pixel-difference → high score.
+    Identity (no blur applied) → 0.0.
+
+    Defined as `mean(|D_L − original| over agent pixels) / 255` so the value
+    sits in [0, 1] regardless of frame intensity. SSIM was considered but
+    requires scikit-image + the metric inverts (lower SSIM = more blur), making
+    it less intuitive in JSON inspection.
+
+    Args:
+        original:   (T, H, W, 3) uint8 — raw input frames
+        dl_frames:  (T, H, W, 3) uint8 — m11 layout-only output
+        agent_mask: (T, H, W) bool   — m10's agent mask (where blur should land)
+
+    Returns:
+        float ∈ [0, 1]. 0.0 if no agent pixels (clip with no detected agents).
+    """
+    if agent_mask.sum() == 0:
+        return 0.0
+    # Per-pixel L1 difference across the agent-mask region only.
+    diff = np.abs(dl_frames.astype(np.float32) - original.astype(np.float32))
+    diff = diff.mean(axis=-1)   # (T, H, W) — collapse RGB
+    delta = diff[agent_mask]    # only agent pixels
+    if delta.size == 0:
+        return 0.0
+    return float(delta.mean() / 255.0)
+
+
+def _compute_da_signal_to_bg_ratio(da_frames: np.ndarray,
+                                    agent_mask: np.ndarray) -> float:
+    """D_A signal-to-background ratio: how cleanly is the agent isolated?
+
+    iter13 v13 FIX-18 (2026-05-07): per-clip D_A quality metric (Layer D).
+
+    `mean(D_A pixels inside agent mask) / max(mean(D_A pixels outside), eps)`
+    Higher = cleaner suppression of background. Soft-matte D_A with
+    matte_factor=0.1 should hit ≥ 5.0 on healthy clips. Values < 2.0 indicate
+    weak agent isolation (e.g. agent pixels themselves got darkened due to
+    feathering bleeding into the agent region).
+
+    Args:
+        da_frames:  (T, H, W, 3) uint8 — m11 agent-only output
+        agent_mask: (T, H, W) bool
+
+    Returns:
+        float > 0. Returns 0.0 if either region is empty.
+    """
+    if agent_mask.sum() == 0 or (~agent_mask).sum() == 0:
+        return 0.0
+    intensity = da_frames.astype(np.float32).mean(axis=-1)   # (T, H, W)
+    fg = intensity[agent_mask]
+    bg = intensity[~agent_mask]
+    if fg.size == 0 or bg.size == 0:
+        return 0.0
+    bg_mean = float(bg.mean())
+    if bg_mean < 1e-6:
+        return 0.0
+    return float(fg.mean() / bg_mean)
+
+
 def _process_one_clip(args: tuple) -> tuple:
     """Worker: generate D_L/D_A/D_I for one clip. Returns (clip_key, manifest_entry | None)."""
     (clip_key, mp4_bytes, seg_entry, masks_dir_s,
@@ -674,6 +743,12 @@ def _process_one_clip(args: tuple) -> tuple:
             "n_interaction_tubes": n_tubes,
             "agent_pct": seg_entry["agent_pixel_ratio"],
             "tube_category_pairs": [],   # #77: unknown for pre-existing .npy cache
+            # iter13 v13 FIX-18 (2026-05-07): propagate m10 quality even on cache
+            # hits so manifest schema is uniform; quality_l/quality_a unknown for
+            # pre-existing .npy (would require re-decoding) → empty dicts.
+            "m10_quality": seg_entry.get("quality", {}),
+            "quality_l": {},
+            "quality_a": {},
         })
 
     # --regen-D_I: rebuild D_I tubes only, leave D_L/D_A .npy untouched.
@@ -724,6 +799,11 @@ def _process_one_clip(args: tuple) -> tuple:
             "n_interaction_tubes": n_tubes,
             "agent_pct": agent_pct,
             "tube_category_pairs": tube_category_pairs,
+            # iter13 v13 FIX-18 (2026-05-07): propagate m10 quality on regen-D_I
+            # path. D_L/D_A .npy were NOT regenerated → empty quality_l/quality_a.
+            "m10_quality": seg_entry.get("quality", {}),
+            "quality_l": {},
+            "quality_a": {},
         })
 
     # Streaming mode: short-circuit for non-verify clips. D_L/D_A/D_I will be
@@ -747,6 +827,13 @@ def _process_one_clip(args: tuple) -> tuple:
             "n_interaction_tubes": n_ints,
             "agent_pct": agent_pct,
             "tube_category_pairs": [],
+            # iter13 v13 FIX-18 (2026-05-07): propagate m10 quality on streaming
+            # short-circuit. quality_l/quality_a empty since the .npy was not
+            # materialized (StreamingFactorDataset generates D_L/D_A on-demand
+            # during training; we skip the metric since there's no D_L/D_A on disk).
+            "m10_quality": seg_entry.get("quality", {}),
+            "quality_l": {},
+            "quality_a": {},
         })
 
     data = np.load(mask_file, allow_pickle=True)
@@ -783,18 +870,27 @@ def _process_one_clip(args: tuple) -> tuple:
     has_dl = agent_pct <= cfg["max_agent_pct"]
     has_da = agent_pct >= cfg["min_agent_pct"]
 
+    # iter13 v13 FIX-18 (2026-05-07): per-clip D_L / D_A quality metrics (Layer D).
+    # Computed alongside the .npy write so we don't re-decode frames later.
+    quality_l: dict = {}
+    quality_a: dict = {}
+
     if has_dl:
         dl_frames = make_layout_only(frames_np, agent_mask,
                                      method=cfg["layout_method"],
                                      blur_sigma=cfg["blur_sigma"],
                                      feather_sigma=cfg["feather_sigma"])
         np.save(dl_file, dl_frames)
+        quality_l["blur_completeness"] = _compute_dl_blur_completeness(
+            frames_np, dl_frames, agent_mask)
     if has_da:
         da_frames = make_agent_only(frames_np, layout_mask,
                                     method=cfg["agent_method"],
                                     matte_factor=cfg["matte_factor"],
                                     feather_sigma=cfg["feather_sigma"])
         np.save(da_file, da_frames)
+        quality_a["signal_to_bg_ratio"] = _compute_da_signal_to_bg_ratio(
+            da_frames, agent_mask)
 
     # D_I (interaction tubes) gated on interaction_mining.enabled yaml flag.
     # 2-stage iter9+ recipe retires Stage 3 → D_I is unused training data →
@@ -838,6 +934,14 @@ def _process_one_clip(args: tuple) -> tuple:
         "n_interaction_tubes": n_tubes,
         "agent_pct": agent_pct,
         "tube_category_pairs": tube_category_pairs,   # #77 typed D_I → paper narrative
+        # iter13 v13 FIX-18 (2026-05-07): factor-quality observability (Layer D).
+        # m10_quality propagates segments.json["quality"] block (M1/M2/M5/M6 from
+        # m10's mask analysis); quality_l / quality_a are m11-side measurements
+        # of the actual D_L blur strength and D_A foreground/background contrast
+        # produced by the patch operators (make_layout_only / make_agent_only).
+        "m10_quality": seg_entry.get("quality", {}),
+        "quality_l": quality_l,
+        "quality_a": quality_a,
     })
 
 
@@ -928,9 +1032,9 @@ def main():
 
     ensure_local_data(args)
 
-    # Load config
-    with open(args.train_config) as f:
-        train_cfg = yaml.safe_load(f)
+    # Load config — iter13 v13 FIX-10: extends-resolving loader so the variant
+    # yaml inherits factor_datasets from surgery_base.yaml.
+    train_cfg = load_train_config_with_extends(args.train_config)
     factor_cfg = train_cfg["factor_datasets"]
 
     # iter13 Task 3: m11 reads masks from <--local-data>/m10_sam_segment/, writes
@@ -978,6 +1082,35 @@ def main():
 
     local_data = getattr(args, "local_data", None)
     subset_keys = load_subset(args.subset) if args.subset else None
+
+    # iter13 v13 FIX-12 (2026-05-07): SANITY must align m11's clip set with the
+    # clips m10 actually segmented (segments.json keys). Previously FIX-11 did
+    # `list(subset_keys)[:20]` which picked 20 RANDOM keys (load_subset returns
+    # an unordered set) — they almost never overlapped m10's first-20-in-TAR-
+    # order, so m11's TAR producer found no masks → yielded 0 clips → "Done: 0
+    # clips" silently (no error). Using segments.keys() guarantees alignment;
+    # m10 already capped to SANITY_CLIP_LIMIT=20 so the resulting set is right-
+    # sized. We still intersect with subset_keys when the user passed --subset
+    # so a narrower user-supplied JSON is respected.
+    if args.SANITY:
+        segmented_keys = set(segments.keys())
+        if subset_keys is not None:
+            aligned = segmented_keys & subset_keys
+        else:
+            aligned = segmented_keys
+        if not aligned:
+            print(f"FATAL: SANITY alignment failed — m10 segmented "
+                  f"{len(segmented_keys)} clips but none overlap subset_keys "
+                  f"({len(subset_keys) if subset_keys else 0}).")
+            sys.exit(1)
+        # iter13 v13 FIX-17 (2026-05-07): SORT so m11's select_verify_clips
+        # receives a deterministic order. Without this, set intersection yields
+        # unordered keys → m11's seed=42 verify pick differs from m10's pick on
+        # the same 20-clip pool (same video, different temporal segments) →
+        # curate_verify_top20 finds filename mismatch and copies 0 files.
+        subset_keys = sorted(aligned)
+        print(f"  [SANITY] aligned subset_keys → {len(subset_keys)} clips "
+              f"from m10 segments.json (the clips actually segmented).")
 
     # Effective work count: TAR reader yields only clips in subset_keys (if given),
     # so pbar + target must reflect that — not len(segments) from m10's full mask cache.
@@ -1093,10 +1226,57 @@ def main():
 
     elapsed = time.time() - t0
     n_tubes_total = sum(v["n_interaction_tubes"] for v in manifest.values())
+
+    # iter13 v13 FIX-12 (2026-05-07): FAIL HARD on zero clips processed (per
+    # CLAUDE.md). Previously the run claimed "✅ factor-prep done" with 0/20
+    # produced (subset/segments mismatch under FIX-11's broken truncation),
+    # then downstream curate_verify emitted 4× WARN-without-exit and the
+    # surgery FATAL'd later on missing factor-dir files. Fail loud here so
+    # the actual root cause surfaces in the log.
+    if len(manifest) == 0:
+        print(f"\nFATAL: m11 produced 0 clips after iterating {n_to_process} expected.\n"
+              f"  Likely cause: subset_keys / segments.json mismatch (m10 segmented\n"
+              f"  different clips than m11 was asked to materialize). Inspect:\n"
+              f"    {input_dir}/segments.json  (m10's actual output set)\n"
+              f"    --subset {args.subset}     (clips m11 was asked about)\n"
+              f"  Their intersection must be non-empty.")
+        sys.exit(1)
+
     print(f"\nDone: {len(manifest)} clips → D_L + D_A + D_I in {elapsed:.0f}s")
     print(f"  D_L: {dl_dir} ({len(list(dl_dir.glob('*.npy')))} files)")
     print(f"  D_A: {da_dir} ({len(list(da_dir.glob('*.npy')))} files)")
     print(f"  D_I: {di_dir} ({len(list(di_dir.glob('*.npy')))} tubes from {n_tubes_total} interactions)")
+
+    # iter13 v13 FIX-18 (2026-05-07): factor_manifest_quality.json — corpus-wide
+    # aggregate of (a) m10 quality means propagated from segments.json, (b) m11
+    # D_L blur completeness, (c) m11 D_A signal-to-bg ratio. Empty/short-circuit
+    # entries (cached .npy, streaming skip) contribute m10_quality only.
+    blur_vals = [v["quality_l"].get("blur_completeness")
+                 for v in manifest.values()
+                 if v.get("quality_l") and "blur_completeness" in v["quality_l"]]
+    sbg_vals = [v["quality_a"].get("signal_to_bg_ratio")
+                for v in manifest.values()
+                if v.get("quality_a") and "signal_to_bg_ratio" in v["quality_a"]]
+    m10q_stab = [v["m10_quality"].get("stability_score", {}).get("mean")
+                 for v in manifest.values()
+                 if v.get("m10_quality", {}).get("stability_score", {}).get("mean") is not None]
+    m10q_tiou = [v["m10_quality"].get("temporal_iou_m5")
+                 for v in manifest.values()
+                 if v.get("m10_quality", {}).get("temporal_iou_m5") is not None]
+    factor_manifest_quality = {
+        "n_clips_total": len(manifest),
+        "n_clips_with_D_L_quality": len(blur_vals),
+        "n_clips_with_D_A_quality": len(sbg_vals),
+        "n_clips_with_m10_quality": len(m10q_stab),
+        "D_L_blur_completeness":   aggregate_percentiles(blur_vals),
+        "D_A_signal_to_bg_ratio":  aggregate_percentiles(sbg_vals),
+        "m10_stability_score":     aggregate_percentiles(m10q_stab),   # propagated M1
+        "m10_temporal_iou_m5":     aggregate_percentiles(m10q_tiou),   # propagated M5
+    }
+    save_json_checkpoint(factor_manifest_quality,
+                         output_dir / "factor_manifest_quality.json")
+    print(f"  Quality: {output_dir / 'factor_manifest_quality.json'} "
+          f"(blur n={len(blur_vals)}, sig/bg n={len(sbg_vals)}, m10 n={len(m10q_stab)})")
 
     # Paper visualizations (D_L vs D_A, D_I tubes, stats, per-clip 2x2 grids)
     plot_factor_samples(dl_dir, da_dir, output_dir)

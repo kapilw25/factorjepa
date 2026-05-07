@@ -80,7 +80,14 @@ if [ ! -f "$ACTION_LABELS" ]; then
     fi
     if [ "$MODE" = "SANITY" ]; then
         EVAL_SUBSET_BOOTSTRAP="data/eval_10k_sanity.json"
-        MIN_CLIPS_BOOTSTRAP=5
+        # iter13 v13 (2026-05-07): floor=3 is the absolute minimum that
+        # stratified_split's greedy allocation supports (val=1/test=1/train=1).
+        # Was 5 (and briefly 7 — REVERTED): higher floors drop motion-flow
+        # classes which makes the probe EASIER to saturate, undermining the
+        # paper goal `vjepa_surgery > vjepa_pretrain > vjepa_frozen` on
+        # motion / temporal features. The greedy split (utils/action_labels.py
+        # stratified_split) keeps n=3+ classes, max-promoting val+test to 1.
+        MIN_CLIPS_BOOTSTRAP=3
         MIN_SPLIT_BOOTSTRAP=1
     else
         EVAL_SUBSET_BOOTSTRAP="data/eval_10k.json"
