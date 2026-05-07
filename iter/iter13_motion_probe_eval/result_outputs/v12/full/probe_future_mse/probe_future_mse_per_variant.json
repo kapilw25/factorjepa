@@ -1,0 +1,41 @@
+{
+  "metric": "future_frame_l1_loss",
+  "by_variant": {
+    "vjepa_2_1_frozen": {
+      "mse_mean": 0.557119,
+      "mse_std": 0.019287,
+      "mse_ci": {
+        "mean": 0.557119,
+        "ci_lo": 0.556077,
+        "ci_hi": 0.558119,
+        "ci_half": 0.001021
+      },
+      "n": 1398
+    },
+    "vjepa_2_1_pretrain": {
+      "mse_mean": 0.554424,
+      "mse_std": 0.024523,
+      "mse_ci": {
+        "mean": 0.554424,
+        "ci_lo": 0.553079,
+        "ci_hi": 0.555666,
+        "ci_half": 0.001293
+      },
+      "n": 1398
+    },
+    "vjepa_2_1_surgical_3stage_DI": null,
+    "vjepa_2_1_surgical_noDI": null,
+    "dinov2": "n/a \u2014 no future-frame predictor"
+  },
+  "pairwise_deltas": {
+    "vjepa_2_1_frozen_minus_vjepa_2_1_pretrain": {
+      "n": 1398,
+      "delta_mean": 0.002695,
+      "delta_ci_lo": 0.001658,
+      "delta_ci_hi": 0.003699,
+      "delta_ci_half": 0.001021,
+      "p_value": 0.0,
+      "interpretation": "vjepa_2_1_frozen - vjepa_2_1_pretrain > 0 means vjepa_2_1_frozen has HIGHER MSE (worse future-frame prediction) than vjepa_2_1_pretrain; lower MSE = better."
+    }
+  }
+}

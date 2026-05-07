@@ -164,26 +164,28 @@ MIN_PER_SPLIT="${MIN_PER_SPLIT:-$DEFAULT_MIN_PER_SPLIT}"
 
 # Per-encoder checkpoint resolvers. Two functions because Stages 2/3 (probe-head
 # training) need encoder-only ckpts, but Stage 8 (future_mse) also needs the
-# predictor. probe_pretrain / probe_surgery_* write BOTH artifacts:
+# predictor. m09a_pretrain / m09c_surgery_* write BOTH artifacts:
 #   - student_encoder.pt    : encoder only      (export_student_for_eval)
 #   - m09{a,c}_ckpt_best.pt : encoder+predictor (save_training_checkpoint full=True)
 # Surgery has TWO variants — 3stage_DI (with interaction tubes) and noDI (without)
-# — to test the skepticism that D_I worsens learning. Each writes its own dir.
+# — to test whether D_I helps; each writes its own dir.
+# iter13 v13 T2-rename (2026-05-07): probe_pretrain → m09a_pretrain,
+# probe_surgery_* → m09c_surgery_* (matches source-module naming + run_probe_train.sh).
 encoder_ckpt_for() {                                            # encoder-only — Stages 2/3
     case "$1" in
         vjepa_2_1_frozen)              echo "$ENCODER_CKPT" ;;
-        vjepa_2_1_pretrain)            echo "${DEFAULT_OUTPUT_PREFIX}/probe_pretrain/student_encoder.pt" ;;
-        vjepa_2_1_surgical_3stage_DI)  echo "${DEFAULT_OUTPUT_PREFIX}/probe_surgery_3stage_DI/student_encoder.pt" ;;
-        vjepa_2_1_surgical_noDI)       echo "${DEFAULT_OUTPUT_PREFIX}/probe_surgery_noDI/student_encoder.pt" ;;
+        vjepa_2_1_pretrain)            echo "${DEFAULT_OUTPUT_PREFIX}/m09a_pretrain/student_encoder.pt" ;;
+        vjepa_2_1_surgical_3stage_DI)  echo "${DEFAULT_OUTPUT_PREFIX}/m09c_surgery_3stage_DI/student_encoder.pt" ;;
+        vjepa_2_1_surgical_noDI)       echo "${DEFAULT_OUTPUT_PREFIX}/m09c_surgery_noDI/student_encoder.pt" ;;
         *) echo "" ;;
     esac
 }
 encoder_predictor_ckpt_for() {                                  # encoder+predictor — Stage 8 future_mse
     case "$1" in
         vjepa_2_1_frozen)              echo "$ENCODER_CKPT" ;;
-        vjepa_2_1_pretrain)            echo "${DEFAULT_OUTPUT_PREFIX}/probe_pretrain/m09a_ckpt_best.pt" ;;
-        vjepa_2_1_surgical_3stage_DI)  echo "${DEFAULT_OUTPUT_PREFIX}/probe_surgery_3stage_DI/m09c_ckpt_best.pt" ;;
-        vjepa_2_1_surgical_noDI)       echo "${DEFAULT_OUTPUT_PREFIX}/probe_surgery_noDI/m09c_ckpt_best.pt" ;;
+        vjepa_2_1_pretrain)            echo "${DEFAULT_OUTPUT_PREFIX}/m09a_pretrain/m09a_ckpt_best.pt" ;;
+        vjepa_2_1_surgical_3stage_DI)  echo "${DEFAULT_OUTPUT_PREFIX}/m09c_surgery_3stage_DI/m09c_ckpt_best.pt" ;;
+        vjepa_2_1_surgical_noDI)       echo "${DEFAULT_OUTPUT_PREFIX}/m09c_surgery_noDI/m09c_ckpt_best.pt" ;;
         *) echo "" ;;
     esac
 }
@@ -395,9 +397,9 @@ if [ "${EVAL_KEEP_LATEST:-0}" != "1" ]; then
     pretrain_cleanup_get_latest() {
         # Map encoder → its m09{a,c}_ckpt_latest.pt path (or empty if external).
         case "$1" in
-            vjepa_2_1_pretrain)            echo "${DEFAULT_OUTPUT_PREFIX}/probe_pretrain/m09a_ckpt_latest.pt" ;;
-            vjepa_2_1_surgical_3stage_DI)  echo "${DEFAULT_OUTPUT_PREFIX}/probe_surgery_3stage_DI/m09c_ckpt_latest.pt" ;;
-            vjepa_2_1_surgical_noDI)       echo "${DEFAULT_OUTPUT_PREFIX}/probe_surgery_noDI/m09c_ckpt_latest.pt" ;;
+            vjepa_2_1_pretrain)            echo "${DEFAULT_OUTPUT_PREFIX}/m09a_pretrain/m09a_ckpt_latest.pt" ;;
+            vjepa_2_1_surgical_3stage_DI)  echo "${DEFAULT_OUTPUT_PREFIX}/m09c_surgery_3stage_DI/m09c_ckpt_latest.pt" ;;
+            vjepa_2_1_surgical_noDI)       echo "${DEFAULT_OUTPUT_PREFIX}/m09c_surgery_noDI/m09c_ckpt_latest.pt" ;;
             *) echo "" ;;
         esac
     }

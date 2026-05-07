@@ -257,8 +257,8 @@ def main() -> int:
         meta["n"] = len(clips)
         meta["tier"] = f"ultra_hard_{args.ultra_target_n}_{tag}"
         meta["role"] = {"train": "m09c training input",
-                        "val":   "mid-training Prec@K probe (best_ckpt + val-loss plateau)",
-                        "eval":  "paired-BCa decision gate (m05+m06+m08b)"}[tag]
+                        "val":   "mid-training motion-flow probe (best_ckpt + val-loss plateau)",
+                        "eval":  "paired-BCa decision gate (m05+probe_*)"}[tag]
         meta["clip_keys"] = [clip_key(t) for t in clips]
         with open(sub_path, "w") as f:
             json.dump(meta, f, indent=2)

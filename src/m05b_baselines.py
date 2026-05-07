@@ -101,9 +101,9 @@ def generate_oracle(clip_keys: list, output_dir: Path, args):
     For each clip, encode `scene_type` (m06's primary metric `field`, line 319/352/383
     of m06_faiss_metrics.py) plus slice fields {weather, time_of_day, crowd_density,
     traffic_density, tour_type} as a concatenated one-hot vector; L2-normalize.
-    By construction, FAISS kNN finds clips with identical tag-set → Prec@K/mAP@K
-    approach 100% (modulo per-cluster size and tie-breaking). Establishes the
-    theoretical retrieval ceiling on this exact m06 metric.
+    By construction, FAISS kNN finds clips with identical tag-set → legacy
+    retrieval scores approach 100% (modulo per-cluster size and tie-breaking).
+    Establishes the theoretical retrieval ceiling on the legacy m06 metric.
 
     Aligns clip_keys → tags via Path(p).name == tags[i]["source_file"] (matches
     m06's filtering logic at m06_faiss_metrics.py:1163). CPU-only, deterministic.

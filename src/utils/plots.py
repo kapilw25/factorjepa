@@ -873,6 +873,52 @@ def plot_block_drift_heatmap(drift_history: list, output_dir, title_prefix: str 
     save_fig(fig, str(output_dir / f"{file_prefix}_block_drift"))
 
 
+def plot_val_loss_with_kill_switch_overlay(probe_history: list, output_dir,
+                                            best_state: dict, kill_state: dict,
+                                            file_prefix: str = "m09",
+                                            title_prefix: str = "") -> None:
+    """val_jepa_loss curve with best-marker + kill-switch annotation overlay.
+
+    iter13 v13 C3-fix (2026-05-07): moved here from m09a_pretrain.py:_render_m09a_probe_plots
+    so m09c can reuse the same overlay (was m09a-only). Skips silently when
+    `probe_history` empty OR no record has `val_jepa_loss`.
+
+    Args:
+        best_state: {"step": int, "probe_top1": float, "val_loss_at_best": float}
+            (compatible with m09a + m09c best_state schemas)
+        kill_state: {"triggered": bool, "reason": str}
+    """
+    init_style()
+    if not probe_history:
+        return
+    recs = [r for r in probe_history if "val_jepa_loss" in r]
+    if not recs:
+        return
+
+    steps = [r.get("step", r.get("global_step", 0)) for r in recs]
+    val_losses = [r["val_jepa_loss"] for r in recs]
+
+    fig, ax = plt.subplots(figsize=(10, 6))
+    ax.plot(steps, val_losses, "o-", color=COLORS["blue"], linewidth=2.5,
+            markersize=6, label="val_jepa")
+    best_step = best_state.get("step", best_state.get("global_step", -1))
+    if best_step >= 0:
+        # Best is tracked by probe_top1; horizontal line marks val_loss AT best step.
+        best_top1 = best_state.get("probe_top1", best_state.get("top1", -1.0))
+        best_at_step_val = best_state.get("val_loss_at_best", best_state.get("val_loss", 0.0))
+        ax.axhline(best_at_step_val, color=COLORS["green"], linestyle=":",
+                   linewidth=1.5, alpha=0.7,
+                   label=f"best top1={best_top1:.4f} @ step {best_step}")
+    if kill_state.get("triggered"):
+        ax.axvline(steps[-1], color=COLORS["red"], linestyle="--", linewidth=1.5,
+                   label=f"early-stop: {kill_state.get('reason', '?')}")
+    ax.set_xlabel("Optimizer step")
+    ax.set_ylabel("val_jepa loss")
+    ax.set_title(f"{title_prefix}Validation JEPA loss + kill-switch state")
+    ax.legend(loc="best")
+    save_fig(fig, str(output_dir / f"{file_prefix}_val_loss_jepa"))
+
+
 def plot_probe_trajectory_trio(probe_history: list, output_dir, title_prefix: str = "",
                                 file_prefix: str = "m09") -> None:
     """3-panel trajectory: top-1 / motion-cos / future-L1 vs optimizer step.
@@ -901,12 +947,14 @@ def plot_probe_trajectory_trio(probe_history: list, output_dir, title_prefix: st
     fig, axes = plt.subplots(3, 1, figsize=(7, 11), sharex=True)
     steps = [r["step"] for r in recs]
 
+    # iter13 v12+ (2026-05-06): each panel carries its optimization direction so
+    # the reader knows whether ↑ trajectory is good (top-1, motion_cos) or bad (future-L1).
     panels = [
-        ("Top-1 accuracy (action probe)",     "probe_top1", COLORS["green"],  ""),
-        ("Intra−Inter cosine (motion sep.)",  "motion_cos", COLORS["blue"],   ""),
-        ("Future-frame L1 (lower=better)",    "future_l1",  COLORS["orange"], ""),
+        ("Top-1 accuracy (action probe)",     "probe_top1", COLORS["green"],  "", "higher"),
+        ("Intra−Inter cosine (motion sep.)",  "motion_cos", COLORS["blue"],   "", "higher"),
+        ("Future-frame L1 (lower=better)",    "future_l1",  COLORS["orange"], "", "lower"),
     ]
-    for ax, (title, key, color, unit) in zip(axes, panels):
+    for ax, (title, key, color, unit, direction) in zip(axes, panels):
         y = [r[key] for r in recs]
         # Larger marker when single-point so the dot is visible without a line
         markersize = 12 if single_point else 4
@@ -914,6 +962,19 @@ def plot_probe_trajectory_trio(probe_history: list, output_dir, title_prefix: st
                 markersize=markersize)
         ax.set_ylabel(f"{title}{(' (' + unit + ')') if unit else ''}", fontsize=10)
         ax.grid(True, alpha=0.3)
+        # Direction badge ↑ higher = better / ↓ lower = better, top-left of panel.
+        if direction == "higher":
+            ax.text(0.02, 0.97, "↑ higher = better",
+                    transform=ax.transAxes, fontsize=9, fontweight="bold",
+                    color="#2E7D32", va="top", ha="left",
+                    bbox=dict(boxstyle="round,pad=0.25", facecolor="#E8F5E9",
+                              edgecolor="#2E7D32", linewidth=0.8, alpha=0.85))
+        elif direction == "lower":
+            ax.text(0.02, 0.97, "↓ lower = better",
+                    transform=ax.transAxes, fontsize=9, fontweight="bold",
+                    color="#E65100", va="top", ha="left",
+                    bbox=dict(boxstyle="round,pad=0.25", facecolor="#FFF3E0",
+                              edgecolor="#E65100", linewidth=0.8, alpha=0.85))
         ax.annotate(f"{'val' if single_point else 'end'}={y[-1]:.4f}",
                     xy=(steps[-1], y[-1]),
                     xytext=(5, 0), textcoords="offset points",

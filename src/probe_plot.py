@@ -172,8 +172,14 @@ def plot_acc_curves(action_probe_root: Path, encoders: list, n_classes: int,
 # ── Plot 3: 3-panel encoder comparison (N-bar generic) ───────────────
 
 def _bar_with_ci(ax, encoders: list, vals: list, errs: list,
-                 ylabel: str, title: str, na_set: set = None):
+                 ylabel: str, title: str, na_set: set = None,
+                 direction: str = ""):
     """Render N bars with 95% CI error caps + value labels above each bar.
+
+    Args:
+      direction: "higher" → annotate "↑ higher = better" badge (green).
+                 "lower"  → annotate "↓ lower = better" badge (orange).
+                 ""       → omit (default).
     `na_set` = encoder names with no measurement → render hatched 'N/A'.
     """
     na_set = na_set or set()
@@ -220,6 +226,19 @@ def _bar_with_ci(ax, encoders: list, vals: list, errs: list,
     ax.set_xticklabels([_display_label(e).replace(" ", "\n") for e in encoders], fontsize=9)
     ax.set_ylabel(ylabel, fontsize=11)
     ax.set_title(title, fontsize=12, fontweight="bold")
+    # Direction badge (top-left of axes) — at-a-glance "tall bar = good or bad".
+    if direction == "higher":
+        ax.text(0.02, 0.97, "↑ higher = better",
+                transform=ax.transAxes, fontsize=10, fontweight="bold",
+                color="#2E7D32", va="top", ha="left",
+                bbox=dict(boxstyle="round,pad=0.3", facecolor="#E8F5E9",
+                          edgecolor="#2E7D32", linewidth=1.0, alpha=0.85))
+    elif direction == "lower":
+        ax.text(0.02, 0.97, "↓ lower = better",
+                transform=ax.transAxes, fontsize=10, fontweight="bold",
+                color="#E65100", va="top", ha="left",
+                bbox=dict(boxstyle="round,pad=0.3", facecolor="#FFF3E0",
+                          edgecolor="#E65100", linewidth=1.0, alpha=0.85))
 
 
 def plot_encoder_comparison(paired_delta: dict, motion_cos: dict,
@@ -246,9 +265,9 @@ def plot_encoder_comparison(paired_delta: dict, motion_cos: dict,
     ap_na = {e for e in encoders if e not in ap_be}
     _n_test = next(iter(ap_be.values()), {}).get("n", "?")
     _bar_with_ci(axes[0], encoders, acc_vals, acc_errs,
-                 ylabel="Top-1 accuracy (%)",
+                 ylabel="Top-1 accuracy (%) — higher is better",
                  title=f"Action probe (top-1, n={_n_test})",
-                 na_set=ap_na)
+                 na_set=ap_na, direction="higher")
 
     # Panel 2 — motion cosine intra-minus-inter (per-encoder CI from by_encoder.score_ci).
     mc_be = motion_cos.get("by_encoder", {})
@@ -258,9 +277,9 @@ def plot_encoder_comparison(paired_delta: dict, motion_cos: dict,
     mc_na = {e for e in encoders if e not in mc_be}
     _n_cos = next(iter(mc_be.values()), {}).get("n", "?")
     _bar_with_ci(axes[1], encoders, cos_vals, cos_errs,
-                 ylabel="Intra − Inter cosine",
+                 ylabel="Intra − Inter cosine — higher is better",
                  title=f"Motion cosine (n={_n_cos})",
-                 na_set=mc_na)
+                 na_set=mc_na, direction="higher")
 
     # Panel 3 — future-frame L1 (V-JEPA-only by design — DINOv2/etc. have no predictor).
     mse_vals, mse_errs = [], []
@@ -277,9 +296,9 @@ def plot_encoder_comparison(paired_delta: dict, motion_cos: dict,
             mse_errs.append(0.0)
             fm_na.add(e)
     _bar_with_ci(axes[2], encoders, mse_vals, mse_errs,
-                 ylabel="Future L1 (lower = better)",
+                 ylabel="Future L1 — lower is better",
                  title=f"Future-frame MSE (n={n_test_mse})",
-                 na_set=fm_na)
+                 na_set=fm_na, direction="lower")
 
     fig.suptitle(f"probe trio · {len(encoders)} encoders · 95 % CI",
                  fontsize=14, fontweight="bold")

@@ -44,8 +44,6 @@ if load_dotenv is not None:
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
-from matplotlib.colors import ListedColormap
-
 import numpy as np
 from PIL import Image
 from scipy.ndimage import binary_dilation
@@ -58,7 +56,7 @@ from utils.config import (
 from utils.checkpoint import save_json_checkpoint, load_json_checkpoint
 from utils.data_download import ensure_local_data, iter_clips_parallel
 from utils.gpu_batch import cleanup_temp
-from utils.plots import init_style, save_fig, COLORS, SCENE_COLORS
+from utils.plots import init_style, save_fig, COLORS
 from utils.progress import make_pbar
 from utils.video_io import decode_video_bytes
 from utils.wandb_utils import add_wandb_args, init_wandb, log_metrics, finish_wandb
@@ -66,6 +64,24 @@ from utils.curate_verify import select_verify_clips
 from utils.cache_policy import (
     add_cache_policy_arg, resolve_cache_policy_interactive, wipe_output_dir,
 )
+from utils.tar_shard import pack_dir_to_shards
+
+
+# ── iter13 v12+ Task 3 (2026-05-06): output co-located with input ──
+# m10 writes outputs INSIDE the --local-data directory so hf_outputs.upload_data()
+# ships clips + masks + factors as one self-describing bundle. No
+# outputs/<mode>/m10_sam_segment/ default — LOCAL_DATA dir IS the source of truth.
+def _resolve_output_dir(args) -> Path:
+    """Return m10's output dir: --output-dir > <--local-data>/m10_sam_segment/ > FATAL."""
+    if getattr(args, "output_dir", None):
+        return Path(args.output_dir)
+    if getattr(args, "local_data", None):
+        return Path(args.local_data) / "m10_sam_segment"
+    print("FATAL: m10_sam_segment requires either --output-dir or --local-data")
+    print("  USAGE: python -u src/m10_sam_segment.py --FULL "
+          "--train-config <yaml> --local-data data/eval_10k_local")
+    sys.exit(2)
+
 
 import yaml
 import torch
@@ -731,9 +747,20 @@ def main():
     parser.add_argument("--train-config", required=True,
                         help="Factor dataset params YAML (e.g., configs/train/surgery_3stage_DI.yaml)")
     parser.add_argument("--output-dir", default=None,
-                        help="Override output dir (used by train_surgery.sh)")
+                        help="Override output dir. iter13 Task 3 default: "
+                             "<--local-data>/m10_sam_segment/ (co-located with input).")
     parser.add_argument("--tags-json", default=None,
                         help="Path to tags.json (auto-detected from output dir if omitted)")
+    # iter13 v12+ Task 3 (2026-05-06): TAR-shard at end-of-run, lives in Python so
+    # standalone `python src/m10_sam_segment.py` produces an HF-uploadable bundle
+    # with no shell glue (HF 10k-file repo cap workaround).
+    parser.add_argument("--tar-pack", dest="tar_pack", action="store_true", default=None,
+                        help="Pack masks/*.npz into N TAR shards at end-of-run. "
+                             "Default ON for FULL/POC, OFF for SANITY.")
+    parser.add_argument("--no-tar-pack", dest="tar_pack", action="store_false",
+                        help="Force-disable TAR-shard pack regardless of mode.")
+    parser.add_argument("--tar-shards", type=int, default=10,
+                        help="Number of TAR shards (default 10; aim for ≤1500 files/shard).")
     add_subset_arg(parser)
     add_local_data_arg(parser)
     add_wandb_args(parser)
@@ -756,17 +783,12 @@ def main():
     # with other variants/modules). Mirror of m09b/c wipe_output_dir() — closes the
     # prompt-trigger ≠ delete-target asymmetry where partial-run state (stale
     # masks/, .m10_checkpoint.json without segments.json) survived recompute.
-    _m10_out = Path(args.output_dir) if args.output_dir else get_module_output_dir(
-        "m10_sam_segment", args.subset, sanity=args.SANITY, poc=args.POC)
+    _m10_out = _resolve_output_dir(args)
     wipe_output_dir(_m10_out, args.cache_policy, label=f"output_dir ({_m10_out.name})")
 
     # --plot: re-generate plots from existing outputs (no GPU, no SAM3)
     if args.plot:
-        if args.output_dir:
-            output_dir = Path(args.output_dir)
-        else:
-            output_dir = get_module_output_dir("m10_sam_segment", args.subset,
-                                               sanity=args.SANITY, poc=args.POC)
+        output_dir = _resolve_output_dir(args)
         masks_dir = output_dir / "masks"
         segments_file = output_dir / "segments.json"
         if not segments_file.exists():
@@ -798,11 +820,7 @@ def main():
         with open(args.train_config) as f:
             train_cfg = yaml.safe_load(f)
         interaction_cfg = train_cfg["interaction_mining"]
-        if args.output_dir:
-            output_dir = Path(args.output_dir)
-        else:
-            output_dir = get_module_output_dir("m10_sam_segment", args.subset,
-                                               sanity=args.SANITY, poc=args.POC)
+        output_dir = _resolve_output_dir(args)
         masks_dir = output_dir / "masks"
         segments_file = output_dir / "segments.json"
         if not segments_file.exists():
@@ -879,12 +897,8 @@ def main():
     agent_taxonomy = dino_cfg["agent_taxonomy"]
     compound_prompt = build_compound_prompt(agent_taxonomy)
 
-    # Output routing
-    if args.output_dir:
-        output_dir = Path(args.output_dir)
-    else:
-        output_dir = get_module_output_dir("m10_sam_segment", args.subset,
-                                           sanity=args.SANITY, poc=args.POC)
+    # iter13 Task 3: output co-located with input via _resolve_output_dir.
+    output_dir = _resolve_output_dir(args)
     masks_dir = output_dir / "masks"
     masks_dir.mkdir(parents=True, exist_ok=True)
 
@@ -1100,6 +1114,26 @@ def main():
     # Paper visualizations
     plot_overlay_per_clip(segments, masks_dir, tags_lookup, output_dir)
     plot_agent_stats(segments, tags_lookup, output_dir)
+
+    # iter13 v12+ Task 3 (2026-05-06): TAR-shard masks/*.npz so HF upload can
+    # ship the bundle (10k-file repo cap). Lives here, not in run_factor_prep.sh
+    # — m10 owns its output layout end-to-end. Default ON for FULL/POC, OFF for
+    # SANITY (file count too small to need sharding). --keep-source so m11 + m09c
+    # can still read individual .npz at runtime; only the shards ride to HF.
+    tar_pack_default = not args.SANITY
+    do_tar_pack = tar_pack_default if args.tar_pack is None else args.tar_pack
+    if do_tar_pack:
+        print(f"\n[m10 tar-pack] packing {masks_dir}/*.npz into {args.tar_shards} shards "
+              f"(end-of-run, mirrors subset-XXXXX.tar pattern)")
+        pack_dir_to_shards(
+            input_dir=masks_dir,
+            shard_template=str(output_dir / "masks-{shard:05d}.tar"),
+            n_shards=args.tar_shards,
+            keep_source=True,
+            force=False,
+        )
+    else:
+        print(f"\n[m10 tar-pack] skipped (mode={mode}, args.tar_pack={args.tar_pack})")
 
     # Quality gate: FATAL if composite check fails (Rule 33: quality gates in Python, not shell)
     if not quality_gate:

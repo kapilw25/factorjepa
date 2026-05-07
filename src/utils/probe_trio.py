@@ -3,8 +3,8 @@
 This is the iter13 mid-training diagnostic that mirrors the post-training
 m08d_plot_m06d trio (see iter/iter13_motion_probe_eval/m06d_encoder_comparison.png).
 Computed at every m09a/m09c validation checkpoint to give a trajectory of the
-exact metrics the paper reports — replaces the iter11 retrieval probe (Prec@K /
-mAP@K / Cycle@K) and the kNN-centroid action probe.
+exact metrics the paper reports — replaces the iter11 legacy retrieval probe
+and the kNN-centroid action probe.
 
 Why a single function vs running three scripts (probe_action, probe_motion_cos,
 probe_future_mse) back-to-back: those three each do their own encoder forward.

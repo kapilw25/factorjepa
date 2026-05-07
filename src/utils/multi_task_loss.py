@@ -4,8 +4,9 @@ Adds a supervised classification gradient to the SSL training objective so
 that the encoder gets DIRECT signal toward the eval metric (top-1 acc on
 14 single-label dims + sample-F1 on 2 multi-label dims). Without this,
 pure JEPA L1 has no mechanism to outperform frozen on probe metrics
-(per the user's iter11/12 critique — Prec@K was the wrong gate, but
-multi-task with the RIGHT eval metric is the legitimate lever).
+(per the user's iter11/12 critique — earlier retrieval gates were the
+wrong target, but multi-task with the RIGHT eval metric is the legitimate
+lever).
 
 Usage in m09a/m09c:
     from utils.multi_task_loss import (

@@ -156,79 +156,14 @@ def encode_tags_to_labels(tags: list, fields: list) -> dict:
 # Vectorized per-clip metrics (NumPy, no Python loops)
 # ═══════════════════════════════════════════════════════════════════════
 
-def per_clip_prec_at_k(indices: np.ndarray, tags, k: int,
-                        field: str = "scene_type",
-                        label_arrays: dict = None) -> np.ndarray:
-    """Per-clip Prec@K — vectorized. Accepts pre-encoded label_arrays or raw tags."""
-    n = indices.shape[0]
-    neighbors = indices[:, 1:k + 1]  # (N, k) — skip self at col 0
-
-    if label_arrays is not None and field in label_arrays:
-        labels = label_arrays[field]
-    else:
-        labels = encode_tags_to_labels(tags, [field])[field]
-
-    query_labels = labels[:n]                          # (N,)
-    neighbor_labels = labels[np.clip(neighbors, 0, len(labels) - 1)]  # (N, k)
-
-    # Mask invalid indices
-    valid = (neighbors >= 0) & (neighbors < len(labels))
-    matches = (neighbor_labels == query_labels[:, None]) & valid  # (N, k)
-
-    hits = matches.sum(axis=1).astype(np.float64)
-    totals = valid.sum(axis=1).astype(np.float64)
-    scores = np.where(totals > 0, hits / totals * 100, 0.0)
-    return scores
-
-
-def per_clip_map_at_k(indices: np.ndarray, tags, k: int,
-                       field: str = "scene_type",
-                       label_arrays: dict = None) -> np.ndarray:
-    """Per-clip AP@K — vectorized."""
-    n = indices.shape[0]
-    neighbors = indices[:, 1:k + 1]  # (N, k)
-
-    if label_arrays is not None and field in label_arrays:
-        labels = label_arrays[field]
-    else:
-        labels = encode_tags_to_labels(tags, [field])[field]
-
-    query_labels = labels[:n]
-    neighbor_labels = labels[np.clip(neighbors, 0, len(labels) - 1)]
-
-    valid = (neighbors >= 0) & (neighbors < len(labels))
-    matches = (neighbor_labels == query_labels[:, None]) & valid  # (N, k) bool
-
-    # Cumulative hits and precision@rank
-    cum_hits = np.cumsum(matches.astype(np.float64), axis=1)  # (N, k)
-    ranks = np.arange(1, k + 1, dtype=np.float64)             # (k,)
-    precision_at_rank = cum_hits / ranks                        # (N, k)
-
-    # AP = sum(precision_at_rank * is_relevant) / k
-    ap = (precision_at_rank * matches).sum(axis=1) / k
-    return ap
-
-
-def per_clip_cycle_at_k(indices: np.ndarray, k: int) -> np.ndarray:
-    """Per-clip Cycle@K — vectorized."""
-    n = indices.shape[0]
-    nearest = indices[:, 1]  # (N,) — nearest neighbor of each clip
-
-    # For each clip i, check if i appears in nearest[i]'s neighbor list
-    valid = (nearest >= 0) & (nearest < n)
-    scores = np.full(n, np.nan)
-
-    # Get neighbor lists of each clip's nearest neighbor
-    valid_idx = np.where(valid)[0]
-    nearest_valid = nearest[valid_idx]
-
-    # For each valid clip, check if query is in its nearest neighbor's top-k
-    nn_neighbors = indices[nearest_valid, 1:k + 1]  # (n_valid, k)
-    # Check if query index appears in any column
-    query_in_nn = (nn_neighbors == valid_idx[:, None]).any(axis=1)
-    scores[valid_idx] = query_in_nn.astype(np.float64)
-
-    return scores
+# iter13 v13 (2026-05-07): legacy retrieval helpers retired alongside
+# `run_probe_eval` in utils/training.py:
+#   - per_clip_prec_at_k  (Precision@K)
+#   - per_clip_map_at_k   (mean Average Precision @K)
+#   - per_clip_cycle_at_k (Cycle@K — TCC-style cycle consistency)
+# Replaced by motion-flow probe top-1 (computed in utils.probe_trio +
+# probe_action.py). per_clip_ndcg_at_k below is also retrieval — kept only
+# if a non-legacy consumer still calls it; remove in a follow-up if not.
 
 
 def per_clip_ndcg_at_k(indices: np.ndarray, tags, k: int,

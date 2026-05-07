@@ -64,12 +64,8 @@ from utils.gpu_batch import AdaptiveBatchSizer
 from utils.progress import make_pbar
 from utils.plots import (
     plot_training_curves, plot_val_loss_curves, plot_combined_losses,
-    plot_probe_trajectory_trio,
-    COLORS, init_style, save_fig,
+    plot_probe_trajectory_trio, plot_val_loss_with_kill_switch_overlay,
 )
-import matplotlib
-matplotlib.use("Agg")  # headless — no display
-import matplotlib.pyplot as plt
 from utils.wandb_utils import (
     add_wandb_args, init_wandb, log_metrics, finish_wandb,
 )
@@ -103,16 +99,16 @@ from utils.training import (
     build_optimizer, build_scheduler, update_weight_decay,
     run_validation,
     save_training_checkpoint, load_training_checkpoint,
-    export_student_for_eval, assert_encoder_diverged_from_init,
     enable_gradient_checkpointing,
     build_probe_clips,
     cleanup_old_checkpoints,
     run_trio_at_val, track_block_drift_at_val, update_best_state_on_score,
+    export_student_for_eval, finalize_training,
 )
 from utils.action_labels import load_action_labels
 from utils.multi_task_loss import (
     merge_multi_task_config, build_multi_task_head_from_cfg,
-    attach_head_to_optimizer, run_multi_task_step, export_multi_task_head,
+    attach_head_to_optimizer, run_multi_task_step,
 )
 # iter13 v12 (2026-05-06): motion_aux loss — joint K-class CE + 13-D MSE on
 # RAFT optical-flow targets. REPLACES multi_task_probe (15 retrieval tag dims)
@@ -120,7 +116,6 @@ from utils.multi_task_loss import (
 from utils.motion_aux_loss import (
     merge_motion_aux_config, build_motion_aux_head_from_cfg,
     attach_motion_aux_to_optimizer, run_motion_aux_step,
-    export_motion_aux_head,
 )
 from utils.probe_labels import ensure_probe_labels_for_mode
 
@@ -130,67 +125,32 @@ _pcfg = get_pipeline_config()
 PREFETCH_QUEUE_SIZE = _pcfg["streaming"]["prefetch_queue_train"]
 
 
-def _cleanup_old_checkpoints(output_dir: Path, keep_n: int = 2, cache_policy: str = "1"):
-    """Rotate oldest {CHECKPOINT_PREFIX}_step*.pt files, keeping only the last keep_n.
-
-    Thin delegate to utils.training.cleanup_old_checkpoints — which now accepts
-    a `prefix` arg and does UNCONDITIONAL rotation (iter11 v3, 2026-04-26).
-    Step ckpts are training-scratch resume points — superseded every save and
-    safe to evict on a `keep_last_n` window. cache_policy gates only catastrophic
-    deletes (whole dirs, baselines), NOT routine training-scratch rotation.
-    Without rotation, FULL run = 25 ckpts × 7.4 GB = 185 GB pile-up = disk-full.
-    `_best.pt` and `_latest.pt` do NOT match `_step*.pt` glob → unaffected.
-    """
-    del cache_policy
-    cleanup_old_checkpoints(output_dir, prefix=CHECKPOINT_PREFIX, keep_n=keep_n)
+# iter13 v13 C2-fix (2026-05-07): retired local _cleanup_old_checkpoints wrapper
+# — was a one-line delegate to utils.training.cleanup_old_checkpoints. Calls
+# now invoke the shared util directly with `prefix=CHECKPOINT_PREFIX`, matching
+# m09c's pattern. Eliminates the discrepancy without behavioural change.
 
 
+# iter13 v13 C3-fix (2026-05-07): _render_m09a_probe_plots was retired.
+# val_jepa overlay moved to utils.plots.plot_val_loss_with_kill_switch_overlay
+# (shared with m09c). Trio trajectory was always via plot_probe_trajectory_trio
+# in utils.plots — no change there. Caller (line ~1260) now invokes both shared
+# utils directly.
 def _render_m09a_probe_plots(probe_history: list, output_dir: Path,
                               best_state: dict, kill_state: dict, drift_cfg: dict) -> None:
-    """Live mid-training plots for m09a — val_jepa loss curve + probe-acc trajectory.
-
-    Called every val/probe interval; failure is non-fatal (caller wraps in try/except).
-    Mirrors m09c_surgery._render_live_plots's intent but targets m09a's metrics:
-      - PNG 1: val_jepa_loss(step) with best marker + kill-switch annotations
-      - PNG 2: probe_acc trajectory(step) with 95% CI band (skipped if no probe-acc data)
-    """
-    if not probe_history:
-        return
-    init_style()
-
-    steps = [r["step"] for r in probe_history]
-    val_losses = [r["val_jepa_loss"] for r in probe_history]
-
-    # Plot 1 — val_jepa_loss curve.
-    fig, ax = plt.subplots(figsize=(10, 6))
-    ax.plot(steps, val_losses, "o-", color=COLORS["blue"], linewidth=2.5,
-            markersize=6, label=f"val_jepa (λ={drift_cfg['lambda_reg']})")
-    if best_state["step"] >= 0:
-        # iter13 v11: best now tracked by probe_top1 (downstream metric), not val_loss.
-        # Plot still shows val_jepa curve for context; horizontal line marks the val_loss
-        # AT the best-top1 step (informational, not the optimization criterion).
-        best_top1 = best_state.get("probe_top1", -1.0)
-        best_at_step_val = best_state.get("val_loss_at_best", best_state.get("val_loss", 0.0))
-        ax.axhline(best_at_step_val, color=COLORS["green"], linestyle=":",
-                   linewidth=1.5, alpha=0.7,
-                   label=f"best top1={best_top1:.4f} @ step {best_state['step']}")
-    if kill_state["triggered"]:
-        ax.axvline(steps[-1], color=COLORS["red"], linestyle="--", linewidth=1.5,
-                   label=f"early-stop: {kill_state['reason']}")
-    ax.set_xlabel("Optimizer step")
-    ax.set_ylabel("val_jepa loss")
-    ax.set_title("m09a — Validation JEPA loss + kill-switch state")
-    ax.legend(loc="best")
-    save_fig(fig, str(output_dir / "m09a_val_loss_jepa"))
-
-    # Plot 2 — m06d trio trajectory (top-1 / motion-cos / future-L1).
-    # iter13 Task #11: replaces the old single-panel kNN-centroid probe-acc
-    # render with the 3-panel trio that mirrors m08d_plot_m06d's post-training
-    # bars. Backward-compat: if any record lacks all three trio keys it's
-    # filtered inside plot_probe_trajectory_trio (no crash on mixed schemas).
-    plot_probe_trajectory_trio(probe_history, output_dir,
-                               title_prefix=f"m09a · λ={drift_cfg['lambda_reg']} · ",
-                               file_prefix="m09a")
+    """Thin compat wrapper — calls shared utils. Kept so existing call sites
+    don't need touching. May be removed in a future R6 utils-refactor pass."""
+    plot_val_loss_with_kill_switch_overlay(
+        probe_history, output_dir,
+        best_state=best_state, kill_state=kill_state,
+        file_prefix="m09a",
+        title_prefix=f"m09a · λ={drift_cfg['lambda_reg']} · ",
+    )
+    plot_probe_trajectory_trio(
+        probe_history, output_dir,
+        title_prefix=f"m09a · λ={drift_cfg['lambda_reg']} · ",
+        file_prefix="m09a",
+    )
 
 
 # ═════════════════════════════════════════════════════════════════════════
@@ -1110,8 +1070,8 @@ def train(cfg: dict, args):
                 save_training_checkpoint(
                     ckpt_path, student, teacher, predictor, optimizer, scheduler,
                     scaler, step + 1, best_probe_top1, full=True)
-                _cleanup_old_checkpoints(output_dir, keep_n=keep_last_n,
-                                         cache_policy=args.cache_policy)
+                cleanup_old_checkpoints(output_dir, prefix=CHECKPOINT_PREFIX,
+                                        keep_n=keep_last_n)
 
             # Periodic validation (every val_interval steps)
             if (step + 1) % val_interval == 0 and val_batches:
@@ -1375,27 +1335,18 @@ def train(cfg: dict, args):
             f"OOM-retry exhausted sub-batch shrink budget in SANITY's total_steps=1 run."
         )
 
-    # Export student encoder (the only deliverable — only reached if training completed).
-    # m09a is vanilla (no LoRA) — explora_enabled is always False.
+    # iter13 v13 R4 (2026-05-07): end-of-train via shared utils.
+    # Step 1: export student encoder (m09a is vanilla → explora_enabled=False).
+    # Step 2-4: shared finalize_training (assert_diverged + mt_head + ma_head).
     export_student_for_eval(student, student_path, explora_enabled=False)
-
-    # Post-training divergence check: fail-hard if the exported encoder is
-    # bit-identical to the Meta init ckpt. Catches LR-warmup-eats-all-steps,
-    # NaN-skipped GradScaler, and frozen-by-mistake param groups. Mirrors
-    # Bug B's "0 successful training steps" guard — no silent export of
-    # untrained Meta weights as a "pretrain" artifact. See
-    # utils.training.assert_encoder_diverged_from_init for full diagnostic.
     init_ckpt_path = Path(__file__).parent.parent / cfg["model"]["checkpoint_path"]
-    rel = assert_encoder_diverged_from_init(
-        student, init_ckpt_path, label="m09a pretrain encoder")
-    print(f"  ✓ encoder training-effect verified: ||Δ||/||init|| = {rel:.3e}")
-
-    # Multi-task probe head export (no-op when mt_head is None).
-    export_multi_task_head(mt_head, mt_dims_spec, cfg["model"]["embed_dim"],
-                           output_dir / "multi_task_head.pt")
-
-    # iter13 v12: motion_aux head export (no-op when ma_head is None).
-    export_motion_aux_head(ma_head, output_dir / "motion_aux_head.pt")
+    finalize_training(
+        student=student, mt_head=mt_head, mt_dims_spec=mt_dims_spec,
+        ma_head=ma_head, output_dir=output_dir,
+        init_ckpt_path=init_ckpt_path,
+        embed_dim=cfg["model"]["embed_dim"],
+        label="m09a pretrain encoder",
+    )
 
     # iter11 META-fix: gate post-training checkpoint cleanup through --cache-policy.
     # student_encoder.pt is the deliverable, but intermediate step*.pt files are

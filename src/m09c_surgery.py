@@ -100,17 +100,18 @@ from utils.training import (
     update_teacher_ema,
     build_optimizer, build_scheduler, update_weight_decay,  # noqa: F401 — build_scheduler/update_weight_decay kept for future stage schedulers
     save_training_checkpoint, cleanup_old_checkpoints, cleanup_stage_checkpoints, load_training_checkpoint,  # noqa: F401 — cleanup_old_checkpoints/load_training_checkpoint kept for resume
-    export_student_for_eval, assert_encoder_diverged_from_init,
+    export_student_for_eval,
     set_trainable_prefix, enable_gradient_checkpointing,
     FactorSampler, build_factor_index, load_factor_clip, create_train_val_split,
     StreamingFactorDataset, build_streaming_indices, _streaming_worker_init,
-    build_probe_clips, run_probe_eval, run_probe_val_loss, compute_trajectory_stats,
+    build_probe_clips, run_probe_val_loss, compute_trajectory_stats,
     render_training_plots,
-    run_trio_at_val, track_block_drift_at_val, update_best_state_on_score,
+    run_trio_at_val, track_block_drift_at_val,
+    apply_val_cycle_triggers, finalize_training,
 )
 from utils.multi_task_loss import (
     merge_multi_task_config, build_multi_task_head_from_cfg,
-    attach_head_to_optimizer, run_multi_task_step, export_multi_task_head,
+    attach_head_to_optimizer, run_multi_task_step,
 )
 # iter13 v12+ (Phase 4, 2026-05-06): motion_aux loss — joint K-class CE + 13-D MSE
 # on m04d's RAFT optical-flow targets. Surgery rebuilds the optimizer per stage
@@ -119,7 +120,6 @@ from utils.multi_task_loss import (
 from utils.motion_aux_loss import (
     merge_motion_aux_config, build_motion_aux_head_from_cfg,
     attach_motion_aux_to_optimizer, run_motion_aux_step,
-    export_motion_aux_head,
 )
 from utils.probe_labels import ensure_probe_labels_for_mode
 from torch.utils.data import DataLoader
@@ -141,25 +141,36 @@ def merge_config_with_args(cfg: dict, args) -> dict:
     else:
         mode_key = "full"
     cfg["optimization"]["max_epochs"] = cfg["optimization"]["max_epochs"][mode_key]
-    # Mode-gated memory-saver flags (#57): flatten the per-mode dicts in
-    # ch11_surgery.yaml into scalars that build_optimizer + enable_gradient_checkpointing
-    # read directly. SANITY (24GB) → both True; POC/FULL (96GB) → both False, so
-    # research-quality runs use the published V-JEPA fp32 AdamW recipe without
-    # the 8-bit extrapolation-risk confound. See errors_N_fixes.md #57.
-    cfg["optimization"]["use_8bit_optim"] = \
-        cfg["optimization"]["use_8bit_optim"][mode_key]
-    cfg["optimization"]["gradient_checkpointing"] = \
-        cfg["optimization"]["gradient_checkpointing"][mode_key]
-    cfg["optimization"]["paged_optim"] = \
-        cfg["optimization"]["paged_optim"][mode_key]
+    # Mode-gated memory-saver flags (#57): flatten the per-mode dicts.
+    # iter13 v13 D4-fix (2026-05-07): defensive variant from m09a:217 — supports
+    # scalar overrides (a yaml may set `use_8bit_optim: false` directly without
+    # the per-mode dict; old direct flatten crashed on `False[mode_key]`).
+    for k in ("use_8bit_optim", "gradient_checkpointing", "paged_optim"):
+        if k in cfg["optimization"] and isinstance(cfg["optimization"][k], dict):
+            cfg["optimization"][k] = cfg["optimization"][k][mode_key]
+
+    # iter13 v13 D7-fix (2026-05-07): --lambda-reg CLI override mirrors m09a:251.
+    # Sets drift_control.lambda_reg AND drift_control.enabled=False when λ=0.
+    if getattr(args, "lambda_reg", None) is not None:
+        cfg["drift_control"]["lambda_reg"] = args.lambda_reg
+        if args.lambda_reg == 0:
+            cfg["drift_control"]["enabled"] = False
+
+    # iter13 v13 D8-fix (2026-05-07): --val-subset / --val-local-data CLI
+    # overrides mirror m09a's invocation contract. Threads into cfg["data"]
+    # so use_permanent_val downstream lookup (~line 544) honours them.
+    if getattr(args, "val_subset", None):
+        cfg["data"]["val_subset"] = args.val_subset
+    if getattr(args, "val_local_data", None):
+        cfg["data"]["val_local_data"] = args.val_local_data
     if args.batch_size is not None:
         cfg["optimization"]["batch_size"] = args.batch_size
     if args.max_epochs is not None:
         cfg["optimization"]["max_epochs"] = args.max_epochs
 
-    # Mid-training probe (Prec@K/mAP@K/Cycle@K with BCa 95% CI at stage
-    # boundaries — companion to the D.4 decision gate). Mode-gated: SANITY off
-    # (N=20 too small for stable CI), POC/FULL on. CLI overrides win over yaml.
+    # Mid-training probe (motion-flow top-1 + motion-cos + future-L1 trio at
+    # stage boundaries — companion to the paper-grade decision gate). Mode-gated:
+    # SANITY off (N=20 too small), POC/FULL on. CLI overrides win over yaml.
     # Fail-loud: ch11_surgery.yaml MUST have a `probe:` block with all keys;
     # missing/typo → KeyError at config merge (no .get default, per CLAUDE.md).
     probe_cfg = cfg["probe"]
@@ -379,7 +390,7 @@ def build_model(cfg: dict, device: torch.device) -> dict:
     gc.collect()
 
     # m09c uses vanilla ViT — NO ExPLoRA LoRA injection. Progressive unfreezing
-    # via set_trainable_prefix() is driven per-stage by train_surgery().
+    # via set_trainable_prefix() is driven per-stage by train().
     return {
         "student": student,
         "teacher": teacher,
@@ -392,7 +403,7 @@ def build_model(cfg: dict, device: torch.device) -> dict:
 # SURGERY TRAINING (Ch11 — 3-stage progressive prefix unfreezing)
 # ═════════════════════════════════════════════════════════════════════════
 
-def train_surgery(cfg: dict, args):
+def train(cfg: dict, args):
     """3-stage progressive prefix unfreezing with factor datasets (Ch11 proposal Sec 11.5-11.6)."""
     check_gpu()
     device = torch.device("cuda")
@@ -787,14 +798,16 @@ def train_surgery(cfg: dict, args):
             subset_keys_override=set(val_keys) if val_keys else None,
             max_clips=cfg["monitoring"]["knn_probe_clips"],   # cap N to avoid /dev/shm overflow
         )
-        # iter13 Task #11: load action_labels for compute_metric_trio (top-1
-        # via kNN-centroid LOOCV needs class_id per probe clip). m09c uses
-        # the same outputs/<mode>/probe_action/action_labels.json that
-        # ensure_probe_labels_for_mode bootstrapped earlier in train().
+        # iter13 v13 D5-fix (2026-05-07): action_labels path now from CLI
+        # (--probe-action-labels), with derived fallback when not passed.
+        # mirrors m09a:756. Removes hardcoded `Path(__file__).parent.parent / outputs/<mode>/...`.
         from utils.action_labels import load_action_labels
-        probe_action_labels_path = (Path(__file__).parent.parent /
-                                     f"outputs/{('sanity' if args.SANITY else 'poc' if args.POC else 'full')}/"
-                                     f"probe_action/action_labels.json")
+        if getattr(args, "probe_action_labels", None):
+            probe_action_labels_path = Path(args.probe_action_labels)
+        else:
+            mode_subdir = "sanity" if args.SANITY else "poc" if args.POC else "full"
+            probe_action_labels_path = (Path(__file__).parent.parent /
+                                        f"outputs/{mode_subdir}/probe_action/action_labels.json")
         probe_labels = (load_action_labels(probe_action_labels_path)
                         if probe_action_labels_path.exists() else None)
         probe_jsonl_file = open(probe_jsonl_path, "w")
@@ -803,23 +816,15 @@ def train_surgery(cfg: dict, args):
         probe_jsonl_file = None
         probe_labels = None
 
-    # iter13 hybrid best-ckpt selection (Task #11/#13, plan_code_dev.md §5):
-    #   • Primary: best.pt is saved on each new running-max **trio_score** (= top-1
-    #     from compute_metric_trio). Reason: paper-final m08d_plot_m06d reports
-    #     top-1, motion-cos, future-L1 — selecting on Prec@K (iter11 retrieval)
-    #     can land on a step that doesn't maximise the headline metric.
-    #     iter12 E v3 proved this empirically (val_jepa regressed +7.16% but
-    #     Cycle@K improved +5.49%).
-    #   • Fallback: prec_at_k retained alongside trio fields so kill-switch /
-    #     plateau / BWT triggers (which have CI-aware noise-scaled logic, see
-    #     bwt-kill at ~970) keep working unchanged. CI-free trio-based triggers
-    #     are tracked as plan_code_dev v2 follow-up.
+    # iter13 v13 (2026-05-07): best-ckpt selected on probe_top1 (motion-flow gate).
+    # Reason: paper-final probe-trio reports top-1, motion-cos, future-L1.
+    # Legacy retrieval (Prec@K / mAP@K / Cycle@K) entirely retired — kill-switch /
+    # plateau / BWT triggers all key on probe_top1 too (was prec_at_k pre-v13).
     best_state = {
         "trio_score": -float("inf"),
         "top1":       0.0,
         "motion_cos": 0.0,
         "future_l1":  float("inf"),
-        "prec_at_k":  -1.0,             # iter11 backward compat for triggers below
         "global_step": -1,
         "stage_name":  "",
         "probe_record": None,
@@ -834,8 +839,10 @@ def train_surgery(cfg: dict, args):
     # (it's cumulative-from-first-probe by design — that span-stages semantics is
     # intentional, not bugged).
     plateau_state = {"recent_val_losses": [], "patience_counter": 0, "last_stage_idx": -1}
-    prec_plateau_state = {"recent_prec_at_k": [], "last_stage_idx": -1}
-    bwt_state = {"first_prec_at_k": None, "patience_counter": 0}
+    # iter13 v13 (2026-05-07): plateau + BWT now key on probe_top1 (motion-flow
+    # gate) instead of legacy prec_at_k retrieval.
+    top1_plateau_state = {"recent_top1": [], "last_stage_idx": -1}
+    bwt_state = {"first_top1": None, "patience_counter": 0}
     best_ckpt_enabled = probe_cfg["best_ckpt_enabled"]
     kill_switch_enabled = probe_cfg["kill_switch_enabled"]
     plateau_enabled = probe_cfg["plateau_enabled"]
@@ -847,9 +854,9 @@ def train_surgery(cfg: dict, args):
     plateau_patience = probe_cfg["plateau_patience"]
     prec_plateau_min_delta = probe_cfg["prec_plateau_min_delta"]
     prec_plateau_patience = probe_cfg["prec_plateau_patience"]
-    bwt_tolerance_pct = probe_cfg["bwt_tolerance_pct"]     # legacy, displayed on plot only
-    bwt_ci_fraction = probe_cfg["bwt_ci_fraction"]         # Option C-adapted (#73)
-    bwt_absolute_floor = probe_cfg["bwt_absolute_floor"]   # Option C-adapted (#73)
+    # iter13 v13 (2026-05-07): bwt_tolerance_pct + bwt_ci_fraction retired
+    # alongside legacy retrieval CI-aware BWT trigger; absolute_floor only.
+    bwt_absolute_floor = probe_cfg["bwt_absolute_floor"]
     bwt_patience = probe_cfg["bwt_patience"]
     best_ckpt_path = output_dir / "student_best.pt"
 
@@ -862,7 +869,6 @@ def train_surgery(cfg: dict, args):
             forgetting_threshold_pct=forgetting_threshold_pct,
             forgetting_patience=forgetting_patience,
             bwt_trigger_enabled=bwt_trigger_enabled,
-            bwt_ci_fraction=bwt_ci_fraction,
             bwt_absolute_floor=bwt_absolute_floor,
             bwt_patience=bwt_patience,
             kill_state=kill_state,
@@ -880,8 +886,9 @@ def train_surgery(cfg: dict, args):
     def _run_probe_at_step(stage_idx_, stage_name_, global_step_):
         """Run probe + optional val-loss, append to history, log + fsync.
         Also updates best-ckpt tracker + kill-switch state (both driven by
-        prec_at_k.mean). Silent success on probe failure (try/except) so a
-        bad probe doesn't kill training — kill-switch acts only on successful probes.
+        probe_top1 — motion-flow gate metric). Silent success on probe failure
+        (try/except) so a bad probe doesn't kill training — kill-switch acts
+        only on successful probes.
 
         SINGLE-WRITER POLICY (Fix1 #76): probe_history.jsonl is written ONLY by
         this function. Any external post-hoc backfill or analysis script that
@@ -894,51 +901,55 @@ def train_surgery(cfg: dict, args):
         if probe_clips is None:
             return
         try:
-            pr = run_probe_eval(student, probe_clips, cfg, device,
-                                k=probe_cfg["k"], bootstrap_iter=probe_cfg["bootstrap_iter"])
+            # iter13 v13 (2026-05-07): legacy retrieval probe (run_probe_eval →
+            # Prec@K/mAP@K/Cycle@K) retired. Probe trio (top-1 + motion-cos +
+            # future-L1) is the iter13 paper gate. Bare-init `pr` then have
+            # run_trio_at_val populate probe_top1/motion_cos/future_l1.
+            pr = {
+                "num_clips":   len(probe_clips),
+                "stage_idx":   stage_idx_,
+                "stage_name":  stage_name_,
+                "global_step": global_step_,
+            }
             if probe_compute_val_loss:
                 vl = run_probe_val_loss(student, teacher, predictor, probe_clips,
                                         mask_generators, cfg, device)
                 pr["val_jepa_loss"] = vl["jepa_loss"]
                 pr["val_masked_loss"] = vl["masked_loss"]
                 pr["val_context_loss"] = vl["context_loss"]
-            pr["stage_idx"] = stage_idx_
-            pr["stage_name"] = stage_name_
-            pr["global_step"] = global_step_
-            # BWT = Prec@K[current] − Prec@K[first_probe]. Mirrors the bwt-kill
-            # formula at line ~881. Persisted to jsonl + plotted in m09_forgetting
-            # so users can see drift in real time (errors_N_fixes #73).
-            first_prec = probe_history[0]["prec_at_k"]["mean"] if probe_history else pr["prec_at_k"]["mean"]
-            pr["bwt"] = pr["prec_at_k"]["mean"] - first_prec
-            probe_history.append(pr)
-            probe_jsonl_file.write(json.dumps(pr) + "\n")
-            probe_jsonl_file.flush()
-            os.fsync(probe_jsonl_file.fileno())
-            pk, mk, ck = pr["prec_at_k"], pr["map_at_k"], pr["cycle_at_k"]
-            vl_msg = f" val_jepa={pr['val_jepa_loss']:.4f}" if probe_compute_val_loss else ""
-            print(f"  [probe] step={global_step_} stage={stage_name_} N={pr['num_clips']} "
-                  f"Prec@K={pk['mean']:.2f}±{pk['ci_half']:.2f} "
-                  f"mAP@K={mk['mean']:.2f}±{mk['ci_half']:.2f} "
-                  f"Cycle@K={ck['mean']:.2f}±{ck['ci_half']:.2f}{vl_msg}")
-            log_metrics(wb_run, {
-                f"probe/{stage_name_}/prec_at_k": pk["mean"],
-                f"probe/{stage_name_}/prec_at_k_ci_half": pk["ci_half"],
-                f"probe/{stage_name_}/map_at_k": mk["mean"],
-                f"probe/{stage_name_}/cycle_at_k": ck["mean"],
-                **({f"probe/{stage_name_}/val_jepa_loss": pr["val_jepa_loss"]}
-                   if probe_compute_val_loss else {}),
-            }, step=global_step_)
+                # iter13 v13 D6-fix (2026-05-07): 4-loss schema parity with m09a's
+                # run_validation return (val_jepa + val_multi_task + val_drift + val_total).
+                # multi_task + drift = 0.0 under current surgery configs (multi_task
+                # disabled, drift λ=0); kept in schema so jsonl + downstream plotters
+                # see the same keys both trainers emit. Future configs that re-enable
+                # either knob can populate them in this block.
+                pr["val_multi_task_loss"] = 0.0
+                pr["val_drift_loss"] = 0.0
+                pr["val_total_loss"] = pr["val_jepa_loss"] + pr["val_multi_task_loss"] + pr["val_drift_loss"]
 
-            # iter13 Task #11/#13: m06d trio (top-1 + motion-cos + future-L1)
-            # alongside iter11 retrieval probe. Trio fields go into probe_record
-            # for trajectory plotting + best-ckpt selection. Iter11 prec_at_k stays
-            # for kill-switch / plateau / BWT (CI-aware logic; CI-free trio
-            # triggers deferred to plan_code_dev v2).
+            # Trio (top-1 + motion-cos + future-L1) — the iter13 paper metrics.
+            # Adds `probe_top1`, `motion_cos`, `future_l1` to `pr`.
             if probe_labels:
                 run_trio_at_val(
                     student, predictor, probe_clips, probe_labels,
                     mask_gen=mask_generators[0], cfg=cfg, device=device,
                     step=global_step_, wb_run=wb_run, probe_record=pr)
+
+            # BWT = probe_top1[current] − probe_top1[first_probe].
+            # Persisted to jsonl + plotted so users can see drift in real time.
+            cur_top1 = pr.get("probe_top1", 0.0)
+            first_top1 = (probe_history[0].get("probe_top1", cur_top1)
+                          if probe_history else cur_top1)
+            pr["bwt"] = cur_top1 - first_top1
+            probe_history.append(pr)
+            probe_jsonl_file.write(json.dumps(pr) + "\n")
+            probe_jsonl_file.flush()
+            os.fsync(probe_jsonl_file.fileno())
+            vl_msg = f" val_jepa={pr['val_jepa_loss']:.4f}" if probe_compute_val_loss else ""
+            mc_msg = f" motion_cos={pr['motion_cos']:.4f}" if "motion_cos" in pr else ""
+            fl_msg = f" future_l1={pr['future_l1']:.4f}" if "future_l1" in pr else ""
+            print(f"  [probe] step={global_step_} stage={stage_name_} N={pr['num_clips']} "
+                  f"top-1={cur_top1:.4f}{mc_msg}{fl_msg}{vl_msg}")
 
             # iter13 Task #19: per-block drift diagnostic. Same pathology hunt
             # as m09a — catches uniform-noise across all blocks (= stuck encoder).
@@ -955,13 +966,9 @@ def train_surgery(cfg: dict, args):
                 title_prefix=f"m09c {stage_name_} step={global_step_} · ",
                 file_prefix="m09c")
 
-            # Best-ckpt tracker — iter13 cutover (plan_code_dev.md §5):
-            # was prec_at_k (iter11 retrieval); now trio_score = top-1 from
-            # compute_metric_trio. Aligns best.pt selection with paper-final
-            # m08d_plot_m06d trio. prec_at_k still updated for backward compat.
-            current_prec = pk["mean"]
-            best_state["prec_at_k"] = max(best_state.get("prec_at_k", -1.0),
-                                           current_prec)
+            # Best-ckpt tracker — iter13 v13 (2026-05-07): trio_score = top-1
+            # from compute_metric_trio. Aligns best.pt selection with paper-final
+            # probe-trio panel. Legacy retrieval prec_at_k removed entirely.
             current_top1 = pr.get("probe_top1")
             if best_ckpt_enabled and current_top1 is not None:
                 def _save_best():
@@ -977,107 +984,38 @@ def train_surgery(cfg: dict, args):
                     export_student_for_eval(student, best_ckpt_path, explora_enabled=False)
                     print(f"  [best] new max trio_top1={current_top1:.4f} "
                           f"(step {global_step_}) → saved student_best.pt")
-                update_best_state_on_score(
-                    best_state, current_top1, score_key="trio_score",
-                    higher_is_better=True, step=global_step_,
-                    save_callback=_save_best)
-
-            # Early-stop #1: catastrophic-forgetting kill-switch — drop > forgetting_threshold_pct
-            # from running max for forgetting_patience consecutive probes → abort training.
-            if kill_switch_enabled and best_state["prec_at_k"] > 0:
-                running_max = best_state["prec_at_k"]
-                if current_prec < running_max - forgetting_threshold_pct:
-                    kill_state["strikes"] += 1
-                    print(f"  [forgetting-kill] strike {kill_state['strikes']}/{forgetting_patience}: "
-                          f"Prec@K {current_prec:.2f} < max {running_max:.2f} - {forgetting_threshold_pct:.1f}")
-                    if kill_state["strikes"] >= forgetting_patience:
-                        kill_state["triggered"] = True
-                        kill_state["reason"] = "catastrophic_forgetting"
-                else:
-                    kill_state["strikes"] = 0
-
-            # #79 per-stage plateau semantics (2026-04-21, v13 bug fix):
-            #   (1) buffers reset when entering a new stage → each window represents
-            #       *within-current-stage* dynamics only, not cross-stage;
-            #   (2) kill only triggers in the FINAL stage — intermediate stages are
-            #       SUPPOSED to plateau (that's the whole point of having a next stage:
-            #       different unfreeze depth + input distribution may unlock new signal).
-            # Without (1)+(2), v13's flat Stage-1 trajectory killed at Stage-2 entry,
-            # preventing D_A from training. BWT state is NOT reset (cumulative semantics
-            # are intentional for backward-transfer).
-            if plateau_state["last_stage_idx"] != stage_idx_:
-                plateau_state["recent_val_losses"] = []
-                prec_plateau_state["recent_prec_at_k"] = []
-                plateau_state["last_stage_idx"] = stage_idx_
-                prec_plateau_state["last_stage_idx"] = stage_idx_
-            is_final_stage = (stage_idx_ == len(stages) - 1)
-
-            # Early-stop #2: val-loss plateau detector — FINAL stage only.
-            # Tracks last plateau_patience+1 val_jepa_loss values IN-STAGE; if max-min
-            # over that window < plateau_min_delta AND we're in the last stage → halt.
-            if plateau_enabled and probe_compute_val_loss and "val_jepa_loss" in pr:
-                plateau_state["recent_val_losses"].append(pr["val_jepa_loss"])
-                window = plateau_state["recent_val_losses"][-(plateau_patience + 1):]
-                if is_final_stage and len(window) >= plateau_patience + 1:
-                    spread = max(window) - min(window)
-                    if spread < plateau_min_delta:
-                        print(f"  [plateau-kill] val_jepa range over last "
-                              f"{plateau_patience + 1} in-stage probes = {spread:.5f} < "
-                              f"{plateau_min_delta} → plateau in final stage {stage_idx_}")
-                        kill_state["triggered"] = True
-                        kill_state["reason"] = "val_loss_plateau"
-
-            # Early-stop #2b (H5 #76): Prec@K plateau on the gate metric itself.
-            # val_jepa plateau can miss "representation decoupling" cases (v10: val_jepa
-            # kept ↓ while Prec@K was flat from step 58 onward across 9 further probes).
-            # Trigger halts when Prec@K spread over last prec_plateau_patience+1 probes
-            # < prec_plateau_min_delta. min_delta sized << N=500 CI_half (2.35 pp) so
-            # only true stagnation fires. Saves ~2 h compute per v10 analysis.
-            if prec_plateau_enabled:
-                prec_plateau_state["recent_prec_at_k"].append(current_prec)
-                pwin = prec_plateau_state["recent_prec_at_k"][-(prec_plateau_patience + 1):]
-                # #79: only fire in the FINAL stage (Stage 1's flat Prec@K is expected
-                # under progressive-unfreeze recipe; next stage's D_A may unlock signal).
-                if is_final_stage and len(pwin) >= prec_plateau_patience + 1:
-                    pspread = max(pwin) - min(pwin)
-                    if pspread < prec_plateau_min_delta:
-                        print(f"  [prec-plateau-kill] Prec@K range over last "
-                              f"{prec_plateau_patience + 1} in-stage probes = {pspread:.3f} pp "
-                              f"< {prec_plateau_min_delta} pp → plateau in final stage {stage_idx_}")
-                        kill_state["triggered"] = True
-                        kill_state["reason"] = "prec_at_k_plateau"
-
-            # Early-stop #3: cumulative negative-BWT trigger.
-            # BWT_t = Prec@K[t] − Prec@K[first_probe]. If BWT < -bwt_tolerance_pct for
-            # bwt_patience consecutive probes → cumulative soft forgetting, halt.
-            # Complements kill-switch (which checks per-probe drops vs running-max);
-            # this one catches slow drift that the 5pp threshold misses.
-            if bwt_trigger_enabled:
-                if bwt_state["first_prec_at_k"] is None:
-                    bwt_state["first_prec_at_k"] = current_prec
-                bwt_now = current_prec - bwt_state["first_prec_at_k"]
-                # Option C-adapted (#73): compound noise-aware trigger. Old flat
-                # -0.5pp threshold was never reachable at N=500 (CI ±2.4pp = noise
-                # floor alone). New rule fires when BOTH:
-                #   (1) BWT < -bwt_ci_fraction × current_ci_half  (noise-scaled)
-                #   (2) BWT < -bwt_absolute_floor                 (absolute safety)
-                # hold for bwt_patience consecutive probes.
-                ci_half_now = pk["ci_half"]
-                ci_threshold = -(bwt_ci_fraction * ci_half_now)
-                abs_threshold = -bwt_absolute_floor
-                fires_ci = bwt_now < ci_threshold
-                fires_abs = bwt_now < abs_threshold
-                if fires_ci and fires_abs:
-                    bwt_state["patience_counter"] += 1
-                    print(f"  [bwt-kill] strike {bwt_state['patience_counter']}/{bwt_patience}: "
-                          f"BWT {bwt_now:+.3f} pp < ci_thr {ci_threshold:+.3f} "
-                          f"(−{bwt_ci_fraction:.2f}×CI_half={ci_half_now:.2f}) "
-                          f"AND abs_thr {abs_threshold:+.2f}")
-                    if bwt_state["patience_counter"] >= bwt_patience:
-                        kill_state["triggered"] = True
-                        kill_state["reason"] = "negative_bwt"
-                else:
-                    bwt_state["patience_counter"] = 0
+            # iter13 v13 R3 (2026-05-07): best-ckpt update + 4 early-stop triggers
+            # (forgetting / val-loss-plateau / top1-plateau / negative-BWT) +
+            # per-stage plateau resets (#79) factored to apply_val_cycle_triggers.
+            # Replaces ~95 LoC of inline state-coupled bookkeeping. Helper mutates
+            # best_state / kill_state / plateau_state / top1_plateau_state /
+            # bwt_state in place. _save_best closure (defined above) is the
+            # save-callback fired when probe_top1 sets a new max.
+            apply_val_cycle_triggers(
+                pr,
+                probe_history=probe_history,
+                best_state=best_state, kill_state=kill_state,
+                plateau_state=plateau_state, top1_plateau_state=top1_plateau_state,
+                bwt_state=bwt_state,
+                best_ckpt_enabled=best_ckpt_enabled,
+                save_best_callback=(_save_best if (best_ckpt_enabled and current_top1 is not None) else None),
+                kill_switch_enabled=kill_switch_enabled,
+                forgetting_threshold_pct=forgetting_threshold_pct,
+                forgetting_patience=forgetting_patience,
+                plateau_enabled=plateau_enabled,
+                plateau_min_delta=plateau_min_delta,
+                plateau_patience=plateau_patience,
+                prec_plateau_enabled=prec_plateau_enabled,
+                prec_plateau_min_delta=prec_plateau_min_delta,
+                prec_plateau_patience=prec_plateau_patience,
+                bwt_trigger_enabled=bwt_trigger_enabled,
+                bwt_absolute_floor=bwt_absolute_floor,
+                bwt_patience=bwt_patience,
+                stage_idx=stage_idx_,
+                global_step=global_step_,
+                is_final_stage=(stage_idx_ == len(stages) - 1),
+                probe_compute_val_loss=probe_compute_val_loss,
+            )
 
             # Live plots (trajectory + forgetting + val_loss) refreshed on every
             # probe so mid-run progress is visible via `ls outputs/poc/m09c_surgery/*.png`.
@@ -1467,20 +1405,19 @@ def train_surgery(cfg: dict, args):
                 if kill_state["triggered"]:
                     reason = kill_state["reason"]
                     icon = {"catastrophic_forgetting": "⚠️", "val_loss_plateau": "🟰",
-                            "prec_at_k_plateau": "📊", "negative_bwt": "📉"}[reason]
+                            "top1_plateau": "📊", "negative_bwt": "📉"}[reason]
                     print(f"\n{icon}  EARLY-STOP [{reason}] — aborting training at step {global_step}")
-                    print(f"     Best Prec@K={best_state['prec_at_k']:.2f} saved at "
+                    print(f"     Best top1={best_state.get('top1', 0.0):.4f} saved at "
                           f"step {best_state['global_step']} (stage {best_state['stage_name']})")
                     break
 
             pbar.close()
             if kill_state["triggered"]:
                 # Stage ckpt = resume/rollback anchor → full=True so optimizer +
-                # scheduler + scaler restore correctly. Bug fix 2026-04-27 — same
-                # root cause as m09b lines 1026/1175 (silent re-warm on resume).
+                # scheduler + scaler restore correctly.
                 save_training_checkpoint(output_dir / f"{CHECKPOINT_PREFIX}_stage{stage_idx}.pt",
                                          student, teacher, predictor, optimizer, scheduler,
-                                         scaler, global_step, best_state["prec_at_k"], full=True,
+                                         scaler, global_step, best_state.get("top1", 0.0), full=True,
                                          uw=uw_module)
                 cleanup_stage_checkpoints(output_dir, CHECKPOINT_PREFIX, keep_n=1, cache_policy=args.cache_policy)
                 _run_probe_at_step(stage_idx, stage_name, global_step)
@@ -1523,33 +1460,29 @@ def train_surgery(cfg: dict, args):
 
     # Best-ckpt promotion: if best_ckpt_enabled fired and student_best.pt exists,
     # promote it to student_encoder.pt (the downstream artifact). The "best" student
-    # is the one that maxed Prec@K on the held-out val split during training —
+    # is the one that maxed motion-flow probe top-1 on the held-out val split —
     # eliminates the final-step-not-always-best problem. If no best was recorded
     # (probe disabled, or all probes failed), export current student weights.
+    # Best-ckpt promotion: if best_ckpt_enabled fired and student_best.pt exists,
+    # promote it to student_encoder.pt. Otherwise export current weights.
     if best_ckpt_enabled and best_ckpt_path.exists():
         shutil.move(str(best_ckpt_path), str(student_path))
-        print(f"  [best] Promoted student_best.pt (Prec@K={best_state['prec_at_k']:.2f} "
+        print(f"  [best] Promoted student_best.pt (top1={best_state.get('top1', 0.0):.4f} "
               f"at step {best_state['global_step']}, stage {best_state['stage_name']}) "
               f"→ student_encoder.pt")
     else:
         export_student_for_eval(student, student_path, explora_enabled=False)
 
-    # Post-training divergence check: fail-hard if the live student is bit-identical
-    # to the Meta init ckpt. Catches LR-warmup-eats-all-steps, NaN-skipped GradScaler,
-    # and frozen-by-mistake param groups (e.g., progressive prefix unfreeze setting
-    # too few stages trainable for the SANITY step budget). Mirrors m09a's call;
-    # see utils.training.assert_encoder_diverged_from_init for full diagnostic.
+    # iter13 v13 R4 (2026-05-07): post-export shared finalize_training
+    # (assert_diverged + export_multi_task_head + export_motion_aux_head).
     init_ckpt_path = Path(__file__).parent.parent / cfg["model"]["checkpoint_path"]
-    rel = assert_encoder_diverged_from_init(
-        student, init_ckpt_path, label="m09c surgical encoder")
-    print(f"  ✓ encoder training-effect verified: ||Δ||/||init|| = {rel:.3e}")
-
-    # Multi-task probe head export (no-op when mt_head is None).
-    export_multi_task_head(mt_head, mt_dims_spec, cfg["model"]["embed_dim"],
-                           output_dir / "multi_task_head.pt")
-
-    # iter13 v12+ (Phase 4): motion_aux head export (no-op when ma_head is None).
-    export_motion_aux_head(ma_head, output_dir / "motion_aux_head.pt")
+    finalize_training(
+        student=student, mt_head=mt_head, mt_dims_spec=mt_dims_spec,
+        ma_head=ma_head, output_dir=output_dir,
+        init_ckpt_path=init_ckpt_path,
+        embed_dim=cfg["model"]["embed_dim"],
+        label="m09c surgical encoder",
+    )
 
     # Bug R8 fix (iter13): write m09c_ckpt_best.pt carrying the predictor so
     # Stage 8 probe_future_mse can load it. Without this, m09c writes
@@ -1565,7 +1498,7 @@ def train_surgery(cfg: dict, args):
     save_training_checkpoint(
         output_dir / f"{CHECKPOINT_PREFIX}_best.pt",
         student, teacher, predictor, optimizer, scheduler, scaler,
-        global_step, best_state["prec_at_k"],
+        global_step, best_state.get("top1", 0.0),
         full=True, uw=uw_module, include_optimizer=False)
     print(f"Exported predictor-bearing best ckpt: "
           f"{output_dir / f'{CHECKPOINT_PREFIX}_best.pt'}")
@@ -1580,25 +1513,24 @@ def train_surgery(cfg: dict, args):
     cleanup_stage_checkpoints(output_dir, CHECKPOINT_PREFIX, keep_n=0, cache_policy=args.cache_policy)
 
     # Trajectory stats across stage boundaries. Single-probe-set regime so BWT
-    # degenerates to net Prec@K improvement (R[-1]-R[0]). Non-zero max_drop
-    # flags a stage transition that hurt Prec@K despite replay — paper's
+    # degenerates to net top-1 improvement (R[-1]-R[0]). Non-zero max_drop
+    # flags a stage transition that hurt top-1 despite replay — paper's
     # "replay prevents forgetting" claim fails on this run if so.
+    # iter13 v13 (2026-05-07): trajectory stats now keyed on probe_top1.
     traj_stats = compute_trajectory_stats(probe_history) if probe_history else {}
-    # compute_trajectory_stats returns either full stats dict (≥2 entries) or
-    # a dict with None-valued fields (0-1 entries). Distinguish via trajectory length.
-    if traj_stats and traj_stats["trajectory"]:
+    if traj_stats and traj_stats.get("trajectory"):
         print(f"\n{'='*60}\n[probe] Trajectory across {len(probe_history)} stages:")
-        print(f"  Prec@K: {traj_stats['trajectory']}")
-        print(f"  ΔPrec@K (BWT-proxy): {traj_stats['bwt_prec_at_k']:+.2f}")
+        print(f"  top1: {traj_stats['trajectory']}")
+        print(f"  Δtop1 (BWT-proxy): {traj_stats['bwt_top1']:+.4f}")
         if not traj_stats["monotonic"]:
-            print(f"  ⚠  max_drop = {traj_stats['max_drop_prec_at_k']:.2f} "
-                  f"— some stage hurt Prec@K despite replay")
+            print(f"  ⚠  max_drop = {traj_stats['max_drop_top1']:.4f} "
+                  f"— some stage hurt top-1 despite replay")
         else:
             print("  ✓  monotonic improvement across stages")
         print("=" * 60)
         log_metrics(wb_run, {
-            "probe/trajectory/bwt_prec_at_k": traj_stats["bwt_prec_at_k"],
-            "probe/trajectory/max_drop_prec_at_k": traj_stats["max_drop_prec_at_k"],
+            "probe/trajectory/bwt_top1": traj_stats["bwt_top1"],
+            "probe/trajectory/max_drop_top1": traj_stats["max_drop_top1"],
             "probe/trajectory/monotonic": int(traj_stats["monotonic"]),
         }, step=global_step)
 
@@ -1623,7 +1555,9 @@ def train_surgery(cfg: dict, args):
             "val_split_path": str(val_split_path),
         },
         "best_ckpt": {
-            "prec_at_k": best_state["prec_at_k"],
+            "top1": best_state.get("top1", 0.0),
+            "motion_cos": best_state.get("motion_cos", 0.0),
+            "future_l1": best_state.get("future_l1", float("inf")),
             "global_step": best_state["global_step"],
             "stage_name": best_state["stage_name"],
             "probe_record": best_state["probe_record"],
@@ -1642,19 +1576,17 @@ def train_surgery(cfg: dict, args):
                 "min_delta": plateau_min_delta,
                 "patience": plateau_patience,
             },
-            "prec_at_k_plateau": {                           # H5 #76 companion trigger
+            "top1_plateau": {                                # iter13 v13 (was prec_at_k_plateau)
                 "enabled": prec_plateau_enabled,
-                "min_delta_pp": prec_plateau_min_delta,
+                "min_delta": prec_plateau_min_delta,
                 "patience": prec_plateau_patience,
-                "recent_values": list(prec_plateau_state["recent_prec_at_k"]),
+                "recent_values": list(top1_plateau_state["recent_top1"]),
             },
             "negative_bwt": {
                 "enabled": bwt_trigger_enabled,
                 "strikes_at_end": bwt_state["patience_counter"],
-                "first_prec_at_k": bwt_state["first_prec_at_k"],
-                "ci_fraction": bwt_ci_fraction,              # #73 active threshold (noise-scaled)
-                "absolute_floor_pp": bwt_absolute_floor,     # #73 active threshold (absolute)
-                "tolerance_pct_legacy": bwt_tolerance_pct,   # #73 deprecated — present only for continuity
+                "first_top1": bwt_state["first_top1"],
+                "absolute_floor": bwt_absolute_floor,        # iter13 v13: absolute-only on top1
                 "patience": bwt_patience,
             },
         },
@@ -1710,14 +1642,29 @@ def main():
                         help="Override max epochs (SANITY=1, --POC=5, --FULL=1)")
     parser.add_argument("--output-dir", type=str, default=None,
                         help="Override output directory")
-    # Mid-training probe (Prec@K/mAP@K/Cycle@K with BCa 95% CI at stage boundaries).
-    # Defaults resolved from configs/train/ch11_surgery.yaml probe: block; CLI wins.
+    # Mid-training probe trio (top-1 + motion-cos + future-L1) at stage boundaries.
+    # Defaults resolved from configs/train/surgery_*.yaml probe: block; CLI wins.
     parser.add_argument("--probe-subset", type=str, default=None,
                         help="Probe clip subset JSON (default: cfg.probe.subset = val_1k)")
     parser.add_argument("--probe-local-data", type=str, default=None,
                         help="Probe WebDataset TAR dir (default: cfg.probe.local_data)")
     parser.add_argument("--probe-tags", type=str, default=None,
                         help="Probe tags.json path (default: cfg.probe.tags_path)")
+    # iter13 v13 D5-fix (2026-05-07): action_labels path via CLI, mirrors m09a.
+    parser.add_argument("--probe-action-labels", type=str, default=None,
+                        help="Path to action_labels.json (default: derive from "
+                             "outputs/<mode>/probe_action/action_labels.json).")
+    # iter13 v13 D7-fix (2026-05-07): --lambda-reg CLI mirrors m09a:1468 so
+    # surgery can ablate drift L2 anchor without yaml edits.
+    parser.add_argument("--lambda-reg", type=float, default=None,
+                        help="Override drift_control.lambda_reg from CLI. "
+                             "Setting --lambda-reg 0 also flips drift_control.enabled=False.")
+    # iter13 v13 D8-fix (2026-05-07): --val-subset / --val-local-data CLI
+    # mirror m09a:1474+1477 so surgery's invocation contract matches pretrain.
+    parser.add_argument("--val-subset", type=str, default=None,
+                        help="Path to val subset JSON (overrides cfg.data.val_subset).")
+    parser.add_argument("--val-local-data", type=str, default=None,
+                        help="Local WebDataset dir for val clips (overrides cfg.data.val_local_data).")
     parser.add_argument("--no-probe", action="store_true",
                         help="Skip mid-training probe regardless of yaml setting")
     # Multi-task probe head supervision (iter13). When enabled, adds CrossEntropy /
@@ -1779,7 +1726,7 @@ def main():
     cfg = merge_config_with_args(cfg, args)
 
     # Dispatch: surgery (only mode in this module)
-    train_surgery(cfg, args)
+    train(cfg, args)
 
 
 if __name__ == "__main__":

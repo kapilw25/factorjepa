@@ -35,7 +35,7 @@ from scipy.ndimage import gaussian_filter
 
 sys.path.insert(0, str(Path(__file__).parent))
 from utils.config import (
-    add_subset_arg, add_local_data_arg, get_module_output_dir,
+    add_subset_arg, add_local_data_arg,
     load_subset,
 )
 from utils.checkpoint import save_json_checkpoint, load_json_checkpoint
@@ -50,6 +50,31 @@ from utils.cache_policy import (
 )
 
 import yaml
+
+
+# ── iter13 v12+ Task 3 (2026-05-06): output co-located with input ──
+# m11 reads m10's masks from <--local-data>/m10_sam_segment/ and writes its
+# factors to <--local-data>/m11_factor_datasets/ — both co-located so
+# hf_outputs upload ships the entire bundle without extra orchestration.
+def _resolve_output_dir(args) -> Path:
+    """m11 output dir: --output-dir > <--local-data>/m11_factor_datasets/ > FATAL."""
+    if getattr(args, "output_dir", None):
+        return Path(args.output_dir)
+    if getattr(args, "local_data", None):
+        return Path(args.local_data) / "m11_factor_datasets"
+    print("FATAL: m11_factor_datasets requires either --output-dir or --local-data")
+    sys.exit(2)
+
+
+def _resolve_input_dir(args) -> Path:
+    """m11 input (m10 output) dir: --input-dir > <--local-data>/m10_sam_segment/ > FATAL."""
+    if getattr(args, "input_dir", None):
+        return Path(args.input_dir)
+    if getattr(args, "local_data", None):
+        return Path(args.local_data) / "m10_sam_segment"
+    print("FATAL: m11_factor_datasets requires either --input-dir or --local-data "
+          "(to locate m10's masks). Run m10_sam_segment.py first.")
+    sys.exit(2)
 
 
 # ── Factor Patching ──────────────────────────────────────────────────
@@ -865,8 +890,7 @@ def main():
     # m11 single-owns outputs/full/m11_factor_datasets/ — safe to wipe. Closes
     # prompt-trigger ≠ delete-target asymmetry (stale verify/, factor_manifest.json
     # without per-clip .npy, etc).
-    _m11_out = Path(args.output_dir) if args.output_dir else get_module_output_dir(
-        "m11_factor_datasets", args.subset, sanity=args.SANITY, poc=args.POC)
+    _m11_out = _resolve_output_dir(args)
     wipe_output_dir(_m11_out, args.cache_policy, label=f"output_dir ({_m11_out.name})")
 
     # iter10 2026-04-22: --regen-D_I is deprecated. D_I streams on-demand
@@ -879,11 +903,8 @@ def main():
 
     # --plot: re-generate plots from existing outputs (no data processing)
     if args.plot:
-        output_dir = Path(args.output_dir) if args.output_dir else get_module_output_dir(
-            "m11_factor_datasets", args.subset, sanity=args.SANITY, poc=args.POC)
-        m10_dir = get_module_output_dir("m10_sam_segment", args.subset,
-                                        sanity=args.SANITY, poc=args.POC)
-        masks_dir = (Path(args.input_dir) if args.input_dir else m10_dir) / "masks"
+        output_dir = _resolve_output_dir(args)
+        masks_dir = _resolve_input_dir(args) / "masks"
         dl_dir, da_dir, di_dir = output_dir / "D_L", output_dir / "D_A", output_dir / "D_I"
         manifest_file = output_dir / "factor_manifest.json"
         if not manifest_file.exists():
@@ -912,12 +933,10 @@ def main():
         train_cfg = yaml.safe_load(f)
     factor_cfg = train_cfg["factor_datasets"]
 
-    # Directories — m11 reads masks from m10, writes factors to its own dir
-    m10_dir = get_module_output_dir("m10_sam_segment", args.subset,
-                                    sanity=args.SANITY, poc=args.POC)
-    input_dir = Path(args.input_dir) if args.input_dir else m10_dir
-    output_dir = Path(args.output_dir) if args.output_dir else get_module_output_dir(
-        "m11_factor_datasets", args.subset, sanity=args.SANITY, poc=args.POC)
+    # iter13 Task 3: m11 reads masks from <--local-data>/m10_sam_segment/, writes
+    # factors to <--local-data>/m11_factor_datasets/ — co-located with input.
+    input_dir = _resolve_input_dir(args)
+    output_dir = _resolve_output_dir(args)
     masks_dir = input_dir / "masks"
 
     dl_dir = output_dir / "D_L"
