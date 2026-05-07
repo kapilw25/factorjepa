@@ -2094,15 +2094,29 @@ def run_probe_acc_eval(student, probe_clips: list, probe_labels: dict,
 @torch.no_grad()
 def run_probe_val_loss(student, teacher, predictor, probe_clips: list,
                        mask_generators: list, cfg: dict,
-                       device: torch.device) -> dict:
-    """Compute JEPA val-loss on the decoded probe clips (optimization-trajectory companion
-    to run_probe_eval's downstream retrieval metrics). Same masked-token L1 + dense-context
-    loss used during training, evaluated on held-out val_1k clips. Cheap (~6 s at N=1000).
+                       device: torch.device, *,
+                       mt_head=None, mt_dims_spec: dict = None,
+                       mt_labels_by_clip: dict = None, mt_cfg: dict = None,
+                       init_params: dict = None, drift_cfg: dict = None) -> dict:
+    """Compute JEPA + (optional) multi-task + (optional) drift val-loss on probe clips.
+
+    iter13 v13 D6-FIX (2026-05-07): extended from JEPA-only to all 4 components,
+    mirroring run_validation. Surgery (m09c) uses probe_clips for val (rather
+    than a separate val_batches dataloader), so this function is the m09c
+    counterpart to run_validation's m09a path. Both paths return the same
+    4-key dict — `multi_task_loss`, `drift_loss`, `total_loss` — instead of
+    forcing m09c to hardcode 0.0.
+
+    Args (kwargs, all default None → JEPA-only fast path back-compat):
+        mt_head, mt_dims_spec, mt_labels_by_clip, mt_cfg: multi-task probe inputs.
+        init_params, drift_cfg: drift-control inputs (data-INDEPENDENT, computed
+            once post-loop).
 
     Contract: student's return_hierarchical MUST be True during this call (predictor needs
     hierarchical output). Caller-safe: train() / eval() toggled and restored.
 
-    Returns {"jepa_loss", "masked_loss", "context_loss", "n_val_clips"}.
+    Returns {"jepa_loss", "masked_loss", "context_loss", "n_val_clips",
+             "multi_task_loss", "drift_loss", "total_loss"}.
     """
     n = len(probe_clips)
     if n < 10:
@@ -2135,12 +2149,20 @@ def run_probe_val_loss(student, teacher, predictor, probe_clips: list,
     predict_all = cfg["model"]["predict_all"]
 
     total_j, total_m, total_c, n_seen = 0.0, 0.0, 0.0, 0
+    total_mt = 0.0   # multi-task per-batch (averaged at end)
+    n_batches_mt = 0
+
+    # Lazy import to avoid circular: multi_task_loss imports from training-adjacent paths.
+    if mt_head is not None:
+        from utils.multi_task_loss import compute_multi_task_probe_loss
 
     try:
         i = 0
         while i < n:
             end = min(i + sizer.size, n)
             micro_bs = end - i
+            # iter13 v13 D6-FIX: capture clip_keys for multi-task label lookup.
+            batch_keys = [k for k, _, _ in probe_clips[i:end]]
             batch = torch.stack([c for _, _, c in probe_clips[i:end]])
             batch = batch.permute(0, 2, 1, 3, 4).to(device=device, dtype=dtype)
             try:
@@ -2167,6 +2189,32 @@ def run_probe_val_loss(student, teacher, predictor, probe_clips: list,
                             pf.append(out)
                     jl, lm, lc = compute_jepa_loss(pf, pc, h, all_mpred, all_menc,
                                                    loss_exp, predict_all, lambda_context=0.5)
+
+                    # iter13 v13 D6-FIX: multi-task forward on UNMASKED features
+                    # (mirrors run_validation:857-881). Toggles return_hierarchical
+                    # OFF, mean-pools the last layer, runs the head. Skipped when
+                    # mt_head/labels not provided → pure-JEPA fast path preserved.
+                    if (mt_head is not None
+                            and mt_labels_by_clip is not None
+                            and batch_keys):
+                        had_hier_mt = getattr(student, "return_hierarchical", None)
+                        if had_hier_mt is True:
+                            student.return_hierarchical = False
+                        try:
+                            feats_unmasked = student(batch)
+                            if isinstance(feats_unmasked, (list, tuple)):
+                                feats_unmasked = feats_unmasked[-1]
+                            pooled = feats_unmasked.mean(dim=1)              # (B, D)
+                            mt_loss_t, _ = compute_multi_task_probe_loss(
+                                pooled, mt_head, batch_keys,
+                                mt_labels_by_clip, mt_dims_spec,
+                                weight_per_dim=mt_cfg["weight_per_dim"],
+                                device=device)
+                            total_mt += float(mt_loss_t.item())
+                            n_batches_mt += 1
+                        finally:
+                            if had_hier_mt is not None:
+                                student.return_hierarchical = had_hier_mt
                 total_j += jl.item() * micro_bs
                 total_m += lm.item() * micro_bs
                 total_c += lc.item() * micro_bs
@@ -2192,11 +2240,29 @@ def run_probe_val_loss(student, teacher, predictor, probe_clips: list,
         # so it runs even on exception/OOM.
         cuda_cleanup()
 
+    val_jepa = total_j / max(n_seen, 1)
+    val_mt = total_mt / max(n_batches_mt, 1)
+
+    # iter13 v13 D6-FIX: drift loss is data-INDEPENDENT (||θ-θ_init||²), so
+    # compute once post-loop instead of per-batch. Mirrors run_validation:889-897.
+    val_drift = 0.0
+    if (init_params is not None and drift_cfg is not None
+            and drift_cfg.get("enabled") and drift_cfg.get("lambda_reg", 0) > 0):
+        with torch.no_grad():
+            val_drift = float(
+                compute_drift_loss(student, init_params, drift_cfg["lambda_reg"]).item())
+
+    weight_mt = float(mt_cfg["weight_probe"]) if mt_cfg is not None else 0.0
+    val_total = val_jepa + weight_mt * val_mt + val_drift
+
     return {
-        "jepa_loss": total_j / max(n_seen, 1),
+        "jepa_loss": val_jepa,
         "masked_loss": total_m / max(n_seen, 1),
         "context_loss": total_c / max(n_seen, 1),
         "n_val_clips": n_seen,
+        "multi_task_loss": val_mt,
+        "drift_loss": val_drift,
+        "total_loss": val_total,
     }
 
 

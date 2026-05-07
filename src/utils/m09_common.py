@@ -32,11 +32,17 @@ from utils.motion_aux_loss import merge_motion_aux_config
 # R1 — add_m09_common_args(parser)
 # ─────────────────────────────────────────────────────────────────────────
 
-def add_m09_common_args(parser) -> None:
+def add_m09_common_args(parser, *, require_val_data: bool = False) -> None:
     """Bundle 16 shared CLI args used by both m09a_pretrain + m09c_surgery.
 
     Caller adds technique-specific args AFTER (e.g. m09c adds --factor-dir,
     --factor-streaming; m09a adds nothing extra).
+
+    Args:
+      require_val_data: If True, --val-subset and --val-local-data are
+        registered as `required=True` (m09a contract — pretrain MUST have
+        external val data). If False (default), they are optional with
+        default=None (m09c contract — surgery can use train_val_split).
 
     Args registered (all kwargs):
       --SANITY / --POC / --FULL     mode flags
@@ -44,7 +50,7 @@ def add_m09_common_args(parser) -> None:
       --model-config / --train-config  via shared adders
       --batch-size / --max-epochs / --output-dir
       --lambda-reg                   drift-control λ override
-      --val-subset / --val-local-data  val data
+      --val-subset / --val-local-data  val data (required=require_val_data)
       --probe-subset / --probe-local-data / --probe-tags / --probe-action-labels
       --no-probe                     force-disable mid-training probe
       --taxonomy-labels-json / --no-multi-task
@@ -74,10 +80,16 @@ def add_m09_common_args(parser) -> None:
     parser.add_argument("--lambda-reg", type=float, default=None,
                         help="Override drift_control.lambda_reg from CLI. "
                              "Setting --lambda-reg 0 also flips drift_control.enabled=False.")
-    parser.add_argument("--val-subset", type=str, default=None,
-                        help="Path to val subset JSON (overrides cfg.data.val_subset).")
-    parser.add_argument("--val-local-data", type=str, default=None,
-                        help="Local WebDataset dir for val clips (overrides cfg.data.val_local_data).")
+    if require_val_data:
+        parser.add_argument("--val-subset", required=True,
+                            help="Path to val subset JSON (also threaded into cfg.data.val_subset).")
+        parser.add_argument("--val-local-data", required=True,
+                            help="Local WebDataset dir for val clips (also threaded into cfg.data.val_local_data).")
+    else:
+        parser.add_argument("--val-subset", type=str, default=None,
+                            help="Path to val subset JSON (overrides cfg.data.val_subset).")
+        parser.add_argument("--val-local-data", type=str, default=None,
+                            help="Local WebDataset dir for val clips (overrides cfg.data.val_local_data).")
     # Mid-training probe block (top-1 + motion-cos + future-L1 trio).
     parser.add_argument("--probe-subset", type=str, default=None,
                         help="Path to probe-eval subset JSON (overrides cfg.probe.subset).")
@@ -195,7 +207,8 @@ def merge_m09_common_config(cfg: dict, args, mode_key: str) -> None:
 # R5 — setup_probe_pipeline(cfg, args, output_dir)
 # ─────────────────────────────────────────────────────────────────────────
 
-def setup_probe_pipeline(cfg: dict, args, output_dir):
+def setup_probe_pipeline(cfg: dict, args, output_dir, *,
+                         subset_keys_override=None):
     """Build probe_clips + load_action_labels.
 
     Returns: (probe_clips, probe_labels). Either may be None when probe is
@@ -204,6 +217,10 @@ def setup_probe_pipeline(cfg: dict, args, output_dir):
     Action-labels resolution order (D5-fix):
       1. --probe-action-labels CLI arg
       2. derived from outputs/<mode>/probe_action/action_labels.json
+
+    Args:
+      subset_keys_override: optional set[str] of clip_keys overriding probe.subset
+        (used by m09c to feed in-stage held-out val_keys instead of external val_1k).
     """
     # Lazy imports — utils.training has heavy deps (torch, faiss); only pay
     # them when the caller actually needs the probe pipeline.
@@ -218,7 +235,7 @@ def setup_probe_pipeline(cfg: dict, args, output_dir):
     else:
         mode_subdir = "full"
 
-    probe_cfg = cfg.get("probe", {})
+    probe_cfg = cfg["probe"] if "probe" in cfg else {}
     if not probe_cfg.get("enabled", False):
         return None, None
 
@@ -229,16 +246,18 @@ def setup_probe_pipeline(cfg: dict, args, output_dir):
     if not subset_path or not local_data_path:
         return None, None
 
-    num_frames = cfg.get("data", {}).get("num_frames", 16)
-    crop_size = cfg.get("data", {}).get("crop_size", 384)
-    monitoring_cfg = cfg.get("monitoring", {})
+    # FAIL LOUD on missing keys (CLAUDE.md): cfg["data"][...] not cfg.get(...).
+    num_frames = cfg["data"]["num_frames"]
+    crop_size = cfg["data"]["crop_size"]
+    max_clips = cfg["monitoring"]["knn_probe_clips"]
 
     probe_clips = build_probe_clips(
         probe_subset_path=subset_path,
         probe_local_data=local_data_path,
         probe_tags_path=tags_path,
         num_frames=num_frames, crop_size=crop_size,
-        max_clips=monitoring_cfg.get("knn_probe_clips", 1000),
+        subset_keys_override=subset_keys_override,
+        max_clips=max_clips,
     )
 
     # Action labels path: CLI > derived default.

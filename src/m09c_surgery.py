@@ -63,10 +63,8 @@ from utils.live_debug import install_debug_handlers
 install_debug_handlers()
 
 from utils.config import (
-    check_gpu,
-    add_subset_arg, add_local_data_arg, get_output_dir, get_module_output_dir, load_subset,  # noqa: F401
+    check_gpu, get_output_dir, get_module_output_dir, load_subset,  # noqa: F401
     get_pipeline_config, load_merged_config,
-    add_model_config_arg, add_train_config_arg,
 )
 from utils.data_download import ensure_local_data
 from utils.gpu_batch import AdaptiveBatchSizer, cuda_cleanup  # noqa: F401 — wired via utils.training
@@ -75,7 +73,14 @@ from utils.wandb_utils import (
     add_wandb_args, init_wandb, log_metrics, finish_wandb,
 )
 from utils.cache_policy import (
-    add_cache_policy_arg, resolve_cache_policy_interactive, wipe_output_dir,
+    resolve_cache_policy_interactive, wipe_output_dir,
+)
+# iter13 v13 R1+R2+R5 (2026-05-07): shared CLI + config-merge + probe-pipeline
+# helpers — replaces ~80 LoC of inline boilerplate that was duplicated with
+# m09a_pretrain.py. Technique-specific args (--factor-dir, --factor-streaming)
+# are still added INLINE in main() after add_m09_common_args(parser) fires.
+from utils.m09_common import (
+    add_m09_common_args, merge_m09_common_config, setup_probe_pipeline,
 )
 
 import torch
@@ -104,13 +109,13 @@ from utils.training import (
     set_trainable_prefix, enable_gradient_checkpointing,
     FactorSampler, build_factor_index, load_factor_clip, create_train_val_split,
     StreamingFactorDataset, build_streaming_indices, _streaming_worker_init,
-    build_probe_clips, run_probe_val_loss, compute_trajectory_stats,
+    run_probe_val_loss, compute_trajectory_stats,
     render_training_plots,
     run_trio_at_val, track_block_drift_at_val,
     apply_val_cycle_triggers, finalize_training,
 )
 from utils.multi_task_loss import (
-    merge_multi_task_config, build_multi_task_head_from_cfg,
+    build_multi_task_head_from_cfg,
     attach_head_to_optimizer, run_multi_task_step,
 )
 # iter13 v12+ (Phase 4, 2026-05-06): motion_aux loss — joint K-class CE + 13-D MSE
@@ -118,7 +123,7 @@ from utils.multi_task_loss import (
 # so attach_motion_aux_to_optimizer must fire inside each stage's build_optimizer
 # block (mirrors attach_head_to_optimizer above). See plan_v12_motion_aux.md.
 from utils.motion_aux_loss import (
-    merge_motion_aux_config, build_motion_aux_head_from_cfg,
+    build_motion_aux_head_from_cfg,
     attach_motion_aux_to_optimizer, run_motion_aux_step,
 )
 from utils.probe_labels import ensure_probe_labels_for_mode
@@ -130,75 +135,23 @@ from torch.utils.data import DataLoader
 # ═════════════════════════════════════════════════════════════════════════
 
 def merge_config_with_args(cfg: dict, args) -> dict:
-    if args.subset:
-        cfg["data"]["subset"] = args.subset
-    if getattr(args, "local_data", None):
-        cfg["data"]["local_data"] = args.local_data
     if args.SANITY:
         mode_key = "sanity"
     elif args.POC:
         mode_key = "poc"
     else:
         mode_key = "full"
-    cfg["optimization"]["max_epochs"] = cfg["optimization"]["max_epochs"][mode_key]
-    # Mode-gated memory-saver flags (#57): flatten the per-mode dicts.
-    # iter13 v13 D4-fix (2026-05-07): defensive variant from m09a:217 — supports
-    # scalar overrides (a yaml may set `use_8bit_optim: false` directly without
-    # the per-mode dict; old direct flatten crashed on `False[mode_key]`).
-    for k in ("use_8bit_optim", "gradient_checkpointing", "paged_optim"):
-        if k in cfg["optimization"] and isinstance(cfg["optimization"][k], dict):
-            cfg["optimization"][k] = cfg["optimization"][k][mode_key]
+    # iter13 v13 R2 (2026-05-07): shared CLI overrides + per-mode flatten + multi_task
+    # / motion_aux delegation now lives in utils.m09_common. Replaces ~80 LoC of
+    # boilerplate that mirrored m09a's body 1:1 (D3-D8 + D4-FIX + D7-FIX + D8-FIX
+    # all consolidated into the helper). Technique-specific blocks stay below.
+    merge_m09_common_config(cfg, args, mode_key)
 
-    # iter13 v13 D7-fix (2026-05-07): --lambda-reg CLI override mirrors m09a:251.
-    # Sets drift_control.lambda_reg AND drift_control.enabled=False when λ=0.
-    if getattr(args, "lambda_reg", None) is not None:
-        cfg["drift_control"]["lambda_reg"] = args.lambda_reg
-        if args.lambda_reg == 0:
-            cfg["drift_control"]["enabled"] = False
-
-    # iter13 v13 D8-fix (2026-05-07): --val-subset / --val-local-data CLI
-    # overrides mirror m09a's invocation contract. Threads into cfg["data"]
-    # so use_permanent_val downstream lookup (~line 544) honours them.
-    if getattr(args, "val_subset", None):
-        cfg["data"]["val_subset"] = args.val_subset
-    if getattr(args, "val_local_data", None):
-        cfg["data"]["val_local_data"] = args.val_local_data
-    if args.batch_size is not None:
-        cfg["optimization"]["batch_size"] = args.batch_size
-    if args.max_epochs is not None:
-        cfg["optimization"]["max_epochs"] = args.max_epochs
-
-    # Mid-training probe (motion-flow top-1 + motion-cos + future-L1 trio at
-    # stage boundaries — companion to the paper-grade decision gate). Mode-gated:
-    # SANITY off (N=20 too small), POC/FULL on. CLI overrides win over yaml.
-    # Fail-loud: ch11_surgery.yaml MUST have a `probe:` block with all keys;
-    # missing/typo → KeyError at config merge (no .get default, per CLAUDE.md).
-    probe_cfg = cfg["probe"]
-    probe_enabled = probe_cfg["enabled"][mode_key]
-    if getattr(args, "probe_subset", None):
-        probe_cfg["subset"] = args.probe_subset
-    if getattr(args, "probe_local_data", None):
-        probe_cfg["local_data"] = args.probe_local_data
-    if getattr(args, "probe_tags", None):
-        probe_cfg["tags_path"] = args.probe_tags
-    if getattr(args, "no_probe", False):
-        probe_enabled = False
-    cfg["probe"]["enabled"] = probe_enabled
-
-    # Best-ckpt + kill-switch + plateau + BWT trigger + permanent-val flag:
-    # mode-gated (off for SANITY, on for POC/FULL). Flatten per-mode dicts → scalars
-    # so training loop reads booleans directly.
-    cfg["probe"]["best_ckpt_enabled"] = probe_cfg["best_ckpt_enabled"][mode_key]
-    cfg["probe"]["kill_switch_enabled"] = probe_cfg["kill_switch_enabled"][mode_key]
-    cfg["probe"]["plateau_enabled"] = probe_cfg["plateau_enabled"][mode_key]
-    cfg["probe"]["prec_plateau_enabled"] = probe_cfg["prec_plateau_enabled"][mode_key]
-    cfg["probe"]["bwt_trigger_enabled"] = probe_cfg["bwt_trigger_enabled"][mode_key]
-    cfg["probe"]["use_permanent_val"] = probe_cfg["use_permanent_val"][mode_key]
-
-    # 90/10 train/val split (see data.train_val_split in ch11_surgery.yaml). Capped at
-    # 1000 val clips to prevent FULL (115K × 10% = 11.5K) from over-sizing the val-set.
-    # FULL mode intentionally has NO train_val_split key (probe.use_permanent_val.full=true
-    # overrides → external val_subset is used). FAIL LOUD only if the override is also off.
+    # m09c-specific: 90/10 train/val split (see data.train_val_split in ch11_surgery.yaml).
+    # Capped at 1000 val clips to prevent FULL (115K × 10% = 11.5K) from over-sizing
+    # the val-set. FULL mode intentionally has NO train_val_split key
+    # (probe.use_permanent_val.full=true overrides → external val_subset is used).
+    # FAIL LOUD only if the override is also off.
     _tvs = cfg["data"]["train_val_split"]
     if mode_key in _tvs:
         cfg["data"]["train_val_split"] = _tvs[mode_key]
@@ -210,8 +163,8 @@ def merge_config_with_args(cfg: dict, args) -> dict:
             f"is false — must specify one (split-internal) or the other (external val_subset)."
         )
 
-    # Streaming factor generation (eliminates m11 D_L/D_A .npy disk writes).
-    # Flatten mode-gated enabled + num_workers into scalars. CLI override
+    # m09c-specific: streaming factor generation (eliminates m11 D_L/D_A .npy disk
+    # writes). Flatten mode-gated enabled + num_workers into scalars. CLI override
     # (--factor-streaming / --no-factor-streaming) wins over yaml mode gate.
     # See iter/iter9/plan_code_dev.md for architecture + parity verification.
     fs_cfg = cfg["factor_streaming"]
@@ -221,12 +174,6 @@ def merge_config_with_args(cfg: dict, args) -> dict:
         fs_enabled = fs_override
     cfg["factor_streaming"]["enabled"] = fs_enabled
     cfg["factor_streaming"]["num_workers"] = fs_cfg["num_workers"][mode_key]
-
-    # Multi-task probe block — per-mode flatten + CLI overrides (utils helper).
-    merge_multi_task_config(cfg, args, mode_key)
-
-    # iter13 v12+: motion_aux block — same per-mode flatten + CLI override pattern.
-    merge_motion_aux_config(cfg, args, mode_key)
 
     # Output dir: explicit --output-dir, or auto from module + mode
     if getattr(args, "output_dir", None):
@@ -766,10 +713,8 @@ def train(cfg: dict, args):
     probe_every = None
     probe_compute_val_loss = probe_cfg["compute_val_loss"]
     if probe_cfg["enabled"]:
-        # Required yaml keys. Direct access — missing key → KeyError with file+key name.
-        subset_path = probe_cfg["subset"]
-        local_data_path = probe_cfg["local_data"]
-        tags_path = probe_cfg["tags_path"]
+        # iter13 v13 R5 (2026-05-07): subset/local_data/tags resolution moved to
+        # setup_probe_pipeline below — this block now only sets cadence + jsonl.
         if probe_cadence == "every_n_steps":
             n_points = probe_cfg["n_points"]
             probe_every = max(1, total_steps // n_points)
@@ -788,28 +733,16 @@ def train(cfg: dict, args):
         else:
             print(f"FATAL: probe.cadence='{probe_cadence}' — must be 'every_n_steps', 'saves_per_epoch', or 'stage_boundary'")
             sys.exit(1)
-        # Use held-out val_keys from train/val split (in-memory override) instead of
-        # reading probe.subset JSON — eliminates train/test overlap.
-        probe_clips = build_probe_clips(
-            probe_subset_path=subset_path,
-            probe_local_data=local_data_path,
-            probe_tags_path=tags_path,
-            num_frames=num_frames, crop_size=crop_size,
+        # iter13 v13 R5 (2026-05-07): probe-pipeline (build_probe_clips +
+        # load_action_labels with --probe-action-labels CLI override + derived
+        # fallback) factored to utils.m09_common.setup_probe_pipeline. Replaces
+        # ~20 LoC of inline boilerplate. m09c-specific: feed held-out val_keys
+        # via subset_keys_override to eliminate train/test overlap (m09a uses
+        # external val_1k → no override needed).
+        probe_clips, probe_labels = setup_probe_pipeline(
+            cfg, args, output_dir,
             subset_keys_override=set(val_keys) if val_keys else None,
-            max_clips=cfg["monitoring"]["knn_probe_clips"],   # cap N to avoid /dev/shm overflow
         )
-        # iter13 v13 D5-fix (2026-05-07): action_labels path now from CLI
-        # (--probe-action-labels), with derived fallback when not passed.
-        # mirrors m09a:756. Removes hardcoded `Path(__file__).parent.parent / outputs/<mode>/...`.
-        from utils.action_labels import load_action_labels
-        if getattr(args, "probe_action_labels", None):
-            probe_action_labels_path = Path(args.probe_action_labels)
-        else:
-            mode_subdir = "sanity" if args.SANITY else "poc" if args.POC else "full"
-            probe_action_labels_path = (Path(__file__).parent.parent /
-                                        f"outputs/{mode_subdir}/probe_action/action_labels.json")
-        probe_labels = (load_action_labels(probe_action_labels_path)
-                        if probe_action_labels_path.exists() else None)
         probe_jsonl_file = open(probe_jsonl_path, "w")
     else:
         print("[probe] disabled (SANITY mode or --no-probe) — skipping probe + val-loss eval")
@@ -912,20 +845,26 @@ def train(cfg: dict, args):
                 "global_step": global_step_,
             }
             if probe_compute_val_loss:
-                vl = run_probe_val_loss(student, teacher, predictor, probe_clips,
-                                        mask_generators, cfg, device)
+                # iter13 v13 D6-FIX (2026-05-07, post-audit): full 4-loss schema
+                # NUMERICAL parity with m09a — was previously symbolic (multi_task
+                # + drift hardcoded to 0.0 regardless of config). run_probe_val_loss
+                # now accepts the same mt_* + drift_* kwargs as run_validation. When
+                # surgery configs disable both knobs (current default) values are
+                # genuinely 0.0; if a future config re-enables them the val plots
+                # will reflect the real numbers without any code change.
+                vl = run_probe_val_loss(
+                    student, teacher, predictor, probe_clips,
+                    mask_generators, cfg, device,
+                    mt_head=mt_head, mt_dims_spec=mt_dims_spec,
+                    mt_labels_by_clip=mt_labels_by_clip, mt_cfg=mt_cfg,
+                    init_params=init_params, drift_cfg=cfg.get("drift_control"),
+                )
                 pr["val_jepa_loss"] = vl["jepa_loss"]
                 pr["val_masked_loss"] = vl["masked_loss"]
                 pr["val_context_loss"] = vl["context_loss"]
-                # iter13 v13 D6-fix (2026-05-07): 4-loss schema parity with m09a's
-                # run_validation return (val_jepa + val_multi_task + val_drift + val_total).
-                # multi_task + drift = 0.0 under current surgery configs (multi_task
-                # disabled, drift λ=0); kept in schema so jsonl + downstream plotters
-                # see the same keys both trainers emit. Future configs that re-enable
-                # either knob can populate them in this block.
-                pr["val_multi_task_loss"] = 0.0
-                pr["val_drift_loss"] = 0.0
-                pr["val_total_loss"] = pr["val_jepa_loss"] + pr["val_multi_task_loss"] + pr["val_drift_loss"]
+                pr["val_multi_task_loss"] = vl["multi_task_loss"]
+                pr["val_drift_loss"] = vl["drift_loss"]
+                pr["val_total_loss"] = vl["total_loss"]
 
             # Trio (top-1 + motion-cos + future-L1) — the iter13 paper metrics.
             # Adds `probe_top1`, `motion_cos`, `future_l1` to `pr`.
@@ -1624,67 +1563,16 @@ def main():
     os.environ.setdefault("PYTORCH_CUDA_ALLOC_CONF", "expandable_segments:True")
     parser = argparse.ArgumentParser(
         description="Ch11 factor surgery: 3-stage progressive unfreeze + D_L/D_A/D_I factor datasets")
-    parser.add_argument("--config", type=str, default=None,
-                        help="Legacy single YAML config (backward compat)")
-    add_model_config_arg(parser)
-    add_train_config_arg(parser)
+    # iter13 v13 R1 (2026-05-07): 16 shared CLI args (mode flags, --batch-size,
+    # --max-epochs, --output-dir, --lambda-reg, --val-subset, --val-local-data,
+    # --probe-* + --probe-action-labels + --no-probe, --taxonomy-labels-json,
+    # --no-multi-task, --motion-features-path, --no-motion-aux, --subset,
+    # --local-data, --cache-policy) live in utils.m09_common. Replaces ~80 LoC
+    # of inline boilerplate. Technique-specific args (--factor-dir + factor-streaming
+    # mutex group) added below.
+    add_m09_common_args(parser)
     parser.add_argument("--factor-dir", type=str, default=None,
                         help="Factor dataset dir from m11 (contains D_L/, D_A/, D_I/, factor_manifest.json)")
-    parser.add_argument("--SANITY", action="store_true",
-                        help="Quick validation: 50 steps, batch_size=2")
-    parser.add_argument("--POC", action="store_true",
-                        help="POC subset (~10K clips, 5 epochs)")
-    parser.add_argument("--FULL", action="store_true",
-                        help="Full training run")
-    parser.add_argument("--batch-size", type=int, default=None,
-                        help="Override batch size from config")
-    parser.add_argument("--max-epochs", type=int, default=None,
-                        help="Override max epochs (SANITY=1, --POC=5, --FULL=1)")
-    parser.add_argument("--output-dir", type=str, default=None,
-                        help="Override output directory")
-    # Mid-training probe trio (top-1 + motion-cos + future-L1) at stage boundaries.
-    # Defaults resolved from configs/train/surgery_*.yaml probe: block; CLI wins.
-    parser.add_argument("--probe-subset", type=str, default=None,
-                        help="Probe clip subset JSON (default: cfg.probe.subset = val_1k)")
-    parser.add_argument("--probe-local-data", type=str, default=None,
-                        help="Probe WebDataset TAR dir (default: cfg.probe.local_data)")
-    parser.add_argument("--probe-tags", type=str, default=None,
-                        help="Probe tags.json path (default: cfg.probe.tags_path)")
-    # iter13 v13 D5-fix (2026-05-07): action_labels path via CLI, mirrors m09a.
-    parser.add_argument("--probe-action-labels", type=str, default=None,
-                        help="Path to action_labels.json (default: derive from "
-                             "outputs/<mode>/probe_action/action_labels.json).")
-    # iter13 v13 D7-fix (2026-05-07): --lambda-reg CLI mirrors m09a:1468 so
-    # surgery can ablate drift L2 anchor without yaml edits.
-    parser.add_argument("--lambda-reg", type=float, default=None,
-                        help="Override drift_control.lambda_reg from CLI. "
-                             "Setting --lambda-reg 0 also flips drift_control.enabled=False.")
-    # iter13 v13 D8-fix (2026-05-07): --val-subset / --val-local-data CLI
-    # mirror m09a:1474+1477 so surgery's invocation contract matches pretrain.
-    parser.add_argument("--val-subset", type=str, default=None,
-                        help="Path to val subset JSON (overrides cfg.data.val_subset).")
-    parser.add_argument("--val-local-data", type=str, default=None,
-                        help="Local WebDataset dir for val clips (overrides cfg.data.val_local_data).")
-    parser.add_argument("--no-probe", action="store_true",
-                        help="Skip mid-training probe regardless of yaml setting")
-    # Multi-task probe head supervision (iter13). When enabled, adds CrossEntropy /
-    # BCEWithLogits losses on 16 taxonomy dims (action + 15 taxonomy) on top of
-    # JEPA L1 → direct gradient signal toward the eval metric. See
-    # utils/multi_task_loss.py + base_optimization.yaml `multi_task_probe:` block.
-    parser.add_argument("--taxonomy-labels-json", type=str, default=None,
-                        help="Path to taxonomy_labels.json (overrides cfg.multi_task_probe.labels_path). "
-                             "Produced by `probe_taxonomy.py --stage labels`.")
-    parser.add_argument("--no-multi-task", action="store_true",
-                        help="Force-disable multi-task probe-head supervision "
-                             "(overrides cfg.multi_task_probe.enabled).")
-    # iter13 v12+ (Phase 4, 2026-05-06): motion_aux loss — joint K-class CE
-    # + 13-D MSE on m04d RAFT-flow targets. Mirrors m09a_pretrain.py:1503-1512.
-    parser.add_argument("--motion-features-path", type=Path, default=None,
-                        help="Path to data/eval_10k_local/motion_features.npy "
-                             "(overrides cfg.motion_aux.motion_features_path).")
-    parser.add_argument("--no-motion-aux", action="store_true",
-                        help="Force-disable motion_aux supervised loss "
-                             "(overrides cfg.motion_aux.enabled).")
     fs_group = parser.add_mutually_exclusive_group()
     fs_group.add_argument("--factor-streaming", dest="factor_streaming_override",
                           action="store_true", default=None,
@@ -1692,13 +1580,7 @@ def main():
     fs_group.add_argument("--no-factor-streaming", dest="factor_streaming_override",
                           action="store_false",
                           help="Force legacy .npy factor path (overrides yaml mode gate)")
-    add_subset_arg(parser)
-    add_local_data_arg(parser)
     add_wandb_args(parser)
-    # Cache-policy gate (iter11): every destructive delete in this module must route
-    # through utils.cache_policy.guarded_delete(path, args.cache_policy, ...).
-    # --cache-policy defaults to 1 (keep) so overnight re-runs never destroy cache.
-    add_cache_policy_arg(parser)
     args = parser.parse_args()
 
     # Cache-policy prompt — shells stay thin (CLAUDE.md DELETE PROTECTION).

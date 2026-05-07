@@ -125,7 +125,9 @@ ls -lh outputs/full/probe_plot/probe_encoder_comparison.{png,pdf}               
 
 ### Verify per-variant training success
 ```bash
-for v in probe_pretrain probe_surgery_3stage_DI probe_surgery_noDI; do
+# v13 (2026-05-07): output dirs renamed by trainer ID — m09a_pretrain (was probe_pretrain),
+# m09c_surgery_3stage_DI (was probe_surgery_3stage_DI), m09c_surgery_noDI (was probe_surgery_noDI).
+for v in m09a_pretrain m09c_surgery_3stage_DI m09c_surgery_noDI; do
   echo "── $v ──"
   ls -lh outputs/full/$v/{student_encoder,m09{a,c}_ckpt_best,multi_task_head,motion_aux_head}.pt 2>/dev/null
   wc -l outputs/full/$v/loss_log.jsonl
