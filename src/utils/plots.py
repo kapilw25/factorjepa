@@ -431,63 +431,18 @@ def plot_training_curves(runs: list, output_dir: str, title_prefix: str = "",
     stage_colors = [COLORS["green"], COLORS["orange"], COLORS["purple"],
                     COLORS["red"], COLORS["blue"], "#8B4513", "#FF1493", "#00CED1"]
 
-    # ── Plot 1: Validation Loss ──────────────────────────────────────
-    # Skip entirely when no run has val_loss data (e.g., m09c_surgery — val_loss
-    # comes from probe_history via _render_live_plots(), NOT from loss_log.csv).
-    # Previously this wrote an empty m09_val_loss.png which overwrote the good
-    # probe-trajectory val-loss plot saved seconds earlier.
-    if any(run.get("val_loss") and run.get("x_val") for run in parsed_runs):
-        fig, ax = plt.subplots(figsize=(10, 6))
-        for run in parsed_runs:
-            if run["x_val"] and run.get("val_loss"):
-                ax.plot(run["x_val"], run["val_loss"], "s-",
-                        color=run["color"], linewidth=3.0, markersize=8,
-                        label=run["label"], zorder=10)
-        ax.xaxis.set_major_formatter(plt.FuncFormatter(_fmt_x))
-        ax.set_xlabel(x_label)
-        ax.set_ylabel("Validation JEPA Loss")
-        ax.set_title(f"{title_prefix}Validation Loss")
-        ax.legend(loc="upper right")
-        save_fig(fig, str(out / f"{file_prefix}_val_loss"))
-
-        # Companion zoom: <file_prefix>_val_loss_jepa.png — raw + rolling mean.
-        # For m09a, this is overwritten later by m09a_pretrain._render_m09a_probe_plots
-        # which renders a richer version (best-step star + kill-switch overlay) under
-        # the SAME filename — last write wins, no duplicate file. m09b/m09c rely on
-        # this version since they don't have a per-module rich renderer.
-        fig, ax = plt.subplots(figsize=(10, 5))
-        for run in parsed_runs:
-            if not (run["x_val"] and run.get("val_loss")):
-                continue
-            x = np.array(run["x_val"])
-            v = np.array(run["val_loss"])
-            ax.plot(x, v, "o-", color=run["color"], linewidth=0.8,
-                    markersize=4, alpha=0.35,
-                    label=f"{run['label']} (raw)", zorder=2)
-            window = max(1, len(v) // 10)
-            if window > 1:
-                k = np.ones(window) / window
-                sm = np.convolve(v, k, mode="valid")
-                ax.plot(x[window - 1:], sm, color=run["color"], linewidth=2.8,
-                        label=f"{run['label']} rolling mean (w={window})",
-                        zorder=10)
-            best_i = int(np.argmin(v))
-            ax.scatter([x[best_i]], [v[best_i]], marker="*", s=140,
-                       color="#1565C0", zorder=11,
-                       label=f"best={v[best_i]:.4f} @ {x[best_i]:.0f}")
-            ax.annotate(f"end={v[-1]:.4f}", xy=(x[-1], v[-1]),
-                        xytext=(5, 0), textcoords="offset points",
-                        fontsize=9, color=run["color"], va="center")
-        ax.xaxis.set_major_formatter(plt.FuncFormatter(_fmt_x))
-        ax.set_xlabel(x_label)
-        ax.set_ylabel("JEPA total (L1)")
-        ax.set_title(f"{title_prefix}Val-loss zoom — raw + rolling mean")
-        ax.legend(loc="upper right", fontsize=9)
-        ax.grid(True, alpha=0.3)
-        save_fig(fig, str(out / f"{file_prefix}_val_loss_jepa"))
-    else:
-        print(f"  [plots] skip {file_prefix}_val_loss: no val_loss in loss_log "
-              "(m09c reads val-loss from probe_history instead — see _render_live_plots)")
+    # iter14 (2026-05-08): Plot 1 (basic val_loss.png) AND Plot 1b (val_loss_jepa
+    # zoom) BOTH RETIRED. They were dead code:
+    #   • Plot 1 was a simpler styling of the same data Plot 1b already showed.
+    #   • Plot 1b's <prefix>_val_loss_jepa.png was IMMEDIATELY OVERWRITTEN for
+    #     m09a by plot_val_loss_with_kill_switch_overlay (richer kill-switch +
+    #     best-marker version). For m09c it was a no-op (m09c writes
+    #     "val_jepa_loss" key, not "val_loss" → fell to else-branch's misleading
+    #     skip message). Net: Plot 1b was wasted I/O for m09a + log-noise for m09c.
+    #
+    # Single source of truth = plot_val_loss_with_kill_switch_overlay (utils.plots
+    # line ~865+), called directly from m09a:_render_m09a_probe_plots and
+    # m09c:_render_live_plots. Reads probe_history (in-memory list), not loss_log.
 
     # ── Plot 2: Training Loss — color-segmented by stage when present ──
     fig, ax = plt.subplots(figsize=(12, 6))
@@ -511,7 +466,9 @@ def plot_training_curves(runs: list, output_dir: str, title_prefix: str = "",
                 if len(idx) > 0:
                     stage_ranges.append((s_name, idx, x_start, x_end))
 
-            # Smoothed per-stage segment
+            # Smoothed per-stage segment. iter14 (2026-05-08): markers added
+            # so short segments (1-step stages at POC) render visibly — pre-fix
+            # 1-point segments drew a 0-length invisible line.
             for i, (s_name, idx, x_start, x_end) in enumerate(stage_ranges):
                 seg_x = x[idx]
                 seg_loss = loss[idx]
@@ -521,10 +478,11 @@ def plot_training_curves(runs: list, output_dir: str, title_prefix: str = "",
                     k = np.ones(window) / window
                     sm = np.convolve(seg_loss, k, mode="valid")
                     sm_x = seg_x[window - 1:]
-                    ax.plot(sm_x, sm, color=col, linewidth=2.8,
-                            label=f"{s_name}", zorder=10)
+                    ax.plot(sm_x, sm, color=col, linewidth=2.8, marker="o",
+                            markersize=5, label=f"{s_name}", zorder=10)
                 else:
                     ax.plot(seg_x, seg_loss, color=col, linewidth=2.8,
+                            marker="o", markersize=8,
                             label=f"{s_name}", zorder=10)
                 # Shade stage band + draw transition vline at stage start
                 ax.axvspan(x_start, x_end, alpha=0.04, color=col, zorder=0)
@@ -601,23 +559,10 @@ def plot_training_curves(runs: list, output_dir: str, title_prefix: str = "",
 
     save_fig(fig, str(out / f"{file_prefix}_train_loss"))
 
-    # ── Plot 3: Drift Loss ───────────────────────────────────────────
-    has_drift = any(run["drift_loss"] and max(run["drift_loss"]) > 0 for run in parsed_runs)
-    if has_drift:
-        fig, ax = plt.subplots(figsize=(10, 6))
-        for run in parsed_runs:
-            if run["x_train"] and run["drift_loss"] and max(run["drift_loss"]) > 0:
-                ax.plot(run["x_train"], run["drift_loss"],
-                        color=run["color"], linewidth=2.0,
-                        label=run["label"])
-        ax.xaxis.set_major_formatter(plt.FuncFormatter(_fmt_x))
-        ax.set_xlabel(x_label)
-        ax.set_ylabel("Drift Loss ($\\lambda \\|\\theta - \\theta_0\\|^2$)")
-        ax.set_title(f"{title_prefix}Drift Control Loss")
-        ax.legend(loc="upper right")
-        save_fig(fig, str(out / f"{file_prefix}_drift_loss"))
-    else:
-        print("  SKIP: drift loss plot (all zeros — drift control disabled)")
+    # iter14 (2026-05-08): Plot 3 (standalone drift_loss.png) RETIRED — was a
+    # strict subset of plot_combined_losses (loss_decomposition.png) which
+    # already plots loss_drift on the right y-axis (1000× scale to match
+    # drift's magnitude). Single source of drift visualization = loss_decomposition.png.
 
 
 def plot_combined_losses(jsonl_path, output_dir, title_prefix: str = "",

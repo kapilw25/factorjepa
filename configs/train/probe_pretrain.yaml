@@ -13,11 +13,11 @@
 #   4. layer_freeze: keep [20, 48) trainable (LayerLock; same as ch10)
 #   5. Per-mode memory savers (SANITY 24GB true / FULL 96GB false) — mirrors
 #      surgery_base.yaml:96-114
-#   6. data.module: m09a, data.output_dir: outputs/<mode>/probe_pretrain
+#   6. data.module: m09a, data.output_dir: outputs/<mode>/m09a_pretrain
 #   7. data.subset/local_data: SUPPLIED at runtime via --subset / --local-data
 #      (run_probe_train.sh extracts train-split keys from action_labels.json)
 #
-# Output: outputs/<mode>/probe_pretrain/{m09a_ckpt_best.pt, student_encoder.pt}
+# Output: outputs/<mode>/m09a_pretrain/{m09a_ckpt_best.pt, student_encoder.pt}
 # Consumed by probe eval as encoder=vjepa_2_1_pretrain.
 #
 # USAGE:
@@ -32,7 +32,7 @@
 #       --local-data data/eval_10k_local \
 #       --val-subset data/eval_10k_val_split.json \
 #       --val-local-data data/eval_10k_local \
-#       --output-dir outputs/sanity/probe_pretrain \
+#       --output-dir outputs/sanity/m09a_pretrain \
 #       --no-wandb 2>&1 | tee logs/probe_pretrain_sanity.log
 
 extends: base_optimization.yaml

@@ -29,9 +29,9 @@ HF_HUB_ENABLE_HF_TRANSFER=1 python -u src/utils/hf_outputs.py download-data 2>&1
 HF_HUB_ENABLE_HF_TRANSFER=1 python -u src/utils/hf_outputs.py download outputs/full 2>&1 | tee logs/hf_download_outputs.log
 
 # Verify the v12 anchor lands intact
-ls -lh outputs/full/probe_pretrain/student_encoder.pt           # ~6.9 GB — the v12 trained encoder
-ls -lh outputs/full/probe_pretrain/m09a_ckpt_best.pt            # ~14 GB — predictor-bearing for Stage 8
-tail -1 outputs/full/probe_pretrain/probe_history.jsonl | jq    # expect probe_top1 ≈ 0.808
+ls -lh outputs/full/m09a_pretrain/student_encoder.pt           # ~6.9 GB — the v12 trained encoder
+ls -lh outputs/full/m09a_pretrain/m09a_ckpt_best.pt            # ~14 GB — predictor-bearing for Stage 8
+tail -1 outputs/full/m09a_pretrain/probe_history.jsonl | jq    # expect probe_top1 ≈ 0.808
 ls -lh data/eval_10k_local/m10_sam_segment/segments.json        # m10 factor segments
 ls -lh data/eval_10k_local/m11_factor_datasets/factor_manifest.json   # m11 D_L/D_A/D_I manifest
 ls -lh data/eval_10k_local/motion_features.npy                  # 13-D motion features (9297, 13)
@@ -51,7 +51,7 @@ User reply form: `"go: 🅰️, λ=0.005"`. **Do not start T4 until this lands.*
 
 ## Step 3 — execute T4 (Phase 4 code edits, ~50 LoC across 5 files)
 
-Per `plan_motion_aux_to_surgery.md`:
+Per `legacy/plan_motion_aux_to_surgery.md`:
 
 ```
 1. configs/train/surgery_base.yaml         — λ audit: set drift_control.lambda_reg per gate-2 reply

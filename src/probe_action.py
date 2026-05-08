@@ -669,12 +669,72 @@ def run_paired_delta_stage(args, wb) -> None:
                 "interpretation": f"{a} - {b} > 0 means {a} more accurate than {b}",
             }
 
+    # iter14 paper deltas (2026-05-08) — the 3 claims from
+    # iter/iter14_surgery_on_pretrain/plan_surgery_on_pretrain.md § Q3:
+    #   Δ1 = pretrain − frozen           → continual SSL > frozen (domain adaptation works)
+    #   Δ2 = surgical_3stage_DI − pretrain    → factor patching adds value (the surgery claim)
+    #   Δ3 = surgical_3stage_DI − pretrain_2X → CAUSAL: gain is from factor patching,
+    #                                            not from extra training steps ⭐ key claim
+    # Each delta uses the same (intersect → align → paired_bca) pattern as
+    # pairwise_deltas above. Skipped with `skipped: true` if either encoder lacks
+    # probe outputs (e.g. user ran eval before all training arms complete) — matches
+    # pairwise_deltas defensive behavior.
+    ITER14_DELTAS = [
+        ("delta_1_pretrain_vs_frozen",
+         "vjepa_2_1_pretrain", "vjepa_2_1_frozen",
+         "Δ1: pretrain > frozen (continual SSL beats frozen baseline)"),
+        ("delta_2_surgical_vs_pretrain",
+         "vjepa_2_1_surgical_3stage_DI", "vjepa_2_1_pretrain",
+         "Δ2: surgery > pretrain (factor patching adds value)"),
+        ("delta_3_surgical_vs_pretrain_2X",
+         "vjepa_2_1_surgical_3stage_DI", "vjepa_2_1_pretrain_2X",
+         "Δ3: surgery > pretrain_2X (CAUSAL — gain is factor patching, not extra steps)"),
+    ]
+    iter14_paper_deltas = {}
+    for key, a_name, b_name, desc in ITER14_DELTAS:
+        if a_name not in enc_data or b_name not in enc_data:
+            iter14_paper_deltas[key] = {
+                "skipped":        True,
+                "reason":         (f"missing encoder(s): a={a_name} (present={a_name in enc_data}), "
+                                   f"b={b_name} (present={b_name in enc_data})"),
+                "interpretation": desc,
+            }
+            continue
+        ka, kb = enc_data[a_name]["keys"], enc_data[b_name]["keys"]
+        shared = sorted(set(ka) & set(kb))
+        if not shared:
+            iter14_paper_deltas[key] = {
+                "skipped":        True,
+                "reason":         f"zero shared test clips between {a_name} and {b_name}",
+                "interpretation": desc,
+            }
+            continue
+        ai = {k: idx for idx, k in enumerate(ka)}
+        bi = {k: idx for idx, k in enumerate(kb)}
+        a_arr = np.array([enc_data[a_name]["preds"][ai[k]] for k in shared], dtype=np.float32)
+        b_arr = np.array([enc_data[b_name]["preds"][bi[k]] for k in shared], dtype=np.float32)
+        delta = a_arr - b_arr
+        bca = paired_bca(delta)
+        iter14_paper_deltas[key] = {
+            "n_shared":       int(len(shared)),
+            "delta_pp":       round(float(delta.mean()) * 100, 4),
+            "ci_lo_pp":       round(float(bca["ci_lo"]) * 100, 4),
+            "ci_hi_pp":       round(float(bca["ci_hi"]) * 100, 4),
+            "ci_half_pp":     round(float(bca["ci_half"]) * 100, 4),
+            "p_value":        float(bca["p_value_vs_zero"]),
+            "pass":           bool(bca["ci_lo"] > 0),
+            "interpretation": desc,
+        }
+
     out = {"metric": "top1_accuracy",
            "by_encoder": by_encoder,
-           "pairwise_deltas": pairwise_deltas}
+           "pairwise_deltas": pairwise_deltas,
+           "iter14_paper_deltas": iter14_paper_deltas}
     save_json_checkpoint(out, args.output_root / "probe_paired_delta.json")
     log_metrics(wb, {"n_encoders_compared": len(available),
-                     "n_pairwise_deltas":   len(pairwise_deltas)})
+                     "n_pairwise_deltas":   len(pairwise_deltas),
+                     "iter14_deltas_passed": sum(1 for d in iter14_paper_deltas.values()
+                                                 if d.get("pass") is True)})
     print(json.dumps(out, indent=2))
 
 

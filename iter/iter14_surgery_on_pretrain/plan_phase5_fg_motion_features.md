@@ -2,9 +2,9 @@
 
 > **🎯 Goal**: widen the surgery-vs-pretrain gap by replacing summary-statistical motion features (current 13-D) with **camera-subtracted foreground motion** (23-D) so factor curriculum's agent/interaction inductive bias has something to express.
 
-> **🚦 Gate**: ⚠️ **DO NOT START** until Phase 4 ([`plan_motion_aux_to_surgery.md`](./plan_motion_aux_to_surgery.md)) finishes. Only proceed if **Δ (surgery_3DI − pretrain) < +5 pp** on the motion-flow probe.
+> **🚦 Gate**: ⚠️ **DO NOT START** until Phase 4 ([`plan_motion_aux_to_surgery.md`](./legacy/plan_motion_aux_to_surgery.md)) finishes. Only proceed if **Δ (surgery_3DI − pretrain) < +5 pp** on the motion-flow probe.
 
-> **Sister docs**: [`plan_HIGH_LEVEL.md`](./plan_HIGH_LEVEL.md) · [`plan_motion_aux_to_surgery.md`](./plan_motion_aux_to_surgery.md) (Phase 4 — pre-req)
+> **Sister docs**: [`plan_HIGH_LEVEL.md`](./plan_HIGH_LEVEL.md) · [`plan_motion_aux_to_surgery.md`](./legacy/plan_motion_aux_to_surgery.md) (Phase 4 — pre-req)
 
 ---
 

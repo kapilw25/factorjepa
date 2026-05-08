@@ -11,7 +11,7 @@ USAGE:
     #   • probe_eval Stage 8: probe_future_mse reads m09a_ckpt_best.pt (predictor key)
     
     HF_HUB_ENABLE_HF_TRANSFER=1 python -u src/utils/hf_finetuned_push.py \                                                    
-        --source-dir outputs/full/probe_pretrain \                 
+        --source-dir outputs/full/m09a_pretrain \                 
         --repo-id anonymousML123/factorjepa-pretrain-vjepa21-vitg-5ep \                                                       
         --base-model facebook/v-jepa-2-vitg \                      
         --stage pretrain \                                                                                                    
@@ -364,13 +364,13 @@ def main():
     p = argparse.ArgumentParser(description=__doc__,
                                 formatter_class=argparse.RawDescriptionHelpFormatter)
     p.add_argument("--source-dir", required=True,
-                   help="Local training-output dir (e.g., outputs/full/probe_pretrain)")
+                   help="Local training-output dir (e.g., outputs/full/m09a_pretrain)")
     p.add_argument("--repo-id", required=True,
                    help="HF model repo (e.g., anonymousML123/factorjepa-pretrain-vjepa21-vitg-5ep)")
     p.add_argument("--base-model", default="facebook/v-jepa-2-vitg",
                    help="HF id of the base model this was fine-tuned from")
     p.add_argument("--stage", default="pretrain",
-                   choices=["pretrain", "pretrain_long",
+                   choices=["pretrain", "pretrain_2X",
                             "surgery_3stage_DI", "surgery_noDI"],
                    help="Training stage label (drives model-card framing + tags)")
     p.add_argument("--private", action="store_true",

@@ -21,6 +21,14 @@ data:
   # running SANITY test fails with KeyError if these are absent.
   sanity_train_clips: 20
   sanity_val_clips: 10
+  # iter14 (2026-05-08): POC pool size for end-to-end plot/early-stop test.
+  # Generates data/eval_10k_poc.json = first N keys of eval_10k.json. Then
+  # probe_action.py --stage labels applies 70:15:15 stratified_split (post
+  # motion-flow filter ≈ N×0.95) → ~N×0.665 / N×0.143 / N×0.143 train/val/test.
+  # Single knob for scalability across datasets — the 70:15:15 ratio is enforced
+  # by stratified_split (utils/action_labels.py:208), NOT hardcoded counts here.
+  # POC just needs code-completion of FULL features at ~10× lower compute.
+  poc_total_clips: 1000
 
   # iter11 v3 hard-pivot (2026-04-25): 80/10/10 train/val/eval split inside
   # ultra_hard_3066.json — 3,066 clips with ≥4 Hard triggers AND ≥4 Indian-specific
@@ -255,12 +263,13 @@ mixed_precision:
 # decoupled the trajectory metric from the decision gate.
 #
 # iter11 (2026-04-24, universal across all techniques 2026-04-26): val-loss
-# plateau is the ONLY enabled early-stop trigger. All Prec@K-driven triggers
-# (kill_switch / prec_plateau / bwt) operate below the BCa CI_half noise floor
-# (±2.4 pp @ N=306) → they fire on sampling jitter regardless of variant. SSL
-# canon (V-JEPA 2 / DINOv2 / ExPLoRA paper) trains to fixed cosine-to-zero
-# budget or stops only on val-loss plateau. Probe Prec@K stays as monitoring-only
-# (plot + ckpt selection) — NOT as training terminator.
+# iter14 (2026-05-08): early-stop simplified to top@1 plateau ONLY (prec_plateau).
+# Removed val_jepa-based plateau + catastrophic-forgetting kill_switch + BWT
+# regression triggers — val_jepa loss does NOT 100% correlate with downstream
+# motion-flow probe top@1 (the paper-grade gate metric per iter13 v12 anchor
+# 0.808). prec_plateau directly tracks top@1 spread → fires only on real
+# representation stagnation. min_delta=0.005 (0.5 pp) — tune above N=1398 BCa
+# noise floor (~1.1 pp) post first FULL run if false-positives observed.
 probe:
   enabled:                  {sanity: false, poc: true, full: true}
   subset:                   data/ultra_hard_3066_val.json
@@ -269,30 +278,19 @@ probe:
   k:                        6                                          # matches configs/pipeline.yaml eval.K
   bootstrap_iter:           10000                                      # matches utils/bootstrap.N_BOOTSTRAP
   cadence:                  saves_per_epoch                            # reuses checkpoint.saves_per_epoch
-  best_ckpt_enabled:        {sanity: false, poc: true, full: true}    # save student_best.pt on each new max Prec@K
-  # -- Early-stop #1: catastrophic-forgetting kill-switch (DISABLED — noise-level) --
-  kill_switch_enabled:      {sanity: false, poc: false, full: false}
-  forgetting_threshold_pct: 5.0
-  forgetting_patience:      3
-  # -- Early-stop #2: val-loss plateau detector (THE ONLY ACTIVE TRIGGER) --
-  plateau_enabled:          {sanity: false, poc: true, full: true}
-  plateau_min_delta:        1.0e-3       # min val_jepa drop to reset patience (~0.2% relative).
-  plateau_patience:         5            # consecutive probes with delta < min_delta → stop + export best-ckpt.
-  # -- Early-stop #2b: Prec@K plateau detector (DISABLED — noise-level) --
-  prec_plateau_enabled:     {sanity: false, poc: false, full: false}
-  prec_plateau_min_delta:   0.3
+  best_ckpt_enabled:        {sanity: false, poc: true, full: true}    # save student_best.pt on each new max top@1
+  # -- Early-stop: top@1 plateau (THE ONLY trigger — iter14 2026-05-08).
+  # Stop training if top@1 spread over the last (patience+1) probes < min_delta.
+  prec_plateau_enabled:     {sanity: false, poc: true, full: true}
+  prec_plateau_min_delta:   0.005                                       # 0.5 pp top@1 (tunable post first FULL)
   prec_plateau_patience:    5
-  # -- Early-stop #3: negative-BWT cumulative trigger (DISABLED — noise-level) --
-  bwt_trigger_enabled:      {sanity: false, poc: false, full: false}
-  bwt_ci_fraction:          0.5
-  bwt_absolute_floor:       0.3
-  bwt_patience:             3
   # -- Held-out val source --
-  # use_permanent_val=true → val_keys come from probe.subset (= data.val_subset =
-  # ultra_hard_3066_val.json, 306 clips). Train uses ALL of train_subset.
-  # use_permanent_val=false → falls back to internal data.train_val_split (POC code-test).
-  use_permanent_val:        {sanity: false, poc: false, full: true}
-  compute_val_loss:         true         # also compute JEPA val-loss on probe clips (~2 s per call at N=306).
+  # iter14 (2026-05-08): `use_permanent_val` is RETIRED — m09c now mirrors m09a's
+  # gold-standard pattern (single yaml-driven external val pool, no internal
+  # split fallback). Flag value here is informational only; m09c no longer reads
+  # it (m09c_surgery.py:530+). Kept in yaml for backward-compat with legacy/m09b.
+  use_permanent_val:        {sanity: false, poc: true, full: true}
+  compute_val_loss:         true                                        # logged for plots; NOT an early-stop gate (iter14)
   # NOTE: probe forward micro-batch is adaptive — AdaptiveBatchSizer reads pipeline.yaml
   # gpu.{inference_vjepa_initial_bs, training_adapted_probe_bs, gpu_memory_target} at
   # runtime. Do NOT hardcode sub_batch here (CLAUDE.md B35, errors_N_fixes #47).

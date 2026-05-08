@@ -11,7 +11,7 @@ type: project
 | Script | Subcommand / mode | Modules invoked | Output namespace |
 |---|---|---|---|
 | `run_probe_eval.sh` | `--sanity` / `--FULL` | probe_action.py + probe_taxonomy.py + probe_motion_cos.py + probe_future_mse.py + probe_plot.py | `outputs/{sanity,full}/probe_*/` |
-| `run_probe_train.sh` | `pretrain --SANITY/--POC/--FULL` | m09a_pretrain.py + (auto-gen) probe_taxonomy.py + utils/probe_train_subset.py + (iter13 v12) m04d_motion_features.py inputs | `outputs/{mode}/probe_pretrain/` |
+| `run_probe_train.sh` | `pretrain --SANITY/--POC/--FULL` | m09a_pretrain.py + (auto-gen) probe_taxonomy.py + utils/probe_train_subset.py + (iter13 v12) m04d_motion_features.py inputs | `outputs/{mode}/m09a_pretrain/` |
 | `run_probe_train.sh` | `surgery_3stage_DI --SANITY/--POC/--FULL` | m09c_surgery.py + (Phase 4) motion_features.npy input | `outputs/{mode}/probe_surgery_3stage_DI/` |
 | `run_probe_train.sh` | `surgery_noDI --SANITY/--POC/--FULL` | m09c_surgery.py + (Phase 4) motion_features.npy input | `outputs/{mode}/probe_surgery_noDI/` |
 | `run_factor_prep.sh` | `--FULL` | m10_sam_segment.py + m11_factor_datasets.py | `outputs/full/m10_*/` + `outputs/full/m11_factor_datasets/` (m09c surgery prereq) |
@@ -82,11 +82,11 @@ Dispatch (one trainer per invocation)
    surgery_noDI      → m09c_surgery.py     --train-config configs/train/surgery_2stage_noDI.yaml    --factor-dir outputs/full/m11_factor_datasets
 
 Outputs per trainer (consumed by run_probe_eval.sh Stages 2-9)
-   outputs/<mode>/probe_pretrain/student_encoder.pt        (~7 GB, encoder only — Stages 2-7)
-   outputs/<mode>/probe_pretrain/m09a_ckpt_best.pt         (~15 GB, full ckpt — Stage 8 future_mse)
-   outputs/<mode>/probe_pretrain/multi_task_head.pt        (~1 MB, mt_head state)
-   outputs/<mode>/probe_pretrain/loss_log.{jsonl,csv}      (per-step training loss + multi-task per-dim)
-   outputs/<mode>/probe_pretrain/probe_history.jsonl       (mid-train kNN-centroid probe top-1 at every val cadence)
+   outputs/<mode>/m09a_pretrain/student_encoder.pt        (~7 GB, encoder only — Stages 2-7)
+   outputs/<mode>/m09a_pretrain/m09a_ckpt_best.pt         (~15 GB, full ckpt — Stage 8 future_mse)
+   outputs/<mode>/m09a_pretrain/multi_task_head.pt        (~1 MB, mt_head state)
+   outputs/<mode>/m09a_pretrain/loss_log.{jsonl,csv}      (per-step training loss + multi-task per-dim)
+   outputs/<mode>/m09a_pretrain/probe_history.jsonl       (mid-train kNN-centroid probe top-1 at every val cadence)
    (same 5-file pattern for probe_surgery_3stage_DI/ and probe_surgery_noDI/, with m09c_ckpt_best.pt instead)
 ```
 

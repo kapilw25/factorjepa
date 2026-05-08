@@ -474,6 +474,21 @@ def compute_drift_loss(student: torch.nn.Module, init_params: dict,
     return lambda_reg * drift
 
 
+def compute_total_loss(*, jepa: float, drift: float = 0.0,
+                       mt: float = 0.0, mt_cfg: dict | None = None,
+                       ma: float = 0.0, ma_cfg: dict | None = None) -> float:
+    """Canonical training/val total loss: jepa + β·multi_task + γ·motion_aux + drift.
+
+    Single source of truth for both train step_record (m09a/m09c) and val_total
+    (run_val_loss above). drift is already λ-scaled inside compute_drift_loss;
+    mt/ma are raw losses, weighted here by their yaml weights. Pass cfg=None
+    (or default 0.0) when the corresponding head is disabled.
+    """
+    weight_mt = float(mt_cfg["weight_probe"]) if mt_cfg is not None else 0.0
+    weight_ma = float(ma_cfg["weight_motion"]) if ma_cfg is not None else 0.0
+    return jepa + weight_mt * mt + weight_ma * ma + drift
+
+
 def _train_step_grad_accum(student, teacher, predictor, batch_clips,
                            all_masks_enc, all_masks_pred,
                            cfg, dtype, mp_cfg, scaler, sizer, loss_exp,
@@ -931,12 +946,11 @@ def run_validation(student, teacher, predictor, mask_generators,
             val_drift = float(
                 compute_drift_loss(student, init_params, drift_cfg["lambda_reg"]).item())
 
-    # iter13 v13 FIX-5: total = α·jepa + β·mt + γ·motion_aux + λ·drift (yaml weights).
-    # Mirrors _train_step_grad_accum's accounting. Defaults reproduce the legacy
-    # "jepa-only" total when mt_cfg/ma_cfg/drift inputs are absent.
-    weight_mt = float(mt_cfg["weight_probe"]) if mt_cfg is not None else 0.0
-    weight_ma = float(ma_cfg["weight_motion"]) if ma_cfg is not None else 0.0
-    val_total = val_jepa + weight_mt * val_mt + weight_ma * val_ma + val_drift
+    # iter13 v13 FIX-5 / iter14 (2026-05-08): canonical total via compute_total_loss
+    # — single source of truth shared with m09a/m09c step_record builders.
+    val_total = compute_total_loss(
+        jepa=val_jepa, drift=val_drift,
+        mt=val_mt, mt_cfg=mt_cfg, ma=val_ma, ma_cfg=ma_cfg)
 
     print(f"  Step {step} | Val JEPA loss: {val_jepa:.4f} "
           f"(mt={val_mt:.4f} · ma={val_ma:.4f} · drift={val_drift:.6f} · "
@@ -1241,44 +1255,31 @@ def apply_val_cycle_triggers(
     probe_history: list,
     best_state: dict,
     kill_state: dict,
-    plateau_state: dict,
     top1_plateau_state: dict,
-    bwt_state: dict,
     # Best-ckpt
     best_ckpt_enabled: bool,
     save_best_callback=None,
-    # Forgetting kill-switch
-    kill_switch_enabled: bool,
-    forgetting_threshold_pct: float,
-    forgetting_patience: int,
-    # Val-loss plateau
-    plateau_enabled: bool,
-    plateau_min_delta: float,
-    plateau_patience: int,
-    # top1 plateau (cfg keys still named prec_plateau_* for yaml back-compat)
+    # iter14 (2026-05-08): the ONLY active early-stop trigger = top@1 plateau.
+    # val_jepa kill_switch + val_jepa plateau + BWT regression triggers removed
+    # because they don't correlate with downstream motion-flow probe top@1.
     prec_plateau_enabled: bool,
     prec_plateau_min_delta: float,
     prec_plateau_patience: int,
-    # Negative-BWT
-    bwt_trigger_enabled: bool,
-    bwt_absolute_floor: float,
-    bwt_patience: int,
     # Phase context
     stage_idx: int = 0,
     global_step: int = 0,
     is_final_stage: bool = True,
     probe_compute_val_loss: bool = True,
 ) -> None:
-    """Apply best-ckpt + 4 early-stop triggers + plateau resets. Mutates state in place.
+    """Apply best-ckpt + top@1-plateau early-stop + plateau resets. Mutates state in place.
 
-    Reads `pr["probe_top1"]` + `pr["val_jepa_loss"]` (when probe_compute_val_loss).
-    Caller has already populated pr (with trio metrics + bwt + val losses) BEFORE
-    calling this helper. Stage context (stage_idx / global_step / is_final_stage)
-    is passed explicitly so single-stage trainers (m09a) can pass stage_idx=0
-    is_final_stage=True without inventing stage scaffolding.
+    Reads `pr["probe_top1"]`. Caller populates pr BEFORE calling this helper.
+    Stage context (stage_idx / global_step / is_final_stage) passed explicitly
+    so single-stage trainers (m09a) can pass stage_idx=0 is_final_stage=True.
 
     iter13 v13 R3 (2026-05-07): factored from m09c:970-1085 — eliminates ~95
     LoC of duplication and provides drop-in primitives for m09a parity.
+    iter14 (2026-05-08): trimmed from 4 triggers to 1 (top@1 plateau only).
     """
     cur_top1 = pr.get("probe_top1", 0.0)
 
@@ -1290,69 +1291,24 @@ def apply_val_cycle_triggers(
             save_callback=save_best_callback,
         )
 
-    # 2. Catastrophic-forgetting kill-switch — drop > forgetting_threshold_pct
-    #    from running max for forgetting_patience consecutive probes.
-    running_max_top1 = best_state.get("top1", 0.0)
-    if kill_switch_enabled and running_max_top1 > 0:
-        if cur_top1 < running_max_top1 - forgetting_threshold_pct:
-            kill_state["strikes"] += 1
-            print(f"  [forgetting-kill] strike {kill_state['strikes']}/{forgetting_patience}: "
-                  f"top1 {cur_top1:.4f} < max {running_max_top1:.4f} - {forgetting_threshold_pct:.4f}")
-            if kill_state["strikes"] >= forgetting_patience:
-                kill_state["triggered"] = True
-                kill_state["reason"] = "catastrophic_forgetting"
-        else:
-            kill_state["strikes"] = 0
-
-    # 3. Stage-transition plateau resets (#79: per-stage semantics).
-    if plateau_state.get("last_stage_idx", -1) != stage_idx:
-        plateau_state["recent_val_losses"] = []
+    # 2. Stage-transition plateau reset (#79: per-stage semantics).
+    if top1_plateau_state.get("last_stage_idx", -1) != stage_idx:
         top1_plateau_state["recent_top1"] = []
-        plateau_state["last_stage_idx"] = stage_idx
         top1_plateau_state["last_stage_idx"] = stage_idx
 
-    # 4. Val-loss plateau (final stage only).
-    if plateau_enabled and probe_compute_val_loss and "val_jepa_loss" in pr:
-        plateau_state["recent_val_losses"].append(pr["val_jepa_loss"])
-        window = plateau_state["recent_val_losses"][-(plateau_patience + 1):]
-        if is_final_stage and len(window) >= plateau_patience + 1:
-            spread = max(window) - min(window)
-            if spread < plateau_min_delta:
-                print(f"  [plateau-kill] val_jepa range over last "
-                      f"{plateau_patience + 1} in-stage probes = {spread:.5f} < "
-                      f"{plateau_min_delta} → plateau in final stage {stage_idx}")
-                kill_state["triggered"] = True
-                kill_state["reason"] = "val_loss_plateau"
-
-    # 5. top1 plateau (final stage only). cfg key kept as `prec_plateau_*` for
-    #    yaml back-compat; underlying buffer is now top1 (was prec_at_k pre-v13).
+    # 3. top@1 plateau (final stage only). cfg key `prec_plateau_*` kept for
+    #    yaml back-compat; underlying buffer tracks probe_top1 (motion-flow gate).
     if prec_plateau_enabled:
         top1_plateau_state["recent_top1"].append(cur_top1)
         pwin = top1_plateau_state["recent_top1"][-(prec_plateau_patience + 1):]
         if is_final_stage and len(pwin) >= prec_plateau_patience + 1:
             pspread = max(pwin) - min(pwin)
             if pspread < prec_plateau_min_delta:
-                print(f"  [top1-plateau-kill] top1 range over last "
+                print(f"  [top1-plateau-kill] top@1 range over last "
                       f"{prec_plateau_patience + 1} in-stage probes = {pspread:.4f} "
                       f"< {prec_plateau_min_delta} → plateau in final stage {stage_idx}")
                 kill_state["triggered"] = True
                 kill_state["reason"] = "top1_plateau"
-
-    # 6. Negative-BWT (cumulative slow-drift) — absolute-floor rule on top1.
-    if bwt_trigger_enabled:
-        if bwt_state["first_top1"] is None:
-            bwt_state["first_top1"] = cur_top1
-        bwt_now = cur_top1 - bwt_state["first_top1"]
-        abs_threshold = -bwt_absolute_floor
-        if bwt_now < abs_threshold:
-            bwt_state["patience_counter"] += 1
-            print(f"  [bwt-kill] strike {bwt_state['patience_counter']}/{bwt_patience}: "
-                  f"BWT (top1) {bwt_now:+.4f} < abs_thr {abs_threshold:+.4f}")
-            if bwt_state["patience_counter"] >= bwt_patience:
-                kill_state["triggered"] = True
-                kill_state["reason"] = "negative_bwt"
-        else:
-            bwt_state["patience_counter"] = 0
 
 
 # iter13 v13 R4 (2026-05-07): shared end-of-train sequence used by both
@@ -2388,13 +2344,12 @@ def render_training_plots(
     probe_history: list,
     output_dir: Path,
     *,
-    forgetting_threshold_pct: float,
-    forgetting_patience: int,
-    bwt_trigger_enabled: bool,
-    bwt_absolute_floor: float,
-    bwt_patience: int,
     kill_state: dict,
     best_state: dict,
+    # iter14 (2026-05-08): forgetting + BWT args removed — see early-stop refactor.
+    # render_training_plots now renders ONLY the val_loss 3-panel (when
+    # probe_compute_val_loss=True). top@1 trajectory is rendered separately by
+    # plot_probe_trajectory_trio (utils/plots.py), called directly from m09a/m09c.
     probe_compute_val_loss: bool = True,
     verbose: bool = False,
     n_train_clips: int = None,
@@ -2418,234 +2373,22 @@ def render_training_plots(
             Pass {"global_step": -1, "top1": 0.0} to suppress marker.
         probe_compute_val_loss: if False, skips the val_jepa 3-panel plot.
 
-    Needs ≥2 probe points; silent no-op below that. Each plot wrapped in
-    try/except so rendering failure never kills training.
+    Needs ≥2 probe points; silent no-op below that.
+
+    iter14 (2026-05-08): function is now a documented NO-OP. All three plot
+    blocks it used to render were retired in this iteration:
+      • iter13 v13 (2026-05-07) — legacy Prec@K/mAP@K/Cycle@K 3-panel:
+        replaced by `plot_probe_trajectory_trio` (utils.plots.py).
+      • iter14 — legacy `<prefix>_forgetting.png`: retired alongside BWT/
+        forgetting early-stop triggers (top@1 plateau is the only signal now).
+      • iter14 — Plot 3 (3-panel val_loss) + Plot 3b (val_loss_jepa zoom):
+        replaced by `plot_val_loss_with_kill_switch_overlay` (utils.plots.py),
+        the same shared util m09a uses → cross-encoder file-list parity.
+
+    Function is kept (not deleted) so legacy/m09b_explora.py still imports
+    cleanly. Active callers (m09a/m09c) should call the replacements directly.
     """
-    import matplotlib
-    matplotlib.use("Agg")
-    import matplotlib.pyplot as plt
-
-    if len(probe_history) < 2:
-        return
-
-    steps_ = [r["global_step"] for r in probe_history]
-
-    # Run-context tag: woven into every plot title so reader knows the
-    # training scale at a glance (epochs × clips × batch). Falls back to ""
-    # for callers that don't pass these kwargs (backward compat).
-    _tag_parts = []
-    if n_train_clips is not None:
-        _tag_parts.append(f"{n_train_clips:,} train clips")
-    if n_epochs is not None:
-        _tag_parts.append(f"{n_epochs} ep")
-    if total_steps is not None:
-        _tag_parts.append(f"{total_steps:,} steps")
-    if batch_size is not None:
-        _tag_parts.append(f"BS={batch_size}")
-    if lr is not None:
-        _tag_parts.append(f"LR={lr:.1e}")
-    _run_tag = ("\n" + " × ".join(_tag_parts)) if _tag_parts else ""
-
-    # iter13 v13 (2026-05-07): legacy 3-panel Prec@K/mAP@K/Cycle@K trajectory
-    # retired. Probe-trio trajectory (top-1 / motion-cos / future-L1) is rendered
-    # by `plot_probe_trajectory_trio` in utils.plots.py — direct caller from
-    # m09a / m09c, no need to duplicate here.
-
-    # Plot 2: <file_prefix>_forgetting.png/.pdf — keyed on probe_top1 (motion-flow gate).
-    # iter13 v13 (2026-05-07): switched from legacy retrieval Prec@K to top-1.
-    # Skips entirely if probe_top1 not in any history record (e.g. probe disabled).
-    has_top1 = any("probe_top1" in r for r in probe_history)
-    if has_top1:
-        try:
-            top1_recs = [r for r in probe_history if "probe_top1" in r]
-            top1_steps = [r["global_step"] for r in top1_recs]
-            top1_vals = [r["probe_top1"] for r in top1_recs]
-            fig, ax = plt.subplots(figsize=(8, 5))
-            running_max = []
-            cur_max = -1.0
-            for v in top1_vals:
-                cur_max = max(cur_max, v)
-                running_max.append(cur_max)
-            strike_x, strike_y = [], []
-            for s, p, m in zip(top1_steps, top1_vals, running_max):
-                if m > 0 and p < m - forgetting_threshold_pct:
-                    strike_x.append(s)
-                    strike_y.append(p)
-            ax.plot(top1_steps, top1_vals, "o-", color="#2E7D32", linewidth=2,
-                    label="probe_top1 (held-out val)", markersize=5, alpha=0.9)
-            ax.plot(top1_steps, running_max, "--", color="#1565C0", linewidth=1.5,
-                    label="running max", alpha=0.8)
-            threshold_low = [m - forgetting_threshold_pct for m in running_max]
-            ax.fill_between(top1_steps, threshold_low, running_max,
-                            color="#FFA726", alpha=0.15,
-                            label=f"forgetting tolerance ({forgetting_threshold_pct:.4f})")
-            if strike_x:
-                ax.scatter(strike_x, strike_y, marker="x", s=100, color="#C62828",
-                           label=f"forgetting strikes ({len(strike_x)})",
-                           zorder=5, linewidths=2)
-            seen = set()
-            for r in probe_history:
-                if r["stage_idx"] not in seen:
-                    ax.axvline(r["global_step"], color="gray",
-                               linestyle=":", alpha=0.4, linewidth=1)
-                    seen.add(r["stage_idx"])
-            if best_state.get("global_step", -1) >= 0:
-                ax.axvline(best_state["global_step"], color="#2E7D32",
-                           linestyle="-.", alpha=0.5, linewidth=1.5,
-                           label=f"best ckpt (top1={best_state.get('top1', 0.0):.4f})")
-            ax2 = ax.twinx()
-            bwt_vals = [r.get("bwt", v - top1_vals[0])
-                        for r, v in zip(top1_recs, top1_vals)]
-            ax2.plot(top1_steps, bwt_vals, "s-", color="#8E24AA", linewidth=1.8,
-                     markersize=4, alpha=0.9, label=f"BWT (latest={bwt_vals[-1]:+.4f})")
-            ax2.axhline(0.0, color="#8E24AA", linestyle=":", alpha=0.4, linewidth=1)
-            if bwt_trigger_enabled:
-                ax2.axhline(-bwt_absolute_floor, color="#E65100", linestyle=":",
-                            alpha=0.7, linewidth=1.2,
-                            label=f"abs floor (−{bwt_absolute_floor:.4f} × {bwt_patience} probes)")
-            ax2.set_ylabel("BWT = top1 − top1[first]", color="#8E24AA")
-            ax2.tick_params(axis="y", labelcolor="#8E24AA")
-            top1_lo_tight = min(top1_vals)
-            top1_hi_tight = max(max(top1_vals), max(running_max))
-            top1_pad = max((top1_hi_tight - top1_lo_tight) / 18, 0.0005)
-            ax.set_ylim(top1_lo_tight - top1_pad, top1_hi_tight + top1_pad)
-            bwt_lo_tight = min(bwt_vals)
-            bwt_hi_tight = max(bwt_vals)
-            bwt_pad = max((bwt_hi_tight - bwt_lo_tight) / 18, 0.0005)
-            ax2.set_ylim(bwt_lo_tight - bwt_pad, bwt_hi_tight + bwt_pad)
-            kill_msg = " — TRIGGERED" if kill_state.get("triggered") else ""
-            ax.set_xlabel("Optimizer step")
-            ax.set_ylabel("probe_top1")
-            ax.set_title(
-                f"Forgetting monitor (N={probe_history[0].get('num_clips','?')}, "
-                f"patience={forgetting_patience}, threshold={forgetting_threshold_pct:.4f}{kill_msg}){_run_tag}")
-            lines1, labels1 = ax.get_legend_handles_labels()
-            lines2, labels2 = ax2.get_legend_handles_labels()
-            ax.legend(lines1 + lines2, labels1 + labels2,
-                      loc="upper left", bbox_to_anchor=(1.15, 1.0),
-                      fontsize=7, framealpha=0.95,
-                      title="legend", title_fontsize=8)
-            ax.grid(True, alpha=0.3)
-            for ext in (".png", ".pdf"):
-                plt.savefig(output_dir / f"{file_prefix}_forgetting{ext}",
-                            dpi=150 if ext == ".png" else None, bbox_inches="tight")
-            plt.close()
-            if verbose:
-                print(f"  Saved: {output_dir / f'{file_prefix}_forgetting.png'}")
-        except Exception as e:
-            print(f"  [probe] FATAL: forgetting plot failed: {e}", flush=True)
-            raise
-
-    # Plot 3: m09_val_loss.png/.pdf — 3-panel stacked (optional).
-    # m09b uses "val_jepa_loss"/"masked_loss"/"context_loss" keys; m09c historically
-    # writes "val_jepa_loss"/"val_masked_loss"/"val_context_loss". Support both.
-    if probe_compute_val_loss and probe_history:
-        # Auto-detect key naming convention from first record with val_jepa_loss.
-        sample = next((r for r in probe_history if "val_jepa_loss" in r), None)
-        if sample is None:
-            return
-        if "val_masked_loss" in sample:
-            panel_keys = [("val_jepa_loss", "JEPA total (L1)", "#C62828"),
-                          ("val_masked_loss", "masked loss", "#1565C0"),
-                          ("val_context_loss", "context loss", "#2E7D32")]
-        elif "masked_loss" in sample:
-            panel_keys = [("val_jepa_loss", "JEPA total (L1)", "#C62828"),
-                          ("masked_loss", "masked loss", "#1565C0"),
-                          ("context_loss", "context loss", "#2E7D32")]
-        else:
-            return  # only val_jepa_loss present — skip 3-panel
-        try:
-            fig, axes = plt.subplots(3, 1, figsize=(9, 9), sharex=True,
-                                     gridspec_kw={"hspace": 0.15})
-            stage_boundaries = []
-            seen = set()
-            for r in probe_history:
-                if r["stage_idx"] not in seen:
-                    stage_boundaries.append(r["global_step"])
-                    seen.add(r["stage_idx"])
-            for (key, ylabel, color), ax_i in zip(panel_keys, axes):
-                vals = [r[key] for r in probe_history]
-                ax_i.plot(steps_, vals, "o-", color=color, linewidth=2,
-                          markersize=6, alpha=0.9)
-                for sb in stage_boundaries:
-                    ax_i.axvline(sb, color="gray", linestyle=":", alpha=0.4, linewidth=1)
-                ax_i.set_ylabel(ylabel, color=color, fontsize=10, fontweight="bold")
-                ax_i.tick_params(axis="y", labelcolor=color)
-                ax_i.margins(y=0.05)
-                ax_i.grid(True, alpha=0.3)
-                if vals:
-                    ax_i.annotate(f"end={vals[-1]:.4f}", xy=(steps_[-1], vals[-1]),
-                                  xytext=(5, 0), textcoords="offset points",
-                                  fontsize=8, color=color, va="center")
-            axes[-1].set_xlabel("Optimizer step")
-            axes[0].set_title(
-                f"JEPA val-loss (N={probe_history[0]['num_clips']} val-split, "
-                f"{len(probe_history)} probes){_run_tag}")
-            for ext in (".png", ".pdf"):
-                plt.savefig(output_dir / f"{file_prefix}_val_loss{ext}",
-                            dpi=150 if ext == ".png" else None, bbox_inches="tight")
-            plt.close()
-            if verbose:
-                print(f"  Saved: {output_dir / f'{file_prefix}_val_loss.png'}")
-        except Exception as e:
-            # iter13 (2026-05-05): per CLAUDE.md FAIL HARD.
-            print(f"  [probe] FATAL: val-loss plot failed: {e}", flush=True)
-            raise
-
-        # Plot 3b: m09_val_loss_jepa.png/.pdf — single-panel JEPA total (L1)
-        # zoom with rolling-mean overlay (companion to m09_train_loss smoothing).
-        try:
-            jepa_vals = [r["val_jepa_loss"] for r in probe_history
-                         if "val_jepa_loss" in r]
-            jepa_steps = [r["global_step"] for r in probe_history
-                          if "val_jepa_loss" in r]
-            if len(jepa_vals) >= 2:
-                fig, ax = plt.subplots(figsize=(10, 5))
-                ax.plot(jepa_steps, jepa_vals, "o-", color="#C62828",
-                        linewidth=0.8, markersize=4, alpha=0.35,
-                        label="val_jepa (raw)", zorder=2)
-                window = max(1, len(jepa_vals) // 10)
-                if window > 1:
-                    k = np.ones(window) / window
-                    sm = np.convolve(jepa_vals, k, mode="valid")
-                    sm_x = jepa_steps[window - 1:]
-                    ax.plot(sm_x, sm, color="#C62828", linewidth=2.8,
-                            label=f"rolling mean (w={window} probes)", zorder=10)
-                seen_ = set()
-                for r in probe_history:
-                    if r["stage_idx"] not in seen_:
-                        ax.axvline(r["global_step"], color="gray",
-                                   linestyle=":", alpha=0.5, linewidth=1)
-                        seen_.add(r["stage_idx"])
-                ax.annotate(f"end={jepa_vals[-1]:.4f}",
-                            xy=(jepa_steps[-1], jepa_vals[-1]),
-                            xytext=(5, 0), textcoords="offset points",
-                            fontsize=9, color="#C62828", va="center")
-                best_i = int(np.argmin(jepa_vals))
-                ax.scatter([jepa_steps[best_i]], [jepa_vals[best_i]],
-                           marker="*", s=140, color="#1565C0",
-                           zorder=11, label=f"best={jepa_vals[best_i]:.4f}"
-                           f" @ step {jepa_steps[best_i]}")
-                ax.set_xlabel("Optimizer step", fontsize=10)
-                ax.set_ylabel("JEPA total (L1)", color="#C62828",
-                              fontsize=10, fontweight="bold")
-                ax.tick_params(axis="y", labelcolor="#C62828")
-                ax.grid(True, alpha=0.3)
-                ax.legend(loc="upper right", fontsize=9)
-                ax.set_title(
-                    f"JEPA val-loss zoom (N={probe_history[0]['num_clips']} "
-                    f"val-split, {len(jepa_vals)} probes) — raw + rolling mean{_run_tag}")
-                for ext in (".png", ".pdf"):
-                    plt.savefig(output_dir / f"{file_prefix}_val_loss_jepa{ext}",
-                                dpi=150 if ext == ".png" else None,
-                                bbox_inches="tight")
-                plt.close()
-                if verbose:
-                    print(f"  Saved: {output_dir / f'{file_prefix}_val_loss_jepa.png'}")
-        except Exception as e:
-            # iter13 (2026-05-05): per CLAUDE.md FAIL HARD.
-            print(f"  [probe] FATAL: val-loss-jepa plot failed: {e}", flush=True)
-            raise
+    return
 
 
 # ═════════════════════════════════════════════════════════════════════════

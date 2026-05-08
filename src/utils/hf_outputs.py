@@ -9,12 +9,12 @@ USAGE:
 
     # Upload/download: from outputs/full/ ONLY
     python -u src/utils/hf_outputs.py upload outputs/full 2>&1 | tee logs/hf_upload.log
-    HF_HUB_ENABLE_HF_TRANSFER=1 python -u src/utils/hf_outputs.py upload outputs/full  2>&1 | tee logs/hf_upload_outputs_full.log
-    python -u src/utils/hf_outputs.py download outputs/full 2>&1 | tee logs/hf_download.log
+    HF_HUB_ENABLE_HF_TRANSFER=1 python -u src/utils/hf_outputs.py upload outputs/full  2>&1 | tee logs/upload_outputs_full_v1.log
+    python -u src/utils/hf_outputs.py download outputs/full 2>&1 | tee logs/download_outputs_full_v1.log
 
     # Upload/download: from @data/{eval_10k_local/ , full_local/ , subset_10k_local/ , val_1k_local/ }
-    python -u src/utils/hf_outputs.py upload-data 2>&1 | tee logs/upload_poc_val.log    # ~15 min upload
-    python -u src/utils/hf_outputs.py download-data 2>&1 | tee logs/download_poc_val_v1.log # ~3 min measured
+    python -u src/utils/hf_outputs.py upload-data 2>&1 | tee logs/upload_data_v1.log    # ~15 min upload
+    python -u src/utils/hf_outputs.py download-data 2>&1 | tee logs/download_data_v1.log # ~3 min measured
 
 
 

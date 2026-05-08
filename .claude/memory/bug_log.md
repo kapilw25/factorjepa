@@ -22,7 +22,7 @@ type: project
 
 ## Bug B — pretrain SANITY exits with 0 successful training steps (silent Meta-weight export)
 
-**Symptom**: `outputs/<mode>/probe_pretrain/loss_log.jsonl` is 0 bytes; `student_encoder.pt` is the un-modified Meta weights re-exported. Downstream eval shows `vjepa_2_1_pretrain` numerically identical to `vjepa_2_1_frozen`.
+**Symptom**: `outputs/<mode>/m09a_pretrain/loss_log.jsonl` is 0 bytes; `student_encoder.pt` is the un-modified Meta weights re-exported. Downstream eval shows `vjepa_2_1_pretrain` numerically identical to `vjepa_2_1_frozen`.
 
 **Root cause**: m09a's OOM handler used `optimizer.zero_grad(); continue` to advance to the next for-loop iteration. With SANITY `total_steps=1`, that single OOM exits the for-loop with 0 successful steps, but training proceeds to `export_student_for_eval` and writes the un-trained weights as if training had succeeded.
 
@@ -83,7 +83,7 @@ import fnmatch; assert not fnmatch.fnmatch("m09c_ckpt_best.pt", "m09c_ckpt_stage
 
 ## Bug Stage 8 FATAL — eval-side hard-stop on missing predictor ckpt
 
-**Symptom**: Stage 8 fails with `FATAL: predictor-bearing ckpt missing for vjepa_2_1_pretrain: outputs/sanity/probe_pretrain/m09a_ckpt_best.pt`. `set -e + trap ERR` cascade kills Stages 9 + 10 — no plots produced.
+**Symptom**: Stage 8 fails with `FATAL: predictor-bearing ckpt missing for vjepa_2_1_pretrain: outputs/sanity/m09a_pretrain/m09a_ckpt_best.pt`. `set -e + trap ERR` cascade kills Stages 9 + 10 — no plots produced.
 
 **Root cause**: `run_probe_eval.sh:495` had a `[ -e "$CKPT" ] || { echo FATAL; exit 3; }` check inside the Stage 8 loop. When the predictor ckpt was missing for one V-JEPA variant (e.g. pretrain not yet trained), the entire pipeline aborted instead of skipping that one variant.
 

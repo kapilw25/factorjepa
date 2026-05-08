@@ -68,7 +68,10 @@ from utils.config import (
 )
 from utils.data_download import ensure_local_data
 from utils.gpu_batch import AdaptiveBatchSizer, cuda_cleanup  # noqa: F401 — wired via utils.training
-from utils.plots import plot_training_curves, plot_combined_losses
+from utils.plots import (plot_training_curves, plot_combined_losses,
+                          plot_probe_trajectory_trio,
+                          plot_val_loss_with_kill_switch_overlay,
+                          compute_block_drift)
 from utils.wandb_utils import (
     add_wandb_args, init_wandb, log_metrics, finish_wandb,
 )
@@ -101,16 +104,15 @@ CHECKPOINT_PREFIX = "m09c_ckpt"
 from utils.training import (
     load_config,
     build_mask_generators,
-    compute_jepa_loss, _train_step_grad_accum, UncertaintyWeights,  # noqa: F401 — _train_step_grad_accum kept for future grad-accum wiring
+    compute_jepa_loss, _train_step_grad_accum, compute_total_loss, UncertaintyWeights,  # noqa: F401 — _train_step_grad_accum kept for future grad-accum wiring
     update_teacher_ema,
     build_optimizer, build_scheduler, update_weight_decay,  # noqa: F401 — build_scheduler/update_weight_decay kept for future stage schedulers
     save_training_checkpoint, cleanup_old_checkpoints, cleanup_stage_checkpoints, load_training_checkpoint,  # noqa: F401 — cleanup_old_checkpoints/load_training_checkpoint kept for resume
     export_student_for_eval,
     set_trainable_prefix, enable_gradient_checkpointing,
-    FactorSampler, build_factor_index, load_factor_clip, create_train_val_split,
+    FactorSampler, build_factor_index, load_factor_clip,
     StreamingFactorDataset, build_streaming_indices, _streaming_worker_init,
     run_probe_val_loss, compute_trajectory_stats,
-    render_training_plots,
     run_trio_at_val, track_block_drift_at_val,
     apply_val_cycle_triggers, finalize_training,
 )
@@ -147,21 +149,16 @@ def merge_config_with_args(cfg: dict, args) -> dict:
     # all consolidated into the helper). Technique-specific blocks stay below.
     merge_m09_common_config(cfg, args, mode_key)
 
-    # m09c-specific: 90/10 train/val split (see data.train_val_split in ch11_surgery.yaml).
-    # Capped at 1000 val clips to prevent FULL (115K × 10% = 11.5K) from over-sizing
-    # the val-set. FULL mode intentionally has NO train_val_split key
-    # (probe.use_permanent_val.full=true overrides → external val_subset is used).
-    # FAIL LOUD only if the override is also off.
-    _tvs = cfg["data"]["train_val_split"]
-    if mode_key in _tvs:
-        cfg["data"]["train_val_split"] = _tvs[mode_key]
-    elif cfg["probe"]["use_permanent_val"]:
-        cfg["data"]["train_val_split"] = None        # dormant — external val_subset overrides
-    else:
-        raise KeyError(
-            f"data.train_val_split.{mode_key} missing AND probe.use_permanent_val.{mode_key} "
-            f"is false — must specify one (split-internal) or the other (external val_subset)."
-        )
+    # iter14 (2026-05-08): pass --init-from-ckpt through to cfg so build_model can
+    # dispatch on it. None when not specified (build_model falls back to Meta's
+    # frozen V-JEPA URL = legacy iter13 behavior).
+    cfg["init_from_ckpt"] = args.init_from_ckpt
+
+    # iter14 (2026-05-08): retired the legacy `data.train_val_split` + per-mode
+    # `probe.use_permanent_val` resolution. m09c now mirrors m09a's gold-standard
+    # pattern (m09a:466-479): single yaml/CLI-driven external val pool via
+    # cfg["probe"]["subset"], train pool subtracts val to prevent leakage. No
+    # internal 90:10 fallback. See val pool block at line ~530+ for the pattern.
 
     # m09c-specific: streaming factor generation (eliminates m11 D_L/D_A .npy disk
     # writes). Flatten mode-gated enabled + num_workers into scalars. CLI override
@@ -248,26 +245,64 @@ def build_model(cfg: dict, device: torch.device) -> dict:
         use_activation_checkpointing=model_cfg["use_activation_checkpointing"],
     )
 
-    # Load pretrained weights — checkpoint path from model config YAML
+    # Load pretrained weights — iter14 sequential SSL: HF model-repo download via
+    # hf_hub_download (HF_TOKEN from .env). SINGLE source, SINGLE schema, FAIL LOUD
+    # on any mismatch (CLAUDE.md "no DEFAULT, no hardcoded paths"). The cfg key
+    # init_from_ckpt is set from --init-from-ckpt CLI (required=True in argparse).
     project_root = Path(__file__).parent.parent
-    ckpt_path = project_root / model_cfg["checkpoint_path"]
-    ckpt_url = model_cfg["checkpoint_url"]
-    if ckpt_path.exists():
-        print(f"Loading pretrained weights from {ckpt_path}")
-        ckpt = torch.load(ckpt_path, map_location="cpu", weights_only=False)
-    else:
-        print(f"Downloading pretrained weights: {ckpt_url}")
-        ckpt_path.parent.mkdir(parents=True, exist_ok=True)
-        ckpt = torch.hub.load_state_dict_from_url(ckpt_url, map_location="cpu",
-                                                    model_dir=str(ckpt_path.parent))
+    init_from = cfg["init_from_ckpt"]   # always set — argparse required=True
 
-    # Q3: Use target_encoder (EMA teacher = best quality starting point)
-    if "target_encoder" in ckpt:
-        state_dict = ckpt["target_encoder"]
-    elif "encoder" in ckpt:
-        state_dict = ckpt["encoder"]
-    else:
-        state_dict = ckpt
+    if not init_from.startswith("hf://"):
+        print("FATAL: --init-from-ckpt must be hf:// URI.")
+        print(f"  Got:      {init_from}")
+        print("  Expected: hf://<owner>/<repo>/<filename>")
+        print("  Example:  hf://anonymousML123/factorjepa-pretrain-vjepa21-vitg-5ep/m09a_ckpt_best.pt")
+        sys.exit(1)
+
+    from dotenv import load_dotenv
+    from huggingface_hub import hf_hub_download
+    load_dotenv(project_root / ".env")
+    uri = init_from[len("hf://"):]
+    parts = uri.split("/", 2)            # owner / repo / filename
+    if len(parts) < 3:
+        print(f"FATAL: bad --init-from-ckpt URI: {init_from}")
+        print("  Expected: hf://<owner>/<repo>/<filename>")
+        sys.exit(1)
+    repo_id = f"{parts[0]}/{parts[1]}"
+    filename = parts[2]
+    hf_token = os.getenv("HF_TOKEN")
+    if not hf_token:
+        print("FATAL: HF_TOKEN missing in .env — required for HF model-repo download.")
+        print(f"  Repo: {repo_id}")
+        print("  Fix: add HF_TOKEN=hf_... to .env (project root)")
+        sys.exit(1)
+
+    print(f"  [iter14] HF download: {repo_id}/{filename}")
+    init_path = Path(hf_hub_download(
+        repo_id=repo_id, filename=filename, token=hf_token))
+    print(f"  [iter14] HF cached at: {init_path}")
+    print(f"  [iter14] Loading init from prior-run ckpt: {init_path}")
+    ckpt = torch.load(init_path, map_location="cpu", weights_only=False)
+
+    # SINGLE schema — FAIL LOUD on mismatch. iter14 expects the FULL ckpt
+    # (m09a_ckpt_best.pt) which carries key='student' (588 dims) + key='predictor'
+    # (300 dims). The 'predictor' key is consumed downstream at the predictor-load
+    # block below. NOT 'student_state_dict' — that's the encoder-only schema from
+    # student_encoder.pt which lacks the predictor needed for JEPA L1 loss.
+    # Verified at HF endpoint anonymousML123/factorjepa-pretrain-vjepa21-vitg-5ep.
+    if not (isinstance(ckpt, dict) and "student" in ckpt
+            and isinstance(ckpt["student"], dict)
+            and "predictor" in ckpt
+            and isinstance(ckpt["predictor"], dict)):
+        print(f"FATAL: HF ckpt missing 'student' + 'predictor' schema: {init_path}")
+        top_keys = list(ckpt.keys()) if isinstance(ckpt, dict) else type(ckpt).__name__
+        print(f"  Top-level: {top_keys}")
+        print("  iter14 accepts ONLY full m09a_ckpt_best.pt schema "
+              "(NOT student_encoder.pt's 'student_state_dict' — lacks predictor).")
+        sys.exit(1)
+    state_dict = ckpt["student"]
+    print(f"  [iter14] Schema: student ({len(state_dict)} keys) + "
+          f"predictor ({len(ckpt['predictor'])} keys)")
 
     # Q5: Strip DDP + wrapper prefixes
     state_dict = {k.replace("module.", "").replace("backbone.", ""): v
@@ -483,62 +518,42 @@ def train(cfg: dict, args):
 
     manifest = json.load(open(manifest_file))
 
-    # Two held-out val strategies:
-    # (A) Permanent val_1k (probe.use_permanent_val=True, default for FULL/10K+):
-    #     val_keys come from probe.subset JSON (data/val_1k.json). Training uses
-    #     ALL factor_manifest clips. Requires val_1k ∩ training_manifest = ∅
-    #     (verified fail-loud below — m00c constructs disjoint subsets by seed).
-    # (B) Internal 90/10 split (probe.use_permanent_val=False, used at POC 1K
-    #     where training is val_1k itself): deterministic seeded shuffle via
-    #     create_train_val_split(), val capped at 1000 clips.
-    # Persisted val_split.json so Step D/E/F read the SAME held-out set.
-    split_ratio = cfg["data"]["train_val_split"]
-    use_permanent_val = cfg["probe"]["use_permanent_val"]
+    # iter14 (2026-05-08): mirror m09a's gold-standard val pool pattern
+    # (m09a:466-479). Single yaml/CLI-driven val pool via cfg["probe"]["subset"]
+    # — at POC: data/eval_10k_val_split.json (125 stratified POC val clips); at
+    # FULL: same path, larger contents (~1388 clips auto-generated by
+    # run_probe_train.sh). Train manifest = full m11 manifest minus val (no
+    # leakage). Surgery still trains via factor_index (intersection of
+    # train_manifest with on-disk D_L/D_A/D_I .npy files); train_keys here only
+    # sub-selects manifest entries to feed build_factor_index.
+    val_path = cfg["probe"]["subset"]
+    val_keys = json.load(open(val_path))["clip_keys"]
+    val_set = set(val_keys)
     all_keys = list(manifest.keys())
-    if use_permanent_val:
-        # Load permanent val-set keys from probe.subset (e.g. data/val_1k.json).
-        permanent_val_path = cfg["probe"]["subset"]
-        val_keys = json.load(open(permanent_val_path))["clip_keys"]
-        train_keys = all_keys  # ALL manifest clips used for training
-        # FAIL HARD on overlap — any val_1k clip in training manifest = test leakage.
-        overlap = set(val_keys) & set(train_keys)
-        if overlap:
-            print(f"FATAL: permanent val_1k overlaps training manifest by "
-                  f"{len(overlap)} clips. Training set must be disjoint from val_1k "
-                  f"(m00c normally guarantees this via seed). First 5 overlaps: "
-                  f"{list(overlap)[:5]}")
-            sys.exit(1)
-        split_source = f"PERMANENT {permanent_val_path}"
-    else:
-        train_keys, val_keys = create_train_val_split(
-            all_keys, split_ratio, seed, max_val_clips=1000)
-        split_source = f"INTERNAL seed={seed} ratio={split_ratio:.2f}"
-    # max_val_clips only applies to internal_split (where the cap gates
-    # create_train_val_split); under permanent val it's inapplicable — val comes
-    # verbatim from probe.subset JSON (e.g., data/val_500.json).
-    applied_max_val_clips = None if use_permanent_val else 1000
+    n_overlap = sum(1 for k in all_keys if k in val_set)
+    if n_overlap:
+        print(f"  Excluding {n_overlap} val clips from training manifest "
+              f"(mirrors m09a:472-477 leakage guard)")
+    train_keys = [k for k in all_keys if k not in val_set]
+    split_source = f"EXTERNAL {val_path}"
+
+    # iter14 (2026-05-08): POC mode pool capping happens UPSTREAM via the shell
+    # generating data/eval_10k_poc.json (first N keys, N from
+    # base_optimization.yaml:data.poc_total_clips). By the time m09c reaches
+    # this split point, val_path resolves to data/eval_10k_val_split.json which
+    # was already stratified 70:15:15 from action_labels (which itself was
+    # filtered to motion-flow-eligible clips within the POC pool). No in-script
+    # POC cap needed — single source of truth = poc_total_clips yaml key.
     train_manifest = {k: manifest[k] for k in train_keys}
-    val_split_path = output_dir / "val_split.json"
-    # `source` records WHICH subset JSON drove the val_keys. Modern multi-subset
-    # YAMLs (iter11 v3+) split data into train_subset / val_subset / eval_subset;
-    # legacy single-subset YAMLs used data.subset. Fail-loud fallback chain:
-    # CLI override → yaml val_subset (permanent-val mode) → yaml train_subset
-    # (internal-split mode). NO `data.subset` fallback — that key was retired.
-    if args.subset:
-        source = str(args.subset)
-    elif use_permanent_val:
-        source = str(cfg["data"]["val_subset"])
-    else:
-        source = str(cfg["data"]["train_subset"])
-    with open(val_split_path, "w") as f:
-        json.dump({"n": len(val_keys), "seed": seed,
-                   "source": source,
-                   "split_strategy": "permanent" if use_permanent_val else "internal_split",
-                   "split_ratio": split_ratio,
-                   "max_val_clips": applied_max_val_clips,
-                   "clip_keys": val_keys}, f, indent=2)
+    # iter14 (2026-05-08): val_split.json artifact RETIRED. Was a m09c-only
+    # output that violated cross-encoder file-list parity with m09a (which
+    # holds val_keys in-memory only). val_keys are still computed and used
+    # in-process; persisting them to disk added no downstream value (no
+    # script actually loaded the file — only training_summary.json kept a
+    # path string). For audit reproducibility, val metadata is now embedded
+    # in training_summary.json (see val_split block below at summary write).
     print(f"  train/val split: {len(train_keys)} train / {len(val_keys)} val "
-          f"({split_source}) → {val_split_path}")
+          f"({split_source})")
 
     factor_index = build_factor_index(train_manifest,
                                        factor_dir / "D_L",
@@ -802,49 +817,34 @@ def train(cfg: dict, args):
     # so Stage-1 plateau can't prematurely terminate Stage 2. BWT state is NOT reset
     # (it's cumulative-from-first-probe by design — that span-stages semantics is
     # intentional, not bugged).
-    plateau_state = {"recent_val_losses": [], "patience_counter": 0, "last_stage_idx": -1}
-    # iter13 v13 (2026-05-07): plateau + BWT now key on probe_top1 (motion-flow
-    # gate) instead of legacy prec_at_k retrieval.
+    # iter14 (2026-05-08): top@1 plateau is the ONLY trigger. val_jepa
+    # plateau_state + BWT bwt_state retired alongside their detectors.
     top1_plateau_state = {"recent_top1": [], "last_stage_idx": -1}
-    bwt_state = {"first_top1": None, "patience_counter": 0}
+    # iter14 (2026-05-08): early-stop reduced to top@1 plateau ONLY.
+    # val_jepa kill_switch + val_jepa plateau + BWT regression triggers were
+    # removed from yaml because they don't correlate with downstream motion-flow
+    # probe top@1 (the paper-grade gate metric).
     best_ckpt_enabled = probe_cfg["best_ckpt_enabled"]
-    kill_switch_enabled = probe_cfg["kill_switch_enabled"]
-    plateau_enabled = probe_cfg["plateau_enabled"]
     prec_plateau_enabled = probe_cfg["prec_plateau_enabled"]
-    bwt_trigger_enabled = probe_cfg["bwt_trigger_enabled"]
-    forgetting_threshold_pct = probe_cfg["forgetting_threshold_pct"]
-    forgetting_patience = probe_cfg["forgetting_patience"]
-    plateau_min_delta = probe_cfg["plateau_min_delta"]
-    plateau_patience = probe_cfg["plateau_patience"]
     prec_plateau_min_delta = probe_cfg["prec_plateau_min_delta"]
     prec_plateau_patience = probe_cfg["prec_plateau_patience"]
-    # iter13 v13 (2026-05-07): bwt_tolerance_pct + bwt_ci_fraction retired
-    # alongside legacy retrieval CI-aware BWT trigger; absolute_floor only.
-    bwt_absolute_floor = probe_cfg["bwt_absolute_floor"]
-    bwt_patience = probe_cfg["bwt_patience"]
     best_ckpt_path = output_dir / "student_best.pt"
 
     def _render_live_plots(verbose: bool = False):
-        """iter11: delegates to shared utils.training.render_training_plots.
-        Local closure of probe config + state passed explicitly as kwargs."""
-        render_training_plots(
-            probe_history=probe_history,
-            output_dir=output_dir,
-            forgetting_threshold_pct=forgetting_threshold_pct,
-            forgetting_patience=forgetting_patience,
-            bwt_trigger_enabled=bwt_trigger_enabled,
-            bwt_absolute_floor=bwt_absolute_floor,
-            bwt_patience=bwt_patience,
-            kill_state=kill_state,
-            best_state=best_state,
-            probe_compute_val_loss=probe_compute_val_loss,
-            verbose=verbose,
+        """iter14 (2026-05-08): renders cross-encoder-identical plot set by
+        calling the same two shared utils m09a uses (plots.py) — gold-standard
+        parity. The legacy render_training_plots (utils.training.py) is now a
+        no-op stub kept only for legacy/m09b_explora.py import compatibility."""
+        plot_probe_trajectory_trio(
+            probe_history, output_dir,
+            title_prefix=f"m09c · λ={cfg['drift_control']['lambda_reg']} · ",
             file_prefix="m09c",
-            n_train_clips=total_clips,
-            n_epochs=max_epochs,
-            total_steps=total_steps,
-            batch_size=batch_size,
-            lr=cfg["optimization"]["lr"],
+        )
+        plot_val_loss_with_kill_switch_overlay(
+            probe_history, output_dir,
+            best_state=best_state, kill_state=kill_state,
+            file_prefix="m09c",
+            title_prefix=f"m09c · λ={cfg['drift_control']['lambda_reg']} · ",
         )
 
     def _run_probe_at_step(stage_idx_, stage_name_, global_step_):
@@ -873,6 +873,10 @@ def train(cfg: dict, args):
                 "num_clips":   len(probe_clips),
                 "stage_idx":   stage_idx_,
                 "stage_name":  stage_name_,
+                "step":        global_step_,    # iter14 (2026-05-08): parity with m09a's probe_record schema
+                                                # — plot_probe_trajectory_trio (plots.py:929) reads r["step"]
+                                                # unconditionally. m09c's old "global_step" alias kept below
+                                                # for backward compat with downstream consumers.
                 "global_step": global_step_,
             }
             if probe_compute_val_loss:
@@ -971,22 +975,12 @@ def train(cfg: dict, args):
                 pr,
                 probe_history=probe_history,
                 best_state=best_state, kill_state=kill_state,
-                plateau_state=plateau_state, top1_plateau_state=top1_plateau_state,
-                bwt_state=bwt_state,
+                top1_plateau_state=top1_plateau_state,
                 best_ckpt_enabled=best_ckpt_enabled,
                 save_best_callback=(_save_best if (best_ckpt_enabled and current_top1 is not None) else None),
-                kill_switch_enabled=kill_switch_enabled,
-                forgetting_threshold_pct=forgetting_threshold_pct,
-                forgetting_patience=forgetting_patience,
-                plateau_enabled=plateau_enabled,
-                plateau_min_delta=plateau_min_delta,
-                plateau_patience=plateau_patience,
                 prec_plateau_enabled=prec_plateau_enabled,
                 prec_plateau_min_delta=prec_plateau_min_delta,
                 prec_plateau_patience=prec_plateau_patience,
-                bwt_trigger_enabled=bwt_trigger_enabled,
-                bwt_absolute_floor=bwt_absolute_floor,
-                bwt_patience=bwt_patience,
                 stage_idx=stage_idx_,
                 global_step=global_step_,
                 is_final_stage=(stage_idx_ == len(stages) - 1),
@@ -1196,7 +1190,11 @@ def train(cfg: dict, args):
                 # the inline forward/backward block — same semantics (loss-scaled by
                 # micro/macro ratio so accumulated gradient is bit-equivalent to a single
                 # full-batch step), micro-batch sized by AdaptiveBatchSizer to track VRAM
-                # target. Surgery: no drift control (init_params=None, drift_cfg=None).
+                # target. iter14 (2026-05-08): wired init_params + drift_cfg through (was
+                # None/None pre-iter14). compute_drift_loss applies `λ * Σ ‖θ - θ_init‖²`
+                # when drift_control.enabled + lambda_reg > 0. With --init-from-ckpt
+                # loading pretrain weights from HF, init_params (line 442) captures
+                # pretrain → the L2 anchor target IS pretrain (iter14 design).
                 #
                 # Within-step retry loop (#55): on OOM, sizer.on_oom() shrinks; we retry
                 # the SAME macro at the new sub-batch instead of continuing to the next
@@ -1206,13 +1204,17 @@ def train(cfg: dict, args):
                 step_succeeded = False
                 while not step_succeeded:
                     try:
-                        (jepa_val, masked_val, context_val, _drift_val,
+                        # iter14 (2026-05-08): drift_val is the L2 anchor-to-pretrain loss
+                        # value (computed in _train_step_grad_accum when drift_control is
+                        # enabled). Was discarded as `_drift_val` pre-iter14 because surgery
+                        # had drift disabled; now logged in step_record for plot visibility.
+                        (jepa_val, masked_val, context_val, drift_val,
                          infonce_val, tcc_val,
                          uw_w_jepa, uw_w_infonce, uw_w_tcc) = _train_step_grad_accum(
                             student, teacher, predictor, batch_clips,
                             all_masks_enc, all_masks_pred,
                             cfg, dtype, mp_cfg, scaler, train_sizer, loss_exp,
-                            init_params=None, drift_cfg=None,
+                            init_params=init_params, drift_cfg=cfg["drift_control"],
                             loss_cfg=cfg["optimization"]["loss"],
                             uw=uw_module)
                         step_succeeded = True
@@ -1293,9 +1295,32 @@ def train(cfg: dict, args):
                 lr_val = scheduler.get_last_lr()[0]
                 gn_val = grad_norm.item() if torch.is_tensor(grad_norm) else grad_norm
 
+                # iter14 (2026-05-08): canonical total via shared utils.training.compute_total_loss
+                # — required by plot_combined_losses (utils/plots.py:668) which reads loss_total
+                # unconditionally. POC's 1st surgery_3stage_DI run hit KeyError here on the 2nd
+                # row. Same source-of-truth as m09a step_record + val_total at training.py:939.
+                total_val = compute_total_loss(
+                    jepa=jepa_val, drift=drift_val,
+                    mt=mt_loss_val if mt_head is not None else 0.0,
+                    mt_cfg=mt_cfg if mt_head is not None else None,
+                    ma=ma_loss_val if ma_head is not None else 0.0,
+                    ma_cfg=ma_cfg if ma_head is not None else None)
+
+                # iter14 (2026-05-08): per-step block_drift_mean — parity with m09a:965-967.
+                # IDENTICAL metric to per-val (track_block_drift_at_val): both compute
+                # mean_i(‖Δθ_block_i‖ / ‖θ₀_block_i‖). Surgery has λ=0.005 → drift signal
+                # matters; logging per-step lets drift_table.py mix m09a + m09c columns
+                # under one unified diagnostic.
+                drift_per_block = compute_block_drift(student, init_params)
+                block_drift_mean = (float(sum(drift_per_block) / len(drift_per_block))
+                                    if drift_per_block else 0.0)
+
                 step_record = {
                     "step": global_step, "stage": stage_name,
                     "loss_jepa": round(jepa_val, 6),
+                    "loss_total": round(total_val, 6),     # iter14: canonical α·jepa + β·mt + γ·ma + λ·drift (matches training.py:939 val_total)
+                    "loss_drift": round(drift_val, 6),     # iter14: L2 anchor-to-pretrain (λ=0.005, 0 when disabled)
+                    "block_drift_mean": round(block_drift_mean, 8),     # iter14: parity with m09a:965 — drift_table.py needs unified column
                     "loss_masked": round(masked_val, 6),
                     "loss_context": round(context_val, 6),
                     "loss_infonce": round(infonce_val, 6),
@@ -1527,10 +1552,10 @@ def train(cfg: dict, args):
         "probe_trajectory_stats": traj_stats,
         "train_val_split": {
             "train": len(train_keys), "val": len(val_keys),
-            "split_ratio": split_ratio, "seed": seed,
-            "split_strategy": "permanent" if use_permanent_val else "internal_split",
-            "max_val_clips": applied_max_val_clips,
-            "val_split_path": str(val_split_path),
+            "seed": seed,
+            "split_strategy": "external",     # iter14: only path; mirrors m09a
+            "val_clip_keys": val_keys,        # iter14: embed inline (val_split.json retired)
+            "source": split_source,
         },
         "best_ckpt": {
             "top1": best_state.get("top1", 0.0),
@@ -1541,31 +1566,16 @@ def train(cfg: dict, args):
             "probe_record": best_state["probe_record"],
         } if best_ckpt_enabled else None,
         "early_stop": {
+            # iter14 (2026-05-08): top@1 plateau is the ONLY active trigger.
+            # val_jepa kill_switch + val_jepa plateau + BWT regression removed —
+            # see configs/train/base_optimization.yaml probe block.
             "triggered": kill_state["triggered"],
             "reason": kill_state["reason"],
-            "catastrophic_forgetting": {
-                "enabled": kill_switch_enabled,
-                "strikes_at_end": kill_state["strikes"],
-                "threshold_pct": forgetting_threshold_pct,
-                "patience": forgetting_patience,
-            },
-            "val_loss_plateau": {
-                "enabled": plateau_enabled,
-                "min_delta": plateau_min_delta,
-                "patience": plateau_patience,
-            },
-            "top1_plateau": {                                # iter13 v13 (was prec_at_k_plateau)
+            "top1_plateau": {
                 "enabled": prec_plateau_enabled,
                 "min_delta": prec_plateau_min_delta,
                 "patience": prec_plateau_patience,
                 "recent_values": list(top1_plateau_state["recent_top1"]),
-            },
-            "negative_bwt": {
-                "enabled": bwt_trigger_enabled,
-                "strikes_at_end": bwt_state["patience_counter"],
-                "first_top1": bwt_state["first_top1"],
-                "absolute_floor": bwt_absolute_floor,        # iter13 v13: absolute-only on top1
-                "patience": bwt_patience,
             },
         },
     }
@@ -1610,6 +1620,14 @@ def main():
     # of inline boilerplate. Technique-specific args (--factor-dir + factor-streaming
     # mutex group) added below.
     add_m09_common_args(parser)
+    # iter14 (2026-05-08): m09c surgery REQUIRES init from a prior m09a pretrain
+    # export hosted on HF. CLAUDE.md "no DEFAULT, FAIL LOUD" — required=True with
+    # NO default, single source = HF model repo, single schema = student_state_dict.
+    parser.add_argument("--init-from-ckpt", type=str, required=True,
+                        help="iter14 REQUIRED: HF model-repo URI for prior pretrain student_encoder.pt. "
+                             "Format: hf://<owner>/<repo>/<filename>. "
+                             "Example: hf://anonymousML123/factorjepa-pretrain-vjepa21-vitg-5ep/m09a_ckpt_best.pt. "
+                             "Schema = student_state_dict (FAIL LOUD on mismatch).")
     parser.add_argument("--factor-dir", type=str, default=None,
                         help="Factor dataset dir from m11 (contains D_L/, D_A/, D_I/, factor_manifest.json)")
     fs_group = parser.add_mutually_exclusive_group()

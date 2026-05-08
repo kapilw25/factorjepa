@@ -1,10 +1,19 @@
 ---
 name: Project pulse — FactorJEPA iter14 (surgery-on-pretrain)
-description: Where the work is, what's done, what's next, as of 2026-05-07 PDT
+description: Where the work is, what's done, what's next, as of 2026-05-08 PDT
 type: project
 ---
 
-# FactorJEPA iter14 — current state (2026-05-07 PDT)
+# FactorJEPA iter14 — current state (2026-05-08 PDT)
+
+## 🆕 Since 2026-05-07
+
+- ✅ **HF endpoint live + URL'd**: `https://huggingface.co/anonymousML123/factorjepa-pretrain-vjepa21-vitg-5ep` (22.4 GB · `student_encoder.pt` 7.4 GB + `m09a_ckpt_best.pt` 15 GB + plots/JSONs)
+- ✅ **SANITY 1 passed**: probe_eval Stage 8 (`predictor` key present in `m09a_ckpt_best.pt`)
+- ✅ **SANITY 2 passed**: surgery init from prior-run ckpt loads cleanly (1.84 B params · 588 keys via `student_state_dict` schema branch)
+- ✅ **T4 7-file-edit plan finalized + schema-validated** against the live HF endpoint — see `iter/iter14_surgery_on_pretrain/plan_surgery_on_pretrain.md` § T3
+- ✅ **Fresh 96 GB Blackwell instance bring-up clean**: setup_env_uv.sh --gpu --from-wheels green; outputs/full + data/ pulled from HF (5m19s + 2m, FIX-28 tar cleanup verified)
+- 🟡 **Still BLOCKED on 2 of 3 approval gates** (epoch budget · anchor λ; HF push ✅)
 
 ## What this project is
 
@@ -22,7 +31,7 @@ The iter13 pivot evolved twice:
 
 | Metric | Value | Where |
 |---|---|---|
-| `probe_top1` (motion-flow) | **0.808** at step 1009 / 5 epochs | `outputs/full/probe_pretrain/probe_history.jsonl` |
+| `probe_top1` (motion-flow) | **0.808** at step 1009 / 5 epochs | `outputs/full/m09a_pretrain/probe_history.jsonl` |
 | `motion_cos` lift vs frozen | **5.8×** (0.046 → 0.267) | same file |
 | `future_mse` Δ vs frozen | **+0.0027** (CI [0.0017, 0.0037], p=0.0) | `outputs/full/probe_future_mse/probe_future_mse_per_variant.json` |
 | Clips processed | 9,297 / 10,000 (703 silently dropped at TAR-reader; FIX-27a now logs them) | — |
@@ -46,7 +55,7 @@ Two phases planned:
 
 | Phase | Goal | Plan doc |
 |---|---|---|
-| **Phase 4** | Wire motion_aux (CE+MSE recipe that lifted m09a to 0.808) into `m09c_surgery.py` — swap `multi_task_probe` → `motion_aux` in `surgery_3stage_DI.yaml` + `surgery_2stage_noDI.yaml`; mirror m09a's 9 call-sites in m09c (with stage-aware optimizer re-attach) | `iter/iter14_surgery_on_pretrain/plan_motion_aux_to_surgery.md` |
+| **Phase 4** | Wire motion_aux (CE+MSE recipe that lifted m09a to 0.808) into `m09c_surgery.py` — swap `multi_task_probe` → `motion_aux` in `surgery_3stage_DI.yaml` + `surgery_2stage_noDI.yaml`; mirror m09a's 9 call-sites in m09c (with stage-aware optimizer re-attach) | `iter/iter14_surgery_on_pretrain/legacy/plan_motion_aux_to_surgery.md` |
 | **Phase 5** | (CONDITIONAL) — extend `m04d_motion_features.py` to 23-D foreground motion (camera-subtracted) + rebin classes on FG vec[13]. **Gated**: only run if Phase 4 yields Δ (surgery − pretrain) < +5 pp | `iter/iter14_surgery_on_pretrain/plan_phase5_fg_motion_features.md` |
 
 The high-level + detail plans are in `iter/iter14_surgery_on_pretrain/plan_HIGH_LEVEL.md` + `plan_surgery_on_pretrain.md`.
@@ -83,7 +92,7 @@ src/CLAUDE.md                                      added "Retiring files: mv to 
 
 - **iter14 high-level**: `iter/iter14_surgery_on_pretrain/plan_HIGH_LEVEL.md` (4-encoder design, paper goal, status carryover)
 - **iter14 detail**: `iter/iter14_surgery_on_pretrain/plan_surgery_on_pretrain.md` (3 approval gates at top, code-diff in body)
-- **Phase 4 plan**: `iter/iter14_surgery_on_pretrain/plan_motion_aux_to_surgery.md` (the 5 file edits)
+- **Phase 4 plan**: `iter/iter14_surgery_on_pretrain/legacy/plan_motion_aux_to_surgery.md` (the 5 file edits)
 - **Phase 5 plan**: `iter/iter14_surgery_on_pretrain/plan_phase5_fg_motion_features.md` (gated on Phase 4 outcome)
 - **iter13 deep research**: `iter/iter13_motion_probe_eval/analysis.md` (Q1-Q7 + iter13 design + state snapshot)
 - **Bug catalog**: `iter/iter14_surgery_on_pretrain/errors_N_fixes.md` (carries forward from iter13 + adds iter13/14 entries)

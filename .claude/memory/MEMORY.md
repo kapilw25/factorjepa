@@ -11,6 +11,7 @@
 ## Architecture
 
 - [pipeline_layout.md](pipeline_layout.md) — module map (m04 → m11 + m04d motion features, scripts/, utils/), what consumes what
+- [codebase_inventory.md](codebase_inventory.md) — file-level reference: 4 canonical scripts + every m*.py + every utils/ + every configs/ + every data/ entry, one line each
 - [iter14_motion_aux_pivot.md](iter14_motion_aux_pivot.md) — current pivot: motion_aux (CE+MSE) replaced multi_task_probe in v12; pointer to iter14 plans
 - [config_schema.md](config_schema.md) — per-mode YAML flatten convention, opt-in pattern, ckpt-schema dispatch, motion_aux block
 - [legacy/iter13_multi_task.md](legacy/iter13_multi_task.md) — RETIRED iter13 multi_task_probe pivot (replaced by motion_aux in v12; kept for historical context)

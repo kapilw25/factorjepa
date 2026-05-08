@@ -196,6 +196,6 @@ jq '.pairwise_deltas | to_entries[] | select(.key | contains("surgical"))' \
 ## 📚 References
 
 - v12 motion_aux design: [`plan_v12_motion_aux.md`](./plan_v12_motion_aux.md)
-- v12 final result: `outputs/full/probe_pretrain/probe_history.jsonl` (top1 0.439 → 0.808 across 10 vals)
+- v12 final result: `outputs/full/m09a_pretrain/probe_history.jsonl` (top1 0.439 → 0.808 across 10 vals)
 - m09a wiring template: `src/m09a_pretrain.py` (lines ~120, 245, 530, 618, 973, 1053, 1369 — 9 call sites)
 - m09c current state: `src/m09c_surgery.py` + `configs/train/surgery_*.yaml`

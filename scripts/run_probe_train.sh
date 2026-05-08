@@ -48,8 +48,8 @@ SUBCMD="$1"; shift
 MODE_FLAG="$1"; shift
 
 case "$SUBCMD" in
-    pretrain|surgery_3stage_DI|surgery_noDI) ;;
-    *) echo "FATAL: subcommand must be {pretrain|surgery_3stage_DI|surgery_noDI} (got: $SUBCMD)" >&2; exit 2 ;;
+    pretrain|pretrain_2X|surgery_3stage_DI|surgery_noDI) ;;
+    *) echo "FATAL: subcommand must be {pretrain|pretrain_2X|surgery_3stage_DI|surgery_noDI} (got: $SUBCMD)" >&2; exit 2 ;;
 esac
 
 case "$MODE_FLAG" in
@@ -82,13 +82,25 @@ if [ ! -f "$ACTION_LABELS" ]; then
         EVAL_SUBSET_BOOTSTRAP="data/eval_10k_sanity.json"
         # iter13 v13 (2026-05-07): floor=3 is the absolute minimum that
         # stratified_split's greedy allocation supports (val=1/test=1/train=1).
-        # Was 5 (and briefly 7 — REVERTED): higher floors drop motion-flow
-        # classes which makes the probe EASIER to saturate, undermining the
-        # paper goal `vjepa_surgery > vjepa_pretrain > vjepa_frozen` on
-        # motion / temporal features. The greedy split (utils/action_labels.py
-        # stratified_split) keeps n=3+ classes, max-promoting val+test to 1.
         MIN_CLIPS_BOOTSTRAP=3
         MIN_SPLIT_BOOTSTRAP=1
+    elif [ "$MODE" = "POC" ]; then
+        # iter14 (2026-05-08): POC = first N keys of eval_10k.json (N from yaml,
+        # default 500), then stratified_split applies 70:15:15 → ~350/75/75
+        # train/val/test. Single knob for scalability across datasets.
+        POC_SUBSET="data/eval_10k_poc.json"
+        POC_TOTAL=$(scripts/lib/yaml_extract.py configs/train/base_optimization.yaml data.poc_total_clips)
+        if [ ! -f "$POC_SUBSET" ] || [ "data/eval_10k.json" -nt "$POC_SUBSET" ]; then
+            python -u src/utils/eval_subset.py \
+                --eval-subset data/eval_10k.json \
+                --first-n "$POC_TOTAL" \
+                --output "$POC_SUBSET"
+        fi
+        EVAL_SUBSET_BOOTSTRAP="$POC_SUBSET"
+        # POC floors: with ~500 clips ÷ 8 motion classes ≈ 60/class. Floor=10
+        # tolerates rare-class drops while still keeping 6+ classes for the probe.
+        MIN_CLIPS_BOOTSTRAP=10
+        MIN_SPLIT_BOOTSTRAP=2
     else
         EVAL_SUBSET_BOOTSTRAP="data/eval_10k.json"
         MIN_CLIPS_BOOTSTRAP=34
@@ -135,6 +147,18 @@ LOCAL_DATA="data/eval_10k_local"
 [ -d "$LOCAL_DATA" ] || { echo "❌ FATAL: $LOCAL_DATA missing"; exit 3; }
 MODEL_CFG="configs/model/vjepa2_1.yaml"
 P_M09="${CACHE_POLICY_ALL:-1}"
+
+# iter14 (2026-05-08): canonical HF endpoint for surgery init. Single source of
+# truth — m09c surgery requires --init-from-ckpt with this URI (FAIL LOUD per
+# CLAUDE.md). Hardcoded here per "shells ARE the layer that pin canonical paths".
+# HF_TOKEN must be in .env (project root); m09c calls hf_hub_download with it.
+#
+# Why m09a_ckpt_best.pt (14 GB) NOT student_encoder.pt (7 GB):
+# m09c needs BOTH student weights (key="student", 588 dims) AND predictor weights
+# (key="predictor", 300 dims). student_encoder.pt has only encoder
+# (schema="student_state_dict"); m09a_ckpt_best.pt has student + predictor +
+# teacher in one bundle (schema="student") — single download covers full init.
+PRETRAIN_HF_URI="hf://anonymousML123/factorjepa-pretrain-vjepa21-vitg-5ep/m09a_ckpt_best.pt"
 
 # ── Multi-task probe-loss labels (iter13) ────────────────────────────────
 # When base_optimization.yaml `multi_task_probe.enabled` is true for this
@@ -183,11 +207,24 @@ fi
 
 # ── Dispatch ──────────────────────────────────────────────────────────────
 case "$SUBCMD" in
-    pretrain)
+    pretrain|pretrain_2X)
         # iter13 v12+ (2026-05-06): renamed probe_pretrain → m09a_pretrain to
         # match the source module's name (CLAUDE.md "m*.py = each module is
         # independent"). Mirror rename in run_probe_eval.sh + yaml output_dir.
-        OUT_DIR="outputs/${mode_dir}/m09a_pretrain"
+        # iter14 (2026-05-08): pretrain_2X shares probe_pretrain.yaml (no new
+        # yamls) but writes to m09a_pretrain_2X/ + passes --max-epochs 10 for
+        # FULL only (G1=🅰️ "5+5 vs 10"). Arm A = 5 ep (yaml's max_epochs.full);
+        # Arm C = 10 ep via CLI override.
+        if [ "$SUBCMD" = "pretrain_2X" ]; then
+            OUT_DIR="outputs/${mode_dir}/m09a_pretrain_2X"
+            EPOCHS_OVERRIDE_FLAG=""
+            if [ "$MODE" = "FULL" ]; then
+                EPOCHS_OVERRIDE_FLAG="--max-epochs 10"   # iter14 G1=🅰️
+            fi
+        else
+            OUT_DIR="outputs/${mode_dir}/m09a_pretrain"
+            EPOCHS_OVERRIDE_FLAG=""
+        fi
         TRAIN_CFG="configs/train/probe_pretrain.yaml"
         # Read lambda_reg from YAML so it stays the single source of truth.
         # Passing it explicitly to m09a bypasses the legacy auto-ablation gate
@@ -195,13 +232,16 @@ case "$SUBCMD" in
         # probe_pretrain.yaml intentionally has ablation_lambdas=[] which would
         # then trip select_ablation_winner's non-empty assertion).
         LAMBDA_REG=$(scripts/lib/yaml_extract.py "$TRAIN_CFG" drift_control.lambda_reg)
-        echo "═══ $(date '+%H:%M:%S') · m09a continual SSL pretrain (${MODE}) ═══"
+        echo "═══ $(date '+%H:%M:%S') · m09a continual SSL ${SUBCMD} (${MODE}) ═══"
         echo "  config:    $TRAIN_CFG"
         echo "  subset:    $TRAIN_SPLIT"
         echo "  val:       $VAL_SPLIT"
         echo "  local:     $LOCAL_DATA"
         echo "  output:    $OUT_DIR"
         echo "  lambda:    $LAMBDA_REG (read from yaml; bypasses auto-ablation gate)"
+        if [ -n "$EPOCHS_OVERRIDE_FLAG" ]; then
+            echo "  epochs:    $EPOCHS_OVERRIDE_FLAG (iter14 arm C — overrides yaml's full=5)"
+        fi
         mkdir -p "$OUT_DIR"
         python -u src/m09a_pretrain.py "${MODE_FLAG}" \
             --model-config "$MODEL_CFG" \
@@ -211,6 +251,7 @@ case "$SUBCMD" in
             --output-dir "$OUT_DIR" \
             --cache-policy "$P_M09" \
             --lambda-reg "$LAMBDA_REG" \
+            $EPOCHS_OVERRIDE_FLAG \
             --probe-subset "outputs/${mode_dir}/probe_action/action_labels.json" \
             --probe-local-data "$LOCAL_DATA" \
             --probe-tags "${LOCAL_DATA}/tags.json" \
@@ -218,7 +259,7 @@ case "$SUBCMD" in
             --motion-features-path "${LOCAL_DATA}/motion_features.npy" \
             "${TAXONOMY_ARGS[@]}" \
             --no-wandb \
-            2>&1 | tee "logs/m09a_pretrain_${mode_dir}.log"
+            2>&1 | tee "logs/m09a_${SUBCMD}_${mode_dir}.log"
         ;;
     surgery_3stage_DI|surgery_noDI)
         # Map subcommand → yaml + variant tag (used in output dir + log name).
@@ -255,7 +296,12 @@ case "$SUBCMD" in
         echo "  subset:    $TRAIN_SPLIT"
         echo "  factor:    $FACTOR_DIR"
         echo "  output:    $OUT_DIR"
+        echo "  init:      $PRETRAIN_HF_URI (iter14 — m09c hf_hub_download via HF_TOKEN from .env)"
         mkdir -p "$OUT_DIR"
+        # iter14 (2026-05-08): --init-from-ckpt is REQUIRED in m09c (argparse
+        # required=True). Always pass the HF URI — single source per CLAUDE.md
+        # FAIL LOUD. m09c downloads via hf_hub_download (cached in HF_HOME after
+        # first call; subsequent surgery runs hit cache instantly).
         python -u src/m09c_surgery.py "${MODE_FLAG}" \
             --model-config "$MODEL_CFG" \
             --train-config "$TRAIN_CFG" \
@@ -266,6 +312,7 @@ case "$SUBCMD" in
             --probe-tags "$VAL_TAGS" \
             --output-dir "$OUT_DIR" \
             --cache-policy "$P_M09" \
+            --init-from-ckpt "$PRETRAIN_HF_URI" \
             --motion-features-path "${LOCAL_DATA}/motion_features.npy" \
             "${TAXONOMY_ARGS[@]}" \
             --no-wandb \
@@ -283,7 +330,7 @@ else
     echo "  ⚠️  ${OUT_DIR}/student_encoder.pt NOT produced (check logs/probe_${SUBCMD}_${mode_dir}.log)"
 fi
 case "$SUBCMD" in
-    pretrain)
+    pretrain|pretrain_2X)
         FULL_CKPT="${OUT_DIR}/m09a_ckpt_best.pt"
         ;;
     surgery_3stage_DI|surgery_noDI)

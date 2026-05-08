@@ -20,7 +20,7 @@ iter13's first pivot was `multi_task_probe` (CE on 14 single-label dims + BCE on
 | `motion_cos` vs frozen | ~1× | **5.8×** (0.046→0.267) | — |
 | `future_mse` Δ vs frozen | ~0 | **+0.0027** (CI [0.0017, 0.0037], p=0.0) | statistically separated |
 
-Source: `outputs/full/probe_pretrain/probe_history.jsonl` final row (step 1009, epoch 4, full=100%).
+Source: `outputs/full/m09a_pretrain/probe_history.jsonl` final row (step 1009, epoch 4, full=100%).
 
 ## The loss
 
@@ -108,14 +108,14 @@ That's why this path is fine on 96 GB but stacks badly on 24 GB. See `hardware_s
 ## What's NOT yet implemented
 
 - **Phase 5 — 23-D foreground motion** (`plan_phase5_fg_motion_features.md`): camera-subtracted FG flow + class rebin on `vec[13]` instead of `vec[0]`. Gated on Phase 4 outcome.
-- **Phase 4 wiring in m09c** itself: 9 call sites + per-stage optimizer re-attach. The plan is in `iter/iter14_surgery_on_pretrain/plan_motion_aux_to_surgery.md`; T4 is blocked on the 3 approval gates in `plan_surgery_on_pretrain.md`.
+- **Phase 4 wiring in m09c** itself: 9 call sites + per-stage optimizer re-attach. The plan is in `iter/iter14_surgery_on_pretrain/legacy/plan_motion_aux_to_surgery.md`; T4 is blocked on the 3 approval gates in `plan_surgery_on_pretrain.md`.
 - **mt_head warm-start at eval time** — `motion_aux_head.pt` is exported but eval-time probe doesn't load it. Could be a small lift.
 
 ## References
 
-- v12 final result: `outputs/full/probe_pretrain/probe_history.jsonl` (step 1009 → top1 0.808)
+- v12 final result: `outputs/full/m09a_pretrain/probe_history.jsonl` (step 1009 → top1 0.808)
 - m09a v12 wiring: `src/m09a_pretrain.py` (~9 call sites: imports / argparse / merge_config / build_head / attach_optim / run_step / step_record / wb_metrics / export)
 - Helpers: `src/utils/motion_aux_loss.py` (~340 LoC including MotionAuxHead class)
-- Phase 4 plan: `iter/iter14_surgery_on_pretrain/plan_motion_aux_to_surgery.md`
+- Phase 4 plan: `iter/iter14_surgery_on_pretrain/legacy/plan_motion_aux_to_surgery.md`
 - Phase 5 plan: `iter/iter14_surgery_on_pretrain/plan_phase5_fg_motion_features.md`
 - iter13 predecessor (RETIRED): `legacy/iter13_multi_task.md`

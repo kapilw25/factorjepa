@@ -124,7 +124,22 @@ if [ "$MODE" = "SANITY" ]; then
     fi
     DEFAULT_EVAL_SUBSET="$SANITY_SUBSET"
     DEFAULT_OUTPUT_PREFIX="outputs/sanity"
-else
+elif [ "$MODE" = "POC" ]; then
+    # iter14 (2026-05-08): POC mode — first N keys of eval_10k.json (N from yaml,
+    # default 500), then probe_action.py --stage labels applies 70:15:15
+    # stratified_split → ~350/75/75 train/val/test. Same subset that
+    # run_probe_train.sh generates so train→eval reads consistent splits.
+    POC_SUBSET="data/eval_10k_poc.json"
+    POC_TOTAL=$(python "$EX" configs/train/base_optimization.yaml data.poc_total_clips)
+    if [ ! -f "$POC_SUBSET" ] || [ "data/eval_10k.json" -nt "$POC_SUBSET" ]; then
+        python -u src/utils/eval_subset.py \
+            --eval-subset data/eval_10k.json \
+            --first-n "$POC_TOTAL" \
+            --output "$POC_SUBSET"
+    fi
+    DEFAULT_EVAL_SUBSET="$POC_SUBSET"
+    DEFAULT_OUTPUT_PREFIX="outputs/poc"
+else                                   # FULL
     DEFAULT_EVAL_SUBSET="data/eval_10k.json"
     DEFAULT_OUTPUT_PREFIX="outputs/full"
 fi
@@ -140,7 +155,7 @@ OUTPUT_MSE="${OUTPUT_MSE:-${DEFAULT_OUTPUT_PREFIX}/probe_future_mse}"
 OUTPUT_TAXONOMY="${OUTPUT_TAXONOMY:-${DEFAULT_OUTPUT_PREFIX}/probe_taxonomy}"
 OUTPUT_PLOTS="${OUTPUT_PLOTS:-${DEFAULT_OUTPUT_PREFIX}/probe_plot}"
 TAG_TAXONOMY="${TAG_TAXONOMY:-configs/tag_taxonomy.json}"
-ENCODERS="${ENCODERS:-vjepa_2_1_frozen vjepa_2_1_pretrain vjepa_2_1_surgical_3stage_DI vjepa_2_1_surgical_noDI}"
+ENCODERS="${ENCODERS:-vjepa_2_1_frozen vjepa_2_1_pretrain vjepa_2_1_pretrain_2X vjepa_2_1_surgical_3stage_DI vjepa_2_1_surgical_noDI}"
 SKIP_STAGES="${SKIP_STAGES:-}"
 NUM_FRAMES="${NUM_FRAMES:-16}"
 
@@ -159,6 +174,11 @@ if [ "$MODE" = "SANITY" ]; then
     # run_probe_train.sh.
     DEFAULT_MIN_CLIPS_PER_CLASS=3
     DEFAULT_MIN_PER_SPLIT=1
+elif [ "$MODE" = "POC" ]; then
+    # iter14 (2026-05-08): POC ~500 clips ÷ 8 motion classes ≈ 60/class. Floor=10
+    # tolerates rare-class drops while keeping 6+ classes for probe statistics.
+    DEFAULT_MIN_CLIPS_PER_CLASS=10
+    DEFAULT_MIN_PER_SPLIT=2
 else
     DEFAULT_MIN_CLIPS_PER_CLASS=34
     DEFAULT_MIN_PER_SPLIT=5
@@ -179,6 +199,7 @@ encoder_ckpt_for() {                                            # encoder-only �
     case "$1" in
         vjepa_2_1_frozen)              echo "$ENCODER_CKPT" ;;
         vjepa_2_1_pretrain)            echo "${DEFAULT_OUTPUT_PREFIX}/m09a_pretrain/student_encoder.pt" ;;
+        vjepa_2_1_pretrain_2X)       echo "${DEFAULT_OUTPUT_PREFIX}/m09a_pretrain_2X/student_encoder.pt" ;;     # iter14 arm C
         vjepa_2_1_surgical_3stage_DI)  echo "${DEFAULT_OUTPUT_PREFIX}/m09c_surgery_3stage_DI/student_encoder.pt" ;;
         vjepa_2_1_surgical_noDI)       echo "${DEFAULT_OUTPUT_PREFIX}/m09c_surgery_noDI/student_encoder.pt" ;;
         *) echo "" ;;
@@ -188,6 +209,7 @@ encoder_predictor_ckpt_for() {                                  # encoder+predic
     case "$1" in
         vjepa_2_1_frozen)              echo "$ENCODER_CKPT" ;;
         vjepa_2_1_pretrain)            echo "${DEFAULT_OUTPUT_PREFIX}/m09a_pretrain/m09a_ckpt_best.pt" ;;
+        vjepa_2_1_pretrain_2X)       echo "${DEFAULT_OUTPUT_PREFIX}/m09a_pretrain_2X/m09a_ckpt_best.pt" ;;       # iter14 arm C
         vjepa_2_1_surgical_3stage_DI)  echo "${DEFAULT_OUTPUT_PREFIX}/m09c_surgery_3stage_DI/m09c_ckpt_best.pt" ;;
         vjepa_2_1_surgical_noDI)       echo "${DEFAULT_OUTPUT_PREFIX}/m09c_surgery_noDI/m09c_ckpt_best.pt" ;;
         *) echo "" ;;
@@ -313,12 +335,13 @@ echo "────────────────────────�
 NEW_ENCODERS=""
 for ENC in $ENCODERS; do
     case "$ENC" in
-        vjepa_2_1_pretrain|vjepa_2_1_surgical_3stage_DI|vjepa_2_1_surgical_noDI)
+        vjepa_2_1_pretrain|vjepa_2_1_pretrain_2X|vjepa_2_1_surgical_3stage_DI|vjepa_2_1_surgical_noDI)
             CKPT="$(encoder_ckpt_for "$ENC")"
             if [ ! -e "$CKPT" ]; then
                 echo "  ⚠️  $ENC: $CKPT not found — train via:"
                 case "$ENC" in
                     vjepa_2_1_pretrain)            echo "       ./scripts/run_probe_train.sh pretrain          --$MODE" ;;
+                    vjepa_2_1_pretrain_2X)       echo "       ./scripts/run_probe_train.sh pretrain_2X     --$MODE" ;;
                     vjepa_2_1_surgical_3stage_DI)  echo "       ./scripts/run_probe_train.sh surgery_3stage_DI --$MODE" ;;
                     vjepa_2_1_surgical_noDI)       echo "       ./scripts/run_probe_train.sh surgery_noDI      --$MODE" ;;
                 esac
@@ -369,6 +392,9 @@ for ENC in $ENCODERS; do
             vjepa_2_1_pretrain)
                 echo "       Re-train (m09a_ckpt_best.pt is written via save_training_checkpoint full=True):"
                 echo "         CACHE_POLICY_ALL=2 ./scripts/run_probe_train.sh pretrain --$MODE" ;;
+            vjepa_2_1_pretrain_2X)
+                echo "       Re-train iter14 arm C (10 ep, ~20 GPU-h on FULL):"
+                echo "         CACHE_POLICY_ALL=2 ./scripts/run_probe_train.sh pretrain_2X --$MODE" ;;
             vjepa_2_1_surgical_*)
                 echo "       Re-train (m09c writes m09c_ckpt_best.pt at end of surgery):"
                 echo "         CACHE_POLICY_ALL=2 ./scripts/run_probe_train.sh ${ENC#vjepa_2_1_surgical_} --$MODE" ;;
@@ -402,6 +428,7 @@ if [ "${EVAL_KEEP_LATEST:-0}" != "1" ]; then
         # Map encoder → its m09{a,c}_ckpt_latest.pt path (or empty if external).
         case "$1" in
             vjepa_2_1_pretrain)            echo "${DEFAULT_OUTPUT_PREFIX}/m09a_pretrain/m09a_ckpt_latest.pt" ;;
+            vjepa_2_1_pretrain_2X)       echo "${DEFAULT_OUTPUT_PREFIX}/m09a_pretrain_2X/m09a_ckpt_latest.pt" ;;     # iter14 arm C
             vjepa_2_1_surgical_3stage_DI)  echo "${DEFAULT_OUTPUT_PREFIX}/m09c_surgery_3stage_DI/m09c_ckpt_latest.pt" ;;
             vjepa_2_1_surgical_noDI)       echo "${DEFAULT_OUTPUT_PREFIX}/m09c_surgery_noDI/m09c_ckpt_latest.pt" ;;
             *) echo "" ;;

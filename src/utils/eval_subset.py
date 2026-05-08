@@ -85,13 +85,33 @@ def stratified_subset(src: dict, n_per_class: int) -> dict:
     return out
 
 
+def first_n_subset(src: dict, n: int) -> dict:
+    """First-N subset builder — takes the loaded source JSON dict + n total clips,
+    returns a new dict with the FIRST n clip_keys verbatim (no stratification —
+    downstream stratified_split applies). iter14 POC mode (2026-05-08).
+    """
+    if n < 1:
+        raise ValueError(f"--first-n must be >= 1 (got {n})")
+    keys = src["clip_keys"]
+    out = dict(src)
+    out["clip_keys"] = list(keys[:n])
+    out["n_clips"] = len(out["clip_keys"])
+    return out
+
+
 def main():
     p = argparse.ArgumentParser(
-        description="Generate a stratified eval subset (N per action class) from an eval JSON.")
+        description="Generate a derived eval subset from a source eval JSON. "
+                    "TWO modes: (a) stratified per-action-class via --n-per-class "
+                    "(SANITY); (b) first-N keys verbatim via --first-n (POC, iter14).")
     p.add_argument("--eval-subset", type=Path, required=True,
                    help="Source eval JSON (e.g. data/eval_10k.json).")
-    p.add_argument("--n-per-class", type=int, required=True,
-                   help="Clips to keep per action class.")
+    g = p.add_mutually_exclusive_group(required=True)
+    g.add_argument("--n-per-class", type=int, default=None,
+                   help="Stratified mode: clips to keep per action class.")
+    g.add_argument("--first-n", type=int, default=None,
+                   help="First-N mode: take the first N clip_keys verbatim "
+                        "(no stratification — downstream stratified_split applies).")
     p.add_argument("--output", type=Path, required=True,
                    help="Where to write the derived subset JSON.")
     args = p.parse_args()
@@ -100,12 +120,19 @@ def main():
         sys.exit(f"FATAL: --eval-subset not found: {args.eval_subset}")
 
     src = json.loads(args.eval_subset.read_text())
-    out = stratified_subset(src, args.n_per_class)
-    out["source"] = f"stratified_subset_{args.n_per_class}_per_class_of_{args.eval_subset.name}"
 
-    args.output.parent.mkdir(parents=True, exist_ok=True)
-    args.output.write_text(json.dumps(out, indent=2))
-    print(f"Generated {args.output}: {out['n_clips']} clips ({out['per_class_counts']})")
+    if args.n_per_class is not None:
+        out = stratified_subset(src, args.n_per_class)
+        out["source"] = f"stratified_subset_{args.n_per_class}_per_class_of_{args.eval_subset.name}"
+        args.output.parent.mkdir(parents=True, exist_ok=True)
+        args.output.write_text(json.dumps(out, indent=2))
+        print(f"Generated {args.output}: {out['n_clips']} clips ({out['per_class_counts']})")
+    else:
+        out = first_n_subset(src, args.first_n)
+        out["source"] = f"first_{args.first_n}_clips_of_{args.eval_subset.name}"
+        args.output.parent.mkdir(parents=True, exist_ok=True)
+        args.output.write_text(json.dumps(out, indent=2))
+        print(f"Generated {args.output}: first {out['n_clips']} clips of {args.eval_subset.name}")
 
 
 if __name__ == "__main__":

@@ -74,6 +74,17 @@ optimization:
   layer_wise_lr_decay: true
   layer_wise_lr_decay_factor: 0.75
 
+  # iter14 max_epochs override (2026-05-08). Was inherited 15 from base_optimization.yaml:148
+  # (which is iter11 v2's "let val-loss flatten before plateau-patience fires" recipe).
+  # G1=🅰️ "5+5 vs 10": surgery 5 ep + pretrain-init 5 ep = 10 ep total compute,
+  # compute-matched against arm C long-pretrain at 10 ep. If arm B (factor surgery)
+  # > arm C (long-pretrain) with non-overlapping 95% CIs, gain is causal to factor
+  # patching, not extra training steps. See plan_surgery_on_pretrain.md § Q3.
+  max_epochs:
+    sanity: 1
+    poc:    1
+    full:   5                       # iter14 — was inherited 15
+
   # Memory saver flags — MODE-GATED (#57).
   #
   # SANITY runs on 24GB RTX Pro 4000 (cheap, fast iteration) — needs both flags
@@ -223,16 +234,23 @@ surgery:
   warmup_pct: 0.20
   # `stages` is variant-specific — see {noDI,loud_agent,3stage_DI}.yaml.
 
-# -- Drift control: DISABLED (iter13 v12+, 2026-05-06).
-# v10 (probe_pretrain) showed λ=1.0 L2 anchor caused encoder collapse to init
-# (drift 1.26e-4 peak → 3.96e-5 by step 971, 95% pullback). v11 (anchor-fix)
-# + v12 (motion_aux) confirmed: EMA teacher + layer_freeze + per-stage
-# unfreeze_below provide sufficient anti-forgetting without L2 anchor pullback.
-# Surgery inherits the same finding — drift anchor was redundant + harmful.
+# -- Drift control: REACTIVATED iter14 (2026-05-08) — anchor-to-PRETRAIN.
+# History:
+#   v10 (probe_pretrain):  λ=1.0 L2 anchor-to-frozen → encoder collapse to init
+#                          (drift 1.26e-4 peak → 3.96e-5 by step 971, 95% pullback).
+#   v11/v12 (motion_aux):  DISABLED — EMA + layer_freeze + per-stage unfreeze_below
+#                          provide sufficient anti-forgetting without L2 pullback.
+#   iter14 (surgery-on-pretrain): RE-ENABLED at λ=0.005 (200× weaker than v10).
+#     Anchor target is PRETRAIN weights, not frozen — utils/training.compute_drift_loss
+#     reads init_params captured at m09c:442 AFTER --init-from-ckpt loads the
+#     pretrain ckpt. Goal: preserve pretrain's motion gains (probe_top1=0.808)
+#     while surgery patches factors. λ=0.005 from literature (G2 single-arm).
+# m09c sanity guard: when anchor_to=pretrain, asserts --init-from-ckpt was passed.
 drift_control:
-  enabled: false
-  type: l2_uniform                  # doc-only (no Python branch reads it when enabled=false)
-  lambda_reg: 0.0                   # was 1.0 pre-iter13-v12; nuked alongside multi_task_probe swap
+  enabled: true                     # iter14 — was false (v12 disabled drift entirely)
+  type: l2_uniform                  # uniform L2 across all params (utils.training.compute_drift_loss)
+  lambda_reg: 0.005                 # iter14 G2 — literature default (was 0.0; v10 was 1.0)
+  anchor_to: pretrain               # iter14 NEW key — m09c guard: requires --init-from-ckpt
 
 # -- Multi-task probe (15 retrieval dims) — DISABLED v12+ for ALL surgery variants.
 # iter13 v11 showed retrieval gradient steals capacity from motion learning.
@@ -263,8 +281,23 @@ motion_aux:
     dropout:    0.1
   head_lr_multiplier: 10.0
 
+# -- Monitoring (m09_common.setup_probe_pipeline reads knn_probe_clips to cap
+#    val pool /dev/shm footprint). m09c only consumes this single key; the
+#    full pretrain monitoring block (drift_loss_ratio_min, effective_rank_min_ratio,
+#    knn_min_accuracy) is m09a-specific. Keep minimal here.
+monitoring:
+  knn_probe_clips: 1000
+
 # -- Probe: surgery-specific overrides only (universal probe config in base) --
 # Surgery-specific extras (m09c reads these via merge_config_with_args at line 94-129):
 probe:
+  # iter14 (2026-05-08): override base_optimization.yaml's legacy
+  # `ultra_hard_3066_val.json` to match m09a's gold-standard val pool path
+  # (probe_pretrain.yaml:149). Both encoders now use the same auto-generated
+  # 70:15:15 stratified split from action_labels.json — at POC: 125 clips,
+  # at FULL: ~1388 clips. Cross-encoder mid-training metrics now comparable.
+  subset:           data/eval_10k_val_split.json
+  local_data:       data/eval_10k_local
+  tags_path:        data/eval_10k_local/tags.json
   n_points: 30                    # kept for every_n_steps backward-compat (unused when cadence=saves_per_epoch).
   bwt_tolerance_pct: 0.5          # DEPRECATED — kept to not break older configs; unused when new keys present.

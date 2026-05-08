@@ -96,6 +96,7 @@ from utils.training import (
     producer_thread,
     build_mask_generators,
     _train_step_grad_accum,
+    compute_total_loss,
     update_teacher_ema,
     build_optimizer, build_scheduler, update_weight_decay,
     run_validation,
@@ -496,6 +497,13 @@ def train(cfg: dict, args):
         if val_key_set:
             val_key_set = set(list(val_key_set)[:sanity_val])
 
+    # iter14 (2026-05-08): POC mode pool capping happens UPSTREAM via the shell
+    # generating data/eval_10k_poc.json (first N keys of eval_10k.json) →
+    # action_labels.json → train/val/test split files. By the time m09a reads
+    # train_keys/val_key_set here, they're already proportionally sized
+    # (~350/75/75 from a 500-clip pool via 70:15:15 stratified_split). No
+    # in-script POC cap needed — single source of truth = poc_total_clips yaml key.
+
     # Discover n_train: from subset, local manifest, or fail
     if train_keys:
         n_train = len(train_keys)
@@ -668,9 +676,11 @@ def train(cfg: dict, args):
     # per step (588 named_parameters × .cpu() + norm + reduction). Total run
     # overhead: ~100ms × 1085 ≈ 1.8 min on a 7-h run = 0.4%.
     from utils.plots import compute_block_drift  # local import: avoid circular
-    plateau_state = {"recent_val_losses": []}      # plateau detector state
+    # iter14 (2026-05-08): early-stop is top@1 plateau ONLY. val_jepa
+    # plateau_state retired alongside its detector.
     best_state = {"val_loss": float("inf"), "step": -1, "probe_acc": -1.0}
     kill_state = {"triggered": False, "reason": None}
+    top1_plateau_state = {"recent_top1": []}
     if cfg.get("probe", {}).get("enabled"):
         probe_cfg = cfg["probe"]
         action_labels_path = (args.probe_action_labels or
@@ -872,9 +882,8 @@ def train(cfg: dict, args):
                         ) from None
                     print(f"  OOM at step {step}: sub-batch shrunk to "
                           f"{train_sizer.size}, retrying SAME macro")
-            total_val = jepa_val + drift_val
 
-            # Multi-task forward+backward (no-op when mt_head is None).
+            # Multi-task forward+backward (no-op when mt_head is None — returns 0.0).
             # Accumulates onto the same param.grad buffer as the JEPA grads
             # → single optimizer.step() below consumes both losses.
             try:
@@ -887,7 +896,7 @@ def train(cfg: dict, args):
                 torch.cuda.empty_cache()
                 continue
 
-            # iter13 v12: motion_aux forward+backward (no-op when ma_head is None).
+            # iter13 v12: motion_aux forward+backward (no-op when ma_head is None — returns 0.0).
             # Same param.grad accumulation pattern → optimizer.step() consumes
             # JEPA + multi_task + motion_aux gradients in one update.
             try:
@@ -899,8 +908,16 @@ def train(cfg: dict, args):
                 print(f"  OOM at step {step} (motion_aux forward): macro discarded, retrying")
                 torch.cuda.empty_cache()
                 continue
-            if mt_head is not None:
-                total_val = jepa_val + drift_val + mt_loss_val * float(mt_cfg["weight_probe"])
+
+            # iter14 (2026-05-08): canonical total via shared utils.training.compute_total_loss
+            # — fixes pre-iter14 m09a bug where motion_aux contribution was silently dropped from
+            # total_val (the `if mt_head:` branch only added mt, never ma). Now mirrors val_total
+            # at training.py:939 exactly. mt_loss_val / ma_loss_val are 0.0 when head is None
+            # (run_*_step's documented no-op return).
+            total_val = compute_total_loss(
+                jepa=jepa_val, drift=drift_val,
+                mt=mt_loss_val, mt_cfg=mt_cfg if mt_head is not None else None,
+                ma=ma_loss_val, ma_cfg=ma_cfg if ma_head is not None else None)
 
             # Single optimizer step per macro batch — preserves effective BS = batch_size
             scaler.unscale_(optimizer)
@@ -1148,11 +1165,6 @@ def train(cfg: dict, args):
                     ph_f.flush()
                     os.fsync(ph_f.fileno())
 
-                # ── Kill-switch ensemble: catastrophic + plateau on val_jepa ──
-                # Both opt-in via cfg.probe.{kill_switch_enabled, plateau_enabled}
-                # (per-mode-flattened). Same spread-window pattern as
-                # m09c_surgery.py:892-905, but no stage gate (m09a is single-phase).
-                probe_cfg_local = cfg.get("probe", {})
                 # iter13 Task #25: use shared update_best_state_on_score helper
                 # so m09a + m09c share identical best-ckpt selection plumbing.
                 # m09a tracks val_loss (lower=better); the actual best.pt save
@@ -1170,32 +1182,23 @@ def train(cfg: dict, args):
                 # Mirror val_loss onto best_state for the plot helper (line 161-163)
                 # which annotates the "val_loss AT best-top1 step" for context.
                 best_state["val_loss_at_best"] = val_loss
-                # Kill-switch tracks lowest-val_loss-EVER independently (different
-                # purpose than best.pt selection — detect catastrophic INCREASE in
-                # val_loss regardless of probe_top1 trajectory).
-                if val_loss < best_state.get("min_val_loss_seen", float("inf")):
-                    best_state["min_val_loss_seen"] = val_loss
-                if probe_cfg_local.get("kill_switch_enabled"):
-                    max_inc_pct = probe_cfg_local["forgetting_threshold_pct"]
-                    min_val_seen = best_state.get("min_val_loss_seen", float("inf"))
-                    bound = min_val_seen * (1.0 + max_inc_pct / 100.0)
-                    if val_loss > bound:
-                        kill_state["triggered"] = True
-                        kill_state["reason"] = "catastrophic_val_jepa_increase"
-                        print(f"  [kill] val_jepa {val_loss:.4f} > min_seen {min_val_seen:.4f} "
-                              f"x (1 + {max_inc_pct}%) = {bound:.4f} -> catastrophic forgetting")
-                if probe_cfg_local.get("plateau_enabled"):
-                    plateau_state["recent_val_losses"].append(val_loss)
-                    patience = probe_cfg_local["plateau_patience"]
-                    min_delta = probe_cfg_local["plateau_min_delta"]
-                    window = plateau_state["recent_val_losses"][-(patience + 1):]
-                    if len(window) >= patience + 1:
-                        spread = max(window) - min(window)
+                # iter14 (2026-05-08): top@1 plateau early-stop (THE ONLY trigger
+                # — val_jepa-based detectors retired). Mirrors apply_val_cycle_triggers
+                # logic in utils/training.py; m09a is single-stage so no stage gate.
+                probe_cfg_es = cfg["probe"]
+                if probe_cfg_es["prec_plateau_enabled"]:
+                    top1_plateau_state["recent_top1"].append(probe_top1_for_best)
+                    patience = probe_cfg_es["prec_plateau_patience"]
+                    min_delta = probe_cfg_es["prec_plateau_min_delta"]
+                    pwin = top1_plateau_state["recent_top1"][-(patience + 1):]
+                    if len(pwin) >= patience + 1:
+                        spread = max(pwin) - min(pwin)
                         if spread < min_delta:
                             kill_state["triggered"] = True
-                            kill_state["reason"] = "val_jepa_plateau"
-                            print(f"  [plateau] val_jepa range over last {patience+1} probes = "
-                                  f"{spread:.5f} < {min_delta} -> early-stop (plateau)")
+                            kill_state["reason"] = "top1_plateau"
+                            print(f"  [top1-plateau-kill] top@1 range over last "
+                                  f"{patience+1} probes = {spread:.4f} < {min_delta} "
+                                  f"→ early-stop")
 
                 # m09a-specific live plots: val_loss curve + probe_acc trajectory.
                 try:
