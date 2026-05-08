@@ -1,0 +1,574 @@
+{
+  "dims": {
+    "crowd_density": {
+      "type": "single",
+      "metric": "top1_acc",
+      "n_classes": 3,
+      "by_encoder": {
+        "vjepa_2_1_frozen": {
+          "test_mean": 0.841202,
+          "test_ci": {
+            "mean": 0.841202,
+            "ci_lo": 0.821017,
+            "ci_hi": 0.8598,
+            "ci_half": 0.019391
+          },
+          "n_test": 1398
+        },
+        "vjepa_2_1_pretrain": {
+          "test_mean": 0.831903,
+          "test_ci": {
+            "mean": 0.831903,
+            "ci_lo": 0.811874,
+            "ci_hi": 0.851216,
+            "ci_half": 0.019671
+          },
+          "n_test": 1398
+        }
+      },
+      "pairwise_deltas": {
+        "vjepa_2_1_frozen_minus_vjepa_2_1_pretrain": {
+          "n_shared": 1398,
+          "delta": 0.009299,
+          "ci_lo": -0.009299,
+          "ci_hi": 0.028612,
+          "ci_half": 0.018956,
+          "p_value": 0.37,
+          "gate_pass": false
+        }
+      }
+    },
+    "infrastructure_quality": {
+      "type": "single",
+      "metric": "top1_acc",
+      "n_classes": 3,
+      "by_encoder": {
+        "vjepa_2_1_frozen": {
+          "test_mean": 0.83834,
+          "test_ci": {
+            "mean": 0.83834,
+            "ci_lo": 0.818312,
+            "ci_hi": 0.856938,
+            "ci_half": 0.019313
+          },
+          "n_test": 1398
+        },
+        "vjepa_2_1_pretrain": {
+          "test_mean": 0.835479,
+          "test_ci": {
+            "mean": 0.835479,
+            "ci_lo": 0.815451,
+            "ci_hi": 0.854077,
+            "ci_half": 0.019313
+          },
+          "n_test": 1398
+        }
+      },
+      "pairwise_deltas": {
+        "vjepa_2_1_frozen_minus_vjepa_2_1_pretrain": {
+          "n_shared": 1398,
+          "delta": 0.002861,
+          "ci_lo": -0.016452,
+          "ci_hi": 0.02289,
+          "ci_half": 0.019671,
+          "p_value": 0.8088,
+          "gate_pass": false
+        }
+      }
+    },
+    "lighting": {
+      "type": "single",
+      "metric": "top1_acc",
+      "n_classes": 4,
+      "by_encoder": {
+        "vjepa_2_1_frozen": {
+          "test_mean": 0.971388,
+          "test_ci": {
+            "mean": 0.971388,
+            "ci_lo": 0.962089,
+            "ci_hi": 0.979256,
+            "ci_half": 0.008584
+          },
+          "n_test": 1398
+        },
+        "vjepa_2_1_pretrain": {
+          "test_mean": 0.958512,
+          "test_ci": {
+            "mean": 0.958512,
+            "ci_lo": 0.947067,
+            "ci_hi": 0.967811,
+            "ci_half": 0.010372
+          },
+          "n_test": 1398
+        }
+      },
+      "pairwise_deltas": {
+        "vjepa_2_1_frozen_minus_vjepa_2_1_pretrain": {
+          "n_shared": 1398,
+          "delta": 0.012876,
+          "ci_lo": 0.005007,
+          "ci_hi": 0.022175,
+          "ci_half": 0.008584,
+          "p_value": 0.0046,
+          "gate_pass": true
+        }
+      }
+    },
+    "notable_objects": {
+      "type": "multi",
+      "metric": "sample_f1",
+      "n_classes": 15,
+      "by_encoder": {
+        "vjepa_2_1_frozen": {
+          "test_mean": 0.673151,
+          "test_ci": {
+            "mean": 0.673151,
+            "ci_lo": 0.656744,
+            "ci_hi": 0.6887,
+            "ci_half": 0.015978
+          },
+          "n_test": 1398
+        },
+        "vjepa_2_1_pretrain": {
+          "test_mean": 0.668706,
+          "test_ci": {
+            "mean": 0.668706,
+            "ci_lo": 0.652462,
+            "ci_hi": 0.683601,
+            "ci_half": 0.015569
+          },
+          "n_test": 1398
+        }
+      },
+      "pairwise_deltas": {
+        "vjepa_2_1_frozen_minus_vjepa_2_1_pretrain": {
+          "n_shared": 1398,
+          "delta": 0.004445,
+          "ci_lo": -0.004845,
+          "ci_hi": 0.013936,
+          "ci_half": 0.009391,
+          "p_value": 0.3564,
+          "gate_pass": false
+        }
+      }
+    },
+    "pedestrian_vehicle_separation": {
+      "type": "single",
+      "metric": "top1_acc",
+      "n_classes": 3,
+      "by_encoder": {
+        "vjepa_2_1_frozen": {
+          "test_mean": 0.841202,
+          "test_ci": {
+            "mean": 0.841202,
+            "ci_lo": 0.821173,
+            "ci_hi": 0.859084,
+            "ci_half": 0.018956
+          },
+          "n_test": 1398
+        },
+        "vjepa_2_1_pretrain": {
+          "test_mean": 0.830472,
+          "test_ci": {
+            "mean": 0.830472,
+            "ci_lo": 0.810443,
+            "ci_hi": 0.84907,
+            "ci_half": 0.019313
+          },
+          "n_test": 1398
+        }
+      },
+      "pairwise_deltas": {
+        "vjepa_2_1_frozen_minus_vjepa_2_1_pretrain": {
+          "n_shared": 1398,
+          "delta": 0.01073,
+          "ci_lo": -0.008584,
+          "ci_hi": 0.030043,
+          "ci_half": 0.019313,
+          "p_value": 0.2956,
+          "gate_pass": false
+        }
+      }
+    },
+    "road_encroachment": {
+      "type": "single",
+      "metric": "top1_acc",
+      "n_classes": 3,
+      "by_encoder": {
+        "vjepa_2_1_frozen": {
+          "test_mean": 0.833333,
+          "test_ci": {
+            "mean": 0.833333,
+            "ci_lo": 0.812589,
+            "ci_hi": 0.851931,
+            "ci_half": 0.019671
+          },
+          "n_test": 1398
+        },
+        "vjepa_2_1_pretrain": {
+          "test_mean": 0.806867,
+          "test_ci": {
+            "mean": 0.806867,
+            "ci_lo": 0.784692,
+            "ci_hi": 0.82618,
+            "ci_half": 0.020744
+          },
+          "n_test": 1398
+        }
+      },
+      "pairwise_deltas": {
+        "vjepa_2_1_frozen_minus_vjepa_2_1_pretrain": {
+          "n_shared": 1398,
+          "delta": 0.026466,
+          "ci_lo": 0.007153,
+          "ci_hi": 0.04721,
+          "ci_half": 0.020029,
+          "p_value": 0.0102,
+          "gate_pass": true
+        }
+      }
+    },
+    "road_layout": {
+      "type": "multi",
+      "metric": "sample_f1",
+      "n_classes": 8,
+      "by_encoder": {
+        "vjepa_2_1_frozen": {
+          "test_mean": 0.714611,
+          "test_ci": {
+            "mean": 0.714611,
+            "ci_lo": 0.696391,
+            "ci_hi": 0.732271,
+            "ci_half": 0.01794
+          },
+          "n_test": 1398
+        },
+        "vjepa_2_1_pretrain": {
+          "test_mean": 0.722432,
+          "test_ci": {
+            "mean": 0.722432,
+            "ci_lo": 0.703893,
+            "ci_hi": 0.739913,
+            "ci_half": 0.01801
+          },
+          "n_test": 1398
+        }
+      },
+      "pairwise_deltas": {
+        "vjepa_2_1_frozen_minus_vjepa_2_1_pretrain": {
+          "n_shared": 1398,
+          "delta": -0.007821,
+          "ci_lo": -0.019836,
+          "ci_hi": 0.003764,
+          "ci_half": 0.0118,
+          "p_value": 0.1948,
+          "gate_pass": false
+        }
+      }
+    },
+    "road_surface": {
+      "type": "single",
+      "metric": "top1_acc",
+      "n_classes": 8,
+      "by_encoder": {
+        "vjepa_2_1_frozen": {
+          "test_mean": 0.80186,
+          "test_ci": {
+            "mean": 0.80186,
+            "ci_lo": 0.780401,
+            "ci_hi": 0.821888,
+            "ci_half": 0.020744
+          },
+          "n_test": 1398
+        },
+        "vjepa_2_1_pretrain": {
+          "test_mean": 0.788984,
+          "test_ci": {
+            "mean": 0.788984,
+            "ci_lo": 0.76681,
+            "ci_hi": 0.809728,
+            "ci_half": 0.021459
+          },
+          "n_test": 1398
+        }
+      },
+      "pairwise_deltas": {
+        "vjepa_2_1_frozen_minus_vjepa_2_1_pretrain": {
+          "n_shared": 1398,
+          "delta": 0.012876,
+          "ci_lo": -0.007153,
+          "ci_hi": 0.032189,
+          "ci_half": 0.019671,
+          "p_value": 0.2128,
+          "gate_pass": false
+        }
+      }
+    },
+    "scene_type": {
+      "type": "single",
+      "metric": "top1_acc",
+      "n_classes": 13,
+      "by_encoder": {
+        "vjepa_2_1_frozen": {
+          "test_mean": 0.638054,
+          "test_ci": {
+            "mean": 0.638054,
+            "ci_lo": 0.613734,
+            "ci_hi": 0.66309,
+            "ci_half": 0.024678
+          },
+          "n_test": 1398
+        },
+        "vjepa_2_1_pretrain": {
+          "test_mean": 0.603004,
+          "test_ci": {
+            "mean": 0.603004,
+            "ci_lo": 0.576538,
+            "ci_hi": 0.62804,
+            "ci_half": 0.025751
+          },
+          "n_test": 1398
+        }
+      },
+      "pairwise_deltas": {
+        "vjepa_2_1_frozen_minus_vjepa_2_1_pretrain": {
+          "n_shared": 1398,
+          "delta": 0.03505,
+          "ci_lo": 0.010014,
+          "ci_hi": 0.058655,
+          "ci_half": 0.02432,
+          "p_value": 0.0046,
+          "gate_pass": true
+        }
+      }
+    },
+    "time_of_day": {
+      "type": "single",
+      "metric": "top1_acc",
+      "n_classes": 2,
+      "by_encoder": {
+        "vjepa_2_1_frozen": {
+          "test_mean": 0.982117,
+          "test_ci": {
+            "mean": 0.982117,
+            "ci_lo": 0.974249,
+            "ci_hi": 0.98784,
+            "ci_half": 0.006795
+          },
+          "n_test": 1398
+        },
+        "vjepa_2_1_pretrain": {
+          "test_mean": 0.976395,
+          "test_ci": {
+            "mean": 0.976395,
+            "ci_lo": 0.967096,
+            "ci_hi": 0.983548,
+            "ci_half": 0.008226
+          },
+          "n_test": 1398
+        }
+      },
+      "pairwise_deltas": {
+        "vjepa_2_1_frozen_minus_vjepa_2_1_pretrain": {
+          "n_shared": 1398,
+          "delta": 0.005722,
+          "ci_lo": -0.001431,
+          "ci_hi": 0.013591,
+          "ci_half": 0.007511,
+          "p_value": 0.1508,
+          "gate_pass": false
+        }
+      }
+    },
+    "traffic_density": {
+      "type": "single",
+      "metric": "top1_acc",
+      "n_classes": 3,
+      "by_encoder": {
+        "vjepa_2_1_frozen": {
+          "test_mean": 0.785408,
+          "test_ci": {
+            "mean": 0.785408,
+            "ci_lo": 0.763233,
+            "ci_hi": 0.806152,
+            "ci_half": 0.021459
+          },
+          "n_test": 1398
+        },
+        "vjepa_2_1_pretrain": {
+          "test_mean": 0.762518,
+          "test_ci": {
+            "mean": 0.762518,
+            "ci_lo": 0.738913,
+            "ci_hi": 0.783262,
+            "ci_half": 0.022175
+          },
+          "n_test": 1398
+        }
+      },
+      "pairwise_deltas": {
+        "vjepa_2_1_frozen_minus_vjepa_2_1_pretrain": {
+          "n_shared": 1398,
+          "delta": 0.02289,
+          "ci_lo": 0.001431,
+          "ci_hi": 0.044349,
+          "ci_half": 0.021459,
+          "p_value": 0.0418,
+          "gate_pass": true
+        }
+      }
+    },
+    "traffic_mix": {
+      "type": "single",
+      "metric": "top1_acc",
+      "n_classes": 4,
+      "by_encoder": {
+        "vjepa_2_1_frozen": {
+          "test_mean": 0.739628,
+          "test_ci": {
+            "mean": 0.739628,
+            "ci_lo": 0.715308,
+            "ci_hi": 0.761803,
+            "ci_half": 0.023247
+          },
+          "n_test": 1398
+        },
+        "vjepa_2_1_pretrain": {
+          "test_mean": 0.735336,
+          "test_ci": {
+            "mean": 0.735336,
+            "ci_lo": 0.711731,
+            "ci_hi": 0.758226,
+            "ci_half": 0.023247
+          },
+          "n_test": 1398
+        }
+      },
+      "pairwise_deltas": {
+        "vjepa_2_1_frozen_minus_vjepa_2_1_pretrain": {
+          "n_shared": 1398,
+          "delta": 0.004292,
+          "ci_lo": -0.017167,
+          "ci_hi": 0.025751,
+          "ci_half": 0.021459,
+          "p_value": 0.7248,
+          "gate_pass": false
+        }
+      }
+    },
+    "vegetation": {
+      "type": "single",
+      "metric": "top1_acc",
+      "n_classes": 4,
+      "by_encoder": {
+        "vjepa_2_1_frozen": {
+          "test_mean": 0.756795,
+          "test_ci": {
+            "mean": 0.756795,
+            "ci_lo": 0.733906,
+            "ci_hi": 0.77897,
+            "ci_half": 0.022532
+          },
+          "n_test": 1398
+        },
+        "vjepa_2_1_pretrain": {
+          "test_mean": 0.767525,
+          "test_ci": {
+            "mean": 0.767525,
+            "ci_lo": 0.744635,
+            "ci_hi": 0.788984,
+            "ci_half": 0.022175
+          },
+          "n_test": 1398
+        }
+      },
+      "pairwise_deltas": {
+        "vjepa_2_1_frozen_minus_vjepa_2_1_pretrain": {
+          "n_shared": 1398,
+          "delta": -0.01073,
+          "ci_lo": -0.03505,
+          "ci_hi": 0.012876,
+          "ci_half": 0.023963,
+          "p_value": 0.418,
+          "gate_pass": false
+        }
+      }
+    },
+    "video_quality": {
+      "type": "single",
+      "metric": "top1_acc",
+      "n_classes": 3,
+      "by_encoder": {
+        "vjepa_2_1_frozen": {
+          "test_mean": 0.773247,
+          "test_ci": {
+            "mean": 0.773247,
+            "ci_lo": 0.751788,
+            "ci_hi": 0.795422,
+            "ci_half": 0.021817
+          },
+          "n_test": 1398
+        },
+        "vjepa_2_1_pretrain": {
+          "test_mean": 0.763233,
+          "test_ci": {
+            "mean": 0.763233,
+            "ci_lo": 0.741059,
+            "ci_hi": 0.784692,
+            "ci_half": 0.021817
+          },
+          "n_test": 1398
+        }
+      },
+      "pairwise_deltas": {
+        "vjepa_2_1_frozen_minus_vjepa_2_1_pretrain": {
+          "n_shared": 1398,
+          "delta": 0.010014,
+          "ci_lo": -0.01216,
+          "ci_hi": 0.032189,
+          "ci_half": 0.022175,
+          "p_value": 0.3848,
+          "gate_pass": false
+        }
+      }
+    },
+    "weather": {
+      "type": "single",
+      "metric": "top1_acc",
+      "n_classes": 5,
+      "by_encoder": {
+        "vjepa_2_1_frozen": {
+          "test_mean": 0.886981,
+          "test_ci": {
+            "mean": 0.886981,
+            "ci_lo": 0.869814,
+            "ci_hi": 0.902718,
+            "ci_half": 0.016452
+          },
+          "n_test": 1398
+        },
+        "vjepa_2_1_pretrain": {
+          "test_mean": 0.872675,
+          "test_ci": {
+            "mean": 0.872675,
+            "ci_lo": 0.854793,
+            "ci_hi": 0.889843,
+            "ci_half": 0.017525
+          },
+          "n_test": 1398
+        }
+      },
+      "pairwise_deltas": {
+        "vjepa_2_1_frozen_minus_vjepa_2_1_pretrain": {
+          "n_shared": 1398,
+          "delta": 0.014306,
+          "ci_lo": -0.002146,
+          "ci_hi": 0.030758,
+          "ci_half": 0.016452,
+          "p_value": 0.0954,
+          "gate_pass": false
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,3 @@
+step,stage,loss_jepa,loss_masked,loss_context,loss_infonce,loss_tcc,uw_w_jepa,uw_w_infonce,uw_w_tcc,lr,grad_norm
+0,stage1_layout,0.508787,0.367909,0.281757,0.000000,0.000000,0.000000,0.000000,0.000000,5.00e-05,1.3554
+1,stage2_agent,0.517230,0.370142,0.294175,0.000000,0.000000,0.000000,0.000000,0.000000,5.00e-05,2.0705
