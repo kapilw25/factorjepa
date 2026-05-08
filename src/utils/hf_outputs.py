@@ -4,7 +4,7 @@ Repo: anonymousML123/factorjepa-outputs (public, gated, auto-created on first up
 
 USAGE:
     # FULL/POC/SANITY usage: from outputs/
-    python -u src/utils/hf_outputs.py upload outputs 2>&1 | tee logs/hf_upload_outputs.log
+    python -u src/utils/hf_outputs.py upload outputs 2>&1 | tee logs/hf_upload_outputs_v1.log
     python -u src/utils/hf_outputs.py download outputs 2>&1 | tee logs/hf_download_outputs.log
 
     # Upload/download: from outputs/full/ ONLY
