@@ -30,6 +30,41 @@ data:
   # POC just needs code-completion of FULL features at ~10× lower compute.
   poc_total_clips: 1000
 
+# -- probe_action labels bootstrap (iter14 recipe-v3, 2026-05-09) --
+# All paths + numbers consumed by src/utils/probe_labels.ensure_probe_labels_for_mode().
+# m09a + m09c call that fn at startup with cfg=cfg; the fn reads from this block.
+# Replaces the previous module-level _MODE_TO_* constants in probe_labels.py
+# (per CLAUDE.md "No hardcoded values in Python — YAML or runtime discovery only").
+# Replaces shell-side bootstrap in scripts/run_probe_train.sh + run_recipe_v3_sweep.sh
+# (per CLAUDE.md "Shell scripts are THIN wrappers — all logic in Python").
+probe_action_labels:
+  # m04d 13-D RAFT features × 4-mag × 4-dir = 16 possible · 8 surviving after
+  # the 34-clip filter on the FULL pool. Drives target_per_class for the POC
+  # stratified subsampler (utils.eval_subset.stratified_by_motion_class_subset).
+  n_motion_classes: 8
+  # Per-mode source pool fed into probe_action.py --stage labels (or
+  # stratified_by_motion_class_subset for POC).
+  eval_subset_in:
+    sanity: "data/eval_10k_sanity.json"
+    poc:    "data/eval_10k.json"
+    full:   "data/eval_10k.json"
+  # POC stratified-by-motion-class subset destination (only used in POC mode).
+  poc_subset_out: "data/eval_10k_poc.json"
+  min_clips_per_class:
+    sanity: 5                   # 600 / 16 ≈ 37 → relaxed for code-correctness only
+    poc: 34                     # iter13 v12: 34 → ≥5 per split @ 70/15/15
+    full: 34
+  min_per_split:
+    sanity: 1                   # min clips per stratified train/val/test split
+    poc: 5
+    full: 5
+
+# -- probe_taxonomy labels bootstrap (multi-task supervision source) --
+probe_taxonomy_labels:
+  tags_json:    "data/eval_10k_local/tags.json"
+  tag_taxonomy: "configs/tag_taxonomy.json"
+  local_data:   "data/eval_10k_local"     # parent of motion_features.npy + tar shards
+
   # iter11 v3 hard-pivot (2026-04-25): 80/10/10 train/val/eval split inside
   # ultra_hard_3066.json — 3,066 clips with ≥4 Hard triggers AND ≥4 Indian-specific
   # objects. All 3 splits share the same local TAR dir (data/ultra_hard_3066_local/);
@@ -117,6 +152,14 @@ optimization:
     # → ZERO HP search needed. Standard for VICReg / V-JEPA 2 / MultiMAE multi-head
     # training. When true, all enabled losses ALWAYS computed; α/β/γ above ignored.
     uncertainty_weighting: false
+    # iter14 recipe-v3 audit A2 (2026-05-09): saliency-weighted JEPA loss.
+    # When true, compute_jepa_loss weights per-token loss by L2 norm of teacher
+    # embedding at that token (high-norm = high-information = MGMAE-style mask
+    # surrogate). When false (default), uniform mean across tokens (legacy
+    # V-JEPA). Override at runtime: SALIENCY_OVERRIDE={off, on} env-var → CLI
+    # --saliency {off, on} → cfg["optimization"]["loss"]["saliency_weighting"]
+    # (T7-wired). Reference: MGMAE engine_for_mgmae loss × cal_loss_mask.
+    saliency_weighting: false
 
   optimizer: adamw
   betas: [0.9, 0.999]
@@ -208,6 +251,35 @@ optimization:
   # Gradient checkpointing: ~2-4× activation reduction, ~25% throughput hit.
   use_8bit_optim: false           # bitsandbytes AdamW8bit (drop-in AdamW replacement)
   gradient_checkpointing: false   # torch.utils.checkpoint on transformer blocks
+
+  # iter14 recipe-v3 intervention #4 (2026-05-09): Selective Projection Decay.
+  # Replaces uniform L2 anchor decay (drift_control.lambda_reg) with per-parameter
+  # selective pull-back gated by step-vs-anchor alignment. Default disabled —
+  # enabled=false → spd code path is gated off → torch.optim.AdamW path used →
+  # bit-identical to pre-iter14 behavior (verified by unit test in
+  # src/utils/spd_optimizer.py). Override at runtime: SPD_OVERRIDE={off, on}
+  # env-var → CLI --spd {off, on} → cfg["optimization"]["spd"]["enabled"] (T7-wired).
+  # When enabled, drift_control.lambda_reg should be set to 0 (SPD is the new anchor).
+  # Reference: Tian NeurIPS'24 arXiv:2411.01713 + github.com/gt-ripl/SPD.
+  # In base_optimization (not surgery_base) so m09a/m09b also inherit the key
+  # (they call build_optimizer which now reads cfg_opt["spd"] strictly).
+  spd:
+    enabled: false
+    alpha: 0.05                   # SPD strength when enabled (typical 1e-3 to 1e-1)
+
+# -- CLEAR raw-video replay (iter14 recipe-v3 intervention #5, 2026-05-09) --
+# Mixes raw m09a-style pretrain clips into m09c surgery batches to anchor the
+# encoder against pretrain-domain forgetting. Default raw_pretrain_pct=0 → no
+# replay → bit-identical legacy factor-only batches. Recipe-v3 enables
+# raw_pretrain_pct=0.5 (50% raw + 50% factor view per emitted batch item).
+# Override at runtime: REPLAY_OVERRIDE={off, on} env-var → CLI --replay {off, on}
+# → cfg["replay"]["raw_pretrain_pct"] (T7-wired). on=0.5, off=0.0.
+# Reference: Rolnick NeurIPS'18 + arXiv:2305.13622 (CLEAR).
+# Source pool: defaults to ALL clip_keys present in mp4_index (= the streaming
+# manifest, which for m09c is the surgery factor-eligible clips). Override
+# raw_clip_keys via CLI to use a different pool (e.g., m09a pretrain pool).
+replay:
+  raw_pretrain_pct: 0.0           # 0.0 = off (legacy); 0.5 = recipe-v3
 
 # -- Cooldown phase (V-JEPA 2.1: switch to 64f + linear LR decay) --
 cooldown:

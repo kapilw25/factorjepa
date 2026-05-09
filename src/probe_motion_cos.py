@@ -310,8 +310,15 @@ def run_paired_delta_stage(args, wb) -> None:
             ka, kb = enc_data[a]["keys"], enc_data[b]["keys"]
             shared = sorted(set(ka) & set(kb))
             if not shared:
-                print(f"  WARN: {a} vs {b} have ZERO shared clips — skipping")
-                continue
+                # iter14 recipe-v2 (2026-05-09): FAIL LOUD per CLAUDE.md. Paper-
+                # grade pairwise-Δ table cannot have missing pairs — silent skip
+                # would emit an incomplete results JSON that downstream plots /
+                # decision tables read as "no signal" instead of "broken pipeline".
+                print(f"❌ FATAL [probe_motion_cos]: {a} vs {b} have ZERO shared clips — "
+                      f"paired-Δ cannot be computed.", file=sys.stderr)
+                print(f"   {a} keys: {len(ka)}  |  {b} keys: {len(kb)}  |  intersection: 0", file=sys.stderr)
+                print("   Re-extract test features for both encoders on the same eval-subset.", file=sys.stderr)
+                sys.exit(3)
             ai = {k: idx for idx, k in enumerate(ka)}
             bi = {k: idx for idx, k in enumerate(kb)}
             a_arr = np.array([enc_data[a]["score"][ai[k]] for k in shared], dtype=np.float64)

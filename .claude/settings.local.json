@@ -27,7 +27,30 @@
       "Bash(python -m ruff check --select F,E9 src/m09c_surgery.py)",
       "Bash(python -c \"import yaml; cfg = yaml.safe_load\\(open\\('configs/train/surgery_base.yaml'\\)\\); assert cfg['surgery']['teacher_mode'] == 'EMA', f'unexpected default: {cfg[\\\\\"surgery\\\\\"][\\\\\"teacher_mode\\\\\"]}'; print\\('✅ yaml parses + teacher_mode default = EMA'\\)\")",
       "Bash(command -v shellcheck)",
-      "Bash(shellcheck -S error /workspace/factorjepa/scripts/run_probe_train.sh)"
+      "Bash(shellcheck -S error /workspace/factorjepa/scripts/run_probe_train.sh)",
+      "Bash(grep -nE \"except.*:\\\\s*pass$|except.*:\\\\s*continue$|except\\\\s+\\\\w+:\\\\s*$\" /workspace/factorjepa/src/m09a_pretrain.py /workspace/factorjepa/src/m09c_surgery.py /workspace/factorjepa/src/utils/training.py)",
+      "Bash(grep -rnE \"except.*:\\\\s*$\" src/)",
+      "Bash(/workspace/factorjepa/venv_walkindia/bin/python -c \"import numpy; print\\(f'numpy {numpy.__version__}'\\)\")",
+      "Bash(venv_walkindia/bin/python -m py_compile src/utils/eval_subset.py)",
+      "Bash(venv_walkindia/bin/python -m ruff check --select F,E9 src/utils/eval_subset.py)",
+      "Bash(venv_walkindia/bin/python -u src/utils/eval_subset.py --eval-subset data/eval_10k.json --stratified-by-motion-class --motion-features data/eval_10k_local/motion_features.npy --target-per-class 125 --output /tmp/eval_10k_poc_smoke.json)",
+      "Bash(venv_walkindia/bin/python -c ' *)",
+      "Bash(venv_walkindia/bin/python -u src/utils/eval_subset.py --eval-subset data/eval_10k.json --first-n 100 --output /tmp/legacy_first_n.json)",
+      "Bash(venv_walkindia/bin/python -u src/utils/eval_subset.py --eval-subset data/eval_10k.json --n-per-class 100 --output /tmp/legacy_pov.json)",
+      "Bash(mkdir -p outputs/full/probe_action/legacy_2026-05-09_rm-rf-contaminated/)",
+      "Bash(mv outputs/full/probe_action/action_labels.json outputs/full/probe_action/legacy_2026-05-09_rm-rf-contaminated/action_labels.json)",
+      "Bash(mv outputs/full/probe_action/class_counts.json outputs/full/probe_action/legacy_2026-05-09_rm-rf-contaminated/class_counts.json)",
+      "Bash(venv_walkindia/bin/python -u src/probe_action.py --FULL --stage labels --eval-subset data/eval_10k.json --motion-features data/eval_10k_local/motion_features.npy --min-clips-per-class 34 --min-per-split 5 --output-root outputs/full/probe_action --cache-policy 2 --no-wandb)",
+      "Bash(grep -nB1 -A2 \"warmup\" configs/train/surgery_base.yaml)",
+      "Bash(venv_walkindia/bin/python -m py_compile src/m09c_surgery.py)",
+      "Bash(venv_walkindia/bin/python -m ruff check --select F,E9 src/m09c_surgery.py)",
+      "Bash(venv_walkindia/bin/python -c \"import yaml; d=yaml.safe_load\\(open\\('configs/train/surgery_base.yaml'\\)\\); print\\(f'✅ yaml ok · warmup_mode={d[\\\\\"surgery\\\\\"][\\\\\"warmup_mode\\\\\"]} · total_warmup_pct={d[\\\\\"surgery\\\\\"][\\\\\"total_warmup_pct\\\\\"]}'\\)\")",
+      "Bash(venv_walkindia/bin/python)",
+      "Bash(venv_walkindia/bin/python -m ruff check --select F,E9 src/utils/spd_optimizer.py src/utils/training.py src/m09c_surgery.py src/utils/eval_subset.py)",
+      "Bash(grep -nE \"--subset.*\\\\\\\\\\\\$|--subset \\\\\\\\\\\\$|--val-subset|--probe-subset\" scripts/run_probe_train.sh)",
+      "Bash(grep -nB1 -A2 \"argument.*--subset\\\\b\" src/m09c_surgery.py src/m09a_pretrain.py)",
+      "Bash(grep -nB1 -A2 'add_argument\\(\"--subset\"' src/m09c_surgery.py src/m09a_pretrain.py)",
+      "Bash(grep -nB1 -A8 \"def load_subset\\\\b\\\\|def load_val_subset\" src/utils/m09_common.py)"
     ]
   }
 }

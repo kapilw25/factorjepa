@@ -45,6 +45,7 @@ Usage in m09a (5 call sites, ~3 LoC each — same pattern as multi_task_probe):
     export_motion_aux_head(ma_head, output_dir / "motion_aux_head.pt")
 """
 import json
+import sys
 from pathlib import Path
 
 import numpy as np
@@ -157,14 +158,29 @@ def load_motion_targets_for_training(motion_features_path: Path,
         else:
             n_no_motion += 1
     if n_no_motion > 0:
-        print(f"  [motion_aux] WARN: {n_no_motion}/{len(action_labels)} clips in "
-              f"action_labels.json have no motion_features record (m04d may have "
-              f"skipped them due to decode error) — these clips will be DROPPED "
-              f"from motion_aux loss but still receive JEPA gradient")
+        # iter14 recipe-v2 (2026-05-09): FAIL LOUD per CLAUDE.md "WARNING-without-exit
+        # banned". Convert silent-disable + WARN to threshold-gated FATAL: small
+        # drift (<5%) is OK (m04d may genuinely fail to decode a few clips), but
+        # >5% indicates schema mismatch (e.g., m04d ran on a different subset than
+        # action_labels.json was generated from).
+        drop_pct = n_no_motion / len(action_labels)
+        if drop_pct > 0.05:
+            print(f"❌ FATAL [motion_aux]: {n_no_motion}/{len(action_labels)} "
+                  f"({drop_pct:.1%}) action_labels clips have NO motion_features record — "
+                  f"exceeds 5% threshold (likely schema mismatch).", file=sys.stderr)
+            print(f"   motion_features: {motion_features_path}", file=sys.stderr)
+            print(f"   action_labels:   {action_labels_path}", file=sys.stderr)
+            print("   Either re-run m04d on this subset, or regenerate action_labels "
+                  "from the same subset m04d processed.", file=sys.stderr)
+            sys.exit(3)
+        print(f"  [motion_aux] {n_no_motion}/{len(action_labels)} ({drop_pct:.1%}) "
+              f"clips dropped (under 5% threshold — accepted as m04d decode failures)")
     if not lookup:
-        raise ValueError(
-            f"No clip_keys in common between {motion_features_path} and "
-            f"{action_labels_path} — motion_aux cannot run")
+        # Should be unreachable after the threshold check above, but keep as
+        # belt-and-suspenders against zero-action-labels edge case.
+        print(f"❌ FATAL [motion_aux]: No clip_keys in common between {motion_features_path} "
+              f"and {action_labels_path}", file=sys.stderr)
+        sys.exit(3)
     return lookup, n_motion_classes, vec_mean, vec_std
 
 
@@ -277,16 +293,24 @@ def build_motion_aux_head_from_cfg(cfg: dict, device) -> tuple:
     to False if dependencies missing — same graceful-disable pattern as
     multi_task_loss.build_multi_task_head_from_cfg.
     """
-    ma_cfg = cfg.get("motion_aux") if isinstance(cfg.get("motion_aux"), dict) else None
-    if ma_cfg is None or not ma_cfg.get("enabled"):
+    # iter14 recipe-v2 (2026-05-09): FAIL LOUD per CLAUDE.md "no DEFAULT, no
+    # silent disable — silent error → research paper rejection". Previous WARN
+    # +disable swallowed the rm-rf-induced motion_aux loss in Cell D v1, making
+    # an apples-to-oranges comparison. If user genuinely wants motion_aux off,
+    # set yaml `motion_aux.enabled: false` explicitly. cfg["motion_aux"] (not
+    # cfg.get) so a missing yaml block crashes instead of returning silently.
+    ma_cfg = cfg["motion_aux"] if "motion_aux" in cfg else None
+    if ma_cfg is None or not ma_cfg["enabled"]:
         return None, None, ma_cfg or {}
     motion_features_path = Path(ma_cfg["motion_features_path"])
     action_labels_path   = Path(ma_cfg["action_labels_path"])
     if not motion_features_path.exists() or not action_labels_path.exists():
-        print(f"  [motion_aux] WARN: motion_features.npy or action_labels.json not "
-              f"found ({motion_features_path}, {action_labels_path}) — disabling")
-        ma_cfg["enabled"] = False
-        return None, None, ma_cfg
+        print("❌ FATAL [motion_aux]: required prereq files missing", file=sys.stderr)
+        print(f"   motion_features_path: {motion_features_path}  exists={motion_features_path.exists()}", file=sys.stderr)
+        print(f"   action_labels_path:   {action_labels_path}  exists={action_labels_path.exists()}", file=sys.stderr)
+        print("   To proceed without motion_aux, set yaml `motion_aux.enabled: false` explicitly.", file=sys.stderr)
+        print("   To regenerate labels: python -u src/probe_action.py --<MODE> --stage labels ...", file=sys.stderr)
+        sys.exit(3)
 
     lookup, n_classes, vec_mean, vec_std = load_motion_targets_for_training(
         motion_features_path, action_labels_path)

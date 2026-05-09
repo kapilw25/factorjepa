@@ -30,6 +30,7 @@ Usage in m09a/m09c:
         total_loss = α·jepa_loss + β·mt_loss + drift_loss
 """
 import json
+import sys
 from pathlib import Path
 
 import torch
@@ -110,9 +111,11 @@ def compute_multi_task_probe_loss(pooled_feats: torch.Tensor,
         total_weighted_loss is a scalar tensor (with grad).
         per_dim_loss_dict is {dim_name: float (detached scalar)} for logging.
 
-    Skips clips without a label record (silently — multi-task is best-effort
-    over the labeled subset of each batch). If ALL clips in batch lack labels,
-    returns zero loss.
+    iter14 recipe-v2 (2026-05-09): FAIL LOUD on label-file mismatch per CLAUDE.md.
+    Per-clip sparseness (clip in labels_by_clip but missing some dim_names) is
+    legitimate multi-label sparsity. But per-clip ABSENCE (clip_key not in
+    labels_by_clip at all) is a label-file mismatch — previously silently
+    skipped, now FATAL.
     """
     if device is None:
         device = pooled_feats.device
@@ -121,6 +124,16 @@ def compute_multi_task_probe_loss(pooled_feats: torch.Tensor,
         raise ValueError(
             f"pooled_feats batch dim ({B}) != len(clip_keys) ({len(clip_keys)}); "
             f"producer thread must yield clip_keys aligned with clips.")
+
+    # iter14 FAIL LOUD: clip-key absence from labels_by_clip is a config bug
+    # (labels file generated from different subset than current train pool).
+    unlabeled = [k for k in clip_keys if k not in labels_by_clip]
+    if unlabeled:
+        print(f"❌ FATAL [multi-task]: {len(unlabeled)}/{B} clips missing from labels_by_clip "
+              f"(label-file mismatch, not multi-label sparseness)", file=sys.stderr)
+        print(f"   Sample missing keys: {unlabeled[:3]}", file=sys.stderr)
+        print("   Regenerate labels: python -u src/probe_taxonomy.py --<MODE> --stage labels ...", file=sys.stderr)
+        sys.exit(3)
 
     logits_dict = head(pooled_feats)               # {dim_name: (B, n_classes_d)}
     n_dims = len(dims_spec)
@@ -163,9 +176,11 @@ def compute_multi_task_probe_loss(pooled_feats: torch.Tensor,
     per_dim_loss = {}
     for dim_name, spec in dims_spec.items():
         # Build per-dim label tensor from clip_keys, masking out unlabeled clips.
+        # iter14 (2026-05-09): clip-key absence already FATAL'd above; only need
+        # to handle per-dim sparseness here (clip in dict but missing this dim).
         keep_idx, label_list = [], []
         for i, k in enumerate(clip_keys):
-            if k in labels_by_clip and dim_name in labels_by_clip[k]:
+            if dim_name in labels_by_clip[k]:
                 keep_idx.append(i)
                 label_list.append(labels_by_clip[k][dim_name])
         if not keep_idx:
@@ -256,14 +271,18 @@ def build_multi_task_head_from_cfg(cfg: dict, device) -> tuple:
     semantics as before refactor, so the train loop's `if mt_head is not None`
     gate still gives correct skip behavior).
     """
-    mt_cfg = cfg.get("multi_task_probe") if isinstance(cfg.get("multi_task_probe"), dict) else None
-    if mt_cfg is None or not mt_cfg.get("enabled"):
+    # iter14 recipe-v2 (2026-05-09): FAIL LOUD per CLAUDE.md (mirrors
+    # build_motion_aux_head_from_cfg). Silent WARN+disable was the bug class
+    # behind iter14 Cell D v1's apples-to-oranges comparison.
+    mt_cfg = cfg["multi_task_probe"] if "multi_task_probe" in cfg else None
+    if mt_cfg is None or not mt_cfg["enabled"]:
         return None, None, None, mt_cfg or {}
     mt_labels_path = Path(mt_cfg["labels_path"])
     if not mt_labels_path.exists():
-        print(f"  [multi-task] WARN: labels file {mt_labels_path} not found — disabling")
-        mt_cfg["enabled"] = False
-        return None, None, None, mt_cfg
+        print(f"❌ FATAL [multi-task]: labels file missing: {mt_labels_path}", file=sys.stderr)
+        print("   To proceed without multi-task probe, set yaml `multi_task_probe.enabled: false` explicitly.", file=sys.stderr)
+        print("   To regenerate: python -u src/probe_taxonomy.py --<MODE> --stage labels ...", file=sys.stderr)
+        sys.exit(3)
     mt_labels_by_clip, mt_dims_spec = load_taxonomy_labels_for_training(mt_labels_path)
     d_encoder = cfg["model"]["embed_dim"]
     mt_head = MultiTaskProbeHead(d_encoder=d_encoder, dims_spec=mt_dims_spec).to(device)

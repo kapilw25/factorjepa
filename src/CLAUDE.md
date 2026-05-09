@@ -2,7 +2,8 @@
 - Modules: `src/m00_*.py` … `src/m11_*.py` — prefix "m" avoids import errors. Numbers must NOT repeat. **Suffixed variants (`m04b`, `m09a/b/c`) ARE allowed** and signal related-but-isolated modules (e.g., m09a=vanilla pretrain, m09b=ExPLoRA, m09c=surgery — all share `src/utils/training.py` primitives, but each has its own full training loop for isolation per #49).
 - Utils: `src/utils/` — shared functions only. **No cross-imports between m*.py files** (rule 32). **`src/utils/training.py` (#49) contract**: every function MUST be technique-agnostic. ZERO `if args.explora`/`if args.surgery`/`if cfg["technique"]` branches. Mode-specific behavior is configured via explicit parameters (`init_params=None`, `drift_cfg=None`, `explora_enabled=False`).
 - Configs: `configs/pipeline.yaml` (clip limits, streaming, eval), `configs/model/*.yaml` (architecture), `configs/train/*.yaml` (technique, inherits `base_optimization.yaml`). Use `load_merged_config()` to merge. **No hardcoded values in Python** — YAML or runtime discovery only. 
-- **No DEFAULT, no hardcoded paths — silent error leads to research paper rejection.** No `.get(key, default)` on YAML — use `cfg[key]` so missing keys crash. NO module-level path constants (`Path("data/...")`, `Path("outputs/...")`, `OUTPUT_DIR = ...`, etc.). Every `.py`/`.yaml`/`.pt`/`.json`/`.md`/`.npy`/`.npz`/`.csv`/`.tar` path arrives via `argparse.add_argument(..., required=True)` with NO `default=`. Each .py's docstring USAGE block shows the full sample command for `--SANITY` / `--POC` / `--FULL` with every previously-hardcoded path passed as an arg. Same in shell wrappers (`$1`/`$@` or `yaml_extract <yaml> <key>` — never inline). FAIL LOUD. This is not a production project. 
+- **No DEFAULT, no hardcoded paths — silent error leads to research paper rejection.** No `.get(key, default)` on YAML — use `cfg[key]` so missing keys crash. NO module-level path constants (`Path("data/...")`, `Path("outputs/...")`, `OUTPUT_DIR = ...`, etc.). Every `.py`/`.yaml`/`.pt`/`.json`/`.md`/`.npy`/`.npz`/`.csv`/`.tar` path arrives via `argparse.add_argument(..., required=True)` with NO `default=`. Each .py's docstring USAGE block shows the full sample command for `--SANITY` / `--POC` / `--FULL` with every previously-hardcoded path passed as an arg. Same in shell wrappers (`$1`/`$@` or `yaml_extract <yaml> <key>` — never inline). 
+- FAIL LOUD. This is not a production project. 
 - Plots: both .png & .pdf. GPU scripts save .npy → CPU scripts (m08) read them. Never duplicate GPU compute in CPU scripts.
 - Shell scripts are THIN wrappers — all logic in Python. No `python -c` inline, no `bc -l` math in shell.
 
@@ -53,6 +54,7 @@ Every `src/m*.py` using GPU MUST have: (1) `check_gpu()`, (2) `cleanup_temp()`, 
 - **End-to-end REPL test** before restarting pipelines. Test FULL code path with real data, not just import.
 - **Trace data flow** after adding CLI flags: flag → argparse → `get_output_dir()` → correct directory. `shellcheck scripts/*.sh`.
 - SANITY validates code correctness (no crashes), NOT model performance. Never draw conclusions from insufficient data.
+- **POC ↔ FULL parity (mandatory)**: POC must be a byte-identical scaled-down copy of FULL. The ONLY legitimate POC vs FULL deltas are `poc_total_clips` (subset size) and `max_epochs.poc` (epoch budget). Every other yaml/CLI flag — motion_aux on/off, multi_task on/off, label `n_classes`, head dim, optimizer, EMA τ, warmup type, augmentations — MUST match between POC and FULL. If POC produces degenerate inputs (missing classes, sparse labels, undersized samples), **fix the POC sampler** so its output schema matches FULL — never propose "disable feature X at POC, re-enable at FULL". 2026-05-09 incident: I recommended skipping motion_aux at POC because 855-clip / 7-class POC labels were degenerate; user invoked this rule — the right fix was to repair the POC label sampler to guarantee 8-class stratified output, not to branch the recipe.
 
 # WORKFLOW RULES
 
@@ -94,6 +96,9 @@ Shared `utils/wandb_utils.py`. `--no-wandb` on every module. All functions no-op
 
 ## SESSION-END SYNC
 **Update CLAUDE.md + MEMORY.md** at end of every session with new results/pivots/decisions. Sync `src/MEMORY.md` → `~/.claude/projects/.../memory/MEMORY.md`.
+
+## OUTPUT FORMATTING — TABLES, NOT LISTS  (with emojis for scannability)
+**Default to ASCII box-drawing tables** (`┌─┬─┐` `│` `├─┼─┤` `└─┴─┘`) for ANY comparison spanning ≥2 columns × ≥2 rows. Markdown pipe tables (`| col | col |`) and bullet lists are BANNED for comparison data — Claude Code's CommonMark renderer flattens them into unaligned single-column "lists" in the user's terminal, which breaks the comparison and frustrates the user. **Use emojis LIBERALLY** in column headers, row identifiers, and status/marker columns for visual scannability — the user explicitly chose "eyeballable with emojis" over "perfectly aligned plain ASCII". Keep emojis OUT of pure-numeric cells (where width drift matters most) but in headers / status / verdict columns they're encouraged. Box-drawing borders MUST still be present so the table structure is visible even if cell widths drift slightly with emoji rendering. Always declare a marker legend below the table. POC ablation sweeps (Cell A/B/C/D × N metrics) MUST be a single box-drawn grid, not N grouped lists.
 
 # HOOKS
 - `enforce-dev-rules.sh` (PreToolUse:Bash) — blocks pip install, git state changes, bare `python3` without venv activation

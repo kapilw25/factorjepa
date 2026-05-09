@@ -340,6 +340,140 @@ def train(cfg, args):
   - ✅ POC surgery_3stage_DI postrefactor produces **18 files** matching m09a's set (modulo `m09a_*` → `m09c_*` prefix)
   - ✅ Stage 1 `probe_top1` within **±0.5 pp** of current POC v3 final (0.7449) → must land in **[0.6949, 0.7949]** *(this gate is for refactor parity; recipe-v2 IMPROVEMENT is verified in Phase D)*
 
+### 🟤 Phase E (NEW, 2026-05-09) — Move shell-side bootstrap into m09a/m09c (truly thin shells)
+
+> 🎯 **Goal**: kill the redundant shell-level bootstrap of action_labels +
+> probe_train_subset.py invocations in `scripts/run_probe_train.sh`. m09a/m09c
+> already call `utils.probe_labels.ensure_probe_labels_for_mode(cfg=cfg)` at
+> startup (in-process, yaml-driven, recipe-v3-aware). The shell-level
+> orchestration is pure tech debt — kept only because `probe_train_subset.py`
+> at lines ~93-97 of run_probe_train.sh runs BEFORE m09a/m09c and consumes
+> ACTION_LABELS via --subset / --val-subset CLI args.
+
+#### 🛠️ What needs to change (~5 file edits, ~2 hrs Mac)
+
+```
+┌─────┬──────────────────────────────────────────────────────────────────┬───────────────────────────────────┐
+│  #  │  File                                                              │  Change                          │
+├─────┼──────────────────────────────────────────────────────────────────┼───────────────────────────────────┤
+│  1  │ src/utils/m09_common.py                                            │ Make --val-subset OPTIONAL when  │
+│     │                                                                    │ require_val_data=True; default=None│
+│  2  │ src/m09a_pretrain.py:471                                          │ When args.subset is None, derive │
+│     │                                                                    │ train_keys in-process via         │
+│     │                                                                    │ utils.probe_train_subset.        │
+│     │                                                                    │ split_subset(action_labels,"train")│
+│  3  │ src/m09a_pretrain.py:472                                          │ Same for args.val_subset →       │
+│     │                                                                    │ val_key_set                      │
+│  4  │ src/m09c_surgery.py (subset-load site)                            │ Same fallback for both           │
+│  5  │ scripts/run_probe_train.sh:62-140                                 │ DELETE the ACTION_LABELS         │
+│     │                                                                    │ bootstrap block (~70 LoC)        │
+│  6  │ scripts/run_probe_train.sh:88-97                                  │ DELETE the probe_train_subset.py │
+│     │                                                                    │ invocations (3 calls × 3 splits) │
+│  7  │ scripts/run_probe_train.sh m09a/m09c invocations                  │ DROP --subset / --val-subset CLI │
+│     │                                                                    │ args (m09a/m09c derive in-process)│
+│  8  │ scripts/run_recipe_v3_sweep.sh                                    │ Already has the redundant pre-   │
+│     │                                                                    │ flight comment — no further change│
+└─────┴──────────────────────────────────────────────────────────────────┴───────────────────────────────────┘
+```
+
+#### 📐 Architecture (post-Phase-E)
+
+```
+┌─────────────────────────────────────────────────────────────────────────┐
+│  Pre-Phase-E (current — tech debt)                                       │
+│                                                                            │
+│  shell                            m09a/m09c                                │
+│  ──┬──                            ──┬──                                  │
+│    │ bootstrap action_labels        │                                     │
+│    │ (probe_action.py subprocess)   │                                     │
+│    │ ↓                              │                                     │
+│    │ probe_train_subset.py × 3      │                                     │
+│    │ → train/val/test_split.json    │                                     │
+│    │ ↓                              │                                     │
+│    │ python m09a/m09c               │                                     │
+│    │ --subset $TRAIN_SPLIT          ──→ ensure_probe_labels_for_mode      │
+│    │ --val-subset $VAL_SPLIT          (idempotent — no-ops because shell  │
+│                                       already generated action_labels)    │
+│                                                                            │
+│  Post-Phase-E (clean)                                                     │
+│                                                                            │
+│  shell                            m09a/m09c                                │
+│  ──┬──                            ──┬──                                  │
+│    │ python m09a/m09c (no args)    ──→ ensure_probe_labels_for_mode      │
+│                                       (in-process: writes action_labels) │
+│                                       ↓                                    │
+│                                       split_subset() × 3 in-memory        │
+│                                       (no JSON files written)             │
+│                                       ↓                                    │
+│                                       train(...)                           │
+└─────────────────────────────────────────────────────────────────────────┘
+```
+
+#### 🚦 Phase E gates
+
+```
+┌──────────────────────────────────────────────────────────────────────────┐
+│  ✅ utils/m09_common.py: --val-subset becomes type=str default=None       │
+│  ✅ m09a + m09c: when args.subset is None → derive in-process via         │
+│     split_subset(); same for args.val_subset                              │
+│  ✅ scripts/run_probe_train.sh:62-97 deleted (~80 LoC removed)            │
+│  ✅ scripts/run_probe_train.sh m09a/m09c invocations: drop --subset       │
+│     and --val-subset args                                                  │
+│  ✅ Smoke test: shellcheck + bash -n; m09a/m09c --POC e2e                 │
+│  ✅ Numerical fidelity gate: top-1 within ±0.5 pp of pre-Phase-E baseline │
+└──────────────────────────────────────────────────────────────────────────┘
+```
+
+#### 🛡️ Risk assessment
+
+```
+┌──────────────────────────────────────────────────────────────────┬────────────┬──────────────────────────────┐
+│ Risk                                                               │ Likelihood │ Mitigation                   │
+├──────────────────────────────────────────────────────────────────┼────────────┼──────────────────────────────┤
+│ --subset arg semantics differ across m09a/m09c                    │ MEDIUM     │ Parallel changes both files  │
+│   (m09a uses for output_dir derivation + leakage gate;             │            │ in same commit; exhaustive   │
+│   m09c uses for output_dir name only)                              │            │ unit test of args.subset=None│
+│ Downstream consumers reading data/eval_10k_*_split.json            │ LOW        │ Verified earlier: only       │
+│                                                                    │            │ run_probe_train.sh reads     │
+│                                                                    │            │ them (no run_probe_eval.sh   │
+│                                                                    │            │ reference). Safe to remove   │
+│                                                                    │            │ the disk artifacts.          │
+│ utils/m09_common.py changes affect m09b legacy too                 │ LOW        │ m09b in src/legacy/ — frozen │
+│                                                                    │            │ per CLAUDE.md; require_val   │
+│                                                                    │            │ change is back-compat (None  │
+│                                                                    │            │ default) → no breakage       │
+│ POC↔FULL parity drift                                              │ NONE       │ ensure_probe_labels_for_mode │
+│                                                                    │            │ already drives ALL paths +   │
+│                                                                    │            │ numbers from yaml; m09a +    │
+│                                                                    │            │ m09c just thread args.subset │
+│                                                                    │            │ → in-memory derivation       │
+└──────────────────────────────────────────────────────────────────┴────────────┴──────────────────────────────┘
+```
+
+#### 📌 Why deferred to Phase E (not done in iter14 today)
+
+```
+┌──────────────────────────────────────────────────────────────────────────────┐
+│  Iter14 today: focus is recipe-v3 7-cell drop-one ablation sweep.             │
+│  Phase E touches m09_common + m09a + m09c shared CLI surface — invasive +     │
+│  needs its own SANITY/POC parity gate (±0.5 pp tolerance) BEFORE recipe-v3.   │
+│  Right ordering: ship recipe-v3 sweep FIRST → get research signal → THEN      │
+│  Phase E refactor → THEN any FULL training. The structural cleanup follows    │
+│  the research result, not vice versa.                                         │
+│                                                                                │
+│  Pre-existing tech debt (acknowledged):                                        │
+│    1. scripts/run_probe_train.sh:62-140 has hardcoded numbers                  │
+│       (MIN_CLIPS_BOOTSTRAP=34, MIN_SPLIT_BOOTSTRAP=5) — duplicates the         │
+│       cfg["probe_action_labels"][...]  yaml block but the shell can't easily  │
+│       read yaml without a yaml_extract subprocess. Phase E removes the entire │
+│       block, so the hardcoding goes away naturally.                            │
+│    2. probe_train_subset.py invocation in shell creates 3 transient JSON      │
+│       files that m09a/m09c then read back. After Phase E: in-memory only.     │
+└──────────────────────────────────────────────────────────────────────────────┘
+```
+
+---
+
 ### 🔴 Phase D — Verify FULL Eligibility + recipe-v2 paper-goal POC
 - 🧪 Run full POC suite (pretrain_2X + surgery_3stage_DI + surgery_noDI + eval)
 - ✅ Confirm every divergence flagged in audits is now structurally absent

@@ -231,7 +231,20 @@ surgery:
   # warmup_steps=200 which broke POC (stage_steps≈99 < 200 → never reached full
   # LR). 0.20 = 20% of stage spent warming LR from 0→target, 80% at full LR.
   # Auto-scales: POC 100 clips → 19 warmup, POC 10K → 206, FULL 115K → 718.
+  # Used ONLY when warmup_mode == "per_stage" (legacy).
   warmup_pct: 0.20
+  # iter14 recipe-v3 audit A4 (2026-05-09): warmup mode.
+  #   per_stage = legacy — every stage repeats warmup (BUG at POC: 1-step stages
+  #               with warmup_pct=0.20 floor to warmup_steps=1 → entire stage in
+  #               warmup → encoder never sees configured base_lr).
+  #   single    = single warmup at start of training (stage 0 only); subsequent
+  #               stages skip warmup, run at full base_lr immediately. Matches
+  #               vjepa2 reference + fixes step-1 LR shock at POC.
+  # Override at runtime: WARMUP_OVERRIDE={per_stage, single} env-var (T7-wired).
+  warmup_mode: per_stage
+  # Used ONLY when warmup_mode == "single". Fraction of TOTAL training steps
+  # (across all stages) allocated to the single front-loaded warmup.
+  total_warmup_pct: 0.10
   # iter14 recipe-v2 (2026-05-09): teacher mode — recipe-v2 axis #1 of POC sweep.
   #   EMA    = legacy `teacher = deepcopy(student)` + `update_teacher_ema(τ=ema_momentum)`
   #   FROZEN = SALT (Apple arXiv:2509.24317) — teacher is the init checkpoint

@@ -3,7 +3,8 @@
 > ## 🎯 Paper goal:  `vjepa_surgery` ≫ `vjepa_pretrain` ≫ `vjepa_frozen` on motion / temporal features
 >
 > 🚫 **Non-negotiable** — we do not pivot the claim. We change the experiment to make the goal achievable.
-
+- MERMAID style system design and TABLE (with emojies) ONLY
+- avoid verbose explanation
 ---
 
 ## 📌 Status: where iter14 stands as of 2026-05-08
@@ -315,26 +316,111 @@ surgery becomes scale-comparable to pretrain ✅
 
 ---
 
-## 🚦 Next-step decision tree (UPDATED 2026-05-09)
+## 🚦 Next-step decision tree (UPDATED 2026-05-10 — recipe-v3 layer added)
 
-```
-                    Run recipe v2 POC ($1 / 90 min)
-                {🌀 EMA, 🧊 FROZEN} × {🅰️ LP-FT off, 🅱️ on} = 4 cells
-                                │
-       ┌────────────────────────┼────────────────────────┐
-       ▼                        ▼                        ▼
-  🟢 top-1 ≥ 0.808       🟡 top-1 0.81–0.83       🔴 all 4 regress
-  AND test-Δ ≥ +5 pp     (marginal, Δ < +5 pp)    (recipe doesn't help)
-       │                        │                        │
-       ▼                        ▼                        ▼
-  ✅ Wire fixes →         🧬 Phase 5: harder        🔧 Path 2: relax
-  refactor (A→D) →        FG/BG motion features    m10 thresholds
-  FULL surgery            (~$8, ~6 GPU-h)          (~$50–60)
-       │                        │                        │
-       └────────────────────────┴────────────────────────┘
-                                ▼
-                        🏆 FULL eval Δ1/Δ2/Δ3
-                          → paper headline
+> 🚨 **Pre-iter14-POC tree** (legacy ASCII at `legacy/plan_temp.md`): 4 cells `{EMA,FROZEN}×{LP-FT off,on}`.
+> 🆕 **Post-POC verdict** (2026-05-09): all 4 cells regressed → recipe-v2 was only **2/5 of §4 stack**, plus POC label file was rm-rf-contaminated (855 clips / 7 cls vs FULL's 9,276 / 8 cls). New decision tree below adds a **recipe-v3** stage between recipe-v2 POC and the §7.5 fork.
+
+```mermaid
+flowchart TD
+    A[Meta V-JEPA 2.1 ViT-G<br/>frozen baseline] --> B[m09a pretrain 5 ep<br/>top-1 = 0.808 anchor]
+    B --> C[recipe-v2 POC 4-cell sweep<br/>EMA/FROZEN × LP-FT off/on<br/>$1 / 90 min — 2026-05-09]
+    C --> C1[🔴 all 4 cells regress<br/>best = 0.7840 < 0.808<br/>only 2/5 §4 deployed<br/>+ POC labels contaminated 855/7]
+    C1 --> P[🐛 Fix POC sampler<br/>eval_subset.py stratified-by-motion-class<br/>regenerate FULL labels 9276/8<br/>~1 hr Mac]
+    P --> D[🆕 recipe-v3 POC sweep<br/>full §4 stack + §11.6 audit fixes<br/>~6 hr Mac eng + $1.46 GPU]
+    D --> D1{recipe-v3 verdict}
+    D1 -->|🟢 top-1 ≥ 0.808<br/>Δ ≥ +5 pp| E[FULL surgery 50 ep<br/>$80 / 50 GPU-h]
+    D1 -->|🟡 0.81–0.83<br/>Δ < +5 pp| F[Phase 5: FG/BG motion<br/>$8 / 6 GPU-h]
+    D1 -->|🔴 still all regress| G[Path 2: relax m10 thresholds<br/>91 → 1-6K clips · $50–60]
+    E --> H[FULL eval Δ1/Δ2/Δ3<br/>paper headline]
+    F --> H
+    G --> H
+    style C1 fill:#ffe5e5
+    style P fill:#fff4d6
+    style D fill:#e0f2fe
+    style E fill:#dcfce7
+    style F fill:#fef3c7
+    style G fill:#fee2e2
+    style H fill:#c7d2fe
 ```
 
-> 🎬 **Bottom line**: All iter14 implementation work is complete and HF-backed up. The remaining work is research execution — read **[`plan_surgery_wins.md` § 0 MASTER action items](./plan_surgery_wins.md)** as the operative reference. The $1 / 90-min recipe-v2 POC sweep picks the next branch within ~1.5 h on the next GPU rental.
+---
+
+## 🧬 Recipe-v3 system design (paper-draft ready, system diagram)
+
+> 🆕 2026-05-10. The five §4 interventions plus four §11.6 audit fixes from `plan_surgery_wins.md`, rendered as a system diagram for paper Section 3 (Method). Code-level spec in `plan_surgery_wins.md §12.3`.
+
+```mermaid
+flowchart LR
+    subgraph "📥 Inputs"
+        I1[Pretrain ckpt<br/>m09a 5 ep · 0.808]
+        I2[Factor views<br/>m11 D_L/D_A/D_I .npy]
+        I3[Raw video<br/>m11 mp4 — for replay]
+        I4[motion_features<br/>m04d RAFT optical-flow<br/>9276 × 13D · 8 classes]
+    end
+    subgraph "🧊 Teacher Network — FROZEN"
+        T1[Intervention 1: SALT<br/>frozen pretrain encoder<br/>NO EMA decay · NO updates]
+    end
+    subgraph "🧠 Student Network — TRAINABLE"
+        S0[Intervention 2: LP-FT Stage 0<br/>head-only warmup · encoder frozen<br/>0.5 epoch budget]
+        S1[Intervention 3: surgical subset<br/>4 / 8 / 8 blocks per stage<br/>NOT 12 / 24 / 24]
+        S2[Audit A4: SINGLE warmup<br/>over total budget<br/>NOT per-stage]
+        S3[Intervention 4: SPD optimizer<br/>selective projection decay<br/>replaces uniform L2 anchor]
+    end
+    subgraph "🔁 Data mixing per batch — Intervention 5"
+        M1[CLEAR replay<br/>50% raw mp4 + 50% factor view<br/>per step]
+    end
+    subgraph "🎯 Loss"
+        L1[Audit A2: saliency-weighted JEPA<br/>SmoothL1 × cal_loss_mask / mask_sum]
+        L2[motion_aux head<br/>8-cls CE + 13-D MSE<br/>weight=0.1<br/>STAYS ON for POC AND FULL]
+    end
+    I1 --> T1
+    I1 --> S0
+    S0 --> S1
+    S1 --> S2
+    S2 --> S3
+    I2 --> M1
+    I3 --> M1
+    M1 --> S3
+    I4 --> L2
+    T1 -->|target latents| L1
+    S3 -->|predicted latents| L1
+    S3 --> L2
+    L1 --> O[surgery encoder<br/>top-1 ≥ 0.808 + Δ ≥ +5 pp]
+    L2 --> O
+    style T1 fill:#cffafe
+    style S0 fill:#fef9c3
+    style S1 fill:#fef9c3
+    style S2 fill:#fef9c3
+    style S3 fill:#fef9c3
+    style M1 fill:#fbcfe8
+    style L1 fill:#dcfce7
+    style L2 fill:#dcfce7
+    style O fill:#c7d2fe
+```
+
+📍 **Code-level spec**: `plan_surgery_wins.md §12.3 Recipe-v3 spec` (lists each intervention's LoC + file + verification).
+📊 **POC sweep results that motivated this**: `high_level_outputs.md § iter14 POC Recipe-v2 4-Cell Sweep`.
+🐛 **Precondition (mandatory)**: fix POC sampler bug — `plan_surgery_wins.md §12.7`.
+
+---
+
+## 🏗️ Recipe-v3 sequential composition (paper §3 Method figure)
+
+> 🆕 2026-05-10. Sequential composition: pretrain → recipe-v3 surgery. Updates the previous "Sequential composition" section above with recipe-v3 stages explicit.
+
+```mermaid
+flowchart LR
+    M[Meta V-JEPA 2.1 ViT-G<br/>1.84B params]
+    M -->|continual SSL · raw IN video<br/>5 epochs · 1010 steps · motion_aux ON| P[pretrain encoder<br/>top-1 = 0.808]
+    P -->|recipe-v3 4-stage surgery<br/>frozen teacher + LP-FT + subset + SPD + replay<br/>5 epochs · ~45 backbone steps| S[surgery encoder<br/>top-1 ≥ 0.808 + Δ ≥ +5 pp]
+    M -->|continual SSL 10 epochs<br/>NO factor patching control| P2[pretrain_2X<br/>10 ep compute control]
+    S -.->|Δ2 paired test<br/>BCa 95% CI| P
+    S -.->|Δ3 paired test<br/>BCa 95% CI ⭐ headline| P2
+    style M fill:#e0e7ff
+    style P fill:#dcfce7
+    style P2 fill:#fef3c7
+    style S fill:#c7d2fe
+```
+
+> 🎬 **Bottom line**: All iter14 implementation work is complete and HF-backed up. The remaining work is research execution — read **[`plan_surgery_wins.md` § 0 MASTER action items + § 12 POC verdict + § 12.7 sampler bug](./plan_surgery_wins.md)** as the operative reference. **Sequence**: ~1 hr Mac (POC sampler fix) → ~6 hr Mac (recipe-v3 implementation) → ~$1.46 GPU (POC R1 + drop-one ablation) → conditional FULL ($80).

@@ -267,13 +267,21 @@ def compute_jepa_loss(pred_features: list, pred_context: list,
                       teacher_output: torch.Tensor,
                       masks_pred: list, masks_enc: list,
                       loss_exp: float, predict_all: bool,
-                      lambda_context: float = 0.5) -> tuple:
+                      lambda_context: float = 0.5,
+                      saliency_weighting: bool = False) -> tuple:
     """V-JEPA 2.1 dense loss: masked tokens + context tokens.
 
     When predict_all=True (V-JEPA 2.1), computes loss on ALL tokens:
     - Masked loss: predictor output vs teacher at masked positions
     - Context loss: predictor context output vs teacher at visible positions
     - Total = masked_loss + lambda_context * context_loss
+
+    iter14 recipe-v3 audit A2 (2026-05-09): saliency_weighting (port of MGMAE's
+    `loss × cal_loss_mask / mask.sum()`). When True, per-token loss is weighted
+    by teacher-embedding L2 norm (high-norm tokens carry more learning signal —
+    a data-free proxy for MGMAE's motion-volume mask). When False (default),
+    uniform mean across all tokens (legacy V-JEPA behavior). Override at
+    runtime via SALIENCY_OVERRIDE={off, on} env-var (T7-wired).
 
     Returns (total_loss, loss_masked, loss_context).
     """
@@ -283,8 +291,18 @@ def compute_jepa_loss(pred_features: list, pred_context: list,
     loss_masked = torch.tensor(0.0, device=teacher_output.device)
     n = 0
     for pred_i, mask_i in zip(pred_features, masks_pred):
-        h_masked = apply_masks(teacher_output, [mask_i])
-        loss_masked += torch.mean(torch.abs(pred_i - h_masked) ** loss_exp) / loss_exp
+        h_masked = apply_masks(teacher_output, [mask_i])  # (B, M, D)
+        if saliency_weighting:
+            # Per-token saliency = L2 norm of teacher embedding at that token
+            # (high-norm = high-information region). Normalized to mean=1 so
+            # the loss magnitude stays comparable to the uniform-mean variant.
+            with torch.no_grad():
+                sal = h_masked.norm(dim=-1)                                # (B, M)
+                sal = sal / (sal.mean(dim=-1, keepdim=True).clamp(min=1e-8))
+            per_token = (torch.abs(pred_i - h_masked) ** loss_exp / loss_exp).mean(dim=-1)  # (B, M)
+            loss_masked += (per_token * sal).mean()
+        else:
+            loss_masked += torch.mean(torch.abs(pred_i - h_masked) ** loss_exp) / loss_exp
         n += 1
     loss_masked = loss_masked / max(n, 1)
 
@@ -296,7 +314,14 @@ def compute_jepa_loss(pred_features: list, pred_context: list,
             if ctx_i is None:
                 continue
             h_context = apply_masks(teacher_output, [mask_enc_i])
-            loss_context += torch.mean(torch.abs(ctx_i - h_context) ** loss_exp) / loss_exp
+            if saliency_weighting:
+                with torch.no_grad():
+                    sal = h_context.norm(dim=-1)
+                    sal = sal / (sal.mean(dim=-1, keepdim=True).clamp(min=1e-8))
+                per_token = (torch.abs(ctx_i - h_context) ** loss_exp / loss_exp).mean(dim=-1)
+                loss_context += (per_token * sal).mean()
+            else:
+                loss_context += torch.mean(torch.abs(ctx_i - h_context) ** loss_exp) / loss_exp
             n_ctx += 1
         loss_context = loss_context / max(n_ctx, 1)
 
@@ -515,6 +540,9 @@ def _train_step_grad_accum(student, teacher, predictor, batch_clips,
     n_levels = cfg["model"]["n_output_distillation"]
     predict_all = cfg["model"]["predict_all"]
     macro_bs = batch_clips.shape[0]
+    # iter14 recipe-v3 audit A2 (2026-05-09): saliency_weighting toggle.
+    # Default false → bit-identical legacy compute_jepa_loss path.
+    saliency_weighting = cfg["optimization"]["loss"]["saliency_weighting"]
 
     j_val, m_val, c_val, infonce_val, tcc_val = 0.0, 0.0, 0.0, 0.0, 0.0
     uw_w_jepa_val, uw_w_infonce_val, uw_w_tcc_val = 0.0, 0.0, 0.0
@@ -554,7 +582,9 @@ def _train_step_grad_accum(student, teacher, predictor, batch_clips,
                     else:
                         pf.append(out)
                 jl, lm, lc = compute_jepa_loss(pf, pc, h, m_pred_list, m_enc_list,
-                                                loss_exp, predict_all, lambda_context=0.5)
+                                                loss_exp, predict_all,
+                                                lambda_context=0.5,
+                                                saliency_weighting=saliency_weighting)
 
                 # Multi-task gating — caller passes loss_cfg explicitly (no None
                 # fallback per CLAUDE.md NO DEFAULT rule). Pure JEPA fast path
@@ -629,18 +659,30 @@ def update_teacher_ema(student: torch.nn.Module, teacher: torch.nn.Module,
 # OPTIMIZER & SCHEDULER
 # ═════════════════════════════════════════════════════════════════════════
 
-def build_optimizer(student, predictor, cfg_opt: dict):
+def build_optimizer(student, predictor, cfg_opt: dict, init_params: dict = None):
     """Build AdamW optimizer. Reads `use_8bit_optim` flag (#56) — when True, uses
     bitsandbytes `AdamW8bit` for 4× optimizer-state memory reduction (m1+m2 stored
     as 8-bit block-wise quantized values instead of fp32). <1% accuracy loss per
     Dettmers et al. 2022 ("8-bit Optimizers via Block-wise Quantization",
     arXiv:2110.02861). Standard in HF Trainer (`optim="adamw_bnb_8bit"`) and FAIR
     fairscale for fine-tuning 2B+ models on consumer GPUs.
+
+    iter14 recipe-v3 intervention #4 (2026-05-09): when cfg_opt["spd"]["enabled"]
+    is True and init_params is provided, returns SPDAdamW (selective projection
+    decay) instead of bare AdamW — replaces uniform L2 anchor (compute_drift_loss)
+    with per-param anchor pull-back gated by step-vs-anchor alignment. SPD is
+    incompatible with use_8bit_optim (would need bitsandbytes wrapper); FATALs if
+    both enabled. Default: spd.enabled=False → legacy AdamW path bit-identical.
+    See iter/iter14_surgery_on_pretrain/plan_surgery_wins.md §4 #4 + §12.3.
     """
     base_lr = cfg_opt["lr"]
     pred_lr = base_lr * cfg_opt["pred_lr_multiplier"]
     wd = cfg_opt["weight_decay"]
     use_8bit = cfg_opt["use_8bit_optim"]
+    # SPD config — strict access (no .get default per CLAUDE.md no-DEFAULT rule).
+    # surgery_base.yaml provides the {enabled: false, alpha: 0.0} default block.
+    spd_cfg = cfg_opt["spd"]
+    spd_enabled = spd_cfg["enabled"]
 
     def split_params(module, lr):
         decay, no_decay = [], []
@@ -659,11 +701,11 @@ def build_optimizer(student, predictor, cfg_opt: dict):
     param_groups = split_params(student, base_lr) + split_params(predictor, pred_lr)
 
     if use_8bit:
+        if spd_enabled:
+            sys.exit("❌ FATAL: optimizer.spd.enabled=true is incompatible with "
+                     "optimizer.use_8bit_optim=true (no bitsandbytes-SPD wrapper). "
+                     "Disable one or implement SPDAdamW8bit subclass.")
         import bitsandbytes as bnb
-        # Paged variant (#58) — auto CPU paging of optimizer state on GPU pressure.
-        # ONLY read `paged_optim` inside this branch so non-8bit configs (m09a/m09b,
-        # m09c POC/FULL) never require the key in their yaml. HF QLoRA standard for
-        # fine-tuning 7-65B models on 24-48 GB consumer GPUs.
         paged_optim = cfg_opt["paged_optim"]
         if paged_optim:
             opt = bnb.optim.PagedAdamW8bit(param_groups,
@@ -678,6 +720,26 @@ def build_optimizer(student, predictor, cfg_opt: dict):
         n_trainable = sum(len(g["params"]) for g in param_groups)
         print(f"  Optimizer: {optim_name} — {n_trainable} param groups, "
               f"8-bit block-wise quantized m1/m2 (4× memory reduction)")
+        return opt
+
+    if spd_enabled:
+        if init_params is None:
+            sys.exit("❌ FATAL: optimizer.spd.enabled=true requires init_params "
+                     "(pretrain anchor) — caller must pass build_optimizer(..., "
+                     "init_params=<dict>). m09c does this when --init-from-ckpt loads.")
+        from utils.spd_optimizer import SPDAdamW
+        opt = SPDAdamW(
+            param_groups,
+            anchor_state_dict=init_params,
+            anchor_param_names=list(student.named_parameters())
+                                + list(predictor.named_parameters()),
+            alpha_spd=spd_cfg["alpha"],
+            betas=tuple(cfg_opt["betas"]),
+            eps=cfg_opt["eps"],
+        )
+        n_trainable = sum(len(g["params"]) for g in param_groups)
+        print(f"  Optimizer: SPDAdamW (alpha_spd={spd_cfg['alpha']}, "
+              f"n_anchored={opt._n_anchored}) — {n_trainable} param groups")
         return opt
     return torch.optim.AdamW(param_groups, betas=tuple(cfg_opt["betas"]),
                               eps=cfg_opt["eps"])
@@ -1624,7 +1686,21 @@ class StreamingFactorDataset(torch.utils.data.IterableDataset):
         base_seed: int = 42,
         steps_per_epoch: int = None,
         interaction_cfg: dict = None,
+        raw_replay_pct: float = 0.0,
+        raw_clip_keys: list = None,
     ):
+        """
+        iter14 recipe-v3 intervention #5 (2026-05-09): CLEAR raw-video replay.
+            raw_replay_pct: probability per emitted item of yielding a raw
+                pretrain clip (no factor view) instead of the usual factor
+                tensor. Default 0.0 → bit-identical legacy behavior.
+                Recipe-v3 default when enabled: 0.5 (50% raw + 50% factor).
+            raw_clip_keys: clip_keys eligible for raw replay (typically
+                the m09a pretrain motion-eligible pool). When None, falls
+                back to all keys present in mp4_index.
+        Reference: Rolnick NeurIPS'18 + arXiv:2305.13622 (CLEAR).
+        See iter/iter14_surgery_on_pretrain/plan_surgery_wins.md §4 #5.
+        """
         super().__init__()
         self.mp4_index = mp4_index
         self.mask_index = mask_index
@@ -1635,6 +1711,19 @@ class StreamingFactorDataset(torch.utils.data.IterableDataset):
         self.interaction_cfg = interaction_cfg
         self.base_seed = base_seed
         self.steps_per_epoch = steps_per_epoch
+        # Raw-replay state (default zero → no-op).
+        if not 0.0 <= raw_replay_pct <= 1.0:
+            raise ValueError(
+                f"raw_replay_pct must be in [0, 1] (got {raw_replay_pct})")
+        self.raw_replay_pct = float(raw_replay_pct)
+        # When enabled, prefer the explicit pretrain pool; otherwise use the
+        # union of factor-eligible mp4 keys (worst case = same domain as
+        # factor clips, which is still meaningful replay vs nothing).
+        self.raw_clip_keys = list(raw_clip_keys) if raw_clip_keys else list(mp4_index.keys())
+        if self.raw_replay_pct > 0.0 and not self.raw_clip_keys:
+            raise ValueError(
+                "raw_replay_pct > 0 but raw_clip_keys is empty — provide "
+                "raw_clip_keys explicitly or ensure mp4_index has entries.")
 
         factor_map = {"L": "D_L", "A": "D_A", "I": "D_I"}
         indexed_keys = set(mp4_index.keys()) & set(mask_index.keys())
@@ -1723,10 +1812,62 @@ class StreamingFactorDataset(torch.utils.data.IterableDataset):
             mp4_member = tar.getmember(f"{base}.mp4")
             return tar.extractfile(mp4_member).read()
 
+        # iter14 recipe-v3 #5 (2026-05-09): partition the pretrain pool across
+        # workers (same shard scheme as factor pool) so the same raw clip
+        # isn't yielded by multiple workers in the same epoch.
+        if self.raw_replay_pct > 0.0:
+            raw_keys_indexed = [k for k in self.raw_clip_keys if k in self.mp4_index]
+            if not raw_keys_indexed:
+                raise RuntimeError(
+                    f"StreamingFactorDataset: raw_replay_pct={self.raw_replay_pct} > 0 "
+                    f"but no raw_clip_keys are present in mp4_index — replay would "
+                    f"be silently disabled. {len(self.raw_clip_keys)} requested · "
+                    f"{len(self.mp4_index)} indexed.")
+            raw_keys_local = raw_keys_indexed[worker_id::num_workers]
+            print(
+                f"  StreamingFactorDataset: raw-replay ENABLED (worker {worker_id}/{num_workers}) "
+                f"raw_pct={self.raw_replay_pct:.0%} · raw_clips_local={len(raw_keys_local)}"
+            )
+        else:
+            raw_keys_local = []
+
         try:
             with tempfile.TemporaryDirectory(prefix="m09c_stream_") as tmp:
                 n_emitted = 0
                 while self.steps_per_epoch is None or n_emitted < self.steps_per_epoch:
+                    # iter14 recipe-v3 #5: Bernoulli raw-replay branch (CLEAR).
+                    # When raw_replay_pct=0 (default), this branch never enters
+                    # → bit-identical legacy iteration.
+                    if self.raw_replay_pct > 0.0 and raw_keys_local and rng.random() < self.raw_replay_pct:
+                        clip_key = raw_keys_local[rng.integers(len(raw_keys_local))]
+                        try:
+                            mp4_bytes = _get_mp4_bytes(clip_key)
+                        except (KeyError, OSError, tarfile.TarError) as e:
+                            # Skip if raw clip's tar entry is missing/broken.
+                            print(f"  raw-replay: skip {clip_key} ({type(e).__name__}: {e})")
+                            continue
+                        from utils.video_io import decode_video_bytes
+                        frames_tensor = decode_video_bytes(
+                            mp4_bytes, tmp, clip_key, num_frames=self.num_frames)
+                        if frames_tensor is None:
+                            continue
+                        frames_np = frames_tensor.permute(0, 2, 3, 1).numpy()
+                        if frames_np.max() <= 1.0:
+                            frames_np = (frames_np * 255).astype(np.uint8)
+                        else:
+                            frames_np = frames_np.astype(np.uint8)
+                        from utils.factor_streaming import tensor_from_factor_array
+                        tensor = tensor_from_factor_array(
+                            frames_np, self.num_frames, self.crop_size)
+                        yield {
+                            "tensor": tensor,
+                            "factor_type": "raw",   # CLEAR replay marker
+                            "clip_key": clip_key,
+                        }
+                        n_emitted += 1
+                        continue
+
+                    # Legacy factor-view branch (unchanged when raw_replay_pct=0).
                     factor_type = active_factors[
                         rng.choice(len(active_factors), p=active_weights)]
                     clip_key = per_worker[factor_type][

@@ -59,16 +59,17 @@ case "$MODE_FLAG" in
     *) echo "FATAL: mode flag must be --SANITY|--POC|--FULL (got: $MODE_FLAG)" >&2; exit 2 ;;
 esac
 
-# ── Probe Stage 1 (action_labels.json) — auto-bootstrap by m09a/m09c ─────
-# iter13 v12 (2026-05-06): the FATAL preflight here was removed because
-# src/utils/probe_labels.ensure_probe_labels_for_mode (called by m09a:478 and
-# m09c equivalent) already auto-generates action_labels.json + taxonomy_labels.json
-# when missing. Each .py runs independently — no dependency on having run
-# scripts/run_probe_eval.sh first. ACTION_LABELS path is still resolved
-# below (used by probe_train_subset.py) — m09a's bootstrap will create it
-# before probe_train_subset.py reads it (auto-bootstrap fires inside m09a's
-# build phase, but probe_train_subset.py runs FIRST in the shell wrapper at
-# lines 89-94 — so we must also ensure it exists at this layer if absent).
+# ── Probe Stage 1 (action_labels.json) — auto-bootstrap before split ─────
+# iter14 recipe-v3 (2026-05-09): TECH-DEBT — this shell-level bootstrap is
+# REDUNDANT with src/utils/probe_labels.ensure_probe_labels_for_mode(cfg=cfg),
+# which m09a/m09c already call at startup (in-process, reads cfg, no shell
+# orchestration). It's kept here ONLY because probe_train_subset.py at lines
+# ~93-97 below runs BEFORE m09a/m09c and depends on ACTION_LABELS existing.
+# Full refactor — option 🅱 in iter/iter14_surgery_on_pretrain/plan_no_discrepancy.md
+# § "Phase E (NEW)" — moves probe_train_subset.py invocation into m09a/m09c
+# (via in-process split_subset() calls) so this shell block can be deleted.
+# Until then: this shell calls probe_labels-equivalent logic via the same
+# CLI surface (subprocess to probe_action.py + eval_subset.py) for parity.
 ACTION_LABELS="outputs/${mode_dir}/probe_action/action_labels.json"
 if [ ! -f "$ACTION_LABELS" ]; then
     echo "  [run_probe_train] $ACTION_LABELS missing — auto-bootstrapping via probe_action.py --stage labels (CPU, ~1 min)"
@@ -85,22 +86,33 @@ if [ ! -f "$ACTION_LABELS" ]; then
         MIN_CLIPS_BOOTSTRAP=3
         MIN_SPLIT_BOOTSTRAP=1
     elif [ "$MODE" = "POC" ]; then
-        # iter14 (2026-05-08): POC = first N keys of eval_10k.json (N from yaml,
-        # default 500), then stratified_split applies 70:15:15 → ~350/75/75
-        # train/val/test. Single knob for scalability across datasets.
+        # iter14 v2 (2026-05-09): POC = STRATIFIED by motion class (RAFT optical
+        # flow → 8 classes), guarantees POC labels file matches FULL schema (all
+        # 8 classes preserved). Replaces buggy --first-n which caused iter14 D₂
+        # 855/7-class label file. Per-class target = POC_TOTAL / 8 (8 surviving
+        # motion classes from m04d 13-D RAFT × magnitude-quartile × direction).
+        # Source: src/CLAUDE.md POC↔FULL parity rule + plan_surgery_wins.md §12.7.
         POC_SUBSET="data/eval_10k_poc.json"
         POC_TOTAL=$(scripts/lib/yaml_extract.py configs/train/base_optimization.yaml data.poc_total_clips)
-        if [ ! -f "$POC_SUBSET" ] || [ "data/eval_10k.json" -nt "$POC_SUBSET" ]; then
+        TARGET_PER_CLASS=$((POC_TOTAL / 8))
+        MOTION_FEATURES_FULL="data/eval_10k_local/motion_features.npy"
+        if [ ! -f "$MOTION_FEATURES_FULL" ]; then
+            echo "❌ FATAL: $MOTION_FEATURES_FULL missing — run m04d --FULL first." >&2
+            exit 4
+        fi
+        if [ ! -f "$POC_SUBSET" ] || [ "data/eval_10k.json" -nt "$POC_SUBSET" ] || [ "$MOTION_FEATURES_FULL" -nt "$POC_SUBSET" ]; then
             python -u src/utils/eval_subset.py \
                 --eval-subset data/eval_10k.json \
-                --first-n "$POC_TOTAL" \
+                --stratified-by-motion-class \
+                --motion-features "$MOTION_FEATURES_FULL" \
+                --target-per-class "$TARGET_PER_CLASS" \
                 --output "$POC_SUBSET"
         fi
         EVAL_SUBSET_BOOTSTRAP="$POC_SUBSET"
-        # POC floors: with ~500 clips ÷ 8 motion classes ≈ 60/class. Floor=10
-        # tolerates rare-class drops while still keeping 6+ classes for the probe.
-        MIN_CLIPS_BOOTSTRAP=10
-        MIN_SPLIT_BOOTSTRAP=2
+        # POC↔FULL parity (CLAUDE.md, 2026-05-09): POC uses SAME min_clips_per_class
+        # as FULL (34) so identical class set survives the post-stratification filter.
+        MIN_CLIPS_BOOTSTRAP=34
+        MIN_SPLIT_BOOTSTRAP=5
     else
         EVAL_SUBSET_BOOTSTRAP="data/eval_10k.json"
         MIN_CLIPS_BOOTSTRAP=34
@@ -318,6 +330,66 @@ case "$SUBCMD" in
                     ;;
             esac
         fi
+        # iter14 recipe-v3 (2026-05-09): five additional ablation switches for
+        # scripts/run_recipe_v3_sweep.sh drop-one cells. Same env-var → CLI
+        # forwarding pattern as recipe-v2 above. Each unset → m09c keeps yaml
+        # default (recipe-v3 defaults: subset=recipe_v3, warmup=per_stage,
+        # saliency=off, spd=off, replay=off — all gated until enabled).
+        if [ -n "${SUBSET_OVERRIDE:-}" ]; then
+            case "$SUBSET_OVERRIDE" in
+                legacy|recipe_v3)
+                    RECIPE_V2_ARGS+=(--subset-mode "$SUBSET_OVERRIDE")
+                    ;;
+                *)
+                    echo "❌ FATAL: SUBSET_OVERRIDE must be legacy|recipe_v3 (got: $SUBSET_OVERRIDE)" >&2
+                    exit 2
+                    ;;
+            esac
+        fi
+        if [ -n "${WARMUP_OVERRIDE:-}" ]; then
+            case "$WARMUP_OVERRIDE" in
+                per_stage|single)
+                    RECIPE_V2_ARGS+=(--warmup-mode "$WARMUP_OVERRIDE")
+                    ;;
+                *)
+                    echo "❌ FATAL: WARMUP_OVERRIDE must be per_stage|single (got: $WARMUP_OVERRIDE)" >&2
+                    exit 2
+                    ;;
+            esac
+        fi
+        if [ -n "${SALIENCY_OVERRIDE:-}" ]; then
+            case "$SALIENCY_OVERRIDE" in
+                on|off)
+                    RECIPE_V2_ARGS+=(--saliency "$SALIENCY_OVERRIDE")
+                    ;;
+                *)
+                    echo "❌ FATAL: SALIENCY_OVERRIDE must be on|off (got: $SALIENCY_OVERRIDE)" >&2
+                    exit 2
+                    ;;
+            esac
+        fi
+        if [ -n "${SPD_OVERRIDE:-}" ]; then
+            case "$SPD_OVERRIDE" in
+                on|off)
+                    RECIPE_V2_ARGS+=(--spd "$SPD_OVERRIDE")
+                    ;;
+                *)
+                    echo "❌ FATAL: SPD_OVERRIDE must be on|off (got: $SPD_OVERRIDE)" >&2
+                    exit 2
+                    ;;
+            esac
+        fi
+        if [ -n "${REPLAY_OVERRIDE:-}" ]; then
+            case "$REPLAY_OVERRIDE" in
+                on|off)
+                    RECIPE_V2_ARGS+=(--replay "$REPLAY_OVERRIDE")
+                    ;;
+                *)
+                    echo "❌ FATAL: REPLAY_OVERRIDE must be on|off (got: $REPLAY_OVERRIDE)" >&2
+                    exit 2
+                    ;;
+            esac
+        fi
 
         echo "═══ $(date '+%H:%M:%S') · m09c factor surgery [variant=${VARIANT_TAG}] (${MODE}) ═══"
         echo "  config:    $TRAIN_CFG"
@@ -326,9 +398,11 @@ case "$SUBCMD" in
         echo "  output:    $OUT_DIR"
         echo "  init:      $PRETRAIN_HF_URI (iter14 — m09c hf_hub_download via HF_TOKEN from .env)"
         if [ ${#RECIPE_V2_ARGS[@]} -gt 0 ]; then
-            echo "  recipe-v2: ${RECIPE_V2_ARGS[*]} (env overrides — TEACHER_MODE_OVERRIDE / LP_FT_OVERRIDE)"
+            echo "  recipe-v2/v3 overrides: ${RECIPE_V2_ARGS[*]}"
+            echo "    (env vars: TEACHER_MODE_OVERRIDE / LP_FT_OVERRIDE / SUBSET_OVERRIDE /"
+            echo "     WARMUP_OVERRIDE / SALIENCY_OVERRIDE / SPD_OVERRIDE / REPLAY_OVERRIDE)"
         else
-            echo "  recipe-v2: <yaml defaults> (no TEACHER_MODE_OVERRIDE / LP_FT_OVERRIDE set)"
+            echo "  recipe-v2/v3: <yaml defaults>"
         fi
         mkdir -p "$OUT_DIR"
         # iter14 (2026-05-08): --init-from-ckpt is REQUIRED in m09c (argparse

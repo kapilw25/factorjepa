@@ -238,3 +238,96 @@ iter13's first attempt at continual SSL pretrain on the 10K eval-pool. Multi-att
 | **🩹 v11 fixes wired (code in; RUN pending)** | `drift_control.enabled: false`, `lambda_reg: 0.0` (`probe_pretrain.yaml:119,121`); best_state by `probe_top1` not val_loss (`m09a_pretrain.py:1192-1247`); `keep_last_n: 2 → 5` (`base_optimization.yaml:239`); Phase 2 16-class motion-flow probe (eval-side); Phase 3 motion_aux CE+MSE loss in m09a (training-side) |
 
 **Verdict**: 🔻 **diagnostic-only, no paper signal**. v10 conclusively proves anchor-saturation collapse — encoder peaked at s323 then reverted to init by s863. The lone positive signal (future_mse −5.5 %) is invisible to the saturated 3-class probe. ~$5.20 GPU spent (~$2.40 train + ~$2.40 eval + buffer); locks in v11 + Phase 2 + Phase 3 design.
+
+---
+
+## 📊 iter13 v11 vs v12 motion_aux Ablation (2026-05-05/06, 🥇 +56.8 pp lift @ FULL)
+
+> Source: `iter/iter13_motion_probe_eval/result_outputs/v{11,12}/probe_train_pretrain_full_v{11,12}.log`. Same probe (N=1000), same eval-set, same code base. **Only motion_aux toggle**. Cleanest motion_aux ablation in the project.
+
+```
+┌─────┬─────────────────────────────────────────┬──────────┬──────────┬──────────┬──────────┬──────────┬────────────┬──────────────────────────────────┐
+│ Run │ motion_aux config                       │  Probe N │  ep 1    │  ep 2    │  ep 3    │  ep 4    │   ep 5     │  🚩 Verdict                      │
+├─────┼─────────────────────────────────────────┼──────────┼──────────┼──────────┼──────────┼──────────┼────────────┼──────────────────────────────────┤
+│ v11 │ ❌ OFF                                  │  N=1000  │ 0.2630   │ 0.2630   │ killed   │   —      │   —        │ 🔻 stalled at 0.26 — encoder    │
+│     │ (drift disabled, no aux)                │          │          │          │  ep 2    │          │            │   barely trains without aux      │
+├─────┼─────────────────────────────────────────┼──────────┼──────────┼──────────┼──────────┼──────────┼────────────┼──────────────────────────────────┤
+│ v12 │ ✅ ON · 9,276 clips · 8 cls            │  N=1000  │ 0.5100   │ 0.6260   │ 0.7200   │ 0.7640   │ 0.8080 ⭐ │ 🥇 MONOTONIC +56.8 pp climb      │
+│     │   weight_motion=0.1 · 13-D vec         │          │          │          │          │          │            │   THE recipe that produced       │
+│     │   w_ce=w_mse=1.0                        │          │          │          │          │          │            │   pretrain anchor 0.808 ⭐⭐    │
+└─────┴─────────────────────────────────────────┴──────────┴──────────┴──────────┴──────────┴──────────┴────────────┴──────────────────────────────────┘
+```
+
+**Verdict**: 🥇 motion_aux is non-negotiable. v12 with FULL-scale motion_aux (9,276 × 8 cls) is the run that produced the 0.808 pretrain anchor. v11 (no aux) stalls at 0.26 — encoder doesn't train. Per CLAUDE.md POC↔FULL parity, motion_aux must remain ON in iter14 recipe-v3 POC AND FULL — only `n_clips` and `max_epochs` differ.
+
+---
+
+## 📊 iter14 POC Recipe-v2 4-Cell Sweep (2026-05-09, 🔴 ALL CELLS REGRESS)
+
+> Source: `logs/iter14_poc_recipe_v2_{ema_lpft-off,ema_lpft-on,frozen_lpft-off,frozen_lpft-on_v2}.log`. POC factor pool = 91 m10-quality-gated clips × 1 step / stage. Probe N = 125 val clips. 4-cell sweep `{🌀 EMA, 🧊 FROZEN teacher} × {🅰️ LP-FT off, 🅱️ on}` per `plan_surgery_wins.md §6`. Diagnosis + recipe-v3 next-step in `plan_surgery_wins.md §12`.
+
+### 🗺️ Cell legend
+
+```
+┌─────────┬───────────────┬─────────────┬─────────────────────────────────────────────────┐
+│  🔠 ID  │ 🧊/🌀 Teacher │  🧠 LP-FT   │  🌀 motion_aux                                  │
+├─────────┼───────────────┼─────────────┼─────────────────────────────────────────────────┤
+│ 🅰️  A   │  🌀 EMA       │  🅰️ off     │  ✅ ON ⚠️ but with rm-rf-contaminated labels   │
+│         │               │             │   (see "POC sampler bug" below)                 │
+│ 🅱️  B   │  🌀 EMA       │  🅱️ on      │  ✅ ON ⚠️ same contaminated labels             │
+│ 🅲   C  │  🧊 FROZEN    │  🅰️ off     │  ✅ ON ⚠️ same contaminated labels             │
+│ 🅳  D₂  │  🧊 FROZEN    │  🅱️ on      │  ⚠️ ON · 855 clips · 7 cls (rm-rf recovery)   │
+│ 🅳  D₁  │  🧊 FROZEN    │  🅱️ on      │  ❌ OFF (silent rm-rf bug — historical)        │
+└─────────┴───────────────┴─────────────┴─────────────────────────────────────────────────┘
+```
+
+### 🪜 Per-stage probe trio top-1 trajectory
+
+```
+┌───────────────────────────┬─────────────┬─────────────┬───────────────┬──────────────────┐
+│  🪜 Stage                 │   🅰️ A      │   🅱️ B      │    🅲 C       │    🅳 D₂         │
+├───────────────────────────┼─────────────┼─────────────┼───────────────┼──────────────────┤
+│  0️⃣  stage0_head_only    │      —      │  0.7840 ⭐  │       —       │   0.7840 ⭐     │
+│  1️⃣  stage1_layout       │   0.7520    │   0.7520    │    0.7520     │   0.7600         │
+│  2️⃣  stage2_agent        │   0.7360    │   0.7200    │    0.7360     │   0.7680         │
+│  3️⃣  stage3_interaction  │   0.7440    │   0.7680    │    0.7440     │   0.7360 🔻     │
+└───────────────────────────┴─────────────┴─────────────┴───────────────┴──────────────────┘
+```
+🚨 **Every cell ends BELOW its peak** — stages 1→3 are net-destructive. Only Cell B / D₂ stage-0 head-only spike preserves anything (LP-FT win confirmed).
+
+### 📊 Top-line metrics
+
+```
+┌──────────────────────────────────┬───────────┬───────────┬───────────┬───────────┬──────────────────────────────┐
+│  📊 Metric                       │   🅰️ A    │   🅱️ B    │    🅲 C   │   🅳 D₂   │  🚩 Winner                  │
+├──────────────────────────────────┼───────────┼───────────┼───────────┼───────────┼──────────────────────────────┤
+│  🥇 Best top-1                   │  0.7520   │  0.7840   │  0.7520   │  0.7840   │  🤝 B = D₂ (tied @ stage 0)  │
+│  🏁 Final top-1                  │  0.7440   │  0.7680   │  0.7440   │  0.7360   │  🅱️ B                       │
+│  🛡️  BWT (final − step1)         │ -0.0080   │ -0.0160   │ -0.0080   │ -0.0480 🔥│  🅰️=🅲 (smallest swing)     │
+│  🌀 motion_cos best              │  0.2606   │  0.2623   │  0.2606   │  0.2616   │  🅱️ B                       │
+│  🌀 motion_cos final stage       │  0.2529   │  0.2561   │  0.2529   │  0.1949 🔥│  🅱️  (D₂ collapses stage 3) │
+│  🔮 future_l1 best (lower=bttr)  │  0.5561   │  0.5558   │  0.5563   │  0.5458 ⭐│  🅳 D₂                       │
+│  📉 val_jepa best (lower=bttr)   │  0.5000   │  0.4987   │  0.5002   │  0.5004   │  🅱️ B                       │
+│  🎬 train loss best              │  0.5054   │  0.4933   │  0.5054   │  0.5023   │  🅱️ B                       │
+│  ⏱️  Wall time                   │ 12m 41s   │ 15m 49s   │ 12m 33s   │ 16m 32s   │  🅰️/🅲 (no aux + no LP-FT)  │
+│  🎯 ≥ 0.808 gate vs pretrain     │ -5.6 pp 🔴│ -2.4 pp 🔴│ -5.6 pp 🔴│ -2.4 pp 🔴│  ❌ none clear it           │
+└──────────────────────────────────┴───────────┴───────────┴───────────┴───────────┴──────────────────────────────┘
+```
+🔠 **Markers**: ⭐ best across cells · 🔥 worst / severe collapse · 🔴 fails 0.808 gate
+
+### 🐛 D₂ underperformance is a DATA bug, NOT a recipe finding
+
+Per `plan_surgery_wins.md §12.7` POC sampler bug analysis:
+- D₂ ran with motion_aux ON but `outputs/{poc,full}/probe_action/action_labels.json` was contaminated with 855-clip / 7-class labels (rm-rf recovery `cp poc → full`)
+- The non-stratified `eval_subset.py --first-n N` POC sampler produces this kind of degenerate label coverage by default
+- 7-class motion_aux head + 1 backbone step per stage = noisy gradient that destabilizes encoder
+- v12 ablation (above) proves motion_aux at FULL scale (9,276 / 8 cls / 1010 steps) is the recipe that produces 0.808
+
+**Action**: fix the POC sampler (`eval_subset.py` stratified-by-motion-class) + regenerate FULL labels — see `plan_surgery_wins.md §12.7` Step 1-6. Then re-run iter14 with proper schema parity.
+
+### 🚦 Verdict (per `plan_surgery_wins.md §7.5` decision tree)
+
+🔴 all 4 cells regress (max = 0.7840 < 0.808 anchor) → §7.5 says fall back Path 2.
+🚨 **BUT premature**: recipe-v2 only deployed **2/5** §4 interventions + label files were contaminated → diagnosis & recipe-v3 spec in `plan_surgery_wins.md §12` and POC sampler fix in §12.7.
+
+📊 **Wall**: 12m 41s (A) / 15m 49s (B) / 12m 33s (C) / 16m 32s (D₂). **GPU cost** @ $0.80/h ≈ **$0.75** total for 4 cells.

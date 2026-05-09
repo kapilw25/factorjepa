@@ -414,10 +414,14 @@ def train(cfg: dict, args):
     # the shell having pre-run run_probe_eval.sh Stage 1. No-op when both files
     # already exist (~1ms stat()s). Mirrors run_probe_eval.sh:342-358 exactly.
     mode_flag = "--SANITY" if args.SANITY else ("--POC" if args.POC else "--FULL")
+    # iter14 recipe-v3 (2026-05-09): pass cfg so probe_labels reads ALL paths +
+    # numbers from yaml (CLAUDE.md "no hardcoded values"). For POC mode, the
+    # bootstrap also generates the stratified-by-motion-class subset in-process.
     ensure_probe_labels_for_mode(
         mode_flag=mode_flag,
         project_root=Path(__file__).parent.parent,
         cache_policy=args.cache_policy,
+        cfg=cfg,
     )
 
     output_dir = Path(cfg["checkpoint"]["output_dir"])
@@ -683,16 +687,28 @@ def train(cfg: dict, args):
     best_state = {"val_loss": float("inf"), "step": -1, "probe_acc": -1.0}
     kill_state = {"triggered": False, "reason": None}
     top1_plateau_state = {"recent_top1": []}
-    if cfg.get("probe", {}).get("enabled"):
+    # iter14 recipe-v2 (2026-05-09): cfg[key] strict access (CLAUDE.md "no DEFAULT").
+    # Missing probe block → no probe (acceptable). Present block missing "enabled" → FATAL.
+    _probe_block = cfg["probe"] if "probe" in cfg else None
+    if _probe_block is not None and "enabled" not in _probe_block:
+        print("❌ FATAL [probe]: cfg['probe'] block present but missing 'enabled' key. "
+              "Set `enabled: true` or `enabled: false` explicitly in yaml.", file=sys.stderr)
+        sys.exit(3)
+    if _probe_block is not None and _probe_block["enabled"]:
         probe_cfg = cfg["probe"]
         action_labels_path = (args.probe_action_labels or
                               str(Path(probe_cfg["subset"]).parent / "action_labels.json"))
         if not Path(action_labels_path).exists():
-            print(f"  [probe] WARN: action_labels.json not found at {action_labels_path} — "
-                  f"falling back to val_jepa-only probe (no top-1 acc)", flush=True)
-            probe_labels = {}
-        else:
-            probe_labels = load_action_labels(Path(action_labels_path))
+            # iter14 recipe-v2 (2026-05-09): FAIL LOUD per CLAUDE.md. Probe
+            # top-1 is the paper-grade metric — silent val_jepa-only fallback
+            # produces JSONL rows with null `probe_top1`, breaking downstream
+            # plots and analysis. Fix the missing labels, don't run blind.
+            print(f"❌ FATAL [probe]: action_labels.json not found at {action_labels_path}", file=sys.stderr)
+            print("   probe.enabled=true requires action_labels.json — top-1 accuracy is paper-grade,", file=sys.stderr)
+            print("   not optional telemetry. To run without probe, set yaml `probe.enabled: false`.", file=sys.stderr)
+            print("   To regenerate labels: python -u src/probe_action.py --<MODE> --stage labels ...", file=sys.stderr)
+            sys.exit(3)
+        probe_labels = load_action_labels(Path(action_labels_path))
         try:
             print(f"  [probe] decoding clips from {probe_cfg['subset']} ...", flush=True)
             probe_clips = build_probe_clips(

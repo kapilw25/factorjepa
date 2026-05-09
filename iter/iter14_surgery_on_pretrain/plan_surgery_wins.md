@@ -369,6 +369,210 @@
 
 ---
 
+## 🚨 12. iter14 POC Recipe-v2 4-cell sweep — verdict + recipe-v3 spec (2026-05-09)
+
+> 🎬 **One-line**: all 4 cells regressed ≤ 0.7840 < 0.808 anchor → §7.5 says 🔴 Path 2 (data scale).
+> 🚨 **But premature**: only **2 of 5** §4 interventions actually deployed → recipe-v2 isn't actually the recipe.
+> 🎯 **New step**: deploy remaining 3 + audit A2/A4 → re-POC as **recipe-v3** BEFORE pivoting to Path 2.
+> 📍 Detailed sweep tables (Tables 1–3) live in `high_level_outputs.md § iter14 POC Recipe-v2 4-Cell Sweep`.
+> 🧬 Architecture mermaid lives in `high_level_plan.md § Recipe-v3 system design`.
+
+### 🚦 12.1 Decision verdict — `0.808` gate (per §7.5 decision tree)
+
+```
+┌──────────────────────────────────────┬──────────────────────────────┬──────────────────────────────┬──────────────────────────────────────────────┐
+│  🚦 Bucket                           │  📏 Threshold                │  🥇 Best result              │  🚩 Verdict                                  │
+├──────────────────────────────────────┼──────────────────────────────┼──────────────────────────────┼──────────────────────────────────────────────┤
+│  🟢 strict win                       │ ≥ 0.808 + Δ ≥ +5 pp          │ A/B/C/D₂ best = 0.7840       │ ❌ FAIL: −2.4 pp short                       │
+│  🟢 strict win (incl. D₁ ablation)   │ same                         │ D₁ peak     = 0.7920         │ ❌ FAIL: −1.6 pp short                       │
+│  🟡 marginal (within-run gain)       │ Stage-1 backbone gain > 0    │ D₁: +0.8 pp; rest flat/neg   │ 🟡 ONLY D₁ shows healthy backbone slope      │
+│  🔴 all regress                      │ all cells < 0.808            │ All cells ≤ 0.7920           │ 🔴 TRUE — every cell below pretrain anchor   │
+└──────────────────────────────────────┴──────────────────────────────┴──────────────────────────────┴──────────────────────────────────────────────┘
+```
+
+### 🧬 12.2 Root cause analysis — why all 4 cells regress
+
+#### 🅰️ Cause 1 — Only **2 of 5** §4 interventions deployed (verified via grep)
+
+```
+┌────┬────────────────────────────────────────┬─────────────┬────────────────────────┬──────────────────────────────────┐
+│ #  │  🛠️  §4 Intervention                  │  Status     │  Evidence (grep)       │  Expected effect when deployed   │
+├────┼────────────────────────────────────────┼─────────────┼────────────────────────┼──────────────────────────────────┤
+│ 1  │ 🧊 Frozen teacher (SALT)               │ ✅ DEPLOYED │ in C, D — verified     │ already in C/D — no win at POC  │
+│ 2  │ 🧠 LP-FT Stage 0                       │ ✅ DEPLOYED │ in B, D — verified     │ +3.2 pp head-only spike (B,D)   │
+│ 3  │ ✂️  Surgical subset (4/8 blocks)       │ ❌ MISSING  │ yaml = 12/24/24 blocks │ blocks gradient blast (3× over) │
+│ 4  │ 🛡️  SPD optimizer wrapper              │ ❌ MISSING  │ 0 grep hits across     │ replaces L2 anchor → escapes    │
+│    │                                        │             │ configs/ + utils/      │ Δ2 ≈ 0 trap                     │
+│ 5  │ 🔁 50% raw-video CLEAR replay          │ ❌ MISSING  │ only WITHIN-factor     │ pretrain-domain anchor signal   │
+│    │                                        │             │ mode_mixture used      │ vs forgetting                   │
+└────┴────────────────────────────────────────┴─────────────┴────────────────────────┴──────────────────────────────────┘
+```
+
+#### 🅱️ Cause 2 — **0 of 4** §11.6 audit fixes deployed (only A5 covered by #1)
+
+```
+┌────┬─────────────────────────────────────────────┬─────────────┬─────────────────────────┐
+│ #  │  🔧 Audit fix                               │  Status     │  Evidence               │
+├────┼─────────────────────────────────────────────┼─────────────┼─────────────────────────┤
+│ A1 │ 📐 Scheduled EMA momentum (cosine)         │ ❌ MISSING  │ no momentum_schedule    │
+│ A2 │ 🎯 Saliency-weighted JEPA loss             │ ❌ MISSING  │ no cal_loss_mask        │
+│ A4 │ 📝 SINGLE warmup over total budget         │ ❌ MISSING  │ still warmup_pct=0.20  │
+│    │   (instead of per-stage warmup_pct=0.20)   │             │ per-stage in base yaml  │
+│ A5 │ 🧊 Replace L2 anchor with frozen teacher   │ ✅ DEPLOYED │ subsumed by §4 #1       │
+└────┴─────────────────────────────────────────────┴─────────────┴─────────────────────────┘
+```
+
+#### 🅲 Cause 3 — POC step budget is structurally degenerate
+
+```
+┌──────────────────────────────────────────┬─────────────────┬────────────────────────────┐
+│  🪜 Stage budget (POC)                   │  steps          │  warmup steps              │
+├──────────────────────────────────────────┼─────────────────┼────────────────────────────┤
+│  0️⃣ stage0_head_only (LP-FT)            │  1              │  1 (warmup_pct = 1.0)      │
+│  1️⃣ stage1_layout                       │  1              │  1 (warmup_pct = 0.20→1)   │
+│  2️⃣ stage2_agent                        │  1              │  1 (warmup_pct = 0.20→1)   │
+│  3️⃣ stage3_interaction                  │  1              │  1 (warmup_pct = 0.20→1)   │
+│  ────────────────────────────────────────┼─────────────────┼────────────────────────────┤
+│  ⚠️  Effective REAL-LR backbone steps    │  ≈ 0            │  every step is in warmup   │
+└──────────────────────────────────────────┴─────────────────┴────────────────────────────┘
+```
+🚨 Encoder never sees configured base LR. Trajectory we measure = **warmup artifacts**, not recipe behavior.
+
+#### 🅳 Cause 4 — Per-stage unfreeze 3× too aggressive (cf. §4 #3)
+
+```
+┌──────────────────────────┬───────────────────┬─────────────────────┬─────────────────────────┐
+│  🪜 Stage                │  Current (yaml)   │  Recipe-v3 spec     │  Δ                      │
+├──────────────────────────┼───────────────────┼─────────────────────┼─────────────────────────┤
+│  1️⃣ stage1_layout       │  12/48 blocks     │   4/48 blocks       │  3× too many trainable  │
+│  2️⃣ stage2_agent        │  24/48 blocks     │   8/48 blocks       │  3× too many trainable  │
+│  3️⃣ stage3_interaction  │  24/48 blocks     │   8/48 blocks       │  3× too many trainable  │
+└──────────────────────────┴───────────────────┴─────────────────────┴─────────────────────────┘
+```
+🚨 24 trainable blocks × 1 step = catastrophic gradient blast. Lee ICLR'23 prescribes ≤4 blocks/stage.
+
+### 🔧 12.3 Recipe-v3 spec — deploy ALL remaining interventions + audit A2/A4
+
+```
+┌──────────────────────────────────────┬─────────────────┬─────────────┬─────────────────────────────────────────┐
+│  🛠️  Action                          │  💸 LoC         │  ⏱️ Effort  │  📍 File                                │
+├──────────────────────────────────────┼─────────────────┼─────────────┼─────────────────────────────────────────┤
+│  ✂️  #3 Subset 0–3 / 0–7 blocks      │  yaml only      │  5 min      │  configs/train/surgery_3stage_DI.yaml   │
+│  📝 A4 SINGLE warmup over total      │  ~15 LoC        │  20 min     │  src/utils/training.py + base yaml      │
+│  🎯 A2 Saliency-weighted JEPA loss   │  ~15 LoC        │  30 min     │  src/utils/training.py:compute_jepa_loss│
+│  🛡️  #4 SPD optimizer wrapper        │  ~80 LoC        │  3 hrs      │  src/utils/spd_optimizer.py (NEW)       │
+│  🔁 #5 50% raw-video CLEAR replay    │  ~80 LoC        │  2 hrs      │  src/utils/factor_streaming.py + m09c   │
+│  📐 A1 Scheduled EMA (deferred)      │  ~20 LoC        │  20 min     │  only if FROZEN doesn't beat EMA — A1   │
+│                                      │                 │             │  is moot once we adopt FROZEN teacher   │
+└──────────────────────────────────────┴─────────────────┴─────────────┴─────────────────────────────────────────┘
+                                                                          Recipe-v3 total: ~190 LoC, ~6 hrs Mac eng
+```
+
+### 🚦 12.4 Next-step branch decision
+
+```
+┌─────┬────────────────────────────────────────────────┬────────────────────────────┬─────────────────────────────────────────┐
+│ 🅿️  │  Option                                        │  💰 Cost                   │  🚩 Verdict                            │
+├─────┼────────────────────────────────────────────────┼────────────────────────────┼─────────────────────────────────────────┤
+│ 🅰️  │ Quick: subset + single warmup, re-POC          │ $0.20 + 10 min Mac        │ partial — misses #4 #5 (3 of 5)        │
+│ 🅱️  │ ⭐ FULL recipe-v3 → re-POC + drop-one ablation│ ~$1.46 GPU + ~6 hrs Mac   │ ⭐ tests prescribed recipe + paper data│
+│ 🅲   │ Skip POC, FULL with recipe-v3                  │ ~$80, ~50 GPU-h           │ risky — commits before POC validation  │
+│ 🅳   │ 🔴 Fall back Path 2 (relax m10 thresholds)    │ $50–60                    │ 🚨 PREMATURE — recipe untested         │
+│ 🅴   │ Phase 5 (FG/BG features)                       │ $5–10                     │ orthogonal — can stack with B later    │
+└─────┴────────────────────────────────────────────────┴────────────────────────────┴─────────────────────────────────────────┘
+```
+
+🥇 **Pick 🅱️**: per §4 `P(unblock Δ2)` table, going from 2/5 → 5/5 stacked moves probability **~50% → ~85%**. Falling to Path 2 now would concede a question we never asked.
+
+### 🛠️ 12.5 Concrete execution order for recipe-v3 (paper-grade)
+
+```
+┌─────┬────────────────────────────────────────────────────┬─────────────┬──────────────────────────────────────────────┐
+│ 🪜  │  Action                                            │  ⏱️ Effort  │  Verification                                │
+├─────┼────────────────────────────────────────────────────┼─────────────┼──────────────────────────────────────────────┤
+│ 1️⃣  │ 🍎 Mac: yaml unfreeze_below 0.083 / 0.167 (#3)    │  5 min      │ grep "0.083" surgery_3stage_DI.yaml          │
+│ 2️⃣  │ 🍎 Mac: yaml + scheduler — single warmup (A4)     │  20 min     │ surgery_base.yaml has total_warmup_pct: 0.10 │
+│ 3️⃣  │ 🍎 Mac: cal_loss_mask in compute_jepa_loss (A2)   │  30 min     │ uniform mask = legacy behavior (smoke test)  │
+│ 4️⃣  │ 🍎 Mac: src/utils/spd_optimizer.py (#4)           │  3 hrs      │ unit test: SPD reduces to AdamW when α=0     │
+│ 5️⃣  │ 🍎 Mac: factor_streaming raw-replay branch (#5)   │  2 hrs      │ batch sample = 50% raw mp4 + 50% factor      │
+│ 6️⃣  │ 🍎 Mac: 3-check gate (post-edit-lint.sh hook)     │  auto       │ py_compile + ast.parse + ruff F,E9 green    │
+│ 7️⃣  │ 🟦 RTX Pro 4000 ($0.10): SANITY — no crashes      │  30 min GPU │ logs/iter14_sanity_recipe_v3.log             │
+│ 8️⃣  │ 🟪 Blackwell ($0.23): POC R1 (Recipe-v3 only)     │  17 min GPU │ logs/iter14_poc_recipe_v3_R1.log             │
+│ 9️⃣  │ 🟪 Blackwell ($1.13): drop-one ablation (R2–R6)   │  85 min GPU │ logs/iter14_poc_recipe_v3_R{2-6}.log         │
+│ 🔟   │ Apply §7.5 decision tree (with new 0.808 reading)│  reading    │ 🟢/🟡/🔴 verdict                             │
+└─────┴────────────────────────────────────────────────────┴─────────────┴──────────────────────────────────────────────┘
+```
+
+📊 **Total**: ~6 hrs Mac eng (free) + ~$1.46 GPU spend = **paper-grade ablation answer**.
+
+### 🎬 12.6 Bottom line
+
+> Recipe-v2 is only **2/5** of the prescribed §4 stack — we tested **40% of the recipe**, not the recipe.
+> Before falling to data-scale (Path 2 = $50-60), deploy the missing 3 interventions + audit A2/A4 — **~6 hrs Mac eng for $1.46 of GPU**.
+> Don't pivot the experiment until we've actually run the experiment we wrote down.
+
+### 🐛 12.7 POC sampler bug — root cause of D₂'s 855-clip / 7-class labels (added 2026-05-09)
+
+> Earlier draft framed D₂'s underperformance as "POC-scale motion_aux is destructive". That framing is **WRONG** per `src/CLAUDE.md` POC↔FULL parity rule and per the v11/v12 ablation evidence below. The recipe must NOT diverge between POC and FULL — fix the sampler, not the recipe.
+
+#### 🔬 v11 vs v12 ablation — motion_aux is THE feature that produced 0.808 (FULL-scale)
+
+```
+┌─────┬─────────────────────────────────────────┬──────────┬──────────┬──────────┬──────────┬──────────┬──────────┐
+│ Run │ motion_aux config                       │  Probe N │  ep 1    │  ep 2    │  ep 3    │  ep 4    │  ep 5    │
+├─────┼─────────────────────────────────────────┼──────────┼──────────┼──────────┼──────────┼──────────┼──────────┤
+│ v11 │ ❌ OFF                                  │  N=1000  │ 0.2630   │ 0.2630   │ killed   │   —      │   —      │
+│ v12 │ ✅ ON · 9,276 × 8 cls · w_motion=0.1   │  N=1000  │ 0.5100   │ 0.6260   │ 0.7200   │ 0.7640   │ 0.8080 ⭐│
+└─────┴─────────────────────────────────────────┴──────────┴──────────┴──────────┴──────────┴──────────┴──────────┘
+```
+🥇 Source: `iter/iter13_motion_probe_eval/result_outputs/v{11,12}/probe_train_pretrain_full_v{11,12}.log`. Same probe (N=1000), same data, same code; **only motion_aux toggled**. Motion_aux at FULL = +56.8 pp lift in 5 epochs.
+
+#### 🐛 Two compounding bugs (verified via grep + JSON inspection)
+
+```
+┌─────┬─────────────────────────────────────────────┬─────────────────────────────────────────────────┬───────────────────────────────────────────────────────┐
+│ #   │ 🐛 Bug                                      │ 🔍 Evidence                                      │ 🛠️  Fix                                               │
+├─────┼─────────────────────────────────────────────┼─────────────────────────────────────────────────┼───────────────────────────────────────────────────────┤
+│ B1  │ POC sampler is non-stratified              │ scripts/run_probe_train.sh:92-99 calls          │ Add stratified_by_motion_class_subset() to            │
+│     │ — eval_subset.py --first-n N takes        │ eval_subset.py --first-n $POC_TOTAL.            │ eval_subset.py + new --stratified-by-motion-class    │
+│     │ first N clip_keys verbatim, can drop       │ eval_subset.py:88-94 first_n_subset() = no      │ flag. Per-class quota guarantees all FULL classes.   │
+│     │ rare classes                               │ stratification by motion class.                  │                                                       │
+├─────┼─────────────────────────────────────────────┼─────────────────────────────────────────────────┼───────────────────────────────────────────────────────┤
+│ B2  │ rm-rf recovery contaminated FULL labels    │ outputs/full/probe_action/action_labels.json    │ Re-run probe_action.py --stage labels                │
+│     │ — `cp outputs/poc/.../action_labels.json` │ is currently 855 clips / 7 cls (= POC content). │ --eval-subset data/eval_10k.json to regenerate       │
+│     │ wrote POC labels into FULL location       │ Original (iter13 v12) was 9,276 / 8 cls.        │ FULL labels (auto-fires when missing).                │
+├─────┼─────────────────────────────────────────────┼─────────────────────────────────────────────────┼───────────────────────────────────────────────────────┤
+│ B3  │ Floor-10 class filter drops 8th class      │ run_probe_train.sh:104 MIN_CLIPS_BOOTSTRAP=10  │ Stratified sampler (B1 fix) guarantees ≥10/class →   │
+│     │                                             │ + comment: "Floor=10 tolerates rare-class       │ floor-10 never drops a class.                         │
+│     │                                             │ drops while still keeping 6+ classes" — comment │                                                       │
+│     │                                             │ acknowledges the bug as "tolerated".            │                                                       │
+└─────┴─────────────────────────────────────────────┴─────────────────────────────────────────────────┴───────────────────────────────────────────────────────┘
+```
+
+#### 🛠️ Concrete fix sequence (Mac, ~1 hr eng)
+
+```
+┌─────┬───────────────────────────────────────────────────────────────────┬───────────────────────────────────┬──────────┐
+│ 🪜  │ Action                                                            │ File                              │ ⏱️ Effort│
+├─────┼───────────────────────────────────────────────────────────────────┼───────────────────────────────────┼──────────┤
+│ 1️⃣  │ Add stratified_by_motion_class_subset(src, motion_features,      │ src/utils/eval_subset.py          │ 30 min   │
+│     │ n_per_class) function + --stratified-by-motion-class CLI flag    │                                   │          │
+│ 2️⃣  │ Update POC branch to use new flag (replace --first-n)            │ scripts/run_probe_train.sh:92-99 │ 5 min    │
+│ 3️⃣  │ 3-check gate (auto via post-edit-lint.sh hook)                   │ — auto                            │ 0 min    │
+│ 4️⃣  │ Regenerate FULL labels: rm outputs/full/probe_action/*.json      │ outputs/full/probe_action/        │ 1 min    │
+│     │ then run_probe_train.sh --FULL auto-bootstraps via probe_action  │                                   │          │
+│ 5️⃣  │ Re-bootstrap POC labels: CACHE_POLICY_ALL=2 run_probe_train.sh   │ outputs/poc/probe_action/         │ 1 min    │
+│     │ --POC                                                             │                                   │          │
+│ 6️⃣  │ Verify: POC labels file has 8 classes, ~125 clips/class          │ python -c "import json; ..."     │ 30 sec   │
+└─────┴───────────────────────────────────────────────────────────────────┴───────────────────────────────────┴──────────┘
+```
+
+🚦 **Precondition for recipe-v3 POC**: this fix is mandatory. Without it, motion_aux head is sized to whatever the contaminated label file says (7 classes), violating POC↔FULL parity.
+
+📐 **CLAUDE.md rule** (added 2026-05-09): POC and FULL must be byte-identical except `poc_total_clips` and `max_epochs.poc`. Disabling features (motion_aux on/off, n_classes, head dim) at POC violates this rule. Fix the sampler, not the recipe.
+
+---
+
 ## 📚 Sources (compact)
 
 | Topic | Link |

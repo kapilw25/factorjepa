@@ -166,6 +166,41 @@ def merge_config_with_args(cfg: dict, args) -> dict:
     if getattr(args, "lp_ft_stage0", None) is not None:
         cfg["surgery"]["lp_ft_stage0"]["enabled"] = (args.lp_ft_stage0 == "on")
 
+    # iter14 recipe-v3 (2026-05-09) — five additional ablation switches for the
+    # drop-one POC sweep (T7). Each respects None = "keep yaml value", so legacy
+    # callers without these flags get the yaml-level recipe-v3 defaults.
+
+    # #3 surgical subset: legacy = 12/24/24 blocks (unfreeze_below 0.25/0.50/0.50);
+    # recipe_v3 = 4/8/8 (yaml-level default after T2). When --subset-mode=legacy,
+    # rewrite the per-stage unfreeze_below back to the iter10 v15c values.
+    if getattr(args, "subset_mode", None) == "legacy":
+        legacy_unfreeze = {
+            "stage1_layout": 0.25,
+            "stage2_agent": 0.50,
+            "stage3_interaction": 0.50,
+        }
+        for s in cfg["surgery"]["stages"]:
+            if s["name"] in legacy_unfreeze:
+                s["unfreeze_below"] = legacy_unfreeze[s["name"]]
+        print("  [recipe-v3 override] subset_mode=legacy → unfreeze_below restored "
+              "to 12/24/24 blocks (was 4/8/8 per yaml).")
+
+    # A4 single warmup: yaml default is "per_stage". --warmup-mode={per_stage,single}.
+    if getattr(args, "warmup_mode", None) is not None:
+        cfg["surgery"]["warmup_mode"] = args.warmup_mode
+
+    # A2 saliency-weighted JEPA loss: yaml default false. --saliency={off,on}.
+    if getattr(args, "saliency", None) is not None:
+        cfg["optimization"]["loss"]["saliency_weighting"] = (args.saliency == "on")
+
+    # #4 SPD optimizer: yaml default disabled. --spd={off,on}.
+    if getattr(args, "spd", None) is not None:
+        cfg["optimization"]["spd"]["enabled"] = (args.spd == "on")
+
+    # #5 CLEAR raw replay: yaml default 0.0. --replay={off,on} where on=0.5.
+    if getattr(args, "replay", None) is not None:
+        cfg["replay"]["raw_pretrain_pct"] = 0.5 if args.replay == "on" else 0.0
+
     # iter14 (2026-05-08): retired the legacy `data.train_val_split` + per-mode
     # `probe.use_permanent_val` resolution. m09c now mirrors m09a's gold-standard
     # pattern (m09a:466-479): single yaml/CLI-driven external val pool via
@@ -459,10 +494,14 @@ def train(cfg: dict, args):
     # the shell having pre-run run_probe_eval.sh Stage 1. No-op when both files
     # already exist (~1ms stat()s). Mirrors run_probe_eval.sh:342-358 exactly.
     mode_flag = "--SANITY" if args.SANITY else ("--POC" if args.POC else "--FULL")
+    # iter14 recipe-v3 (2026-05-09): pass cfg so probe_labels reads ALL paths +
+    # numbers from yaml (CLAUDE.md "no hardcoded values"). For POC mode, the
+    # bootstrap also generates the stratified-by-motion-class subset in-process.
     ensure_probe_labels_for_mode(
         mode_flag=mode_flag,
         project_root=Path(__file__).parent.parent,
         cache_policy=args.cache_policy,
+        cfg=cfg,
     )
 
     # Output dir
@@ -1078,11 +1117,28 @@ def train(cfg: dict, args):
             n_trainable = int(depth * stage_cfg["unfreeze_below"])
             stage_pct = stage_cfg["max_epochs_pct"]
             stage_steps = max(int(total_steps * stage_pct), 1)
-            # Warmup = warmup_pct * stage_steps (auto-scales with run length).
-            # Replaces hardcoded warmup_steps=200 which broke POC where
-            # stage_steps (~99) < 200 → LR never reached target. `max(1, ...)`
-            # guards SANITY 1-step case where 20% floor-divides to 0.
-            warmup_steps = max(1, int(stage_steps * surgery_cfg["warmup_pct"]))
+            # iter14 recipe-v3 audit A4 (2026-05-09): warmup mode dispatch.
+            #   per_stage (legacy) = warmup_pct × stage_steps repeated every stage.
+            #     BUG at POC: 1-step stages × warmup_pct=0.20 → warmup_steps=1
+            #     → encoder ALWAYS in warmup, never sees configured base_lr.
+            #   single (recipe-v3) = front-loaded warmup at stage 0 only;
+            #     stages 1+ skip warmup, run at full base_lr immediately.
+            warmup_mode = surgery_cfg["warmup_mode"]
+            if warmup_mode == "per_stage":
+                # Legacy: warmup_pct × stage_steps every stage. max(1, ...) guards
+                # SANITY 1-step case where 20% floor-divides to 0.
+                warmup_steps = max(1, int(stage_steps * surgery_cfg["warmup_pct"]))
+            elif warmup_mode == "single":
+                # Recipe-v3: single front-loaded warmup. Stage 0 absorbs the full
+                # total_warmup_pct × total_steps budget; stages 1+ get 0 warmup
+                # (lr_lambda returns 1.0 immediately).
+                if stage_idx == 0:
+                    warmup_steps = max(1, int(total_steps * surgery_cfg["total_warmup_pct"]))
+                else:
+                    warmup_steps = 0
+            else:
+                sys.exit(f"❌ FATAL: surgery.warmup_mode='{warmup_mode}' invalid. "
+                         f"Expected 'per_stage' or 'single'.")
             mode_mixture = stage_cfg["mode_mixture"]
 
             print(f"\n{'='*60}")
@@ -1114,7 +1170,11 @@ def train(cfg: dict, args):
             set_trainable_prefix(student, n_trainable)
 
             # Rebuild optimizer (only trainable params)
-            optimizer = build_optimizer(student, predictor, cfg["optimization"])
+            # iter14 recipe-v3 (2026-05-09): pass init_params so SPDAdamW can
+            # build its anchor mapping when cfg["optimization"]["spd"]["enabled"]
+            # is True. Legacy AdamW path ignores init_params.
+            optimizer = build_optimizer(student, predictor, cfg["optimization"],
+                                         init_params=init_params)
             # Re-attach UW log-variance params to the freshly-built optimizer
             # (build_optimizer re-creates fresh Adam moments per stage; UW params
             # need their own param_group every time). Same base LR as encoder;
@@ -1147,6 +1207,13 @@ def train(cfg: dict, args):
             stream_loader = None
             stream_iter = None
             if streaming_enabled:
+                # iter14 recipe-v3 #5 (2026-05-09): CLEAR raw replay. When
+                # cfg["replay"]["raw_pretrain_pct"] > 0, the dataset interleaves
+                # raw mp4 clips (no factor view) at the configured probability.
+                # raw_clip_keys defaults to ALL keys in mp4_index (i.e., the
+                # streaming manifest's pool). To anchor against pretrain
+                # specifically, pass a different list (future enhancement).
+                replay_pct = cfg["replay"]["raw_pretrain_pct"]
                 ds = StreamingFactorDataset(
                     mp4_index=mp4_index,
                     mask_index=mask_index,
@@ -1159,6 +1226,8 @@ def train(cfg: dict, args):
                     base_seed=seed + stage_idx,
                     steps_per_epoch=stage_steps * batch_size,
                     interaction_cfg=cfg["interaction_mining"],
+                    raw_replay_pct=replay_pct,
+                    raw_clip_keys=None,  # default: full mp4_index pool
                 )
                 fs_cfg = cfg["factor_streaming"]
                 stream_loader = DataLoader(
@@ -1685,6 +1754,31 @@ def main():
                         help="iter14 recipe-v2: override surgery.lp_ft_stage0.enabled in yaml. "
                              "'on' prepends a head-only warmup stage (encoder frozen, predictor + "
                              "motion_aux head only). Default None → use yaml value.")
+    # iter14 recipe-v3 (2026-05-09): five drop-one ablation switches (T7).
+    # Each respects None = "use yaml". The shell wrapper forwards these from
+    # SUBSET_OVERRIDE / WARMUP_OVERRIDE / SALIENCY_OVERRIDE / SPD_OVERRIDE /
+    # REPLAY_OVERRIDE env-vars, used by scripts/run_recipe_v3_sweep.sh.
+    parser.add_argument("--subset-mode", type=str, choices=["legacy", "recipe_v3"], default=None,
+                        help="iter14 recipe-v3 #3: override surgery.stages[*].unfreeze_below. "
+                             "legacy = 12/24/24 blocks (iter10 v15c). recipe_v3 = 4/8/8 (Lee ICLR'23 prescription). "
+                             "Default None → use yaml value (recipe_v3 after T2).")
+    parser.add_argument("--warmup-mode", type=str, choices=["per_stage", "single"], default=None,
+                        help="iter14 recipe-v3 A4: override surgery.warmup_mode. "
+                             "per_stage = legacy (every stage repeats warmup, BUG at POC). "
+                             "single = front-loaded warmup at stage 0; subsequent stages skip warmup. "
+                             "Default None → use yaml value.")
+    parser.add_argument("--saliency", type=str, choices=["off", "on"], default=None,
+                        help="iter14 recipe-v3 A2: override optimization.loss.saliency_weighting. "
+                             "on = MGMAE-style per-token weighting by teacher-norm saliency. "
+                             "Default None → use yaml value (off).")
+    parser.add_argument("--spd", type=str, choices=["off", "on"], default=None,
+                        help="iter14 recipe-v3 #4: override optimization.spd.enabled. "
+                             "on = SPDAdamW (selective projection decay vs uniform L2 anchor). "
+                             "Default None → use yaml value (off).")
+    parser.add_argument("--replay", type=str, choices=["off", "on"], default=None,
+                        help="iter14 recipe-v3 #5: override replay.raw_pretrain_pct. "
+                             "on = 0.5 (50%% raw + 50%% factor batches, CLEAR Rolnick'18). "
+                             "off = 0.0 (legacy factor-only). Default None → use yaml value.")
     parser.add_argument("--factor-dir", type=str, default=None,
                         help="Factor dataset dir from m11 (contains D_L/, D_A/, D_I/, factor_manifest.json)")
     fs_group = parser.add_mutually_exclusive_group()

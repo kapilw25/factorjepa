@@ -36,24 +36,30 @@ interaction_mining:
   enabled: true                       # m10 --interactions-only + m11 --regen-D_I
 
 # -- Surgery: 3-stage with safer interactions Stage 3 --
+# iter14 v3 recipe (2026-05-09): unfreeze_below changed from legacy 0.25/0.50/0.50
+# (12/24/24 of 48 blocks) → recipe-v3 0.083/0.167/0.167 (4/8/8 of 48 blocks). Reason:
+# Lee et al. ICLR'23 Surgical Fine-Tuning prescribes ≤4 blocks per stage on a continual
+# pretrained backbone; iter14 POC v2 sweep showed 24-block unfreezes cause catastrophic
+# gradient blast in <5 backbone steps. See plan_surgery_wins.md §4 #3 + §12.4.
+# Override at runtime: SUBSET_OVERRIDE=legacy → m09c restores 0.25/0.50/0.50 for
+# drop-one ablation cell R4 (R1 minus #3). Wired in src/m09c_surgery.py via T7.
 surgery:
   stages:
     - name: stage1_layout
-      unfreeze_below: 0.25          # 12 of 48 layers
+      unfreeze_below: 0.083         # 4 of 48 layers (recipe-v3) | legacy: 0.25 = 12/48
       mode_mixture: {L: 1.00, A: 0.00, I: 0.00}
       max_epochs_pct: 0.40          # iter10 v15c: renormalized 0.50 → 0.40 for 3-stage split
 
     - name: stage2_agent
-      unfreeze_below: 0.50          # 24 of 48 layers
+      unfreeze_below: 0.167         # 8 of 48 layers (recipe-v3) | legacy: 0.50 = 24/48
       mode_mixture: {L: 0.30, A: 0.70, I: 0.00}   # 30% replay (CLEAR 2018), 70% agent
       max_epochs_pct: 0.30          # iter10 v15c: renormalized 0.50 → 0.30
 
     - name: stage3_interaction
       # iter10 v15c: re-enabled for safer-interactions ablation.
-      # unfreeze_below 0.50 — same as Stage 2 (NOT prior iter8's 0.75 which caused
-      # BWT=-0.33 over-destabilization). Doesn't unfreeze new layers — only the
-      # input distribution changes.
-      unfreeze_below: 0.50
+      # iter14 v3: same trainable-block depth as Stage 2 (recipe-v3: 8 blocks) so
+      # this stage only changes the input distribution, not the trainable depth.
+      unfreeze_below: 0.167         # 8 of 48 layers (recipe-v3) | legacy: 0.50 = 24/48
       mode_mixture: {L: 0.15, A: 0.15, I: 0.70}   # 15/15 replay (anti-forgetting Stages 1+2), 70% interactions (was 0.85 in iter8 — tempered)
       max_epochs_pct: 0.30
 

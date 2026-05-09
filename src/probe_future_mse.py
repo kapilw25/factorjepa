@@ -483,13 +483,28 @@ def run_paired_per_variant_stage(args, wb) -> None:
             ka = by_variant[a]["_keys"]
             kb = by_variant[b]["_keys"]
             if not np.array_equal(ka, kb):
-                # Re-align by intersection of clip_keys, preserving order from a
+                # iter14 recipe-v2 (2026-05-09): FAIL LOUD per CLAUDE.md. Small
+                # intersection drift (<5%) is OK (e.g., one encoder failed to
+                # decode a few clips), but >5% drift indicates broader pipeline
+                # mismatch (different eval subset, stale cache, etc).
                 a_idx = {k: i for i, k in enumerate(ka)}
                 shared = [k for k in ka if k in set(kb)]
+                drop_pct_a = 1.0 - (len(shared) / max(len(ka), 1))
+                drop_pct_b = 1.0 - (len(shared) / max(len(kb), 1))
+                max_drop = max(drop_pct_a, drop_pct_b)
+                if max_drop > 0.05:
+                    print(f"❌ FATAL [probe_future_mse]: {a} vs {b} keys disagree by "
+                          f"{max_drop:.1%} (>5% threshold).", file=sys.stderr)
+                    print(f"   {a}: {len(ka)} keys  |  {b}: {len(kb)} keys  |  "
+                          f"intersection: {len(shared)}", file=sys.stderr)
+                    print("   Re-extract per-clip MSE on the same eval-subset for both encoders.",
+                          file=sys.stderr)
+                    sys.exit(3)
                 a_arr = np.array([by_variant[a]["_per_clip_mse"][a_idx[k]] for k in shared])
                 b_idx = {k: i for i, k in enumerate(kb)}
                 b_arr = np.array([by_variant[b]["_per_clip_mse"][b_idx[k]] for k in shared])
-                print(f"  WARN: {a} vs {b} keys disagree -- re-aligned to {len(shared)} shared clips")
+                print(f"  [probe_future_mse] {a} vs {b} keys disagree by {max_drop:.1%} "
+                      f"— re-aligned to {len(shared)} shared clips (under 5% threshold)")
             else:
                 a_arr = by_variant[a]["_per_clip_mse"]
                 b_arr = by_variant[b]["_per_clip_mse"]

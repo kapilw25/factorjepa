@@ -2,111 +2,107 @@
 
 Ensures `outputs/<mode>/probe_action/action_labels.json` and
 `outputs/<mode>/probe_taxonomy/taxonomy_labels.json` exist before training
-starts. Mirrors run_probe_eval.sh Stage 1 — same probe_action.py /
-probe_taxonomy.py CLI args, subprocess-isolated for behavioral parity.
+starts. Lets `python -u src/m09{a,c}.py ...` run end-to-end without the shell
+wrapper having pre-run Stage 1. No-op fast path: ~1ms when both files already
+exist (just two stat()s).
 
-Lets `python -u src/m09{a,c}.py ...` run end-to-end without requiring the
-shell wrapper to have run Stage 1 first. No-op fast path: ~1ms when both
-files already exist (just two stat()s).
+iter13 v12 (2026-05-06): probe_action labels derive from MOTION-flow classes
+(RAFT optical-flow → 16 classes), NOT path-derived 3-class action.
 
-iter13 v12 (2026-05-06): probe_action labels now derive from MOTION-flow
-classes (RAFT optical-flow → 16 classes), NOT path-derived 3-class action.
-Bootstrap CLI updated: --tags-json dropped, --motion-features required.
+iter14 recipe-v3 (2026-05-09):
+  • POC mode now generates a stratified-by-motion-class subset
+    (data/eval_10k_poc.json by default) BEFORE invoking probe_action,
+    in-process via utils.eval_subset.stratified_by_motion_class_subset.
+    Guarantees POC labels match FULL schema (8 motion classes after
+    the 34-clip filter — CLAUDE.md POC↔FULL parity).
+  • ALL paths + numbers come from cfg (probe_action_labels / probe_taxonomy_labels
+    blocks in configs/train/base_optimization.yaml). No module-level constants
+    per CLAUDE.md "No hardcoded values in Python".
+  • Shell-side orchestration in scripts/run_probe_train.sh + run_recipe_v3_sweep.sh
+    is now redundant — m09a/m09c call this fn directly (in-process), shells stay
+    thin per CLAUDE.md.
 """
+import json
 import subprocess
 import sys
 from pathlib import Path
 
+from utils.action_labels import (
+    load_subset_with_labels,
+    stratified_split,
+    write_action_labels_json,
+)
+from utils.eval_subset import stratified_by_motion_class_subset
 
-# Per-mode default subsets — matches run_probe_eval.sh and run_probe_train.sh
-# convention. SANITY uses the 600-clip stratified pool (200/POV × 3); POC +
-# FULL share the 9.9k FULL pool (POC is a downstream training-time subset,
-# not a separate data manifest at this layer).
-_MODE_TO_DIR = {
-    "--SANITY": "sanity", "--sanity": "sanity",
-    "--POC":    "poc",    "--poc":    "poc",
-    "--FULL":   "full",   "--full":   "full",
-}
-_MODE_TO_EVAL_SUBSET = {
-    "sanity": "data/eval_10k_sanity.json",
-    "poc":    "data/eval_10k.json",
-    "full":   "data/eval_10k.json",
-}
-# iter13 v12 (2026-05-06): motion-flow class filter floors. SANITY relaxes since
-# 600 clips / 16 motion classes ≈ 37/class avg with skew → sparse classes after
-# filter; FULL uses paper-grade thresholds (≥34/class → ≥5 per split @ 70/15/15).
-_MODE_TO_MIN_CLIPS_PER_CLASS = {"sanity": 5,  "poc": 34, "full": 34}
-_MODE_TO_MIN_PER_SPLIT       = {"sanity": 1,  "poc": 5,  "full": 5}
+
+def _mode_dir_from_flag(mode_flag: str) -> str:
+    """Normalize argparse-style mode flag (e.g. '--POC') to dir token ('poc')."""
+    norm = mode_flag.lstrip("-").lower()
+    if norm not in ("sanity", "poc", "full"):
+        raise ValueError(
+            f"_mode_dir_from_flag: unknown mode_flag {mode_flag!r}; "
+            f"expected --SANITY|--POC|--FULL (any case)"
+        )
+    return norm
 
 
 def ensure_probe_labels_for_mode(
     mode_flag: str,
     project_root: Path,
     cache_policy,
+    cfg: dict,
     *,
-    tags_json: Path = None,
-    tag_taxonomy: Path = None,
-    eval_subset: Path = None,
     motion_features: Path = None,
-    local_data: Path = None,
 ) -> dict:
-    """Ensure action_labels.json + taxonomy_labels.json exist; subprocess-bootstrap if not.
+    """Ensure action_labels.json + taxonomy_labels.json exist; bootstrap in-process if not.
 
-    Returns a dict:
-        {action_path: Path, taxonomy_path: Path | None,
-         action_generated: bool, taxonomy_generated: bool,
-         taxonomy_skipped_reason: str | None}
+    Reads ALL paths + numbers from cfg (CLAUDE.md "no hardcoded values in Python"):
+      cfg["probe_action_labels"]["eval_subset_in"][mode_dir]      → source eval pool
+      cfg["probe_action_labels"]["poc_subset_out"]                → POC stratified subset path
+      cfg["probe_action_labels"]["min_clips_per_class"][mode_dir] → label filter floor
+      cfg["probe_action_labels"]["min_per_split"][mode_dir]       → split floor
+      cfg["probe_action_labels"]["n_motion_classes"]              → POC target_per_class divisor
+      cfg["data"]["poc_total_clips"]                              → POC clip budget
+      cfg["probe_taxonomy_labels"]["tags_json"]                   → taxonomy source
+      cfg["probe_taxonomy_labels"]["tag_taxonomy"]                → taxonomy schema
+      cfg["probe_taxonomy_labels"]["local_data"]                  → m04d output dir
 
-    Single source of truth for the path convention (mirrors run_probe_eval.sh).
-    All optional kwargs are caller-side overrides. Defaults are derived from
-    `mode_flag` + `project_root` so m09a / m09c don't duplicate the layout.
+    Args:
+        mode_flag:        argparse mode (--SANITY | --POC | --FULL).
+        project_root:     repo root (Path); paths in cfg resolved relative to it.
+        cache_policy:     int or str, forwarded to probe_taxonomy.py subprocess.
+        cfg:              merged yaml config dict.
+        motion_features:  optional override for the motion_features.npy path.
+                          Defaults to <local_data>/motion_features.npy.
 
-    iter13 v12 (Phase 2): motion_features.npy at <local_data>/motion_features.npy
-    is REQUIRED for action labels (16-class motion-flow derivation). FAIL HARD
-    if missing — caller must run m04d first.
+    Returns:
+        dict: {action_path, taxonomy_path, action_generated, taxonomy_generated,
+               taxonomy_skipped_reason, n_classes, n_records}.
 
     Raises:
-      ValueError on unknown mode_flag.
-      FileNotFoundError when an input dependency is missing AND a label file
-        needs generation (caller can't continue with multi-task disabled
-        silently — fail loud per CLAUDE.md).
-      subprocess.CalledProcessError if probe_action.py / probe_taxonomy.py exit non-zero.
+        ValueError: unknown mode_flag.
+        FileNotFoundError: missing required input (eval_subset, motion_features, etc.).
+        subprocess.CalledProcessError: probe_taxonomy.py exits non-zero.
     """
-    if mode_flag not in _MODE_TO_DIR:
-        raise ValueError(
-            f"ensure_probe_labels_for_mode: unknown mode_flag {mode_flag!r}; "
-            f"expected one of {sorted(_MODE_TO_DIR.keys())}"
-        )
-    mode_dir = _MODE_TO_DIR[mode_flag]
+    mode_dir = _mode_dir_from_flag(mode_flag)
     project_root = Path(project_root).resolve()
 
-    if eval_subset is None:
-        eval_subset = project_root / _MODE_TO_EVAL_SUBSET[mode_dir]
-    else:
-        eval_subset = Path(eval_subset)
-    if tags_json is None:
-        tags_json = project_root / "data" / "eval_10k_local" / "tags.json"
-    else:
-        tags_json = Path(tags_json)
-    if tag_taxonomy is None:
-        tag_taxonomy = project_root / "configs" / "tag_taxonomy.json"
-    else:
-        tag_taxonomy = Path(tag_taxonomy)
-    # iter13 v12: motion_features default — alongside the dataset's TAR shards.
-    if local_data is None:
-        local_data = project_root / "data" / "eval_10k_local"
-    else:
-        local_data = Path(local_data)
+    # ─── All paths/numbers from cfg (no module-level constants) ─────────
+    pal = cfg["probe_action_labels"]                 # FAIL LOUD on missing
+    ptl = cfg["probe_taxonomy_labels"]
+    eval_subset = project_root / pal["eval_subset_in"][mode_dir]
+    min_clips_per_class = pal["min_clips_per_class"][mode_dir]
+    min_per_split       = pal["min_per_split"][mode_dir]
+
+    local_data = project_root / ptl["local_data"]
     if motion_features is None:
         motion_features = local_data / "motion_features.npy"
     else:
         motion_features = Path(motion_features)
-    min_clips_per_class = _MODE_TO_MIN_CLIPS_PER_CLASS[mode_dir]
-    min_per_split       = _MODE_TO_MIN_PER_SPLIT[mode_dir]
 
-    output_action_dir = project_root / "outputs" / mode_dir / "probe_action"
+    output_action_dir   = project_root / "outputs" / mode_dir / "probe_action"
     output_taxonomy_dir = project_root / "outputs" / mode_dir / "probe_taxonomy"
-    action_path = output_action_dir / "action_labels.json"
+    action_path   = output_action_dir / "action_labels.json"
     taxonomy_path = output_taxonomy_dir / "taxonomy_labels.json"
 
     result = {
@@ -115,14 +111,15 @@ def ensure_probe_labels_for_mode(
         "action_generated": False,
         "taxonomy_generated": False,
         "taxonomy_skipped_reason": None,
+        "n_classes": None,
+        "n_records": None,
     }
 
     # ── 1. Action labels (motion-flow classes from m04d optical flow) ────
     if action_path.exists():
         print(f"  [probe_labels] cached: {action_path}")
     else:
-        # iter13 v12: motion_features.npy is REQUIRED — no graceful disable.
-        # m04d must have run first; if not, FAIL HARD with the exact command.
+        # Required inputs (m04d must have run first).
         for required in (eval_subset, motion_features):
             if not required.exists():
                 hint = ""
@@ -138,35 +135,72 @@ def ensure_probe_labels_for_mode(
                     f"ensure_probe_labels_for_mode: cannot generate {action_path}: "
                     f"missing input {required}.{hint}"
                 )
-        # paths.npy companion check
         paths_companion = motion_features.with_name(motion_features.stem + ".paths.npy")
         if not paths_companion.exists():
             raise FileNotFoundError(
                 f"ensure_probe_labels_for_mode: motion_features.paths.npy not found "
                 f"at {paths_companion} (must be alongside .npy)"
             )
-        print(f"  [probe_labels] missing: {action_path} — auto-generating "
-              f"via probe_action.py --stage labels (CPU, ~1 min)")
-        cmd = [
-            sys.executable, "-u", str(project_root / "src" / "probe_action.py"),
-            mode_flag,
-            "--stage", "labels",
-            "--eval-subset", str(eval_subset),
-            "--motion-features", str(motion_features),
-            "--min-clips-per-class", str(min_clips_per_class),
-            "--min-per-split", str(min_per_split),
-            "--output-root", str(output_action_dir),
-            "--cache-policy", str(cache_policy),
-            "--no-wandb",
-        ]
-        subprocess.run(cmd, check=True, cwd=str(project_root))
+
+        # iter14 recipe-v3: POC stratified-by-motion-class subsampling, in-process.
+        # SANITY + FULL skip this step (use the source pool directly).
+        labels_input = eval_subset
+        if mode_dir == "poc":
+            poc_subset_out = project_root / pal["poc_subset_out"]
+            n_motion_classes = pal["n_motion_classes"]
+            poc_total_clips  = cfg["data"]["poc_total_clips"]
+            target_per_class = max(1, poc_total_clips // n_motion_classes)
+            poc_stale = (
+                not poc_subset_out.exists()
+                or eval_subset.stat().st_mtime > poc_subset_out.stat().st_mtime
+                or motion_features.stat().st_mtime > poc_subset_out.stat().st_mtime
+            )
+            if poc_stale:
+                print(
+                    f"  [probe_labels] POC stratified-by-motion-class subset → "
+                    f"{poc_subset_out}  (target_per_class={target_per_class}, "
+                    f"n_motion_classes={n_motion_classes})"
+                )
+                src = json.loads(eval_subset.read_text())
+                out = stratified_by_motion_class_subset(
+                    src, motion_features, target_per_class
+                )
+                out["source"] = (
+                    f"stratified_by_motion_class_{target_per_class}_per_class_"
+                    f"of_{eval_subset.name}"
+                )
+                poc_subset_out.parent.mkdir(parents=True, exist_ok=True)
+                poc_subset_out.write_text(json.dumps(out, indent=2))
+            else:
+                print(f"  [probe_labels] POC subset fresh: {poc_subset_out}")
+            labels_input = poc_subset_out
+
+        print(
+            f"  [probe_labels] generating {action_path}  "
+            f"(eval_subset={labels_input.name}, "
+            f"min_clips_per_class={min_clips_per_class}, min_per_split={min_per_split})"
+        )
+        records, class_names = load_subset_with_labels(
+            labels_input, motion_features, min_clips_per_class=min_clips_per_class
+        )
+        splits = stratified_split(records, seed=99, min_per_split=min_per_split)
+        output_action_dir.mkdir(parents=True, exist_ok=True)
+        write_action_labels_json(records, splits, action_path)
         result["action_generated"] = True
+        result["n_classes"] = len(class_names)
+        result["n_records"] = len(records)
+        print(
+            f"  [probe_labels] wrote {action_path}: {len(records)} records · "
+            f"{len(class_names)} classes"
+        )
 
     # ── 2. Taxonomy labels (multi-task supervision source) ───────────────
     if taxonomy_path.exists():
         print(f"  [probe_labels] cached: {taxonomy_path}")
         return result
 
+    tags_json = project_root / ptl["tags_json"]
+    tag_taxonomy = project_root / ptl["tag_taxonomy"]
     if not tag_taxonomy.exists():
         reason = f"{tag_taxonomy} not found"
         result["taxonomy_skipped_reason"] = reason
@@ -182,8 +216,11 @@ def ensure_probe_labels_for_mode(
         print("    → multi_task_probe will auto-disable for this run")
         return result
 
-    print(f"  [probe_labels] missing: {taxonomy_path} — auto-generating "
-          f"via probe_taxonomy.py --stage labels (CPU, ~30 s)")
+    # Taxonomy stage still uses subprocess for parity with run_probe_eval.sh.
+    print(
+        f"  [probe_labels] missing: {taxonomy_path} — auto-generating "
+        f"via probe_taxonomy.py --stage labels (CPU, ~30 s)"
+    )
     cmd = [
         sys.executable, "-u", str(project_root / "src" / "probe_taxonomy.py"),
         mode_flag,

@@ -17,6 +17,7 @@ Public API:
                                        with --probe-action-labels CLI override.
                                        Returns (probe_clips, probe_labels).
 """
+import sys
 from pathlib import Path
 
 from utils.config import (
@@ -235,8 +236,18 @@ def setup_probe_pipeline(cfg: dict, args, output_dir, *,
     else:
         mode_subdir = "full"
 
-    probe_cfg = cfg["probe"] if "probe" in cfg else {}
-    if not probe_cfg.get("enabled", False):
+    # iter14 recipe-v2 (2026-05-09): FAIL LOUD per CLAUDE.md "no DEFAULT".
+    # Missing probe block → OK (some yamls don't configure probe at all).
+    # Present probe block → MUST have explicit `enabled: true|false` key;
+    # `.get("enabled", False)` would silently treat a typo'd / missing key as disabled.
+    probe_cfg = cfg["probe"] if "probe" in cfg else None
+    if probe_cfg is None:
+        return None, None
+    if "enabled" not in probe_cfg:
+        print("❌ FATAL [probe]: cfg['probe'] block present but missing 'enabled' key. "
+              "Set `enabled: true` or `enabled: false` explicitly in yaml.", file=sys.stderr)
+        sys.exit(3)
+    if not probe_cfg["enabled"]:
         return None, None
 
     # Resolve probe data paths (CLI > yaml).
