@@ -298,11 +298,25 @@ def train(cfg, args):
 
 ## 🚀 Phased Rollout — 4 Phases with Verification Gates
 
-### 🔵 Phase A — Build Core Foundation
+> 🆕 **Recipe-v2 wiring (2026-05-09)** — see `plan_surgery_wins.md` § 0 master action items table. The 9 recipe-v2 fixes (frozen teacher, LP-FT, surgical layer subset, SPD, replay, scheduled EMA, saliency-weighted loss, unified warmup, paper docs) are sequenced into the phases below. The hook contract MUST be designed to support all 9 BEFORE Phase A code is written.
+
+### 🟣 Phase 0 — Recipe-v2 POC (NEW, BEFORE Phase A)
+- 🧪 Run `{teacher: EMA vs FROZEN} × {LP-FT: off vs on}` 4-cell sweep on m09c POC ($1, ~1.5 GPU-h)
+- 🚦 **Gate**: at least one cell shows trio top-1 ≥ 0.808 by step 5 → recipe v2 unblocks paper goal
+- ⛔ If all 4 cells regress → STOP this refactor; the regression is data-deficit (Path 2 territory), not recipe — refactoring won't help the paper goal
+
+### 🔵 Phase A — Build Core Foundation (with recipe-v2 hooks)
 - 🛠️ Create `utils/training_loop.py` with `run_training_loop()` + helpers
 - ➕ Add `build_step_record`, `build_training_csv_header`, `make_step_logger` to `utils/training.py`
-- 🚫 NO m09a/m09c changes yet
-- 🚦 **Gate**: ✅ py_compile clean + ✅ ruff F,E9 clean across all 5 files
+- 🆕 **Hook contract MUST expose** (driven by Phase-0 outcome):
+  - `teacher_mode: {"EMA", "FROZEN"}` + separate `teacher_forward()` (action item 1️⃣ in plan_surgery_wins.md)
+  - `head_only_step` mode that skips backbone gradient (action item 2️⃣ LP-FT)
+  - `aux_data_iter` slot for pretrain-replay batches (action item 5️⃣ CLEAR)
+  - Scheduled `momentum_schedule(step)` instead of fixed τ (action item 6️⃣)
+  - Optional `mask_volume` arg in `compute_jepa_loss` for saliency weighting (action item 7️⃣)
+- ➕ Add SPD optimizer wrapper (action item 4️⃣)
+- 🚫 NO m09a/m09c body changes yet
+- 🚦 **Gate**: ✅ py_compile clean + ✅ ruff F,E9 clean across all 5 files + ✅ unit tests for each new hook surface
 
 ### 🟢 Phase B — Migrate m09a (Lower Risk 🥇)
 - 🅰️ Refactor m09a's `train()` to call `run_training_loop`
@@ -312,20 +326,30 @@ def train(cfg, args):
   - ✅ POC pretrain_2X postrefactor produces **18-file output list** identical to current POC v1 (modulo timestamps)
   - ✅ `probe_top1` within **±0.5 pp** of current POC v1 final (0.4585) → must land in **[0.4535, 0.4635]**
 
-### 🟡 Phase C — Migrate m09c (Higher Risk; Multi-Stage 🅲)
+### 🟡 Phase C — Migrate m09c (Higher Risk; Multi-Stage 🅲) + recipe-v2 baked in
 - 🅲 Refactor m09c's `train()` to call `run_training_loop` with `stages=cfg["surgery"]["stages"]`
 - 📦 Keep `_m09c_*` hook bodies in `m09c_surgery.py`
+- 🆕 **Wire recipe-v2 actions into m09c's hook bindings**:
+  - 1️⃣ Frozen teacher: `state["teacher_mode"] = "FROZEN"` + load v12 pretrain encoder as static target
+  - 2️⃣ LP-FT: prepend Stage 0 (head-only, 0.5 ep) to `cfg["surgery"]["stages"]`
+  - 3️⃣ Surgical layer subset: yaml change — Stage 1 unfreeze 0–3, Stage 2/3 unfreeze 0–7
+  - 5️⃣ Replay: `_m09c_on_stage_begin` hooks builds 50/50 factor + raw-video iterator
+  - 8️⃣ Unified warmup: scheduler factory takes total budget, not per-stage
 - 🚦 **Gate**:
   - ✅ SANITY surgery_3stage_DI + surgery_noDI **both** pass
   - ✅ POC surgery_3stage_DI postrefactor produces **18 files** matching m09a's set (modulo `m09a_*` → `m09c_*` prefix)
-  - ✅ Stage 1 `probe_top1` within **±0.5 pp** of current POC v3 final (0.7449) → must land in **[0.6949, 0.7949]**
+  - ✅ Stage 1 `probe_top1` within **±0.5 pp** of current POC v3 final (0.7449) → must land in **[0.6949, 0.7949]** *(this gate is for refactor parity; recipe-v2 IMPROVEMENT is verified in Phase D)*
 
-### 🔴 Phase D — Verify FULL Eligibility
+### 🔴 Phase D — Verify FULL Eligibility + recipe-v2 paper-goal POC
 - 🧪 Run full POC suite (pretrain_2X + surgery_3stage_DI + surgery_noDI + eval)
 - ✅ Confirm every divergence flagged in audits is now structurally absent
+- 🆕 **Recipe-v2 paper-goal POC** (re-runs Phase 0's frozen+LP-FT cell, but on the refactored code path):
+  - 🎯 Acceptance: surgery POC trio top-1 reaches **≥ 0.808** (the v12 pretrain anchor) by stage 1 → unblocks FULL surgery (action items 🔟 → 1️⃣3️⃣ in plan_surgery_wins.md)
+  - ⛔ If still regresses despite Phase A hooks being correct → fall back to Path 2 (relax m10 thresholds, action item 1️⃣2️⃣)
 - 🚦 **Gate**:
   - ✅ All 4 POC commands pass
   - ✅ `diff <(ls outputs/poc/m09a_pretrain_2X/) <(ls outputs/poc/m09c_surgery_3stage_DI/ | sed 's/m09c_/m09a_/g')` produces **EMPTY output**
+  - ✅ Recipe-v2 m09c POC trio top-1 ≥ 0.808 (paper-goal feasibility gate)
 
 ---
 

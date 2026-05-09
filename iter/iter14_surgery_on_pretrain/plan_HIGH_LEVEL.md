@@ -13,7 +13,7 @@
 | 🛠️ Implementation (E2-E24, 23 edits) | ✅ **COMPLETE** | All code/yaml changes landed; 3-check gate green; HF backed up |
 | 🧪 SANITY validation (4 modules) | ✅ **COMPLETE** | All passed |
 | 🧪 POC validation (4 modules) | ✅ **COMPLETE** | Surfaced critical research-design problem ⚠️ |
-| 📊 POC findings analysis | ✅ **COMPLETE** | See `plan_surgery_data_limitation.md` |
+| 📊 POC findings analysis | ✅ **COMPLETE** | See `plan_surgery_wins.md` |
 | 🚦 FULL training (Δ2 + Δ3 arms) | ⏸️ **PAUSED** — pending Phase 0 diagnostic sweep | $33 / 41 GPU-h committed, but math doesn't work at current scale |
 | 🏆 Final eval + paper deltas | ⏸️ Blocked on FULL | |
 
@@ -125,7 +125,7 @@ Meta V-JEPA 2.1 ──▶ pretrain (5 ep) ────────────�
 
 ## 📊 POC findings — the research-design problem
 
-> ⚠️ This is the critical update from iter14. Full analysis: `plan_surgery_data_limitation.md`
+> ⚠️ This is the critical update from iter14. Full analysis: `plan_surgery_wins.md`
 
 ### 🔻 Finding 1 — Surgery's training pool is 70× smaller than pretrain's
 
@@ -247,7 +247,7 @@ CACHE_POLICY_ALL=2 ./scripts/run_probe_train.sh surgery_3stage_DI --POC \
 CACHE_POLICY_ALL=2 ./scripts/run_probe_train.sh surgery_3stage_DI --FULL ...
 
 # If Path 2 mandatory: re-run m10 with relaxed thresholds first
-# (see plan_surgery_data_limitation.md for threshold tuning approach)
+# (see plan_surgery_wins.md for threshold tuning approach)
 python -u src/m10_sam_segment.py --relaxed-thresholds ...
 python -u src/m11_factor_datasets.py ...
 # then Path 1 FULL with bigger pool
@@ -319,7 +319,7 @@ jq '.iter14_paper_deltas' outputs/full/probe_action/probe_paired_delta.json
 | What | Where |
 |---|---|
 | 📍 This file (HIGH-LEVEL) | `iter/iter14_surgery_on_pretrain/plan_HIGH_LEVEL.md` |
-| 🚨 Data limitation analysis (POC findings + Path 1/2/3) | `iter/iter14_surgery_on_pretrain/plan_surgery_data_limitation.md` |
+| 🚨 Data limitation analysis (POC findings + Path 1/2/3) | `iter/iter14_surgery_on_pretrain/plan_surgery_wins.md` |
 | 🚀 Runbook (SANITY/POC/FULL commands) | `iter/iter14_surgery_on_pretrain/runbook.md` |
 | 📒 Q&A on Option A vs B | `iter/iter14_surgery_on_pretrain/plan_surgery_on_pretrain.md` |
 | 🏗️ Refactor plan (m09a/m09c → utils/training_loop.py — DEFERRED) | `iter/iter14_surgery_on_pretrain/plan_No_discrepancy.md` |
