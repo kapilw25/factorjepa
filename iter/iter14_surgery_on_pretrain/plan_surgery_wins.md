@@ -22,9 +22,10 @@
 | 9️⃣ | 📚 **Document pixel-mask paradigm in paper §11** — cite Hide-and-Seek + ForAug as nearest analogs to D_L/D_A/D_I | §11.6 A3 | 📖 docs only — independent of phases | $0 | ~1 hour | 🆕 |
 | 🔟 | 🧪 **Phase 0 POC sweep** — `{EMA, FROZEN teacher} × {LP-FT y/n}` = 4 runs | §6 | 🔵 **BEFORE Phase A** — POC validates recipe v2 BEFORE locking the hook contract (per §7 step 1–2) | ~$1 | 1.5 GPU-h | 🆕 NEXT |
 | 1️⃣1️⃣ | 🏗️ **Refactor m09a + m09c → utils/training_loop.py** with all hooks above wired in | §7 step 3 + plan_no_discrepancy.md | 🔵 **Phases A → B → C → D** (full rollout, ±0.5 pp gates per phase) | — | 1 day eng | ⏸️ blocked on POC |
-| 1️⃣2️⃣ | 🔧 **Path 2 — relax m10 thresholds** (CONDITIONAL) | §7 step 4 + Path 2 | 🟡 **AFTER Phase D** — only fires if recipe v2 POC still regresses | $50–60 | 5–10 GPU-h | ⏸️ conditional |
-| 1️⃣3️⃣ | 🚀 **Path 1 — FULL surgery (50 ep)** | §7 step 5 + Path 1 | 🟢 **AFTER Phase D** with healed recipe | ~$80 | ~50 GPU-h | ⏸️ |
-| 1️⃣4️⃣ | 🏆 **FULL eval — Δ1/Δ2/Δ3 paper deltas** | §7 step 6 | 🟢 **Final** (after #11–#13) | ~$3 | ~4 GPU-h | ⏸️ |
+| 1️⃣2️⃣ | 🧬 **Phase 5 — Harder FG/BG motion features in m04d** (CONDITIONAL) — replaces 13-D summary stats with 23-D FG-camera-subtracted motion → widens surgery-vs-pretrain gap when probe is saturated | §7.5 + [plan_phase5_fg_motion_features.md](./plan_phase5_fg_motion_features.md) | 🟡 **CONDITIONAL** — fires only if recipe v2 lands surgery at 0.81–0.83 (**marginal win**, test-Δ < +5 pp) | ~$5 GPU + $3 re-eval | ~10 LoC + ~57 min m04d + 4 GPU-h re-eval | ⏸️ conditional |
+| 1️⃣3️⃣ | 🔧 **Path 2 — relax m10 thresholds** (CONDITIONAL) | §7 step 4 + Path 2 | 🔴 **CONDITIONAL** — fires only if all 4 POC cells regress (recipe-mechanism not the issue → data-scale is) | $50–60 | 5–10 GPU-h | ⏸️ conditional |
+| 1️⃣4️⃣ | 🚀 **Path 1 — FULL surgery (50 ep)** | §7 step 5 + Path 1 | 🟢 **AFTER Phase D** with healed recipe (and Phase 5 if it fired) | ~$80 | ~50 GPU-h | ⏸️ |
+| 1️⃣5️⃣ | 🏆 **FULL eval — Δ1/Δ2/Δ3 paper deltas** | §7 step 6 | 🟢 **Final** (after #11–#14) | ~$3 | ~4 GPU-h | ⏸️ |
 
 ### 🟢 What's already done (don't re-run)
 
@@ -46,7 +47,8 @@
 | 🔵 Phase B | m09a migration (gold-standard, low-risk) |
 | 🔵 Phase C | m09c migration (with recipe v2 baked in) |
 | 🔵 Phase D | end-to-end POC + parity verification |
-| 🟡 conditional | fires only if POC still regresses |
+| 🟡 conditional (FG features) | fires if POC marginally clears 0.808 but test-Δ < +5 pp → Phase 5 |
+| 🔴 conditional (data scale) | fires if all 4 POC cells regress → Path 2 (relax m10 thresholds) |
 | 🟢 | unblocked after Phase D |
 
 ---
@@ -205,13 +207,46 @@
 
 ---
 
+## 🌳 7.5 Phase-5 conditional fork — decision tree (no paralysis, just causality)
+
+> 🎯 Where [`plan_phase5_fg_motion_features.md`](./plan_phase5_fg_motion_features.md) gates relative to recipe v2. Phase 5 is **NOT** a parallel track — it's a follow-up that fires only when recipe v2 reveals the probe metric is saturated.
+
+| 🪜 | Action | 💰 Cost | 🚦 Decision rule |
+|---|---|---|---|
+| 1️⃣ | Run **recipe v2 POC sweep** (4 cells: `{🌀 EMA, 🧊 FROZEN} × {🅰️ LP-FT off, 🅱️ LP-FT on}`) | $1, 90 min | If best cell trio top-1 ≥ 0.808 **AND** projected test-Δ ≥ +5 pp → ✅ wire fixes; **STOP** (no Phase 5 needed) |
+| 2️⃣ | If recipe v2 lands surgery at **0.81–0.83** (marginal win, test-Δ < +5 pp) | — | 🟡 **Now Phase 5's gate fires** → run FG-feature m04d (~57 min) + Stage 1 re-label + re-eval (~$5 + $3) → re-test surgery on harder probe |
+| 3️⃣ | If recipe v2 **fully fails** (all 4 cells regress) | — | 🔴 recipe-mechanism is **not** the issue → fall back to **Path 2** (relax m10 thresholds, grow factor pool 91 → 1–6K clips) |
+
+### 🌐 Decision flow visual
+
+```
+                    Run recipe v2 POC ($1 / 90 min)
+                                │
+       ┌────────────────────────┼────────────────────────┐
+       ▼                        ▼                        ▼
+  🟢 top-1 ≥ 0.808       🟡 top-1 0.81–0.83       🔴 all 4 regress
+  AND Δ ≥ +5 pp          (marginal, Δ < +5 pp)    (recipe doesn't help)
+       │                        │                        │
+       ▼                        ▼                        ▼
+  ✅ Wire fixes →         🧬 Phase 5: harder        🔧 Path 2: relax
+   refactor → FULL          FG/BG features          m10 thresholds
+                            (~$8, ~6 GPU-h)         (~$50–60)
+       │                        │                        │
+       └────────────────────────┴────────────────────────┘
+                                ▼
+                         🏆 FULL eval Δ1/Δ2/Δ3
+```
+
+---
+
 ## 🛑 8. Decision gates
 
 | Gate | Pass condition | If FAIL |
 |---|---|---|
-| 🔬 G-Phase0 | Any sweep cell shows trio top-1 ≥ 0.808 | ⛔ recipe insufficient → Path 2 |
+| 🔬 G-Phase0 | Any sweep cell shows trio top-1 ≥ 0.808 | ⛔ recipe insufficient → 🔴 Path 2 (data-scale fix) |
+| 🧬 G-Phase5 (NEW) | If G-Phase0 passes but **projected test-Δ < +5 pp**, then after FG-feature re-eval surgery test-Δ ≥ +5 pp | ⛔ both metric saturation AND recipe insufficient → revisit Path 2 OR pivot to Path 1 (50 ep) on harder features |
 | 🔁 G-Refactor | m09a POC top-1 ∈ [0.4535, 0.4635] AND m09c POC ∈ [0.6949, 0.7949] | ⛔ git revert, investigate hook |
-| 🚀 G-Phase1 | FULL surgery probe_top1 > 0.808 + 0.5 pp | ⛔ re-evaluate threshold + epochs |
+| 🚀 G-Phase1 | FULL surgery probe_top1 > 0.808 + 0.5 pp (or post-Phase-5 equivalent on harder probe) | ⛔ re-evaluate threshold + epochs |
 | 🏆 G-Phase2 | Δ2 + Δ3 BCa 95% CIs both non-overlapping | ⛔ re-bootstrap; check eval pipeline |
 
 ---
@@ -361,4 +396,8 @@
 
 ---
 
-> 🎬 **Bottom line**: regression is recipe-mechanism, not data-deficit. Run the **frozen-teacher × LP-FT** POC for $1 BEFORE committing $50–100 to Path 2 or 1 day-eng to the m09a/m09c refactor. 🚀
+> 🎬 **Bottom line**: regression is recipe-mechanism, not data-deficit. Run the **frozen-teacher × LP-FT** POC for $1 — its result picks the next branch:
+> &nbsp;&nbsp;🟢 **clear win** (Δ ≥ +5 pp) → wire fixes, refactor, FULL surgery
+> &nbsp;&nbsp;🟡 **marginal win** (0.81–0.83) → Phase 5 harder FG features (`plan_phase5_fg_motion_features.md`)
+> &nbsp;&nbsp;🔴 **full fail** (all 4 regress) → Path 2 relax m10 thresholds
+> 💡 **No analysis paralysis**: phase5's own gate ("only proceed if Δ < +5 pp") makes this sequence the cheapest causal path. 🚀

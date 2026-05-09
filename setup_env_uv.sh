@@ -301,16 +301,16 @@ PYEOF
     GPU_NAME=$(nvidia-smi --query-gpu=gpu_name --format=csv,noheader 2>/dev/null | head -1 || echo "")
     echo "Detected GPU: ${GPU_NAME:-unknown}"
     if echo "$GPU_NAME" | grep -qiE "blackwell|rtx.*pro.*(4000|6000)|rtx.*5090|rtx.*5080|rtx.*5070"; then
-        echo "[1/9] Installing PyTorch ${TORCH_VERSION}+cu128 (Blackwell — pinned)..."
+        echo "[1/10] Installing PyTorch ${TORCH_VERSION}+cu128 (Blackwell — pinned)..."
         uv pip install "torch==${TORCH_VERSION}" torchvision --index-url https://download.pytorch.org/whl/nightly/cu128
     else
-        echo "[1/9] Installing PyTorch 2.5.1+cu124..."
+        echo "[1/10] Installing PyTorch 2.5.1+cu124..."
         uv pip install torch==2.5.1 torchvision==0.20.1 --index-url https://download.pytorch.org/whl/cu124
     fi
 
     # 2. Verify PyTorch + CUDA
     echo ""
-    echo "[2/9] Verifying PyTorch + CUDA..."
+    echo "[2/10] Verifying PyTorch + CUDA..."
     python -c "
 import torch
 if not torch.cuda.is_available():
@@ -321,14 +321,14 @@ print(f'PyTorch: {torch.__version__}, CUDA: {torch.version.cuda}, GPU: {torch.cu
 
     # 3. Install GPU requirements (includes hf_transfer for fast HF downloads)
     echo ""
-    echo "[3/9] Installing GPU requirements (UV - fast)..."
+    echo "[3/10] Installing GPU requirements (UV - fast)..."
     uv pip install -r requirements_gpu.txt
     # Enable Rust-based HF transfer (1.5-3x faster downloads per file)
     export HF_HUB_ENABLE_HF_TRANSFER=1
 
     # 4. Install Flash-Attention 2 (auto-detect GPU arch)
     echo ""
-    echo "[4/9] Installing Flash-Attention 2..."
+    echo "[4/10] Installing Flash-Attention 2..."
     GPU_ARCH=$(python -c "import torch; cc=torch.cuda.get_device_capability(); print(f'{cc[0]}{cc[1]}')" 2>/dev/null || echo "")
     echo "GPU compute capability: sm_${GPU_ARCH:-unknown}"
 
@@ -415,7 +415,7 @@ print(f'PyTorch: {torch.__version__}, CUDA: {torch.version.cuda}, GPU: {torch.cu
 
     # 5. Install FAISS-GPU (CUDA 12)
     echo ""
-    echo "[5/9] Installing FAISS-GPU (CUDA 12)..."
+    echo "[5/10] Installing FAISS-GPU (CUDA 12)..."
     # FAISS source-built wheel needs libopenblas at runtime
     if ! dpkg -s libopenblas-dev &>/dev/null 2>&1; then
         echo "Installing libopenblas-dev (FAISS runtime dependency)..."
@@ -450,12 +450,12 @@ print(f'PyTorch: {torch.__version__}, CUDA: {torch.version.cuda}, GPU: {torch.cu
 
     # 6. Install cuML (GPU UMAP) from RAPIDS PyPI
     echo ""
-    echo "[6/9] Installing cuML (GPU UMAP)..."
+    echo "[6/10] Installing cuML (GPU UMAP)..."
     uv pip install cuml-cu12 --extra-index-url https://pypi.nvidia.com
 
     # 7. Install wandb (experiment tracking)
     echo ""
-    echo "[7/9] Installing wandb..."
+    echo "[7/10] Installing wandb..."
     uv pip install wandb
 
     # 8. Install SAM 3.1 (gated model — user must accept access at hf.co/facebook/sam3.1)
@@ -463,7 +463,7 @@ print(f'PyTorch: {torch.__version__}, CUDA: {torch.version.cuda}, GPU: {torch.cu
     #    SAM3 works fine with numpy 2.x — the pin is overly conservative.
     #    All real deps (einops, torch, PIL, etc.) already installed via requirements_gpu.txt.
     echo ""
-    echo "[8/9] Installing SAM 3.1 from source (--no-deps to preserve numpy>=2.3)..."
+    echo "[8/10] Installing SAM 3.1 from source (--no-deps to preserve numpy>=2.3)..."
     if python -c "import sam3" 2>/dev/null; then
         echo "SAM 3.1 already installed"
     else
