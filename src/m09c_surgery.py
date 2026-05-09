@@ -158,6 +158,14 @@ def merge_config_with_args(cfg: dict, args) -> dict:
     # frozen V-JEPA URL = legacy iter13 behavior).
     cfg["init_from_ckpt"] = args.init_from_ckpt
 
+    # iter14 recipe-v2 (2026-05-09): CLI --teacher-mode overrides yaml surgery.teacher_mode.
+    # POC sweep cell selector: {EMA, FROZEN} × {LP-FT off, on}. None → keep yaml default.
+    if getattr(args, "teacher_mode", None) is not None:
+        cfg["surgery"]["teacher_mode"] = args.teacher_mode
+    # iter14 recipe-v2 (2026-05-09): CLI --lp-ft-stage0 overrides yaml surgery.lp_ft_stage0.enabled.
+    if getattr(args, "lp_ft_stage0", None) is not None:
+        cfg["surgery"]["lp_ft_stage0"]["enabled"] = (args.lp_ft_stage0 == "on")
+
     # iter14 (2026-05-08): retired the legacy `data.train_val_split` + per-mode
     # `probe.use_permanent_val` resolution. m09c now mirrors m09a's gold-standard
     # pattern (m09a:466-479): single yaml/CLI-driven external val pool via
@@ -354,7 +362,16 @@ def build_model(cfg: dict, device: torch.device) -> dict:
     for p in teacher.parameters():
         p.requires_grad = False
     teacher.eval()
-    print("Teacher created (deepcopy of student, hierarchical output enabled)")
+    # iter14 recipe-v2 (2026-05-09): teacher_mode determines whether the deepcopy
+    # is later EMA-updated (legacy) or held FROZEN at the init checkpoint (SALT).
+    # Read here for visibility; gating happens at the update_teacher_ema call site.
+    _teacher_mode = cfg["surgery"]["teacher_mode"]
+    if _teacher_mode == "FROZEN":
+        print("Teacher created (deepcopy of student) — mode=FROZEN (SALT) "
+              "→ EMA updates will be SKIPPED; teacher == init checkpoint forever")
+    else:
+        print(f"Teacher created (deepcopy of student) — mode=EMA "
+              f"(legacy; τ={cfg['optimization']['ema_momentum']}, hierarchical output enabled)")
 
     # Predictor: use 2.1 version if predict_all (supports return_all_tokens + proj_context)
     pred_constructor = get_vit_predictor_2_1() if model_cfg["predict_all"] else vit_predictor
@@ -603,6 +620,26 @@ def train(cfg: dict, args):
     # Surgery config
     surgery_cfg = cfg["surgery"]
     stages = surgery_cfg["stages"]
+
+    # iter14 recipe-v2 (2026-05-09): LP-FT Stage 0 — prepend head-only warmup stage.
+    # When enabled, encoder is fully frozen (set_trainable_prefix(0) zeros all block
+    # gradients; norm/ln layers still update). Predictor + motion_aux head are NOT
+    # touched by set_trainable_prefix (separate modules) → they receive gradients,
+    # giving the head a chance to "find" the factor-data manifold before the encoder
+    # is allowed to move. Fixes step-1 feature distortion (Kumar ICLR'22 LP-FT).
+    # See plan_surgery_wins.md §0 row 2️⃣ + §11.6 A4.
+    if surgery_cfg["lp_ft_stage0"]["enabled"]:
+        s0_cfg = surgery_cfg["lp_ft_stage0"]
+        s0 = {
+            "name": s0_cfg["name"],
+            "unfreeze_below": 0.0,                # encoder frozen — head-only step
+            "max_epochs_pct": s0_cfg["max_epochs_pct"],
+            "mode_mixture": s0_cfg["mode_mixture"],
+        }
+        stages = [s0] + list(stages)
+        print(f"  [LP-FT Stage 0 ENABLED] prepended head-only warmup stage: "
+              f"{s0_cfg['max_epochs_pct']:.0%} of total_steps, mixture={s0['mode_mixture']}, "
+              f"encoder FROZEN (predictor + motion_aux head trainable only)")
 
     # Multi-task loss + Uncertainty Weighting (Kendall et al. CVPR 2018) — enabled
     # when cfg["optimization"]["loss"]["uncertainty_weighting"]=true. nn.Module
@@ -1291,8 +1328,12 @@ def train(cfg: dict, args):
                 optimizer.zero_grad()
                 scheduler.step()
 
-                # EMA teacher update
-                update_teacher_ema(student, teacher, ema_momentum)
+                # EMA teacher update — iter14 recipe-v2 (2026-05-09): gated on
+                # surgery.teacher_mode. FROZEN (SALT) skips this so the teacher
+                # stays at the init checkpoint and JEPA loss targets don't decay
+                # alongside a regressing student. See plan_surgery_wins.md §0 row 1️⃣.
+                if cfg["surgery"]["teacher_mode"] == "EMA":
+                    update_teacher_ema(student, teacher, ema_momentum)
 
                 # Logging — values from _train_step_grad_accum are macro-batch means
                 # (weighted sum of micro-batch values), preserving the per-step diagnostics.
@@ -1632,6 +1673,18 @@ def main():
                              "Format: hf://<owner>/<repo>/<filename>. "
                              "Example: hf://anonymousML123/factorjepa-pretrain-vjepa21-vitg-5ep/m09a_ckpt_best.pt. "
                              "Schema = student_state_dict (FAIL LOUD on mismatch).")
+    # iter14 recipe-v2 (2026-05-09): POC sweep axis #1. Overrides cfg["surgery"]["teacher_mode"]
+    # from yaml. EMA = legacy deepcopy+EMA-update. FROZEN = SALT (Apple arXiv:2509.24317):
+    # teacher = init from --init-from-ckpt, never updated. See plan_surgery_wins.md §0 row 1️⃣.
+    parser.add_argument("--teacher-mode", type=str, choices=["EMA", "FROZEN"], default=None,
+                        help="iter14 recipe-v2: override surgery.teacher_mode in yaml. "
+                             "FROZEN = SALT (no EMA decay). Default None → use yaml value.")
+    # iter14 recipe-v2 (2026-05-09): POC sweep axis #2. Overrides cfg["surgery"]["lp_ft_stage0"]["enabled"]
+    # from yaml. LP-FT (Kumar ICLR'22): head-only warmup before backbone unfreeze. See plan_surgery_wins.md §0 row 2️⃣.
+    parser.add_argument("--lp-ft-stage0", type=str, choices=["on", "off"], default=None,
+                        help="iter14 recipe-v2: override surgery.lp_ft_stage0.enabled in yaml. "
+                             "'on' prepends a head-only warmup stage (encoder frozen, predictor + "
+                             "motion_aux head only). Default None → use yaml value.")
     parser.add_argument("--factor-dir", type=str, default=None,
                         help="Factor dataset dir from m11 (contains D_L/, D_A/, D_I/, factor_manifest.json)")
     fs_group = parser.add_mutually_exclusive_group()

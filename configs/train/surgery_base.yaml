@@ -232,6 +232,26 @@ surgery:
   # LR). 0.20 = 20% of stage spent warming LR from 0→target, 80% at full LR.
   # Auto-scales: POC 100 clips → 19 warmup, POC 10K → 206, FULL 115K → 718.
   warmup_pct: 0.20
+  # iter14 recipe-v2 (2026-05-09): teacher mode — recipe-v2 axis #1 of POC sweep.
+  #   EMA    = legacy `teacher = deepcopy(student)` + `update_teacher_ema(τ=ema_momentum)`
+  #   FROZEN = SALT (Apple arXiv:2509.24317) — teacher is the init checkpoint
+  #            (loaded via --init-from-ckpt) and NEVER updated. Eliminates the
+  #            EMA-decay feedback loop where teacher tracks the regressing student.
+  # Default EMA preserves pre-recipe-v2 behavior. CLI --teacher-mode overrides.
+  # See iter/iter14_surgery_on_pretrain/plan_surgery_wins.md §0 row 1️⃣ + §11.6 A5.
+  teacher_mode: EMA
+  # iter14 recipe-v2 (2026-05-09): LP-FT Stage 0 — recipe-v2 axis #2 of POC sweep.
+  # When enabled, prepends a head-only warmup stage (encoder fully frozen via
+  # set_trainable_prefix(0); predictor + motion_aux head still trainable) BEFORE
+  # the variant's regular surgery stages. Fixes step-1 feature distortion
+  # (Kumar et al., ICLR'22 arXiv:2202.10054). See plan_surgery_wins.md §0 row 2️⃣.
+  # Compute note: Stage 0 is BONUS compute on top of the regular max_epochs budget
+  # (i.e. enabling adds ~10% wall time). Disable to preserve legacy timing.
+  lp_ft_stage0:
+    enabled: false                       # default off; CLI --lp-ft-stage0 on overrides
+    name: stage0_head_only
+    max_epochs_pct: 0.10                 # 10% of total_steps allocated to head warmup
+    mode_mixture: {L: 0.5, A: 0.5, I: 0.0}   # L+A factor mix (works for both 3stage_DI and noDI)
   # `stages` is variant-specific — see {noDI,loud_agent,3stage_DI}.yaml.
 
 # -- Drift control: REACTIVATED iter14 (2026-05-08) — anchor-to-PRETRAIN.

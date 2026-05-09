@@ -21,7 +21,13 @@
       "Bash(git ls-remote *)",
       "WebSearch",
       "WebFetch(domain:github.com)",
-      "Bash(awk '/def _train_step_grad_accum/,/^def /' /workspace/factorjepa/src/utils/training.py)"
+      "Bash(awk '/def _train_step_grad_accum/,/^def /' /workspace/factorjepa/src/utils/training.py)",
+      "Bash(python -c \"import py_compile; py_compile.compile\\('src/m09c_surgery.py', doraise=True\\); print\\('✅ py_compile clean'\\)\")",
+      "Bash(python -c \"import ast; ast.parse\\(open\\('src/m09c_surgery.py'\\).read\\(\\)\\); print\\('✅ ast.parse clean'\\)\")",
+      "Bash(python -m ruff check --select F,E9 src/m09c_surgery.py)",
+      "Bash(python -c \"import yaml; cfg = yaml.safe_load\\(open\\('configs/train/surgery_base.yaml'\\)\\); assert cfg['surgery']['teacher_mode'] == 'EMA', f'unexpected default: {cfg[\\\\\"surgery\\\\\"][\\\\\"teacher_mode\\\\\"]}'; print\\('✅ yaml parses + teacher_mode default = EMA'\\)\")",
+      "Bash(command -v shellcheck)",
+      "Bash(shellcheck -S error /workspace/factorjepa/scripts/run_probe_train.sh)"
     ]
   }
 }

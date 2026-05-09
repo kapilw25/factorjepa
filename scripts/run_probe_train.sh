@@ -291,12 +291,45 @@ case "$SUBCMD" in
             echo "❌ FATAL: $VAL_TAGS missing — surgery's mid-training probe requires VLM tags" >&2
             exit 3
         fi
+        # iter14 recipe-v2 (2026-05-09): env-var overrides for POC sweep cells.
+        # Forwards as CLI flags to m09c. Both unset → m09c uses yaml defaults
+        # (teacher_mode=EMA, lp_ft_stage0.enabled=false) → legacy behavior verbatim.
+        # See iter/iter14_surgery_on_pretrain/runbook.md § Recipe-v2 POC sweep.
+        RECIPE_V2_ARGS=()
+        if [ -n "${TEACHER_MODE_OVERRIDE:-}" ]; then
+            case "$TEACHER_MODE_OVERRIDE" in
+                EMA|FROZEN)
+                    RECIPE_V2_ARGS+=(--teacher-mode "$TEACHER_MODE_OVERRIDE")
+                    ;;
+                *)
+                    echo "❌ FATAL: TEACHER_MODE_OVERRIDE must be EMA|FROZEN (got: $TEACHER_MODE_OVERRIDE)" >&2
+                    exit 2
+                    ;;
+            esac
+        fi
+        if [ -n "${LP_FT_OVERRIDE:-}" ]; then
+            case "$LP_FT_OVERRIDE" in
+                on|off)
+                    RECIPE_V2_ARGS+=(--lp-ft-stage0 "$LP_FT_OVERRIDE")
+                    ;;
+                *)
+                    echo "❌ FATAL: LP_FT_OVERRIDE must be on|off (got: $LP_FT_OVERRIDE)" >&2
+                    exit 2
+                    ;;
+            esac
+        fi
+
         echo "═══ $(date '+%H:%M:%S') · m09c factor surgery [variant=${VARIANT_TAG}] (${MODE}) ═══"
         echo "  config:    $TRAIN_CFG"
         echo "  subset:    $TRAIN_SPLIT"
         echo "  factor:    $FACTOR_DIR"
         echo "  output:    $OUT_DIR"
         echo "  init:      $PRETRAIN_HF_URI (iter14 — m09c hf_hub_download via HF_TOKEN from .env)"
+        if [ ${#RECIPE_V2_ARGS[@]} -gt 0 ]; then
+            echo "  recipe-v2: ${RECIPE_V2_ARGS[*]} (env overrides — TEACHER_MODE_OVERRIDE / LP_FT_OVERRIDE)"
+        else
+            echo "  recipe-v2: <yaml defaults> (no TEACHER_MODE_OVERRIDE / LP_FT_OVERRIDE set)"
+        fi
         mkdir -p "$OUT_DIR"
         # iter14 (2026-05-08): --init-from-ckpt is REQUIRED in m09c (argparse
         # required=True). Always pass the HF URI — single source per CLAUDE.md
@@ -315,6 +348,7 @@ case "$SUBCMD" in
             --init-from-ckpt "$PRETRAIN_HF_URI" \
             --motion-features-path "${LOCAL_DATA}/motion_features.npy" \
             "${TAXONOMY_ARGS[@]}" \
+            "${RECIPE_V2_ARGS[@]}" \
             --no-wandb \
             2>&1 | tee "logs/m09c_surgery_${VARIANT_TAG}_${mode_dir}.log"
         ;;

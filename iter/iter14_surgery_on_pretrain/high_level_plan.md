@@ -217,51 +217,16 @@ surgery becomes scale-comparable to pretrain ✅
 
 ---
 
-## 🎬 Recommended execution sequence (UPDATED 2026-05-08)
+## 🎬 Recommended execution sequence (SUPERSEDED 2026-05-09)
 
-### Phase 0️⃣ — Diagnostic POC sweep (~$1, ~1.5 h) ✨ DO BEFORE FULL
-
-4 short POC runs to disambiguate Path 1 vs Path 2:
-
-```bash
-# Surgery POC × {10, 20} epochs × λ ∈ {0.005, 0.05} = 4 runs
-CACHE_POLICY_ALL=2 ./scripts/run_probe_train.sh surgery_3stage_DI --POC \
-    -e MAX_EPOCHS_OVERRIDE=10 -e LAMBDA_OVERRIDE=0.005 \
-    2>&1 | tee logs/iter14_poc_diag_e10_l005.log
-
-# (repeat for e10/l050, e20/l005, e20/l050)
-```
-
-**Decision matrix from sweep**:
-
-| Sweep outcome | 🚦 Verdict | Next path |
-|---|---|---|
-| 📈 Any run climbs ≥ 0.808 | Surgery CAN learn given more time | ✅ **Path 1 FULL** at that config |
-| ⚖️ Trajectory plateaus at < 0.808 | Surgery preserves but doesn't improve | ⚠️ **Path 2 mandatory** |
-| 📉 All runs decline | Data deficit is structural | 🚨 **Path 2 mandatory** |
-
-### Phase 1️⃣ — Pick path based on Phase 0
-
-```bash
-# If Path 1 viable: bump max_epochs.full to 50, run FULL surgery
-CACHE_POLICY_ALL=2 ./scripts/run_probe_train.sh surgery_3stage_DI --FULL ...
-
-# If Path 2 mandatory: re-run m10 with relaxed thresholds first
-# (see plan_surgery_wins.md for threshold tuning approach)
-python -u src/m10_sam_segment.py --relaxed-thresholds ...
-python -u src/m11_factor_datasets.py ...
-# then Path 1 FULL with bigger pool
-```
-
-### Phase 2️⃣ — Final eval + paper deltas
-
-```bash
-tmux new -s iter14_eval
-CACHE_POLICY_ALL=2 ./scripts/run_probe_eval.sh --FULL 2>&1 | tee logs/iter14_probe_eval.log
-jq '.iter14_paper_deltas' outputs/full/probe_action/probe_paired_delta.json
-```
-
-🎯 Target: Δ1 ✅ Δ2 ✅ Δ3 ✅ → publishable headline 🏆
+> 🚨 **The Phase-0 sweep design + Path-1/2/3 framing on this page are SUPERSEDED.**
+> See [`plan_surgery_wins.md`](./plan_surgery_wins.md) for the operative plan:
+> - § 0 — MASTER action items (15 rows, sequenced)
+> - § 6 — Phase-0 POC sweep (`{EMA, FROZEN teacher} × {LP-FT y/n}`, NOT the old `λ × epochs`)
+> - § 7 — Execution order
+> - § 7.5 — Phase-5 conditional fork (decision tree)
+>
+> 🧭 **One-line summary** of the new plan: run a $1 / 90-min POC sweeping `teacher × LP-FT` first; the result picks 🟢 (wire fixes + refactor) / 🟡 (Phase 5 harder FG features) / 🔴 (Path 2 relax m10 thresholds) — recipe-mechanism issue, not just data scale.
 
 ---
 
@@ -292,25 +257,32 @@ jq '.iter14_paper_deltas' outputs/full/probe_action/probe_paired_delta.json
 
 | Safeguard | Status | Notes |
 |---|---|---|
-| ⚓ L2 anchor `λ‖θ − θ_pretrain‖²` | ✅ E3 wired | λ=0.005 active; POC shows it's NOT preventing drift → may need ↑ |
-| 📐 Layer-wise LR decay 0.7-0.9 | 🟡 partial | base LR=5e-5, no per-layer multiplier yet |
-| 🚦 Backbone LR cap ≤ 1e-5 | 🟡 partial | currently 5e-5 surgery, could lower further |
-| 🔁 EMA τ ≥ 0.99 | ✅ active | ema_momentum=0.99925 |
-| 🔥 Short 100-500 step warmup per stage | ✅ active | `surgery.warmup_pct` in yaml |
+| ⚓ L2 anchor `λ‖θ − θ_pretrain‖²` | ✅ E3 wired BUT 🚨 **planned for replacement** | λ=0.005 active; POC shows it's NOT preventing drift. Recipe v2 replaces with **frozen pretrain teacher (SALT)** — see plan_surgery_wins.md §0 row 1️⃣ + §11.6 A5 |
+| 📐 Layer-wise LR decay 0.7-0.9 | 🚨 **prerequisite, not optional** | ULMFiT canon. Recipe v2 yaml change — plan_surgery_wins.md §0 row 8️⃣ |
+| 🚦 Backbone LR cap ≤ 1e-5 | 🚨 **prerequisite** | Recipe v2 lowers from 5e-5 → 1e-5 with LLRD 0.9 — plan_surgery_wins.md §5 |
+| 🔁 EMA τ ≥ 0.99 | ✅ active BUT ⚠️ **fixed → schedule** | Recipe v2 swaps fixed τ=0.99925 for cosine schedule (vjepa2 reference) — plan_surgery_wins.md §0 row 6️⃣ + §11.6 A1 |
+| 🔥 Warmup per stage | ⚠️ **collapse to single warmup** | Per-stage 0.1 was too short → first-step shock. Recipe v2 uses one continuous warmup over total budget — plan_surgery_wins.md §0 row 8️⃣ + §11.6 A4 |
+| 🆕 🧊 Frozen teacher (SALT) | ❌ NEW — not yet implemented | Action item 1️⃣ — replaces EMA `deepcopy(student)` with v12 pretrain encoder, never updated |
+| 🆕 🧠 LP-FT Stage 0 (head-only warmup) | ❌ NEW — not yet implemented | Action item 2️⃣ — fixes step-1 feature distortion |
+| 🆕 ✂️ Surgical layer subset (4 blocks not 12) | ❌ NEW — yaml change pending | Action item 3️⃣ — Lee et al. ICLR'23 |
+| 🆕 🛡️ Selective Projection Decay (SPD) | ❌ NEW — drop-in optim wrapper pending | Action item 4️⃣ — replaces uniform L2 |
+| 🆕 🔁 50/50 pretrain replay (CLEAR) | ❌ NEW — dataloader change pending | Action item 5️⃣ — anchor against pretrain task distribution |
+| 🆕 🎯 Saliency-weighted JEPA loss | ❌ NEW — port from MGMAE | Action item 7️⃣ — `loss × cal_loss_mask / mask.sum()` |
 | 📊 Per-block CKA similarity vs pretrain | ❌ NOT implemented | block_drift_mean is logged (E23) but CKA is different metric |
 | 🏷️ "Old probe" retention metric | ❌ NOT implemented | deferred — surgery probe is current; old-probe overlay separate work |
 | 🛑 Early-abort if val_jepa rises >5% | ❌ NOT implemented | iter14 simplified to top@1-plateau-only (E8) |
 
 ---
 
-## 🔓 Open questions — RESOLVED (2026-05-08)
+## 🔓 Open questions — RESOLVED (2026-05-08) + REFRAMED (2026-05-09)
 
 | Q | Resolved | How |
 |---|---|---|
 | ~~Surgery epoch budget — 5 ep or 15 ep?~~ | G1 ✅ | Decided 5 ep (5+5 framing); pending Phase 0 may bump to 50 ep (Path 1) |
-| ~~Anchor `λ` value — single 0.005 or sweep?~~ | G2 ✅ | Decided λ=0.005 anchor; Phase 0 sweep tests {0.005, 0.05} |
+| ~~Anchor `λ` value — single 0.005 or sweep?~~ | G2 ✅ | Decided λ=0.005 anchor → 🚨 **superseded** by recipe v2 (frozen teacher replaces L2 anchor) — see plan_surgery_wins.md §5 |
 | ~~Pretrain HF push — before or after iter14?~~ | G3 ✅ | Done — `huggingface.co/anonymousML123/factorjepa-pretrain-vjepa21-vitg-5ep` (HF cached, m09c hf_hub_download wired) |
-| 🆕 **Path 1 vs Path 2 — which unlocks paper goal?** | ⏸️ Pending Phase 0 | Diagnostic sweep is the gate |
+| ~~Path 1 vs Path 2 — which unlocks paper goal?~~ | 🚨 **superseded** | Reframed — diagnosis is **recipe-mechanism, not data-deficit** (plan_surgery_wins.md §2). New question below ↓ |
+| 🆕 **Recipe v2 vs Phase 5 vs Path 2 — which branch fires?** | ⏸️ Pending Phase 0 POC ($1, ~1.5 h) | 4-cell sweep `{EMA, FROZEN} × {LP-FT y/n}` → 🟢 wire fixes / 🟡 Phase 5 harder FG features / 🔴 Path 2 relax m10 (plan_surgery_wins.md §7.5) |
 
 ---
 
@@ -318,8 +290,8 @@ jq '.iter14_paper_deltas' outputs/full/probe_action/probe_paired_delta.json
 
 | What | Where |
 |---|---|
-| 📍 This file (HIGH-LEVEL) | `iter/iter14_surgery_on_pretrain/plan_HIGH_LEVEL.md` |
-| 🚨 Data limitation analysis (POC findings + Path 1/2/3) | `iter/iter14_surgery_on_pretrain/plan_surgery_wins.md` |
+| 📍 This file (status + implementation log) | `iter/iter14_surgery_on_pretrain/high_level_plan.md` |
+| 🏆 **Operative plan** (recipe v2 + audit + execution sequence) | `iter/iter14_surgery_on_pretrain/plan_surgery_wins.md` ⭐ |
 | 🚀 Runbook (SANITY/POC/FULL commands) | `iter/iter14_surgery_on_pretrain/runbook.md` |
 | 📒 Q&A on Option A vs B | `iter/iter14_surgery_on_pretrain/plan_surgery_on_pretrain.md` |
 | 🏗️ Refactor plan (m09a/m09c → utils/training_loop.py — DEFERRED) | `iter/iter14_surgery_on_pretrain/plan_No_discrepancy.md` |
@@ -343,36 +315,26 @@ jq '.iter14_paper_deltas' outputs/full/probe_action/probe_paired_delta.json
 
 ---
 
-## 🚦 Next-step decision tree
+## 🚦 Next-step decision tree (UPDATED 2026-05-09)
 
 ```
-                           [Stop GPU instance — backup done ✅]
-                                    │
-                                    ▼
-                    ┌─────────────────────────────┐
-                    │  Phase 0 diagnostic sweep   │
-                    │  (~$1, ~1.5 h, 4 POC runs)  │
-                    └─────────────────────────────┘
-                                    │
-              ┌─────────────────────┼─────────────────────┐
-              ▼                     ▼                     ▼
-        Path 1 viable        Path 2 mandatory      All decline
-        (POC×10 climbs)      (POC×10 plateaus)    (POC×10 declines)
-              │                     │                     │
-              ▼                     ▼                     ▼
-      Path 1 FULL          Path 2: relax m10 +     Path 2 mandatory
-      (50 ep surgery)      Path 1 FULL                 + Path 3 (λ↑)
-       ~$80-100             ~$50-60                    ~$80-100
-              │                     │                     │
-              └─────────────────────┼─────────────────────┘
-                                    ▼
-                    ┌─────────────────────────────┐
-                    │  Phase 2: 5-encoder eval    │
-                    │  Δ1/Δ2/Δ3 paper deltas      │
-                    └─────────────────────────────┘
-                                    │
-                                    ▼
-                            🏆 Paper headline
+                    Run recipe v2 POC ($1 / 90 min)
+                {🌀 EMA, 🧊 FROZEN} × {🅰️ LP-FT off, 🅱️ on} = 4 cells
+                                │
+       ┌────────────────────────┼────────────────────────┐
+       ▼                        ▼                        ▼
+  🟢 top-1 ≥ 0.808       🟡 top-1 0.81–0.83       🔴 all 4 regress
+  AND test-Δ ≥ +5 pp     (marginal, Δ < +5 pp)    (recipe doesn't help)
+       │                        │                        │
+       ▼                        ▼                        ▼
+  ✅ Wire fixes →         🧬 Phase 5: harder        🔧 Path 2: relax
+  refactor (A→D) →        FG/BG motion features    m10 thresholds
+  FULL surgery            (~$8, ~6 GPU-h)          (~$50–60)
+       │                        │                        │
+       └────────────────────────┴────────────────────────┘
+                                ▼
+                        🏆 FULL eval Δ1/Δ2/Δ3
+                          → paper headline
 ```
 
-> 🎬 **Bottom line**: All iter14 implementation work is complete and HF-backed up. The remaining work is research execution — Phase 0 sweep tells us within ~1.5 h which path makes the paper goal achievable. Resume on next GPU rental and run the sweep first.
+> 🎬 **Bottom line**: All iter14 implementation work is complete and HF-backed up. The remaining work is research execution — read **[`plan_surgery_wins.md` § 0 MASTER action items](./plan_surgery_wins.md)** as the operative reference. The $1 / 90-min recipe-v2 POC sweep picks the next branch within ~1.5 h on the next GPU rental.
