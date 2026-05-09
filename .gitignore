@@ -104,3 +104,7 @@ __pycache__/
 *.pyc
 .ipynb_checkpoints/
 .claude/scheduled_tasks.lock
+
+# Claude Code session backup — synced via scp, never to git
+.claude_sessions/
+.claude_sessions/*

@@ -1,0 +1,22 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(bash -n /workspace/factorjepa/scripts/run_probe_train.sh)",
+      "Bash(python -c ' *)",
+      "Bash(python -c \"import py_compile; py_compile.compile\\('src/utils/training.py', doraise=True\\); py_compile.compile\\('src/m09a_pretrain.py', doraise=True\\); py_compile.compile\\('src/m09c_surgery.py', doraise=True\\); print\\('✓ py_compile OK \\(3 files\\)'\\)\")",
+      "Bash(ruff check *)",
+      "Bash(python -c \"import py_compile; py_compile.compile\\('src/utils/plots.py', doraise=True\\); py_compile.compile\\('src/utils/training.py', doraise=True\\); py_compile.compile\\('src/m09c_surgery.py', doraise=True\\); py_compile.compile\\('src/m09a_pretrain.py', doraise=True\\); print\\('✓ py_compile OK \\(4 files\\)'\\)\")",
+      "Bash(python -c \"import py_compile; [py_compile.compile\\(f, doraise=True\\) for f in ['src/utils/plots.py', 'src/utils/training.py', 'src/m09c_surgery.py', 'src/m09a_pretrain.py']]; print\\('✓ py_compile OK \\(4 files\\)'\\)\")",
+      "Bash(python -c \"import py_compile; py_compile.compile\\('src/m09c_surgery.py', doraise=True\\); print\\('✓ py_compile OK'\\)\")",
+      "Bash(PYTHONPATH=src python -c ' *)",
+      "Bash(python -c \"import py_compile; py_compile.compile\\('src/utils/plots.py', doraise=True\\); print\\('✓ py_compile OK'\\)\")",
+      "Bash(python -c \"import json; d=json.load\\(open\\('data/eval_10k_train_split.json'\\)\\); print\\(f'  clip_keys: {len\\(d[\\\\\"clip_keys\\\\\"]\\)}'\\)\")",
+      "Bash(python -c \"import json; d=json.load\\(open\\('data/eval_10k_val_split.json'\\)\\); print\\(f'  clip_keys: {len\\(d[\\\\\"clip_keys\\\\\"]\\)}'\\)\")",
+      "Bash(python -c \"import json; d=json.load\\(open\\('data/eval_10k_test_split.json'\\)\\); print\\(f'  clip_keys: {len\\(d[\\\\\"clip_keys\\\\\"]\\)}'\\)\")",
+      "Bash(python -c \"import json; d=json.load\\(open\\('data/eval_10k_poc.json'\\)\\); print\\(f'  poc.json source clip_keys: {len\\(d[\\\\\"clip_keys\\\\\"]\\)}, source: {d.get\\(\\\\\"source\\\\\"\\)}'\\)\")",
+      "Bash(python)",
+      "Bash(python -m json.tool)",
+      "Bash(python -c \"import py_compile; py_compile.compile\\('src/m09c_surgery.py', doraise=True\\); py_compile.compile\\('configs/train/base_optimization.yaml', doraise=False\\) if False else None; print\\('✓ py_compile OK'\\)\")"
+    ]
+  }
+}
