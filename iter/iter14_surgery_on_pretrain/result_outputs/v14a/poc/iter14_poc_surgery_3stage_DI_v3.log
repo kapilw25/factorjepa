@@ -1,0 +1,157 @@
+═══ 12:08:27 · Generating train/val/test split JSONs ═══
+Generated data/eval_10k_train_split.json: 605 clips (split=train)
+Generated data/eval_10k_val_split.json: 125 clips (split=val)
+Generated data/eval_10k_test_split.json: 125 clips (split=test)
+  [multi-task] Using taxonomy labels: outputs/poc/probe_taxonomy/taxonomy_labels.json
+═══ 12:08:27 · m09c factor surgery [variant=3stage_DI] (POC) ═══
+  config:    configs/train/surgery_3stage_DI.yaml
+  subset:    data/eval_10k_train_split.json
+  factor:    data/eval_10k_local/m11_factor_datasets
+  output:    outputs/poc/m09c_surgery_3stage_DI
+  init:      hf://anonymousML123/factorjepa-pretrain-vjepa21-vitg-5ep/m09a_ckpt_best.pt (iter14 — m09c hf_hub_download via HF_TOKEN from .env)
+[live-debug] installed — pid=1746570. Force a stack dump anytime via:
+[live-debug]   kill -USR1 1746570   # signal-safe native dump
+[live-debug]   kill -USR2 1746570   # Python dump with banner
+GPU: NVIDIA RTX PRO 6000 Blackwell Server Edition
+CUDA version: 12.8
+  [probe_labels] cached: /workspace/factorjepa/outputs/poc/probe_action/action_labels.json
+  [probe_labels] cached: /workspace/factorjepa/outputs/poc/probe_taxonomy/taxonomy_labels.json
+  [cache-policy=2/recompute] WIPING output_dir (m09c_surgery_3stage_DI): outputs/poc/m09c_surgery_3stage_DI (17 file(s))
+  [cache-policy=2/recompute] output_dir (m09c_surgery_3stage_DI) recreated empty: outputs/poc/m09c_surgery_3stage_DI
+/workspace/factorjepa/venv_walkindia/lib/python3.12/site-packages/timm/models/layers/__init__.py:49: FutureWarning: Importing from timm.models.layers is deprecated, please import via timm.layers
+  warnings.warn(f"Importing from {__name__} is deprecated, please import via timm.layers", FutureWarning)
+  [iter14] HF download: anonymousML123/factorjepa-pretrain-vjepa21-vitg-5ep/m09a_ckpt_best.pt
+  [iter14] HF cached at: /workspace/.hf_home/hub/models--anonymousML123--factorjepa-pretrain-vjepa21-vitg-5ep/snapshots/c59b677c9a8364a9ed79b6940ca07cef5ecd9a51/m09a_ckpt_best.pt
+  [iter14] Loading init from prior-run ckpt: /workspace/.hf_home/hub/models--anonymousML123--factorjepa-pretrain-vjepa21-vitg-5ep/snapshots/c59b677c9a8364a9ed79b6940ca07cef5ecd9a51/m09a_ckpt_best.pt
+  [iter14] Schema: student (588 keys) + predictor (300 keys)
+Student loaded: 1,843,937,152 params (588/588 keys = 100%)
+Teacher created (deepcopy of student, hierarchical output enabled)
+Predictor loaded from checkpoint (300/300 keys = 100%)
+Predictor: 59,430,400 params
+  [motion_aux] enabled: 8 classes, 13-D vec, 9,276 clips with targets, 432,149 head params, weight_motion=0.1, weight_ce=1.0, weight_mse=1.0
+  train/val split: 8367 train / 930 val (INTERNAL seed=42 ratio=0.90) → outputs/poc/m09c_surgery_3stage_DI/val_split.json
+  Factor index: 91 clips (D_L=89, D_A=68, D_I=62)
+[loss] Pure JEPA L1 (α=1, β=γ=0) — default scaffold path, no multi-task active
+  [pre-flight] mode_mixture vs manifest availability OK: {'D_L': 89, 'D_A': 68, 'D_I': 62}
+
+============================================================
+SURGERY TRAINING — 3 stages on 91 factor clips
+Model: vit_gigantic_xformers (48 blocks, 1664-dim)
+Epochs: 1 | Steps: 2 | BS: 32
+Dense loss: predict_all=True | Deep supervision: 4 levels
+============================================================
+AdaptiveBatchSizer (surgery, grad-accum): start=30, max=32 (= effective BS), target VRAM=85%
+
+============================================================
+[probe] N=930 held-out val clips, cadence=saves_per_epoch, saves_per_epoch=2 (probe_every=1 steps, ~2 total probes), val_loss=True
+============================================================
+  Parallel TAR reader: 8 threads, 10 TARs, queue=256
+  [tar reader] subset-00005.tar: emitted=103, dropped=0 (missing_part=0, empty_mp4=0), filtered=897 (subset=897, resume=0)
+  [tar reader] subset-00003.tar: emitted=103, dropped=0 (missing_part=0, empty_mp4=0), filtered=897 (subset=897, resume=0)
+  [tar reader] subset-00004.tar: emitted=105, dropped=0 (missing_part=0, empty_mp4=0), filtered=895 (subset=895, resume=0)
+  [tar reader] subset-00007.tar: emitted=102, dropped=0 (missing_part=0, empty_mp4=0), filtered=898 (subset=898, resume=0)
+  [tar reader] subset-00000.tar: emitted=88, dropped=0 (missing_part=0, empty_mp4=0), filtered=912 (subset=912, resume=0)
+  [tar reader] subset-00006.tar: emitted=95, dropped=0 (missing_part=0, empty_mp4=0), filtered=905 (subset=905, resume=0)
+  [tar reader] subset-00002.tar: emitted=119, dropped=0 (missing_part=0, empty_mp4=0), filtered=881 (subset=881, resume=0)
+  [tar reader] subset-00001.tar: emitted=95, dropped=0 (missing_part=0, empty_mp4=0), filtered=905 (subset=905, resume=0)
+  [tar reader] subset-00009.tar: emitted=22, dropped=0 (missing_part=0, empty_mp4=0), filtered=275 (subset=275, resume=0)
+  [tar reader] subset-00008.tar: emitted=98, dropped=0 (missing_part=0, empty_mp4=0), filtered=902 (subset=902, resume=0)
+  [probe] decoding 930 clips with 8 CPU workers (was serial → ~8x speedup expected)
+probe_decode:   0%|          | 0/930 [00:00<?, ?clip/s]probe_decode:   0%|          | 1/930 [00:02<35:01,  2.26s/clip]probe_decode:   2%|▏         | 21/930 [00:02<01:21, 11.21clip/s]probe_decode:   3%|▎         | 29/930 [00:02<01:00, 14.99clip/s]probe_decode:   4%|▎         | 34/930 [00:03<01:25, 10.50clip/s]probe_decode:   5%|▍         | 45/930 [00:03<00:53, 16.46clip/s]probe_decode:   5%|▌         | 50/930 [00:03<00:47, 18.55clip/s]probe_decode:   6%|▌         | 54/930 [00:04<00:43, 20.13clip/s]probe_decode:   7%|▋         | 65/930 [00:04<00:48, 17.67clip/s]probe_decode:   7%|▋         | 69/930 [00:04<00:43, 19.62clip/s]probe_decode:   8%|▊         | 77/930 [00:05<00:46, 18.42clip/s]probe_decode:   9%|▉         | 85/930 [00:05<00:46, 18.00clip/s]probe_decode:  10%|█         | 97/930 [00:06<00:42, 19.83clip/s]probe_decode:  11%|█         | 101/930 [00:06<00:43, 19.14clip/s]probe_decode:  12%|█▏        | 113/930 [00:06<00:28, 28.25clip/s]probe_decode:  13%|█▎        | 118/930 [00:07<00:34, 23.47clip/s]probe_decode:  13%|█▎        | 122/930 [00:07<00:38, 21.22clip/s]probe_decode:  14%|█▍        | 129/930 [00:07<00:43, 18.38clip/s]probe_decode:  15%|█▍        | 137/930 [00:08<00:43, 18.05clip/s]probe_decode:  16%|█▌        | 149/930 [00:08<00:30, 25.99clip/s]probe_decode:  16%|█▋        | 153/930 [00:08<00:32, 23.80clip/s]probe_decode:  17%|█▋        | 161/930 [00:09<00:39, 19.61clip/s]probe_decode:  18%|█▊        | 165/930 [00:09<00:39, 19.35clip/s]probe_decode:  19%|█▉        | 177/930 [00:09<00:30, 24.30clip/s]probe_decode:  20%|██        | 189/930 [00:10<00:24, 29.81clip/s]probe_decode:  21%|██        | 193/930 [00:10<00:42, 17.23clip/s]probe_decode:  22%|██▏       | 201/930 [00:11<00:36, 20.00clip/s]probe_decode:  22%|██▏       | 209/930 [00:11<00:32, 22.15clip/s]probe_decode:  24%|██▍       | 221/930 [00:11<00:26, 27.15clip/s]probe_decode:  24%|██▍       | 225/930 [00:12<00:38, 18.41clip/s]probe_decode:  25%|██▍       | 229/930 [00:12<00:40, 17.14clip/s]probe_decode:  26%|██▋       | 245/930 [00:12<00:22, 30.33clip/s]probe_decode:  27%|██▋       | 250/930 [00:12<00:23, 29.03clip/s]probe_decode:  27%|██▋       | 255/930 [00:13<00:26, 25.16clip/s]probe_decode:  28%|██▊       | 259/930 [00:13<00:31, 21.62clip/s]probe_decode:  28%|██▊       | 262/930 [00:13<00:33, 19.94clip/s]probe_decode:  28%|██▊       | 265/930 [00:13<00:33, 19.84clip/s]probe_decode:  29%|██▉       | 269/930 [00:14<00:28, 22.95clip/s]probe_decode:  29%|██▉       | 273/930 [00:14<00:40, 16.12clip/s]probe_decode:  31%|███       | 285/930 [00:14<00:23, 27.88clip/s]probe_decode:  31%|███       | 289/930 [00:15<00:33, 19.38clip/s]probe_decode:  32%|███▏      | 293/930 [00:15<00:31, 20.39clip/s]probe_decode:  32%|███▏      | 297/930 [00:15<00:30, 20.54clip/s]probe_decode:  32%|███▏      | 301/930 [00:15<00:28, 21.88clip/s]probe_decode:  33%|███▎      | 305/930 [00:15<00:26, 23.70clip/s]probe_decode:  33%|███▎      | 309/930 [00:15<00:23, 26.43clip/s]probe_decode:  35%|███▍      | 321/930 [00:16<00:37, 16.40clip/s]probe_decode:  35%|███▌      | 329/930 [00:16<00:27, 21.75clip/s]probe_decode:  36%|███▌      | 333/930 [00:17<00:29, 20.33clip/s]probe_decode:  38%|███▊      | 349/930 [00:17<00:16, 35.92clip/s]probe_decode:  38%|███▊      | 355/930 [00:18<00:37, 15.36clip/s]probe_decode:  40%|███▉      | 369/930 [00:18<00:22, 24.43clip/s]probe_decode:  40%|████      | 376/930 [00:18<00:19, 28.52clip/s]probe_decode:  41%|████      | 383/930 [00:18<00:18, 29.53clip/s]probe_decode:  42%|████▏     | 389/930 [00:19<00:35, 15.13clip/s]probe_decode:  43%|████▎     | 401/930 [00:20<00:23, 22.86clip/s]probe_decode:  44%|████▍     | 409/930 [00:20<00:18, 27.54clip/s]probe_decode:  45%|████▍     | 417/930 [00:21<00:30, 17.08clip/s]probe_decode:  45%|████▌     | 422/930 [00:21<00:28, 17.57clip/s]probe_decode:  46%|████▌     | 429/930 [00:21<00:24, 20.66clip/s]probe_decode:  47%|████▋     | 437/930 [00:21<00:21, 22.65clip/s]probe_decode:  48%|████▊     | 449/930 [00:22<00:26, 17.95clip/s]probe_decode:  50%|████▉     | 461/930 [00:23<00:21, 21.68clip/s]probe_decode:  50%|█████     | 465/930 [00:23<00:20, 22.73clip/s]probe_decode:  51%|█████▏    | 477/930 [00:23<00:15, 28.75clip/s]probe_decode:  52%|█████▏    | 481/930 [00:24<00:24, 18.60clip/s]probe_decode:  53%|█████▎    | 493/930 [00:24<00:21, 20.54clip/s]probe_decode:  53%|█████▎    | 497/930 [00:24<00:20, 21.08clip/s]probe_decode:  54%|█████▍    | 505/930 [00:24<00:15, 27.34clip/s]probe_decode:  55%|█████▌    | 513/930 [00:25<00:21, 19.63clip/s]probe_decode:  56%|█████▋    | 525/930 [00:26<00:23, 17.07clip/s]probe_decode:  58%|█████▊    | 541/930 [00:26<00:14, 27.45clip/s]probe_decode:  59%|█████▉    | 548/930 [00:27<00:18, 20.81clip/s]probe_decode:  60%|█████▉    | 557/930 [00:27<00:19, 18.69clip/s]probe_decode:  60%|██████    | 561/930 [00:27<00:19, 19.30clip/s]probe_decode:  62%|██████▏   | 573/930 [00:28<00:14, 24.63clip/s]probe_decode:  62%|██████▏   | 577/930 [00:28<00:18, 19.58clip/s]probe_decode:  63%|██████▎   | 589/930 [00:29<00:18, 18.64clip/s]probe_decode:  65%|██████▌   | 605/930 [00:29<00:13, 24.50clip/s]probe_decode:  65%|██████▌   | 609/930 [00:29<00:13, 23.89clip/s]probe_decode:  66%|██████▌   | 613/930 [00:30<00:13, 23.04clip/s]probe_decode:  67%|██████▋   | 621/930 [00:30<00:16, 18.86clip/s]probe_decode:  68%|██████▊   | 633/930 [00:30<00:11, 24.78clip/s]probe_decode:  68%|██████▊   | 637/930 [00:31<00:14, 20.62clip/s]probe_decode:  69%|██████▉   | 641/930 [00:31<00:16, 17.44clip/s]probe_decode:  69%|██████▉   | 645/930 [00:31<00:16, 17.38clip/s]probe_decode:  70%|███████   | 653/930 [00:32<00:13, 21.02clip/s]probe_decode:  72%|███████▏  | 665/930 [00:32<00:09, 28.28clip/s]probe_decode:  72%|███████▏  | 669/930 [00:32<00:11, 22.71clip/s]probe_decode:  72%|███████▏  | 673/930 [00:32<00:12, 20.58clip/s]probe_decode:  73%|███████▎  | 677/930 [00:33<00:15, 16.53clip/s]probe_decode:  74%|███████▎  | 685/930 [00:33<00:10, 22.38clip/s]probe_decode:  74%|███████▍  | 689/930 [00:33<00:12, 19.47clip/s]probe_decode:  75%|███████▌  | 701/930 [00:34<00:07, 29.88clip/s]probe_decode:  76%|███████▌  | 705/930 [00:34<00:08, 26.86clip/s]probe_decode:  76%|███████▌  | 709/930 [00:34<00:10, 20.28clip/s]probe_decode:  77%|███████▋  | 713/930 [00:34<00:11, 19.01clip/s]probe_decode:  77%|███████▋  | 717/930 [00:35<00:12, 17.15clip/s]probe_decode:  78%|███████▊  | 721/930 [00:35<00:10, 19.61clip/s]probe_decode:  78%|███████▊  | 725/930 [00:35<00:09, 22.72clip/s]probe_decode:  78%|███████▊  | 729/930 [00:35<00:09, 21.26clip/s]probe_decode:  79%|███████▉  | 737/930 [00:35<00:08, 22.85clip/s]probe_decode:  80%|███████▉  | 741/930 [00:36<00:11, 17.14clip/s]probe_decode:  81%|████████  | 749/930 [00:36<00:11, 15.92clip/s]probe_decode:  82%|████████▏ | 765/930 [00:37<00:07, 22.78clip/s]probe_decode:  83%|████████▎ | 773/930 [00:37<00:07, 21.93clip/s]probe_decode:  84%|████████▎ | 777/930 [00:37<00:06, 21.94clip/s]probe_decode:  84%|████████▍ | 781/930 [00:38<00:09, 15.73clip/s]probe_decode:  86%|████████▌ | 797/930 [00:38<00:05, 22.22clip/s]probe_decode:  86%|████████▌ | 801/930 [00:39<00:05, 22.69clip/s]probe_decode:  87%|████████▋ | 813/930 [00:39<00:04, 24.03clip/s]probe_decode:  88%|████████▊ | 817/930 [00:39<00:04, 25.45clip/s]probe_decode:  89%|████████▊ | 825/930 [00:39<00:03, 28.58clip/s]probe_decode:  89%|████████▉ | 829/930 [00:40<00:05, 18.83clip/s]probe_decode:  91%|█████████▏| 849/930 [00:40<00:03, 26.59clip/s]probe_decode:  92%|█████████▏| 853/930 [00:41<00:03, 21.97clip/s]probe_decode:  93%|█████████▎| 861/930 [00:41<00:02, 25.19clip/s]probe_decode:  93%|█████████▎| 865/930 [00:41<00:03, 20.40clip/s]probe_decode:  94%|█████████▍| 877/930 [00:41<00:01, 30.60clip/s]probe_decode:  95%|█████████▍| 882/930 [00:42<00:02, 23.92clip/s]probe_decode:  95%|█████████▌| 886/930 [00:42<00:02, 17.72clip/s]probe_decode:  96%|█████████▌| 889/930 [00:43<00:02, 15.09clip/s]probe_decode:  98%|█████████▊| 913/930 [00:44<00:00, 20.43clip/s]probe_decode:  99%|█████████▊| 917/930 [00:44<00:00, 16.25clip/s]probe_decode: 100%|██████████| 930/930 [00:45<00:00, 20.51clip/s]
+  [probe] decoded 930 clips (0 skipped — no tag match)
+
+============================================================
+STAGE 1/3: stage1_layout
+  Layers 0-12 trainable | 1 steps | warmup 1
+  Mixture: {'L': 1.0, 'A': 0.0, 'I': 0.0}
+============================================================
+  Trainable prefix: 12/48 blocks (460,593,664/1,843,937,152 = 25.0%)
+  FactorSampler: REQUESTED={'L': 1.0} → ACTUAL={D_L=100%}
+surgery:stage1_layout:   0%|          | 0/1 [00:00<?, ?step/s]/usr/lib/python3.12/contextlib.py:105: FutureWarning: `torch.backends.cuda.sdp_kernel()` is deprecated. In the future, this context manager will be removed. Please see `torch.nn.attention.sdpa_kernel()` for the new context manager, with updated signature.
+  self.gen = func(*args, **kwds)
+  AdaptiveBatch: VRAM 30% < 65% → sub-batch 30 → 31
+surgery:stage1_layout:   0%|          | 0/1 [00:30<?, ?step/s]surgery:stage1_layout: 100%|██████████| 1/1 [00:30<00:00, 30.44s/step]surgery:stage1_layout: 100%|██████████| 1/1 [00:30<00:00, 30.44s/step]
+  Stage stage1_layout complete: 1 steps, loss=0.5088
+  [probe-trio] encoding 98 clips...
+  [probe-trio] step=1 top1=0.7449  motion_cos=0.2744  future_l1=0.5614  (N=98)
+  [probe] step=1 stage=stage1_layout N=930 top-1=0.7449 motion_cos=0.2744 future_l1=0.5614 val_jepa=0.5025
+/workspace/factorjepa/src/utils/plots.py:812: UserWarning: Attempting to set identical low and high xlims makes transformation singular; automatically expanding.
+  im = ax_h.imshow(np.log10(drift_safe.T), aspect="auto", origin="lower",
+  Saved: outputs/poc/m09c_surgery_3stage_DI/m09c_block_drift.png + .pdf
+Exported student encoder: outputs/poc/m09c_surgery_3stage_DI/student_best.pt
+  [best] new max trio_top1=0.7449 (step 1) → saved student_best.pt
+  [plots] skip m09c_val_loss: no val_loss in loss_log (m09c reads val-loss from probe_history instead — see _render_live_plots)
+  Saved: outputs/poc/m09c_surgery_3stage_DI/m09c_train_loss.png + .pdf
+  SKIP: drift loss plot (all zeros — drift control disabled)
+  SKIP plot_combined_losses: only 1 train rows in outputs/poc/m09c_surgery_3stage_DI/loss_log.jsonl
+
+============================================================
+STAGE 2/3: stage2_agent
+  Layers 0-24 trainable | 1 steps | warmup 1
+  Mixture: {'L': 0.3, 'A': 0.7, 'I': 0.0}
+============================================================
+  Inter-stage cleanup: 16.7 GB used / 102.0 GB total after releasing Stage 1 state
+  Trainable prefix: 24/48 blocks (920,854,528/1,843,937,152 = 49.9%)
+  FactorSampler: REQUESTED={'L': 0.3, 'A': 0.7} → ACTUAL={D_L=30%, D_A=70%}
+surgery:stage2_agent:   0%|          | 0/1 [00:00<?, ?step/s]/usr/lib/python3.12/contextlib.py:105: FutureWarning: `torch.backends.cuda.sdp_kernel()` is deprecated. In the future, this context manager will be removed. Please see `torch.nn.attention.sdpa_kernel()` for the new context manager, with updated signature.
+  self.gen = func(*args, **kwds)
+  AdaptiveBatch: VRAM 32% < 65% → sub-batch 31 → 32
+surgery:stage2_agent: 100%|██████████| 1/1 [00:29<00:00, 29.43s/step]surgery:stage2_agent: 100%|██████████| 1/1 [00:29<00:00, 29.43s/step]
+  [cache-policy=2/recompute] deleted m09c stage checkpoint: outputs/poc/m09c_surgery_3stage_DI/m09c_ckpt_stage0.pt
+  Stage stage2_agent complete: 1 steps, loss=0.5172
+  [probe-trio] encoding 98 clips...
+  [probe-trio] step=2 top1=0.7245  motion_cos=0.2482  future_l1=0.5601  (N=98)
+  [probe] step=2 stage=stage2_agent N=930 top-1=0.7245 motion_cos=0.2482 future_l1=0.5601 val_jepa=0.5014
+  Saved: outputs/poc/m09c_surgery_3stage_DI/m09c_block_drift.png + .pdf
+  [plots] skip m09c_val_loss: no val_loss in loss_log (m09c reads val-loss from probe_history instead — see _render_live_plots)
+  Saved: outputs/poc/m09c_surgery_3stage_DI/m09c_train_loss.png + .pdf
+  Saved: outputs/poc/m09c_surgery_3stage_DI/m09c_drift_loss.png + .pdf
+  Saved: outputs/poc/m09c_surgery_3stage_DI/m09c_loss_decomposition.png + .pdf
+
+============================================================
+STAGE 3/3: stage3_interaction
+  Layers 0-24 trainable | 1 steps | warmup 1
+  Mixture: {'L': 0.15, 'A': 0.15, 'I': 0.7}
+============================================================
+  Inter-stage cleanup: 16.7 GB used / 102.0 GB total after releasing Stage 2 state
+  Trainable prefix: 24/48 blocks (920,854,528/1,843,937,152 = 49.9%)
+  FactorSampler: REQUESTED={'L': 0.15, 'A': 0.15, 'I': 0.7} → ACTUAL={D_L=15%, D_A=15%, D_I=70%}
+surgery:stage3_interaction:   0%|          | 0/1 [00:00<?, ?step/s]/usr/lib/python3.12/contextlib.py:105: FutureWarning: `torch.backends.cuda.sdp_kernel()` is deprecated. In the future, this context manager will be removed. Please see `torch.nn.attention.sdpa_kernel()` for the new context manager, with updated signature.
+  self.gen = func(*args, **kwds)
+surgery:stage3_interaction: 100%|██████████| 1/1 [00:27<00:00, 27.66s/step]surgery:stage3_interaction: 100%|██████████| 1/1 [00:27<00:00, 27.66s/step]
+  [cache-policy=2/recompute] deleted m09c stage checkpoint: outputs/poc/m09c_surgery_3stage_DI/m09c_ckpt_stage1.pt
+  Stage stage3_interaction complete: 1 steps, loss=0.5054
+  [probe-trio] encoding 98 clips...
+  [probe-trio] step=3 top1=0.7143  motion_cos=0.2651  future_l1=0.5601  (N=98)
+  [probe] step=3 stage=stage3_interaction N=930 top-1=0.7143 motion_cos=0.2651 future_l1=0.5601 val_jepa=0.4992
+  Saved: outputs/poc/m09c_surgery_3stage_DI/m09c_block_drift.png + .pdf
+  [plots] skip m09c_val_loss: no val_loss in loss_log (m09c reads val-loss from probe_history instead — see _render_live_plots)
+  Saved: outputs/poc/m09c_surgery_3stage_DI/m09c_train_loss.png + .pdf
+  Saved: outputs/poc/m09c_surgery_3stage_DI/m09c_drift_loss.png + .pdf
+  Saved: outputs/poc/m09c_surgery_3stage_DI/m09c_loss_decomposition.png + .pdf
+  [best] Promoted student_best.pt (top1=0.7449 at step 1, stage stage1_layout) → student_encoder.pt
+  ✓ encoder training-effect verified: ||Δ||/||init|| = 2.465e-02
+Exported motion_aux head: outputs/poc/m09c_surgery_3stage_DI/motion_aux_head.pt
+Exported predictor-bearing best ckpt: outputs/poc/m09c_surgery_3stage_DI/m09c_ckpt_best.pt
+  [cache-policy=2/recompute] deleted m09c stage checkpoint: outputs/poc/m09c_surgery_3stage_DI/m09c_ckpt_stage2.pt
+
+============================================================
+[probe] Trajectory across 3 stages:
+  top1: [0.7449, 0.7245, 0.7143]
+  Δtop1 (BWT-proxy): -0.0306
+  ⚠  max_drop = 0.0204 — some stage hurt top-1 despite replay
+============================================================
+  Saved: outputs/poc/m09c_surgery_3stage_DI/m09c_val_loss.png
+  Saved: outputs/poc/m09c_surgery_3stage_DI/m09c_val_loss_jepa.png
+  [plots] skip m09c_val_loss: no val_loss in loss_log (m09c reads val-loss from probe_history instead — see _render_live_plots)
+  Saved: outputs/poc/m09c_surgery_3stage_DI/m09c_train_loss.png + .pdf
+  Saved: outputs/poc/m09c_surgery_3stage_DI/m09c_drift_loss.png + .pdf
+
+SURGERY COMPLETE: 3 steps across 3 stages
+  Exported: outputs/poc/m09c_surgery_3stage_DI/student_encoder.pt
+
+═══ 12:32:59 · DONE ═══
+Expected outputs (consumed by scripts/run_probe_eval.sh):
+-rw-rw-r-- 1 root root 6.9G May  8 12:17 outputs/poc/m09c_surgery_3stage_DI/student_encoder.pt
+-rw-rw-r-- 1 root root 14G May  8 12:32 outputs/poc/m09c_surgery_3stage_DI/m09c_ckpt_best.pt
+  → Stage 8 future_mse will use this (carries 'predictor' key).

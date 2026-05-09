@@ -72,6 +72,12 @@ wandb>=0.15.0
 # cuML GPU (UMAP, DBSCAN, etc.) - Nvidia GPU ONLY
 # =============================================================================
 # cuml-cu12 installed via setup_env_uv.sh --gpu (RAPIDS PyPI)
+#
+# DO NOT add an explicit `nvidia-nvjitlink-cu12` pin here. We tried (logs/setup_env_gpu_v2.log)
+# to silence the cu12-version ping-pong between PyTorch and cuML, and it freed uv's
+# resolver to swap torch nightly+cu128 → torch stable 2.11.0+cu130, producing a mixed
+# cu12+cu13 stack and a FATAL uv pip check (line 204: cuda-toolkit==13.0.2 vs 12.9.2.0).
+# The harmless ping-pong (~30s extra install) is the lesser evil.
 
 # =============================================================================
 # FAISS GPU (Similarity Search) - Nvidia GPU ONLY
