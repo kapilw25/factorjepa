@@ -166,6 +166,20 @@
 
 ## 🚦 6. Phase-0 POC sweep — re-spec (compete with the plan's λ × epochs sweep)
 
+### 📢 6.0 Research-group share-card (single table)
+
+| 🔖 Aspect | 🎯 Detail |
+|---|---|
+| 🧪 **Recipe fix #1** | 🧊 **Frozen teacher (SALT)** — anchor encoder to v12 pretrain weights, no EMA drift |
+| 🧪 **Recipe fix #2** | 🧠 **LP-FT** — warm up task heads on frozen backbone before unfreezing (V-JEPA / fine-tuning literature) |
+| 🔬 **POC sweep** | 4 runs · `{🌀 EMA, 🧊 FROZEN}` × `{🅰️ LP-FT off, 🅱️ LP-FT on}` |
+| 💰 **Cost** | ~**$1** / ~**90 min** GPU |
+| 🎯 **Pass gate** | 🥇 any cell reaches **top-1 ≥ 0.808** (pretrain baseline) |
+| ✅ **If pass** | 🔧 wire both fixes into shared training loop, then scale to FULL surgery |
+| ⚠️ **If all fail** | 🚧 bottleneck is data scale — only **91 SAM-quality-gated factor clips** today → relax SAM thresholds to grow the pool |
+
+### 🧮 6.1 Sweep axes (full spec)
+
 | Sweep axis A | Sweep axis B | Why this axis | Cost |
 |---|---|---|---|
 | `teacher ∈ {EMA, FROZEN}` | `lp_ft ∈ {off, 0.5 ep on}` | Tests SALT + LP-FT directly | $1, ~1.5 h, 4 runs |
