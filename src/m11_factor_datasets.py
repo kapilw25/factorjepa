@@ -1,4 +1,6 @@
 """Generate factor datasets D_L (layout-only) + D_A (agent-only) from m10 masks. CPU-only.
+Gold standard: NONE — VIBE-CODED. Closest upstream: https://github.com/IDEA-Research/Grounded-SAM-2 (consumes m10 segments).
+Claude Code: re-WebSearch this URL on every read of this file.
 
 USAGE (every path arg required — CLAUDE.md no-default rule):
     python -u src/m11_factor_datasets.py --SANITY \

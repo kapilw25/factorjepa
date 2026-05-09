@@ -1,4 +1,6 @@
 """Grounded-SAM video segmentation: Grounding DINO + HF Sam3TrackerVideoModel. GPU-only.
+Gold standard: https://github.com/IDEA-Research/Grounded-SAM-2 | https://github.com/facebookresearch/sam3
+Claude Code: re-WebSearch both URLs on every read of this file.
 
 4-anchor re-seed: DINO detects boxes on frames [0, 4, 8, 12]; HF Sam3TrackerVideoModel
 propagates per-anchor within its 4-frame segment via `max_frame_num_to_track=3` (raw sam3

@@ -18,7 +18,8 @@
       "Bash(python -m json.tool)",
       "Bash(python -c \"import py_compile; py_compile.compile\\('src/m09c_surgery.py', doraise=True\\); py_compile.compile\\('configs/train/base_optimization.yaml', doraise=False\\) if False else None; print\\('✓ py_compile OK'\\)\")",
       "Bash(git fetch *)",
-      "Bash(git ls-remote *)"
+      "Bash(git ls-remote *)",
+      "WebSearch"
     ]
   }
 }

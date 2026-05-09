@@ -1,4 +1,6 @@
 """Ch11 Factor Surgery — 3-stage progressive unfreezing with D_L/D_A/D_I factor datasets. GPU-only.
+Gold standard (primitives only): https://github.com/facebookresearch/vjepa2/blob/main/app/vjepa_2_1/train.py — surgery composition is novel, no canonical clone target.
+Claude Code: re-WebSearch this URL on every read of this file.
 
 Split from m09_pretrain.py on 2026-04-15 (#49). Pairs with m09a_pretrain.py (vanilla Ch10)
 and m09b_explora.py (LoRA variant). Shared primitives live in utils.training.

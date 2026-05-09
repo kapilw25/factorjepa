@@ -1,4 +1,6 @@
 """Vanilla Ch10 Continual Pretraining (V-JEPA 2.1 with drift control + lambda ablation sweep). GPU-only.
+Gold standard: https://github.com/facebookresearch/vjepa2/blob/main/app/vjepa_2_1/train.py
+Claude Code: re-WebSearch this URL on every read of this file.
 
 Split from m09_pretrain.py on 2026-04-15 (#49). Pairs with m09b_explora.py (LoRA variant)
 and m09c_surgery.py (factor surgery). Shared primitives live in utils.training.

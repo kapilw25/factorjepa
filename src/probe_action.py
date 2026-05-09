@@ -1,4 +1,6 @@
 """Motion-flow attentive probe (Priority 1 gate). GPU-only.
+Gold standard: https://github.com/facebookresearch/vjepa2 (attentive probe — configs/eval/vitg-384/ssv2.yaml).
+Claude Code: re-WebSearch this URL on every read of this file.
 
 iter13 v12 (2026-05-05): replaces saturated 3-class path-derived action labels
 with optical-flow-derived motion classes (16 classes of magnitude×direction
