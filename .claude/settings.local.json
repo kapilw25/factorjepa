@@ -50,7 +50,18 @@
       "Bash(grep -nE \"--subset.*\\\\\\\\\\\\$|--subset \\\\\\\\\\\\$|--val-subset|--probe-subset\" scripts/run_probe_train.sh)",
       "Bash(grep -nB1 -A2 \"argument.*--subset\\\\b\" src/m09c_surgery.py src/m09a_pretrain.py)",
       "Bash(grep -nB1 -A2 'add_argument\\(\"--subset\"' src/m09c_surgery.py src/m09a_pretrain.py)",
-      "Bash(grep -nB1 -A8 \"def load_subset\\\\b\\\\|def load_val_subset\" src/utils/m09_common.py)"
+      "Bash(grep -nB1 -A8 \"def load_subset\\\\b\\\\|def load_val_subset\" src/utils/m09_common.py)",
+      "Bash(grep -nB1 -A8 \"factor_streaming:\" configs/train/surgery_base.yaml configs/train/base_optimization.yaml)",
+      "Bash(grep -nB1 -A20 \"def build_streaming_indices\" src/utils/training.py)",
+      "Bash(grep -nB1 -A6 \"build_streaming_indices\\(\" src/m09c_surgery.py)",
+      "Bash(awk '{print \" npz files: \"$1}')",
+      "Bash(mkdir -p outputs/poc/m10_sam_segment outputs/full/m10_sam_segment)",
+      "Bash(ln -sfn /workspace/factorjepa/data/eval_10k_local/m10_sam_segment/masks outputs/poc/m10_sam_segment/masks)",
+      "Bash(ln -sfn /workspace/factorjepa/data/eval_10k_local/m10_sam_segment/masks outputs/full/m10_sam_segment/masks)",
+      "Bash(ps -p 414412 -o pid,etime,stat,%cpu,%mem,cmd)",
+      "Bash(nvidia-smi --query-gpu=utilization.gpu,memory.used,memory.free --format=csv,noheader)",
+      "Bash(bash -n scripts/run_recipe_v3_sweep.sh)",
+      "Bash(python3 *)"
     ]
   }
 }

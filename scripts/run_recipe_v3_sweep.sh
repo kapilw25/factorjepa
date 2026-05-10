@@ -22,30 +22,61 @@
 # Idempotent: skips cells whose output dir + log already exist.
 #
 # USAGE:
-#   ./scripts/run_recipe_v3_sweep.sh                 # all 7 cells, sequential
-#   ./scripts/run_recipe_v3_sweep.sh R1              # just the full recipe-v3 cell
-#   ./scripts/run_recipe_v3_sweep.sh R1 R5           # specific subset
+#   ./scripts/run_recipe_v3_sweep.sh                          # all 7 cells, POC mode (default)
+#   ./scripts/run_recipe_v3_sweep.sh R1                       # just the full recipe-v3 cell, POC
+#   ./scripts/run_recipe_v3_sweep.sh R1 R5                    # specific subset, POC
+#   SWEEP_MODE=SANITY ./scripts/run_recipe_v3_sweep.sh        # 24 GB SANITY (~2 min/cell)
+#   SWEEP_MODE=POC    ./scripts/run_recipe_v3_sweep.sh        # 96 GB POC (~80 min/cell, default)
+#   SWEEP_MODE=FULL   ./scripts/run_recipe_v3_sweep.sh        # 96 GB FULL (~hours/cell)
 #
-# Precondition: T1 POC sampler fix landed; outputs/poc/probe_action/
-# action_labels.json has 8 motion classes (verify via plan_surgery_wins.md §12.7).
+# SANITY use-case: pre-flight all 7 cells before committing to overnight POC sweep.
+# Each cell runs ~2 min on 24 GB → 7 cells × 2 min = ~15 min, ~$0.05.
+# Validates env-var dispatch + recipe-v3 wiring without burning Blackwell budget.
+#
+# Precondition: T1 POC sampler fix landed; outputs/<mode>/probe_action/
+# action_labels.json auto-generates via probe_labels.ensure_probe_labels_for_mode.
 
 set -euo pipefail
 
+# ─── Mode dispatch (default POC, override via SWEEP_MODE env-var) ─────────
+SWEEP_MODE="${SWEEP_MODE:-POC}"
+case "$SWEEP_MODE" in
+    SANITY|sanity) MODE_FLAG="--SANITY"; mode_dir="sanity" ;;
+    POC|poc)       MODE_FLAG="--POC";    mode_dir="poc"    ;;
+    FULL|full)     MODE_FLAG="--FULL";   mode_dir="full"   ;;
+    *)
+        echo "❌ FATAL: SWEEP_MODE must be SANITY|POC|FULL (got: $SWEEP_MODE)" >&2
+        exit 2
+        ;;
+esac
+
 # ─── Sweep matrix ────────────────────────────────────────────────────────
 # Format: name TEACHER LPFT SUBSET WARMUP SALIENCY SPD REPLAY
+# Order: R6 first (user-priority — direct test of "does raw replay matter?"),
+# then R0 baseline, then drop-one ablations R2-R5. R1 is canonical and already
+# done → idempotency check auto-skips it.
+# NOTE: REPLAY=off does NOT make R6 faster — same 286 steps, same per-step time
+# (~36 s/step on Blackwell). Wall ≈ ~3.5 hr same as R1. Order shifted purely so
+# the R6 vs R1 comparison data lands earliest.
 CELLS=(
-  "R0_baseline             EMA     off   legacy     per_stage   off   off   off"
+  "R6_minus_replay         FROZEN  on    recipe_v3  single      on    on    off"
   "R1_recipe_v3            FROZEN  on    recipe_v3  single      on    on    on"
+  "R0_baseline             EMA     off   legacy     per_stage   off   off   off"
   "R2_minus_frozen         EMA     on    recipe_v3  single      on    on    on"
   "R3_minus_lpft           FROZEN  off   recipe_v3  single      on    on    on"
   "R4_minus_subset         FROZEN  on    legacy     single      on    on    on"
   "R5_minus_spd            FROZEN  on    recipe_v3  single      on    off   on"
-  "R6_minus_replay         FROZEN  on    recipe_v3  single      on    on    off"
 )
 
 VARIANT=surgery_3stage_DI
 LOG_DIR=logs
-OUT_BASE=outputs/poc/m09c_surgery_3stage_DI
+OUT_BASE="outputs/${mode_dir}/m09c_surgery_3stage_DI"
+
+echo "════════════════════════════════════════════════════════════"
+echo "🧬 Recipe-v3 sweep · MODE=${SWEEP_MODE} (${MODE_FLAG})"
+echo "    OUT_BASE: ${OUT_BASE}"
+echo "    LOG_DIR:  ${LOG_DIR}"
+echo "════════════════════════════════════════════════════════════"
 
 # ─── Optional cell filter (cmdline args = subset of cell names) ─────────
 declare -a SELECTED=()
@@ -84,7 +115,7 @@ for line in "${CELLS[@]}"; do
         continue
     fi
     RUN_COUNT=$((RUN_COUNT + 1))
-    LOG="${LOG_DIR}/iter14_poc_recipe_v3_${name}.log"
+    LOG="${LOG_DIR}/iter14_${mode_dir}_recipe_v3_${name}.log"
     OUT_DIR_NAMED="${OUT_BASE}__${name}"
 
     if [ -d "$OUT_DIR_NAMED" ] && [ -f "$LOG" ]; then
@@ -93,7 +124,7 @@ for line in "${CELLS[@]}"; do
     fi
 
     echo "════════════════════════════════════════════════════════════"
-    echo "🔬 Cell ${RUN_COUNT}/${TOTAL_CELLS}: ${name}"
+    echo "🔬 Cell ${RUN_COUNT}/${TOTAL_CELLS}: ${name}  (mode=${SWEEP_MODE})"
     echo "    teacher=$TEACHER  lpft=$LPFT  subset=$SUBSET"
     echo "    warmup=$WARMUP  saliency=$SALIENCY  spd=$SPD  replay=$REPLAY"
     echo "    log:   $LOG"
@@ -109,7 +140,7 @@ for line in "${CELLS[@]}"; do
     SALIENCY_OVERRIDE="$SALIENCY" \
     SPD_OVERRIDE="$SPD" \
     REPLAY_OVERRIDE="$REPLAY" \
-        ./scripts/run_probe_train.sh "$VARIANT" --POC 2>&1 | tee "$LOG"
+        ./scripts/run_probe_train.sh "$VARIANT" "$MODE_FLAG" 2>&1 | tee "$LOG"
 
     # Move outputs to a cell-specific dir so subsequent cells start clean.
     if [ -d "$OUT_BASE" ]; then

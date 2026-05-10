@@ -741,8 +741,11 @@ def build_optimizer(student, predictor, cfg_opt: dict, init_params: dict = None)
         print(f"  Optimizer: SPDAdamW (alpha_spd={spd_cfg['alpha']}, "
               f"n_anchored={opt._n_anchored}) — {n_trainable} param groups")
         return opt
-    return torch.optim.AdamW(param_groups, betas=tuple(cfg_opt["betas"]),
+    opt = torch.optim.AdamW(param_groups, betas=tuple(cfg_opt["betas"]),
                               eps=cfg_opt["eps"])
+    n_trainable = sum(len(g["params"]) for g in param_groups)
+    print(f"  Optimizer: AdamW (fp32, vanilla — SPD off) — {n_trainable} param groups")
+    return opt
 
 
 def enable_gradient_checkpointing(model):

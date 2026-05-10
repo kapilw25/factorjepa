@@ -219,6 +219,26 @@ def merge_config_with_args(cfg: dict, args) -> dict:
     cfg["factor_streaming"]["enabled"] = fs_enabled
     cfg["factor_streaming"]["num_workers"] = fs_cfg["num_workers"][mode_key]
 
+    # iter14 recipe-v3 audit (2026-05-10): FAIL LOUD when REPLAY=on but the
+    # data loader cannot honor it. raw-replay branch lives ONLY in
+    # StreamingFactorDataset.__iter__ (training.py:1838); legacy FactorSampler
+    # path silently ignores raw_pretrain_pct. Without this guard, SANITY mode
+    # (factor_streaming.sanity=false) accepts --replay on but never mixes raw
+    # mp4 — orchestrator banner says "replay=on" while wiring is no-op.
+    if cfg["replay"]["raw_pretrain_pct"] > 0.0 and not fs_enabled:
+        sys.exit(
+            f"❌ FATAL: replay.raw_pretrain_pct={cfg['replay']['raw_pretrain_pct']} > 0 "
+            f"requires factor_streaming.enabled=true (raw-replay branch lives in "
+            f"StreamingFactorDataset only). Got factor_streaming.{mode_key}={fs_enabled} "
+            f"→ legacy FactorSampler path would silently drop replay. Either:\n"
+            f"  (a) flip configs/train/surgery_base.yaml factor_streaming.{mode_key}=true\n"
+            f"  (b) drop --replay on (use --replay off for {mode_key} mode)\n"
+            f"  (c) pass --factor-streaming on the CLI to override yaml gate.")
+    print(f"  [recipe-v3 receipts] saliency_weighting={cfg['optimization']['loss']['saliency_weighting']} "
+          f"· spd.enabled={cfg['optimization']['spd']['enabled']} "
+          f"· raw_pretrain_pct={cfg['replay']['raw_pretrain_pct']} "
+          f"· factor_streaming.enabled={fs_enabled}")
+
     # iter13 v13 FIX-4 (2026-05-07): output dir resolution — two-tier priority:
     #   1. explicit --output-dir CLI flag (highest; shell wrapper uses this)
     #   2. derive variant tag from --train-config filename + use mode subdir from

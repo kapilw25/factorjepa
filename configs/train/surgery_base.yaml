@@ -55,10 +55,16 @@ data:
 # When enabled, m09c DataLoader generates D_L/D_A on-demand from (raw_mp4 +
 # m10_mask.npz) pairs. Unlocks 10K→50K→115K scale ladder on a single 500 GB
 # instance (vs 500 GB → 3 TB → 5 TB rent). See iter/iter9/plan_code_dev.md.
-# Legacy POC run stays on FactorSampler disk path for bitwise reproducibility.
+# iter14 (2026-05-09): POC FLIPPED to streaming for POC↔FULL parity (CLAUDE.md
+# rule). Iter8 1K POC needed bitwise reproducibility on the legacy disk path,
+# but iter14 POC = 91 m10-quality-gated clips on a 96 GB Blackwell — different
+# regime. Recipe-v3 #5 CLEAR raw replay (utils.training.StreamingFactorDataset
+# raw_replay_pct branch) only fires in the streaming code path; with POC=false
+# the legacy FactorSampler ignored REPLAY_OVERRIDE=on, silently 4-of-5
+# interventions instead of 5-of-5 → invalid R1 ablation result.
 factor_streaming:
   sanity: false                   # legacy .npy path (iter8 SANITY reproducible)
-  poc:    false                   # iter8 1K POC: bitwise reproducible on legacy
+  poc:    true                    # iter14: parity with FULL → CLEAR replay #5 fires
   full:   true                    # 🎯 unlocks scale ladder
   num_workers:
     sanity: 0                     # in-process debug path, deterministic
@@ -105,23 +111,18 @@ optimization:
   # threaten the win condition. 96 GB has headroom → no savers needed. ~33%
   # throughput gain vs 24GB path. Matches user priority: Accuracy > Throughput.
   use_8bit_optim:
-    sanity: true      # 24GB SANITY: need memory saver (code correctness only)
+    sanity: false     # iter14 SANITY runs on Blackwell 96 GB (not 24 GB) → match POC optimizer class. Required: bitsandbytes has no SPDAdamW8bit wrapper, and SANITY MUST exercise SPD path for wiring validation (build_optimizer FATALs if 8bit + spd both true).
     poc: false        # 96GB POC: clean fp32 for research-quality comparison
     full: false       # 96GB FULL: clean fp32 for paper-quality result
   gradient_checkpointing:
     sanity: true
     poc: false
     full: false
-  # Paged optimizer (#58) — ONLY read when use_8bit_optim is true. SANITY Stage 3
-  # (36 trainable blocks) needs CPU paging of optimizer state: fp32 master
-  # weights (~5.5 GB) + 8-bit m1/m2 (~3 GB) + model + activations don't all fit
-  # simultaneously in 24 GB even after inter-stage cleanup. `bnb.optim.PagedAdamW8bit`
-  # uses unified memory — cold optimizer tensors page to CPU RAM on pressure,
-  # warm ones stay on GPU. Same 8-bit quantization (no accuracy change), ~10-20%
-  # throughput hit. HF QLoRA's default for fine-tuning 7-65B on consumer GPUs.
+  # Paged optimizer (#58) — ONLY read when use_8bit_optim is true. Dead config when
+  # 8bit is false across all modes (iter14 default). Kept for documentation.
   paged_optim:
-    sanity: true      # 24GB SANITY: page optimizer state on pressure
-    poc: false        # 96GB POC: not needed (never used anyway since use_8bit_optim=false)
+    sanity: false     # gated on use_8bit_optim.sanity (now false)
+    poc: false        # 96GB POC: not needed
     full: false
 
 # -- Factor datasets (m10/m11 prerequisite) --
