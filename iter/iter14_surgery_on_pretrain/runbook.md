@@ -115,27 +115,31 @@ SWEEP_MODE=POC ./scripts/run_recipe_v3_sweep.sh 2>&1 \
 > mini-batches per cell. R1 wall = 3 h 43 m (measured). 7-cell projection ≈ 26 hr ·
 > cost ≈ $65 @ $2.50/hr. R1 already done → 6 remaining cells ≈ 22 hr · $56.
 
-| 🔢 Cell                | 🧊 TEACH    | 🧠 LPFT  | ✂️ SUBSET     | 📝 WARMUP    | 🎯 SALI  | 🛡️ SPD  | 🔁 REPLAY    | ⏱️ Wall  | 💡 Layman example — "what does this cell teach us?" |
+| 🔢 Cell                | 🧊 TEACH    | 🧠 LPFT  | 🔧 SUBSET     | 📝 WARMUP    | 🎯 SALI  | 🔒 SPD  | 🔁 REPLAY    | ⏱️ Wall  | 💡 Layman example — "what does this cell teach us?" |
 |------------------------|-------------|----------|---------------|--------------|----------|---------|--------------|----------|------------------------------------------------------|
 | 🅰️ R0_baseline         | 🌀 EMA      | ❌ off   | 📏 12/24/24   | 📐 per_stage | ❌ off   | ❌ off  | ❌ off       | ~3.7 hr  | 🆓 **Control group — NO recipe-v3 guardrails.** Like editing a Wikipedia article with no spell-check, no undo button, no backup. Measures the damage WITHOUT any of the 5 fixes. |
-| ⭐ R1_recipe_v3        | 🧊 FROZEN   | ✅ on    | ✂️ 4 / 8 / 8  | 📝 single    | ✅ on    | 🛡️ on  | 🔁 on (50%)  | ~3.7 hr  | 🥇 **All 5 safety guardrails ON.** Like editing Wikipedia WITH: (a) a frozen reference copy you compare against · (b) typing-tutor warmup before real edits · (c) edit-only-4-paragraphs limit · (d) smart undo that only undoes harmful edits · (e) 50% of the original article mixed back in. Full toolkit. |
-| 🅱️ R2_minus_frozen     | 🌀 EMA      | ✅ on    | ✂️ 4 / 8 / 8  | 📝 single    | ✅ on    | 🛡️ on  | 🔁 on        | ~3.7 hr  | ❓ **"Does FROZEN-reference matter?"** Reference copy slowly drifts toward your edits via EMA. Tests: is the rock-solid anchor critical, or is a slow-moving anchor close enough? |
-| 🅲 R3_minus_lpft       | 🧊 FROZEN   | ❌ off   | ✂️ 4 / 8 / 8  | 📝 single    | ✅ on    | 🛡️ on  | 🔁 on        | ~3.7 hr  | ❓ **"Does head-only WARMUP matter?"** Skip the typing-tutor — jump straight to editing the article. Tests: does pre-warming the task heads first protect the pretrained skill set? |
-| 🅳 R4_minus_subset     | 🧊 FROZEN   | ✅ on    | 📏 12/24/24   | 📝 single    | ✅ on    | 🛡️ on  | 🔁 on        | ~3.7 hr  | ❓ **"Does SHALLOW unfreezing matter?"** Allow editing 12+ paragraphs at once instead of just 4. Tests: is the gradient blast on too-many-layers the catastrophic-forgetting cause? |
-| 🅴 R5_minus_spd        | 🧊 FROZEN   | ✅ on    | ✂️ 4 / 8 / 8  | 📝 single    | ✅ on    | ❌ off  | 🔁 on        | ~3.7 hr  | ❓ **"Does SPD specifically help?"** Vanilla AdamW with uniform weight-decay anchor instead of selective pull-back. Tests: does the *selective* gating (only fight gradient when it's pulling AWAY from anchor) actually beat plain uniform decay? |
-| 🅵 R6_minus_replay     | 🧊 FROZEN   | ✅ on    | ✂️ 4 / 8 / 8  | 📝 single    | ✅ on    | 🛡️ on  | ❌ off       | ~3.7 hr  | ❓ **"Does raw-video REPLAY matter?"** Train ONLY on factor-distorted clips, no glimpses of pretrain-domain. Tests: does mixing 50% of the original distribution back in actually prevent domain drift? |
+| ⭐ R1_recipe_v3        | 🧊 FROZEN   | ✅ on    | 🔧 4 / 8 / 8  | 📝 single    | ✅ on    | 🔒 on  | 🔁 on (50%)  | ~3.7 hr  | 🥇 **All 5 safety guardrails ON.** Like editing Wikipedia WITH: (a) a frozen reference copy you compare against · (b) typing-tutor warmup before real edits · (c) edit-only-4-paragraphs limit · (d) smart undo that only undoes harmful edits · (e) 50% of the original article mixed back in. Full toolkit. |
+| 🅱️ R2_minus_frozen     | 🌀 EMA      | ✅ on    | 🔧 4 / 8 / 8  | 📝 single    | ✅ on    | 🔒 on  | 🔁 on        | ~3.7 hr  | ❓ **"Does FROZEN-reference matter?"** Reference copy slowly drifts toward your edits via EMA. Tests: is the rock-solid anchor critical, or is a slow-moving anchor close enough? |
+| 🅲 R3_minus_lpft       | 🧊 FROZEN   | ❌ off   | 🔧 4 / 8 / 8  | 📝 single    | ✅ on    | 🔒 on  | 🔁 on        | ~3.7 hr  | ❓ **"Does head-only WARMUP matter?"** Skip the typing-tutor — jump straight to editing the article. Tests: does pre-warming the task heads first protect the pretrained skill set? |
+| 🅳 R4_minus_subset     | 🧊 FROZEN   | ✅ on    | 📏 12/24/24   | 📝 single    | ✅ on    | 🔒 on  | 🔁 on        | ~3.7 hr  | ❓ **"Does SHALLOW unfreezing matter?"** Allow editing 12+ paragraphs at once instead of just 4. Tests: is the gradient blast on too-many-layers the catastrophic-forgetting cause? |
+| 🅴 R5_minus_spd        | 🧊 FROZEN   | ✅ on    | 🔧 4 / 8 / 8  | 📝 single    | ✅ on    | ❌ off  | 🔁 on        | ~3.7 hr  | ❓ **"Does SPD specifically help?"** Vanilla AdamW with uniform weight-decay anchor instead of selective pull-back. Tests: does the *selective* gating (only fight gradient when it's pulling AWAY from anchor) actually beat plain uniform decay? |
+| 🅵 R6_minus_replay     | 🧊 FROZEN   | ✅ on    | 🔧 4 / 8 / 8  | 📝 single    | ✅ on    | 🔒 on  | ❌ off       | ~3.7 hr  | ❓ **"Does raw-video REPLAY matter?"** Train ONLY on factor-distorted clips, no glimpses of pretrain-domain. Tests: does mixing 50% of the original distribution back in actually prevent domain drift? |
 
 #### 🗝️ Switch legend (what each column means)
 
-| Switch       | OFF state                                        | ON state                                          | What's at stake                                     |
-|--------------|--------------------------------------------------|---------------------------------------------------|------------------------------------------------------|
-| 🧊 TEACH     | 🌀 EMA — teacher slowly tracks student          | 🧊 FROZEN — teacher = pretrain ckpt forever (SALT)| anchor stability vs. drift                          |
-| 🧠 LPFT      | ❌ no head-only warmup                          | ✅ stage 0 trains heads only (encoder frozen)     | feature distortion at step 1                        |
-| ✂️ SUBSET    | 📏 legacy 12 / 24 / 24 unfrozen blocks per stage| ✂️ recipe-v3 4 / 8 / 8 (Lee ICLR'23)             | gradient blast on too many layers                   |
-| 📝 WARMUP    | 📐 per_stage — warmup repeats every stage        | 📝 single — one front-loaded warmup (vjepa2 ref)  | LR shock at stage boundaries                        |
-| 🎯 SALI      | ❌ uniform mean loss across tokens               | ✅ MGMAE-style teacher-norm-weighted loss         | learning signal concentration                       |
-| 🛡️ SPD       | ❌ uniform L2 anchor (legacy lambda_reg)         | 🛡️ selective projection decay (Tian NeurIPS'24)  | escape Δ2 ≈ 0 trap                                 |
-| 🔁 REPLAY    | ❌ factor-only batches                           | 🔁 50% raw mp4 + 50% factor (CLEAR)               | pretrain-domain anchoring                           |
+```
+┌────────────┬─────────────────────────────────────────────────────┬───────────────────────────────┬─────────────────────────────────────┬───────────────────────────────────┐
+│ Switch     │ Full name (paper, year)                              │ OFF state                     │ ON state                            │ What's at stake                   │
+├────────────┼─────────────────────────────────────────────────────┼───────────────────────────────┼─────────────────────────────────────┼───────────────────────────────────┤
+│ 🧊 TEACH   │ SALT — Self-Anchored Latent Teacher (Apple 2025)     │ 🌀 EMA tracks student         │ 🧊 FROZEN — teacher = init forever  │ anchor stability vs. drift        │
+│ 🧠 LPFT    │ Linear-Probing then Fine-Tuning (Kumar ICLR 2022)    │ ❌ no head-only warmup        │ ✅ stage 0 = heads only             │ feature distortion at step 1      │
+│ 🔧 SUBSET  │ Surgical Fine-Tuning (Lee ICLR 2023)                 │ 📏 legacy 12/24/24 blocks     │ 🔧 recipe-v3 4/8/8 blocks          │ gradient blast on too many layers │
+│ 📝 WARMUP  │ Single front-loaded LR warmup (V-JEPA 2 reference)   │ 📐 per_stage warmup repeats   │ 📝 single warmup at start           │ LR shock at stage boundaries      │
+│ 🎯 SALI    │ MGMAE — Motion-Guided MAE (Yang ICCV 2023)           │ ❌ uniform mean loss          │ ✅ teacher-norm-weighted loss       │ learning signal concentration     │
+│ 🔒 SPD     │ SPD — Selective Projection Decay (Tian NeurIPS 2024) │ ❌ uniform L2 anchor          │ 🔒 selective projection pull-back   │ escape Δ2 ≈ 0 trap                │
+│ 🔁 REPLAY  │ CLEAR — Continual Learning Experience Replay (NIPS'18)│ ❌ factor-only batches        │ 🔁 50% raw mp4 + 50% factor         │ pretrain-domain anchoring         │
+└────────────┴─────────────────────────────────────────────────────┴───────────────────────────────┴─────────────────────────────────────┴───────────────────────────────────┘
+```
 
 ### 📊 Aggregate the 7 cells' trio top-1 trajectories
 
@@ -407,7 +411,7 @@ multitail -f logs/iter14_poc_recipe_v3_*.log
 
 ---
 
-## 🛡️ Recipe-v3 env-var reference (canonical)
+## 🔒 Recipe-v3 env-var reference (canonical)
 
 | Env var                      | Values            | What it overrides                                         |
 |------------------------------|-------------------|-----------------------------------------------------------|

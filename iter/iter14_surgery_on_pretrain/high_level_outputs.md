@@ -15,7 +15,7 @@
 | 🅲 v14 | narrow · 2-stg lean 🏆 · S2 L=30/A=70 · H10 per-stage plateau reset | 9,566 / 500 / 500 | ✅ · ✅ · ❌ | 0.632 ⚠️ | 2️⃣ | 223,826 | ➕0.07 🟢 | ➕0.13 🟢 | — | 3h07m ⚡ | ❌ (<+3pp 🎯) | 👑 apples-apples leader · 20× below NeurIPS bar · dataset-limited |
 | 🅳 v15a | more-laps 🔄 · 2-stg · max_epochs=3 · S2 L=30/A=70 | 9,566 / 500 / 500 | ✅ · ✅ · ❌ | 0.632 ⚠️ | 2️⃣ | 223,826 | 0.00 🟡 | ➖0.07 🔴 | — | 5h36m 🐌 | ❌ FAIL | 📉 3× epochs → 0 · no data-starvation at 10K |
 | 🅴 v15b | louder-agent 📢 · 2-stg · S2 L=15/A=85 | 9,566 / 500 / 500 | ✅ · ✅ · ❌ | 0.632 ⚠️ | 2️⃣ | 223,826 | ➖0.10 🔴 | ➖0.07 🔴 | — | 3h07m ⚡ | ❌ FAIL | ⚖️ 70/30 mix optimal · tilting toward A overfits agent-noise |
-| 🅵 v15c | safer-int 🛡️ · 3-stg schedule · stage3 L=50/A=50 · D_I streaming code live | 9,566 / 500 / 500 | ✅ · ✅ · ❌ (interaction_mining disabled, D_I=0) | 0.632 ⚠️ | 3️⃣ | 223,826 | ➖0.13 🔴 | 0.00 🟡 | 0.375 / 0.975 🟡 | 3h17m ⚡ | ❌ FAIL | 🎭 Easy hurt; Hard flat — stage3 L/A re-balance adds noise on narrow taxonomy |
+| 🅵 v15c | safer-int 🔒 · 3-stg schedule · stage3 L=50/A=50 · D_I streaming code live | 9,566 / 500 / 500 | ✅ · ✅ · ❌ (interaction_mining disabled, D_I=0) | 0.632 ⚠️ | 3️⃣ | 223,826 | ➖0.13 🔴 | 0.00 🟡 | 0.375 / 0.975 🟡 | 3h17m ⚡ | ❌ FAIL | 🎭 Easy hurt; Hard flat — stage3 L/A re-balance adds noise on narrow taxonomy |
 
 ---
 
@@ -303,7 +303,7 @@ iter13's first attempt at continual SSL pretrain on the 10K eval-pool. Multi-att
 ├──────────────────────────────────┼───────────┼───────────┼───────────┼───────────┼──────────────────────────────┤
 │  🥇 Best top-1                   │  0.7520   │  0.7840   │  0.7520   │  0.7840   │  🤝 B = D₂ (tied @ stage 0)  │
 │  🏁 Final top-1                  │  0.7440   │  0.7680   │  0.7440   │  0.7360   │  🅱️ B                       │
-│  🛡️  BWT (final − step1)         │ -0.0080   │ -0.0160   │ -0.0080   │ -0.0480 🔥│  🅰️=🅲 (smallest swing)     │
+│  🔒  BWT (final − step1)         │ -0.0080   │ -0.0160   │ -0.0080   │ -0.0480 🔥│  🅰️=🅲 (smallest swing)     │
 │  🌀 motion_cos best              │  0.2606   │  0.2623   │  0.2606   │  0.2616   │  🅱️ B                       │
 │  🌀 motion_cos final stage       │  0.2529   │  0.2561   │  0.2529   │  0.1949 🔥│  🅱️  (D₂ collapses stage 3) │
 │  🔮 future_l1 best (lower=bttr)  │  0.5561   │  0.5558   │  0.5563   │  0.5458 ⭐│  🅳 D₂                       │
@@ -342,7 +342,7 @@ Per `plan_surgery_wins.md §12.7` POC sampler bug analysis:
 
 ```
 ┌─────┬───────────────┬─────────┬───────────────┬───────────────┬───────────┬────────┬─────────────┐
-│ 🔠  │ 🧊 TEACHER    │ 🧠 LPFT │ ✂️ SUBSET     │ 📝 WARMUP     │ 🎯 SALI   │ 🛡️ SPD │ 🔁 REPLAY   │
+│ 🔠  │ 🧊 TEACHER    │ 🧠 LPFT │ 🔧 SUBSET     │ 📝 WARMUP     │ 🎯 SALI   │ 🔒 SPD │ 🔁 REPLAY   │
 ├─────┼───────────────┼─────────┼───────────────┼───────────────┼───────────┼────────┼─────────────┤
 │ R0  │ 🌀 EMA        │ off     │ 12/24/24 leg  │ per_stage     │ off       │ off    │ off         │
 │ R1⭐│ 🧊 FROZEN     │ on      │ 4/8/8 v3      │ single        │ on        │ on     │ on (50%)    │
