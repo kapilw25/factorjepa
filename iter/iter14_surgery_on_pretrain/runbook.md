@@ -109,39 +109,11 @@ SWEEP_MODE=POC ./scripts/run_recipe_v3_sweep.sh 2>&1 \
   | tee logs/iter14_recipe_v3_sweep_orchestrator_v2.log
 ```
 
-### 🔬 Sweep matrix (7 drop-one cells)
-
-> ⏱️ Wall update (2026-05-10, measured from R1): POC trains on 9,161 clips × 286
-> mini-batches per cell. R1 wall = 3 h 43 m (measured). 7-cell projection ≈ 26 hr ·
-> cost ≈ $65 @ $2.50/hr. R1 already done → 6 remaining cells ≈ 22 hr · $56.
-
-| 🔢 Cell                | 🧊 TEACH    | 🧠 LPFT  | 🔧 SUBSET     | 📝 WARMUP    | 🎯 SALI  | 🔒 SPD  | 🔁 REPLAY    | ⏱️ Wall  | 💡 Layman example — "what does this cell teach us?" |
-|------------------------|-------------|----------|---------------|--------------|----------|---------|--------------|----------|------------------------------------------------------|
-| 🅰️ R0_baseline         | 🌀 EMA      | ❌ off   | 📏 12/24/24   | 📐 per_stage | ❌ off   | ❌ off  | ❌ off       | ~3.7 hr  | 🆓 **Control group — NO recipe-v3 guardrails.** Like editing a Wikipedia article with no spell-check, no undo button, no backup. Measures the damage WITHOUT any of the 5 fixes. |
-| ⭐ R1_recipe_v3        | 🧊 FROZEN   | ✅ on    | 🔧 4 / 8 / 8  | 📝 single    | ✅ on    | 🔒 on  | 🔁 on (50%)  | ~3.7 hr  | 🥇 **All 5 safety guardrails ON.** Like editing Wikipedia WITH: (a) a frozen reference copy you compare against · (b) typing-tutor warmup before real edits · (c) edit-only-4-paragraphs limit · (d) smart undo that only undoes harmful edits · (e) 50% of the original article mixed back in. Full toolkit. |
-| 🅱️ R2_minus_frozen     | 🌀 EMA      | ✅ on    | 🔧 4 / 8 / 8  | 📝 single    | ✅ on    | 🔒 on  | 🔁 on        | ~3.7 hr  | ❓ **"Does FROZEN-reference matter?"** Reference copy slowly drifts toward your edits via EMA. Tests: is the rock-solid anchor critical, or is a slow-moving anchor close enough? |
-| 🅲 R3_minus_lpft       | 🧊 FROZEN   | ❌ off   | 🔧 4 / 8 / 8  | 📝 single    | ✅ on    | 🔒 on  | 🔁 on        | ~3.7 hr  | ❓ **"Does head-only WARMUP matter?"** Skip the typing-tutor — jump straight to editing the article. Tests: does pre-warming the task heads first protect the pretrained skill set? |
-| 🅳 R4_minus_subset     | 🧊 FROZEN   | ✅ on    | 📏 12/24/24   | 📝 single    | ✅ on    | 🔒 on  | 🔁 on        | ~3.7 hr  | ❓ **"Does SHALLOW unfreezing matter?"** Allow editing 12+ paragraphs at once instead of just 4. Tests: is the gradient blast on too-many-layers the catastrophic-forgetting cause? |
-| 🅴 R5_minus_spd        | 🧊 FROZEN   | ✅ on    | 🔧 4 / 8 / 8  | 📝 single    | ✅ on    | ❌ off  | 🔁 on        | ~3.7 hr  | ❓ **"Does SPD specifically help?"** Vanilla AdamW with uniform weight-decay anchor instead of selective pull-back. Tests: does the *selective* gating (only fight gradient when it's pulling AWAY from anchor) actually beat plain uniform decay? |
-| 🅵 R6_minus_replay     | 🧊 FROZEN   | ✅ on    | 🔧 4 / 8 / 8  | 📝 single    | ✅ on    | 🔒 on  | ❌ off       | ~3.7 hr  | ❓ **"Does raw-video REPLAY matter?"** Train ONLY on factor-distorted clips, no glimpses of pretrain-domain. Tests: does mixing 50% of the original distribution back in actually prevent domain drift? |
-
-#### 🗝️ Switch legend (what each column means)
-
-```
-┌────────────┬─────────────────────────────────────────────────────┬───────────────────────────────┬─────────────────────────────────────┬───────────────────────────────────┐
-│ Switch     │ Full name (paper, year)                              │ OFF state                     │ ON state                            │ What's at stake                   │
-├────────────┼─────────────────────────────────────────────────────┼───────────────────────────────┼─────────────────────────────────────┼───────────────────────────────────┤
-│ 🧊 TEACH   │ SALT — Self-Anchored Latent Teacher (Apple 2025)     │ 🌀 EMA tracks student         │ 🧊 FROZEN — teacher = init forever  │ anchor stability vs. drift        │
-│ 🧠 LPFT    │ Linear-Probing then Fine-Tuning (Kumar ICLR 2022)    │ ❌ no head-only warmup        │ ✅ stage 0 = heads only             │ feature distortion at step 1      │
-│ 🔧 SUBSET  │ Surgical Fine-Tuning (Lee ICLR 2023)                 │ 📏 legacy 12/24/24 blocks     │ 🔧 recipe-v3 4/8/8 blocks          │ gradient blast on too many layers │
-│ 📝 WARMUP  │ Single front-loaded LR warmup (V-JEPA 2 reference)   │ 📐 per_stage warmup repeats   │ 📝 single warmup at start           │ LR shock at stage boundaries      │
-│ 🎯 SALI    │ MGMAE — Motion-Guided MAE (Yang ICCV 2023)           │ ❌ uniform mean loss          │ ✅ teacher-norm-weighted loss       │ learning signal concentration     │
-│ 🔒 SPD     │ SPD — Selective Projection Decay (Tian NeurIPS 2024) │ ❌ uniform L2 anchor          │ 🔒 selective projection pull-back   │ escape Δ2 ≈ 0 trap                │
-│ 🔁 REPLAY  │ CLEAR — Continual Learning Experience Replay (NIPS'18)│ ❌ factor-only batches        │ 🔁 50% raw mp4 + 50% factor         │ pretrain-domain anchoring         │
-└────────────┴─────────────────────────────────────────────────────┴───────────────────────────────┴─────────────────────────────────────┴───────────────────────────────────┘
-```
-
 ### 📊 Aggregate the 7 cells' trio top-1 trajectories
+
+> 📋 Sweep matrix (cell definitions) + Switch legend (flag meanings + paper refs) live in
+> [`iter/iter15_trainHead_freezeEncoder/high_level_outputs.md`](../iter15_trainHead_freezeEncoder/high_level_outputs.md)
+> under `## 📊 iter14 POC Recipe-v3 7-Cell Drop-One Ablation`.
 
 ```bash
 # Tail of each cell's per-stage probe-trio readings
@@ -175,111 +147,14 @@ for c, v in results.items():
 EOF
 ```
 
-### 🚦 Decision rule (per `plan_surgery_wins.md` § 7.5 + § 12.4)
+### 📊 Results & ablation tables
 
-| R1 best trio top-1                          | ➡️ Branch                                                                 |
-|---------------------------------------------|---------------------------------------------------------------------------|
-| 🟢 ≥ 0.808 AND projected test-Δ ≥ +5 pp     | wire fixes via `plan_no_discrepancy.md` Phases A→D, then 3️⃣ FULL surgery  |
-| 🟡 0.81–0.83 (marginal, Δ < +5 pp)          | run Phase 5 FG-feature m04d (`plan_phase5_fg_motion_features.md`)         |
-| 🔴 all 7 cells regress (R1 < 0.78)          | Path 2: relax m10 thresholds (data-scale fix, ~$50–60)                    |
-
-### 📊 7-method comparison — R1 LANDED · others pending
-
-> R1 finished 2026-05-10 02:20 UTC (~3 h 32 m, ~$2.83). Source:
-> `outputs/poc/m09c_surgery_3stage_DI__R1_recipe_v3/probe_history.jsonl` +
-> `loss_log.jsonl` + `training_summary.json`.
+> All results tables (7-method comparison · per-stage trajectories · 3 evidence tables ·
+> 3-tier intervention ranking · decision rule) live in
+> [`iter/iter15_trainHead_freezeEncoder/high_level_outputs.md`](../iter15_trainHead_freezeEncoder/high_level_outputs.md)
+> under `## 📊 iter14 POC Recipe-v3 7-Cell Drop-One Ablation`.
 >
-> 🥇 **R1 verdict**: top1=**0.8456** (+3.7 pp vs 0.808 anchor), MONOTONIC trajectory,
-> NO regression. Per §7.5 decision tree → between 🟢-light and 🟡 (above marginal
-> band, below strict-win Δ≥+5 pp threshold). Recipe-v3 mechanism works at POC scale.
-
-```
-┌────────────────────┬───────────┬───────────┬───────────┬───────────┬───────────┬───────────┬───────────┬─────────┬───────────────────┐
-│ 🔢 Cell            │ best top1 │ Δ vs 0.808│ best m_cos│ best fL1 ↓│ best vJ ↓ │ train↓best│ BWT       │ ⏱️ wall  │ status            │
-├────────────────────┼───────────┼───────────┼───────────┼───────────┼───────────┼───────────┼───────────┼─────────┼───────────────────┤
-│ 🅰️ R0_baseline    │ ⏳        │ ⏳        │ ⏳        │ ⏳        │ ⏳        │ ⏳        │ ⏳        │ ⏳      │ ⏳ pending        │
-│ ⭐ R1_recipe_v3   │ 0.8456 🥇 │ +3.70 pp✅│ 0.2747    │ 0.5329    │ 0.4744    │ 0.4570    │ +0.0147 ✅│ 3h 32m  │ ✅ DONE 02:20 UTC│
-│ 🅱️ R2_minus_frozen │ ⏳        │ ⏳        │ ⏳        │ ⏳        │ ⏳        │ ⏳        │ ⏳        │ ⏳      │ ⏳ pending        │
-│ 🅲 R3_minus_lpft   │ ⏳        │ ⏳        │ ⏳        │ ⏳        │ ⏳        │ ⏳        │ ⏳        │ ⏳      │ ⏳ pending        │
-│ 🅳 R4_minus_subset │ ⏳        │ ⏳        │ ⏳        │ ⏳        │ ⏳        │ ⏳        │ ⏳        │ ⏳      │ ⏳ pending        │
-│ 🅴 R5_minus_spd    │ ⏳        │ ⏳        │ ⏳        │ ⏳        │ ⏳        │ ⏳        │ ⏳        │ ⏳      │ ⏳ pending        │
-│ 🅵 R6_minus_replay │ ⏳        │ ⏳        │ ⏳        │ ⏳        │ ⏳        │ ⏳        │ ⏳        │ ⏳      │ 🔄 NEXT (queued)  │
-└────────────────────┴───────────┴───────────┴───────────┴───────────┴───────────┴───────────┴───────────┴─────────┴───────────────────┘
-markers:  🥇 best across cells · ✅ above 0.808 anchor · ↓ lower=better · ⏳ pending
-metrics:  m_cos = motion_cos best across stages · fL1 = future_l1 (lower=better) · vJ = val_jepa (lower=better)
-          BWT = top1(stage 3) − top1(stage 0)  ·  positive = improving across stages
-```
-
-#### 🪜 R1 per-stage trajectory (motion_cos / future_l1 / val_jepa per stage)
-
-```
-┌───────────────────────────┬───────────┬───────────┬───────────┬───────────┬───────────┐
-│ 🪜 Stage                  │ probe top1│ motion_cos│ future_l1 │ val_jepa  │ train loss│
-├───────────────────────────┼───────────┼───────────┼───────────┼───────────┼───────────┤
-│ 0️⃣ stage0_head_only      │ 0.8309    │ 0.2699    │ 0.5545    │ 0.4919    │ 0.4960    │
-│ 1️⃣ stage1_layout (D_L)   │ 0.8382 ↑ │ 0.2747 ↑ │ 0.5374 ↓ │ 0.4758 ↓ │ 0.4960    │
-│ 2️⃣ stage2_agent (D_A)    │ 0.8382 = │ 0.2699 ↓ │ 0.5386    │ 0.4744 ↓ │ 0.4623 ↓ │
-│ 3️⃣ stage3_interaction(I) │ 0.8456 ⭐│ 0.2683 ↓ │ 0.5329 ↓ │ 0.4664 ↓ │ 0.4570 ↓ │
-└───────────────────────────┴───────────┴───────────┴───────────┴───────────┴───────────┘
-trajectory: MONOTONIC ↑ on top1 + future_l1 + val_jepa + train loss (no regression)
-            stage-DIFFERENTIAL on motion_cos: D_L stage UP, D_A stage DOWN ← signature of factor-conditioned learning
-```
-
-### 🔬 "Is +3.7 pp just from raw replay (50% of batch), not factor masks?" — 3 scalable tables
-
-> One row per cell, one column per stage. R1 filled · R0/R2–R6 ⏳ pending.
-> Sources: `outputs/poc/m09c_surgery_3stage_DI__<cell>/{loss_log.jsonl, probe_history.jsonl}`.
-> Definitive answer requires **R6** (drop-replay, queued first) + **Δ3** vs `pretrain_FULL_10ep` (FULL mode).
-
-**Evidence #1 · `loss_drift` per stage** — raw-replay hypothesis predicts drift ≈ 0 (replay = anchor distribution)
-```
-┌──────────────────┬──────────┬──────────┬──────────┬──────────┬──────────────────┐
-│ Cell             │ s0_head  │ s1_L     │ s2_A     │ s3_I     │ verdict          │
-├──────────────────┼──────────┼──────────┼──────────┼──────────┼──────────────────┤
-│ R6_minus_replay  │ ⏳       │ ⏳       │ ⏳       │ ⏳       │ ⏳               │
-│ R1_recipe_v3 ⭐  │ 8.6e-05  │ 0.00290  │ 0.00550  │ 0.00446  │ ↑ 50× — NOT zero✅│
-│ R0_baseline      │ ⏳       │ ⏳       │ ⏳       │ ⏳       │ ⏳               │
-│ R2_minus_frozen  │ ⏳       │ ⏳       │ ⏳       │ ⏳       │ ⏳               │
-│ R3_minus_lpft    │ ⏳       │ ⏳       │ ⏳       │ ⏳       │ ⏳               │
-│ R4_minus_subset  │ ⏳       │ ⏳       │ ⏳       │ ⏳       │ ⏳               │
-│ R5_minus_spd     │ ⏳       │ ⏳       │ ⏳       │ ⏳       │ ⏳               │
-└──────────────────┴──────────┴──────────┴──────────┴──────────┴──────────────────┘
-verdict ✅ = drift grew while loss_jepa fell (R1: 0.5070→0.4570) → encoder did move, prediction got better
-```
-
-**Evidence #2 · `motion_cos` per stage** — raw-replay hypothesis predicts MONOTONIC ↑ (no stage signal)
-```
-┌──────────────────┬──────────┬──────────┬──────────┬──────────┬──────────────────┐
-│ Cell             │ s0_head  │ s1_L 🅛  │ s2_A 🅐  │ s3_I 🅘  │ pattern          │
-├──────────────────┼──────────┼──────────┼──────────┼──────────┼──────────────────┤
-│ R6_minus_replay  │ ⏳       │ ⏳       │ ⏳       │ ⏳       │ ⏳               │
-│ R1_recipe_v3 ⭐  │ 0.2699   │ 0.2747 ↑ │ 0.2735 ↓ │ 0.2683 ↓ │ DIFFERENTIAL ✅  │
-│ R0_baseline      │ ⏳       │ ⏳       │ ⏳       │ ⏳       │ ⏳               │
-│ R2_minus_frozen  │ ⏳       │ ⏳       │ ⏳       │ ⏳       │ ⏳               │
-│ R3_minus_lpft    │ ⏳       │ ⏳       │ ⏳       │ ⏳       │ ⏳               │
-│ R4_minus_subset  │ ⏳       │ ⏳       │ ⏳       │ ⏳       │ ⏳               │
-│ R5_minus_spd     │ ⏳       │ ⏳       │ ⏳       │ ⏳       │ ⏳               │
-└──────────────────┴──────────┴──────────┴──────────┴──────────┴──────────────────┘
-pattern ✅ = stage-conditional ↑/↓ tracks dominant-factor mixture (50%L → 70%A → 70%I)
-```
-
-**Evidence #3 · `probe_top1` Δ per stage** — raw-replay hypothesis predicts gain front-loaded at s0 (replay starts then)
-```
-┌──────────────────┬──────────┬──────────┬──────────┬──────────┬──────────────────┐
-│ Cell             │ Δ s0     │ Δ s1     │ Δ s2     │ Δ s3     │ total            │
-├──────────────────┼──────────┼──────────┼──────────┼──────────┼──────────────────┤
-│ R6_minus_replay  │ ⏳       │ ⏳       │ ⏳       │ ⏳       │ ⏳               │
-│ R1_recipe_v3 ⭐  │ +2.3 pp  │ +0.7 pp  │ +0.0 pp  │ +0.7 pp  │ +3.7 pp ✅       │
-│ R0_baseline      │ ⏳       │ ⏳       │ ⏳       │ ⏳       │ ⏳               │
-│ R2_minus_frozen  │ ⏳       │ ⏳       │ ⏳       │ ⏳       │ ⏳               │
-│ R3_minus_lpft    │ ⏳       │ ⏳       │ ⏳       │ ⏳       │ ⏳               │
-│ R4_minus_subset  │ ⏳       │ ⏳       │ ⏳       │ ⏳       │ ⏳               │
-│ R5_minus_spd     │ ⏳       │ ⏳       │ ⏳       │ ⏳       │ ⏳               │
-└──────────────────┴──────────┴──────────┴──────────┴──────────┴──────────────────┘
-total ✅ = ⅔ of gain (s1 + s3) lands AT factor-data introduction boundaries, not at s0 alone
-```
-
-⚠️ `block_drift_history.json` is AMBIGUOUS (all 48 blocks moved, middle > top — likely rel_l2 attribution artifact). NOT cited.
+> 🏁 **Sweep complete 2026-05-11 00:54 UTC** · wall 24h 40m · ~$62 · R1=0.8456 🥇.
 
 ---
 

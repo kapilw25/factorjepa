@@ -61,7 +61,9 @@
       "Bash(ps -p 414412 -o pid,etime,stat,%cpu,%mem,cmd)",
       "Bash(nvidia-smi --query-gpu=utilization.gpu,memory.used,memory.free --format=csv,noheader)",
       "Bash(bash -n scripts/run_recipe_v3_sweep.sh)",
-      "Bash(python3 *)"
+      "Bash(python3 *)",
+      "Read(//root/.claude/**)",
+      "Bash(mkdir -p /root/.claude/plans)"
     ]
   }
 }
