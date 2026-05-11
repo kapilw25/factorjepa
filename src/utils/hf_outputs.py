@@ -10,6 +10,7 @@ USAGE:
     # Upload/download: from outputs/full/ ONLY
     python -u src/utils/hf_outputs.py upload outputs/full 2>&1 | tee logs/hf_upload_v1.log
     HF_HUB_ENABLE_HF_TRANSFER=1 python -u src/utils/hf_outputs.py upload outputs/full  2>&1 | tee logs/upload_outputs_full_v1.log
+    HF_HUB_ENABLE_HF_TRANSFER=1 python -u src/utils/hf_outputs.py upload outputs/poc  2>&1 | tee logs/upload_outputs_poc_v1.log
     python -u src/utils/hf_outputs.py download outputs/full 2>&1 | tee logs/download_outputs_full_v1.log
 
     # Upload/download: from @data/{eval_10k_local/ , full_local/ , subset_10k_local/ , val_1k_local/ }
