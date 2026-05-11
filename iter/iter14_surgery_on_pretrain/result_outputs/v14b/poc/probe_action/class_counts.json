@@ -1,0 +1,42 @@
+{
+  "fast__rightward": {
+    "train": 53,
+    "val": 10,
+    "test": 10
+  },
+  "fast__upward": {
+    "train": 89,
+    "val": 18,
+    "test": 18
+  },
+  "medium__rightward": {
+    "train": 89,
+    "val": 18,
+    "test": 18
+  },
+  "medium__upward": {
+    "train": 89,
+    "val": 18,
+    "test": 18
+  },
+  "slow__rightward": {
+    "train": 89,
+    "val": 18,
+    "test": 18
+  },
+  "slow__upward": {
+    "train": 89,
+    "val": 18,
+    "test": 18
+  },
+  "still__rightward": {
+    "train": 89,
+    "val": 18,
+    "test": 18
+  },
+  "still__upward": {
+    "train": 89,
+    "val": 18,
+    "test": 18
+  }
+}
