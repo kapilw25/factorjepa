@@ -40,16 +40,22 @@ source venv_walkindia/bin/activate
 mkdir -p logs
 
 if [ $# -lt 2 ]; then
-    echo "USAGE: $0 {pretrain|surgery_3stage_DI|surgery_noDI} {--SANITY|--POC|--FULL}" >&2
+    echo "USAGE: $0 {pretrain|pretrain_2X|pretrain_head|surgery_3stage_DI|surgery_noDI|surgery_3stage_DI_head|surgery_noDI_head} {--SANITY|--POC|--FULL}" >&2
     exit 2
 fi
 
 SUBCMD="$1"; shift
 MODE_FLAG="$1"; shift
 
+# iter15 Phase 4 (2026-05-14): added 3 new head-only SUBCMDs (pretrain_head,
+# surgery_3stage_DI_head, surgery_noDI_head) wrapping m09a2_pretrain_head.py
+# + m09c2_surgery_head.py. The *_head variants run on 24 GB Pro 4000 (no
+# encoder backward → no activation storage); _encoder variants need 96 GB.
 case "$SUBCMD" in
-    pretrain|pretrain_2X|surgery_3stage_DI|surgery_noDI) ;;
-    *) echo "FATAL: subcommand must be {pretrain|pretrain_2X|surgery_3stage_DI|surgery_noDI} (got: $SUBCMD)" >&2; exit 2 ;;
+    pretrain|pretrain_2X|pretrain_head| \
+    surgery_3stage_DI|surgery_noDI| \
+    surgery_3stage_DI_head|surgery_noDI_head) ;;
+    *) echo "FATAL: subcommand must be {pretrain|pretrain_2X|pretrain_head|surgery_3stage_DI|surgery_noDI|surgery_3stage_DI_head|surgery_noDI_head} (got: $SUBCMD)" >&2; exit 2 ;;
 esac
 
 case "$MODE_FLAG" in
@@ -426,6 +432,80 @@ case "$SUBCMD" in
             --no-wandb \
             2>&1 | tee "logs/m09c_surgery_${VARIANT_TAG}_${mode_dir}.log"
         ;;
+    pretrain_head)
+        # iter15 Phase 4 (2026-05-14): head-only m09a2. Frozen encoder + frozen
+        # predictor; only the ~432K motion_aux head trains. 24 GB sufficient.
+        OUT_DIR="outputs/${mode_dir}/m09a_pretrain_head"
+        TRAIN_CFG="configs/train/pretrain_head.yaml"
+        echo "═══ $(date '+%H:%M:%S') · m09a2 HEAD-ONLY continual SSL (${MODE}) ═══"
+        echo "  config:    $TRAIN_CFG"
+        echo "  subset:    $TRAIN_SPLIT"
+        echo "  val:       $VAL_SPLIT"
+        echo "  local:     $LOCAL_DATA"
+        echo "  output:    $OUT_DIR"
+        echo "  contract:  all 48 ViT-G blocks + predictor FROZEN; trainable = motion_aux head"
+        mkdir -p "$OUT_DIR"
+        python -u src/m09a2_pretrain_head.py "${MODE_FLAG}" \
+            --model-config "$MODEL_CFG" \
+            --train-config "$TRAIN_CFG" \
+            --subset "$TRAIN_SPLIT" --local-data "$LOCAL_DATA" \
+            --val-subset "$VAL_SPLIT" --val-local-data "$LOCAL_DATA" \
+            --output-dir "$OUT_DIR" \
+            --cache-policy "$P_M09" \
+            --probe-subset "outputs/${mode_dir}/probe_action/action_labels.json" \
+            --probe-local-data "$LOCAL_DATA" \
+            --probe-tags "${LOCAL_DATA}/tags.json" \
+            --probe-action-labels "outputs/${mode_dir}/probe_action/action_labels.json" \
+            --motion-features-path "${LOCAL_DATA}/motion_features.npy" \
+            "${TAXONOMY_ARGS[@]}" \
+            --no-wandb \
+            2>&1 | tee "logs/m09a2_pretrain_head_${mode_dir}.log"
+        ;;
+    surgery_3stage_DI_head|surgery_noDI_head)
+        # iter15 Phase 4 (2026-05-14): head-only m09c2. Same freeze contract as
+        # pretrain_head + StreamingFactorDataset for factor-aug clips. Single
+        # head-only stage (no progressive unfreeze).
+        case "$SUBCMD" in
+            surgery_3stage_DI_head)
+                TRAIN_CFG="configs/train/surgery_3stage_DI_head.yaml"
+                VARIANT_TAG="3stage_DI_head"
+                ;;
+            surgery_noDI_head)
+                TRAIN_CFG="configs/train/surgery_2stage_noDI_head.yaml"
+                VARIANT_TAG="noDI_head"
+                ;;
+        esac
+        OUT_DIR="outputs/${mode_dir}/m09c_surgery_${VARIANT_TAG}"
+        FACTOR_DIR="${LOCAL_DATA}/m11_factor_datasets"
+        VAL_TAGS="${LOCAL_DATA}/tags.json"
+        if [ ! -d "$FACTOR_DIR" ]; then
+            echo "❌ FATAL: $FACTOR_DIR missing — run scripts/run_factor_prep.sh first" >&2
+            exit 3
+        fi
+        echo "═══ $(date '+%H:%M:%S') · m09c2 HEAD-ONLY surgery [variant=${VARIANT_TAG}] (${MODE}) ═══"
+        echo "  config:    $TRAIN_CFG"
+        echo "  subset:    $TRAIN_SPLIT"
+        echo "  factor:    $FACTOR_DIR"
+        echo "  output:    $OUT_DIR"
+        echo "  contract:  all 48 ViT-G blocks + predictor FROZEN; trainable = motion_aux head"
+        mkdir -p "$OUT_DIR"
+        python -u src/m09c2_surgery_head.py "${MODE_FLAG}" \
+            --model-config "$MODEL_CFG" \
+            --train-config "$TRAIN_CFG" \
+            --subset "$TRAIN_SPLIT" --local-data "$LOCAL_DATA" \
+            --val-subset "$VAL_SPLIT" --val-local-data "$LOCAL_DATA" \
+            --factor-dir "$FACTOR_DIR" \
+            --output-dir "$OUT_DIR" \
+            --cache-policy "$P_M09" \
+            --probe-subset "outputs/${mode_dir}/probe_action/action_labels.json" \
+            --probe-local-data "$LOCAL_DATA" \
+            --probe-tags "$VAL_TAGS" \
+            --probe-action-labels "outputs/${mode_dir}/probe_action/action_labels.json" \
+            --motion-features-path "${LOCAL_DATA}/motion_features.npy" \
+            "${TAXONOMY_ARGS[@]}" \
+            --no-wandb \
+            2>&1 | tee "logs/m09c2_surgery_${VARIANT_TAG}_${mode_dir}.log"
+        ;;
 esac
 
 # ── Verify expected outputs ──────────────────────────────────────────────
@@ -438,10 +518,10 @@ else
     echo "  ⚠️  ${OUT_DIR}/student_encoder.pt NOT produced (check logs/probe_${SUBCMD}_${mode_dir}.log)"
 fi
 case "$SUBCMD" in
-    pretrain|pretrain_2X)
+    pretrain|pretrain_2X|pretrain_head)
         FULL_CKPT="${OUT_DIR}/m09a_ckpt_best.pt"
         ;;
-    surgery_3stage_DI|surgery_noDI)
+    surgery_3stage_DI|surgery_noDI|surgery_3stage_DI_head|surgery_noDI_head)
         FULL_CKPT="${OUT_DIR}/m09c_ckpt_best.pt"
         ;;
 esac

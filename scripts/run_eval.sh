@@ -155,7 +155,7 @@ OUTPUT_MSE="${OUTPUT_MSE:-${DEFAULT_OUTPUT_PREFIX}/probe_future_mse}"
 OUTPUT_TAXONOMY="${OUTPUT_TAXONOMY:-${DEFAULT_OUTPUT_PREFIX}/probe_taxonomy}"
 OUTPUT_PLOTS="${OUTPUT_PLOTS:-${DEFAULT_OUTPUT_PREFIX}/probe_plot}"
 TAG_TAXONOMY="${TAG_TAXONOMY:-configs/tag_taxonomy.json}"
-ENCODERS="${ENCODERS:-vjepa_2_1_frozen vjepa_2_1_pretrain vjepa_2_1_pretrain_2X vjepa_2_1_surgical_3stage_DI vjepa_2_1_surgical_noDI}"
+ENCODERS="${ENCODERS:-vjepa_2_1_frozen vjepa_2_1_pretrain vjepa_2_1_pretrain_2X vjepa_2_1_surgical_3stage_DI vjepa_2_1_surgical_noDI vjepa_2_1_pretrain_head vjepa_2_1_surgical_3stage_DI_head vjepa_2_1_surgical_noDI_head}"
 SKIP_STAGES="${SKIP_STAGES:-}"
 NUM_FRAMES="${NUM_FRAMES:-16}"
 
@@ -197,21 +197,34 @@ MIN_PER_SPLIT="${MIN_PER_SPLIT:-$DEFAULT_MIN_PER_SPLIT}"
 # probe_surgery_* → m09c_surgery_* (matches source-module naming + run_train.sh).
 encoder_ckpt_for() {                                            # encoder-only — Stages 2/3
     case "$1" in
-        vjepa_2_1_frozen)              echo "$ENCODER_CKPT" ;;
-        vjepa_2_1_pretrain)            echo "${DEFAULT_OUTPUT_PREFIX}/m09a_pretrain/student_encoder.pt" ;;
-        vjepa_2_1_pretrain_2X)       echo "${DEFAULT_OUTPUT_PREFIX}/m09a_pretrain_2X/student_encoder.pt" ;;     # iter14 arm C
-        vjepa_2_1_surgical_3stage_DI)  echo "${DEFAULT_OUTPUT_PREFIX}/m09c_surgery_3stage_DI/student_encoder.pt" ;;
-        vjepa_2_1_surgical_noDI)       echo "${DEFAULT_OUTPUT_PREFIX}/m09c_surgery_noDI/student_encoder.pt" ;;
+        vjepa_2_1_frozen)                          echo "$ENCODER_CKPT" ;;
+        vjepa_2_1_pretrain)                        echo "${DEFAULT_OUTPUT_PREFIX}/m09a_pretrain/student_encoder.pt" ;;
+        vjepa_2_1_pretrain_2X)                     echo "${DEFAULT_OUTPUT_PREFIX}/m09a_pretrain_2X/student_encoder.pt" ;;     # iter14 arm C
+        vjepa_2_1_surgical_3stage_DI)              echo "${DEFAULT_OUTPUT_PREFIX}/m09c_surgery_3stage_DI/student_encoder.pt" ;;
+        vjepa_2_1_surgical_noDI)                   echo "${DEFAULT_OUTPUT_PREFIX}/m09c_surgery_noDI/student_encoder.pt" ;;
+        # iter15 Phase 4 (2026-05-14): head-only variants — encoder is bit-identical
+        # to Meta init (proven via assert_encoder_frozen in build_model); the only
+        # thing that differs across variants is the motion_aux head. student_encoder.pt
+        # is a COPY of Meta init for all 3 head variants.
+        vjepa_2_1_pretrain_head)                   echo "${DEFAULT_OUTPUT_PREFIX}/m09a_pretrain_head/student_encoder.pt" ;;
+        vjepa_2_1_surgical_3stage_DI_head)         echo "${DEFAULT_OUTPUT_PREFIX}/m09c_surgery_3stage_DI_head/3stage_DI_head/student_encoder.pt" ;;
+        vjepa_2_1_surgical_noDI_head)              echo "${DEFAULT_OUTPUT_PREFIX}/m09c_surgery_noDI_head/noDI_head/student_encoder.pt" ;;
         *) echo "" ;;
     esac
 }
 encoder_predictor_ckpt_for() {                                  # encoder+predictor — Stage 8 future_mse
     case "$1" in
-        vjepa_2_1_frozen)              echo "$ENCODER_CKPT" ;;
-        vjepa_2_1_pretrain)            echo "${DEFAULT_OUTPUT_PREFIX}/m09a_pretrain/m09a_ckpt_best.pt" ;;
-        vjepa_2_1_pretrain_2X)       echo "${DEFAULT_OUTPUT_PREFIX}/m09a_pretrain_2X/m09a_ckpt_best.pt" ;;       # iter14 arm C
-        vjepa_2_1_surgical_3stage_DI)  echo "${DEFAULT_OUTPUT_PREFIX}/m09c_surgery_3stage_DI/m09c_ckpt_best.pt" ;;
-        vjepa_2_1_surgical_noDI)       echo "${DEFAULT_OUTPUT_PREFIX}/m09c_surgery_noDI/m09c_ckpt_best.pt" ;;
+        vjepa_2_1_frozen)                          echo "$ENCODER_CKPT" ;;
+        vjepa_2_1_pretrain)                        echo "${DEFAULT_OUTPUT_PREFIX}/m09a_pretrain/m09a_ckpt_best.pt" ;;
+        vjepa_2_1_pretrain_2X)                     echo "${DEFAULT_OUTPUT_PREFIX}/m09a_pretrain_2X/m09a_ckpt_best.pt" ;;       # iter14 arm C
+        vjepa_2_1_surgical_3stage_DI)              echo "${DEFAULT_OUTPUT_PREFIX}/m09c_surgery_3stage_DI/m09c_ckpt_best.pt" ;;
+        vjepa_2_1_surgical_noDI)                   echo "${DEFAULT_OUTPUT_PREFIX}/m09c_surgery_noDI/m09c_ckpt_best.pt" ;;
+        # iter15 Phase 4: head-only variants. Their ckpts include motion_aux_head_state_dict
+        # alongside encoder+predictor. probe_future_mse (Meta predictor) is moot here —
+        # Stage 9b probe_future_regress trains a separate regressor head per variant.
+        vjepa_2_1_pretrain_head)                   echo "${DEFAULT_OUTPUT_PREFIX}/m09a_pretrain_head/m09a_ckpt_best.pt" ;;
+        vjepa_2_1_surgical_3stage_DI_head)         echo "${DEFAULT_OUTPUT_PREFIX}/m09c_surgery_3stage_DI_head/3stage_DI_head/m09c_ckpt_best.pt" ;;
+        vjepa_2_1_surgical_noDI_head)              echo "${DEFAULT_OUTPUT_PREFIX}/m09c_surgery_noDI_head/noDI_head/m09c_ckpt_best.pt" ;;
         *) echo "" ;;
     esac
 }

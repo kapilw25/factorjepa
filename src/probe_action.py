@@ -678,16 +678,24 @@ def run_paired_delta_stage(args, wb) -> None:
                 "interpretation": f"{a} - {b} > 0 means {a} more accurate than {b}",
             }
 
-    # iter14 paper deltas (2026-05-08) — the 3 claims from
-    # iter/iter14_surgery_on_pretrain/plan_surgery_on_pretrain.md § Q3:
-    #   Δ1 = pretrain − frozen           → continual SSL > frozen (domain adaptation works)
-    #   Δ2 = surgical_3stage_DI − pretrain    → factor patching adds value (the surgery claim)
-    #   Δ3 = surgical_3stage_DI − pretrain_2X → CAUSAL: gain is from factor patching,
-    #                                            not from extra training steps ⭐ key claim
-    # Each delta uses the same (intersect → align → paired_bca) pattern as
-    # pairwise_deltas above. Skipped with `skipped: true` if either encoder lacks
-    # probe outputs (e.g. user ran eval before all training arms complete) — matches
-    # pairwise_deltas defensive behavior.
+    # iter14 paper deltas (2026-05-08) + iter15 Phase 4 extensions (2026-05-14):
+    # iter/iter14_surgery_on_pretrain/plan_surgery_on_pretrain.md § Q3 + iter15 head-only:
+    #   Δ1 = pretrain − frozen                    → continual SSL > frozen
+    #   Δ2 = surgical_3stage_DI − pretrain        → factor patching adds value (surgery claim)
+    #   Δ3 = surgical_3stage_DI − pretrain_2X     → CAUSAL: gain from factor patching, not steps
+    #   Δ4 = pretrain − pretrain_head             → encoder-update > head-only on pretrain track
+    #                                                (does moving the encoder add anything beyond
+    #                                                 a trained head?)
+    #   Δ5 = surgical_3stage_DI − surgical_3stage_DI_head  ⭐ KEY iter15 PAPER CLAIM ⭐
+    #                                                 head-only matches surgery → 1/40× GPU bill
+    #                                                 unlocks. If |Δ5| < 0.01 → head-only WINS.
+    #   Δ6 = surgical_3stage_DI_head − pretrain_head      → factor data helps even at head-only
+    #                                                 (validates D_L/D_A/D_I curriculum)
+    #   Δ7 = surgical_3stage_DI_head − surgical_noDI_head → D_I tubes carry signal beyond D_L+D_A
+    #                                                 (only meaningful at head-only — encoder-side
+    #                                                 already tested in iter14 R-cell sweep)
+    # Each delta uses the same (intersect → align → paired_bca) pattern. Skipped with
+    # `skipped: true` if either encoder lacks probe outputs.
     ITER14_DELTAS = [
         ("delta_1_pretrain_vs_frozen",
          "vjepa_2_1_pretrain", "vjepa_2_1_frozen",
@@ -698,6 +706,18 @@ def run_paired_delta_stage(args, wb) -> None:
         ("delta_3_surgical_vs_pretrain_2X",
          "vjepa_2_1_surgical_3stage_DI", "vjepa_2_1_pretrain_2X",
          "Δ3: surgery > pretrain_2X (CAUSAL — gain is factor patching, not extra steps)"),
+        ("delta_4_pretrain_vs_pretrain_head",
+         "vjepa_2_1_pretrain", "vjepa_2_1_pretrain_head",
+         "Δ4: pretrain > pretrain_head (does encoder-update add value beyond a trained head?)"),
+        ("delta_5_surgical_vs_surgical_head",
+         "vjepa_2_1_surgical_3stage_DI", "vjepa_2_1_surgical_3stage_DI_head",
+         "Δ5: surgery > surgery_head (KEY iter15 paper claim — if |Δ5|<0.01, head-only WINS)"),
+        ("delta_6_surgical_head_vs_pretrain_head",
+         "vjepa_2_1_surgical_3stage_DI_head", "vjepa_2_1_pretrain_head",
+         "Δ6: surgery_head > pretrain_head (factor data helps even when encoder is frozen)"),
+        ("delta_7_DI_head_vs_noDI_head",
+         "vjepa_2_1_surgical_3stage_DI_head", "vjepa_2_1_surgical_noDI_head",
+         "Δ7: 3stage_DI_head > noDI_head (D_I tubes carry signal beyond D_L+D_A)"),
     ]
     iter14_paper_deltas = {}
     for key, a_name, b_name, desc in ITER14_DELTAS:

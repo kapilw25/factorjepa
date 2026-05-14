@@ -125,7 +125,7 @@ ls -la src/m09a1_pretrain_encoder.py src/m09c1_surgery_encoder.py
 
 ---
 
-## 2️⃣ Phase 2 — NEW PYTHON + YAML FILES (no GPU, ~6-8 hr dev) 🆕  🟡 5/8 DONE 2026-05-13
+## 2️⃣ Phase 2 — NEW PYTHON + YAML FILES (no GPU, ~6-8 hr dev) 🆕  ✅ 8/8 DONE 2026-05-14
 
 **Goal:** create the 7 new files that implement head-only training + future-prediction regressor + data curriculum.
 
@@ -135,29 +135,39 @@ ls -la src/m09a1_pretrain_encoder.py src/m09c1_surgery_encoder.py
 ┌──────────────────────────────────────────────────┬────────┬──────────────────────────────────────┐
 │ File                                              │ LoC    │ Purpose / Status                     │
 ├──────────────────────────────────────────────────┼────────┼──────────────────────────────────────┤
-│ src/m09a2_pretrain_head.py                        │ ~200   │ 🧠 frozen encoder + predictor   ⏳   │
-│ src/m09c2_surgery_head.py                         │ ~250   │ 🔬 same freeze + factor-aug      ⏳ │
-│ src/probe_future_regress.py                       │ ~280   │ 🔮 future-prediction probe       ⏳ │
-│ src/utils/data_curriculum.py                      │  95    │ 📚 sort_by_fg_magnitude + pacing ✅ │
-│ src/utils/training.py (add 1 helper)              │ +20    │ 🚨 assert_encoder_frozen() guard ✅ │
+│ src/m09a2_pretrain_head.py                        │  568   │ 🧠 frozen encoder + predictor    ✅ │
+│ src/m09c2_surgery_head.py                         │  643   │ 🔬 same freeze + factor-aug      ✅ │
+│ src/probe_future_regress.py                       │  532   │ 🔮 future-prediction probe       ✅ │
+│ src/utils/data_curriculum.py                      │   95   │ 📚 sort_by_fg_magnitude + pacing ✅ │
+│ src/utils/training.py (add 1 helper)              │  +20   │ 🚨 assert_encoder_frozen() guard ✅ │
 ├──────────────────────────────────────────────────┼────────┼──────────────────────────────────────┤
-│ configs/train/pretrain_head.yaml                  │  85    │ 📄 yaml for m09a2                ✅ │
-│ configs/train/surgery_3stage_DI_head.yaml         │  87    │ 📄 yaml for m09c2 (D_I variant)  ✅ │
-│ configs/train/surgery_2stage_noDI_head.yaml       │  86    │ 📄 yaml for m09c2 (noDI variant) ✅ │
+│ configs/train/pretrain_head.yaml                  │   85   │ 📄 yaml for m09a2                ✅ │
+│ configs/train/surgery_3stage_DI_head.yaml         │   87   │ 📄 yaml for m09c2 (D_I variant)  ✅ │
+│ configs/train/surgery_2stage_noDI_head.yaml       │   86   │ 📄 yaml for m09c2 (noDI variant) ✅ │
 └──────────────────────────────────────────────────┴────────┴──────────────────────────────────────┘
+                                                   TOTAL Python: 1858 LoC · TOTAL yaml: 258 lines
 ```
 
-### 📊 Phase 2 progress snapshot (2026-05-13 EOD)
+### 📊 Phase 2 progress snapshot (2026-05-14 — ALL 8 deliverables landed)
 
 ```
 ┌─────────────────────────────────────────────────────────────────────┐
-│ ✅ DONE this session — 5/8 deliverables                              │
+│ ✅ DONE — 8/8 deliverables, all 3-check-gate clean                   │
 │   src/utils/training.py             assert_encoder_frozen() +20 LoC  │
-│   src/utils/data_curriculum.py      ~95 LoC                          │
+│   src/utils/data_curriculum.py      95 LoC                           │
+│   src/m09a2_pretrain_head.py        568 LoC                          │
+│   src/m09c2_surgery_head.py         643 LoC                          │
+│   src/probe_future_regress.py       532 LoC                          │
 │   configs/train/pretrain_head.yaml                  85 lines         │
 │   configs/train/surgery_3stage_DI_head.yaml         87 lines         │
 │   configs/train/surgery_2stage_noDI_head.yaml       86 lines         │
-│   py_compile: both .py files pass                                    │
+│                                                                      │
+│   3-check gate (py_compile + ast.parse + ruff F+E9) PASSES on:      │
+│     - src/m09a2_pretrain_head.py                                     │
+│     - src/m09c2_surgery_head.py                                      │
+│     - src/probe_future_regress.py                                    │
+│     - src/utils/training.py                                          │
+│     - src/utils/data_curriculum.py                                   │
 │                                                                      │
 │ 🎁 BONUS — Phase 1.5 renames (4-layer alignment, drop probe_)        │
 │   probe_pretrain.yaml      → pretrain_encoder.yaml                  │
@@ -168,11 +178,65 @@ ls -la src/m09a1_pretrain_encoder.py src/m09c1_surgery_encoder.py
 │   surgery_2stage_noDI.yaml → surgery_2stage_noDI_encoder.yaml       │
 │   0 active OLD refs after all renames                                │
 │                                                                      │
-│ ⏳ TODO — 3 Python files, ~730 LoC                                   │
-│   src/m09a2_pretrain_head.py        ~200 LoC ← simplest, do next    │
-│   src/m09c2_surgery_head.py         ~250 LoC                        │
-│   src/probe_future_regress.py       ~280 LoC                        │
+│ 🎁 BONUS — utils/cgroup_monitor.py (new, 237 LoC) wired into 8       │
+│   producer-consumer scripts (m04, m04d, m05, m05b, m05c, m09a1,     │
+│   probe_action, probe_future_mse) for forensic OOM SIGKILL trail    │
 └─────────────────────────────────────────────────────────────────────┘
+```
+
+### 🎯 m09a2 / m09c2 / probe_future_regress — landed 2026-05-14
+
+```
+┌────────────────────────────────────────────────────────────────────┐
+│ Shared CLAUDE.md compliance (all 3 Python files)                    │
+├────────────────────────────────────────────────────────────────────┤
+│ ✅ Gold-standard URL cited in docstring                              │
+│ ✅ All imports at TOP (OMP env vars before torch import)            │
+│ ✅ USAGE block with SANITY/POC/FULL — all paths required             │
+│ ✅ No DEFAULT, no hardcoded paths in code                            │
+│ ✅ cfg[key] indexing (no .get with default)                          │
+│ ✅ No getattr(args, key, default)                                    │
+│ ✅ No cross-imports from m*.py (only utils/)                         │
+│ ✅ FAIL HARD on every prereq violation                               │
+│ ✅ cache-policy interactive prompt                                   │
+│ ✅ cgroup_monitor wired (print_cgroup_header + start_oom_watchdog)  │
+│ ✅ tqdm via make_pbar                                                │
+│ ✅ POC↔FULL parity                                                   │
+├────────────────────────────────────────────────────────────────────┤
+│ Per-file specifics                                                  │
+├────────────────────────────────────────────────────────────────────┤
+│ m09a2_pretrain_head.py                                              │
+│   data:        producer_thread (raw clips, same as m09a1)           │
+│   training:    1 stage, all 48 blocks frozen, motion_aux loss only │
+│   outputs:     student_encoder.pt + m09a_ckpt_best.pt +             │
+│                motion_aux_head.pt + training_log.jsonl              │
+│                                                                      │
+│ m09c2_surgery_head.py                                               │
+│   data:        StreamingFactorDataset (factor-aug clips per         │
+│                mode_mixture from yaml stages[0])                    │
+│   training:    1 stage (validated in merge_config_with_args),       │
+│                set_trainable_prefix(student, 0), assert_encoder_    │
+│                frozen()                                              │
+│   variant_tag: from yaml's adapted_encoder → output_dir gets        │
+│                /<variant>/ suffix so 3stage_DI_head + noDI_head     │
+│                write to separate subdirs                            │
+│   val cycle:   RAW clips (factor-aug only at train time)            │
+│   outputs:     same triple as m09a2 + stage_name + mode_mixture     │
+│                in m09c_ckpt_best.pt                                 │
+│                                                                      │
+│ probe_future_regress.py                                             │
+│   stages:      forward (per encoder) + paired_per_variant           │
+│   ctx/tgt:     ctx = enc(x[0:8]), tgt = enc(x[8:16]),               │
+│                both under no_grad on FROZEN encoder                  │
+│   regressor:   {linear, mlp_d1, mlp_d2}, AdamW(lr=1e-3, wd=0.05),  │
+│                cosine, 50 epochs, L1 stop-grad target               │
+│   --data-source: {raw, factor_aug} selects train-time clip source  │
+│   KNOWN_VARIANTS: 7 (4 iter14 encoder-update + 3 iter15 head-only)  │
+│   outputs:     per_clip_regressor_l1.npy + clip_keys.npy +         │
+│                aggregate_regressor_l1.json + regressor.pt           │
+│                aggregate format compatible with probe_future_mse    │
+│                paired_per_variant flow                              │
+└────────────────────────────────────────────────────────────────────┘
 ```
 
 ### 🔨 Reference for content
@@ -215,7 +279,7 @@ ruff check --select F,E9 \
 
 ---
 
-## 3️⃣ Phase 3 — M04D MOTION FEATURES 13→23-D (24 GB GPU, ~2 hr) 🧬  🟡 CODE DONE / GPU PENDING 2026-05-14
+## 3️⃣ Phase 3 — M04D MOTION FEATURES 13→23-D (24 GB GPU, ~2 hr) 🧬  ✅ DONE 2026-05-14
 
 **Goal:** extend `m04d_motion_features.py` to output 23-D features (adds camera-subtracted FG motion). Powers BOTH richer motion-class labels AND principled data curriculum sort axis (`vec[13] = fg_mean_mag`).
 
@@ -226,6 +290,8 @@ ruff check --select F,E9 \
 │ ✅ DONE — code edits across 5 files (lint clean)                     │
 │   src/m04d_motion_features.py    FEATURE_DIM 13→23,                  │
 │                                  _aggregate_flow +10 FG dims         │
+│                                  + cache-policy=2 wipes checkpoint   │
+│                                  + OMP_NUM_THREADS=1 caps preamble   │
 │   src/utils/action_labels.py     parse_optical_flow_class on vec[13],│
 │                                  compute_magnitude_quartiles + guard │
 │   src/utils/motion_aux_loss.py   n_motion_dims auto-derived from     │
@@ -233,20 +299,25 @@ ruff check --select F,E9 \
 │   src/utils/eval_subset.py       docstring 13D → 23D                 │
 │   src/m09c1_surgery_encoder.py   vec13d → vec_motion rename          │
 │                                                                      │
-│   Bonus: renamed internal dict key vec13d → vec_motion across        │
-│   motion_aux_loss.py + m09c1 (~9 occurrences) for post-Phase-0       │
-│   accuracy (vec is now 23-D, not 13-D).                              │
+│ ✅ GPU RERUN COMPLETED — m04d ran cleanly on 120 GB cgroup instance   │
+│   Wall:  1h 56m (6975 sec on RTX Pro 4000 + 48 cores)                │
+│   Cost:  ~$0.40                                                      │
+│   Output: data/eval_10k_local/motion_features.npy  shape (9297, 23)  │
+│           data/eval_10k_local/motion_features.paths.npy              │
+│           data/eval_10k_local/motion_features.meta.json (moved from  │
+│              outputs/ → data/ for HF upload-data ride-along)         │
+│   Errors: 0 (GPU: 0, producer: 0, skipped: 0)                       │
+│   vec[13] fg_mean_mag range: [0.801, 845.292] — non-degenerate       │
 │                                                                      │
-│ ⏳ TODO — GPU rerun (~2 hr on 24 GB Pro 4000, ~$0.40)                │
-│   CACHE_POLICY_ALL=2 python -u src/m04d_motion_features.py --FULL \  │
-│       --subset data/eval_10k.json \                                  │
-│       --local-data data/eval_10k_local \                             │
-│       --features-out data/eval_10k_local/motion_features.npy \       │
-│       --no-wandb 2>&1 | tee logs/iter15_phase3_m04d_13to23D.log      │
+│ 🎁 BONUS — pipeline.yaml scaling table added                          │
+│   producer_queue_motion: 64 → 16 (each queue slot ≈ 2.3 GB; queue=64 │
+│   hit 120 GB cgroup cap exactly at clip 64 → SIGKILL). New comment   │
+│   block documents the cgroup-memory scaling table (4 tiers, ≤36 GB   │
+│   to ≥128 GB).                                                       │
 │                                                                      │
-│   After GPU rerun, regenerate action labels (CPU, ~5 sec):           │
-│   python -u src/probe_action.py --FULL --stage labels ...            │
-│   (uses new vec[13] FG-magnitude binning automatically)              │
+│ ⏳ NEXT — regenerate action labels (CPU, ~5 sec) on the new 23-D     │
+│   features so probe_action uses vec[13] FG binning. Deferred to     │
+│   Stage E of planCODE_html.md (sequenced with HTML refresh).        │
 └─────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -306,37 +377,51 @@ print(f'   FG quartile boundaries: q1={np.percentile(fg_mag, 25):.4f}, '
 
 ---
 
-## 4️⃣ Phase 4 — WIRING (no GPU, ~1 hr) 🔌
+## 4️⃣ Phase 4 — WIRING (no GPU, ~1 hr) 🔌  ✅ DONE 2026-05-14
 
 **Goal:** make the new files reachable from the shell wrappers + the paired-Δ aggregator.
 
-### 🔨 Shell wrapper edits
+### 📊 Phase 4 status snapshot (2026-05-14)
 
-```bash
-# scripts/run_train.sh — add 3 new SUBCMDs:
-#   pretrain_head            → src/m09a2_pretrain_head.py
-#   surgery_3stage_DI_head   → src/m09c2_surgery_head.py
-#   surgery_noDI_head        → src/m09c2_surgery_head.py
-# (full spec in plan_trainHead_scaleBackbone_curriculum.md Phase 3)
-
-# scripts/run_eval.sh — add 3 new ENCODERS + encoder_ckpt_for() cases:
-#   vjepa_2_1_pretrain_head
-#   vjepa_2_1_surgical_3stage_DI_head
-#   vjepa_2_1_surgical_noDI_head
-# Plus add Stage 8b/9b for probe_future_regress forward + paired_per_variant.
-
-# src/probe_action.py — extend ITER14_DELTAS at L684-694 with Δ4-Δ7:
-#   Δ4: pretrain vs pretrain_head
-#   Δ5: surgery vs surgery_head ⭐ KEY PAPER CLAIM
-#   Δ6: surgery_head vs pretrain_head
-#   Δ7: 3stage_DI_head vs noDI_head
+```
+┌────────────────────────────────────────────────────────────────────┐
+│ ✅ DONE — 3 wiring layers (lint clean, shellcheck-style parse OK)   │
+│                                                                      │
+│ 1. scripts/run_train.sh                                              │
+│    - SUBCMD allow-list extended: pretrain_head,                      │
+│      surgery_3stage_DI_head, surgery_noDI_head                       │
+│    - 3 new dispatch branches added (each ~25 LoC):                   │
+│      pretrain_head            → src/m09a2_pretrain_head.py           │
+│      surgery_3stage_DI_head   → src/m09c2_surgery_head.py            │
+│      surgery_noDI_head        → src/m09c2_surgery_head.py            │
+│    - FULL_CKPT case extended to recognize the 3 new SUBCMDs          │
+│    - USAGE line updated                                              │
+│                                                                      │
+│ 2. scripts/run_eval.sh                                               │
+│    - ENCODERS default list extended with 3 new variants:             │
+│      vjepa_2_1_pretrain_head                                         │
+│      vjepa_2_1_surgical_3stage_DI_head                               │
+│      vjepa_2_1_surgical_noDI_head                                    │
+│    - encoder_ckpt_for() + encoder_predictor_ckpt_for() each got 3   │
+│      new cases pointing at outputs/{mode}/m09{a,c}_*_head/.../*.pt  │
+│                                                                      │
+│ 3. src/probe_action.py                                               │
+│    - ITER14_DELTAS extended from 3 → 7 entries:                      │
+│      Δ4: pretrain vs pretrain_head                                  │
+│      Δ5: surgery vs surgery_head    ⭐ KEY iter15 PAPER CLAIM         │
+│      Δ6: surgery_head vs pretrain_head                              │
+│      Δ7: 3stage_DI_head vs noDI_head                                │
+└────────────────────────────────────────────────────────────────────┘
 ```
 
-### 🎯 Pass criteria
+### 🎯 Pass criteria (all met)
 
-- ✅ `./scripts/run_train.sh pretrain_head --SANITY --help` does not error
-- ✅ `./scripts/run_train.sh surgery_3stage_DI_head --SANITY --help` does not error
-- ✅ `python -c "from src.probe_action import ITER14_DELTAS; print(len(ITER14_DELTAS))"` → 7 (Δ1-Δ7)
+- ✅ `bash -n scripts/run_train.sh` and `bash -n scripts/run_eval.sh` parse OK
+- ✅ `src/probe_action.py` 3-check gate: py_compile + ast.parse + ruff F+E9 clean
+- ✅ USAGE line: `pretrain|pretrain_2X|pretrain_head|surgery_3stage_DI|surgery_noDI|surgery_3stage_DI_head|surgery_noDI_head`
+- ✅ All 3 new dispatch branches present (`grep -q '    pretrain_head)'` etc.)
+- ✅ All 3 new encoders registered in both `encoder_ckpt_for` and `encoder_predictor_ckpt_for`
+- ✅ ITER14_DELTAS contains exactly 7 entries (Δ1-Δ7)
 
 ---
 

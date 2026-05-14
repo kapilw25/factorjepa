@@ -75,7 +75,14 @@
       "Bash(nvidia-smi --query-gpu=name,memory.total,memory.free --format=csv,noheader)",
       "Bash(awk '{print \"  \"$0}')",
       "Bash(python -c \"import torchvision; print\\(torchvision.__version__\\)\")",
-      "Bash(python -c \"import torchvision.utils as tu; print\\([x for x in dir\\(tu\\) if 'flow' in x.lower\\(\\)]\\)\")"
+      "Bash(python -c \"import torchvision.utils as tu; print\\([x for x in dir\\(tu\\) if 'flow' in x.lower\\(\\)]\\)\")",
+      "Bash(grep -nA8 'class StreamingFactorDataset' src/utils/training.py)",
+      "Bash(grep -nA8 'def build_streaming_indices' src/utils/training.py)",
+      "Bash(grep -nA8 'def set_trainable_prefix' src/utils/training.py)",
+      "Bash(grep -nB2 -A15 'StreamingFactorDataset\\(' src/m09c1_surgery_encoder.py)",
+      "Bash(grep -nA5 '_streaming_worker_init\\\\|def _streaming_worker_init' src/utils/training.py)",
+      "Bash(grep -nA3 'for batch.*loader\\\\|next\\(loader_iter\\)\\\\|loader_iter' src/m09c1_surgery_encoder.py)",
+      "Bash(grep -nA8 'def _load_vjepa_2_1_encoder_hierarchical' src/probe_future_mse.py)"
     ]
   }
 }

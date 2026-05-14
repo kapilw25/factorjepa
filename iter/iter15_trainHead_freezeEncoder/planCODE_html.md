@@ -10,23 +10,52 @@
 ## 📋 Phase summary
 
 ```
-┌────────────────────────────────────────────┬────────┬──────────┬────────────────────────┐
-│ Stage                                       │ When   │ Wall      │ Blockers                │
-├────────────────────────────────────────────┼────────┼──────────┼────────────────────────┤
-│ A. Copy iter13 v12 plots → placeholders    │ ✅ NOW │ 5 min     │ none                    │
-│ B. Strip retrieval sections from HTML      │ ✅ NOW │ 1-2 hr    │ none                    │
-│ C. CSS .placeholder framework               │ ✅ NOW │ 30 min    │ none                    │
-│ D. Wire iter13 v12 plots into new sections │ ✅ NOW │ 1-2 hr    │ A + B + C               │
-├────────────────────────────────────────────┼────────┼──────────┼────────────────────────┤
-│ E. probe_action --stage labels on 23-D     │ ⏳ LATER│ 5 sec     │ none (CPU)              │
-│ F. probe_action --stage train+eval (7 enc) │ ⏳ LATER│ ~30 min   │ E                       │
-│ G. motion_spectrum_gallery.py (8 classes)  │ ⏳ LATER│ 2 hr dev  │ E + F                   │
-│    + 30 min GPU pass for flow_to_image     │        │ 30 min GPU│                          │
-│ H. "23 Champions" + "Anatomy" panels       │ ⏳ LATER│ 1 hr dev  │ G's RAFT viz pipeline   │
-│    + 15 min GPU                             │        │ 15 min GPU│                          │
-│ I. 23-D-correct probe results refresh      │ ⏳ LATER│ 30 min    │ Phase 6 head-only POC   │
-└────────────────────────────────────────────┴────────┴──────────┴────────────────────────┘
-                                          TOTAL NOW: ~3-5 hr  ·  TOTAL LATER: ~5-7 hr + ~75 min GPU
+┌────────────────────────────────────────────┬────────────┬──────────┬────────────────────────┐
+│ Stage                                       │ When       │ Wall      │ Blockers                │
+├────────────────────────────────────────────┼────────────┼──────────┼────────────────────────┤
+│ A. Copy iter13 v12 plots → placeholders    │ ✅ DONE 5/14│ 5 min     │ none                    │
+│ B. Strip retrieval sections from HTML      │ ✅ DONE 5/14│ ~3 hr     │ none                    │
+│ C. CSS .placeholder framework               │ ✅ DONE 5/14│ 30 min    │ none                    │
+│ D. Wire iter13 v12 plots into new sections │ ✅ DONE 5/14│ 1-2 hr    │ A + B + C               │
+│ 15. Tab 3 System Design audit              │ ✅ DONE 5/14│ ~30 min   │ none                    │
+├────────────────────────────────────────────┼────────────┼──────────┼────────────────────────┤
+│ E. probe_action --stage labels on 23-D     │ ⏳ LATER    │ 5 sec     │ none (CPU)              │
+│ F. probe_action --stage train+eval (7 enc) │ ⏳ LATER    │ ~30 min   │ E                       │
+│ G. motion_spectrum_gallery.py (8 classes)  │ ⏳ LATER    │ 2 hr dev  │ E + F                   │
+│    + 30 min GPU pass for flow_to_image     │            │ 30 min GPU│                          │
+│ H. "23 Champions" + "Anatomy" panels       │ ⏳ LATER    │ 1 hr dev  │ G's RAFT viz pipeline   │
+│    + 15 min GPU                             │            │ 15 min GPU│                          │
+│ I. 23-D-correct probe results refresh      │ ⏳ LATER    │ 30 min    │ Phase 6 head-only POC   │
+└────────────────────────────────────────────┴────────────┴──────────┴────────────────────────┘
+                                       TOTAL NOW: DONE  ·  TOTAL LATER: ~5-7 hr + ~75 min GPU
+```
+
+### 🏁 NOW progress snapshot (2026-05-14 — Stages A-D + 15 SHIPPED)
+
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│ ✅ COMPLETED (commit 1527580, pushed to main as Kapil)              │
+│   Stage A: 6 iter13 v12 plots copied to docs/static/images/         │
+│   Stage B: 10/10 Tab 2 sections rewritten/deleted/updated           │
+│            - Abstract, Key Findings, Encoder Compare, Ch10 F-vs-A,  │
+│              kNN Demo (deleted), Pipeline, Detailed Results,        │
+│              Adaptation Trajectory, Why Motion, Roadmap             │
+│            - 11 retrieval images + 24 kNN videos git-rm'd           │
+│            - og:image / twitter:image repointed to og_preview.png   │
+│   Stage C: .plot-container.placeholder CSS + .placeholder-{icon,    │
+│            label,eta} classes added                                 │
+│   Stage D: 4 placeholders inserted (Stages F/G/H/I targets) +       │
+│            warning banner "⏳ iter15 refresh in progress"            │
+│   Stage 15: Tab 3 System Design Mermaid Diagram 1 modernized        │
+│            (m06/m07/m08/m08b retrieval nodes → m04d → probe_action  │
+│             → probe_plot + iter15 head-only branch added)           │
+│                                                                      │
+│ Smoke test verified:                                                 │
+│   - 0 retrieval refs in HTML                                         │
+│   - 179/179 asset srcs resolve on disk                              │
+│   - Tab 1 (Denseworld) byte-identical to pre-refactor               │
+│   - docs/index.html: 1665 → 1571 lines net delta                    │
+└─────────────────────────────────────────────────────────────────────┘
 ```
 
 **Why split NOW vs LATER:** iter13 v12 plots use the OLD pre-Phase-0 vec[0] motion taxonomy. Numerically they're slightly stale (binning axis changed from `mean_magnitude` → `fg_mean_mag`). The STRUCTURE of the page (motion-class narrative) is durable; the SPECIFIC NUMBERS get refreshed in Stage I when Phase 6 head-only POC results land. NOW = ship the structure with explicit placeholders.
