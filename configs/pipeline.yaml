@@ -72,18 +72,29 @@ streaming:
   #   │ cgroup memory    │ decode_workers_motion │ producer_queue_motion │
   #   ├──────────────────┼──────────────────────┼──────────────────────┤
   #   │ ≤36 GB           │ 4                    │ 8                    │
-  #   │ ~64 GB           │ 8                    │ 16                   │  ← current
+  #   │ ~64 GB           │ 8                    │ 16                   │
   #   │ ~96 GB           │ 12                   │ 32                   │
-  #   │ ≥128 GB          │ 16                   │ 64                   │  ← old default
+  #   │ ≥120 GB          │ 16                   │ 16                   │  ← current
   #   └──────────────────┴──────────────────────┴──────────────────────┘
-  # iter15 2026-05-14: OOMKilled at 16/64 on 36 GB cgroup (peak hit memory.max
-  # exactly at clip 64). Pre-flight on every new instance:
-  #   cat /sys/fs/cgroup/memory/memory.limit_in_bytes | \
-  #     awk '{printf "%.1f GB cgroup cap\n", $1/1024/1024/1024}'
-  decode_workers_motion: 8    # m04d: optical flow video decode threads (see scaling table above)
+  # KEY INSIGHT (2026-05-14c): producer_queue_motion does NOT scale with cgroup
+  # memory cap the way decode_workers does. Each queue slot holds an entire
+  # batch (32 clips × 16 frame pairs × ~72 MB after fp32 preprocessing) ≈ 2.3 GB
+  # per slot. queue=64 → 147 GB worst case → instant SIGKILL on 120 GB cap.
+  # queue=16 = ~37 GB worst case → comfortable on any ≥64 GB cgroup.
+  # Bumping queue past 16 buys nothing once GPU is saturated (Pro 4000 RAFT
+  # at sub-batch ~127 consumes <1 queue slot/sec; 16 slots = 16 sec lookahead).
+  #
+  # HISTORY:
+  #   2026-05-14a: 16/64 on 36 GB cgroup → OOMKilled at clip 64
+  #   2026-05-14b: 16/64 on 120 GB cgroup → OOMKilled at clip ~160 (this incident)
+  #   2026-05-14c: 16/16 on 120 GB cgroup → comfortable, GPU still saturated
+  # Pre-flight on every new instance:
+  #   cat /sys/fs/cgroup/memory/memory.limit_in_bytes 2>/dev/null \
+  #     || cat /sys/fs/cgroup/memory.max
+  decode_workers_motion: 16   # m04d: optical flow video decode threads (16 cores × OMP=1 → 16 threads)
   decode_workers_train: 16    # m09: video decode threads (256 CPU cores)
   augment_workers: 8          # m05c: augmentation thread workers (was 4)
-  producer_queue_motion: 16   # m04d: preprocessed clip batches buffered ahead (see scaling table above)
+  producer_queue_motion: 16   # m04d: preprocessed clip batches buffered ahead — DO NOT scale > 16 (see "KEY INSIGHT" above)
 
 # -- GPU defaults (from VRAM profiling with real data on RTX PRO 6000 96GB) --
 # Re-profile on different GPU: python -u src/utils/profile_vram.py --training/--inference/--dinov2

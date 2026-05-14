@@ -543,27 +543,34 @@ def main():
     print(f"Mid-run checkpoint:     {checkpoint_file}")
 
     # Skip-or-regenerate guard, routed through utils.cache_policy.
-    # iter15 Phase 3 fix (2026-05-14): the previous unconditional skip-if-exists
-    # violated the DELETE PROTECTION contract — CACHE_POLICY_ALL=2 / --cache-policy 2
-    # users got silently skipped (e.g., Phase 0 13→23-D upgrade couldn't regenerate
-    # because the OLD 13-D file blocked the rerun). Now:
-    #   cache-policy=1 (keep):       skip if both .npy files exist, no checkpoint
-    #   cache-policy=2 (recompute):  guarded_delete all 3 artifacts → fall through
-    if features_file.exists() and paths_file.exists() and not checkpoint_file.exists():
-        from utils.cache_policy import guarded_delete, is_recompute
-        if not is_recompute(args.cache_policy):
-            print(f"Motion features already exist: {features_file}")
-            print(f"  Skipping (--cache-policy=1/keep; rerun with --cache-policy 2 "
-                  f"to regenerate, e.g., after FEATURE_DIM change).")
-            return
-        # cache-policy=2 → authorize regeneration. Delete BOTH .npy files + any
-        # stale mid-run checkpoint so resume doesn't pick up old-schema state.
+    # iter15 Phase 3 fix (2026-05-14a): the original unconditional skip-if-exists
+    # violated the DELETE PROTECTION contract — CACHE_POLICY_ALL=2 silently
+    # skipped (e.g., Phase 0 13→23-D upgrade couldn't regenerate).
+    # iter15 Phase 3 fix (2026-05-14d): also wipe stale checkpoint on --cache-policy 2
+    # — the 14a fix only triggered when BOTH .npy files existed. If a prior run
+    # crashed mid-stream (e.g., cgroup OOMKilled at clip 224), it left a
+    # checkpoint.npz but the .npy outputs were already deleted by its own
+    # cache-policy=2 prelude. Restarting with cache-policy=2 would then SKIP the
+    # guard entirely (because .npy files were missing) and resume from the stale
+    # checkpoint instead of starting fresh. Now: cache-policy=2 wipes ALL three
+    # artifacts unconditionally, regardless of which ones exist.
+    from utils.cache_policy import guarded_delete, is_recompute
+    if is_recompute(args.cache_policy):
+        # cache-policy=2 → authorize wipe of all stale artifacts (whichever exist).
+        # Each guarded_delete is a no-op if the file is missing.
         guarded_delete(features_file, args.cache_policy,
                        label="m04d motion_features.npy")
         guarded_delete(paths_file, args.cache_policy,
                        label="m04d motion_features.paths.npy")
         guarded_delete(checkpoint_file, args.cache_policy,
                        label="m04d mid-run checkpoint")
+    elif features_file.exists() and paths_file.exists() and not checkpoint_file.exists():
+        # cache-policy=1 → keep existing finished output; skip if no checkpoint
+        # is in flight (meaning the prior run finished cleanly).
+        print(f"Motion features already exist: {features_file}")
+        print(f"  Skipping (--cache-policy=1/keep; rerun with --cache-policy 2 "
+              f"to regenerate, e.g., after FEATURE_DIM change).")
+        return
 
     mode = "SANITY" if args.SANITY else ("POC" if args.POC else "FULL")
     clip_limit = get_sanity_clip_limit("motion") if args.SANITY else None
@@ -726,10 +733,15 @@ def main():
     features_arr = np.stack(features_list).astype(np.float32)
     keys_arr = np.array(keys_list, dtype=object)
 
-    # features_file + paths_file already resolved above (durable per-dataset
-    # path). meta_file stays in output_dir — it's run scratch (mode/timestamp/
-    # error counts), not durable.
-    meta_file = output_dir / "motion_features_meta.json"
+    # features_file + paths_file + meta_file are all DURABLE per-dataset
+    # artifacts, co-located under <local_data>/ so they ride together via
+    # hf_outputs.py upload-data. iter15 Phase 3 (2026-05-14): meta_file moved
+    # from outputs/<mode>/m04d_motion_features/motion_features_meta.json
+    # → <local_data>/motion_features.meta.json. The meta describes the .npy's
+    # shape + feature_names + n_frame_pairs → must travel with the .npy, not
+    # live in scratch outputs/ where it would orphan on iter rollover.
+    # Dot-separator naming mirrors motion_features.paths.npy.
+    meta_file = features_file.with_name(features_file.stem + ".meta.json")
 
     np.save(features_file, features_arr)
     np.save(paths_file, keys_arr)

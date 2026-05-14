@@ -63,7 +63,19 @@
       "Bash(bash -n scripts/run_recipe_v3_sweep.sh)",
       "Bash(python3 *)",
       "Read(//root/.claude/**)",
-      "Bash(mkdir -p /root/.claude/plans)"
+      "Bash(mkdir -p /root/.claude/plans)",
+      "Read(//proc/**)",
+      "Bash(lscpu)",
+      "Bash(awk '{printf \" cgroup memory.limit_in_bytes: %.1f GB\\\\n\", $1/1024/1024/1024}')",
+      "Read(//sys/fs/cgroup/**)",
+      "Bash(awk '{print \" cgroup v2 memory.max: \"$0}')",
+      "Read(//sys/fs/cgroup/pids/**)",
+      "Bash(awk '{print \" pids.max: \"$0}')",
+      "Bash(awk '{print \"  pids.max \\(v2\\): \"$0}')",
+      "Bash(nvidia-smi --query-gpu=name,memory.total,memory.free --format=csv,noheader)",
+      "Bash(awk '{print \"  \"$0}')",
+      "Bash(python -c \"import torchvision; print\\(torchvision.__version__\\)\")",
+      "Bash(python -c \"import torchvision.utils as tu; print\\([x for x in dir\\(tu\\) if 'flow' in x.lower\\(\\)]\\)\")"
     ]
   }
 }

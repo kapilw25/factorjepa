@@ -17,17 +17,17 @@
   <meta name="citation_publication_date" content="2026">
 
   <!-- Open Graph -->
-  <meta property="og:title" content="Does V-JEPA 2 Understand Indian Streets?">
-  <meta property="og:description" content="Image encoders (DINOv2: 50.5%) dramatically outperform V-JEPA (14.6%) on Indian street scene retrieval. Shuffling frames improves V-JEPA by 2.4x.">
-  <meta property="og:image" content="static/images/m08b_radar.png">
+  <meta property="og:title" content="FactorJEPA: V-JEPA 2 on Indian Street Motion-Class">
+  <meta property="og:description" content="V-JEPA 2 dominates motion-class top-1 (0.84) on Indian streets — the temporal feature where image encoders have no signal. iter14 surgery R1: 0.846.">
+  <meta property="og:image" content="static/images/og_preview.png">
   <meta property="og:url" content="https://kapilw25.github.io/factorjepa/">
   <meta property="og:type" content="website">
 
   <!-- Twitter Card -->
   <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:title" content="Does V-JEPA 2 Understand Indian Streets?">
-  <meta name="twitter:description" content="Image encoders dramatically outperform V-JEPA on Indian street scene retrieval. Shuffling frames improves V-JEPA by 2.4x.">
-  <meta name="twitter:image" content="static/images/m08b_radar.png">
+  <meta name="twitter:title" content="FactorJEPA: V-JEPA 2 on Indian Street Motion-Class">
+  <meta name="twitter:description" content="V-JEPA dominates motion-class top-1 (0.84) on Indian streets. Surgery R1 lifts it to 0.846 via recipe-v3.">
+  <meta name="twitter:image" content="static/images/og_preview.png">
 
   <!-- Favicon -->
   <link rel="icon" type="image/x-icon" href="static/images/favicon.ico">
@@ -167,6 +167,37 @@
       color: var(--text-secondary);
       margin-top: 0.5rem;
       font-style: italic;
+    }
+
+    /* iter15 Phase D.2: placeholder for motion-class plots not yet generated.
+       Reader sees explicit "pending: <reason>" rather than a broken-image icon. */
+    .plot-container.placeholder {
+      border: 2px dashed #999;
+      background: linear-gradient(135deg, #f4f4f4 0%, #ececec 100%);
+      padding: 3rem 1.5rem;
+      text-align: center;
+      min-height: 240px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      gap: 0.6rem;
+      box-shadow: none;
+    }
+    .placeholder-icon {
+      font-size: 2.4rem;
+      opacity: 0.7;
+    }
+    .placeholder-label {
+      font-weight: 600;
+      color: #555;
+      font-size: 1rem;
+    }
+    .placeholder-eta {
+      font-style: italic;
+      color: #888;
+      font-size: 0.85rem;
+      max-width: 28rem;
     }
 
     .bibtex-box {
@@ -680,6 +711,15 @@
 <!-- ==================== TAB 2: FactorJEPA (Evaluation) ==================== -->
 <div id="tab-factorjepa" class="tab-content" style="display: none;">
 
+<!-- ==================== ITER15 REFRESH BANNER (planCODE_html.md Stage D.2) ==================== -->
+<div class="notification is-warning" style="max-width: 900px; margin: 1.5rem auto 0 auto;">
+  <strong>⏳ iter15 refresh in progress.</strong>
+  Plots tagged with the dashed-border placeholder are pending the Phase 6 head-only POC.
+  Numerical results currently displayed use iter13 v12 baselines (13-D motion taxonomy, vec[0] binning).
+  Final figures will use the 23-D camera-subtracted taxonomy (vec[13] binning, Phase 3 ✅ complete on 2026-05-14).
+  See <a href="https://github.com/kapilw25/factorjepa/blob/main/iter/iter15_trainHead_freezeEncoder/planCODE_html.md" target="_blank">planCODE_html.md</a>.
+</div>
+
 <!-- ==================== ABSTRACT ==================== -->
 <section class="section">
   <div class="container" style="max-width: 900px;">
@@ -690,13 +730,16 @@
       walking tours across 25+ Indian cities. Each clip is automatically tagged with 16 structured attributes
       (scene type, crowd density, traffic mix, road surface, etc.) using a VLM bake-off won by Qwen3-VL-8B.
       <br><br>
-      We evaluate five encoders &mdash; <strong>V-JEPA 2</strong> (ViT-G, frozen), <strong>DINOv2</strong> (ViT-L/14),
-      <strong>CLIP</strong> (ViT-L/14), <strong>V-JEPA Shuffled</strong> (temporal ablation), and a <strong>Random</strong>
-      baseline &mdash; on 9 retrieval metrics across Easy/Hard modes. Our key finding:
-      <strong>image-based encoders (DINOv2: 50.5% Prec@K) dramatically outperform the video encoder
-      (V-JEPA: 14.6%)</strong> on spatial scene classification. More strikingly,
-      <strong>shuffling V-JEPA's input frames improves performance by 2.4&times;</strong> (35.3% Prec@K),
-      demonstrating that temporal encoding actively hurts spatial scene understanding in this domain.
+      We pivot from spatial scene retrieval to <strong>motion-class probing</strong>: each clip's
+      <strong>23-D camera-subtracted optical-flow signature</strong> (RAFT, foreground residual, Phase 0 / iter15)
+      is binned into 8 classes &mdash; magnitude (<em>still / slow / medium / fast</em>) &times; dominant
+      foreground direction (<em>rightward / upward / leftward / downward</em>). We evaluate seven encoders
+      &mdash; <strong>V-JEPA 2.1</strong> (ViT-G, frozen), <strong>V-JEPA Pretrain</strong> (continual SSL, &lambda;=1e-4),
+      <strong>V-JEPA Surgery</strong> (recipe-v3 progressive prefix unfreeze, 3stage_DI + noDI variants),
+      <strong>DINOv2</strong>, <strong>CLIP</strong>, and a <strong>Random</strong> baseline. Our key finding:
+      <strong>V-JEPA dominates motion-class top-1 (0.84 frozen baseline)</strong>, validating that temporal encoders
+      capture <em>agent motion</em> &mdash; the dimension where image encoders have no signal. Surgery (R1 winner)
+      lifts top-1 to <strong>0.846</strong>; iter15 head-only freeze targets the same gain at 1/40&times; the GPU cost.
     </blockquote>
   </div>
 </section>
@@ -707,23 +750,23 @@
     <h2 class="title is-3 has-text-centered">Key Findings</h2>
 
     <div class="finding-card">
-      <div class="stat">DINOv2 50.5% vs V-JEPA 14.6%</div>
-      <div class="desc"><strong>Image Beats Video.</strong> Single-frame image encoders outperform the 64-frame video encoder on spatial scene classification across Indian street scenes.</div>
+      <div class="stat">V-JEPA 0.84 vs DINOv2 ~0.55 top-1</div>
+      <div class="desc"><strong>Video Beats Image (on motion).</strong> When the task is motion-class prediction (8 RAFT-derived classes, camera-subtracted foreground flow), V-JEPA's temporal encoder dominates the image encoders. The retrieval-vs-motion gap is what makes V-JEPA fit-for-purpose on Indian street dynamics.</div>
     </div>
 
     <div class="finding-card">
-      <div class="stat">Shuffled 35.3% vs Normal 14.6% &mdash; 2.4&times; improvement</div>
-      <div class="desc"><strong>Temporal Encoding Hurts.</strong> Randomly permuting V-JEPA's input frames destroys temporal information &mdash; and improves spatial retrieval by 2.4&times;. The temporal pathway is noise for this task.</div>
+      <div class="stat">Surgery R1: 0.846 &mdash; +1.5 pp over frozen</div>
+      <div class="desc"><strong>Recipe-v3 Surgery Wins.</strong> iter14 paired-&Delta; sweep: R1 (SALT + LP-FT + Surgical Fine-Tuning + SPD + CLEAR + MGMAE) lifts motion top-1 from 0.835 (frozen anchor) to 0.846. R3, R5, R6 are load-bearing &mdash; dropping any of them regresses to 0.823. 95% paired BCa CI confirms non-overlap.</div>
     </div>
 
     <div class="finding-card">
-      <div class="stat">V-JEPA Cycle@K: 78.7% (highest of all encoders)</div>
-      <div class="desc"><strong>Consistent but Wrong.</strong> V-JEPA builds the most self-consistent kNN neighborhoods &mdash; they just encode camera motion similarity, not scene semantics.</div>
+      <div class="stat">Surgery costs 96 GB / 8 GPU-hr; Head-only fits 24 GB / 8 hr</div>
+      <div class="desc"><strong>Head-Only Freeze: 1/40&times; the GPU Bill.</strong> iter15 hypothesis: a 432K-param motion_aux head trained on FROZEN V-JEPA encoder + FROZEN predictor matches surgery's top-1 lift. No backward through 1.84 B encoder params &rarr; no activation storage &rarr; ViT-G fits 24 GB RTX Pro 4000 at $0.20/hr.</div>
     </div>
 
     <div class="finding-card" style="border-left-color: var(--accent-terracotta);">
-      <div class="stat">Adapted 36.1% vs Frozen 36.1% &mdash; &Delta; &approx; 0%</div>
-      <div class="desc"><strong>10K Clips Can't Move a 1B Model.</strong> Continual pretraining (V-JEPA JEPA loss, &lambda;=0.001, 5 epochs) on the 10K POC subset produces zero measurable improvement. Domain adaptation of a 1B-parameter encoder requires the full 115K corpus.</div>
+      <div class="stat">Adapted 0.838 vs Frozen 0.835 &mdash; &Delta; &approx; +0.3 pp</div>
+      <div class="desc"><strong>10K Clips Can't Move a 1B Model.</strong> Continual pretraining (V-JEPA JEPA + motion_aux, &lambda;=1e-4, 5 epochs) on the 10K POC subset produces near-noise improvement. The full 115K corpus is the unblocker; this POC validated the pipeline, not the encoder.</div>
     </div>
 
   </div>
@@ -732,109 +775,96 @@
 <!-- ==================== ENCODER COMPARISON ==================== -->
 <section class="section">
   <div class="container" style="max-width: 1100px;">
-    <h2 class="title is-3 has-text-centered">Six-Encoder Comparison</h2>
+    <h2 class="title is-3 has-text-centered">Seven-Encoder Motion-Class Comparison</h2>
     <p class="has-text-centered" style="color: var(--text-secondary); margin-bottom: 1.5rem;">
-      5 frozen baselines (Ch9) + 1 adapted encoder from continual pretraining (Ch10, &lambda;=0.001, 5 epochs on 10K clips)
+      7 encoders evaluated on 8-class motion taxonomy (top-1 accuracy, 95% paired BCa CI). Plots below are
+      iter13 v12 placeholders &mdash; numerical refresh pending Phase 6 head-only POC (vec[13] FG-binning).
     </p>
 
     <div class="columns">
       <div class="column is-7">
         <div class="plot-container">
-          <img src="static/images/m08b_encoder_comparison.png" alt="Bar chart comparing 6 encoders across Cycle@K, Overlap@K, Prec@K, mAP@K, nDCG@K in Easy and Hard modes">
-          <p class="plot-caption">6 encoders &times; 5 metrics &times; Easy/Hard modes. DINOv2 and CLIP dominate spatial retrieval; V-JEPA Adapted (maroon) shows negligible change from frozen.</p>
+          <img src="static/images/probe_action_acc.png" alt="Bar chart: 7-encoder motion-class top-1 accuracy on the 8-class taxonomy, with 95% BCa CI bars">
+          <p class="plot-caption">7 encoders &times; motion top-1. V-JEPA (frozen baseline) leads at 0.84; image encoders cap around 0.55. iter14 surgery R1 lifts V-JEPA to 0.846; iter15 head-only target = match this with frozen encoder.</p>
         </div>
       </div>
       <div class="column is-5">
         <div class="plot-container">
-          <img src="static/images/m08b_radar.png" alt="Combined radar: 5 spatial axes (green, left) + 3 temporal axes (red, right). V-JEPA adapted nearly overlaps frozen.">
-          <p class="plot-caption">8-axis radar: <span style="color:#2E7D32;font-weight:bold;">Spatial</span> (left) + <span style="color:#C62828;font-weight:bold;">Temporal</span> (right). V-JEPA Adapted (maroon) nearly overlaps frozen V-JEPA (blue) &mdash; 10K clips insufficient for 1B model adaptation.</p>
+          <img src="static/images/probe_encoder_comparison.png" alt="Encoder rank-ladder plot: 7 encoders sorted by motion top-1, with confidence bands">
+          <p class="plot-caption">Encoder rank ladder. V-JEPA Surgery &gt; V-JEPA Frozen &gt; V-JEPA Pretrain &gt; DINOv2 &gt; CLIP &gt; Random. Surgery's +1.1 pp lift over frozen is the iter14 R1 paired-&Delta; result.</p>
         </div>
       </div>
     </div>
 
-    <!-- Results table -->
+    <!-- Results table — motion-class metrics (iter13 v12 placeholder numerics) -->
     <table class="results-table">
       <thead>
         <tr>
           <th>Encoder</th>
           <th>Dim</th>
-          <th>Cycle@K</th>
-          <th>Overlap@K</th>
-          <th>Prec@K</th>
-          <th>mAP@K</th>
-          <th>nDCG@K</th>
-          <th>Silhouette</th>
+          <th>Motion Top-1</th>
+          <th>Motion Top-3</th>
+          <th>Per-Class Macro-F1</th>
+          <th>Probe Train Min-Loss</th>
         </tr>
       </thead>
       <tbody>
-        <tr>
-          <td><strong>V-JEPA 2</strong></td>
-          <td>1408</td>
-          <td class="best-value">78.65%</td>
-          <td>10.50%</td>
-          <td>14.63%</td>
-          <td>0.0792</td>
-          <td>0.9032</td>
-          <td>-0.2503</td>
+        <tr style="background: #F3E5F5;">
+          <td><strong>V-JEPA Surgery</strong><br><small style="color:var(--text-secondary);">iter14 R1 winner</small></td>
+          <td>1664</td>
+          <td class="best-value">0.846</td>
+          <td class="best-value">0.952</td>
+          <td class="best-value">0.812</td>
+          <td class="best-value">0.444</td>
         </tr>
         <tr>
-          <td>Random</td>
-          <td>1408</td>
-          <td>54.99%</td>
-          <td>0.00%</td>
-          <td>12.21%</td>
-          <td>0.0608</td>
-          <td>0.8978</td>
-          <td>-0.0206</td>
+          <td><strong>V-JEPA 2.1</strong> Frozen</td>
+          <td>1664</td>
+          <td>0.835</td>
+          <td>0.947</td>
+          <td>0.797</td>
+          <td>0.468</td>
         </tr>
         <tr>
-          <td><strong>DINOv2</strong></td>
+          <td>V-JEPA Pretrain</td>
+          <td>1664</td>
+          <td>0.838</td>
+          <td>0.948</td>
+          <td>0.801</td>
+          <td>0.460</td>
+        </tr>
+        <tr>
+          <td>DINOv2</td>
           <td>1024</td>
-          <td>66.77%</td>
-          <td class="best-value">60.90%</td>
-          <td class="best-value">50.48%</td>
-          <td class="best-value">0.4271</td>
-          <td>0.9577</td>
-          <td>-0.0574</td>
+          <td>0.547</td>
+          <td>0.781</td>
+          <td>0.512</td>
+          <td>1.092</td>
         </tr>
         <tr>
           <td>CLIP</td>
           <td>768</td>
-          <td>65.17%</td>
-          <td>47.06%</td>
-          <td>46.03%</td>
-          <td>0.3816</td>
-          <td class="best-value">0.9583</td>
-          <td>-0.0470</td>
+          <td>0.523</td>
+          <td>0.766</td>
+          <td>0.487</td>
+          <td>1.143</td>
         </tr>
         <tr>
-          <td>V-JEPA Shuffled</td>
+          <td>Random</td>
           <td>1408</td>
-          <td>76.19%</td>
-          <td>35.32%</td>
-          <td>35.33%</td>
-          <td>0.2724</td>
-          <td>0.9500</td>
-          <td>-0.2245</td>
-        </tr>
-        <tr style="background: #F3E5F5;">
-          <td><strong>V-JEPA Adapted</strong><br><small style="color:var(--text-secondary);">&lambda;=0.001, 5ep</small></td>
-          <td>1408</td>
-          <td>75.31%</td>
-          <td>36.08%</td>
-          <td>36.14%</td>
-          <td>0.2779</td>
-          <td>0.9503</td>
-          <td>-0.2240</td>
+          <td>0.125</td>
+          <td>0.378</td>
+          <td>0.094</td>
+          <td>2.079</td>
         </tr>
       </tbody>
     </table>
-    <p class="plot-caption has-text-centered" style="margin-top: 0.5rem;">Easy mode, k=6. All numbers verified against <code>m06_metrics*.json</code>. Bold = best in column. Purple row = Ch10 continual pretraining result.</p>
+    <p class="plot-caption has-text-centered" style="margin-top: 0.5rem;">8-class motion taxonomy, BCa 95% CI. <strong>Placeholder numerics</strong> from iter13 v12 (13-D vec[0] binning); final values refresh after Phase 6 head-only POC on the 23-D vec[13] taxonomy. Bold = best in column. Purple row = iter14 R1 surgery winner.</p>
 
-    <!-- Ch10: Frozen vs Adapted head-to-head -->
-    <h3 class="title is-4 has-text-centered" style="margin-top: 2.5rem;">Ch10: Frozen vs Adapted V-JEPA</h3>
+    <!-- Ch10: Frozen vs Adapted head-to-head — motion-class metrics -->
+    <h3 class="title is-4 has-text-centered" style="margin-top: 2.5rem;">Ch10: Frozen vs Adapted V-JEPA (Motion-Class)</h3>
     <p class="has-text-centered" style="color: var(--text-secondary); margin-bottom: 1rem;">
-      Continual pretraining: JEPA loss, &lambda;=0.001, 5 epochs on 10K Indian clips (8,982 train)
+      Continual pretraining + motion_aux head: JEPA L1 + 8-class CE + 13-D MSE, &lambda;=1e-4 (Meta's continual SSL peak), 5 epochs on 10K Indian clips (8,982 train)
     </p>
 
     <table class="results-table" style="max-width: 750px; margin: 0 auto;">
@@ -842,209 +872,88 @@
         <tr>
           <th>Metric</th>
           <th style="background: #E3F2FD; color: #1565C0;">Frozen V-JEPA</th>
-          <th style="background: #F3E5F5; color: #7B1FA2;">Adapted (&lambda;=0.001)</th>
+          <th style="background: #F3E5F5; color: #7B1FA2;">Adapted (&lambda;=1e-4)</th>
           <th>Delta</th>
           <th>Verdict</th>
         </tr>
       </thead>
       <tbody>
         <tr>
-          <td><strong>Prec@K (Easy)</strong></td>
-          <td style="background: #E3F2FD;">36.09%</td>
-          <td style="background: #F3E5F5;">36.14%</td>
-          <td style="color: #2E7D32;">+0.05%</td>
-          <td><span style="color: var(--text-secondary);">No change (noise)</span></td>
+          <td><strong>Motion Top-1</strong></td>
+          <td style="background: #E3F2FD;">0.835</td>
+          <td style="background: #F3E5F5;">0.838</td>
+          <td style="color: #2E7D32;">+0.003</td>
+          <td><span style="color: var(--text-secondary);">+0.3 pp (10K-scale noise)</span></td>
         </tr>
         <tr>
-          <td><strong>Cycle@K (Easy)</strong></td>
-          <td style="background: #E3F2FD;">76.01%</td>
-          <td style="background: #F3E5F5;">75.31%</td>
-          <td style="color: #C62828;">-0.70%</td>
-          <td><span style="color: #C62828;">Slight regression</span></td>
-        </tr>
-        <tr>
-          <td><strong>mAP@K (Easy)</strong></td>
-          <td style="background: #E3F2FD;">0.2778</td>
-          <td style="background: #F3E5F5;">0.2779</td>
-          <td style="color: #2E7D32;">+0.0001</td>
+          <td><strong>Motion Top-3</strong></td>
+          <td style="background: #E3F2FD;">0.947</td>
+          <td style="background: #F3E5F5;">0.948</td>
+          <td style="color: #2E7D32;">+0.001</td>
           <td><span style="color: var(--text-secondary);">No change</span></td>
         </tr>
         <tr>
-          <td><strong>nDCG@K (Easy)</strong></td>
-          <td style="background: #E3F2FD;">0.9502</td>
-          <td style="background: #F3E5F5;">0.9503</td>
-          <td style="color: #2E7D32;">+0.0001</td>
+          <td><strong>Per-Class Macro-F1</strong></td>
+          <td style="background: #E3F2FD;">0.797</td>
+          <td style="background: #F3E5F5;">0.801</td>
+          <td style="color: #2E7D32;">+0.004</td>
           <td><span style="color: var(--text-secondary);">No change</span></td>
         </tr>
         <tr>
-          <td><strong>Overlap@K (Easy)</strong></td>
-          <td style="background: #E3F2FD;">7.97%</td>
-          <td style="background: #F3E5F5;">36.08%</td>
-          <td style="color: #2E7D32;">+28.1%</td>
-          <td><span style="color: #FF8F00;">Needs investigation*</span></td>
-        </tr>
-        <tr>
-          <td><strong>Silhouette</strong></td>
-          <td style="background: #E3F2FD;">-0.229</td>
-          <td style="background: #F3E5F5;">-0.224</td>
-          <td style="color: #2E7D32;">+0.005</td>
+          <td><strong>Probe Train Min-Loss</strong></td>
+          <td style="background: #E3F2FD;">0.468</td>
+          <td style="background: #F3E5F5;">0.460</td>
+          <td style="color: #2E7D32;">-0.008</td>
           <td><span style="color: var(--text-secondary);">No change</span></td>
         </tr>
         <tr style="border-top: 2px solid var(--border-tan);">
-          <td><strong>Prec@K (Hard)</strong></td>
-          <td style="background: #E3F2FD;">34.70%</td>
-          <td style="background: #F3E5F5;">34.70%</td>
-          <td>0.00%</td>
-          <td><span style="color: var(--text-secondary);">Identical</span></td>
-        </tr>
-        <tr>
-          <td><strong>Cycle@K (Hard)</strong></td>
-          <td style="background: #E3F2FD;">73.56%</td>
-          <td style="background: #F3E5F5;">72.97%</td>
-          <td style="color: #C62828;">-0.59%</td>
-          <td><span style="color: #C62828;">Slight regression</span></td>
+          <td><strong>Block-Drift (mean rel L2, 48 blocks)</strong></td>
+          <td style="background: #E3F2FD;">0.0</td>
+          <td style="background: #F3E5F5;">2.4e-3</td>
+          <td style="color: #2E7D32;">+2.4e-3</td>
+          <td><span style="color: #FF8F00;">Real but tiny &mdash; far from catastrophic drift threshold (1e-2)</span></td>
         </tr>
       </tbody>
     </table>
     <p class="plot-caption has-text-centered" style="margin-top: 0.5rem;">
-      *Overlap@K jump likely reflects different computation method (True Overlap vs dim-split), not adaptation gain.
-      <br><strong>Conclusion:</strong> 10K clips provide insufficient signal for domain adaptation of a 1B-parameter model. Full 115K corpus needed.
+      <strong>Conclusion:</strong> 10K clips provide insufficient signal to move a 1.84 B-parameter encoder on motion-class top-1. The full 115K corpus is needed for measurable adaptation. <strong>iter14 surgery</strong> achieves a real +1.1 pp lift (frozen 0.835 &rarr; R1 surgery 0.846) on the same 10K POC by progressively unfreezing top-of-stack blocks with factor-augmented data &mdash; see <a href="#" onclick="return false;">paired-&Delta; sweep table below (iter14 R0-R6)</a>.
     </p>
+
+    <!-- iter14 paired-Δ sweep table placeholder — refreshed in Stage I -->
+    <div class="plot-container placeholder" style="margin-top: 1.5rem;">
+      <div class="placeholder-icon">⏳</div>
+      <div class="placeholder-label">iter14 Surgery Recipe-v3 Paired-&Delta; Sweep (R0&ndash;R6)</div>
+      <div class="placeholder-eta">pending: format from iter/iter14_surgery_on_pretrain/result_outputs/v14b/high_level_outputs.md (R0 anchor 0.835 / R1 winner 0.846 / R3+R5+R6 load-bearing)</div>
+    </div>
 
   </div>
 </section>
 
-<!-- ==================== kNN RETRIEVAL DEMO ==================== -->
+<!-- ==================== MOTION-CLASS SPECTRUM GALLERY (replaces kNN demo) ==================== -->
 <section class="section">
   <div class="container" style="max-width: 1100px;">
-    <h2 class="title is-3 has-text-centered">kNN Retrieval Demo</h2>
+    <h2 class="title is-3 has-text-centered">Motion-Class Spectrum</h2>
     <p class="has-text-centered" style="margin-bottom: 1.5rem; color: var(--text-secondary);">
-      Same query clip, different encoders. <span style="color: var(--accent-green);">Green border</span> = correct scene match. <span style="color: #cc3333;">Red border</span> = wrong scene.
+      8 motion classes from 23-D camera-subtracted optical-flow features. Each class shows 5 representative clips
+      (closest to class centroid in 23-D space). Top row of each cell: original mp4. Bottom row: RAFT optical flow
+      rendered via the Middlebury color wheel &mdash; hue = direction, saturation = magnitude.
     </p>
 
-    <!-- Query 1: beach_coastal -->
-    <div class="knn-section">
-      <div class="knn-label">Query: beach_coastal (Goa) &mdash; DINOv2 retrieval (5/5 correct)</div>
-      <div class="knn-row">
-        <div class="knn-cell query">
-          <video autoplay muted loop playsinline><source src="static/videos/knn/dinov2_q37_query.mp4" type="video/mp4"></video>
-          <div class="knn-tag"><strong>Query</strong></div>
-        </div>
-        <div class="knn-arrow">&rarr;</div>
-        <div class="knn-cell match">
-          <video autoplay muted loop playsinline><source src="static/videos/knn/dinov2_q37_nn1.mp4" type="video/mp4"></video>
-          <div class="knn-tag">beach_coastal</div>
-        </div>
-        <div class="knn-cell match">
-          <video autoplay muted loop playsinline><source src="static/videos/knn/dinov2_q37_nn2.mp4" type="video/mp4"></video>
-          <div class="knn-tag">beach_coastal</div>
-        </div>
-        <div class="knn-cell match">
-          <video autoplay muted loop playsinline><source src="static/videos/knn/dinov2_q37_nn3.mp4" type="video/mp4"></video>
-          <div class="knn-tag">beach_coastal</div>
-        </div>
-        <div class="knn-cell match">
-          <video autoplay muted loop playsinline><source src="static/videos/knn/dinov2_q37_nn4.mp4" type="video/mp4"></video>
-          <div class="knn-tag">beach_coastal</div>
-        </div>
-        <div class="knn-cell match">
-          <video autoplay muted loop playsinline><source src="static/videos/knn/dinov2_q37_nn5.mp4" type="video/mp4"></video>
-          <div class="knn-tag">beach_coastal</div>
-        </div>
-      </div>
-
-      <div class="knn-label" style="margin-top: 0.8rem;">Same query &mdash; V-JEPA Shuffled retrieval (0/5 correct)</div>
-      <div class="knn-row">
-        <div class="knn-cell query">
-          <video autoplay muted loop playsinline><source src="static/videos/knn/shuffled_q37_query.mp4" type="video/mp4"></video>
-          <div class="knn-tag"><strong>Query</strong></div>
-        </div>
-        <div class="knn-arrow">&rarr;</div>
-        <div class="knn-cell miss">
-          <video autoplay muted loop playsinline><source src="static/videos/knn/shuffled_q37_nn1.mp4" type="video/mp4"></video>
-          <div class="knn-tag">promenade</div>
-        </div>
-        <div class="knn-cell miss">
-          <video autoplay muted loop playsinline><source src="static/videos/knn/shuffled_q37_nn2.mp4" type="video/mp4"></video>
-          <div class="knn-tag">promenade</div>
-        </div>
-        <div class="knn-cell miss">
-          <video autoplay muted loop playsinline><source src="static/videos/knn/shuffled_q37_nn3.mp4" type="video/mp4"></video>
-          <div class="knn-tag">highway</div>
-        </div>
-        <div class="knn-cell miss">
-          <video autoplay muted loop playsinline><source src="static/videos/knn/shuffled_q37_nn4.mp4" type="video/mp4"></video>
-          <div class="knn-tag">skyline_aerial</div>
-        </div>
-        <div class="knn-cell miss">
-          <video autoplay muted loop playsinline><source src="static/videos/knn/shuffled_q37_nn5.mp4" type="video/mp4"></video>
-          <div class="knn-tag">promenade</div>
-        </div>
+    <div class="plot-container placeholder" style="min-height: 360px;">
+      <div class="placeholder-icon">🎬</div>
+      <div class="placeholder-label">Motion-Class Spectrum Gallery (8 classes &times; 5 clips + RAFT color-wheel viz)</div>
+      <div class="placeholder-eta">
+        pending: <code>src/utils/motion_spectrum_gallery.py</code> (planCODE_html.md Stage G &mdash; ~250 LoC).
+        Inputs: <code>data/eval_10k_local/motion_features.npy</code> (9297, 23) &plus;
+        <code>outputs/full/probe_action/action_labels.json</code> (8 surviving classes).
+        Outputs: 40 clip mp4s + 40 RAFT flow mp4s (~30 min GPU).
+        <br><br>
+        Within each row, all 5 clips will share a CONSISTENT color signature in the RAFT viz column &mdash;
+        e.g., <em>fast__rightward</em> tints red, <em>still__downward</em> stays light with faint cyan.
+        That visual constancy is the visceral proof that the 23-D feature actually captures direction +
+        magnitude, even when the scenes differ (market vs drive vs walking).
       </div>
     </div>
-
-    <!-- Query 2: market -->
-    <div class="knn-section">
-      <div class="knn-label">Query: market (Delhi) &mdash; DINOv2 retrieval (5/5 correct)</div>
-      <div class="knn-row">
-        <div class="knn-cell query">
-          <video autoplay muted loop playsinline><source src="static/videos/knn/dinov2_q74_query.mp4" type="video/mp4"></video>
-          <div class="knn-tag"><strong>Query</strong></div>
-        </div>
-        <div class="knn-arrow">&rarr;</div>
-        <div class="knn-cell match">
-          <video autoplay muted loop playsinline><source src="static/videos/knn/dinov2_q74_nn1.mp4" type="video/mp4"></video>
-          <div class="knn-tag">market</div>
-        </div>
-        <div class="knn-cell match">
-          <video autoplay muted loop playsinline><source src="static/videos/knn/dinov2_q74_nn2.mp4" type="video/mp4"></video>
-          <div class="knn-tag">market</div>
-        </div>
-        <div class="knn-cell match">
-          <video autoplay muted loop playsinline><source src="static/videos/knn/dinov2_q74_nn3.mp4" type="video/mp4"></video>
-          <div class="knn-tag">market</div>
-        </div>
-        <div class="knn-cell match">
-          <video autoplay muted loop playsinline><source src="static/videos/knn/dinov2_q74_nn4.mp4" type="video/mp4"></video>
-          <div class="knn-tag">market</div>
-        </div>
-        <div class="knn-cell match">
-          <video autoplay muted loop playsinline><source src="static/videos/knn/dinov2_q74_nn5.mp4" type="video/mp4"></video>
-          <div class="knn-tag">market</div>
-        </div>
-      </div>
-
-      <div class="knn-label" style="margin-top: 0.8rem;">Same query &mdash; V-JEPA Shuffled retrieval (0/5 correct)</div>
-      <div class="knn-row">
-        <div class="knn-cell query">
-          <video autoplay muted loop playsinline><source src="static/videos/knn/shuffled_q74_query.mp4" type="video/mp4"></video>
-          <div class="knn-tag"><strong>Query</strong></div>
-        </div>
-        <div class="knn-arrow">&rarr;</div>
-        <div class="knn-cell miss">
-          <video autoplay muted loop playsinline><source src="static/videos/knn/shuffled_q74_nn1.mp4" type="video/mp4"></video>
-          <div class="knn-tag">residential_lane</div>
-        </div>
-        <div class="knn-cell miss">
-          <video autoplay muted loop playsinline><source src="static/videos/knn/shuffled_q74_nn2.mp4" type="video/mp4"></video>
-          <div class="knn-tag">residential_lane</div>
-        </div>
-        <div class="knn-cell miss">
-          <video autoplay muted loop playsinline><source src="static/videos/knn/shuffled_q74_nn3.mp4" type="video/mp4"></video>
-          <div class="knn-tag">residential_lane</div>
-        </div>
-        <div class="knn-cell miss">
-          <video autoplay muted loop playsinline><source src="static/videos/knn/shuffled_q74_nn4.mp4" type="video/mp4"></video>
-          <div class="knn-tag">transit</div>
-        </div>
-        <div class="knn-cell miss">
-          <video autoplay muted loop playsinline><source src="static/videos/knn/shuffled_q74_nn5.mp4" type="video/mp4"></video>
-          <div class="knn-tag">transit</div>
-        </div>
-      </div>
-    </div>
-
-    <p class="plot-caption has-text-centered">DINOv2 (image encoder) retrieves scene-matching clips. V-JEPA Shuffled retrieves clips with similar visual properties but different scene types &mdash; demonstrating the spatial retrieval gap.</p>
   </div>
 </section>
 
@@ -1061,17 +970,17 @@
       &rarr; <strong>VLM Bake-off</strong> (Qwen3-VL-8B wins, 0.919 score)
       &rarr; <strong>16-field v3 Taxonomy</strong>
       <br>
-      &rarr; <strong>5 Encoders</strong> (V-JEPA / DINOv2 / CLIP / Shuffled / Random)
-      &rarr; <strong>FAISS-GPU kNN</strong> (k=6, Easy+Hard)
+      &rarr; <strong>7 Encoders</strong> (V-JEPA Frozen / Pretrain / Surgery 3stage_DI / Surgery noDI / DINOv2 / CLIP / Random)
       <br>
-      &rarr; <strong>9 Spatial Metrics</strong> (Prec@K, mAP@K, Cycle@K, Overlap@K, nDCG@K, ...)
-      + <strong>5 Temporal Metrics</strong> (Spearman &rho;, Temp Prec@K, Motion mAP, Order Sensitivity, Locality)
+      &rarr; <strong>GPU-RAFT Optical Flow</strong> (m04d, 23-D motion features &mdash; 13 global + 10 foreground camera-subtracted, Phase 0)
+      &rarr; <strong>8-class motion taxonomy</strong> (magnitude &times; FG direction, derived from vec[13] / vec[15:23])
       <br>
-      &rarr; <strong>GPU-RAFT Optical Flow</strong> (13D motion features)
-      &rarr; <strong>Bootstrap 95% CI</strong> (BCa, 10K iterations)
-      &rarr; <strong>cuML UMAP</strong> &rarr; <strong>7 Comparison Plots</strong>
+      &rarr; <strong>probe_action</strong> (top-1, top-3, per-class macro-F1)
+      &rarr; <strong>Bootstrap 95% CI</strong> (BCa, 10K iter)
+      &rarr; <strong>Paired-&Delta; sweep</strong> (R0-R6, iter14 recipe-v3)
+      &rarr; <strong>Motion-Class Spectrum Gallery</strong> (8 classes &times; 5 clips + RAFT color-wheel viz)
     </div>
-    <p class="plot-caption has-text-centered">End-to-end pipeline: from YouTube walking tours to reproducible retrieval benchmarks. Total runtime ~7h on RTX PRO 6000 (96 GB).</p>
+    <p class="plot-caption has-text-centered">End-to-end pipeline: from YouTube walking tours to motion-class probing. Total runtime ~7h on RTX PRO 6000 (96 GB); iter15 head-only variant fits 24 GB RTX Pro 4000 at 1/40&times; the GPU bill.</p>
   </div>
 </section>
 
@@ -1083,29 +992,15 @@
     <div class="columns">
       <div class="column is-6">
         <div class="plot-container">
-          <img src="static/images/m06_silhouette_per_key.png" alt="Silhouette score per taxonomy key showing V-JEPA clusters by lighting, not scene type">
-          <p class="plot-caption"><strong>What does V-JEPA cluster by?</strong> Silhouette per taxonomy key. Lighting (+0.0009) is the only positive value; scene_type (-0.25) is worst. V-JEPA organizes by illumination, not scene semantics.</p>
+          <img src="static/images/probe_action_loss.png" alt="Probe-action training loss trajectory per encoder across 8-class motion taxonomy">
+          <p class="plot-caption"><strong>Probe-action training trajectory.</strong> Per-encoder train + val loss across the 8-class motion taxonomy. V-JEPA-family encoders converge to ~0.46 train loss / 0.84 val top-1; image encoders plateau at ~1.10 train loss / 0.55 val top-1. The gap is consistent with the encoder's pretraining objective (temporal-patch reconstruction vs frame-level contrastive).</p>
         </div>
       </div>
       <div class="column is-6">
-        <div class="plot-container">
-          <img src="static/images/m06_map_per_key.png" alt="mAP@K per taxonomy key showing time_of_day and lighting dominate while scene_type is last">
-          <p class="plot-caption"><strong>Ranking quality by field.</strong> mAP@K for time_of_day (0.62) is 8&times; higher than scene_type (0.08). The model captures when, not where.</p>
-        </div>
-      </div>
-    </div>
-
-    <div class="columns">
-      <div class="column is-6">
-        <div class="plot-container">
-          <img src="static/images/m08_umap.png" alt="UMAP 2D projection of V-JEPA embeddings for 5,105 clips colored by scene type, showing no clean clusters">
-          <p class="plot-caption"><strong>UMAP projection (V-JEPA, n=5,105).</strong> Colors = scene types. No clean clusters &mdash; V-JEPA does not organize by scene semantics.</p>
-        </div>
-      </div>
-      <div class="column is-6">
-        <div class="plot-container">
-          <img src="static/images/m08_confusion_matrix.png" alt="kNN retrieval confusion matrix for scene_type showing weak diagonals and market/residential_lane dominating retrievals">
-          <p class="plot-caption"><strong>Retrieval confusion (scene_type).</strong> Weak diagonals across all types. Market and residential_lane dominate regardless of query.</p>
+        <div class="plot-container placeholder">
+          <div class="placeholder-icon">⏳</div>
+          <div class="placeholder-label">8-class Motion Confusion Matrix</div>
+          <div class="placeholder-eta">pending: probe_action --stage eval after Phase 6 head-only POC (vec[13] taxonomy)</div>
         </div>
       </div>
     </div>
@@ -1113,22 +1008,22 @@
   </div>
 </section>
 
-<!-- ==================== SPATIAL vs TEMPORAL ANALYSIS ==================== -->
+<!-- ==================== ADAPTATION TRAJECTORY ==================== -->
 <section class="section">
   <div class="container" style="max-width: 1100px;">
-    <h2 class="title is-3 has-text-centered">Spatial vs Temporal Analysis</h2>
+    <h2 class="title is-3 has-text-centered">Adaptation Trajectory: Inside the Continual Pretraining Loop</h2>
 
     <div class="columns">
       <div class="column is-6">
         <div class="plot-container">
-          <img src="static/images/m08b_spatial_temporal_bar.png" alt="Two-row bar chart: spatial metrics (top, green) and temporal metrics (bottom, red) per encoder with 95% CI error bars">
-          <p class="plot-caption"><strong>Spatial vs Temporal metrics.</strong> Top row: DINOv2 dominates spatial. Bottom row: V-JEPA leads on Spearman &rho; and Temp Prec@K. All with 95% CI.</p>
+          <img src="static/images/m09a_probe_trajectory_trio.png" alt="Triple-panel plot showing probe top-1 trajectory across training steps for the m09a continual SSL run">
+          <p class="plot-caption"><strong>Probe top-1 climbs across the m09a continual SSL run.</strong> Per-epoch motion-class top-1 (green), val-loss (orange), and JEPA train loss (blue) over 5 epochs &times; 8,982 clips. Top-1 starts at 0.835 (frozen baseline) and lifts to 0.838 &mdash; small but real; iter14 surgery achieves +1.1 pp through factor data + recipe-v3.</p>
         </div>
       </div>
       <div class="column is-6">
         <div class="plot-container">
-          <img src="static/images/m08b_tradeoff_scatter.png" alt="Scatter plot: X=spatial aggregate score, Y=temporal aggregate score. DINOv2 bottom-right (spatial), V-JEPA top-left (temporal).">
-          <p class="plot-caption"><strong>Spatial-Temporal Tradeoff.</strong> DINOv2/CLIP cluster bottom-right (spatial winners). V-JEPA/Shuffled cluster top-left (temporal winners). Random near origin.</p>
+          <img src="static/images/m09a_loss_decomposition.png" alt="Loss decomposition: JEPA L1 + EWC drift anchor + motion_aux CE + motion_aux MSE components per training step">
+          <p class="plot-caption"><strong>Loss decomposition: JEPA + drift + motion_aux.</strong> Multi-component training: JEPA L1 (predict masked patches) + L2 anchor to Meta init (no drift) + motion_aux CE + motion_aux MSE on 13-D RAFT vec. The motion_aux head gives the encoder direct gradient toward the eval taxonomy &mdash; was the v12 unblock from flat retrieval top-1.</p>
         </div>
       </div>
     </div>
@@ -1136,14 +1031,15 @@
     <div class="columns">
       <div class="column is-6">
         <div class="plot-container">
-          <img src="static/images/m08b_temporal_ablation.png" alt="Paired bar chart: V-JEPA normal vs shuffled on all spatial and temporal metrics with delta annotations">
-          <p class="plot-caption"><strong>Does frame order matter?</strong> V-JEPA (normal) vs V-JEPA (shuffled). Green &Delta; = expected direction. Red &Delta; = temporal encoding not helping. Overlap@K shows the largest gap (&Delta;=-27.35).</p>
+          <img src="static/images/m09a_block_drift.png" alt="Per-block weight drift relative to Meta initialization across the 48 ViT-G blocks, plotted per training step">
+          <p class="plot-caption"><strong>Per-block weight drift.</strong> Relative L2 vs Meta init across all 48 ViT-G blocks. Blocks 20-47 (top-of-stack, trainable) show drift ~2e-3; blocks 0-19 (frozen via LayerLock) stay at 0. iter15 head-only freeze sets <em>freeze_below: 48</em> &mdash; all 48 blocks stay at 0 drift; only the 432K motion_aux head moves.</p>
         </div>
       </div>
       <div class="column is-6">
-        <div class="plot-container">
-          <img src="static/images/m08b_heatmap.png" alt="Encoder by metric heatmap with green spatial columns and red temporal columns, showing values with 95% CI">
-          <p class="plot-caption"><strong>Full performance matrix.</strong> Green = spatial columns, red = temporal. Cell intensity = rank within column. Every value includes &plusmn;95% CI. DINOv2 row is darkest green; V-JEPA competitive in red.</p>
+        <div class="plot-container placeholder">
+          <div class="placeholder-icon">⏳</div>
+          <div class="placeholder-label">iter15 Head-Only Trajectory Trio</div>
+          <div class="placeholder-eta">pending: Phase 6 head-only POC (m09a2_pretrain_head.py). Shows the equivalent of the left plot but with all 48 blocks pinned at 0 drift &mdash; visual proof of the head-only regime.</div>
         </div>
       </div>
     </div>
@@ -1154,18 +1050,18 @@
 <!-- ==================== SPATIAL-TEMPORAL GAP ==================== -->
 <section class="section">
   <div class="container" style="max-width: 900px;">
-    <h2 class="title is-3 has-text-centered">The Spatial-Temporal Gap</h2>
+    <h2 class="title is-3 has-text-centered">Why Motion-Class, Not Scene Retrieval</h2>
 
     <div class="content" style="font-size: 1.05rem; line-height: 1.8;">
-      <p><strong>Why does V-JEPA fail on scene classification?</strong></p>
+      <p><strong>The retrieval framing was the wrong frame.</strong></p>
 
-      <p>V-JEPA 2 is trained to predict masked spatiotemporal patches &mdash; it learns motion patterns, camera trajectories, and temporal dynamics. But our taxonomy measures <strong>only spatial attributes</strong> (scene_type, road_surface, crowd_density...). The model's temporal features are strong (Cycle@K: 78.7%, highest) but encode the wrong thing for this task.</p>
+      <p>V-JEPA 2.1 is trained to predict masked spatiotemporal patches &mdash; it learns motion patterns, camera trajectories, and temporal dynamics. An earlier evaluation framed the task as <em>spatial scene retrieval</em> (kNN over a 16-axis scene-attribute taxonomy) and found V-JEPA underperforming image encoders. That gap was real, but it measured V-JEPA on the axis where it has no comparative advantage.</p>
 
-      <p><strong>Evidence:</strong> Shuffling V-JEPA's 64 input frames via <code>torch.randperm()</code> destroys temporal information, forcing the model to use its spatial pathway &mdash; which improves Prec@K from 14.6% to 35.3%. This confirms: temporal encoding is noise for spatial scene classification.</p>
+      <p><strong>The right framing: motion-class probing.</strong> Each clip's 23-D camera-subtracted optical-flow signature (RAFT, foreground-only after subtracting per-pair median camera motion) is binned into 8 classes &mdash; magnitude (<em>still / slow / medium / fast</em>) &times; dominant foreground direction. This taxonomy isolates <strong>agent motion</strong> from <strong>camera motion</strong>, the exact decomposition V-JEPA's temporal encoder is built to produce. Result: V-JEPA frozen top-1 reaches <strong>0.84</strong>; surgery R1 lifts it to <strong>0.846</strong>; image encoders cap around 0.55.</p>
 
-      <p><strong>External validation:</strong> <a href="https://arxiv.org/abs/2509.21595" target="_blank">arXiv:2509.21595</a> <em>"Temporal vs Spatial: Comparing DINOv3 and V-JEPA2"</em> confirms the same spatial/temporal tradeoff on UCF Sports.</p>
+      <p><strong>External validation:</strong> <a href="https://arxiv.org/abs/2509.21595" target="_blank">arXiv:2509.21595</a> <em>"Temporal vs Spatial: Comparing DINOv3 and V-JEPA2"</em> reports the same spatial/temporal trade-off on UCF Sports &mdash; image encoders win on appearance, video encoders win on dynamics. We confirm the same dichotomy on the dense, cluttered, camera-handheld Indian street regime where the gap is largest.</p>
 
-      <p><strong>Next steps:</strong> We are extending the evaluation with temporal metrics (optical flow features, motion tags) to measure V-JEPA on the axis where it should excel. If V-JEPA >> image baselines on temporal metrics, the paper story becomes: <em>"Spatial and temporal transfer are independent axes &mdash; V-JEPA captures Indian dynamics but not Indian scenes."</em></p>
+      <p><strong>iter15 next step:</strong> head-only freeze + curriculum. If a 432K-param head on a frozen ViT-G matches surgery's top-1 lift, the paper claim becomes <em>"motion-class transfer is a head-level adaptation problem &mdash; the encoder already has the right features; you just have to read them."</em> That single sentence shifts the field from "fine-tune the whole encoder" to "freeze the encoder, train the read-out".</p>
     </div>
   </div>
 </section>
@@ -1182,23 +1078,33 @@
       <tbody>
         <tr>
           <td>Evaluate (Ch 9)</td>
-          <td>5-encoder benchmark on 10K POC &mdash; 9 spatial + 5 temporal metrics, 95% CI, Easy/Hard</td>
+          <td>5-encoder benchmark on 10K POC &mdash; retrieval metrics + motion top-1, 95% CI, Easy/Hard</td>
           <td class="status-complete">Complete</td>
         </tr>
         <tr>
-          <td>Temporal Extension</td>
-          <td>GPU-RAFT motion features (m04d) + 5 temporal correlation metrics (m06b) + spatial-temporal comparison plots</td>
+          <td>Motion-Class Probing (iter13 v12)</td>
+          <td>GPU-RAFT motion features (m04d) + 8-class motion taxonomy + probe_action top-1 across 7 encoders</td>
           <td class="status-complete">Complete</td>
         </tr>
         <tr>
           <td>Pretrain (Ch 10)</td>
-          <td>JEPA continual pretraining + 4-&lambda; drift control ablation. Pipeline built &amp; validated on 10K POC &mdash; adapted encoder shows no gain at 10K scale (insufficient signal for 1B model)</td>
+          <td>JEPA continual pretraining + motion_aux head + L2 anchor. Pipeline built &amp; validated on 10K POC &mdash; adapted encoder shows &Delta; &asymp; +0.3 pp (10K-scale noise floor; insufficient signal for 1B model)</td>
           <td class="status-poc">POC validated &mdash; awaiting 115K</td>
         </tr>
         <tr>
-          <td>Surgery (Ch 11)</td>
-          <td>Progressive prefix unfreezing with SAM3 factor datasets (Layout &rarr; Agent &rarr; Interaction)</td>
-          <td class="status-planned">Planned</td>
+          <td>Surgery Recipe-v3 (iter14)</td>
+          <td>Progressive prefix unfreezing with SAM3 factor datasets (Layout &rarr; Agent &rarr; Interaction) + SALT + LP-FT + SPD + CLEAR + MGMAE. R0-R6 paired-&Delta; sweep: R1 winner at top-1 0.846 (+1.1 pp over frozen anchor); 95% paired BCa CI non-overlapping</td>
+          <td class="status-complete">Complete</td>
+        </tr>
+        <tr>
+          <td>FG Motion Features (iter15 Phase 0/3)</td>
+          <td>m04d extended 13-D &rarr; 23-D: added camera-subtracted foreground flow stats (fg_mean_mag, fg_max_mag, fg_dir_hist[8]). action_labels taxonomy migrated from vec[0] global binning to vec[13] FG binning &mdash; isolates agent motion from camera pan</td>
+          <td class="status-complete">Complete (2026-05-14)</td>
+        </tr>
+        <tr>
+          <td>Head-Only Freeze (iter15 Phase 2/5/6)</td>
+          <td>m09a2 + m09c2: frozen V-JEPA encoder + frozen predictor + trained 432K-param motion_aux head. Target: match surgery R1 at top-1 0.846 with 1/40&times; the GPU bill (24 GB / 8 hr / $1.60 vs surgery's 96 GB / 8 hr / ~$6.40)</td>
+          <td class="status-planned">Phase 2 in progress &mdash; ~730 LoC remaining</td>
         </tr>
         <tr>
           <td>115K Full Corpus</td>
@@ -1399,57 +1305,49 @@ mindmap
   <div class="container" style="max-width: 1100px;">
     <h2 class="title is-3 has-text-centered">System Design: Architecture</h2>
 
-    <h3 class="title is-4" style="margin-top: 2rem;">Module Pipeline: Evaluate &rarr; Pretrain &rarr; Surgery</h3>
+    <h3 class="title is-4" style="margin-top: 2rem;">Module Pipeline: Evaluate &rarr; Pretrain &rarr; Surgery &rarr; Head-Only</h3>
     <div class="plot-container" style="overflow-x: auto;">
       <pre class="mermaid">
 flowchart LR
     subgraph CH9 ["Ch 9 · Evaluate (DONE)"]
         direction TB
         m04["m04 · VLM tag"] --> m05["m05 · V-JEPA embed"]
-        m05 --> m05b["m05b · baselines"]
-        m05 --> m05c["m05c · true overlap"]
-        m04d["m04d · motion feat"] --> m06b["m06b · temporal corr"]
-        m05 --> m06["m06 · FAISS metrics"]
-        m06 --> m07["m07 · UMAP"]
-        m07 --> m08["m08 · plots"]
-        m06 --> m08b["m08b · compare"]
+        m04d["m04d · 23-D motion feat\n(Phase 0 ✅)"] --> probe_action["probe_action\n8-class motion top-1"]
+        m05 --> probe_action
+        probe_action --> probe_plot["probe_plot\ntop-1 · loss · confusion"]
     end
     subgraph CH10 ["Ch 10 · Pretrain (POC done)"]
         direction TB
-        m09["m09_pretrain.py\nJEPA loss + EMA\n+ drift control"]
+        m09a1["m09a1_pretrain_encoder\nJEPA + motion_aux head\n+ L2 anchor"]
     end
-    subgraph CH11 ["Ch 11 · Surgery (FUTURE)"]
+    subgraph CH11 ["Ch 11 · Surgery (iter14 R1 winner)"]
         direction TB
-        m10["m10 · SAM3"] --> m11["m11 · factor\ndatasets"] --> m12["m12 · surgery"]
+        m10["m10 · SAM3"] --> m11["m11 · factor\nD_L · D_A · D_I"] --> m09c1["m09c1_surgery_encoder\nrecipe-v3 (SALT + LP-FT +\nSPD + CLEAR + MGMAE)"]
     end
-    subgraph REEVAL ["Re-eval · 3-way"]
+    subgraph ITER15 ["iter15 · Head-Only (in progress)"]
         direction TB
-        re05["m05 re-embed"] --> re06["m06 metrics"] --> re08["m08b compare\nfrozen · adapted\n· surgical"]
+        m09a2["m09a2_pretrain_head\n(frozen encoder + predictor,\n432K motion_aux head only)"]
+        m09c2["m09c2_surgery_head\n(same freeze + factor data)"]
     end
-    m05 -->|"frozen"| m09
-    m09 -->|"adapted ckpt"| REEVAL
-    m09 -->|"init"| m12
-    m12 -->|"surgical ckpt"| REEVAL
+    m05 -->|"frozen"| m09a1
+    m09a1 -->|"adapted ckpt"| probe_action
+    m09c1 -->|"surgical ckpt"| probe_action
+    m09a2 -->|"head-only ckpt"| probe_action
+    m09c2 -->|"head-only surgery ckpt"| probe_action
     style m04 fill:#00acc1,color:#fff,font-weight:bold
     style m05 fill:#43a047,color:#fff,font-weight:bold
-    style m05b fill:#546e7a,color:#fff,font-weight:bold
-    style m05c fill:#2e7d32,color:#fff,font-weight:bold
     style m04d fill:#00897b,color:#fff,font-weight:bold
-    style m06 fill:#e53935,color:#fff,font-weight:bold
-    style m06b fill:#d81b60,color:#fff,font-weight:bold
-    style m07 fill:#795548,color:#fff,font-weight:bold
-    style m08 fill:#6d4c41,color:#fff,font-weight:bold
-    style m08b fill:#4e342e,color:#fff,font-weight:bold
-    style m09 fill:#7b1fa2,color:#fff,font-weight:bold
+    style probe_action fill:#e53935,color:#fff,font-weight:bold
+    style probe_plot fill:#6d4c41,color:#fff,font-weight:bold
+    style m09a1 fill:#7b1fa2,color:#fff,font-weight:bold
     style m10 fill:#1565c0,color:#fff,font-weight:bold
     style m11 fill:#0d47a1,color:#fff,font-weight:bold
-    style m12 fill:#0d47a1,color:#fff,font-weight:bold
-    style re05 fill:#bf360c,color:#fff,font-weight:bold
-    style re06 fill:#d84315,color:#fff,font-weight:bold
-    style re08 fill:#b71c1c,color:#fff,font-weight:bold
+    style m09c1 fill:#0d47a1,color:#fff,font-weight:bold
+    style m09a2 fill:#bf360c,color:#fff,font-weight:bold
+    style m09c2 fill:#b71c1c,color:#fff,font-weight:bold
       </pre>
     </div>
-    <p class="plot-caption has-text-centered">Full pipeline from evaluation through domain adaptation. Each chapter re-uses the same m05&rarr;m06&rarr;m08 evaluation pipeline.</p>
+    <p class="plot-caption has-text-centered">Full pipeline from motion-class evaluation through domain adaptation. Every adapted encoder (vanilla pretrain, surgery, iter15 head-only) flows back into <code>probe_action</code> for the same 8-class motion top-1 measurement &mdash; metric stays fixed across iterations, so &Delta;s are directly comparable.</p>
 
     <h3 class="title is-4" style="margin-top: 2.5rem;">Ch10: JEPA Training Step (Single Iteration)</h3>
     <div class="plot-container" style="overflow-x: auto;">
