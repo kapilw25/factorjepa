@@ -119,13 +119,13 @@ Don't pivot, **add**. Preserve current encoder-update scripts AND add head-only 
 │   🆕 DOWNLOAD ViT-H/14 V-JEPA 2 checkpoint                              │ 1       │
 │   🆕 CREATE configs/model/vjepa2_1_vitH.yaml                           │ 1       │
 │   🔧 MODIFY utils/frozen_features.py (multi-backbone loader)           │ 1       │
-│   🔧 MODIFY run_probe_eval.sh (add encoder_model_config_for helper)    │ 1       │
+│   🔧 MODIFY run_eval.sh (add encoder_model_config_for helper)    │ 1       │
 ├───────────────────────────────────────────────────────────────────────┼─────────┤
 │ 📚 PILLAR 3 — Curriculum Learning                                                 │
 │   🆕 CREATE src/utils/data_curriculum.py (uses Phase 0's vec[13])       │ 1       │
 │   🔧 MODIFY m09a2 + m09c2 (wire pacing into epoch loop)                │ 2       │
 │   🔧 MODIFY base_optimization.yaml (add data_curriculum block)         │ 1       │
-│   🔧 MODIFY run_probe_train.sh (CURRICULUM_OVERRIDE env-var)           │ 1       │
+│   🔧 MODIFY run_train.sh (CURRICULUM_OVERRIDE env-var)           │ 1       │
 ├───────────────────────────────────────────────────────────────────────┼─────────┤
 │ TOTAL                                                                  │ 24      │
 └───────────────────────────────────────────────────────────────────────┴─────────┘
@@ -334,8 +334,8 @@ m04d rerun on eval_10k:  ~57 min · ~$2.40 @ $2.50/hr · disk +1.5 MB (23 floats
 
 ```bash
 # Rename current scripts — preserves them as the encoder-update track
-git mv src/m09a_pretrain.py  src/m09a1_pretrain_encoder.py
-git mv src/m09c_surgery.py   src/m09c1_surgery_encoder.py
+git mv src/m09a1_pretrain_encoder.py  src/m09a1_pretrain_encoder.py
+git mv src/m09c1_surgery_encoder.py   src/m09c1_surgery_encoder.py
 
 # Update every caller across the repo
 sed -i 's|src/m09a_pretrain\.py|src/m09a1_pretrain_encoder.py|g' \
@@ -404,7 +404,7 @@ print("[m09a2 STRICT HEAD-ONLY] encoder+predictor frozen; "
 - `m09a_ckpt_best.pt` — Meta encoder + Meta predictor + TRAINED motion_aux head 📦
 - `motion_aux_head.pt` — trained head only (~432K params, ~2 MB) 🧠
 
-> 💡 **Why COPY not SYMLINK** for `student_encoder.pt`: avoids breaking `du -h` checks in `run_probe_eval.sh:267` and `pretrain-cleanup` logic at L427-471 which expects regular files.
+> 💡 **Why COPY not SYMLINK** for `student_encoder.pt`: avoids breaking `du -h` checks in `run_eval.sh:267` and `pretrain-cleanup` logic at L427-471 which expects regular files.
 
 ---
 
@@ -555,12 +555,12 @@ def assert_encoder_frozen(student) -> None:
 
 ## 📄 Phase 2b — NEW YAML configs
 
-### 🧠 `configs/train/probe_pretrain_head.yaml` · ~25 lines
+### 🧠 `configs/train/pretrain_head.yaml` · ~25 lines
 
 ```yaml
 # 🧠 m09a2 — head-only pretraining
 # Frozen Meta encoder + frozen Meta predictor + trained motion_aux head
-extends: probe_pretrain.yaml
+extends: pretrain_encoder.yaml
 
 data:
   adapted_encoder: vjepa_2_1_pretrain_head
@@ -594,7 +594,7 @@ optimization:
 ```yaml
 # 🔬 m09c2 — head-only surgery with D_L + D_A + D_I curriculum
 # Single stage, factor-aug data, encoder + predictor both frozen
-extends: surgery_3stage_DI.yaml
+extends: surgery_3stage_DI_encoder.yaml
 
 data:
   adapted_encoder: vjepa_2_1_surgical_3stage_DI_head
@@ -631,7 +631,7 @@ optimization:
 ### 🔬 `configs/train/surgery_2stage_noDI_head.yaml` · ~30 lines
 
 Same as `surgery_3stage_DI_head.yaml` but:
-- `extends: surgery_2stage_noDI.yaml`
+- `extends: surgery_2stage_noDI_encoder.yaml`
 - `mode_mixture: {L: 0.50, A: 0.50, I: 0.00}` (no D_I)
 - Tests whether D_I tubes carry signal beyond D_L + D_A 🧪
 
@@ -639,7 +639,7 @@ Same as `surgery_3stage_DI_head.yaml` but:
 
 ## 🔌 Phase 3 — Wiring changes
 
-### 🐚 `scripts/run_probe_train.sh`
+### 🐚 `scripts/run_train.sh`
 
 Extend `SUBCMD` dispatch at L50-53 + L221-225:
 
@@ -654,7 +654,7 @@ esac
 case "$SUBCMD" in
     pretrain_head)
         OUT_DIR="outputs/${mode_dir}/m09a_pretrain_head"
-        TRAIN_CFG="configs/train/probe_pretrain_head.yaml"
+        TRAIN_CFG="configs/train/pretrain_head.yaml"
         SRC_SCRIPT="src/m09a2_pretrain_head.py"
         # Dispatch identical to pretrain branch (L258-274)
         ;;
@@ -673,7 +673,7 @@ case "$SUBCMD" in
 esac
 ```
 
-### 🐚 `scripts/run_probe_eval.sh` — 3 changes
+### 🐚 `scripts/run_eval.sh` — 3 changes
 
 **Change 1** — Default ENCODERS list (L158):
 
@@ -814,7 +814,7 @@ def load_vjepa_2_1_frozen(ckpt_path, num_frames, model_config="vjepa2_1.yaml"):
     return model, crop, embed_dim
 ```
 
-### 🔨 Step 4.4 — Wire into `run_probe_eval.sh`
+### 🔨 Step 4.4 — Wire into `run_eval.sh`
 
 ```bash
 # Add encoder_model_config_for() helper next to encoder_ckpt_for():
@@ -844,9 +844,9 @@ vjepa_2_1_vith_surgical_noDI_head)
 # m09a2/m09c2 already work with frozen encoder — just point them at ViT-H ckpt
 # via a new --model-config CLI arg + yaml override:
 
-./scripts/run_probe_train.sh pretrain_head_vith --FULL              # m09a2 + ViT-H
-./scripts/run_probe_train.sh surgery_3stage_DI_head_vith --FULL     # m09c2 + ViT-H
-./scripts/run_probe_train.sh surgery_noDI_head_vith --FULL           # m09c2 + ViT-H (noDI)
+./scripts/run_train.sh pretrain_head_vith --FULL              # m09a2 + ViT-H
+./scripts/run_train.sh surgery_3stage_DI_head_vith --FULL     # m09c2 + ViT-H
+./scripts/run_train.sh surgery_noDI_head_vith --FULL           # m09c2 + ViT-H (noDI)
 ```
 
 > 💡 **Design choice**: ViT-H variants share m09a2/m09c2 scripts; backbone differs ONLY via `--model-config configs/model/vjepa2_1_vitH.yaml` CLI arg. No new training-script copies.
@@ -869,7 +869,7 @@ vjepa_2_1_vith_surgical_noDI_head)
 
 ### 📜 Sub-pillar 5a — Parameter curriculum (Lee ICLR'23)
 
-**Status**: ✅ **ALREADY IMPLEMENTED** in `m09c1_surgery_encoder.py`. The 3-stage progressive prefix unfreezing in `surgery_3stage_DI.yaml`:
+**Status**: ✅ **ALREADY IMPLEMENTED** in `m09c1_surgery_encoder.py`. The 3-stage progressive prefix unfreezing in `surgery_3stage_DI_encoder.yaml`:
 
 ```
 Stage 1: unfreeze_below = 0.083 →  4 of 48 blocks trainable  (D_L only)
@@ -1007,7 +1007,7 @@ data_curriculum:
 #### 🔨 Step 5b.4 — CLI env-var override
 
 ```bash
-# In scripts/run_probe_train.sh (next to other recipe-v3 env vars at L306-392):
+# In scripts/run_train.sh (next to other recipe-v3 env vars at L306-392):
 if [ -n "${CURRICULUM_OVERRIDE:-}" ]; then
     case "$CURRICULUM_OVERRIDE" in
         off|linear|step|log)
@@ -1080,7 +1080,7 @@ python -c "import py_compile; \
 ### 🧪 V2 — m09a2 SANITY (~3 min)
 
 ```bash
-./scripts/run_probe_train.sh pretrain_head --SANITY 2>&1 \
+./scripts/run_train.sh pretrain_head --SANITY 2>&1 \
   | tee logs/iter15_v1_m09a2_sanity.log
 ```
 
@@ -1092,10 +1092,10 @@ python -c "import py_compile; \
 ### 🧪 V3 — m09c2 SANITY both variants (~10 min total)
 
 ```bash
-./scripts/run_probe_train.sh surgery_3stage_DI_head --SANITY 2>&1 \
+./scripts/run_train.sh surgery_3stage_DI_head --SANITY 2>&1 \
   | tee logs/iter15_v1_m09c2_3stage_DI_head_sanity.log
 
-./scripts/run_probe_train.sh surgery_noDI_head --SANITY 2>&1 \
+./scripts/run_train.sh surgery_noDI_head --SANITY 2>&1 \
   | tee logs/iter15_v1_m09c2_noDI_head_sanity.log
 ```
 
@@ -1156,7 +1156,7 @@ python -u src/probe_future_regress.py --SANITY \
 ### 🧪 V6 — Full eval SANITY with all 7 variants (~15 min)
 
 ```bash
-./scripts/run_probe_eval.sh --sanity 2>&1 \
+./scripts/run_eval.sh --sanity 2>&1 \
   | tee logs/iter15_v1_full_eval_sanity.log
 ```
 
@@ -1239,7 +1239,7 @@ Forcing `weight_jepa=0.0` requires `compute_jepa_loss` to handle this gracefully
 
 ### 🟡 Risk 6 — Rename safety
 
-iter14 R5 cell is currently running and depends on `src/m09c_surgery.py`.
+iter14 R5 cell is currently running and depends on `src/m09c1_surgery_encoder.py`.
 
 **Defer the rename until R5 finishes (~01:00 UTC May 11).** After rename, validate via:
 
@@ -1254,8 +1254,8 @@ grep -rnE 'm09a_pretrain|m09c_surgery' src/ scripts/ configs/ iter/  # expect: z
 ### 🏷️ To RENAME
 
 ```
-src/m09a_pretrain.py   →  src/m09a1_pretrain_encoder.py
-src/m09c_surgery.py    →  src/m09c1_surgery_encoder.py
+src/m09a1_pretrain_encoder.py   →  src/m09a1_pretrain_encoder.py
+src/m09c1_surgery_encoder.py    →  src/m09c1_surgery_encoder.py
 ```
 
 ### 🆕 To CREATE
@@ -1264,7 +1264,7 @@ src/m09c_surgery.py    →  src/m09c1_surgery_encoder.py
 src/m09a2_pretrain_head.py                  🧠 head-only pretraining
 src/m09c2_surgery_head.py                   🔬 head-only factor surgery
 src/probe_future_regress.py                 🔮 future-prediction probe (replaces probe_future_mse)
-configs/train/probe_pretrain_head.yaml      📄 yaml for m09a2
+configs/train/pretrain_head.yaml      📄 yaml for m09a2
 configs/train/surgery_3stage_DI_head.yaml   📄 yaml for m09c2 (D_I variant)
 configs/train/surgery_2stage_noDI_head.yaml 📄 yaml for m09c2 (noDI variant)
 ```
@@ -1280,8 +1280,8 @@ src/utils/motion_aux_loss.py  🔧 MotionAuxHead.n_motion_dims 13→23 (L75-100)
 ❄️ PILLAR 1 + 🏗️ PILLAR 2 + 📚 PILLAR 3
 src/utils/training.py        🔧 add assert_encoder_frozen() helper (~L1450)
 src/utils/frozen_features.py 🔧 multi-backbone loader (ViT-G + ViT-H) — Pillar 2
-scripts/run_probe_train.sh   🔧 add 3 subcommands + CURRICULUM_OVERRIDE env-var
-scripts/run_probe_eval.sh    🔧 extend ENCODERS + encoder_ckpt_for + Stage 8b/9b
+scripts/run_train.sh   🔧 add 3 subcommands + CURRICULUM_OVERRIDE env-var
+scripts/run_eval.sh    🔧 extend ENCODERS + encoder_ckpt_for + Stage 8b/9b
                                 + encoder_model_config_for() helper
 src/probe_action.py          🔧 extend ITER14_DELTAS at L684-694 with Δ4-Δ13
 configs/train/base_optimization.yaml  🔧 add data_curriculum block

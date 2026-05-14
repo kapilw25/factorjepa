@@ -140,7 +140,7 @@ def load_train_config_with_extends(train_config: str) -> dict:
     mention stay inherited.
 
     Args:
-        train_config: Path to train YAML (e.g., 'configs/train/surgery_3stage_DI.yaml').
+        train_config: Path to train YAML (e.g., 'configs/train/surgery_3stage_DI_encoder.yaml').
 
     Returns:
         Resolved dict with full inheritance chain merged (variant wins on conflict).
@@ -213,7 +213,7 @@ def load_merged_config(model_config: str, train_config: str) -> dict:
         train_cfg = yaml.safe_load(f)
 
     # Handle 'extends' in train config (recursive — supports chains like
-    # surgery_2stage_noDI.yaml → surgery_base.yaml → base_optimization.yaml).
+    # surgery_2stage_noDI_encoder.yaml → surgery_base.yaml → base_optimization.yaml).
     # iter11 v3 (2026-04-26): walk the chain until the parent has no `extends`
     # key. Each level overlays its child via _deep_merge (child wins on conflict).
     seen = {train_path.resolve()}

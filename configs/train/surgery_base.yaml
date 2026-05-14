@@ -1,8 +1,8 @@
 # Surgery base config — shared across all m09c factor-surgery variants.
 # Three variants extend this file:
-#   - surgery_2stage_noDI.yaml      (D_L + D_A, 2 stages, no interaction tubes)
+#   - surgery_2stage_noDI_encoder.yaml      (D_L + D_A, 2 stages, no interaction tubes)
 #   - surgery_2stage_loud_agent.yaml (D_L + D_A, 2 stages, A=0.85 louder agent)
-#   - surgery_3stage_DI.yaml        (D_L + D_A + D_I, 3 stages, safer interactions)
+#   - surgery_3stage_DI_encoder.yaml        (D_L + D_A + D_I, 3 stages, safer interactions)
 #
 # Each variant's yaml only contains its DIFFs:
 #   - data.adapted_encoder        (unique — m05/m06 outputs don't collide)
@@ -36,7 +36,7 @@ extends: base_optimization.yaml
 # is used ONLY for POC code-path validation (when probe.use_permanent_val.poc=false).
 # In FULL mode, probe.use_permanent_val.full=true → train uses ALL of train_subset (2452 clips)
 # and val/probe use the permanent ultra_hard_3066_val (306 clips).
-# Held-out val clip_keys are written to outputs/.../m09c_surgery/val_split.json for downstream
+# Held-out val clip_keys are written to outputs/.../m09c1_surgery_encoder/val_split.json for downstream
 # Step D (Frozen m05), Step E (Surgical m05), Step F (m06 decision gate) — apples-to-apples
 # on the same held-out 10 %.
 data:
@@ -47,7 +47,7 @@ data:
     poc: 0.9                      # 900 train / 100 held-out val
     # full: dormant — probe.use_permanent_val.full=true overrides → external val_subset is used.
   # train/val/eval subsets + factor_dir inherited from base_optimization.yaml.
-  # Per-variant overrides (in surgery_2stage_*.yaml / surgery_3stage_DI.yaml):
+  # Per-variant overrides (in surgery_2stage_*.yaml / surgery_3stage_DI_encoder.yaml):
   #   - adapted_encoder    (unique m05/m06 output suffix per variant)
   #   - output_dir         (variant-specific results dir)
 
@@ -296,7 +296,7 @@ multi_task_probe:
 # -- Motion-features auxiliary loss (Phase 4, iter13 v12+, 2026-05-07).
 # iter13 v13 FIX-6 (2026-05-07): hoisted from per-variant yamls (3stage_DI +
 # 2stage_noDI) to surgery_base so all surgery variants inherit motion_aux by
-# default. Mirrors probe_pretrain.yaml:176-189. Surgery's per-stage optimizer
+# default. Mirrors pretrain_encoder.yaml:176-189. Surgery's per-stage optimizer
 # rebuild re-attaches the motion_aux head param group every stage (via
 # attach_motion_aux_to_optimizer). Same K=8 motion-flow classes as v12 m09a.
 # Per-variant yamls only override fields they want to differ.
@@ -327,7 +327,7 @@ monitoring:
 probe:
   # iter14 (2026-05-08): override base_optimization.yaml's legacy
   # `ultra_hard_3066_val.json` to match m09a's gold-standard val pool path
-  # (probe_pretrain.yaml:149). Both encoders now use the same auto-generated
+  # (pretrain_encoder.yaml:149). Both encoders now use the same auto-generated
   # 70:15:15 stratified split from action_labels.json — at POC: 125 clips,
   # at FULL: ~1388 clips. Cross-encoder mid-training metrics now comparable.
   subset:           data/eval_10k_val_split.json

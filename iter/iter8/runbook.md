@@ -132,7 +132,7 @@ print(f'D_I: {clips_with}/{len(tubes)} clips ({100*clips_with/len(tubes):.0f}%) 
 
 ---
 
-## 🎯 Step C: Surgery Training — `src/m09c_surgery.py` 🏆 PRIMARY PATH (paper novelty)
+## 🎯 Step C: Surgery Training — `src/m09c1_surgery_encoder.py` 🏆 PRIMARY PATH (paper novelty)
 
 > m09c = 3-stage progressive prefix unfreezing + factor datasets (D_L → D_A → D_I). No drift, no held-out val.
 > **Why Step C before D**: immediate goal is `Surgery > Frozen` on Prec@K — test Surgery FIRST so early-abort on flat probe trajectory saves Step D's ~21 min if path is broken.
@@ -144,7 +144,7 @@ print(f'D_I: {clips_with}/{len(tubes)} clips ({100*clips_with/len(tubes):.0f}%) 
 
 ```bash
 rm -rf outputs/poc/m09c_surgery/
-python -u src/m09c_surgery.py --POC \
+python -u src/m09c1_surgery_encoder.py --POC \
     --subset data/val_1k.json \
     --model-config configs/model/vjepa2_1.yaml \
     --train-config configs/train/ch11_surgery.yaml \

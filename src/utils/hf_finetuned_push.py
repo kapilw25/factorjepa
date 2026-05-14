@@ -11,7 +11,7 @@ USAGE:
     #   • probe_eval Stage 8: probe_future_mse reads m09a_ckpt_best.pt (predictor key)
     
     HF_HUB_ENABLE_HF_TRANSFER=1 python -u src/utils/hf_finetuned_push.py \                                                    
-        --source-dir outputs/full/m09a_pretrain \                 
+        --source-dir outputs/full/m09a1_pretrain_encoder \                 
         --repo-id anonymousML123/factorjepa-pretrain-vjepa21-vitg-5ep \                                                       
         --base-model facebook/v-jepa-2-vitg \                      
         --stage pretrain \                                                                                                    
@@ -230,7 +230,7 @@ encoder.eval().to("cuda")
 
 ### Use as init for downstream surgery / probe training
 ```bash
-python -u src/m09c_surgery.py --FULL \\
+python -u src/m09c1_surgery_encoder.py --FULL \\
     --train-config configs/train/surgery_3stage_DI_iter14.yaml \\
     --init-from-ckpt $(python -c "from huggingface_hub import hf_hub_download; print(hf_hub_download('{repo_id}', 'student_encoder.pt'))") \\
     --no-wandb
@@ -246,7 +246,7 @@ python -u src/m09c_surgery.py --FULL \\
 
 This checkpoint was produced by:
 ```bash
-CACHE_POLICY_ALL=2 ./scripts/run_probe_train.sh {stage} --FULL \\
+CACHE_POLICY_ALL=2 ./scripts/run_train.sh {stage} --FULL \\
     2>&1 | tee logs/{stage}_full.log
 ```
 
@@ -364,7 +364,7 @@ def main():
     p = argparse.ArgumentParser(description=__doc__,
                                 formatter_class=argparse.RawDescriptionHelpFormatter)
     p.add_argument("--source-dir", required=True,
-                   help="Local training-output dir (e.g., outputs/full/m09a_pretrain)")
+                   help="Local training-output dir (e.g., outputs/full/m09a1_pretrain_encoder)")
     p.add_argument("--repo-id", required=True,
                    help="HF model repo (e.g., anonymousML123/factorjepa-pretrain-vjepa21-vitg-5ep)")
     p.add_argument("--base-model", default="facebook/v-jepa-2-vitg",

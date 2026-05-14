@@ -44,6 +44,7 @@ from utils.config import (
 )
 from utils.data_download import ensure_local_data, iter_clips_parallel
 from utils.gpu_batch import compute_batch_sizes, add_gpu_mem_arg, AdaptiveBatchSizer, cleanup_temp
+from utils.cgroup_monitor import print_cgroup_header, start_oom_watchdog
 from utils.wandb_utils import (
     add_wandb_args, init_wandb, log_metrics, log_artifact, finish_wandb,
 )
@@ -1210,6 +1211,9 @@ def worker_main(args):
     """Worker subprocess: load backend, process segment, exit."""
     cleanup_temp()
     check_gpu()
+    # iter15 (2026-05-14): cgroup envelope + OOM watchdog (utils/cgroup_monitor.py)
+    print_cgroup_header(prefix="[m04]")
+    start_oom_watchdog(prefix="[m04]-oom-watchdog")
 
     # Auto-compute batch size from VRAM if not explicitly set via --batch-size
     global TRANSFORMERS_BATCH_SIZE

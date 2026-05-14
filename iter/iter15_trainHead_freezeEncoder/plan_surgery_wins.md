@@ -198,7 +198,7 @@
 
 | 🪜 Step | Action | Cost | Decision |
 |---|---|---|---|
-| 1️⃣ | POC: `frozen_teacher: true` + LP-FT Stage 0 + LLRD 0.9 in `surgery_3stage_DI.yaml` | $0 (~80 LoC) | If trio top-1 ≥ 0.808 in first 3 steps → ✅ go FULL |
+| 1️⃣ | POC: `frozen_teacher: true` + LP-FT Stage 0 + LLRD 0.9 in `surgery_3stage_DI_encoder.yaml` | $0 (~80 LoC) | If trio top-1 ≥ 0.808 in first 3 steps → ✅ go FULL |
 | 2️⃣ | Add 50/50 pretrain replay; re-POC | +$1, 1.5 h | Stacks with #1 |
 | 3️⃣ | Refactor m09a/m09c via `plan_no_discrepancy.md` (**only after** hook contract is informed by POC) | 1 day eng | Phases A→B→C→D, ±0.5 pp gate |
 | 4️⃣ | Path 2 (relax m10 → 1–6K clips) | $50–60 | Only if recipe v2 still regresses |
@@ -285,7 +285,7 @@
 
 | Concept | 🅲 m09c (ours) | 🅶¹ vjepa2 train.py | 🅶² MGMAE | 🅶³ VideoMAE |
 |---|---|---|---|---|
-| Training entry-point | `src/m09c_surgery.py` (1717 LoC) | `app/vjepa_2_1/train.py` (~835 LoC) | `run_mgmae_pretraining.py` | `run_mae_pretraining.py` |
+| Training entry-point | `src/m09c1_surgery_encoder.py` (1717 LoC) | `app/vjepa_2_1/train.py` (~835 LoC) | `run_mgmae_pretraining.py` | `run_mae_pretraining.py` |
 | Training loop body | `src/utils/training.py:_train_step_grad_accum` | inline in train.py | `engine_for_mgmae.py:train_one_epoch` | `engine_for_pretraining.py:train_one_epoch` |
 | Dataset / loader | `src/utils/factor_streaming.py` + `FactorSampler`/`StreamingFactorDataset` | `app/vjepa_2_1/wrappers.py` | `dataset/` + `flow_utils/` | `datasets.py` + `kinetics.py`/`ssv2.py` |
 | Masking module | n/a — masks live in **pixels** (m11) | tube-mask scheduler in `transforms.py` | `engine_for_mgmae.py:get_build_mask_volume_func` | `masking_generator.py` |
@@ -342,9 +342,9 @@
 | 3 | Confirm masks-on-pixels (not tokens) | Read `src/utils/factor_streaming.py:stream_factor` lines 75–145 | Confirms `make_layout_only` blurs pixels via Gaussian; no token-level mask passed to predictor |
 | 4 | Find optical-flow loss-weighting | grep `cal_loss_mask\|mask_volume` in `src/utils/training.py` | NOT present — opportunity to port from MGMAE |
 | 5 | Compare drift-loss to vjepa2 | WebFetch vjepa2/app/vjepa_2_1/train.py and search "drift\|anchor\|reg_loss" | NOT present in vjepa2 → ours adds this from continual-SSL literature |
-| 6 | Confirm motion_aux is m09c-only or shared with m09a | `grep -n "motion_aux" src/m09a_pretrain.py src/m09c_surgery.py` | Both have it (iter12 v3) — verify hyperparams match |
+| 6 | Confirm motion_aux is m09c-only or shared with m09a | `grep -n "motion_aux" src/m09a1_pretrain_encoder.py src/m09c1_surgery_encoder.py` | Both have it (iter12 v3) — verify hyperparams match |
 | 7 | Verify `predict_all=True` (Dense Predictive Loss) | `grep -nE "predict_all" configs/model/vjepa2_1.yaml configs/train/surgery_base.yaml` | Should be true (matches V-JEPA 2.1 paper) |
-| 8 | Compare per-stage warmup vs vjepa2 | `grep -nE "warmup_pct\|surgery.*warmup" configs/train/surgery_base.yaml configs/train/surgery_3stage_DI.yaml` | Per-stage warmup_pct=0.1 — vjepa2 uses one continuous warmup |
+| 8 | Compare per-stage warmup vs vjepa2 | `grep -nE "warmup_pct\|surgery.*warmup" configs/train/surgery_base.yaml configs/train/surgery_3stage_DI_encoder.yaml` | Per-stage warmup_pct=0.1 — vjepa2 uses one continuous warmup |
 
 ### 🅵 11.6 Issues surfaced by the audit (action items)
 
@@ -457,7 +457,7 @@
 ┌──────────────────────────────────────┬─────────────────┬─────────────┬─────────────────────────────────────────┐
 │  🛠️  Action                          │  💸 LoC         │  ⏱️ Effort  │  📍 File                                │
 ├──────────────────────────────────────┼─────────────────┼─────────────┼─────────────────────────────────────────┤
-│  ✂️  #3 Subset 0–3 / 0–7 blocks      │  yaml only      │  5 min      │  configs/train/surgery_3stage_DI.yaml   │
+│  ✂️  #3 Subset 0–3 / 0–7 blocks      │  yaml only      │  5 min      │  configs/train/surgery_3stage_DI_encoder.yaml   │
 │  📝 A4 SINGLE warmup over total      │  ~15 LoC        │  20 min     │  src/utils/training.py + base yaml      │
 │  🎯 A2 Saliency-weighted JEPA loss   │  ~15 LoC        │  30 min     │  src/utils/training.py:compute_jepa_loss│
 │  🛡️  #4 SPD optimizer wrapper        │  ~80 LoC        │  3 hrs      │  src/utils/spd_optimizer.py (NEW)       │
@@ -490,7 +490,7 @@
 ┌─────┬────────────────────────────────────────────────────┬─────────────┬──────────────────────────────────────────────┐
 │ 🪜  │  Action                                            │  ⏱️ Effort  │  Verification                                │
 ├─────┼────────────────────────────────────────────────────┼─────────────┼──────────────────────────────────────────────┤
-│ 1️⃣  │ 🍎 Mac: yaml unfreeze_below 0.083 / 0.167 (#3)    │  5 min      │ grep "0.083" surgery_3stage_DI.yaml          │
+│ 1️⃣  │ 🍎 Mac: yaml unfreeze_below 0.083 / 0.167 (#3)    │  5 min      │ grep "0.083" surgery_3stage_DI_encoder.yaml          │
 │ 2️⃣  │ 🍎 Mac: yaml + scheduler — single warmup (A4)     │  20 min     │ surgery_base.yaml has total_warmup_pct: 0.10 │
 │ 3️⃣  │ 🍎 Mac: cal_loss_mask in compute_jepa_loss (A2)   │  30 min     │ uniform mask = legacy behavior (smoke test)  │
 │ 4️⃣  │ 🍎 Mac: src/utils/spd_optimizer.py (#4)           │  3 hrs      │ unit test: SPD reduces to AdamW when α=0     │
@@ -533,7 +533,7 @@
 ┌─────┬─────────────────────────────────────────────┬─────────────────────────────────────────────────┬───────────────────────────────────────────────────────┐
 │ #   │ 🐛 Bug                                      │ 🔍 Evidence                                      │ 🛠️  Fix                                               │
 ├─────┼─────────────────────────────────────────────┼─────────────────────────────────────────────────┼───────────────────────────────────────────────────────┤
-│ B1  │ POC sampler is non-stratified              │ scripts/run_probe_train.sh:92-99 calls          │ Add stratified_by_motion_class_subset() to            │
+│ B1  │ POC sampler is non-stratified              │ scripts/run_train.sh:92-99 calls          │ Add stratified_by_motion_class_subset() to            │
 │     │ — eval_subset.py --first-n N takes        │ eval_subset.py --first-n $POC_TOTAL.            │ eval_subset.py + new --stratified-by-motion-class    │
 │     │ first N clip_keys verbatim, can drop       │ eval_subset.py:88-94 first_n_subset() = no      │ flag. Per-class quota guarantees all FULL classes.   │
 │     │ rare classes                               │ stratification by motion class.                  │                                                       │
@@ -542,7 +542,7 @@
 │     │ — `cp outputs/poc/.../action_labels.json` │ is currently 855 clips / 7 cls (= POC content). │ --eval-subset data/eval_10k.json to regenerate       │
 │     │ wrote POC labels into FULL location       │ Original (iter13 v12) was 9,276 / 8 cls.        │ FULL labels (auto-fires when missing).                │
 ├─────┼─────────────────────────────────────────────┼─────────────────────────────────────────────────┼───────────────────────────────────────────────────────┤
-│ B3  │ Floor-10 class filter drops 8th class      │ run_probe_train.sh:104 MIN_CLIPS_BOOTSTRAP=10  │ Stratified sampler (B1 fix) guarantees ≥10/class →   │
+│ B3  │ Floor-10 class filter drops 8th class      │ run_train.sh:104 MIN_CLIPS_BOOTSTRAP=10  │ Stratified sampler (B1 fix) guarantees ≥10/class →   │
 │     │                                             │ + comment: "Floor=10 tolerates rare-class       │ floor-10 never drops a class.                         │
 │     │                                             │ drops while still keeping 6+ classes" — comment │                                                       │
 │     │                                             │ acknowledges the bug as "tolerated".            │                                                       │
@@ -557,11 +557,11 @@
 ├─────┼───────────────────────────────────────────────────────────────────┼───────────────────────────────────┼──────────┤
 │ 1️⃣  │ Add stratified_by_motion_class_subset(src, motion_features,      │ src/utils/eval_subset.py          │ 30 min   │
 │     │ n_per_class) function + --stratified-by-motion-class CLI flag    │                                   │          │
-│ 2️⃣  │ Update POC branch to use new flag (replace --first-n)            │ scripts/run_probe_train.sh:92-99 │ 5 min    │
+│ 2️⃣  │ Update POC branch to use new flag (replace --first-n)            │ scripts/run_train.sh:92-99 │ 5 min    │
 │ 3️⃣  │ 3-check gate (auto via post-edit-lint.sh hook)                   │ — auto                            │ 0 min    │
 │ 4️⃣  │ Regenerate FULL labels: rm outputs/full/probe_action/*.json      │ outputs/full/probe_action/        │ 1 min    │
-│     │ then run_probe_train.sh --FULL auto-bootstraps via probe_action  │                                   │          │
-│ 5️⃣  │ Re-bootstrap POC labels: CACHE_POLICY_ALL=2 run_probe_train.sh   │ outputs/poc/probe_action/         │ 1 min    │
+│     │ then run_train.sh --FULL auto-bootstraps via probe_action  │                                   │          │
+│ 5️⃣  │ Re-bootstrap POC labels: CACHE_POLICY_ALL=2 run_train.sh   │ outputs/poc/probe_action/         │ 1 min    │
 │     │ --POC                                                             │                                   │          │
 │ 6️⃣  │ Verify: POC labels file has 8 classes, ~125 clips/class          │ python -c "import json; ..."     │ 30 sec   │
 └─────┴───────────────────────────────────────────────────────────────────┴───────────────────────────────────┴──────────┘

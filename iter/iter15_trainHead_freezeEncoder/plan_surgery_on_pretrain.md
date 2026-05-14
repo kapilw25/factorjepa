@@ -1,6 +1,6 @@
 # iter14 — Deferred mitigations (handle-if-needed only)
 
-> Activate ONLY if Δ2 < 0 (surgery doesn't beat pretrain) in T6b eval. All "implement-now" items landed in `surgery_base.yaml` + `m09c_surgery.py` + `run_probe_train.sh` (T4, 2026-05-08).
+> Activate ONLY if Δ2 < 0 (surgery doesn't beat pretrain) in T6b eval. All "implement-now" items landed in `surgery_base.yaml` + `m09c_surgery.py` + `run_train.sh` (T4, 2026-05-08).
 
 | Mitigation | What | Trigger / How |
 |---|---|---|

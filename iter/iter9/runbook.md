@@ -130,7 +130,7 @@ du -sh outputs/full/m11_factor_datasets/
 
 ```bash
 rm -rf outputs/full/m09c_surgery/
-python -u src/m09c_surgery.py --FULL \
+python -u src/m09c1_surgery_encoder.py --FULL \
     --subset data/subset_10k.json \
     --model-config configs/model/vjepa2_1.yaml \
     --train-config configs/train/ch11_surgery.yaml \

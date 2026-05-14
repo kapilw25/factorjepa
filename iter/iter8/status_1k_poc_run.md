@@ -32,7 +32,7 @@
 
 ---
 
-## 🔬 Training diagnostics (src/m09c_surgery.py → outputs/poc/m09c_surgery/) 📉
+## 🔬 Training diagnostics (src/m09c1_surgery_encoder.py → outputs/poc/m09c_surgery/) 📉
 
 ### 📉 Training loss (3-stage surgery curve)
 ![Train loss](../../outputs/poc/m09c_surgery/m09_train_loss.png)
@@ -146,4 +146,4 @@
 
 ## ⏭️ Next action (single-line) 🎯
 
-**🎚️ Pick H1 or H2** above, update the relevant config (`configs/train/ch11_surgery.yaml` for H2, re-run Step A/B for H1), then re-run Step C (`rm -rf outputs/poc/m09c_surgery/` → `python -u src/m09c_surgery.py --POC ...`). 🚫 Do **not** launch Step G until Surgery > Frozen on non-overlapping CIs. 🏆
+**🎚️ Pick H1 or H2** above, update the relevant config (`configs/train/ch11_surgery.yaml` for H2, re-run Step A/B for H1), then re-run Step C (`rm -rf outputs/poc/m09c_surgery/` → `python -u src/m09c1_surgery_encoder.py --POC ...`). 🚫 Do **not** launch Step G until Surgery > Frozen on non-overlapping CIs. 🏆

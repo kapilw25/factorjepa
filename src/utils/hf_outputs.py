@@ -4,18 +4,18 @@ Repo: anonymousML123/factorjepa-outputs (public, gated, auto-created on first up
 
 USAGE:
     # FULL/POC/SANITY usage: from outputs/
-    python -u src/utils/hf_outputs.py upload outputs 2>&1 | tee logs/hf_upload_outputs_v1.log
-    python -u src/utils/hf_outputs.py download outputs 2>&1 | tee logs/hf_download_outputs_v1.log
+    python -u src/utils/hf_outputs.py upload outputs 2>&1 | tee logs/hf_upload_outputs_$(date +%Y%m%d_%H%M%S).log
+    python -u src/utils/hf_outputs.py download outputs 2>&1 | tee logs/hf_download_outputs_$(date +%Y%m%d_%H%M%S).log
 
     # Upload/download: from outputs/full/ ONLY
-    python -u src/utils/hf_outputs.py upload outputs/full 2>&1 | tee logs/hf_upload_v1.log
-    HF_HUB_ENABLE_HF_TRANSFER=1 python -u src/utils/hf_outputs.py upload outputs/full  2>&1 | tee logs/upload_outputs_full_v1.log
-    HF_HUB_ENABLE_HF_TRANSFER=1 python -u src/utils/hf_outputs.py upload outputs/poc  2>&1 | tee logs/upload_outputs_poc_v1.log
-    python -u src/utils/hf_outputs.py download outputs/full 2>&1 | tee logs/download_outputs_full_v1.log
+    python -u src/utils/hf_outputs.py upload outputs/full 2>&1 | tee logs/hf_upload_$(date +%Y%m%d_%H%M%S).log
+    HF_HUB_ENABLE_HF_TRANSFER=1 python -u src/utils/hf_outputs.py upload outputs/full  2>&1 | tee logs/upload_outputs_full_$(date +%Y%m%d_%H%M%S).log
+    HF_HUB_ENABLE_HF_TRANSFER=1 python -u src/utils/hf_outputs.py upload outputs/poc  2>&1 | tee logs/upload_outputs_poc_$(date +%Y%m%d_%H%M%S).log
+    python -u src/utils/hf_outputs.py download outputs/full 2>&1 | tee logs/download_outputs_full_$(date +%Y%m%d_%H%M%S).log
 
     # Upload/download: from @data/{eval_10k_local/ , full_local/ , subset_10k_local/ , val_1k_local/ }
-    python -u src/utils/hf_outputs.py upload-data 2>&1 | tee logs/upload_data_v1.log    # ~15 min upload
-    python -u src/utils/hf_outputs.py download-data 2>&1 | tee logs/download_data_v1.log # ~3 min measured
+    python -u src/utils/hf_outputs.py upload-data 2>&1 | tee logs/upload_data_$(date +%Y%m%d_%H%M%S).log    # ~15 min upload
+    python -u src/utils/hf_outputs.py download-data 2>&1 | tee logs/download_data_$(date +%Y%m%d_%H%M%S).log # ~3 min measured
 
 
 

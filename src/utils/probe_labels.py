@@ -18,7 +18,7 @@ iter14 recipe-v3 (2026-05-09):
   • ALL paths + numbers come from cfg (probe_action_labels / probe_taxonomy_labels
     blocks in configs/train/base_optimization.yaml). No module-level constants
     per CLAUDE.md "No hardcoded values in Python".
-  • Shell-side orchestration in scripts/run_probe_train.sh + run_recipe_v3_sweep.sh
+  • Shell-side orchestration in scripts/run_train.sh + run_recipe_v3_sweep.sh
     is now redundant — m09a/m09c call this fn directly (in-process), shells stay
     thin per CLAUDE.md.
 """
@@ -216,7 +216,7 @@ def ensure_probe_labels_for_mode(
         print("    → multi_task_probe will auto-disable for this run")
         return result
 
-    # Taxonomy stage still uses subprocess for parity with run_probe_eval.sh.
+    # Taxonomy stage still uses subprocess for parity with run_eval.sh.
     print(
         f"  [probe_labels] missing: {taxonomy_path} — auto-generating "
         f"via probe_taxonomy.py --stage labels (CPU, ~30 s)"

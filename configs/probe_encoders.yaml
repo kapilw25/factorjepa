@@ -9,7 +9,7 @@
 #   embed_dim   — output feature dim (matches encoder's hidden state)
 #
 # Adding a new V-JEPA variant: copy the vjepa_2_1_frozen entry, rename the key,
-# point the orchestrator's encoder→ckpt resolver (run_probe_eval.sh) at the new .pt.
+# point the orchestrator's encoder→ckpt resolver (run_eval.sh) at the new .pt.
 # No new loader function needed — load_vjepa_2_1_frozen handles all V-JEPA ckpts
 # via target_encoder → encoder → raw key fallback.
 

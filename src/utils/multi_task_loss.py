@@ -226,7 +226,7 @@ def get_probe_head_param_groups(head: MultiTaskProbeHead, base_lr: float,
 
 # ── m09a/m09c integration helpers ─────────────────────────────────────
 # Five helpers below replace the duplicated wiring that landed in #62-65
-# (m09a_pretrain.py + m09c_surgery.py). Each m09 call site shrinks from
+# (m09a1_pretrain_encoder.py + m09c1_surgery_encoder.py). Each m09 call site shrinks from
 # ~22 LoC to ~3 LoC. All helpers are technique-agnostic — they don't care
 # whether they're called from m09a (vanilla pretrain) or m09c (surgery).
 
@@ -332,7 +332,7 @@ def run_multi_task_step(student, mt_head: "MultiTaskProbeHead | None",
     """
     if mt_head is None or not batch_keys:
         return 0.0, {}
-    # V-JEPA 2.1 ViT has return_hierarchical=True at training time (m09a_pretrain.py:351),
+    # V-JEPA 2.1 ViT has return_hierarchical=True at training time (m09a1_pretrain_encoder.py:351),
     # so student(x) returns (B, N, 4*D) — 4 deep-supervision layers concatenated along the
     # feature dim. The multi-task head expects (B, D), so we toggle hierarchical OFF for
     # this forward only. Mirrors the toggle-and-restore pattern used 3× in

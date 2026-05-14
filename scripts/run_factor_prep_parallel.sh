@@ -15,9 +15,9 @@
 #   ./scripts/run_factor_prep_parallel.sh <factor-yaml> [n-workers] [--SANITY|--POC|--FULL]
 #
 # Examples:
-#   ./scripts/run_factor_prep_parallel.sh configs/train/surgery_3stage_DI.yaml 2 --SANITY
-#   ./scripts/run_factor_prep_parallel.sh configs/train/surgery_3stage_DI.yaml 4 --FULL
-#   N_WORKERS=6 ./scripts/run_factor_prep_parallel.sh configs/train/surgery_3stage_DI.yaml
+#   ./scripts/run_factor_prep_parallel.sh configs/train/surgery_3stage_DI_encoder.yaml 2 --SANITY
+#   ./scripts/run_factor_prep_parallel.sh configs/train/surgery_3stage_DI_encoder.yaml 4 --FULL
+#   N_WORKERS=6 ./scripts/run_factor_prep_parallel.sh configs/train/surgery_3stage_DI_encoder.yaml
 #
 # Env-var overrides (same as run_factor_prep.sh):
 #   LOCAL_DATA       Override hardcoded data/eval_10k_local
@@ -30,7 +30,7 @@ set -euo pipefail
 
 if [ $# -lt 1 ]; then
     echo "USAGE: $0 <factor-yaml> [n-workers]" >&2
-    echo "  Example: $0 configs/train/surgery_3stage_DI.yaml 4" >&2
+    echo "  Example: $0 configs/train/surgery_3stage_DI_encoder.yaml 4" >&2
     exit 2
 fi
 

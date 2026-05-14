@@ -235,7 +235,7 @@ iter13's first attempt at continual SSL pretrain on the 10K eval-pool. Multi-att
 | 🔥 Stage 4 action top-1 | frozen 94.48 % [93.19, 95.55]; pretrain 95.34 % [94.12, 96.34]; **Δ +0.86 pp** [−0.07, +1.87], p=0.095, ❌ CI crosses 0 (saturated 3-class probe) |
 | Stage 7 motion_cos (intra−inter) | frozen 0.03806; pretrain 0.03816; Δ +9.6e−5 [+8.8e−5, +1.0e−4], p=0.000, ❌ trivial Δ |
 | Stage 9 future_mse (L1 ↓ better) | frozen 0.5576; pretrain **0.5272**; **Δ −0.0304** [−0.0312, −0.0297], p=0.000, ✅ **pretrain wins (−5.5 % rel, only positive signal)** |
-| **🩹 v11 fixes wired (code in; RUN pending)** | `drift_control.enabled: false`, `lambda_reg: 0.0` (`probe_pretrain.yaml:119,121`); best_state by `probe_top1` not val_loss (`m09a_pretrain.py:1192-1247`); `keep_last_n: 2 → 5` (`base_optimization.yaml:239`); Phase 2 16-class motion-flow probe (eval-side); Phase 3 motion_aux CE+MSE loss in m09a (training-side) |
+| **🩹 v11 fixes wired (code in; RUN pending)** | `drift_control.enabled: false`, `lambda_reg: 0.0` (`pretrain_encoder.yaml:119,121`); best_state by `probe_top1` not val_loss (`m09a_pretrain.py:1192-1247`); `keep_last_n: 2 → 5` (`base_optimization.yaml:239`); Phase 2 16-class motion-flow probe (eval-side); Phase 3 motion_aux CE+MSE loss in m09a (training-side) |
 
 **Verdict**: 🔻 **diagnostic-only, no paper signal**. v10 conclusively proves anchor-saturation collapse — encoder peaked at s323 then reverted to init by s863. The lone positive signal (future_mse −5.5 %) is invisible to the saturated 3-class probe. ~$5.20 GPU spent (~$2.40 train + ~$2.40 eval + buffer); locks in v11 + Phase 2 + Phase 3 design.
 

@@ -65,10 +65,25 @@ streaming:
   prefetch_queue_embed: 8     # m05/m05b/m05c: embedding producer queue depth (was 2, CRITICAL)
   prefetch_queue_train: 8     # m09: training producer queue depth (was 4, marginal)
   decode_workers_embed: 8     # m05/m05b/m05c: video decode threads (was 4, doubled for GPU feed)
-  decode_workers_motion: 16   # m04d: optical flow video decode threads (was 8, doubled to prevent starvation at 90%+)
+  # m04d host-RAM scaling guide. CPU count is rarely the bottleneck (need ≥nproc/2);
+  # the cgroup memory cap is. Anchor on cgroup memory.limit_in_bytes (NOT `free -h`
+  # — cgroup cap can be far smaller than physical RAM in containers):
+  #   ┌──────────────────┬──────────────────────┬──────────────────────┐
+  #   │ cgroup memory    │ decode_workers_motion │ producer_queue_motion │
+  #   ├──────────────────┼──────────────────────┼──────────────────────┤
+  #   │ ≤36 GB           │ 4                    │ 8                    │
+  #   │ ~64 GB           │ 8                    │ 16                   │  ← current
+  #   │ ~96 GB           │ 12                   │ 32                   │
+  #   │ ≥128 GB          │ 16                   │ 64                   │  ← old default
+  #   └──────────────────┴──────────────────────┴──────────────────────┘
+  # iter15 2026-05-14: OOMKilled at 16/64 on 36 GB cgroup (peak hit memory.max
+  # exactly at clip 64). Pre-flight on every new instance:
+  #   cat /sys/fs/cgroup/memory/memory.limit_in_bytes | \
+  #     awk '{printf "%.1f GB cgroup cap\n", $1/1024/1024/1024}'
+  decode_workers_motion: 8    # m04d: optical flow video decode threads (see scaling table above)
   decode_workers_train: 16    # m09: video decode threads (256 CPU cores)
   augment_workers: 8          # m05c: augmentation thread workers (was 4)
-  producer_queue_motion: 64   # m04d: preprocessed clip batches buffered ahead (was 16, 4x to prevent GPU starvation)
+  producer_queue_motion: 16   # m04d: preprocessed clip batches buffered ahead (see scaling table above)
 
 # -- GPU defaults (from VRAM profiling with real data on RTX PRO 6000 96GB) --
 # Re-profile on different GPU: python -u src/utils/profile_vram.py --training/--inference/--dinov2
@@ -120,17 +135,17 @@ eval:
   llava_num_frames: 16           # m04: LLaVA-NeXT frame count (8-32 range)
   overlap_subsample: 30000       # m05c: random subsample for True Overlap@K (stat. sufficient for bootstrap CI)
 
-# -- Probe-head training (Stage 3 of run_probe_eval.sh, src/probe_action.py) --
+# -- Probe-head training (Stage 3 of run_eval.sh, src/probe_action.py) --
 # This is the ATTENTIVE PROBE CLASSIFIER — ~140K params trained on FROZEN
-# encoder features (NOT the encoder pretrain in src/m09a_pretrain.py, which
-# has its own LR config in configs/train/probe_pretrain.yaml at 1e-4).
+# encoder features (NOT the encoder pretrain in src/m09a1_pretrain_encoder.py, which
+# has its own LR config in configs/train/pretrain_encoder.yaml at 1e-4).
 # Stage 3 sweeps probe-head LRs to mimic Meta's multihead-best-LR convention
 # (deps/vjepa2/configs/eval/vitg-384/ssv2.yaml has 5 LRs at fixed wd=0.8).
 # Per-mode separation: SANITY uses 50 epochs to validate code paths quickly
 # on small-N; FULL uses 20 epochs (Meta-faithful for ssv2/jester family).
 # Single-LR fast-path: leave lr_sweep as a single-element list [5.0e-4] to
 # skip the multi-LR sweep + run_select_best_lr_stage symlinking.
-# Override at run-time: `LR_SWEEP="..." EPOCHS=N WARMUP_PCT=P ./run_probe_eval.sh`.
+# Override at run-time: `LR_SWEEP="..." EPOCHS=N WARMUP_PCT=P ./run_eval.sh`.
 probe_head_train:
   sanity:
     epochs: 50

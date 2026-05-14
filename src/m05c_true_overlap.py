@@ -30,6 +30,7 @@ from utils.config import (
 )
 from utils.data_download import ensure_local_data, iter_clips_parallel
 from utils.gpu_batch import compute_batch_sizes, add_gpu_mem_arg, cuda_cleanup, cleanup_temp, AdaptiveBatchSizer
+from utils.cgroup_monitor import print_cgroup_header, start_oom_watchdog
 from utils.wandb_utils import add_wandb_args, init_wandb, log_metrics, log_artifact, finish_wandb
 
 from utils.video_io import get_clip_key, create_stream, decode_video_bytes
@@ -285,6 +286,9 @@ def main():
 
     ensure_local_data(args)
     check_gpu()
+    # iter15 (2026-05-14): cgroup envelope + OOM watchdog (utils/cgroup_monitor.py)
+    print_cgroup_header(prefix="[m05c]")
+    start_oom_watchdog(prefix="[m05c]-oom-watchdog")
     device = "cuda"
 
     output_dir = get_module_output_dir("m05c_true_overlap", args.subset, sanity=args.SANITY, poc=args.POC)

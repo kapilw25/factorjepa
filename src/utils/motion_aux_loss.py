@@ -1,10 +1,10 @@
 """Motion-features auxiliary loss for m09a pretraining (Phase 3, iter13 v12).
 
-Adds a JOINT K-class CE + 13-D MSE supervised gradient on top of V-JEPA's
+Adds a JOINT K-class CE + n_motion_dims MSE supervised gradient on top of V-JEPA's
 self-supervised JEPA L1, so the encoder learns motion structure directly.
 Targets come from m04d's RAFT optical-flow features:
   - K-class motion class_id (from action_labels.json — same scheme probe_action eval uses)
-  - 13-D motion vector (mean/std/max mag + 8-bin angle hist + cam_x/y) — z-normalized
+  - n_motion_dims motion vector (Phase 0: 23-D — global 13 + FG 10) — z-normalized
 
 K is runtime-derived from action_labels.json (typically 8 on walkindia after the
 ≥34-clip filter; design tolerates 4-16 without code change). Per-dim mean+std
@@ -16,7 +16,7 @@ parallel to merge/build/attach/run/export there).
 
 iter13 v12 (2026-05-06): REPLACES multi_task_probe (15 retrieval tag dims) with
 motion_aux as the sole supervised aux loss. multi_task_probe is disabled in
-configs/train/probe_pretrain.yaml — v11 empirically showed retrieval gradients
+configs/train/pretrain_encoder.yaml — v11 empirically showed retrieval gradients
 gave flat motion-flow top1.
 
 Usage in m09a (5 call sites, ~3 LoC each — same pattern as multi_task_probe):
@@ -57,12 +57,12 @@ import torch.nn.functional as F
 # ── Architecture ─────────────────────────────────────────────────────
 
 class MotionAuxHead(nn.Module):
-    """Joint K-class CE + 13-D MSE head on pooled V-JEPA features.
+    """Joint K-class CE + n_motion_dims MSE head on pooled V-JEPA features.
 
     Architecture:
       pooled (B, D=1664) → trunk (D → hidden_dim, GELU, LayerNorm, dropout)
                          → CE branch (hidden_dim → K_classes)
-                         → MSE branch (hidden_dim → 13)
+                         → MSE branch (hidden_dim → n_motion_dims)
 
     Both branches share the trunk so encoder gradient is consolidated. ~430K params
     at hidden_dim=256, K=8.
@@ -96,26 +96,26 @@ class MotionAuxHead(nn.Module):
         self.register_buffer("vec_std",  vec_std.float().clamp_min(1e-6))
 
     def forward(self, pooled_feats: torch.Tensor) -> tuple:
-        """pooled_feats: (B, D) → (ce_logits[B, K], mse_pred[B, 13])."""
+        """pooled_feats: (B, D) → (ce_logits[B, K], mse_pred[B, n_motion_dims])."""
         trunk_out = self.trunk(pooled_feats)
         return self.ce_head(trunk_out), self.mse_head(trunk_out)
 
-    def normalize_target(self, vec13d: torch.Tensor) -> torch.Tensor:
-        """Z-normalize raw RAFT 13-D vector using stored stats. (B, 13) → (B, 13)."""
-        return (vec13d - self.vec_mean) / self.vec_std
+    def normalize_target(self, vec_motion: torch.Tensor) -> torch.Tensor:
+        """Z-normalize raw RAFT motion vector using stored stats. (B, n_motion_dims) → (B, n_motion_dims). Phase 0: 23-D."""
+        return (vec_motion - self.vec_mean) / self.vec_std
 
 
 # ── Label loader ─────────────────────────────────────────────────────
 
 def load_motion_targets_for_training(motion_features_path: Path,
                                       action_labels_path: Path) -> tuple:
-    """Build {clip_key: (class_id, vec13d)} lookup + per-dim stats.
+    """Build {clip_key: (class_id, vec_motion)} lookup + per-dim stats.
 
     Returns (lookup, n_motion_classes, vec_mean, vec_std):
-      lookup:           {clip_key: {"class_id": int, "vec13d": np.ndarray(13,)}}
+      lookup:           {clip_key: {"class_id": int, "vec_motion": np.ndarray(n_motion_dims,)}}
       n_motion_classes: int — derived from max(class_id) + 1 (typically 8 on walkindia)
-      vec_mean:         torch.Tensor(13,) — per-dim mean over ALL clips in motion_features.npy
-      vec_std:          torch.Tensor(13,) — per-dim std (+ clamp_min(1e-6))
+      vec_mean:         torch.Tensor(n_motion_dims,) — per-dim mean over ALL clips in motion_features.npy
+      vec_std:          torch.Tensor(n_motion_dims,) — per-dim std (+ clamp_min(1e-6))
     """
     motion_features_path = Path(motion_features_path)
     action_labels_path = Path(action_labels_path)
@@ -128,7 +128,7 @@ def load_motion_targets_for_training(motion_features_path: Path,
             f"action_labels.json not found at {action_labels_path}. "
             f"Run `probe_action.py --stage labels` first.")
 
-    flow_features = np.load(motion_features_path)            # (N, 13)
+    flow_features = np.load(motion_features_path)            # (N, 23) post-Phase-0
     flow_paths    = np.load(motion_features_path.with_name(
         motion_features_path.stem + ".paths.npy"), allow_pickle=True)
     if flow_features.shape[0] != flow_paths.shape[0]:
@@ -154,7 +154,7 @@ def load_motion_targets_for_training(motion_features_path: Path,
     for k, info in action_labels.items():
         if k in vec_by_key:
             lookup[k] = {"class_id": int(info["class_id"]),
-                         "vec13d":   vec_by_key[k]}
+                         "vec_motion":   vec_by_key[k]}
         else:
             n_no_motion += 1
     if n_no_motion > 0:
@@ -199,7 +199,7 @@ def compute_motion_aux_loss(pooled_feats: torch.Tensor,
         pooled_feats:   (B, D) — encoder features mean-pooled over patch tokens
         head:           MotionAuxHead
         clip_keys:      list[str] — len(clip_keys) == B; clip identifiers in same order as features
-        motion_lookup:  {clip_key: {"class_id": int, "vec13d": np.ndarray(13,)}}
+        motion_lookup:  {clip_key: {"class_id": int, "vec_motion": np.ndarray(n_motion_dims,)}}
         weight_ce, weight_mse: scalar branch weights (combined inside this fn)
         device:         torch device for label tensors
 
@@ -219,12 +219,12 @@ def compute_motion_aux_loss(pooled_feats: torch.Tensor,
             f"producer thread must yield clip_keys aligned with clips.")
 
     # Mask to clips that have a motion record.
-    keep_idx, class_ids, vec13d_list = [], [], []
+    keep_idx, class_ids, vec_motion_list = [], [], []
     for i, k in enumerate(clip_keys):
         if k in motion_lookup:
             keep_idx.append(i)
             class_ids.append(motion_lookup[k]["class_id"])
-            vec13d_list.append(motion_lookup[k]["vec13d"])
+            vec_motion_list.append(motion_lookup[k]["vec_motion"])
 
     if not keep_idx:
         return (torch.zeros((), device=device, dtype=pooled_feats.dtype),
@@ -235,7 +235,7 @@ def compute_motion_aux_loss(pooled_feats: torch.Tensor,
     ce_logits, mse_pred = head(sub_feats)                           # (n_kept, K), (n_kept, 13)
 
     y_class = torch.tensor(class_ids, dtype=torch.long, device=device)
-    y_vec   = torch.from_numpy(np.stack(vec13d_list)).to(device).to(pooled_feats.dtype)
+    y_vec   = torch.from_numpy(np.stack(vec_motion_list)).to(device).to(pooled_feats.dtype)
     y_vec_norm = head.normalize_target(y_vec)                       # (n_kept, 13)
 
     loss_ce  = F.cross_entropy(ce_logits, y_class)
@@ -254,7 +254,7 @@ def compute_motion_aux_loss(pooled_feats: torch.Tensor,
 def merge_motion_aux_config(cfg: dict, args, mode_key: str) -> None:
     """Flatten cfg['motion_aux'] per-mode + apply CLI overrides. In-place.
 
-    Schema (from configs/train/probe_pretrain.yaml):
+    Schema (from configs/train/pretrain_encoder.yaml):
         motion_aux:
           enabled: {sanity:bool, poc:bool, full:bool}
           motion_features_path: <str>
@@ -315,15 +315,28 @@ def build_motion_aux_head_from_cfg(cfg: dict, device) -> tuple:
     lookup, n_classes, vec_mean, vec_std = load_motion_targets_for_training(
         motion_features_path, action_labels_path)
     d_encoder = cfg["model"]["embed_dim"]
+    # iter15 Phase 0 (2026-05-14): n_motion_dims bumped 13 → 23 to match m04d's
+    # extended FG (camera-subtracted) feature vector. vec_mean / vec_std auto-
+    # resize via flow_features.mean(axis=0) in load_motion_targets_for_training
+    # (already shape-agnostic). 23-D MSE head adds 23×256 = 5.9 K extra params.
+    n_motion_dims = int(vec_mean.numel())
+    if n_motion_dims < 23:
+        sys.exit(
+            f"FATAL [motion_aux]: motion_features at {motion_features_path} is "
+            f"{n_motion_dims}-D; Phase 0 requires 23-D (adds FG fg_mean_mag at "
+            f"vec[13]). Rerun: CACHE_POLICY_ALL=2 python -u "
+            f"src/m04d_motion_features.py --FULL --subset <subset.json> "
+            f"--local-data <local_data> --features-out <local_data>/motion_features.npy"
+        )
     ma_head = MotionAuxHead(
-        d_encoder=d_encoder, n_motion_classes=n_classes, n_motion_dims=13,
+        d_encoder=d_encoder, n_motion_classes=n_classes, n_motion_dims=n_motion_dims,
         hidden_dim=ma_cfg["head"]["hidden_dim"],
         dropout=ma_cfg["head"]["dropout"],
         vec_mean=vec_mean, vec_std=vec_std,
     ).to(device)
     ma_head.train()
     n_params = sum(p.numel() for p in ma_head.parameters())
-    print(f"  [motion_aux] enabled: {n_classes} classes, 13-D vec, "
+    print(f"  [motion_aux] enabled: {n_classes} classes, {n_motion_dims}-D vec, "
           f"{len(lookup):,} clips with targets, {n_params:,} head params, "
           f"weight_motion={ma_cfg['weight_motion']}, "
           f"weight_ce={ma_cfg['weight_ce']}, weight_mse={ma_cfg['weight_mse']}")
@@ -365,7 +378,7 @@ def run_motion_aux_step(student, ma_head: "MotionAuxHead | None",
     """
     if ma_head is None or not batch_keys:
         return 0.0, {}
-    # V-JEPA 2.1 ViT has return_hierarchical=True at training time (m09a_pretrain.py:351),
+    # V-JEPA 2.1 ViT has return_hierarchical=True at training time (m09a1_pretrain_encoder.py:351),
     # so student(x) returns (B, N, 4*D) — 4 deep-supervision layers concatenated along
     # the feature dim. The motion_aux head expects (B, D), so we toggle hierarchical OFF
     # for this forward only. Mirrors the pattern in multi_task_loss.run_multi_task_step

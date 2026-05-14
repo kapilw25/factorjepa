@@ -81,6 +81,7 @@ from utils.frozen_features import (
     load_vjepa_2_1_frozen,
 )
 from utils.gpu_batch import cleanup_temp
+from utils.cgroup_monitor import print_cgroup_header, start_oom_watchdog
 from utils.vjepa2_imports import get_attentive_classifier
 from utils.wandb_utils import add_wandb_args, finish_wandb, init_wandb, log_metrics
 
@@ -302,6 +303,9 @@ def run_features_stage(args, wb) -> None:
         sys.exit("FATAL: V-JEPA encoder requires --encoder-ckpt")
 
     check_gpu()
+    # iter15 (2026-05-14): cgroup envelope + OOM watchdog (utils/cgroup_monitor.py)
+    print_cgroup_header(prefix="[probe_action]")
+    start_oom_watchdog(prefix="[probe_action]-oom-watchdog")
     cleanup_temp()
     ensure_local_data(args)
 
@@ -393,6 +397,9 @@ def run_train_stage(args, wb) -> None:
     if args.local_data is None:
         sys.exit("FATAL: --stage train requires --local-data (lazy extract reads the TARs)")
     check_gpu()
+    # iter15 (2026-05-14): cgroup envelope + OOM watchdog (utils/cgroup_monitor.py)
+    print_cgroup_header(prefix="[probe_action]")
+    start_oom_watchdog(prefix="[probe_action]-oom-watchdog")
     cleanup_temp()
     ensure_local_data(args)
 
@@ -836,7 +843,7 @@ def main() -> None:
 
 if __name__ == "__main__":
     # Fail-fast: any uncaught exception → traceback + sys.exit(1) so the
-    # parent shell (run_probe_eval.sh under `set -e`) sees non-zero and aborts the
+    # parent shell (run_eval.sh under `set -e`) sees non-zero and aborts the
     # chain. Mirrors m10_sam_segment.py pattern (errors_N_fixes #14/#16).
     try:
         main()

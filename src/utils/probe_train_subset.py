@@ -3,12 +3,12 @@
 probe Stage 1 (probe_action.run_labels_stage) produces action_labels.json:
     {"<clip_key>": {"class": "...", "class_id": N, "split": "train"|"val"|"test"}, ...}
 
-P2 (m09a_pretrain) and P3 (m09c_surgery) need a flat {"clip_keys": [...]} subset
+P2 (m09a1_pretrain_encoder) and P3 (m09c1_surgery_encoder) need a flat {"clip_keys": [...]} subset
 JSON to feed their --subset flag. This util reads action_labels.json, filters by
 split, and writes the subset. Train-split → encoder training; val-split →
 training-time validation; test-split → held out for probe Stage 4 paired-Δ gate.
 
-USAGE (called by scripts/run_probe_train.sh; also a standalone CLI):
+USAGE (called by scripts/run_train.sh; also a standalone CLI):
     python -u src/utils/probe_train_subset.py \\
         --action-labels outputs/full/probe_action/action_labels.json \\
         --split train \\

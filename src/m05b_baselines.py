@@ -42,6 +42,7 @@ from utils.config import (
 )
 from utils.data_download import ensure_local_data, iter_clips_parallel
 from utils.gpu_batch import compute_batch_sizes, add_gpu_mem_arg, cuda_cleanup, cleanup_temp, AdaptiveBatchSizer
+from utils.cgroup_monitor import print_cgroup_header, start_oom_watchdog
 from utils.wandb_utils import add_wandb_args, init_wandb, log_metrics, log_artifact, finish_wandb
 
 # Shared video I/O from utils (Rule 32: no cross-imports between m*.py)
@@ -1104,6 +1105,9 @@ def _run_single_encoder(encoder: str, args):
         finish_wandb(wb_run)
     else:
         check_gpu()
+        # iter15 (2026-05-14): cgroup envelope + OOM watchdog (utils/cgroup_monitor.py)
+        print_cgroup_header(prefix="[m05b]")
+        start_oom_watchdog(prefix="[m05b]-oom-watchdog")
         mode = f"{encoder}_{'SANITY' if args.SANITY else 'POC' if args.POC else 'FULL'}"
         wb_run = init_wandb("m05b", mode, config=vars(args), enabled=not args.no_wandb)
 

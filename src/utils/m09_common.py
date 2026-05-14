@@ -1,7 +1,7 @@
 """Shared CLI + config-merge + probe-pipeline helpers for m09a / m09c trainers.
 
 iter13 v13 (2026-05-07): R1+R2+R5 utils refactor — extracts duplicated
-boilerplate from m09a_pretrain.py and m09c_surgery.py into reusable
+boilerplate from m09a1_pretrain_encoder.py and m09c1_surgery_encoder.py into reusable
 functions. Each trainer's main() and merge_config_with_args calls these
 helpers + adds its own technique-specific args/logic.
 
@@ -34,7 +34,7 @@ from utils.motion_aux_loss import merge_motion_aux_config
 # ─────────────────────────────────────────────────────────────────────────
 
 def add_m09_common_args(parser, *, require_val_data: bool = False) -> None:
-    """Bundle 16 shared CLI args used by both m09a_pretrain + m09c_surgery.
+    """Bundle 16 shared CLI args used by both m09a1_pretrain_encoder + m09c1_surgery_encoder.
 
     Caller adds technique-specific args AFTER (e.g. m09c adds --factor-dir,
     --factor-streaming; m09a adds nothing extra).

@@ -26,9 +26,9 @@
 #   ./scripts/run_factor_prep.sh <factor-yaml> [--SANITY|--POC|--FULL]
 #
 # Examples:
-#   CACHE_POLICY_ALL=2 ./scripts/run_factor_prep.sh configs/train/surgery_3stage_DI.yaml --SANITY
-#   CACHE_POLICY_ALL=2 ./scripts/run_factor_prep.sh configs/train/surgery_3stage_DI.yaml --POC
-#   CACHE_POLICY_ALL=2 ./scripts/run_factor_prep.sh configs/train/surgery_3stage_DI.yaml --FULL
+#   CACHE_POLICY_ALL=2 ./scripts/run_factor_prep.sh configs/train/surgery_3stage_DI_encoder.yaml --SANITY
+#   CACHE_POLICY_ALL=2 ./scripts/run_factor_prep.sh configs/train/surgery_3stage_DI_encoder.yaml --POC
+#   CACHE_POLICY_ALL=2 ./scripts/run_factor_prep.sh configs/train/surgery_3stage_DI_encoder.yaml --FULL
 #
 # 3stage_DI factor-prep produces a strict superset (D_L + D_A + D_I) of what
 # 2stage_noDI's run would produce (D_L + D_A only). The 2stage training will
@@ -40,7 +40,7 @@ if [ $# -lt 1 ] || [ $# -gt 2 ]; then
     echo "USAGE: $0 <factor-yaml> [--SANITY|--POC|--FULL]" >&2
     echo "  Default mode: --FULL." >&2
     echo "  Pass MAXIMAL surgery yaml (interaction_mining=true)." >&2
-    echo "  Recommended: configs/train/surgery_3stage_DI.yaml" >&2
+    echo "  Recommended: configs/train/surgery_3stage_DI_encoder.yaml" >&2
     exit 2
 fi
 

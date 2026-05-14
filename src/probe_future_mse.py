@@ -55,6 +55,7 @@ from utils.frozen_features import (
     resolve_encoder_state_dict,
 )
 from utils.gpu_batch import AdaptiveBatchSizer, cleanup_temp, cuda_cleanup
+from utils.cgroup_monitor import print_cgroup_header, start_oom_watchdog
 from utils.progress import make_pbar
 from utils.vjepa2_imports import (
     get_apply_masks,
@@ -147,7 +148,7 @@ def _load_vjepa_2_1_encoder_hierarchical(ckpt_path: Path, num_frames: int):
 
 def _load_predictor_2_1(ckpt_path: Path, num_frames: int):
     """Load V-JEPA 2.1 predictor from the same .pt that holds the encoder.
-    Returns predictor on cuda, eval-mode, bf16. Mirrors m09a_pretrain.py:268-309.
+    Returns predictor on cuda, eval-mode, bf16. Mirrors m09a1_pretrain_encoder.py:268-309.
     """
     if not ckpt_path.exists():
         sys.exit(f"FATAL: predictor ckpt not found: {ckpt_path}")
@@ -326,6 +327,9 @@ def run_forward_stage(args, wb) -> None:
         sys.exit("FATAL: --stage forward requires --action-probe-root (for action_labels.json test split)")
 
     check_gpu()
+    # iter15 (2026-05-14): cgroup envelope + OOM watchdog (utils/cgroup_monitor.py)
+    print_cgroup_header(prefix="[probe_future_mse]")
+    start_oom_watchdog(prefix="[probe_future_mse]-oom-watchdog")
     cleanup_temp()
     ensure_local_data(args)
 
@@ -594,7 +598,7 @@ def main() -> None:
 
 if __name__ == "__main__":
     # Fail-fast: any uncaught exception → traceback + sys.exit(1) so the
-    # parent shell (run_probe_eval.sh under `set -e`) sees non-zero and aborts the
+    # parent shell (run_eval.sh under `set -e`) sees non-zero and aborts the
     # chain. Mirrors m10_sam_segment.py pattern (errors_N_fixes #14/#16).
     try:
         main()

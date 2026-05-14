@@ -19,7 +19,7 @@ POV. Why we still stratify by POV here:
 The legacy `utils.action_labels.PATH_TO_CLASS_3CLASS` constant was deleted in
 iter13 v12; this module now owns its own POV mapping (no cross-import).
 
-USAGE (called by scripts/run_probe_eval.sh under MODE=SANITY; also standalone):
+USAGE (called by scripts/run_eval.sh under MODE=SANITY; also standalone):
     python -u src/utils/eval_subset.py \\
         --eval-subset data/eval_10k.json \\
         --n-per-class 200 \\
@@ -27,7 +27,7 @@ USAGE (called by scripts/run_probe_eval.sh under MODE=SANITY; also standalone):
 
   Sizing notes (post-iter13-v12):
     - 200/POV × 3 = 600 clips → ~37 clips/motion-class avg → splits cleanly
-      under run_probe_eval.sh's SANITY defaults (MIN_CLIPS_PER_CLASS=5,
+      under run_eval.sh's SANITY defaults (MIN_CLIPS_PER_CLASS=5,
       MIN_PER_SPLIT=1) even after several rare motion classes get filtered.
     - Lowering below ~150/POV (450 clips) risks all motion classes being
       filtered → action_labels.load_subset_with_labels FATALs.
@@ -122,7 +122,7 @@ def stratified_by_motion_class_subset(src: dict, motion_features_path,
 
     Args:
         src: loaded eval JSON dict with "clip_keys" list.
-        motion_features_path: m04d motion_features.npy (FULL-scale, ~9276 × 13D).
+        motion_features_path: m04d motion_features.npy (FULL-scale, ~9276 × 23D post-Phase-0).
             Must have a sibling motion_features.paths.npy.
         target_per_class: pick min(target_per_class, available) clips per motion
             class. Total output clips = sum(picked[c] for c in classes).
@@ -153,7 +153,7 @@ def stratified_by_motion_class_subset(src: dict, motion_features_path,
     if not paths_path.exists():
         sys.exit(f"FATAL: motion_features.paths.npy not found at {paths_path} "
                  f"(must be next to motion_features.npy)")
-    flow_features = np.load(motion_features_path)                 # (N, 13)
+    flow_features = np.load(motion_features_path)                 # (N, 23) post-Phase-0
     flow_paths = np.load(paths_path, allow_pickle=True)           # (N,) clip keys
     if flow_features.shape[0] != flow_paths.shape[0]:
         sys.exit(f"FATAL: motion_features rows={flow_features.shape[0]} != "

@@ -4,30 +4,30 @@ Gold standard #2 (mask-conditioned video SSL paradigm): https://github.com/MCG-N
 Gold standard #3 (foundational video masked SSL): https://github.com/MCG-NJU/VideoMAE
 Claude Code: re-WebSearch all 3 URLs on every read of this file (each verified live 2026-05-09).
 
-Split from m09_pretrain.py on 2026-04-15 (#49). Pairs with m09a_pretrain.py (vanilla Ch10)
+Split from m09_pretrain.py on 2026-04-15 (#49). Pairs with m09a1_pretrain_encoder.py (vanilla Ch10)
 and m09b_explora.py (LoRA variant). Shared primitives live in utils.training.
 
 Pipeline: m10 (Grounded-SAM) → m11 (factor datasets) → m09c (surgery training).
 The paper novelty — factor-disentangled surgery on a frozen V-JEPA 2.1 encoder.
 
 USAGE (every path arg required — CLAUDE.md no-default rule; --probe-* fall back to yaml):
-    python -u src/m09c_surgery.py --SANITY \
+    python -u src/m09c1_surgery_encoder.py --SANITY \
         --model-config configs/model/vjepa2_1.yaml \
-        --train-config configs/legacy2/surgery_2stage_noDI.yaml \
+        --train-config configs/legacy2/surgery_2stage_noDI_encoder.yaml \
         --subset data/sanity_100_dense.json --local-data data/val_1k_local \
         --factor-dir outputs/sanity/m11_factor_datasets/ \
         --probe-subset data/val_1k.json --probe-local-data data/val_1k_local \
         --probe-tags data/val_1k_local/tags.json \
         --no-wandb 2>&1 | tee logs/m09c_sanity.log
-    python -u src/m09c_surgery.py --POC \
+    python -u src/m09c1_surgery_encoder.py --POC \
         --model-config configs/model/vjepa2_1.yaml \
-        --train-config configs/legacy2/surgery_2stage_noDI.yaml \
+        --train-config configs/legacy2/surgery_2stage_noDI_encoder.yaml \
         --subset data/sanity_100_dense.json --local-data data/val_1k_local \
         --factor-dir outputs/poc/m11_factor_datasets/ \
         --no-wandb 2>&1 | tee logs/m09c_dense100.log
-    python -u src/m09c_surgery.py --FULL \
+    python -u src/m09c1_surgery_encoder.py --FULL \
         --model-config configs/model/vjepa2_1.yaml \
-        --train-config configs/train/surgery_3stage_DI.yaml \
+        --train-config configs/train/surgery_3stage_DI_encoder.yaml \
         --subset data/ultra_hard_3066_train.json \
         --local-data data/ultra_hard_3066_local \
         --factor-dir outputs/full/m11_factor_datasets/ \
@@ -84,7 +84,7 @@ from utils.cache_policy import (
 )
 # iter13 v13 R1+R2+R5 (2026-05-07): shared CLI + config-merge + probe-pipeline
 # helpers — replaces ~80 LoC of inline boilerplate that was duplicated with
-# m09a_pretrain.py. Technique-specific args (--factor-dir, --factor-streaming)
+# m09a1_pretrain_encoder.py. Technique-specific args (--factor-dir, --factor-streaming)
 # are still added INLINE in main() after add_m09_common_args(parser) fires.
 from utils.m09_common import (
     add_m09_common_args, merge_m09_common_config, setup_probe_pipeline,
@@ -246,10 +246,10 @@ def merge_config_with_args(cfg: dict, args) -> dict:
     #      INFORMATIONAL only — it hardcodes "full", so honoring it when running
     #      --SANITY would write SANITY artifacts to the FULL dir. The filename
     #      derivation matches the shell wrapper's VARIANT_TAG convention exactly:
-    #        surgery_3stage_DI.yaml  → m09c_surgery_3stage_DI
-    #        surgery_2stage_noDI.yaml → m09c_surgery_noDI  (yaml says "noDI"; see surgery_2stage_noDI.yaml:30)
+    #        surgery_3stage_DI_encoder.yaml  → m09c_surgery_3stage_DI
+    #        surgery_2stage_noDI_encoder.yaml → m09c_surgery_noDI  (yaml says "noDI"; see surgery_2stage_noDI_encoder.yaml:30)
     # Without this, two standalone m09c runs with different variants silently
-    # overwrite the same outputs/<mode>/m09c_surgery/ dir → variant collision +
+    # overwrite the same outputs/<mode>/m09c1_surgery_encoder/ dir → variant collision +
     # broken downstream eval.
     if getattr(args, "output_dir", None):
         cfg["checkpoint"]["output_dir"] = args.output_dir
@@ -273,7 +273,7 @@ def merge_config_with_args(cfg: dict, args) -> dict:
                 break
         module_name = f"m09c_surgery_{stem}"
     else:
-        module_name = "m09c_surgery"
+        module_name = "m09c1_surgery_encoder"
     base_out = get_module_output_dir(module_name, args.subset,
                                      sanity=args.SANITY, poc=args.POC)
     cfg["checkpoint"]["output_dir"] = str(base_out)
@@ -510,9 +510,9 @@ def train(cfg: dict, args):
     nan_strikes = 0  # noqa: F841 — wired into future dense NaN guard; kept for parity with m09a/b
 
     # Auto-bootstrap probe labels (action_labels.json + taxonomy_labels.json) if
-    # missing. Lets `python -u src/m09c_surgery.py ...` run end-to-end without
-    # the shell having pre-run run_probe_eval.sh Stage 1. No-op when both files
-    # already exist (~1ms stat()s). Mirrors run_probe_eval.sh:342-358 exactly.
+    # missing. Lets `python -u src/m09c1_surgery_encoder.py ...` run end-to-end without
+    # the shell having pre-run run_eval.sh Stage 1. No-op when both files
+    # already exist (~1ms stat()s). Mirrors run_eval.sh:342-358 exactly.
     mode_flag = "--SANITY" if args.SANITY else ("--POC" if args.POC else "--FULL")
     # iter14 recipe-v3 (2026-05-09): pass cfg so probe_labels reads ALL paths +
     # numbers from yaml (CLAUDE.md "no hardcoded values"). For POC mode, the
@@ -526,7 +526,7 @@ def train(cfg: dict, args):
 
     # Output dir
     output_dir = Path(args.output_dir) if args.output_dir else get_module_output_dir(
-        "m09c_surgery", args.subset, sanity=args.SANITY, poc=args.POC)
+        "m09c1_surgery_encoder", args.subset, sanity=args.SANITY, poc=args.POC)
     # iter11 v3 (2026-04-26): cache-policy=2 nukes the WHOLE output_dir at startup
     # so load_checkpoint() finds nothing → fresh step-0 run.
     wipe_output_dir(output_dir, args.cache_policy, label=f"output_dir ({output_dir.name})")
@@ -540,7 +540,7 @@ def train(cfg: dict, args):
     loss_exp = cfg["optimization"]["loss_exp"]
     ema_momentum = cfg["optimization"]["ema_momentum"]
 
-    wb_run = init_wandb("m09c_surgery", mode_key.upper(), config=vars(args),
+    wb_run = init_wandb("m09c1_surgery_encoder", mode_key.upper(), config=vars(args),
                         enabled=not args.no_wandb)
 
     # Build model (V-JEPA 2.1 with deep supervision + dense loss)
@@ -570,7 +570,7 @@ def train(cfg: dict, args):
     mt_head, mt_labels_by_clip, mt_dims_spec, mt_cfg = build_multi_task_head_from_cfg(cfg, device)
 
     # iter13 v12+ (Phase 4): motion_aux head — JOINT K-class CE + 13-D MSE on
-    # m04d RAFT-flow vec13d. Builds head + clip_key→(class_id, vec13d) lookup;
+    # m04d RAFT-flow vec_motion. Builds head + clip_key→(class_id, vec_motion) lookup;
     # ma_head=None when motion_aux disabled (graceful no-op throughout).
     ma_head, ma_lookup, ma_cfg = build_motion_aux_head_from_cfg(cfg, device)
 
@@ -602,7 +602,7 @@ def train(cfg: dict, args):
     # (m09a:466-479). Single yaml/CLI-driven val pool via cfg["probe"]["subset"]
     # — at POC: data/eval_10k_val_split.json (125 stratified POC val clips); at
     # FULL: same path, larger contents (~1388 clips auto-generated by
-    # run_probe_train.sh). Train manifest = full m11 manifest minus val (no
+    # run_train.sh). Train manifest = full m11 manifest minus val (no
     # leakage). Surgery still trains via factor_index (intersection of
     # train_manifest with on-disk D_L/D_A/D_I .npy files); train_keys here only
     # sub-selects manifest entries to feed build_factor_index.
@@ -1088,7 +1088,7 @@ def train(cfg: dict, args):
             )
 
             # Live plots (trajectory + forgetting + val_loss) refreshed on every
-            # probe so mid-run progress is visible via `ls outputs/poc/m09c_surgery/*.png`.
+            # probe so mid-run progress is visible via `ls outputs/poc/m09c1_surgery_encoder/*.png`.
             # Silent (verbose=False); wrapped in try/except so plot render failure
             # never kills training. Skipped when probe_history has <2 entries.
             _render_live_plots(verbose=False)
@@ -1631,7 +1631,7 @@ def train(cfg: dict, args):
     # drops 16 GB optimizer state; saves student+teacher+predictor only (~8 GB).
     # Downstream (m05 re-embed, Stage 8 future_mse) needs only those — optimizer
     # is dead weight. uw_module dropped along with optimizer (Kendall UW is part
-    # of the optimization state). run_probe_eval.sh:158 expects this exact filename.
+    # of the optimization state). run_eval.sh:158 expects this exact filename.
     save_training_checkpoint(
         output_dir / f"{CHECKPOINT_PREFIX}_best.pt",
         student, teacher, predictor, optimizer, scheduler, scaler,
@@ -1820,7 +1820,7 @@ def main():
         sys.exit(1)
 
     if not args.factor_dir:
-        print("FATAL: m09c_surgery requires --factor-dir (path to m11 factor datasets)")
+        print("FATAL: m09c1_surgery_encoder requires --factor-dir (path to m11 factor datasets)")
         print("  Pipeline: m10 (Grounded-SAM) → m11 (factor datasets) → m09c (surgery)")
         sys.exit(1)
 

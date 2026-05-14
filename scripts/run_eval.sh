@@ -30,34 +30,34 @@
 #   tmux new -s probe
 #
 #   # FULL run (default) — eval_10k (~9.9k clips), ~4h on 24GB / ~2.5h on 96GB
-#   ./scripts/run_probe_eval.sh 2>&1 | tee logs/run_src_probe_full_v1.log
+#   ./scripts/run_eval.sh 2>&1 | tee logs/run_src_probe_full_v1.log
 #
 #   # SANITY smoke test — 150 stratified clips (50/class) from THE SAME eval_10k
 #   # JSON, processed against the SAME eval_10k_local/ TARs. ~6-8 min on 24GB.
 #   # Outputs sandboxed to outputs/sanity/. Pass --sanity OR set MODE=SANITY.
-#   ./scripts/run_probe_eval.sh --sanity 2>&1 | tee logs/run_src_probe_sanity_v1.log
+#   ./scripts/run_eval.sh --sanity 2>&1 | tee logs/run_src_probe_sanity_v1.log
 #
 #   # Bypass prompts (overnight / non-TTY)
-#   CACHE_POLICY_ALL=1 ./scripts/run_probe_eval.sh 2>&1 | tee logs/run_src_probe_full_v1.log           # keep all caches
-#   CACHE_POLICY_ALL=2 ./scripts/run_probe_eval.sh 2>&1 | tee logs/run_src_probe_full_v1.log           # recompute everything
-#   CACHE_POLICY_ALL=2 ./scripts/run_probe_eval.sh --sanity 2>&1 | tee logs/run_src_probe_sanity_v1.log  # SANITY + recompute
+#   CACHE_POLICY_ALL=1 ./scripts/run_eval.sh 2>&1 | tee logs/run_src_probe_full_v1.log           # keep all caches
+#   CACHE_POLICY_ALL=2 ./scripts/run_eval.sh 2>&1 | tee logs/run_src_probe_full_v1.log           # recompute everything
+#   CACHE_POLICY_ALL=2 ./scripts/run_eval.sh --sanity 2>&1 | tee logs/run_src_probe_sanity_v1.log  # SANITY + recompute
 #
 #   # Skip a stage (resume after failure):
-#   SKIP_STAGES="1,2" ./scripts/run_probe_eval.sh
+#   SKIP_STAGES="1,2" ./scripts/run_eval.sh
 #   # Run only one variant (debug):
-#   ENCODERS="vjepa_2_1_frozen" ./scripts/run_probe_eval.sh
+#   ENCODERS="vjepa_2_1_frozen" ./scripts/run_eval.sh
 #   # Tune SANITY subset size (default 50 clips per class):
-#   SANITY_N_PER_CLASS=20 ./scripts/run_probe_eval.sh --sanity
+#   SANITY_N_PER_CLASS=20 ./scripts/run_eval.sh --sanity
 #
 #   # Probe-training knobs (Stage 3) — mode-aware defaults:
 #   #   SANITY: EPOCHS=50  WARMUP_PCT=0.10  LR_SWEEP="5e-4"   (current behavior)
 #   #   FULL:   EPOCHS=20  WARMUP_PCT=0.0   LR_SWEEP="5e-4"   (Meta-faithful single-LR)
 #   # Override any of them via env vars:
-#   EPOCHS=20 WARMUP_PCT=0.0 ./scripts/run_probe_eval.sh --sanity   # apply Meta recipe to sanity
+#   EPOCHS=20 WARMUP_PCT=0.0 ./scripts/run_eval.sh --sanity   # apply Meta recipe to sanity
 #
 #   # Paper-faithful FULL with LR sweep (matches Meta's multihead 5-LR setup;
 #   # ~4x stage-3 wall, but mirrors deps/vjepa2/configs/eval/vitg-384/ssv2.yaml):
-#   LR_SWEEP="1e-4 3e-4 1e-3 3e-3" ./scripts/run_probe_eval.sh
+#   LR_SWEEP="1e-4 3e-4 1e-3 3e-3" ./scripts/run_eval.sh
 #   # Each LR trains a probe under outputs/full/probe_action/<encoder>/lr_<LR>/;
 #   # the best-val-acc LR is symlinked to the canonical <encoder>/probe.pt path so
 #   # Stage 4 paired_delta reads the winner (no code change needed).
@@ -68,7 +68,7 @@
 # because its variants are independent (errors_N_fixes #72).
 set -euo pipefail
 # Clear ERR trap surfaces line + exit code BEFORE the shell exits.
-trap 'rc=$?; echo "" >&2; echo "❌ FATAL: run_probe_eval.sh aborted at line $LINENO (exit=$rc) — sequential dependency failed; downstream stages skipped" >&2; exit $rc' ERR
+trap 'rc=$?; echo "" >&2; echo "❌ FATAL: run_eval.sh aborted at line $LINENO (exit=$rc) — sequential dependency failed; downstream stages skipped" >&2; exit $rc' ERR
 
 cd "$(dirname "$0")/.."
 source venv_walkindia/bin/activate
@@ -128,7 +128,7 @@ elif [ "$MODE" = "POC" ]; then
     # iter14 (2026-05-08): POC mode — first N keys of eval_10k.json (N from yaml,
     # default 500), then probe_action.py --stage labels applies 70:15:15
     # stratified_split → ~350/75/75 train/val/test. Same subset that
-    # run_probe_train.sh generates so train→eval reads consistent splits.
+    # run_train.sh generates so train→eval reads consistent splits.
     POC_SUBSET="data/eval_10k_poc.json"
     POC_TOTAL=$(python "$EX" configs/train/base_optimization.yaml data.poc_total_clips)
     if [ ! -f "$POC_SUBSET" ] || [ "data/eval_10k.json" -nt "$POC_SUBSET" ]; then
@@ -171,7 +171,7 @@ if [ "$MODE" = "SANITY" ]; then
     # iter13 v13 (2026-05-07): floor=3 with greedy split (utils/action_labels.py
     # stratified_split). Keeps every motion-flow class with n≥3 → harder probe →
     # better signal for the paper goal `surgery > pretrain > frozen`. Mirror in
-    # run_probe_train.sh.
+    # run_train.sh.
     DEFAULT_MIN_CLIPS_PER_CLASS=3
     DEFAULT_MIN_PER_SPLIT=1
 elif [ "$MODE" = "POC" ]; then
@@ -194,7 +194,7 @@ MIN_PER_SPLIT="${MIN_PER_SPLIT:-$DEFAULT_MIN_PER_SPLIT}"
 # Surgery has TWO variants — 3stage_DI (with interaction tubes) and noDI (without)
 # — to test whether D_I helps; each writes its own dir.
 # iter13 v13 T2-rename (2026-05-07): probe_pretrain → m09a_pretrain,
-# probe_surgery_* → m09c_surgery_* (matches source-module naming + run_probe_train.sh).
+# probe_surgery_* → m09c_surgery_* (matches source-module naming + run_train.sh).
 encoder_ckpt_for() {                                            # encoder-only — Stages 2/3
     case "$1" in
         vjepa_2_1_frozen)              echo "$ENCODER_CKPT" ;;
@@ -325,7 +325,7 @@ echo "  → ACTION=$P_ACTION  COS=$P_COS  MSE=$P_MSE"
 
 # ── Pre-flight: drop P2/P3 encoders whose trainer outputs aren't on disk ─
 # probe eval is the consumer; P2 (m09a continual SSL) and P3 (m09c surgery) are
-# producers run separately via scripts/run_probe_train.sh. If a producer hasn't
+# producers run separately via scripts/run_train.sh. If a producer hasn't
 # run yet, silently dropping the encoder lets the rest of the pipeline complete
 # (frozen + dinov2 always work — they're external ckpts).
 echo ""
@@ -340,10 +340,10 @@ for ENC in $ENCODERS; do
             if [ ! -e "$CKPT" ]; then
                 echo "  ⚠️  $ENC: $CKPT not found — train via:"
                 case "$ENC" in
-                    vjepa_2_1_pretrain)            echo "       ./scripts/run_probe_train.sh pretrain          --$MODE" ;;
-                    vjepa_2_1_pretrain_2X)       echo "       ./scripts/run_probe_train.sh pretrain_2X     --$MODE" ;;
-                    vjepa_2_1_surgical_3stage_DI)  echo "       ./scripts/run_probe_train.sh surgery_3stage_DI --$MODE" ;;
-                    vjepa_2_1_surgical_noDI)       echo "       ./scripts/run_probe_train.sh surgery_noDI      --$MODE" ;;
+                    vjepa_2_1_pretrain)            echo "       ./scripts/run_train.sh pretrain          --$MODE" ;;
+                    vjepa_2_1_pretrain_2X)       echo "       ./scripts/run_train.sh pretrain_2X     --$MODE" ;;
+                    vjepa_2_1_surgical_3stage_DI)  echo "       ./scripts/run_train.sh surgery_3stage_DI --$MODE" ;;
+                    vjepa_2_1_surgical_noDI)       echo "       ./scripts/run_train.sh surgery_noDI      --$MODE" ;;
                 esac
                 echo "  → dropping $ENC from this run; pipeline continues with remaining encoders"
                 continue
@@ -391,13 +391,13 @@ for ENC in $ENCODERS; do
                 echo "        if this is missing, ENCODER_CKPT itself is wrong)" ;;
             vjepa_2_1_pretrain)
                 echo "       Re-train (m09a_ckpt_best.pt is written via save_training_checkpoint full=True):"
-                echo "         CACHE_POLICY_ALL=2 ./scripts/run_probe_train.sh pretrain --$MODE" ;;
+                echo "         CACHE_POLICY_ALL=2 ./scripts/run_train.sh pretrain --$MODE" ;;
             vjepa_2_1_pretrain_2X)
                 echo "       Re-train iter14 arm C (10 ep, ~20 GPU-h on FULL):"
-                echo "         CACHE_POLICY_ALL=2 ./scripts/run_probe_train.sh pretrain_2X --$MODE" ;;
+                echo "         CACHE_POLICY_ALL=2 ./scripts/run_train.sh pretrain_2X --$MODE" ;;
             vjepa_2_1_surgical_*)
                 echo "       Re-train (m09c writes m09c_ckpt_best.pt at end of surgery):"
-                echo "         CACHE_POLICY_ALL=2 ./scripts/run_probe_train.sh ${ENC#vjepa_2_1_surgical_} --$MODE" ;;
+                echo "         CACHE_POLICY_ALL=2 ./scripts/run_train.sh ${ENC#vjepa_2_1_surgical_} --$MODE" ;;
         esac
     fi
 done
@@ -473,7 +473,7 @@ fi
 
 # ── STAGE 1 — labels (action_probe + taxonomy, CPU, ~1-2 min) ──────────
 # Two label artifacts emitted side-by-side from the same EVAL_SUBSET +
-# TAGS_JSON so downstream stages and run_probe_train.sh both find them.
+# TAGS_JSON so downstream stages and run_train.sh both find them.
 #   - probe_action/action_labels.json   : 3-class action (P1 gate)
 #   - probe_taxonomy/taxonomy_labels.json : 16 dims (action + 15 from
 #                                           tag_taxonomy.json) — used by
@@ -821,7 +821,7 @@ echo "Artifacts:"
 echo "  🔥 P1 GATE     $OUTPUT_ACTION/probe_paired_delta.json"
 echo "  motion_cos     $OUTPUT_COS/probe_motion_cos_paired.json"
 echo "  future_mse     $OUTPUT_MSE/probe_future_mse_per_variant.json"
-echo "  taxonomy lbls  $OUTPUT_TAXONOMY/taxonomy_labels.json (consumed by run_probe_train.sh multi-task path)"
+echo "  taxonomy lbls  $OUTPUT_TAXONOMY/taxonomy_labels.json (consumed by run_train.sh multi-task path)"
 echo "  plots          $OUTPUT_PLOTS/{probe_action_loss,probe_action_acc,probe_encoder_comparison}.{png,pdf}"
 echo "Per-encoder probe ckpts:"
 for ENC in $ENCODERS; do

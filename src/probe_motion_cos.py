@@ -400,7 +400,7 @@ def main() -> None:
 
 if __name__ == "__main__":
     # Fail-fast: any uncaught exception → traceback + sys.exit(1) so the
-    # parent shell (run_probe_eval.sh under `set -e`) sees non-zero and aborts the
+    # parent shell (run_eval.sh under `set -e`) sees non-zero and aborts the
     # chain. Mirrors m10_sam_segment.py pattern (errors_N_fixes #14/#16).
     try:
         main()

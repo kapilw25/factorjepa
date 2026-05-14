@@ -35,7 +35,7 @@ data:
 # m09a + m09c call that fn at startup with cfg=cfg; the fn reads from this block.
 # Replaces the previous module-level _MODE_TO_* constants in probe_labels.py
 # (per CLAUDE.md "No hardcoded values in Python — YAML or runtime discovery only").
-# Replaces shell-side bootstrap in scripts/run_probe_train.sh + run_recipe_v3_sweep.sh
+# Replaces shell-side bootstrap in scripts/run_train.sh + run_recipe_v3_sweep.sh
 # (per CLAUDE.md "Shell scripts are THIN wrappers — all logic in Python").
 probe_action_labels:
   # m04d 13-D RAFT features × 4-mag × 4-dir = 16 possible · 8 surviving after
@@ -206,7 +206,7 @@ optimization:
   # warning applies to re-warming only.
   # iter13 (2026-05-05): single warmup knob `warmup_pct` (10-15% of total_steps).
   # Was dual-knob (warmup_steps=500 + warmup_cap_pct=15) which led to silently-
-  # ignored hardcoded values in downstream yamls (probe_pretrain.yaml had
+  # ignored hardcoded values in downstream yamls (pretrain_encoder.yaml had
   # warmup_steps=1500 that was dominated by the 15% cap = 162 at total_steps=1085;
   # nobody noticed for two iter13 runs). Now: warmup_steps is computed at runtime
   # as `total_steps * warmup_pct / 100`, scales automatically with epochs/BS.
@@ -360,7 +360,7 @@ probe:
   # iter14 (2026-05-08): `use_permanent_val` is RETIRED — m09c now mirrors m09a's
   # gold-standard pattern (single yaml-driven external val pool, no internal
   # split fallback). Flag value here is informational only; m09c no longer reads
-  # it (m09c_surgery.py:530+). Kept in yaml for backward-compat with legacy/m09b.
+  # it (m09c1_surgery_encoder.py:530+). Kept in yaml for backward-compat with legacy/m09b.
   use_permanent_val:        {sanity: false, poc: true, full: true}
   compute_val_loss:         true                                        # logged for plots; NOT an early-stop gate (iter14)
   # NOTE: probe forward micro-batch is adaptive — AdaptiveBatchSizer reads pipeline.yaml
@@ -369,7 +369,7 @@ probe:
 
 # -- Multi-task probe-loss supervision (iter13 — adds DIRECT gradient signal
 # from classification toward the encoder, on top of pure JEPA L1 SSL).
-# Default DISABLED in base — opt-in per training config (probe_pretrain.yaml,
+# Default DISABLED in base — opt-in per training config (pretrain_encoder.yaml,
 # surgery_*.yaml). When enabled, training adds:
 #     total_loss = weight_jepa·JEPA_L1 + weight_probe·Σ_d (1/n_dims)·L_d + drift_loss
 # where L_d is CrossEntropy for the 14 single-label dims (action + 13 from

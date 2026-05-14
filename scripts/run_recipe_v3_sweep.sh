@@ -2,7 +2,7 @@
 # scripts/run_recipe_v3_sweep.sh — iter14 recipe-v3 7-cell drop-one ablation.
 #
 # Loops over R0–R6 cells (drop-one ablation). Each cell sets the seven
-# recipe-v2/v3 env-var overrides → run_probe_train.sh forwards them as CLI
+# recipe-v2/v3 env-var overrides → run_train.sh forwards them as CLI
 # flags to m09c → m09c merges into cfg → bit-identical pre-iter14 paths
 # active when SUBSET=legacy & WARMUP=per_stage & {SALIENCY,SPD,REPLAY}=off.
 #
@@ -140,7 +140,7 @@ for line in "${CELLS[@]}"; do
     SALIENCY_OVERRIDE="$SALIENCY" \
     SPD_OVERRIDE="$SPD" \
     REPLAY_OVERRIDE="$REPLAY" \
-        ./scripts/run_probe_train.sh "$VARIANT" "$MODE_FLAG" 2>&1 | tee "$LOG"
+        ./scripts/run_train.sh "$VARIANT" "$MODE_FLAG" 2>&1 | tee "$LOG"
 
     # Move outputs to a cell-specific dir so subsequent cells start clean.
     if [ -d "$OUT_BASE" ]; then

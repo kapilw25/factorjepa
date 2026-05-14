@@ -20,16 +20,16 @@
 # can share via outputs/full/m11_factor_datasets/.
 #
 # USAGE:
-#   python -u src/m09c_surgery.py \
+#   python -u src/m09c1_surgery_encoder.py \
 #       --model-config configs/model/vjepa2_1.yaml \
-#       --train-config configs/train/surgery_3stage_DI.yaml \
+#       --train-config configs/train/surgery_3stage_DI_encoder.yaml \
 #       --FULL
 
 extends: surgery_base.yaml
 
 data:
   adapted_encoder: vjepa_2_1_surgical_3stage_DI      # unique per-variant — m05/m06 outputs don't collide across surgery variants (dynamic suffix via get_encoder_info)
-  output_dir: outputs/full/m09c_surgery_3stage_DI    # auto-overridden by run_probe_train.sh
+  output_dir: outputs/full/m09c_surgery_3stage_DI    # auto-overridden by run_train.sh
 
 # -- Interaction mining: re-enable D_I (only variant that consumes interaction tubes) --
 interaction_mining:
@@ -42,7 +42,7 @@ interaction_mining:
 # pretrained backbone; iter14 POC v2 sweep showed 24-block unfreezes cause catastrophic
 # gradient blast in <5 backbone steps. See plan_surgery_wins.md §4 #3 + §12.4.
 # Override at runtime: SUBSET_OVERRIDE=legacy → m09c restores 0.25/0.50/0.50 for
-# drop-one ablation cell R4 (R1 minus #3). Wired in src/m09c_surgery.py via T7.
+# drop-one ablation cell R4 (R1 minus #3). Wired in src/m09c1_surgery_encoder.py via T7.
 surgery:
   stages:
     - name: stage1_layout

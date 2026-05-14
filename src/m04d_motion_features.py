@@ -1,9 +1,11 @@
 """
-GPU-RAFT optical flow motion features per clip (13D vector).
+GPU-RAFT optical flow motion features per clip (23-D vector, post-Phase-0).
 Gold standard: https://github.com/pytorch/vision/blob/main/torchvision/models/optical_flow/raft.py
 Claude Code: re-WebSearch this URL on every read of this file.
 Extracts deterministic temporal ground-truth: mean/std/max magnitude,
-8-bin direction histogram, camera motion (dx, dy).
+8-bin direction histogram, camera motion (dx, dy), AND foreground (camera-
+subtracted) agent-motion stats (Phase 0, iter15, 2026-05-14): fg_mean_mag,
+fg_max_mag, fg_dir_hist (8 bins) → total 23 dims, see FEATURE_NAMES below.
 
 Producer-consumer pipeline: CPU thread decodes video + preprocesses frame
 pairs → queue → GPU thread batches multiple clips' pairs into one RAFT
@@ -19,34 +21,35 @@ OUTPUT ROUTING (iter13 v12, 2026-05-05):
 
 USAGE (per-dataset; one run per local_data dir, durable artifact thereafter):
     # eval_10k (FULL eval target):
-    python -u src/m04d_motion_features.py --FULL --subset data/eval_10k.json \
-        --local-data data/eval_10k_local \
-        --features-out data/eval_10k_local/motion_features.npy \
-        2>&1 | tee logs/m04d_full_eval10k.log
+CACHE_POLICY_ALL=2 python -u src/m04d_motion_features.py --FULL \
+--subset data/eval_10k.json \
+--local-data data/eval_10k_local \
+--features-out data/eval_10k_local/motion_features.npy \
+--no-wandb 2>&1 | tee logs/m04d_full_eval10k_$(date +%Y%m%d_%H%M%S).log
 
     # subset_10k (POC):
     python -u src/m04d_motion_features.py --POC --subset data/subset_10k.json \
         --local-data data/subset_10k_local \
         --features-out data/subset_10k_local/motion_features.npy \
-        2>&1 | tee logs/m04d_poc.log
+        2>&1 | tee logs/m04d_poc_$(date +%Y%m%d_%H%M%S).log
 
     # val_1k:
     python -u src/m04d_motion_features.py --FULL --subset data/val_1k.json \
         --local-data data/val_1k_local \
         --features-out data/val_1k_local/motion_features.npy \
-        2>&1 | tee logs/m04d_val1k.log
+        2>&1 | tee logs/m04d_val1k_$(date +%Y%m%d_%H%M%S).log
 
     # full_local (training data; HF will only upload the small .npy/.paths.npy,
     # NOT the multi-TB TAR shards — see hf_outputs.py:upload_data()):
     python -u src/m04d_motion_features.py --FULL --local-data data/full_local \
         --features-out data/full_local/motion_features.npy \
-        2>&1 | tee logs/m04d_full.log
+        2>&1 | tee logs/m04d_full_$(date +%Y%m%d_%H%M%S).log
 
     # SANITY (smoke test):
     python -u src/m04d_motion_features.py --SANITY --subset data/subset_10k.json \
         --local-data data/subset_10k_local \
         --features-out data/subset_10k_local/motion_features.npy \
-        2>&1 | tee logs/m04d_sanity.log
+        2>&1 | tee logs/m04d_sanity_$(date +%Y%m%d_%H%M%S).log
 """
 import argparse
 import gc
@@ -65,10 +68,24 @@ from pathlib import Path
 # our producer's ThreadPoolExecutor — torch.compile's pool shutdown set the
 # global `concurrent.futures._shutdown=True` flag prematurely, so the next
 # producer batch raised `RuntimeError: cannot schedule new futures after
-# interpreter shutdown` mid-run (logs/m04d_full_eval10k.log:19). MUST be set
+# interpreter shutdown` mid-run (logs/m04d_full_eval10k_$(date +%Y%m%d_%H%M%S).log:19). MUST be set
 # BEFORE any torch import. Costs ~30s extra one-time on warm-up, free
 # afterwards. Belt-and-suspenders alongside the persistent-pool fix below.
 os.environ.setdefault("TORCHINDUCTOR_COMPILE_THREADS", "1")
+
+# iter15 Phase 3 fix (2026-05-14): cap OpenMP / BLAS thread teams to 1 worker
+# per process. PyAV's sws_scale color conversion (yuv420p → bgr24) and ffmpeg's
+# internal libs use libgomp, which defaults to NUM_THREADS = nproc. On
+# many-core / containerized hosts (e.g., 96-core box with cgroup pids.max=1024),
+# 16 decode workers × 96 OMP threads = 1536 transient threads → instant
+# "libgomp: Thread creation failed: Resource temporarily unavailable" crash on
+# the first frame decode. Caps below force sequential color conversion (the
+# work is already pipelined behind GPU RAFT inference, so wall-time is unchanged).
+# Use setdefault so an explicit OMP_NUM_THREADS=4 env still wins for debugging.
+os.environ.setdefault("OMP_NUM_THREADS", "1")
+os.environ.setdefault("MKL_NUM_THREADS", "1")
+os.environ.setdefault("OPENBLAS_NUM_THREADS", "1")
+os.environ.setdefault("NUMEXPR_NUM_THREADS", "1")
 
 import av
 import cv2
@@ -87,18 +104,26 @@ from utils.wandb_utils import (
     add_wandb_args, init_wandb, log_metrics, finish_wandb,
 )
 from utils.gpu_batch import add_gpu_mem_arg, AdaptiveBatchSizer, cleanup_temp
+from utils.cgroup_monitor import print_cgroup_header, start_oom_watchdog
 
 # Lazy imports — torch + torchvision loaded after check_gpu()
 torch = None
 raft_large = None
 Raft_Large_Weights = None
 
-FEATURE_DIM = 13
+FEATURE_DIM = 23
 FEATURE_NAMES = [
+    # Existing 13-D global flow (indices 0-12)
     "mean_magnitude", "magnitude_std", "max_magnitude",
     "dir_hist_0", "dir_hist_1", "dir_hist_2", "dir_hist_3",
     "dir_hist_4", "dir_hist_5", "dir_hist_6", "dir_hist_7",
     "camera_motion_x", "camera_motion_y",
+    # Phase 0 / iter15 — foreground / camera-subtracted flow (indices 13-22)
+    # Computed as flow MINUS per-pair camera motion → agent-only motion.
+    # Powers vec[13]-based action-class binning + data_curriculum difficulty.
+    "fg_mean_mag", "fg_max_mag",
+    "fg_dir_hist_0", "fg_dir_hist_1", "fg_dir_hist_2", "fg_dir_hist_3",
+    "fg_dir_hist_4", "fg_dir_hist_5", "fg_dir_hist_6", "fg_dir_hist_7",
 ]
 N_FRAME_PAIRS = 16
 _pcfg = get_pipeline_config()
@@ -204,7 +229,7 @@ def load_raft_model(device):
     # when post-batch VRAM > cap, which triggers torch._inductor recompilation
     # under dynamic shapes. Recompile hits a known PyTorch bug:
     #   InductorError: CantSplit: 1123200*s11+1123200*s15 not divisible by 96*s11+96*s15
-    # (see logs/m04d_full_eval10k_v1.log:96). torch.compile is also what pushes
+    # (see logs/m04d_full_eval10k_v1_$(date +%Y%m%d_%H%M%S).log:96). torch.compile is also what pushes
     # VRAM to the cap in the first place (compile workspace ~70 GB on Blackwell),
     # so disabling it ALSO eliminates the trigger for AdaptiveBatch shrink.
     # Cost: ~1.5-2× slower RAFT inference. Acceptable: m04d is one-time-per-
@@ -235,13 +260,15 @@ def _preprocess_pairs(frame_pairs, transforms):
 
 
 def _aggregate_flow(flow_np, n_pairs):
-    """Aggregate RAFT flow output for one clip into 13D feature vector.
+    """Aggregate RAFT flow output for one clip into 23-D feature vector.
 
     Args:
         flow_np: numpy array of shape (n_pairs, 2, H, W)
         n_pairs: number of frame pairs for this clip
     Returns:
-        np.ndarray of shape (13,) float32
+        np.ndarray of shape (23,) float32 — first 13 dims are global flow stats
+        (unchanged from pre-Phase-0); last 10 dims are foreground (camera-subtracted)
+        agent-motion stats added in iter15 Phase 0.
     """
     dx_all = flow_np[:, 0]  # (N, H, W)
     dy_all = flow_np[:, 1]  # (N, H, W)
@@ -253,7 +280,7 @@ def _aggregate_flow(flow_np, n_pairs):
     std_mag = float(np.std(flat_mag))
     max_mag = float(np.max(flat_mag))
 
-    # 8-bin direction histogram (normalized)
+    # 8-bin direction histogram (normalized) — global flow
     flat_ang = ang_all.flatten()
     hist, _ = np.histogram(flat_ang, bins=8, range=(-np.pi, np.pi))
     hist = hist.astype(np.float32)
@@ -267,8 +294,27 @@ def _aggregate_flow(flow_np, n_pairs):
     cam_x = float(np.median(per_pair_dx))
     cam_y = float(np.median(per_pair_dy))
 
-    return np.array([mean_mag, std_mag, max_mag, *hist, cam_x, cam_y],
-                    dtype=np.float32)
+    # Phase 0 / iter15: foreground motion = flow MINUS per-pair camera motion.
+    # Removes camera-induced global translation → captures agent/object motion only.
+    cam_dx_per_pair = per_pair_dx.reshape(n_pairs, 1, 1)            # (N, 1, 1) broadcast
+    cam_dy_per_pair = per_pair_dy.reshape(n_pairs, 1, 1)
+    fg_dx = dx_all - cam_dx_per_pair                                # (N, H, W)
+    fg_dy = dy_all - cam_dy_per_pair
+    fg_mag = np.sqrt(fg_dx**2 + fg_dy**2)
+    fg_ang = np.arctan2(fg_dy, fg_dx)
+
+    fg_mean_mag = float(fg_mag.mean())
+    fg_max_mag = float(fg_mag.max())
+    fg_hist, _ = np.histogram(fg_ang.flatten(), bins=8, range=(-np.pi, np.pi))
+    fg_hist = fg_hist.astype(np.float32)
+    fg_hist_sum = fg_hist.sum()
+    if fg_hist_sum > 0:
+        fg_hist = fg_hist / fg_hist_sum
+
+    return np.array([
+        mean_mag, std_mag, max_mag, *hist, cam_x, cam_y,            # existing 13 dims
+        fg_mean_mag, fg_max_mag, *fg_hist,                          # Phase 0 — 10 new dims
+    ], dtype=np.float32)
 
 
 # ── Producer Thread ──────────────────────────────────────────────────
@@ -461,6 +507,17 @@ def main():
     ensure_local_data(args)
     check_gpu()
 
+    # iter15 Phase 3 (2026-05-14): cgroup envelope + OOM watchdog.
+    # Container hosts cap RAM via cgroup memory.limit_in_bytes (NOT `free -h`).
+    # When usage hits the limit, the kernel SIGKILLs the process with no
+    # Python traceback — log ends mid-tqdm with empty shell prompt. The
+    # watchdog thread prints LOUD warnings at 80/90/97% so the LAST log line
+    # before SIGKILL shows the run-up to OOMKill. Forensic only; doesn't
+    # PREVENT the kill — for that, tune decode_workers/producer_queue in
+    # pipeline.yaml per the scaling table.
+    print_cgroup_header(prefix="[m04d]")
+    start_oom_watchdog(prefix="[m04d-oom-watchdog]")
+
     # Output routing
     # iter13 v12 (2026-05-05): split output_dir (mid-run scratch) from
     # features_file (durable per-dataset artifact). The .m04d_checkpoint.npz
@@ -485,11 +542,28 @@ def main():
     print(f"Paths output:           {paths_file}")
     print(f"Mid-run checkpoint:     {checkpoint_file}")
 
-    # Skip if output already exists (motion features are encoder-independent)
+    # Skip-or-regenerate guard, routed through utils.cache_policy.
+    # iter15 Phase 3 fix (2026-05-14): the previous unconditional skip-if-exists
+    # violated the DELETE PROTECTION contract — CACHE_POLICY_ALL=2 / --cache-policy 2
+    # users got silently skipped (e.g., Phase 0 13→23-D upgrade couldn't regenerate
+    # because the OLD 13-D file blocked the rerun). Now:
+    #   cache-policy=1 (keep):       skip if both .npy files exist, no checkpoint
+    #   cache-policy=2 (recompute):  guarded_delete all 3 artifacts → fall through
     if features_file.exists() and paths_file.exists() and not checkpoint_file.exists():
-        print(f"Motion features already exist: {features_file}")
-        print(f"  Skipping (delete {features_file} to re-run)")
-        return
+        from utils.cache_policy import guarded_delete, is_recompute
+        if not is_recompute(args.cache_policy):
+            print(f"Motion features already exist: {features_file}")
+            print(f"  Skipping (--cache-policy=1/keep; rerun with --cache-policy 2 "
+                  f"to regenerate, e.g., after FEATURE_DIM change).")
+            return
+        # cache-policy=2 → authorize regeneration. Delete BOTH .npy files + any
+        # stale mid-run checkpoint so resume doesn't pick up old-schema state.
+        guarded_delete(features_file, args.cache_policy,
+                       label="m04d motion_features.npy")
+        guarded_delete(paths_file, args.cache_policy,
+                       label="m04d motion_features.paths.npy")
+        guarded_delete(checkpoint_file, args.cache_policy,
+                       label="m04d mid-run checkpoint")
 
     mode = "SANITY" if args.SANITY else ("POC" if args.POC else "FULL")
     clip_limit = get_sanity_clip_limit("motion") if args.SANITY else None

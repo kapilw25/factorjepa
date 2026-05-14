@@ -9,17 +9,17 @@ pkg couldn't — errors #33/#34/#35). Measured ~11 s/clip = 4.21× faster than r
 
 USAGE (every path arg required — CLAUDE.md no-default rule):
     python -u src/m10_sam_segment.py --SANITY \
-        --train-config configs/train/surgery_3stage_DI.yaml \
+        --train-config configs/train/surgery_3stage_DI_encoder.yaml \
         --local-data data/val_1k_local --no-wandb 2>&1 | tee logs/m10_sanity.log
     python -u src/m10_sam_segment.py --POC \
-        --train-config configs/train/surgery_3stage_DI.yaml \
+        --train-config configs/train/surgery_3stage_DI_encoder.yaml \
         --subset data/sanity_100_dense.json --local-data data/val_1k_local --no-wandb \
         2>&1 | tee logs/m10_poc.log
     python -u src/m10_sam_segment.py --FULL \
-        --train-config configs/train/surgery_3stage_DI.yaml \
+        --train-config configs/train/surgery_3stage_DI_encoder.yaml \
         --local-data data/full_local --no-wandb 2>&1 | tee logs/m10_full.log
     python -u src/m10_sam_segment.py --SANITY --plot \
-        --train-config configs/train/surgery_3stage_DI.yaml    # re-generate plots only (no GPU)
+        --train-config configs/train/surgery_3stage_DI_encoder.yaml    # re-generate plots only (no GPU)
 
 HF model download: `facebook/sam3` (~12 GB, first-run only) is pre-cached by `setup_env_uv.sh` step [10/10]
 via `hf download` which respects `HF_HUB_ENABLE_HF_TRANSFER=1` (Rust multi-stream, 1.5-3× per file).
@@ -814,7 +814,7 @@ def main():
                              "For iter10 v15c safer-interactions: repopulates D_I when "
                              "the prior m10 run had interaction_mining.enabled=false.")
     parser.add_argument("--train-config", required=True,
-                        help="Factor dataset params YAML (e.g., configs/train/surgery_3stage_DI.yaml)")
+                        help="Factor dataset params YAML (e.g., configs/train/surgery_3stage_DI_encoder.yaml)")
     parser.add_argument("--output-dir", default=None,
                         help="Override output dir. iter13 Task 3 default: "
                              "<--local-data>/m10_sam_segment/ (co-located with input).")

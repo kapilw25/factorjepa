@@ -1,0 +1,80 @@
+# Ch11: Factor Surgery — head-only noDI variant (iter15 Pillar 1)
+#
+# Trains m09c2_surgery_head.py with FROZEN Meta encoder + FROZEN Meta predictor.
+# Single head-only stage, inherits {L: 0.50, A: 0.50, I: 0.00} from parent
+# surgery_2stage_noDI_encoder.yaml. Tests whether D_I tubes carry signal beyond
+# D_L + D_A — paired against surgery_3stage_DI_head.yaml for Δ7.
+#
+# Differs from surgery_2stage_noDI_encoder.yaml by:
+#   1. Collapses 2 stages → 1 stage (encoder frozen always).
+#   2. unfreeze_below 0.25/0.50 → 0.0 (ALL ViT-G blocks frozen).
+#   3. drift_control.enabled: stays false (nothing drifts).
+#   4. loss.weight_jepa: → 0.0 (frozen predictor → no gradient signal).
+#   5. data.adapted_encoder: vjepa_2_1_surgical_noDI → vjepa_2_1_surgical_noDI_head.
+#   6. lp_ft_stage0.enabled: false (we already force single head-only stage).
+#
+# Output: outputs/<mode>/m09c_surgery_noDI_head/{m09c_ckpt_best.pt, student_encoder.pt, motion_aux_head.pt}
+# Consumed by probe eval as encoder=vjepa_2_1_surgical_noDI_head.
+#
+# USAGE:
+#   ./scripts/run_train.sh surgery_noDI_head --SANITY     # 24 GB code-path validation
+#   ./scripts/run_train.sh surgery_noDI_head --POC        # 24 GB POC training
+#   ./scripts/run_train.sh surgery_noDI_head --FULL       # 24 GB FULL training (head fits)
+#
+# Or direct (advanced):
+#   python -u src/m09c2_surgery_head.py --SANITY \
+#       --model-config configs/model/vjepa2_1.yaml \
+#       --train-config configs/train/surgery_2stage_noDI_head.yaml \
+#       --subset data/eval_10k_train_split.json \
+#       --local-data data/eval_10k_local \
+#       --val-subset data/eval_10k_val_split.json \
+#       --val-local-data data/eval_10k_local \
+#       --output-dir outputs/sanity/m09c_surgery_noDI_head \
+#       --no-wandb 2>&1 | tee logs/surgery_noDI_head_sanity.log
+
+extends: surgery_2stage_noDI_encoder.yaml
+
+# -- Data: m09c2 entry-point + head-only output namespace --
+data:
+  module: m09c2
+  adapted_encoder: vjepa_2_1_surgical_noDI_head
+  output_dir: outputs/full/m09c_surgery_noDI_head    # auto-overridden by run_train.sh per mode
+
+# -- Interaction mining: keep disabled (parent default; noDI variant skips D_I tubes) --
+interaction_mining:
+  enabled: false
+
+# -- Single head-only stage with D_L + D_A mixture (no D_I) --
+# Encoder is frozen always → progressive unfreezing has no meaning. We keep ONE
+# stage with the parent's 2-stage L/A mixture rebalanced to a single distribution.
+# lp_ft_stage0 explicitly disabled — we already force the single head-only stage.
+surgery:
+  warmup_mode: single
+  total_warmup_pct: 0.10
+  lp_ft_stage0:
+    enabled: false
+  stages:
+    - name: stage0_head_only_noDI
+      unfreeze_below: 0.0                          # ALL 48 blocks frozen
+      mode_mixture: {L: 0.50, A: 0.50, I: 0.00}    # equal L+A, no D_I (the whole point of noDI)
+      max_epochs_pct: 1.0                          # consume entire epoch budget
+
+# -- No drift anchor — nothing drifts (encoder + predictor frozen) --
+drift_control:
+  enabled: false
+  type: l2_uniform
+  lambda_reg: 0.0
+  ablation_lambdas: []
+
+# -- Skip JEPA loss; motion_aux head is the sole training signal --
+loss:
+  weight_jepa: 0.0
+  weight_motion_aux: 1.0
+
+# -- Probe-head LR (10× higher than encoder fine-tuning) --
+optimization:
+  lr: 5.0e-4
+  pred_lr_multiplier: 1.0
+  min_lr: 5.0e-5
+  warmup_pct: 0.10
+  weight_decay: 0.05

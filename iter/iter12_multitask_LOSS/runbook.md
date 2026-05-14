@@ -55,7 +55,7 @@ echo "✓ Pre-flight passed — safe to launch Phase 1"
 tmux new -s iter12_sanity
 
 # Variant A — surgery_2stage_noDI multitask (SANITY, ~5 min)
-venv_walkindia/bin/python3 -u src/m09c_surgery.py --SANITY \
+venv_walkindia/bin/python3 -u src/m09c1_surgery_encoder.py --SANITY \
     --model-config configs/model/vjepa2_1.yaml \
     --train-config configs/train/surgery_2stage_noDI_multitask.yaml \
     --factor-dir outputs/full/m11_factor_datasets \
@@ -64,7 +64,7 @@ venv_walkindia/bin/python3 -u src/m09c_surgery.py --SANITY \
     2>&1 | tee logs/sanity_2stage_noDI_multitask.log
 
 # Variant B — surgery_3stage_DI multitask (SANITY, ~5 min)
-venv_walkindia/bin/python3 -u src/m09c_surgery.py --SANITY \
+venv_walkindia/bin/python3 -u src/m09c1_surgery_encoder.py --SANITY \
     --model-config configs/model/vjepa2_1.yaml \
     --train-config configs/train/surgery_3stage_DI_multitask.yaml \
     --factor-dir outputs/full/m11_factor_datasets \

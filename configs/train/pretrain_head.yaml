@@ -1,0 +1,72 @@
+# probe_pretrain_head — head-only continual SSL on the probe eval pool (iter15 Pillar 1)
+#
+# Trains m09a2_pretrain_head.py with FROZEN Meta encoder + FROZEN Meta predictor.
+# Only the motion_aux head (~432 K params) updates. Output checkpoint feeds probe
+# eval as encoder = vjepa_2_1_pretrain_head.
+#
+# Differs from pretrain_encoder.yaml by:
+#   1. layer_freeze.freeze_below 20 → 48 (ALL ViT-G blocks frozen — no surgical unfreeze).
+#   2. drift_control.enabled stays false (nothing drifts when both encoder + predictor frozen).
+#   3. loss.weight_jepa 1.0 → 0.0 (frozen predictor has zero gradient signal).
+#   4. optimization.lr 1.0e-4 → 5.0e-4 (probe-head LR — only 432 K params training).
+#   5. data.module: m09a2 (sibling to m09a1 encoder-update track).
+#   6. data.output_dir: outputs/<mode>/m09a_pretrain_head (decoupled from m09a1 path).
+#
+# Output: outputs/<mode>/m09a_pretrain_head/{m09a_ckpt_best.pt, student_encoder.pt, motion_aux_head.pt}
+# Consumed by probe eval as encoder=vjepa_2_1_pretrain_head.
+#
+# USAGE:
+#   ./scripts/run_train.sh pretrain_head --SANITY     # 24 GB code-path validation
+#   ./scripts/run_train.sh pretrain_head --POC        # 24 GB POC training
+#   ./scripts/run_train.sh pretrain_head --FULL       # 24 GB FULL training (head fits)
+#
+# Or direct (advanced):
+#   python -u src/m09a2_pretrain_head.py --SANITY \
+#       --model-config configs/model/vjepa2_1.yaml \
+#       --train-config configs/train/pretrain_head.yaml \
+#       --subset data/eval_10k_train_split.json \
+#       --local-data data/eval_10k_local \
+#       --val-subset data/eval_10k_val_split.json \
+#       --val-local-data data/eval_10k_local \
+#       --output-dir outputs/sanity/m09a_pretrain_head \
+#       --no-wandb 2>&1 | tee logs/probe_pretrain_head_sanity.log
+
+extends: pretrain_encoder.yaml
+
+# -- Data: m09a2 entry-point + head-only output namespace --
+data:
+  module: m09a2
+  output_dir: outputs/full/m09a_pretrain_head    # auto-overridden by run_train.sh per mode
+
+# -- Freeze ALL ViT-G blocks (overrides parent's freeze_below: 20) --
+# Head-only training: encoder is decorative, predictor is decorative; only the
+# motion_aux head receives gradient. assert_encoder_frozen() in build_model
+# fails-loud if any block param has requires_grad=True.
+layer_freeze:
+  enabled: true
+  freeze_below: 48
+
+# -- No drift anchor — nothing drifts (encoder + predictor frozen) --
+drift_control:
+  enabled: false
+  type: l2_uniform
+  lambda_reg: 0.0
+  ablation_lambdas: []
+
+# -- Skip JEPA loss (no trainable encoder/predictor → no gradient signal) --
+# motion_aux head supervised loss (CE on 8 motion classes + 13-D MSE on RAFT
+# features) is the SOLE training signal. weight_jepa retained for schema parity
+# with parent yaml but consumed as 0.0 in m09a2.train().
+loss:
+  weight_jepa: 0.0
+  weight_motion_aux: 1.0
+
+# -- Probe-head LR (10× higher than encoder fine-tuning) --
+# 432 K motion_aux params + small batch → can tolerate much higher LR than the
+# 1.84 B-param encoder. Mirrors m09a1's motion_aux head_lr_multiplier: 10×base.
+optimization:
+  lr: 5.0e-4
+  pred_lr_multiplier: 1.0
+  min_lr: 5.0e-5
+  warmup_pct: 0.10
+  weight_decay: 0.05

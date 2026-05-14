@@ -1,6 +1,6 @@
 """Optical-flow-derived motion-class label derivation for probe_* modules. CPU-only.
 
-Reads m04d_motion_features.py outputs (RAFT 13D per-clip flow features) and
+Reads m04d_motion_features.py outputs (RAFT 23-D per-clip flow features (post-Phase-0)) and
 bins them into PURE motion classes (mean_magnitude × dominant_direction = 16
 classes) that cannot be solved from a single frame. Replaces the legacy
 3/4-class path-derived action labels (saturated frozen V-JEPA at 0.94+).
@@ -33,13 +33,15 @@ from utils.checkpoint import save_json_checkpoint, load_json_checkpoint
 # ── Constants ────────────────────────────────────────────────────────
 
 # Motion-magnitude bins: 4 quantile-derived buckets over the dataset's
-# `mean_magnitude` column (vec[0] from m04d). Stable alphabetical-by-id order.
+# `fg_mean_mag` column (vec[13] from m04d, post-Phase-0). Stable alphabetical-by-id
+# order. Phase 0 / iter15: switched from vec[0] (global, camera-contaminated) to
+# vec[13] (foreground, camera-subtracted → agent motion only).
 MOTION_MAGNITUDE_BINS: list = ["fast", "medium", "slow", "still"]
 
-# Motion-direction bins: 4 grouped buckets over the 8-bin angle histogram
-# (vec[3:11] from m04d). Bins 0,1 → rightward; 2,3 → upward; 4,5 → leftward;
-# 6,7 → downward. Index ordering (0..3) is FIXED and matches np.argmax order;
-# the public name list below is sorted for class_id stability.
+# Motion-direction bins: 4 grouped buckets over the FG 8-bin angle histogram
+# (vec[15:23] from m04d, post-Phase-0). Bins 0,1 → rightward; 2,3 → upward;
+# 4,5 → leftward; 6,7 → downward. Index ordering (0..3) is FIXED and matches
+# np.argmax order; the public name list below is sorted for class_id stability.
 MOTION_DIRECTION_BINS: list = ["downward", "leftward", "rightward", "upward"]
 _DIRECTION_BIN_ORDER: list = ["rightward", "upward", "leftward", "downward"]   # argmax index → name
 
@@ -51,16 +53,31 @@ MIN_PER_SPLIT_DEFAULT: int = 5          # BCa CI floor per split
 # ── Public API ───────────────────────────────────────────────────────
 
 def compute_magnitude_quartiles(flow_features_array: np.ndarray) -> list:
-    """Return [Q1, Q2, Q3] cut-points over the dataset's mean_magnitude column.
+    """Return [Q1, Q2, Q3] cut-points over the dataset's FG (camera-subtracted)
+    mean_magnitude column.
 
     Args:
-        flow_features_array: (N_clips, 13) float32 from m04d motion_features.npy
+        flow_features_array: (N_clips, 23) float32 from m04d motion_features.npy
+            (post-Phase 0). Index [:, 13] = fg_mean_mag.
     Returns:
-        [Q1, Q2, Q3] floats — global quartile cut-points so each magnitude bin
-        receives ~25 % of clips.
+        [Q1, Q2, Q3] floats — agent-motion quartile cut-points so each magnitude
+        bin receives ~25 % of clips.
+
+    Phase 0 / iter15: switched from global mean_magnitude (vec[0],
+    camera-contaminated) to foreground mean_magnitude (vec[13], camera-subtracted)
+    so motion-class boundaries reflect AGENT motion, not camera-induced
+    translation. Requires 23-D m04d output.
     """
-    mean_mags = flow_features_array[:, 0]
-    return [float(np.quantile(mean_mags, q)) for q in (0.25, 0.5, 0.75)]
+    if flow_features_array.shape[1] < 23:
+        sys.exit(
+            f"FATAL: compute_magnitude_quartiles requires 23-D motion features "
+            f"(Phase 0 m04d 13→23-D); got {flow_features_array.shape[1]}-D. "
+            f"Rerun: CACHE_POLICY_ALL=2 python -u src/m04d_motion_features.py --FULL "
+            f"--subset <subset.json> --local-data <local_data> "
+            f"--features-out <local_data>/motion_features.npy"
+        )
+    fg_mean_mags = flow_features_array[:, 13]
+    return [float(np.quantile(fg_mean_mags, q)) for q in (0.25, 0.5, 0.75)]
 
 
 def parse_optical_flow_class(clip_key, flow_features_by_key, magnitude_quartiles):
@@ -69,20 +86,28 @@ def parse_optical_flow_class(clip_key, flow_features_by_key, magnitude_quartiles
 
     Args:
         clip_key:               full clip key e.g. 'tier1/mumbai/walking/<vid>/<vid>-007.mp4'
-        flow_features_by_key:   {clip_key: 13D float32 vec from m04d motion_features.npy}
-        magnitude_quartiles:    [Q1, Q2, Q3] cut-points over dataset mean_magnitude column
+        flow_features_by_key:   {clip_key: 23-D float32 vec from m04d motion_features.npy}
+        magnitude_quartiles:    [Q1, Q2, Q3] cut-points over dataset fg_mean_mag column
 
-    m04d FEATURE_NAMES indices:
-        [0]   mean_magnitude
-        [1]   magnitude_std
-        [2]   max_magnitude
-        [3-10] dir_hist_0..7  (8-bin angle histogram; bin i covers [-π + i·π/4, -π + (i+1)·π/4))
-        [11]  camera_motion_x
-        [12]  camera_motion_y
+    m04d FEATURE_NAMES indices (Phase 0 / iter15 — 23-D):
+        [0]    mean_magnitude         (global flow — camera-contaminated)
+        [1]    magnitude_std
+        [2]    max_magnitude
+        [3-10] dir_hist_0..7          (global 8-bin angle histogram)
+        [11]   camera_motion_x
+        [12]   camera_motion_y
+        [13]   fg_mean_mag            (camera-subtracted — agent motion only) ← bin axis
+        [14]   fg_max_mag
+        [15-22] fg_dir_hist_0..7      (FG 8-bin angle histogram)             ← direction axis
+
+    Phase 0 / iter15: switched magnitude binning from vec[0] (global, camera-
+    contaminated) to vec[13] (fg_mean_mag, agent-only). Direction binning moved
+    from vec[3:11] (global) to vec[15:23] (FG). Camera-induced global translation
+    no longer dominates class assignments.
 
     Magnitude bins (4): still / slow / medium / fast — three quartile cut-points.
     Direction bins (4): rightward / upward / leftward / downward — argmax over
-    the 4 grouped angle buckets:
+    the 4 grouped FG angle buckets:
         [0,1] → rightward;  [2,3] → upward;  [4,5] → leftward;  [6,7] → downward.
 
     Returns:
@@ -93,23 +118,23 @@ def parse_optical_flow_class(clip_key, flow_features_by_key, magnitude_quartiles
     if vec is None:
         return None
 
-    mean_mag = float(vec[0])
+    fg_mean_mag = float(vec[13])
     q1, q2, q3 = magnitude_quartiles
-    if mean_mag < q1:
+    if fg_mean_mag < q1:
         mag_bin = "still"
-    elif mean_mag < q2:
+    elif fg_mean_mag < q2:
         mag_bin = "slow"
-    elif mean_mag < q3:
+    elif fg_mean_mag < q3:
         mag_bin = "medium"
     else:
         mag_bin = "fast"
 
-    dir_hist = vec[3:11]
+    fg_dir_hist = vec[15:23]
     grouped = np.array([
-        dir_hist[0] + dir_hist[1],   # rightward
-        dir_hist[2] + dir_hist[3],   # upward
-        dir_hist[4] + dir_hist[5],   # leftward
-        dir_hist[6] + dir_hist[7],   # downward
+        fg_dir_hist[0] + fg_dir_hist[1],   # rightward
+        fg_dir_hist[2] + fg_dir_hist[3],   # upward
+        fg_dir_hist[4] + fg_dir_hist[5],   # leftward
+        fg_dir_hist[6] + fg_dir_hist[7],   # downward
     ], dtype=np.float64)
     dir_bin = _DIRECTION_BIN_ORDER[int(np.argmax(grouped))]
 
@@ -123,7 +148,7 @@ def load_subset_with_labels(subset_path, motion_features_path, *,
 
     Args:
         subset_path:           data/eval_*.json with "clip_keys" list
-        motion_features_path:  <local_data>/motion_features.npy from m04d (13D × N_clips)
+        motion_features_path:  <local_data>/motion_features.npy from m04d (23D × N_clips, post-Phase-0)
         min_clips_per_class:   drop classes with fewer than this many clips (default 34
                                → ≥5 per split at 70/15/15)
 
@@ -134,7 +159,7 @@ def load_subset_with_labels(subset_path, motion_features_path, *,
                        deterministic class_id assignment across runs)
 
     Schema of m04d output:
-        motion_features.npy        — (N_clips, 13) float32 RAFT optical-flow features
+        motion_features.npy        — (N_clips, 23) float32, post-Phase-0 RAFT optical-flow features
         motion_features.paths.npy  — (N_clips,) clip-key strings aligned by row
     """
     subset_path = Path(subset_path)
@@ -156,7 +181,7 @@ def load_subset_with_labels(subset_path, motion_features_path, *,
     if not paths_path.exists():
         sys.exit(f"FATAL: motion_features.paths.npy not found at {paths_path} "
                  f"(must be next to motion_features.npy)")
-    flow_features = np.load(motion_features_path)                 # (N, 13)
+    flow_features = np.load(motion_features_path)                 # (N, 23) post-Phase-0
     flow_paths = np.load(paths_path, allow_pickle=True)           # (N,) clip keys
     if flow_features.shape[0] != flow_paths.shape[0]:
         sys.exit(f"FATAL: motion_features.npy rows ({flow_features.shape[0]}) "

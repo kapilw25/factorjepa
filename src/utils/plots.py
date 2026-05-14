@@ -347,8 +347,8 @@ def plot_training_curves(runs: list, output_dir: str, title_prefix: str = "",
     """Generate 3 separate publication-quality plots from training loss_log.csv files.
 
     iter13 v12 (2026-05-06): added `file_prefix` so each m09{a,b,c} module's
-    plots get its own filename namespace — m09a/* from m09a_pretrain.py,
-    m09c/* from m09c_surgery.py, m09b/* from m09b_explora.py. Default "m09"
+    plots get its own filename namespace — m09a/* from m09a1_pretrain_encoder.py,
+    m09c/* from m09c1_surgery_encoder.py, m09b/* from m09b_explora.py. Default "m09"
     preserves backwards-compat for any caller that hasn't migrated.
 
     Supports multiple runs for comparison (e.g., V-JEPA 2.0 vs 2.1).
@@ -824,7 +824,7 @@ def plot_val_loss_with_kill_switch_overlay(probe_history: list, output_dir,
                                             title_prefix: str = "") -> None:
     """val_jepa_loss curve with best-marker + kill-switch annotation overlay.
 
-    iter13 v13 C3-fix (2026-05-07): moved here from m09a_pretrain.py:_render_m09a_probe_plots
+    iter13 v13 C3-fix (2026-05-07): moved here from m09a1_pretrain_encoder.py:_render_m09a_probe_plots
     so m09c can reuse the same overlay (was m09a-only). Skips silently when
     `probe_history` empty OR no record has `val_jepa_loss`.
 
@@ -973,7 +973,7 @@ def compute_block_drift(student, init_params: dict) -> list:
     simple — it's a diagnostic, not a paper number.
 
     `init_params` is the dict snapshotted at build_model time
-    (m09a_pretrain.py:412). On CPU. Same keys as student.state_dict().
+    (m09a1_pretrain_encoder.py:412). On CPU. Same keys as student.state_dict().
 
     Cost: ~0.5 s on ViT-G with 588 named params. Negligible vs val cycle.
     """

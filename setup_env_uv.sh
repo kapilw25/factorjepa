@@ -6,13 +6,13 @@
 #   chmod +x setup_env_uv.sh
 #
 #   # M1 Mac (CPU-based: download, scene detect, UMAP)
-#   mkdir -p logs && ./setup_env_uv.sh --mac 2>&1 | tee logs/setup_env_cpu.log
+#   mkdir -p logs && ./setup_env_uv.sh --mac 2>&1 | tee logs/setup_env_cpu_$(date +%Y%m%d_%H%M%S).log
 #
 #   # GPU Server (FA2 + FAISS source build)
-#   mkdir -p logs && ./setup_env_uv.sh --gpu 2>&1 | tee logs/setup_env_gpu.log
+#   mkdir -p logs && ./setup_env_uv.sh --gpu 2>&1 | tee logs/setup_env_gpu_$(date +%Y%m%d_%H%M%S).log
 #
 #   # GPU Server with prebuilt wheels (skip FA2 + FAISS source build)
-#   mkdir -p logs && bash setup_env_uv.sh --gpu --from-wheels 2>&1 | tee logs/setup_env_gpu_v1.log
+#   mkdir -p logs && bash setup_env_uv.sh --gpu --from-wheels 2>&1 | tee logs/setup_env_gpu_$(date +%Y%m%d_%H%M%S).log
 #
 #   # Activate
 #   # source venv_walkindia/bin/activate # replace    

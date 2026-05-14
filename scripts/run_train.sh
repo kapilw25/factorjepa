@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # iter13 probe encoder trainer — produces vjepa_2_1_pretrain (P2) + vjepa_2_1_surgical (P3)
-# checkpoints that scripts/run_probe_eval.sh consumes for the 4-encoder paired-Δ
+# checkpoints that scripts/run_eval.sh consumes for the 4-encoder paired-Δ
 # action-probe gate. Mirrors the run_train.sh / run_eval.sh split (iter11 v2).
 #
 # Subcommands:
@@ -21,19 +21,19 @@
 #
 # USAGE:
 #   tmux new -s probe_train
-#   ./scripts/run_probe_train.sh pretrain          --SANITY   # ~3 min
-#   ./scripts/run_probe_train.sh surgery_3stage_DI --SANITY   # ~10 min
-#   ./scripts/run_probe_train.sh surgery_noDI      --SANITY   # ~7 min  (no Stage 3)
-#   ./scripts/run_probe_train.sh pretrain          --FULL     # ~3 GPU-h
-#   ./scripts/run_probe_train.sh surgery_3stage_DI --FULL     # ~6-8 GPU-h
-#   ./scripts/run_probe_train.sh surgery_noDI      --FULL     # ~4-6 GPU-h
+#   ./scripts/run_train.sh pretrain          --SANITY   # ~3 min
+#   ./scripts/run_train.sh surgery_3stage_DI --SANITY   # ~10 min
+#   ./scripts/run_train.sh surgery_noDI      --SANITY   # ~7 min  (no Stage 3)
+#   ./scripts/run_train.sh pretrain          --FULL     # ~3 GPU-h
+#   ./scripts/run_train.sh surgery_3stage_DI --FULL     # ~6-8 GPU-h
+#   ./scripts/run_train.sh surgery_noDI      --FULL     # ~4-6 GPU-h
 #
 # Bypass the cache-policy prompt for overnight runs:
-#   CACHE_POLICY_ALL=1 ./scripts/run_probe_train.sh pretrain --FULL  # keep stale outputs
-#   CACHE_POLICY_ALL=2 ./scripts/run_probe_train.sh pretrain --FULL  # wipe + recompute
+#   CACHE_POLICY_ALL=1 ./scripts/run_train.sh pretrain --FULL  # keep stale outputs
+#   CACHE_POLICY_ALL=2 ./scripts/run_train.sh pretrain --FULL  # wipe + recompute
 
 set -euo pipefail
-trap 'rc=$?; echo "" >&2; echo "❌ FATAL: run_probe_train.sh aborted at line $LINENO (exit=$rc)" >&2; exit $rc' ERR
+trap 'rc=$?; echo "" >&2; echo "❌ FATAL: run_train.sh aborted at line $LINENO (exit=$rc)" >&2; exit $rc' ERR
 
 cd "$(dirname "$0")/.."
 source venv_walkindia/bin/activate
@@ -184,7 +184,7 @@ PRETRAIN_HF_URI="hf://anonymousML123/factorjepa-pretrain-vjepa21-vitg-5ep/m09a_c
 # are missing, we fall back to silent-disable + a fix-it hint.
 TAXONOMY_LABELS="outputs/${mode_dir}/probe_taxonomy/taxonomy_labels.json"
 TAG_TAXONOMY="configs/tag_taxonomy.json"
-# eval_subset path mirrors run_probe_eval.sh's mode-gated convention.
+# eval_subset path mirrors run_eval.sh's mode-gated convention.
 if [ "$MODE" = "SANITY" ]; then
     EVAL_SUBSET_TX="data/eval_10k_sanity.json"
 else
@@ -222,8 +222,8 @@ case "$SUBCMD" in
     pretrain|pretrain_2X)
         # iter13 v12+ (2026-05-06): renamed probe_pretrain → m09a_pretrain to
         # match the source module's name (CLAUDE.md "m*.py = each module is
-        # independent"). Mirror rename in run_probe_eval.sh + yaml output_dir.
-        # iter14 (2026-05-08): pretrain_2X shares probe_pretrain.yaml (no new
+        # independent"). Mirror rename in run_eval.sh + yaml output_dir.
+        # iter14 (2026-05-08): pretrain_2X shares pretrain_encoder.yaml (no new
         # yamls) but writes to m09a_pretrain_2X/ + passes --max-epochs 10 for
         # FULL only (G1=🅰️ "5+5 vs 10"). Arm A = 5 ep (yaml's max_epochs.full);
         # Arm C = 10 ep via CLI override.
@@ -237,11 +237,11 @@ case "$SUBCMD" in
             OUT_DIR="outputs/${mode_dir}/m09a_pretrain"
             EPOCHS_OVERRIDE_FLAG=""
         fi
-        TRAIN_CFG="configs/train/probe_pretrain.yaml"
+        TRAIN_CFG="configs/train/pretrain_encoder.yaml"
         # Read lambda_reg from YAML so it stays the single source of truth.
         # Passing it explicitly to m09a bypasses the legacy auto-ablation gate
-        # (m09a_pretrain.py:1187 enters EWC sweep when --lambda-reg is unset;
-        # probe_pretrain.yaml intentionally has ablation_lambdas=[] which would
+        # (m09a1_pretrain_encoder.py:1187 enters EWC sweep when --lambda-reg is unset;
+        # pretrain_encoder.yaml intentionally has ablation_lambdas=[] which would
         # then trip select_ablation_winner's non-empty assertion).
         LAMBDA_REG=$(scripts/lib/yaml_extract.py "$TRAIN_CFG" drift_control.lambda_reg)
         echo "═══ $(date '+%H:%M:%S') · m09a continual SSL ${SUBCMD} (${MODE}) ═══"
@@ -255,7 +255,7 @@ case "$SUBCMD" in
             echo "  epochs:    $EPOCHS_OVERRIDE_FLAG (iter14 arm C — overrides yaml's full=5)"
         fi
         mkdir -p "$OUT_DIR"
-        python -u src/m09a_pretrain.py "${MODE_FLAG}" \
+        python -u src/m09a1_pretrain_encoder.py "${MODE_FLAG}" \
             --model-config "$MODEL_CFG" \
             --train-config "$TRAIN_CFG" \
             --subset "$TRAIN_SPLIT" --local-data "$LOCAL_DATA" \
@@ -277,16 +277,16 @@ case "$SUBCMD" in
         # Map subcommand → yaml + variant tag (used in output dir + log name).
         case "$SUBCMD" in
             surgery_3stage_DI)
-                TRAIN_CFG="configs/train/surgery_3stage_DI.yaml"
+                TRAIN_CFG="configs/train/surgery_3stage_DI_encoder.yaml"
                 VARIANT_TAG="3stage_DI"
                 ;;
             surgery_noDI)
-                TRAIN_CFG="configs/train/surgery_2stage_noDI.yaml"
+                TRAIN_CFG="configs/train/surgery_2stage_noDI_encoder.yaml"
                 VARIANT_TAG="noDI"
                 ;;
         esac
         # iter13 v12+ (2026-05-06): renamed probe_surgery_* → m09c_surgery_* to
-        # match m09c_surgery.py module name. Mirror in run_probe_eval.sh.
+        # match m09c1_surgery_encoder.py module name. Mirror in run_eval.sh.
         OUT_DIR="outputs/${mode_dir}/m09c_surgery_${VARIANT_TAG}"
         # iter13 v12+ Task 3 (2026-05-06): m11 outputs co-located with input
         # under <--local-data>/m11_factor_datasets/. m11 derives this default
@@ -409,7 +409,7 @@ case "$SUBCMD" in
         # required=True). Always pass the HF URI — single source per CLAUDE.md
         # FAIL LOUD. m09c downloads via hf_hub_download (cached in HF_HOME after
         # first call; subsequent surgery runs hit cache instantly).
-        python -u src/m09c_surgery.py "${MODE_FLAG}" \
+        python -u src/m09c1_surgery_encoder.py "${MODE_FLAG}" \
             --model-config "$MODEL_CFG" \
             --train-config "$TRAIN_CFG" \
             --subset "$TRAIN_SPLIT" --local-data "$LOCAL_DATA" \
@@ -431,7 +431,7 @@ esac
 # ── Verify expected outputs ──────────────────────────────────────────────
 echo ""
 echo "═══ $(date '+%H:%M:%S') · DONE ═══"
-echo "Expected outputs (consumed by scripts/run_probe_eval.sh):"
+echo "Expected outputs (consumed by scripts/run_eval.sh):"
 if [ -f "${OUT_DIR}/student_encoder.pt" ]; then
     ls -lh "${OUT_DIR}/student_encoder.pt"
 else

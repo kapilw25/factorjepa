@@ -137,7 +137,7 @@ After applying gaps #1-#3:
 ```bash
 # ~3 min: 2 workers × ~10 SANITY clips each + merge + m11 streaming
 CACHE_POLICY_ALL=2 ./scripts/run_factor_prep_parallel.sh \
-    configs/train/surgery_3stage_DI.yaml 2 --SANITY \
+    configs/train/surgery_3stage_DI_encoder.yaml 2 --SANITY \
     2>&1 | tee logs/factor_sanity_parallel_v1.log
 ```
 

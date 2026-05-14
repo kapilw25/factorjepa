@@ -3,22 +3,22 @@ Gold standard: https://github.com/facebookresearch/vjepa2/blob/main/app/vjepa_2_
 Claude Code: re-WebSearch this URL on every read of this file.
 
 Split from m09_pretrain.py on 2026-04-15 (#49). Pairs with m09b_explora.py (LoRA variant)
-and m09c_surgery.py (factor surgery). Shared primitives live in utils.training.
+and m09c1_surgery_encoder.py (factor surgery). Shared primitives live in utils.training.
 
 USAGE (every path arg required — CLAUDE.md no-default rule):
-    python -u src/m09a_pretrain.py --SANITY \
+    python -u src/m09a1_pretrain_encoder.py --SANITY \
         --model-config configs/model/vjepa2_1.yaml \
         --train-config configs/legacy2/ch10_pretrain.yaml \
         --subset data/sanity_100_dense.json --local-data data/val_1k_local \
         --val-subset data/val_1k.json --val-local-data data/val_1k_local \
         --no-wandb 2>&1 | tee logs/m09a_sanity.log
-    python -u src/m09a_pretrain.py --POC \
+    python -u src/m09a1_pretrain_encoder.py --POC \
         --model-config configs/model/vjepa2_1.yaml \
         --train-config configs/legacy2/ch10_pretrain.yaml \
         --subset data/sanity_100_dense.json --local-data data/val_1k_local \
         --val-subset data/val_1k.json --val-local-data data/val_1k_local \
         --no-wandb 2>&1 | tee logs/m09a_poc.log
-    python -u src/m09a_pretrain.py --FULL \
+    python -u src/m09a1_pretrain_encoder.py --FULL \
         --model-config configs/model/vjepa2_1.yaml \
         --train-config configs/legacy2/ch10_pretrain.yaml \
         --subset data/subset_10k.json --local-data data/subset_10k_local \
@@ -61,6 +61,7 @@ from utils.config import (
 )
 from utils.data_download import ensure_local_data
 from utils.gpu_batch import AdaptiveBatchSizer
+from utils.cgroup_monitor import print_cgroup_header, start_oom_watchdog
 from utils.progress import make_pbar
 from utils.plots import (
     plot_training_curves, plot_val_loss_curves, plot_combined_losses,
@@ -73,7 +74,7 @@ from utils.cache_policy import (
     resolve_cache_policy_interactive, guarded_delete, wipe_output_dir,
 )
 # iter13 v13 R1+R2 (2026-05-07): shared CLI + config-merge helpers — replaces
-# ~70 LoC of inline boilerplate that was duplicated with m09c_surgery.py.
+# ~70 LoC of inline boilerplate that was duplicated with m09c1_surgery_encoder.py.
 # require_val_data=True preserved at call site (m09a contract).
 from utils.m09_common import add_m09_common_args, merge_m09_common_config
 
@@ -183,7 +184,7 @@ def merge_config_with_args(cfg: dict, args) -> dict:
     if getattr(args, "output_dir", None):
         cfg["checkpoint"]["output_dir"] = args.output_dir
         return cfg
-    base_out = get_module_output_dir("m09a_pretrain", args.subset,
+    base_out = get_module_output_dir("m09a1_pretrain_encoder", args.subset,
                                     sanity=args.SANITY, poc=args.POC)
     lam = cfg["drift_control"]["lambda_reg"]
     if lam is None:
@@ -285,7 +286,7 @@ def build_model(cfg: dict, device: torch.device) -> dict:
             sys.exit(1)
 
     # iter13 Fix #2 (2026-05-04): wire `layer_freeze` from yaml into m09a.
-    # The yaml directive (probe_pretrain.yaml:layer_freeze) was previously a SILENT
+    # The yaml directive (pretrain_encoder.yaml:layer_freeze) was previously a SILENT
     # NO-OP — m09a never read it, so all 48 blocks were nominally trainable. With
     # the LR bump from 1e-5 → 1e-4 (Fix #1), an actual freeze of early blocks
     # anchors low-level visual features against catastrophic forgetting. Mirrors
@@ -396,6 +397,9 @@ def build_model(cfg: dict, device: torch.device) -> dict:
 def train(cfg: dict, args):
     """Epoch-based training loop (proposal Sec 10.5)."""
     check_gpu()
+    # iter15 (2026-05-14): cgroup envelope + OOM watchdog (utils/cgroup_monitor.py)
+    print_cgroup_header(prefix="[m09a1]")
+    start_oom_watchdog(prefix="[m09a1]-oom-watchdog")
     device = torch.device("cuda")
 
     # Reproducibility seeds (matches Meta's train.py lines 45-48, 152-154)
@@ -410,9 +414,9 @@ def train(cfg: dict, args):
     gc.collect()
 
     # Auto-bootstrap probe labels (action_labels.json + taxonomy_labels.json) if
-    # missing. Lets `python -u src/m09a_pretrain.py ...` run end-to-end without
-    # the shell having pre-run run_probe_eval.sh Stage 1. No-op when both files
-    # already exist (~1ms stat()s). Mirrors run_probe_eval.sh:342-358 exactly.
+    # missing. Lets `python -u src/m09a1_pretrain_encoder.py ...` run end-to-end without
+    # the shell having pre-run run_eval.sh Stage 1. No-op when both files
+    # already exist (~1ms stat()s). Mirrors run_eval.sh:342-358 exactly.
     mode_flag = "--SANITY" if args.SANITY else ("--POC" if args.POC else "--FULL")
     # iter14 recipe-v3 (2026-05-09): pass cfg so probe_labels reads ALL paths +
     # numbers from yaml (CLAUDE.md "no hardcoded values"). For POC mode, the
@@ -443,7 +447,7 @@ def train(cfg: dict, args):
     predictor.train()
 
     # Gradient checkpointing — enabled at SANITY 24GB to fit ViT-G; disabled at
-    # FULL 96GB for max throughput. Mirrors m09c_surgery.py:418-420. Flag value
+    # FULL 96GB for max throughput. Mirrors m09c1_surgery_encoder.py:418-420. Flag value
     # was flattened from per-mode dict by merge_config_with_args() above.
     # Direct subscript (NOT .get()) — base_optimization.yaml provides scalar
     # default `gradient_checkpointing: false` so the key is always present.
@@ -457,7 +461,7 @@ def train(cfg: dict, args):
 
     # iter13 v12 (2026-05-06): motion_aux head — JOINT K-class CE + 13-D MSE on
     # RAFT optical-flow targets from m04d. Sole supervised aux loss in v12 (replaces
-    # multi_task_probe which was disabled in probe_pretrain.yaml; v11 confirmed
+    # multi_task_probe which was disabled in pretrain_encoder.yaml; v11 confirmed
     # 15 retrieval tag dims gave flat motion-flow top1).
     ma_head, ma_lookup, ma_cfg = build_motion_aux_head_from_cfg(cfg, device)
 
@@ -751,7 +755,7 @@ def train(cfg: dict, args):
     dtype = getattr(torch, mp_cfg["dtype"])
 
     pbar = make_pbar(total=total_steps, initial=start_step,
-                     desc="m09a_pretrain", unit="step")
+                     desc="m09a1_pretrain_encoder", unit="step")
 
     # JSONL loss log — crash-safe (fsync after every write, survives OOM/SIGKILL)
     # Each line is a self-contained JSON record. Partial last line = only that step lost.
@@ -1509,7 +1513,7 @@ def select_ablation_winner(output_dir: str, lambdas: list):
     """Compare best_val_loss across lambda ablation runs → write ablation_winner.json.
 
     USAGE (lambdas + configs all required — NO DEFAULT per CLAUDE.md):
-        python -u src/m09a_pretrain.py --select-winner outputs/poc \\
+        python -u src/m09a1_pretrain_encoder.py --select-winner outputs/poc \\
             configs/model/vjepa2_1.yaml configs/legacy2/ch10_pretrain.yaml \\
             2>&1 | tee logs/m09a_select_winner.log
     """
@@ -1583,7 +1587,7 @@ if __name__ == "__main__":
         if len(sys.argv) >= 2 and sys.argv[1] == "--select-winner":
             if len(sys.argv) != 5:
                 print("FATAL: --select-winner requires 3 positional args:")
-                print("  python -u src/m09a_pretrain.py --select-winner "
+                print("  python -u src/m09a1_pretrain_encoder.py --select-winner "
                       "<output_dir> <model_config.yaml> <train_config.yaml>")
                 sys.exit(2)
             _out_dir, _model_cfg_path, _train_cfg_path = sys.argv[2], sys.argv[3], sys.argv[4]

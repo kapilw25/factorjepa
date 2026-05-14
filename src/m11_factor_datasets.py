@@ -4,16 +4,16 @@ Claude Code: re-WebSearch this URL on every read of this file.
 
 USAGE (every path arg required — CLAUDE.md no-default rule):
     python -u src/m11_factor_datasets.py --SANITY \
-        --train-config configs/train/surgery_3stage_DI.yaml \
+        --train-config configs/train/surgery_3stage_DI_encoder.yaml \
         --local-data data/val_1k_local --no-wandb 2>&1 | tee logs/m11_sanity.log
     python -u src/m11_factor_datasets.py --POC \
-        --train-config configs/train/surgery_3stage_DI.yaml \
+        --train-config configs/train/surgery_3stage_DI_encoder.yaml \
         --local-data data/val_1k_local --no-wandb 2>&1 | tee logs/m11_poc.log
     python -u src/m11_factor_datasets.py --FULL --streaming \
-        --train-config configs/train/surgery_3stage_DI.yaml \
+        --train-config configs/train/surgery_3stage_DI_encoder.yaml \
         --local-data data/full_local --no-wandb 2>&1 | tee logs/m11_full.log
     python -u src/m11_factor_datasets.py --SANITY --plot \
-        --train-config configs/train/surgery_3stage_DI.yaml    # re-plot only
+        --train-config configs/train/surgery_3stage_DI_encoder.yaml    # re-plot only
 """
 import argparse
 import os
@@ -958,7 +958,7 @@ def main():
     parser.add_argument("--plot", action="store_true",
                         help="Re-generate plots only from existing outputs (no data processing)")
     parser.add_argument("--train-config", required=True,
-                        help="Patching params YAML (e.g., configs/train/surgery_3stage_DI.yaml)")
+                        help="Patching params YAML (e.g., configs/train/surgery_3stage_DI_encoder.yaml)")
     parser.add_argument("--input-dir", default=None,
                         help="m10 output dir (default: {output_dir}/factors/)")
     parser.add_argument("--output-dir", default=None, help="Override output dir")

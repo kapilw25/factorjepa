@@ -189,7 +189,7 @@ def _run_probe_cycle(state, cfg, global_step, stage_idx) -> dict:
 📈 **After**: `def train(cfg, args):` ~150 LoC — most of it building `state` + `hooks`, then calling shared loop
 
 ```python
-# src/m09a_pretrain.py:train() — POST refactor (~150 LoC vs current ~1000)
+# src/m09a1_pretrain_encoder.py:train() — POST refactor (~150 LoC vs current ~1000)
 def train(cfg, args):
     # 1️⃣ Setup: model, data_subset, optimizer, scheduler, producer, probe (~80 LoC)
     state = _setup_m09a_state(cfg, args)
@@ -222,7 +222,7 @@ def train(cfg, args):
 ## 🅲 Migration: m09c as Thin Dispatcher
 
 ```python
-# src/m09c_surgery.py:train() — POST refactor (~200 LoC vs current ~1100)
+# src/m09c1_surgery_encoder.py:train() — POST refactor (~200 LoC vs current ~1100)
 def train(cfg, args):
     state = _setup_m09c_state(cfg, args)
     state["stages"] = cfg["surgery"]["stages"]  # 2 or 3 stages
@@ -255,8 +255,8 @@ def train(cfg, args):
 |---|---|---|
 | 🆕 `src/utils/training_loop.py` | **NEW** — `run_training_loop()` + 4 helpers | **+450** |
 | ✏️ `src/utils/training.py` | Add `build_step_record()`, `build_training_csv_header()`, `make_step_logger()` extracted from m09a/m09c | **+80** |
-| 🅰️ `src/m09a_pretrain.py` | Refactor `train()` to thin dispatcher; keep `_m09a_*` hooks in same file | **-600** |
-| 🅲 `src/m09c_surgery.py` | Refactor `train()` to thin dispatcher; keep `_m09c_*` hooks in same file | **-450** |
+| 🅰️ `src/m09a1_pretrain_encoder.py` | Refactor `train()` to thin dispatcher; keep `_m09a_*` hooks in same file | **-600** |
+| 🅲 `src/m09c1_surgery_encoder.py` | Refactor `train()` to thin dispatcher; keep `_m09c_*` hooks in same file | **-450** |
 | 🗄️ `src/legacy/m09b_explora.py` | NO CHANGE (legacy) | **0** |
 | 📚 `iter/iter14_surgery_on_pretrain/plan_No_discrepancy.md` | Update to reference new architecture | **+20** |
 
@@ -343,11 +343,11 @@ def train(cfg, args):
 ### 🟤 Phase E (NEW, 2026-05-09) — Move shell-side bootstrap into m09a/m09c (truly thin shells)
 
 > 🎯 **Goal**: kill the redundant shell-level bootstrap of action_labels +
-> probe_train_subset.py invocations in `scripts/run_probe_train.sh`. m09a/m09c
+> probe_train_subset.py invocations in `scripts/run_train.sh`. m09a/m09c
 > already call `utils.probe_labels.ensure_probe_labels_for_mode(cfg=cfg)` at
 > startup (in-process, yaml-driven, recipe-v3-aware). The shell-level
 > orchestration is pure tech debt — kept only because `probe_train_subset.py`
-> at lines ~93-97 of run_probe_train.sh runs BEFORE m09a/m09c and consumes
+> at lines ~93-97 of run_train.sh runs BEFORE m09a/m09c and consumes
 > ACTION_LABELS via --subset / --val-subset CLI args.
 
 #### 🛠️ What needs to change (~5 file edits, ~2 hrs Mac)
@@ -358,18 +358,18 @@ def train(cfg, args):
 ├─────┼──────────────────────────────────────────────────────────────────┼───────────────────────────────────┤
 │  1  │ src/utils/m09_common.py                                            │ Make --val-subset OPTIONAL when  │
 │     │                                                                    │ require_val_data=True; default=None│
-│  2  │ src/m09a_pretrain.py:471                                          │ When args.subset is None, derive │
+│  2  │ src/m09a1_pretrain_encoder.py:471                                          │ When args.subset is None, derive │
 │     │                                                                    │ train_keys in-process via         │
 │     │                                                                    │ utils.probe_train_subset.        │
 │     │                                                                    │ split_subset(action_labels,"train")│
-│  3  │ src/m09a_pretrain.py:472                                          │ Same for args.val_subset →       │
+│  3  │ src/m09a1_pretrain_encoder.py:472                                          │ Same for args.val_subset →       │
 │     │                                                                    │ val_key_set                      │
-│  4  │ src/m09c_surgery.py (subset-load site)                            │ Same fallback for both           │
-│  5  │ scripts/run_probe_train.sh:62-140                                 │ DELETE the ACTION_LABELS         │
+│  4  │ src/m09c1_surgery_encoder.py (subset-load site)                            │ Same fallback for both           │
+│  5  │ scripts/run_train.sh:62-140                                 │ DELETE the ACTION_LABELS         │
 │     │                                                                    │ bootstrap block (~70 LoC)        │
-│  6  │ scripts/run_probe_train.sh:88-97                                  │ DELETE the probe_train_subset.py │
+│  6  │ scripts/run_train.sh:88-97                                  │ DELETE the probe_train_subset.py │
 │     │                                                                    │ invocations (3 calls × 3 splits) │
-│  7  │ scripts/run_probe_train.sh m09a/m09c invocations                  │ DROP --subset / --val-subset CLI │
+│  7  │ scripts/run_train.sh m09a/m09c invocations                  │ DROP --subset / --val-subset CLI │
 │     │                                                                    │ args (m09a/m09c derive in-process)│
 │  8  │ scripts/run_recipe_v3_sweep.sh                                    │ Already has the redundant pre-   │
 │     │                                                                    │ flight comment — no further change│
@@ -416,8 +416,8 @@ def train(cfg, args):
 │  ✅ utils/m09_common.py: --val-subset becomes type=str default=None       │
 │  ✅ m09a + m09c: when args.subset is None → derive in-process via         │
 │     split_subset(); same for args.val_subset                              │
-│  ✅ scripts/run_probe_train.sh:62-97 deleted (~80 LoC removed)            │
-│  ✅ scripts/run_probe_train.sh m09a/m09c invocations: drop --subset       │
+│  ✅ scripts/run_train.sh:62-97 deleted (~80 LoC removed)            │
+│  ✅ scripts/run_train.sh m09a/m09c invocations: drop --subset       │
 │     and --val-subset args                                                  │
 │  ✅ Smoke test: shellcheck + bash -n; m09a/m09c --POC e2e                 │
 │  ✅ Numerical fidelity gate: top-1 within ±0.5 pp of pre-Phase-E baseline │
@@ -434,8 +434,8 @@ def train(cfg, args):
 │   (m09a uses for output_dir derivation + leakage gate;             │            │ in same commit; exhaustive   │
 │   m09c uses for output_dir name only)                              │            │ unit test of args.subset=None│
 │ Downstream consumers reading data/eval_10k_*_split.json            │ LOW        │ Verified earlier: only       │
-│                                                                    │            │ run_probe_train.sh reads     │
-│                                                                    │            │ them (no run_probe_eval.sh   │
+│                                                                    │            │ run_train.sh reads     │
+│                                                                    │            │ them (no run_eval.sh   │
 │                                                                    │            │ reference). Safe to remove   │
 │                                                                    │            │ the disk artifacts.          │
 │ utils/m09_common.py changes affect m09b legacy too                 │ LOW        │ m09b in src/legacy/ — frozen │
@@ -462,7 +462,7 @@ def train(cfg, args):
 │  the research result, not vice versa.                                         │
 │                                                                                │
 │  Pre-existing tech debt (acknowledged):                                        │
-│    1. scripts/run_probe_train.sh:62-140 has hardcoded numbers                  │
+│    1. scripts/run_train.sh:62-140 has hardcoded numbers                  │
 │       (MIN_CLIPS_BOOTSTRAP=34, MIN_SPLIT_BOOTSTRAP=5) — duplicates the         │
 │       cfg["probe_action_labels"][...]  yaml block but the shell can't easily  │
 │       read yaml without a yaml_extract subprocess. Phase E removes the entire │
@@ -493,17 +493,17 @@ def train(cfg, args):
 
 ### 🟢 Phase B verify (m09a only)
 ```bash
-CACHE_POLICY_ALL=2 ./scripts/run_probe_train.sh pretrain_2X --SANITY 2>&1 | tee logs/iter14_sanity_pretrain_2X_postrefactor.log
-CACHE_POLICY_ALL=2 ./scripts/run_probe_train.sh pretrain_2X --POC 2>&1 | tee logs/iter14_poc_pretrain_2X_postrefactor.log
+CACHE_POLICY_ALL=2 ./scripts/run_train.sh pretrain_2X --SANITY 2>&1 | tee logs/iter14_sanity_pretrain_2X_postrefactor.log
+CACHE_POLICY_ALL=2 ./scripts/run_train.sh pretrain_2X --POC 2>&1 | tee logs/iter14_poc_pretrain_2X_postrefactor.log
 # 👀 Compare new vs old POC v1: file list, training_summary.json key set, final probe_top1 within ±0.5 pp
 ```
 
 ### 🟡 Phase C verify (m09c surgery)
 ```bash
-CACHE_POLICY_ALL=2 ./scripts/run_probe_train.sh surgery_3stage_DI --SANITY 2>&1 | tee logs/iter14_sanity_surgery_3stage_DI_postrefactor.log
-CACHE_POLICY_ALL=2 ./scripts/run_probe_train.sh surgery_noDI      --SANITY 2>&1 | tee logs/iter14_sanity_surgery_noDI_postrefactor.log
-CACHE_POLICY_ALL=2 ./scripts/run_probe_train.sh surgery_3stage_DI --POC    2>&1 | tee logs/iter14_poc_surgery_3stage_DI_postrefactor.log
-CACHE_POLICY_ALL=2 ./scripts/run_probe_train.sh surgery_noDI      --POC    2>&1 | tee logs/iter14_poc_surgery_noDI_postrefactor.log
+CACHE_POLICY_ALL=2 ./scripts/run_train.sh surgery_3stage_DI --SANITY 2>&1 | tee logs/iter14_sanity_surgery_3stage_DI_postrefactor.log
+CACHE_POLICY_ALL=2 ./scripts/run_train.sh surgery_noDI      --SANITY 2>&1 | tee logs/iter14_sanity_surgery_noDI_postrefactor.log
+CACHE_POLICY_ALL=2 ./scripts/run_train.sh surgery_3stage_DI --POC    2>&1 | tee logs/iter14_poc_surgery_3stage_DI_postrefactor.log
+CACHE_POLICY_ALL=2 ./scripts/run_train.sh surgery_noDI      --POC    2>&1 | tee logs/iter14_poc_surgery_noDI_postrefactor.log
 ```
 
 ### 🔴 Phase D parity check
@@ -515,7 +515,7 @@ diff \
 # ✅ Expected: only algo-diffs (val_split.json gone; drift_loss should NOT appear in either)
 
 # 🧪 Phase D eval pipeline
-CACHE_POLICY_ALL=2 ./scripts/run_probe_eval.sh --poc 2>&1 | tee logs/iter14_poc_eval_postrefactor.log
+CACHE_POLICY_ALL=2 ./scripts/run_eval.sh --poc 2>&1 | tee logs/iter14_poc_eval_postrefactor.log
 ```
 
 ---

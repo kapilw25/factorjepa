@@ -48,6 +48,7 @@ from utils.config import (
 )
 from utils.data_download import ensure_local_data, iter_clips_parallel
 from utils.gpu_batch import compute_batch_sizes, add_gpu_mem_arg, cleanup_temp, AdaptiveBatchSizer
+from utils.cgroup_monitor import print_cgroup_header, start_oom_watchdog
 from utils.video_io import get_clip_key, create_stream, decode_video_bytes, _USE_TORCHCODEC
 from utils.wandb_utils import add_wandb_args, init_wandb, log_metrics, log_artifact, finish_wandb
 
@@ -493,6 +494,9 @@ def worker_main(args):
     """Worker subprocess: load V-JEPA, process segment, save checkpoint, exit."""
     cleanup_temp()
     check_gpu()
+    # iter15 (2026-05-14): cgroup envelope + OOM watchdog (utils/cgroup_monitor.py)
+    print_cgroup_header(prefix="[m05]")
+    start_oom_watchdog(prefix="[m05]-oom-watchdog")
     device = "cuda"
 
     if args.batch_size is None:

@@ -470,7 +470,7 @@ def compute_multitask_loss(jepa_loss: torch.Tensor,
 
     if use_uw:
         # Kendall 2018 — learned weights replace α/β/γ. Task list MUST match
-        # the order UW was constructed with in m09c_surgery (otherwise log-var
+        # the order UW was constructed with in m09c1_surgery_encoder (otherwise log-var
         # binding gets scrambled).
         if tcc_enabled:
             total, uw_weights = uw([jepa_loss, infonce, tcc])
@@ -1214,6 +1214,27 @@ def export_student_for_eval(student, path: Path, explora_enabled: bool = False):
     print(f"Exported student encoder: {path}")
 
 
+def assert_encoder_frozen(student) -> None:
+    """Fail-loud guard: every ViT block param must have requires_grad=False.
+
+    Called from m09a2_pretrain_head / m09c2_surgery_head build_model() to catch
+    silent unfreezing bugs (e.g., a recipe-v3 flag that flips a block trainable).
+    Norms remain trainable per Meta convention; we only count `student.blocks.*`.
+    """
+    block_params_trainable = sum(
+        p.numel()
+        for blk in student.blocks
+        for p in blk.parameters()
+        if p.requires_grad
+    )
+    if block_params_trainable > 0:
+        sys.exit(
+            f"FATAL: assert_encoder_frozen — {block_params_trainable:,} block params "
+            f"have requires_grad=True. STRICT head-only mode requires all ViT blocks "
+            f"frozen. Check freeze wiring in build_model()."
+        )
+
+
 def assert_encoder_diverged_from_init(
     student,
     init_ckpt_path,
@@ -1249,7 +1270,7 @@ def assert_encoder_diverged_from_init(
     SGD step at LR=1e-5 typically produces ≥1e-5 relative shift. Anything below
     1e-7 is indistinguishable from "no update happened".
 
-    Used by m09a_pretrain.py + m09c_surgery.py post-training, mirrors the
+    Used by m09a1_pretrain_encoder.py + m09c1_surgery_encoder.py post-training, mirrors the
     fail-hard spirit of "M09A FAILED: 0 successful training steps" (Bug B):
     refuse to silently export Meta-frozen weights as a "trained" encoder.
     """
@@ -1377,7 +1398,7 @@ def apply_val_cycle_triggers(
 
 
 # iter13 v13 R4 (2026-05-07): shared end-of-train sequence used by both
-# m09a_pretrain.py and m09c_surgery.py.
+# m09a1_pretrain_encoder.py and m09c1_surgery_encoder.py.
 def finalize_training(*, student, mt_head, mt_dims_spec, ma_head,
                       output_dir, init_ckpt_path, embed_dim: int,
                       label: str = "encoder",

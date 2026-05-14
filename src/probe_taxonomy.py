@@ -19,7 +19,7 @@ Stages:
   paired_delta  — N-way per-dim Δ across encoders + corpus-level summary (CPU)
   plot          — per-dim grouped bar chart (CPU, ~5 s)
 
-USAGE (orchestrated by scripts/run_probe_eval.sh as Stages 11-14, optional):
+USAGE (orchestrated by scripts/run_eval.sh as Stages 11-14, optional):
     python -u src/probe_taxonomy.py --SANITY --stage labels \\
         --tags-json data/eval_10k_local/tags.json \\
         --tag-taxonomy configs/tag_taxonomy.json \\
@@ -287,7 +287,7 @@ def run_train_stage(args, wb) -> None:
     # eval-disk-budget refactor), extract in-memory via extract_features_for_keys.
     # The function's resume side-effect (.probe_features_<split>_ckpt.npz) is
     # SHARED with probe_action's lazy cache, so when probe_taxonomy runs
-    # AFTER probe_action --stage train (per scripts/run_probe_eval.sh's
+    # AFTER probe_action --stage train (per scripts/run_eval.sh's
     # per-encoder loop), the cache is already populated → near-zero re-extract
     # cost. Encoder is loaded only when at least one split needs extraction.
     from utils.frozen_features import (

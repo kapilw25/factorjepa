@@ -44,9 +44,9 @@
 | ID | File(s) | Change |
 |---|---|---|
 | E2 | `configs/train/surgery_base.yaml` | iter14 max_epochs (5) + drift_control (λ=0.005) + monitoring block |
-| E3 | `src/m09c_surgery.py` | `--init-from-ckpt hf://...` HF dispatcher (FAIL LOUD, single schema) + L2 anchor loss wired through `_train_step_grad_accum` |
-| E4 | `scripts/run_probe_train.sh` | `pretrain_2X` subcommand + thread `--init-from-ckpt` to surgery |
-| E5 | `scripts/run_probe_eval.sh` | Add `vjepa_2_1_pretrain_2X` encoder + 3 resolvers |
+| E3 | `src/m09c1_surgery_encoder.py` | `--init-from-ckpt hf://...` HF dispatcher (FAIL LOUD, single schema) + L2 anchor loss wired through `_train_step_grad_accum` |
+| E4 | `scripts/run_train.sh` | `pretrain_2X` subcommand + thread `--init-from-ckpt` to surgery |
+| E5 | `scripts/run_eval.sh` | Add `vjepa_2_1_pretrain_2X` encoder + 3 resolvers |
 | E6 | `src/probe_action.py` | Δ1/Δ2/Δ3 paired-delta emission with BCa CI |
 | E7 | `iter/iter14_surgery_on_pretrain/runbook.md` | NEW — SANITY + POC + FULL command sequences |
 
@@ -54,17 +54,17 @@
 
 | ID | File(s) | Change |
 |---|---|---|
-| E8 | 4 files (m09a, m09c, training.py, run_probe_train.sh) | Top@1-only early-stop refactor (removed kill_switch + BWT triggers) |
+| E8 | 4 files (m09a, m09c, training.py, run_train.sh) | Top@1-only early-stop refactor (removed kill_switch + BWT triggers) |
 | E9 | `outputs/full/probe_pretrain/` → `outputs/full/m09a_pretrain/` + 8 ref updates | Folder rename matches m09a/m09c convention |
-| E10 | `scripts/run_probe_train.sh` | Fix HF URI: `student_encoder.pt` → `m09a_ckpt_best.pt` (predictor key needed) |
-| E11 | `src/m09c_surgery.py` | Log `loss_drift` in step_record (iter14 anchor visibility) |
+| E10 | `scripts/run_train.sh` | Fix HF URI: `student_encoder.pt` → `m09a_ckpt_best.pt` (predictor key needed) |
+| E11 | `src/m09c1_surgery_encoder.py` | Log `loss_drift` in step_record (iter14 anchor visibility) |
 
 ### 🧪 POC mode infrastructure (E12-E13)
 
 | ID | File(s) | Change |
 |---|---|---|
-| E12 | `scripts/run_probe_eval.sh` | Fix POC reads `outputs/poc/` (was `outputs/full/`) |
-| E13 | `configs/train/base_optimization.yaml` + `scripts/run_probe_train.sh` | `poc_total_clips: 1000` single knob; 70:15:15 stratified split |
+| E12 | `scripts/run_eval.sh` | Fix POC reads `outputs/poc/` (was `outputs/full/`) |
+| E13 | `configs/train/base_optimization.yaml` + `scripts/run_train.sh` | `poc_total_clips: 1000` single knob; 70:15:15 stratified split |
 
 ### ♻️ Cross-encoder file-list parity (E14-E22)
 
@@ -74,21 +74,21 @@
 |---|---|---|
 | E14 | `src/utils/training.py` + m09a + m09c | Extracted `compute_total_loss()` to utils.training (canonical α·jepa + β·mt + γ·ma + λ·drift); fixed m09a's pre-existing motion_aux exclusion bug |
 | E15 | `configs/train/surgery_base.yaml` | Added `monitoring.knn_probe_clips: 1000` (was missing → KeyError at POC) |
-| E16 | `src/m09c_surgery.py` + utils.plots | m09c renders `m09c_probe_trajectory_trio.png/.pdf` (was missing) |
-| E17 | `src/m09c_surgery.py` | m09c calls `plot_val_loss_with_kill_switch_overlay` (same util as m09a) |
-| E18 | `src/m09c_surgery.py` | Retired `val_split.json` write (m09c-only artifact) |
+| E16 | `src/m09c1_surgery_encoder.py` + utils.plots | m09c renders `m09c_probe_trajectory_trio.png/.pdf` (was missing) |
+| E17 | `src/m09c1_surgery_encoder.py` | m09c calls `plot_val_loss_with_kill_switch_overlay` (same util as m09a) |
+| E18 | `src/m09c1_surgery_encoder.py` | Retired `val_split.json` write (m09c-only artifact) |
 | E19 | `src/utils/plots.py` | Retired `m09c_drift_loss.png` (covered by `loss_decomposition.png`) + retired `m09a_val_loss.png` (redundant with `val_loss_jepa.png`) |
 | E20 | `src/utils/plots.py` | `train_loss` Plot 2 — markers for short stage segments (1-step POC visibility) |
-| E21 | `src/m09c_surgery.py` | Added `step` key to m09c probe_record (parity with m09a; trio plotter needs it) |
-| E22 | `src/m09c_surgery.py` | Fixed `compute_block_drift` import path (m09a uses local; m09c top-level via utils.plots) |
+| E21 | `src/m09c1_surgery_encoder.py` | Added `step` key to m09c probe_record (parity with m09a; trio plotter needs it) |
+| E22 | `src/m09c1_surgery_encoder.py` | Fixed `compute_block_drift` import path (m09a uses local; m09c top-level via utils.plots) |
 | (also) | `src/utils/training.py` | `render_training_plots` reduced to documented no-op (logic moved to direct calls) |
 
 ### 🧹 Yaml-driven val pool (E23-E24)
 
 | ID | File(s) | Change |
 |---|---|---|
-| E23 | `src/m09c_surgery.py` | Added `block_drift_mean` to step_record (parity with m09a:965 — drift_table.py needs unified column) |
-| E24 | `src/m09c_surgery.py` + `configs/train/surgery_base.yaml` + `configs/train/base_optimization.yaml` | Removed hardcoded internal 90:10 split (was bypassing POC pool cap → 930 non-POC val clips); m09c now mirrors m09a's gold-standard yaml/CLI-driven external val pool with leakage subtraction |
+| E23 | `src/m09c1_surgery_encoder.py` | Added `block_drift_mean` to step_record (parity with m09a:965 — drift_table.py needs unified column) |
+| E24 | `src/m09c1_surgery_encoder.py` + `configs/train/surgery_base.yaml` + `configs/train/base_optimization.yaml` | Removed hardcoded internal 90:10 split (was bypassing POC pool cap → 930 non-POC val clips); m09c now mirrors m09a's gold-standard yaml/CLI-driven external val pool with leakage subtraction |
 
 ### 📊 Net diff
 - 📁 **18 files modified**, ~3 new (`utils/training_loop.py` plan only — not implemented)
@@ -241,7 +241,7 @@ surgery becomes scale-comparable to pretrain ✅
 | **Phase 1 — Path 2** (relax m10 + re-run + surgery FULL) | ~5h re-prep + ~15h surgery = ~20 h | ~$16 | conditional |
 | `pretrain_2X` (10 ep) | ~20 h | ~$16 | required for Δ3 |
 | `surgery_noDI` (Phase 1 settings) | 70-80% of surgery_3stage_DI cost | ~$11-32 | required for ablation |
-| `run_probe_eval.sh --FULL` (5 encoders, 10 stages) | ~4 h | ~$3.20 | required |
+| `run_eval.sh --FULL` (5 encoders, 10 stages) | ~4 h | ~$3.20 | required |
 | **Total iter14** | **~30-100 h depending on path** | **~$30-100** | |
 
 ### 📋 Path-conditional budgets
