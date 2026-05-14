@@ -3,6 +3,65 @@
 > 📅 **Date locked:** 2026-05-11 · **expanded** 2026-05-11 (added pillars 2 & 3)
 > 🎯 **Paper goal:** `vjepa_surgery ≫ vjepa_pretrain ≫ vjepa_frozen` on motion / temporal features
 > 🧑‍🔬 **Triggered by:** research lead directive (DINOv2 + Llama 3/4 author) — meeting notes 2026-05-10
+> 🔗 **Runbook (bash commands for Phase 5 + 6):** [`runbook.md`](./runbook.md)
+> 📦 **Archived execution tracker:** [`plan_legacy/planCODE_trainHead_scaleBackbone_curriculum.md`](./plan_legacy/planCODE_trainHead_scaleBackbone_curriculum.md) — daily phase-by-phase status log that drove Phases 1-4; now superseded by the snapshot below.
+
+---
+
+## 🏁 Execution status (2026-05-14)
+
+```
+┌────────────────────────────────────────────┬──────────────────┬────────────────────────────────────┐
+│ planCODE Phase                              │ Status           │ Maps to plan_*.md sections          │
+├────────────────────────────────────────────┼──────────────────┼────────────────────────────────────┤
+│ 1️⃣ RENAMES (m09a/c → m09a1/c1)             │ ✅ DONE 2026-05-13│ Phase 1 (L333)                      │
+│ 2️⃣ CODE (8/8 — m09a2 + m09c2 +              │ ✅ DONE 2026-05-14│ Phase 2 (L355) + Phase 2b (L556)   │
+│    probe_future_regress + utils + 3 yamls) │                  │  · m09a2:    568 LoC               │
+│                                            │                  │  · m09c2:    643 LoC               │
+│                                            │                  │  · probe_*:  532 LoC               │
+│ 3️⃣ M04D 13→23-D (code + GPU rerun)         │ ✅ DONE 2026-05-14│ Phase 0 (L136)                      │
+│    motion_features.npy = (9297, 23)        │                  │                                     │
+│ 4️⃣ WIRING (run_train.sh + run_eval.sh +    │ ✅ DONE 2026-05-14│ Phase 3 (L640)                      │
+│    probe_action.ITER14_DELTAS Δ1-Δ7)       │                  │                                     │
+│ 5️⃣ SANITY V0-V6 (24 GB GPU, ~50 min)        │ ⏳ NEXT          │ Verification plan (L1045)           │
+│ 6️⃣ POC head-only × 3 cells (~24 hr, ~$5)    │ ⏳ pending V5     │ Compute budget (L1170)              │
+├────────────────────────────────────────────┼──────────────────┼────────────────────────────────────┤
+│ 🏗️ Pillar 2: Backbone Scaling (ViT-H)      │ ⏳ deferred       │ Phase 4 (L757)                      │
+│ 📚 Pillar 3b: Data Curriculum               │ ⏳ deferred       │ Phase 5 (L868)                      │
+└────────────────────────────────────────────┴──────────────────┴────────────────────────────────────┘
+
+CUMULATIVE COSTS (Phases 1-4 done): ~10 hr dev + ~2 hr GPU = ~$0.40
+REMAINING (Phases 5-6):              ~50 min GPU + ~24 hr GPU = ~$5.17
+TOTAL TARGET (iter15 head-only):     ~33 hr  ·  ~$5.57
+```
+
+### 🎁 Bonus work landed alongside Phases 1-4
+
+```
+- 4-layer rename consolidation (drop probe_ prefix from yaml + sh):
+    probe_pretrain.yaml      → pretrain_encoder.yaml
+    probe_pretrain_head.yaml → pretrain_head.yaml
+    run_probe_train.sh       → run_train.sh
+    run_probe_eval.sh        → run_eval.sh
+    surgery_3stage_DI.yaml   → surgery_3stage_DI_encoder.yaml
+    surgery_2stage_noDI.yaml → surgery_2stage_noDI_encoder.yaml
+
+- src/utils/cgroup_monitor.py (NEW, 237 LoC) — forensic OOM trail.
+  Wired into 8 producer-consumer scripts (m04, m04d, m05, m05b, m05c,
+  m09a1, probe_action, probe_future_mse). Prints memory.cgroup envelope
+  at startup + a daemon thread that emits WARN/CRIT/IMMINENT lines on
+  threshold crossings — last log line before any silent SIGKILL.
+
+- pipeline.yaml scaling table (cgroup-aware) for decode_workers_motion +
+  producer_queue_motion. Documents 4 tiers (≤36 GB, ~64 GB, ~96 GB,
+  ≥120 GB) after the 120 GB-cap SIGKILL incident at queue=64.
+
+- docs/index.html refactor (separate plan: planCODE_html.md Stages A-D + 15 ✅ DONE):
+    pivoted from retrieval (kNN over taxonomy → Prec@K/mAP@K) to motion-
+    class probing (top-1 on 8 RAFT-derived classes). Tab 2 rewritten end
+    to end; 11 retrieval images + 24 kNN videos removed; iter13 v12
+    plots inserted as durable placeholders pending Phase 6 refresh.
+```
 
 ---
 

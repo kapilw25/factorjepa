@@ -82,7 +82,9 @@
       "Bash(grep -nB2 -A15 'StreamingFactorDataset\\(' src/m09c1_surgery_encoder.py)",
       "Bash(grep -nA5 '_streaming_worker_init\\\\|def _streaming_worker_init' src/utils/training.py)",
       "Bash(grep -nA3 'for batch.*loader\\\\|next\\(loader_iter\\)\\\\|loader_iter' src/m09c1_surgery_encoder.py)",
-      "Bash(grep -nA8 'def _load_vjepa_2_1_encoder_hierarchical' src/probe_future_mse.py)"
+      "Bash(grep -nA8 'def _load_vjepa_2_1_encoder_hierarchical' src/probe_future_mse.py)",
+      "Bash(grep -nA2 'layer_freeze' configs/train/surgery_base.yaml configs/train/surgery_3stage_DI_encoder.yaml configs/train/surgery_3stage_DI_head.yaml)",
+      "Bash(grep -nA10 'KNOWN_VARIANTS = \\(' src/probe_future_regress.py)"
     ]
   }
 }

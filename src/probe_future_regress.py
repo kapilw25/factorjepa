@@ -91,7 +91,8 @@ REGRESSOR_MLP_HIDDEN = 4096
 # at a time (the user picks via --variant).
 KNOWN_VARIANTS = (
     "vjepa_2_1_frozen",
-    "vjepa_2_1_pretrain",                       # iter14 m09a1 continual SSL
+    "vjepa_2_1_pretrain",                       # iter14 m09a1 continual SSL (5 epochs)
+    "vjepa_2_1_pretrain_2X",                    # iter14 arm C — m09a1 at 10 epochs (Δ3 control)
     "vjepa_2_1_surgical_3stage_DI",             # iter14 m09c1 D_I surgery
     "vjepa_2_1_surgical_noDI",                  # iter14 m09c1 noDI surgery
     "vjepa_2_1_pretrain_head",                  # iter15 m09a2 head-only pretrain

@@ -3,7 +3,7 @@
 > 📅 **Date:** 2026-05-14
 > 🎯 **Goal:** pivot `docs/index.html` from spatial scene-retrieval (kNN over 16-axis taxonomy → Prec@K / mAP@K / Cycle@K) to motion-class probing (top-1 accuracy on 8 RAFT-derived classes from the 23-D `motion_features.npy`)
 > 💡 **Why "temporal" alone is too vague:** motion class IS the temporal feature — derived from optical flow, camera-subtracted. The 8-class taxonomy is the concrete payoff.
-> 🔗 **Sibling plan:** [`planCODE_trainHead_scaleBackbone_curriculum.md`](./planCODE_trainHead_scaleBackbone_curriculum.md) — research code; this doc is paper-deliverable.
+> 🔗 **Sibling plan:** [`plan_trainHead_scaleBackbone_curriculum.md`](./plan_trainHead_scaleBackbone_curriculum.md) — research code; this doc is paper-deliverable.
 
 ---
 
@@ -531,7 +531,7 @@ Output: `docs/static/images/anatomy_hero_panel.png` (one large composite figure)
 
 **Goal:** swap iter13 v12 placeholder plots for fresh iter15 head-only training results.
 
-**Depends on:** Phase 6 head-only POC complete (3 cells × ~6-8 hr each — see [`planCODE_trainHead_scaleBackbone_curriculum.md`](./planCODE_trainHead_scaleBackbone_curriculum.md) Phase 6).
+**Depends on:** Phase 6 head-only POC complete (3 cells × ~6-8 hr each — see [`plan_trainHead_scaleBackbone_curriculum.md`](./plan_trainHead_scaleBackbone_curriculum.md) Phase 6).
 
 ```bash
 # 🔄 After Phase 6 POC + Phase 4 eval, run probe_action again:

@@ -93,8 +93,14 @@ def merge_config_with_args(cfg: dict, args) -> dict:
     merge_m09_common_config(cfg, args, mode_key)
 
     # === Force head-only contract regardless of yaml/CLI ===
-    cfg["layer_freeze"]["enabled"] = True
-    cfg["layer_freeze"]["freeze_below"] = 48
+    # iter15 Phase 5 V0 preflight fix (2026-05-14): surgery configs use per-stage
+    # `unfreeze_below` (via set_trainable_prefix in build_model), NOT the global
+    # `layer_freeze` switch — so we DON'T touch cfg["layer_freeze"] here (the
+    # key doesn't exist in surgery_base.yaml inheritance chain). Head-only
+    # encoder freeze is enforced at runtime in build_model() via:
+    #   1. set_trainable_prefix(student, 0)  → all blocks frozen
+    #   2. assert_encoder_frozen(student)    → fail-loud guard
+    # The per-stage validation below also requires stages[0].unfreeze_below=0.0.
     cfg["drift_control"]["enabled"] = False
     cfg["loss"]["weight_jepa"] = 0.0
     cfg["loss"]["weight_motion_aux"] = 1.0
