@@ -173,7 +173,7 @@ MOTION_FEATURES="${MOTION_FEATURES:-${LOCAL_DATA}/m04d_motion_features/motion_fe
 if [ "$MODE" = "SANITY" ]; then
     # iter13 v13 (2026-05-07): floor=3 with greedy split (utils/action_labels.py
     # stratified_split). Keeps every motion-flow class with n≥3 → harder probe →
-    # better signal for the paper goal `surgery > pretrain > frozen`. Mirror in
+    # better signal for the paper goal `surgery > pretrain_encoder > frozen`. Mirror in
     # run_train.sh.
     DEFAULT_MIN_CLIPS_PER_CLASS=3
     DEFAULT_MIN_PER_SPLIT=1
@@ -358,10 +358,10 @@ for ENC in $ENCODERS; do
             if [ ! -e "$CKPT" ]; then
                 echo "  ⚠️  $ENC: $CKPT not found — train via:"
                 case "$ENC" in
-                    vjepa_2_1_pretrain_encoder)            echo "       ./scripts/run_train.sh pretrain          --$MODE" ;;
-                    vjepa_2_1_pretrain_2X_encoder)       echo "       ./scripts/run_train.sh pretrain_2X     --$MODE" ;;
-                    vjepa_2_1_surgical_3stage_DI_encoder)  echo "       ./scripts/run_train.sh surgery_3stage_DI --$MODE" ;;
-                    vjepa_2_1_surgical_noDI_encoder)       echo "       ./scripts/run_train.sh surgery_noDI      --$MODE" ;;
+                    vjepa_2_1_pretrain_encoder)            echo "       ./scripts/run_train.sh pretrain_encoder          --$MODE" ;;
+                    vjepa_2_1_pretrain_2X_encoder)       echo "       ./scripts/run_train.sh pretrain_2X_encoder     --$MODE" ;;
+                    vjepa_2_1_surgical_3stage_DI_encoder)  echo "       ./scripts/run_train.sh surgery_3stage_DI_encoder --$MODE" ;;
+                    vjepa_2_1_surgical_noDI_encoder)       echo "       ./scripts/run_train.sh surgery_noDI_encoder      --$MODE" ;;
                 esac
                 echo "  → dropping $ENC from this run; pipeline continues with remaining encoders"
                 continue
@@ -409,10 +409,10 @@ for ENC in $ENCODERS; do
                 echo "        if this is missing, ENCODER_CKPT itself is wrong)" ;;
             vjepa_2_1_pretrain_encoder)
                 echo "       Re-train (m09a_ckpt_best.pt is written via save_training_checkpoint full=True):"
-                echo "         CACHE_POLICY_ALL=2 ./scripts/run_train.sh pretrain --$MODE" ;;
+                echo "         CACHE_POLICY_ALL=2 ./scripts/run_train.sh pretrain_encoder --$MODE" ;;
             vjepa_2_1_pretrain_2X_encoder)
                 echo "       Re-train iter14 arm C (10 ep, ~20 GPU-h on FULL):"
-                echo "         CACHE_POLICY_ALL=2 ./scripts/run_train.sh pretrain_2X --$MODE" ;;
+                echo "         CACHE_POLICY_ALL=2 ./scripts/run_train.sh pretrain_2X_encoder --$MODE" ;;
             vjepa_2_1_surgical_*)
                 echo "       Re-train (m09c writes m09c_ckpt_best.pt at end of surgery):"
                 echo "         CACHE_POLICY_ALL=2 ./scripts/run_train.sh ${ENC#vjepa_2_1_surgical_} --$MODE" ;;
@@ -426,21 +426,21 @@ else
     echo "  → Stage 8 ENCODERS: $STAGE8_ENCODERS"
 fi
 
-# ── Pre-eval pretrain-cleanup (iter13, 2026-05-05) ──────────────────────
+# ── Pre-eval pretrain_encoder-cleanup (iter13, 2026-05-05) ──────────────────────
 # `m09a_ckpt_latest.pt` (~29 GB on ViT-G full=True) is a RESUME anchor for
-# pretrain — it's only useful if pretrain crashes mid-run and needs to
-# continue from the last step. Once pretrain has completed (proxy:
+# pretrain_encoder — it's only useful if pretrain_encoder crashes mid-run and needs to
+# continue from the last step. Once pretrain_encoder has completed (proxy:
 # student_encoder.pt is exported), latest.pt is dead weight on disk.
 # Same for m09c_ckpt_latest.pt for surgery encoders.
 # Deleting it here reclaims ~29 GB per pretrained encoder BEFORE eval starts —
 # critical because Stage 3's transient train cache (~73 GB at fp16 / ~146 GB
 # at fp32) would otherwise overflow our 199 GB disk budget.
 # Opt-out: set EVAL_KEEP_LATEST=1 to skip this cleanup (e.g. during dev
-# when you might want to resume a partial pretrain). Default: ON.
+# when you might want to resume a partial pretrain_encoder). Default: ON.
 if [ "${EVAL_KEEP_LATEST:-0}" != "1" ]; then
     echo ""
     echo "──────────────────────────────────────────────"
-    echo "Pre-eval pretrain-cleanup (drop _latest.pt resume anchors)"
+    echo "Pre-eval pretrain_encoder-cleanup (drop _latest.pt resume anchors)"
     echo "──────────────────────────────────────────────"
     pretrain_cleanup_get_latest() {
         # Map encoder → its m09{a,c}_ckpt_latest.pt path (or empty if external).
@@ -454,7 +454,7 @@ if [ "${EVAL_KEEP_LATEST:-0}" != "1" ]; then
     }
     for ENC in $ENCODERS; do
         STUDENT_ENC="$(encoder_ckpt_for "$ENC")"
-        # Only delete if pretrain/surgery has truly completed (student_encoder.pt
+        # Only delete if pretrain_encoder/surgery has truly completed (student_encoder.pt
         # exists on the path encoder_ckpt_for resolves to). External (frozen)
         # encoders are skipped — their ckpt is shared and immutable.
         case "$ENC" in
@@ -465,12 +465,12 @@ if [ "${EVAL_KEEP_LATEST:-0}" != "1" ]; then
             continue
         fi
         if [ ! -e "$STUDENT_ENC" ]; then
-            echo "  [keep-latest] $ENC: student_encoder.pt missing → preserving $LATEST (pretrain not complete)"
+            echo "  [keep-latest] $ENC: student_encoder.pt missing → preserving $LATEST (pretrain_encoder not complete)"
             continue
         fi
         sz=$(du -h "$LATEST" 2>/dev/null | awk '{print $1}')
         rm -f "$LATEST"
-        echo "  [pretrain-cleanup] removed $LATEST ($sz) — pretrain complete, latest.pt was resume-only"
+        echo "  [pretrain_encoder-cleanup] removed $LATEST ($sz) — pretrain_encoder complete, latest.pt was resume-only"
 
         # iter13 (2026-05-05): also drop step ckpts (m09{a,c}_ckpt_step*.pt).
         # These are the keep_last_n=2 rotation buffers from training. Once
@@ -483,7 +483,7 @@ if [ "${EVAL_KEEP_LATEST:-0}" != "1" ]; then
             if [ -f "$step_pt" ]; then
                 step_sz=$(du -h "$step_pt" 2>/dev/null | awk '{print $1}')
                 rm -f "$step_pt"
-                echo "  [pretrain-cleanup] removed $(basename "$step_pt") ($step_sz) — step rotation buffer, training complete"
+                echo "  [pretrain_encoder-cleanup] removed $(basename "$step_pt") ($step_sz) — step rotation buffer, training complete"
             fi
         done
     done

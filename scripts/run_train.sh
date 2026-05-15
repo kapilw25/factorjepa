@@ -4,9 +4,9 @@
 # action-probe gate. Mirrors the run_train.sh / run_eval.sh split (iter11 v2).
 #
 # Subcommands:
-#   pretrain          — m09a continual SSL pretrain (LR 1e-5, 5 epochs, drift L2 anchor)
-#   surgery_3stage_DI — m09c factor surgery WITH interaction tubes (D_L → D_A → D_I, 40/30/30 split)
-#   surgery_noDI      — m09c factor surgery WITHOUT D_I  (D_L → D_A,    50/50 split)
+#   pretrain_encoder          — m09a continual SSL pretrain_encoder (LR 1e-5, 5 epochs, drift L2 anchor)
+#   surgery_3stage_DI_encoder — m09c factor surgery WITH interaction tubes (D_L → D_A → D_I, 40/30/30 split)
+#   surgery_noDI_encoder      — m09c factor surgery WITHOUT D_I  (D_L → D_A,    50/50 split)
 #
 # Why two surgery variants? iter9 v15c showed Stage 3 (D_I unfreeze 75%) caused
 # downstream-metric BWT=-0.33 (legacy retrieval score dropped 20.50→19.83).
@@ -21,16 +21,16 @@
 #
 # USAGE:
 #   tmux new -s probe_train
-#   ./scripts/run_train.sh pretrain          --SANITY   # ~3 min
-#   ./scripts/run_train.sh surgery_3stage_DI --SANITY   # ~10 min
-#   ./scripts/run_train.sh surgery_noDI      --SANITY   # ~7 min  (no Stage 3)
-#   ./scripts/run_train.sh pretrain          --FULL     # ~3 GPU-h
-#   ./scripts/run_train.sh surgery_3stage_DI --FULL     # ~6-8 GPU-h
-#   ./scripts/run_train.sh surgery_noDI      --FULL     # ~4-6 GPU-h
+#   ./scripts/run_train.sh pretrain_encoder          --SANITY   # ~3 min
+#   ./scripts/run_train.sh surgery_3stage_DI_encoder --SANITY   # ~10 min
+#   ./scripts/run_train.sh surgery_noDI_encoder      --SANITY   # ~7 min  (no Stage 3)
+#   ./scripts/run_train.sh pretrain_encoder          --FULL     # ~3 GPU-h
+#   ./scripts/run_train.sh surgery_3stage_DI_encoder --FULL     # ~6-8 GPU-h
+#   ./scripts/run_train.sh surgery_noDI_encoder      --FULL     # ~4-6 GPU-h
 #
 # Bypass the cache-policy prompt for overnight runs:
-#   CACHE_POLICY_ALL=1 ./scripts/run_train.sh pretrain --FULL  # keep stale outputs
-#   CACHE_POLICY_ALL=2 ./scripts/run_train.sh pretrain --FULL  # wipe + recompute
+#   CACHE_POLICY_ALL=1 ./scripts/run_train.sh pretrain_encoder --FULL  # keep stale outputs
+#   CACHE_POLICY_ALL=2 ./scripts/run_train.sh pretrain_encoder --FULL  # wipe + recompute
 
 set -euo pipefail
 trap 'rc=$?; echo "" >&2; echo "❌ FATAL: run_train.sh aborted at line $LINENO (exit=$rc)" >&2; exit $rc' ERR
@@ -40,7 +40,7 @@ source venv_walkindia/bin/activate
 mkdir -p logs
 
 if [ $# -lt 2 ]; then
-    echo "USAGE: $0 {pretrain|pretrain_2X|pretrain_head|surgery_3stage_DI|surgery_noDI|surgery_3stage_DI_head|surgery_noDI_head} {--SANITY|--POC|--FULL}" >&2
+    echo "USAGE: $0 {pretrain_encoder|pretrain_2X_encoder|pretrain_head|surgery_3stage_DI_encoder|surgery_noDI_encoder|surgery_3stage_DI_head|surgery_noDI_head} {--SANITY|--POC|--FULL}" >&2
     exit 2
 fi
 
@@ -52,10 +52,10 @@ MODE_FLAG="$1"; shift
 # + m09c2_surgery_head.py. The *_head variants run on 24 GB Pro 4000 (no
 # encoder backward → no activation storage); _encoder variants need 96 GB.
 case "$SUBCMD" in
-    pretrain|pretrain_2X|pretrain_head| \
-    surgery_3stage_DI|surgery_noDI| \
+    pretrain_encoder|pretrain_2X_encoder|pretrain_head| \
+    surgery_3stage_DI_encoder|surgery_noDI_encoder| \
     surgery_3stage_DI_head|surgery_noDI_head) ;;
-    *) echo "FATAL: subcommand must be {pretrain|pretrain_2X|pretrain_head|surgery_3stage_DI|surgery_noDI|surgery_3stage_DI_head|surgery_noDI_head} (got: $SUBCMD)" >&2; exit 2 ;;
+    *) echo "FATAL: subcommand must be {pretrain_encoder|pretrain_2X_encoder|pretrain_head|surgery_3stage_DI_encoder|surgery_noDI_encoder|surgery_3stage_DI_head|surgery_noDI_head} (got: $SUBCMD)" >&2; exit 2 ;;
 esac
 
 case "$MODE_FLAG" in
@@ -147,7 +147,7 @@ fi
 
 # ── Generate train/val/test split JSONs from action_labels.json ──────────
 # action_labels.json carries 70/15/15 split (train=6964, val=1491, test=1496)
-# — paper-final m06d trio uses TEST clips that m09a never sees during pretrain.
+# — paper-final m06d trio uses TEST clips that m09a never sees during pretrain_encoder.
 # iter13 Task #23 (2026-05-04): added test split externalisation here so eval
 # stages downstream can reference data/eval_10k_local/eval_10k_test_split.json directly.
 TRAIN_SPLIT="data/eval_10k_local/eval_10k_train_split.json"
@@ -176,7 +176,7 @@ P_M09="${CACHE_POLICY_ALL:-1}"
 # (key="predictor", 300 dims). student_encoder.pt has only encoder
 # (schema="student_state_dict"); m09a_ckpt_best.pt has student + predictor +
 # teacher in one bundle (schema="student") — single download covers full init.
-PRETRAIN_HF_URI="hf://anonymousML123/factorjepa-pretrain-vjepa21-vitg-5ep/m09a_ckpt_best.pt"
+PRETRAIN_HF_URI="hf://anonymousML123/factorjepa-pretrain_encoder-vjepa21-vitg-5ep/m09a_ckpt_best.pt"
 
 # ── Multi-task probe-loss labels (iter13) ────────────────────────────────
 # When base_optimization.yaml `multi_task_probe.enabled` is true for this
@@ -225,15 +225,15 @@ fi
 
 # ── Dispatch ──────────────────────────────────────────────────────────────
 case "$SUBCMD" in
-    pretrain|pretrain_2X)
+    pretrain_encoder|pretrain_2X_encoder)
         # iter13 v12+ (2026-05-06): renamed probe_pretrain → m09a_pretrain_encoder to
         # match the source module's name (CLAUDE.md "m*.py = each module is
         # independent"). Mirror rename in run_eval.sh + yaml output_dir.
-        # iter14 (2026-05-08): pretrain_2X shares pretrain_encoder.yaml (no new
+        # iter14 (2026-05-08): pretrain_2X_encoder shares pretrain_encoder.yaml (no new
         # yamls) but writes to m09a_pretrain_2X_encoder/ + passes --max-epochs 10 for
         # FULL only (G1=🅰️ "5+5 vs 10"). Arm A = 5 ep (yaml's max_epochs.full);
         # Arm C = 10 ep via CLI override.
-        if [ "$SUBCMD" = "pretrain_2X" ]; then
+        if [ "$SUBCMD" = "pretrain_2X_encoder" ]; then
             OUT_DIR="outputs/${mode_dir}/m09a_pretrain_2X_encoder"
             EPOCHS_OVERRIDE_FLAG=""
             if [ "$MODE" = "FULL" ]; then
@@ -279,14 +279,14 @@ case "$SUBCMD" in
             --no-wandb \
             2>&1 | tee "logs/m09a_${SUBCMD}_${mode_dir}.log"
         ;;
-    surgery_3stage_DI|surgery_noDI)
+    surgery_3stage_DI_encoder|surgery_noDI_encoder)
         # Map subcommand → yaml + variant tag (used in output dir + log name).
         case "$SUBCMD" in
-            surgery_3stage_DI)
+            surgery_3stage_DI_encoder)
                 TRAIN_CFG="configs/train/surgery_3stage_DI_encoder.yaml"
                 VARIANT_TAG="3stage_DI"
                 ;;
-            surgery_noDI)
+            surgery_noDI_encoder)
                 TRAIN_CFG="configs/train/surgery_2stage_noDI_encoder.yaml"
                 VARIANT_TAG="noDI"
                 ;;
@@ -521,10 +521,10 @@ else
     echo "  ⚠️  ${OUT_DIR}/student_encoder.pt NOT produced (check logs/probe_${SUBCMD}_${mode_dir}.log)"
 fi
 case "$SUBCMD" in
-    pretrain|pretrain_2X|pretrain_head)
+    pretrain_encoder|pretrain_2X_encoder|pretrain_head)
         FULL_CKPT="${OUT_DIR}/m09a_ckpt_best.pt"
         ;;
-    surgery_3stage_DI|surgery_noDI|surgery_3stage_DI_head|surgery_noDI_head)
+    surgery_3stage_DI_encoder|surgery_noDI_encoder|surgery_3stage_DI_head|surgery_noDI_head)
         FULL_CKPT="${OUT_DIR}/m09c_ckpt_best.pt"
         ;;
 esac

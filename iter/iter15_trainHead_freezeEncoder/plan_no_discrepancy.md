@@ -311,7 +311,7 @@ def train(cfg, args):
 - 🆕 **Hook contract MUST expose** (driven by Phase-0 outcome):
   - `teacher_mode: {"EMA", "FROZEN"}` + separate `teacher_forward()` (action item 1️⃣ in plan_surgery_wins.md)
   - `head_only_step` mode that skips backbone gradient (action item 2️⃣ LP-FT)
-  - `aux_data_iter` slot for pretrain-replay batches (action item 5️⃣ CLEAR)
+  - `aux_data_iter` slot for pretrain_encoder-replay batches (action item 5️⃣ CLEAR)
   - Scheduled `momentum_schedule(step)` instead of fixed τ (action item 6️⃣)
   - Optional `mask_volume` arg in `compute_jepa_loss` for saliency weighting (action item 7️⃣)
 - ➕ Add SPD optimizer wrapper (action item 4️⃣)
@@ -322,22 +322,22 @@ def train(cfg, args):
 - 🅰️ Refactor m09a's `train()` to call `run_training_loop`
 - 📦 Keep all `_m09a_*` hook bodies in `m09a_pretrain.py`
 - 🚦 **Gate**:
-  - ✅ SANITY pretrain_2X passes (1 step)
-  - ✅ POC pretrain_2X postrefactor produces **18-file output list** identical to current POC v1 (modulo timestamps)
+  - ✅ SANITY pretrain_2X_encoder passes (1 step)
+  - ✅ POC pretrain_2X_encoder postrefactor produces **18-file output list** identical to current POC v1 (modulo timestamps)
   - ✅ `probe_top1` within **±0.5 pp** of current POC v1 final (0.4585) → must land in **[0.4535, 0.4635]**
 
 ### 🟡 Phase C — Migrate m09c (Higher Risk; Multi-Stage 🅲) + recipe-v2 baked in
 - 🅲 Refactor m09c's `train()` to call `run_training_loop` with `stages=cfg["surgery"]["stages"]`
 - 📦 Keep `_m09c_*` hook bodies in `m09c_surgery.py`
 - 🆕 **Wire recipe-v2 actions into m09c's hook bindings**:
-  - 1️⃣ Frozen teacher: `state["teacher_mode"] = "FROZEN"` + load v12 pretrain encoder as static target
+  - 1️⃣ Frozen teacher: `state["teacher_mode"] = "FROZEN"` + load v12 pretrain_encoder encoder as static target
   - 2️⃣ LP-FT: prepend Stage 0 (head-only, 0.5 ep) to `cfg["surgery"]["stages"]`
   - 3️⃣ Surgical layer subset: yaml change — Stage 1 unfreeze 0–3, Stage 2/3 unfreeze 0–7
   - 5️⃣ Replay: `_m09c_on_stage_begin` hooks builds 50/50 factor + raw-video iterator
   - 8️⃣ Unified warmup: scheduler factory takes total budget, not per-stage
 - 🚦 **Gate**:
-  - ✅ SANITY surgery_3stage_DI + surgery_noDI **both** pass
-  - ✅ POC surgery_3stage_DI postrefactor produces **18 files** matching m09a's set (modulo `m09a_*` → `m09c_*` prefix)
+  - ✅ SANITY surgery_3stage_DI_encoder + surgery_noDI_encoder **both** pass
+  - ✅ POC surgery_3stage_DI_encoder postrefactor produces **18 files** matching m09a's set (modulo `m09a_*` → `m09c_*` prefix)
   - ✅ Stage 1 `probe_top1` within **±0.5 pp** of current POC v3 final (0.7449) → must land in **[0.6949, 0.7949]** *(this gate is for refactor parity; recipe-v2 IMPROVEMENT is verified in Phase D)*
 
 ### 🟤 Phase E (NEW, 2026-05-09) — Move shell-side bootstrap into m09a/m09c (truly thin shells)
@@ -475,10 +475,10 @@ def train(cfg, args):
 ---
 
 ### 🔴 Phase D — Verify FULL Eligibility + recipe-v2 paper-goal POC
-- 🧪 Run full POC suite (pretrain_2X + surgery_3stage_DI + surgery_noDI + eval)
+- 🧪 Run full POC suite (pretrain_2X_encoder + surgery_3stage_DI_encoder + surgery_noDI_encoder + eval)
 - ✅ Confirm every divergence flagged in audits is now structurally absent
 - 🆕 **Recipe-v2 paper-goal POC** (re-runs Phase 0's frozen+LP-FT cell, but on the refactored code path):
-  - 🎯 Acceptance: surgery POC trio top-1 reaches **≥ 0.808** (the v12 pretrain anchor) by stage 1 → unblocks FULL surgery (action items 🔟 → 1️⃣3️⃣ in plan_surgery_wins.md)
+  - 🎯 Acceptance: surgery POC trio top-1 reaches **≥ 0.808** (the v12 pretrain_encoder anchor) by stage 1 → unblocks FULL surgery (action items 🔟 → 1️⃣3️⃣ in plan_surgery_wins.md)
   - ⛔ If still regresses despite Phase A hooks being correct → fall back to Path 2 (relax m10 thresholds, action item 1️⃣2️⃣)
 - 🚦 **Gate**:
   - ✅ All 4 POC commands pass
@@ -493,17 +493,17 @@ def train(cfg, args):
 
 ### 🟢 Phase B verify (m09a only)
 ```bash
-CACHE_POLICY_ALL=2 ./scripts/run_train.sh pretrain_2X --SANITY 2>&1 | tee logs/iter14_sanity_pretrain_2X_postrefactor.log
-CACHE_POLICY_ALL=2 ./scripts/run_train.sh pretrain_2X --POC 2>&1 | tee logs/iter14_poc_pretrain_2X_postrefactor.log
+CACHE_POLICY_ALL=2 ./scripts/run_train.sh pretrain_2X_encoder --SANITY 2>&1 | tee logs/iter14_sanity_pretrain_2X_postrefactor.log
+CACHE_POLICY_ALL=2 ./scripts/run_train.sh pretrain_2X_encoder --POC 2>&1 | tee logs/iter14_poc_pretrain_2X_postrefactor.log
 # 👀 Compare new vs old POC v1: file list, training_summary.json key set, final probe_top1 within ±0.5 pp
 ```
 
 ### 🟡 Phase C verify (m09c surgery)
 ```bash
-CACHE_POLICY_ALL=2 ./scripts/run_train.sh surgery_3stage_DI --SANITY 2>&1 | tee logs/iter14_sanity_surgery_3stage_DI_postrefactor.log
-CACHE_POLICY_ALL=2 ./scripts/run_train.sh surgery_noDI      --SANITY 2>&1 | tee logs/iter14_sanity_surgery_noDI_postrefactor.log
-CACHE_POLICY_ALL=2 ./scripts/run_train.sh surgery_3stage_DI --POC    2>&1 | tee logs/iter14_poc_surgery_3stage_DI_postrefactor.log
-CACHE_POLICY_ALL=2 ./scripts/run_train.sh surgery_noDI      --POC    2>&1 | tee logs/iter14_poc_surgery_noDI_postrefactor.log
+CACHE_POLICY_ALL=2 ./scripts/run_train.sh surgery_3stage_DI_encoder --SANITY 2>&1 | tee logs/iter14_sanity_surgery_3stage_DI_postrefactor.log
+CACHE_POLICY_ALL=2 ./scripts/run_train.sh surgery_noDI_encoder      --SANITY 2>&1 | tee logs/iter14_sanity_surgery_noDI_postrefactor.log
+CACHE_POLICY_ALL=2 ./scripts/run_train.sh surgery_3stage_DI_encoder --POC    2>&1 | tee logs/iter14_poc_surgery_3stage_DI_postrefactor.log
+CACHE_POLICY_ALL=2 ./scripts/run_train.sh surgery_noDI_encoder      --POC    2>&1 | tee logs/iter14_poc_surgery_noDI_postrefactor.log
 ```
 
 ### 🔴 Phase D parity check

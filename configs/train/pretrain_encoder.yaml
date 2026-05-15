@@ -21,8 +21,8 @@
 # Consumed by probe eval as encoder=vjepa_2_1_pretrain_encoder.
 #
 # USAGE:
-#   ./scripts/run_train.sh pretrain --SANITY     # 24 GB validation
-#   ./scripts/run_train.sh pretrain --FULL       # 96 GB
+#   ./scripts/run_train.sh pretrain_encoder --SANITY     # 24 GB validation
+#   ./scripts/run_train.sh pretrain_encoder --FULL       # 96 GB
 #
 # Or direct (advanced):
 #   python -u src/m09a1_pretrain_encoder.py --SANITY \

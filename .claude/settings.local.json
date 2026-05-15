@@ -139,7 +139,8 @@
       "Bash(grep -nB1 -A8 \"resolve_encoder_state_dict\\\\|target_encoder.*get\\\\|target_encoder.*resolve\" src/probe_future_mse.py src/utils/frozen_features.py)",
       "Bash(grep -nB2 -A5 \"stage5-cleanup\\\\|features_test\\\\|clip_keys_test\" scripts/run_eval.sh)",
       "Bash(grep -nB1 -A5 \"lazy-extract\\\\|missing splits on disk\\\\|features_train\\\\|features_val\" src/probe_action.py)",
-      "Bash(bash -n scripts/run_eval.sh)"
+      "Bash(bash -n scripts/run_eval.sh)",
+      "Bash(grep -rnE \"run_train\\\\.sh \\(pretrain|pretrain_2X|surgery_3stage_DI|surgery_noDI\\)\\( |\\\\s\\)*\\(--|2>|$\\)\" scripts/ src/ iter/iter15_trainHead_freezeEncoder/runbook.md configs/)"
     ]
   }
 }
