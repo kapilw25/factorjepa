@@ -2,7 +2,7 @@
 #
 # Trains m09a1_pretrain_encoder.py for 5 epochs on the train-split keys produced by
 # probe Stage 1 (action_labels.json), with a strong L2 anchor to Meta's weights.
-# Output checkpoint feeds probe eval as encoder = vjepa_2_1_pretrain.
+# Output checkpoint feeds probe eval as encoder = vjepa_2_1_pretrain_encoder.
 #
 # Differs from ch10_pretrain.yaml by:
 #   1. lr 1e-6 → 1e-5 (10× higher than ch10's failed value; 10× lower than
@@ -18,7 +18,7 @@
 #      (run_train.sh extracts train-split keys from action_labels.json)
 #
 # Output: outputs/<mode>/m09a1_pretrain_encoder/{m09a_ckpt_best.pt, student_encoder.pt}
-# Consumed by probe eval as encoder=vjepa_2_1_pretrain.
+# Consumed by probe eval as encoder=vjepa_2_1_pretrain_encoder.
 #
 # USAGE:
 #   ./scripts/run_train.sh pretrain --SANITY     # 24 GB validation
@@ -180,8 +180,12 @@ motion_aux:
     sanity: true                              # validate code path on 24 GB
     poc:    true
     full:   true                              # the actual research run
-  motion_features_path: data/eval_10k_local/m04d_motion_features/motion_features.npy
-  action_labels_path:   outputs/full/probe_action/action_labels.json
+  # iter15 Phase 5 V2 (2026-05-15): motion_features_path + action_labels_path
+  # arrive exclusively via run_train.sh CLI (--motion-features-path +
+  # --probe-action-labels). Removed yaml hardcoded defaults per CLAUDE.md
+  # "No DEFAULT, no hardcoded paths" — yaml outputs/full/... value silently
+  # mis-routed SANITY/POC modes (which write action_labels.json to
+  # outputs/sanity/ or outputs/poc/).
   weight_motion: 0.1                          # λ_motion (motion_aux total weight in L_total)
   weight_ce:     1.0                          # w_ce branch weight
   weight_mse:    1.0                          # w_mse branch weight

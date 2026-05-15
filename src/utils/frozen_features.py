@@ -106,6 +106,26 @@ def resolve_encoder_state_dict(ckpt: dict) -> dict:
     return ckpt
 
 
+def resolve_predictor_state_dict(ckpt: dict) -> dict:
+    """Pick the predictor state_dict from a V-JEPA-style checkpoint.
+
+    Single source of truth for predictor ckpt-key dispatch — mirrors
+    resolve_encoder_state_dict above. Recognized schemas:
+      - "predictor"             — Meta's V-JEPA 2.1 frozen ckpt
+      - "predictor_state_dict"  — written by utils.training.save_training_checkpoint
+                                  (m09{a,c}_ckpt_best.pt — incl. iter15 head-only
+                                  exports which carry predictor+motion_aux head)
+
+    FAIL LOUD on neither: returns nothing, caller asserts.
+    iter15 Phase 5 V6 fix (2026-05-15): added because probe_future_mse Stage 8
+    failed on m09a2/c2 head-only ckpts (which use _state_dict suffix).
+    """
+    for key in ("predictor", "predictor_state_dict"):
+        if key in ckpt:
+            return ckpt[key]
+    return None
+
+
 def load_vjepa_2_1_frozen(ckpt_path: Path, num_frames: int):
     """V-JEPA 2.1 ViT-G frozen. Mirrors m05_vjepa_embed.py:629-670.
     Returns (model, crop=384, embed_dim=1664).

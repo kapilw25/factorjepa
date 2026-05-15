@@ -50,9 +50,9 @@ COLORS = {
 ENCODER_COLORS = {
     "vjepa": "#1565C0",                       # generic fallback (legacy)
     "vjepa_2_1_frozen":              "#1565C0",   # blue — baseline anchor
-    "vjepa_2_1_pretrain":            "#D81B60",   # magenta — continual SSL
-    "vjepa_2_1_surgical_3stage_DI":  "#5E35B1",   # deep indigo — surgery WITH D_I
-    "vjepa_2_1_surgical_noDI":       "#00ACC1",   # cyan — surgery WITHOUT D_I
+    "vjepa_2_1_pretrain_encoder":            "#D81B60",   # magenta — continual SSL
+    "vjepa_2_1_surgical_3stage_DI_encoder":  "#5E35B1",   # deep indigo — surgery WITH D_I
+    "vjepa_2_1_surgical_noDI_encoder":       "#00ACC1",   # cyan — surgery WITHOUT D_I
     "random": "#9E9E9E",
     "dinov2": "#2E7D32",
     "clip": "#E65100",

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# iter13 probe encoder trainer — produces vjepa_2_1_pretrain (P2) + vjepa_2_1_surgical (P3)
+# iter13 probe encoder trainer — produces vjepa_2_1_pretrain_encoder (P2) + vjepa_2_1_surgical (P3)
 # checkpoints that scripts/run_eval.sh consumes for the 4-encoder paired-Δ
 # action-probe gate. Mirrors the run_train.sh / run_eval.sh split (iter11 v2).
 #
@@ -226,21 +226,21 @@ fi
 # ── Dispatch ──────────────────────────────────────────────────────────────
 case "$SUBCMD" in
     pretrain|pretrain_2X)
-        # iter13 v12+ (2026-05-06): renamed probe_pretrain → m09a_pretrain to
+        # iter13 v12+ (2026-05-06): renamed probe_pretrain → m09a_pretrain_encoder to
         # match the source module's name (CLAUDE.md "m*.py = each module is
         # independent"). Mirror rename in run_eval.sh + yaml output_dir.
         # iter14 (2026-05-08): pretrain_2X shares pretrain_encoder.yaml (no new
-        # yamls) but writes to m09a_pretrain_2X/ + passes --max-epochs 10 for
+        # yamls) but writes to m09a_pretrain_2X_encoder/ + passes --max-epochs 10 for
         # FULL only (G1=🅰️ "5+5 vs 10"). Arm A = 5 ep (yaml's max_epochs.full);
         # Arm C = 10 ep via CLI override.
         if [ "$SUBCMD" = "pretrain_2X" ]; then
-            OUT_DIR="outputs/${mode_dir}/m09a_pretrain_2X"
+            OUT_DIR="outputs/${mode_dir}/m09a_pretrain_2X_encoder"
             EPOCHS_OVERRIDE_FLAG=""
             if [ "$MODE" = "FULL" ]; then
                 EPOCHS_OVERRIDE_FLAG="--max-epochs 10"   # iter14 G1=🅰️
             fi
         else
-            OUT_DIR="outputs/${mode_dir}/m09a_pretrain"
+            OUT_DIR="outputs/${mode_dir}/m09a_pretrain_encoder"
             EPOCHS_OVERRIDE_FLAG=""
         fi
         TRAIN_CFG="configs/train/pretrain_encoder.yaml"
@@ -426,6 +426,7 @@ case "$SUBCMD" in
             --output-dir "$OUT_DIR" \
             --cache-policy "$P_M09" \
             --init-from-ckpt "$PRETRAIN_HF_URI" \
+            --probe-action-labels "outputs/${mode_dir}/probe_action/action_labels.json" \
             --motion-features-path "${LOCAL_DATA}/m04d_motion_features/motion_features.npy" \
             "${TAXONOMY_ARGS[@]}" \
             "${RECIPE_V2_ARGS[@]}" \
@@ -489,12 +490,14 @@ case "$SUBCMD" in
         echo "  output:    $OUT_DIR"
         echo "  contract:  all 48 ViT-G blocks + predictor FROZEN; trainable = motion_aux head"
         mkdir -p "$OUT_DIR"
+        # m09c2 derives factor_manifest from --local-data internally (see m09c2.py:284
+        # `manifest_path = Path(local_data) / "m11_factor_datasets" / "factor_manifest.json"`).
+        # Unlike m09c1 it doesn't accept --factor-dir CLI — StreamingFactorDataset-only path.
         python -u src/m09c2_surgery_head.py "${MODE_FLAG}" \
             --model-config "$MODEL_CFG" \
             --train-config "$TRAIN_CFG" \
             --subset "$TRAIN_SPLIT" --local-data "$LOCAL_DATA" \
             --val-subset "$VAL_SPLIT" --val-local-data "$LOCAL_DATA" \
-            --factor-dir "$FACTOR_DIR" \
             --output-dir "$OUT_DIR" \
             --cache-policy "$P_M09" \
             --probe-subset "outputs/${mode_dir}/probe_action/action_labels.json" \

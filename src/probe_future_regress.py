@@ -91,10 +91,10 @@ REGRESSOR_MLP_HIDDEN = 4096
 # at a time (the user picks via --variant).
 KNOWN_VARIANTS = (
     "vjepa_2_1_frozen",
-    "vjepa_2_1_pretrain",                       # iter14 m09a1 continual SSL (5 epochs)
-    "vjepa_2_1_pretrain_2X",                    # iter14 arm C — m09a1 at 10 epochs (Δ3 control)
-    "vjepa_2_1_surgical_3stage_DI",             # iter14 m09c1 D_I surgery
-    "vjepa_2_1_surgical_noDI",                  # iter14 m09c1 noDI surgery
+    "vjepa_2_1_pretrain_encoder",                       # iter14 m09a1 continual SSL (5 epochs)
+    "vjepa_2_1_pretrain_2X_encoder",                    # iter14 arm C — m09a1 at 10 epochs (Δ3 control)
+    "vjepa_2_1_surgical_3stage_DI_encoder",             # iter14 m09c1 D_I surgery
+    "vjepa_2_1_surgical_noDI_encoder",                  # iter14 m09c1 noDI surgery
     "vjepa_2_1_pretrain_head",                  # iter15 m09a2 head-only pretrain
     "vjepa_2_1_surgical_3stage_DI_head",        # iter15 m09c2 D_I head-only surgery
     "vjepa_2_1_surgical_noDI_head",             # iter15 m09c2 noDI head-only surgery
@@ -139,11 +139,18 @@ def _encode_window(model, clip_tensor: torch.Tensor, t_start: int, t_end: int,
                     device: torch.device, dtype) -> torch.Tensor:
     """Forward a frame window through the frozen encoder; mean-pool tokens → (D,).
 
-    `clip_tensor` is (C, T, H, W) on CPU; we slice T → [t_start:t_end] and run
-    one encoder forward under no_grad. Mean-pool over tokens to get a single
-    (embed_dim,) vector — matches probe_action's pooled-feature convention.
+    `clip_tensor` is (T, C, H, W) on CPU (per decode_to_tensor at
+    utils/frozen_features.py:178). We slice T → [t_start:t_end], batch +
+    permute to (1, C, t, H, W) which is what V-JEPA's patch_embed Conv3d
+    expects (mirrors utils/frozen_features.py:194 forward_vjepa + probe_
+    future_mse.py:237 baselines). Mean-pool over tokens → (embed_dim,).
+
+    iter15 Phase 5 V5 fix (2026-05-15): prior code sliced clip_tensor[:,
+    t_start:t_end] assuming (C, T, H, W) layout and omitted the permute,
+    sending (1, T, C, H, W) to the encoder → conv3d sees 16 channels, fails.
+    Same Phase-2 cosmetic-rewrite bug class as m09a2/c2 #7.
     """
-    window = clip_tensor[:, t_start:t_end].unsqueeze(0).to(device)  # (1, C, t, H, W)
+    window = clip_tensor[t_start:t_end].unsqueeze(0).permute(0, 2, 1, 3, 4).contiguous().to(device)
     with torch.no_grad(), torch.amp.autocast("cuda", dtype=dtype):
         feats = model(window)                                       # (1, N_tokens, D)
         if feats.dim() == 3 and feats.shape[-1] != EMBED_DIM:

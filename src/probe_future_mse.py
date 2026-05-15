@@ -53,6 +53,7 @@ from utils.data_download import ensure_local_data, iter_clips_parallel
 from utils.frozen_features import (
     decode_to_tensor,
     resolve_encoder_state_dict,
+    resolve_predictor_state_dict,
 )
 from utils.gpu_batch import AdaptiveBatchSizer, cleanup_temp, cuda_cleanup
 from utils.cgroup_monitor import print_cgroup_header, start_oom_watchdog
@@ -94,9 +95,15 @@ DEFAULT_NUM_BLOCKS = 8
 # ExPLoRA was dropped per iter13 pivot — see plan_code_dev.md §"P2 + P3 Coding plan".
 KNOWN_VARIANTS = (
     "vjepa_2_1_frozen",
-    "vjepa_2_1_pretrain",            # P2 — m09a continual SSL pretrain
-    "vjepa_2_1_surgical_3stage_DI",  # P3-A — m09c 3-stage WITH interaction tubes (D_I)
-    "vjepa_2_1_surgical_noDI",       # P3-B — m09c 2-stage WITHOUT D_I (skepticism test)
+    "vjepa_2_1_pretrain_encoder",                       # P2 — m09a1 continual SSL pretrain
+    "vjepa_2_1_surgical_3stage_DI_encoder",             # P3-A — m09c1 3-stage WITH interaction tubes (D_I)
+    "vjepa_2_1_surgical_noDI_encoder",                  # P3-B — m09c1 2-stage WITHOUT D_I (skepticism test)
+    # iter15 Phase 2 (2026-05-14) — head-only siblings: encoder bit-identical to
+    # Meta init; only the ~432K motion_aux head trains. Used by Stage 8 future_mse
+    # alongside their encoder-update counterparts for the Δ4-Δ7 paired-BCa deltas.
+    "vjepa_2_1_pretrain_head",                  # iter15 m09a2 head-only pretrain
+    "vjepa_2_1_surgical_3stage_DI_head",        # iter15 m09c2 D_I head-only surgery
+    "vjepa_2_1_surgical_noDI_head",             # iter15 m09c2 noDI head-only surgery
 )
 
 
@@ -153,8 +160,9 @@ def _load_predictor_2_1(ckpt_path: Path, num_frames: int):
     if not ckpt_path.exists():
         sys.exit(f"FATAL: predictor ckpt not found: {ckpt_path}")
     ckpt = torch.load(ckpt_path, map_location="cpu", weights_only=False)
-    if "predictor" not in ckpt:
-        sys.exit("FATAL: ckpt has no 'predictor' key — V-JEPA 2.1 official ckpt should include it. "
+    pred_dict = resolve_predictor_state_dict(ckpt)
+    if pred_dict is None:
+        sys.exit("FATAL: ckpt has no 'predictor' or 'predictor_state_dict' key. "
                  f"Top-level keys: {list(ckpt.keys())[:6]}")
 
     pred_constructor = get_vit_predictor_2_1()
@@ -179,7 +187,7 @@ def _load_predictor_2_1(ckpt_path: Path, num_frames: int):
         return_all_tokens=True,                              # V-JEPA 2.1 dense path
     )
     pred_state = {k.replace("module.", "").replace("backbone.", ""): v
-                  for k, v in ckpt["predictor"].items()}
+                  for k, v in pred_dict.items()}
     msg = predictor.load_state_dict(pred_state, strict=False)
     pred_total = len(list(predictor.state_dict().keys()))
     pred_loaded = pred_total - len(msg.missing_keys)

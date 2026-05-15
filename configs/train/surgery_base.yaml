@@ -305,8 +305,10 @@ motion_aux:
     sanity: true
     poc:    true
     full:   true
-  motion_features_path: data/eval_10k_local/m04d_motion_features/motion_features.npy
-  action_labels_path:   outputs/full/probe_action/action_labels.json
+  # iter15 Phase 5 V2 (2026-05-15): motion_features_path + action_labels_path
+  # arrive exclusively via run_train.sh CLI (--motion-features-path +
+  # --probe-action-labels). Removed yaml hardcoded defaults per CLAUDE.md
+  # "No DEFAULT, no hardcoded paths". See pretrain_encoder.yaml for full note.
   weight_motion: 0.1
   weight_ce:     1.0
   weight_mse:    1.0

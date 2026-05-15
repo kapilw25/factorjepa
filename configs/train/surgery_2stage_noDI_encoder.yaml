@@ -25,8 +25,8 @@
 extends: surgery_base.yaml
 
 data:
-  adapted_encoder: vjepa_2_1_surgical_noDI           # unique per-variant — m05/m06 outputs don't collide across surgery variants (dynamic suffix via get_encoder_info)
-  output_dir: outputs/full/m09c_surgery_noDI    # auto-overridden by run_train.sh
+  adapted_encoder: vjepa_2_1_surgical_noDI_encoder           # unique per-variant — m05/m06 outputs don't collide across surgery variants (dynamic suffix via get_encoder_info)
+  output_dir: outputs/full/m09c_surgery_noDI_encoder    # auto-overridden by run_train.sh
 
 # -- Surgery: 2-stage progressive prefix unfreezing (D_L + D_A only) --
 # iter9 2-stage recipe (landed 2026-04-20 per plan_TODO.md:115). D_I factor still

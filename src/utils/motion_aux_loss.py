@@ -266,19 +266,28 @@ def merge_motion_aux_config(cfg: dict, args, mode_key: str) -> None:
           head: {hidden_dim:int, dropout:float}
           head_lr_multiplier: <float>
 
-    CLI overrides:
+    CLI args (REQUIRED — argparse `required=True` per CLAUDE.md FAIL LOUD):
       --motion-features-path <path>  → cfg['motion_aux']['motion_features_path']
+      --probe-action-labels <path>   → cfg['motion_aux']['action_labels_path']
+
+    CLI override flags (optional):
       --no-motion-aux                → cfg['motion_aux']['enabled'] = False
 
     No-op when cfg has no `motion_aux` block.
+
+    iter15 Phase 5 V2 fix (2026-05-15): both path args are now required-by-
+    argparse and yaml hardcoded values were removed (pretrain_encoder.yaml +
+    surgery_base.yaml). run_train.sh:276/277/429/430/458/459/503/504 wires
+    the mode-gated values. Direct args.X access — no getattr() fallback per
+    CLAUDE.md "No `getattr(args, key, default)`".
     """
     if "motion_aux" not in cfg:
         return
     ma_cfg = cfg["motion_aux"]
     if isinstance(ma_cfg.get("enabled"), dict):
         ma_cfg["enabled"] = ma_cfg["enabled"][mode_key]
-    if getattr(args, "motion_features_path", None):
-        ma_cfg["motion_features_path"] = str(args.motion_features_path)
+    ma_cfg["motion_features_path"] = str(args.motion_features_path)
+    ma_cfg["action_labels_path"] = str(args.probe_action_labels)
     if getattr(args, "no_motion_aux", False):
         ma_cfg["enabled"] = False
 

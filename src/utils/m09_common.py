@@ -98,9 +98,10 @@ def add_m09_common_args(parser, *, require_val_data: bool = False) -> None:
                         help="Local WebDataset dir for probe clips (overrides cfg.probe.local_data).")
     parser.add_argument("--probe-tags", type=str, default=None,
                         help="Path to tags.json for probe clips (overrides cfg.probe.tags_path).")
-    parser.add_argument("--probe-action-labels", type=str, default=None,
-                        help="Path to action_labels.json (default: derive from "
-                             "outputs/<mode>/probe_action/action_labels.json).")
+    parser.add_argument("--probe-action-labels", type=str, required=True,
+                        help="Path to action_labels.json. FAIL LOUD per CLAUDE.md "
+                             "'No DEFAULT' — pass outputs/<mode>/probe_action/"
+                             "action_labels.json (run_train.sh wires this).")
     parser.add_argument("--no-probe", action="store_true",
                         help="Force-disable mid-training probe (overrides cfg.probe.enabled).")
     # Multi-task probe-head supervision (16-dim taxonomy CE+BCE).
@@ -111,9 +112,11 @@ def add_m09_common_args(parser, *, require_val_data: bool = False) -> None:
                         help="Force-disable multi-task probe-head supervision "
                              "(overrides cfg.multi_task_probe.enabled).")
     # Motion_aux loss (joint K-class CE + 13-D MSE on RAFT-flow features).
-    parser.add_argument("--motion-features-path", type=Path, default=None,
-                        help="Path to m04d motion_features.npy (overrides "
-                             "cfg.motion_aux.motion_features_path).")
+    parser.add_argument("--motion-features-path", type=Path, required=True,
+                        help="Path to m04d motion_features.npy. FAIL LOUD per "
+                             "CLAUDE.md 'No DEFAULT' — pass "
+                             "<local_data>/m04d_motion_features/motion_features.npy "
+                             "(run_train.sh wires this).")
     parser.add_argument("--no-motion-aux", action="store_true",
                         help="Force-disable motion_aux supervised loss "
                              "(overrides cfg.motion_aux.enabled).")

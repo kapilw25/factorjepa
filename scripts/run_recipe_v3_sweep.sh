@@ -70,7 +70,7 @@ CELLS=(
 
 VARIANT=surgery_3stage_DI
 LOG_DIR=logs
-OUT_BASE="outputs/${mode_dir}/m09c_surgery_3stage_DI"
+OUT_BASE="outputs/${mode_dir}/m09c_surgery_3stage_DI_encoder"
 
 echo "════════════════════════════════════════════════════════════"
 echo "🧬 Recipe-v3 sweep · MODE=${SWEEP_MODE} (${MODE_FLAG})"

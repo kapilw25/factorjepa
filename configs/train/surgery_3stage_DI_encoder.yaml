@@ -28,8 +28,8 @@
 extends: surgery_base.yaml
 
 data:
-  adapted_encoder: vjepa_2_1_surgical_3stage_DI      # unique per-variant — m05/m06 outputs don't collide across surgery variants (dynamic suffix via get_encoder_info)
-  output_dir: outputs/full/m09c_surgery_3stage_DI    # auto-overridden by run_train.sh
+  adapted_encoder: vjepa_2_1_surgical_3stage_DI_encoder      # unique per-variant — m05/m06 outputs don't collide across surgery variants (dynamic suffix via get_encoder_info)
+  output_dir: outputs/full/m09c_surgery_3stage_DI_encoder    # auto-overridden by run_train.sh
 
 # -- Interaction mining: re-enable D_I (only variant that consumes interaction tubes) --
 interaction_mining:

@@ -47,7 +47,7 @@ def _display_label(enc: str) -> str:
     """Human-readable encoder name for plot legends. Falls back to enc verbatim."""
     return {
         "vjepa_2_1_frozen":   "V-JEPA 2.1 frozen",
-        "vjepa_2_1_pretrain": "V-JEPA 2.1 pretrain",
+        "vjepa_2_1_pretrain_encoder": "V-JEPA 2.1 pretrain",
         "vjepa_2_1_surgical": "V-JEPA 2.1 surgical",
         "dinov2":             "DINOv2 frozen",
     }.get(enc, enc.replace("_", " "))

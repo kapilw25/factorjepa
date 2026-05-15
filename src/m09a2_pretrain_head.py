@@ -36,7 +36,9 @@ import argparse
 import gc
 import json
 import queue
+import shutil
 import sys
+import tempfile
 import threading
 import time
 from pathlib import Path
@@ -68,6 +70,7 @@ from utils.training import (
     load_config, producer_thread,
     build_optimizer, build_scheduler,
     assert_encoder_frozen, export_student_for_eval,
+    augment_clip_consistent,
 )
 from utils.motion_aux_loss import (
     build_motion_aux_head_from_cfg,
@@ -239,9 +242,17 @@ def build_model(cfg: dict, device: torch.device) -> dict:
 def _compute_val_motion_aux_loss(student, ma_head, ma_cfg, ma_lookup,
                                   val_keys, val_local_data, cfg, device,
                                   dtype) -> float:
-    """One-pass val motion_aux loss over val_keys. Returns mean loss (float)."""
+    """One-pass val motion_aux loss over val_keys. Returns mean loss (float).
+
+    iter15 Phase 5 V2 fix (2026-05-15): mirrors m09a1:583-611 val pipeline —
+    decode_video_bytes(mp4, tmp_dir, key, num_frames) returns variable-shape
+    tensor; augment_clip_consistent then standardizes to (T, C, crop_size,
+    crop_size) ImageNet-normalized so torch.stack() succeeds. _val_tmp dir is
+    scoped to this single function call via try/finally cleanup (no shared
+    long-lived tmpfs handle — avoids #80-class tmpfs degradation).
+    """
     # Lazy import to avoid pulling video_io at module load on a CPU-only lint pass.
-    from utils.video_io import create_stream
+    from utils.video_io import create_stream, decode_video_bytes, get_clip_key
     ma_head.eval()
     student.eval()
     total_loss = 0.0
@@ -254,25 +265,41 @@ def _compute_val_motion_aux_loss(student, ma_head, ma_cfg, ma_lookup,
     batch_size = cfg["optimization"]["batch_size"]
     num_frames = cfg["data"]["num_frames"]
     mp_cfg = cfg["mixed_precision"]
-    from utils.video_io import decode_video_bytes, get_clip_key
-    for example in ds:
-        k = get_clip_key(example)
-        if k not in val_keys_set:
-            continue
-        mp4 = example.get("mp4", b"")
-        mp4_bytes = mp4["bytes"] if isinstance(mp4, dict) else mp4
-        if isinstance(mp4_bytes, str):
-            mp4_bytes = mp4_bytes.encode()
-        if not mp4_bytes or len(mp4_bytes) < 1000:
-            continue
-        clip = decode_video_bytes(mp4_bytes, num_frames=num_frames,
-                                    crop_size=cfg["model"]["crop_size"])
-        if clip is None:
-            continue
-        batch_clips.append(clip)
-        batch_keys.append(k)
-        if len(batch_clips) >= batch_size:
-            clips_tensor = torch.stack(batch_clips).to(device)
+    _val_tmp = tempfile.mkdtemp(prefix="m09a2_val_")
+    try:
+        for example in ds:
+            k = get_clip_key(example)
+            if k not in val_keys_set:
+                continue
+            mp4 = example.get("mp4", b"")
+            mp4_bytes = mp4["bytes"] if isinstance(mp4, dict) else mp4
+            if isinstance(mp4_bytes, str):
+                mp4_bytes = mp4_bytes.encode()
+            if not mp4_bytes or len(mp4_bytes) < 1000:
+                continue
+            clip = decode_video_bytes(mp4_bytes, _val_tmp, k, num_frames)
+            if clip is None:
+                continue
+            clip = augment_clip_consistent(clip, cfg["augmentation"],
+                                            cfg["data"]["crop_size"])
+            batch_clips.append(clip)
+            batch_keys.append(k)
+            if len(batch_clips) >= batch_size:
+                # (T, C, H, W) per clip → stack (B, T, C, H, W) → permute (B, C, T, H, W)
+                # matches utils/training.py:160 producer + m09a1:603/609 val pattern.
+                clips_tensor = torch.stack(batch_clips).permute(0, 2, 1, 3, 4).to(device)
+                with torch.no_grad():
+                    loss_val, _ = run_motion_aux_step(
+                        student, ma_head, ma_cfg, ma_lookup,
+                        clips_tensor, batch_keys, scaler=None,
+                        mp_cfg=mp_cfg, dtype=dtype, device=device,
+                    )
+                total_loss += float(loss_val) * len(batch_keys)
+                total_n += len(batch_keys)
+                batch_clips, batch_keys = [], []
+        # Flush remainder
+        if batch_clips:
+            clips_tensor = torch.stack(batch_clips).permute(0, 2, 1, 3, 4).to(device)
             with torch.no_grad():
                 loss_val, _ = run_motion_aux_step(
                     student, ma_head, ma_cfg, ma_lookup,
@@ -281,18 +308,8 @@ def _compute_val_motion_aux_loss(student, ma_head, ma_cfg, ma_lookup,
                 )
             total_loss += float(loss_val) * len(batch_keys)
             total_n += len(batch_keys)
-            batch_clips, batch_keys = [], []
-    # Flush remainder
-    if batch_clips:
-        clips_tensor = torch.stack(batch_clips).to(device)
-        with torch.no_grad():
-            loss_val, _ = run_motion_aux_step(
-                student, ma_head, ma_cfg, ma_lookup,
-                clips_tensor, batch_keys, scaler=None,
-                mp_cfg=mp_cfg, dtype=dtype, device=device,
-            )
-        total_loss += float(loss_val) * len(batch_keys)
-        total_n += len(batch_keys)
+    finally:
+        shutil.rmtree(_val_tmp, ignore_errors=True)
     ma_head.train()
     if total_n == 0:
         print("FATAL: val cycle saw 0 clips — val_subset / val_local_data mismatch?")
@@ -307,7 +324,7 @@ def train(cfg: dict, args) -> None:
     start_oom_watchdog(prefix="[m09a2]-oom-watchdog")
     device = torch.device("cuda")
 
-    seed = cfg["optimization"]["seed"]
+    seed = cfg["data"]["seed"]
     torch.manual_seed(seed)
     np.random.seed(seed)
 
@@ -321,7 +338,13 @@ def train(cfg: dict, args) -> None:
 
     # Mode-gated action_labels.json must exist (motion_aux's CE branch needs it).
     mode_key = "sanity" if args.SANITY else ("poc" if args.POC else "full")
-    ensure_probe_labels_for_mode(args, mode_key)
+    mode_flag = "--SANITY" if args.SANITY else ("--POC" if args.POC else "--FULL")
+    ensure_probe_labels_for_mode(
+        mode_flag=mode_flag,
+        project_root=Path(__file__).parent.parent,
+        cache_policy=args.cache_policy,
+        cfg=cfg,
+    )
 
     # === Build model (frozen encoder + frozen predictor) ===
     model_d = build_model(cfg, device)
@@ -348,7 +371,7 @@ def train(cfg: dict, args) -> None:
     head_params = sum(p.numel() for p in ma_head.parameters() if p.requires_grad)
     print(f"Trainable params: motion_aux head = {head_params:,} (~432K expected)")
 
-    max_epochs = opt_cfg["max_epochs"][mode_key]
+    max_epochs = opt_cfg["max_epochs"]
     batch_size = opt_cfg["batch_size"]
     n_train = len(train_keys)
     steps_per_epoch = max(1, (n_train + batch_size - 1) // batch_size)
@@ -361,6 +384,13 @@ def train(cfg: dict, args) -> None:
     # === Mixed-precision + AdaptiveBatchSizer (OOM safety on 24 GB) ===
     mp_cfg = cfg["mixed_precision"]
     dtype = torch.bfloat16 if mp_cfg["dtype"] == "bfloat16" else torch.float16
+    # iter15 Phase 5 V2 fix (2026-05-15): GradScaler is required for the
+    # motion_aux backward in run_motion_aux_step (scaler.scale(loss).backward()
+    # at motion_aux_loss.py:413 — unconditional once requires_grad=True).
+    # `enabled=use_scaler` makes it a no-op for bfloat16 (the default in
+    # base_optimization.yaml), but the object must exist. Mirrors m09a1:560-561.
+    use_scaler = mp_cfg["enabled"] and mp_cfg["dtype"] == "float16"
+    scaler = torch.amp.GradScaler("cuda", enabled=use_scaler)
     sizer = AdaptiveBatchSizer(
         initial_size=batch_size,
         min_size=1,
@@ -424,7 +454,7 @@ def train(cfg: dict, args) -> None:
                     # motion_aux: encoder forward (no_grad, frozen) → pooled feats → head → CE+MSE
                     loss_val, per_branch = run_motion_aux_step(
                         student, ma_head, ma_cfg, ma_lookup,
-                        batch_clips, batch_keys, scaler=None,
+                        batch_clips, batch_keys, scaler=scaler,
                         mp_cfg=mp_cfg, dtype=dtype, device=device,
                     )
                     optimizer.step()

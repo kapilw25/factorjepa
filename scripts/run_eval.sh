@@ -155,7 +155,7 @@ OUTPUT_MSE="${OUTPUT_MSE:-${DEFAULT_OUTPUT_PREFIX}/probe_future_mse}"
 OUTPUT_TAXONOMY="${OUTPUT_TAXONOMY:-${DEFAULT_OUTPUT_PREFIX}/probe_taxonomy}"
 OUTPUT_PLOTS="${OUTPUT_PLOTS:-${DEFAULT_OUTPUT_PREFIX}/probe_plot}"
 TAG_TAXONOMY="${TAG_TAXONOMY:-configs/tag_taxonomy.json}"
-ENCODERS="${ENCODERS:-vjepa_2_1_frozen vjepa_2_1_pretrain vjepa_2_1_pretrain_2X vjepa_2_1_surgical_3stage_DI vjepa_2_1_surgical_noDI vjepa_2_1_pretrain_head vjepa_2_1_surgical_3stage_DI_head vjepa_2_1_surgical_noDI_head}"
+ENCODERS="${ENCODERS:-vjepa_2_1_frozen vjepa_2_1_pretrain_encoder vjepa_2_1_pretrain_2X_encoder vjepa_2_1_surgical_3stage_DI_encoder vjepa_2_1_surgical_noDI_encoder vjepa_2_1_pretrain_head vjepa_2_1_surgical_3stage_DI_head vjepa_2_1_surgical_noDI_head}"
 SKIP_STAGES="${SKIP_STAGES:-}"
 NUM_FRAMES="${NUM_FRAMES:-16}"
 
@@ -191,43 +191,43 @@ MIN_PER_SPLIT="${MIN_PER_SPLIT:-$DEFAULT_MIN_PER_SPLIT}"
 
 # Per-encoder checkpoint resolvers. Two functions because Stages 2/3 (probe-head
 # training) need encoder-only ckpts, but Stage 8 (future_mse) also needs the
-# predictor. m09a_pretrain / m09c_surgery_* write BOTH artifacts:
+# predictor. m09a_pretrain_encoder / m09c_surgery_* write BOTH artifacts:
 #   - student_encoder.pt    : encoder only      (export_student_for_eval)
 #   - m09{a,c}_ckpt_best.pt : encoder+predictor (save_training_checkpoint full=True)
 # Surgery has TWO variants — 3stage_DI (with interaction tubes) and noDI (without)
 # — to test whether D_I helps; each writes its own dir.
-# iter13 v13 T2-rename (2026-05-07): probe_pretrain → m09a_pretrain,
+# iter13 v13 T2-rename (2026-05-07): probe_pretrain → m09a_pretrain_encoder,
 # probe_surgery_* → m09c_surgery_* (matches source-module naming + run_train.sh).
 encoder_ckpt_for() {                                            # encoder-only — Stages 2/3
     case "$1" in
         vjepa_2_1_frozen)                          echo "$ENCODER_CKPT" ;;
-        vjepa_2_1_pretrain)                        echo "${DEFAULT_OUTPUT_PREFIX}/m09a_pretrain/student_encoder.pt" ;;
-        vjepa_2_1_pretrain_2X)                     echo "${DEFAULT_OUTPUT_PREFIX}/m09a_pretrain_2X/student_encoder.pt" ;;     # iter14 arm C
-        vjepa_2_1_surgical_3stage_DI)              echo "${DEFAULT_OUTPUT_PREFIX}/m09c_surgery_3stage_DI/student_encoder.pt" ;;
-        vjepa_2_1_surgical_noDI)                   echo "${DEFAULT_OUTPUT_PREFIX}/m09c_surgery_noDI/student_encoder.pt" ;;
+        vjepa_2_1_pretrain_encoder)                        echo "${DEFAULT_OUTPUT_PREFIX}/m09a_pretrain_encoder/student_encoder.pt" ;;
+        vjepa_2_1_pretrain_2X_encoder)                     echo "${DEFAULT_OUTPUT_PREFIX}/m09a_pretrain_2X_encoder/student_encoder.pt" ;;     # iter14 arm C
+        vjepa_2_1_surgical_3stage_DI_encoder)              echo "${DEFAULT_OUTPUT_PREFIX}/m09c_surgery_3stage_DI_encoder/student_encoder.pt" ;;
+        vjepa_2_1_surgical_noDI_encoder)                   echo "${DEFAULT_OUTPUT_PREFIX}/m09c_surgery_noDI_encoder/student_encoder.pt" ;;
         # iter15 Phase 4 (2026-05-14): head-only variants — encoder is bit-identical
         # to Meta init (proven via assert_encoder_frozen in build_model); the only
         # thing that differs across variants is the motion_aux head. student_encoder.pt
         # is a COPY of Meta init for all 3 head variants.
         vjepa_2_1_pretrain_head)                   echo "${DEFAULT_OUTPUT_PREFIX}/m09a_pretrain_head/student_encoder.pt" ;;
-        vjepa_2_1_surgical_3stage_DI_head)         echo "${DEFAULT_OUTPUT_PREFIX}/m09c_surgery_3stage_DI_head/3stage_DI_head/student_encoder.pt" ;;
-        vjepa_2_1_surgical_noDI_head)              echo "${DEFAULT_OUTPUT_PREFIX}/m09c_surgery_noDI_head/noDI_head/student_encoder.pt" ;;
+        vjepa_2_1_surgical_3stage_DI_head)         echo "${DEFAULT_OUTPUT_PREFIX}/m09c_surgery_3stage_DI_head/student_encoder.pt" ;;
+        vjepa_2_1_surgical_noDI_head)              echo "${DEFAULT_OUTPUT_PREFIX}/m09c_surgery_noDI_head/student_encoder.pt" ;;
         *) echo "" ;;
     esac
 }
 encoder_predictor_ckpt_for() {                                  # encoder+predictor — Stage 8 future_mse
     case "$1" in
         vjepa_2_1_frozen)                          echo "$ENCODER_CKPT" ;;
-        vjepa_2_1_pretrain)                        echo "${DEFAULT_OUTPUT_PREFIX}/m09a_pretrain/m09a_ckpt_best.pt" ;;
-        vjepa_2_1_pretrain_2X)                     echo "${DEFAULT_OUTPUT_PREFIX}/m09a_pretrain_2X/m09a_ckpt_best.pt" ;;       # iter14 arm C
-        vjepa_2_1_surgical_3stage_DI)              echo "${DEFAULT_OUTPUT_PREFIX}/m09c_surgery_3stage_DI/m09c_ckpt_best.pt" ;;
-        vjepa_2_1_surgical_noDI)                   echo "${DEFAULT_OUTPUT_PREFIX}/m09c_surgery_noDI/m09c_ckpt_best.pt" ;;
+        vjepa_2_1_pretrain_encoder)                        echo "${DEFAULT_OUTPUT_PREFIX}/m09a_pretrain_encoder/m09a_ckpt_best.pt" ;;
+        vjepa_2_1_pretrain_2X_encoder)                     echo "${DEFAULT_OUTPUT_PREFIX}/m09a_pretrain_2X_encoder/m09a_ckpt_best.pt" ;;       # iter14 arm C
+        vjepa_2_1_surgical_3stage_DI_encoder)              echo "${DEFAULT_OUTPUT_PREFIX}/m09c_surgery_3stage_DI_encoder/m09c_ckpt_best.pt" ;;
+        vjepa_2_1_surgical_noDI_encoder)                   echo "${DEFAULT_OUTPUT_PREFIX}/m09c_surgery_noDI_encoder/m09c_ckpt_best.pt" ;;
         # iter15 Phase 4: head-only variants. Their ckpts include motion_aux_head_state_dict
         # alongside encoder+predictor. probe_future_mse (Meta predictor) is moot here —
         # Stage 9b probe_future_regress trains a separate regressor head per variant.
         vjepa_2_1_pretrain_head)                   echo "${DEFAULT_OUTPUT_PREFIX}/m09a_pretrain_head/m09a_ckpt_best.pt" ;;
-        vjepa_2_1_surgical_3stage_DI_head)         echo "${DEFAULT_OUTPUT_PREFIX}/m09c_surgery_3stage_DI_head/3stage_DI_head/m09c_ckpt_best.pt" ;;
-        vjepa_2_1_surgical_noDI_head)              echo "${DEFAULT_OUTPUT_PREFIX}/m09c_surgery_noDI_head/noDI_head/m09c_ckpt_best.pt" ;;
+        vjepa_2_1_surgical_3stage_DI_head)         echo "${DEFAULT_OUTPUT_PREFIX}/m09c_surgery_3stage_DI_head/m09c_ckpt_best.pt" ;;
+        vjepa_2_1_surgical_noDI_head)              echo "${DEFAULT_OUTPUT_PREFIX}/m09c_surgery_noDI_head/m09c_ckpt_best.pt" ;;
         *) echo "" ;;
     esac
 }
@@ -353,15 +353,15 @@ echo "────────────────────────�
 NEW_ENCODERS=""
 for ENC in $ENCODERS; do
     case "$ENC" in
-        vjepa_2_1_pretrain|vjepa_2_1_pretrain_2X|vjepa_2_1_surgical_3stage_DI|vjepa_2_1_surgical_noDI)
+        vjepa_2_1_pretrain_encoder|vjepa_2_1_pretrain_2X_encoder|vjepa_2_1_surgical_3stage_DI_encoder|vjepa_2_1_surgical_noDI_encoder)
             CKPT="$(encoder_ckpt_for "$ENC")"
             if [ ! -e "$CKPT" ]; then
                 echo "  ⚠️  $ENC: $CKPT not found — train via:"
                 case "$ENC" in
-                    vjepa_2_1_pretrain)            echo "       ./scripts/run_train.sh pretrain          --$MODE" ;;
-                    vjepa_2_1_pretrain_2X)       echo "       ./scripts/run_train.sh pretrain_2X     --$MODE" ;;
-                    vjepa_2_1_surgical_3stage_DI)  echo "       ./scripts/run_train.sh surgery_3stage_DI --$MODE" ;;
-                    vjepa_2_1_surgical_noDI)       echo "       ./scripts/run_train.sh surgery_noDI      --$MODE" ;;
+                    vjepa_2_1_pretrain_encoder)            echo "       ./scripts/run_train.sh pretrain          --$MODE" ;;
+                    vjepa_2_1_pretrain_2X_encoder)       echo "       ./scripts/run_train.sh pretrain_2X     --$MODE" ;;
+                    vjepa_2_1_surgical_3stage_DI_encoder)  echo "       ./scripts/run_train.sh surgery_3stage_DI --$MODE" ;;
+                    vjepa_2_1_surgical_noDI_encoder)       echo "       ./scripts/run_train.sh surgery_noDI      --$MODE" ;;
                 esac
                 echo "  → dropping $ENC from this run; pipeline continues with remaining encoders"
                 continue
@@ -385,7 +385,7 @@ echo "  → final ENCODERS: $ENCODERS"
 # Stages 2-7 use student_encoder.pt (encoder only); Stage 8 future_mse calls
 # probe_future_mse._load_predictor_2_1 which requires the "predictor" key —
 # present only in m09{a,c}_ckpt_best.pt (save_training_checkpoint full=True).
-# m09a's _best.pt was historically saved with full=False, so vjepa_2_1_pretrain
+# m09a's _best.pt was historically saved with full=False, so vjepa_2_1_pretrain_encoder
 # may have student_encoder.pt but NOT m09a_ckpt_best.pt → Stage 8 in-loop
 # FATAL'd in run_src_probe_sanity_v2.log line 778. Now: build a separate
 # STAGE8_ENCODERS subset, drop variants missing the predictor ckpt with a
@@ -407,10 +407,10 @@ for ENC in $ENCODERS; do
             vjepa_2_1_frozen)
                 echo "       (frozen variant uses Meta's ckpt which always carries the predictor —"
                 echo "        if this is missing, ENCODER_CKPT itself is wrong)" ;;
-            vjepa_2_1_pretrain)
+            vjepa_2_1_pretrain_encoder)
                 echo "       Re-train (m09a_ckpt_best.pt is written via save_training_checkpoint full=True):"
                 echo "         CACHE_POLICY_ALL=2 ./scripts/run_train.sh pretrain --$MODE" ;;
-            vjepa_2_1_pretrain_2X)
+            vjepa_2_1_pretrain_2X_encoder)
                 echo "       Re-train iter14 arm C (10 ep, ~20 GPU-h on FULL):"
                 echo "         CACHE_POLICY_ALL=2 ./scripts/run_train.sh pretrain_2X --$MODE" ;;
             vjepa_2_1_surgical_*)
@@ -445,10 +445,10 @@ if [ "${EVAL_KEEP_LATEST:-0}" != "1" ]; then
     pretrain_cleanup_get_latest() {
         # Map encoder → its m09{a,c}_ckpt_latest.pt path (or empty if external).
         case "$1" in
-            vjepa_2_1_pretrain)            echo "${DEFAULT_OUTPUT_PREFIX}/m09a_pretrain/m09a_ckpt_latest.pt" ;;
-            vjepa_2_1_pretrain_2X)       echo "${DEFAULT_OUTPUT_PREFIX}/m09a_pretrain_2X/m09a_ckpt_latest.pt" ;;     # iter14 arm C
-            vjepa_2_1_surgical_3stage_DI)  echo "${DEFAULT_OUTPUT_PREFIX}/m09c_surgery_3stage_DI/m09c_ckpt_latest.pt" ;;
-            vjepa_2_1_surgical_noDI)       echo "${DEFAULT_OUTPUT_PREFIX}/m09c_surgery_noDI/m09c_ckpt_latest.pt" ;;
+            vjepa_2_1_pretrain_encoder)            echo "${DEFAULT_OUTPUT_PREFIX}/m09a_pretrain_encoder/m09a_ckpt_latest.pt" ;;
+            vjepa_2_1_pretrain_2X_encoder)       echo "${DEFAULT_OUTPUT_PREFIX}/m09a_pretrain_2X_encoder/m09a_ckpt_latest.pt" ;;     # iter14 arm C
+            vjepa_2_1_surgical_3stage_DI_encoder)  echo "${DEFAULT_OUTPUT_PREFIX}/m09c_surgery_3stage_DI_encoder/m09c_ckpt_latest.pt" ;;
+            vjepa_2_1_surgical_noDI_encoder)       echo "${DEFAULT_OUTPUT_PREFIX}/m09c_surgery_noDI_encoder/m09c_ckpt_latest.pt" ;;
             *) echo "" ;;
         esac
     }
@@ -674,9 +674,10 @@ if [ "$PER_ENC_ANY" -eq 1 ]; then
         fi
 
         # ─── Stage 5: motion_cos features (mean-pool features_test.npy) ──
-        # Stage 5 is the LAST consumer of features_test.npy. Right after this
-        # call, the file is dead weight — delete inline so the NEXT encoder's
-        # Stage 2 doesn't have to share disk with this encoder's features_test.
+        # Stage 5 is the LAST consumer of features_test.npy in normal flow,
+        # but iter15 Phase 5 V6 (2026-05-15) MOVED the cleanup to after
+        # Stage 8 so a Stage 8 crash doesn't force re-extraction on resume.
+        # See end-of-per-encoder-loop cleanup block below.
         if ! should_skip 5; then
             stamp "  STAGE 5 · motion_cos features for $ENC"
             python -u src/probe_motion_cos.py "--$MODE" \
@@ -689,23 +690,13 @@ if [ "$PER_ENC_ANY" -eq 1 ]; then
                 --cache-policy "$P_COS" \
                 --no-wandb \
                 2>&1 | tee "logs/probe_motion_cos_features_${ENC}.log"
-
-            FEATS_TEST="${OUTPUT_ACTION}/${ENC}/features_test.npy"
-            KEYS_TEST="${OUTPUT_ACTION}/${ENC}/clip_keys_test.npy"
-            CKPT_TEST="${OUTPUT_ACTION}/${ENC}/.probe_features_test_ckpt.npz"
-            for f in "$FEATS_TEST" "$KEYS_TEST" "$CKPT_TEST"; do
-                if [ -f "$f" ]; then
-                    sz=$(du -h "$f" 2>/dev/null | awk '{print $1}')
-                    rm -f "$f"
-                    echo "  [stage5-cleanup] removed $f ($sz)"
-                fi
-            done
         fi
 
         # ─── Stage 6: motion_cos cosine ───────────────────────────────────
-        # Reads pooled_features_test.npy (~10 MB) emitted by Stage 5.
-        # features_test.npy is ALREADY gone by here — verified by the cleanup
-        # above. Stage 6's cosine math runs on the mean-pooled tensor.
+        # Reads pooled_features_test.npy (~10 MB) emitted by Stage 5. Does NOT
+        # read features_test.npy. Stage 6's cosine math runs on the mean-pooled
+        # tensor only. (iter15 Phase 5 V6: features_test.npy now lives until
+        # the post-Stage-8 cleanup below — irrelevant to Stage 6.)
         if ! should_skip 6; then
             stamp "  STAGE 6 · motion_cos cosine for $ENC"
             python -u src/probe_motion_cos.py "--$MODE" \
@@ -747,6 +738,26 @@ if [ "$PER_ENC_ANY" -eq 1 ]; then
                 echo "  Stage 8 SKIP $ENC (not in STAGE8_ENCODERS preflight set)"
             fi
         fi
+
+        # ─── End-of-per-encoder cleanup (iter15 Phase 5 V6, 2026-05-15) ──
+        # Delete features_test.npy + clip_keys_test.npy + .probe_features_test_
+        # ckpt.npz NOW — this encoder has finished ALL stages (5/6/8) that read
+        # those artifacts. Peak disk unchanged (still 1× encoder footprint since
+        # NEXT encoder's Stage 2 writes its own features_test.npy in its own
+        # subdir AFTER this delete). Moved from post-Stage-5 → post-Stage-8 so a
+        # Stage 8 crash leaves features_test.npy on disk → resume skips Stage 2
+        # re-extract. Critical for FULL mode (~16 GB features_test.npy/encoder,
+        # ~30 sec re-extract waste per encoder × N completed encoders).
+        FEATS_TEST="${OUTPUT_ACTION}/${ENC}/features_test.npy"
+        KEYS_TEST="${OUTPUT_ACTION}/${ENC}/clip_keys_test.npy"
+        CKPT_TEST="${OUTPUT_ACTION}/${ENC}/.probe_features_test_ckpt.npz"
+        for f in "$FEATS_TEST" "$KEYS_TEST" "$CKPT_TEST"; do
+            if [ -f "$f" ]; then
+                sz=$(du -h "$f" 2>/dev/null | awk '{print $1}')
+                rm -f "$f"
+                echo "  [post-stage8-cleanup] removed $f ($sz)"
+            fi
+        done
     done
 fi
 

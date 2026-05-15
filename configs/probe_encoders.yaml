@@ -21,7 +21,7 @@ encoders:
     embed_dim: 1664
 
   # P2 — m09a continual SSL pretrain output (lr=1e-5, 5 epochs, drift L2 anchor).
-  vjepa_2_1_pretrain:
+  vjepa_2_1_pretrain_encoder:
     kind: vjepa
     arch: vit_gigantic_xformers
     crop: 384
@@ -29,7 +29,7 @@ encoders:
 
   # P3 variant A — m09c 3-stage surgery (D_L → D_A → D_I, 40/30/30 epoch split).
   # Uses interaction tubes (D_I); iter9 v15c showed BWT=-0.33 here vs noDI variant.
-  vjepa_2_1_surgical_3stage_DI:
+  vjepa_2_1_surgical_3stage_DI_encoder:
     kind: vjepa
     arch: vit_gigantic_xformers
     crop: 384
@@ -37,7 +37,29 @@ encoders:
 
   # P3 variant B — m09c 2-stage surgery (D_L → D_A only, 50/50 epoch split, NO D_I).
   # Tests skepticism that D_I worsens learning; same encoder arch, different yaml.
-  vjepa_2_1_surgical_noDI:
+  vjepa_2_1_surgical_noDI_encoder:
+    kind: vjepa
+    arch: vit_gigantic_xformers
+    crop: 384
+    embed_dim: 1664
+
+  # iter15 Phase 2 (2026-05-14) — HEAD-ONLY siblings of P2/P3 variants. Encoder
+  # bit-identical to Meta init (proven via Phase 5 V4); only the ~432K motion_aux
+  # head is trained. Paper claim: head-only ≈ encoder-update on Δ-eval, at
+  # ~1/40× GPU cost. Used by run_eval.sh + probe_action/probe_future_*  pipelines.
+  vjepa_2_1_pretrain_head:
+    kind: vjepa
+    arch: vit_gigantic_xformers
+    crop: 384
+    embed_dim: 1664
+
+  vjepa_2_1_surgical_3stage_DI_head:
+    kind: vjepa
+    arch: vit_gigantic_xformers
+    crop: 384
+    embed_dim: 1664
+
+  vjepa_2_1_surgical_noDI_head:
     kind: vjepa
     arch: vit_gigantic_xformers
     crop: 384
