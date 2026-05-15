@@ -4,7 +4,7 @@ GPU-only. Produces overlap_augA.npy and overlap_augB.npy from same clips.
 
 USAGE:
     python -u src/m05c_true_overlap.py --SANITY 2>&1 | tee logs/m05c_overlap_sanity.log
-    python -u src/m05c_true_overlap.py --POC --subset data/subset_10k.json --local-data data/subset_10k_local 2>&1 | tee logs/m05c_overlap_poc.log
+    python -u src/m05c_true_overlap.py --POC --subset data/subset_10k_local/subset_10k.json --local-data data/subset_10k_local 2>&1 | tee logs/m05c_overlap_poc.log
     python -u src/m05c_true_overlap.py --FULL --local-data data/full_local 2>&1 | tee logs/m05c_overlap_full.log
 """
 import argparse
@@ -505,7 +505,7 @@ def main():
     print(f"\nSaved: {aug_a_file} ({arr_a.shape})")
     print(f"Saved: {aug_b_file} ({arr_b.shape})")
     print(f"Saved: {keys_file} ({len(all_keys)} keys)")
-    print("\nNext: python -u src/m06_faiss_metrics.py --true-overlap --FULL --subset data/subset_10k.json")
+    print("\nNext: python -u src/m06_faiss_metrics.py --true-overlap --FULL --subset data/subset_10k_local/subset_10k.json")
 
     log_metrics(wb_run, {"total_clips": len(all_keys), "embedding_dim": arr_a.shape[1]})
     log_artifact(wb_run, "overlap_augA", str(aug_a_file))

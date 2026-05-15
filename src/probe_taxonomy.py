@@ -23,7 +23,7 @@ USAGE (orchestrated by scripts/run_eval.sh as Stages 11-14, optional):
     python -u src/probe_taxonomy.py --SANITY --stage labels \\
         --tags-json data/eval_10k_local/tags.json \\
         --tag-taxonomy configs/tag_taxonomy.json \\
-        --eval-subset data/eval_10k_sanity.json \\
+        --eval-subset data/eval_10k_local/eval_10k_sanity.json \\
         --output-root outputs/sanity/probe_taxonomy --cache-policy 1
 
     python -u src/probe_taxonomy.py --SANITY --stage train \\

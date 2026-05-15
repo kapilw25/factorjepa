@@ -3,7 +3,7 @@ GPU-only UMAP dimensionality reduction on V-JEPA embeddings via cuML. Outputs um
 
 USAGE:
     python -u src/m07_umap.py --SANITY 2>&1 | tee logs/m07_umap_sanity.log
-    python -u src/m07_umap.py --POC --subset data/subset_10k.json 2>&1 | tee logs/m07_umap_poc.log
+    python -u src/m07_umap.py --POC --subset data/subset_10k_local/subset_10k.json 2>&1 | tee logs/m07_umap_poc.log
     python -u src/m07_umap.py --FULL 2>&1 | tee logs/m07_umap_full.log
 """
 import argparse

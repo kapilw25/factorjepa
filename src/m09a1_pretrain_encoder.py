@@ -9,20 +9,20 @@ USAGE (every path arg required — CLAUDE.md no-default rule):
     python -u src/m09a1_pretrain_encoder.py --SANITY \
         --model-config configs/model/vjepa2_1.yaml \
         --train-config configs/legacy2/ch10_pretrain.yaml \
-        --subset data/sanity_100_dense.json --local-data data/val_1k_local \
-        --val-subset data/val_1k.json --val-local-data data/val_1k_local \
+        --subset data/val_1k_local/sanity_100_dense.json --local-data data/val_1k_local \
+        --val-subset data/val_1k_local/val_1k.json --val-local-data data/val_1k_local \
         --no-wandb 2>&1 | tee logs/m09a_sanity.log
     python -u src/m09a1_pretrain_encoder.py --POC \
         --model-config configs/model/vjepa2_1.yaml \
         --train-config configs/legacy2/ch10_pretrain.yaml \
-        --subset data/sanity_100_dense.json --local-data data/val_1k_local \
-        --val-subset data/val_1k.json --val-local-data data/val_1k_local \
+        --subset data/val_1k_local/sanity_100_dense.json --local-data data/val_1k_local \
+        --val-subset data/val_1k_local/val_1k.json --val-local-data data/val_1k_local \
         --no-wandb 2>&1 | tee logs/m09a_poc.log
     python -u src/m09a1_pretrain_encoder.py --FULL \
         --model-config configs/model/vjepa2_1.yaml \
         --train-config configs/legacy2/ch10_pretrain.yaml \
-        --subset data/subset_10k.json --local-data data/subset_10k_local \
-        --val-subset data/val_1k.json --val-local-data data/val_1k_local \
+        --subset data/subset_10k_local/subset_10k.json --local-data data/subset_10k_local \
+        --val-subset data/val_1k_local/val_1k.json --val-local-data data/val_1k_local \
         --no-wandb 2>&1 | tee logs/m09a_full.log
 """
 import os
@@ -508,7 +508,7 @@ def train(cfg: dict, args):
             val_key_set = set(list(val_key_set)[:sanity_val])
 
     # iter14 (2026-05-08): POC mode pool capping happens UPSTREAM via the shell
-    # generating data/eval_10k_poc.json (first N keys of eval_10k.json) →
+    # generating data/eval_10k_local/eval_10k_poc.json (first N keys of eval_10k.json) →
     # action_labels.json → train/val/test split files. By the time m09a reads
     # train_keys/val_key_set here, they're already proportionally sized
     # (~350/75/75 from a 500-clip pool via 70:15:15 stratified_split). No

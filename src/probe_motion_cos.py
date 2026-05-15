@@ -18,7 +18,7 @@ USAGE (priority 1 only, paths required):
     python -u src/probe_motion_cos.py --FULL \\
         --stage features --encoder vjepa_2_1_frozen \\
         --encoder-ckpt checkpoints/vjepa2_1_vitG_384.pt \\
-        --eval-subset data/eval_10k.json --local-data data/eval_10k_local \\
+        --eval-subset data/eval_10k_local/eval_10k.json --local-data data/eval_10k_local \\
         --action-probe-root outputs/full/probe_action \\
         --output-root outputs/full/probe_motion_cos \\
         --share-features --cache-policy 1 2>&1 | tee logs/probe_motion_cos_features_vjepa.log

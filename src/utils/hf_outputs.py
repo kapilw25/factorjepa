@@ -551,6 +551,10 @@ def upload_data(data_root: Path = None):
                 # (already packed into tars by _pre_upload_pack_outputs above —
                 # raw dirs are empty post-pack, but glob-skip is still cheaper
                 # than walking them). Subset-*.tar inputs ride along as-is.
+                # iter15 Phase A (2026-05-15): also skip reproducibles regenerated
+                # on every run_train.sh launch from eval_10k.json + motion_features
+                # (probe_train_subset.py + eval_subset.py). These ride free on the
+                # next instance via the bootstrap — no need to occupy HF storage.
                 ignore_patterns=[
                     "**/m10_sam_segment/masks/**",
                     "**/m10_sam_segment/m10_overlay_verify/**",
@@ -558,6 +562,10 @@ def upload_data(data_root: Path = None):
                     "**/m11_factor_datasets/D_A/**",
                     "**/m11_factor_datasets/D_I/**",
                     "**/m11_factor_datasets/m11_per_clip_verify/**",
+                    "**/eval_10k_poc.json",
+                    "**/eval_10k_train_split.json",
+                    "**/eval_10k_val_split.json",
+                    "**/eval_10k_test_split.json",
                 ],
             )
         pbar.update(1)

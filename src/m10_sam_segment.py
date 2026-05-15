@@ -13,7 +13,7 @@ USAGE (every path arg required — CLAUDE.md no-default rule):
         --local-data data/val_1k_local --no-wandb 2>&1 | tee logs/m10_sanity.log
     python -u src/m10_sam_segment.py --POC \
         --train-config configs/train/surgery_3stage_DI_encoder.yaml \
-        --subset data/sanity_100_dense.json --local-data data/val_1k_local --no-wandb \
+        --subset data/val_1k_local/sanity_100_dense.json --local-data data/val_1k_local --no-wandb \
         2>&1 | tee logs/m10_poc.log
     python -u src/m10_sam_segment.py --FULL \
         --train-config configs/train/surgery_3stage_DI_encoder.yaml \

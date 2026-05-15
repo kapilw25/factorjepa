@@ -11,7 +11,7 @@ iter13 v12 (2026-05-06): probe_action labels derive from MOTION-flow classes
 
 iter14 recipe-v3 (2026-05-09):
   • POC mode now generates a stratified-by-motion-class subset
-    (data/eval_10k_poc.json by default) BEFORE invoking probe_action,
+    (data/eval_10k_local/eval_10k_poc.json by default) BEFORE invoking probe_action,
     in-process via utils.eval_subset.stratified_by_motion_class_subset.
     Guarantees POC labels match FULL schema (8 motion classes after
     the 34-clip filter — CLAUDE.md POC↔FULL parity).
@@ -73,7 +73,7 @@ def ensure_probe_labels_for_mode(
         cache_policy:     int or str, forwarded to probe_taxonomy.py subprocess.
         cfg:              merged yaml config dict.
         motion_features:  optional override for the motion_features.npy path.
-                          Defaults to <local_data>/motion_features.npy.
+                          Defaults to <local_data>/m04d_motion_features/motion_features.npy.
 
     Returns:
         dict: {action_path, taxonomy_path, action_generated, taxonomy_generated,
@@ -96,7 +96,7 @@ def ensure_probe_labels_for_mode(
 
     local_data = project_root / ptl["local_data"]
     if motion_features is None:
-        motion_features = local_data / "motion_features.npy"
+        motion_features = local_data / "m04d_motion_features" / "motion_features.npy"
     else:
         motion_features = Path(motion_features)
 
@@ -127,8 +127,8 @@ def ensure_probe_labels_for_mode(
                     hint = (
                         f"\n  Run m04d first (~67 min on Blackwell):\n"
                         f"    python -u src/m04d_motion_features.py {mode_flag} \\\n"
-                        f"        --subset {eval_subset} --local-data {local_data} \\\n"
-                        f"        --features-out {motion_features}\n"
+                        f"        --subset {eval_subset} --local-data {local_data}\n"
+                        f"    (writes to {motion_features.parent}/ by default)\n"
                         f"  Or download via:  python -u src/utils/hf_outputs.py download-data"
                     )
                 raise FileNotFoundError(

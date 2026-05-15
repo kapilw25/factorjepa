@@ -22,7 +22,7 @@ data:
   sanity_train_clips: 20
   sanity_val_clips: 10
   # iter14 (2026-05-08): POC pool size for end-to-end plot/early-stop test.
-  # Generates data/eval_10k_poc.json = first N keys of eval_10k.json. Then
+  # Generates data/eval_10k_local/eval_10k_poc.json = first N keys of eval_10k.json. Then
   # probe_action.py --stage labels applies 70:15:15 stratified_split (post
   # motion-flow filter ≈ N×0.95) → ~N×0.665 / N×0.143 / N×0.143 train/val/test.
   # Single knob for scalability across datasets — the 70:15:15 ratio is enforced
@@ -45,11 +45,11 @@ probe_action_labels:
   # Per-mode source pool fed into probe_action.py --stage labels (or
   # stratified_by_motion_class_subset for POC).
   eval_subset_in:
-    sanity: "data/eval_10k_sanity.json"
-    poc:    "data/eval_10k.json"
-    full:   "data/eval_10k.json"
+    sanity: "data/eval_10k_local/eval_10k_sanity.json"
+    poc:    "data/eval_10k_local/eval_10k.json"
+    full:   "data/eval_10k_local/eval_10k.json"
   # POC stratified-by-motion-class subset destination (only used in POC mode).
-  poc_subset_out: "data/eval_10k_poc.json"
+  poc_subset_out: "data/eval_10k_local/eval_10k_poc.json"
   min_clips_per_class:
     sanity: 5                   # 600 / 16 ≈ 37 → relaxed for code-correctness only
     poc: 34                     # iter13 v12: 34 → ≥5 per split @ 70/15/15
@@ -63,7 +63,7 @@ probe_action_labels:
 probe_taxonomy_labels:
   tags_json:    "data/eval_10k_local/tags.json"
   tag_taxonomy: "configs/tag_taxonomy.json"
-  local_data:   "data/eval_10k_local"     # parent of motion_features.npy + tar shards
+  local_data:   "data/eval_10k_local"     # parent of m04d_motion_features/ + tar shards
 
   # iter11 v3 hard-pivot (2026-04-25): 80/10/10 train/val/eval split inside
   # ultra_hard_3066.json — 3,066 clips with ≥4 Hard triggers AND ≥4 Indian-specific

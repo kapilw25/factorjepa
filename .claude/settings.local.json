@@ -84,7 +84,30 @@
       "Bash(grep -nA3 'for batch.*loader\\\\|next\\(loader_iter\\)\\\\|loader_iter' src/m09c1_surgery_encoder.py)",
       "Bash(grep -nA8 'def _load_vjepa_2_1_encoder_hierarchical' src/probe_future_mse.py)",
       "Bash(grep -nA2 'layer_freeze' configs/train/surgery_base.yaml configs/train/surgery_3stage_DI_encoder.yaml configs/train/surgery_3stage_DI_head.yaml)",
-      "Bash(grep -nA10 'KNOWN_VARIANTS = \\(' src/probe_future_regress.py)"
+      "Bash(grep -nA10 'KNOWN_VARIANTS = \\(' src/probe_future_regress.py)",
+      "Bash(python -c \"import numpy as np; f=np.load\\('data/eval_10k_local/motion_features.npy'\\); print\\(f'shape={f.shape}  dtype={f.dtype}  bytes={f.nbytes:,}'\\)\")",
+      "Bash(awk '{printf \"cgroup memory cap: %.1f GB\\\\n\", $1/1024/1024/1024}')",
+      "Bash(venv_walkindia/bin/ruff check *)",
+      "Bash(grep -rn 'data/eval_10k_local/motion_features.npy\\\\|\\\\${LOCAL_DATA}/motion_features.npy\\\\|\\\\$LOCAL_DATA/motion_features.npy\\\\|--features-out' src/ scripts/ configs/ iter/iter15_trainHead_freezeEncoder/)",
+      "Bash(python -m py_compile src/m04d_motion_features.py src/utils/probe_labels.py src/utils/action_labels.py src/utils/motion_aux_loss.py src/utils/eval_subset.py src/probe_action.py)",
+      "Bash(grep -rn 'data/eval_10k_local/motion_features.npy\\\\|\\\\${LOCAL_DATA}/motion_features.npy\\\\|--features-out' src/ scripts/ configs/ iter/iter15_trainHead_freezeEncoder/)",
+      "Bash(venv_walkindia/bin/python -c \"import shellcheck_py\")",
+      "Bash(shellcheck scripts/run_eval.sh scripts/run_train.sh)",
+      "Bash(python -m py_compile src/m04d_motion_features.py src/m00e_difficulty_split.py src/m09a1_pretrain_encoder.py src/probe_action.py src/probe_motion_cos.py src/utils/action_labels.py src/utils/eval_subset.py src/utils/hf_outputs.py)",
+      "Bash(python -m py_compile src/m04d_motion_features.py src/m00e_difficulty_split.py src/m09a1_pretrain_encoder.py src/m09a2_pretrain_head.py src/m09c1_surgery_encoder.py src/m09c2_surgery_head.py src/probe_action.py src/probe_motion_cos.py src/probe_taxonomy.py src/utils/action_labels.py src/utils/eval_subset.py src/utils/hf_outputs.py src/utils/probe_labels.py src/utils/probe_train_subset.py)",
+      "Bash(mv /workspace/factorjepa/data/eval_10k.json /workspace/factorjepa/data/eval_10k_local/)",
+      "Bash(mv /workspace/factorjepa/data/eval_10k_sanity.json /workspace/factorjepa/data/eval_10k_local/)",
+      "Bash(mv /workspace/factorjepa/data/eval_10k_poc.json /workspace/factorjepa/data/eval_10k_local/)",
+      "Bash(mv /workspace/factorjepa/data/eval_10k_train_split.json /workspace/factorjepa/data/eval_10k_local/)",
+      "Bash(mv /workspace/factorjepa/data/eval_10k_val_split.json /workspace/factorjepa/data/eval_10k_local/)",
+      "Bash([ -f \"data/eval_10k_local/$f\" ])",
+      "Bash(python -m py_compile src/m00c_sample_subset.py src/m00d_download_subset.py src/m00e_difficulty_split.py src/m00f_category_subsets.py src/m04_vlm_tag.py src/m04_vlm_tag_vllm.py src/m04b_vlm_select.py src/m04d_motion_features.py src/m05_vjepa_embed.py src/m05b_baselines.py src/m05c_true_overlap.py src/m07_umap.py src/m10_sam_segment.py src/m09a1_pretrain_encoder.py src/m09a2_pretrain_head.py src/m09c1_surgery_encoder.py src/m09c2_surgery_head.py)",
+      "Bash(mv /workspace/factorjepa/data/subset_10k.json         /workspace/factorjepa/data/subset_10k_local/)",
+      "Bash(mv /workspace/factorjepa/data/val_1k.json             /workspace/factorjepa/data/val_1k_local/)",
+      "Bash(mv /workspace/factorjepa/data/sanity_100_dense.json   /workspace/factorjepa/data/val_1k_local/)",
+      "Bash(mv /workspace/factorjepa/data/val_500.json            /workspace/factorjepa/data/val_1k_local/)",
+      "Bash(mv /workspace/factorjepa/data/test_500.json           /workspace/factorjepa/data/val_1k_local/)",
+      "Bash(venv_walkindia/bin/python *)"
     ]
   }
 }

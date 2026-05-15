@@ -647,7 +647,7 @@ def main():
     if sanity:
         print(f"Note: SANITY results on {min_clips} clips — use --BAKEOFF for statistical significance")
     else:
-        print(f"Next: python -u src/m04_vlm_tag.py --model {winner} --FULL [--subset data/subset_10k.json]")
+        print(f"Next: python -u src/m04_vlm_tag.py --model {winner} --FULL [--subset data/subset_10k_local/subset_10k.json]")
 
 
 if __name__ == "__main__":

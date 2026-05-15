@@ -12,20 +12,20 @@ USAGE (every path arg required — CLAUDE.md no-default rule):
     python -u src/m09a2_pretrain_head.py --SANITY \
         --model-config configs/model/vjepa2_1.yaml \
         --train-config configs/train/pretrain_head.yaml \
-        --subset data/sanity_100_dense.json --local-data data/val_1k_local \
-        --val-subset data/val_1k.json --val-local-data data/val_1k_local \
+        --subset data/val_1k_local/sanity_100_dense.json --local-data data/val_1k_local \
+        --val-subset data/val_1k_local/val_1k.json --val-local-data data/val_1k_local \
         --no-wandb 2>&1 | tee logs/m09a2_sanity_$(date +%Y%m%d_%H%M%S).log
     python -u src/m09a2_pretrain_head.py --POC \
         --model-config configs/model/vjepa2_1.yaml \
         --train-config configs/train/pretrain_head.yaml \
-        --subset data/eval_10k_train_split.json --local-data data/eval_10k_local \
-        --val-subset data/eval_10k_val_split.json --val-local-data data/eval_10k_local \
+        --subset data/eval_10k_local/eval_10k_train_split.json --local-data data/eval_10k_local \
+        --val-subset data/eval_10k_local/eval_10k_val_split.json --val-local-data data/eval_10k_local \
         --no-wandb 2>&1 | tee logs/m09a2_poc_$(date +%Y%m%d_%H%M%S).log
     python -u src/m09a2_pretrain_head.py --FULL \
         --model-config configs/model/vjepa2_1.yaml \
         --train-config configs/train/pretrain_head.yaml \
-        --subset data/eval_10k_train_split.json --local-data data/eval_10k_local \
-        --val-subset data/eval_10k_val_split.json --val-local-data data/eval_10k_local \
+        --subset data/eval_10k_local/eval_10k_train_split.json --local-data data/eval_10k_local \
+        --val-subset data/eval_10k_local/eval_10k_val_split.json --val-local-data data/eval_10k_local \
         --no-wandb 2>&1 | tee logs/m09a2_full_$(date +%Y%m%d_%H%M%S).log
 """
 import os

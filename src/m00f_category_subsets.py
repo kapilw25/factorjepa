@@ -2,7 +2,7 @@
 
 Builds 9 subset JSONs in data/ from ALL 115K clips (no val_1k/eval_10k exclusion —
 each category gets its OWN train/val/eval splits, disjoint by seed). Each subset
-matches the data/subset_10k.json schema (clip_keys list of canonical paths).
+matches the data/subset_10k_local/subset_10k.json schema (clip_keys list of canonical paths).
 
 For the headline iter11 v3 ultra_hard subset, ALSO emits 3 sub-splits:
     ultra_hard_<N>_train.json  (default 2452 clips — m09c training input)

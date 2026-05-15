@@ -25,9 +25,9 @@
 #   python -u src/m09c2_surgery_head.py --SANITY \
 #       --model-config configs/model/vjepa2_1.yaml \
 #       --train-config configs/train/surgery_2stage_noDI_head.yaml \
-#       --subset data/eval_10k_train_split.json \
+#       --subset data/eval_10k_local/eval_10k_train_split.json \
 #       --local-data data/eval_10k_local \
-#       --val-subset data/eval_10k_val_split.json \
+#       --val-subset data/eval_10k_local/eval_10k_val_split.json \
 #       --val-local-data data/eval_10k_local \
 #       --output-dir outputs/sanity/m09c_surgery_noDI_head \
 #       --no-wandb 2>&1 | tee logs/surgery_noDI_head_sanity.log

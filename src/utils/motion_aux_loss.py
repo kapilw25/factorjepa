@@ -122,7 +122,8 @@ def load_motion_targets_for_training(motion_features_path: Path,
     if not motion_features_path.exists():
         raise FileNotFoundError(
             f"motion_features.npy not found at {motion_features_path}. "
-            f"Run `python -u src/m04d_motion_features.py --FULL --features-out ...` first.")
+            f"Run `python -u src/m04d_motion_features.py --FULL --local-data <local_data>` "
+            f"first (writes to <local_data>/m04d_motion_features/ by default).")
     if not action_labels_path.exists():
         raise FileNotFoundError(
             f"action_labels.json not found at {action_labels_path}. "
@@ -326,7 +327,8 @@ def build_motion_aux_head_from_cfg(cfg: dict, device) -> tuple:
             f"{n_motion_dims}-D; Phase 0 requires 23-D (adds FG fg_mean_mag at "
             f"vec[13]). Rerun: CACHE_POLICY_ALL=2 python -u "
             f"src/m04d_motion_features.py --FULL --subset <subset.json> "
-            f"--local-data <local_data> --features-out <local_data>/motion_features.npy"
+            f"--local-data <local_data> (writes to "
+            f"<local_data>/m04d_motion_features/ by default)"
         )
     ma_head = MotionAuxHead(
         d_encoder=d_encoder, n_motion_classes=n_classes, n_motion_dims=n_motion_dims,

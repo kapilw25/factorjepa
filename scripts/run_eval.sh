@@ -112,13 +112,13 @@ if [ "$MODE" = "SANITY" ]; then
     # motion-class avg → stratified_split crashes even at MIN_PER_SPLIT=1.
     # 200/action × 3 = 600 clips → ~37/motion-class avg → splits cleanly.
     SANITY_N_PER_CLASS="${SANITY_N_PER_CLASS:-200}"
-    SANITY_SUBSET="data/eval_10k_sanity.json"
+    SANITY_SUBSET="data/eval_10k_local/eval_10k_sanity.json"
     # Regenerate if missing OR older than the source eval_10k.json (idempotent + cheap).
     # Logic lives in src/utils/eval_subset.py (importable + CLI; per CLAUDE.md
     # "shell scripts are THIN wrappers — all logic in Python").
-    if [ ! -f "$SANITY_SUBSET" ] || [ "data/eval_10k.json" -nt "$SANITY_SUBSET" ]; then
+    if [ ! -f "$SANITY_SUBSET" ] || [ "data/eval_10k_local/eval_10k.json" -nt "$SANITY_SUBSET" ]; then
         python -u src/utils/eval_subset.py \
-            --eval-subset data/eval_10k.json \
+            --eval-subset data/eval_10k_local/eval_10k.json \
             --n-per-class "$SANITY_N_PER_CLASS" \
             --output "$SANITY_SUBSET"
     fi
@@ -129,18 +129,18 @@ elif [ "$MODE" = "POC" ]; then
     # default 500), then probe_action.py --stage labels applies 70:15:15
     # stratified_split → ~350/75/75 train/val/test. Same subset that
     # run_train.sh generates so train→eval reads consistent splits.
-    POC_SUBSET="data/eval_10k_poc.json"
+    POC_SUBSET="data/eval_10k_local/eval_10k_poc.json"
     POC_TOTAL=$(python "$EX" configs/train/base_optimization.yaml data.poc_total_clips)
-    if [ ! -f "$POC_SUBSET" ] || [ "data/eval_10k.json" -nt "$POC_SUBSET" ]; then
+    if [ ! -f "$POC_SUBSET" ] || [ "data/eval_10k_local/eval_10k.json" -nt "$POC_SUBSET" ]; then
         python -u src/utils/eval_subset.py \
-            --eval-subset data/eval_10k.json \
+            --eval-subset data/eval_10k_local/eval_10k.json \
             --first-n "$POC_TOTAL" \
             --output "$POC_SUBSET"
     fi
     DEFAULT_EVAL_SUBSET="$POC_SUBSET"
     DEFAULT_OUTPUT_PREFIX="outputs/poc"
 else                                   # FULL
-    DEFAULT_EVAL_SUBSET="data/eval_10k.json"
+    DEFAULT_EVAL_SUBSET="data/eval_10k_local/eval_10k.json"
     DEFAULT_OUTPUT_PREFIX="outputs/full"
 fi
 
@@ -159,11 +159,14 @@ ENCODERS="${ENCODERS:-vjepa_2_1_frozen vjepa_2_1_pretrain vjepa_2_1_pretrain_2X 
 SKIP_STAGES="${SKIP_STAGES:-}"
 NUM_FRAMES="${NUM_FRAMES:-16}"
 
-# iter13 v12 (2026-05-05): MOTION-flow probe class derivation knobs.
-# `motion_features.npy` is m04d's RAFT optical-flow output (13D × N_clips),
-# durably stored at <local_data>/motion_features.npy and binned into
-# magnitude×direction = 16 motion classes by probe_action --stage labels.
-MOTION_FEATURES="${MOTION_FEATURES:-${LOCAL_DATA}/motion_features.npy}"
+# iter13 v12 (2026-05-05) / iter15 (2026-05-15): MOTION-flow probe class
+# derivation knobs. `motion_features.npy` is m04d's RAFT optical-flow output
+# (23D × N_clips post-Phase-0), durably stored under
+# <local_data>/m04d_motion_features/ and binned into magnitude×direction = 8
+# motion classes by probe_action --stage labels. The entire subdir
+# (.npy + .paths.npy + .meta.json + .m04d_checkpoint.npz) rides on
+# hf_outputs.py upload-data → fresh GPU instances download via download-data.
+MOTION_FEATURES="${MOTION_FEATURES:-${LOCAL_DATA}/m04d_motion_features/motion_features.npy}"
 # Mode-aware filter floors: FULL/POC use paper-grade thresholds (34 clips/class
 # → ≥5 per split at 70/15/15). SANITY relaxes them since 150-clip stratified
 # subsets give ~9 clips per motion-flow class (would crash stratified_split).
@@ -256,16 +259,18 @@ fi
 if [ ! -f "$TAGS_JSON" ]; then
     echo "  WARN: $TAGS_JSON not found — probe_taxonomy stages (1/3.5/12/13) will be auto-skipped"
 fi
-# iter13 v12 (2026-05-05): preflight m04d motion_features.npy. Required for
-# Stage 1 (probe_action --stage labels) which derives motion-flow classes
-# from RAFT optical-flow features. Run m04d once per local dataset (durable
-# artifact stored in <local_data>/, auto-uploaded by hf_outputs.py upload-data).
+# iter13 v12 (2026-05-05) / iter15 (2026-05-15): preflight m04d
+# motion_features.npy. Required for Stage 1 (probe_action --stage labels)
+# which derives motion-flow classes from RAFT optical-flow features. Run m04d
+# once per local dataset (durable artifact stored under
+# <local_data>/m04d_motion_features/, auto-uploaded by hf_outputs.py
+# upload-data).
 if [ ! -f "$MOTION_FEATURES" ]; then
     echo "❌ FATAL: motion_features.npy not found at: $MOTION_FEATURES" >&2
     echo "   Run m04d once for this dataset (durable artifact, ~30-60 min GPU):" >&2
     echo "     python -u src/m04d_motion_features.py --$MODE \\" >&2
-    echo "         --subset $EVAL_SUBSET --local-data $LOCAL_DATA \\" >&2
-    echo "         --features-out $MOTION_FEATURES" >&2
+    echo "         --subset $EVAL_SUBSET --local-data $LOCAL_DATA" >&2
+    echo "     (writes to ${LOCAL_DATA}/m04d_motion_features/ by default)" >&2
     echo "   Or download via:  python -u src/utils/hf_outputs.py download-data" >&2
     exit 3
 fi

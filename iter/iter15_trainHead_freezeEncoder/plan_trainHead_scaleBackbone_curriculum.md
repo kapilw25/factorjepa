@@ -338,7 +338,8 @@ Bump `n_motion_dims` from 13 → 23 in `MotionAuxHead.__init__` default + the wi
 
 ```bash
 # 1. Audit current m04d output dim
-python -c "import numpy as np; print(np.load('data/eval_10k_local/motion_features.npy').shape)"
+# iter15 (2026-05-15): m04d outputs now live under <local_data>/m04d_motion_features/
+python -c "import numpy as np; print(np.load('data/eval_10k_local/m04d_motion_features/motion_features.npy').shape)"
 # expect: (9297, 13) BEFORE Phase 0; (9297, 23) AFTER
 
 # 2. Apply Step 0.1, 0.2, 0.3 edits (~10-15 LoC across 3 files)
@@ -352,14 +353,14 @@ python -m py_compile src/m04d_motion_features.py \
                               src/utils/motion_aux_loss.py
 
 # 4. Re-run m04d on eval_10k_local (~57 min)
+# Default --output-dir = <local_data>/m04d_motion_features/ (override with --output-dir)
 CACHE_POLICY_ALL=2 python -u src/m04d_motion_features.py --FULL \
-    --subset data/eval_10k.json --local-data data/eval_10k_local \
-    --features-out data/eval_10k_local/motion_features.npy \
+    --subset data/eval_10k_local/eval_10k.json --local-data data/eval_10k_local \
     --no-wandb 2>&1 | tee logs/iter15_phase0_m04d.log
 
 # 5. Verify post-Phase-0 shape
 python -c "import numpy as np; \
-  feats = np.load('data/eval_10k_local/motion_features.npy'); \
+  feats = np.load('data/eval_10k_local/m04d_motion_features/motion_features.npy'); \
   print(f'shape={feats.shape}'); \
   assert feats.shape[1] == 23, 'FATAL: Phase 0 did not extend to 23-D'; \
   print(f'✅ Phase 0 features ready — vec[13]=fg_mean_mag range: [{feats[:,13].min():.3f}, {feats[:,13].max():.3f}]')"
@@ -1058,7 +1059,7 @@ data_curriculum:
     sanity: false                            # smoke test: skip curriculum to validate single-epoch path
     poc:    true                             # POC enables curriculum for early Δ measurement
     full:   true
-  motion_features_path: data/eval_10k_local/motion_features.npy
+  motion_features_path: data/eval_10k_local/m04d_motion_features/motion_features.npy
   order: ascending                           # easy → hard  (descending = hard → easy for adversarial test)
   pacing: linear                             # {linear, step, log}
 ```
@@ -1110,7 +1111,7 @@ parser.add_argument("--data-curriculum", choices=["off", "linear", "step", "log"
 ```bash
 python -c "
 import numpy as np
-feats = np.load('data/eval_10k_local/motion_features.npy')
+feats = np.load('data/eval_10k_local/m04d_motion_features/motion_features.npy')
 assert feats.shape[1] == 23, f'❌ Phase 0 did not extend features to 23-D (got {feats.shape[1]})'
 fg_mag = feats[:, 13]
 print(f'✅ Phase 0 features ready')

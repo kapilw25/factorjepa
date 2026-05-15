@@ -305,7 +305,7 @@ motion_aux:
     sanity: true
     poc:    true
     full:   true
-  motion_features_path: data/eval_10k_local/motion_features.npy
+  motion_features_path: data/eval_10k_local/m04d_motion_features/motion_features.npy
   action_labels_path:   outputs/full/probe_action/action_labels.json
   weight_motion: 0.1
   weight_ce:     1.0
@@ -330,7 +330,7 @@ probe:
   # (pretrain_encoder.yaml:149). Both encoders now use the same auto-generated
   # 70:15:15 stratified split from action_labels.json — at POC: 125 clips,
   # at FULL: ~1388 clips. Cross-encoder mid-training metrics now comparable.
-  subset:           data/eval_10k_val_split.json
+  subset:           data/eval_10k_local/eval_10k_val_split.json
   local_data:       data/eval_10k_local
   tags_path:        data/eval_10k_local/tags.json
   n_points: 30                    # kept for every_n_steps backward-compat (unused when cadence=saves_per_epoch).

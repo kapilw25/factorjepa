@@ -4,7 +4,7 @@ GPU-only for DINOv2/CLIP/Shuffled (no CPU fallback). Random + Oracle are CPU-saf
 
 USAGE (--profile-data optional; per-encoder profile JSON path; CLAUDE.md no-default rule):
     python -u src/m05b_baselines.py --encoder all --SANITY \
-        --subset data/sanity_100_dense.json --local-data data/val_1k_local \
+        --subset data/val_1k_local/sanity_100_dense.json --local-data data/val_1k_local \
         --tags-json data/val_1k_local/tags.json \
         2>&1 | tee logs/m05b_all_sanity.log
     python -u src/m05b_baselines.py --encoder oracle --FULL \
@@ -1020,7 +1020,7 @@ def main():
     if args.encoder == "all":
         print(f"\n{'='*60}")
         print("ALL 4 BASELINES COMPLETE")
-        print("Next: python -u src/m06_faiss_metrics.py --encoder <enc> --FULL --subset data/subset_10k.json")
+        print("Next: python -u src/m06_faiss_metrics.py --encoder <enc> --FULL --subset data/subset_10k_local/subset_10k.json")
         print(f"{'='*60}")
 
 
@@ -1125,7 +1125,7 @@ def _run_single_encoder(encoder: str, args):
     print(f"\n=== BASELINE COMPLETE: {encoder} ===")
     print(f"Clips:     {len(keys):,}")
     print(f"Dim:       {embeddings.shape[1]}")
-    print(f"Next step: python -u src/m06_faiss_metrics.py --encoder {encoder} --FULL --subset data/subset_10k.json")
+    print(f"Next step: python -u src/m06_faiss_metrics.py --encoder {encoder} --FULL --subset data/subset_10k_local/subset_10k.json")
 
     # Force exit: torch.compile + CUDA atexit cleanup deadlocks on futex_wait_queue
     # (hangs indefinitely at 0% GPU after all output files are saved)

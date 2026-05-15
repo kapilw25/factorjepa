@@ -15,8 +15,8 @@ USAGE (called by probe_*.py — direct __main__ entry exists for self-test only)
 
 Self-test (CPU sanity, prints per-class clip counts + split sizes):
     python -u src/utils/action_labels.py \\
-        --eval-subset data/eval_10k.json \\
-        --motion-features data/eval_10k_local/motion_features.npy
+        --eval-subset data/eval_10k_local/eval_10k.json \\
+        --motion-features data/eval_10k_local/m04d_motion_features/motion_features.npy
 """
 import argparse
 import json
@@ -74,7 +74,7 @@ def compute_magnitude_quartiles(flow_features_array: np.ndarray) -> list:
             f"(Phase 0 m04d 13→23-D); got {flow_features_array.shape[1]}-D. "
             f"Rerun: CACHE_POLICY_ALL=2 python -u src/m04d_motion_features.py --FULL "
             f"--subset <subset.json> --local-data <local_data> "
-            f"--features-out <local_data>/motion_features.npy"
+            f"(writes to <local_data>/m04d_motion_features/ by default)"
         )
     fg_mean_mags = flow_features_array[:, 13]
     return [float(np.quantile(fg_mean_mags, q)) for q in (0.25, 0.5, 0.75)]
@@ -148,7 +148,7 @@ def load_subset_with_labels(subset_path, motion_features_path, *,
 
     Args:
         subset_path:           data/eval_*.json with "clip_keys" list
-        motion_features_path:  <local_data>/motion_features.npy from m04d (23D × N_clips, post-Phase-0)
+        motion_features_path:  <local_data>/m04d_motion_features/motion_features.npy from m04d (23D × N_clips, post-Phase-0)
         min_clips_per_class:   drop classes with fewer than this many clips (default 34
                                → ≥5 per split at 70/15/15)
 
@@ -175,8 +175,9 @@ def load_subset_with_labels(subset_path, motion_features_path, *,
         sys.exit(
             f"FATAL: motion_features.npy not found at {motion_features_path}.\n"
             f"  Run first: python -u src/m04d_motion_features.py --FULL "
-            f"--subset {subset_path} --local-data <local_data> "
-            f"--features-out {motion_features_path}"
+            f"--subset {subset_path} --local-data <local_data>\n"
+            f"  (writes to <local_data>/m04d_motion_features/ by default; "
+            f"override with --output-dir)"
         )
     if not paths_path.exists():
         sys.exit(f"FATAL: motion_features.paths.npy not found at {paths_path} "

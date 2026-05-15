@@ -14,10 +14,10 @@ Stages:
 
 USAGE (sequence — every path arg required, no defaults):
     # Stage 1: labels (CPU, ~1 min). --motion-features is m04d's output,
-    # default location <local_data>/motion_features.npy.
+    # default location <local_data>/m04d_motion_features/motion_features.npy.
     python -u src/probe_action.py --SANITY \\
-        --stage labels --eval-subset data/eval_10k.json \\
-        --motion-features data/eval_10k_local/motion_features.npy \\
+        --stage labels --eval-subset data/eval_10k_local/eval_10k.json \\
+        --motion-features data/eval_10k_local/m04d_motion_features/motion_features.npy \\
         --output-root outputs/sanity/probe_action \\
         --cache-policy 1 2>&1 | tee logs/probe_action_labels_sanity.log
 
@@ -25,7 +25,7 @@ USAGE (sequence — every path arg required, no defaults):
     python -u src/probe_action.py --FULL \\
         --stage features --encoder vjepa_2_1_frozen \\
         --encoder-ckpt checkpoints/vjepa2_1_vitG_384.pt \\
-        --eval-subset data/eval_10k.json --local-data data/eval_10k_local \\
+        --eval-subset data/eval_10k_local/eval_10k.json --local-data data/eval_10k_local \\
         --output-root outputs/full/probe_action \\
         --cache-policy 1 2>&1 | tee logs/probe_action_features_vjepa.log
 
@@ -791,9 +791,10 @@ def build_parser() -> argparse.ArgumentParser:
     # is required for --stage labels; --min-clips-per-class + --min-per-split
     # gate sparse-class filtering. See plan_code_dev.md.
     p.add_argument("--motion-features", type=Path, default=None,
-                   help="m04d motion_features.npy path (RAFT optical-flow 13D × N_clips). "
-                        "Required for --stage labels. Companion .paths.npy must exist next to it. "
-                        "Default location: <local_data>/motion_features.npy.")
+                   help="m04d motion_features.npy path (RAFT optical-flow 23D × N_clips, "
+                        "post-Phase-0). Required for --stage labels. Companion .paths.npy "
+                        "must exist next to it. Default location: "
+                        "<local_data>/m04d_motion_features/motion_features.npy.")
     p.add_argument("--min-clips-per-class", type=int, default=34,
                    help="Drop motion-flow classes with fewer than this many clips. "
                         "Default 34 = ≥5 clips per split at 70/15/15 stratification.")

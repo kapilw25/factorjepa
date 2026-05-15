@@ -7,8 +7,8 @@ chowks, ghats with auto_rickshaw + cycle_rickshaw + handcart + sacred_cow + stre
 co-occurring). Random eval_10k mixes both → dilution-saturated Δ ≈ 0.
 
 This splitter buckets every clip into Easy / Medium / Hard using m04 VLM tags,
-emits 3 disjoint subset files compatible with `data/subset_10k.json` schema,
-and excludes any clip that overlaps with `data/val_1k.json` or `data/eval_10k.json`
+emits 3 disjoint subset files compatible with `data/subset_10k_local/subset_10k.json` schema,
+and excludes any clip that overlaps with `data/val_1k_local/val_1k.json` or `data/eval_10k_local/eval_10k.json`
 (so train subsets stay disjoint from probe + decision-gate sets).
 
 Output (default target_n=25000 per bucket):
@@ -24,7 +24,6 @@ USAGE:
 import argparse
 import json
 import random
-import sys
 from pathlib import Path
 from collections import Counter
 
@@ -90,7 +89,7 @@ def easy_conditions(tag: dict) -> bool:
 
 
 def clip_key_from_tag(tag: dict) -> str:
-    """Reconstruct the canonical clip_key used by data/subset_10k.json + val_1k.json.
+    """Reconstruct the canonical clip_key used by data/subset_10k_local/subset_10k.json + val_1k_local/val_1k.json.
 
     Format: <section>/<video_id>/<source_file>
         e.g., 'tier1/delhi/drive/abc123XYZ/abc123XYZ-007.mp4'
@@ -116,7 +115,7 @@ def main():
                         help="Where to write {easy,medium,hard}_<N>.json")
     parser.add_argument("--exclude", type=str, nargs="*", default=[],
                         help="Optional path(s) to subset JSON whose clip_keys must be EXCLUDED "
-                             "(e.g., --exclude data/val_1k.json data/eval_10k.json)")
+                             "(e.g., --exclude data/val_1k_local/val_1k.json data/eval_10k_local/eval_10k.json)")
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument("--no-wandb", action="store_true",
                         help="(no-op flag for pipeline consistency)")
@@ -199,7 +198,7 @@ def main():
         "source_tags": str(tags_path),
         "exclusions": args.exclude,
         "n_excluded": n_excluded,
-        "schema": "matches data/subset_10k.json (clip_keys list of '<section>/<video_id>/<source_file>')",
+        "schema": "matches data/subset_10k_local/subset_10k.json (clip_keys list of '<section>/<video_id>/<source_file>')",
         "indian_specific_objects": sorted(INDIAN_SPECIFIC_OBJECTS),
         "confidence_floor": CONFIDENCE_FLOOR,
     }
@@ -246,7 +245,7 @@ def main():
         json.dump(stats, f, indent=2)
     print(f"  ✅ wrote {stats_path}")
     print()
-    print(f"Done. Use these as --train-subset / --eval-subset in iter11 v3:")
+    print("Done. Use these as --train-subset / --eval-subset in iter11 v3:")
     for name in ("easy", "medium", "hard"):
         print(f"    {output_dir}/{name}_{n}.json")
 

@@ -12,7 +12,7 @@ USAGE (called by scripts/run_train.sh; also a standalone CLI):
     python -u src/utils/probe_train_subset.py \\
         --action-labels outputs/full/probe_action/action_labels.json \\
         --split train \\
-        --output data/eval_10k_train_split.json
+        --output data/eval_10k_local/eval_10k_train_split.json
 """
 import argparse
 import json

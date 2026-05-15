@@ -4,12 +4,12 @@ Orchestrator/worker pattern for VRAM management. HF WebDataset streaming with ch
 
 USAGE:
     python -u src/m04_vlm_tag.py --model qwen --SANITY 2>&1 | tee logs/m04_sanity_qwen.log
-    python -u src/m04_vlm_tag.py --model qwen --POC --subset data/subset_10k.json --local-data data/subset_10k_local 2>&1 | tee logs/m04_poc_qwen.log
-    python -u src/m04_vlm_tag.py --model qwen --BAKEOFF --subset data/subset_10k.json 2>&1 | tee logs/m04_bakeoff_qwen_poc.log
-    python -u src/m04_vlm_tag.py --model videollama --BAKEOFF --subset data/subset_10k.json 2>&1 | tee logs/m04_bakeoff_videollama_poc.log
-    python -u src/m04_vlm_tag.py --model llava --BAKEOFF --subset data/subset_10k.json 2>&1 | tee logs/m04_bakeoff_llava_poc.log
-    python -u src/m04_vlm_tag.py --model qwen --FULL --subset data/subset_10k.json 2>&1 | tee logs/m04_full_qwen_poc.log
-    python -u src/m04_vlm_tag.py --model qwen --plot-only --subset data/subset_10k.json 2>&1 | tee logs/m04_full_qwen_plot.log
+    python -u src/m04_vlm_tag.py --model qwen --POC --subset data/subset_10k_local/subset_10k.json --local-data data/subset_10k_local 2>&1 | tee logs/m04_poc_qwen.log
+    python -u src/m04_vlm_tag.py --model qwen --BAKEOFF --subset data/subset_10k_local/subset_10k.json 2>&1 | tee logs/m04_bakeoff_qwen_poc.log
+    python -u src/m04_vlm_tag.py --model videollama --BAKEOFF --subset data/subset_10k_local/subset_10k.json 2>&1 | tee logs/m04_bakeoff_videollama_poc.log
+    python -u src/m04_vlm_tag.py --model llava --BAKEOFF --subset data/subset_10k_local/subset_10k.json 2>&1 | tee logs/m04_bakeoff_llava_poc.log
+    python -u src/m04_vlm_tag.py --model qwen --FULL --subset data/subset_10k_local/subset_10k.json 2>&1 | tee logs/m04_full_qwen_poc.log
+    python -u src/m04_vlm_tag.py --model qwen --plot-only --subset data/subset_10k_local/subset_10k.json 2>&1 | tee logs/m04_full_qwen_plot.log
     python -u src/m04_vlm_tag.py --model qwen --FULL 2>&1 | tee logs/m04_full_qwen.log
 """
 import argparse

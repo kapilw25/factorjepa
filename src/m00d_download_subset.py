@@ -4,7 +4,7 @@ Parallel download (8 workers) — see DOWNLOAD_WORKERS.
 
 USAGE:
     python -u src/m00d_download_subset.py --SANITY \
-        --subset data/subset_10k.json \
+        --subset data/subset_10k_local/subset_10k.json \
         --master-tags data/full_local/tags.json \
         2>&1 | tee logs/m00d_sanity.log
     python -u src/m00d_download_subset.py --FULL \
@@ -16,7 +16,7 @@ USAGE:
         --no-wandb 2>&1 | tee logs/m00d_full.log
     # Skip tags filter (rare — m10 will FATAL on tags.json absence):
     python -u src/m00d_download_subset.py --FULL \
-        --subset data/val_1k.json \
+        --subset data/val_1k_local/val_1k.json \
         --master-tags data/full_local/tags.json --no-tags-filter \
         --no-wandb 2>&1 | tee logs/m00d_val_1k.log
 """
@@ -95,8 +95,16 @@ def _scan_shard(local_tar: str, remaining_keys, saved_keys) -> list:
 
 
 def _output_dir_from_subset(subset_path: str) -> Path:
-    """Derive local data dir from subset filename: data/subset_10k.json → data/subset_10k_local/"""
+    """Derive local data dir from subset filename.
+
+    Two layouts supported (iter15 Phase B, 2026-05-15):
+      legacy: data/subset_10k.json                  → data/subset_10k_local/
+      new:    data/subset_10k_local/subset_10k.json → data/subset_10k_local/
+    """
     p = Path(subset_path)
+    # New layout: subset file is already INSIDE its <stem>_local/ dir.
+    if p.parent.name == f"{p.stem}_local":
+        return p.parent
     return p.parent / f"{p.stem}_local"
 
 

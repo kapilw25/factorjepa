@@ -80,13 +80,13 @@ ACTION_LABELS="outputs/${mode_dir}/probe_action/action_labels.json"
 if [ ! -f "$ACTION_LABELS" ]; then
     echo "  [run_probe_train] $ACTION_LABELS missing — auto-bootstrapping via probe_action.py --stage labels (CPU, ~1 min)"
     LOCAL_DATA_BOOTSTRAP="data/eval_10k_local"
-    MOTION_FEATURES_BOOTSTRAP="${LOCAL_DATA_BOOTSTRAP}/motion_features.npy"
+    MOTION_FEATURES_BOOTSTRAP="${LOCAL_DATA_BOOTSTRAP}/m04d_motion_features/motion_features.npy"
     if [ ! -f "$MOTION_FEATURES_BOOTSTRAP" ]; then
         echo "❌ FATAL: $MOTION_FEATURES_BOOTSTRAP not found — run m04d_motion_features.py first" >&2
         exit 3
     fi
     if [ "$MODE" = "SANITY" ]; then
-        EVAL_SUBSET_BOOTSTRAP="data/eval_10k_sanity.json"
+        EVAL_SUBSET_BOOTSTRAP="data/eval_10k_local/eval_10k_sanity.json"
         # iter13 v13 (2026-05-07): floor=3 is the absolute minimum that
         # stratified_split's greedy allocation supports (val=1/test=1/train=1).
         MIN_CLIPS_BOOTSTRAP=3
@@ -98,17 +98,17 @@ if [ ! -f "$ACTION_LABELS" ]; then
         # 855/7-class label file. Per-class target = POC_TOTAL / 8 (8 surviving
         # motion classes from m04d 13-D RAFT × magnitude-quartile × direction).
         # Source: src/CLAUDE.md POC↔FULL parity rule + plan_surgery_wins.md §12.7.
-        POC_SUBSET="data/eval_10k_poc.json"
+        POC_SUBSET="data/eval_10k_local/eval_10k_poc.json"
         POC_TOTAL=$(scripts/lib/yaml_extract.py configs/train/base_optimization.yaml data.poc_total_clips)
         TARGET_PER_CLASS=$((POC_TOTAL / 8))
-        MOTION_FEATURES_FULL="data/eval_10k_local/motion_features.npy"
+        MOTION_FEATURES_FULL="data/eval_10k_local/m04d_motion_features/motion_features.npy"
         if [ ! -f "$MOTION_FEATURES_FULL" ]; then
             echo "❌ FATAL: $MOTION_FEATURES_FULL missing — run m04d --FULL first." >&2
             exit 4
         fi
-        if [ ! -f "$POC_SUBSET" ] || [ "data/eval_10k.json" -nt "$POC_SUBSET" ] || [ "$MOTION_FEATURES_FULL" -nt "$POC_SUBSET" ]; then
+        if [ ! -f "$POC_SUBSET" ] || [ "data/eval_10k_local/eval_10k.json" -nt "$POC_SUBSET" ] || [ "$MOTION_FEATURES_FULL" -nt "$POC_SUBSET" ]; then
             python -u src/utils/eval_subset.py \
-                --eval-subset data/eval_10k.json \
+                --eval-subset data/eval_10k_local/eval_10k.json \
                 --stratified-by-motion-class \
                 --motion-features "$MOTION_FEATURES_FULL" \
                 --target-per-class "$TARGET_PER_CLASS" \
@@ -120,7 +120,7 @@ if [ ! -f "$ACTION_LABELS" ]; then
         MIN_CLIPS_BOOTSTRAP=34
         MIN_SPLIT_BOOTSTRAP=5
     else
-        EVAL_SUBSET_BOOTSTRAP="data/eval_10k.json"
+        EVAL_SUBSET_BOOTSTRAP="data/eval_10k_local/eval_10k.json"
         MIN_CLIPS_BOOTSTRAP=34
         MIN_SPLIT_BOOTSTRAP=5
     fi
@@ -149,10 +149,10 @@ fi
 # action_labels.json carries 70/15/15 split (train=6964, val=1491, test=1496)
 # — paper-final m06d trio uses TEST clips that m09a never sees during pretrain.
 # iter13 Task #23 (2026-05-04): added test split externalisation here so eval
-# stages downstream can reference data/eval_10k_test_split.json directly.
-TRAIN_SPLIT="data/eval_10k_train_split.json"
-VAL_SPLIT="data/eval_10k_val_split.json"
-TEST_SPLIT="data/eval_10k_test_split.json"
+# stages downstream can reference data/eval_10k_local/eval_10k_test_split.json directly.
+TRAIN_SPLIT="data/eval_10k_local/eval_10k_train_split.json"
+VAL_SPLIT="data/eval_10k_local/eval_10k_val_split.json"
+TEST_SPLIT="data/eval_10k_local/eval_10k_test_split.json"
 echo "═══ $(date '+%H:%M:%S') · Generating train/val/test split JSONs ═══"
 python -u src/utils/probe_train_subset.py \
     --action-labels "$ACTION_LABELS" --split train --output "$TRAIN_SPLIT"
@@ -192,9 +192,9 @@ TAXONOMY_LABELS="outputs/${mode_dir}/probe_taxonomy/taxonomy_labels.json"
 TAG_TAXONOMY="configs/tag_taxonomy.json"
 # eval_subset path mirrors run_eval.sh's mode-gated convention.
 if [ "$MODE" = "SANITY" ]; then
-    EVAL_SUBSET_TX="data/eval_10k_sanity.json"
+    EVAL_SUBSET_TX="data/eval_10k_local/eval_10k_sanity.json"
 else
-    EVAL_SUBSET_TX="data/eval_10k.json"
+    EVAL_SUBSET_TX="data/eval_10k_local/eval_10k.json"
 fi
 TAGS_JSON_TX="${LOCAL_DATA}/tags.json"
 TAXONOMY_ARGS=()
@@ -274,7 +274,7 @@ case "$SUBCMD" in
             --probe-local-data "$LOCAL_DATA" \
             --probe-tags "${LOCAL_DATA}/tags.json" \
             --probe-action-labels "outputs/${mode_dir}/probe_action/action_labels.json" \
-            --motion-features-path "${LOCAL_DATA}/motion_features.npy" \
+            --motion-features-path "${LOCAL_DATA}/m04d_motion_features/motion_features.npy" \
             "${TAXONOMY_ARGS[@]}" \
             --no-wandb \
             2>&1 | tee "logs/m09a_${SUBCMD}_${mode_dir}.log"
@@ -426,7 +426,7 @@ case "$SUBCMD" in
             --output-dir "$OUT_DIR" \
             --cache-policy "$P_M09" \
             --init-from-ckpt "$PRETRAIN_HF_URI" \
-            --motion-features-path "${LOCAL_DATA}/motion_features.npy" \
+            --motion-features-path "${LOCAL_DATA}/m04d_motion_features/motion_features.npy" \
             "${TAXONOMY_ARGS[@]}" \
             "${RECIPE_V2_ARGS[@]}" \
             --no-wandb \
@@ -456,7 +456,7 @@ case "$SUBCMD" in
             --probe-local-data "$LOCAL_DATA" \
             --probe-tags "${LOCAL_DATA}/tags.json" \
             --probe-action-labels "outputs/${mode_dir}/probe_action/action_labels.json" \
-            --motion-features-path "${LOCAL_DATA}/motion_features.npy" \
+            --motion-features-path "${LOCAL_DATA}/m04d_motion_features/motion_features.npy" \
             "${TAXONOMY_ARGS[@]}" \
             --no-wandb \
             2>&1 | tee "logs/m09a2_pretrain_head_${mode_dir}.log"
@@ -501,7 +501,7 @@ case "$SUBCMD" in
             --probe-local-data "$LOCAL_DATA" \
             --probe-tags "$VAL_TAGS" \
             --probe-action-labels "outputs/${mode_dir}/probe_action/action_labels.json" \
-            --motion-features-path "${LOCAL_DATA}/motion_features.npy" \
+            --motion-features-path "${LOCAL_DATA}/m04d_motion_features/motion_features.npy" \
             "${TAXONOMY_ARGS[@]}" \
             --no-wandb \
             2>&1 | tee "logs/m09c2_surgery_${VARIANT_TAG}_${mode_dir}.log"

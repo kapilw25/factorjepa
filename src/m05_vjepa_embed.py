@@ -5,11 +5,11 @@ GPU-only (Nvidia CUDA required, no CPU fallback). Streams from HF — no local c
 USAGE (every path arg required — CLAUDE.md no-default rule; --profile-data optional):
     python -u src/m05_vjepa_embed.py --SANITY \
         --model-config configs/model/vjepa2_1.yaml \
-        --subset data/sanity_100_dense.json --local-data data/val_1k_local \
+        --subset data/val_1k_local/sanity_100_dense.json --local-data data/val_1k_local \
         2>&1 | tee logs/m05_vjepa_embed_sanity.log
     python -u src/m05_vjepa_embed.py --POC \
         --model-config configs/model/vjepa2_1.yaml \
-        --subset data/subset_10k.json --local-data data/subset_10k_local \
+        --subset data/subset_10k_local/subset_10k.json --local-data data/subset_10k_local \
         --profile-data outputs/profile/inference/vjepa2/profile_data.json \
         2>&1 | tee logs/m05_vjepa_embed_poc.log
     python -u src/m05_vjepa_embed.py --FULL \

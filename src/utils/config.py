@@ -417,7 +417,7 @@ def load_subset(subset_path: str = None) -> set:
     Load subset clip keys from JSON file.
 
     Args:
-        subset_path: Path to subset JSON (e.g., data/subset_10k.json).
+        subset_path: Path to subset JSON (e.g., data/subset_10k_local/subset_10k.json).
                      If None, returns empty set (= no filtering, full mode).
 
     Returns:
@@ -518,7 +518,7 @@ def get_module_output_dir(module_name: str, subset_path: str = None,
 def add_subset_arg(parser):
     """Add --subset argument to any argparse parser (shared across m04-m08)."""
     parser.add_argument("--subset", type=str, default=None,
-                        help="Path to subset JSON (e.g., data/subset_10k.json) for POC mode")
+                        help="Path to subset JSON (e.g., data/subset_10k_local/subset_10k.json) for POC mode")
 
 
 def add_local_data_arg(parser):

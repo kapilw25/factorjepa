@@ -7,6 +7,14 @@ Sibling docs: [`plan_trainHead_scaleBackbone_curriculum.md`](./plan_trainHead_sc
 ## Pre-flight (~30 sec, CPU)
 
 ```bash
+# === VENV ACTIVATION — must be venv_walkindia (NOT /venv/main) ===
+# Setup script (scripts/setup_env_gpu.sh) creates venv_walkindia with numpy/torch/
+# cuML/FAISS/Flash-Attn. Fresh shells default to /venv/main which lacks numpy →
+# every command below fails with ModuleNotFoundError if this is skipped.
+source venv_walkindia/bin/activate
+python -c "import numpy, torch; print(f'numpy={numpy.__version__}  torch={torch.__version__}  cuda={torch.cuda.is_available()}')" \
+    || { echo "FATAL: venv_walkindia not viable"; exit 1; }
+
 # === CGROUP ENVELOPE — fail loud if cap < 48 GB (head-only needs ~10 GB GPU + ~30 GB host RAM peak) ===
 cat /sys/fs/cgroup/memory/memory.limit_in_bytes 2>/dev/null \
     | awk '{printf "cgroup memory cap: %.1f GB\n", $1/1024/1024/1024}' \
@@ -21,18 +29,21 @@ nvidia-smi --query-gpu=name,memory.total,memory.free --format=csv,noheader
 nproc && free -h | head -2 && df -h /workspace 2>/dev/null | tail -1
 
 # === Confirm 23-D motion features are on disk (Phase 3 prereq) ===
+# iter15 (2026-05-15): m04d outputs now land under
+# <local_data>/m04d_motion_features/ (was: <local_data>/ root) so the whole
+# subdir — including .m04d_checkpoint.npz — rides on hf_outputs.py upload-data.
 python -c "
 import numpy as np
-f = np.load('data/eval_10k_local/motion_features.npy')
+f = np.load('data/eval_10k_local/m04d_motion_features/motion_features.npy')
 assert f.shape == (9297, 23), f'expected (9297, 23), got {f.shape} — rerun Phase 3 m04d'
 print(f'motion_features.npy: {f.shape}  vec[13] range: [{f[:,13].min():.3f}, {f[:,13].max():.3f}]')"
 
 # === Confirm action_labels.json was regenerated on 23-D taxonomy ===
 # If file MISSING or older than motion_features.npy → regenerate (CPU, ~5 sec):
 #   python -u src/probe_action.py --SANITY --stage labels \
-#       --eval-subset data/eval_10k.json \
-#       --motion-features data/eval_10k_local/motion_features.npy \
-#       --output-dir outputs/sanity/probe_action
+#       --eval-subset data/eval_10k_local/eval_10k.json \
+#       --motion-features data/eval_10k_local/m04d_motion_features/motion_features.npy \
+#       --output-root outputs/sanity/probe_action
 ls -la outputs/sanity/probe_action/action_labels.json 2>/dev/null \
     || echo "MISSING: regenerate with probe_action --stage labels (see comment above)"
 ```

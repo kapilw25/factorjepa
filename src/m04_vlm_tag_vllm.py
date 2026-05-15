@@ -10,7 +10,7 @@ SETUP:
 USAGE:
     source venv_vllm/bin/activate
     python -u src/m04_vlm_tag_vllm.py --SANITY 2>&1 | tee logs/m04_vllm_sanity.log
-    python -u src/m04_vlm_tag_vllm.py --POC --subset data/subset_10k.json \
+    python -u src/m04_vlm_tag_vllm.py --POC --subset data/subset_10k_local/subset_10k.json \
         --local-data data/subset_10k_local 2>&1 | tee logs/m04_vllm_poc.log
     python -u src/m04_vlm_tag_vllm.py --FULL --local-data data/full_local \
         2>&1 | tee logs/m04_vllm_full.log

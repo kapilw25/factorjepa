@@ -21,9 +21,9 @@ iter13 v12; this module now owns its own POV mapping (no cross-import).
 
 USAGE (called by scripts/run_eval.sh under MODE=SANITY; also standalone):
     python -u src/utils/eval_subset.py \\
-        --eval-subset data/eval_10k.json \\
+        --eval-subset data/eval_10k_local/eval_10k.json \\
         --n-per-class 200 \\
-        --output data/eval_10k_sanity.json
+        --output data/eval_10k_local/eval_10k_sanity.json
 
   Sizing notes (post-iter13-v12):
     - 200/POV × 3 = 600 clips → ~37 clips/motion-class avg → splits cleanly
@@ -148,7 +148,8 @@ def stratified_by_motion_class_subset(src: dict, motion_features_path,
         sys.exit(
             f"FATAL: motion_features.npy not found at {motion_features_path}.\n"
             f"  Run m04d first: python -u src/m04d_motion_features.py --FULL "
-            f"--subset {src.get('source', '<eval-subset>')} ..."
+            f"--subset {src.get('source', '<eval-subset>')} --local-data <local_data>\n"
+            f"  (writes to <local_data>/m04d_motion_features/ by default)"
         )
     if not paths_path.exists():
         sys.exit(f"FATAL: motion_features.paths.npy not found at {paths_path} "
@@ -207,7 +208,7 @@ def main():
                     "    (POC, iter14, fixes 855/7-class bug); "
                     "(c) --first-n N → first-N verbatim (DEPRECATED, kept for back-compat).")
     p.add_argument("--eval-subset", type=Path, required=True,
-                   help="Source eval JSON (e.g. data/eval_10k.json).")
+                   help="Source eval JSON (e.g. data/eval_10k_local/eval_10k.json).")
     g = p.add_mutually_exclusive_group(required=True)
     g.add_argument("--n-per-class", type=int, default=None,
                    help="Stratified-by-POV mode: clips to keep per POV class "

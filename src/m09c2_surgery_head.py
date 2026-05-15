@@ -13,20 +13,20 @@ USAGE (every path arg required — CLAUDE.md no-default rule):
     python -u src/m09c2_surgery_head.py --SANITY \
         --model-config configs/model/vjepa2_1.yaml \
         --train-config configs/train/surgery_3stage_DI_head.yaml \
-        --subset data/sanity_100_dense.json --local-data data/val_1k_local \
-        --val-subset data/val_1k.json --val-local-data data/val_1k_local \
+        --subset data/val_1k_local/sanity_100_dense.json --local-data data/val_1k_local \
+        --val-subset data/val_1k_local/val_1k.json --val-local-data data/val_1k_local \
         --no-wandb 2>&1 | tee logs/m09c2_3stage_DI_head_sanity_$(date +%Y%m%d_%H%M%S).log
     python -u src/m09c2_surgery_head.py --POC \
         --model-config configs/model/vjepa2_1.yaml \
         --train-config configs/train/surgery_2stage_noDI_head.yaml \
-        --subset data/eval_10k_train_split.json --local-data data/eval_10k_local \
-        --val-subset data/eval_10k_val_split.json --val-local-data data/eval_10k_local \
+        --subset data/eval_10k_local/eval_10k_train_split.json --local-data data/eval_10k_local \
+        --val-subset data/eval_10k_local/eval_10k_val_split.json --val-local-data data/eval_10k_local \
         --no-wandb 2>&1 | tee logs/m09c2_noDI_head_poc_$(date +%Y%m%d_%H%M%S).log
     python -u src/m09c2_surgery_head.py --FULL \
         --model-config configs/model/vjepa2_1.yaml \
         --train-config configs/train/surgery_3stage_DI_head.yaml \
-        --subset data/eval_10k_train_split.json --local-data data/eval_10k_local \
-        --val-subset data/eval_10k_val_split.json --val-local-data data/eval_10k_local \
+        --subset data/eval_10k_local/eval_10k_train_split.json --local-data data/eval_10k_local \
+        --val-subset data/eval_10k_local/eval_10k_val_split.json --val-local-data data/eval_10k_local \
         --no-wandb 2>&1 | tee logs/m09c2_3stage_DI_head_full_$(date +%Y%m%d_%H%M%S).log
 """
 import os

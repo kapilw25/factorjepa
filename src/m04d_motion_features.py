@@ -11,44 +11,39 @@ Producer-consumer pipeline: CPU thread decodes video + preprocesses frame
 pairs → queue → GPU thread batches multiple clips' pairs into one RAFT
 forward pass. ~5-10x faster than sequential.
 
-OUTPUT ROUTING (iter13 v12, 2026-05-05):
-    motion_features.npy + .paths.npy default to <local_data>/ (alongside the
-    dataset TAR shards) so they become a durable per-dataset artifact —
-    auto-uploaded by `hf_outputs.py upload-data`, auto-downloaded on every
-    fresh GPU spin-up via `download-data`. The mid-run .m04d_checkpoint.npz
-    stays in the legacy outputs/<mode>/m04d_motion_features/ dir (scratch).
-    Override the output path with --features-out if needed.
+OUTPUT ROUTING (iter15, 2026-05-15):
+    ALL m04d outputs land in <local_data>/m04d_motion_features/ — durable
+    motion_features.{npy,paths.npy,meta.json} AND mid-run .m04d_checkpoint.npz.
+    The full subdir rides on `hf_outputs.py upload-data` → fresh GPU instances
+    pick up a preempted m04d run via `download-data` and resume from
+    checkpoint. Mirrors the m10_sam_segment/ + m11_factor_datasets/ subdir
+    convention under <local_data>/. Override with --output-dir.
 
 USAGE (per-dataset; one run per local_data dir, durable artifact thereafter):
-    # eval_10k (FULL eval target):
-CACHE_POLICY_ALL=2 python -u src/m04d_motion_features.py --FULL \
---subset data/eval_10k.json \
---local-data data/eval_10k_local \
---features-out data/eval_10k_local/motion_features.npy \
---no-wandb 2>&1 | tee logs/m04d_full_eval10k_$(date +%Y%m%d_%H%M%S).log
+    # eval_10k (FULL eval target) — outputs land in
+    # data/eval_10k_local/m04d_motion_features/ by default:
+    CACHE_POLICY_ALL=2 python -u src/m04d_motion_features.py --FULL \
+        --subset data/eval_10k_local/eval_10k.json --local-data data/eval_10k_local \
+        --no-wandb 2>&1 | tee logs/m04d_full_eval10k_$(date +%Y%m%d_%H%M%S).log
 
     # subset_10k (POC):
-    python -u src/m04d_motion_features.py --POC --subset data/subset_10k.json \
+    python -u src/m04d_motion_features.py --POC --subset data/subset_10k_local/subset_10k.json \
         --local-data data/subset_10k_local \
-        --features-out data/subset_10k_local/motion_features.npy \
         2>&1 | tee logs/m04d_poc_$(date +%Y%m%d_%H%M%S).log
 
     # val_1k:
-    python -u src/m04d_motion_features.py --FULL --subset data/val_1k.json \
+    python -u src/m04d_motion_features.py --FULL --subset data/val_1k_local/val_1k.json \
         --local-data data/val_1k_local \
-        --features-out data/val_1k_local/motion_features.npy \
         2>&1 | tee logs/m04d_val1k_$(date +%Y%m%d_%H%M%S).log
 
     # full_local (training data; HF will only upload the small .npy/.paths.npy,
     # NOT the multi-TB TAR shards — see hf_outputs.py:upload_data()):
     python -u src/m04d_motion_features.py --FULL --local-data data/full_local \
-        --features-out data/full_local/motion_features.npy \
         2>&1 | tee logs/m04d_full_$(date +%Y%m%d_%H%M%S).log
 
     # SANITY (smoke test):
-    python -u src/m04d_motion_features.py --SANITY --subset data/subset_10k.json \
+    python -u src/m04d_motion_features.py --SANITY --subset data/subset_10k_local/subset_10k.json \
         --local-data data/subset_10k_local \
-        --features-out data/subset_10k_local/motion_features.npy \
         2>&1 | tee logs/m04d_sanity_$(date +%Y%m%d_%H%M%S).log
 """
 import argparse
@@ -97,7 +92,6 @@ from utils.config import (
     HF_DATASET_REPO, check_gpu,
     add_subset_arg, add_local_data_arg, load_subset,
     get_pipeline_config, get_sanity_clip_limit, get_total_clips,
-    get_module_output_dir,
 )
 from utils.data_download import ensure_local_data, iter_clips_parallel
 from utils.wandb_utils import (
@@ -480,15 +474,17 @@ def main():
     add_local_data_arg(parser)
     add_wandb_args(parser)
     add_gpu_mem_arg(parser)
-    # iter13 v12 (2026-05-05): explicit output path for the durable per-dataset
-    # artifact. Defaults to <local_data>/motion_features.npy when omitted so the
-    # .npy + .paths.npy live next to the dataset's TAR shards, auto-uploaded by
-    # hf_outputs.py upload-data, auto-downloaded on every fresh GPU instance.
-    parser.add_argument("--features-out", type=Path, default=None,
-                        help="Output path for motion_features.npy. Default: "
-                             "<local_data>/motion_features.npy (durable per-"
-                             "dataset artifact alongside TAR shards). The "
-                             ".paths.npy is derived from the same stem.")
+    # iter15 (2026-05-15): single output dir holds EVERYTHING m04d produces —
+    # motion_features.{npy,paths.npy,meta.json} + .m04d_checkpoint.npz. Default
+    # routes under <local_data>/m04d_motion_features/ so the whole subdir rides
+    # on `hf_outputs.py upload-data` → fresh GPU instances pick up a preempted
+    # run via download-data + resume from checkpoint. Mirrors m10_sam_segment/
+    # + m11_factor_datasets/ subdir convention. The retired --features-out arg
+    # is gone — pass --output-dir if you need to override (e.g., ablation).
+    parser.add_argument("--output-dir", type=Path, default=None,
+                        help="Directory for ALL m04d outputs (motion_features.npy + "
+                             ".paths.npy + .meta.json + .m04d_checkpoint.npz). "
+                             "Default: <local_data>/m04d_motion_features/.")
     # Cache-policy gate (iter11): every destructive delete in this module must route
     # through utils.cache_policy.guarded_delete(path, args.cache_policy, ...).
     # --cache-policy defaults to 1 (keep) so overnight re-runs never destroy cache.
@@ -518,28 +514,30 @@ def main():
     print_cgroup_header(prefix="[m04d]")
     start_oom_watchdog(prefix="[m04d-oom-watchdog]")
 
-    # Output routing
-    # iter13 v12 (2026-05-05): split output_dir (mid-run scratch) from
-    # features_file (durable per-dataset artifact). The .m04d_checkpoint.npz
-    # mid-run resume state stays in outputs/<mode>/m04d_motion_features/ — it
-    # MUST NOT pollute the dataset dir (otherwise hf_outputs.py would ship a
-    # half-written checkpoint to other GPU instances). The features_file +
-    # paths_file land in <local_data>/ so they become a durable artifact that
-    # rides with the dataset's TAR shards.
-    output_dir = get_module_output_dir("m04d_motion_features", args.subset, sanity=args.SANITY, poc=args.POC)
-    output_dir.mkdir(parents=True, exist_ok=True)
-    checkpoint_file = output_dir / ".m04d_checkpoint.npz"
-
-    if args.features_out is not None:
-        features_file = Path(args.features_out)
+    # Output routing — iter15 (2026-05-15): single subdir holds EVERYTHING m04d
+    # produces (durable .npy + .paths.npy + .meta.json AND resumable
+    # .m04d_checkpoint.npz). Default = <local_data>/m04d_motion_features/ so the
+    # whole subdir rides on `hf_outputs.py upload-data` → fresh GPU instances
+    # pick up a preempted run via download-data + resume from checkpoint. The
+    # previous split (durables in <local_data>/, checkpoint in
+    # outputs/<mode>/m04d_motion_features/) is retired: cache-policy=2 wipes the
+    # checkpoint unconditionally, and cache-policy=1 skips m04d entirely when
+    # the .npy is present (no half-written re-upload risk).
+    if args.output_dir is not None:
+        output_dir = Path(args.output_dir)
     elif args.local_data is not None:
-        features_file = Path(args.local_data) / "motion_features.npy"
+        output_dir = Path(args.local_data) / "m04d_motion_features"
     else:
-        features_file = output_dir / "motion_features.npy"      # legacy fallback
-    features_file.parent.mkdir(parents=True, exist_ok=True)
-    paths_file = features_file.with_name(features_file.stem + ".paths.npy")
+        sys.exit("FATAL: --output-dir not supplied and --local-data missing — "
+                 "cannot resolve m04d output location.")
+    output_dir.mkdir(parents=True, exist_ok=True)
+    features_file   = output_dir / "motion_features.npy"
+    paths_file      = output_dir / "motion_features.paths.npy"
+    meta_file       = output_dir / "motion_features.meta.json"
+    checkpoint_file = output_dir / ".m04d_checkpoint.npz"
     print(f"Motion-features output: {features_file}")
     print(f"Paths output:           {paths_file}")
+    print(f"Meta output:            {meta_file}")
     print(f"Mid-run checkpoint:     {checkpoint_file}")
 
     # Skip-or-regenerate guard, routed through utils.cache_policy.
@@ -568,8 +566,8 @@ def main():
         # cache-policy=1 → keep existing finished output; skip if no checkpoint
         # is in flight (meaning the prior run finished cleanly).
         print(f"Motion features already exist: {features_file}")
-        print(f"  Skipping (--cache-policy=1/keep; rerun with --cache-policy 2 "
-              f"to regenerate, e.g., after FEATURE_DIM change).")
+        print("  Skipping (--cache-policy=1/keep; rerun with --cache-policy 2 "
+              "to regenerate, e.g., after FEATURE_DIM change).")
         return
 
     mode = "SANITY" if args.SANITY else ("POC" if args.POC else "FULL")
@@ -733,16 +731,11 @@ def main():
     features_arr = np.stack(features_list).astype(np.float32)
     keys_arr = np.array(keys_list, dtype=object)
 
-    # features_file + paths_file + meta_file are all DURABLE per-dataset
-    # artifacts, co-located under <local_data>/ so they ride together via
-    # hf_outputs.py upload-data. iter15 Phase 3 (2026-05-14): meta_file moved
-    # from outputs/<mode>/m04d_motion_features/motion_features_meta.json
-    # → <local_data>/motion_features.meta.json. The meta describes the .npy's
-    # shape + feature_names + n_frame_pairs → must travel with the .npy, not
-    # live in scratch outputs/ where it would orphan on iter rollover.
-    # Dot-separator naming mirrors motion_features.paths.npy.
-    meta_file = features_file.with_name(features_file.stem + ".meta.json")
-
+    # features_file + paths_file + meta_file all live inside output_dir (set
+    # above to <local_data>/m04d_motion_features/ by default). The subdir rides
+    # on hf_outputs.py upload-data so the meta describing .npy shape +
+    # feature_names + n_frame_pairs travels with the .npy — never orphaned in
+    # scratch outputs/.
     np.save(features_file, features_arr)
     np.save(paths_file, keys_arr)
     print(f"\nSaved: {features_file} ({features_arr.shape})")

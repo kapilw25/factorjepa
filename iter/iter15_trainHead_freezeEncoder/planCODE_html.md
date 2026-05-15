@@ -297,9 +297,9 @@ grep -oE 'src="[^"]+\.(png|mp4)"' docs/index.html | sort -u | \
 # 🏷️ Regenerate action labels from the new 23-D motion_features.npy
 python -u src/probe_action.py --FULL \
     --stage labels \
-    --eval-subset data/eval_10k.json \
-    --motion-features data/eval_10k_local/motion_features.npy \
-    --output-dir outputs/full/probe_action \
+    --eval-subset data/eval_10k_local/eval_10k.json \
+    --motion-features data/eval_10k_local/m04d_motion_features/motion_features.npy \
+    --output-root outputs/full/probe_action \
     2>&1 | tee logs/probe_action_labels_phase3_$(date +%Y%m%d_%H%M%S).log
 
 # ✅ Verify class distribution looks sane (8 classes expected)
@@ -352,8 +352,8 @@ print(f'  per-class counts: {dict(sorted(cnt.items()))}')"
 ```
 ┌──────────────────────────────────────────────────────────────────────┐
 │ INPUTS (all via argparse, required=True, no defaults)                  │
-│   --motion-features    data/eval_10k_local/motion_features.npy        │
-│   --eval-subset        data/eval_10k.json                             │
+│   --motion-features    data/eval_10k_local/m04d_motion_features/motion_features.npy        │
+│   --eval-subset        data/eval_10k_local/eval_10k.json                             │
 │   --tar-dir            data/eval_10k_local                            │
 │   --action-labels      outputs/full/probe_action/action_labels.json   │
 │   --output-video-dir   docs/static/videos/motion_spectrum             │
@@ -393,8 +393,8 @@ RAFT Middlebury color-wheel flow visualization. Output → docs/static/.
 
 USAGE (GPU; ~30 min wall):
     python -u src/utils/motion_spectrum_gallery.py \
-        --motion-features data/eval_10k_local/motion_features.npy \
-        --eval-subset     data/eval_10k.json \
+        --motion-features data/eval_10k_local/m04d_motion_features/motion_features.npy \
+        --eval-subset     data/eval_10k_local/eval_10k.json \
         --tar-dir         data/eval_10k_local \
         --action-labels   outputs/full/probe_action/action_labels.json \
         --output-video-dir docs/static/videos/motion_spectrum \
@@ -504,7 +504,7 @@ def main():
 ```bash
 # 🏆 For each of the 23 dims, find argmax across 9297 clips → render
 python -u src/utils/motion_spectrum_gallery.py --mode champions \
-    --motion-features data/eval_10k_local/motion_features.npy \
+    --motion-features data/eval_10k_local/m04d_motion_features/motion_features.npy \
     --output-video-dir docs/static/videos/dim_champions \
     --output-flow-dir  docs/static/videos/dim_champions_flow \
     --num-frames 16 \
