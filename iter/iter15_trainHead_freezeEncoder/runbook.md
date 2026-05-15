@@ -83,7 +83,7 @@ CACHE_POLICY_ALL=2 ./scripts/run_train.sh surgery_noDI_head --POC 2>&1 \
 CACHE_POLICY_ALL=2 ./scripts/run_train.sh pretrain_encoder --POC 2>&1 \
     | tee logs/iter15_poc_m09a1_pretrain_encoder_$(date +%Y%m%d_%H%M%S).log
 
-CACHE_POLICY_ALL=2 ./scripts/run_train.sh surgery_3stage_DI_encoder --POC 2>&1 \
+CACHE_POLICY_ALL=2 ./scripts/run_train.sh surgery_3stage_DI_encoder --POC 2>&1 \    
     | tee logs/iter15_poc_m09c1_3stage_DI_encoder_$(date +%Y%m%d_%H%M%S).log
 
 CACHE_POLICY_ALL=2 ./scripts/run_train.sh surgery_noDI_encoder --POC 2>&1 \
