@@ -105,6 +105,7 @@ def compute_metric_trio(
     cfg: dict,
     device: torch.device,
     dist_layers: int = 4,
+    motion_aux_head=None,                # iter15 Phase 6 C1 (2026-05-16)
 ) -> dict:
     """Top-1 + intra-inter cosine + future-L1 in a single shared forward pass.
 
@@ -209,7 +210,17 @@ def compute_metric_trio(
             #     as run_probe_acc_eval's last-layer mean-pool. This keeps top-1
             #     and motion-cos comparable to the post-training m06d trio.
             last_layer = h_concat[..., -embed_dim:]
-            pooled_chunks.append(last_layer.mean(dim=1).float().cpu())
+            pooled = last_layer.mean(dim=1).float()                 # (B, D) GPU
+            # iter15 Phase 6 C1 (2026-05-16): augment with motion_aux head output
+            # so top1 + motion_cos reflect the trained head (head cells: encoder
+            # frozen → without this the metrics are identical across head cells).
+            # future_l1 (computed below from masked predictor forward) is NOT
+            # affected — predictor sees encoder features only, by design.
+            if motion_aux_head is not None:
+                from utils.motion_aux_loss import forward_motion_aux_concat
+                ma_concat = forward_motion_aux_concat(motion_aux_head, pooled)
+                pooled = torch.cat([pooled, ma_concat], dim=-1)
+            pooled_chunks.append(pooled.cpu())
 
             # 4c. Mask sample for L1. Mirrors probe_future_mse._forward_one_batch
             #     but reuses h_concat as the prediction target (no extra forward).

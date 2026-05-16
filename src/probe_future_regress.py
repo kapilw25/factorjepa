@@ -338,8 +338,28 @@ def run_forward_stage(args, wb) -> None:
         model, args, test_keys, "test", args.num_frames, device, dtype)
     print(f"  features: train={ctx_train.shape}  test={ctx_test.shape}")
 
+    # iter15 Phase 6 audit (2026-05-16): optional motion_aux head augment.
+    # ctx + tgt features concat with head output → regressor sees (D+K+n_dims).
+    regressor_in_dim = EMBED_DIM
+    if args.motion_aux_head is not None:
+        from utils.motion_aux_loss import load_motion_aux_head
+        from utils.frozen_features import apply_motion_aux_head_to_features
+        print(f"  [motion_aux] augmenting ctx + tgt features: {args.motion_aux_head}")
+        ma_head = load_motion_aux_head(args.motion_aux_head, device="cuda")
+        def _augment(feats: torch.Tensor) -> torch.Tensor:
+            ma_concat = apply_motion_aux_head_to_features(
+                feats.cpu().numpy(), ma_head, batch_size=256)
+            return torch.cat([feats, torch.from_numpy(ma_concat).to(feats.device)], dim=-1)
+        ctx_train = _augment(ctx_train)
+        tgt_train = _augment(tgt_train)
+        ctx_test  = _augment(ctx_test)
+        tgt_test  = _augment(tgt_test)
+        regressor_in_dim = EMBED_DIM + ma_head.n_motion_classes + ma_head.n_motion_dims
+        print(f"  [motion_aux] regressor in/out dim: {regressor_in_dim}  "
+              f"(D + K + n_dims = {EMBED_DIM} + {ma_head.n_motion_classes} + {ma_head.n_motion_dims})")
+
     # === Phase B: train regressor on train features ===
-    regressor = build_regressor(args.regressor_arch, EMBED_DIM)
+    regressor = build_regressor(args.regressor_arch, regressor_in_dim)
     n_reg_params = sum(p.numel() for p in regressor.parameters())
     print(f"  regressor ({args.regressor_arch}): {n_reg_params / 1e6:.1f} M params")
     regressor = _train_regressor(regressor, ctx_train, tgt_train, device,
@@ -487,6 +507,15 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--variant", choices=list(KNOWN_VARIANTS), default=None)
     p.add_argument("--encoder-ckpt", type=Path, default=None,
                      help="encoder ckpt to load (frozen). Predictor NOT needed.")
+    # iter15 Phase 6 audit (2026-05-16): optional motion_aux head augment for
+    # head-vs-encoder paired-Δ. When set, ctx + tgt features are concat with
+    # motion_aux head output (B, K + n_dims) → regressor input/output dim grows
+    # to D + K + n_dims. Frozen baseline / cells without head: omit flag →
+    # encoder-only path (iter14 baseline reproduces bit-identically). See
+    # planCODE_head_eval.md Step 5.
+    p.add_argument("--motion-aux-head", type=Path, default=None,
+                     help="Path to motion_aux_head.pt for THIS encoder. None → encoder-only "
+                          "path. Wired by run_eval.sh motion_aux_head_for(ENC).")
     p.add_argument("--data-source", choices=list(DATA_SOURCES), default=None,
                      help="raw = train regressor on RAW clips through encoder; "
                           "factor_aug = train on factor-augmented clips (surgery_head variants).")

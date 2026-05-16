@@ -353,10 +353,16 @@ def run_multi_task_step(student, mt_head: "MultiTaskProbeHead | None",
                 weight_per_dim=mt_cfg["weight_per_dim"],
                 device=device)
             mt_loss_scaled = mt_loss * float(mt_cfg["weight_probe"])
-        if mt_loss_scaled.requires_grad and float(mt_loss_scaled.detach().item()) > 0.0:
+        # iter15 Phase 6 fix (2026-05-15): always return the computed mt_loss
+        # (val + train); gate backward separately on `scaler is not None`. Same
+        # bug shape as the patched motion_aux_loss.py:412-421 — under torch.no_grad
+        # (val), requires_grad=False → the prior `return 0.0` fired silently. m09a/c
+        # currently bypass this on val via direct compute_multi_task_probe_loss
+        # call (training.py:976), so the bug is dormant; closing for layer parity.
+        loss_value = float(mt_loss.detach().item())
+        if scaler is not None and mt_loss_scaled.requires_grad and loss_value > 0.0:
             scaler.scale(mt_loss_scaled).backward()
-            return float(mt_loss.detach().item()), mt_per_dim
-        return 0.0, mt_per_dim
+        return loss_value, mt_per_dim
     finally:
         if had_hier is not None:
             student.return_hierarchical = had_hier

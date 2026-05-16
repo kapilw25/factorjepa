@@ -409,10 +409,16 @@ def run_motion_aux_step(student, ma_head: "MotionAuxHead | None",
                 weight_mse=ma_cfg["weight_mse"],
                 device=device)
             ma_loss_scaled = ma_loss * float(ma_cfg["weight_motion"])
-        if ma_loss_scaled.requires_grad and float(ma_loss_scaled.detach().item()) > 0.0:
+        # iter15 Phase 6 fix (2026-05-15): always return the computed ma_loss
+        # (val + train); gate backward separately on `scaler is not None` (=train
+        # path). Pre-fix the gate also covered val (under torch.no_grad,
+        # requires_grad=False), silently returning 0.0 and degenerating the
+        # in-loop best_val_loss tracker — see iter15 Phase 6 Cell A log L75/94.
+        # Affects m09a2 + m09c2 (both call this util with scaler=None for val).
+        loss_value = float(ma_loss.detach().item())
+        if scaler is not None and ma_loss_scaled.requires_grad and loss_value > 0.0:
             scaler.scale(ma_loss_scaled).backward()
-            return float(ma_loss.detach().item()), ma_per_branch
-        return 0.0, ma_per_branch
+        return loss_value, ma_per_branch
     finally:
         if had_hier is not None:
             student.return_hierarchical = had_hier
@@ -435,3 +441,62 @@ def export_motion_aux_head(ma_head: "MotionAuxHead | None", path: Path) -> None:
         "hidden_dim":       ma_head.hidden_dim,
     }, path)
     print(f"Exported motion_aux head: {path}")
+
+
+# ── iter15 Phase 6 audit (2026-05-16): eval-time head consumption ─────
+# Mirrors export_motion_aux_head's schema. Used by probe_action /
+# probe_motion_cos / probe_future_regress to augment encoder features with
+# the trained head's outputs → makes head-vs-encoder paired-Δ valid.
+# See iter/iter15_trainHead_freezeEncoder/planCODE_head_eval.md Step 1.
+
+def load_motion_aux_head(ckpt_path: "Path | str",
+                          device: "torch.device | str" = "cpu") -> "MotionAuxHead":
+    """Load motion_aux_head.pt → MotionAuxHead in eval mode on `device`.
+
+    FAIL LOUD on:
+      - missing path (FileNotFoundError)
+      - corrupted ckpt (missing required schema keys)
+      - state_dict / hyperparam mismatch (caught by load_state_dict strict=True)
+
+    Returned head's buffers (vec_mean, vec_std) ride the ckpt via state_dict
+    (registered at __init__ L95-96). Eval consumers MUST NOT re-train; head is
+    set to .eval() so dropout + any future train-mode behavior is off.
+    """
+    ckpt_path = Path(ckpt_path)
+    if not ckpt_path.exists():
+        raise FileNotFoundError(f"motion_aux_head ckpt not found: {ckpt_path}")
+    blob = torch.load(ckpt_path, map_location="cpu", weights_only=False)
+    required = {"state_dict", "n_motion_classes", "n_motion_dims",
+                "d_encoder", "hidden_dim"}
+    missing = required - set(blob.keys())
+    if missing:
+        raise RuntimeError(
+            f"motion_aux_head ckpt {ckpt_path} missing schema keys: {missing}. "
+            f"Present keys: {sorted(blob.keys())}")
+    head = MotionAuxHead(
+        d_encoder=blob["d_encoder"],
+        n_motion_classes=blob["n_motion_classes"],
+        n_motion_dims=blob["n_motion_dims"],
+        hidden_dim=blob["hidden_dim"],
+    )
+    head.load_state_dict(blob["state_dict"])      # strict=True default — FAIL LOUD on key drift
+    head.eval()
+    head.to(device)
+    return head
+
+
+def forward_motion_aux_concat(ma_head: "MotionAuxHead",
+                                pooled: torch.Tensor) -> torch.Tensor:
+    """Run head forward on pooled encoder features; return concat (B, K + n_dims).
+
+    For eval-time feature augmentation: callers compose
+      augmented = torch.cat([pooled, forward_motion_aux_concat(head, pooled)], dim=1)
+    producing (B, D + K + n_dims) features for probe_action / probe_motion_cos /
+    probe_future_regress consumption.
+
+    Runs under torch.no_grad() — head is frozen at eval. Returns float32 on the
+    same device as `pooled`.
+    """
+    with torch.no_grad():
+        ce_logits, mse_pred = ma_head(pooled)     # (B, K), (B, n_dims)
+    return torch.cat([ce_logits.float(), mse_pred.float()], dim=1)

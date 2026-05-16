@@ -338,6 +338,19 @@ def run_train_stage(args, wb) -> None:
             by_split[split], enc_dir, label=f"features_{split}",
             pool_tokens=(args.pool_tokens if args.pool_tokens > 0 else None),
         )
+        # D1 fix (2026-05-16): symmetric head augment when probe_taxonomy
+        # lazy-extracts (probe_action's on-disk features path already
+        # propagates augmentation via disk-read above).
+        if args.motion_aux_head is not None:
+            from utils.motion_aux_loss import load_motion_aux_head
+            from utils.frozen_features import apply_motion_aux_head_to_features
+            ma_head = load_motion_aux_head(args.motion_aux_head, device="cuda")
+            ma_concat = apply_motion_aux_head_to_features(feats, ma_head, batch_size=256)
+            n_tokens = feats.shape[1] if feats.ndim == 3 else 1
+            ma_tiled = np.broadcast_to(
+                ma_concat[:, None, :], (feats.shape[0], n_tokens, ma_concat.shape[1])
+            ).astype(np.float16)
+            feats = np.concatenate([feats.astype(np.float16), ma_tiled], axis=-1)
         return feats, [str(k) for k in ordered_keys]
 
     feats_train, keys_train = _load_or_extract("train")
@@ -573,6 +586,15 @@ def build_parser():
     # in-memory). When all 3 splits are already on disk, these are unused.
     p.add_argument("--encoder-ckpt", type=Path, default=None,
                    help="V-JEPA encoder ckpt (required when train/val features need lazy extraction)")
+    # D1 fix (2026-05-16): wire motion_aux head for symmetry with probe_action.
+    # When probe_action wrote features_<split>.npy with augmentation already
+    # baked in (--motion-aux-head set there), probe_taxonomy inherits the
+    # augmented features automatically via disk read at _load_or_extract. The
+    # flag here covers the lazy-extract fallback path only.
+    p.add_argument("--motion-aux-head", type=Path, default=None,
+                   help="Path to motion_aux_head.pt for THIS encoder. Used by lazy-extract "
+                        "fallback to symmetrically augment features. Default None → encoder-"
+                        "only path. Wired by run_eval.sh motion_aux_head_for(ENC).")
     from utils.config import add_local_data_arg as _add_local_data_arg
     _add_local_data_arg(p)
     p.add_argument("--num-frames", type=int, default=NUM_FRAMES_DEFAULT,

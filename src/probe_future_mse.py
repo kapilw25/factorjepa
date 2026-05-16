@@ -273,42 +273,73 @@ def _forward_one_batch(encoder, predictor, mask_gen, batch: torch.Tensor) -> np.
 
     # 4) Per-clip L1: mean |Δ| over (n_pred_tokens, D).
     per_clip_l1 = (out.float() - h_target.float()).abs().mean(dim=(1, 2))  # (B,)
-    return per_clip_l1.cpu().numpy()
+    return per_clip_l1.cpu().numpy(), out, h_target           # D2: return tensors for ma augment
 
 
 # ── Stage 1 — forward on test split ───────────────────────────────────
 
-def _save_mse_ckpt(ckpt_file: Path, mse_acc, keys_acc) -> None:
+def _save_mse_ckpt(ckpt_file: Path, mse_acc, keys_acc, ma_acc=None) -> None:
     """Atomic .npz checkpoint. Suffix is .tmp.npz (not .npz.tmp) —
     np.savez auto-appends .npz when the path doesn't end in .npz, which
     would silently rename our tmp behind our back. See errors_N_fixes.md #82.
+
+    D2 (2026-05-16): when `ma_acc` is provided, also persists the parallel
+    motion_aux-augmented per-clip L1 accumulator so resume keeps the two
+    streams in lockstep length-wise. Mismatch → FATAL on next flush.
     """
     if not mse_acc:
         return
     tmp = ckpt_file.with_suffix(".tmp.npz")
-    np.savez(tmp,
-             mse=np.array(mse_acc, dtype=np.float32),
-             keys=np.array(keys_acc, dtype=object))
+    payload = dict(
+        mse=np.array(mse_acc, dtype=np.float32),
+        keys=np.array(keys_acc, dtype=object),
+    )
+    if ma_acc is not None:
+        if len(ma_acc) != len(mse_acc):
+            sys.exit(f"FATAL: ma_acc length {len(ma_acc)} != mse_acc length {len(mse_acc)} at ckpt save")
+        payload["ma"] = np.array(ma_acc, dtype=np.float32)
+    np.savez(tmp, **payload)
     os.replace(tmp, ckpt_file)
 
 
 def _flush_batch_forward(pending_tensors, pending_keys, encoder, predictor, mask_gen,
-                         sizer, mse_acc, keys_acc, pbar):
-    """Sub-batch with OOM-retry. Mirrors frozen_features._flush_batch."""
+                         sizer, mse_acc, keys_acc, pbar,
+                         ma_head=None, ma_acc=None, embed_dim=None):
+    """Sub-batch with OOM-retry. Mirrors frozen_features._flush_batch.
+
+    D2 (2026-05-16): when `ma_head` is provided, also accumulates per-clip L1
+    in motion_aux-augmented feature space (mean-pool over tokens → ma_head →
+    L1 between pooled-augmented pred + target). Appends to `ma_acc`.
+    """
     batch = torch.stack(pending_tensors)
     n_total = batch.shape[0]
     i = 0
     while i < n_total:
         sub = batch[i:i + sizer.size]
         try:
-            per_clip_l1 = _forward_one_batch(encoder, predictor, mask_gen, sub)
+            per_clip_l1, out, h_target = _forward_one_batch(encoder, predictor, mask_gen, sub)
         except torch.cuda.OutOfMemoryError:
             cuda_cleanup()
             if not sizer.on_oom():
                 raise
             continue
+        # D2: motion_aux-augmented per-clip L1 (parallel metric, not replacing the above).
+        per_clip_ma_l1 = None
+        if ma_head is not None and embed_dim is not None:
+            # Take LAST embed_dim columns of the hierarchical concat (matches
+            # probe_trio.py:225 convention) → (B, N, D) → mean over tokens → (B, D).
+            out_last = out[..., -embed_dim:].float().mean(dim=1)               # (B, D)
+            tgt_last = h_target[..., -embed_dim:].float().mean(dim=1)          # (B, D)
+            with torch.no_grad():
+                out_logits, out_vec = ma_head(out_last)
+                tgt_logits, tgt_vec = ma_head(tgt_last)
+            ma_pred = torch.cat([out_logits, out_vec], dim=-1)                 # (B, K+n_dims)
+            ma_tgt  = torch.cat([tgt_logits, tgt_vec], dim=-1)                 # (B, K+n_dims)
+            per_clip_ma_l1 = (ma_pred - ma_tgt).abs().mean(dim=-1).cpu().numpy()  # (B,)
         for r in range(per_clip_l1.shape[0]):
             mse_acc.append(float(per_clip_l1[r]))
+            if ma_acc is not None and per_clip_ma_l1 is not None:
+                ma_acc.append(float(per_clip_ma_l1[r]))
             keys_acc.append(pending_keys[i + r])
             pbar.update(1)
         sizer.after_batch_success()
@@ -369,9 +400,21 @@ def run_forward_stage(args, wb) -> None:
     mask_gen = _build_mask_gen(args.num_frames)
     print(f"  predictor: {sum(p.numel() for p in predictor.parameters()) / 1e6:.1f}M params")
 
+    # D2 (2026-05-16): optional motion_aux head augment → parallel per-clip L1
+    # in (K+n_dims) space. None → original encoder+predictor JEPA-only path.
+    ma_head = None
+    embed_dim = 1664   # V-JEPA 2.1 ViT-G last-layer dim (used to slice hierarchical concat)
+    if args.motion_aux_head is not None:
+        from utils.motion_aux_loss import load_motion_aux_head
+        ma_head = load_motion_aux_head(args.motion_aux_head, device="cuda")
+        print(f"  [motion_aux] augment ON: head={args.motion_aux_head} "
+              f"(K={ma_head.n_motion_classes}, n_dims={ma_head.n_motion_dims}) → "
+              f"will emit per_clip_motion_aux_l1.npy alongside per_clip_mse.npy")
+
     # Resume
     ckpt_file = out_dir / ".probe_future_mse_ckpt.npz"
     mse_acc, keys_acc, processed = [], [], set()
+    ma_acc = [] if ma_head is not None else None    # D2: parallel ma-L1 accumulator (None when augment OFF)
     if ckpt_file.exists():
         try:
             data = np.load(ckpt_file, allow_pickle=True)
@@ -379,8 +422,19 @@ def run_forward_stage(args, wb) -> None:
             keys_acc = list(data["keys"])
             processed = set(keys_acc)
             print(f"  Resume: {len(processed)} clips already cached")
+            if ma_head is not None:
+                if "ma" not in data.files:
+                    sys.exit("FATAL: --motion-aux-head set but resume ckpt has no 'ma' array — "
+                             "delete .probe_future_mse_ckpt.npz to redo from scratch (FAIL LOUD: cache_policy).")
+                ma_acc = list(data["ma"].tolist())
+                if len(ma_acc) != len(mse_acc):
+                    sys.exit(f"FATAL: resume ckpt mse({len(mse_acc)}) != ma({len(ma_acc)}) — corrupt cache")
+        except SystemExit:
+            raise
         except Exception as e:
             print(f"  WARN: resume ckpt corrupt ({e}), starting fresh")
+            mse_acc, keys_acc, processed = [], [], set()
+            ma_acc = [] if ma_head is not None else None
 
     target_keys = set(test_keys) - processed
     if not target_keys:
@@ -422,16 +476,18 @@ def run_forward_stage(args, wb) -> None:
                 if len(pending_tensors) >= 8:
                     _flush_batch_forward(pending_tensors, pending_keys,
                                          encoder, predictor, mask_gen,
-                                         sizer, mse_acc, keys_acc, pbar)
+                                         sizer, mse_acc, keys_acc, pbar,
+                                         ma_head=ma_head, ma_acc=ma_acc, embed_dim=embed_dim)
                     n_since_ckpt += len(pending_keys)
                     pending_tensors, pending_keys = [], []
                     if n_since_ckpt >= CHECKPOINT_EVERY:
-                        _save_mse_ckpt(ckpt_file, mse_acc, keys_acc)
+                        _save_mse_ckpt(ckpt_file, mse_acc, keys_acc, ma_acc=ma_acc)
                         n_since_ckpt = 0
             if pending_tensors:
                 _flush_batch_forward(pending_tensors, pending_keys,
                                      encoder, predictor, mask_gen,
-                                     sizer, mse_acc, keys_acc, pbar)
+                                     sizer, mse_acc, keys_acc, pbar,
+                                     ma_head=ma_head, ma_acc=ma_acc, embed_dim=embed_dim)
         finally:
             tar_stop.set()
             pbar.close()
@@ -455,6 +511,30 @@ def run_forward_stage(args, wb) -> None:
     log_metrics(wb, {f"{args.variant}_mse_mean": float(mse_arr.mean()),
                      f"{args.variant}_mse_std":  float(mse_arr.std()),
                      f"{args.variant}_n_test":   int(len(mse_arr))})
+
+    # D2 (2026-05-16): persist motion_aux-augmented per-clip L1 alongside the
+    # JEPA per_clip_mse.npy. Paired-Δ stage below will key off this file when
+    # `--motion-aux-head` was set on the upstream `forward` invocation.
+    if ma_acc is not None:
+        if len(ma_acc) != len(mse_acc):
+            sys.exit(f"FATAL: ma_acc length {len(ma_acc)} != mse_acc length {len(mse_acc)} at final save")
+        ma_arr = np.asarray(ma_acc, dtype=np.float32)
+        out_ma = out_dir / "per_clip_motion_aux_l1.npy"
+        save_array_checkpoint(ma_arr, out_ma)
+        ma_ci = bootstrap_ci(ma_arr.astype(np.float64))
+        save_json_checkpoint({
+            "variant": args.variant, "n_test": int(len(ma_arr)),
+            "ma_l1_mean": round(float(ma_arr.mean()), 6),
+            "ma_l1_std":  round(float(ma_arr.std()),  6),
+            "ma_l1_ci":   ma_ci,
+            "num_frames": args.num_frames,
+            "predictor_loaded_from": str(args.encoder_ckpt),
+            "motion_aux_head_loaded_from": str(args.motion_aux_head),
+            "augment_space_dim": int(ma_head.n_motion_classes + ma_head.n_motion_dims),
+        }, out_dir / "aggregate_motion_aux_l1.json")
+        print(f"  per_clip_motion_aux_l1: mean={ma_arr.mean():.4f}  std={ma_arr.std():.4f}  N={len(ma_arr)}")
+        log_metrics(wb, {f"{args.variant}_ma_l1_mean": float(ma_arr.mean()),
+                         f"{args.variant}_ma_l1_std":  float(ma_arr.std())})
 
 
 # ── Stage 2 — paired Δ across V-JEPA variants (CPU) ──────────────────
@@ -572,6 +652,17 @@ def build_parser() -> argparse.ArgumentParser:
                    help="V-JEPA variant whose ckpt is loaded for forward stage")
     p.add_argument("--encoder-ckpt", type=Path, default=None,
                    help="V-JEPA .pt holding encoder + predictor (target_encoder + predictor keys)")
+    # D2 fix (2026-05-16): wire motion_aux head for SYMMETRY with the rest of
+    # the eval pipeline (probe_action / probe_motion_cos / probe_future_regress
+    # all accept this flag). When provided, ADDS a parallel metric:
+    # per_clip_motion_aux_l1.npy = ||ma_head(pool(out)) − ma_head(pool(target))||_1
+    # in augmented (K + n_dims) space. The original per_clip_mse.npy is
+    # UNCHANGED (encoder+predictor JEPA-only path preserved → iter14
+    # reproducibility intact). Downstream paired-Δ stages can use either file.
+    p.add_argument("--motion-aux-head", type=Path, default=None,
+                   help="Path to motion_aux_head.pt. Emits parallel "
+                        "per_clip_motion_aux_l1.npy alongside the JEPA per_clip_mse.npy. "
+                        "None → encoder+predictor JEPA-only path (iter14 baseline).")
     add_local_data_arg(p)
     p.add_argument("--action-probe-root", type=Path, default=None,
                    help="probe_action output dir (provides action_labels.json test split)")

@@ -161,7 +161,7 @@ probe:
 # v12 REPLACES multi_task_probe with motion_aux below — single supervised aux loss
 # directly aligned with the eval metric.
 multi_task_probe:
-  enabled: {sanity: false, poc: false, full: false}
+  enabled: false                          # iter15 audit (2026-05-16): collapsed all-false dict to scalar (POC↔FULL parity rule)
 
 # -- Motion-features auxiliary loss (Phase 3, iter13 v12, 2026-05-06).
 # V-JEPA's main JEPA L1 is appearance-centric (predicts next-frame pixels via

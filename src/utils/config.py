@@ -309,8 +309,20 @@ def get_total_clips(local_data: str = None, subset_file: str = None) -> int:
         manifest = Path(local_data) / "manifest.json"
         if manifest.exists():
             data = json.load(open(manifest))
-            return data.get("n", data.get("n_clips", data.get("total_clips", 0)))
-    return 0  # caller must handle 0
+            # iter15 audit (2026-05-15): FAIL LOUD on malformed manifest (CLAUDE.md
+            # "No .get(key, default)"). Manifest MUST have one of {n, n_clips,
+            # total_clips}; if all 3 missing, raise instead of silently returning 0.
+            for key in ("n", "n_clips", "total_clips"):
+                if key in data:
+                    return data[key]
+            raise RuntimeError(
+                f"FATAL get_total_clips: manifest {manifest} missing all of "
+                f"{{n, n_clips, total_clips}}. Keys present: {list(data.keys())}")
+    # iter15 audit (2026-05-15): caller passed neither subset_file nor local_data.
+    # Previously returned 0 (silent) — now FAIL LOUD per CLAUDE.md.
+    raise RuntimeError(
+        "FATAL get_total_clips: called with neither subset_file nor local_data. "
+        "Pass exactly one. Silent zero return removed (iter15 audit).")
 
 
 # ═══════════════════════════════════════════════════════════════════════
@@ -579,7 +591,12 @@ def get_video_duration(video_path) -> float:
     try:
         result = subprocess.run(cmd, capture_output=True, text=True)
         return float(result.stdout.strip())
-    except (ValueError, subprocess.SubprocessError):
+    except (ValueError, subprocess.SubprocessError) as e:
+        # iter15 audit (2026-05-15): preserve 0.0-sentinel contract (m02 callers
+        # check `dur <= 0` to skip corrupt videos) BUT print the error class +
+        # path so the failure is observable, not silent (CLAUDE.md FAIL LOUD).
+        print(f"  [WARN] get_video_duration({video_path}): "
+              f"{type(e).__name__}: {e}", file=sys.stderr)
         return 0.0
 
 

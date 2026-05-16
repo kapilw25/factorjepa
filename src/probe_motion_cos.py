@@ -130,6 +130,17 @@ def _fresh_extract_pooled(args, enc_dir):
     if feats.size == 0:
         sys.exit("FATAL: fresh-extract returned 0 clips — no MP4s decoded")
     pooled = feats.mean(axis=1).astype(np.float32)            # (N, D)
+    # iter15 Phase 6 audit (2026-05-16): augment with motion_aux head for
+    # head-vs-encoder paired-Δ. Path B-only path; Path A inherits augmentation
+    # from probe_action's features_test.npy via _meanpool_action_probe_features.
+    if args.motion_aux_head is not None:
+        from utils.motion_aux_loss import load_motion_aux_head
+        from utils.frozen_features import apply_motion_aux_head_to_features
+        print(f"  [motion_aux] Path B augment: {args.motion_aux_head}")
+        ma_head = load_motion_aux_head(args.motion_aux_head, device="cuda")
+        ma_concat = apply_motion_aux_head_to_features(pooled, ma_head, batch_size=256)
+        pooled = np.concatenate([pooled, ma_concat.astype(np.float32)], axis=-1)
+        print(f"  [motion_aux] augmented pooled dim: {pooled.shape[-1]}")
     save_array_checkpoint(pooled, enc_dir / "pooled_features_test.npy")
     np.save(enc_dir / "clip_keys_test.npy", np.array(ordered_keys, dtype=object))
     print(f"  Fresh-extract: mean-pooled {feats.shape} -> {pooled.shape}")
@@ -356,6 +367,16 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--stage", required=True,
                    choices=["features", "cosine", "paired_delta"])
     p.add_argument("--encoder", choices=list(ENCODERS), default=None)
+    # iter15 Phase 6 audit (2026-05-16): optional motion_aux head augment.
+    # Path A (--share-features, default): probe_motion_cos reads probe_action's
+    # features_test.npy which is ALREADY augmented at probe_action's features
+    # stage → augment propagates automatically, no change needed here.
+    # Path B (--no-share-features): need to load head + augment after fresh
+    # extract. Same pattern as probe_action Step 3. See planCODE_head_eval.md.
+    p.add_argument("--motion-aux-head", type=Path, default=None,
+                   help="Path to motion_aux_head.pt for THIS encoder. Only used by "
+                        "fresh-extract path (Path B). Share-features path (Path A, "
+                        "default) inherits probe_action's augmented features automatically.")
     p.add_argument("--encoder-ckpt", type=Path, default=None,
                    help="V-JEPA ckpt (required for fresh-extract path on V-JEPA encoder)")
     add_local_data_arg(p)

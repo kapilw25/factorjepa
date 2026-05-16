@@ -88,7 +88,12 @@ optimization:
   # patching, not extra training steps. See plan_surgery_on_pretrain.md § Q3.
   max_epochs:
     sanity: 1
-    poc:    1
+    poc:    2                       # iter15 audit (2026-05-15): bumped 1 → 2 to match pretrain
+                                    # POC budget (pretrain_encoder.yaml: poc=2). Uniform POC:FULL =
+                                    # 2:5 across all 6 iter15 cells → fair cross-recipe comparison
+                                    # within head-family AND within encoder-family. Paired-Δ Δ5/Δ6/Δ7
+                                    # were already same-pair matched; this fix closes the cross-recipe
+                                    # asymmetry (pretrain=2 vs surgery=1) flagged in high_level_outputs.md.
     full:   5                       # iter14 — was inherited 15
 
   # Memory saver flags — MODE-GATED (#57).
@@ -291,7 +296,7 @@ drift_control:
 # v12 swap → motion_aux (see below). Variants don't override unless they
 # specifically want retrieval dims back.
 multi_task_probe:
-  enabled: {sanity: false, poc: false, full: false}
+  enabled: false                          # iter15 audit (2026-05-16): collapsed all-false dict to scalar (POC↔FULL parity rule)
 
 # -- Motion-features auxiliary loss (Phase 4, iter13 v12+, 2026-05-07).
 # iter13 v13 FIX-6 (2026-05-07): hoisted from per-variant yamls (3stage_DI +

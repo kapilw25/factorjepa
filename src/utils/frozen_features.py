@@ -502,11 +502,71 @@ def extract_features_for_keys(args, model, encoder_kind: str, crop: int, embed_d
     return feats, keys_acc
 
 
+# ── iter15 Phase 6 audit (2026-05-16): post-hoc head augmenter ─────────
+# See iter/iter15_trainHead_freezeEncoder/planCODE_head_eval.md Step 2.
+# Cleaner than threading motion_aux_head through _flush_batch — keeps
+# extract_features_for_keys schema unchanged. Probes call extract_features
+# (encoder-only path, bit-identical to iter14 baseline), then optionally
+# call this augmenter to compute motion_aux head outputs from the already-
+# extracted features. Output saved separately as
+# motion_aux_concat_<label>.npy; probes load both at train/eval time.
+
+def apply_motion_aux_head_to_features(features, motion_aux_head, batch_size: int = 64):
+    """Run motion_aux head on mean-pooled features → (N, K + n_dims) concat tensor.
+
+    Args:
+        features:        (N, n_tokens, D) float16 OR (N, D) float16 — from
+                          extract_features_for_keys output. If 3-D, mean-pool
+                          across the token axis to (N, D) before head forward.
+        motion_aux_head: MotionAuxHead in eval mode (call load_motion_aux_head).
+                          Must have d_encoder matching features' D dim — FAIL
+                          LOUD on mismatch.
+        batch_size:      Per-batch forward size for the head. Default 64 fits
+                          ~36-dim output × N_clips trivially on CPU; bump for
+                          GPU. Head is ~430K params so memory is not the issue.
+
+    Returns:
+        np.ndarray (N, K + n_dims) float32 — concat of [ce_logits, mse_pred].
+        Probes save this alongside features_<label>.npy as
+        motion_aux_concat_<label>.npy and concat at probe input.
+    """
+    import torch
+    import numpy as np
+    if features.ndim == 3:
+        # (N, n_tokens, D) → mean over token axis → (N, D)
+        feats_pooled = features.astype(np.float32).mean(axis=1)
+    elif features.ndim == 2:
+        feats_pooled = features.astype(np.float32)
+    else:
+        raise ValueError(f"apply_motion_aux_head_to_features: features must be 2-D or 3-D, "
+                         f"got shape {features.shape}")
+    if feats_pooled.shape[1] != motion_aux_head.d_encoder:
+        raise RuntimeError(
+            f"feature dim mismatch: features D={feats_pooled.shape[1]} vs "
+            f"motion_aux_head.d_encoder={motion_aux_head.d_encoder}. "
+            f"Wrong encoder/head pairing — check run_eval.sh motion_aux_head_for resolver.")
+    device = next(motion_aux_head.parameters()).device
+    n = feats_pooled.shape[0]
+    out_dim = motion_aux_head.n_motion_classes + motion_aux_head.n_motion_dims
+    out = np.empty((n, out_dim), dtype=np.float32)
+    motion_aux_head.eval()                              # belt + suspenders
+    with torch.no_grad():
+        for i in range(0, n, batch_size):
+            chunk = torch.from_numpy(feats_pooled[i:i + batch_size]).to(device)
+            ce_logits, mse_pred = motion_aux_head(chunk)
+            out[i:i + batch_size, :motion_aux_head.n_motion_classes] = \
+                ce_logits.detach().cpu().numpy()
+            out[i:i + batch_size, motion_aux_head.n_motion_classes:] = \
+                mse_pred.detach().cpu().numpy()
+    return out
+
+
 __all__ = [
     "ENCODERS",
     "load_vjepa_2_1_frozen", "load_dinov2_frozen",
     "decode_to_tensor", "resize_and_normalize",
     "forward_vjepa", "forward_dinov2",
     "extract_features_for_keys",
+    "apply_motion_aux_head_to_features",   # iter15 Phase 6 audit
     "save_array_checkpoint",   # re-export so callers don't both-import from utils.checkpoint
 ]

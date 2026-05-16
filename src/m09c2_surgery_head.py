@@ -34,6 +34,7 @@ os.environ.setdefault("OMP_NUM_THREADS", "1")
 os.environ.setdefault("MKL_NUM_THREADS", "1")
 
 import argparse
+import csv
 import gc
 import json
 import shutil
@@ -73,13 +74,24 @@ from utils.training import (
     export_student_for_eval,
     augment_clip_consistent,
     StreamingFactorDataset, build_streaming_indices, _streaming_worker_init,
+    # iter15 Phase 6 C1+C2 (2026-05-16): trio + head-drift wiring for head cells.
+    build_probe_clips, run_trio_at_val, track_head_drift_at_val,
+    build_mask_generators,
 )
+from utils.action_labels import load_action_labels
 from utils.motion_aux_loss import (
     build_motion_aux_head_from_cfg,
     attach_motion_aux_to_optimizer, run_motion_aux_step,
     export_motion_aux_head,
 )
 from utils.probe_labels import ensure_probe_labels_for_mode
+# iter15 Phase 6 audit (2026-05-16): emit-parity with m09c1 — same loss_log
+# schema + plot calls so outputs/{poc,full}/m09c_surgery_*_head/ matches the
+# encoder-cell layout.
+from utils.plots import (
+    plot_training_curves, plot_combined_losses,
+    plot_probe_trajectory_trio, plot_val_loss_with_kill_switch_overlay,
+)
 
 CHECKPOINT_PREFIX = "m09c_ckpt"  # output filename preserved for downstream eval compat
 _pcfg = get_pipeline_config()
@@ -467,6 +479,37 @@ def train(cfg: dict, args) -> None:
     head_params = sum(p.numel() for p in ma_head.parameters() if p.requires_grad)
     print(f"Trainable params: motion_aux head = {head_params:,} (~432K expected)")
 
+    # iter15 Phase 6 C1+C2 (2026-05-16): snapshot motion_aux head init + build
+    # probe_clips for in-training trio. Same wiring as m09a2 (mirrors m09c1
+    # encoder-side flow). probe is universal-true post yaml-parity audit.
+    # variant_tag hoisted from build_model scope for in-training plot titles.
+    _variant_tag = cfg["data"]["adapted_encoder"].replace("vjepa_2_1_surgical_", "")
+    head_init_params = {n: p.detach().cpu().clone() for n, p in ma_head.named_parameters()}
+    head_drift_history = []
+    probe_history = []
+    probe_history_path = output_dir / "probe_history.jsonl"
+    mask_generators = build_mask_generators(cfg)
+    print(f"Mask generators: {len(mask_generators)} (for in-training trio future_l1)")
+    probe_clips, probe_labels = None, None
+    _probe_block = cfg["probe"] if "probe" in cfg else None
+    if _probe_block is not None and _probe_block.get("enabled", False):
+        action_labels_path = (args.probe_action_labels or
+                              str(Path(_probe_block["subset"]).parent / "action_labels.json"))
+        if not Path(action_labels_path).exists():
+            print(f"❌ FATAL [probe]: action_labels.json not found at {action_labels_path}", file=sys.stderr)
+            sys.exit(3)
+        probe_labels = load_action_labels(Path(action_labels_path))
+        print(f"  [probe] decoding clips from {_probe_block['subset']} ...", flush=True)
+        probe_clips = build_probe_clips(
+            probe_subset_path=_probe_block["subset"],
+            probe_local_data=_probe_block["local_data"],
+            probe_tags_path=_probe_block["tags_path"],
+            num_frames=cfg["data"]["num_frames"],
+            crop_size=cfg["model"]["crop_size"],
+            max_clips=cfg["monitoring"]["knn_probe_clips"],
+        )
+        print(f"  [probe] decoded {len(probe_clips)} clips ({len(probe_labels)} have action labels)", flush=True)
+
     # === Single head-only stage (validated in merge_config_with_args) ===
     surgery_cfg = cfg["surgery"]
     stage_cfg = surgery_cfg["stages"][0]
@@ -516,9 +559,21 @@ def train(cfg: dict, args) -> None:
         base_seed=seed,
     )
 
-    train_log_path = output_dir / "training_log.jsonl"
+    # iter15 Phase 6 audit (2026-05-16): unified emit-set with m09c1 — renamed
+    # training_log.jsonl → loss_log.jsonl + added loss_log.csv (m09c1 schema).
+    # Frozen-encoder fields (loss_jepa/loss_drift/loss_multi_task) emit NaN/0.
+    jsonl_path = output_dir / "loss_log.jsonl"
     summary_path = output_dir / "training_summary.json"
-    train_log_f = train_log_path.open("a", buffering=1)
+    train_log_f = jsonl_path.open("a", buffering=1)
+    csv_path = output_dir / "loss_log.csv"
+    csv_exists = csv_path.exists()
+    csv_file = open(csv_path, "a", newline="")
+    csv_writer = csv.writer(csv_file)
+    if not csv_exists:
+        csv_writer.writerow(["step", "epoch", "loss_jepa", "loss_drift", "loss_total",
+                             "loss_multi_task", "loss_motion_aux",
+                             "lr", "grad_norm", "throughput", "val_loss", "stage"])
+        csv_file.flush()
 
     best_val_loss = float("inf")
     best_epoch = -1
@@ -568,16 +623,27 @@ def train(cfg: dict, args) -> None:
                 step += 1
                 pbar.update(1)
                 if step % 20 == 0:
+                    cur_lr = optimizer.param_groups[0]["lr"]
                     row = {
-                        "step": step, "epoch": epoch, "train_loss": float(loss_val),
-                        "lr": optimizer.param_groups[0]["lr"], "branch": per_branch,
+                        "step": step, "epoch": epoch,
+                        "loss_jepa": float("nan"),       # encoder frozen → no JEPA gradient
+                        "loss_drift": 0.0,                # encoder frozen → drift ≡ 0
+                        "loss_multi_task": float("nan"),  # multi_task off in head-only
+                        "loss_motion_aux": float(loss_val),
+                        "loss_total": float(loss_val),    # head-only total = motion_aux
+                        "lr": cur_lr,
+                        "branch": per_branch,
                         "stage": stage_name,
                     }
                     train_log_f.write(json.dumps(row) + "\n")
                     train_log_f.flush()
                     os.fsync(train_log_f.fileno())
+                    csv_writer.writerow([step, epoch, "", "0", f"{float(loss_val):.6f}",
+                                          "", f"{float(loss_val):.6f}",
+                                          f"{cur_lr:.6e}", "", "", "", stage_name])
+                    csv_file.flush()
                     log_metrics(wb_run, {"train/loss": float(loss_val),
-                                         "train/lr": optimizer.param_groups[0]["lr"]},
+                                         "train/lr": cur_lr},
                                 step=step)
 
             # === End-of-epoch: val cycle on RAW clips + best ckpt ===
@@ -594,9 +660,45 @@ def train(cfg: dict, args) -> None:
             train_log_f.write(json.dumps(row) + "\n")
             train_log_f.flush()
             os.fsync(train_log_f.fileno())
+            csv_writer.writerow([step, epoch, "", "", "", "", "",
+                                  "", "", "", f"{val_loss:.6f}", stage_name])
+            csv_file.flush()
             log_metrics(wb_run, {"val/loss": val_loss,
                                  "train/epoch_mean_loss": mean_train,
                                  "epoch": epoch}, step=step)
+
+            # iter15 Phase 6 C1+C2+C3 (2026-05-16): probe_record + trio + drift +
+            # probe_history.jsonl. Mirrors m09a2 / m09c1 encoder pattern.
+            val_total = val_loss * float(ma_cfg["weight_motion"])
+            probe_record = {
+                "step": step, "epoch": epoch,
+                "val_jepa_loss":       val_total,    # C3: repurposed = val_total for head cells
+                "val_motion_aux_loss": val_loss,
+                "val_total_loss":      val_total,
+                "val_drift_loss":      0.0,            # encoder frozen → drift ≡ 0
+                "val_multi_task_loss": 0.0,            # mt off in head-only
+                "stage":               stage_name,
+                "epoch_pct": round((epoch + 1) / max_epochs * 100, 1),
+            }
+            if probe_clips is not None and probe_labels:
+                run_trio_at_val(
+                    student, predictor, probe_clips, probe_labels,
+                    mask_gen=mask_generators[0], cfg=cfg, device=device,
+                    step=step, wb_run=wb_run, probe_record=probe_record,
+                    motion_aux_head=ma_head,        # C1
+                )
+            track_head_drift_at_val(
+                ma_head, head_init_params, head_drift_history,
+                output_dir=output_dir, step=step,
+                probe_record=probe_record,
+                title_prefix=f"m09c head [{_variant_tag}] step={step} · ",
+                file_prefix="m09c2",
+            )
+            probe_history.append(probe_record)
+            with open(probe_history_path, "a") as _ph:
+                _ph.write(json.dumps(probe_record) + "\n")
+                _ph.flush()
+                os.fsync(_ph.fileno())
 
             if val_loss < best_val_loss:
                 best_val_loss = val_loss
@@ -605,8 +707,54 @@ def train(cfg: dict, args) -> None:
                 print(f"  ✅ new best val_loss={best_val_loss:.4f} (epoch {epoch})")
     finally:
         train_log_f.close()
+        csv_file.close()
 
     pbar.close()
+
+    # iter15 Phase 6 audit (2026-05-16): emit-parity plots — match m09c1.
+    # _variant_tag already hoisted above (used by in-training trio plots too).
+    try:
+        plot_training_curves(
+            runs=[{"csv_path": str(csv_path),
+                   "label": f"m09c2 head-only [{_variant_tag}]",
+                   "color": "blue",
+                   "batch_size": batch_size}],
+            output_dir=str(output_dir),
+            title_prefix=f"m09c2 head-only [{_variant_tag}] · {len(train_keys):,} train × "
+                         f"{max_epochs} ep × BS={batch_size}\n",
+            file_prefix="m09c2",
+        )
+    except Exception as e:
+        print(f"  [plot] WARN train_loss render skipped: {type(e).__name__}: {e}", flush=True)
+    try:
+        plot_combined_losses(
+            jsonl_path=jsonl_path,
+            output_dir=output_dir,
+            title_prefix=f"m09c2 head-only [{_variant_tag}] · ",
+            file_prefix="m09c2",
+        )
+    except Exception as e:
+        print(f"  [plot] WARN loss_decomposition render skipped: {type(e).__name__}: {e}", flush=True)
+    # iter15 Phase 6 C1+C3 (2026-05-16): probe_trajectory_trio + val_loss_jepa
+    # plots from probe_history. track_head_drift_at_val (C2) already emits the
+    # m09c_block_drift.{png,pdf} + m09c_block_drift_history.json per val cycle.
+    # probe.enabled is universal-true (yaml audit 2026-05-16) → probe_history is
+    # always non-empty by the time we reach this line.
+    plot_probe_trajectory_trio(
+        probe_history, output_dir,
+        title_prefix=f"m09c2 head-only [{_variant_tag}] · ",
+        file_prefix="m09c2",
+    )
+    kill_state = {"triggered": False, "reason": None}
+    # D4 fix (2026-05-16): plot reads "val_loss_at_best" (plots.py:857), not
+    # "val_jepa_loss_at_best". Use the schema the plot expects.
+    best_state = {"step": -1, "val_loss_at_best": float("inf"), "probe_top1": -1.0}
+    plot_val_loss_with_kill_switch_overlay(
+        probe_history, output_dir,
+        best_state=best_state, kill_state=kill_state,
+        title_prefix=f"m09c2 head-only [{_variant_tag}] · val_total\n",
+        file_prefix="m09c2",
+    )
 
     # === Finalization ===
     student_export = output_dir / "student_encoder.pt"

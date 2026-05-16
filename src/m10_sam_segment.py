@@ -949,7 +949,10 @@ def main():
     # iter13 v13 FIX-18 (2026-05-07): SAM stability post-filter (Layer A). Pairs
     # with the lowered DINO thresholds in surgery_base.yaml. Disabled by setting
     # to 0.0 in yaml. Default 0.92 = Meta's SAM auto-mask-generator default.
-    min_stability_score = factor_cfg.get("min_stability_score", 0.0)
+    # iter15 audit (2026-05-15): FAIL LOUD on missing yaml key (CLAUDE.md
+    # "No .get(key, default) on YAML"). 0.0 stays a valid yaml value meaning
+    # "filter disabled"; missing key now KeyErrors instead of silently disabling.
+    min_stability_score = factor_cfg["min_stability_score"]
     min_mask_area_pct = factor_cfg["min_mask_area_pct"]
     interaction_cfg = train_cfg["interaction_mining"]
 

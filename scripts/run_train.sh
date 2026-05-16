@@ -176,7 +176,7 @@ P_M09="${CACHE_POLICY_ALL:-1}"
 # (key="predictor", 300 dims). student_encoder.pt has only encoder
 # (schema="student_state_dict"); m09a_ckpt_best.pt has student + predictor +
 # teacher in one bundle (schema="student") — single download covers full init.
-PRETRAIN_HF_URI="hf://anonymousML123/factorjepa-pretrain_encoder-vjepa21-vitg-5ep/m09a_ckpt_best.pt"
+PRETRAIN_HF_URI="hf://anonymousML123/factorjepa-pretrain-vjepa21-vitg-5ep/m09a_ckpt_best.pt"
 
 # ── Multi-task probe-loss labels (iter13) ────────────────────────────────
 # When base_optimization.yaml `multi_task_probe.enabled` is true for this
@@ -284,11 +284,11 @@ case "$SUBCMD" in
         case "$SUBCMD" in
             surgery_3stage_DI_encoder)
                 TRAIN_CFG="configs/train/surgery_3stage_DI_encoder.yaml"
-                VARIANT_TAG="3stage_DI"
+                VARIANT_TAG="3stage_DI_encoder"
                 ;;
             surgery_noDI_encoder)
                 TRAIN_CFG="configs/train/surgery_2stage_noDI_encoder.yaml"
-                VARIANT_TAG="noDI"
+                VARIANT_TAG="noDI_encoder"
                 ;;
         esac
         # iter13 v12+ (2026-05-06): renamed probe_surgery_* → m09c_surgery_* to

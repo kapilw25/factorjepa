@@ -355,6 +355,23 @@ def run_features_stage(args, wb) -> None:
             pool_tokens=(args.pool_tokens if args.pool_tokens > 0 else None),
         )
         elapsed = time.time() - t0
+        # iter15 Phase 6 audit (2026-05-16): optional motion_aux head augment.
+        # Tile head output (N, K+n_dims) across token axis → concat → (N, n_tokens,
+        # D + K + n_dims). Frozen baseline / missing-head cells skip this block.
+        if args.motion_aux_head is not None:
+            from utils.motion_aux_loss import load_motion_aux_head
+            from utils.frozen_features import apply_motion_aux_head_to_features
+            print(f"  [motion_aux] augmenting features with head: {args.motion_aux_head}")
+            ma_head = load_motion_aux_head(args.motion_aux_head, device="cuda")
+            ma_concat = apply_motion_aux_head_to_features(feats, ma_head, batch_size=256)
+            # (N, K+n_dims) → tile across n_tokens → (N, n_tokens, K+n_dims) → concat
+            n_tokens = feats.shape[1] if feats.ndim == 3 else 1
+            ma_tiled = np.broadcast_to(
+                ma_concat[:, None, :], (feats.shape[0], n_tokens, ma_concat.shape[1])
+            ).astype(np.float16)
+            feats = np.concatenate([feats.astype(np.float16), ma_tiled], axis=-1)
+            print(f"  [motion_aux] augmented dim: D={feats.shape[-1] - ma_concat.shape[1]} + "
+                  f"(K+n_dims)={ma_concat.shape[1]} = {feats.shape[-1]}")
         save_array_checkpoint(feats, out_features)
         np.save(out_keys, np.array(ordered_keys, dtype=object))
         print(f"  Saved {out_features} {feats.shape}  ({elapsed:.0f}s)")
@@ -484,9 +501,28 @@ def run_train_stage(args, wb) -> None:
         else:
             sys.exit(f"FATAL: unknown encoder kind '{enc_kind}'")
 
+    # D6 fix (2026-05-16): if --motion-aux-head was set, ANY lazy-extracted split
+    # MUST receive the same augmentation that run_features_stage applies, else
+    # train/val (lazy, 1664-dim) ↔ test (disk, 1700-dim) dim-mismatch crashes the
+    # AttentiveClassifier at eval time (logs/iter15_post_poc_eval_head_aware_
+    # 20260516_012451.log:482 → LayerNorm normalized_shape=[1664] vs [*,1700]).
+    # Load the head once here, reuse across splits inside _load_or_extract.
+    ma_head_lazy = None
+    if args.motion_aux_head is not None and needs_extract:
+        from utils.motion_aux_loss import load_motion_aux_head
+        ma_head_lazy = load_motion_aux_head(args.motion_aux_head, device="cuda")
+        print(f"  [lazy-extract][motion_aux] will augment lazy splits with head: "
+              f"{args.motion_aux_head} (K={ma_head_lazy.n_motion_classes}, "
+              f"n_dims={ma_head_lazy.n_motion_dims})")
+
     def _load_or_extract(split: str):
         """Return (features (N,T,D) np.float32, ordered_keys np.array) for `split`.
         Disk-first; falls back to extract_features_for_keys with resume cache.
+
+        D6 (2026-05-16): when lazy-extracting AND --motion-aux-head is set, applies
+        the same MA augmentation as run_features_stage (so train/val match test).
+        Disk-loaded path returns whatever shape was persisted — caller (Stage 2 or
+        prior invocation) is responsible for that file being correct.
         """
         npy_path  = enc_dir / f"features_{split}.npy"
         keys_path = enc_dir / f"clip_keys_{split}.npy"
@@ -497,6 +533,16 @@ def run_train_stage(args, wb) -> None:
             by_split[split], enc_dir, label=f"features_{split}",
             pool_tokens=(args.pool_tokens if args.pool_tokens > 0 else None),
         )
+        if ma_head_lazy is not None:
+            from utils.frozen_features import apply_motion_aux_head_to_features
+            ma_concat = apply_motion_aux_head_to_features(feats, ma_head_lazy, batch_size=256)
+            n_tokens = feats.shape[1] if feats.ndim == 3 else 1
+            ma_tiled = np.broadcast_to(
+                ma_concat[:, None, :], (feats.shape[0], n_tokens, ma_concat.shape[1])
+            ).astype(np.float16)
+            feats = np.concatenate([feats.astype(np.float16), ma_tiled], axis=-1)
+            print(f"  [lazy-extract][motion_aux] {split}: D={feats.shape[-1] - ma_concat.shape[1]} "
+                  f"+ (K+n_dims)={ma_concat.shape[1]} = {feats.shape[-1]}  (N={feats.shape[0]})")
         return feats, np.array(ordered_keys, dtype=object)
 
     feats_train, keys_train = _load_or_extract("train")
@@ -779,6 +825,19 @@ def build_parser() -> argparse.ArgumentParser:
                    choices=["labels", "features", "train", "select_best_lr", "paired_delta"])
     p.add_argument("--encoder", choices=list(ENCODERS), default=None)
     p.add_argument("--encoder-ckpt", type=Path, default=None)
+    # iter15 Phase 6 audit (2026-05-16): optional motion_aux head for head-vs-
+    # encoder paired-Δ. When provided, features_<split>.npy is augmented to
+    # (N, n_tokens, D + K + n_dims) at the features stage (head logits + motion
+    # vec, tiled across token axis). probe head's d_in auto-derives from the
+    # features.npy shape — no train_stage changes needed. Frozen baseline /
+    # cells without a head omit this flag → encoder-only path (iter14 baseline
+    # reproduces bit-identically). See planCODE_head_eval.md Step 3.
+    p.add_argument("--motion-aux-head", type=Path, default=None,
+                   help="Path to motion_aux_head.pt for THIS encoder. When set, "
+                        "features are augmented to (N, n_tokens, D+K+n_dims). "
+                        "None → encoder-only path (V-JEPA gold-standard). "
+                        "Wired by run_eval.sh motion_aux_head_for(ENC); "
+                        "'vjepa_2_1_frozen' resolves to empty (skip).")
     p.add_argument("--output-subdir", type=str, default="",
                    help="Optional sub-directory under <output_root>/<encoder>/ for nesting per-LR-sweep "
                         "probe outputs. Empty (default) writes probe.pt + test_predictions.npy at the "

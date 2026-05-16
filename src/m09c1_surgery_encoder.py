@@ -1010,10 +1010,15 @@ def train(cfg: dict, args):
             # Trio (top-1 + motion-cos + future-L1) — the iter13 paper metrics.
             # Adds `probe_top1`, `motion_cos`, `future_l1` to `pr`.
             if probe_labels:
+                # D3 fix (2026-05-16): symmetric head-vs-encoder trio — encoder
+                # cell's trio now consumes motion_aux head augment too, matching
+                # m09c2 head cell's semantics. Without this, head-vs-encoder
+                # paired-Δ at training time is asymmetric.
                 run_trio_at_val(
                     student, predictor, probe_clips, probe_labels,
                     mask_gen=mask_generators[0], cfg=cfg, device=device,
-                    step=global_step_, wb_run=wb_run, probe_record=pr)
+                    step=global_step_, wb_run=wb_run, probe_record=pr,
+                    motion_aux_head=ma_head)        # D3 fix
 
             # BWT = probe_top1[current] − probe_top1[first_probe].
             # Persisted to jsonl + plotted so users can see drift in real time.

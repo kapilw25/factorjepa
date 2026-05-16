@@ -627,7 +627,7 @@ def _train_step_grad_accum(student, teacher, predictor, batch_clips,
 
     drift_val = 0.0
     if init_params is not None and drift_cfg is not None \
-            and drift_cfg.get("enabled") and drift_cfg.get("lambda_reg", 0) > 0:
+            and drift_cfg["enabled"] and drift_cfg["lambda_reg"] > 0:
         drift_loss = compute_drift_loss(student, init_params, drift_cfg["lambda_reg"])
         scaler.scale(drift_loss).backward()
         drift_val = drift_loss.item()
@@ -1006,7 +1006,7 @@ def run_validation(student, teacher, predictor, mask_generators,
     # _train_step_grad_accum's once-per-macro drift add.
     val_drift = 0.0
     if (init_params is not None and drift_cfg is not None
-            and drift_cfg.get("enabled") and drift_cfg.get("lambda_reg", 0) > 0):
+            and drift_cfg["enabled"] and drift_cfg["lambda_reg"] > 0):
         with torch.no_grad():
             val_drift = float(
                 compute_drift_loss(student, init_params, drift_cfg["lambda_reg"]).item())
@@ -2445,7 +2445,7 @@ def run_probe_val_loss(student, teacher, predictor, probe_clips: list,
     # compute once post-loop instead of per-batch. Mirrors run_validation:889-897.
     val_drift = 0.0
     if (init_params is not None and drift_cfg is not None
-            and drift_cfg.get("enabled") and drift_cfg.get("lambda_reg", 0) > 0):
+            and drift_cfg["enabled"] and drift_cfg["lambda_reg"] > 0):
         with torch.no_grad():
             val_drift = float(
                 compute_drift_loss(student, init_params, drift_cfg["lambda_reg"]).item())
@@ -2564,12 +2564,19 @@ def render_training_plots(
 # probe_record dict in place — caller appends to probe_history.jsonl.
 
 def run_trio_at_val(student, predictor, probe_clips, probe_labels, mask_gen,
-                    cfg, device, step: int, wb_run, probe_record: dict) -> dict:
+                    cfg, device, step: int, wb_run, probe_record: dict,
+                    motion_aux_head=None) -> dict:                # iter15 Phase 6 C1
     """Run m06d trio (top-1 + motion-cos + future-L1) and update probe_record.
 
     Wraps utils.probe_trio.compute_metric_trio with the standard try/except
     + fail-loud traceback + log_metrics + record-update plumbing. Used by both
     m09a and m09c val cycles. Mutates `probe_record` in place; caller appends.
+
+    iter15 Phase 6 C1 (2026-05-16): optional `motion_aux_head` arg — when
+    provided, the trio's pooled features are augmented with the trained head's
+    output (K logits + n_dims motion vec). top1 + motion_cos become cell-
+    specific. future_l1 is UNAFFECTED (predictor-based, encoder-only path) —
+    by design; documented in plan_head_eval.md C1.
 
     Returns the trio dict on success, None on failure (already logged).
     """
@@ -2582,6 +2589,7 @@ def run_trio_at_val(student, predictor, probe_clips, probe_labels, mask_gen,
             student, predictor, probe_clips, probe_labels,
             mask_gen=mask_gen, cfg=cfg, device=device,
             dist_layers=cfg["model"]["n_output_distillation"],
+            motion_aux_head=motion_aux_head,            # iter15 Phase 6 C1
         )
         probe_record.update({
             "probe_top1":    trio["top1"],
@@ -2664,6 +2672,116 @@ def track_block_drift_at_val(student, init_params: dict, freeze_below: int,
         # exact bug we built this for slip through unnoticed.
         print(f"  [block-drift] FATAL: diagnostic failed: {e}", flush=True)
         print("  [block-drift] traceback follows; aborting run per CLAUDE.md FAIL HARD:", flush=True)
+        raise
+
+
+# ── iter15 Phase 6 C2 (2026-05-16): head-drift tracker ────────────────
+# Mirrors track_block_drift_at_val but targets motion_aux head params instead
+# of encoder blocks. For head cells (m09a2/m09c2) the encoder is frozen by
+# contract → encoder drift ≡ 0 forever; the only thing that DOES drift is the
+# motion_aux head (~432K params, actively trained). This function makes that
+# drift visible: per-logical-block rel-L2 over {trunk, ce_head, mse_head}.
+# Same output schema + file names as track_block_drift_at_val so the
+# downstream block_drift.png / block_drift_history.json file paths are
+# preserved (cell type determines semantic content; plot title clarifies).
+# See iter/iter15_trainHead_freezeEncoder/planCODE_head_eval.md § C2.
+
+def _head_logical_blocks(ma_head) -> dict:
+    """Group motion_aux head's named_parameters by logical block.
+
+    Returns ordered dict: {'trunk': [param_names], 'ce_head': [...], 'mse_head': [...]}.
+    Matches MotionAuxHead architecture (utils/motion_aux_loss.py:59-101):
+      trunk    = Linear(D→hidden) + GELU + LayerNorm + Dropout  (sub-modules 0, 2)
+      ce_head  = Linear(hidden→K)
+      mse_head = Linear(hidden→n_dims)
+    """
+    groups = {"trunk": [], "ce_head": [], "mse_head": []}
+    for name, _ in ma_head.named_parameters():
+        if name.startswith("trunk."):
+            groups["trunk"].append(name)
+        elif name.startswith("ce_head."):
+            groups["ce_head"].append(name)
+        elif name.startswith("mse_head."):
+            groups["mse_head"].append(name)
+    return groups
+
+
+def _compute_head_drift(ma_head, head_init_params: dict) -> list:
+    """Per-logical-block rel-L2 drift of motion_aux head vs init snapshot.
+
+    drift_per_block[i] = ‖cat(θ_now in block_i) - cat(θ_init in block_i)‖_2
+                        / ‖cat(θ_init in block_i)‖_2
+    Returns list of 3 floats in [trunk, ce_head, mse_head] order.
+    Both tensors are CPU float32. 0.0 → no drift (frozen); >0 → trained.
+    """
+    groups = _head_logical_blocks(ma_head)
+    drift = []
+    current = {n: p.detach().cpu().float() for n, p in ma_head.named_parameters()}
+    for block_name in ("trunk", "ce_head", "mse_head"):
+        names = groups[block_name]
+        if not names:
+            drift.append(0.0)
+            continue
+        delta_sq = 0.0
+        init_sq = 0.0
+        for n in names:
+            init_t = head_init_params[n].float()
+            delta = (current[n] - init_t).flatten()
+            init_flat = init_t.flatten()
+            delta_sq += float((delta * delta).sum())
+            init_sq += float((init_flat * init_flat).sum())
+        rel_l2 = (delta_sq ** 0.5) / max(init_sq ** 0.5, 1e-12)
+        drift.append(round(rel_l2, 8))
+    return drift
+
+
+def track_head_drift_at_val(ma_head, head_init_params: dict,
+                             head_drift_history: list, output_dir,
+                             step: int, probe_record: dict,
+                             title_prefix: str = "",
+                             file_prefix: str = "m09") -> None:
+    """Per-logical-block weight-drift diagnostic for motion_aux head + plot.
+
+    Writes {file_prefix}_block_drift_history.json (NOTE: same path as
+    track_block_drift_at_val — head-only cells have frozen encoder so the
+    encoder-drift file would be all-zeros; this fn repurposes the path for
+    HEAD drift which is non-trivial). Plot file: {file_prefix}_block_drift
+    .{png,pdf} — same path, content shows 3 logical head blocks instead of
+    48 encoder blocks. Mutates probe_record + history in place.
+    """
+    from utils.plots import plot_block_drift_heatmap
+    try:
+        drift_per_block = _compute_head_drift(ma_head, head_init_params)
+        block_names = ["trunk", "ce_head", "mse_head"]
+        drift_record = {
+            "step": step,
+            "rel_l2_per_block": drift_per_block,
+            "block_names": block_names,             # iter15 C2: explicit names for HEAD blocks
+            "source": "motion_aux_head",            # iter15 C2: disambiguate vs encoder drift
+        }
+        if drift_per_block:
+            probe_record["block_drift_mean"] = round(
+                float(sum(drift_per_block) / len(drift_per_block)), 8)
+        head_drift_history.append(drift_record)
+        # Atomic JSON write (mirrors track_block_drift_at_val:2657).
+        try:
+            json_path = Path(output_dir) / f"{file_prefix}_block_drift_history.json"
+            tmp_path = json_path.with_suffix(".tmp.json")
+            with open(tmp_path, "w") as _f:
+                json.dump(head_drift_history, _f, indent=2)
+            os.replace(tmp_path, json_path)
+        except Exception as _e:
+            print(f"  [head-drift] WARN: history JSON write failed: {_e}", flush=True)
+        # Plot — plot_block_drift_heatmap reads 'rel_l2_per_block' from each
+        # record. Works whether there are 48 blocks (encoder) or 3 (head).
+        plot_block_drift_heatmap(
+            head_drift_history, output_dir,
+            title_prefix=title_prefix + "[motion_aux head] ",
+            file_prefix=file_prefix)
+    except Exception as e:
+        # iter13 FAIL HARD pattern: drift is research signal, not telemetry.
+        print(f"  [head-drift] FATAL: diagnostic failed: {e}", flush=True)
+        print("  [head-drift] traceback follows; aborting run per CLAUDE.md FAIL HARD:", flush=True)
         raise
 
 

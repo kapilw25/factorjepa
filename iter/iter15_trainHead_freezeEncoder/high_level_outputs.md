@@ -495,3 +495,103 @@ final-top1 pattern (s3 step 312): R1=0.8456 🥇 · R0=R4=0.8382 ✅ (recovered)
 └──────┴──────────────────────────────────────────┴───────────┴───────────┴──────────────────────────┘
 tiers: 1️⃣ winner · 2️⃣ recoverable drops · 3️⃣ load-bearing drops (regress to 0.8235 at final)
 ```
+
+---
+
+## 📊 iter15 POC — Head-only vs Encoder-update 6-Cell Paired-Δ (🏃 RUNNING 2026-05-15 22:17+)
+
+> Source: `logs/iter15_poc_*.log` + `outputs/poc/m09{a,c}_*_{head,encoder}/training_summary.json`. POC pool = 1083 train / 218 val / 218 test (stratified-by-motion-class, 13 classes after >=34-clip filter). 96 GB Blackwell. Decision tree mirrors iter14 §7.5 + §12.4 but axis is now `head-only vs encoder-update` per recipe.
+
+### 🔬 Sweep matrix — 6 cells (paired-Δ design)
+
+```
+┌───────────────────────────────┬───────────────────┬───────────────┬──────────────────┬──────────────────────────────────┐
+│ 🔠 Cell                        │ 🧬 Recipe          │ 🧊 Encoder    │ 🧠 Head trains    │ 💡 What it tests                  │
+├───────────────────────────────┼───────────────────┼───────────────┼──────────────────┼──────────────────────────────────┤
+│ 🅰️ pretrain_head (m09a2)       │ continual SSL     │ 🧊 FROZEN     │ ✅ motion_aux    │ 432K head only · ~$0.10 / cell    │
+│ 🅱️ surg_3stage_DI_head (m09c2) │ surgery 3stg DI   │ 🧊 FROZEN     │ ✅ motion_aux    │ factor curriculum w/o backbone    │
+│ 🅲 surg_noDI_head (m09c2)     │ surgery 2stg noDI │ 🧊 FROZEN     │ ✅ motion_aux    │ noDI curriculum w/o backbone      │
+│ 🅳 pretrain_encoder (m09a1)   │ continual SSL     │ 🔓 trainable  │ ✅ motion_aux    │ full ViT-G backward · iter14-grade│
+│ 🅴 surg_3stage_DI_enc (m09c1) │ surgery 3stg DI   │ 🔓 trainable  │ ✅ motion_aux    │ recipe-v3 paired with cell B      │
+│ 🅵 surg_noDI_encoder (m09c1)  │ surgery 2stg noDI │ 🔓 trainable  │ ✅ motion_aux    │ recipe-v3 paired with cell C      │
+└───────────────────────────────┴───────────────────┴───────────────┴──────────────────┴──────────────────────────────────┘
+```
+
+### 📊 Training-log metrics (3 of 6 head-POC DONE · POC:FULL = 2:5 uniform across all 6)
+
+```
+┌─────────────────────────────────┬──────────┬──────────┬──────────┬──────────┬───────────┬─────────┬─────────────────────┐
+│ 🔢 Cell                          │ trn ep0  │ trn ep1↓ │ val ep0  │ val ep1↓ │ Δ val     │ ⏱️ wall  │ status              │
+├─────────────────────────────────┼──────────┼──────────┼──────────┼──────────┼───────────┼─────────┼─────────────────────┤
+│ ── 🧊 HEAD-ONLY (m09a2 / m09c2 — encoder + predictor FROZEN) ──                                                          │
+│ 🅰️ pretrain_head                 │ 3.7415   │ 3.2510   │ 3.4180   │ 3.1140 🥇│ -0.3040 ✅│ 8m 30s  │ ✅ DONE 23:04 UTC v2 │
+│ 🅱️ surg_3stage_DI_head           │ 3.9290   │ 3.7336   │ 3.8789   │ 3.6228   │ -0.2561 ✅│ 8m 30s  │ ✅ DONE 23:41 UTC v2 │
+│ 🅲 surg_noDI_head                │ 3.8115   │ 3.4944   │ 3.6442   │ 3.3144   │ -0.3298 🥇│ 10m 56s │ ✅ DONE 23:52 UTC v2 │
+├─────────────────────────────────┼──────────┼──────────┼──────────┼──────────┼───────────┼─────────┼─────────────────────┤
+│ ── 🔓 ENCODER-UPDATE (m09a1 / m09c1 — full ViT-G backward) ──                                                            │
+│ 🅳 pretrain_encoder              │ ⏳        │ ⏳        │ ⏳        │ ⏳        │ ⏳         │ ~30 min │ ⏳ queued            │
+│ 🅴 surg_3stage_DI_encoder        │ ⏳        │ ⏳        │ ⏳        │ ⏳        │ ⏳         │ ~50 min │ ⏳ queued            │
+│ 🅵 surg_noDI_encoder             │ ⏳        │ ⏳        │ ⏳        │ ⏳        │ ⏳         │ ~30 min │ ⏳ queued            │
+└─────────────────────────────────┴──────────┴──────────┴──────────┴──────────┴───────────┴─────────┴─────────────────────┘
+trn/val = motion_aux loss (CE+0.1×MSE, 13-cls × 23-D) · 🥇 best · ↓ best epoch · ✅ monotonic ↓ · ⏳ queued
+all head cells: 1083 train / 218 val · 2 ep · 68 steps · BS=32 · 1519 ma-target clips
+```
+
+### 📊 Eval-only metrics (post `run_eval.sh --POC` — populated after all 6 cells DONE)
+
+```
+┌─────────────────────────────────┬───────────┬───────────┬───────────┬───────────┬───────────┐
+│ 🔢 Cell                          │ best top1 │ Δ vs 0.808│ best m_cos│ best fL1 ↓│ BWT       │
+├─────────────────────────────────┼───────────┼───────────┼───────────┼───────────┼───────────┤
+│ 🅰️ pretrain_head                 │ ⏳         │ ⏳         │ ⏳         │ ⏳         │ ⏳         │
+│ 🅱️ surg_3stage_DI_head           │ ⏳         │ ⏳         │ ⏳         │ ⏳         │ ⏳         │
+│ 🅲 surg_noDI_head                │ ⏳         │ ⏳         │ ⏳         │ ⏳         │ ⏳         │
+│ 🅳 pretrain_encoder              │ ⏳         │ ⏳         │ ⏳         │ ⏳         │ ⏳         │
+│ 🅴 surg_3stage_DI_encoder        │ ⏳         │ ⏳         │ ⏳         │ ⏳         │ ⏳         │
+│ 🅵 surg_noDI_encoder             │ ⏳         │ ⏳         │ ⏳         │ ⏳         │ ⏳         │
+└─────────────────────────────────┴───────────┴───────────┴───────────┴───────────┴───────────┘
+top1=probe_action (Stage 3+4) · m_cos=probe_motion_cos (Stage 6) · fL1=probe_future_mse (Stage 8) · BWT=Stage 12
+```
+
+### 🎯 Paired-Δ paper tests (post-POC, via run_eval.sh --POC)
+
+```
+┌──────────────────┬──────────────────────────────────────────────────────┬──────────────────────────────────────┐
+│ 🧮 Test           │ Compares                                              │ 🚦 Hypothesis & verdict mapping       │
+├──────────────────┼──────────────────────────────────────────────────────┼──────────────────────────────────────┤
+│ ⭐ Δ5 (headline) │ 🅴 surg_3stage_DI_enc  −  🅱️ surg_3stage_DI_head      │ 🟢 ≈0 → head-only WINS (1/40× GPU)  │
+│ Δ6              │ 🅳 pretrain_enc       −  🅰️ pretrain_head            │ 🔵 >0 → encoder margin              │
+│ Δ7              │ 🅵 surg_noDI_enc      −  🅲 surg_noDI_head           │ 🔴 <0 → head outperforms (paper)    │
+└──────────────────┴──────────────────────────────────────────────────────┴──────────────────────────────────────┘
+```
+
+### 🚦 Decision matrix (per `runbook.md` L130-133)
+
+```
+┌──────────────────────────────────────────┬──────────────────────────────────────────────────────────────┐
+│ Δ5 outcome                                │ ➡️ Paper claim                                                │
+├──────────────────────────────────────────┼──────────────────────────────────────────────────────────────┤
+│ 🟢 |Δ5| < 0.01 AND CI contains 0         │ HEAD-ONLY WINS — 1/40× GPU savings unlock; iter15 headline ✅ │
+│ 🔵 Δ5 > 0.01 (encoder-update higher)     │ encoder-update wins by margin — revisit recipe-v3 sufficiency │
+│ 🔴 Δ5 < -0.01 (head-only higher)         │ head-only OUTPERFORMS — investigate label parity + variance   │
+└──────────────────────────────────────────┴──────────────────────────────────────────────────────────────┘
+```
+
+### 📐 Structural diff vs iter14 §12 (7-cell drop-one)
+
+```
+┌───────────────────────┬───────────────────────┬───────────────────────────────────┐
+│ Dimension              │ iter14 §12             │ iter15 §13                         │
+├───────────────────────┼───────────────────────┼───────────────────────────────────┤
+│ 🔢 Cells               │ 7 (drop-one on R1)    │ 6 (3 head × 3 encoder)            │
+│ 🔭 Axis                │ which §4 intervention │ head-only vs encoder-update for   │
+│                        │ is load-bearing?       │ the SAME recipe (paired-Δ)        │
+│ 🧭 Anchor              │ iter13 v12 = 0.808     │ same                              │
+│ ⏱️ Wall (per cell)     │ ~3.5 hr (encoder)     │ ~10 min head, ~30-50 min encoder │
+│ ⏱️ Total wall          │ 24h 40m                │ ~2h 20m                           │
+│ 💰 GPU cost            │ ~$62 (Blackwell)      │ ~$1.85                            │
+│ 🧮 Paired-Δ tests      │ Δ1/Δ2/Δ3 vs frozen    │ Δ5/Δ6/Δ7 head vs encoder         │
+│ 🏆 Headline claim      │ recipe-v3 unlocks     │ head matches encoder              │
+│                        │ surgery > pretrain     │ (compute-parity claim)            │
+└───────────────────────┴───────────────────────┴───────────────────────────────────┘
+```

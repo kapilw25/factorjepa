@@ -1,6 +1,6 @@
 # 🧪 iter14 — Surgery on Pretrain (causal-attribution experiment)
 
-> ## 🎯 Paper goal:  `vjepa_surgery` ≫ `vjepa_pretrain` ≫ `vjepa_frozen` on motion / temporal features
+> ## 🎯 Paper goal:  `vjepa_surgery` [X_epochs(surgery) +X_epochs(pretrain)] ≫ `vjepa_pretrain` [2X epochs] ≫ `vjepa_frozen` on motion / temporal features
 >
 > 🚫 **Non-negotiable** — we do not pivot the claim. We change the experiment to make the goal achievable.
 - MERMAID style system design and TABLE (with emojies) ONLY

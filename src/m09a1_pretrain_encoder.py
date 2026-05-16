@@ -1163,10 +1163,16 @@ def train(cfg: dict, args):
                                 "val_total_loss":      round(val_result["total"], 6),
                                 "epoch_pct": round(pct, 1)}
                 if probe_clips is not None and probe_labels:
+                    # D3 fix (2026-05-16): symmetric head-vs-encoder semantics —
+                    # encoder cell's trio now ALSO consumes motion_aux head augment
+                    # so its top1/motion_cos use the same feature schema as head
+                    # cells. Without this, head-vs-encoder paired-Δ comparison at
+                    # training time would be asymmetric (head augmented, encoder not).
                     run_trio_at_val(
                         student, predictor, probe_clips, probe_labels,
                         mask_gen=mask_generators[0], cfg=cfg, device=device,
-                        step=step, wb_run=wb_run, probe_record=probe_record)
+                        step=step, wb_run=wb_run, probe_record=probe_record,
+                        motion_aux_head=ma_head)        # D3 fix
 
                 # iter13 Task #19: per-block drift diagnostic. Catches the
                 # v5+v6+v7 "uniform ~1e-5 across all 48 blocks" pathology in
@@ -1326,6 +1332,24 @@ def train(cfg: dict, args):
             f"See errors_N_fixes.md #55 for memory-budget mitigations. Likely cause: "
             f"OOM-retry exhausted sub-batch shrink budget in SANITY's total_steps=1 run."
         )
+
+    # iter15 (2026-05-15): post-loop guarantee for m09a_ckpt_best.pt. The in-loop
+    # gate at L1246 requires `probe_top1_now > best_probe_top1 (= -1.0 init)`. In
+    # SANITY, configs/train/base_optimization.yaml:346 sets probe.enabled=false
+    # (n=21 too small for stable BCa CI) → probe_top1 stays -1.0 → in-loop save
+    # never fires → run_eval.sh Stage 8 (probe_future_mse) FATALs on missing best.pt.
+    # POC/FULL: probe IS enabled → in-loop best wins → this branch is a no-op.
+    best_ckpt_path = output_dir / f"{CHECKPOINT_PREFIX}_best.pt"
+    if not best_ckpt_path.exists():
+        print(f"  [iter15] {CHECKPOINT_PREFIX}_best.pt absent at end-of-train "
+              f"(best_probe_top1={best_probe_top1:.4f} — probe likely disabled this mode). "
+              f"Saving FINAL trained state as best.pt to satisfy Stage 8 contract.", flush=True)
+        save_training_checkpoint(
+            best_ckpt_path,
+            student, teacher, predictor, optimizer, scheduler,
+            scaler, step + 1, best_probe_top1,
+            full=True, include_optimizer=False)
+        print(f"  [iter15] Wrote fallback best.pt → {best_ckpt_path}", flush=True)
 
     # iter13 v13 R4 (2026-05-07): end-of-train via shared utils.
     # Step 1: export student encoder (m09a is vanilla → explora_enabled=False).

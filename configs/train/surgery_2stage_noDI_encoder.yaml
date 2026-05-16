@@ -32,15 +32,24 @@ data:
 # iter9 2-stage recipe (landed 2026-04-20 per plan_TODO.md:115). D_I factor still
 # materialized by m11 if interaction_mining.enabled overridden elsewhere — this
 # variant keeps the surgery_base.yaml default `enabled: false`.
+#
+# iter15 (2026-05-15) noDI parity update — recipe-v3 surgical-subset (Lee'23 ICLR)
+# previously landed in surgery_3stage_DI_encoder.yaml at iter14 v3 (2026-05-09) but
+# missed this 2-stage variant. Aligning here so the trust order
+# pretrain (BEST) >> 3stage_DI >> 2stage_noDI is monotone in trainable depth:
+#   noDI stage1 (4 blocks)  ≤  3stage_DI stage1 (4)
+#   noDI stage2 (8 blocks)  ≤  3stage_DI stage2 (8) = 3stage_DI stage3 (8)
+# Previous legacy values (0.25/0.50 = 12/24 blocks) made noDI 3× MORE aggressive
+# than the better-tested 3stage_DI — backwards by trust order, hence the fix.
 surgery:
   stages:
     - name: stage1_layout
-      unfreeze_below: 0.25          # 12 of 48 layers
+      unfreeze_below: 0.083         # 4 of 48 layers (recipe-v3 parity) | legacy: 0.25 = 12/48
       mode_mixture: {L: 1.00, A: 0.00, I: 0.00}
       max_epochs_pct: 0.50          # 50% of total epoch budget (2-stage split)
 
     - name: stage2_agent
-      unfreeze_below: 0.50          # 24 of 48 layers
+      unfreeze_below: 0.167         # 8 of 48 layers (recipe-v3 parity) | legacy: 0.50 = 24/48
       mode_mixture: {L: 0.30, A: 0.70, I: 0.00}   # 30% layout replay (CLEAR 2018), 70% agent
       max_epochs_pct: 0.50
 
