@@ -130,6 +130,23 @@ optimization:
     poc: false        # 96GB POC: not needed
     full: false
 
+  # iter15 D12 (2026-05-16): R1 recipe-v3 overrides. Promotes iter14 R1 winning recipe
+  # (top1=0.8456) from env-var-triggered overrides to yaml-level defaults. See
+  # plan_surgery_wins.md §12.4 + R1 log L12 "--saliency on --spd on --replay on".
+  # Head variants override optimization.spd.enabled: false (no trainable backbone →
+  # SPDAdamW.n_anchored=0 → build_optimizer FATALs at training.py:705).
+  # iter15 D14 (2026-05-16): MERGED into the L78 optimization block — previously
+  # this was a second top-level `optimization:` key, which YAML silently collapsed
+  # via "last key wins" → erased max_epochs/layer_wise_lr_decay/memory-saver flags.
+  # Surgery cells ran with R0 budget (1 epoch instead of 2) at POC for ~1 hour
+  # before this was caught. NEVER add a second top-level key in yaml — extend the
+  # existing block.
+  loss:
+    saliency_weighting: true            # iter14 R1 default; MGMAE-style L2-norm weighted JEPA loss
+  spd:
+    enabled: true                       # iter14 R1 default; SPDAdamW replaces drift_control L2 anchor
+    alpha: 0.05                         # SPD strength (Tian NeurIPS'24 arXiv:2411.01713)
+
 # -- Factor datasets (m10/m11 prerequisite) --
 factor_datasets:
   # Grounded-SAM pipeline: Grounding DINO (text → boxes) → SAM 3.1 (box → masks + propagation)
@@ -246,8 +263,10 @@ surgery:
   #   single    = single warmup at start of training (stage 0 only); subsequent
   #               stages skip warmup, run at full base_lr immediately. Matches
   #               vjepa2 reference + fixes step-1 LR shock at POC.
+  # iter15 D12 (2026-05-16): flipped per_stage → single as R1 default (matches
+  # iter14 R1 winning recipe top1=0.8456, see plan §12.4 + R1 log L104 "warmup 0").
   # Override at runtime: WARMUP_OVERRIDE={per_stage, single} env-var (T7-wired).
-  warmup_mode: per_stage
+  warmup_mode: single
   # Used ONLY when warmup_mode == "single". Fraction of TOTAL training steps
   # (across all stages) allocated to the single front-loaded warmup.
   total_warmup_pct: 0.10
@@ -256,9 +275,11 @@ surgery:
   #   FROZEN = SALT (Apple arXiv:2509.24317) — teacher is the init checkpoint
   #            (loaded via --init-from-ckpt) and NEVER updated. Eliminates the
   #            EMA-decay feedback loop where teacher tracks the regressing student.
-  # Default EMA preserves pre-recipe-v2 behavior. CLI --teacher-mode overrides.
-  # See iter/iter14_surgery_on_pretrain/plan_surgery_wins.md §0 row 1️⃣ + §11.6 A5.
-  teacher_mode: EMA
+  # iter15 D12 (2026-05-16): flipped EMA → FROZEN as R1 default. iter14 R1 used
+  # --teacher-mode FROZEN (log L31 "mode=FROZEN (SALT)"). Cell R2_minus_frozen
+  # (=EMA fallback) scored 0.8382 < R1's 0.8456 (iter14 §12.4 table).
+  # CLI --teacher-mode overrides. See iter/iter14_surgery_on_pretrain/plan_surgery_wins.md §0 row 1️⃣ + §11.6 A5.
+  teacher_mode: FROZEN
   # iter14 recipe-v2 (2026-05-09): LP-FT Stage 0 — recipe-v2 axis #2 of POC sweep.
   # When enabled, prepends a head-only warmup stage (encoder fully frozen via
   # set_trainable_prefix(0); predictor + motion_aux head still trainable) BEFORE
@@ -266,12 +287,24 @@ surgery:
   # (Kumar et al., ICLR'22 arXiv:2202.10054). See plan_surgery_wins.md §0 row 2️⃣.
   # Compute note: Stage 0 is BONUS compute on top of the regular max_epochs budget
   # (i.e. enabling adds ~10% wall time). Disable to preserve legacy timing.
+  # iter15 D12 (2026-05-16): flipped false → true as R1 default. iter14 R1 used
+  # --lp-ft-stage0 on (log L39 "[LP-FT Stage 0 ENABLED]"). Head-only variants
+  # explicitly set enabled: false because they ARE the LP-FT stage by design.
   lp_ft_stage0:
-    enabled: false                       # default off; CLI --lp-ft-stage0 on overrides
+    enabled: true                        # iter15 D12: R1 default ON; CLI --lp-ft-stage0 off overrides
     name: stage0_head_only
     max_epochs_pct: 0.10                 # 10% of total_steps allocated to head warmup
     mode_mixture: {L: 0.5, A: 0.5, I: 0.0}   # L+A factor mix (works for both 3stage_DI and noDI)
   # `stages` is variant-specific — see {noDI,loud_agent,3stage_DI}.yaml.
+
+# -- iter15 D12 (2026-05-16): R1 raw_replay override (CLEAR; Rolnick NeurIPS'18).
+# 50% raw clips mixed into factor batches. Requires factor_streaming.enabled=true.
+# SANITY has factor_streaming.sanity=false → FATAL if hit; iter15 SANITY phase
+# complete (2026-05-15) so this is acceptable. saliency_weighting + spd.enabled
+# moved into the merged optimization block at L78 (D14 fix — duplicate top-level
+# keys were silently collapsed by YAML).
+replay:
+  raw_pretrain_pct: 0.5                 # iter14 R1 default
 
 # -- Drift control: REACTIVATED iter14 (2026-05-08) — anchor-to-PRETRAIN.
 # History:

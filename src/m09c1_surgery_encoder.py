@@ -648,14 +648,17 @@ def train(cfg: dict, args):
     mp4_index = mask_index = streaming_manifest = factor_cfg_streaming = None
     di_legacy_index = None
     if streaming_enabled:
-        # get_module_output_dir already imported at module top (line 33).
-        # A local re-import here would shadow the module-level name for the
-        # ENTIRE function via Python scoping rules → UnboundLocalError at any
-        # earlier call site (e.g., line 342). Removed 2026-04-20 (errors_N_fixes #68).
-        m10_out = get_module_output_dir(
-            "m10_sam_segment", args.subset,
-            sanity=args.SANITY, poc=args.POC)
-        masks_dir = Path(m10_out) / "masks"
+        # iter15 D11 fix (2026-05-16): masks live with INPUT DATA, not in
+        # mode-specific outputs/. Aligning with m09c2:297 (proven working —
+        # 9297 masks indexed in m09c2_3stage_DI_head run 5/16 00:38 UTC).
+        # The previous get_module_output_dir resolution pointed to
+        # outputs/{mode}/m10_sam_segment/masks/ which is EMPTY because m10 was
+        # run once at FULL scale and its outputs persisted under
+        # data/eval_10k_local/m10_sam_segment/masks/ (durable input data).
+        # Bug evidence: logs/iter15_poc_m09c1_3stage_DI_encoder_20260516_075807.log
+        # L38 "0 clips ready (9297 mp4, 0 masks ...)" → StreamingFactorDataset
+        # raised ValueError at training.py:1781 (D_L empty under L=1.0 mixture).
+        masks_dir = Path(cfg["data"]["local_data"]) / "m10_sam_segment" / "masks"
         mp4_index, mask_index, streaming_manifest = build_streaming_indices(
             manifest_path=factor_dir / "factor_manifest.json",
             masks_dir=masks_dir,
@@ -1018,7 +1021,13 @@ def train(cfg: dict, args):
                     student, predictor, probe_clips, probe_labels,
                     mask_gen=mask_generators[0], cfg=cfg, device=device,
                     step=global_step_, wb_run=wb_run, probe_record=pr,
-                    motion_aux_head=ma_head)        # D3 fix
+                    motion_aux_head=ma_head,        # D3 fix
+                    # iter15 D15 (2026-05-16): encoder cell — encoder weights
+                    # change every step → probe-trio outputs NOT cacheable.
+                    # Explicit no-cache documents the architectural impossibility.
+                    # See src/CLAUDE.md "NO RATIONALIZING" → impossibility carve-out.
+                    encoder_cache=None,
+                    encoder_frozen=False)
 
             # BWT = probe_top1[current] − probe_top1[first_probe].
             # Persisted to jsonl + plotted so users can see drift in real time.

@@ -1172,7 +1172,15 @@ def train(cfg: dict, args):
                         student, predictor, probe_clips, probe_labels,
                         mask_gen=mask_generators[0], cfg=cfg, device=device,
                         step=step, wb_run=wb_run, probe_record=probe_record,
-                        motion_aux_head=ma_head)        # D3 fix
+                        motion_aux_head=ma_head,        # D3 fix
+                        # iter15 D15 (2026-05-16): encoder cell — encoder weights
+                        # change every step → probe-trio outputs are NOT cacheable.
+                        # Explicit no-cache documents the architectural impossibility
+                        # (NOT a rationalization — encoder cells genuinely cannot
+                        # reuse cached forward results). See src/CLAUDE.md
+                        # "NO RATIONALIZING" → TRUE-impossibility carve-out.
+                        encoder_cache=None,
+                        encoder_frozen=False)
 
                 # iter13 Task #19: per-block drift diagnostic. Catches the
                 # v5+v6+v7 "uniform ~1e-5 across all 48 blocks" pathology in

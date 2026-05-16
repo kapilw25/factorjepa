@@ -487,6 +487,13 @@ def train(cfg: dict, args) -> None:
     head_init_params = {n: p.detach().cpu().clone() for n, p in ma_head.named_parameters()}
     head_drift_history = []
     probe_history = []
+    # iter15 D15 (2026-05-16): probe-trio encoder cache. Encoder + predictor are
+    # FROZEN for the entire run → encoder forward + future_l1 outputs are time-
+    # invariant across val checkpoints. First call populates this dict; subsequent
+    # calls reuse the cached pooled features + per-clip L1 → MA head re-runs each
+    # time (it IS the trained component). Saves ~10 min × (N_val - 1) val cycles.
+    # compute_metric_trio FAILS LOUD if encoder signature changes mid-run.
+    encoder_cache: dict = {}
     probe_history_path = output_dir / "probe_history.jsonl"
     mask_generators = build_mask_generators(cfg)
     print(f"Mask generators: {len(mask_generators)} (for in-training trio future_l1)")
@@ -526,8 +533,15 @@ def train(cfg: dict, args) -> None:
     n_train = len(train_keys)
     steps_per_epoch = max(1, (n_train + batch_size - 1) // batch_size)
     total_steps = max_epochs * steps_per_epoch
+    # iter15 D13 (2026-05-16): mirror m09a1:538 cadence — val/probe-trio every
+    # val_interval steps (= steps_per_epoch // saves_per_epoch). Previously head
+    # cells validated ONLY at end-of-epoch (1×/ep) while encoder cells used 2×/ep
+    # → asymmetric trajectory plots. Aligns observability with m09a2 + m09a1/c1.
+    saves_per_epoch = cfg["checkpoint"]["saves_per_epoch"]
+    val_interval = max(1, steps_per_epoch // saves_per_epoch)
     print(f"Stage: {stage_name} · mixture: {mode_mixture} · mode: {mode_key} · "
           f"epochs: {max_epochs} · batch: {batch_size} · steps/epoch: {steps_per_epoch}")
+    print(f"Validation every {val_interval} steps ({saves_per_epoch}x/epoch — D13 cadence parity)")
 
     scheduler = build_scheduler(optimizer, opt_cfg, total_steps)
 
@@ -646,65 +660,72 @@ def train(cfg: dict, args) -> None:
                                          "train/lr": cur_lr},
                                 step=step)
 
-            # === End-of-epoch: val cycle on RAW clips + best ckpt ===
-            mean_train = float(np.mean(epoch_train_losses)) if epoch_train_losses else float("nan")
-            val_loss = _compute_val_motion_aux_loss(
-                student, ma_head, ma_cfg, ma_lookup,
-                val_keys, args.val_local_data, cfg, device, dtype,
-            )
-            elapsed = time.time() - epoch_started
-            print(f"\n[epoch {epoch}/{max_epochs}] train_loss={mean_train:.4f}  "
-                  f"val_loss={val_loss:.4f}  wall={elapsed:.0f}s  step={step}")
-            row = {"epoch": epoch, "train_loss": mean_train, "val_loss": val_loss,
-                   "wall_sec": elapsed, "step": step, "stage": stage_name}
-            train_log_f.write(json.dumps(row) + "\n")
-            train_log_f.flush()
-            os.fsync(train_log_f.fileno())
-            csv_writer.writerow([step, epoch, "", "", "", "", "",
-                                  "", "", "", f"{val_loss:.6f}", stage_name])
-            csv_file.flush()
-            log_metrics(wb_run, {"val/loss": val_loss,
-                                 "train/epoch_mean_loss": mean_train,
-                                 "epoch": epoch}, step=step)
+                # iter15 D13 (2026-05-16): mid-epoch + end-of-epoch val cycle every
+                # val_interval steps. Mirrors m09a1/c1 cadence (saves_per_epoch=2 →
+                # 2 probes per epoch). Gate catches end-of-epoch via step %
+                # steps_per_epoch == 0 fallback.
+                if step > 0 and (step % val_interval == 0 or step % steps_per_epoch == 0):
+                    mean_train = float(np.mean(epoch_train_losses)) if epoch_train_losses else float("nan")
+                    val_loss = _compute_val_motion_aux_loss(
+                        student, ma_head, ma_cfg, ma_lookup,
+                        val_keys, args.val_local_data, cfg, device, dtype,
+                    )
+                    elapsed = time.time() - epoch_started
+                    is_end_of_epoch = (step % steps_per_epoch == 0)
+                    tag = "epoch-end" if is_end_of_epoch else "mid-epoch"
+                    print(f"\n[step {step} · epoch {epoch}/{max_epochs} · {tag}] "
+                          f"train_loss={mean_train:.4f}  val_loss={val_loss:.4f}  "
+                          f"wall={elapsed:.0f}s  stage={stage_name}")
+                    row = {"epoch": epoch, "train_loss": mean_train, "val_loss": val_loss,
+                           "wall_sec": elapsed, "step": step, "stage": stage_name}
+                    train_log_f.write(json.dumps(row) + "\n")
+                    train_log_f.flush()
+                    os.fsync(train_log_f.fileno())
+                    csv_writer.writerow([step, epoch, "", "", "", "", "",
+                                          "", "", "", f"{val_loss:.6f}", stage_name])
+                    csv_file.flush()
+                    log_metrics(wb_run, {"val/loss": val_loss,
+                                         "train/epoch_mean_loss": mean_train,
+                                         "epoch": epoch}, step=step)
 
-            # iter15 Phase 6 C1+C2+C3 (2026-05-16): probe_record + trio + drift +
-            # probe_history.jsonl. Mirrors m09a2 / m09c1 encoder pattern.
-            val_total = val_loss * float(ma_cfg["weight_motion"])
-            probe_record = {
-                "step": step, "epoch": epoch,
-                "val_jepa_loss":       val_total,    # C3: repurposed = val_total for head cells
-                "val_motion_aux_loss": val_loss,
-                "val_total_loss":      val_total,
-                "val_drift_loss":      0.0,            # encoder frozen → drift ≡ 0
-                "val_multi_task_loss": 0.0,            # mt off in head-only
-                "stage":               stage_name,
-                "epoch_pct": round((epoch + 1) / max_epochs * 100, 1),
-            }
-            if probe_clips is not None and probe_labels:
-                run_trio_at_val(
-                    student, predictor, probe_clips, probe_labels,
-                    mask_gen=mask_generators[0], cfg=cfg, device=device,
-                    step=step, wb_run=wb_run, probe_record=probe_record,
-                    motion_aux_head=ma_head,        # C1
-                )
-            track_head_drift_at_val(
-                ma_head, head_init_params, head_drift_history,
-                output_dir=output_dir, step=step,
-                probe_record=probe_record,
-                title_prefix=f"m09c head [{_variant_tag}] step={step} · ",
-                file_prefix="m09c2",
-            )
-            probe_history.append(probe_record)
-            with open(probe_history_path, "a") as _ph:
-                _ph.write(json.dumps(probe_record) + "\n")
-                _ph.flush()
-                os.fsync(_ph.fileno())
+                    val_total = val_loss * float(ma_cfg["weight_motion"])
+                    probe_record = {
+                        "step": step, "epoch": epoch,
+                        "val_jepa_loss":       val_total,
+                        "val_motion_aux_loss": val_loss,
+                        "val_total_loss":      val_total,
+                        "val_drift_loss":      0.0,
+                        "val_multi_task_loss": 0.0,
+                        "stage":               stage_name,
+                        "epoch_pct": round((epoch + 1) / max_epochs * 100, 1),
+                    }
+                    if probe_clips is not None and probe_labels:
+                        run_trio_at_val(
+                            student, predictor, probe_clips, probe_labels,
+                            mask_gen=mask_generators[0], cfg=cfg, device=device,
+                            step=step, wb_run=wb_run, probe_record=probe_record,
+                            motion_aux_head=ma_head,
+                            encoder_cache=encoder_cache,   # iter15 D15
+                            encoder_frozen=True,           # iter15 D15: head cell, encoder+predictor FROZEN
+                        )
+                    track_head_drift_at_val(
+                        ma_head, head_init_params, head_drift_history,
+                        output_dir=output_dir, step=step,
+                        probe_record=probe_record,
+                        title_prefix=f"m09c head [{_variant_tag}] step={step} · ",
+                        file_prefix="m09c2",
+                    )
+                    probe_history.append(probe_record)
+                    with open(probe_history_path, "a") as _ph:
+                        _ph.write(json.dumps(probe_record) + "\n")
+                        _ph.flush()
+                        os.fsync(_ph.fileno())
 
-            if val_loss < best_val_loss:
-                best_val_loss = val_loss
-                best_epoch = epoch
-                export_motion_aux_head(ma_head, output_dir / "motion_aux_head.pt")
-                print(f"  ✅ new best val_loss={best_val_loss:.4f} (epoch {epoch})")
+                    if val_loss < best_val_loss:
+                        best_val_loss = val_loss
+                        best_epoch = epoch
+                        export_motion_aux_head(ma_head, output_dir / "motion_aux_head.pt")
+                        print(f"  ✅ new best val_loss={best_val_loss:.4f} (step {step}, epoch {epoch})")
     finally:
         train_log_f.close()
         csv_file.close()

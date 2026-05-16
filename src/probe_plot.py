@@ -44,12 +44,31 @@ from utils.bootstrap import N_BOOTSTRAP
 # ── Display helpers (no hardcoded encoder list — derived per-call) ───
 
 def _display_label(enc: str) -> str:
-    """Human-readable encoder name for plot legends. Falls back to enc verbatim."""
+    """Human-readable encoder name for plot legends. Falls back to enc verbatim.
+
+    iter15 (2026-05-16): added the 6 head/encoder POC variants from
+    run_eval.sh:158 ENCODERS list. Caller at line ~229 applies
+    `.replace(" ", "\\n")` to stack labels vertically on x-ticks; design
+    each label so the newline-splits land on natural word boundaries.
+    Dropped the universal `vjepa_2_1_` prefix since every label would
+    otherwise repeat it (waste vertical space). The head/encoder suffix
+    is preserved verbatim so the paired-Δ visual mapping is unambiguous.
+    """
     return {
-        "vjepa_2_1_frozen":   "V-JEPA 2.1 frozen",
-        "vjepa_2_1_pretrain_encoder": "V-JEPA 2.1 pretrain",
-        "vjepa_2_1_surgical": "V-JEPA 2.1 surgical",
-        "dinov2":             "DINOv2 frozen",
+        # iter14 anchors
+        "vjepa_2_1_frozen":                       "V-JEPA 2.1 frozen",
+        "dinov2":                                 "DINOv2 frozen",
+        # iter15 ENCODER-update variants (full ViT-G backward).
+        # Spaces between [variant] and [encoder/head] suffix → caller's
+        # .replace(" ", "\\n") splits them onto separate tick-label lines.
+        "vjepa_2_1_pretrain_encoder":             "pretrain encoder",
+        "vjepa_2_1_pretrain_2X_encoder":          "pretrain_2X encoder",
+        "vjepa_2_1_surgical_3stage_DI_encoder":   "surgery 3stage_DI encoder",
+        "vjepa_2_1_surgical_noDI_encoder":        "surgery noDI encoder",
+        # iter15 HEAD-only variants (frozen encoder, motion_aux head trains)
+        "vjepa_2_1_pretrain_head":                "pretrain head",
+        "vjepa_2_1_surgical_3stage_DI_head":      "surgery 3stage_DI head",
+        "vjepa_2_1_surgical_noDI_head":           "surgery noDI head",
     }.get(enc, enc.replace("_", " "))
 
 

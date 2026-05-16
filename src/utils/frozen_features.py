@@ -491,6 +491,19 @@ def extract_features_for_keys(args, model, encoder_kind: str, crop: int, embed_d
     elapsed = time.time() - t0
     print(f"  extract_features_for_keys({label}): {len(keys_acc)}/{len(keys)} clips in {elapsed:.0f}s")
 
+    # iter15 D9 fix (2026-05-16): unconditional final ckpt save. Without this, at
+    # POC scale (~1096 train clips < CHECKPOINT_EVERY=5000) the resume ckpt is
+    # NEVER written → downstream callers (probe_taxonomy Stage 3.5 reusing
+    # probe_action's lazy extraction) can't short-circuit and re-extract from
+    # scratch, wasting ~7 min × N encoders of GPU. At FULL scale this overwrites
+    # the last intermediate save with identical content (one extra np.savez ≈
+    # ~5 sec @ ~24 GB; cleaned up by run_eval.sh cleanup_lazy after Stage 3.5).
+    # Pairs with D8's --keep-lazy-cache defer logic in probe_action.
+    if feats_acc:
+        _save_features_ckpt(ckpt_file, feats_acc, keys_acc)
+        print(f"  [D9] final resume ckpt saved: {ckpt_file.name} "
+              f"({len(keys_acc)} clips) — Stage 3.5 will resume from this")
+
     # iter13: float16 storage. Matches _save_features_ckpt. Downstream consumers
     # (probe head training in probe_action.py:380, motion-cos in
     # probe_motion_cos.py:81-87) all upcast to fp32 explicitly via .float() or
@@ -511,8 +524,9 @@ def extract_features_for_keys(args, model, encoder_kind: str, crop: int, embed_d
 # extracted features. Output saved separately as
 # motion_aux_concat_<label>.npy; probes load both at train/eval time.
 
-def apply_motion_aux_head_to_features(features, motion_aux_head, batch_size: int = 64):
-    """Run motion_aux head on mean-pooled features → (N, K + n_dims) concat tensor.
+def apply_motion_aux_head_to_features(features, motion_aux_head, batch_size: int = 64,
+                                      align_to: int = 16):
+    """Run motion_aux head on mean-pooled features → (N, K + n_dims [+ pad]) concat tensor.
 
     Args:
         features:        (N, n_tokens, D) float16 OR (N, D) float16 — from
@@ -524,9 +538,18 @@ def apply_motion_aux_head_to_features(features, motion_aux_head, batch_size: int
         batch_size:      Per-batch forward size for the head. Default 64 fits
                           ~36-dim output × N_clips trivially on CPU; bump for
                           GPU. Head is ~430K params so memory is not the issue.
+        align_to:        D10 (2026-05-16): pad output dim with zeros to next
+                          multiple of `align_to` so the downstream
+                          AttentiveClassifier(num_heads=16) reshape
+                          `qkv.reshape(B, N, 3, num_heads, C//num_heads)`
+                          succeeds. With K+n_dims=36 and D=1664 (already 16-aligned),
+                          unpadded total is 1664+36=1700 = 16×106.25 → reshape fails.
+                          Padding to 48 yields 1664+48=1712 = 16×107. Zero pad is
+                          information-preserving (qkv linear maps zero columns to
+                          zero contribution; downstream head learns to ignore them).
 
     Returns:
-        np.ndarray (N, K + n_dims) float32 — concat of [ce_logits, mse_pred].
+        np.ndarray (N, K + n_dims + pad) float32 — [ce_logits ‖ mse_pred ‖ zeros].
         Probes save this alongside features_<label>.npy as
         motion_aux_concat_<label>.npy and concat at probe input.
     """
@@ -548,7 +571,11 @@ def apply_motion_aux_head_to_features(features, motion_aux_head, batch_size: int
     device = next(motion_aux_head.parameters()).device
     n = feats_pooled.shape[0]
     out_dim = motion_aux_head.n_motion_classes + motion_aux_head.n_motion_dims
-    out = np.empty((n, out_dim), dtype=np.float32)
+    # D10 (2026-05-16): pad K+n_dims to next multiple of `align_to` so downstream
+    # AttentiveClassifier qkv reshape (B, N, 3, num_heads, C//num_heads) succeeds.
+    pad = (-out_dim) % align_to                         # 0 if already aligned
+    out_dim_padded = out_dim + pad
+    out = np.zeros((n, out_dim_padded), dtype=np.float32)  # zeros-init covers the pad cols
     motion_aux_head.eval()                              # belt + suspenders
     with torch.no_grad():
         for i in range(0, n, batch_size):
@@ -556,8 +583,9 @@ def apply_motion_aux_head_to_features(features, motion_aux_head, batch_size: int
             ce_logits, mse_pred = motion_aux_head(chunk)
             out[i:i + batch_size, :motion_aux_head.n_motion_classes] = \
                 ce_logits.detach().cpu().numpy()
-            out[i:i + batch_size, motion_aux_head.n_motion_classes:] = \
+            out[i:i + batch_size, motion_aux_head.n_motion_classes:out_dim] = \
                 mse_pred.detach().cpu().numpy()
+            # cols [out_dim : out_dim_padded] stay zero (D10 pad)
     return out
 
 

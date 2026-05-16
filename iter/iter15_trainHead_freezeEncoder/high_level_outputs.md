@@ -498,9 +498,7 @@ tiers: 1️⃣ winner · 2️⃣ recoverable drops · 3️⃣ load-bearing drops
 
 ---
 
-## 📊 iter15 POC — Head-only vs Encoder-update 6-Cell Paired-Δ (🏃 RUNNING 2026-05-15 22:17+)
-
-> Source: `logs/iter15_poc_*.log` + `outputs/poc/m09{a,c}_*_{head,encoder}/training_summary.json`. POC pool = 1083 train / 218 val / 218 test (stratified-by-motion-class, 13 classes after >=34-clip filter). 96 GB Blackwell. Decision tree mirrors iter14 §7.5 + §12.4 but axis is now `head-only vs encoder-update` per recipe.
+## 📊 iter15 POC — Head-only vs Encoder-update 6-Cell Paired-Δ (🏃 PARTIAL 2026-05-16 — 3/6 head cells eval'd · encoder POC pending)
 
 ### 🔬 Sweep matrix — 6 cells (paired-Δ design)
 
@@ -517,40 +515,62 @@ tiers: 1️⃣ winner · 2️⃣ recoverable drops · 3️⃣ load-bearing drops
 └───────────────────────────────┴───────────────────┴───────────────┴──────────────────┴──────────────────────────────────┘
 ```
 
-### 📊 Training-log metrics (3 of 6 head-POC DONE · POC:FULL = 2:5 uniform across all 6)
+### 📊 Training-log metrics — motion_aux val loss (4 of 6 POC DONE)
 
 ```
-┌─────────────────────────────────┬──────────┬──────────┬──────────┬──────────┬───────────┬─────────┬─────────────────────┐
-│ 🔢 Cell                          │ trn ep0  │ trn ep1↓ │ val ep0  │ val ep1↓ │ Δ val     │ ⏱️ wall  │ status              │
-├─────────────────────────────────┼──────────┼──────────┼──────────┼──────────┼───────────┼─────────┼─────────────────────┤
-│ ── 🧊 HEAD-ONLY (m09a2 / m09c2 — encoder + predictor FROZEN) ──                                                          │
-│ 🅰️ pretrain_head                 │ 3.7415   │ 3.2510   │ 3.4180   │ 3.1140 🥇│ -0.3040 ✅│ 8m 30s  │ ✅ DONE 23:04 UTC v2 │
-│ 🅱️ surg_3stage_DI_head           │ 3.9290   │ 3.7336   │ 3.8789   │ 3.6228   │ -0.2561 ✅│ 8m 30s  │ ✅ DONE 23:41 UTC v2 │
-│ 🅲 surg_noDI_head                │ 3.8115   │ 3.4944   │ 3.6442   │ 3.3144   │ -0.3298 🥇│ 10m 56s │ ✅ DONE 23:52 UTC v2 │
-├─────────────────────────────────┼──────────┼──────────┼──────────┼──────────┼───────────┼─────────┼─────────────────────┤
-│ ── 🔓 ENCODER-UPDATE (m09a1 / m09c1 — full ViT-G backward) ──                                                            │
-│ 🅳 pretrain_encoder              │ ⏳        │ ⏳        │ ⏳        │ ⏳        │ ⏳         │ ~30 min │ ⏳ queued            │
-│ 🅴 surg_3stage_DI_encoder        │ ⏳        │ ⏳        │ ⏳        │ ⏳        │ ⏳         │ ~50 min │ ⏳ queued            │
-│ 🅵 surg_noDI_encoder             │ ⏳        │ ⏳        │ ⏳        │ ⏳        │ ⏳         │ ~30 min │ ⏳ queued            │
-└─────────────────────────────────┴──────────┴──────────┴──────────┴──────────┴───────────┴─────────┴─────────────────────┘
-trn/val = motion_aux loss (CE+0.1×MSE, 13-cls × 23-D) · 🥇 best · ↓ best epoch · ✅ monotonic ↓ · ⏳ queued
-all head cells: 1083 train / 218 val · 2 ep · 68 steps · BS=32 · 1519 ma-target clips
+┌─────────────────────────────────┬──────────┬──────────┬───────────┬─────────┬──────────────────────┐
+│ 🔢 Cell                          │ val ep0  │ val ep1  │ Δ val     │ ⏱️ wall  │ status                │
+├─────────────────────────────────┼──────────┼──────────┼───────────┼─────────┼──────────────────────┤
+│ ── 🧊 HEAD-ONLY (m09a2 / m09c2 — encoder + predictor FROZEN, motion_aux head trains) ──             │
+│ 🅰️ pretrain_head                 │ 3.4565   │ 3.1498   │ -0.3067 ✅│ 8m 30s  │ ✅ DONE 5/16 00:24 UTC│
+│ 🅱️ surg_3stage_DI_head           │ 3.8988   │ 3.6415   │ -0.2573 ✅│ 8m 26s  │ ✅ DONE 5/16 00:38 UTC│
+│ 🅲 surg_noDI_head                │ 3.6442   │ 3.3144   │ -0.3298 ✅│ 10m 56s │ ✅ DONE 5/15 23:52 UTC│
+├─────────────────────────────────┼──────────┼──────────┼───────────┼─────────┼──────────────────────┤
+│ ── 🔓 ENCODER-UPDATE (m09a1 / m09c1 — full ViT-G backward, encoder + head both train) ──            │
+│ 🅳 pretrain_encoder              │ 3.3291   │ 2.8978   │ -0.4313 ✅│ 81m 28s │ ✅ DONE 5/16 07:42 UTC│
+│ 🅴 surg_3stage_DI_encoder        │ ⏳        │ ⏳        │ ⏳         │ ~80 min │ ⏳ queued             │
+│ 🅵 surg_noDI_encoder             │ ⏳        │ ⏳        │ ⏳         │ ~50 min │ ⏳ queued             │
+└─────────────────────────────────┴──────────┴──────────┴───────────┴─────────┴──────────────────────┘
+val = motion_aux component of val JEPA loss (CE on 14 motion classes + MSE on 23-D motion vec) ·
+ep0/ep1 = end-of-epoch (0-indexed) · ✅ monotonic ↓ · ⏳ queued · all gaps <5 pp on same-row trajectory clear noise floor
+```
+
+### 📊 Cell 🅳 in-training probe-trio trajectory (m09a1 pretrain_encoder — 4 mid-training checkpoints)
+
+```
+┌──────────┬──────────┬──────────┬──────────┬──────────┬──────────┬──────────────────────────────────┐
+│ Step      │ val_jepa  │ val_ma    │ 🎯 top1   │ 🧭 m_cos  │ 🔮 fL1 ↓  │ note                              │
+├──────────┼──────────┼──────────┼──────────┼──────────┼──────────┼──────────────────────────────────┤
+│ 17 (25%)  │ 0.4790    │ 3.5104    │ 0.2230    │ 0.0204    │ 0.5415    │ end of ep0 first val               │
+│ 34 (50%)  │ 0.4721    │ 3.3291    │ 0.2710    │ 0.0467    │ 0.5472    │ end of ep0                         │
+│ 51 (75%)  │ 0.4707    │ 3.0132    │ 0.2840    │ 0.0511    │ 0.5442    │ mid ep1                            │
+│ 67 (100%) │ 0.4675 ↓  │ 2.8978 ↓  │ 0.3030 ↑  │ 0.0608 ↑  │ 0.5441 ↓  │ end of training                    │
+├──────────┼──────────┼──────────┼──────────┼──────────┼──────────┼──────────────────────────────────┤
+│ Δ 17→67   │ -0.0115   │ -0.6126   │ +0.0800 ★ │ +0.0404   │ -0.0026   │ 🎯 top1 +8 pp ≥ 5-pp threshold ★  │
+│ direction │ ↓ better  │ ↓ better  │ ↑ better  │ ↑ better  │ ↓ better  │ all 5 metrics paper-favorable      │
+└──────────┴──────────┴──────────┴──────────┴──────────┴──────────┴──────────────────────────────────┘
+top1 / m_cos / fL1 from probe-trio (frozen kNN on encoder features, N=1000 deterministic sub-sample, seed=42)
+val_jepa = JEPA SSL loss (target encoder bf16, predictor 16-frame mask · 0.4675 at end = close to v12 anchor 0.458 final)
+encoder DID drift: ||Δ||/||init|| = 7.19e-03 (above 1e-4 sanity threshold per runbook L117)
+★ +8 pp within-cell trajectory beats the 5-pp noise floor → real learning signal, not stochastic
+all cells: 1096 train / 220 val · 2 ep · BS=32 · 14 motion classes · 23-D motion vec · 1536 ma-target clips
 ```
 
 ### 📊 Eval-only metrics (post `run_eval.sh --POC` — populated after all 6 cells DONE)
 
 ```
-┌─────────────────────────────────┬───────────┬───────────┬───────────┬───────────┬───────────┐
-│ 🔢 Cell                          │ best top1 │ Δ vs 0.808│ best m_cos│ best fL1 ↓│ BWT       │
-├─────────────────────────────────┼───────────┼───────────┼───────────┼───────────┼───────────┤
-│ 🅰️ pretrain_head                 │ ⏳         │ ⏳         │ ⏳         │ ⏳         │ ⏳         │
-│ 🅱️ surg_3stage_DI_head           │ ⏳         │ ⏳         │ ⏳         │ ⏳         │ ⏳         │
-│ 🅲 surg_noDI_head                │ ⏳         │ ⏳         │ ⏳         │ ⏳         │ ⏳         │
-│ 🅳 pretrain_encoder              │ ⏳         │ ⏳         │ ⏳         │ ⏳         │ ⏳         │
-│ 🅴 surg_3stage_DI_encoder        │ ⏳         │ ⏳         │ ⏳         │ ⏳         │ ⏳         │
-│ 🅵 surg_noDI_encoder             │ ⏳         │ ⏳         │ ⏳         │ ⏳         │ ⏳         │
-└─────────────────────────────────┴───────────┴───────────┴───────────┴───────────┴───────────┘
-top1=probe_action (Stage 3+4) · m_cos=probe_motion_cos (Stage 6) · fL1=probe_future_mse (Stage 8) · BWT=Stage 12
+┌─────────────────────────────────┬───────┬───────────┬─────────────┬───────────┬─────────────┬─────────────────┬───────┐
+│ 🔢 Cell                          │ enc   │ 🎯 top1   │ ⚖️ Δ frozen │ 🧭 m_cos  │ 🔮 fL1 ↓    │ 🆕 ma_l1 ↓ (D2) │ 🔁 BWT│
+├─────────────────────────────────┼───────┼───────────┼─────────────┼───────────┼─────────────┼─────────────────┼───────┤
+│ 🧊 frozen anchor                 │ 🧊    │ 0.3318±.06│ —           │ 0.0144    │ 0.5562      │ 🚫 no head      │ 🟰 0  │
+│ 🅰️ pretrain_head                 │ 🧊    │ 0.3636±.06│ +0.0318     │ 0.0149    │ 0.5573      │ 0.0553          │ 🟰 0  │
+│ 🅱️ surg_3stage_DI_head           │ 🧊    │ 0.3000±.06│ -0.0318     │ 0.0143    │ 0.5584      │ 0.0411          │ 🟰 0  │
+│ 🅲 surg_noDI_head                │ 🧊    │ 0.3091±.06│ -0.0227     │ 0.0146    │ 0.5571      │ 0.0496          │ 🟰 0  │
+│ 🅳 pretrain_encoder              │ 🔓    │ ⏳         │ ⏳           │ ⏳         │ ⏳           │ ⏳               │ ⏳     │
+│ 🅴 surg_3stage_DI_encoder        │ 🔓    │ ⏳         │ ⏳           │ ⏳         │ ⏳           │ ⏳               │ ⏳     │
+│ 🅵 surg_noDI_encoder             │ 🔓    │ ⏳         │ ⏳           │ ⏳         │ ⏳           │ ⏳               │ ⏳     │
+└─────────────────────────────────┴───────┴───────────┴─────────────┴───────────┴─────────────┴─────────────────┴───────┘
+🎯 top1=probe_action (Stage 3+4) · 🧭 m_cos=probe_motion_cos (Stage 6) · 🔮 fL1=probe_future_mse (Stage 8) · 🆕 ma_l1=per_clip_motion_aux_l1 (Stage 8 D2 fix · 36-dim K+n_dims space) · 🔁 BWT=Stage 12 · 🧊 encoder frozen · 🔓 encoder trainable · 🟰 structurally zero · 🚫 not applicable · ⏳ pending · all gaps <5 pp ≈ CI overlap → no column-winner markers
 ```
 
 ### 🎯 Paired-Δ paper tests (post-POC, via run_eval.sh --POC)

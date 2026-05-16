@@ -72,9 +72,16 @@ loss:
   weight_motion_aux: 1.0
 
 # -- Probe-head LR (10× higher than encoder fine-tuning) --
+# iter15 D12 (2026-05-16): explicit spd.enabled: false override. surgery_base.yaml
+# now sets spd.enabled: true as R1 default for the encoder variants. Head cells have
+# unfreeze_below=0.0 → zero trainable backbone params → SPDAdamW.n_anchored=0 →
+# build_optimizer:705 FATAL. Head cells use vanilla AdamW for the motion_aux head
+# only. The other R1 knobs (FROZEN teacher, saliency, replay 0.5) still inherit.
 optimization:
   lr: 5.0e-4
   pred_lr_multiplier: 1.0
   min_lr: 5.0e-5
   warmup_pct: 0.10
   weight_decay: 0.05
+  spd:
+    enabled: false                       # head cells: NO trainable backbone → SPD N/A

@@ -50,9 +50,16 @@ COLORS = {
 ENCODER_COLORS = {
     "vjepa": "#1565C0",                       # generic fallback (legacy)
     "vjepa_2_1_frozen":              "#1565C0",   # blue — baseline anchor
+    # iter14 / iter15 ENCODER-update variants (saturated tones)
     "vjepa_2_1_pretrain_encoder":            "#D81B60",   # magenta — continual SSL
+    "vjepa_2_1_pretrain_2X_encoder":         "#FF8F00",   # amber — pretrain 2× arm (iter14 C)
     "vjepa_2_1_surgical_3stage_DI_encoder":  "#5E35B1",   # deep indigo — surgery WITH D_I
     "vjepa_2_1_surgical_noDI_encoder":       "#00ACC1",   # cyan — surgery WITHOUT D_I
+    # iter15 HEAD-only variants (lighter tone of paired encoder counterpart)
+    # so paired-Δ Δ5/Δ6/Δ7 are visually obvious — each pair shares a hue family.
+    "vjepa_2_1_pretrain_head":               "#F06292",   # pink — paired w/ pretrain_encoder magenta
+    "vjepa_2_1_surgical_3stage_DI_head":     "#9575CD",   # lavender — paired w/ 3stage_DI deep indigo
+    "vjepa_2_1_surgical_noDI_head":          "#4DD0E1",   # light cyan — paired w/ noDI cyan
     "random": "#9E9E9E",
     "dinov2": "#2E7D32",
     "clip": "#E65100",

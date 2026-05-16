@@ -2565,7 +2565,9 @@ def render_training_plots(
 
 def run_trio_at_val(student, predictor, probe_clips, probe_labels, mask_gen,
                     cfg, device, step: int, wb_run, probe_record: dict,
-                    motion_aux_head=None) -> dict:                # iter15 Phase 6 C1
+                    motion_aux_head=None,               # iter15 Phase 6 C1
+                    encoder_cache=None,                 # iter15 D15 (2026-05-16)
+                    encoder_frozen: bool = False) -> dict:
     """Run m06d trio (top-1 + motion-cos + future-L1) and update probe_record.
 
     Wraps utils.probe_trio.compute_metric_trio with the standard try/except
@@ -2577,6 +2579,14 @@ def run_trio_at_val(student, predictor, probe_clips, probe_labels, mask_gen,
     output (K logits + n_dims motion vec). top1 + motion_cos become cell-
     specific. future_l1 is UNAFFECTED (predictor-based, encoder-only path) —
     by design; documented in plan_head_eval.md C1.
+
+    iter15 D15 (2026-05-16): optional `encoder_cache` dict + `encoder_frozen`
+    bool — when both provided, encoder forward + predictor forward results
+    are cached on first call and reused on subsequent calls. Only the MA head
+    forward + top1/motion_cos aggregation re-runs. Use ONLY for head-only
+    training cells where encoder + predictor never update. compute_metric_trio
+    verifies encoder signature on every HIT and FAILS LOUD if the contract was
+    violated (caller passed encoder_frozen=True while encoder actually trained).
 
     Returns the trio dict on success, None on failure (already logged).
     """
@@ -2590,6 +2600,8 @@ def run_trio_at_val(student, predictor, probe_clips, probe_labels, mask_gen,
             mask_gen=mask_gen, cfg=cfg, device=device,
             dist_layers=cfg["model"]["n_output_distillation"],
             motion_aux_head=motion_aux_head,            # iter15 Phase 6 C1
+            encoder_cache=encoder_cache,                # iter15 D15
+            encoder_frozen=encoder_frozen,              # iter15 D15
         )
         probe_record.update({
             "probe_top1":    trio["top1"],

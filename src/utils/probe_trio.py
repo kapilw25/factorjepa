@@ -96,6 +96,31 @@ def _knn_centroid_loocv(feats: np.ndarray, labels: np.ndarray) -> float:
 # ─── Main entry point ─────────────────────────────────────────────────────
 
 @torch.no_grad()
+def _encoder_signature(encoder) -> tuple:
+    """iter15 D15 (2026-05-16): O(1) cheap signature of encoder weights.
+    Hashes the first / middle / last param tensors' means. Used to detect
+    when the caller asserts encoder_frozen=True but encoder weights actually
+    changed since the cache was populated → cache contract violation →
+    FAIL LOUD instead of silently serving stale results. ~1 ms cost per call.
+
+    FAIL LOUD: empty params list is structurally impossible for a trained
+    encoder; raise instead of returning a hardcoded default tuple (silent
+    fallback would let two uninitialized encoders share a cache slot →
+    stale results). See src/CLAUDE.md "No DEFAULT, no FALLBACK".
+    """
+    params = list(encoder.parameters())
+    if not params:
+        raise RuntimeError(
+            "_encoder_signature: encoder has zero parameters — cannot compute "
+            "signature for cache contract verification. Encoder appears "
+            "uninitialized; check the caller's build_model() path.")
+    return (
+        float(params[0].data.float().mean().item()),
+        float(params[len(params) // 2].data.float().mean().item()),
+        float(params[-1].data.float().mean().item()),
+    )
+
+
 def compute_metric_trio(
     student,
     predictor,
@@ -106,6 +131,8 @@ def compute_metric_trio(
     device: torch.device,
     dist_layers: int = 4,
     motion_aux_head=None,                # iter15 Phase 6 C1 (2026-05-16)
+    encoder_cache=None,                  # iter15 D15 (2026-05-16): persistent dict, caller-owned
+    encoder_frozen: bool = False,         # iter15 D15: caller asserts encoder is not changing across calls
 ) -> dict:
     """Top-1 + intra-inter cosine + future-L1 in a single shared forward pass.
 
@@ -149,6 +176,60 @@ def compute_metric_trio(
     labels = np.array([probe_labels[k]["class_id"] for k in keys], dtype=np.int64)
     n_classes = int(labels.max() + 1)
 
+    # iter15 D15 (2026-05-16): cache HIT branch.
+    # When the caller asserts encoder_frozen=True AND has provided an encoder_cache
+    # that's already populated, skip the entire encoder-forward + predictor-forward
+    # loop. Only the motion_aux head output is recomputed (it's the thing being
+    # trained). Saves ~10 min per val checkpoint on head cells. Encoder cells
+    # always cache-miss because encoder_frozen=False (encoder updates each step).
+    # FAIL LOUD if the encoder signature changed since cache populated — that means
+    # the caller violated the frozen contract and we'd serve stale results.
+    cache_hit = (
+        encoder_cache is not None
+        and encoder_frozen
+        and "pooled_no_ma" in encoder_cache
+    )
+    if cache_hit:
+        current_sig = _encoder_signature(student)
+        cached_sig = encoder_cache["enc_sig"]
+        if current_sig != cached_sig:
+            raise RuntimeError(
+                f"compute_metric_trio (D15): caller asserted encoder_frozen=True "
+                f"but encoder signature changed since cache populated.\n"
+                f"  cached_sig:  {cached_sig}\n"
+                f"  current_sig: {current_sig}\n"
+                f"Frozen contract violated — refusing to serve stale cached "
+                f"top1/motion_cos/future_l1. Caller must either (a) re-initialize "
+                f"encoder_cache={{}} after any encoder weight change, OR (b) pass "
+                f"encoder_frozen=False to disable caching.")
+        pooled_no_ma_cpu = encoder_cache["pooled_no_ma"]   # (N, D=1664) cpu fp32
+        per_clip_l1_cpu = encoder_cache["per_clip_l1"]     # (N,) cpu fp32
+        # Recompute MA augment on cached pooled features (only the head is training).
+        if motion_aux_head is not None:
+            from utils.motion_aux_loss import forward_motion_aux_concat
+            pooled_gpu = pooled_no_ma_cpu.to(device)
+            ma_concat = forward_motion_aux_concat(motion_aux_head, pooled_gpu)
+            pooled_full_cpu = torch.cat([pooled_gpu, ma_concat], dim=-1).cpu()
+        else:
+            pooled_full_cpu = pooled_no_ma_cpu
+        pooled_np = pooled_full_cpu.numpy()
+        future_l1 = float(per_clip_l1_cpu.numpy().mean())
+        print(f"  [probe-trio][D15 cache HIT] reused {len(pooled_np)} pooled + "
+              f"{len(per_clip_l1_cpu)} per-clip L1 — skipped encoder forward.",
+              flush=True)
+        top1 = _knn_centroid_loocv(pooled_np, labels)
+        score, _, _ = _per_clip_motion_score(pooled_np, labels)
+        motion_cos = float(score.mean())
+        return {
+            "top1":       round(top1, 6),
+            "motion_cos": round(motion_cos, 6),
+            "future_l1":  round(future_l1, 6),
+            "n_clips":    len(pooled_np),
+            "n_classes":  n_classes,
+        }
+    # ── Cache MISS path below: full compute, optionally populate cache at end ──
+    # (n_classes already computed pre-branch — shared by HIT + MISS return paths)
+
     # 2. Save state — toggle hierarchical ON for predictor input. Restore
     #    on return so caller's downstream code (e.g. probe-acc using last-layer)
     #    sees the same toggle it set.
@@ -173,7 +254,14 @@ def compute_metric_trio(
     model_dtype = next(student.parameters()).dtype
     embed_dim = cfg["model"]["embed_dim"]   # 1664 for ViT-G
 
-    pooled_chunks: list = []
+    # iter15 D15 (2026-05-16): split pooled_chunks_no_ma (cacheable — encoder
+    # output is frozen for head cells) from pooled_chunks_full (post-MA augment,
+    # changes every val cycle because MA head is trained). Both populated in the
+    # same loop. The _no_ma list goes into the cache; the _full list feeds top1
+    # + motion_cos this call. For encoder-cell mode (encoder_cache=None) only
+    # _full is meaningful.
+    pooled_chunks_no_ma: list = []
+    pooled_chunks_full: list = []
     l1_chunks: list = []
     n = len(keyed)
     i = 0
@@ -210,7 +298,10 @@ def compute_metric_trio(
             #     as run_probe_acc_eval's last-layer mean-pool. This keeps top-1
             #     and motion-cos comparable to the post-training m06d trio.
             last_layer = h_concat[..., -embed_dim:]
-            pooled = last_layer.mean(dim=1).float()                 # (B, D) GPU
+            pooled_no_ma = last_layer.mean(dim=1).float()                 # (B, D) GPU
+            # iter15 D15 (2026-05-16): persist the pre-augment pooled tensor so
+            # cache HIT path can recompute MA augment without rerunning encoder.
+            pooled_chunks_no_ma.append(pooled_no_ma.cpu())
             # iter15 Phase 6 C1 (2026-05-16): augment with motion_aux head output
             # so top1 + motion_cos reflect the trained head (head cells: encoder
             # frozen → without this the metrics are identical across head cells).
@@ -218,9 +309,11 @@ def compute_metric_trio(
             # affected — predictor sees encoder features only, by design.
             if motion_aux_head is not None:
                 from utils.motion_aux_loss import forward_motion_aux_concat
-                ma_concat = forward_motion_aux_concat(motion_aux_head, pooled)
-                pooled = torch.cat([pooled, ma_concat], dim=-1)
-            pooled_chunks.append(pooled.cpu())
+                ma_concat = forward_motion_aux_concat(motion_aux_head, pooled_no_ma)
+                pooled = torch.cat([pooled_no_ma, ma_concat], dim=-1)
+            else:
+                pooled = pooled_no_ma
+            pooled_chunks_full.append(pooled.cpu())
 
             # 4c. Mask sample for L1. Mirrors probe_future_mse._forward_one_batch
             #     but reuses h_concat as the prediction target (no extra forward).
@@ -272,11 +365,31 @@ def compute_metric_trio(
         cuda_cleanup()
 
     # 5. Aggregate.
-    pooled_np = torch.cat(pooled_chunks, dim=0).numpy()
+    pooled_np = torch.cat(pooled_chunks_full, dim=0).numpy()
     if l1_chunks:
-        future_l1 = float(torch.cat(l1_chunks, dim=0).numpy().mean())
+        per_clip_l1_cpu = torch.cat(l1_chunks, dim=0)
+        future_l1 = float(per_clip_l1_cpu.numpy().mean())
     else:
+        per_clip_l1_cpu = None
         future_l1 = float("nan")   # all batches OOM'd or shape-skipped — flag clearly
+
+    # iter15 D15 (2026-05-16): populate cache if caller wants it + asserted frozen.
+    # FAIL LOUD if l1_chunks empty — every-batch OOM in a freshly-extracted run is
+    # not a "let's cache None" situation. Caller should debug VRAM, not silently
+    # skip the L1 axis on subsequent val cycles.
+    if encoder_cache is not None and encoder_frozen:
+        if per_clip_l1_cpu is None:
+            raise RuntimeError(
+                "compute_metric_trio (D15): all probe-trio batches OOM'd / shape-"
+                "skipped → per_clip_l1 is empty. Refusing to populate cache with a "
+                "NaN future_l1. Fix the underlying VRAM/shape issue, then re-run.")
+        encoder_cache["pooled_no_ma"] = torch.cat(pooled_chunks_no_ma, dim=0)
+        encoder_cache["per_clip_l1"] = per_clip_l1_cpu
+        encoder_cache["enc_sig"] = _encoder_signature(student)
+        print(f"  [probe-trio][D15 cache POPULATED] stored "
+              f"pooled_no_ma={tuple(encoder_cache['pooled_no_ma'].shape)} + "
+              f"per_clip_l1={tuple(encoder_cache['per_clip_l1'].shape)} for "
+              f"reuse across val checkpoints.", flush=True)
 
     # Top-1 — vectorised LOOCV per-class centroid.
     top1 = _knn_centroid_loocv(pooled_np, labels)
