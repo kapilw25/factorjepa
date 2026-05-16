@@ -198,7 +198,8 @@
       "Bash(gh search *)",
       "WebFetch(domain:raw.githubusercontent.com)",
       "Bash(nvidia-smi --query-compute-apps=pid,used_memory,process_name --format=csv)",
-      "Bash(tar -tf data/eval_10k_local/subset-00000.tar)"
+      "Bash(tar -tf data/eval_10k_local/subset-00000.tar)",
+      "Bash(grep -c '^.``mermaid' iter/iter15_trainHead_freezeEncoder/high_level_mermaid_SD.md)"
     ]
   }
 }
