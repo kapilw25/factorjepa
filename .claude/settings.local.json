@@ -192,7 +192,11 @@
       "Bash(grep -nB1 -A5 '_flush_batch_forward\\(' src/probe_future_mse.py)",
       "Bash(command -v ruff)",
       "Bash(uv run *)",
-      "Bash(python *)"
+      "Bash(python *)",
+      "Bash(grep -E \"^\\\\s*[0-9]+:\\\\s+\\\\\\\\\\\\$\")",
+      "Bash(xargs -I{} sh -c 'echo \"{}:\"; python -c \"import numpy as np; a=np.load\\(\\\\\"{}\\\\\", mmap_mode=\\\\\"r\\\\\"\\); print\\(\\\\\"  shape:\\\\\", a.shape\\)\"')",
+      "Bash(gh search *)",
+      "WebFetch(domain:raw.githubusercontent.com)"
     ]
   }
 }

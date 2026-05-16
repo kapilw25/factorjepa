@@ -661,10 +661,20 @@ if [ "$PER_ENC_ANY" -eq 1 ]; then
                     SUBDIR_FLAG=""
                     LOG_SUFFIX=""
                 fi
+                # iter15 D7 fix (2026-05-16): thread $MA_FLAG so probe_action's
+                # lazy-extract path (_load_or_extract) augments train+val to match
+                # the already-augmented features_test.npy written by Stage 2. Without
+                # this, AttentiveClassifier is built with embed_dim=1664 (lazy train)
+                # then crashes at _eval_per_clip on the 1700-dim test split — see
+                # logs/iter15_post_poc_eval_head_aware_20260516_012451.log:482.
+                # iter15 D8 fix (2026-05-16): --keep-lazy-cache defers cleanup of
+                # .probe_features_{train,val}_ckpt.npz so Stage 3.5 (probe_taxonomy)
+                # can reuse them — saves ~7 min × N encoders of redundant re-extract.
+                # Cleanup is invoked explicitly via `--stage cleanup_lazy` after Stage 3.5.
                 python -u src/probe_action.py "--$MODE" \
                     --stage train \
                     --encoder "$ENC" \
-                    $EXTRA_CKPT \
+                    $EXTRA_CKPT $MA_FLAG \
                     --eval-subset "$EVAL_SUBSET" \
                     --local-data "$LOCAL_DATA" \
                     --num-frames "$NUM_FRAMES" \
@@ -675,15 +685,19 @@ if [ "$PER_ENC_ANY" -eq 1 ]; then
                     --pool-tokens "$POOL_TOKENS" \
                     $STREAM_FLAG \
                     $SUBDIR_FLAG \
+                    --keep-lazy-cache \
                     --cache-policy "$P_ACTION" \
                     --no-wandb \
                     2>&1 | tee "logs/probe_action_train_${ENC}${LOG_SUFFIX}.log"
             done
             if [ "$n_lrs" -gt 1 ]; then
+                # iter15 D8 (2026-05-16): same --keep-lazy-cache contract — defer
+                # cleanup so Stage 3.5 reuses the resume ckpt.
                 python -u src/probe_action.py "--$MODE" \
                     --stage select_best_lr \
                     --encoder "$ENC" \
                     --output-root "$OUTPUT_ACTION" \
+                    --keep-lazy-cache \
                     --cache-policy "$P_ACTION" \
                     --no-wandb \
                     2>&1 | tee "logs/probe_action_select_best_lr_${ENC}.log"
@@ -703,10 +717,15 @@ if [ "$PER_ENC_ANY" -eq 1 ]; then
         # train/val (taxonomy can't run without those).
         if ! should_skip 11 && [ -f "$TAG_TAXONOMY" ]; then
             stamp "  STAGE 3.5 · taxonomy probe (16 dims) for $ENC"
+            # iter15 D7 fix (2026-05-16): same lazy-extract issue as Stage 3 —
+            # probe_taxonomy._load_or_extract augments only when --motion-aux-head
+            # is passed (D1 fix in src/probe_taxonomy.py). Without this flag the
+            # taxonomy probe would crash with the same LN[1664] vs input[*,1700]
+            # mismatch on the test split. Mirrors Stage 3 threading above.
             python -u src/probe_taxonomy.py "--$MODE" \
                 --stage train \
                 --encoder "$ENC" \
-                $EXTRA_CKPT \
+                $EXTRA_CKPT $MA_FLAG \
                 --eval-subset "$EVAL_SUBSET" \
                 --local-data "$LOCAL_DATA" \
                 --num-frames "$NUM_FRAMES" \
@@ -720,6 +739,21 @@ if [ "$PER_ENC_ANY" -eq 1 ]; then
                 --no-wandb \
                 2>&1 | tee "logs/probe_taxonomy_train_${ENC}.log"
         fi
+
+        # iter15 D8 fix (2026-05-16): clean up lazy-extract resume caches now
+        # that Stage 3.5 (last consumer) is done. Stage 3 used --keep-lazy-cache
+        # to defer this. UNCONDITIONAL (outside the Stage-3.5 conditional) so
+        # SKIP_STAGES=11 (Stage 3.5 disabled) doesn't leak ~30 GB/encoder of
+        # transient .probe_features_{train,val}_ckpt.npz at FULL scale.
+        # Idempotent — no-op when files absent (e.g., Stage 3 also skipped).
+        # CLAUDE.md: "All destructive deletes live in .py" — shell never rm's.
+        python -u src/probe_action.py "--$MODE" \
+            --stage cleanup_lazy \
+            --encoder "$ENC" \
+            --output-root "$OUTPUT_ACTION" \
+            --cache-policy "$P_ACTION" \
+            --no-wandb \
+            2>&1 | tee "logs/probe_action_cleanup_lazy_${ENC}.log"
 
         # ─── Stage 5: motion_cos features (mean-pool features_test.npy) ──
         # Stage 5 is the LAST consumer of features_test.npy in normal flow,
@@ -773,10 +807,17 @@ if [ "$PER_ENC_ANY" -eq 1 ]; then
                 PCKPT="$(encoder_predictor_ckpt_for "$ENC")"
                 if [ -e "$PCKPT" ]; then
                     stamp "  STAGE 8 · future_mse forward for $ENC"
+                    # iter15 D7 fix (2026-05-16): pass $MA_FLAG so probe_future_mse
+                    # emits the parallel per_clip_motion_aux_l1.npy + aggregate_
+                    # motion_aux_l1.json (D2 wiring in src/probe_future_mse.py). The
+                    # original JEPA per_clip_mse.npy is still emitted in parallel —
+                    # this is an ADDITIONAL 4th paired-Δ axis for the paper claim,
+                    # not a replacement.
                     python -u src/probe_future_mse.py "--$MODE" \
                         --stage forward \
                         --variant "$ENC" \
                         --encoder-ckpt "$PCKPT" \
+                        $MA_FLAG \
                         --action-probe-root "$OUTPUT_ACTION" \
                         --local-data "$LOCAL_DATA" \
                         --output-root "$OUTPUT_MSE" \

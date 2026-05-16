@@ -600,7 +600,13 @@ def run_train_stage(args, wb) -> None:
     # train+val .probe_features_<split>_ckpt.npz caches are dead weight after
     # this point. For multi-LR sweeps (output_subdir="lr_xxx"), DEFER cleanup
     # to run_select_best_lr_stage — sibling LR runs still need the cache.
-    if not args.output_subdir:
+    #
+    # iter15 D8 fix (2026-05-16): --keep-lazy-cache defers cleanup so the SAME
+    # resume ckpt can be reused by Stage 3.5 (probe_taxonomy). Caller (run_eval.sh)
+    # is then responsible for invoking `--stage cleanup_lazy` after Stage 3.5
+    # completes. Saves ~7 min × N encoders of re-extraction wall time. See
+    # iter/iter15_trainHead_freezeEncoder/planCODE_head_eval.md Phase 3 D8.
+    if not args.output_subdir and not args.keep_lazy_cache:
         _cleanup_lazy_feature_caches(enc_dir)
 
 
@@ -652,6 +658,24 @@ def run_select_best_lr_stage(args, wb) -> None:
                      f"{args.encoder}_n_files_linked": n_linked})
 
     # iter13 lazy-extract cleanup: all sibling LR runs are done — caches are dead.
+    # iter15 D8 (2026-05-16): same defer-for-stage-3.5 logic as run_train_stage.
+    if not args.keep_lazy_cache:
+        _cleanup_lazy_feature_caches(enc_dir)
+
+
+def run_cleanup_lazy_stage(args, wb) -> None:
+    """iter15 D8 (2026-05-16): explicit cleanup endpoint for the lazy-extract
+    resume caches (.probe_features_{train,val}_ckpt.npz). Used by run_eval.sh
+    AFTER Stage 3.5 (probe_taxonomy) consumes the shared cache. Honors
+    CLAUDE.md's "Python owns destruction" rule — shell wrapper never rm's
+    directly, always routes through this CLI surface.
+    """
+    if args.encoder is None:
+        sys.exit("FATAL: --stage cleanup_lazy requires --encoder")
+    enc_dir = args.output_root / args.encoder
+    if not enc_dir.exists():
+        print(f"  [cleanup_lazy] dir not found, nothing to clean: {enc_dir}")
+        return
     _cleanup_lazy_feature_caches(enc_dir)
 
 
@@ -822,7 +846,7 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--POC",    action="store_true")
     p.add_argument("--FULL",   action="store_true")
     p.add_argument("--stage", required=True,
-                   choices=["labels", "features", "train", "select_best_lr", "paired_delta"])
+                   choices=["labels", "features", "train", "select_best_lr", "paired_delta", "cleanup_lazy"])
     p.add_argument("--encoder", choices=list(ENCODERS), default=None)
     p.add_argument("--encoder-ckpt", type=Path, default=None)
     # iter15 Phase 6 audit (2026-05-16): optional motion_aux head for head-vs-
@@ -882,6 +906,17 @@ def build_parser() -> argparse.ArgumentParser:
                         "TAR-decode → encoder forward (no_grad) → pool → head → loss → backward. "
                         "Use for 100k+ clip datasets where even pooled features don't fit RAM. "
                         "Cost: encoder runs once per epoch (~1× the lazy-extract cost). Disk: 0 GB.")
+    # iter15 D8 (2026-05-16): defer cleanup of .probe_features_{train,val}_ckpt.npz
+    # resume caches so Stage 3.5 (probe_taxonomy) can reuse them — saves ~7 min ×
+    # N encoders of redundant re-extraction. Caller is responsible for invoking
+    # `--stage cleanup_lazy` after the LAST downstream consumer (Stage 3.5).
+    # Standalone use (no Stage 3.5) should OMIT this flag → cleanup at end of
+    # Stage 3 preserves the iter13 behavior.
+    p.add_argument("--keep-lazy-cache", action="store_true",
+                   help="Defer cleanup of .probe_features_{train,val}_ckpt.npz so a "
+                        "downstream stage (e.g. probe_taxonomy --stage train) can reuse the "
+                        "resume cache. Caller MUST invoke '--stage cleanup_lazy' "
+                        "after the last consumer. See run_eval.sh post-Stage-3.5 cleanup.")
     p.add_argument("--epochs", type=int, default=50)
     p.add_argument("--probe-lr", type=float, default=5e-4)
     p.add_argument("--probe-wd", type=float, default=0.05)
@@ -917,6 +952,8 @@ def main() -> None:
             run_select_best_lr_stage(args, wb)
         elif args.stage == "paired_delta":
             run_paired_delta_stage(args, wb)
+        elif args.stage == "cleanup_lazy":
+            run_cleanup_lazy_stage(args, wb)
     finally:
         finish_wandb(wb)
 
