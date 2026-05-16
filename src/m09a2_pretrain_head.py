@@ -565,12 +565,17 @@ def train(cfg: dict, args) -> None:
                                          "train/lr": cur_lr},
                                 step=step)
 
-                # iter15 D13 (2026-05-16): mid-epoch + end-of-epoch val cycle fires
-                # every val_interval steps. Gate catches both: mid-epoch (step is
-                # interior multiple of val_interval) AND end-of-epoch (last step of
-                # epoch, captured via step % steps_per_epoch == 0). Mirrors m09a1
-                # cadence so probe trajectory plots have 2× more points per epoch.
-                if step > 0 and (step % val_interval == 0 or step % steps_per_epoch == 0):
+                # iter15 D13 (2026-05-16) + D16 fix (2026-05-16): val cycle every
+                # val_interval steps. Mirrors m09a1 cadence. D16: removed the
+                # `step % steps_per_epoch == 0` OR-clause that fired EXTRA val cycles
+                # when steps_per_epoch was not evenly divisible by saves_per_epoch
+                # (e.g. POC m09c2: 35 steps/ep, val_interval=17 → step 35 fired
+                # 1 step after step 34, wasting an 11-min probe-trio cycle). The
+                # val_interval cadence alone gives exactly saves_per_epoch fires
+                # per epoch. For m09a2 POC (steps_per_epoch=34 evenly divisible by
+                # saves_per_epoch=2), the OR-clause was redundant; for m09c2 POC
+                # (35, not divisible), it caused asymmetric over-firing.
+                if step > 0 and step % val_interval == 0:
                     mean_train = float(np.mean(epoch_train_losses)) if epoch_train_losses else float("nan")
                     val_loss = _compute_val_motion_aux_loss(
                         student, ma_head, ma_cfg, ma_lookup,
@@ -634,6 +639,53 @@ def train(cfg: dict, args) -> None:
                         export_motion_aux_head(ma_head, output_dir / "motion_aux_head.pt")
                         print(f"  ✅ new best val_loss={best_val_loss:.4f} (step {step}, epoch {epoch})")
 
+                    # iter15 D17 (2026-05-16): symmetric per-val plot rendering with
+                    # m09a1 encoder cell (which renders 5 plots per val: train_loss,
+                    # loss_decomposition, block_drift, val_loss_jepa, probe_trajectory
+                    # _trio). Head cells previously rendered ONLY block_drift per val
+                    # (via track_head_drift_at_val) → 4 plots missing mid-training.
+                    # Asymmetric observability between encoder + head sibling modules.
+                    # End-of-training plots stay (idempotent, regenerates final view).
+                    # FAIL LOUD on render exceptions per CLAUDE.md.
+                    best_state_live = {
+                        "step": step if best_epoch == epoch else -1,
+                        "val_loss_at_best": float(best_val_loss),
+                        "probe_top1": float(probe_record.get("probe_top1", -1.0)),
+                    }
+                    kill_state_live = {"triggered": False, "reason": None}
+                    try:
+                        plot_training_curves(
+                            runs=[{"csv_path": str(csv_path),
+                                   "label": "m09a2 head-only (motion_aux)",
+                                   "color": "blue",
+                                   "batch_size": batch_size}],
+                            output_dir=str(output_dir),
+                            title_prefix=f"m09a2 head-only · {len(train_keys):,} train × {max_epochs} ep × "
+                                         f"BS={batch_size} · step={step}\n",
+                            file_prefix="m09a2",
+                        )
+                        plot_combined_losses(
+                            jsonl_path=jsonl_path,
+                            output_dir=output_dir,
+                            title_prefix=f"m09a2 head-only · LR={cfg['optimization']['lr']:.1e} · step={step} · ",
+                            file_prefix="m09a2",
+                        )
+                        plot_val_loss_with_kill_switch_overlay(
+                            probe_history, output_dir,
+                            best_state=best_state_live, kill_state=kill_state_live,
+                            title_prefix=f"m09a2 head-only · val_total (motion_aux × weight) · step={step}\n",
+                            file_prefix="m09a2",
+                        )
+                        plot_probe_trajectory_trio(
+                            probe_history, output_dir,
+                            title_prefix=f"m09a2 head-only · step={step} · ",
+                            file_prefix="m09a2",
+                        )
+                    except Exception as _e:
+                        print(f"  [plot] FATAL: per-val plot render failed at step {step}: {_e}", flush=True)
+                        print("  [plot] traceback follows; aborting per CLAUDE.md FAIL HARD:", flush=True)
+                        raise
+
         stop_event.set()
         producer.join(timeout=10)
     finally:
@@ -678,7 +730,7 @@ def train(cfg: dict, args) -> None:
     # {png,pdf} + m09a_block_drift_history.json per val cycle.
     plot_probe_trajectory_trio(
         probe_history, output_dir,
-        title_prefix=f"m09a2 head-only · ",
+        title_prefix="m09a2 head-only · ",
         file_prefix="m09a2",
     )
     kill_state = {"triggered": False, "reason": None}
@@ -688,7 +740,7 @@ def train(cfg: dict, args) -> None:
     plot_val_loss_with_kill_switch_overlay(
         probe_history, output_dir,
         best_state=best_state, kill_state=kill_state,
-        title_prefix=f"m09a2 head-only · val_total (motion_aux × weight)\n",
+        title_prefix="m09a2 head-only · val_total (motion_aux × weight)\n",
         file_prefix="m09a2",
     )
 
