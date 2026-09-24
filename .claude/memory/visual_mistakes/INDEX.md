@@ -48,3 +48,5 @@ Append-only. Each row is one file `VM<n>.md`. The PreToolUse hook `surface-visua
 | VM36 | latex-figure-placement | figsize HEIGHT shrunk but suptitle y / top margin not recomputed -> suptitle 2nd line over |
 | VM37 | latex-figure-placement | a C5 font-bump that ignores the AUTHORING-width vs PLACEMENT-width downscale under-deliver |
 | VM38 | latex-figure-placement | audit run ONCE not per-edit gate -> placement defects recurred; render+read every changed page before presenting |
+| VM39 | latex-figure-placement | raster-cropping one panel out of a multi-panel figure with PDF TEXT-BOX coordinates bled neighbour-panel ink + left a dead lead-in; derive crop edges from ink scans, assert 0 px diff vs source |
+| VM40 | latex-figure-placement | illustration rasters pasted at a fraction of authored width carry baked-in text far below 9 pt while the compositor's own 10-pt labels mask it; measure the smallest baked cap per source panel |
