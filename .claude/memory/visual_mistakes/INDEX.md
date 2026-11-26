@@ -50,3 +50,6 @@ Append-only. Each row is one file `VM<n>.md`. The PreToolUse hook `surface-visua
 | VM38 | latex-figure-placement | audit run ONCE not per-edit gate -> placement defects recurred; render+read every changed page before presenting |
 | VM39 | latex-figure-placement | raster-cropping one panel out of a multi-panel figure with PDF TEXT-BOX coordinates bled neighbour-panel ink + left a dead lead-in; derive crop edges from ink scans, assert 0 px diff vs source |
 | VM40 | latex-figure-placement | illustration rasters pasted at a fraction of authored width carry baked-in text far below 9 pt while the compositor's own 10-pt labels mask it; measure the smallest baked cap per source panel |
+| VM41 | latex-table-layout | stub sub-column shipped with an EMPTY header cell and a one-letter row label ("I") that is also a math symbol in the prose; every column gets a header word, row labels are words |
+| VM42 | latex-table-layout | multi-line transcript rows at body leading with no \addlinespace between entities blur into one block; verdict LAST leaves lone "[repetitive]" lines; put the verdict first + ragged p-columns |
+| VM43 | latex-table-layout | table note set as a free paragraph hangs 19 pt outside a centred tabular; make it a \multicolumn last row so note x0 = rule x0 |

@@ -136,3 +136,6 @@ overleaf/2026___FactorJEPA_AAAI/paper_prep/AAAI_Canva_*
 overleaf/2026_FactorJEPA_AAAI_v2/arxiv_combined.pdf
 # unzipped supplement (browse locally only)
 overleaf/2026___FactorJEPA_AAAI/legacy/paper_prep/code_and_data_supplement/
+
+# author e-mails (personal data of co-authors; the repo is public)
+*.local.md

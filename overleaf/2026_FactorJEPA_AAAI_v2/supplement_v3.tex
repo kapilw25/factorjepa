@@ -1,0 +1,415 @@
+% Supplement for the AAAI-27 Student Abstract (2026-09-25): arxiv_combined.tex with the abstract's title and author order.
+\documentclass[letterpaper]{article} % DO NOT CHANGE THIS
+% arxiv build copy: force [table] onto xcolor before any package loads it plain (fixes "Option clash for package xcolor")
+\PassOptionsToPackage{table}{xcolor}
+\usepackage[preprint]{aaai2027}  % arxiv preprint: shows real authors + drops the AAAI copyright bar
+% The serif, sans-serif, and monospaced fonts are loaded automatically by
+% aaai2027.sty (newtxtext, helvet, courier). DO NOT add \usepackage{times},
+% \usepackage{helvet}, \usepackage{courier}, or any other font package.
+\usepackage[hyphens]{url}  % DO NOT CHANGE THIS
+\usepackage{graphicx} % DO NOT CHANGE THIS
+\urlstyle{rm} % DO NOT CHANGE THIS
+\def\UrlFont{\rm}  % DO NOT CHANGE THIS
+\usepackage{natbib}  % DO NOT CHANGE THIS AND DO NOT ADD ANY OPTIONS TO IT
+\usepackage{caption} % DO NOT CHANGE THIS AND DO NOT ADD ANY OPTIONS TO IT
+\frenchspacing  % DO NOT CHANGE THIS
+%
+% These are recommended to typeset algorithms but not required. See the subsubsection on algorithms. Remove them if you don't have algorithms in your paper.
+\usepackage{algorithm}
+\usepackage{algorithmic}
+
+%
+% These are recommended to typeset listings but not required. See the subsubsection on listing. Remove this block if you don't have listings in your paper.
+\usepackage{newfloat}
+\usepackage{listings}
+\DeclareCaptionStyle{ruled}{labelfont=normalfont,labelsep=colon,strut=off} % DO NOT CHANGE THIS
+\lstset{%
+	basicstyle={\footnotesize\ttfamily},% footnotesize acceptable for monospace
+	numbers=left,numberstyle=\footnotesize,xleftmargin=2em,% show line numbers, remove this entire line if you don't want the numbers.
+	aboveskip=0pt,belowskip=0pt,%
+	showstringspaces=false,tabsize=2,breaklines=true}
+\floatstyle{ruled}
+\newfloat{listing}{tb}{lst}{}
+\floatname{listing}{Listing}
+
+%
+% Recommended for better-looking tables
+\usepackage{booktabs}
+
+%
+% Keep the \pdfinfo as shown here. There's no need
+% for you to add the /Title and /Author tags.
+\pdfinfo{
+/TemplateVersion (2027.1)
+}
+
+% DISALLOWED PACKAGES
+% \usepackage{authblk} -- This package is specifically forbidden
+% \usepackage{balance} -- This package is specifically forbidden
+% \usepackage{CJK} -- This package is specifically forbidden
+% \usepackage{float} -- This package is specifically forbidden
+% \usepackage{flushend} -- This package is specifically forbidden
+% \usepackage{fullpage} -- This package is specifically forbidden
+% \usepackage{geometry} -- This package is specifically forbidden
+% \usepackage{hyperref} -- This package is specifically forbidden
+% \usepackage{navigator} -- This package is specifically forbidden
+% (or any other package that embeds links such as navigator or hyperref)
+% \usepackage{indentfirst} -- This package is specifically forbidden
+% \usepackage{layout} -- This package is specifically forbidden
+% \usepackage{multicol} -- This package is specifically forbidden
+% \usepackage{nameref} -- This package is specifically forbidden
+% \usepackage{savetrees} -- This package is specifically forbidden
+% \usepackage{setspace} -- This package is specifically forbidden
+% \usepackage{stfloats} -- This package is specifically forbidden
+% \usepackage{tabu} -- This package is specifically forbidden
+% \usepackage{titlesec} -- This package is specifically forbidden
+% \usepackage{tocbibind} -- This package is specifically forbidden
+% \usepackage{ulem} -- This package is specifically forbidden
+% \usepackage{wrapfig} -- This package is specifically forbidden
+% DISALLOWED COMMANDS
+% \nocopyright -- Your paper will not be published if you use this command
+% \addtolength -- This command may not be used
+% \balance -- This command may not be used
+% \baselinestretch -- Your paper will not be published if you use this command
+% \clearpage -- No page breaks of any kind may be used for the final version of your paper
+% \columnsep -- This command may not be used
+% \newpage -- No page breaks of any kind may be used for the final version of your paper
+% \pagebreak -- No page breaks of any kind may be used for the final version of your paper
+% \pagestyle -- This command may not be used
+% \tiny -- This is not an acceptable font size.
+% \vspace{- -- No negative value may be used in proximity of a caption, figure, table, section, subsection, subsubsection, or reference
+% \vskip{- -- No negative value may be used to alter spacing above or below a caption, figure, table, section, subsection, subsubsection, or reference
+
+\setcounter{secnumdepth}{0} %May be changed to 1 or 2 if section numbers are desired.
+
+% The file aaai2027.sty is the style file for AAAI Press
+% proceedings, working notes, and technical reports.
+%
+
+
+
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% \usepackage{hyperref}  % arxiv build copy: commented to clear aaai2027's hard error (matches v1 main + supplement)
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{float}  % arxiv combined build: appendix uses [H] placement (AAAI's no-float rule does not apply to arxiv)
+% Keep every figure full-width but stop figure*/table* from being dumped past the conclusion:
+\usepackage{dblfloatfix}   % fixes double-column (figure*/table*) floats deferring to the document end
+\renewcommand{\topfraction}{0.92}\renewcommand{\bottomfraction}{0.9}
+\renewcommand{\textfraction}{0.06}\renewcommand{\floatpagefraction}{0.72}
+\renewcommand{\dbltopfraction}{0.92}\renewcommand{\dblfloatpagefraction}{0.7}
+\setcounter{topnumber}{4}\setcounter{bottomnumber}{3}\setcounter{totalnumber}{8}\setcounter{dbltopnumber}{4}
+
+
+% Preamble
+\usepackage[table]{xcolor}
+\usepackage{array}
+\usepackage{booktabs}
+
+\definecolor{DWBlue}{HTML}{EAF3FA}
+\definecolor{RefGray}{HTML}{F1F3F4}
+\definecolor{PanelBlue}{HTML}{D9E8F3}
+\definecolor{RowGray}{HTML}{F8F9FA}
+\definecolor{RuleBlue}{HTML}{537895}
+
+
+
+
+% Preamble
+\usepackage{enumitem}
+
+
+
+
+
+% Do not load algorithm, algorithmic, algorithm2e, or algpseudocode
+% for this implementation.
+
+\usepackage[most]{tcolorbox}
+\usepackage{enumitem}
+\usepackage{xcolor}
+
+\definecolor{AlgBackground}{HTML}{F5F6F7}
+\definecolor{AlgPhaseBackground}{HTML}{E1E5E8}
+\definecolor{AlgTitleBackground}{HTML}{D6DCE0}
+\definecolor{AlgBorder}{HTML}{AAB4BB}
+\definecolor{AlgAccent}{HTML}{2F4554}
+
+% Appendix-aware algorithm counter: C.1, C.2, ...
+\newcounter{factoralgorithm}[section]
+\renewcommand{\thefactoralgorithm}{
+    \thesection.\arabic{factoralgorithm}
+}
+
+% Continuously numbered algorithm steps.
+\newlist{algsteps}{enumerate}{1}
+\setlist[algsteps]{
+    label=\textcolor{AlgAccent}{\bfseries\arabic*.},
+    leftmargin=2.2em,
+    labelsep=0.55em,
+    itemsep=3pt,
+    topsep=2pt,
+    parsep=0pt,
+    partopsep=0pt
+}
+
+% Full-width phase separator used inside algsteps.
+\newcommand{\AlgPhase}[1]{%
+    \item[]
+    \vspace{3pt}
+    \noindent
+    \colorbox{AlgPhaseBackground}{%
+        \parbox{\dimexpr\linewidth-2\fboxsep\relax}{%
+            \vspace{2pt}
+            \textbf{\textcolor{AlgAccent}{#1}}
+            \vspace{2pt}
+        }%
+    }
+    \vspace{1pt}
+}
+
+
+
+
+\definecolor{FTHeader}{HTML}{2F4554}
+\definecolor{FTSubheader}{HTML}{607D8B}
+\definecolor{FTBorder}{HTML}{87969F}
+\definecolor{FTContract}{HTML}{E8ECEF}
+
+\definecolor{LayoutCell}{HTML}{CFE3D4}
+\definecolor{LayoutRow}{HTML}{F1F7F2}
+
+\definecolor{AgentCell}{HTML}{CFE1F2}
+\definecolor{AgentRow}{HTML}{F1F6FA}
+
+\definecolor{VisibilityCell}{HTML}{F4DFC0}
+\definecolor{VisibilityRow}{HTML}{FCF7EF}
+
+\definecolor{InteractionCell}{HTML}{EBCFD3}
+\definecolor{InteractionRow}{HTML}{FAF2F3}
+
+
+
+
+
+\usepackage[table]{xcolor}
+\usepackage{booktabs}
+\usepackage{tabularx}
+\usepackage{array}
+
+\definecolor{CfgNavy}{HTML}{18364B}
+\definecolor{CfgBlue}{HTML}{E4EEF7}
+\definecolor{CfgCyan}{HTML}{E6F4F2}
+\definecolor{CfgGold}{HTML}{FFF1CC}
+\definecolor{CfgRose}{HTML}{F9E4E7}
+\definecolor{CfgGreen}{HTML}{E1F1E6}
+\definecolor{CfgGray}{HTML}{F2F4F5}
+\definecolor{CfgInk}{HTML}{263A47}
+\definecolor{CfgPending}{HTML}{9B3540}
+
+\newcommand{\cfgmissing}[1]{%
+  \textcolor{CfgPending}{\textit{[#1]}}%
+}
+\newcolumntype{Y}{>{\raggedright\arraybackslash}X}
+
+
+
+
+
+
+
+
+
+
+% Required packages
+\usepackage[table]{xcolor}
+\usepackage{longtable}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{ragged2e}
+
+
+
+
+
+
+% Required packages:
+\usepackage{booktabs,tabularx,makecell,array,xcolor,graphicx}
+%
+% Suggested colors:
+\definecolor{DecoderBlue}{HTML}{EAF3F8}
+\definecolor{DecoderTeal}{HTML}{E6F4F1}
+\definecolor{DecoderGold}{HTML}{FFF3D6}
+\definecolor{DecoderGray}{HTML}{F2F3F4}
+
+
+
+
+
+
+
+% In the preamble
+\usepackage{graphicx}
+
+% Fixed-size panel:
+% #1 = image path
+% #2 = label
+\newcommand{\scenepanel}[2]{%
+    \begin{minipage}[t][2.95cm][t]{0.19\textwidth}
+        \centering
+        % Fixed-height region for every image
+        \begin{minipage}[c][2.35cm][c]{\linewidth}
+            \centering
+            \includegraphics[
+                width=\linewidth,
+                height=2.35cm,
+                keepaspectratio
+            ]{#1}
+        \end{minipage}
+
+        \vspace{0.4mm}
+        {\small\strut #2}
+    \end{minipage}%
+}
+
+
+
+
+
+
+
+
+
+%-------------------- Preamble --------------------%
+
+
+\definecolor{TableBlue}{HTML}{315B7D}
+\definecolor{LightBlue}{HTML}{EEF4F8}
+\definecolor{TickGreen}{HTML}{16805C}
+\definecolor{TickBG}{HTML}{E6F5EE}
+\definecolor{CrossRed}{HTML}{B23A48}
+\definecolor{CrossBG}{HTML}{FBEAEC}
+
+\newcommand{\cmark}{\textcolor{TickGreen}{\ding{51}}}
+\newcommand{\xmark}{\textcolor{CrossRed}{\ding{55}}}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Title
+
+% Your title must be in mixed case, not sentence case.
+% That means all verbs (including short verbs like be, is, using,and go),
+% nouns, adverbs, adjectives should be capitalized, including both words in hyphenated terms, while
+% articles, conjunctions, and prepositions are lower case unless they
+% directly follow a colon or long dash
+\title{FactorJEPA on DENSEWORLD-115k: Can a World Model Predict Crowded, Chaotic South Asian Streets?}
+
+\author{
+    % Author e-mails: overleaf/author_contacts.local.md (gitignored, the repo is public)
+    Gaytri Jena\textsuperscript{\rm 1}\thanks{All authors conducted this work independently, outside their roles and employment at their respective companies.},
+    Kapil Wanaskar\textsuperscript{\rm 2},
+    Aman Chadha\textsuperscript{\rm 3},
+    Vini{}ja Jain\textsuperscript{\rm 4},  % {} breaks the T1 "ij" ligature
+    Vasu Sharma\textsuperscript{\rm 5},
+    Amitava Das\textsuperscript{\rm 6}
+}
+\affiliations{
+    \textsuperscript{\rm 1}UC Berkeley, USA\quad
+    \textsuperscript{\rm 2}San Jose State University, USA\quad
+    \textsuperscript{\rm 3}Apple, USA\quad
+    \textsuperscript{\rm 4}Meta, USA\quad
+    \textsuperscript{\rm 5}PocketFM, USA\quad
+    \textsuperscript{\rm 6}Pragya Lab, BITS Pilani Goa, India
+}
+
+%Example, Single Author, ->> remove \iffalse,\fi and place them surrounding AAAI title to use it
+\iffalse
+\title{My Publication Title --- Single Author}
+\author {
+    Author Name
+}
+\affiliations{
+    Affiliation\\
+    Affiliation Line 2\\
+    name@example.com
+}
+\fi
+
+\iffalse
+%Example, Multiple Authors, ->> remove \iffalse,\fi and place them surrounding AAAI title to use it
+\title{My Publication Title --- Multiple Authors}
+\author {
+    % Authors
+    First Author Name\textsuperscript{\rm 1,\rm 2}\equalcontrib,
+    Second Author Name\textsuperscript{\rm 2}\equalcontrib,
+    Third Author Name\textsuperscript{\rm 1}\corresponding
+}
+\affiliations {
+    % Affiliations
+    \textsuperscript{\rm 1}Affiliation 1\\
+    \textsuperscript{\rm 2}Affiliation 2\\
+    firstAuthor@affiliation1.com, secondAuthor@affilation2.com, thirdAuthor@affiliation1.com
+}
+\fi
+
+
+% ===== arxiv preprint: blue clickable hyperlinks =====
+% aaai2027 raises a \PackageError at \begin{document} when hyperref is loaded (forbidden in the AAAI
+% *submission* build, but arxiv wants clickable links). Load hyperref last, then neutralize that one
+% guard so the build completes cleanly. Only URLs are blue; refs/citations stay black.
+\usepackage[colorlinks=true,urlcolor=blue,linkcolor=black,citecolor=black]{hyperref}
+\makeatletter
+\long\def\PackageError#1#2#3{}% swallow aaai2027's \AtBeginDocument hyperref guard
+\makeatother
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+
+%\textbf{World models} have recently attracted significant attention as a framework for learning \textbf{latent representations} that preserve the \textbf{structure and dynamics of the physical world}. Among recent approaches, \textbf{Joint Embedding Predictive Architectures (JEPA)} are especially compelling because they predict \textbf{masked or future content directly in embedding space}, avoiding costly pixel-level generation while promoting semantic abstraction.
+
+\textbf{World models} have attracted significant attention for their ability to capture and predict the \textbf{structure and dynamics of the physical world}. In this emerging landscape, \textbf{Joint Embedding Predictive Architectures (JEPA)} offer a particularly compelling direction. 
+
+In this paper, we study a largely unexplored regime: \textbf{populous, crowded, and chaotic South Asian urban environments}, which we call \textbf{DENSEWORLD}. Unlike the lower-density, lane-structured settings that dominate existing evaluations, these scenes exhibit \textbf{soft spatial boundaries}, \textbf{extreme agent heterogeneity}, \textbf{persistent occlusion}, and rapid \textbf{social negotiation} under mixed traffic. We introduce the first large-scale dataset for this regime, comprising \textbf{276 hours of drive-through, walk-through, and aerial YouTube video from 22 Indian cities}. The dataset covers a wide variety of \textbf{scene types, times of day, weather conditions, crowd and traffic densities, traffic mixes, pedestrian--vehicle separation patterns, road layouts and surfaces, infrastructure quality, encroachment levels, locally distinctive objects, vegetation, lighting conditions, and video quality}. Our evaluation reveals that existing JEPA formulations struggle to preserve dense interaction dynamics under heterogeneity and partial observability.
+
+\textbf{\emph{We introduce FactorJEPA}}, which makes \textbf{\emph{world structure a first-class predictive primitive}}. Rather than encoding the future in a monolithic latent, it composes \textbf{\emph{layout}}, \textbf{\emph{entities}}, and \textbf{\emph{interactions}}, using a visibility gate and separated subspaces to preserve partially observed agents and discourage cross-factor shortcuts. FactorJEPA improves \textbf{\emph{(i) future-latent accuracy}} (Future-frame L1), \textbf{\emph{(ii) intervention-sensitive prediction}} (Causal L1), and \textbf{\emph{(iii) robustness to reduced visual evidence}} (Mask-ratio slope), while exposing \textbf{\emph{(iv) a reproducible motion-information trade-off}} (Motion cosine). Method rankings replicate across 2B and 1B V-JEPA~2.1 backbones, with $\rho=0.895$--$0.978$ across these four diagnostics.
+
+\noindent\textbf{Project page, data and models.} Demos and results are on the \href{https://kapilw25.github.io/factorjepa/}{project page}. We publicly release the \href{https://huggingface.co/datasets/anonymousML123/denseworld-115k}{DENSEWORLD-115k dataset} and the surgery-trained \href{https://huggingface.co/datasets/anonymousML123/factorjepa-outputs/tree/main/outputs/full/vjepa_2_1_vitg_1B/train/m09c_surgery_3stage_DI_diheavy_encoder}{FactorJEPA checkpoints}.
+
+%As \textbf{world models} emerge as foundations for agents, robotics, and physical AI, JEPA-based models remain largely \textbf{\emph{silent simulators}}: they forecast futures without revealing what those futures look like. We introduce a \textbf{Cosmos-initialized latent-to-RGB decoder} that renders FactorJEPA's predicted future as a visually inspectable RGB frame.  To foster future research, we make the code and evaluation artifacts \href{https://anonymous.4open.science/r/NEPHOS-72D4/README.md}{\textbf{publicly available}}.
+
+
+
+
+
+\end{abstract}
+
+
+
+
+
+% Page-1 teaser (demo): declared AFTER the abstract so the abstract leads; single-column [t!] lands at the top of the right column on page 1.
+\begin{figure}[t!]
+    \centering
+    \includegraphics[width=\columnwidth]{figures/demo_cards_teaser.png}
+    \caption{\textbf{Same question, two encoders.} Each row is a three-frame filmstrip of one held-out clip posed as a multiple-choice question, answered from an identical probe head over the frozen V-JEPA~2.1 encoder vs.\ ours (factor-view predictor surgery); only the backbone differs. \emph{Top:} motion speed (ours 69.8\% vs frozen 60.9\%). \emph{Bottom:} turn direction.}
+    \label{fig:demo_cards_full}
+\end{figure}
+
+\input{arxiv_1_introduction}
+\input{arxiv_2_data}
+\input{arxiv_2_factor_jepa}
+\input{arxiv_8_conclusion}
+
+% References directly after the conclusion (matches 0_main_AAAI.tex); the appendix follows.
+\bibliography{aaai2027}
+
+% ===== appendix material AFTER the references (natbib collects all \cite, so appendix refs still resolve) =====
+\clearpage
+\input{arxiv_A_v1main_floats}   % enlarged reproductions (forest/eval/scale removed as main-body duplicates)
+\input{arxiv_9_discussion}      % Limitations
+\input{arxiv_11_appendix}       % Appendix A--E
+
+\end{document}

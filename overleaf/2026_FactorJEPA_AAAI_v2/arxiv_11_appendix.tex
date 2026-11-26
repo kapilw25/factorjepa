@@ -323,7 +323,7 @@ stability between the 1B and 2B V-JEPA~2.1 backbones.
 \section{DENSEWORLD Construction, Splits, and Responsible Use}
 \label{app:dataset}
 
-DENSEWORLD comprises approximately \textbf{1,000 hours} of
+DENSEWORLD comprises approximately \textbf{276 hours} of
 drive-through, walk-through, and aerial video acquired across
 \textbf{22 Indian cities}. It targets predictive modeling under high
 agent density, heterogeneous traffic, persistent occlusion, soft spatial
@@ -336,8 +336,8 @@ fixed DINOv2-based pipeline.
 \subsection{Acquisition Protocol and Capture Modes}
 \label{app:dataset_acquisition}
 
-DENSEWORLD was acquired through two professional video-collection
-organizations following a \textbf{shared acquisition specification}.
+DENSEWORLD was assembled from \textbf{714 long-form YouTube videos} (480p)
+selected under a \textbf{shared coverage specification}.
 The specification defined coverage targets over geographic sites,
 scene types, times of day, weather, visibility, road structure, and
 infrastructure conditions. It controlled \emph{where and how} videos
@@ -388,7 +388,7 @@ b^{(v)}_{J_v}=T_v
 \end{equation*}
 which partition the source into candidate visually continuous shots.
 Shots shorter than the minimum usable duration are excluded; retained
-shots yield model-ready clips of approximately \(6\)--\(13\) seconds.
+shots yield model-ready clips of approximately 4 to 10 seconds.
 No clip crosses a detected shot boundary.
 
 The retained provenance hierarchy is
@@ -583,7 +583,7 @@ are frozen before test access.
 &
 \(\mathbf{100\%}\)
 &
-\(\approx1{,}000\) h
+\(\approx276\) h
 &
 -- & -- & -- & -- & --
 \\
