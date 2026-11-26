@@ -102,7 +102,7 @@ Checked on 2026-11-26 against the submitted files in [v3_AAAI27_student_abstract
 | 2 | Causal L1 = second half predicted from the first | ✅ already | ✅ already | 🔴 replace the intervention definition |
 | 3 | Remove the city-disjoint audit claim; state the clip-level split | 🔴 still claims it | ✅ states the clip-level split | 🔴 check and fix |
 | 4 | Factor targets = Grounding DINO + SAM 3, not DINOv2 | 🔴 still says DINOv2 | ✅ already | 🔴 check and fix |
-| 5 | Drop "the trade-off is a data effect" (no full fine-tuning at 115k) | 🔴 still claims it | 🔴 still claims it ("reverses that deficit ... a data effect") | 🔴 check and fix |
+| 5 | Drop "the trade-off is a data effect" (no full fine-tuning at 115k) | 🔴 still claims it | ✅ fixed 2026-11-26 in v1_Human_Centric and v2_Cog2Soc | 🔴 check and fix |
 | 6 | Say why the rival wins on the six temporal diagnostics | 🔴 missing | 🟡 one sentence ("does not yet keep long predicted futures more coherent") | 🟡 expand |
 | 7 | Fill or remove the RGB decoding Table 10 | n/a | ✅ Limitations: embedding-space metrics only | 🔴 remove the placeholder table |
 | 8 | State that factorization and factor supervision are not separated | 🔴 missing | ✅ in Limitations | 🟡 already acknowledged |
