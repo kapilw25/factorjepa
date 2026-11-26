@@ -139,3 +139,6 @@ overleaf/2026___FactorJEPA_AAAI/legacy/paper_prep/code_and_data_supplement/
 
 # author e-mails (personal data of co-authors; the repo is public)
 *.local.md
+
+# calibration PDFs from other authors: 3 of 7 are arXiv non-exclusive licence (no redistribution); keep local
+overleaf/v4_AAAI_workshop/feedback/input/prev_acceptances/pdf/
