@@ -157,7 +157,7 @@ The benchmark addresses an underrepresented setting, and the city-disjoint audit
 
 ## 🎓 Learnings Applied to the AAAI-27 Student Abstract
 
-Target: `overleaf/2026_FactorJEPA_AAAI_v3/0_main_AAAI.tex` (2 pages) + `1_supplement_full_paper.pdf`. Applied 2026-09-25.
+Target: `overleaf/v3_AAAI27_student_abstract/0_main_AAAI.tex` (2 pages) + `1_supplement_full_paper.pdf`. Applied 2026-09-25.
 
 | # | Reviewer finding | Raised by | Status | What changed |
 |---|---|---|---|---|

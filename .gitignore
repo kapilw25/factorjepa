@@ -133,7 +133,7 @@ overleaf/2026___FactorJEPA_AAAI/paper_prep/AAAI_Canva_*
 *.synctex.gz
 # combined arXiv PDF is a regenerable build artifact (compile arxiv_combined.tex);
 # the canonical paper PDFs (0_main_AAAI.pdf, 0_supplement_AAAI.pdf) stay tracked on purpose.
-overleaf/2026_FactorJEPA_AAAI_v2/arxiv_combined.pdf
+overleaf/v2_AAAI27_main_submission_arXiv/arxiv_combined.pdf
 # unzipped supplement (browse locally only)
 overleaf/2026___FactorJEPA_AAAI/legacy/paper_prep/code_and_data_supplement/
 
