@@ -43,10 +43,12 @@ a 4-page paper?
 Rules: be specific and honest. Cite page, section, table, figure or quoted sentence for every
 point. Do not invent results the paper does not contain. Hard constraint for any suggestion:
 it must be doable before Sun Nov 29 2026, 23:59 AoE (Mon Nov 30, 3:59 AM PST), and the paper
-must stay within 4 pages excluding references (say what to cut for anything you add). There
-is NO budget for new training runs or new human annotation. Allowed: inference and evaluation
-with the existing trained checkpoints, re-analysis of saved results (for example a split by
-scene type or by city), new tables or figures, and rewriting.
+must stay within 4 pages excluding references (say what to cut for anything you add). One
+rented GPU box is available, so new training runs, inference and evaluation are all allowed
+if they finish before the deadline (give rough GPU hours), as are re-analysis of saved results
+(for example a split by scene type or by city), new tables or figures, and rewriting. A small
+human check of the automatic agent labels (100 frames, 3 raters) is planned and may be cited
+as a suggestion.
 
 PART A. Acceptance probability
 - One number (0 to 100%) for acceptance at this bridge, with a one-paragraph reason, and the
@@ -60,9 +62,9 @@ a table with columns:
 rubric | why it matters here | score | evidence from the paper (page/section) | the one change that adds the most points
 Then the total out of 100 and how it compares to the 7 accepted papers (especially the short ones).
 
-PART C. Improvements before the deadline (no new training or annotation)
+PART C. Improvements before the deadline (any resource: GPU training or inference, evaluation, analysis, writing)
 List up to 5 improvements, ranked by expected score gain. For each: what it shows, what it
-needs (existing checkpoints or saved results, rough GPU or CPU hours), where it goes (replace
+needs (new run with model, data and rough GPU hours, or saved results), where it goes (replace
 which element, so the paper stays within 4 pages), which rubric it raises and by how much.
 Also list anything that should be CUT to make room.
 

@@ -1,0 +1,293 @@
+<title>Agent Label Check</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Red+Hat+Display:wght@700;800&family=Red+Hat+Text:wght@400;500;600&family=Red+Hat+Mono:wght@500&display=swap">
+<style>
+/* VOICE work: a rating bench for 3 volunteer raters
+   IDEA a traffic-survey clipboard: one street scene at a time, three tick boxes under it
+   PICTURE the frame with its automatic boxes, the 3 s clip beside it, large
+   COLOUR asphalt ink on white; auto-rickshaw green leads, rickshaw yellow marks the pair under question
+   TYPE Red Hat Display + Red Hat Text
+   LAYOUT laptop: frame and clip side by side, questions under; phone: frame, clip, questions stacked */
+:root{color-scheme:light dark;--bg:light-dark(#ffffff,#121514);--card:light-dark(#f4f6f4,#1b201e);--ink:light-dark(#1a1f1c,#e6ebe7);--muted:light-dark(#56615a,#9eaba3);--rule:light-dark(#d6ddd8,#2d3531);--green:light-dark(#17703a,#5fd18c);--green-soft:light-dark(#dcefe2,#173322);--yellow:light-dark(#9a6a00,#f2c230);--yellow-soft:light-dark(#fdf0c8,#3a2e0e);--red:light-dark(#b3261e,#ff8a80);--red-soft:light-dark(#f9e1df,#3d1d1b);--cell:light-dark(#e8ece9,#262d2a)}
+:root[data-theme=light]{color-scheme:light}:root[data-theme=dark]{color-scheme:dark}
+*{box-sizing:border-box;min-width:0}
+body{background:var(--bg);color:var(--ink);font:16px/1.55 "Red Hat Text",system-ui,sans-serif;overflow-x:clip;margin:0}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--bg)}
+.wrap{max-width:1180px;margin:0 auto;padding-block:20px 64px;padding-left:max(5vw,16px,env(safe-area-inset-left,0px));padding-right:max(5vw,16px,env(safe-area-inset-right,0px))}
+h1{font:800 clamp(30px,4vw,44px)/1.05 "Red Hat Display",sans-serif;letter-spacing:-.02em;margin:0}
+h2{font:700 19px/1.3 "Red Hat Display",sans-serif;margin:0}
+p{margin:0}
+.top{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:baseline;gap:8px 16px}
+.who{font-size:14px;color:var(--muted);display:inline-flex;align-items:center;gap:8px}
+.who img{width:22px;height:22px;border-radius:50%}
+.intro{margin-top:14px;background:var(--card);border:1px solid var(--rule);border-radius:10px;padding:14px 18px;display:grid;gap:10px}
+.intro summary{cursor:pointer;font-weight:600}
+.intro ul{margin:6px 0 0;padding-left:20px;display:grid;gap:4px}
+.note{font-size:14px;color:var(--muted)}
+.bar{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--bg);padding:12px 0 10px;margin-top:12px;border-bottom:1px solid var(--rule);display:grid;gap:8px}
+.barrow{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px 14px}
+.count{font-variant-numeric:tabular-nums;font-weight:600}
+.track{height:6px;background:var(--cell);border-radius:3px;overflow:hidden}
+.fill{height:100%;background:var(--green);width:0;transition:width .25s}
+.status{font-size:14px;color:var(--muted)}
+.status.err{color:var(--red)}
+.bench{margin-top:16px;display:grid;gap:16px}
+.media{display:grid;grid-template-columns:minmax(0,3fr) minmax(0,2fr);gap:14px;align-items:start}
+@media(max-width:760px){.media{grid-template-columns:minmax(0,1fr)}}
+figure{margin:0;background:#0d0f0e;border-radius:8px;overflow:hidden}
+figure img,figure video{display:block;width:100%;height:auto}
+figcaption{font-size:13px;color:var(--muted);background:var(--card);padding:6px 10px}
+.meta{font-size:14px;color:var(--muted)}
+.meta b{color:var(--ink);font-weight:600}
+.qs{display:grid;gap:14px;background:var(--card);border:1px solid var(--rule);border-radius:10px;padding:16px clamp(14px,2.4vw,22px)}
+.q{display:grid;gap:7px}
+.qt{font-weight:600}
+.pair{background:var(--yellow-soft);border-radius:4px;padding:0 5px;color:var(--ink)}
+.opts{display:flex;flex-wrap:wrap;gap:8px}
+.opt{font:500 15px/1.2 "Red Hat Text",sans-serif;color:var(--ink);background:var(--bg);border:1.5px solid var(--rule);border-radius:8px;padding:10px 12px;min-height:44px;cursor:pointer;display:inline-flex;gap:8px;align-items:center}
+.opt kbd{font:500 12px "Red Hat Mono",monospace;color:var(--muted);border:1px solid var(--rule);border-radius:4px;padding:0 4px}
+.opt:hover{border-color:var(--green)}
+.opt:focus-visible{outline:2px solid var(--green);outline-offset:2px}
+.opt[aria-pressed=true]{background:var(--green-soft);border-color:var(--green)}
+.opt.bad[aria-pressed=true]{background:var(--red-soft);border-color:var(--red)}
+.nav{display:flex;flex-wrap:wrap;justify-content:space-between;gap:10px;align-items:center}
+.btn{font:600 15px "Red Hat Text",sans-serif;border-radius:8px;padding:10px 16px;min-height:44px;cursor:pointer;border:1.5px solid var(--green);background:var(--green);color:var(--bg)}
+.btn.ghost{background:transparent;color:var(--green)}
+.btn:disabled{opacity:.45;cursor:default}
+.auto{font-size:14px;color:var(--muted);display:inline-flex;gap:6px;align-items:center}
+.map{margin-top:18px;background:var(--card);border:1px solid var(--rule);border-radius:10px;padding:14px 16px;display:grid;gap:10px}
+.cells{display:grid;grid-template-columns:repeat(auto-fill,minmax(32px,1fr));gap:5px}
+.cell{font:500 12px "Red Hat Mono",monospace;height:30px;border-radius:5px;border:1px solid var(--rule);background:var(--cell);color:var(--muted);cursor:pointer;font-variant-numeric:tabular-nums}
+.cell.part{background:var(--yellow-soft);border-color:var(--yellow);color:var(--ink)}
+.cell.done{background:var(--green-soft);border-color:var(--green);color:var(--ink)}
+.cell.cur{outline:2px solid var(--green);outline-offset:1px}
+.legend{display:flex;flex-wrap:wrap;gap:6px 16px;font-size:13px;color:var(--muted)}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.sw{width:14px;height:14px;border-radius:3px;border:1px solid var(--rule);background:var(--cell)}
+.sw.part{background:var(--yellow-soft);border-color:var(--yellow)}
+.sw.done{background:var(--green-soft);border-color:var(--green)}
+.empty{padding:40px 12px;text-align:center;color:var(--muted);background:var(--card);border:1px dashed var(--rule);border-radius:10px}
+@media(prefers-reduced-motion:reduce){.fill{transition:none}}
+</style>
+
+<div class="wrap">
+  <div class="top">
+    <h1>Agent Label Check</h1>
+    <span class="who" id="who" hidden><img id="whoimg" alt=""><span id="whoname"></span></span>
+  </div>
+
+  <details class="intro" id="intro" open>
+    <summary>How to rate (about 45 to 60 minutes; you can stop and come back)</summary>
+    <p>A computer program marked the road users (people, two-wheelers, auto-rickshaws, cars, buses, carts, animals) in 100 street scenes from Indian cities, and picked one pair of road users it thinks are interacting. For each scene, check its work with three questions. Work on your own and do not compare with other raters until everyone is done. Your answers save as you go, and only the study owner can see them.</p>
+    <div>
+      <strong>1. How many road users did the boxes miss?</strong>
+      <ul><li>Count road users you can clearly see in the still frame that have no box. Ignore people far in the background who are only a few pixels tall.</li></ul>
+    </div>
+    <div>
+      <strong>2. How many boxes are wrong?</strong>
+      <ul><li>A box is wrong if it holds no road user (a sign, a shadow, a shop), or if one box covers two or more road users.</li></ul>
+    </div>
+    <div>
+      <strong>3. Watch the clip. Does one of the pair marked <span class="pair">A</span> and <span class="pair">B</span> give way to the other?</strong>
+      <ul><li>Giving way means it slows, stops, waits or swerves because of the other one. Pick <b>Can't tell</b> if the clip does not show it.</li></ul>
+    </div>
+    <p class="note">Keys: 1 to 4 for question 1, Q W E for question 2, A S D F for question 3, arrow keys to move. The scenes come from public videos; please do not share them.</p>
+  </details>
+
+  <div class="bar">
+    <div class="barrow">
+      <span class="count" id="count">Loading the scenes</span>
+      <span class="status" id="status" role="status" aria-live="polite"></span>
+    </div>
+    <div class="track" aria-hidden="true"><div class="fill" id="fill"></div></div>
+  </div>
+
+  <div class="empty" id="empty">Loading the scenes.</div>
+
+  <section class="bench" id="bench" hidden aria-live="polite">
+    <p class="meta" id="meta"></p>
+    <div class="media">
+      <figure><img id="frame" alt="Street scene with the program's numbered boxes"><figcaption id="framecap">Still frame with the program's boxes</figcaption></figure>
+      <figure><video id="clip" controls loop muted playsinline preload="metadata"></video><figcaption>Clip, about 3 seconds: pair A and B in yellow</figcaption></figure>
+    </div>
+    <div class="qs">
+      <div class="q" role="group" aria-labelledby="q1t"><span class="qt" id="q1t">1. How many road users did the boxes miss?</span><div class="opts" id="q1"></div></div>
+      <div class="q" role="group" aria-labelledby="q2t"><span class="qt" id="q2t">2. How many boxes are wrong?</span><div class="opts" id="q2"></div></div>
+      <div class="q" role="group" aria-labelledby="q3t"><span class="qt" id="q3t">3. Does one of the pair <span class="pair">A</span> <span class="pair">B</span> give way to the other?</span><div class="opts" id="q3"></div></div>
+      <div class="nav">
+        <button class="btn ghost" id="prev" type="button">Previous</button>
+        <label class="auto"><input type="checkbox" id="autonext" checked> Go to the next scene when all three are picked</label>
+        <button class="btn" id="next" type="button">Next</button>
+      </div>
+    </div>
+  </section>
+
+  <section class="map" aria-label="All scenes">
+    <div class="barrow"><h2>All scenes</h2><span class="note">Click a square to jump to it.</span></div>
+    <div class="cells" id="cells"></div>
+    <div class="legend"><span><i class="sw"></i>not started</span><span><i class="sw part"></i>partly rated</span><span><i class="sw done"></i>done</span></div>
+  </section>
+</div>
+
+<script>
+{
+  const Q = {
+    missed: { el: "q1", keys: ["1", "2", "3", "4"], opts: [["0", "None"], ["1-2", "1 to 2"], ["3-5", "3 to 5"], ["6+", "6 or more", "bad"]] },
+    wrong: { el: "q2", keys: ["q", "w", "e"], opts: [["0", "None"], ["1", "1"], ["2+", "2 or more", "bad"]] },
+    yield: { el: "q3", keys: ["a", "s", "d", "f"], opts: [["no", "No"], ["a", "Yes, A gives way"], ["b", "Yes, B gives way"], ["unsure", "Can't tell"]] },
+  };
+  const FIELDS = Object.keys(Q);
+  const $ = (id) => document.getElementById(id);
+  let items = [], ratings = {}, cur = 0;
+  let ref = null, docExists = false, canSave = false, writing = false, timer = null;
+  const pending = new Map();
+  const setStatus = (t, err) => { const s = $("status"); s.textContent = t; s.classList.toggle("err", !!err); };
+  const rated = (r) => r ? FIELDS.filter((f) => r[f]).length : 0;
+
+  function buildOptions() {
+    for (const [field, q] of Object.entries(Q)) {
+      q.opts.forEach(([value, text, cls], i) => {
+        const b = document.createElement("button");
+        b.type = "button"; b.className = "opt" + (cls ? " " + cls : "");
+        b.dataset.field = field; b.dataset.value = value; b.setAttribute("aria-pressed", "false");
+        const k = document.createElement("kbd"); k.textContent = q.keys[i].toUpperCase();
+        b.append(k, document.createTextNode(text));
+        b.addEventListener("click", () => pick(field, value));
+        $(q.el).append(b);
+      });
+    }
+  }
+
+  function renderCells() {
+    const box = $("cells");
+    if (box.childElementCount !== items.length) {
+      box.textContent = "";
+      items.forEach((it, i) => {
+        const c = document.createElement("button");
+        c.type = "button"; c.className = "cell"; c.textContent = String(i + 1);
+        c.setAttribute("aria-label", "Scene " + (i + 1));
+        c.addEventListener("click", () => { cur = i; render(); window.scrollTo({ top: 0 }); });
+        box.append(c);
+      });
+    }
+    [...box.children].forEach((c, i) => {
+      const n = rated(ratings[items[i].id]);
+      c.classList.toggle("done", n === FIELDS.length);
+      c.classList.toggle("part", n > 0 && n < FIELDS.length);
+      c.classList.toggle("cur", i === cur);
+    });
+  }
+
+  function render() {
+    if (!items.length) return;
+    const it = items[cur];
+    $("empty").hidden = true; $("bench").hidden = false;
+    $("meta").textContent = "Scene " + (cur + 1) + " of " + items.length + " · " + (it.scene || "street") + (it.city ? " · " + it.city : "") + " · " + (it.n_boxes ?? "?") + " boxes";
+    $("frame").src = it.frame;
+    const v = $("clip");
+    if (v.getAttribute("src") !== it.clip) { v.setAttribute("src", it.clip); v.load(); }
+    const r = ratings[it.id] || {};
+    document.querySelectorAll(".opt").forEach((b) => b.setAttribute("aria-pressed", String(r[b.dataset.field] === b.dataset.value)));
+    $("prev").disabled = cur === 0;
+    $("next").disabled = cur === items.length - 1;
+    const done = items.filter((x) => rated(ratings[x.id]) === FIELDS.length).length;
+    $("count").textContent = done === items.length ? "All " + items.length + " scenes rated. Thank you, you can close this page." : done + " of " + items.length + " scenes rated";
+    $("fill").style.width = (100 * done / items.length) + "%";
+    renderCells();
+  }
+
+  function pick(field, value) {
+    const it = items[cur];
+    const r = { ...(ratings[it.id] || {}) };
+    r[field] = value; ratings[it.id] = r;
+    render(); queueSave(it.id, r);
+    if ($("autonext").checked && rated(r) === FIELDS.length && cur < items.length - 1) {
+      setTimeout(() => { if (items[cur].id === it.id) { cur += 1; render(); } }, 250);
+    }
+  }
+
+  function queueSave(id, r) {
+    pending.set(id, { ...r, t: new Date().toISOString() });
+    if (!canSave) return;
+    setStatus("Saving"); clearTimeout(timer); timer = setTimeout(flush, 600);
+  }
+
+  async function flush() {
+    if (writing || !pending.size || !ref) return;
+    writing = true;
+    const batch = Object.fromEntries(pending); pending.clear();
+    try {
+      if (!docExists) { await ref.set({ items: batch, started: new Date().toISOString(), updated: new Date().toISOString() }); docExists = true; }
+      else { await ref.update({ items: batch, updated: new Date().toISOString() }); }
+      setStatus(pending.size ? "Saving" : "Saved");
+    } catch (e) {
+      for (const [k, v] of Object.entries(batch)) if (!pending.has(k)) pending.set(k, v);
+      if (e && e.code === "invalid_argument") { canSave = false; setStatus("This account cannot save ratings here. Ask the study owner for Contributor access.", true); }
+      else if (e && (e.code === "revoked" || e.code === "not_granted")) { canSave = false; setStatus("Saving stopped: access to this page changed. Reload the page.", true); }
+      else { setStatus("Not saved yet; retrying in a few seconds.", true); setTimeout(flush, 2500 + Math.random() * 1500); }
+    } finally {
+      writing = false;
+      if (pending.size && canSave) setTimeout(flush, 50);
+    }
+  }
+
+  document.addEventListener("keydown", (e) => {
+    if (!items.length || e.metaKey || e.ctrlKey || e.altKey) return;
+    if (e.target && (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA")) return;
+    const k = e.key.toLowerCase();
+    if (k === "arrowright" && cur < items.length - 1) { cur += 1; render(); e.preventDefault(); return; }
+    if (k === "arrowleft" && cur > 0) { cur -= 1; render(); e.preventDefault(); return; }
+    for (const [field, q] of Object.entries(Q)) {
+      const i = q.keys.indexOf(k);
+      if (i >= 0) { pick(field, q.opts[i][0]); e.preventDefault(); return; }
+    }
+  });
+  $("prev").addEventListener("click", () => { if (cur > 0) { cur -= 1; render(); } });
+  $("next").addEventListener("click", () => { if (cur < items.length - 1) { cur += 1; render(); } });
+  window.addEventListener("beforeunload", () => { if (pending.size) flush(); });
+
+  async function connect() {
+    const use = window.claude && window.claude.use;
+    if (!use) { setStatus("Open this page on claude.ai to save ratings; you can still look at the scenes.", true); return; }
+    const [user, store] = await Promise.all([use("user"), use("db")]);
+    if (!user || !store) { setStatus("Sign in to claude.ai to save ratings; you can still look at the scenes.", true); return; }
+    const me = await user.me();
+    if (me.name || me.avatarUrl) { $("whoname").textContent = "Rating as " + (me.name || "you"); if (me.avatarUrl) $("whoimg").src = me.avatarUrl; $("who").hidden = false; }
+    if (!me.id) { setStatus("Sign in to claude.ai to save ratings.", true); return; }
+    ref = store.doc("ratings/" + me.id);
+    const slow = setTimeout(() => setStatus("Your saved answers are taking a while to load. You can keep rating.", true), 10000);
+    try {
+      const snap = await ref.get();
+      clearTimeout(slow);
+      docExists = snap.exists;
+      if (snap.exists) {
+        const saved = (snap.data() || {}).items || {};
+        for (const [k, v] of Object.entries(saved)) if (!ratings[k]) ratings[k] = { missed: v.missed, wrong: v.wrong, yield: v.yield };
+        const firstOpen = items.findIndex((x) => rated(ratings[x.id]) < FIELDS.length);
+        if (firstOpen >= 0) cur = firstOpen;
+        $("intro").open = false;
+      }
+      canSave = true;
+      setStatus(snap.exists ? "Picked up where you left off" : "Answers save automatically");
+      render();
+      if (pending.size) flush();
+    } catch (e) {
+      clearTimeout(slow);
+      setStatus("Saved answers could not be loaded. Reload the page to try again.", true);
+    }
+  }
+
+  buildOptions();
+  fetch("items.json").then((r) => { if (!r.ok) throw new Error(String(r.status)); return r.json(); }).then((data) => {
+    items = Array.isArray(data) ? data : [];
+    if (!items.length) {
+      $("empty").textContent = "The 100 scenes are being prepared. This page will show them here once they are ready; nothing to do yet.";
+      $("count").textContent = "Scenes not ready yet";
+      return;
+    }
+    render(); connect();
+  }).catch(() => { $("empty").textContent = "The scenes could not be loaded. Reload the page."; $("count").textContent = "Scenes not loaded"; });
+}
+</script>
