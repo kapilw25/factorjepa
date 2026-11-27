@@ -1,0 +1,73 @@
+\section{Evaluation}
+
+\paragraph{Protocol.}
+We adapt V-JEPA 2.1 at 2B and 1B parameters on a stratified 10k-clip set, and the 1B model also on the full corpus. FactorJEPA is compared with the frozen backbone, full fine-tuning, linear probing then fine-tuning, continual self-supervised learning, LoRA \cite{hu2022lora}, DoRA \cite{liu2024dora}, and Auto-RGN \cite{lee2023surgical}, all under identical clips, masking, optimization steps, and splits. Test clips are held out at the clip level (1,825 in the 10k regime, 23,106 in the full regime), so a source video can contribute clips to both training and test (Section~\ref{sec:scope}). Every margin is a paired 95\% BCa bootstrap interval over test clips.
+
+\paragraph{Diagnostics of predictive structure.}
+\emph{Future-frame L1}: error between predicted and target-encoder embeddings on the token blocks hidden by V-JEPA's mask generator. \emph{Causal L1}: the same error when the second half of a clip is predicted from its first half. \emph{Mask-ratio slope}: growth of that error as the hidden fraction rises from 0.3 to 0.9. \emph{Motion cosine}: how well a linear probe recovers clip motion from the embedding. Nine further diagnostics probe temporal coherence and semantics (Table~\ref{tab:headline}).
+
+\begin{table}[t]
+\centering
+\small
+\setlength{\tabcolsep}{2pt}
+\begin{tabular}{lrrrrrr}
+\toprule
+ & \multicolumn{2}{c}{2B$\cdot$10k} & \multicolumn{2}{c}{1B$\cdot$10k} & \multicolumn{2}{c}{1B$\cdot$115k} \\
+\cmidrule(lr){2-3}\cmidrule(lr){4-5}\cmidrule(lr){6-7}
+Diagnostic & Ours & Rival & Ours & Rival & Ours & Rival \\
+\midrule
+future-frame L1 ($\downarrow$) & \textbf{0.496} & 0.504\textsuperscript{L} & \textbf{0.590} & 0.596\textsuperscript{L} & \textbf{0.573} & 0.589\textsuperscript{L} \\
+causal-block L1 ($\downarrow$) & \textbf{0.529} & 0.533\textsuperscript{L} & \textbf{0.614} & 0.617\textsuperscript{L} & \textbf{0.597} & 0.607\textsuperscript{L} \\
+mask-ratio slope ($\downarrow$) & \textbf{0.053} & 0.054\textsuperscript{L} & \textbf{0.052} & 0.053\textsuperscript{D} & \textbf{0.047} & 0.058\textsuperscript{L} \\
+motion-cos ($\uparrow$) & 0.116 & \textbf{0.244}\textsuperscript{F} & 0.048 & \textbf{0.090}\textsuperscript{F} & \textbf{0.097} & 0.078\textsuperscript{L} \\
+\midrule
+temporal-order ($\uparrow$) & 0.944 & \textbf{0.947}\textsuperscript{Z} & 0.925 & \textbf{0.927}\textsuperscript{C} & \textbf{0.918} & 0.915\textsuperscript{Z} \\
+pace ($\uparrow$) & 0.719 & \textbf{0.724}\textsuperscript{L} & 0.711 & \textbf{0.729}\textsuperscript{Z} & 0.703 & 0.703\textsuperscript{L} \\
+action top-1 ($\uparrow$) & 0.500 & \textbf{0.528}\textsuperscript{C} & 0.483 & \textbf{0.509}\textsuperscript{F} & 0.567 & \textbf{0.572}\textsuperscript{L} \\
+arrow-of-time ($\uparrow$) & 0.935 & \textbf{0.965}\textsuperscript{Z} & 0.957 & \textbf{0.965}\textsuperscript{Z} & 0.955 & \textbf{0.975}\textsuperscript{Z} \\
+TCC $\tau$ ($\uparrow$) & 0.274 & \textbf{0.292}\textsuperscript{Z} & 0.287 & \textbf{0.334}\textsuperscript{Z} & 0.380 & \textbf{0.400}\textsuperscript{Z} \\
+exposure-bias ($\downarrow$) & 0.048 & \textbf{0.038}\textsuperscript{C} & \textbf{0.034} & 0.036\textsuperscript{D} & 0.038 & \textbf{0.035}\textsuperscript{L} \\
+rollout drift ($\downarrow$) & 0.011 & \textbf{0.008}\textsuperscript{C} & 0.005 & 0.005\textsuperscript{D} & 0.007 & \textbf{0.006}\textsuperscript{L} \\
+L1-vs-$\Delta t$ ($\downarrow$) & 0.008 & \textbf{0.006}\textsuperscript{C} & 0.009 & \textbf{0.007}\textsuperscript{Z} & 0.009 & \textbf{0.007}\textsuperscript{Z} \\
+TCC cycle ($\downarrow$) & 2.249 & \textbf{2.111}\textsuperscript{Z} & 2.416 & \textbf{2.195}\textsuperscript{Z} & 2.806 & \textbf{2.132}\textsuperscript{Z} \\
+\bottomrule
+\end{tabular}
+\par\smallskip
+{\small\raggedright
+Rival superscript: L LoRA, D DoRA, F full fine-tuning, C continual self-supervised learning, Z frozen backbone. At 115k only LoRA and the frozen backbone were trained as rivals.\par}
+\caption{One fixed FactorJEPA model (Ours, identical in every cell) against its strongest rival on 13 diagnostics. Above the rule: the four diagnostics of predictive structure; below: nine diagnostics of temporal coherence and semantics, where the rival leads on most rows. Bold: the better of each pair (neither when equal).}
+\label{tab:headline}
+\end{table}
+
+\begin{figure}[!tb]
+\centering
+\includegraphics[width=0.97\columnwidth]{forest_115k_col.png}
+\caption{Separation of the fixed FactorJEPA model from the strongest rival at 1B on the full corpus, in widths of the paired 95\% BCa interval (symmetric-log axis). Green: FactorJEPA ahead by at least one width; yellow: ahead within the interval; red: the rival ahead.}
+\label{fig:forest}
+\end{figure}
+
+\paragraph{Findings.}
+With limited data (Table~\ref{tab:headline}), FactorJEPA separates from the best rival on Future-frame L1 and Causal L1 at both scales and on Mask-ratio slope at 1B, while Motion cosine favors full fine-tuning. After full 115k-clip training, against the two rivals trained at that scale (LoRA and the frozen backbone), FactorJEPA separates on all four diagnostics, Motion cosine included (Figure~\ref{fig:forest}), by 13.9 (Causal L1) to 43.3 (Mask-ratio slope) interval widths, a 2.7\% lower Future-frame L1 and a 19\% flatter Mask-ratio slope than LoRA. Full fine-tuning, which leads on Motion cosine at 10k, was not trained at 115k, so whether more data closes that gap remains open. Method rankings on the four diagnostics replicate from the 2B to the 1B backbone (Spearman $\rho \geq 0.895$). On the diagnostics below the rule, the best rival leads at 115k on six (rollout drift, exposure bias, L1-versus-$\Delta t$ decay, arrow-of-time, and the two TCC measures) by 8.3 to 146.5 interval widths. FactorJEPA's gain is in one-step prediction of crowded scenes; on the coherence of long predicted futures, the rivals still lead.
+
+\begin{table}[t]
+\centering
+\small
+\setlength{\tabcolsep}{3pt}
+\begin{tabular}{llrrrr}
+\toprule
+ & Adaptation & Fut.\ L1$\downarrow$ & Causal$\downarrow$ & Mask$\downarrow$ & Motion$\uparrow$ \\
+\midrule
+2B & plain & 0.533 & 0.558 & 0.0625 & \textbf{0.151} \\
+ & RAW & 0.497 & \textbf{0.528} & 0.0565 & 0.133 \\
+ & Ours & \textbf{0.496} & 0.529 & \textbf{0.0531} & 0.116 \\
+\midrule
+1B & plain & 0.607 & 0.628 & 0.0586 & 0.054 \\
+ & RAW & \textbf{0.587} & \textbf{0.611} & 0.0528 & \textbf{0.060} \\
+ & Ours & 0.590 & 0.614 & \textbf{0.0515} & 0.048 \\
+\bottomrule
+\end{tabular}
+\caption{Where the gain comes from, 10k clips, 1,825 test clips. Plain: continued pretraining, the starting point of both other rows. RAW: the same staged adaptation as Ours on raw clips only. Ours: the staged adaptation on the curriculum's layout, agent, and interaction clips. Every RAW-minus-plain and Ours-minus-RAW difference excludes zero at 95\% under both clip and source-video resampling (127 videos), except Future-frame L1 at 2B.}
+\label{tab:ladder}
+\end{table}
+
+\paragraph{Where the gain comes from.} Table~\ref{tab:ladder} separates the two parts of FactorJEPA. The staged adaptation carries most of the gain: on raw clips alone it lowers Future-frame L1 by 0.036 (2B) and 0.020 (1B) below plain continued pretraining, and it already beats LoRA on Future-frame and Causal L1 at both scales. The layout, agent, and interaction clips then flatten the Mask-ratio slope at both scales (by 6\% at 2B and 2\% at 1B), so prediction degrades more slowly as more of the scene is hidden, which is the situation of occluded road users. They cost Motion cosine at both scales and a little prediction error: 0.001 in Causal L1 at 2B and about 0.003 in Future-frame and Causal L1 at 1B. Most of the gain therefore does not depend on the automatic labels, and what the labels buy is a specific property: robustness to missing evidence.

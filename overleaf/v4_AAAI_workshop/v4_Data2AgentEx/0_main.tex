@@ -1,0 +1,74 @@
+\documentclass[letterpaper]{article} % DO NOT CHANGE THIS
+\usepackage[submission]{aaai2027}  % DO NOT CHANGE THIS (anonymous, double-blind)
+% The serif, sans-serif, and monospaced fonts are loaded automatically by
+% aaai2027.sty (newtxtext, helvet, courier). DO NOT add any font package.
+\usepackage[hyphens]{url}  % DO NOT CHANGE THIS
+\usepackage{graphicx} % DO NOT CHANGE THIS
+\urlstyle{rm} % DO NOT CHANGE THIS
+\def\UrlFont{\rm}  % DO NOT CHANGE THIS
+\usepackage{natbib}  % DO NOT CHANGE THIS AND DO NOT ADD ANY OPTIONS TO IT
+\usepackage{caption} % DO NOT CHANGE THIS AND DO NOT ADD ANY OPTIONS TO IT
+\frenchspacing  % DO NOT CHANGE THIS
+\input{../common/preamble}
+\input{venue}
+\pdfinfo{
+/TemplateVersion (2027.1)
+}
+
+\setcounter{secnumdepth}{2}
+
+% VENUE PARTS ONLY (paper-variants skill): title, abstract, introduction and the venue discussion section live here;
+% the dataset, method, evaluation and scope sections, figures, tables, numbers and bibliography live once in ../common/.
+% AAAI-27 Bridge "From Domain Data to Agentic Experience" (Data2AgentEx), Montreal, Feb 16-17 2027. Call (read
+% 2026-11-27): full 8 / short 4 / extended abstract 2 pages, references and appendices not counted, AAAI-27 author kit,
+% non-archival, in person; reviewed for relevance, substance, clarity to a cross-disciplinary audience, discussion value.
+% Themes used here: (2) experience production (turning domain data into training experience), (3) validity of tasks and
+% feedback (automatic labels), (4) learning utility and transfer ("curricula, selection bias, training-test overlap,
+% controlled evaluation of transfer"), (5) consent and conditions for reuse. Due Tue Dec 1 2026 9:00 PM PST; results Dec 13.
+% Built 2026-11-27 by owner pick (all 4 open venues get a draft); same facts as ../v3_Cog2Soc_fixes, new framing only.
+
+\title{From Street Video to Training Signal: Automatic Layout, Agent, and Interaction Clips for Adapting a Video World Model}  % owner pick Fri Nov 27 2026 ~6:30 AM PST: one title per venue
+
+\author{Anonymous Submission}
+\affiliations{}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+Public street video is abundant domain data for agents that move among people, but it does not say which parts of a scene a world model should learn from. We turn it into staged training experience without human labels. DENSEWORLD-115k holds \nClips{} clips (\nHours{} hours) from \nVideos{} public YouTube videos of \nCities{} Indian cities, released as reconstructible metadata. For \nAnnotated{} of them, a detector, a tracker, and a proximity rule cut each clip into three curated views: the street layout with road users blurred, the road users with the background suppressed, and crops around interacting pairs. FactorJEPA trains the video world model V-JEPA 2.1 on these views as a three-stage curriculum. Compared with seven adaptation methods under identical clips and budgets, one fixed configuration predicts masked and future content better at both 2B and 1B scale, and after full 115k-clip training it separates from the stronger of the two rivals trained at that scale on all four diagnostics of predictive structure, by \nSepLo{} to \nSepHi{} widths of the paired 95\% confidence interval. An ablation that runs the same stages on raw clips measures what the curated views add: the staged schedule carries most of the gain, and the curated views make prediction more robust when more of the scene is hidden, at a cost in motion readout. Competing methods still lead on temporal coherence.
+\end{abstract}
+
+\input{../common/links}
+
+\section{Introduction}
+
+\paragraph{The data problem.} Agents that move among people, from delivery robots to driver assistants, need world models of crowded scenes, and the most plentiful domain data for those scenes is public street video. Such video is unstructured: it does not mark the road layout, the individual road users, or who is interacting with whom, so a model trained on raw clips meets all of it at once. Dense South Asian streets make this hardest. Pedestrians and vehicles of very different speeds share one right of way, clutter keeps road users partly hidden, and large driving datasets such as BDD100K \cite{yu2020bdd100k} and nuScenes \cite{caesar2020nuscenes} sample this regime rarely.\footnote{\disclosure}
+
+\paragraph{Our approach.} We turn the video into training experience in steps that need no human labels: a detector and a tracker find the road users, a rule marks pairs that are close and move relative to each other, and the resulting masks cut each clip into layout, agent, and interaction views. Joint Embedding Predictive Architectures (JEPA) such as V-JEPA 2.1 \cite{murlabadia2026vjepa21} learn by predicting masked or future video content as embeddings rather than pixels; FactorJEPA trains one on the curated views in stages. We contribute:
+\begin{itemize}
+    \item \textbf{DENSEWORLD-115k}, a \nHours{}-hour drive-through, walk-through, and aerial video corpus of \nCities{} Indian cities, released as reconstructible metadata, with automatic road-user masks and interaction pairs for \nAnnotated{} clips.
+    \item \textbf{A curation pipeline and curriculum}: each clip becomes layout, agent, and interaction views, and FactorJEPA adapts V-JEPA 2.1 on them in three stages, with no extra inputs at inference.
+    \item \textbf{A controlled measure of learning utility}: seven adaptation methods at two model and two data scales on 13 diagnostics, wins and losses alike, and an ablation that runs the same stages on raw clips to isolate what the curated views add.
+\end{itemize}
+
+\input{../common/fig_teaser}
+
+\input{../common/sec_data}
+
+\input{../common/sec_method}
+
+\input{../common/sec_eval}
+
+\section{What This Offers Agent Learning from Domain Data}
+
+Each question the bridge asks of agentic data has an answer here. \emph{Which experience helps the learner}: the ladder in Table~\ref{tab:ladder} separates the learning utility of the schedule from that of the curated views, and the views buy one specific property, slower degradation as more of the scene is hidden (a Mask-ratio slope flatter by \nLadderMaskTwoB{} at 2B and \nLadderMaskOneB{} at 1B), while costing motion readout. \emph{Whether the automatic labels are valid}: they come from a detector, a tracker, and a proximity rule; a human check of missed and false road users and of who yields to whom is the next step. \emph{Training-test overlap}: test clips are held out at the clip level, and every ladder difference but one (Future-frame L1 at 2B) excludes zero when the \nTestVideos{} source videos are resampled as well as the clips. \emph{Conditions for reuse}: the release ships metadata and a rebuild script rather than video, so a video its creator removes can no longer be rebuilt. Beyond the detector's text prompt, nothing in the pipeline is specific to traffic, so other domains where public video shows people sharing space are a natural next test.
+
+\input{../common/sec_scope}
+
+{\small
+\bibliography{../common/factorjepa}
+}
+
+\end{document}

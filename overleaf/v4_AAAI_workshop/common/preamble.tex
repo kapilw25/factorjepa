@@ -1,0 +1,19 @@
+% common/preamble.tex: shared by every FactorJEPA workshop draft (paper-variants skill). Edit once here;
+% a sentence that must differ for one venue goes behind a venue switch in common/, never into a second copy.
+\usepackage{booktabs}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\graphicspath{{../common/figs/}}
+\input{../common/numbers}  % venue parts state measured numbers only through these macros
+\hyphenation{DENSEWORLD}
+% Double-blind: no build date, time zone or TeX banner in the PDF metadata.
+\pdfinfoomitdate=1
+\pdftrailerid{}
+\pdfsuppressptexinfo=-1
+% venue switches (set in each venue folder's venue.tex, read after this file)
+\newif\ifanon          % double-blind venue: no names, no identifying links
+\newif\ifvenueCog      % Cog2Soc bridge (collective human behaviour)
+\newif\ifvenueData     % Data2AgentEx bridge (domain data to agent experience)
+\newif\ifvenueCausal   % Continual Causality bridge, novel-work track
+\newif\ifvenueAgms     % Human-Centric AgMS workshop (W4, mobility agents)
+\input{../common/disclosure}  % \disclosure: concurrent-submission footnote text, switched per venue

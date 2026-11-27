@@ -1,0 +1,11 @@
+% common/disclosure.tex: anonymous concurrent-submission note (owner pick Fri Nov 27 2026 ~6:40 AM PST).
+% All four venues review double-blind and their OpenReview forms have no field for other submissions, so the
+% note sits in the PDF: it names the other three AAAI-27 venues, never the authors or the arXiv number.
+% Each venue draft uses it once, as \footnote{\disclosure} at the end of its first introduction paragraph.
+% Every branch ends with "<sentence>. \fi%": the space before \fi survives, the line end after it does not.
+\newcommand{\disclosure}{Concurrently under review, all non-archival: %
+\ifvenueCog the AAAI-27 Data2AgentEx and Continual Causality bridges and the Human-Centric AgMS workshop. \fi%
+\ifvenueData the AAAI-27 Cog2Soc and Continual Causality bridges and the Human-Centric AgMS workshop. \fi%
+\ifvenueCausal the AAAI-27 Cog2Soc and Data2AgentEx bridges and the Human-Centric AgMS workshop. \fi%
+\ifvenueAgms the AAAI-27 Cog2Soc, Data2AgentEx, and Continual Causality bridges. \fi%
+An earlier version is a non-archival AAAI-27 student abstract and a public preprint.}

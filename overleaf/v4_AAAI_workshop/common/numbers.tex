@@ -1,0 +1,21 @@
+% common/numbers.tex: every measured number that a venue part (title, abstract, introduction, venue discussion)
+% states. Venue files never type a measured number; build_all.py refuses one. Shared sections in common/ state
+% their numbers once, so a change there reaches every draft.
+% Sources:
+%   dataset counts: dataset card src/hf_denseworld_115k/README.md and sources.json (714 videos, 22 cities);
+%   separations at 1B, 115k clips: Figure 3 (common/figs/forest_115k_col.png, src/m13_eval_plot.py on outputs/full);
+%   ladder: common/results/*.json (src/utils/paired_ladder.py, outputs/workshop/attribution_10k).
+\newcommand{\nClips}{115,687}
+\newcommand{\nHours}{276}
+\newcommand{\nVideos}{714}
+\newcommand{\nCities}{22}
+\newcommand{\nAnnotated}{86,831}
+\newcommand{\nSepLo}{13.9}
+\newcommand{\nSepHi}{43.3}
+\newcommand{\nFutPct}{2.7\%}
+\newcommand{\nMaskPct}{19\%}
+\newcommand{\nRawFutTwoB}{0.036}
+\newcommand{\nRawFutOneB}{0.020}
+\newcommand{\nLadderMaskTwoB}{6\%}
+\newcommand{\nLadderMaskOneB}{2\%}
+\newcommand{\nTestVideos}{127}

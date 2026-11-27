@@ -1,0 +1,75 @@
+\documentclass[letterpaper]{article} % DO NOT CHANGE THIS
+\usepackage[submission]{aaai2027}  % DO NOT CHANGE THIS (anonymous, double-blind)
+% The serif, sans-serif, and monospaced fonts are loaded automatically by
+% aaai2027.sty (newtxtext, helvet, courier). DO NOT add any font package.
+\usepackage[hyphens]{url}  % DO NOT CHANGE THIS
+\usepackage{graphicx} % DO NOT CHANGE THIS
+\urlstyle{rm} % DO NOT CHANGE THIS
+\def\UrlFont{\rm}  % DO NOT CHANGE THIS
+\usepackage{natbib}  % DO NOT CHANGE THIS AND DO NOT ADD ANY OPTIONS TO IT
+\usepackage{caption} % DO NOT CHANGE THIS AND DO NOT ADD ANY OPTIONS TO IT
+\frenchspacing  % DO NOT CHANGE THIS
+\input{../common/preamble}
+\input{venue}
+\pdfinfo{
+/TemplateVersion (2027.1)
+}
+
+\setcounter{secnumdepth}{2}
+
+% VENUE PARTS ONLY (paper-variants skill): title, abstract, introduction and the venue discussion section live here;
+% the dataset, method, evaluation and scope sections, figures, tables, numbers and bibliography live once in ../common/.
+% AAAI-27 Continual Causality Bridge, 4th edition, novel-work track (Montreal, Feb 17 2027). Call (continualcausality.com/cfp,
+% read 2026-11-27): vision 2 p or short 4 p excluding references and optional appendices, AAAI format, double-blind,
+% non-archival, "works must be original". Theme: "how learning systems can continually build and maintain accurate causal
+% world models when the world is non-stationary and only partially observed"; topics include continual pretraining of
+% foundation models, world models, partially observable worlds, datasets and benchmarks. Due Dec 1 AoE (Wed Dec 2 4:59 AM
+% PST); notification Dec 11. Built 2026-11-27 by owner pick; same facts as ../v3_Cog2Soc_fixes, new framing only.
+% Care: the raw clips in training are DENSEWORLD clips, NOT source-distribution replay; retention on the source
+% distribution is not measured; "Causal L1" is a metric name (2nd half predicted from 1st), not a causal claim.
+
+\title{Staged Adaptation of a Pretrained Video World Model to Dense South Asian Streets: What It Gains and What It Costs}  % owner pick Fri Nov 27 2026 ~6:30 AM PST: one title per venue
+
+\author{Anonymous Submission}
+\affiliations{}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+A world model is often updated by continued pretraining when the world it models changes, and a new traffic culture is a sharp change: denser scenes, different road users, and many of them only partly visible. We study this shift with the video world model V-JEPA 2.1, pretrained on general video, adapted to DENSEWORLD-115k, \nClips{} clips (\nHours{} hours) from \nVideos{} public YouTube videos of \nCities{} Indian cities, released as reconstructible metadata. FactorJEPA adapts the model in stages that follow the structure of a scene, first on clips of the street layout, then on the road users, then on their interactions, unfreezing more of the encoder after the first stage while a frozen teacher and a decay toward the starting weights keep it anchored. Compared with seven adaptation methods, continual self-supervised learning among them, under identical clips and budgets, one fixed configuration predicts masked and future content better at both 2B and 1B scale, and after full 115k-clip training it separates from the stronger of the two rivals trained at that scale on all four diagnostics of predictive structure, by \nSepLo{} to \nSepHi{} widths of the paired 95\% confidence interval. An ablation on raw clips shows that the staged schedule carries most of the gain, while the structured clips make prediction degrade more slowly as more of the scene is hidden. Competing methods still lead on temporal coherence, and retention on the original distribution is the next test.
+\end{abstract}
+
+\input{../common/links}
+
+\section{Introduction}
+
+\paragraph{The shift.} Large models are increasingly kept current by continued pretraining as the world they model changes. Traffic is a sharp case. A video world model pretrained on general video, or built on sparse, lane-structured driving datasets such as BDD100K \cite{yu2020bdd100k} and nuScenes \cite{caesar2020nuscenes}, meets a different world on South Asian streets: pedestrians and vehicles of very different speeds share one right of way, clutter keeps road users partly hidden, and who goes first is settled by local norms more than by lane rules. Adapting to it is a continual-learning problem under partial observability: the model has to absorb a new distribution while predicting road users it can only partly see.\footnote{\disclosure}
+
+\paragraph{Our approach.} Joint Embedding Predictive Architectures (JEPA) such as V-JEPA 2.1 \cite{murlabadia2026vjepa21} learn by predicting masked or future video content as embeddings rather than pixels. FactorJEPA adapts V-JEPA 2.1 to the new streets in stages that follow the structure of a scene: the layout, then the road users, then their interactions, each built automatically from the video. We contribute:
+\begin{itemize}
+    \item \textbf{DENSEWORLD-115k}, a \nHours{}-hour drive-through, walk-through, and aerial video corpus of \nCities{} Indian cities, released as reconstructible metadata: a dense, non-Western target distribution for adapting video world models.
+    \item \textbf{FactorJEPA}, a staged adaptation with progressive unfreezing, a frozen teacher, and decay toward the starting weights, trained on layout, agent, and interaction clips, with no extra inputs at inference.
+    \item A controlled comparison with seven adaptation methods, continual self-supervised learning among them, at two model and two data scales on all 13 diagnostics, wins and losses alike, and an ablation that separates the staged schedule from the structured clips.
+\end{itemize}
+
+\input{../common/fig_teaser}
+
+\input{../common/sec_data}
+
+\input{../common/sec_method}
+
+\input{../common/sec_eval}
+
+\section{What This Offers Continual World Modelling}
+
+Two results speak to the bridge's question of keeping a world model accurate when its world changes and is only partly observed. First, the update schedule matters: on the same raw clips, the staged schedule alone lowers Future-frame L1 by \nRawFutTwoB{} (2B) and \nRawFutOneB{} (1B) below plain continued pretraining (Table~\ref{tab:ladder}). Second, partial observability: the structured clips flatten the Mask-ratio slope, so prediction degrades more slowly as more of the scene is hidden. Both gains come with costs a continual learner has to weigh, in motion readout and in the coherence of long predicted futures, where the rivals still lead. We make no causal claim: Causal L1 names the direction of prediction, from the first half of a clip to the second, not an identified cause. Whether the adapted model keeps its accuracy on the original distribution is the next test, and the layout, agent, and interaction clips offer a way to ask which part of a changing scene a world model has to relearn.
+
+\input{../common/sec_scope}
+
+{\small
+\bibliography{../common/factorjepa}
+}
+
+\end{document}

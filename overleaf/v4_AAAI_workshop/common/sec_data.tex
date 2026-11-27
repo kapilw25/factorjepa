@@ -1,0 +1,14 @@
+\section{DENSEWORLD-115k}
+
+DENSEWORLD-115k records everyday street behaviour in 22 Tier-1 and Tier-2 Indian cities: 115,687 clips of 4 to 10 seconds (276 hours; Figure~\ref{fig:teaser}, top), cut with scene and shot-boundary detection from 714 public long-form YouTube videos (480p). It covers drive-through, walk-through, and aerial viewpoints across markets, residential lanes, transit corridors, junctions, flyovers, heritage sites, and beaches, at different times of day and in different weather. For 86,831 clips an automatic pipeline finds the road users: Grounding DINO \cite{liu2024groundingdino} detects them on anchor frames, SAM~3 \cite{carion2025sam3} tracks their masks through the clip, and pairs of road users that are close and move relative to each other are marked as interactions.
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\columnwidth]{denseworld_vs_west_density_bold.pdf}
+\caption{Mean agents per clip (top) and share of pixels covered by agents (bottom) for DENSEWORLD and a Western reference drawn from BDD100K and nuScenes, per scene type.}
+\label{fig:density}
+\end{figure}
+
+Against a reference set of BDD100K and nuScenes clips grouped by the same scene types, DENSEWORLD has more agents per clip and a larger share of pixels covered by agents on each of the six types compared (Figure~\ref{fig:density}). These two axes are the ones measured here; occlusion and interaction pressure are the natural next axes. The gap lies in the data itself: a \ifvenueCog behaviour\else world\fi{} model calibrated on the Western reference would meet denser scenes here on all six types.
+
+\paragraph{Release and responsible use.} Respecting the creators' copyright, the release ships the source list, the clip manifest with timestamps, and a deterministic script that rebuilds every clip from YouTube, rather than the videos, under a CC BY 4.0 licence for the metadata. Rebuilt clips are the public videos as posted, so a video its creator removes can no longer be rebuilt, and rights holders can ask on the dataset page for a source to be removed. The people filmed did not consent individually, so the data is meant for research on aggregate street behaviour, not on individuals.

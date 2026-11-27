@@ -11,7 +11,9 @@
 - **GPU:** one rented RTX PRO 6000 box, which Claude drives; training and inference allowed, highest-return fixes only.
 - **Human check:** agent labels, 100 frames × 3 raters.
 - **Page 1:** a new one-column hook figure.
-- **Figures and title:** title kept; thumbnail faces blurred; Figure 2 shown at one-column width.
+- **Figures and title:** thumbnail faces blurred; Figure 2 shown at one-column width. Title: first kept, then (Nov 27, ~6:30 AM PST) one title per venue so four parallel submissions do not look like one paper sent four times; Cog2Soc's is "Layout, Then Road Users, Then Interactions: Adapting a Video World Model to Dense South Asian Street Behaviour".
+- **Disclosure:** an anonymous page-1 footnote in every draft names the other three AAAI-27 venues, the student abstract and the preprint (the OpenReview forms have no field for it).
+- **All 4 open venues get a draft** (Nov 27), built with the paper-variants skill from one shared source.
 - **RAW result:** reported and reframed.
 
 **Legend:** 🖥️ GPU or box task · 📝 writing or CPU task · ✅ done · ⏳ running · 🕒 queued · 👤 owner action · R1 to R10 = the judge's rubrics below
@@ -53,7 +55,7 @@
 
 | ID | Status | Task | Where | Rubric |
 |---|---|---|---|---|
-| **N1** | ✅ | Attribution ladder from saved 10k results: plain retrain, RAW (factorized, no labels), Ours, at 2B and 1B, paired 95% BCa and video-clustered intervals ([code](../../../src/utils/paired_ladder.py), [2B](../v3_Cog2Soc_fixes/results/vjepa_2_1_vitG_2B.json), [1B](../v3_Cog2Soc_fixes/results/vjepa_2_1_vitg_1B.json)). RAW is the same staged recipe on raw clips. The staged adaptation carries most of the gain; the layout, agent and interaction clips add robustness to masking and cost motion readout. In v3 as Table 2 | Table 2 in Evaluation | R6 +3, R3 +1 |
+| **N1** | ✅ | Attribution ladder from saved 10k results: plain retrain, RAW, Ours, at 2B and 1B, paired 95% BCa and video-clustered intervals ([code](../../../src/utils/paired_ladder.py), [2B](../common/results/vjepa_2_1_vitG_2B.json), [1B](../common/results/vjepa_2_1_vitg_1B.json)). RAW is the same staged recipe on raw clips. The staged adaptation carries most of the gain; the layout, agent and interaction clips add robustness to masking and cost motion readout. In v3 as Table 2 | Table 2 in Evaluation | R6 +3, R3 +1 |
 | **N0** | ✅ | Method text matches the code (owner pick Fri Nov 27): the papers described a factorized predictor (dictionaries, visibility gate, covariance penalty) that was never implemented; v3 describes the 3-stage layout, agent, interaction clip curriculum that was trained. The false "faces and plates are blurred" sentence is replaced by a responsible-use paragraph | Abstract, Sec 1 to 6 | R8, honesty |
 | **N2** | 🌓 | Video-clustered intervals: done for the 10k ladder (127 source videos behind 1,825 test clips; every separation survives); 115k pending (G5) | Protocol, Figure 3 | R7 +2 |
 | **N3** | 🌓 | Tone rewrites from the judge's Part D (18 rows), the contribution-first abstract, "the stronger of the two rivals trained at that scale", "consistently" replaced by the exact scales | whole paper | R8 +1, R10 +1 |
@@ -61,10 +63,10 @@
 | **N5** | 🕒 | Responsible use: consent, takedown, metadata licence; blur faces in the Figure 1 thumbnails (pixels only, nothing moves) | Release paragraph, Figure 1 | R9 +2 |
 | **N6** | 🕒 | Figure 2 at one-column width (same file), clip counts in the caption | Sec 2 | R5 +0.5, room |
 | **N7** | 🕒 | Page-1 hook: one-column Figure 1 with the real frame (G2) and a small result panel | page 1 | R10 +1 |
-| **N8** | 🕒 | PDF metadata without date or time zone | preamble | double-blind |
+| **N8** | ✅ | PDF metadata without date or time zone (shared preamble; the build gate fails a PDF with a date or author field) | preamble | double-blind |
 | **C1** | 🌓 | Human check page ([Agent Label Check](https://claude.ai/artifact/Kur76FrdFrR1NLFUuBNkuE), published empty, frames come from G1; share with Contributor access): 100 frames × 3 raters, missed and false agents, and whether the marked pair adjusts to each other; precision, recall, Fleiss κ | claude.ai page, Sec 2 | R4 +3, R3 +1 |
 | **N9** | 🕒 | Build, 4-page check, AI-signature audit, paper-consistency against v1 Human-Centric | v3 folder | all |
 | **N10** | 🕒 | "Judge Fixes" before and after page (v2 crops vs v3 crops) | claude.ai page | report |
 | **N11** | 🕒 | Fresh judge round 2 on v3; repeat until 80 or the deadline | [judge folder](../feedback/output/v2_Cog2Soc/by_claude_fresh/) | score |
-| **N12** | 🕒 | Copy every fix into Human-Centric | v1 Human-Centric | next venue |
+| **N12** | ✅ | Every fix reaches every draft (Fri Nov 27): shared sections live once in [common](../common/), each venue folder keeps only title, abstract, introduction and its discussion section; one [build script](../build_all.py) rebuilds all 4 drafts with page, anonymity, disclosure, drift and AI-signature gates. Human-Centric now carries the corrected method text; Data2AgentEx and Continual Causality drafts are new | [build script](../build_all.py) | all venues |
 | **N13** | 👤 | Submit on OpenReview: double-blind; disclose the student abstract, the Human-Centric submission and the arXiv preprint | [Cog2Soc OpenReview](https://openreview.net/group?id=AAAI.org/2027/Bridge/Cog2Soc) | submission |
