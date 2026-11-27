@@ -12,6 +12,7 @@ Save each model's answers to `overleaf/v4_AAAI_workshop/feedback/output/v1_Human
 
 ## 📚 Calibration set (AAAI-26 workshop papers, all verified accepted)
 
+<!-- joined-words: off --> <!-- why: paper titles and licence names are quoted verbatim -->
 | # | Pages in combined PDF | Paper | Workshop | arXiv | Licence |
 |---|---|---|---|---|---|
 | 1 | 1-4 (4 p) | Text-to-Vector Conversion for Residential Plan Design | AI4UP | [2602.10757](https://arxiv.org/abs/2602.10757) | CC BY-NC-SA 4.0 |

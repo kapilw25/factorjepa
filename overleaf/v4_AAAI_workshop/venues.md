@@ -1,27 +1,28 @@
 # 🗺️ AAAI-27 workshop venues for FactorJEPA
 
 AAAI-27 workshops and bridges with a deadline in the next 7 days (Fri Nov 27 to Thu Dec 3, 2026), as of 2026-11-26,
-filtered from the OpenReview "Open for Submissions" list and ranked by fit to FactorJEPA, plus the best fit overall,
-Human-Centric AgMS (Dec 25). Deadlines are the OpenReview ones, checked against the OpenReview API; several were
-extended past the Nov 20 date on the AAAI program page. "Results out" comes from each call and may slip.
+filtered from the OpenReview "Open for Submissions" list, plus the best fit overall, Human-Centric AgMS (Dec 25).
+The table keeps only strong and weak fits, most urgent first; poor fits are one line under it. Beyond AAAI, only A*
+conferences and their workshops were checked (owner pick 2026-11-26). Deadlines are the OpenReview ones, read from the
+OpenReview API on 2026-11-26; several were extended past the Nov 20 date on the AAAI program page. "Results out" comes
+from each call and may slip.
 
 Already submitted: 🟡 AAAI-27 Student Abstract (EasyChair, non-archival; reviews in [../feedback_official/v3_AAAI27_student_abstract.md](../feedback_official/v3_AAAI27_student_abstract.md)). ❌ AAAI-27 main track (Submission 43837), rejected in Phase 1 on 2026-09-24 ([reviews](../feedback_official/v1_AAAI27_main.md)).
 
-## 📋 Summary
+## 📋 Summary (most urgent first)
 
-| 🏛️ Venue | 🔗 URL | ⏰ Due (PST) | 📬 Results out | 📄 Our track | 🎯 Why it fits |
+| 🏛️ Venue | 🔗 Links | ⏰ Due (PST) | 📬 Results out | 📄 Our track | 🎯 Why it fits |
 |---|---|---|---|---|---|
-| 🚗 Human-Centric AgMS (W4) · outside the 7-day window | [agentic-mobility-workshop.github.io](https://agentic-mobility-workshop.github.io/cfp.html) · [OpenReview](https://openreview.net/group?id=AAAI.org/2027/Workshop/Human-Centric_AgMS) | 🔹 Fri Dec 25, 8:59 PM | 🔹 Sat Jan 2, 2027 | 🔹 ≤4 p excl. refs ([v1_Human_Centric/](v1_Human_Centric/) READY) | 🟢 the call names "world models of traffic scenes" and asks for benchmarks; double-blind, non-archival, concurrent work allowed |
-| 👥 Cog2Soc (bridge) | [cog2soc.github.io](https://cog2soc.github.io/) · [OpenReview](https://openreview.net/group?id=AAAI.org/2027/Bridge/Cog2Soc) | 🔹 Mon Nov 30, 3:59 AM (Nov 29 AoE) | 🔹 Thu Dec 10 | 🔹 ≤4 p excl. refs ([v2_Cog2Soc/](v2_Cog2Soc/) READY) | 🟢 best fit in the window: collective behaviour, norms and cross-cultural evaluation are named topics; datasets welcome; DENSEWORLD vs the Western reference is a cross-cultural gap |
-| 🧪 Data2AgentEx (bridge) | [data2agentex.github.io](https://data2agentex.github.io/AAAI2027/) · [OpenReview](https://openreview.net/group?id=AAAI.org/2027/Bridge/Data2AgentEx) | 🔹 Tue Dec 1, 9:00 PM (OpenReview closes before the site's Dec 1 AoE) | 🔹 Sun Dec 13 | 🔹 full 8 / short 4 / abstract 2 p | 🟡 public video turned into automatic factor targets is a data-to-training-signal story; the call is about workflows and tool traces, not video |
-| 🔁 Continual Causality, Novel track (bridge) | [continualcausality.com](https://www.continualcausality.com/) · OpenReview AAAI.org/2027/Bridge/Continual_Causality_Novel | 🔹 Wed Dec 2, 4:59 AM | 🔹 not stated | 🔹 2 or 4 p | 🟡 world models under distribution shift; but "Causal L1" is only a metric name, which the student-abstract reviewers already questioned |
-| 🎧 MakingSense (W42) | [making-sense-workshop.github.io](https://making-sense-workshop.github.io/) | 🔹 Fri Nov 27, 3:59 AM | 🔹 Wed Dec 2 | 🔹 long ≤7 / short ≤4 p, dataset track | 🔴 sensor and wearable focus; video is not a topic |
-| 🎯 MultiRobust (W38) | [robust-ai-2027.github.io](https://robust-ai-2027.github.io/aaai27_workshop) · [OpenReview](https://openreview.net/group?id=AAAI.org/2027/Workshop/MultiRobust) | 🔹 Sat Nov 28, 3:59 AM | 🔹 Wed Dec 2 | 🔹 full ≤8 / short ≤4 p | 🔴 multi-objective optimization; we only report a prediction vs temporal-coherence trade-off |
-| 🌊 StreamingCL (bridge) | [streamingcl2027.capymoa.org](https://streamingcl2027.capymoa.org/call-for-papers) | 🔹 Thu Dec 3, 4:59 PM | 🔹 not stated | 🔹 CEUR archival, single-column 5-12 p | 🔴 archival and a different format |
+| 👥 Cog2Soc (bridge) | 🔗 [site](https://cog2soc.github.io/) · [OpenReview](https://openreview.net/group?id=AAAI.org/2027/Bridge/Cog2Soc) | 🔹 Mon Nov 30, 3:59 AM (Nov 29 AoE) | 🔹 Thu Dec 10 | 🔹 ≤4 p excl. refs, [v2 folder](v2_Cog2Soc/) ready | 🟢 best fit this week: collective behaviour, norms and cross-cultural evaluation are named topics, datasets welcome; DENSEWORLD vs the Western reference is a cross-cultural gap |
+| 🧪 Data2AgentEx (bridge) | 🔗 [site](https://data2agentex.github.io/AAAI2027/) · [OpenReview](https://openreview.net/group?id=AAAI.org/2027/Bridge/Data2AgentEx) | 🔹 Tue Dec 1, 9:00 PM (OpenReview closes before the site's Dec 1 AoE) | 🔹 Sun Dec 13 | 🔹 full 8, short 4 or abstract 2 p; not built | 🟡 street video turned into automatic factor targets is a data to training signal story, but the call is about agent workflows and tool traces, not video |
+| 🔁 Continual Causality, Novel track (bridge) | 🔗 [site](https://www.continualcausality.com/) · [OpenReview](https://openreview.net/group?id=AAAI.org/2027/Bridge/Continual_Causality_Novel) | 🔹 Wed Dec 2, 4:59 AM | 🔹 not stated | 🔹 2 or 4 p; not built | 🟡 world models under distribution shift fit, but "Causal L1" is only a metric name, and the student-abstract reviewers already questioned it |
+| 🚗 Human-Centric AgMS (W4), beyond 7 days | 🔗 [site](https://agentic-mobility-workshop.github.io/cfp.html) · [OpenReview](https://openreview.net/group?id=AAAI.org/2027/Workshop/Human-Centric_AgMS) | 🔹 Fri Dec 25, 8:59 PM | 🔹 Sat Jan 2, 2027 | 🔹 ≤4 p excl. refs, [v1 folder](v1_Human_Centric/) ready | 🟢 best fit overall: the call names "world models of traffic scenes" and asks for benchmarks; double-blind, non-archival, concurrent work allowed |
 
-Legend: 🟢 strong fit · 🟡 weak fit, needs a reframe · 🔴 poor fit, not recommended · 🔹 value from the call
+Legend: 🟢 strong fit · 🟡 weak fit, listed but not built (owner pick 2026-11-26) · 🔹 value from the call
 
-Also in the window, all 🔴 (no video, driving, world-model or behaviour topic): Agentic Labs (Nov 28, world models for physical labs), A2NetOps, LoyalAgents, LAUT (Nov 28), EvalAIScientists (Nov 27), ANTHROLOGOS (Nov 30), NeSy-FM, ToM4AI (Dec 1), MATH4AI (Dec 2), PGAI4E (Dec 3, physics AI for energy), and the bridges AI4InclusiveEdu, BRAID (Dec 1), AIMedHealth, TGA, Bench2Evidence (Dec 2).
+🔴 Checked, poor fit (AAAI-27, due by Dec 3): MakingSense (Nov 27, sensors and wearables), MultiRobust (Nov 28, multi-objective optimisation), StreamingCL (Dec 3, archival single-column format), and 15 more with no video, driving, world-model or behaviour topic: Agentic Labs, A2NetOps, LoyalAgents, LAUT, EvalAIScientists, ANTHROLOGOS, NeSy-FM, ToM4AI, MATH4AI, PGAI4E, and the bridges AI4InclusiveEdu, BRAID, AIMedHealth, TGA, Bench2Evidence.
+
+🔭 Outside AAAI, A* venues only (WACV and other tier-2 venues excluded): nothing due by Dec 3 fits. The in-window calls from other large conferences are the WSDM 2027 workshops Context4Agents and LLM4ECommerce (Dec 1; both on LLM agents, and [CORE 2023](https://portal.core.edu.au/conf-ranks/31) ranks WSDM A, not A*) and ICRA 2027's Community Building Day and Arts in Robotics calls (Nov 30 and Dec 1; not paper tracks for this work). The nearest A* deadline is [RSS 2027](https://roboticsconference.org/) (Robotics: Science and Systems; [CORE](https://portal.core.edu.au/conf-ranks/1709) A* in past rounds), Sat Dec 5, 3:59 AM PST, a full archival robotics paper: 🟡 weak, because FactorJEPA has no robot or control results.
 
 Closed (checked 2026-11-26): GSR-VLM (W18, spatial reasoning in VLMs, Nov 20), ASTAD (W5, spatio-temporal anomaly detection, Nov 20, also bans dual submission), Embodied AI Meta-alignment (W35, Nov 24), Medical World Models (W41, Nov 15), W33 Orchestrating Human-AI to World Models (Nov 20), WMAC (W47, Nov 20).
 

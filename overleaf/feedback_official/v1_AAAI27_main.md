@@ -4,6 +4,7 @@
 
 ## 🗂️ Submission Facts
 
+<!-- joined-words: off --> <!-- why: the Title row quotes the submitted title verbatim -->
 | Field | Value |
 |---|---|
 | **Title** | FactorJEPA: Factorizing Monolithic Futures into Layout–Agent–Interaction Channels for Crowded and Chaotic Global South Urban Worlds |
@@ -161,10 +162,10 @@ Target: `overleaf/v3_AAAI27_student_abstract/0_main_AAAI.tex` (2 pages) + `1_sup
 
 | # | Reviewer finding | Raised by | Status | What changed |
 |---|---|---|---|---|
-| 1 | 1,000 h "professionally collected" vs 276 h YouTube corpus | R2, AI | ✅ fixed | Abstract + Problem: **276 hours, 714 public YouTube videos, 22 Indian cities, clips of 4 to 10 s** (from `src/hf_denseworld_115k/clips.csv`: 115,687 clips, 275.8 h). Supplement patched to the same numbers everywhere (abstract, data section, conclusion, appendix construction text and stats table, limitations): 714 YouTube videos, 276 h, clips of 4 to 10 s; the two professional-collection sentences replaced by the v1 YouTube wording. |
-| 2 | Causal L1 described as an intervention, implemented as second-half prediction | R2 | ✅ fixed | Diagnostics: "Causal L1: error when the second half of a clip is predicted from its first half" (matches `src/utils/pt_causal.py`). "Intervention regions" dropped from the Protocol sentence. |
-| 3 | "Ours" = RAW / 3sDI·int / WiSE-FT variants per cell, not one fixed model | R2, AI | ✅ fixed | Table 1 now reports **one fixed arm in every cell** (`surgical_3stage_DI_diheavy`, the configuration the Method section describes). Every margin claim re-checked with that arm (table below): abstract and Findings text unchanged. |
-| 4 | Inference-time construction of agent / interaction inputs unclear; information boundary | R1, AI | ✅ fixed | Method: "at inference the predictor reads nothing but the encoder's context tokens, with no DINOv2 pipeline, tracks, or agent proposals" (evaluation calls `predictor(z, [m_enc], [m_pred])` in `src/utils/predictor_eval.py`). |
+| 1 | 1,000 h "professionally collected" vs 276 h YouTube corpus | R2, AI | ✅ fixed | Abstract + Problem: **276 hours, 714 public YouTube videos, 22 Indian cities, clips of 4 to 10 s** (from [clips.csv](../../src/hf_denseworld_115k/clips.csv): 115,687 clips, 275.8 h). Supplement patched to the same numbers everywhere (abstract, data section, conclusion, appendix construction text and stats table, limitations): 714 YouTube videos, 276 h, clips of 4 to 10 s; the two professional-collection sentences replaced by the v1 YouTube wording. |
+| 2 | Causal L1 described as an intervention, implemented as second-half prediction | R2 | ✅ fixed | Diagnostics: "Causal L1: error when the second half of a clip is predicted from its first half" (matches the [causal code](../../src/utils/pt_causal.py)). "Intervention regions" dropped from the Protocol sentence. |
+| 3 | "Ours" = RAW / 3sDI·int / WiSE-FT variants per cell, not one fixed model | R2, AI | ✅ fixed | Table 1 now reports **one fixed arm in every cell** (code name in the note under this table, the configuration the Method section describes). Every margin claim re-checked with that arm (table below): abstract and Findings text unchanged. |
+| 4 | Inference-time construction of agent / interaction inputs unclear; information boundary | R1, AI | ✅ fixed | Method: "at inference the predictor reads nothing but the encoder's context tokens, with no DINOv2 pipeline, tracks, or agent proposals" (evaluation calls `predictor(z, [m_enc], [m_pred])` in the [predictor eval code](../../src/utils/predictor_eval.py)). |
 | 5 | Global South claim beyond the Indian evidence | AI | ✅ fixed | Title and text say **South Asian streets / 22 Indian cities**; no Global South claim in the abstract. Supplement: abstract, DENSEWORLD section title and its opening sentence now say South Asian; the two Global South mentions left are the limitations paragraph that scopes the claim. |
 | 6 | Novelty vs SlotFormer and DriveWorld not positioned | AI | ✅ fixed | One contrast sentence at the end of Method + both references added to `factorjepa.bib`. |
 | 7 | Unresolved "Figure ??" / "Appendix ??" | R2, AI | ✅ verified | 0 "??" in the compiled abstract and supplement PDFs. |
@@ -172,11 +173,13 @@ Target: `overleaf/v3_AAAI27_student_abstract/0_main_AAAI.tex` (2 pages) + `1_sup
 | 9 | Naming 3sDI / 3sDI·diH / 3sDI·int | AI | ✅ avoided | The abstract names one model, FactorJEPA. |
 | 10 | Cosmos decoder / oracle control announced but absent; ρ upper bound mismatch | AI (minor) | ✅ avoided | Neither appears; the abstract states only ρ ≥ 0.895. |
 | 11 | V-JEPA 2.1 provenance | R2 | ✅ cited | `murlabadia2026vjepa21` cited at first mention. |
-| 12 | Cross-channel leakage diagnostic never reported | R1 | ⬜ open | No leakage number exists in any tracked eval snapshot (`grep leakage` finds only split/data-leakage code). Needs a new eval run on the audit split; not claimable in the abstract. |
-| 13 | Raw-surgery ablation ≈ factorized variants (attribution) | R2, AI | ⬜ open | The abstract shows no ablation and the fixed arm removes `surgery_raw` from every cell, so the abstract no longer contradicts itself. A paired RAW-vs-3sDI test is still needed for the full paper. |
+| 12 | Cross-channel leakage diagnostic never reported | R1 | ⬜ open | No leakage number exists in any tracked eval snapshot (`grep leakage` finds only split and data leakage code). Needs a new eval run on the audit split; not claimable in the abstract. |
+| 13 | Raw-surgery ablation ≈ factorized variants (attribution) | R2, AI | ⬜ open | The abstract shows no ablation and the fixed arm removes `surgery_raw` from every cell, so the abstract no longer contradicts itself. A paired RAW versus 3sDI test is still needed for the full paper. |
 | 14 | No evaluation outside the JEPA latent space | R1 | ⬜ open | Motion cosine (linear probe on the audit split) is the only external readout in the abstract. A downstream task needs new experiments. |
 | 15 | Sparsity objective scale-degenerate; visibility gate is relative, not absolute | AI | ⬜ open | The abstract states only "sparse weighted sums" and "down-weights occluded agents" (relative wording, no absolute-suppression claim). The equation fix (dictionary-norm constraint) belongs to the full paper. |
 | 16 | Failure analysis by density / occlusion / city | AI | ⬜ open | No space in 2 pages; full-paper item. |
+
+Code name for row 3: the fixed arm is `surgical_3stage_DI_diheavy`.
 
 ### 📐 Margin check with the fixed arm (paired 95% BCa CI widths; ≥ 1 = separated, negative = rival ahead)
 

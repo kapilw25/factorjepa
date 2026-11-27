@@ -80,19 +80,21 @@ Checked on 2026-11-26 against the submitted files in [v3_AAAI27_student_abstract
 
 | Claim | Verdict | Evidence |
 |---|---|---|
-| R1-W1: abstract says L1, supplement says MSE | ✅ | Supplement 📍 pp. 35–36 defines "Future-frame MSE" and says the scorecard reports MSE, "not relabeled as L1". The code computes mean absolute error (`src/m12d_future_mse.py`, `masked_predict_l1`), so the **supplement text is the wrong one**. |
-| R1-W1: two definitions of Causal L1 | ✅ | Abstract: "error when the second half of a clip is predicted from its first half". Supplement: renamed "Intervention L1", a controlled edit per annotated intervention region. The code predicts the second half from the first (`src/utils/pt_causal.py`), so again the **supplement is wrong**. |
+| R1-W1: abstract says L1, supplement says MSE | ✅ | Supplement 📍 pp. 35–36 defines "Future-frame MSE" and says the scorecard reports MSE, "not relabeled as L1". The code computes mean absolute error ([L1 code](../../src/m12d_future_mse.py)), so the **supplement text is the wrong one**. |
+| R1-W1: two definitions of Causal L1 | ✅ | Abstract: "error when the second half of a clip is predicted from its first half". Supplement: renamed "Intervention L1", a controlled edit per annotated intervention region. The code predicts the second half from the first ([causal code](../../src/utils/pt_causal.py)), so again the **supplement is wrong**. |
 | R1-W2: at 115k only LoRA and the frozen backbone were trained | ✅ | Table 1 caption of the abstract: "At 115k only LoRA and the frozen backbone were trained as rivals." Full fine-tuning, the Motion-cosine leader at 10k, has no 115k run. |
 | R1-W3: RAW keeps the factorized predictor | ✅ | Supplement: FactorJEPA-RAW "retains the factorized predictor but removes factor-target supervision". The sentence about a matched monolithic predictor was not found by text search. |
 | R1-W4: Table 10 is a placeholder | ✅ | Supplement 📍 p. 40: every PSNR, SSIM, LPIPS, Flow EPE and Agent F1 cell reads `[result]`. |
+
+Code name for the first row: the L1 is computed by `masked_predict_l1`.
 
 ### ⚠️ Issues found (worse than the reviewers say)
 
 | Claim | Verdict | Evidence |
 |---|---|---|
-| R1-W1: a "city-disjoint human-annotated audit set" exists | ⚠️ | The abstract says "Headline evaluation uses a city-disjoint audit split with independently annotated agents". No such split exists in the code: test clips are held out at the clip level (`src/utils/clip_splits.py`), so clips from one source video can sit on both sides. |
-| R1-S2: "does not require an external DINOv2 ... pipeline" | ⚠️ | The reviewer repeats our wording. The abstract says the factor targets come from a "frozen DINOv2 pipeline"; the code uses Grounding DINO plus SAM 3 (`src/m10_sam_segment.py`). |
-| R2: "in most of the cases, the rival is outperforming" | 🟡 | Partly true. At 115k the best rival stays ahead on 6 diagnostics (rollout drift, exposure bias, L1-versus-Δt decay, arrow of time, two TCC measures); FactorJEPA separates on the 4 predictive diagnostics. The abstract gives no reason for the split, which is Review 2's real request. |
+| R1-W1: a "city-disjoint human-annotated audit set" exists | ⚠️ | The abstract says "Headline evaluation uses a city-disjoint audit split with independently annotated agents". No such split exists in the code: test clips are held out at the clip level ([split code](../../src/utils/clip_splits.py)), so clips from one source video can sit on both sides. |
+| R1-S2: "does not require an external DINOv2 ... pipeline" | ⚠️ | The reviewer repeats our wording. The abstract says the factor targets come from a "frozen DINOv2 pipeline"; the code uses Grounding DINO plus SAM 3 ([segmentation code](../../src/m10_sam_segment.py)). |
+| R2: "in most of the cases, the rival is outperforming" | 🟡 | Partly true. At 115k the best rival stays ahead on 6 diagnostics (rollout drift, exposure bias, L1 versus Δt decay, arrow of time, two TCC measures); FactorJEPA separates on the 4 predictive diagnostics. The abstract gives no reason for the split, which is Review 2's real request. |
 
 ### 🛠️ What to change, and where
 
@@ -102,7 +104,7 @@ Checked on 2026-11-26 against the submitted files in [v3_AAAI27_student_abstract
 | 2 | Causal L1 = second half predicted from the first | ✅ already | ✅ already | 🔴 replace the intervention definition |
 | 3 | Remove the city-disjoint audit claim; state the clip-level split | 🔴 still claims it | ✅ states the clip-level split | 🔴 check and fix |
 | 4 | Factor targets = Grounding DINO + SAM 3, not DINOv2 | 🔴 still says DINOv2 | ✅ already | 🔴 check and fix |
-| 5 | Drop "the trade-off is a data effect" (no full fine-tuning at 115k) | 🔴 still claims it | ✅ fixed 2026-11-26 in v1_Human_Centric and v2_Cog2Soc | 🔴 check and fix |
+| 5 | Drop "the trade-off is a data effect" (no full fine-tuning at 115k) | 🔴 still claims it | ✅ fixed 2026-11-26 in the v1 Human-Centric and v2 Cog2Soc papers | 🔴 check and fix |
 | 6 | Say why the rival wins on the six temporal diagnostics | 🔴 missing | 🟡 one sentence ("does not yet keep long predicted futures more coherent") | 🟡 expand |
 | 7 | Fill or remove the RGB decoding Table 10 | n/a | ✅ Limitations: embedding-space metrics only | 🔴 remove the placeholder table |
 | 8 | State that factorization and factor supervision are not separated | 🔴 missing | ✅ in Limitations | 🟡 already acknowledged |
