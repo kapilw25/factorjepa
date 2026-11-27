@@ -3,7 +3,7 @@
 Use a FRESH chat in each of ChatGPT, Claude and Gemini. Send STEP 1, wait for the answer, then STEP 2, wait, then STEP 3.
 Attach the files with the chat's paperclip button. Every file is on the **Downloads** tab of the private [Workshop Deadlines](https://claude.ai/artifact/FemMusSPv4xxXJBTWGcw6b) page (open it while logged in to claude.ai):
 
-- STEP 1 attachment: the combined PDF of accepted 4-page workshop papers (being assembled Fri Nov 27 ~6:30 AM PST; the paper list and the Step 1 text land here next)
+- STEP 1 attachment: `aaai_ws_00_combined_10papers_4page.pdf` (10 accepted short papers, 55 pages, 1.8 MB): the **Save PDF** button on the Downloads tab. It is kept out of git because the papers are by other authors and the PMLR ones state no licence; this Mac keeps a copy at `prev_acceptances/pdf/` (gitignored).
 - STEP 2 attachment: none (venue context only)
 - STEP 3 attachments, one PDF per open venue (each is the draft for that venue; all built Fri Nov 27 2026, ~6:25 AM PST, from one shared source, all gates pass):
   1. Cog2Soc: [v3_Cog2Soc_fixes/0_main.pdf](https://github.com/kapilw25/factorjepa/blob/main/overleaf/v4_AAAI_workshop/v3_Cog2Soc_fixes/0_main.pdf) ([download](https://raw.githubusercontent.com/kapilw25/factorjepa/main/overleaf/v4_AAAI_workshop/v3_Cog2Soc_fixes/0_main.pdf))
@@ -15,13 +15,72 @@ Save each model's answers to `overleaf/v4_AAAI_workshop/feedback/output/v3_open_
 
 The earlier one-venue prompts are in git history (Human-Centric) and in [prompt_v2_Cog2Soc.md](prompt_v2_Cog2Soc.md) (the fresh Claude judge loop on Cog2Soc).
 
-## 📚 Calibration set
+## 📚 Calibration set (10 accepted short papers, grouped by the venue they calibrate)
 
-Being assembled: 2 to 3 accepted papers per venue, each with at most 4 pages of main text (owner pick Fri Nov 27 2026 ~6:05 AM PST).
+Owner pick Fri Nov 27 2026 ~6:05 AM PST: venue-matched papers, each with at most 4 pages of main text, so the comparison is like for like (the earlier 7-paper AAAI-26 set had 4 papers of 7 to 8 pages and is retired; round 1 of the Cog2Soc judge used it). Every acceptance was checked on an official page; "main text" is measured to the References heading.
 
-## STEP 1 (attach the combined PDF)
+<!-- joined-words: off --> <!-- why: paper titles, venue names and licence names are quoted verbatim -->
+| # | Pages in combined PDF | Paper | Accepted at | Main text | Source | Licence |
+|---|---|---|---|---|---|---|
+| 👥 1 | 1-5 | How Well Can Vision-Language Models Understand Humans' Intention? An Open-ended Theory of Mind Question Evaluation Benchmark | ToM4AI workshop, AAAI-25, poster ([list](https://sites.google.com/view/theory-of-mind-aaai-2025/poster-sessions)) | 3.8 p | [arXiv](https://arxiv.org/abs/2503.22093) | CC BY-SA 4.0 |
+| 👥 2 | 6-11 | From Biased Chatbots to Biased Agents: Examining Role Assignment Effects on LLM Agent Robustness | TrustAgent workshop, AAAI-26, poster ([OpenReview](https://openreview.net/forum?id=WavZ34iiGB)) | 4.0 p | [arXiv](https://arxiv.org/abs/2602.12285) | CC BY 4.0 |
+| 🧪 3 | 12-22 | How Does the Spatial Distribution of Pre-training Data Affect Geospatial Foundation Models? | Good-Data workshop, AAAI-25 ([OpenReview](https://openreview.net/forum?id=P4xkFMRyQJ)) | 4.0 p | [arXiv](https://arxiv.org/abs/2501.12535) | CC BY-SA 4.0 |
+| 🧪 4 | 23-27 | "Are We Done Yet?": A Vision-Based Judge for Autonomous Task Completion of Computer Use Agents | TrustAgent workshop, AAAI-26, poster ([OpenReview](https://openreview.net/forum?id=cYKcJGsgnA)) | 3.9 p | [arXiv](https://arxiv.org/abs/2511.20067) | CC BY 4.0 |
+| 🧪 5 | 28-33 | Towards Adaptive Environment Generation for Training Embodied Agents | Bridge "Making Embodied AI Reliable with Testing and Formal Verification", AAAI-26 ([program](https://www.tacps.org/program/)) | 4.1 p | [arXiv](https://arxiv.org/abs/2602.06366) | CC BY 4.0 |
+| 🔁 6 | 34-38 | From IID to the Independent Mechanisms assumption in continual learning | Continual Causality bridge, AAAI-23, oral ([list](https://www.continualcausality.com/23/papers)) | 3.4 p, one column | [PMLR 208](https://proceedings.mlr.press/v208/ostapenko23a/ostapenko23a.pdf) | not stated |
+| 🔁 7 | 39-42 | Spurious Features in Continual Learning | Continual Causality bridge, AAAI-23, poster (same list) | 3.4 p, one column | [PMLR 208](https://proceedings.mlr.press/v208/lesort23a/lesort23a.pdf) | not stated |
+| 🔁 8 | 43-46 | Never Ending Reasoning and Learning: Opportunities and Challenges | Continual Causality bridge, AAAI-23, oral (same list) | 3.1 p, one column | [PMLR 208](https://proceedings.mlr.press/v208/natarajan23a/natarajan23a.pdf) | not stated |
+| 🚗 9 | 47-50 | Formal Safety Guarantees for Autonomous Vehicles using Barrier Certificates | Bridge "Making Embodied AI Reliable with Testing and Formal Verification", AAAI-26 ([program](https://www.tacps.org/program/)) | 2.9 p | [arXiv](https://arxiv.org/abs/2601.09740) | CC BY-NC-ND 4.0 |
+| 🚗 10 | 51-55 | Fine-tuning LLMs for Tourist Trajectory Prediction using Field Experiment Data | AI for Urban Planning workshop, AAAI-26 ([list](https://ai-for-urban-planning.github.io/AAAI26-workshop/papers.html)) | 3.6 p | [arXiv](https://arxiv.org/abs/2608.20830) | CC BY 4.0 |
 
-Pending, with the calibration set.
+Legend: 👥 Cog2Soc · 🧪 Data2AgentEx · 🔁 Continual Causality · 🚗 Human-Centric AgMS.
+
+Limits of the set, said plainly:
+- Cog2Soc and Data2AgentEx are new bridges with no earlier edition, so their groups come from the nearest AAAI-25 and AAAI-26 workshops. No accepted short paper on collective behaviour or agent-based models could be downloaded, so the Cog2Soc group is theory of mind and agent behaviour.
+- The Continual Causality group is that bridge's own first edition, but in PMLR's one-column layout: about 3.4 one-column pages is roughly 2 AAAI pages, less text than our drafts.
+- Human-Centric has 2 papers. Every AAAI-25 autonomous-driving workshop paper found ran 6 to 7 pages of main text.
+- arXiv copies were measured where the workshop version sits only on OpenReview, so a camera-ready may differ slightly.
+- Dropped: a 2-page extended abstract (Rank-O-ToM, ToM4AI AAAI-25), by the 4-page rule.
+
+## STEP 1 (attach the combined PDF of 10 accepted papers)
+
+```text
+You are a senior program-committee member for AAAI workshops and bridges on human behaviour modelling, agent data,
+continual learning and mobility. The attached 55-page PDF joins 10 short papers ACCEPTED at AAAI workshops and bridges,
+each with at most 4 pages of main text, grouped by the venue type they calibrate (page ranges are pages of the combined PDF):
+Group A, behaviour of humans and agents (for a bridge on modelling human behaviour, cognition to society):
+(1) How Well Can Vision-Language Models Understand Humans' Intention?, pp. 1-5 (ToM4AI, AAAI-25)
+(2) From Biased Chatbots to Biased Agents, pp. 6-11 (TrustAgent, AAAI-26)
+Group B, data for agent learning (for a bridge on turning domain data into agent experience):
+(3) How Does the Spatial Distribution of Pre-training Data Affect Geospatial Foundation Models?, pp. 12-22 (Good-Data, AAAI-25)
+(4) "Are We Done Yet?": A Vision-Based Judge for Computer Use Agents, pp. 23-27 (TrustAgent, AAAI-26)
+(5) Towards Adaptive Environment Generation for Training Embodied Agents, pp. 28-33 (Embodied AI reliability bridge, AAAI-26)
+Group C, continual learning and causality (earlier edition of the same bridge; PMLR one-column layout):
+(6) From IID to the Independent Mechanisms assumption in continual learning, pp. 34-38 (Continual Causality, AAAI-23)
+(7) Spurious Features in Continual Learning, pp. 39-42 (Continual Causality, AAAI-23)
+(8) Never Ending Reasoning and Learning: Opportunities and Challenges, pp. 43-46 (Continual Causality, AAAI-23)
+Group D, mobility and traffic agents:
+(9) Formal Safety Guarantees for Autonomous Vehicles using Barrier Certificates, pp. 47-50 (Embodied AI reliability bridge, AAAI-26)
+(10) Fine-tuning LLMs for Tourist Trajectory Prediction using Field Experiment Data, pp. 51-55 (AI for Urban Planning, AAAI-26)
+
+Read all 10. Then write a calibration sheet I will use to judge a new paper:
+
+1. For each paper, 3 lines: core claim, the main evidence (tables/figures), and what most
+   likely got it accepted.
+2. The common bar for acceptance at a 4-page AAAI workshop or bridge paper: what every accepted
+   paper has (framing, novelty statement, evidence level, statistics, figures, writing tone).
+3. What these papers get away with (weaknesses that did NOT block acceptance).
+4. How each paper states its contribution in the abstract and introduction: quote the one
+   sentence per paper that best sells its novelty.
+5. How they write about their own limitations and negative results (tone, placement, length).
+6. How each paper handles evaluation evidence: repeated runs, variance or intervals, ablations,
+   failure analyses, and whether it reports what did not work.
+7. For each group A to D: what that community's reviewers reward most, and how its bar differs
+   from the other groups (for example, Group C papers are vision and position papers; Group B
+   papers lead with data or evaluation resources).
+
+Be concrete, cite page numbers. Do not judge any other paper yet; I will send the venues next.
+```
 
 ## STEP 2 (no attachment: the 4 venues)
 
