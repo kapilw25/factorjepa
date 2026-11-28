@@ -141,7 +141,7 @@ verify() {
 WATCHDOG_PID=""
 start_watchdog() {
     if [[ -f "src/utils/gpu_watchdog.py" ]]; then
-        python src/utils/gpu_watchdog.py &
+        python src/utils/gpu_watchdog.py --disk-path . &   # recipient + sender from .env (was missing --email → exited at start)
         WATCHDOG_PID=$!
         log "GPU watchdog started (PID=$WATCHDOG_PID)"
     fi

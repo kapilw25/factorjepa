@@ -403,6 +403,7 @@ gpu:
     window_min: 5          # minutes of sustained low util before alert
     interval_s: 30         # seconds between checks
     cooldown_min: 30       # minutes between repeat alerts
+    min_free_disk_gb: 15   # alert below this free disk on --disk-path (a full disk killed 9 SwiPO trainings silently, Nov 2026)
 
 # -- Evaluation --
 eval:

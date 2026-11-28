@@ -91,6 +91,8 @@ if [ -z "$1" ]; then
     echo "  ./setup_env_uv.sh --mac                 # M1 Mac (CPU-based)"
     echo "  ./setup_env_uv.sh --gpu                 # GPU Server (Nvidia ONLY)"
     echo "  ./setup_env_uv.sh --gpu --from-wheels   # GPU + prebuilt FA2/FAISS wheels"
+    echo "  ./setup_env_uv.sh --gpu-eval-min        # small-disk box: m12 eval stages only"
+    echo "  ./setup_env_uv.sh --gpu-train-min       # small-disk box: eval-min + m09c1/m09b trainers"
     exit 1
 fi
 
@@ -270,9 +272,11 @@ PYEOF
 # deps/vjepa2: enough for m04e, m12b (motion cosine), m12d (future-frame L1), m12e (forward L1, mask-ratio slope).
 # No base requirements, no FA2 / FAISS / cuML / SAM, no checkpoint downloads, no uv cache kept on disk.
 # ============================================================================
-if [ "$1" = "--gpu-eval-min" ]; then
+# --gpu-train-min (2026-11-28): the same plus requirements_train_min.txt and --no-deps transformers/accelerate/peft,
+# enough for the 1B m09c1 surgery and m09b PEFT trainers on a box whose disk cannot hold the full --gpu env.
+if [ "$1" = "--gpu-eval-min" ] || [ "$1" = "--gpu-train-min" ]; then
     if [ "$OS" != "Linux" ]; then
-        echo "Error: --gpu-eval-min requires Linux. Detected: $OS"
+        echo "Error: $1 requires Linux. Detected: $OS"
         exit 1
     fi
     export UV_NO_CACHE=1
@@ -286,10 +290,15 @@ if [ "$1" = "--gpu-eval-min" ]; then
     uv pip install -r requirements_eval_min.txt
     # --no-deps: timm's torch/torchvision requirement otherwise pulls PyPI torch over the pinned nightly.
     uv pip install --no-deps "timm>=0.9.0"
+    if [ "$1" = "--gpu-train-min" ]; then
+        uv pip install -r requirements_train_min.txt
+        # --no-deps: each depends on torch; resolving it would pull PyPI torch over the pinned nightly.
+        uv pip install --no-deps "transformers==5.5.4" "accelerate>=0.25.0" "peft>=0.13.0"
+    fi
     mkdir -p outputs/poc logs data deps
     setup_vjepa2
     python -c "import torch, timm; assert torch.__version__.startswith('${TORCH_VERSION}'), f'FATAL: torch {torch.__version__} != pinned ${TORCH_VERSION}'; assert torch.cuda.is_available(), 'FATAL: CUDA not available'; print('torch', torch.__version__, 'CUDA', torch.version.cuda, torch.cuda.get_device_name(0), 'sm', torch.cuda.get_device_capability(0), 'timm', timm.__version__)"
-    echo "--gpu-eval-min setup complete: $(du -sh venv_walkindia | cut -f1) venv"
+    echo "$1 setup complete: $(du -sh venv_walkindia | cut -f1) venv"
     exit 0
 fi
 

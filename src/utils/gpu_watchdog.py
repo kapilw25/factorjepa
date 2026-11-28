@@ -2,13 +2,16 @@
 GPU utilization watchdog — emails alert if GPU drops below threshold for N minutes.
 Run as background process alongside the pipeline.
 
-USAGE:
-    python scripts/gpu_watchdog.py &                    # default: 50% threshold, 5 min window
-    python scripts/gpu_watchdog.py --threshold 30 &     # custom threshold
-    python scripts/gpu_watchdog.py --dry-run             # test without sending email
+Also alerts when free disk on --disk-path drops below pipeline.yaml gpu.watchdog.min_free_disk_gb.
+Needs in the repo-root .env (never in the repo): GMAIL_APP_PASSWORD, GMAIL_SENDER_EMAIL, GPU_ALERT_EMAIL.
+
+USAGE (on the GPU box, its own tmux session so it outlives every job):
+    tmux new -d -s fj_watchdog "source venv_walkindia/bin/activate && python -u src/utils/gpu_watchdog.py --disk-path . --test-email 2>&1 | tee -a logs/gpu_watchdog_$(date +%Y%m%d_%H%M%S).log"
+    python src/utils/gpu_watchdog.py --disk-path . --dry-run      # test without sending email
 """
 import argparse
 import os
+import shutil
 import smtplib
 import subprocess
 import sys
@@ -83,8 +86,13 @@ def main():
                         help="Seconds between GPU checks (default: pipeline.yaml gpu.watchdog.interval_s)")
     parser.add_argument("--cooldown", type=int, default=None,
                         help="Minutes between repeat alerts (default: pipeline.yaml gpu.watchdog.cooldown_min)")
-    parser.add_argument("--email", type=str, required=True,
-                        help="Recipient address for GPU-low alerts (no default per CLAUDE.md).")
+    parser.add_argument("--email", type=str, default=None,
+                        help="Recipient address. Omitted → .env GPU_ALERT_EMAIL (FATAL if neither): the "
+                             "address is personal data and stays out of the public repo and shell history.")
+    parser.add_argument("--disk-path", type=str, required=True,
+                        help="Filesystem to watch for free space (the repo root on the box).")
+    parser.add_argument("--test-email", action="store_true",
+                        help="Send one 'watchdog started' e-mail at start so the alert path is proven.")
     parser.add_argument("--dry-run", action="store_true",
                         help="Print alerts instead of emailing")
     args = parser.parse_args()
@@ -121,11 +129,34 @@ def main():
         print("FATAL: GMAIL_SENDER_EMAIL not found in .env")
         print("Add to .env: GMAIL_SENDER_EMAIL=you@example.com")
         sys.exit(1)
+    if args.email is None:
+        args.email = os.getenv("GPU_ALERT_EMAIL")
+    if not args.email:
+        print("FATAL: no recipient: pass --email or add GPU_ALERT_EMAIL=you@example.com to .env")
+        sys.exit(1)
+    min_free_gb = _wd["min_free_disk_gb"]
 
     hostname = os.uname().nodename
     checks_needed = max(1, (args.window * 60) // args.interval)
     low_count = 0
     last_alert_time = 0
+    last_disk_alert = 0
+
+    def deliver(subject, body):
+        if args.dry_run:
+            print(f"\n{'='*60}\nDRY RUN: {subject}\n{body}\n{'='*60}\n")
+            return
+        try:
+            send_alert(args.email, subject, body, gmail_password, from_email=gmail_sender)
+            print(f"[{datetime.now():%H:%M:%S}] ALERT SENT: {subject}")
+        except (smtplib.SMTPException, OSError) as e:
+            print(f"[{datetime.now():%H:%M:%S}] EMAIL FAILED: {type(e).__name__}: {e}")
+
+    if args.test_email:
+        deliver(f"[GPU WATCHDOG] started on {hostname}",
+                f"Watchdog running: alert if GPU < {args.threshold}% for {args.window}+ min "
+                f"or free disk < {min_free_gb} GB on {args.disk_path}.\n"
+                f"Now: GPU {get_gpu_utilization()}% | {get_gpu_info()} | {get_running_process()}\n")
 
     print(f"GPU Watchdog: threshold={args.threshold}%, window={args.window}min, "
           f"interval={args.interval}s, cooldown={args.cooldown}min")
@@ -133,6 +164,12 @@ def main():
 
     while True:
         util = get_gpu_utilization()
+        free_gb = shutil.disk_usage(args.disk_path).free / 1e9
+        if free_gb < min_free_gb and time.time() - last_disk_alert > args.cooldown * 60:
+            deliver(f"[DISK ALERT] {hostname}: {free_gb:.0f} GB free on {args.disk_path}",
+                    f"Free disk {free_gb:.1f} GB < {min_free_gb} GB. Training writes ~12 GB per arm; "
+                    f"a full disk kills runs silently.\nGPU {util}% | {get_running_process()}\n")
+            last_disk_alert = time.time()
 
         if util < 0:
             time.sleep(args.interval)
@@ -154,23 +191,10 @@ def main():
                         f"GPU:     {util}%\n"
                         f"Info:    {gpu_info}\n"
                         f"Process: {process}\n\n"
-                        f"Check: tail -f logs/ch9_full*.log\n"
-                        f"nvtop or nvidia-smi for live GPU status\n"
+                        f"Free disk: {free_gb:.0f} GB\n"
+                        f"Check: ls -t logs | head; tmux ls; nvidia-smi\n"
                     )
-
-                    if args.dry_run:
-                        print(f"\n{'='*60}")
-                        print(f"DRY RUN: {subject}")
-                        print(body)
-                        print(f"{'='*60}\n")
-                    else:
-                        try:
-                            send_alert(args.email, subject, body, gmail_password,
-                                       from_email=gmail_sender)
-                            print(f"[{datetime.now():%H:%M:%S}] ALERT SENT: GPU {util}% → {args.email}")
-                        except Exception as e:
-                            print(f"[{datetime.now():%H:%M:%S}] EMAIL FAILED: {e}")
-
+                    deliver(subject, body)
                     last_alert_time = now
                     low_count = 0
         else:

@@ -1,0 +1,11 @@
+# setup_env_uv.sh --gpu-train-min: what the m09c1 surgery and m09b PEFT trainers (and hf_outputs.py) import beyond
+# requirements_eval_min.txt, for a small-disk box (2026-11-28). Versions follow requirements.txt / requirements_gpu.txt.
+# transformers, accelerate and peft depend on torch, so setup_env_uv.sh installs them --no-deps (the pinned nightly
+# torch must not be replaced); their non-torch dependencies are listed here.
+matplotlib>=3.7.0
+requests>=2.31.0
+regex
+tokenizers
+psutil
+packaging
+httpx                       # transformers 5 / huggingface_hub 1.x HTTP client (m09b imports peft -> transformers)

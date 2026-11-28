@@ -14,7 +14,7 @@
 #
 # Profiles (sizes measured from the HF tree listing of anonymousML123/factorjepa-outputs, 2026-11-28):
 #   eval-heldout  ~3 GB    video held-out test, 4 saved 1B 10k models (checkpoints leased at run time)
-#   train-1b-10k  ~21 GB   train 1B arms on eval_10k (run_train.sh / ngpu_run.py --mode POC)
+#   train-10k  ~21 GB   train 1B arms on eval_10k (run_train.sh / ngpu_run.py --mode POC)
 #   eval-10k      ~244 GB  eval_10k data + every saved 1B 10k arm and eval (run_eval.sh --POC)
 #   full          ~319 GB  115k corpus + the 1B FULL outputs (ngpu_run.py --mode FULL, iter19)
 #
@@ -34,7 +34,7 @@ cd "$(dirname "$0")/.."
 mkdir -p logs
 
 usage() {
-    echo "USAGE: bash scripts/setup_new_box.sh --profile {eval-heldout|train-1b-10k|eval-10k|full} [--dry-run] [--skip-env]"
+    echo "USAGE: bash scripts/setup_new_box.sh --profile {eval-heldout|train-10k|eval-10k|full} [--dry-run] [--skip-env]"
     echo "  --dry-run   print every step and command, run none (safe on a laptop)"
     echo "  --skip-env  do not run setup_env_uv.sh (venv_walkindia must already exist)"
 }
@@ -68,7 +68,7 @@ case "$PROFILE" in
         # WORK: frame cache 1,702 clips x ~19.7 MB = ~34 GB, 4 parallel checkpoint leases x 8.3 GB = ~33 GB.
         DL_GB=3;   WORK_GB=75
         WHAT="video held-out test (heldout_video_eval.sh / heldout_video_parallel.sh), 4 saved 1B 10k models" ;;
-    train-1b-10k)
+    train-10k)
         # data/eval_10k_local 20.9 GB. WORK: ngpu_run.py's own POC gate for --cache 2 (250 GB).
         DL_GB=21;  WORK_GB=250
         NEED_DATA_DIR="data/eval_10k_local"; NEED_MANIFEST="eval_10k.json"
@@ -107,8 +107,8 @@ run() {
     "$@" 2>&1 | tee "$log"
 }
 
-# yq <dotted.key>: one value from configs/pipeline.yaml via scripts/lib/yaml_extract.py (needs the venv).
-yq() {
+# ycfg <dotted.key>: one value from configs/pipeline.yaml via scripts/lib/yaml_extract.py (needs the venv).
+ycfg() {
     if [ "$HAVE_VENV" = 1 ]; then
         python scripts/lib/yaml_extract.py configs/pipeline.yaml "$1"
     else
@@ -200,8 +200,8 @@ fi
 FLIP_CMD=""
 if [ -n "$NEED_DATA_DIR" ]; then
     FLIP_CMD="sed -i -e 's|local_data_dir:.*|local_data_dir: \"$NEED_DATA_DIR\"|' -e 's|master_manifest_name:.*|master_manifest_name: \"$NEED_MANIFEST\"|' configs/pipeline.yaml"
-    if grep -qE "^\s+local_data_dir: \"?$NEED_DATA_DIR\"?\s*$" configs/pipeline.yaml \
-        && grep -qE "^\s+master_manifest_name: \"?$NEED_MANIFEST\"?\s*$" configs/pipeline.yaml; then
+    if grep -qE "^[[:space:]]+local_data_dir: \"?${NEED_DATA_DIR}\"?[[:space:]]*\$" configs/pipeline.yaml \
+        && grep -qE "^[[:space:]]+master_manifest_name: \"?${NEED_MANIFEST}\"?[[:space:]]*\$" configs/pipeline.yaml; then
         echo "  pipeline.yaml data dir: $NEED_DATA_DIR / $NEED_MANIFEST (matches profile)"
     else
         echo "  pipeline.yaml data dir does not match profile $PROFILE ($NEED_DATA_DIR / $NEED_MANIFEST). Run:"
@@ -231,33 +231,39 @@ else
 fi
 if [ "$PROFILE" = "eval-heldout" ]; then
     command -v jq > /dev/null 2>&1 || fail_or_note "jq not found (setup_env_uv.sh installs it with apt)"
+    # heldout_video_parallel.sh needs the CUDA MPS daemon; heldout_video_eval.sh (one arm at a time) does not.
+    if command -v nvidia-cuda-mps-control > /dev/null 2>&1; then
+        add_row "CUDA MPS (parallel held-out runner)" "OK" "nvidia-cuda-mps-control found"
+    else
+        add_row "CUDA MPS (parallel held-out runner)" "ABSENT" "use scripts/heldout_video_eval.sh (one arm at a time)"
+    fi
 fi
 
 # Everything below reads configs/pipeline.yaml (single source); nothing is retyped here.
-HF_REPO="$(yq hf_repos.outputs)"
-BASE_CKPT="$(yq "backbone_checkpoints.${BACKBONE}")"
-MODEL_CFG="$(yq "backbone_model_configs.${BACKBONE}")"
-SHARD_SUBDIR="$(yq data.shard_subdir)"
-SHARD_GLOB="$(yq artifacts.video_shard_glob)"
-MASKS_SUBDIR="$(yq data.masks_subdir)"
-MASKS_INNER="$(yq data.masks_inner_dirname)"
-FACTOR_SUBDIR="$(yq data.factor_subdir)"
-FACTOR_MANIFEST="$(yq data.factor_manifest_name)"
-CACHE_CAP_GB="$(yq probe.eval_frame_cache.max_cache_gb)"
+HF_REPO="$(ycfg hf_repos.outputs)"
+BASE_CKPT="$(ycfg "backbone_checkpoints.${BACKBONE}")"
+MODEL_CFG="$(ycfg "backbone_model_configs.${BACKBONE}")"
+SHARD_SUBDIR="$(ycfg data.shard_subdir)"
+SHARD_GLOB="$(ycfg artifacts.video_shard_glob)"
+MASKS_SUBDIR="$(ycfg data.masks_subdir)"
+MASKS_INNER="$(ycfg data.masks_inner_dirname)"
+FACTOR_SUBDIR="$(ycfg data.factor_subdir)"
+FACTOR_MANIFEST="$(ycfg data.factor_manifest_name)"
+CACHE_CAP_GB="$(ycfg probe.eval_frame_cache.max_cache_gb)"
 if [ "$HAVE_VENV" = 1 ]; then
     POC_TRAIN_ROOT="$(python src/utils/output_paths.py train-dir poc "$BACKBONE")"
 else
     POC_TRAIN_ROOT="<output_paths.py train-dir poc $BACKBONE>"
 fi
 POC_BB_ROOT="$(dirname "$POC_TRAIN_ROOT")"
-FULL_ROOT="$(yq output_roots.full)"
+FULL_ROOT="$(ycfg output_roots.full)"
 
 if [ -n "$NEED_DATA_DIR" ] && [ "$HAVE_VENV" = 1 ]; then
-    Y_DIR="$(yq data.local_data_dir)"; Y_MAN="$(yq data.master_manifest_name)"
+    Y_DIR="$(ycfg data.local_data_dir)"; Y_MAN="$(ycfg data.master_manifest_name)"
     if [ "$Y_DIR" = "$NEED_DATA_DIR" ] && [ "$Y_MAN" = "$NEED_MANIFEST" ]; then
         add_row "pipeline.yaml data dir" "OK" "$Y_DIR / $Y_MAN"
     else
-        add_row "pipeline.yaml data dir" "WRONG" "$Y_DIR / $Y_MAN, needs $NEED_DATA_DIR / $NEED_MANIFEST"
+        add_row "pipeline.yaml data dir" "WRONG" "has $Y_DIR, needs $NEED_DATA_DIR (sed above)"
         fail_or_note "pipeline.yaml says $Y_DIR / $Y_MAN; profile $PROFILE needs $NEED_DATA_DIR / $NEED_MANIFEST. Run: $FLIP_CMD"
     fi
 fi
@@ -272,7 +278,7 @@ CORPUS_DIR="data/full_local"
 CORPUS_MANIFEST="${CORPUS_DIR}/full_local.json"
 case "$PROFILE" in
     eval-heldout) OUT_TREES=(outputs/heldout_video) ;;
-    train-1b-10k) DATA_TREES=("data/eval_10k_local:eval_10k.json") ;;
+    train-10k) DATA_TREES=("data/eval_10k_local:eval_10k.json") ;;
     eval-10k)     DATA_TREES=("data/eval_10k_local:eval_10k.json"); OUT_TREES=("$POC_BB_ROOT") ;;
     full)         DATA_TREES=("${CORPUS_DIR}:full_local.json"); OUT_TREES=("$FULL_ROOT")
                   if [ "$HAVE_VENV" = 1 ]; then WORK_GB=$((CACHE_CAP_GB + 40)); else WORK_GB=640; fi ;;
@@ -317,6 +323,7 @@ if [ "$PROFILE" = "eval-heldout" ]; then
     # the corpus tree. Wanted clips = the keys of the shipped held-out labels, i.e. exactly the clips
     # the eval scripts score.
     run fetch_full_local_manifest hf_fetch_file "$HF_REPO" "$CORPUS_MANIFEST"
+    add_row "download $CORPUS_MANIFEST" "$([ "$DRY_RUN" = 1 ] && echo DRY-RUN || echo DONE)" "one named file (hf download), not a tree"
     run heldout_label_subset make_label_subset "$HELDOUT_LABELS" "$HELDOUT_SUBSET"
     if [ -f "${HELDOUT_LOCAL}/manifest.json" ]; then
         echo "  ${HELDOUT_LOCAL}/manifest.json exists, not re-cutting"
@@ -340,7 +347,8 @@ need_file() {   # need_file <path> <what>
 need_glob() {   # need_glob <dir> <glob> <what>
     if [ "$DRY_RUN" = 1 ]; then echo "  [dry-run] check files: $1/$2 ($3)"; return 0; fi
     local n
-    n="$(find "$1" -maxdepth 1 -name "$2" 2>/dev/null | wc -l | tr -d ' ')"
+    [ -d "$1" ] || { echo "FATAL: missing dir for $3: $1" >&2; exit 1; }
+    n="$(find "$1" -mindepth 1 -maxdepth 1 -name "$2" | wc -l | tr -d ' ')"
     [ "$n" -gt 0 ] || { echo "FATAL: no $3 in $1 ($2)" >&2; exit 1; }
     echo "  ok  $1/$2 ($n files)"
 }
@@ -375,14 +383,15 @@ add_row "verify $BASE_CKPT" "$([ "$DRY_RUN" = 1 ] && echo DRY-RUN || echo PASS)"
 
 # ── 7 summary ─────────────────────────────────────────────────────────────────────────────
 step 7 "summary"
-printf '┌%s┬%s┬%s┐\n' "$(printf '─%.0s' $(seq 1 40))" "$(printf '─%.0s' $(seq 1 11))" "$(printf '─%.0s' $(seq 1 58))"
-printf '│ %-38s │ %-9s │ %-56s │\n' "step" "result" "detail"
-printf '├%s┼%s┼%s┤\n' "$(printf '─%.0s' $(seq 1 40))" "$(printf '─%.0s' $(seq 1 11))" "$(printf '─%.0s' $(seq 1 58))"
+hline() { printf '%s%s%s%s%s%s%s\n' "$1" "$(printf '─%.0s' $(seq 1 46))" "$2" "$(printf '─%.0s' $(seq 1 11))" "$2" "$(printf '─%.0s' $(seq 1 62))" "$3"; }
+hline '┌' '┬' '┐'
+printf '│ %-44s │ %-9s │ %-60s │\n' "step" "result" "detail"
+hline '├' '┼' '┤'
 for ROW in "${SUMMARY[@]}"; do
     IFS='|' read -r C1 C2 C3 <<< "$ROW"
-    printf '│ %-38.38s │ %-9.9s │ %-56.56s │\n' "$C1" "$C2" "$C3"
+    printf '│ %-44.44s │ %-9.9s │ %-60.60s │\n' "$C1" "$C2" "$C3"
 done
-printf '└%s┴%s┴%s┘\n' "$(printf '─%.0s' $(seq 1 40))" "$(printf '─%.0s' $(seq 1 11))" "$(printf '─%.0s' $(seq 1 58))"
+hline '└' '┴' '┘'
 
 echo ""
 echo "Next (see README.md, Setup):"
@@ -397,9 +406,10 @@ case "$PROFILE" in
         echo "      \"${BACKBONE}_surgical_3stage_DI_diheavy_encoder|m09c_surgery_3stage_DI_diheavy_encoder|m09c_ckpt_best.pt\" \\"
         echo "      \"${BACKBONE}_peft_lora_encoder|m09b_peft_lora_encoder|m09c_ckpt_best.pt\" \\"
         echo "      2>&1 | tee logs/heldout_video_parallel_\$(date +%Y%m%d_%H%M%S).log" ;;
-    train-1b-10k)
+    train-10k)
         echo "  BACKBONE=$BACKBONE ./scripts/run_train.sh pretrain_encoder --POC 2>&1 | tee logs/run_train_pretrain_\$(date +%Y%m%d_%H%M%S).log" ;;
     eval-10k)
+        echo "  # CACHE_POLICY_ALL=1 keeps the downloaded eval caches and scores only what is missing; 2 recomputes"
         echo "  ITER18_BACKBONE=$BACKBONE EVAL_CORPUS=eval_10k CACHE_POLICY_ALL=1 ./scripts/run_eval.sh --POC \\"
         echo "      --encoders \"${BACKBONE}_frozen ${BACKBONE}_surgical_3stage_DI_diheavy_encoder\" \\"
         echo "      2>&1 | tee logs/run_eval_poc_\$(date +%Y%m%d_%H%M%S).log" ;;
