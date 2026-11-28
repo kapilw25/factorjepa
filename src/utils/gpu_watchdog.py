@@ -6,8 +6,8 @@ Also alerts when free disk on --disk-path drops below pipeline.yaml gpu.watchdog
 Needs in the repo-root .env (never in the repo): GMAIL_APP_PASSWORD, GMAIL_SENDER_EMAIL, GPU_ALERT_EMAIL.
 
 USAGE (on the GPU box, its own tmux session so it outlives every job):
-    tmux new -d -s fj_watchdog "source venv_walkindia/bin/activate && python -u src/utils/gpu_watchdog.py --disk-path . --test-email 2>&1 | tee -a logs/gpu_watchdog_$(date +%Y%m%d_%H%M%S).log"
-    python src/utils/gpu_watchdog.py --disk-path . --dry-run      # test without sending email
+    tmux new -d -s fj_watchdog "source venv_walkindia/bin/activate && python -u src/utils/gpu_watchdog.py --disk-path . --logs-dir logs --done-file logs/gpu_queue_done.txt --test-email 2>&1 | tee -a logs/gpu_watchdog_$(date +%Y%m%d_%H%M%S).log"
+    python src/utils/gpu_watchdog.py --disk-path . --logs-dir logs --done-file logs/gpu_queue_done.txt --dry-run   # no e-mail
 """
 import argparse
 import os
@@ -91,6 +91,10 @@ def main():
                              "address is personal data and stays out of the public repo and shell history.")
     parser.add_argument("--disk-path", type=str, required=True,
                         help="Filesystem to watch for free space (the repo root on the box).")
+    parser.add_argument("--logs-dir", type=str, required=True,
+                        help="Folder of run logs: a hang = no file written for gpu.watchdog.stale_log_min while a GPU job runs.")
+    parser.add_argument("--done-file", type=str, required=True,
+                        help="Queue exit log (lines 'EXIT <code> <name> <HH:MM>'); a non-zero code is a crash alert.")
     parser.add_argument("--test-email", action="store_true",
                         help="Send one 'watchdog started' e-mail at start so the alert path is proven.")
     parser.add_argument("--dry-run", action="store_true",
@@ -135,6 +139,10 @@ def main():
         print("FATAL: no recipient: pass --email or add GPU_ALERT_EMAIL=you@example.com to .env")
         sys.exit(1)
     min_free_gb = _wd["min_free_disk_gb"]
+    stale_min = _wd["stale_log_min"]
+    done_file = Path(args.done_file)
+    done_seen = len(done_file.read_text().splitlines()) if done_file.exists() else 0
+    last_stale_alert = 0
 
     hostname = os.uname().nodename
     checks_needed = max(1, (args.window * 60) // args.interval)
@@ -170,6 +178,28 @@ def main():
                     f"Free disk {free_gb:.1f} GB < {min_free_gb} GB. Training writes ~12 GB per arm; "
                     f"a full disk kills runs silently.\nGPU {util}% | {get_running_process()}\n")
             last_disk_alert = time.time()
+
+        # Crash: a queue job that exited non-zero since the last check.
+        if done_file.exists():
+            lines = done_file.read_text().splitlines()
+            for line in lines[done_seen:]:
+                parts = line.split()
+                if len(parts) >= 3 and parts[0] == "EXIT" and parts[1] != "0":
+                    deliver(f"[JOB FAILED] {hostname}: {parts[2]} exit {parts[1]}",
+                            f"{line}\nCheck: ls -t {args.logs_dir} | head; tmux ls\n")
+            done_seen = len(lines)
+
+        # Hang: a GPU process is running but no log was written for stale_min minutes.
+        process = get_running_process()
+        logs = [p for p in Path(args.logs_dir).iterdir() if p.is_file()]
+        newest = max((p.stat().st_mtime for p in logs), default=0.0)
+        idle_min = (time.time() - newest) / 60
+        if (process != "No GPU process" and idle_min > stale_min
+                and time.time() - last_stale_alert > args.cooldown * 60):
+            deliver(f"[STALE LOG] {hostname}: no log written for {idle_min:.0f} min, GPU job still running",
+                    f"GPU {util}% | {process}\nNewest log is {idle_min:.0f} min old in {args.logs_dir}: "
+                    f"the job may be hung.\n")
+            last_stale_alert = time.time()
 
         if util < 0:
             time.sleep(args.interval)

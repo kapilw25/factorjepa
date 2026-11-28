@@ -154,6 +154,7 @@ from utils.probe_labels import ensure_probe_labels_for_mode
 from torch.utils.data import DataLoader
 from utils.data_paths import artifact  # iter18 W4: canonical artifact names (pipeline.yaml)
 from utils.stream_autotune import resolve_stream_workers  # iter18: num_workers auto-tune
+from utils.mfu_calculator import build_calculator, measured_peak_flops  # training MFU (same as m09a1)
 
 # iter18 W7 (PLR2004): semantic named constants.
 _CKPT_NAME_MIN_PARTS = 3   # ckpt filename: <stem>_<step>_<tag>
@@ -1284,6 +1285,12 @@ def train(cfg: dict, args):
     # so a skip-all finalize-resume doesn't UnboundLocal at the summary build → crash → retry → re-train from
     # scratch (exactly what bit peft_lora's recovery). None = the honest "no training this run" record.
     optimizer = scheduler = jepa_val = None
+    # MFU (Model FLOPs Utilization) — same fields, cadence and log/jsonl/wandb keys as m09a1
+    # (utils.mfu_calculator). Peak = dense BF16 GEMM measured ONCE on THIS GPU. fork_rng saves and
+    # restores the CPU + CUDA RNG state around the benchmark's torch.randn, so measuring consumes
+    # no training RNG (measurement only: seed-1 runs stay comparable).
+    with torch.random.fork_rng(devices=[device]):
+        mfu_peak_flops = measured_peak_flops(get_pipeline_config(), device)
     try:
         for stage_idx, stage_cfg in enumerate(stages):
             if stage_idx <= resume_after_stage:
@@ -1347,6 +1354,17 @@ def train(cfg: dict, args):
             # NOT call set_trainable_prefix (it would un-freeze base blocks + break the PeftModel structure).
             print(f"  PEFT: set_trainable_prefix SKIPPED (stage depth-fraction n={n_trainable}); "
                   f"adapters stay trainable, base frozen")
+
+            # MFU calculator per stage (same placement as m09c1): N_train counts the requires_grad
+            # params as the peft wrap leaves them (adapters + predictor); N_fwd, arch and peak as m09a1.
+            mfu_calc = build_calculator(
+                forward_modules=[student, predictor],
+                trainable_modules=[student, predictor],   # only requires_grad params -> N_train
+                model_cfg=cfg["model"], num_frames=cfg["data"]["num_frames"],
+                peak_flops=mfu_peak_flops)
+            print(f"[mfu] peak={mfu_calc.peak/1e12:.0f} TFLOPS(dense bf16) "
+                  f"N_fwd={mfu_calc.n_fwd/1e9:.2f}B N_train={mfu_calc.n_train/1e9:.3f}B "
+                  f"T={mfu_calc.seq_len} tok/clip", flush=True)
 
             # Rebuild optimizer (only trainable params)
             # iter14 recipe-v3 (2026-05-09): pass init_params so SPDAdamW can
@@ -1639,6 +1657,16 @@ def train(cfg: dict, args):
                 block_drift_mean = (float(sum(drift_per_block) / len(drift_per_block))
                                     if drift_per_block else 0.0)
 
+                # Windowed throughput, computed BEFORE the step record (m09a1 order) so the
+                # jsonl/wandb rows can carry MFU; the tqdm postfix below reads the same values.
+                running_loss += jepa_val
+                window_steps += 1
+                now = time.time()
+                window_elapsed = now - window_start
+                throughput = window_steps / window_elapsed if window_elapsed > 0 else 0.0
+                mfu_rep = mfu_calc.report(   # real-time MFU: honest + 6N + tokens/sec
+                    mfu_calc.tokens_per_sec_from_steps(throughput, batch_size), "train")
+
                 step_record = {
                     "step": global_step, "stage": stage_name,
                     "loss_jepa": round(jepa_val, 6),
@@ -1653,6 +1681,7 @@ def train(cfg: dict, args):
                     "uw_w_infonce": round(uw_w_infonce, 6),
                     "uw_w_tcc": round(uw_w_tcc, 6),
                     "lr": lr_val, "grad_norm": round(gn_val, 4),
+                    **mfu_rep,   # mfu (honest), mfu_6n, tokens_per_sec
                 }
                 if mt_head is not None:
                     step_record["loss_multi_task"] = round(mt_loss_val, 6)
@@ -1679,6 +1708,8 @@ def train(cfg: dict, args):
                     "loss/uw_w_tcc": uw_w_tcc,
                     "lr": lr_val,
                     "grad_norm": gn_val, "stage": stage_idx,
+                    "mfu": mfu_rep["mfu"], "mfu_6n": mfu_rep["mfu_6n"],
+                    "tokens_per_s": mfu_rep["tokens_per_sec"],
                 }
                 if mt_head is not None:
                     wb_metrics["loss/multi_task"] = mt_loss_val
@@ -1693,18 +1724,15 @@ def train(cfg: dict, args):
                 # tqdm postfix — windowed rolling mean (matches m09a:814-823 pattern).
                 # At surgery's ~60 s/step wall, 30-s window usually fires every step →
                 # effectively a per-step loss display. Shown fields: stage · rolling-mean
-                # jepa loss · LR · grad norm · throughput (step/s ≈ 1/s-per-step).
-                running_loss += jepa_val
-                window_steps += 1
-                now = time.time()
-                window_elapsed = now - window_start
-                throughput = window_steps / window_elapsed if window_elapsed > 0 else 0.0
+                # jepa loss · LR · grad norm · throughput (step/s ≈ 1/s-per-step) · MFU.
+                # running_loss/window_steps/throughput/mfu_rep are updated above the step record.
                 if window_elapsed >= _RATE_WINDOW_S:
                     pbar.set_postfix_str(
                         f"S{stage_idx + 1} loss={running_loss / window_steps:.4f} "
                         f"lr={lr_val:.2e} "
                         f"grad={gn_val:.2f} "
-                        f"{throughput:.2f} step/s")
+                        f"{throughput:.2f} step/s "
+                        f"mfu={mfu_rep['mfu']:.3f}")
                     window_start = now
                     window_steps = 0
                     running_loss = 0.0

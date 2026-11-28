@@ -293,7 +293,7 @@ if [ "$1" = "--gpu-eval-min" ] || [ "$1" = "--gpu-train-min" ]; then
     if [ "$1" = "--gpu-train-min" ]; then
         uv pip install -r requirements_train_min.txt
         # --no-deps: each depends on torch; resolving it would pull PyPI torch over the pinned nightly.
-        uv pip install --no-deps "transformers==5.5.4" "accelerate>=0.25.0" "peft>=0.13.0"
+        uv pip install --no-deps "transformers==5.5.4" "accelerate>=0.25.0" "peft>=0.13.0" "bitsandbytes>=0.41.0"
     fi
     mkdir -p outputs/poc logs data deps
     setup_vjepa2

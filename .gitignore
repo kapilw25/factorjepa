@@ -65,6 +65,8 @@ checkpoints/
 # Logs
 logs/*.log
 *.logclear
+# GPU-box mirrors (watchdog/sync copies of the box's logs/: alert lines can carry contact details; never tracked)
+logs/box_fj_*/
 # Allow logs anywhere under iter/ — iteration runbooks track raw .log alongside results
 !iter/**/*.log
 

@@ -235,14 +235,21 @@ def _evict_to(cache_dir: str, target_bytes: float) -> int:
 
 def _frame_cache_store(cache_path: str, frames) -> None:
     """Atomically memoize the decoded tensor under a HARD size cap (EVAL_FRAME_CACHE_MAX_GB) with
-    LRU eviction; falls back to the legacy free-disk floor (EVAL_FRAME_CACHE_MIN_FREE_GB) only when
-    no cap is set. The cache is a pure speed optimization, so a write/evict failure WARNs and
+    LRU eviction, and never below the free-disk floor (EVAL_FRAME_CACHE_MIN_FREE_GB), which applies
+    to every store whether or not a cap is set. The cache is a pure speed optimization, so a write/evict failure WARNs and
     continues — the decode already returned the correct frames. Atomic = unique temp + os.replace."""
     try:
         cache_dir = os.path.dirname(cache_path)
         os.makedirs(cache_dir, exist_ok=True)
         arr = frames.numpy() if hasattr(frames, "numpy") else np.asarray(frames)
         new_bytes = int(arr.nbytes)
+
+        # Free-disk floor, enforced on EVERY store (2026-11-28 fix): with a cap set, the floor used to be
+        # skipped, so a cap larger than the disk (600 G on a 35 G-free box) let the cache fill the disk to
+        # 0 bytes in 7 minutes mid-training. Checked BEFORE the cap's byte counter so a skip never inflates it.
+        min_free_gb = float(os.environ.get(_FRAME_CACHE_MIN_FREE_ENV, "20"))
+        if shutil.disk_usage(cache_dir).free - new_bytes < min_free_gb * (1024 ** 3):
+            return  # disk getting tight → stop adding entries (existing ones still serve hits)
 
         max_gb = os.environ.get(_FRAME_CACHE_MAX_ENV)
         if max_gb is not None:
@@ -266,11 +273,6 @@ def _frame_cache_store(cache_path: str, frames) -> None:
                             cf.write(str(total + new_bytes))
                 finally:
                     fcntl.flock(lf, fcntl.LOCK_UN)
-        else:
-            # Legacy fallback: free-disk floor (kept for callers that don't set the cap).
-            min_free_gb = float(os.environ.get(_FRAME_CACHE_MIN_FREE_ENV, "20"))
-            if shutil.disk_usage(cache_dir).free < min_free_gb * (1024 ** 3):
-                return  # disk getting tight → stop adding entries (existing ones still serve hits)
 
         fd, tmp = tempfile.mkstemp(dir=cache_dir, suffix=".npy.tmp")
         try:

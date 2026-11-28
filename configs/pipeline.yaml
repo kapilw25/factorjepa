@@ -404,6 +404,16 @@ gpu:
     interval_s: 30         # seconds between checks
     cooldown_min: 30       # minutes between repeat alerts
     min_free_disk_gb: 15   # alert below this free disk on --disk-path (a full disk killed 9 SwiPO trainings silently, Nov 2026)
+    stale_log_min: 20      # alert when a GPU job runs but no log in --logs-dir was written for this long (a hang)
+  # GPU job queue (src/utils/gpu_queue.py, ported from the SwiPO box queue 2026-11-28): the next jobs-file line starts
+  # only when fewer than max_jobs GPU jobs run AND nvidia-smi memory.free covers the job kind (train_* vs others).
+  queue:
+    max_jobs: 2            # concurrent GPU jobs (they share the card under CUDA MPS)
+    train_free_gb: 40      # 1B m09c1/m09b POC training at batch 32 (set from the measured random-view run)
+    eval_free_gb: 24       # 1B m12 eval stages under FJ_GPU_MEM_GB=22 (held-out bench, Nov 28)
+    settle_train_s: 300    # wait after starting a train job so it allocates before the next memory check
+    settle_eval_s: 120
+    poll_s: 30
 
 # -- Evaluation --
 eval:
