@@ -6,8 +6,8 @@ Also alerts when free disk on --disk-path drops below pipeline.yaml gpu.watchdog
 Needs in the repo-root .env (never in the repo): GMAIL_APP_PASSWORD, GMAIL_SENDER_EMAIL, GPU_ALERT_EMAIL.
 
 USAGE (on the GPU box, its own tmux session so it outlives every job):
-    tmux new -d -s fj_watchdog "source venv_walkindia/bin/activate && python -u src/utils/gpu_watchdog.py --disk-path . --logs-dir logs --done-file logs/gpu_queue_done.txt --test-email 2>&1 | tee -a logs/gpu_watchdog_$(date +%Y%m%d_%H%M%S).log"
-    python src/utils/gpu_watchdog.py --disk-path . --logs-dir logs --done-file logs/gpu_queue_done.txt --dry-run   # no e-mail
+    tmux new -d -s fj_watchdog "source venv_walkindia/bin/activate && python -u src/utils/gpu_watchdog.py --disk-path . --logs-dir logs --done-file logs/gpu_queue_done.txt --alerts-file logs/gpu_watchdog_alerts.log --test-email 2>&1 | tee -a logs/gpu_watchdog_$(date +%Y%m%d_%H%M%S).log"
+    python src/utils/gpu_watchdog.py --disk-path . --logs-dir logs --done-file logs/gpu_queue_done.txt --alerts-file logs/gpu_watchdog_alerts.log --dry-run   # no e-mail
 """
 import argparse
 import os
@@ -95,6 +95,9 @@ def main():
                         help="Folder of run logs: a hang = no file written for gpu.watchdog.stale_log_min while a GPU job runs.")
     parser.add_argument("--done-file", type=str, required=True,
                         help="Queue exit log (lines 'EXIT <code> <name> <HH:MM>'); a non-zero code is a crash alert.")
+    parser.add_argument("--alerts-file", type=str, required=True,
+                        help="Every alert is also appended here ('<UTC time> <subject>'), so a reader that cannot "
+                             "get e-mail (the Claude session's 15-min check) still sees it.")
     parser.add_argument("--test-email", action="store_true",
                         help="Send one 'watchdog started' e-mail at start so the alert path is proven.")
     parser.add_argument("--dry-run", action="store_true",
@@ -151,6 +154,8 @@ def main():
     last_disk_alert = 0
 
     def deliver(subject, body):
+        with open(args.alerts_file, "a") as f:
+            f.write(f"{datetime.utcnow():%Y-%m-%d %H:%M:%S} UTC {subject}\n")
         if args.dry_run:
             print(f"\n{'='*60}\nDRY RUN: {subject}\n{body}\n{'='*60}\n")
             return

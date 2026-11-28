@@ -399,8 +399,8 @@ gpu:
   inference_predictor_temporal_bs: 16  # m12e: clips per predictor forward. iter18 2026-06-07: 4→16 — stage 8b (135m, 90% of eval wall) ran bs=4 on a 96G GPU (~10% util). Per-clip metrics PROVEN batch-invariant (pt_order/pt_maskratio seed a local Generator(PT_SEED) → same perm for every clip; causal/tdist/rollout use deterministic temporal_token_idx; encoder/predictor eval()+no_grad) → bit-identical at any bs. safe_metric OOM-subbatches→1, so 16 is correctness-safe even if it overshoots VRAM. Stayed below adapted_probe_bs=24 (line 377) because the predictor fwd is heavier (holds h + a growing rollout bank). was argparse default=4 → H2 yaml
   # utils/gpu_watchdog.py ops tool (iter18 H2: were argparse defaults 50/5/30/30)
   watchdog:
-    threshold_pct: 50      # alert if GPU util < this for window_min
-    window_min: 5          # minutes of sustained low util before alert
+    threshold_pct: 25      # alert if GPU util < this for window_min (owner Sat Nov 28 2026: below 25% for 15 min)
+    window_min: 15         # minutes of sustained low util before alert
     interval_s: 30         # seconds between checks
     cooldown_min: 30       # minutes between repeat alerts
     min_free_disk_gb: 15   # alert below this free disk on --disk-path (a full disk killed 9 SwiPO trainings silently, Nov 2026)
@@ -409,7 +409,8 @@ gpu:
   # only when fewer than max_jobs GPU jobs run AND nvidia-smi memory.free covers the job kind (train_* vs others).
   queue:
     max_jobs: 2            # concurrent GPU jobs (they share the card under CUDA MPS)
-    train_free_gb: 40      # 1B m09c1/m09b POC training at batch 32 (set from the measured random-view run)
+    train_free_gb: 64      # 1B m09c1/m09b POC training at batch 32 peaks ~61 GB (measured random-view run, Nov 28); at 40
+                           # a 2nd training started while the 1st was still in its 52 GB stage 0 and both would have OOMed
     eval_free_gb: 24       # 1B m12 eval stages under FJ_GPU_MEM_GB=22 (held-out bench, Nov 28)
     settle_train_s: 300    # wait after starting a train job so it allocates before the next memory check
     settle_eval_s: 120

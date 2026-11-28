@@ -51,7 +51,8 @@ def count_gpu_jobs(ps_out: str) -> int:
     procs = {}
     for row in ps_out.splitlines():
         f = row.split()
-        if len(f) >= 5 and f[2].endswith(("python", "python3")) and f[3] == "-u" and f[4].startswith("src/"):
+        if (len(f) >= 5 and f[2].endswith(("python", "python3")) and f[3] == "-u" and f[4].startswith("src/")
+                and f[4] != "src/utils/gpu_queue.py"):   # the queue itself is not a GPU job
             procs[f[0]] = f[1]
     return sum(1 for pid, ppid in procs.items() if ppid not in procs)
 
@@ -130,7 +131,7 @@ def selftest() -> int:
     print(f"{'ok ' if cmd[-1].endswith(want_tail) else 'BAD'} tmux command ends with the EXIT line")
     ps = ("10 1 /v/bin/python -u src/m09c1_surgery_encoder.py --POC\n11 10 /v/bin/python -u src/m09c1_surgery_encoder.py --POC\n"
           "12 10 /v/bin/python -u src/m09c1_surgery_encoder.py --POC\n20 1 /v/bin/python3 -u src/m09b_peft_encoder.py\n"
-          "30 1 python -c pass\n")
+          "30 1 python -c pass\n40 1 /v/bin/python -u src/utils/gpu_queue.py --jobs j\n")
     got = count_gpu_jobs(ps)
     ok += got == 2
     print(f"{'ok ' if got == 2 else 'BAD'} 2 trainers with 2 DataLoader workers count as {got}")
