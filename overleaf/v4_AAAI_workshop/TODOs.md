@@ -52,7 +52,7 @@ Writing and CPU work on the Mac. Each draft is rebuilt with all gates (pages, an
 | 📏 115k clustered CIs, raw effects | 🔗 all | ⏰ Sat Nov 28, ~8 PM | ⏳ waits box for per-clip data | 🔥 high, Figure 3 in plain units |
 | 🔁 Fresh judge round 2, v3 | 👥 v3 | ⏰ Sun Nov 29, ~8 PM | 🔴 open | 🔥 high, last error catch |
 | 📈 Horizon curve, saved values | 🚗 v1 | ⏰ Mon Dec 7 | 🔴 open | 🟢 medium, v1 planning horizon |
-| ✍️ v1 rewrites, abstract | 🚗 v1 | ⏰ Fri Dec 18 | 🔴 open | 🔥 high, first thing read |
+| ✍️ v1 rewrites, abstract | 🚗 v1 | ⏰ Fri Dec 18 | 🟡 tone pass done; rest after probe | 🔥 high, first thing read |
 | 🪝 Page-1 hook figure | 👥 v3, 🚗 v1 | ⏰ Sun Nov 29 if time | 🔴 open, needs a real frame | 🟢 medium, page-1 clarity |
 | 🔍 Figure 3: 8 pt ticks, top gap | 🔗 all | 👤 owner call | 🔴 owner, audit found 4 old issues | 🔸 low, readability |
 | 🔤 Figure 1 labels at 9 pt | 🔗 all | 👤 owner call | 🔴 owner, thickening failed | 🔸 low, readability |
