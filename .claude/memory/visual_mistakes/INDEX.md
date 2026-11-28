@@ -54,3 +54,5 @@ Append-only. Each row is one file `VM<n>.md`. The PreToolUse hook `surface-visua
 | VM42 | latex-table-layout | multi-line transcript rows at body leading with no \addlinespace between entities blur into one block; verdict LAST leaves lone "[repetitive]" lines; put the verdict first + ragged p-columns |
 | VM43 | latex-table-layout | table note set as a free paragraph hangs 19 pt outside a centred tabular; make it a \multicolumn last row so note x0 = rule x0 |
 | VM44 | raster-text-emboldening | a one-sided 1-px faux bold on 1.4-2.4 pt baked labels filled letter holes, greyed legend keys and changed nothing at print size; measure placed type first, under 9 pt regenerate the labels (VM40) |
+| VM45 | raster-text-resize | centred tick labels enlarged 7.5 to 8.7 pt on a symlog axis: "-100"/"-10" gap fell 43 to 23 px; after any tick font increase measure every neighbour gap against a word space (0.42 em) |
+| VM46 | raster-frame | white bar outlines painted over the frame's innermost column (two 1 px nicks) after only the top notch was fixed; check every frame line row by row and column by column |
