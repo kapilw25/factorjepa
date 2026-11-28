@@ -11,6 +11,7 @@ pandas>=2.0.0
 tqdm>=4.65.0
 av>=12.0.0
 safetensors>=0.4.0
+pillow>=10.0.0              # torchvision (installed --no-deps) imports PIL when timm loads
 einops>=0.6.0
 # timm is installed with --no-deps by setup_env_uv.sh --gpu-eval-min: listed here it made uv resolve torch and
 # torchvision from PyPI and replace the pinned nightly (torch 2.15 + a second CUDA 13 stack, Fri Nov 27 2026).
