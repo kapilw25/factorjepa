@@ -53,3 +53,4 @@ Append-only. Each row is one file `VM<n>.md`. The PreToolUse hook `surface-visua
 | VM41 | latex-table-layout | stub sub-column shipped with an EMPTY header cell and a one-letter row label ("I") that is also a math symbol in the prose; every column gets a header word, row labels are words |
 | VM42 | latex-table-layout | multi-line transcript rows at body leading with no \addlinespace between entities blur into one block; verdict LAST leaves lone "[repetitive]" lines; put the verdict first + ragged p-columns |
 | VM43 | latex-table-layout | table note set as a free paragraph hangs 19 pt outside a centred tabular; make it a \multicolumn last row so note x0 = rule x0 |
+| VM44 | raster-text-emboldening | a one-sided 1-px faux bold on 1.4-2.4 pt baked labels filled letter holes, greyed legend keys and changed nothing at print size; measure placed type first, under 9 pt regenerate the labels (VM40) |
