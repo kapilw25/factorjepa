@@ -49,6 +49,7 @@ from utils.checkpoint import save_array_checkpoint, save_json_checkpoint
 from utils.config import add_local_data_arg, check_gpu, get_pipeline_config
 from utils.data_download import ensure_local_data, iter_clips_parallel
 from utils.decode_feeder import DecodeFeeder
+from utils.measured_mfu import MeasuredMFU
 from utils.frozen_features import ENCODERS, decode_to_tensor
 from utils.gpu_batch import cleanup_temp
 from utils.predictor_eval import (
@@ -158,27 +159,29 @@ def run_forward_stage(args, wb) -> None:
         clip_q, tar_stop, _r = iter_clips_parallel(
             local_data=args.local_data, subset_keys=target, processed_keys=processed)
         pend_t, pend_k, n_since = [], [], 0
+        mfu = MeasuredMFU(_PCFG, label=f"m12e {args.variant} {'+'.join(todo)}")
 
         def _flush():
             nonlocal pend_t, pend_k, n_since
             if not pend_t:
                 return
             batch = torch.stack(pend_t)
-            # iter19 2026-07-07: with --metric all, compute the mask-independent encode h=encoder(pixel) ONCE
-            # per batch and share it across the metrics that can reuse it (all but 'order', which permutes
-            # frames → its own pixel). PROVEN bit-identical (scratchpad/hfull_parity: 0.0 diff on all 5) →
-            # saves 5× redundant 1B full-encodes ≈ 1.8× on the pt-metric half. Inert when 1 metric runs.
-            h_shared = None
-            if len(todo) > 1:
-                with torch.no_grad():
-                    _hf = encoder(to_pixel(batch))
-                    h_shared = torch.cat(list(_hf), -1) if isinstance(_hf, (list, tuple)) else _hf
-            for m in todo:
-                mh = None if m == "order" else h_shared   # order re-encodes its permuted pixel → cannot share
-                vals = _safe_metric(METRICS[m][0], encoder, predictor, batch, args.num_frames, h_full=mh)
-                if len(vals) != len(pend_k):
-                    sys.exit(f"FATAL: metric {m} returned {len(vals)} vals for {len(pend_k)} clips")
-                acc[m].extend(float(v) for v in vals)
+            with mfu.measure(n_clips=len(pend_k)):     # FLOPs counted on the first batch only
+                # iter19 2026-07-07: with --metric all, compute the mask-independent encode h=encoder(pixel) ONCE
+                # per batch and share it across the metrics that can reuse it (all but 'order', which permutes
+                # frames → its own pixel). PROVEN bit-identical (scratchpad/hfull_parity: 0.0 diff on all 5) →
+                # saves 5× redundant 1B full-encodes ≈ 1.8× on the pt-metric half. Inert when 1 metric runs.
+                h_shared = None
+                if len(todo) > 1:
+                    with torch.no_grad():
+                        _hf = encoder(to_pixel(batch))
+                        h_shared = torch.cat(list(_hf), -1) if isinstance(_hf, (list, tuple)) else _hf
+                for m in todo:
+                    mh = None if m == "order" else h_shared   # order re-encodes its permuted pixel → cannot share
+                    vals = _safe_metric(METRICS[m][0], encoder, predictor, batch, args.num_frames, h_full=mh)
+                    if len(vals) != len(pend_k):
+                        sys.exit(f"FATAL: metric {m} returned {len(vals)} vals for {len(pend_k)} clips")
+                    acc[m].extend(float(v) for v in vals)
             keys_acc.extend(pend_k)
             pbar.update(len(pend_k))
             n_since += len(pend_k)
@@ -211,6 +214,7 @@ def run_forward_stage(args, wb) -> None:
         finally:
             tar_stop.set()
             pbar.close()
+        print(mfu.report())
 
     for m in todo:
         arr = np.asarray(acc[m], dtype=np.float32)

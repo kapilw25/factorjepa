@@ -49,6 +49,7 @@ from utils.checkpoint import save_array_checkpoint, save_json_checkpoint
 from utils.config import add_local_data_arg, check_gpu, get_pipeline_config
 from utils.data_download import ensure_local_data, iter_clips_parallel
 from utils.decode_feeder import BatchFeeder, DecodeFeeder
+from utils.measured_mfu import MeasuredMFU
 from utils.frozen_features import (
     ENCODERS,
     decode_to_tensor,
@@ -325,12 +326,14 @@ def run_forward_stage(args, wb) -> None:
         # rung 2 (07-09): builder thread stacks+pins batch k+1 while k forwards; tail batch
         # published as-is, so the old pending-list accumulation + post-loop flush both go away.
         batches = BatchFeeder(feeder, batch_size=_PENDING_FLUSH_N, depth=2, pin_memory=True)
+        mfu = MeasuredMFU(_PCFG, label=f"m12d {args.variant}")
         try:
             for pending_keys, batch_t in batches:
-                _flush_batch_forward(batch_t, pending_keys,
-                                     encoder, predictor, mask_gen,
-                                     sizer, mse_acc, keys_acc, pbar,
-                                     ma_head=ma_head, ma_acc=ma_acc, embed_dim=embed_dim)
+                with mfu.measure(n_clips=len(pending_keys)):   # FLOPs counted on the first batch only
+                    _flush_batch_forward(batch_t, pending_keys,
+                                         encoder, predictor, mask_gen,
+                                         sizer, mse_acc, keys_acc, pbar,
+                                         ma_head=ma_head, ma_acc=ma_acc, embed_dim=embed_dim)
                 n_since_ckpt += len(pending_keys)
                 if n_since_ckpt >= CHECKPOINT_EVERY:
                     _save_mse_ckpt(ckpt_file, mse_acc, keys_acc, ma_acc=ma_acc)
@@ -338,6 +341,7 @@ def run_forward_stage(args, wb) -> None:
         finally:
             tar_stop.set()
             pbar.close()
+        print(mfu.report())
 
     if not mse_acc:
         sys.exit("FATAL: 0 clips produced an MSE — pipeline failure")

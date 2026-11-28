@@ -18,6 +18,22 @@ if [ $# -lt 9 ]; then
 fi
 CAP=$1; REPO=$2; TRAIN_ROOT=$3; LOCAL=$4; PROBE=$5; OUT=$6; LEASE=$7; MCFG=$8; shift 8
 PT_BATCH="$(python scripts/lib/yaml_extract.py configs/pipeline.yaml probe.predictor_temporal.batch_size)" || exit 2
+# Shared decoded-frame cache, same switch and keys as scripts/run_eval.sh: each clip is decoded once
+# and every later stage and arm reads the cached frames (decode is deterministic, so outputs are
+# unchanged). EVAL_FRAME_CACHE_DIR may be pre-set (e.g. a RAM disk when the box disk is tight).
+FRAME_CACHE_ENABLED="$(python scripts/lib/yaml_extract.py configs/pipeline.yaml probe.eval_frame_cache.enabled)" || exit 2
+case "$FRAME_CACHE_ENABLED" in
+    false|False|0|"")
+        echo "  eval frame cache: disabled (probe.eval_frame_cache.enabled=$FRAME_CACHE_ENABLED)" ;;
+    *)
+        FRAME_CACHE_SUBDIR="$(python scripts/lib/yaml_extract.py configs/pipeline.yaml probe.eval_frame_cache.subdir)" || exit 2
+        export EVAL_FRAME_CACHE_DIR="${EVAL_FRAME_CACHE_DIR:-${LOCAL}/${FRAME_CACHE_SUBDIR}}"
+        EVAL_FRAME_CACHE_MIN_FREE_GB="$(python scripts/lib/yaml_extract.py configs/pipeline.yaml probe.eval_frame_cache.min_free_gb)" || exit 2
+        EVAL_FRAME_CACHE_MAX_GB="$(python scripts/lib/yaml_extract.py configs/pipeline.yaml probe.eval_frame_cache.max_cache_gb)" || exit 2
+        export EVAL_FRAME_CACHE_MIN_FREE_GB EVAL_FRAME_CACHE_MAX_GB
+        mkdir -p "$EVAL_FRAME_CACHE_DIR"
+        echo "  eval frame cache: $EVAL_FRAME_CACHE_DIR (max ${EVAL_FRAME_CACHE_MAX_GB} GB, LRU-evict)" ;;
+esac
 TS=$(date +%Y%m%d_%H%M%S)
 mkdir -p logs "$OUT"
 for SPEC in "$@"; do

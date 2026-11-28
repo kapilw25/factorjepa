@@ -556,7 +556,9 @@ def extract_features_for_keys(args, model, encoder_kind: str, crop: int, embed_d
     try:
         _mfu_calc = build_inference_calculator(
             encoder=model, embed_dim=embed_dim, num_frames=args.num_frames,
-            crop_size=crop, patch_size=PATCH_SIZE, tubelet_size=args.tubelet_size,
+            # TUBELET_SIZE: the value load_vjepa_frozen built the encoder with (args.tubelet_size is an
+            # optional m12a flag and absent in m12b → AttributeError disabled MFU on every m12b run).
+            crop_size=crop, patch_size=PATCH_SIZE, tubelet_size=TUBELET_SIZE,
             peak_flops=measured_peak_flops(_PCFG, torch.device("cuda")))
     except Exception as _mfu_e:    # noqa: BLE001 — instrumentation must not crash eval
         print(f"  [mfu] inference MFU disabled ({type(_mfu_e).__name__}: {_mfu_e})")
