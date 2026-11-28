@@ -106,15 +106,18 @@ def gates(d: Path, info: dict) -> list:
         R.append(("anonymity", ok, f"leaks: {', '.join(leaks) or 'none'}; author line: "
                   f"{author.group(1) if author else 'missing'}; PDF metadata: {', '.join(dated) or 'no dates or author'}"))
     uses = sum(ln.count("\\footnote{\\disclosure}") for ln in live_lines(tex))
-    # owner pick Fri Nov 27 2026 ~7:00 PM PST: the earlier-version sentence is neutral ("details are disclosed to the
-    # chairs"); naming the public preprint in the PDF is a search cue all 3 judges flagged, so it now fails
-    m = re.search(r"Concurrently under review, all non-archival:(.{0,260}?)Related\s+non-?\s*archival\s+versions", text, re.S)
+    # owner picks Fri Nov 27 2026: ~7:00 PM PST, naming the public preprint is a search cue all 3 judges flagged;
+    # ~7:20 PM PST, the student abstract was rejected, so the note names only the three concurrent venues. Any
+    # mention of a preprint, a student abstract or other versions in the PDF now fails.
+    m = re.search(r"Concurrently under review, all non-archival:(.{0,260}?(?:workshop|bridges)\.)", text, re.S)
     flat = lambda s: re.sub(r"[\s-]", "", s)  # pdftotext drops or keeps a hyphen at a line break; compare without both
     named = [n for n in VENUE_NAMES.values() if m and flat(n) in flat(m.group(1))]
-    cue = "publicpreprint" in flat(text).lower()
+    body = re.split(r"\n\s*References\s*\n", text)[0]  # reference entries say "arXiv preprint"; check the body only
+    low = flat(body).lower()
+    cue = any(k in low for k in ("preprint", "studentabstract", "nonarchivalversions"))
     ok = uses == 1 and m is not None and info["venue"] not in named and len(named) == 3 and not cue
     R.append(("disclosure", ok, f"footnote used {uses}x; names {', '.join(named) or 'nothing'}; "
-              f"'public preprint' in PDF: {'yes' if cue else 'no'}"))
+              f"preprint or other-version mention in PDF: {'yes' if cue else 'no'}"))
     dr = drift(d)
     R.append(("drift", not dr, "; ".join(dr) or "no stale copy, pasted paragraph or typed number"))
     rc, out = run([sys.executable, str(AI_SIG), str(tex)])

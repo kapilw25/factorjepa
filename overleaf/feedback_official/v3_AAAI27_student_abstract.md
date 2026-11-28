@@ -13,7 +13,7 @@
 |---|---|
 | 🗓️ **Released** | Wed Nov 18, 2026, 2:27 PM, by the Student Abstract and Poster Program co-chairs (Tongliang Liu, Sirisha Rambhatla) |
 | 🧾 **Submission** | #30, "FactorJEPA on DENSEWORLD-115k: Can a World Model Predict Crowded, Chaotic South Asian Streets?" |
-| ⚖️ **Decision** | Not stated in this e-mail (it only says the reviews were released) |
+| ⚖️ **Decision** | ❌ Rejected (owner, Fri Nov 27 2026 ~7:20 PM PST); this e-mail only released the reviews |
 | 🎯 **Overall scores** | 🟢 Review 1: **1 (weak accept)** · 🟡 Review 2: **0 (borderline paper)** |
 | 🔑 **Core problem** | 🔴 The abstract and its supplement define the metrics differently (L1 vs MSE, two meanings of Causal L1), so Review 1 could not tell which definition the results use. |
 | 💪 **What landed** | The dataset and setting (dense, occluded, heterogeneous traffic) and the clear layout / agent / interaction design; Review 2 calls it "a novel idea and a dataset with convincing preliminary results". |
