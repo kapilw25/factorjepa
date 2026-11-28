@@ -102,13 +102,4 @@ Clips are written to `<out>/<section>/<video_id>-<NNN>.mp4` (e.g. `goa/walking/0
 
 ## Citation
 
-```bibtex
-@article{wanaskar2026factorjepa,
-  title  = {FactorJEPA: Factorizing Monolithic Futures into Layout--Agent--Interaction
-            Channels for Crowded and Chaotic Global South Urban Worlds},
-  author = {Wanaskar, Kapil and Jena, Gaytri and Chadha, Aman and Jain, Vinija
-            and Sharma, Vasu and Das, Amitava},
-  year   = {2026},
-  note   = {Preprint. Update with arXiv ID when available.}
-}
-```
+Withheld during anonymous review; it will be added here after the review period.

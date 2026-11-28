@@ -1,6 +1,6 @@
 # ✅ FactorJEPA TODOs (v1, v3, v4, v5)
 
-Updated Fri Nov 27 2026, 7:22 PM PST. One TODO file for all four FactorJEPA workshop drafts (owner order Fri Nov 27 ~7:00 PM PST), next to [venues.md](venues.md). It replaces `v2_Cog2Soc/TODOs.md`, archived at [legacy/v2_Cog2Soc/TODOs.md](legacy/v2_Cog2Soc/TODOs.md) (owner pick ~7:15 PM PST). Submissions are tracked on the [Workshop Deadlines](https://claude.ai/artifact/FemMusSPv4xxXJBTWGcw6b) page, not here. Sources: the official AAAI-27 reviews ([main track](../feedback_official/v1_AAAI27_main.md), reject; [student abstract](../feedback_official/v3_AAAI27_student_abstract.md), weak accept and borderline) and, per draft, the reviews in `feedback/output/<draft>/by_chatgpt.md`, `by_claude.md` (claude.ai), `by_gemini.md` and `by_claude_fresh.md` (a fresh Claude Code helper). The shared sections live once in [common](common/), so a shared fix reaches all four drafts in one [build](build_all.py). Owner picks Fri Nov 27: draft fixes started once all three judges were in (~6:57 PM PST); a neutral disclosure footnote (~7:00 PM), then, as the student abstract was rejected, a footnote that names only the three concurrent venues, with the arXiv preprint told to the Continual Causality chairs only (~7:20 PM); "Causal L1" renamed "Forward L1", Figure 3 label included (~7:00 PM); v3 and v5 retitled to what Table 2 shows (~7:15 PM).
+Updated Fri Nov 27 2026, 9:22 PM PST. One TODO file for all four FactorJEPA workshop drafts (owner order Fri Nov 27 ~7:00 PM PST), next to [venues.md](venues.md). It replaces `v2_Cog2Soc/TODOs.md`, archived at [legacy/v2_Cog2Soc/TODOs.md](legacy/v2_Cog2Soc/TODOs.md) (owner pick ~7:15 PM PST). Submissions are tracked on the [Workshop Deadlines](https://claude.ai/artifact/FemMusSPv4xxXJBTWGcw6b) page, not here. Sources: the official AAAI-27 reviews ([main track](../feedback_official/v1_AAAI27_main.md), reject; [student abstract](../feedback_official/v3_AAAI27_student_abstract.md), weak accept and borderline) and, per draft, the reviews in `feedback/output/<draft>/by_chatgpt.md`, `by_claude.md` (claude.ai), `by_gemini.md` and `by_claude_fresh.md` (a fresh Claude Code helper). The shared sections live once in [common](common/), so a shared fix reaches all four drafts in one [build](build_all.py). Owner picks Fri Nov 27: draft fixes started once all three judges were in (~6:57 PM PST); a neutral disclosure footnote (~7:00 PM), then, as the student abstract was rejected, a footnote that names only the three concurrent venues, with the arXiv preprint told to the Continual Causality chairs only (~7:20 PM); "Causal L1" renamed "Forward L1", Figure 3 label included (~7:00 PM); v3 and v5 retitled to what Table 2 shows (~7:15 PM); the dataset card's six-author citation removed and its history squashed (~9:20 PM).
 
 **Legend:** 🔴 open · ⏳ queued · 🟡 in progress · ✅ done · 👤 a person does it · ⚪ deferred · ⛔ blocked · 🟢 ChatGPT · 🟠 Claude (claude.ai) · 🔵 Gemini · 🟣 Claude fresh · 📜 official review
 
@@ -47,16 +47,11 @@ Writing and CPU work on the Mac. Each draft is rebuilt with all gates (pages, an
 
 | 🧩 Task | 📄 Draft | ⏰ ETA (PST) | 🚦 Status | 💰 RoI |
 |---|---|---|---|---|
-| 🔤 Rename Causal L1 to Forward L1 | 🔗 all | ⏰ Fri Nov 27, ~8:30 PM | 🟡 next, text and Figure 3 label | 🔥 high, removes a causal misreading |
-| 📄 References to page 5 | 🔗 all | ⏰ Fri Nov 27, ~9 PM | 🔴 open, all four venues allow it | 🔥 high, frees a column for results |
 | 📝 Tell Continual chairs: preprint | 🔁 v5 | 👤 before Wed Dec 2 | 🔴 owner | 🔥 high, originality rule |
 | ✍️ v3 rewrites, abstract | 👥 v3 | ⏰ Sat Nov 28, ~2 PM | 🔴 open, judges' tone rows | 🔥 high, first thing read |
-| 🔎 Dataset card anonymity check | 🔗 all | ⏰ Fri Nov 27, ~9:30 PM | 🔴 open, card edit needs owner OK | 🔥 high, avoids a blind leak |
 | 📊 Density split of the margin | 🔗 all | ⏰ Sat Nov 28, ~6 PM | ⏳ waits box for per-clip data | 🔥 high, tests the crowding premise |
 | 📏 115k clustered CIs, raw effects | 🔗 all | ⏰ Sat Nov 28, ~8 PM | ⏳ waits box for per-clip data | 🔥 high, Figure 3 in plain units |
 | 🔁 Fresh judge round 2, v3 | 👥 v3 | ⏰ Sun Nov 29, ~8 PM | 🔴 open | 🔥 high, last error catch |
-| 📐 Plain diagnostic definitions | 🔗 all | ⏰ Sat Nov 28, ~4 PM | 🔴 open | 🟢 medium, readers outside vision |
-| ❓ Why rivals win on coherence | 🔗 all | ⏰ Sat Nov 28, ~4 PM | 🔴 open | 🟢 medium, student-abstract reviewer ask |
 | 🖼️ Blur faces in Figure 1 | 🔗 all | ⏰ Sat Nov 28, ~8 PM | 🔴 open, pixels only | 🟢 medium, responsible use |
 | ✍️ v4, v5 rewrites, abstracts | 📦 v4, 🔁 v5 | ⏰ Mon Nov 30, ~6 PM | 🔴 open, after v3 | 🔥 high, first thing read |
 | 📚 Continual, causal positioning | 🔁 v5 | ⏰ Mon Nov 30, ~6 PM | 🔴 open, plus references | 🔥 high, v5 venue fit |
@@ -64,14 +59,20 @@ Writing and CPU work on the Mac. Each draft is rebuilt with all gates (pages, an
 | 📈 Horizon curve, saved values | 🚗 v1 | ⏰ Mon Dec 7 | 🔴 open | 🟢 medium, v1 planning horizon |
 | ✍️ v1 rewrites, abstract | 🚗 v1 | ⏰ Fri Dec 18 | 🔴 open | 🔥 high, first thing read |
 | 🪝 Page-1 hook figure | 👥 v3, 🚗 v1 | ⏰ Sun Nov 29 if time | 🔴 open, needs a real frame | 🟢 medium, page-1 clarity |
+| 🔍 Figure 3: 8 pt ticks, top gap | 🔗 all | 👤 owner call | 🔴 owner, audit found 4 old issues | 🔸 low, readability |
 | 🔤 Figure 1 labels at 9 pt | 🔗 all | 👤 owner call | 🔴 owner, thickening failed | 🔸 low, readability |
 | 📤 Upload as paper.pdf | 🔗 all | 👤 at each upload | 🔴 owner | 🔸 low, file name ties drafts |
+| 🔎 Dataset card: six names removed | 🔗 all | ✅ Fri Nov 27, 9:22 PM | ✅ owner OK, history squashed | 🔥 high, stopped a blind leak |
+| 🔤 Rename Causal L1 to Forward L1 | 🔗 all | ✅ Fri Nov 27, 9:22 PM | ✅ text, tables, Figure 3 label | 🔥 high, removes a causal misreading |
+| 📄 References to page 5 | 🔗 all | ✅ Fri Nov 27, 9:22 PM | ✅ page 4 right column freed | 🔥 high, frees a column for results |
 | 🫥 Footnote: concurrent venues only | 🔗 all | ✅ Fri Nov 27, 7:22 PM | ✅ gate fails any preprint mention | 🔥 high, stopped a blind leak |
 | 🏷️ Retitle v3, v5 to the evidence | 👥 v3, 🔁 v5 | ✅ Fri Nov 27, 7:16 PM | ✅ owner pick | 🔥 high, claim matches Table 2 |
 | 🧷 One starting checkpoint stated | 🔗 all | ✅ Fri Nov 27, 7:05 PM | ✅ training clips only | 🔥 high, fairness of the comparison |
 | 🎭 Masking called a proxy | 🔗 all | ✅ Fri Nov 27, 7:05 PM | ✅ not real occlusion | 🔥 high, construct validity |
 | 🧮 Method text matches code | 🔗 all | ✅ Fri Nov 27, morning | ✅ 3-stage clip curriculum | 🔥 high, answers main-track R2 |
 | 🪜 Attribution ladder, Table 2 | 🔗 all | ✅ Fri Nov 27, morning | ✅ paired and clustered CIs | 🔥 high, answers ablation critique |
+| ❓ Why rivals win on coherence | 🔗 all | ✅ Fri Nov 27, 9:22 PM | ✅ from saved ladder results | 🟢 medium, student-abstract reviewer ask |
+| 📐 Plain diagnostic definitions | 🔗 all | ✅ Fri Nov 27, 9:22 PM | ✅ all 13; Motion cosine corrected | 🟢 medium, readers outside vision |
 | 🗂️ Save the judges per draft | 🔗 all | ✅ Fri Nov 27, 6:57 PM | ✅ 16 files, word for word | 🟢 medium, one source per row |
 | 🧾 Table 2 caption, one exception | 🔗 all | ✅ Fri Nov 27, 7:05 PM | ✅ Ours minus RAW, 2B | 🟢 medium, clear significance |
 | 🔢 Slope gains 6.0%, 2.4% | 🔗 all | ✅ Fri Nov 27, 7:05 PM | ✅ from saved results | 🟢 medium, exact numbers |
@@ -115,6 +116,7 @@ ELI5: real people look at 100 street pictures and say whether the computer's box
 | 📝 Tell Continual chairs | 🟢 9 · 🟠 v5 C5 · owner Nov 27 |
 | 🏷️ Retitle v3, v5 | 🟠 v3 C2 · 🟢 v5 title |
 | 🔎 Dataset card check | 🟢🟠🔵 Part D |
+| 🔍 Figure 3 audit | visual audit, Nov 27 |
 | 📊 Density split | 🟠 S2 · 🟢 v3 C2 · 🔵 v3 C2 · 📜 main AI |
 | 📏 Clustered CIs, raw effects | 🟢 5.2 · 🟣 SH4, SH5 |
 | 📐 Diagnostic definitions | 🔵 B10 · 🟠 v3 C5 · 🟣 SH6 |

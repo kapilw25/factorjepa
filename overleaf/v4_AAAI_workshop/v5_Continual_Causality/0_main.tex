@@ -26,7 +26,8 @@
 % foundation models, world models, partially observable worlds, datasets and benchmarks. Due Dec 1 AoE (Wed Dec 2 4:59 AM
 % PST); notification Dec 11. Built 2026-11-27 by owner pick; same facts as ../v3_Cog2Soc_fixes, new framing only.
 % Care: the raw clips in training are DENSEWORLD clips, NOT source-distribution replay; retention on the source
-% distribution is not measured; "Causal L1" is a metric name (2nd half predicted from 1st), not a causal claim.
+% distribution is not measured; "Forward L1" (code key causal, src/utils/pt_causal.py; renamed from "Causal L1" by owner
+% pick Fri Nov 27 2026 ~7:00 PM PST, Figure 3 label too) is a metric name (2nd half predicted from 1st), not a causal claim.
 
 \title{Structured Continual Adaptation of Video World Models under Distribution Shift and Partial Observability}  % owner pick Fri Nov 27 2026 ~7:15 PM PST: ChatGPT judge's title; was 'Staged Adaptation of a Pretrained Video World Model to Dense South Asian Streets: What It Gains and What It Costs' (one title per venue since ~6:30 AM PST)
 
@@ -64,10 +65,11 @@ A world model is often updated by continued pretraining when the world it models
 
 \section{What This Offers Continual World Modelling}
 
-Two results speak to the bridge's question of keeping a world model accurate when its world changes and is only partly observed. First, the update schedule matters: on the same raw clips, the staged schedule alone lowers Future-frame L1 by \nRawFutTwoB{} (2B) and \nRawFutOneB{} (1B) below plain continued pretraining (Table~\ref{tab:ladder}). Second, partial observability: the structured clips flatten the Mask-ratio slope, so prediction degrades more slowly as more of the scene is hidden. Both gains come with costs a continual learner has to weigh, in motion readout and in the coherence of long predicted futures, where the rivals still lead. We make no causal claim: Causal L1 names the direction of prediction, from the first half of a clip to the second, not an identified cause. Whether the adapted model keeps its accuracy on the original distribution is the next test, and the layout, agent, and interaction clips offer a way to ask which part of a changing scene a world model has to relearn.
+Two results speak to the bridge's question of keeping a world model accurate when its world changes and is only partly observed. First, the update schedule matters: on the same raw clips, the staged schedule alone lowers Future-frame L1 by \nRawFutTwoB{} (2B) and \nRawFutOneB{} (1B) below plain continued pretraining (Table~\ref{tab:ladder}). Second, partial observability: the structured clips flatten the Mask-ratio slope, so prediction degrades more slowly as more of the scene is hidden. Both gains come with costs a continual learner has to weigh, in Motion cosine and in the coherence of long predicted futures, where the rivals still lead. We make no causal claim: Forward L1 measures prediction from the first half of a clip to the second, not an identified cause. Whether the adapted model keeps its accuracy on the original distribution is the next test, and the layout, agent, and interaction clips offer a way to ask which part of a changing scene a world model has to relearn.
 
 \input{../common/sec_scope}
 
+\clearpage  % references start on page 5: all four venues exclude them from the 4-page limit (owner TODO, Nov 27)
 {\small
 \bibliography{../common/factorjepa}
 }

@@ -38,7 +38,8 @@
 %  * Table 2 numbers: ../common/results/*.json (copied from outputs/workshop/attribution_10k, src/utils/paired_ladder.py).
 %  * no face or plate blurring exists in src/ or scripts/, so no such claim is made.
 %  * factor clips come from Grounding DINO + SAM 3 (src/m10_sam_segment.py, src/m11_factor_datasets.py);
-%    Causal L1 predicts the 2nd temporal half from the 1st (src/utils/pt_causal.py); the split is
+%    Forward L1 (was "Causal L1", renamed by owner pick Nov 27) predicts the 2nd temporal half from the 1st
+%    (src/utils/pt_causal.py); the split is
 %    clip-level (src/utils/clip_splits.py); Ours is ONE fixed arm in every cell of Table 1.
 
 \title{Adapting a Video World Model to Dense South Asian Street Behaviour: Staged Training and Robustness to Missing Evidence}  % owner pick Fri Nov 27 2026 ~7:15 PM PST: retitled to what Table 2 shows (claude.ai judge, ending changed from 'Occlusion' because masking is only a proxy); was 'Layout, Then Road Users, Then Interactions: ...' (one title per venue since ~6:30 AM PST) (the arXiv and student-abstract title stays 'FactorJEPA on DENSEWORLD-115k: ...')
@@ -81,6 +82,7 @@ Agent-based and social-force models write interaction rules by hand and fit thei
 
 \input{../common/sec_scope}
 
+\clearpage  % references start on page 5: all four venues exclude them from the 4-page limit (owner TODO, Nov 27)
 {\small
 \bibliography{../common/factorjepa}
 }

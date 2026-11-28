@@ -1,0 +1,330 @@
+{
+ "source": "HF dataset anonymousML123/factorjepa-outputs, outputs/poc/<model>/eval/eval_10k/{encoder_temporal,predictor_temporal}/<arm>/aggregate_*.json (pulled Fri Nov 27 2026)",
+ "note": "1,825 test clips, 10k regime; mean and 95% BCa interval per arm; plain = continued pretraining (start of every trained arm), RAW = staged adaptation on raw clips, Ours = staged adaptation on the curriculum clips",
+ "models": {
+  "vitG_2B": {
+   "temporal_order": {
+    "plain": {
+     "mean": 0.942192,
+     "ci_lo": 0.935877,
+     "ci_hi": 0.948082,
+     "lower_is_better": false
+    },
+    "RAW": {
+     "mean": 0.936712,
+     "ci_lo": 0.930548,
+     "ci_hi": 0.942466,
+     "lower_is_better": false
+    },
+    "Ours": {
+     "mean": 0.943836,
+     "ci_lo": 0.937671,
+     "ci_hi": 0.949315,
+     "lower_is_better": false
+    }
+   },
+   "pace": {
+    "plain": {
+     "mean": 0.718174,
+     "ci_lo": 0.705571,
+     "ci_hi": 0.730594,
+     "lower_is_better": false
+    },
+    "RAW": {
+     "mean": 0.730228,
+     "ci_lo": 0.71726,
+     "ci_hi": 0.742648,
+     "lower_is_better": false
+    },
+    "Ours": {
+     "mean": 0.719087,
+     "ci_lo": 0.707032,
+     "ci_hi": 0.730776,
+     "lower_is_better": false
+    }
+   },
+   "arrow_of_time": {
+    "plain": {
+     "mean": 0.952055,
+     "ci_lo": 0.943836,
+     "ci_hi": 0.958904,
+     "lower_is_better": false
+    },
+    "RAW": {
+     "mean": 0.934795,
+     "ci_lo": 0.925753,
+     "ci_hi": 0.943014,
+     "lower_is_better": false
+    },
+    "Ours": {
+     "mean": 0.935068,
+     "ci_lo": 0.926301,
+     "ci_hi": 0.943288,
+     "lower_is_better": false
+    }
+   },
+   "tcc_kendall_tau": {
+    "plain": {
+     "mean": 0.292008,
+     "ci_lo": 0.286512,
+     "ci_hi": 0.297715,
+     "lower_is_better": false
+    },
+    "RAW": {
+     "mean": 0.251913,
+     "ci_lo": 0.246609,
+     "ci_hi": 0.257354,
+     "lower_is_better": false
+    },
+    "Ours": {
+     "mean": 0.274075,
+     "ci_lo": 0.268402,
+     "ci_hi": 0.279597,
+     "lower_is_better": false
+    }
+   },
+   "tcc_cycle_back": {
+    "plain": {
+     "mean": 2.27516,
+     "ci_lo": 2.265594,
+     "ci_hi": 2.284532,
+     "lower_is_better": true
+    },
+    "RAW": {
+     "mean": 2.295315,
+     "ci_lo": 2.286397,
+     "ci_hi": 2.304276,
+     "lower_is_better": true
+    },
+    "Ours": {
+     "mean": 2.249253,
+     "ci_lo": 2.239731,
+     "ci_hi": 2.258901,
+     "lower_is_better": true
+    }
+   },
+   "exposure_bias": {
+    "plain": {
+     "mean": 0.037695,
+     "ci_lo": 0.037144,
+     "ci_hi": 0.038249,
+     "lower_is_better": true
+    },
+    "RAW": {
+     "mean": 0.044581,
+     "ci_lo": 0.043844,
+     "ci_hi": 0.045371,
+     "lower_is_better": true
+    },
+    "Ours": {
+     "mean": 0.047849,
+     "ci_lo": 0.047117,
+     "ci_hi": 0.048576,
+     "lower_is_better": true
+    }
+   },
+   "rollout_drift": {
+    "plain": {
+     "mean": 0.007682,
+     "ci_lo": 0.00746,
+     "ci_hi": 0.00791,
+     "lower_is_better": true
+    },
+    "RAW": {
+     "mean": 0.009769,
+     "ci_lo": 0.009485,
+     "ci_hi": 0.010054,
+     "lower_is_better": true
+    },
+    "Ours": {
+     "mean": 0.010866,
+     "ci_lo": 0.010594,
+     "ci_hi": 0.011139,
+     "lower_is_better": true
+    }
+   },
+   "l1_vs_dt": {
+    "plain": {
+     "mean": 0.006487,
+     "ci_lo": 0.006164,
+     "ci_hi": 0.00683,
+     "lower_is_better": true
+    },
+    "RAW": {
+     "mean": 0.008478,
+     "ci_lo": 0.008087,
+     "ci_hi": 0.008896,
+     "lower_is_better": true
+    },
+    "Ours": {
+     "mean": 0.008046,
+     "ci_lo": 0.00764,
+     "ci_hi": 0.008493,
+     "lower_is_better": true
+    }
+   }
+  },
+  "vitg_1B": {
+   "temporal_order": {
+    "plain": {
+     "mean": 0.926575,
+     "ci_lo": 0.919863,
+     "ci_hi": 0.932877,
+     "lower_is_better": false
+    },
+    "RAW": {
+     "mean": 0.916438,
+     "ci_lo": 0.909452,
+     "ci_hi": 0.922877,
+     "lower_is_better": false
+    },
+    "Ours": {
+     "mean": 0.924795,
+     "ci_lo": 0.917945,
+     "ci_hi": 0.931233,
+     "lower_is_better": false
+    }
+   },
+   "pace": {
+    "plain": {
+     "mean": 0.70137,
+     "ci_lo": 0.689498,
+     "ci_hi": 0.712949,
+     "lower_is_better": false
+    },
+    "RAW": {
+     "mean": 0.701553,
+     "ci_lo": 0.68895,
+     "ci_hi": 0.714155,
+     "lower_is_better": false
+    },
+    "Ours": {
+     "mean": 0.710868,
+     "ci_lo": 0.698492,
+     "ci_hi": 0.722478,
+     "lower_is_better": false
+    }
+   },
+   "arrow_of_time": {
+    "plain": {
+     "mean": 0.950137,
+     "ci_lo": 0.942466,
+     "ci_hi": 0.95726,
+     "lower_is_better": false
+    },
+    "RAW": {
+     "mean": 0.952877,
+     "ci_lo": 0.944932,
+     "ci_hi": 0.959452,
+     "lower_is_better": false
+    },
+    "Ours": {
+     "mean": 0.956986,
+     "ci_lo": 0.949589,
+     "ci_hi": 0.963288,
+     "lower_is_better": false
+    }
+   },
+   "tcc_kendall_tau": {
+    "plain": {
+     "mean": 0.296002,
+     "ci_lo": 0.290574,
+     "ci_hi": 0.30138,
+     "lower_is_better": false
+    },
+    "RAW": {
+     "mean": 0.289262,
+     "ci_lo": 0.283959,
+     "ci_hi": 0.294402,
+     "lower_is_better": false
+    },
+    "Ours": {
+     "mean": 0.286819,
+     "ci_lo": 0.281431,
+     "ci_hi": 0.292074,
+     "lower_is_better": false
+    }
+   },
+   "tcc_cycle_back": {
+    "plain": {
+     "mean": 2.464678,
+     "ci_lo": 2.454471,
+     "ci_hi": 2.474577,
+     "lower_is_better": true
+    },
+    "RAW": {
+     "mean": 2.411343,
+     "ci_lo": 2.402089,
+     "ci_hi": 2.421208,
+     "lower_is_better": true
+    },
+    "Ours": {
+     "mean": 2.416069,
+     "ci_lo": 2.406353,
+     "ci_hi": 2.425643,
+     "lower_is_better": true
+    }
+   },
+   "exposure_bias": {
+    "plain": {
+     "mean": 0.037375,
+     "ci_lo": 0.036824,
+     "ci_hi": 0.037942,
+     "lower_is_better": true
+    },
+    "RAW": {
+     "mean": 0.035267,
+     "ci_lo": 0.034626,
+     "ci_hi": 0.035943,
+     "lower_is_better": true
+    },
+    "Ours": {
+     "mean": 0.034495,
+     "ci_lo": 0.03387,
+     "ci_hi": 0.035144,
+     "lower_is_better": true
+    }
+   },
+   "rollout_drift": {
+    "plain": {
+     "mean": 0.005962,
+     "ci_lo": 0.005729,
+     "ci_hi": 0.006214,
+     "lower_is_better": true
+    },
+    "RAW": {
+     "mean": 0.005486,
+     "ci_lo": 0.005218,
+     "ci_hi": 0.005746,
+     "lower_is_better": true
+    },
+    "Ours": {
+     "mean": 0.00536,
+     "ci_lo": 0.005097,
+     "ci_hi": 0.005627,
+     "lower_is_better": true
+    }
+   },
+   "l1_vs_dt": {
+    "plain": {
+     "mean": 0.008349,
+     "ci_lo": 0.008009,
+     "ci_hi": 0.008717,
+     "lower_is_better": true
+    },
+    "RAW": {
+     "mean": 0.009312,
+     "ci_lo": 0.00892,
+     "ci_hi": 0.00971,
+     "lower_is_better": true
+    },
+    "Ours": {
+     "mean": 0.009016,
+     "ci_lo": 0.008639,
+     "ci_hi": 0.009413,
+     "lower_is_better": true
+    }
+   }
+  }
+ }
+}
