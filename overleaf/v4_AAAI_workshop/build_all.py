@@ -106,7 +106,7 @@ def gates(d: Path, info: dict) -> list:
         R.append(("anonymity", ok, f"leaks: {', '.join(leaks) or 'none'}; author line: "
                   f"{author.group(1) if author else 'missing'}; PDF metadata: {', '.join(dated) or 'no dates or author'}"))
     uses = sum(ln.count("\\footnote{\\disclosure}") for ln in live_lines(tex))
-    # owner pick Fri Nov 27 2026 ~7:35 PM PST: the earlier-version sentence is neutral ("details are disclosed to the
+    # owner pick Fri Nov 27 2026 ~7:00 PM PST: the earlier-version sentence is neutral ("details are disclosed to the
     # chairs"); naming the public preprint in the PDF is a search cue all 3 judges flagged, so it now fails
     m = re.search(r"Concurrently under review, all non-archival:(.{0,260}?)Related\s+non-?\s*archival\s+versions", text, re.S)
     flat = lambda s: re.sub(r"[\s-]", "", s)  # pdftotext drops or keeps a hyphen at a line break; compare without both
