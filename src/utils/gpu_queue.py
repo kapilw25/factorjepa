@@ -13,7 +13,7 @@ their parent; under CUDA MPS nvidia-smi shows all clients as one server, so it c
 
 USAGE (thin wrapper scripts/gpu_queue.sh; run inside tmux on the box):
     python -u src/utils/gpu_queue.py --jobs logs/gpu_queue_jobs.txt --pos logs/gpu_queue_pos \
-        --done logs/gpu_queue_done.txt --env-file data/heldout_video/rv_mps.env --venv venv_walkindia
+        --done logs/gpu_queue_done.txt --env-file data/heldout_video/rv_mps.env --venv venv_walkindia --logs-dir logs
     python -u src/utils/gpu_queue.py --selftest
 """
 import argparse
@@ -62,11 +62,14 @@ def free_gb() -> float:
     return float(out[0]) / 1024
 
 
-def tmux_cmd(name: str, cmd: str, done: Path, venv: str, env_file: str) -> list:
+def tmux_cmd(name: str, cmd: str, done: Path, venv: str, env_file: str, logs_dir: str) -> list:
+    """The job runs in a subshell whose output is tee'd to <logs_dir>/<name>_<UTC stamp>.log; with pipefail the EXIT
+    line carries the job's own exit code, not tee's."""
+    log = f"{shlex.quote(logs_dir)}/{name}_$(date -u +%Y%m%d_%H%M%S).log"
     inner = (f"source {shlex.quote(venv)}/bin/activate && "
              + (f"source {shlex.quote(env_file)} && " if env_file else "")
              + "export PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True && set -o pipefail && "
-             + f"{cmd}; echo \"EXIT $? {name} $(date -u +%H:%M)\" >> {shlex.quote(str(done))}")
+             + f"( {cmd} ) 2>&1 | tee {log}; echo \"EXIT $? {name} $(date -u +%H:%M)\" >> {shlex.quote(str(done))}")
     return ["tmux", "new-session", "-d", "-s", name, "bash", "-c", inner]
 
 
@@ -97,7 +100,7 @@ def run(args, qcfg):
                     time.sleep(qcfg["poll_s"])
                 if subprocess.run(["tmux", "has-session", "-t", name], capture_output=True).returncode == 0:
                     raise RuntimeError(f"gpu_queue: tmux session {name} already exists (duplicate job name?)")
-                subprocess.run(tmux_cmd(name, cmd, done, args.venv, args.env_file), check=True)
+                subprocess.run(tmux_cmd(name, cmd, done, args.venv, args.env_file, args.logs_dir), check=True)
                 print(f"{time.strftime('%H:%M', time.gmtime())} started {name} (needs {need} GB, "
                       f"{free_gb():.0f} GB free, {gpu_jobs()} GPU jobs)", flush=True)
                 time.sleep(qcfg["settle_train_s"] if train else qcfg["settle_eval_s"])
@@ -120,8 +123,9 @@ def selftest() -> int:
         except ValueError:
             ok += 1
             print(f"ok  refused {bad!r}")
-    cmd = tmux_cmd("train_x", "bash r.sh", Path("logs/d.txt"), "venv_walkindia", "e.env")
-    want_tail = 'bash r.sh; echo "EXIT $? train_x $(date -u +%H:%M)" >> logs/d.txt'
+    cmd = tmux_cmd("train_x", "bash r.sh", Path("logs/d.txt"), "venv_walkindia", "e.env", "logs")
+    want_tail = ('( bash r.sh ) 2>&1 | tee logs/train_x_$(date -u +%Y%m%d_%H%M%S).log; '
+                 'echo "EXIT $? train_x $(date -u +%H:%M)" >> logs/d.txt')
     ok += cmd[:5] == ["tmux", "new-session", "-d", "-s", "train_x"] and cmd[-1].endswith(want_tail)
     print(f"{'ok ' if cmd[-1].endswith(want_tail) else 'BAD'} tmux command ends with the EXIT line")
     ps = ("10 1 /v/bin/python -u src/m09c1_surgery_encoder.py --POC\n11 10 /v/bin/python -u src/m09c1_surgery_encoder.py --POC\n"
@@ -144,6 +148,7 @@ def main():
     ap.add_argument("--done", required=True)
     ap.add_argument("--venv", required=True, help="venv dir each job activates")
     ap.add_argument("--env-file", required=True, help="file each job sources first (CUDA MPS env), or '' for none")
+    ap.add_argument("--logs-dir", required=True, help="each job's output is tee'd to <logs-dir>/<name>_<UTC stamp>.log")
     args = ap.parse_args()
     run(args, get_pipeline_config()["gpu"]["queue"])
 

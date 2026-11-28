@@ -7,4 +7,5 @@ cd "$(dirname "$0")/.."
 JOBS="$1"; ENV_FILE="$2"
 source venv_walkindia/bin/activate
 python -u src/utils/gpu_queue.py --jobs "$JOBS" --pos "${JOBS}.pos" \
-    --done "$(dirname "$JOBS")/gpu_queue_done.txt" --venv venv_walkindia --env-file "$ENV_FILE"
+    --done "$(dirname "$JOBS")/gpu_queue_done.txt" --venv venv_walkindia --env-file "$ENV_FILE" \
+    --logs-dir "$(dirname "$JOBS")"
