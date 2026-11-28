@@ -51,7 +51,6 @@ Writing and CPU work on the Mac. Each draft is rebuilt with all gates (pages, an
 | 📊 Density split of the margin | 🔗 all | ⏰ Sat Nov 28, ~6 PM | ⏳ waits box for per-clip data | 🔥 high, tests the crowding premise |
 | 📏 115k clustered CIs, raw effects | 🔗 all | ⏰ Sat Nov 28, ~8 PM | ⏳ waits box for per-clip data | 🔥 high, Figure 3 in plain units |
 | 🔁 Fresh judge round 2, v3 | 👥 v3 | ⏰ Sun Nov 29, ~8 PM | 🔴 open | 🔥 high, last error catch |
-| 🖼️ Blur faces in Figure 1 | 🔗 all | 👤 owner call | ⛔ real frames or generated? | 🟢 medium, responsible use |
 | 📈 Horizon curve, saved values | 🚗 v1 | ⏰ Mon Dec 7 | 🔴 open | 🟢 medium, v1 planning horizon |
 | ✍️ v1 rewrites, abstract | 🚗 v1 | ⏰ Fri Dec 18 | 🔴 open | 🔥 high, first thing read |
 | 🪝 Page-1 hook figure | 👥 v3, 🚗 v1 | ⏰ Sun Nov 29 if time | 🔴 open, needs a real frame | 🟢 medium, page-1 clarity |
@@ -72,6 +71,8 @@ Writing and CPU work on the Mac. Each draft is rebuilt with all gates (pages, an
 | 🧮 Method text matches code | 🔗 all | ✅ Fri Nov 27, morning | ✅ 3-stage clip curriculum | 🔥 high, answers main-track R2 |
 | 🪜 Attribution ladder, Table 2 | 🔗 all | ✅ Fri Nov 27, morning | ✅ paired and clustered CIs | 🔥 high, answers ablation critique |
 | 🧾 Corpus composition table | 📦 v4 | ✅ Fri Nov 27, 9:32 PM | ✅ Table 3, from clips.csv | 🟢 medium, v4 documentation |
+| 🖼️ Figure 1 marked as generated | 🔗 all | ✅ Fri Nov 27, 9:33 PM | ✅ owner: generated, no blur | 🟢 medium, responsible use |
+| ⏱️ Clip length 4 to 14 s | 🔗 all | ✅ Fri Nov 27, 9:33 PM | ✅ was 4 to 10 s; clips.csv | 🟢 medium, exact corpus facts |
 | ❓ Why rivals win on coherence | 🔗 all | ✅ Fri Nov 27, 9:22 PM | ✅ from saved ladder results | 🟢 medium, student-abstract reviewer ask |
 | 📐 Plain diagnostic definitions | 🔗 all | ✅ Fri Nov 27, 9:22 PM | ✅ all 13; Motion cosine corrected | 🟢 medium, readers outside vision |
 | 🗂️ Save the judges per draft | 🔗 all | ✅ Fri Nov 27, 6:57 PM | ✅ 16 files, word for word | 🟢 medium, one source per row |
@@ -122,7 +123,7 @@ ELI5: real people look at 100 street pictures and say whether the computer's box
 | 📏 Clustered CIs, raw effects | 🟢 5.2 · 🟣 SH4, SH5 |
 | 📐 Diagnostic definitions | 🔵 B10 · 🟠 v3 C5 · 🟣 SH6 |
 | ❓ Why rivals win | 📜 abstract R2 · 🔵 v5 B9 |
-| 🖼️ Blur faces | 🟠 Part D · owner Nov 26 |
+| 🖼️ Figure 1 generated | 🟠 Part D · owner Nov 27 |
 | ✍️ Venue rewrites | 🟢🟠🔵 Part E |
 | 📚 Continual positioning | 🟠 v5 C3 · 🔵 v5 C2 |
 | 🧾 Composition table | 🟠 v4 C4 · 🔵 v4 B7 |
