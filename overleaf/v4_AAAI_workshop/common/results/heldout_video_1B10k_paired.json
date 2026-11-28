@@ -1,0 +1,346 @@
+{
+  "root": "outputs/heldout_video",
+  "n_resamples": 10000,
+  "ci_level": 0.95,
+  "seed": 42,
+  "means": {
+    "future": {
+      "pretrain_encoder": 0.605649,
+      "surgery_raw_encoder": 0.58486,
+      "surgical_3stage_DI_diheavy_encoder": 0.587479,
+      "peft_lora_encoder": 0.594494
+    },
+    "forward": {
+      "pretrain_encoder": 0.627137,
+      "surgery_raw_encoder": 0.609086,
+      "surgical_3stage_DI_diheavy_encoder": 0.61222,
+      "peft_lora_encoder": 0.616325
+    },
+    "maskratio": {
+      "pretrain_encoder": 0.057918,
+      "surgery_raw_encoder": 0.052307,
+      "surgical_3stage_DI_diheavy_encoder": 0.050992,
+      "peft_lora_encoder": 0.053424
+    },
+    "motion_cos": {
+      "pretrain_encoder": 0.062153,
+      "surgery_raw_encoder": 0.065595,
+      "surgical_3stage_DI_diheavy_encoder": 0.053397,
+      "peft_lora_encoder": 0.074619
+    }
+  },
+  "pairs": {
+    "future": {
+      "pretrain_encoder:surgery_raw_encoder": {
+        "delta_mean": -0.020789,
+        "clip_bca": {
+          "mean": -0.020789,
+          "ci_lo": -0.021632,
+          "ci_hi": -0.019941,
+          "ci_half": 0.000845,
+          "p_value_vs_zero": 0.0,
+          "n": 1702
+        },
+        "video_clustered": {
+          "ci_lo": -0.022022,
+          "ci_hi": -0.019586,
+          "ci_half": 0.001218,
+          "n_videos": 136
+        },
+        "relative_pct": -3.433,
+        "verdict_clip": "B better"
+      },
+      "surgery_raw_encoder:surgical_3stage_DI_diheavy_encoder": {
+        "delta_mean": 0.002618,
+        "clip_bca": {
+          "mean": 0.002618,
+          "ci_lo": 0.001878,
+          "ci_hi": 0.003363,
+          "ci_half": 0.000743,
+          "p_value_vs_zero": 0.0,
+          "n": 1702
+        },
+        "video_clustered": {
+          "ci_lo": 0.001766,
+          "ci_hi": 0.003454,
+          "ci_half": 0.000844,
+          "n_videos": 136
+        },
+        "relative_pct": 0.448,
+        "verdict_clip": "B worse"
+      },
+      "pretrain_encoder:surgical_3stage_DI_diheavy_encoder": {
+        "delta_mean": -0.01817,
+        "clip_bca": {
+          "mean": -0.01817,
+          "ci_lo": -0.019025,
+          "ci_hi": -0.017316,
+          "ci_half": 0.000854,
+          "p_value_vs_zero": 0.0,
+          "n": 1702
+        },
+        "video_clustered": {
+          "ci_lo": -0.019594,
+          "ci_hi": -0.01679,
+          "ci_half": 0.001402,
+          "n_videos": 136
+        },
+        "relative_pct": -3.0,
+        "verdict_clip": "B better"
+      },
+      "peft_lora_encoder:surgical_3stage_DI_diheavy_encoder": {
+        "delta_mean": -0.007015,
+        "clip_bca": {
+          "mean": -0.007015,
+          "ci_lo": -0.007853,
+          "ci_hi": -0.006179,
+          "ci_half": 0.000837,
+          "p_value_vs_zero": 0.0,
+          "n": 1702
+        },
+        "video_clustered": {
+          "ci_lo": -0.008374,
+          "ci_hi": -0.005722,
+          "ci_half": 0.001326,
+          "n_videos": 136
+        },
+        "relative_pct": -1.18,
+        "verdict_clip": "B better"
+      }
+    },
+    "forward": {
+      "pretrain_encoder:surgery_raw_encoder": {
+        "delta_mean": -0.018051,
+        "clip_bca": {
+          "mean": -0.018051,
+          "ci_lo": -0.018532,
+          "ci_hi": -0.017602,
+          "ci_half": 0.000465,
+          "p_value_vs_zero": 0.0,
+          "n": 1702
+        },
+        "video_clustered": {
+          "ci_lo": -0.019151,
+          "ci_hi": -0.017013,
+          "ci_half": 0.001069,
+          "n_videos": 136
+        },
+        "relative_pct": -2.878,
+        "verdict_clip": "B better"
+      },
+      "surgery_raw_encoder:surgical_3stage_DI_diheavy_encoder": {
+        "delta_mean": 0.003135,
+        "clip_bca": {
+          "mean": 0.003135,
+          "ci_lo": 0.002974,
+          "ci_hi": 0.003296,
+          "ci_half": 0.000161,
+          "p_value_vs_zero": 0.0,
+          "n": 1702
+        },
+        "video_clustered": {
+          "ci_lo": 0.002796,
+          "ci_hi": 0.003477,
+          "ci_half": 0.000341,
+          "n_videos": 136
+        },
+        "relative_pct": 0.515,
+        "verdict_clip": "B worse"
+      },
+      "pretrain_encoder:surgical_3stage_DI_diheavy_encoder": {
+        "delta_mean": -0.014917,
+        "clip_bca": {
+          "mean": -0.014917,
+          "ci_lo": -0.015408,
+          "ci_hi": -0.014451,
+          "ci_half": 0.000478,
+          "p_value_vs_zero": 0.0,
+          "n": 1702
+        },
+        "video_clustered": {
+          "ci_lo": -0.016155,
+          "ci_hi": -0.013754,
+          "ci_half": 0.001201,
+          "n_videos": 136
+        },
+        "relative_pct": -2.379,
+        "verdict_clip": "B better"
+      },
+      "peft_lora_encoder:surgical_3stage_DI_diheavy_encoder": {
+        "delta_mean": -0.004105,
+        "clip_bca": {
+          "mean": -0.004105,
+          "ci_lo": -0.004481,
+          "ci_hi": -0.003732,
+          "ci_half": 0.000374,
+          "p_value_vs_zero": 0.0,
+          "n": 1702
+        },
+        "video_clustered": {
+          "ci_lo": -0.004991,
+          "ci_hi": -0.003252,
+          "ci_half": 0.000869,
+          "n_videos": 136
+        },
+        "relative_pct": -0.666,
+        "verdict_clip": "B better"
+      }
+    },
+    "maskratio": {
+      "pretrain_encoder:surgery_raw_encoder": {
+        "delta_mean": -0.005611,
+        "clip_bca": {
+          "mean": -0.005611,
+          "ci_lo": -0.005736,
+          "ci_hi": -0.00549,
+          "ci_half": 0.000123,
+          "p_value_vs_zero": 0.0,
+          "n": 1702
+        },
+        "video_clustered": {
+          "ci_lo": -0.005848,
+          "ci_hi": -0.005371,
+          "ci_half": 0.000238,
+          "n_videos": 136
+        },
+        "relative_pct": -9.688,
+        "verdict_clip": "B better"
+      },
+      "surgery_raw_encoder:surgical_3stage_DI_diheavy_encoder": {
+        "delta_mean": -0.001315,
+        "clip_bca": {
+          "mean": -0.001315,
+          "ci_lo": -0.001426,
+          "ci_hi": -0.001208,
+          "ci_half": 0.000109,
+          "p_value_vs_zero": 0.0,
+          "n": 1702
+        },
+        "video_clustered": {
+          "ci_lo": -0.00159,
+          "ci_hi": -0.001045,
+          "ci_half": 0.000273,
+          "n_videos": 136
+        },
+        "relative_pct": -2.514,
+        "verdict_clip": "B better"
+      },
+      "pretrain_encoder:surgical_3stage_DI_diheavy_encoder": {
+        "delta_mean": -0.006926,
+        "clip_bca": {
+          "mean": -0.006926,
+          "ci_lo": -0.007068,
+          "ci_hi": -0.006791,
+          "ci_half": 0.000138,
+          "p_value_vs_zero": 0.0,
+          "n": 1702
+        },
+        "video_clustered": {
+          "ci_lo": -0.007209,
+          "ci_hi": -0.00664,
+          "ci_half": 0.000284,
+          "n_videos": 136
+        },
+        "relative_pct": -11.958,
+        "verdict_clip": "B better"
+      },
+      "peft_lora_encoder:surgical_3stage_DI_diheavy_encoder": {
+        "delta_mean": -0.002432,
+        "clip_bca": {
+          "mean": -0.002432,
+          "ci_lo": -0.002579,
+          "ci_hi": -0.002284,
+          "ci_half": 0.000147,
+          "p_value_vs_zero": 0.0,
+          "n": 1702
+        },
+        "video_clustered": {
+          "ci_lo": -0.002766,
+          "ci_hi": -0.002103,
+          "ci_half": 0.000331,
+          "n_videos": 136
+        },
+        "relative_pct": -4.552,
+        "verdict_clip": "B better"
+      }
+    },
+    "motion_cos": {
+      "pretrain_encoder:surgery_raw_encoder": {
+        "delta_mean": 0.003441,
+        "clip_bca": {
+          "mean": 0.003441,
+          "ci_lo": 0.002828,
+          "ci_hi": 0.004073,
+          "ci_half": 0.000622,
+          "p_value_vs_zero": 0.0,
+          "n": 1702
+        },
+        "video_clustered": {
+          "ci_lo": 0.002332,
+          "ci_hi": 0.004557,
+          "ci_half": 0.001112,
+          "n_videos": 136
+        },
+        "relative_pct": 5.536,
+        "verdict_clip": "B better"
+      },
+      "surgery_raw_encoder:surgical_3stage_DI_diheavy_encoder": {
+        "delta_mean": -0.012198,
+        "clip_bca": {
+          "mean": -0.012198,
+          "ci_lo": -0.012637,
+          "ci_hi": -0.011768,
+          "ci_half": 0.000435,
+          "p_value_vs_zero": 0.0,
+          "n": 1702
+        },
+        "video_clustered": {
+          "ci_lo": -0.01319,
+          "ci_hi": -0.011256,
+          "ci_half": 0.000967,
+          "n_videos": 136
+        },
+        "relative_pct": -18.596,
+        "verdict_clip": "B worse"
+      },
+      "pretrain_encoder:surgical_3stage_DI_diheavy_encoder": {
+        "delta_mean": -0.008757,
+        "clip_bca": {
+          "mean": -0.008757,
+          "ci_lo": -0.009399,
+          "ci_hi": -0.008145,
+          "ci_half": 0.000627,
+          "p_value_vs_zero": 0.0,
+          "n": 1702
+        },
+        "video_clustered": {
+          "ci_lo": -0.010034,
+          "ci_hi": -0.007547,
+          "ci_half": 0.001243,
+          "n_videos": 136
+        },
+        "relative_pct": -14.089,
+        "verdict_clip": "B worse"
+      },
+      "peft_lora_encoder:surgical_3stage_DI_diheavy_encoder": {
+        "delta_mean": -0.021223,
+        "clip_bca": {
+          "mean": -0.021223,
+          "ci_lo": -0.02196,
+          "ci_hi": -0.020484,
+          "ci_half": 0.000738,
+          "p_value_vs_zero": 0.0,
+          "n": 1702
+        },
+        "video_clustered": {
+          "ci_lo": -0.023007,
+          "ci_hi": -0.019517,
+          "ci_half": 0.001745,
+          "n_videos": 136
+        },
+        "relative_pct": -28.442,
+        "verdict_clip": "B worse"
+      }
+    }
+  }
+}
