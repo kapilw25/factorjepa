@@ -90,6 +90,10 @@ arms:
   surgery_3stage_DI_replay25_encoder:  {encoder: surgical_3stage_DI_replay25_encoder,  dir: m09c_surgery_3stage_DI_replay25_encoder,   kind: surgery,       scheduler: true,  group: improvement}
   surgery_3stage_DI_diheavy_encoder:   {encoder: surgical_3stage_DI_diheavy_encoder,   dir: m09c_surgery_3stage_DI_diheavy_encoder,    kind: surgery,       scheduler: true,  group: improvement}
   surgery_3stage_DI_randview_encoder:  {encoder: surgical_3stage_DI_randview_encoder,  dir: m09c_surgery_3stage_DI_randview_encoder,   kind: surgery,       scheduler: false, group: surgery_ablation}   # 2026-11-28 random-view control (donor masks); run by name, not by the scheduler DAG
+  surgery_3stage_DI_diheavy_seed2_encoder: {encoder: surgical_3stage_DI_diheavy_seed2_encoder, dir: m09c_surgery_3stage_DI_diheavy_seed2_encoder, kind: surgery, scheduler: false, group: improvement}   # 2026-11-28 seed 2 (data.seed 43)
+  surgery_3stage_DI_diheavy_seed3_encoder: {encoder: surgical_3stage_DI_diheavy_seed3_encoder, dir: m09c_surgery_3stage_DI_diheavy_seed3_encoder, kind: surgery, scheduler: false, group: improvement}   # 2026-11-28 seed 3 (data.seed 44)
+  peft_lora_seed2_encoder:             {encoder: peft_lora_seed2_encoder,              dir: m09b_peft_lora_seed2_encoder,              kind: baseline,      scheduler: false, group: ft_baseline}   # 2026-11-28 seed 2 (data.seed 43)
+  peft_lora_seed3_encoder:             {encoder: peft_lora_seed3_encoder,              dir: m09b_peft_lora_seed3_encoder,              kind: baseline,      scheduler: false, group: ft_baseline}   # 2026-11-28 seed 3 (data.seed 44)
   surgery_3stage_DI_tccaux_encoder:    {encoder: surgical_3stage_DI_tccaux_encoder,    dir: m09c_surgery_3stage_DI_tccaux_encoder,     kind: surgery,       scheduler: true,  group: improvement}
   surgery_3stage_DI_intervene_encoder: {encoder: surgical_3stage_DI_intervene_encoder, dir: m09c_surgery_3stage_DI_intervene_encoder,  kind: surgery,       scheduler: true,  group: improvement}
   # kind: merge → NOT trained; the scheduler builds a post-hoc wiseft_merge job from merge_recipe (base/alpha/predictor),

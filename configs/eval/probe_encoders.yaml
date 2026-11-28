@@ -71,6 +71,10 @@ encoders:
     arch: vit_gigantic_xformers
     crop: 384
     embed_dim: 1664
+  vjepa_2_1_surgical_3stage_DI_diheavy_seed2_encoder: {kind: vjepa, arch: vit_gigantic_xformers, crop: 384, embed_dim: 1664}   # 2026-11-28 seed 2
+  vjepa_2_1_surgical_3stage_DI_diheavy_seed3_encoder: {kind: vjepa, arch: vit_gigantic_xformers, crop: 384, embed_dim: 1664}   # 2026-11-28 seed 3
+  vjepa_2_1_peft_lora_seed2_encoder: {kind: vjepa, arch: vit_gigantic_xformers, crop: 384, embed_dim: 1664}   # 2026-11-28 seed 2
+  vjepa_2_1_peft_lora_seed3_encoder: {kind: vjepa, arch: vit_gigantic_xformers, crop: 384, embed_dim: 1664}   # 2026-11-28 seed 3
   vjepa_2_1_surgical_3stage_DI_tccaux_encoder:
     kind: vjepa
     arch: vit_gigantic_xformers
@@ -292,6 +296,10 @@ encoders:
   # 1B dims (1408, vit_giant_xformers). Were MISSING → run_eval kind-lookup FATALed on the 1B diheavy eval (SANITY 112/167).
   vjepa_2_1_vitg_surgical_3stage_DI_diheavy_encoder:    {kind: vjepa, arch: vit_giant_xformers, crop: 384, embed_dim: 1408}
   vjepa_2_1_vitg_surgical_3stage_DI_randview_encoder:   {kind: vjepa, arch: vit_giant_xformers, crop: 384, embed_dim: 1408}   # 2026-11-28 random-view control
+  vjepa_2_1_vitg_surgical_3stage_DI_diheavy_seed2_encoder: {kind: vjepa, arch: vit_giant_xformers, crop: 384, embed_dim: 1408}   # 2026-11-28 seed 2
+  vjepa_2_1_vitg_surgical_3stage_DI_diheavy_seed3_encoder: {kind: vjepa, arch: vit_giant_xformers, crop: 384, embed_dim: 1408}   # 2026-11-28 seed 3
+  vjepa_2_1_vitg_peft_lora_seed2_encoder:   {kind: vjepa, arch: vit_giant_xformers, crop: 384, embed_dim: 1408}   # 2026-11-28 seed 2
+  vjepa_2_1_vitg_peft_lora_seed3_encoder:   {kind: vjepa, arch: vit_giant_xformers, crop: 384, embed_dim: 1408}   # 2026-11-28 seed 3
   vjepa_2_1_vitg_surgical_3stage_DI_intervene_encoder:  {kind: vjepa, arch: vit_giant_xformers, crop: 384, embed_dim: 1408}
   vjepa_2_1_vitg_surgical_intervene_wiseft_f30_encoder: {kind: vjepa, arch: vit_giant_xformers, crop: 384, embed_dim: 1408}
   vjepa_2_1_vitg_surgical_intervene_wiseft_f50_encoder: {kind: vjepa, arch: vit_giant_xformers, crop: 384, embed_dim: 1408}

@@ -376,6 +376,13 @@ case "$_KIND" in
                 VARIANT_TAG="encoder"
                 RUNNER="src/m09b_peft_encoder.py"; MODULE_PREFIX="m09b_peft_lora"
                 ;;
+            peft_lora_seed2_encoder|peft_lora_seed3_encoder)
+                # 2026-11-28 run-variance seeds of the LoRA rival: same runner as peft_lora_encoder; the arm
+                # name gives each seed its own output dir (m09b_peft_lora_seedN_encoder), never seed 1's.
+                TRAIN_CFG=$(scripts/lib/yaml_extract.py configs/pipeline.yaml "arm_train_configs.$SUBCMD")
+                VARIANT_TAG="encoder"
+                RUNNER="src/m09b_peft_encoder.py"; MODULE_PREFIX="m09b_${SUBCMD%_encoder}"
+                ;;
             peft_dora_encoder)
                 # iter18 B1 baseline: PEFT DoRA — OWN script m09b (cp m09c1 + HuggingFace peft).
                 TRAIN_CFG=$(scripts/lib/yaml_extract.py configs/pipeline.yaml arm_train_configs.peft_dora_encoder)

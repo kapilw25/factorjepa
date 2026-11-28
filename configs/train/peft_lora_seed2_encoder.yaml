@@ -1,0 +1,8 @@
+# 2026-11-28 — run-variance seed 2 of the LoRA rival (TODOs "Two more seeds, 1B·10k", v1 Human-Centric).
+# Identical recipe to peft_lora_encoder (seed 1 = data.seed 42); only the training seed differs.
+# The train pool's seed is read from base_optimization.yaml by run_train.sh, so the clips are the same.
+extends: peft_lora_encoder.yaml
+data:
+  seed: 43
+  adapted_encoder: vjepa_2_1_peft_lora_seed2_encoder
+  output_dir: outputs/full/m09b_peft_lora_seed2_encoder    # auto-overridden by run_train.sh

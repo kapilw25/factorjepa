@@ -892,6 +892,10 @@ arm_train_configs:
   surgery_3stage_DI_replay25_encoder: "configs/train/surgery_3stage_DI_replay25_encoder.yaml"   # lever #2
   surgery_3stage_DI_diheavy_encoder: "configs/train/surgery_3stage_DI_diheavy_encoder.yaml"     # lever #3
   surgery_3stage_DI_randview_encoder: "configs/train/surgery_3stage_DI_randview_encoder.yaml"   # 2026-11-28 random-view control
+  surgery_3stage_DI_diheavy_seed2_encoder: "configs/train/surgery_3stage_DI_diheavy_seed2_encoder.yaml"   # 2026-11-28 seed 2
+  surgery_3stage_DI_diheavy_seed3_encoder: "configs/train/surgery_3stage_DI_diheavy_seed3_encoder.yaml"   # 2026-11-28 seed 3
+  peft_lora_seed2_encoder: "configs/train/peft_lora_seed2_encoder.yaml"   # 2026-11-28 seed 2
+  peft_lora_seed3_encoder: "configs/train/peft_lora_seed3_encoder.yaml"   # 2026-11-28 seed 3
   surgery_3stage_DI_tccaux_encoder: "configs/train/surgery_3stage_DI_tccaux_encoder.yaml"       # lever #4 (FAIL-LOUD stub)
   surgery_3stage_DI_intervene_encoder: "configs/train/surgery_3stage_DI_intervene_encoder.yaml" # lever #5 (FAIL-LOUD stub)
 
