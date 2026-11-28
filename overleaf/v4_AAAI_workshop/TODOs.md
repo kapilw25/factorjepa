@@ -1,6 +1,6 @@
 # ✅ FactorJEPA TODOs (v1, v3, v4, v5)
 
-Updated Fri Nov 27 2026, ~7:10 PM PST. One TODO file for all four FactorJEPA workshop drafts (owner order Fri Nov 27 ~7:00 PM PST), next to [venues.md](venues.md). Submissions are tracked on the [Workshop Deadlines](https://claude.ai/artifact/FemMusSPv4xxXJBTWGcw6b) page, not here. Sources: the official AAAI-27 reviews ([main track](../feedback_official/v1_AAAI27_main.md), reject; [student abstract](../feedback_official/v3_AAAI27_student_abstract.md), weak accept and borderline) and, per draft, the reviews in `feedback/output/<draft>/by_chatgpt.md`, `by_claude.md` (claude.ai), `by_gemini.md` and `by_claude_fresh.md` (a fresh Claude Code helper). The shared sections live once in [common](common/), so a shared fix reaches all four drafts in one [build](build_all.py). Owner picks Fri Nov 27: draft fixes started once all three judges were in (~6:57 PM PST); a neutral disclosure footnote, with the student abstract and preprint told to the chairs (~7:00 PM); "Causal L1" renamed "Forward L1", Figure 3 label included (~7:00 PM).
+Updated Fri Nov 27 2026, ~7:10 PM PST. One TODO file for all four FactorJEPA workshop drafts (owner order Fri Nov 27 ~7:00 PM PST), next to [venues.md](venues.md). It replaces `v2_Cog2Soc/TODOs.md`, archived at [legacy/v2_Cog2Soc/TODOs.md](legacy/v2_Cog2Soc/TODOs.md) (owner pick ~7:15 PM PST). Submissions are tracked on the [Workshop Deadlines](https://claude.ai/artifact/FemMusSPv4xxXJBTWGcw6b) page, not here. Sources: the official AAAI-27 reviews ([main track](../feedback_official/v1_AAAI27_main.md), reject; [student abstract](../feedback_official/v3_AAAI27_student_abstract.md), weak accept and borderline) and, per draft, the reviews in `feedback/output/<draft>/by_chatgpt.md`, `by_claude.md` (claude.ai), `by_gemini.md` and `by_claude_fresh.md` (a fresh Claude Code helper). The shared sections live once in [common](common/), so a shared fix reaches all four drafts in one [build](build_all.py). Owner picks Fri Nov 27: draft fixes started once all three judges were in (~6:57 PM PST); a neutral disclosure footnote, with the student abstract and preprint told to the chairs (~7:00 PM); "Causal L1" renamed "Forward L1", Figure 3 label included (~7:00 PM); v3 and v5 retitled to what Table 2 shows (~7:15 PM).
 
 **Legend:** 🔴 open · ⏳ queued · 🟡 in progress · ✅ done · 👤 a person does it · ⚪ deferred · ⛔ blocked · 🟢 ChatGPT · 🟠 Claude (claude.ai) · 🔵 Gemini · 🟣 Claude fresh · 📜 official review
 
@@ -51,7 +51,6 @@ Writing and CPU work on the Mac. Each draft is rebuilt with all gates (pages, an
 | 📄 References to page 5 | 🔗 all | ⏰ Fri Nov 27, ~9 PM | 🔴 open, all four venues allow it | 🔥 high, frees a column for results |
 | 📝 Tell chairs: abstract, preprint | 🔗 all | 👤 before each deadline | 🔴 owner | 🔥 high, avoids a policy reject |
 | ✍️ v3 rewrites, abstract | 👥 v3 | ⏰ Sat Nov 28, ~2 PM | 🔴 open, judges' tone rows | 🔥 high, first thing read |
-| 🏷️ Retitle v3, v5 to the evidence | 👥 v3, 🔁 v5 | 👤 owner pick | 🔴 asked | 🔥 high, claim matches Table 2 |
 | 🔎 Dataset card anonymity check | 🔗 all | ⏰ Fri Nov 27, ~9:30 PM | 🔴 open, card edit needs owner OK | 🔥 high, avoids a blind leak |
 | 📊 Density split of the margin | 🔗 all | ⏰ Sat Nov 28, ~6 PM | ⏳ waits box for per-clip data | 🔥 high, tests the crowding premise |
 | 📏 115k clustered CIs, raw effects | 🔗 all | ⏰ Sat Nov 28, ~8 PM | ⏳ waits box for per-clip data | 🔥 high, Figure 3 in plain units |
@@ -68,6 +67,7 @@ Writing and CPU work on the Mac. Each draft is rebuilt with all gates (pages, an
 | 🔤 Figure 1 labels at 9 pt | 🔗 all | 👤 owner call | 🔴 owner, thickening failed | 🔸 low, readability |
 | 📤 Upload as paper.pdf | 🔗 all | 👤 at each upload | 🔴 owner | 🔸 low, file name ties drafts |
 | 🫥 Neutral disclosure footnote | 🔗 all | ✅ Fri Nov 27, 7:05 PM | ✅ gate fails any preprint mention | 🔥 high, stopped a blind leak |
+| 🏷️ Retitle v3, v5 to the evidence | 👥 v3, 🔁 v5 | ✅ Fri Nov 27, 7:20 PM | ✅ owner pick | 🔥 high, claim matches Table 2 |
 | 🧷 One starting checkpoint stated | 🔗 all | ✅ Fri Nov 27, 7:05 PM | ✅ training clips only | 🔥 high, fairness of the comparison |
 | 🎭 Masking called a proxy | 🔗 all | ✅ Fri Nov 27, 7:05 PM | ✅ not real occlusion | 🔥 high, construct validity |
 | 🧮 Method text matches code | 🔗 all | ✅ Fri Nov 27, morning | ✅ 3-stage clip curriculum | 🔥 high, answers main-track R2 |

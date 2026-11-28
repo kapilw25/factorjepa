@@ -28,7 +28,7 @@
 % approach or research question, and the connection to another participating community.
 % Deadline Nov 29 2026 23:59 AoE (= Nov 30 03:59 PST); notification Dec 10 2026 AoE.
 % v3 (2026-11-27) = v2 plus the fixes of the fresh Claude judge, round 1 (51/100), see
-% ../v2_Cog2Soc/TODOs.md. Facts follow the code, not earlier drafts:
+% ../legacy/v2_Cog2Soc/TODOs.md (now ../TODOs.md). Facts follow the code, not earlier drafts:
 %  * the method is the 3-stage factor-clip curriculum of src/m09c1_surgery_encoder.py with
 %    configs/train/surgery_3stage_DI_diheavy_encoder.yaml (layout, agent, interaction clips;
 %    blocks [0,4) then [0,8) of 48 unfrozen; predictor trained; frozen teacher; SPD; 50% raw
@@ -41,7 +41,7 @@
 %    Causal L1 predicts the 2nd temporal half from the 1st (src/utils/pt_causal.py); the split is
 %    clip-level (src/utils/clip_splits.py); Ours is ONE fixed arm in every cell of Table 1.
 
-\title{Layout, Then Road Users, Then Interactions: Adapting a Video World Model to Dense South Asian Street Behaviour}  % owner pick Fri Nov 27 2026 ~6:30 AM PST: one title per venue (the arXiv and student-abstract title stays 'FactorJEPA on DENSEWORLD-115k: ...')
+\title{Adapting a Video World Model to Dense South Asian Street Behaviour: Staged Training and Robustness to Missing Evidence}  % owner pick Fri Nov 27 2026 ~7:15 PM PST: retitled to what Table 2 shows (claude.ai judge, ending changed from 'Occlusion' because masking is only a proxy); was 'Layout, Then Road Users, Then Interactions: ...' (one title per venue since ~6:30 AM PST) (the arXiv and student-abstract title stays 'FactorJEPA on DENSEWORLD-115k: ...')
 
 \author{Anonymous Submission}
 \affiliations{}
