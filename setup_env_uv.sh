@@ -282,10 +282,13 @@ if [ "$1" = "--gpu-eval-min" ]; then
     fi
     source venv_walkindia/bin/activate
     uv pip install "torch==${TORCH_VERSION}" --index-url https://download.pytorch.org/whl/nightly/cu128
+    uv pip install --no-deps "torchvision==${TORCHVISION_VERSION}" --index-url https://download.pytorch.org/whl/nightly/cu128
     uv pip install -r requirements_eval_min.txt
+    # --no-deps: timm's torch/torchvision requirement otherwise pulls PyPI torch over the pinned nightly.
+    uv pip install --no-deps "timm>=0.9.0"
     mkdir -p outputs/poc logs data deps
     setup_vjepa2
-    python -c "import torch; assert torch.cuda.is_available(), 'FATAL: CUDA not available'; print('torch', torch.__version__, 'CUDA', torch.version.cuda, torch.cuda.get_device_name(0), 'sm', torch.cuda.get_device_capability(0))"
+    python -c "import torch, timm; assert torch.__version__.startswith('${TORCH_VERSION}'), f'FATAL: torch {torch.__version__} != pinned ${TORCH_VERSION}'; assert torch.cuda.is_available(), 'FATAL: CUDA not available'; print('torch', torch.__version__, 'CUDA', torch.version.cuda, torch.cuda.get_device_name(0), 'sm', torch.cuda.get_device_capability(0), 'timm', timm.__version__)"
     echo "--gpu-eval-min setup complete: $(du -sh venv_walkindia | cut -f1) venv"
     exit 0
 fi
