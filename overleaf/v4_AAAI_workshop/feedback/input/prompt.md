@@ -177,16 +177,18 @@ List up to 5 improvements, ranked by expected score gain. For each: what it show
 data and rough GPU hours, or saved results), where it goes (replace which element, so the paper stays within 4 pages),
 which rubric it raises and by how much. Also list anything that should be CUT to make room.
 
-PART D. Tone audit
+PART D. Double-blind check
+List anything in the PDF (links, dataset names, self-citations, acknowledgements, metadata wording) that could reveal the
+authors, and the anonymous replacement for each.
+
+PART E. Tone audit
 Find every line or paragraph that reads as NEGATIVE and self-critical, or as an ENGINEERING/operations report, instead of
 a RESEARCH paper that leads with its contribution and novelty. Output a table:
 # | page/section | quoted original (exact) | problem (negative / criticism / engineering-only) | rewrite
 The rewrite must be positive, constructive and centred on the contribution, BUT it must keep every fact and every number
 true: never remove an interval, never turn a non-significant difference into a win or a tie, never hide a negative
-result, never add a claim the paper does not test. No em dashes. Finish with: the 3 rewrites that matter most, and a
-rewritten abstract (same facts, at most the current length) that opens with the contribution.
-
-PART E. Double-blind check
-List anything in the PDF (links, dataset names, self-citations, acknowledgements, metadata wording) that could reveal the
-authors, and the anonymous replacement for each.
+result, never add a claim the paper does not test. No em dashes. 
+Finish with: 
+E.2) the 3 rewrites that matter most, and 
+E.3) a rewritten abstract (same facts, at most the current length) that opens with the contribution.
 ```
