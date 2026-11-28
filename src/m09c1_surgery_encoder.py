@@ -35,6 +35,7 @@ data.local_data_dir; <M> = sanity|poc|full; swap --FULL→--SANITY/--POC for oth
         --saliency             <optimization.loss.saliency_weighting → on|off> \
         --spd                  <optimization.spd.enabled → on|off> \
         --replay               <replay.raw_pretrain_pct → on|off> \
+        --mask-remap           <off | outputs/<M>/<arm>/mask_remap.json when mask_shuffle.enabled> \
         --no-wandb 2>&1 | tee logs/m09c_surgery_3stage_DI_encoder_full.log
     # ALL 7 recipe knobs are MANDATORY (required=True, iter17) — no silent yaml fallback inside
     #   the trainer. run_train.sh resolves each from the train yaml (single source) with the
@@ -118,6 +119,7 @@ CHECKPOINT_PREFIX = "m09c_ckpt"
 
 # Shared training primitives — utils/training.py (Phase 1 of iter8 split).
 from utils import data_paths   # iter17: canonical local-data path accessors (single source)
+from utils.mask_shuffle import apply_remap as apply_mask_remap  # random-view control (2026-11-28)
 from utils.training import (
     build_student_predictor,       # iter17 DRY #31: shared student+predictor construction
     load_config,
@@ -686,6 +688,21 @@ def train(cfg: dict, args):
             k: entry["D_I"]
             for k, entry in factor_index.items() if "D_I" in entry
         }
+
+    # Random-view control (2026-11-28, v4 Data2AgentEx "semantic views or masking"): the yaml
+    # mask_shuffle block and the --mask-remap artifact (built ONCE by run_train.sh via
+    # src/utils/mask_shuffle.py) must agree; when on, every clip streams ANOTHER clip's mask.
+    mask_shuffle_on = cfg["mask_shuffle"]["enabled"]
+    if mask_shuffle_on != (args.mask_remap != "off"):
+        print(f"FATAL: train yaml mask_shuffle.enabled={mask_shuffle_on} but --mask-remap={args.mask_remap!r} "
+              f"(run_train.sh passes a remap json exactly when the yaml enables it)")
+        sys.exit(1)
+    if mask_shuffle_on:
+        if not streaming_enabled:
+            print("FATAL: mask_shuffle needs factor streaming (masks are applied on the fly)")
+            sys.exit(1)
+        mask_index = apply_mask_remap(mask_index, args.mask_remap)
+        print(f"  mask_shuffle: {len(mask_index)} clips stream a donor clip's mask ({args.mask_remap})")
 
     # Surgery config
     surgery_cfg = cfg["surgery"]
@@ -2010,6 +2027,9 @@ def main():
                         help="REQUIRED (iter17): m11 factor dataset dir (contains D_L/, D_A/, D_I/, "
                              "factor_manifest.json). MUST equal the canonical <local_data>/<data.factor_subdir> "
                              "(data_paths) — m09c1 FATALs on mismatch. run_train.sh passes FACTOR_DIR_CANONICAL.")
+    parser.add_argument("--mask-remap", type=str, required=True,
+                        help="Random-view control: mask_remap.json from src/utils/mask_shuffle.py (built by run_train.sh "
+                             "when the train yaml sets mask_shuffle.enabled), or 'off'. Must agree with the yaml.")
     fs_group = parser.add_mutually_exclusive_group()
     fs_group.add_argument("--factor-streaming", dest="factor_streaming_override",
                           action="store_true", default=None,

@@ -66,6 +66,11 @@ encoders:
     arch: vit_gigantic_xformers
     crop: 384
     embed_dim: 1664
+  vjepa_2_1_surgical_3stage_DI_randview_encoder:   # 2026-11-28 random-view control
+    kind: vjepa
+    arch: vit_gigantic_xformers
+    crop: 384
+    embed_dim: 1664
   vjepa_2_1_surgical_3stage_DI_tccaux_encoder:
     kind: vjepa
     arch: vit_gigantic_xformers
@@ -286,6 +291,7 @@ encoders:
   # iter18 (2026-06-23): the 1B improvement + WiSE-FT merge arms — mirror the vitG champion rows (lines 64-98),
   # 1B dims (1408, vit_giant_xformers). Were MISSING → run_eval kind-lookup FATALed on the 1B diheavy eval (SANITY 112/167).
   vjepa_2_1_vitg_surgical_3stage_DI_diheavy_encoder:    {kind: vjepa, arch: vit_giant_xformers, crop: 384, embed_dim: 1408}
+  vjepa_2_1_vitg_surgical_3stage_DI_randview_encoder:   {kind: vjepa, arch: vit_giant_xformers, crop: 384, embed_dim: 1408}   # 2026-11-28 random-view control
   vjepa_2_1_vitg_surgical_3stage_DI_intervene_encoder:  {kind: vjepa, arch: vit_giant_xformers, crop: 384, embed_dim: 1408}
   vjepa_2_1_vitg_surgical_intervene_wiseft_f30_encoder: {kind: vjepa, arch: vit_giant_xformers, crop: 384, embed_dim: 1408}
   vjepa_2_1_vitg_surgical_intervene_wiseft_f50_encoder: {kind: vjepa, arch: vit_giant_xformers, crop: 384, embed_dim: 1408}

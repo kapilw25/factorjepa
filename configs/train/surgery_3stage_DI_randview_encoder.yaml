@@ -1,0 +1,12 @@
+# 2026-11-28 — RANDOM-VIEW CONTROL for FactorJEPA (v4 Data2AgentEx judge ask: "is the gain from semantic views
+# or from masking?"). Byte-identical to surgery_3stage_DI_diheavy_encoder (the FactorJEPA arm in every draft)
+# except that each clip streams ANOTHER clip's m10 mask: layout / agent / interaction views keep realistic mask
+# area, shape and tube statistics, per-factor clip pools keep their sizes, but the masks no longer match the
+# scene. Same clips, budget, schedule, unfreeze depths and mixtures; same init (local m09a pretrain_encoder).
+extends: surgery_3stage_DI_diheavy_encoder.yaml
+data:
+  adapted_encoder: vjepa_2_1_surgical_3stage_DI_randview_encoder
+  output_dir: outputs/full/m09c_surgery_3stage_DI_randview_encoder    # auto-overridden by run_train.sh
+mask_shuffle:
+  enabled: true
+  seed: 42

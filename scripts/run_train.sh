@@ -452,6 +452,28 @@ case "$_KIND" in
         RECIPE_V2_ARGS=(--teacher-mode "$TEACHER" --lp-ft-stage0 "$LPFT" --warmup-mode "$WARMUP" \
                         --subset-mode "$SUBSETM" --saliency "$SALIENCY" --spd "$SPD" --replay "$REPLAY")
 
+        # 2026-11-28 random-view control: m09c1 takes --mask-remap (required). When the train yaml's
+        # mask_shuffle.enabled is true, the donor-mask derangement is built ONCE here (shared derivation
+        # via CLI, src/utils/mask_shuffle.py) from the same pool/val/masks m09c1 indexes; else 'off'.
+        # The bespoke baseline runners (m09b/d/e/f) have no such flag, so nothing is added for them.
+        MASK_REMAP_ARGS=()
+        if [ "$RUNNER" = "src/m09c1_surgery_encoder.py" ]; then
+            MASK_REMAP="off"
+            case "$(_y mask_shuffle.enabled)" in
+                True|true)
+                    MASK_REMAP="${OUT_DIR}/mask_remap.json"
+                    MASKS_DIR="${LOCAL_DATA}/$(scripts/lib/yaml_extract.py configs/pipeline.yaml data.masks_subdir)/$(scripts/lib/yaml_extract.py configs/pipeline.yaml data.masks_inner_dirname)"
+                    mkdir -p "$OUT_DIR"
+                    python -u src/utils/mask_shuffle.py \
+                        --factor-manifest "${FACTOR_DIR}/$(scripts/lib/yaml_extract.py configs/pipeline.yaml data.factor_manifest_name)" \
+                        --masks-dir "$MASKS_DIR" \
+                        --subset "$TRAIN_POOL" --val-subset "$VAL_SPLIT" \
+                        --seed "$(_y mask_shuffle.seed)" --out "$MASK_REMAP"
+                    ;;
+            esac
+            MASK_REMAP_ARGS=(--mask-remap "$MASK_REMAP")
+        fi
+
         echo "═══ $(date '+%H:%M:%S') · ${MODULE_PREFIX} train [variant=${VARIANT_TAG}] (${MODE}) ═══"
         echo "  config:    $TRAIN_CFG"
         echo "  subset:    $TRAIN_POOL  (leakage-safe: universe − val − test)"
@@ -479,6 +501,7 @@ case "$_KIND" in
             --motion-features-path "${LOCAL_DATA}/m04d_motion_features/motion_features.npy" \
             "${TAXONOMY_ARGS[@]}" \
             "${RECIPE_V2_ARGS[@]}" \
+            "${MASK_REMAP_ARGS[@]}" \
             --no-wandb \
             2>&1 | tee "logs/${MODULE_PREFIX}_${VARIANT_TAG}_${mode_dir}.log"
         ;;

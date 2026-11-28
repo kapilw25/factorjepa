@@ -403,7 +403,13 @@ def stream_interaction_tubes(
         return _compute_interaction_tubes(
             mp4_bytes, mask_npz_path, interaction_cfg, num_frames, tmp_dir, clip_key)
 
-    key = _tube_cache_key(clip_key, num_frames, interaction_cfg)
+    # The cache key stands in for (mp4, mask) by clip_key. When the caller streams ANOTHER clip's mask
+    # (random-view control, utils/mask_shuffle.py), the donor joins the key so those tubes never collide with
+    # the clip's own; a clip's own mask keeps the original key, so existing cache entries stay valid.
+    own_stem = clip_key.replace("/", "__")
+    donor_stem = Path(mask_npz_path).stem
+    cache_id = clip_key if donor_stem == own_stem else f"{clip_key}|mask={donor_stem}"
+    key = _tube_cache_key(cache_id, num_frames, interaction_cfg)
     cache_path = _tube_cache_path(tube_cache["dir"], clip_key, key)
     if cache_path.exists():
         return _load_tube_cache(cache_path)

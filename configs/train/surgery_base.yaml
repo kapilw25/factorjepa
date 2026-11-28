@@ -283,6 +283,13 @@ interaction_mining:
     enabled: true                     # read-through D_I tube cache (set false to bypass)
     dir: null                         # INJECTED at runtime from local_data (do not hardcode)
 
+# -- Random-view control (2026-11-28): every clip streams ANOTHER clip's m10 mask (a seeded derangement within
+# each has_D_L/has_D_A/has_D_I group, built ONCE by run_train.sh via src/utils/mask_shuffle.py and passed to
+# m09c1 as --mask-remap). Off for every semantic arm; only surgery_3stage_DI_randview_encoder turns it on.
+mask_shuffle:
+  enabled: false
+  seed: 42                            # derangement seed (only read when enabled)
+
 # -- Surgery: progressive prefix unfreezing --
 # Sec 11.5 of proposal. Per-variant `surgery.stages` overrides this file's empty default.
 surgery:
