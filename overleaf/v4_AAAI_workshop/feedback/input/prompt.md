@@ -11,7 +11,7 @@ Attach the files with the chat's paperclip button. Every file is on the **Downlo
   3. Continual Causality: [v5_Continual_Causality/0_main.pdf](https://github.com/kapilw25/factorjepa/blob/main/overleaf/v4_AAAI_workshop/v5_Continual_Causality/0_main.pdf) ([download](https://raw.githubusercontent.com/kapilw25/factorjepa/main/overleaf/v4_AAAI_workshop/v5_Continual_Causality/0_main.pdf))
   4. Human-Centric: [v1_Human_Centric/0_main.pdf](https://github.com/kapilw25/factorjepa/blob/main/overleaf/v4_AAAI_workshop/v1_Human_Centric/0_main.pdf) ([download](https://raw.githubusercontent.com/kapilw25/factorjepa/main/overleaf/v4_AAAI_workshop/v1_Human_Centric/0_main.pdf))
 
-Save each model's answers to `overleaf/v4_AAAI_workshop/feedback/output/v3_open_venues/by_<model>/step1.md`, `step2.md` and `step3.md` (`<model>` = chatgpt, claude, gemini).
+Save each model's final review split by draft, one file per draft: `overleaf/v4_AAAI_workshop/feedback/output/<draft>/by_<model>.md` (`<draft>` = v1_Human_Centric, v3_Cog2Soc_fixes, v4_Data2AgentEx, v5_Continual_Causality; `<model>` = chatgpt, claude, gemini). Each file keeps the shared parts and that draft's section.
 
 The earlier one-venue prompts are in git history (Human-Centric) and in [prompt_v2_Cog2Soc.md](prompt_v2_Cog2Soc.md) (the fresh Claude judge loop on Cog2Soc).
 
