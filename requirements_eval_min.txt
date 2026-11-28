@@ -1,0 +1,16 @@
+# Minimal runtime for the predictor and motion diagnostics only (m12b motion cosine, m12d future-frame L1,
+# m12e forward L1 + mask-ratio slope, m04e labels), installed by `bash setup_env_uv.sh --gpu-eval-min`.
+# For a shared GPU box with a small disk cap (Hospital-Bench box, owner pick Fri Nov 27 2026: 20 GB for factorjepa).
+# torch comes from the pinned nightly in setup_env_uv.sh; flash_attn is not needed (these paths build V-JEPA with
+# use_sdpa=True, src/utils/predictor_eval.py). Versions follow requirements.txt / requirements_gpu.txt.
+numpy>=2.3.0,<2.4
+PyYAML>=6.0
+scipy>=1.10.0
+scikit-learn>=1.3.0
+pandas>=2.0.0
+tqdm>=4.65.0
+av>=12.0.0
+timm>=0.9.0
+einops>=0.6.0
+huggingface_hub>=0.20.0
+python-dotenv>=1.0.0

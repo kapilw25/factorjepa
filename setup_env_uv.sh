@@ -222,6 +222,74 @@ setup_base() {
     echo ""
 }
 
+# Clone vjepa2 (contains BOTH 2.0 and 2.1 code) and apply the RoPE dtype patch; used by --gpu and --gpu-eval-min.
+# 2.0: deps/vjepa2/src/models/ (base ViT, predictor)
+# 2.1: deps/vjepa2/app/vjepa_2_1/models/ (hierarchical output, deep supervision)
+setup_vjepa2() {
+    if [ ! -d "deps/vjepa2/src" ]; then
+        echo ""
+        echo "Cloning facebookresearch/vjepa2 (contains V-JEPA 2.0 + 2.1)..."
+        rm -rf deps/vjepa2
+        git clone --depth 1 https://github.com/facebookresearch/vjepa2.git deps/vjepa2
+        echo "vjepa2 cloned to deps/vjepa2/"
+    else
+        echo "deps/vjepa2 already present"
+    fi
+
+    # Idempotent patch: cast RoPE-rotated Q/K back to V.dtype before SDPA.
+    # V-JEPA 2.1's RoPE keeps Q/K in fp32 for numerical stability, but the model is
+    # loaded in bf16 → torch.compile's FakeTensor check rejects the Q/K/V dtype
+    # mismatch at F.scaled_dot_product_attention. Lossless downcast (rotation math
+    # stays fp32, only final Q/K result is cast). Must re-apply on every fresh clone.
+    # errors_N_fixes.md #44. Idempotent: skips if already present.
+    python3 << 'PYEOF'
+path = 'deps/vjepa2/app/vjepa_2_1/models/utils/modules.py'
+src = open(path).read()
+if 'q = q.to(v.dtype)' in src:
+    print("vjepa2 RoPE dtype patch already present (#44)")
+else:
+    anchor = "            k = torch.cat([kd, kh, kw], dim=-1)\n\n        if self.use_sdpa:"
+    replacement = (
+        "            k = torch.cat([kd, kh, kw], dim=-1)\n\n"
+        "        # RoPE outputs fp32 Q/K; cast back to V.dtype before SDPA so\n"
+        "        # torch.compile FakeTensor check passes. errors_N_fixes.md #44.\n"
+        "        q = q.to(v.dtype)\n"
+        "        k = k.to(v.dtype)\n\n"
+        "        if self.use_sdpa:"
+    )
+    if anchor not in src:
+        raise SystemExit(f"FATAL: vjepa2 upstream refactored {path} — #44 anchor not found. Re-derive patch.")
+    open(path, 'w').write(src.replace(anchor, replacement))
+    print("vjepa2 RoPE dtype patch applied (#44)")
+PYEOF
+}
+
+# ============================================================================
+# --gpu-eval-min: minimal eval-only env for a SHARED GPU box with a small disk cap (owner pick Fri Nov 27 2026,
+# Hospital-Bench box, 20 GB for factorjepa). Installs only the pinned torch nightly + requirements_eval_min.txt and
+# deps/vjepa2: enough for m04e, m12b (motion cosine), m12d (future-frame L1), m12e (forward L1, mask-ratio slope).
+# No base requirements, no FA2 / FAISS / cuML / SAM, no checkpoint downloads, no uv cache kept on disk.
+# ============================================================================
+if [ "$1" = "--gpu-eval-min" ]; then
+    if [ "$OS" != "Linux" ]; then
+        echo "Error: --gpu-eval-min requires Linux. Detected: $OS"
+        exit 1
+    fi
+    export UV_NO_CACHE=1
+    export UV_HTTP_TIMEOUT=600
+    if [ ! -d "venv_walkindia" ]; then
+        uv venv --python 3.12 venv_walkindia
+    fi
+    source venv_walkindia/bin/activate
+    uv pip install "torch==${TORCH_VERSION}" --index-url https://download.pytorch.org/whl/nightly/cu128
+    uv pip install -r requirements_eval_min.txt
+    mkdir -p outputs/poc logs data deps
+    setup_vjepa2
+    python -c "import torch; assert torch.cuda.is_available(), 'FATAL: CUDA not available'; print('torch', torch.__version__, 'CUDA', torch.version.cuda, torch.cuda.get_device_name(0), 'sm', torch.cuda.get_device_capability(0))"
+    echo "--gpu-eval-min setup complete: $(du -sh venv_walkindia | cut -f1) venv"
+    exit 0
+fi
+
 # ============================================================================
 # --mac: M1 Mac setup (CPU-based)
 # ============================================================================
@@ -263,45 +331,7 @@ if [ "$1" = "--gpu" ]; then
         echo "Loaded .env (HF_TOKEN set)"
     fi
 
-    # Clone vjepa2 (contains BOTH 2.0 and 2.1 code)
-    # 2.0: deps/vjepa2/src/models/ (base ViT, predictor)
-    # 2.1: deps/vjepa2/app/vjepa_2_1/models/ (hierarchical output, deep supervision)
-    if [ ! -d "deps/vjepa2/src" ]; then
-        echo ""
-        echo "Cloning facebookresearch/vjepa2 (contains V-JEPA 2.0 + 2.1)..."
-        rm -rf deps/vjepa2
-        git clone --depth 1 https://github.com/facebookresearch/vjepa2.git deps/vjepa2
-        echo "vjepa2 cloned to deps/vjepa2/"
-    else
-        echo "deps/vjepa2 already present"
-    fi
-
-    # Idempotent patch: cast RoPE-rotated Q/K back to V.dtype before SDPA.
-    # V-JEPA 2.1's RoPE keeps Q/K in fp32 for numerical stability, but the model is
-    # loaded in bf16 → torch.compile's FakeTensor check rejects the Q/K/V dtype
-    # mismatch at F.scaled_dot_product_attention. Lossless downcast (rotation math
-    # stays fp32, only final Q/K result is cast). Must re-apply on every fresh clone.
-    # errors_N_fixes.md #44. Idempotent: skips if already present.
-    python3 << 'PYEOF'
-path = 'deps/vjepa2/app/vjepa_2_1/models/utils/modules.py'
-src = open(path).read()
-if 'q = q.to(v.dtype)' in src:
-    print("vjepa2 RoPE dtype patch already present (#44)")
-else:
-    anchor = "            k = torch.cat([kd, kh, kw], dim=-1)\n\n        if self.use_sdpa:"
-    replacement = (
-        "            k = torch.cat([kd, kh, kw], dim=-1)\n\n"
-        "        # RoPE outputs fp32 Q/K; cast back to V.dtype before SDPA so\n"
-        "        # torch.compile FakeTensor check passes. errors_N_fixes.md #44.\n"
-        "        q = q.to(v.dtype)\n"
-        "        k = k.to(v.dtype)\n\n"
-        "        if self.use_sdpa:"
-    )
-    if anchor not in src:
-        raise SystemExit(f"FATAL: vjepa2 upstream refactored {path} — #44 anchor not found. Re-derive patch.")
-    open(path, 'w').write(src.replace(anchor, replacement))
-    print("vjepa2 RoPE dtype patch applied (#44)")
-PYEOF
+    setup_vjepa2
 
     # Download ONLY the backbones the scheduler TRAINS — registry group 'trainable' (iter18: 2B ViT-G only, ~16 GB) — so the
     # torch / GPU-deps install below does NOT wait behind the ~59 GB of eval-only §G baseline ckpts
