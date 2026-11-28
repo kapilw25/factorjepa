@@ -18,8 +18,8 @@ a number, an interval and a hedge), and no other skill measures voice.
 
 ```bash
 # from the folder the profile names; activate the project venv first if a hook requires it
-python3 <repo>/.claude/skills/audit-robotic-tone/check_tone.py <venue>/0_main.tex          # abstract only
-python3 <repo>/.claude/skills/audit-robotic-tone/check_tone.py <venue>/0_main.tex --all    # plus the body, from the built PDF
+python3 ${CLAUDE_SKILL_DIR}/check_tone.py <venue>/0_main.tex          # abstract only
+python3 ${CLAUDE_SKILL_DIR}/check_tone.py <venue>/0_main.tex --all    # plus the body, from the built PDF
 ```
 
 The abstract comes from the .tex with every macro number filled in (`\input` paths resolve from the profile's `macro_roots`); the

@@ -19,7 +19,7 @@ skills score pages against a fixed checklist; none read the judges' files.
 | # | Step |
 |---|---|
 | 1 | 📥 Collect every `step2.md` of the draft's judges (all rounds) and their "rewrites that matter most" / "Before / After" parts. |
-| 2 | 🧪 Run `judge_pattern_check.py <paper.pdf> <step2.md ...>` (command in the profile; `--selftest` gives 3 of 3). |
+| 2 | 🧪 Run `python3 ${CLAUDE_SKILL_DIR}/judge_pattern_check.py <paper.pdf> <step2.md ...>` from the folder the profile names (`--selftest` gives 3 of 3). |
 | 3 | ❌ Each J1-J5 FAIL is rewritten NOW, in the venue's own theme, every number from the macro files, then 🔁 rebuild and rerun every gate. |
 | 4 | 📝 Each J6 line (a judge's "Before" sentence still in the paper) is rewritten, or gets a decision row in the draft's TODOs with its reason. |
 | 5 | 📸 Screenshot every changed spot and send it; push. Explaining without fixing is not done. |
