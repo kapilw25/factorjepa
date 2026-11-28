@@ -13,7 +13,7 @@ USAGE:
     python -u src/utils/hf_shard_subset.py \\
         --repo anonymousML123/factorjepa-outputs --shard-prefix data/full_local/m00d_download_subset/ \\
         --corpus data/full_local/full_local.json --subset data/heldout_video/heldout_video.json \\
-        --output-dir data/heldout_video_local --clips-per-shard 1000 \\
+        --output-dir data/heldout_video_local --workers 8 \\
         2>&1 | tee logs/hf_shard_subset_$(date +%Y%m%d_%H%M%S).log
 """
 import argparse
@@ -22,6 +22,7 @@ import json
 import sys
 import tarfile
 import urllib.request
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
 from huggingface_hub import HfApi, hf_hub_url
@@ -50,7 +51,7 @@ def main():
     p.add_argument("--corpus", type=Path, required=True)
     p.add_argument("--subset", type=Path, required=True)
     p.add_argument("--output-dir", type=Path, required=True)
-    p.add_argument("--clips-per-shard", type=int, required=True)
+    p.add_argument("--workers", type=int, required=True, help="parallel HF streams (network-bound)")
     a = p.parse_args()
 
     keys = json.loads(a.corpus.read_text())["clip_keys"]
@@ -64,22 +65,24 @@ def main():
 
     files = sorted(f for f in HfApi().list_repo_files(a.repo, repo_type="dataset")
                    if f.startswith(a.shard_prefix) and f.endswith(".tar"))
-    block_url = {}
-    for f in files:
-        url = hf_hub_url(a.repo, f, repo_type="dataset")
-        block_url[first_index(url) // BLOCK] = url
+    urls = [hf_hub_url(a.repo, f, repo_type="dataset") for f in files]
+    with ThreadPoolExecutor(a.workers) as ex:  # network-bound range requests, not tensor work
+        starts = list(ex.map(first_index, urls))
+    block_url = {s // BLOCK: u for s, u in zip(starts, urls)}
     lost = [b for b in blocks if b not in block_url]
     if lost:
         sys.exit(f"FATAL: no shard starts at block(s) {lost}")
-    print(f"{len(want)} wanted clips in {len(blocks)} of {len(files)} shards", flush=True)
+    print(f"{len(want)} wanted clips in {len(blocks)} of {len(files)} shards; {a.workers} parallel streams", flush=True)
 
     out_dir = shards_dir(a.output_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
-    shards, kept, out, n_in_out = [], {}, None, 0
-    for b in blocks:
+
+    def cut_block(b: int) -> tuple:
+        """Stream source shard of block b; write its wanted clips to subset-<block>.tar. Returns (shard, counts)."""
         need = {i for i in want if i // BLOCK == b}
-        got = set()
-        with urllib.request.urlopen(block_url[b], timeout=600) as resp, tarfile.open(fileobj=resp, mode="r|") as src:
+        got, kept, name = set(), {}, f"subset-{b:05d}.tar"
+        with urllib.request.urlopen(block_url[b], timeout=600) as resp, \
+                tarfile.open(fileobj=resp, mode="r|") as src, tarfile.open(out_dir / name, "w") as out:
             for m in src:
                 idx = int(m.name.split(".")[0])
                 if idx not in need:
@@ -89,28 +92,26 @@ def main():
                     side = json.loads(data)
                     key = f"{side['section']}/{side['video_id']}/{side['source_file']}"
                     if key != keys[idx]:
-                        sys.exit(f"FATAL: sidecar {m.name} says {key}, corpus index {idx} is {keys[idx]}")
+                        raise RuntimeError(f"sidecar {m.name} says {key}, corpus index {idx} is {keys[idx]}")
                     got.add(idx)
-                if out is None or n_in_out >= 2 * a.clips_per_shard:
-                    if out is not None:
-                        out.close()
-                    shards.append(f"subset-{len(shards):05d}.tar")
-                    out = tarfile.open(out_dir / shards[-1], "w")
-                    n_in_out = 0
                 info = tarfile.TarInfo(m.name)
                 info.size = len(data)
                 out.addfile(info, io.BytesIO(data))
-                n_in_out += 1
                 kept[idx] = kept.get(idx, 0) + 1
                 if got >= need and all(kept.get(i, 0) == 2 for i in need):
                     break
         print(f"block {b}: kept {len(got)}/{len(need)} clips", flush=True)
-    if out is not None:
-        out.close()
+        return name, kept
+
+    shards, kept = [], {}
+    with ThreadPoolExecutor(a.workers) as ex:  # network-bound streams
+        for name, k in ex.map(cut_block, blocks):
+            shards.append(name)
+            kept.update(k)
     short = [i for i in want if kept.get(i, 0) != 2]
     if short:
         sys.exit(f"FATAL: {len(short)} wanted clips missing an mp4 or json, e.g. {[keys[i] for i in short[:3]]}")
-    manifest = {"shards": shards, "n_clips": len(want), "subset": str(a.subset), "method": "hf_shard_subset",
+    manifest = {"shards": sorted(shards), "n_clips": len(want), "subset": str(a.subset), "method": "hf_shard_subset",
                 "source_repo": a.repo, "source_prefix": a.shard_prefix}
     (a.output_dir / artifact("manifest")).write_text(json.dumps(manifest, indent=2))
     print(f"wrote {len(want)} clips in {len(shards)} shards to {out_dir}")
