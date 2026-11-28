@@ -23,7 +23,7 @@ size_categories:
 
 **A large-scale video benchmark of populous, crowded, and chaotic Global South urban environments**, used to study world models (JEPA) under soft spatial boundaries, extreme agent heterogeneity, persistent occlusion, and rapid social negotiation.
 
-- **115,687** clips (4–10 s each)
+- **115,687** clips (4–14 s each, median 9.3 s; 99.8% under 10.5 s)
 - **714** long-form source videos across **22 Indian cities**
 - Drive-through, walk-through, and aerial (drone) viewpoints; markets, ghats, junctions, flyovers, beaches, and more
 
@@ -62,7 +62,7 @@ The pipeline is **deterministic** and reproduces the released clips exactly:
 
 1. **Download** each source video at 480p (`yt-dlp`).
 2. **Detect scene boundaries** (PySceneDetect `ContentDetector`, threshold 15.0).
-3. **Greedy-split** into contiguous 4–10 s clips at scene boundaries.
+3. **Greedy-split** into contiguous clips at scene boundaries, targeting 4–10 s (encoded clips run 4–14 s; see `duration_sec` in `clips.csv`).
 4. **Encode** each clip (`ffmpeg` libx264 CRF 28, AAC 128k).
 
 Clips are written to `<out>/<section>/<video_id>-<NNN>.mp4` (e.g. `goa/walking/04YKvC8kAgI-000.mp4`), matching the `clip_key`s in `clips.csv`.

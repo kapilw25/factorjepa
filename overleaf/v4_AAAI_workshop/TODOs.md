@@ -51,10 +51,9 @@ Writing and CPU work on the Mac. Each draft is rebuilt with all gates (pages, an
 | 📊 Density split of the margin | 🔗 all | ⏰ Sat Nov 28, ~6 PM | ⏳ waits box for per-clip data | 🔥 high, tests the crowding premise |
 | 📏 115k clustered CIs, raw effects | 🔗 all | ⏰ Sat Nov 28, ~8 PM | ⏳ waits box for per-clip data | 🔥 high, Figure 3 in plain units |
 | 🔁 Fresh judge round 2, v3 | 👥 v3 | ⏰ Sun Nov 29, ~8 PM | 🔴 open | 🔥 high, last error catch |
-| 📈 Horizon curve, saved values | 🚗 v1 | ⏰ Mon Dec 7 | 🔴 open | 🟢 medium, v1 planning horizon |
+| 📈 Horizon curve, per-Δt errors | 🚗 v1 | ⏰ Mon Dec 7 | ⏳ waits box: only slopes saved | 🟢 medium, v1 planning horizon |
 | ✍️ v1 rewrites, abstract | 🚗 v1 | ⏰ Fri Dec 18 | 🟡 tone pass done; rest after probe | 🔥 high, first thing read |
 | 🪝 Page-1 hook figure | 👥 v3, 🚗 v1 | ⏰ Sun Nov 29 if time | 🔴 open, needs a real frame | 🟢 medium, page-1 clarity |
-| 🔍 Figure 3: 8 pt ticks, top gap | 🔗 all | 👤 owner call | 🔴 owner, audit found 4 old issues | 🔸 low, readability |
 | 🔤 Figure 1 labels at 9 pt | 🔗 all | 👤 owner call | 🔴 owner, thickening failed | 🔸 low, readability |
 | 📤 Upload as paper.pdf | 🔗 all | 👤 at each upload | 🔴 owner | 🔸 low, file name ties drafts |
 | ✍️ v4, v5 rewrites, abstracts | 📦 v4, 🔁 v5 | ✅ Fri Nov 27, 9:32 PM | ✅ judges' rows, no still-lead | 🔥 high, first thing read |
@@ -73,6 +72,8 @@ Writing and CPU work on the Mac. Each draft is rebuilt with all gates (pages, an
 | 🧾 Corpus composition table | 📦 v4 | ✅ Fri Nov 27, 9:32 PM | ✅ Table 3, from clips.csv | 🟢 medium, v4 documentation |
 | 🖼️ Figure 1 marked as generated | 🔗 all | ✅ Fri Nov 27, 9:33 PM | ✅ owner: generated, no blur | 🟢 medium, responsible use |
 | ⏱️ Clip length 4 to 14 s | 🔗 all | ✅ Fri Nov 27, 9:33 PM | ✅ was 4 to 10 s; clips.csv | 🟢 medium, exact corpus facts |
+| 🔍 Figure 3: 9 pt numbers, frame | 🔗 all | ✅ Fri Nov 27, 9:45 PM | ✅ owner pick, pixel-only | 🟢 medium, readability |
+| ⏱️ Dataset card: 4 to 14 s | 🔗 all | ✅ Fri Nov 27, 9:45 PM | ✅ owner OK, matches papers | 🟢 medium, exact corpus facts |
 | ❓ Why rivals win on coherence | 🔗 all | ✅ Fri Nov 27, 9:22 PM | ✅ from saved ladder results | 🟢 medium, student-abstract reviewer ask |
 | 📐 Plain diagnostic definitions | 🔗 all | ✅ Fri Nov 27, 9:22 PM | ✅ all 13; Motion cosine corrected | 🟢 medium, readers outside vision |
 | 🗂️ Save the judges per draft | 🔗 all | ✅ Fri Nov 27, 6:57 PM | ✅ 16 files, word for word | 🟢 medium, one source per row |
