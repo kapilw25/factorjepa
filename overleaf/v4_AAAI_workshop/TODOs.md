@@ -48,7 +48,6 @@ Writing and CPU work on the Mac. Each draft is rebuilt with all gates (pages, an
 | 🧩 Task | 📄 Draft | ⏰ ETA (PST) | 🚦 Status | 💰 RoI |
 |---|---|---|---|---|
 | 📝 Tell Continual chairs: preprint | 🔁 v5 | 👤 before Wed Dec 2 | 🔴 owner | 🔥 high, originality rule |
-| ✍️ v3 rewrites, abstract | 👥 v3 | ⏰ Sat Nov 28, ~2 PM | 🔴 open, judges' tone rows | 🔥 high, first thing read |
 | 📊 Density split of the margin | 🔗 all | ⏰ Sat Nov 28, ~6 PM | ⏳ waits box for per-clip data | 🔥 high, tests the crowding premise |
 | 📏 115k clustered CIs, raw effects | 🔗 all | ⏰ Sat Nov 28, ~8 PM | ⏳ waits box for per-clip data | 🔥 high, Figure 3 in plain units |
 | 🔁 Fresh judge round 2, v3 | 👥 v3 | ⏰ Sun Nov 29, ~8 PM | 🔴 open | 🔥 high, last error catch |
@@ -62,6 +61,7 @@ Writing and CPU work on the Mac. Each draft is rebuilt with all gates (pages, an
 | 🔍 Figure 3: 8 pt ticks, top gap | 🔗 all | 👤 owner call | 🔴 owner, audit found 4 old issues | 🔸 low, readability |
 | 🔤 Figure 1 labels at 9 pt | 🔗 all | 👤 owner call | 🔴 owner, thickening failed | 🔸 low, readability |
 | 📤 Upload as paper.pdf | 🔗 all | 👤 at each upload | 🔴 owner | 🔸 low, file name ties drafts |
+| ✍️ v3 rewrites, abstract | 👥 v3 | ✅ Fri Nov 27, 9:25 PM | ✅ abstract, question, Sec 5 | 🔥 high, first thing read |
 | 🔎 Dataset card: six names removed | 🔗 all | ✅ Fri Nov 27, 9:22 PM | ✅ owner OK, history squashed | 🔥 high, stopped a blind leak |
 | 🔤 Rename Causal L1 to Forward L1 | 🔗 all | ✅ Fri Nov 27, 9:22 PM | ✅ text, tables, Figure 3 label | 🔥 high, removes a causal misreading |
 | 📄 References to page 5 | 🔗 all | ✅ Fri Nov 27, 9:22 PM | ✅ page 4 right column freed | 🔥 high, frees a column for results |
