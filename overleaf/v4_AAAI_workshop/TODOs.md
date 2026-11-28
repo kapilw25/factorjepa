@@ -51,16 +51,16 @@ Writing and CPU work on the Mac. Each draft is rebuilt with all gates (pages, an
 | 📊 Density split of the margin | 🔗 all | ⏰ Sat Nov 28, ~6 PM | ⏳ waits box for per-clip data | 🔥 high, tests the crowding premise |
 | 📏 115k clustered CIs, raw effects | 🔗 all | ⏰ Sat Nov 28, ~8 PM | ⏳ waits box for per-clip data | 🔥 high, Figure 3 in plain units |
 | 🔁 Fresh judge round 2, v3 | 👥 v3 | ⏰ Sun Nov 29, ~8 PM | 🔴 open | 🔥 high, last error catch |
-| 🖼️ Blur faces in Figure 1 | 🔗 all | ⏰ Sat Nov 28, ~8 PM | 🔴 open, pixels only | 🟢 medium, responsible use |
-| ✍️ v4, v5 rewrites, abstracts | 📦 v4, 🔁 v5 | ⏰ Mon Nov 30, ~6 PM | 🔴 open, after v3 | 🔥 high, first thing read |
-| 📚 Continual, causal positioning | 🔁 v5 | ⏰ Mon Nov 30, ~6 PM | 🔴 open, plus references | 🔥 high, v5 venue fit |
-| 🧾 Corpus composition table | 📦 v4 | ⏰ Sun Nov 29, ~6 PM | 🔴 open, metadata only | 🟢 medium, v4 documentation |
+| 🖼️ Blur faces in Figure 1 | 🔗 all | 👤 owner call | ⛔ real frames or generated? | 🟢 medium, responsible use |
 | 📈 Horizon curve, saved values | 🚗 v1 | ⏰ Mon Dec 7 | 🔴 open | 🟢 medium, v1 planning horizon |
 | ✍️ v1 rewrites, abstract | 🚗 v1 | ⏰ Fri Dec 18 | 🔴 open | 🔥 high, first thing read |
 | 🪝 Page-1 hook figure | 👥 v3, 🚗 v1 | ⏰ Sun Nov 29 if time | 🔴 open, needs a real frame | 🟢 medium, page-1 clarity |
 | 🔍 Figure 3: 8 pt ticks, top gap | 🔗 all | 👤 owner call | 🔴 owner, audit found 4 old issues | 🔸 low, readability |
 | 🔤 Figure 1 labels at 9 pt | 🔗 all | 👤 owner call | 🔴 owner, thickening failed | 🔸 low, readability |
 | 📤 Upload as paper.pdf | 🔗 all | 👤 at each upload | 🔴 owner | 🔸 low, file name ties drafts |
+| ✍️ v4, v5 rewrites, abstracts | 📦 v4, 🔁 v5 | ✅ Fri Nov 27, 9:32 PM | ✅ judges' rows, no still-lead | 🔥 high, first thing read |
+| 📚 Continual, causal positioning | 🔁 v5 | ✅ Fri Nov 27, 9:32 PM | ✅ related work, 5 references | 🔥 high, v5 venue fit |
+| 🏷️ Rival C named plainly | 🔗 all | ✅ Fri Nov 27, 9:32 PM | ✅ C is plain continued pretraining | 🔥 high, honest rival list |
 | ✍️ v3 rewrites, abstract | 👥 v3 | ✅ Fri Nov 27, 9:25 PM | ✅ abstract, question, Sec 5 | 🔥 high, first thing read |
 | 🔎 Dataset card: six names removed | 🔗 all | ✅ Fri Nov 27, 9:22 PM | ✅ owner OK, history squashed | 🔥 high, stopped a blind leak |
 | 🔤 Rename Causal L1 to Forward L1 | 🔗 all | ✅ Fri Nov 27, 9:22 PM | ✅ text, tables, Figure 3 label | 🔥 high, removes a causal misreading |
@@ -71,6 +71,7 @@ Writing and CPU work on the Mac. Each draft is rebuilt with all gates (pages, an
 | 🎭 Masking called a proxy | 🔗 all | ✅ Fri Nov 27, 7:05 PM | ✅ not real occlusion | 🔥 high, construct validity |
 | 🧮 Method text matches code | 🔗 all | ✅ Fri Nov 27, morning | ✅ 3-stage clip curriculum | 🔥 high, answers main-track R2 |
 | 🪜 Attribution ladder, Table 2 | 🔗 all | ✅ Fri Nov 27, morning | ✅ paired and clustered CIs | 🔥 high, answers ablation critique |
+| 🧾 Corpus composition table | 📦 v4 | ✅ Fri Nov 27, 9:32 PM | ✅ Table 3, from clips.csv | 🟢 medium, v4 documentation |
 | ❓ Why rivals win on coherence | 🔗 all | ✅ Fri Nov 27, 9:22 PM | ✅ from saved ladder results | 🟢 medium, student-abstract reviewer ask |
 | 📐 Plain diagnostic definitions | 🔗 all | ✅ Fri Nov 27, 9:22 PM | ✅ all 13; Motion cosine corrected | 🟢 medium, readers outside vision |
 | 🗂️ Save the judges per draft | 🔗 all | ✅ Fri Nov 27, 6:57 PM | ✅ 16 files, word for word | 🟢 medium, one source per row |

@@ -1,0 +1,25 @@
+% common/tab_composition.tex: DENSEWORLD-115k by capture mode (v4 Data2AgentEx only; judges claude.ai v4 C4, Gemini v4 B7).
+% Counted Fri Nov 27 2026 from the released manifest src/hf_denseworld_115k/clips.csv (= the HF dataset's clips.csv):
+% mode = last part of `section` (tier1/<city>/<mode>, tier2/<city>/<mode>, goa/walking, monuments/<site>);
+% Videos = distinct base_video_id; Hours = sum(duration_sec)/3600. Totals match numbers.tex (115,687 clips,
+% 275.8 h, 714 videos, 22 cities). A city or video can appear in more than one mode.
+\begin{table}[t]
+\centering
+\small
+\setlength{\tabcolsep}{4pt}
+\begin{tabular}{lrrrr}
+\toprule
+Capture mode & Clips & Hours & Videos & Cities \\
+\midrule
+Walk-through & 69,845 & 163.6 & 301 & 22 \\
+Drive-through & 32,185 & 78.6 & 209 & 21 \\
+Rain & 7,215 & 18.0 & 88 & 15 \\
+Aerial (drone) & 5,947 & 14.2 & 112 & 21 \\
+Heritage site & 495 & 1.3 & 4 & 3 \\
+\midrule
+Total & \nClips{} & \nHours{} & \nVideos{} & \nCities{} \\
+\bottomrule
+\end{tabular}
+\caption{DENSEWORLD-115k by capture mode, from the released clip manifest (Videos: distinct sources; a city can appear in several modes).}
+\label{tab:composition}
+\end{table}
