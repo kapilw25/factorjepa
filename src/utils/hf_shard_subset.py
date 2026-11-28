@@ -2,8 +2,8 @@
 
 The corpus shards (e.g. data/full_local/m00d_download_subset/subset-*.tar in anonymousML123/factorjepa-outputs) hold
 `<index>.mp4` + `<index>.json` pairs, where <index> is the clip's position in the corpus manifest (full_local.json
-clip_keys) and each shard holds one block of 1000 consecutive indices. This reads the first member of every shard
-(one 512-byte range request each) to map blocks to shards, then streams only the shards that hold wanted clips,
+clip_keys) and each shard holds one contiguous index range (about 1000 clips; sizes vary). This reads the first member
+of every shard (one 512-byte range request each) to map ranges to shards, then streams only the shards that hold wanted clips,
 stops each stream after its last wanted clip, checks every kept clip's sidecar against the corpus key, and writes
 <output-dir>/m00d_download_subset/subset-NNNNN.tar plus <output-dir>/manifest.json in the layout the m12* readers use.
 Fails loud if any wanted clip is not found. Public repo, no token needed.
@@ -17,6 +17,7 @@ USAGE:
         2>&1 | tee logs/hf_shard_subset_$(date +%Y%m%d_%H%M%S).log
 """
 import argparse
+import bisect
 import io
 import json
 import sys
@@ -31,17 +32,12 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 from utils.data_paths import shards_dir  # noqa: E402
 from utils.data_paths import artifact  # noqa: E402
 
-BLOCK = 1000  # corpus indices per source shard (observed: each shard starts at a multiple of 1000)
-
-
 def first_index(url: str) -> int:
+    """Corpus index of a shard's first member (one 512-byte range request)."""
     req = urllib.request.Request(url, headers={"Range": "bytes=0-511"})
     head = urllib.request.urlopen(req, timeout=120).read()
     name = head[:100].split(b"\0")[0].decode()
-    idx = int(name.split(".")[0])
-    if idx % BLOCK:
-        raise RuntimeError(f"{url}: first member {name} does not start a block of {BLOCK}")
-    return idx
+    return int(name.split(".")[0])
 
 
 def main():
@@ -61,27 +57,35 @@ def main():
     if missing:
         sys.exit(f"FATAL: {len(missing)} subset keys are not in the corpus, e.g. {missing[:2]}")
     want = {pos[k] for k in want_keys}
-    blocks = sorted({i // BLOCK for i in want})
 
     files = sorted(f for f in HfApi().list_repo_files(a.repo, repo_type="dataset")
                    if f.startswith(a.shard_prefix) and f.endswith(".tar"))
     urls = [hf_hub_url(a.repo, f, repo_type="dataset") for f in files]
     with ThreadPoolExecutor(a.workers) as ex:  # network-bound range requests, not tensor work
         starts = list(ex.map(first_index, urls))
-    block_url = {s // BLOCK: u for s, u in zip(starts, urls)}
-    lost = [b for b in blocks if b not in block_url]
-    if lost:
-        sys.exit(f"FATAL: no shard starts at block(s) {lost}")
+    # Each shard holds a contiguous index range starting at its first member; a shard ends where the next one
+    # starts (shard sizes vary: subset-00113 starts at 113313). A wrong layout surfaces as a FATAL missing clip.
+    order = sorted(range(len(starts)), key=lambda j: starts[j])
+    bounds = [starts[j] for j in order]
+    if len(set(bounds)) != len(bounds):
+        sys.exit("FATAL: two shards start at the same corpus index")
+    by_shard = {}
+    for i in want:
+        j = order[bisect.bisect_right(bounds, i) - 1]
+        if i < starts[j]:
+            sys.exit(f"FATAL: corpus index {i} lies before the first shard")
+        by_shard.setdefault(j, set()).add(i)
+    blocks = sorted(by_shard)
     print(f"{len(want)} wanted clips in {len(blocks)} of {len(files)} shards; {a.workers} parallel streams", flush=True)
 
     out_dir = shards_dir(a.output_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
 
     def cut_block(b: int) -> tuple:
-        """Stream source shard of block b; write its wanted clips to subset-<block>.tar. Returns (shard, counts)."""
-        need = {i for i in want if i // BLOCK == b}
+        """Stream source shard b; write its wanted clips to subset-<shard>.tar. Returns (shard name, counts)."""
+        need = by_shard[b]
         got, kept, name = set(), {}, f"subset-{b:05d}.tar"
-        with urllib.request.urlopen(block_url[b], timeout=600) as resp, \
+        with urllib.request.urlopen(urls[b], timeout=600) as resp, \
                 tarfile.open(fileobj=resp, mode="r|") as src, tarfile.open(out_dir / name, "w") as out:
             for m in src:
                 idx = int(m.name.split(".")[0])
